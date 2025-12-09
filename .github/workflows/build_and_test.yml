@@ -44,10 +44,25 @@ jobs:
               uses: actions/setup-node@v4
               with:
                   node-version: ${{ matrix.node }}
+            - name: Cache node_modules
+              uses: actions/cache@v4
+              with:
+                  path: node_modules
+                  key: npm-${{ runner.os }}-${{ matrix.node }}-${{ hashFiles('**/package-lock.json') }}
+                  restore-keys: |
+                      npm-${{ runner.os }}-${{ matrix.node }}-
             - name: npm install
               run: |
                   npm install
                   npm install --os=linux --cpu=x64 sharp
+            - name: Cache Nx
+              uses: actions/cache@v4
+              with:
+                  path: node_modules/.cache/nx
+                  key: nx-${{ runner.os }}-${{ matrix.node }}-${{ hashFiles('**/package-lock.json') }}-${{ github.sha }}
+                  restore-keys: |
+                      nx-${{ runner.os }}-${{ matrix.node }}-${{ hashFiles('**/package-lock.json') }}-
+                      nx-${{ runner.os }}-${{ matrix.node }}-
             - name: Build
               run: npm run build
     unit-tests:
@@ -64,10 +79,25 @@ jobs:
               uses: actions/setup-node@v4
               with:
                   node-version: ${{ matrix.node }}
+            - name: Cache node_modules
+              uses: actions/cache@v4
+              with:
+                  path: node_modules
+                  key: npm-${{ runner.os }}-${{ matrix.node }}-${{ hashFiles('**/package-lock.json') }}
+                  restore-keys: |
+                      npm-${{ runner.os }}-${{ matrix.node }}-
             - name: npm install
               run: |
                   npm install
                   npm install --os=linux --cpu=x64 sharp
+            - name: Cache Nx
+              uses: actions/cache@v4
+              with:
+                  path: node_modules/.cache/nx
+                  key: nx-${{ runner.os }}-${{ matrix.node }}-${{ hashFiles('**/package-lock.json') }}-${{ github.sha }}
+                  restore-keys: |
+                      nx-${{ runner.os }}-${{ matrix.node }}-${{ hashFiles('**/package-lock.json') }}-
+                      nx-${{ runner.os }}-${{ matrix.node }}-
             - name: Build
               run: npx lerna run ci
             - name: Unit tests
@@ -133,10 +163,25 @@ jobs:
               uses: actions/setup-node@v4
               with:
                   node-version: ${{ matrix.node }}
+            - name: Cache node_modules
+              uses: actions/cache@v4
+              with:
+                  path: node_modules
+                  key: npm-${{ runner.os }}-${{ matrix.node }}-${{ hashFiles('**/package-lock.json') }}
+                  restore-keys: |
+                      npm-${{ runner.os }}-${{ matrix.node }}-
             - name: npm install
               run: |
                   npm install
                   npm install --os=linux --cpu=x64 sharp
+            - name: Cache Nx
+              uses: actions/cache@v4
+              with:
+                  path: node_modules/.cache/nx
+                  key: nx-${{ runner.os }}-${{ matrix.node }}-${{ hashFiles('**/package-lock.json') }}-${{ github.sha }}
+                  restore-keys: |
+                      nx-${{ runner.os }}-${{ matrix.node }}-${{ hashFiles('**/package-lock.json') }}-
+                      nx-${{ runner.os }}-${{ matrix.node }}-
             - name: Build
               run: npx lerna run ci
             - name: e2e tests

@@ -1,0 +1,34 @@
+{
+  "neverConnectToCloud": true,
+  "namedInputs": {
+    "prod": [
+      "!{projectRoot}/**/*.spec.ts",
+      "!{projectRoot}/**/*.spec.js",
+      "!{projectRoot}/**/*.test.ts",
+      "!{projectRoot}/**/*.test.js",
+      "!{projectRoot}/**/*.md",
+      "!{projectRoot}/**/*.mdx",
+      "!{projectRoot}/.gitignore",
+      "!{projectRoot}/.eslintrc*",
+      "{projectRoot}/**/*"
+    ],
+    "default": ["{projectRoot}/**/*"]
+  },
+  "targetDefaults": {
+    "build": {
+      "cache": true,
+      "dependsOn": ["^build"],
+      "inputs": ["prod", "^prod"],
+      "outputs": ["{projectRoot}/dist"]
+    },
+    "test": {
+      "cache": true,
+      "dependsOn": ["build"],
+      "inputs": ["default", "^prod"]
+    },
+    "lint": {
+      "cache": true,
+      "inputs": ["default"]
+    }
+  }
+}
