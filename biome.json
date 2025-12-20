@@ -1,0 +1,237 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.3.8/schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "files": { "ignoreUnknown": false, "maxSize": 2097152 },
+  "formatter": {
+    "enabled": true,
+    "formatWithErrors": false,
+    "indentStyle": "space",
+    "indentWidth": 4,
+    "lineEnding": "lf",
+    "lineWidth": 110,
+    "attributePosition": "auto",
+    "bracketSameLine": true,
+    "bracketSpacing": true,
+    "useEditorconfig": true,
+    "includes": [
+      "**",
+      "!**/generated-types.ts",
+      "!**/lazy-extensions.module.ts",
+      "!**/shared-extensions.module.ts",
+      "!**/generated-graphql-shop-errors.ts",
+      "!**/generated-graphql-admin-errors.ts",
+      "!**/tailwindcss-animate.css",
+      "!**/*.graphql"
+    ]
+  },
+  "linter": {
+    "enabled": true,
+    "rules": { "recommended": false, "style": { "useBlockStatements": "off" } },
+    "includes": [
+      "**",
+      "!**/node_modules/**",
+      "!**/dist/**",
+      "!**/generated*",
+      "!**/*.js",
+      "!**/*.d.ts",
+      "!/packages/ui-devkit/scaffold/**/*",
+      "!/packages/dev-server/load-testing/**/*",
+      "!/docs/layouts/**/*"
+    ]
+  },
+  "javascript": {
+    "parser": { "unsafeParameterDecoratorsEnabled": true },
+    "formatter": {
+      "jsxQuoteStyle": "double",
+      "quoteProperties": "asNeeded",
+      "trailingCommas": "all",
+      "semicolons": "always",
+      "arrowParentheses": "asNeeded",
+      "bracketSameLine": true,
+      "quoteStyle": "single",
+      "attributePosition": "auto",
+      "bracketSpacing": true
+    }
+  },
+  "html": { "formatter": { "indentScriptAndStyle": false, "selfCloseVoidElements": "always" } },
+  "css": { "parser": { "tailwindDirectives": true } },
+  "overrides": [
+    { "includes": ["**/*.ts", "**/*.tsx"], "javascript": { "globals": [] } },
+    {
+      "includes": ["**/*.ts", "**/*.tsx"],
+      "linter": {
+        "rules": {
+          "complexity": { "noArguments": "error" },
+          "correctness": {
+            "noConstAssign": "off",
+            "noGlobalObjectCalls": "off",
+            "noInvalidBuiltinInstantiation": "off",
+            "noInvalidConstructorSuper": "off",
+            "noSetterReturn": "off",
+            "noUndeclaredVariables": "off",
+            "noUnreachable": "off",
+            "noUnreachableSuper": "off"
+          },
+          "style": { "useConst": "error" },
+          "suspicious": {
+            "noClassAssign": "off",
+            "noDuplicateClassMembers": "off",
+            "noDuplicateObjectKeys": "off",
+            "noDuplicateParameters": "off",
+            "noFunctionAssign": "off",
+            "noImportAssign": "off",
+            "noRedeclare": "off",
+            "noUnsafeNegation": "off",
+            "noVar": "error",
+            "noWith": "off",
+            "useGetterReturn": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.ts", "**/*.tsx"],
+      "linter": {
+        "rules": {
+          "complexity": { "noUselessTypeConstraint": "error" },
+          "correctness": { "noUnusedVariables": "error" },
+          "style": {
+            "noCommonJs": "error",
+            "noNamespace": "error",
+            "useArrayLiterals": "error",
+            "useAsConstAssertion": "error"
+          },
+          "suspicious": {
+            "noExplicitAny": "error",
+            "noExtraNonNullAssertion": "error",
+            "noMisleadingInstantiator": "error",
+            "noNonNullAssertedOptionalChain": "error",
+            "noUnsafeDeclarationMerging": "error",
+            "useNamespaceKeyword": "error"
+          }
+        }
+      }
+    },
+    { "includes": ["**/*.ts", "**/*.tsx"], "javascript": { "globals": [] } },
+    {
+      "includes": ["**/*.ts", "**/*.tsx"],
+      "linter": {
+        "rules": {
+          "complexity": { "noArguments": "error" },
+          "correctness": {
+            "noConstAssign": "off",
+            "noGlobalObjectCalls": "off",
+            "noInvalidBuiltinInstantiation": "off",
+            "noInvalidConstructorSuper": "off",
+            "noSetterReturn": "off",
+            "noUndeclaredVariables": "off",
+            "noUnreachable": "off",
+            "noUnreachableSuper": "off"
+          },
+          "style": { "useConst": "error" },
+          "suspicious": {
+            "noClassAssign": "off",
+            "noDuplicateClassMembers": "off",
+            "noDuplicateObjectKeys": "off",
+            "noDuplicateParameters": "off",
+            "noFunctionAssign": "off",
+            "noImportAssign": "off",
+            "noRedeclare": "off",
+            "noUnsafeNegation": "off",
+            "noVar": "error",
+            "noWith": "off",
+            "useGetterReturn": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.ts", "**/*.tsx"],
+      "linter": {
+        "rules": {
+          "complexity": { "noUselessTypeConstraint": "error" },
+          "correctness": { "noUnusedVariables": "error" },
+          "style": {
+            "noCommonJs": "error",
+            "noNamespace": "error",
+            "useArrayLiterals": "error",
+            "useAsConstAssertion": "error"
+          },
+          "suspicious": {
+            "noExplicitAny": "error",
+            "noExtraNonNullAssertion": "error",
+            "noMisleadingInstantiator": "error",
+            "noNonNullAssertedOptionalChain": "error",
+            "noUnsafeDeclarationMerging": "error",
+            "useAwait": "error",
+            "useNamespaceKeyword": "error"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.ts", "**/*.tsx"],
+      "javascript": { "globals": ["exports"] },
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noUselessTypeConstraint": "error",
+            "noUselessUndefinedInitialization": "error",
+            "useLiteralKeys": "error"
+          },
+          "correctness": {
+            "noInvalidConstructorSuper": "error",
+            "noInvalidUseBeforeDeclaration": "off",
+            "noPrecisionLoss": "error",
+            "noUnsafeFinally": "error",
+            "noUnusedLabels": "error",
+            "noUnusedVariables": "off",
+            "useIsNan": "error",
+            "useParseIntRadix": "error",
+            "useValidTypeof": "off"
+          },
+          "security": { "noGlobalEval": "error" },
+          "style": {
+            "noInferrableTypes": "error",
+            "noNamespace": "error",
+            "noNonNullAssertion": "error",
+            "useArrayLiterals": "error",
+            "useAsConstAssertion": "error",
+            "useConsistentArrayType": { "level": "error", "options": { "syntax": "shorthand" } },
+            "useConsistentBuiltinInstantiation": "error",
+            "useConsistentMemberAccessibility": {
+              "level": "off",
+              "options": { "accessibility": "explicit" }
+            },
+            "useConsistentTypeDefinitions": "off",
+            "useConst": "error",
+            "useForOf": "error",
+            "useShorthandFunctionType": "error",
+            "useSingleVarDeclarator": "error",
+            "useUnifiedTypeSignatures": "error"
+          },
+          "suspicious": {
+            "noBitwiseOperators": "error",
+            "noConsole": "error",
+            "noDebugger": "error",
+            "noDoubleEquals": "error",
+            "noEmptyBlockStatements": "error",
+            "noExplicitAny": "off",
+            "noExtraNonNullAssertion": "error",
+            "noFallthroughSwitchClause": "error",
+            "noMisleadingInstantiator": "error",
+            "noNonNullAssertedOptionalChain": "error",
+            "noVar": "error",
+            "useAdjacentOverloadSignatures": "error",
+            "useAwait": "warn",
+            "useGuardForIn": "error",
+            "useNamespaceKeyword": "error"
+          }
+        }
+      }
+    },
+    { "includes": ["packages/ui-devkit/src/client/**/*"], "javascript": { "globals": [] } },
+    { "includes": ["packages/ui-devkit/src/compiler/**/*"], "javascript": { "globals": [] } }
+  ],
+  "assist": { "enabled": true, "actions": { "source": { "organizeImports": "on" } } }
+}

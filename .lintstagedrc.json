@@ -1,9 +1,11 @@
 {
-    "admin-ui/**/*.ts": ["npm run lint", "npm run format", "git add"],
-    "admin-ui/**/*.html": ["npm run format", "git add"],
-    "packages/!(dev-server)/**/*.ts": ["npm run lint", "npm run format", "git add"],
-    "packages/dashboard/src/lib/**/use-*.{ts,tsx}": [
-        "node packages/dashboard/scripts/check-lib-imports.js",
-        "git add"
-    ]
+  "admin-ui/**/*.ts": ["biome check --write --files-ignore-unknown=true --no-errors-on-unmatched"],
+  "admin-ui/**/*.html": ["biome check --write --files-ignore-unknown=true --no-errors-on-unmatched"],
+  "packages/!(admin-ui|dev-server)/**/*.ts": [
+    "biome check --write --files-ignore-unknown=true --no-errors-on-unmatched"
+  ],
+  "packages/dashboard/**/*.{ts,tsx}": [
+    "biome check --write --files-ignore-unknown=true --no-errors-on-unmatched"
+  ],
+  "packages/dashboard/src/lib/**/use-*.{ts,tsx}": ["node packages/dashboard/scripts/check-lib-imports.js"]
 }
