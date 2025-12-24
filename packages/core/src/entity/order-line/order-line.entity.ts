@@ -87,6 +87,9 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
     @ManyToOne(type => Order, order => order.lines, { onDelete: 'CASCADE' })
     order: Order;
 
+    @EntityId()
+    orderId: ID;
+
     @OneToMany(type => OrderLineReference, lineRef => lineRef.orderLine)
     linesReferences: OrderLineReference[];
 
