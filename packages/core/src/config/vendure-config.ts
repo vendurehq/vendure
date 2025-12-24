@@ -1,4 +1,5 @@
 import { ApolloServerPlugin } from '@apollo/server';
+import type { KeyValueCache } from '@apollo/utils.keyvaluecache';
 import { RenderPageOptions } from '@apollographql/graphql-playground-html';
 import { DynamicModule, Type } from '@nestjs/common';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
@@ -211,6 +212,17 @@ export interface ApiOptions {
      * @default []
      */
     apolloServerPlugins?: ApolloServerPlugin[];
+    /**
+     * @description
+     * Pass a [custom Apollo cache](https://www.apollographql.com/docs/apollo-server/performance/caching) to the underlying Apollo Server.
+     * Note: this option only supplies the cache instance. To enable GraphQL response caching you must also add
+     * the `responseCachePlugin` (or another plugin that uses `server.cache`) to `apolloServerPlugins`, and set
+     * appropriate cache hints on fields. This option is unrelated to Vendure's {@link SystemOptions}.`cacheStrategy`.
+     *
+     * @default 'bounded'
+     * @since 3.5.0
+     */
+    cache?: KeyValueCache<string> | 'bounded';
     /**
      * @description
      * Controls whether introspection of the GraphQL APIs is enabled. For production, it is recommended to disable
