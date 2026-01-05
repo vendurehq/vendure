@@ -23,6 +23,7 @@ import { useDebounce } from '@uidotdev/usehooks';
 import { Loader2, Search, Upload, X } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { useLingui } from '@lingui/react/macro';
 import { tagListDocument } from '../../../../app/routes/_authenticated/_assets/assets.graphql.js';
 import { AssetTagFilter } from '../../../../app/routes/_authenticated/_assets/components/asset-tag-filter.js';
 import { DetailPageButton } from '../detail-page-button.js';
@@ -171,6 +172,8 @@ export function AssetGallery({
     displayBulkActions = true,
     onPageSizeChange,
 }: AssetGalleryProps) {
+    const { t } = useLingui();
+
     // State
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState('');
@@ -330,7 +333,7 @@ export function AssetGallery({
                         <div className="relative flex-grow flex items-center gap-2">
                             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                             <Input
-                                placeholder="Search assets..."
+                                placeholder={t`Search assets...`}
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
                                 className="pl-8"
@@ -342,19 +345,27 @@ export function AssetGallery({
                                     onClick={clearFilters}
                                     className="absolute right-0"
                                 >
-                                    <X className="h-4 w-4 mr-1" /> Clear filters
+                                    <X className="h-4 w-4 mr-1" /> <Trans>Clear filters</Trans>
                                 </Button>
                             )}
                         </div>
                         <Select value={assetType} onValueChange={setAssetType}>
                             <SelectTrigger className="w-full md:w-[180px]">
-                                <SelectValue placeholder="Asset type" />
+                                <SelectValue placeholder={t`Asset type`} />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value={AssetType.ALL}>All types</SelectItem>
-                                <SelectItem value={AssetType.IMAGE}>Images</SelectItem>
-                                <SelectItem value={AssetType.VIDEO}>Video</SelectItem>
-                                <SelectItem value={AssetType.BINARY}>Binary</SelectItem>
+                                <SelectItem value={AssetType.ALL}>
+                                    <Trans>All types</Trans>
+                                </SelectItem>
+                                <SelectItem value={AssetType.IMAGE}>
+                                    <Trans>Images</Trans>
+                                </SelectItem>
+                                <SelectItem value={AssetType.VIDEO}>
+                                    <Trans>Video</Trans>
+                                </SelectItem>
+                                <SelectItem value={AssetType.BINARY}>
+                                    <Trans>Binary</Trans>
+                                </SelectItem>
                             </SelectContent>
                         </Select>
                         <Button onClick={openFileDialog} className="whitespace-nowrap">
@@ -388,7 +399,9 @@ export function AssetGallery({
                 {isDragActive && (
                     <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center rounded-md">
                         <Upload className="h-12 w-12 text-primary mb-2" />
-                        <p className="text-center font-medium">Drop files here to upload</p>
+                        <p className="text-center font-medium">
+                            <Trans>Drop files here to upload</Trans>
+                        </p>
                     </div>
                 )}
 
@@ -469,7 +482,7 @@ export function AssetGallery({
 
                     {!isLoading && data?.assets.items.length === 0 && (
                         <div className="col-span-full text-center py-12 text-muted-foreground">
-                            No assets found. Try adjusting your filters.
+                            <Trans>No assets found. Try adjusting your filters.</Trans>
                         </div>
                     )}
                 </div>
@@ -477,14 +490,16 @@ export function AssetGallery({
 
             <div className="flex flex-col md:flex-row items-center md:justify-between gap-4 mt-4 flex-shrink-0">
                 <div className="mt-2 text-xs text-muted-foreground flex-shrink-0">
-                    {totalItems} {totalItems === 1 ? 'asset' : 'assets'} found
-                    {selected.length > 0 && `, ${selected.length} selected`}
+                    <Trans>{totalItems} {totalItems === 1 ? 'asset' : 'assets'} found</Trans>
+                    {selected.length > 0 && t`, ${selected.length} selected`}
                 </div>
                 <div className="flex-1"></div>
                 {/* Items per page selector */}
                 {onPageSizeChange && (
                     <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">Items per page</span>
+                        <span className="text-sm text-muted-foreground">
+                            <Trans>Items per page</Trans>
+                        </span>
                         <Select
                             value={pageSize.toString()}
                             onValueChange={value => {

@@ -15,6 +15,7 @@ import {
     RemoveProductVariantsFromChannelBulkAction,
 } from '../../_product-variants/components/product-variant-bulk-actions.js';
 import { productVariantListDocument } from '../products.graphql.js';
+import { useLingui } from '@lingui/react/macro';
 
 interface ProductVariantsTableProps {
     productId: string;
@@ -28,6 +29,7 @@ export function ProductVariantsTable({
     fromProductDetailPage,
 }: ProductVariantsTableProps) {
     const { formatCurrencyName } = useLocalFormat();
+    const { t } = useLingui();
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [sorting, setSorting] = useState<SortingState>([]);
@@ -69,7 +71,7 @@ export function ProductVariantsTable({
             ]}
             customizeColumns={{
                 name: {
-                    header: 'Variant name',
+                    header: t`Variant name`,
                     cell: ({ row: { original } }) => (
                         <DetailPageButton
                             href={`../../product-variants/${original.id}`}

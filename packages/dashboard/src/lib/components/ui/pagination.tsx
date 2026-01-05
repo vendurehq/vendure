@@ -3,6 +3,7 @@ import * as React from 'react';
 
 import { Button, buttonVariants } from '@/vdb/components/ui/button.js';
 import { cn } from '@/vdb/lib/utils.js';
+import { Trans } from '@lingui/react/macro';
 
 function Pagination({ className, ...props }: React.ComponentProps<'nav'>) {
     return (
@@ -62,7 +63,9 @@ function PaginationPrevious({ className, ...props }: React.ComponentProps<typeof
             {...props}
         >
             <ChevronLeftIcon />
-            <span className="hidden sm:block">Previous</span>
+            <span className="hidden sm:block">
+                <Trans>Previous</Trans>
+            </span>
         </PaginationLink>
     );
 }
@@ -75,7 +78,9 @@ function PaginationNext({ className, ...props }: React.ComponentProps<typeof Pag
             className={cn('gap-1 px-2.5 sm:pr-2.5', className)}
             {...props}
         >
-            <span className="hidden sm:block">Next</span>
+            <span className="hidden sm:block">
+                <Trans>Next</Trans>
+            </span>
             <ChevronRightIcon />
         </PaginationLink>
     );
@@ -90,7 +95,9 @@ function PaginationEllipsis({ className, ...props }: React.ComponentProps<'span'
             {...props}
         >
             <MoreHorizontalIcon className="size-4" />
-            <span className="sr-only">More pages</span>
+            <span className="sr-only">
+                <Trans>More pages</Trans>
+            </span>
         </span>
     );
 }

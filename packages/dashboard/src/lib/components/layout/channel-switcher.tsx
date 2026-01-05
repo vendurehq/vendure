@@ -149,7 +149,9 @@ export function ChannelSwitcher() {
                                             <DropdownMenuSubTrigger className="gap-2 p-2 ps-4">
                                                 <Languages className="w-4 h-4" />
                                                 <div className="flex gap-1 ms-2">
-                                                    <span className="text-muted-foreground">Content: </span>
+                                                    <span className="text-muted-foreground">
+                                                        <Trans>Content:</Trans>
+                                                    </span>
                                                     {formatLanguageName(contentLanguage)}
                                                 </div>
                                             </DropdownMenuSubTrigger>

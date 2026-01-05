@@ -28,6 +28,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AssetPickerDialog } from './asset/asset-picker-dialog.js';
 import { AssetPreviewDialog } from './asset/asset-preview-dialog.js';
 import { VendureImage } from './vendure-image.js';
+import { Trans } from '@lingui/react/macro';
 
 type Asset = AssetFragment;
 
@@ -285,7 +286,7 @@ export function EntityAssets({
                 onClick={handleSelectAssets}
             >
                 <PaperclipIcon className="mr-2 h-4 w-4" />
-                Add asset
+                <Trans>Add asset</Trans>
             </Button>
         );
 
