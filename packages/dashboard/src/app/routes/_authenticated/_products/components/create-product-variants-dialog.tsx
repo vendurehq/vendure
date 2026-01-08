@@ -21,6 +21,7 @@ import {
     createProductVariantsDocument,
 } from '../products.graphql.js';
 import { CreateProductVariants, VariantConfiguration } from './create-product-variants.js';
+import { toast } from 'sonner';
 
 export function CreateProductVariantsDialog({
     productId,
@@ -128,7 +129,13 @@ export function CreateProductVariantsDialog({
             onSuccess?.();
         } catch (error) {
             console.error('Error creating variants:', error);
-            // Handle error (show toast notification, etc.)
+
+            const fieldErrors = (error as any)?.fieldErrors;
+            const errorMessage =
+                fieldErrors?.[0]?.message ??
+                'An unexpected error occurred while creating variants.';
+
+            toast.error(errorMessage);
         }
     }
 
@@ -175,8 +182,8 @@ export function CreateProductVariantsDialog({
                             }
                         >
                             {createOptionGroupMutation.isPending ||
-                            addOptionGroupToProductMutation.isPending ||
-                            createProductVariantsMutation.isPending ? (
+                                addOptionGroupToProductMutation.isPending ||
+                                createProductVariantsMutation.isPending ? (
                                 <Trans>Creating...</Trans>
                             ) : (
                                 <Trans>Create {createCount} variants</Trans>
