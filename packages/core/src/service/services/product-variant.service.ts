@@ -239,6 +239,22 @@ export class ProductVariantService {
 
     /**
      * @description
+     * Returns the count of ProductVariants associated with the given Collection.
+     */
+    async getVariantCountByCollectionId(ctx: RequestContext, collectionId: ID): Promise<number> {
+        return await this.connection
+            .getRepository(ctx, ProductVariant)
+            .createQueryBuilder('productvariant')
+            .leftJoin('productvariant.collections', 'collection')
+            .leftJoin('productvariant.product', 'product')
+            .where('product.deletedAt IS NULL')
+            .andWhere('productvariant.deletedAt IS NULL')
+            .andWhere('collection.id = :collectionId', { collectionId })
+            .getCount();
+    }
+
+    /**
+     * @description
      * Returns all Channels to which the ProductVariant is assigned.
      */
     async getProductVariantChannels(ctx: RequestContext, productVariantId: ID): Promise<Channel[]> {

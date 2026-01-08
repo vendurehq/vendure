@@ -396,8 +396,7 @@ export class CollectionService implements OnModuleInit {
 
     /**
      * @description
-     * Gets the ancestors of a given collection. Note that since ProductCategories are implemented as an adjacency list, this method
-     * will produce more queries the deeper the collection is in the tree.
+     * Gets the ancestors of a given collection using a single recursive CTE query for optimal performance.
      */
     getAncestors(collectionId: ID): Promise<Collection[]>;
     getAncestors(collectionId: ID, ctx: RequestContext): Promise<Array<Translated<Collection>>>;
@@ -405,42 +404,57 @@ export class CollectionService implements OnModuleInit {
         collectionId: ID,
         ctx?: RequestContext,
     ): Promise<Array<Translated<Collection> | Collection>> {
-        const getParent = async (id: ID, _ancestors: Collection[] = []): Promise<Collection[]> => {
-            const parent = await this.connection
-                .getRepository(ctx, Collection)
-                .createQueryBuilder()
-                .relation(Collection, 'parent')
-                .of(id)
-                .loadOne();
-            if (parent) {
-                if (!parent.isRoot) {
-                    if (idsAreEqual(parent.id, id)) {
-                        Logger.error(
-                            `Circular reference detected in Collection tree: Collection ${id} is its own parent`,
-                        );
-                        return _ancestors;
-                    }
-                    _ancestors.push(parent);
-                    return getParent(parent.id, _ancestors);
-                }
-            }
-            return _ancestors;
-        };
-        const ancestors = await getParent(collectionId);
+        // Use PostgreSQL recursive CTE to fetch all ancestors in a single query
+        Logger.verbose(`[OPTIMIZED CTE] Getting ancestors for collection ${collectionId}`);
+        const query = `
+            WITH RECURSIVE collection_ancestors AS (
+                -- Base case: get the immediate parent (depth 1)
+                SELECT c.id, c."parentId", c."isRoot", 1 as depth
+                FROM collection c
+                INNER JOIN collection child ON child."parentId" = c.id
+                WHERE child.id = $1 AND c."isRoot" = false
 
-        return this.connection
+                UNION
+
+                -- Recursive case: get parent of current ancestor
+                SELECT c.id, c."parentId", c."isRoot", ca.depth + 1
+                FROM collection c
+                INNER JOIN collection_ancestors ca ON ca."parentId" = c.id
+                WHERE c."isRoot" = false
+            )
+            SELECT id, depth FROM collection_ancestors
+            ORDER BY depth ASC;
+        `;
+
+        const ancestorRows = await this.connection
             .getRepository(ctx, Collection)
-            .find({ where: { id: In(ancestors.map(c => c.id)) } })
-            .then(categories => {
-                const resultCategories: Array<Collection | Translated<Collection>> = [];
-                ancestors.forEach(a => {
-                    const category = categories.find(c => c.id === a.id);
-                    if (category) {
-                        resultCategories.push(ctx ? this.translator.translate(category, ctx) : category);
-                    }
-                });
-                return resultCategories;
-            });
+            .query(query, [collectionId]);
+
+        if (ancestorRows.length === 0) {
+            return [];
+        }
+
+        // Get IDs in order: [parent, grandparent, great-grandparent, ...]
+        const ids = ancestorRows.map((row: { id: ID; depth: number }) => row.id);
+
+        // Fetch full collection data with translations
+        const ancestors = await this.connection
+            .getRepository(ctx, Collection)
+            .createQueryBuilder('collection')
+            .leftJoinAndSelect('collection.translations', 'translations')
+            .where('collection.id IN (:...ids)', { ids })
+            .getMany();
+
+        // Preserve order: closest parent first (depth 1), then grandparent (depth 2), etc.
+        const orderedAncestors: Array<Collection | Translated<Collection>> = [];
+        for (const id of ids) {
+            const ancestor = ancestors.find(a => idsAreEqual(a.id, id));
+            if (ancestor) {
+                orderedAncestors.push(ctx ? this.translator.translate(ancestor, ctx) : ancestor);
+            }
+        }
+
+        return orderedAncestors;
     }
 
     async previewCollectionVariants(

@@ -5,13 +5,13 @@ import { PageActionBarRight } from '@/vdb/framework/layout-engine/page-layout.js
 import { ListPage } from '@/vdb/framework/page/list-page.js';
 import { api } from '@/vdb/graphql/api.js';
 import { Trans, useLingui } from '@lingui/react/macro';
-import { FetchQueryOptions, useQueries, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { ExpandedState, getExpandedRowModel } from '@tanstack/react-table';
 import { TableOptions } from '@tanstack/table-core';
 import { ResultOf } from 'gql.tada';
 import { Folder, FolderOpen, PlusIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import { RichTextDescriptionCell } from '@/vdb/components/shared/table-cell/order-table-cell-components.js';
@@ -47,32 +47,40 @@ function CollectionListPage() {
     const [expanded, setExpanded] = useState<ExpandedState>({});
     const [searchTerm, setSearchTerm] = useState<string>('');
 
-    const childrenQueries = useQueries({
-        queries: Object.entries(expanded).map(([collectionId, isExpanded]) => {
-            return {
-                queryKey: ['childCollections', collectionId],
-                queryFn: () =>
-                    api.query(collectionListDocument, {
-                        options: {
-                            filter: {
-                                parentId: { eq: collectionId },
-                            },
-                        },
-                    }),
-                staleTime: 1000 * 60 * 5,
-            } satisfies FetchQueryOptions;
-        }),
+    const expandedIds = Object.entries(expanded)
+        .filter(([_, isExpanded]) => isExpanded === true)
+        .map(([id, _]) => id);
+
+    const { data: childCollectionsData } = useQuery({
+        queryKey: ['childCollections', ...expandedIds.sort((a, b) => a.localeCompare(b))],
+        queryFn: () =>
+            api.query(collectionListDocument, {
+                options: {
+                    filter: expandedIds.length > 0
+                        ? { parentId: { in: expandedIds } }
+                        : undefined,
+                },
+            }),
+        enabled: expandedIds.length > 0,
+        staleTime: 1000 * 60 * 5,
     });
 
-    const childCollectionsByParentId = childrenQueries.reduce(
-        (acc, query, index) => {
-            const collectionId = Object.keys(expanded)[index];
-            if (query.data) {
-                acc[collectionId] = query.data.collections.items;
-            }
-            return acc;
-        },
-        {} as Record<string, any[]>,
+    // Memoize child collections grouped by parent ID
+    const childCollectionsByParentId = useMemo(
+        () => (childCollectionsData?.collections.items || []).reduce(
+            (acc: Record<string, Collection[]>, collection: Collection) => {
+                const parentId = collection.parentId;
+                if (parentId) {
+                    if (!acc[parentId]) {
+                        acc[parentId] = [];
+                    }
+                    acc[parentId].push(collection);
+                }
+                return acc;
+            },
+            {} as Record<string, Collection[]>,
+        ),
+        [childCollectionsData?.collections.items]
     );
 
     const addSubCollections = (data: Collection[]) => {
@@ -133,19 +141,15 @@ function CollectionListPage() {
             });
 
             // Invalidate queries and show success message
-            const queriesToInvalidate = [
-                queryClient.invalidateQueries({ queryKey: ['childCollections', sourceParentId] }),
+            // Invalidate all child collection queries since we use a single query for all expanded collections
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ['childCollections'] }),
                 queryClient.invalidateQueries({ queryKey: ['PaginatedListDataTable'] }),
-            ];
+            ]);
 
             if (targetParentId === sourceParentId) {
-                await Promise.all(queriesToInvalidate);
                 toast.success(t`Collection position updated`);
             } else {
-                queriesToInvalidate.push(
-                    queryClient.invalidateQueries({ queryKey: ['childCollections', targetParentId] })
-                );
-                await Promise.all(queriesToInvalidate);
                 toast.success(t`Collection moved to new parent`);
             }
         } catch (error) {

@@ -56,7 +56,7 @@ export const devConfig: VendureConfig = {
     },
     dbConnectionOptions: {
         synchronize: false,
-        logging: false,
+        logging: true, // Enable all logging
         migrations: [path.join(__dirname, 'migrations/*.ts')],
         ...getDbConfig(),
     },
@@ -190,6 +190,10 @@ function getDbConfig(): DataSourceOptions {
                 password: process.env.DB_PASSWORD || 'password',
                 database: process.env.DB_NAME || 'vendure-dev',
                 schema: process.env.DB_SCHEMA || 'public',
+                extra: {
+                    max: 50, // Maximum pool size
+                    min: 10, // Minimum pool size
+                },
             };
         case 'sqlite':
             console.log('Using sqlite connection');

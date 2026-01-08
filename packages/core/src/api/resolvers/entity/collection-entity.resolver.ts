@@ -1,11 +1,12 @@
 import { Logger } from '@nestjs/common';
-import { Args, Parent, ResolveField, Resolver } from '@nestjs/graphql';
+import { Args, Info, Parent, ResolveField, Resolver } from '@nestjs/graphql';
 import {
     CollectionBreadcrumb,
     ConfigurableOperation,
     ProductVariantListOptions,
 } from '@vendure/common/lib/generated-types';
 import { PaginatedList } from '@vendure/common/lib/shared-types';
+import { GraphQLResolveInfo } from 'graphql';
 
 import { ListQueryOptions } from '../../../common/types/common-types';
 import { Translated } from '../../../common/types/locale-types';
@@ -59,7 +60,22 @@ export class CollectionEntityResolver {
         @Args() args: { options: ProductVariantListOptions },
         @Api() apiType: ApiType,
         @Relations({ entity: ProductVariant, omit: ['assets'] }) relations: RelationPaths<ProductVariant>,
+        @Info() info: GraphQLResolveInfo,
     ): Promise<PaginatedList<Translated<ProductVariant>>> {
+        const onlyTotalItems = this.isOnlyTotalItemsRequested(info);
+
+        if (onlyTotalItems) {
+            // e.g. viewing collections only retrieve count for display purposes
+            const totalItems = await this.productVariantService.getVariantCountByCollectionId(
+                ctx,
+                collection.id,
+            );
+            return {
+                items: [],
+                totalItems,
+            };
+        }
+
         let options: ListQueryOptions<Product> = args.options;
         if (apiType === 'shop') {
             options = {
@@ -71,6 +87,24 @@ export class CollectionEntityResolver {
             };
         }
         return this.productVariantService.getVariantsByCollectionId(ctx, collection.id, options, relations);
+    }
+
+    private isOnlyTotalItemsRequested(info: GraphQLResolveInfo): boolean {
+        const fieldNode = info.fieldNodes[0];
+        const selectionSet = fieldNode.selectionSet;
+
+        if (!selectionSet) return false;
+
+        const selections = selectionSet.selections;
+        const hasItems = selections.some(s => s.kind === 'Field' && s.name.value === 'items');
+        const hasTotalItems = selections.some(s => s.kind === 'Field' && s.name.value === 'totalItems');
+
+        // Check if only totalItems is requested (ignoring __typename which is auto-added)
+        const hasOtherFields = selections.some(
+            s => s.kind === 'Field' && s.name.value !== 'totalItems' && s.name.value !== '__typename',
+        );
+
+        return hasTotalItems && !hasItems && !hasOtherFields;
     }
 
     @ResolveField()
