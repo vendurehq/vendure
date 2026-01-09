@@ -1933,6 +1933,12 @@ export type Mutation = {
     /** Update the password of the active Customer */
     updateCustomerPassword: UpdateCustomerPasswordResult;
     /**
+     * Update the status of the order in Vendure based on the status of the Mollie payment.
+     * You can call this mutation on your order confirmation page, so that you don't have to wait for the Mollie webhook to be processed.
+     * This uses 'getOrderByCode' internally, so it is only available for the first 2 hours after the order is placed.
+     */
+    updateOrderStatusFromMollie?: Maybe<Order>;
+    /**
      * Verify a Customer email address with the token sent to that address. Only applicable if `authOptions.requireVerification` is set to true.
      *
      * If the Customer was not registered with a password in the `registerCustomerAccount` mutation, the password _must_ be
@@ -2055,6 +2061,10 @@ export type MutationUpdateCustomerEmailAddressArgs = {
 export type MutationUpdateCustomerPasswordArgs = {
     currentPassword: Scalars['String']['input'];
     newPassword: Scalars['String']['input'];
+};
+
+export type MutationSyncMolliePaymentStatusArgs = {
+    orderCode: Scalars['String']['input'];
 };
 
 export type MutationVerifyCustomerAccountArgs = {

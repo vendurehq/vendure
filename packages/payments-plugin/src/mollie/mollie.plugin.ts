@@ -74,6 +74,14 @@ export interface MolliePluginOptions {
         ctx: RequestContext,
         order: Order | null,
     ) => AdditionalEnabledPaymentMethodsParams | Promise<AdditionalEnabledPaymentMethodsParams>;
+    /**
+     * @description
+     * Disable the processing of incoming Mollie webhooks. 
+     * Handle with care! This will keep orders in 'AddingItems' state if you don't manually process the Mollie payments via the `syncMolliePaymentStatus` mutation.
+     * 
+     * @since 3.6.0
+     */
+    disableWebhookProcessing?: boolean;
 }
 
 /**

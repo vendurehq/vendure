@@ -122,7 +122,6 @@ describe('Mollie payments', () => {
                     arguments: [
                         { name: 'redirectUrl', value: mollieMockData.redirectUrl },
                         { name: 'apiKey', value: mollieMockData.apiKey },
-                        { name: 'autoCapture', value: 'false' },
                     ],
                 },
                 translations: [

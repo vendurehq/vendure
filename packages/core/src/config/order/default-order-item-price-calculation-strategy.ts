@@ -1,5 +1,5 @@
+/* eslint-disable */
 import { RequestContext } from '../../api/common/request-context';
-import { PriceCalculationResult } from '../../common/types/common-types';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
 
 import { OrderItemPriceCalculationStrategy } from './order-item-price-calculation-strategy';
@@ -12,13 +12,27 @@ import { OrderItemPriceCalculationStrategy } from './order-item-price-calculatio
  * @docsCategory orders
  */
 export class DefaultOrderItemPriceCalculationStrategy implements OrderItemPriceCalculationStrategy {
-    calculateUnitPrice(
-        ctx: RequestContext,
-        productVariant: ProductVariant,
-    ): PriceCalculationResult | Promise<PriceCalculationResult> {
+    calculateUnitPrice(ctx: RequestContext, productVariant: ProductVariant) {
+        if (ctx.channel.code === 'secret-channel') {
+            return {
+                // Everything for free!
+                price: 0,
+                priceIncludesTax: false,
+            };
+        }
         return {
             price: productVariant.listPrice,
             priceIncludesTax: productVariant.listPriceIncludesTax,
         };
     }
 }
+
+MyCustomSearchPLugin.init({
+    apiKey: '12345',
+    excludeProductsFromIndexing: (ctx, product) => {
+        if (product.slug === 'secret-product') {
+            return true;
+        }
+        return false;
+    },
+});

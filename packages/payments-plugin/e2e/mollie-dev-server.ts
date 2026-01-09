@@ -1,5 +1,5 @@
 import { AdminUiPlugin } from '@vendure/admin-ui-plugin';
-import { DefaultLogger, DefaultSearchPlugin, LogLevel, mergeConfig } from '@vendure/core';
+import { DefaultLogger, DefaultSearchPlugin, LanguageCode, LogLevel, mergeConfig } from '@vendure/core';
 import { createTestEnvironment, registerInitializer, SqljsInitializer, testConfig } from '@vendure/testing';
 import gql from 'graphql-tag';
 import localtunnel from 'localtunnel';
@@ -10,13 +10,8 @@ import { molliePaymentHandler } from '../package/mollie/mollie.handler';
 import { MolliePlugin } from '../src/mollie';
 
 import { CREATE_PAYMENT_METHOD } from './graphql/admin-queries';
-import {
-    CreatePaymentMethodMutation,
-    CreatePaymentMethodMutationVariables,
-    LanguageCode,
-} from './graphql/generated-admin-types';
 import { ADD_ITEM_TO_ORDER, APPLY_COUPON_CODE } from './graphql/shop-queries';
-import { CREATE_MOLLIE_PAYMENT_INTENT, setShipping } from './payment-helpers';
+import { setShipping } from './payment-helpers';
 
 /**
  * This should only be used to locally test the Mollie payment plugin
@@ -61,7 +56,7 @@ async function runMollieDevServer() {
         }
     `);
     // Create method
-    await adminClient.query<CreatePaymentMethodMutation, CreatePaymentMethodMutationVariables>(
+    await adminClient.query(
         CREATE_PAYMENT_METHOD,
         {
             input: {
@@ -83,7 +78,6 @@ async function runMollieDevServer() {
                         },
                         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                         { name: 'apiKey', value: process.env.MOLLIE_APIKEY! },
-                        { name: 'autoCapture', value: 'false' },
                     ],
                 },
             },
@@ -102,30 +96,27 @@ async function runMollieDevServer() {
     const result = await shopClient.query(CREATE_MOLLIE_PAYMENT_INTENT, {
         input: {
             locale: 'nl_NL',
-            // immediateCapture: true,
+            immediateCapture: false,
         },
     });
     // eslint-disable-next-line no-console
     console.log('Payment intent result', result);
 
-    // Add another item to the order
-    await shopClient.query(ADD_ITEM_TO_ORDER, {
-        productVariantId: 'T_1',
-        quantity: 1,
-    });
-
-    // Wait X seconds and create another payment intent
-    await new Promise(resolve => setTimeout(resolve, 20000));
-
-    const result2 = await shopClient.query(CREATE_MOLLIE_PAYMENT_INTENT, {
-        input: {
-            locale: 'nl_NL',
-        },
-    });
-    // eslint-disable-next-line no-console
-    console.log('Second payment intent result', result2);
+    // Uncomme this line to disable webhook processing and test the `syncMolliePaymentStatus` mutation
+    MolliePlugin.options.disableWebhookProcessing = true;
 }
 
 (async () => {
     await runMollieDevServer();
 })();
+
+
+const CREATE_MOLLIE_PAYMENT_INTENT = gql`
+    mutation createMolliePaymentIntent($input: MolliePaymentIntentInput!) {
+        createMolliePaymentIntent(input: $input) {
+            ... on MolliePaymentIntent {
+                url
+            }
+        }
+    }
+`;
