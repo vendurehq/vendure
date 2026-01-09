@@ -40,13 +40,13 @@ export const GET_PROFILE_DETAIL = gql`
     templateUrl: './profile.component.html',
     styleUrls: ['./profile.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    standalone: false,
 })
 export class ProfileComponent
     extends TypedBaseDetailComponent<typeof GetProfileDetailDocument, 'activeAdministrator'>
     implements OnInit, OnDestroy
 {
-    customFields = this.getCustomFieldConfig('Administrator');
+    customFields = this.getCustomFieldConfig('Administrator', true);
     detailForm = this.formBuilder.group({
         emailAddress: ['', Validators.required],
         firstName: ['', Validators.required],

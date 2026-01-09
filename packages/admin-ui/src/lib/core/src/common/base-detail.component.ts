@@ -150,10 +150,13 @@ export abstract class BaseDetailComponent<Entity extends { id: string; updatedAt
         }
     }
 
-    protected getCustomFieldConfig(key: Exclude<keyof CustomFields, '__typename'>): CustomFieldConfig[] {
+    protected getCustomFieldConfig(
+        key: Exclude<keyof CustomFields, '__typename'>,
+        isOwner = false,
+    ): CustomFieldConfig[] {
         return this.serverConfigService.getCustomFieldsFor(key).filter(f => {
             if (f.requiresPermission?.length) {
-                return this.permissionsService.userHasPermissions(f.requiresPermission);
+                return this.permissionsService.userHasPermissions(f.requiresPermission, isOwner);
             }
             return true;
         });

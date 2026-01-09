@@ -30,9 +30,9 @@ export class PermissionsService {
         this._currentUserPermissions$.next(permissions);
     }
 
-    userHasPermissions(requiredPermissions: Array<string | Permission>): boolean {
+    userHasPermissions(requiredPermissions: Array<string | Permission>, isOwner = false): boolean {
         for (const perm of requiredPermissions) {
-            if (this.currentUserPermissions.includes(perm)) {
+            if (this.currentUserPermissions.includes(perm) || (perm === Permission.Owner && isOwner)) {
                 return true;
             }
         }
