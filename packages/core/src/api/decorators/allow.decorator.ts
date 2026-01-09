@@ -8,6 +8,9 @@ export const PERMISSIONS_METADATA_KEY = '__permissions__';
  * Attaches metadata to the resolver defining which permissions are required to execute the
  * operation, using one or more {@link Permission} values.
  *
+ * When multiple permissions are specified, the user needs only **one** of them (OR logic).
+ * This is useful for operations that can be performed by users with different permission sets.
+ *
  * In a GraphQL context, it can be applied to top-level queries and mutations as well as field resolvers.
  *
  * For REST controllers, it can be applied to route handler.
@@ -28,6 +31,16 @@ export const PERMISSIONS_METADATA_KEY = '__permissions__';
  *  \@Allow(Permission.SuperAdmin)
  *  \@Query()
  *  getAdministrators() {
+ *      // ...
+ *  }
+ * ```
+ *
+ * @example
+ * ```ts
+ *  // User needs ReadProduct OR ReadCatalog (either grants access)
+ *  \@Allow(Permission.ReadProduct, Permission.ReadCatalog)
+ *  \@Query()
+ *  getProducts() {
  *      // ...
  *  }
  * ```

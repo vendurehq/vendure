@@ -1,4 +1,4 @@
-import { CurrencyCode, LanguageCode } from '@vendure/common/lib/generated-types';
+import { CurrencyCode, LanguageCode, Permission } from '@vendure/common/lib/generated-types';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { CachedSession } from '../../config/session-cache/session-cache-strategy';
@@ -130,6 +130,74 @@ describe('RequestContext', () => {
         });
     });
 
+    describe('userHasPermissions', () => {
+        it('returns false when no session', () => {
+            const ctx = createRequestContextWithPermissions([], false);
+            expect(ctx.userHasPermissions([Permission.ReadProduct])).toBe(false);
+        });
+
+        it('returns false when user has no permissions on channel', () => {
+            const ctx = createRequestContextWithPermissions([]);
+            expect(ctx.userHasPermissions([Permission.ReadProduct])).toBe(false);
+        });
+
+        it('returns true if user has ANY of the permissions (OR logic)', () => {
+            const ctx = createRequestContextWithPermissions([Permission.ReadProduct]);
+            expect(ctx.userHasPermissions([Permission.ReadProduct, Permission.UpdateProduct])).toBe(true);
+        });
+
+        it('returns false if user has none of the permissions', () => {
+            const ctx = createRequestContextWithPermissions([Permission.ReadOrder]);
+            expect(ctx.userHasPermissions([Permission.ReadProduct, Permission.UpdateProduct])).toBe(false);
+        });
+
+        it('returns true for single permission match', () => {
+            const ctx = createRequestContextWithPermissions([
+                Permission.ReadProduct,
+                Permission.UpdateProduct,
+            ]);
+            expect(ctx.userHasPermissions([Permission.ReadProduct])).toBe(true);
+        });
+    });
+
+    describe('userHasAllPermissions', () => {
+        it('returns false when no session', () => {
+            const ctx = createRequestContextWithPermissions([], false);
+            expect(ctx.userHasAllPermissions([Permission.ReadProduct])).toBe(false);
+        });
+
+        it('returns false when user has no permissions on channel', () => {
+            const ctx = createRequestContextWithPermissions([]);
+            expect(ctx.userHasAllPermissions([Permission.ReadProduct])).toBe(false);
+        });
+
+        it('returns true if user has ALL of the permissions (AND logic)', () => {
+            const ctx = createRequestContextWithPermissions([
+                Permission.ReadProduct,
+                Permission.UpdateProduct,
+            ]);
+            expect(ctx.userHasAllPermissions([Permission.ReadProduct, Permission.UpdateProduct])).toBe(true);
+        });
+
+        it('returns false if user is missing any permission', () => {
+            const ctx = createRequestContextWithPermissions([Permission.ReadProduct]);
+            expect(ctx.userHasAllPermissions([Permission.ReadProduct, Permission.UpdateProduct])).toBe(false);
+        });
+
+        it('returns true for empty permissions array', () => {
+            const ctx = createRequestContextWithPermissions([Permission.ReadProduct]);
+            expect(ctx.userHasAllPermissions([])).toBe(true);
+        });
+
+        it('returns true for single permission match', () => {
+            const ctx = createRequestContextWithPermissions([
+                Permission.ReadProduct,
+                Permission.UpdateProduct,
+            ]);
+            expect(ctx.userHasAllPermissions([Permission.ReadProduct])).toBe(true);
+        });
+    });
+
     function createRequestContext(req?: any) {
         const activeOrder = new Order({
             id: '55555',
@@ -169,6 +237,48 @@ describe('RequestContext', () => {
             channel,
             session,
             req: req ?? {},
+            isAuthorized: true,
+            authorizedAsOwnerOnly: false,
+        });
+    }
+
+    function createRequestContextWithPermissions(permissions: Permission[], withSession = true) {
+        const zone = new Zone({
+            id: '62626',
+            name: 'Europe',
+        });
+        const channel = new Channel({
+            token: 'oiajwodij09au3r',
+            id: '995859',
+            code: '__default_channel__',
+            defaultCurrencyCode: CurrencyCode.EUR,
+            pricesIncludeTax: true,
+            defaultLanguageCode: LanguageCode.en,
+            defaultShippingZone: zone,
+            defaultTaxZone: zone,
+        });
+        const session: CachedSession | undefined = withSession
+            ? {
+                  cacheExpiry: Number.MAX_SAFE_INTEGER,
+                  expires: new Date(),
+                  id: '1234',
+                  token: '2d37187e9e8fc47807fe4f58ca',
+                  activeOrderId: '123',
+                  user: {
+                      id: '8833774',
+                      identifier: 'user',
+                      verified: true,
+                      channelPermissions: [
+                          { id: channel.id, token: channel.token, code: channel.code, permissions },
+                      ],
+                  },
+              }
+            : undefined;
+        return new RequestContext({
+            apiType: 'admin',
+            languageCode: LanguageCode.en,
+            channel,
+            session,
             isAuthorized: true,
             authorizedAsOwnerOnly: false,
         });
