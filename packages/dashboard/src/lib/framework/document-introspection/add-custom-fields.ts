@@ -118,9 +118,14 @@ function applyCustomFieldsToSelection(
     if (customFieldsForType && customFieldsForType.length) {
         // Check if there is already a customFields field in the fragment
         // to avoid duplication
-        const existingCustomFieldsField = selectionSet.selections.find(
+        const selectionsArray = selectionSet.selections as SelectionNode[];
+        const existingCustomFieldsFieldIndex = selectionsArray.findIndex(
             selection => isFieldNode(selection) && selection.name.value === 'customFields',
-        ) as FieldNode | undefined;
+        );
+        const existingCustomFieldsField =
+            existingCustomFieldsFieldIndex !== -1
+                ? (selectionsArray[existingCustomFieldsFieldIndex] as FieldNode)
+                : undefined;
         const selectionNodes: SelectionNode[] = customFieldsForType
             .filter(
                 field => !options?.includeCustomFields || options?.includeCustomFields.includes(field.name),
@@ -165,7 +170,7 @@ function applyCustomFieldsToSelection(
             );
         if (!existingCustomFieldsField) {
             // If no customFields field exists, add one
-            (selectionSet.selections as SelectionNode[]).push({
+            selectionsArray.push({
                 kind: Kind.FIELD,
                 name: {
                     kind: Kind.NAME,
@@ -176,13 +181,16 @@ function applyCustomFieldsToSelection(
                     selections: selectionNodes,
                 },
             });
-        } else {
-            // If a customFields field already exists, add the custom fields
-            // to the existing selection set
-            (existingCustomFieldsField.selectionSet as any) = {
-                kind: Kind.SELECTION_SET,
-                selections: selectionNodes,
+        } else if (existingCustomFieldsFieldIndex !== -1) {
+            // If a customFields field already exists, replace it with an updated node
+            const updatedField: FieldNode = {
+                ...existingCustomFieldsField,
+                selectionSet: {
+                    kind: Kind.SELECTION_SET,
+                    selections: selectionNodes,
+                },
             };
+            selectionsArray[existingCustomFieldsFieldIndex] = updatedField;
         }
 
         const localizedFields = customFieldsForType.filter(
@@ -193,8 +201,47 @@ function applyCustomFieldsToSelection(
             .filter(isFieldNode)
             .find(field => field.name.value === 'translations');
 
-        if (localizedFields.length && translationsField && translationsField.selectionSet) {
-            (translationsField.selectionSet.selections as SelectionNode[]).push({
+        if (localizedFields.length) {
+            const existingSelections = selectionSet.selections as SelectionNode[];
+            const translationsFieldIndex = existingSelections.findIndex(
+                selection => isFieldNode(selection) && selection.name.value === 'translations',
+            );
+
+            const ensureTranslationSelectionSet = (field: FieldNode | undefined): SelectionSetNode =>
+                field?.selectionSet ??
+                ({
+                    kind: Kind.SELECTION_SET,
+                    selections: [
+                        {
+                            kind: Kind.FIELD,
+                            name: { kind: Kind.NAME, value: 'languageCode' },
+                        },
+                    ],
+                } as SelectionSetNode);
+
+            let selectionSetForTranslations: SelectionSetNode;
+
+            if (translationsFieldIndex === -1) {
+                // No translations field yet – create one
+                selectionSetForTranslations = ensureTranslationSelectionSet(undefined);
+                const newTranslationsField: FieldNode = {
+                    kind: Kind.FIELD,
+                    name: { kind: Kind.NAME, value: 'translations' },
+                    selectionSet: selectionSetForTranslations,
+                };
+                existingSelections.push(newTranslationsField);
+            } else {
+                const existingField = existingSelections[translationsFieldIndex] as FieldNode;
+                selectionSetForTranslations = ensureTranslationSelectionSet(existingField);
+                const updatedField: FieldNode = {
+                    ...existingField,
+                    selectionSet: selectionSetForTranslations,
+                };
+                existingSelections[translationsFieldIndex] = updatedField;
+            }
+
+            // Always include locale custom fields inside translations
+            (selectionSetForTranslations.selections as SelectionNode[]).push({
                 name: {
                     kind: Kind.NAME,
                     value: 'customFields',
