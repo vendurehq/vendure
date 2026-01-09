@@ -1,5 +1,5 @@
 import { DeepPartial } from '@vendure/common/lib/shared-types';
-import { Column, Entity, JoinColumn, OneToOne } from 'typeorm';
+import { Column, Entity, JoinColumn, OneToOne, Unique } from 'typeorm';
 
 import { SoftDeletable } from '../../common/types/common-types';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
@@ -16,6 +16,7 @@ import { User } from '../user/user.entity';
  * @docsCategory entities
  */
 @Entity()
+@Unique(['emailAddress', 'isCurrent'])
 export class Administrator extends VendureEntity implements SoftDeletable, HasCustomFields {
     constructor(input?: DeepPartial<Administrator>) {
         super(input);
@@ -28,8 +29,11 @@ export class Administrator extends VendureEntity implements SoftDeletable, HasCu
 
     @Column() lastName: string;
 
-    @Column({ unique: true })
+    @Column()
     emailAddress: string;
+
+    @Column({ type: 'boolean', default: true, nullable: true })
+    isCurrent: true | null;
 
     @OneToOne(type => User)
     @JoinColumn()

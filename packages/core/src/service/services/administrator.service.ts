@@ -261,7 +261,9 @@ export class AdministratorService {
         if (isSoleSuperadmin) {
             throw new InternalServerError('error.cannot-delete-sole-superadmin');
         }
-        await this.connection.getRepository(ctx, Administrator).update({ id }, { deletedAt: new Date() });
+        await this.connection
+            .getRepository(ctx, Administrator)
+            .update({ id }, { isCurrent: null, deletedAt: new Date() });
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         await this.userService.softDelete(ctx, administrator.user.id);
         await this.eventBus.publish(new AdministratorEvent(ctx, administrator, 'deleted', id));
