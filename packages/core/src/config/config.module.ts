@@ -1,4 +1,4 @@
-import { Module, OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/common';
+import { Module, OnApplicationShutdown, OnModuleInit } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
 import { ConfigurableOperationDef } from '../common/configurable-operation';
@@ -12,13 +12,13 @@ import { ConfigService } from './config.service';
     providers: [ConfigService],
     exports: [ConfigService],
 })
-export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdown {
+export class ConfigModule implements OnModuleInit, OnApplicationShutdown {
     constructor(
         private configService: ConfigService,
         private moduleRef: ModuleRef,
     ) {}
 
-    async onApplicationBootstrap() {
+    async onModuleInit() {
         await this.initInjectableStrategies();
         await this.initConfigurableOperations();
     }
