@@ -48,7 +48,7 @@ export interface RelationSelectorProps<T = any> {
      */
     selectorLabel?: React.ReactNode;
     value?: string | string[];
-    onChange: (value: string | string[] | undefined) => void;
+    onChange: (value: string | string[] | null) => void;
     disabled?: boolean;
     className?: string;
 }
@@ -344,7 +344,7 @@ export function RelationSelector<T>({
         } else {
             // Clear cache for single select
             setSelectedItemsCache([]);
-            onChange(undefined);
+            onChange(null);
         }
     };
 

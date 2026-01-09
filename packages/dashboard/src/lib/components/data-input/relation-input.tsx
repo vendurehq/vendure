@@ -1,5 +1,6 @@
 import { DashboardFormComponent, DashboardFormComponentProps } from '@/vdb/framework/form-engine/form-engine-types.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
+
 import { createRelationSelectorConfig, RelationSelector } from './relation-selector.js';
 
 /**
@@ -35,7 +36,7 @@ export function SingleRelationInput<T>({
             config={singleConfig}
             value={value}
             selectorLabel={selectorLabel}
-            onChange={newValue => onChange(newValue as string)}
+            onChange={newValue => onChange(newValue as string | null)}
             disabled={disabled}
             className={className}
         />
