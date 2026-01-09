@@ -18,6 +18,19 @@ local filterName = ARGV[3]
 local results = {}
 local totalResults = 0
 
+local function batches(n, batchSize)
+  local i = 0
+
+  return function()
+    local from = i * batchSize + 1
+    i = i + 1
+    if (from <= n) then
+      local to = math.min(from + batchSize - 1, n)
+      return from, to
+    end
+  end
+end
+
 -- redis.log(redis.LOG_NOTICE, 'Filter name: "' .. filterName .. '"')
 -- redis.log(redis.LOG_NOTICE, 'Filter name length: ' .. tostring(#filterName))
 -- redis.log(redis.LOG_NOTICE, 'Number of ARGV: ' .. tostring(#ARGV))
@@ -144,7 +157,9 @@ if #listKeys > 0 then
     for _, listKey in ipairs(listKeys) do
         local listElements = rcall('LRANGE', listKey, 0, -1)
         if #listElements > 0 then
-            rcall('RPUSH', tempListKey, unpack(listElements))
+            for from, to in batches(#listElements, 7000) do
+                rcall('RPUSH', tempListKey, unpack(listElements, from, to))
+            end
         end
     end
 
