@@ -53,6 +53,7 @@ import { moveToIndex } from '../helpers/utils/move-to-index';
 
 import { AssetService } from './asset.service';
 import { ChannelService } from './channel.service';
+import { ProductVariantService } from './product-variant.service';
 import { RoleService } from './role.service';
 
 export type ApplyCollectionFiltersJobData = {
@@ -67,6 +68,9 @@ export type ApplyCollectionFiltersJobData = {
     collectionIds: ID[];
     applyToChangedVariantsOnly?: boolean;
 };
+interface CollectionWithVariantCount extends Translated<Collection> {
+    __productVariantCount?: number;
+}
 
 /**
  * @description
@@ -96,6 +100,7 @@ export class CollectionService implements OnModuleInit {
         private translator: TranslatorService,
         private roleService: RoleService,
         private requestContextService: RequestContextService,
+        private productVariantService: ProductVariantService,
     ) {}
 
     /**
@@ -213,6 +218,23 @@ export class CollectionService implements OnModuleInit {
             const items = collections.map(collection =>
                 this.translator.translate(collection, ctx, ['parent']),
             );
+
+            // Eagerly load product variant counts to prevent N+1 queries
+            // when the dashboard queries productVariants { totalItems } e.g. the collection list query
+            if (items.length > 0) {
+                const collectionIds = items.map(c => c.id);
+                const countMap = await this.productVariantService.getVariantCountsByCollectionIds(
+                    ctx,
+                    collectionIds,
+                );
+
+                // Store counts on collection objects so the resolver can use them
+                items.forEach(collection => {
+                    (collection as CollectionWithVariantCount).__productVariantCount =
+                        countMap.get(collection.id) ?? 0;
+                });
+            }
+
             return {
                 items,
                 totalItems,

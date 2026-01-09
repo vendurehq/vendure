@@ -211,6 +211,7 @@ export class ProductVariantService {
         collectionId: ID,
         options: ListQueryOptions<ProductVariant>,
         relations: RelationPaths<ProductVariant> = [],
+        cachedTotalItems?: number,
     ): Promise<PaginatedList<Translated<ProductVariant>>> {
         const qb = this.listQueryBuilder
             .build(ProductVariant, options, {
@@ -228,6 +229,17 @@ export class ProductVariantService {
             qb.andWhere('product.enabled = :enabled', { enabled: true });
         }
 
+        // If a cached count is provided and no filters are applied, use it to avoid a duplicate count query
+        if (cachedTotalItems !== undefined && !options?.filter) {
+            return qb.getMany().then(async variants => {
+                const items = await this.applyPricesAndTranslateVariants(ctx, variants);
+                return {
+                    items,
+                    totalItems: cachedTotalItems,
+                };
+            });
+        }
+
         return qb.getManyAndCount().then(async ([variants, totalItems]) => {
             const items = await this.applyPricesAndTranslateVariants(ctx, variants);
             return {
@@ -235,6 +247,42 @@ export class ProductVariantService {
                 totalItems,
             };
         });
+    }
+
+    /**
+     * Get variant counts for multiple collections in a single query
+     * Solves N+1 issue when fetching productVariants.totalItems
+     */
+    async getVariantCountsByCollectionIds(
+        ctx: RequestContext,
+        collectionIds: ID[],
+    ): Promise<Map<ID, number>> {
+        if (collectionIds.length === 0) {
+            return new Map();
+        }
+
+        const counts = await this.connection
+            .getRepository(ctx, ProductVariant)
+            .createQueryBuilder('variant')
+            .select('collection.id', 'collectionId')
+            .addSelect('COUNT(DISTINCT variant.id)', 'count')
+            .innerJoin('variant.collections', 'collection')
+            .innerJoin('variant.product', 'product')
+            .where('collection.id IN (:...ids)', { ids: collectionIds })
+            .andWhere('variant.deletedAt IS NULL')
+            .andWhere('product.deletedAt IS NULL')
+            .groupBy('collection.id')
+            .getRawMany();
+
+        const countMap = new Map<ID, number>();
+
+        collectionIds.forEach(id => countMap.set(id, 0));
+
+        counts.forEach(row => {
+            countMap.set(row.collectionId, Number.parseInt(row.count, 10));
+        });
+
+        return countMap;
     }
 
     /**

@@ -70,7 +70,19 @@ export class CollectionEntityResolver {
                 },
             };
         }
-        return this.productVariantService.getVariantsByCollectionId(ctx, collection.id, options, relations);
+
+        // Check if count was pre-loaded in findAll
+        const cachedCount = (collection as Collection & { __productVariantCount: number })
+            .__productVariantCount;
+
+        // Fetch items, passing cached count to avoid redundant count query when available
+        return this.productVariantService.getVariantsByCollectionId(
+            ctx,
+            collection.id,
+            options,
+            relations,
+            cachedCount,
+        );
     }
 
     @ResolveField()
