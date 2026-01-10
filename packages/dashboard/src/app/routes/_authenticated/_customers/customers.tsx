@@ -30,6 +30,9 @@ function CustomerListPage() {
                     emailAddress: {
                         contains: searchTerm,
                     },
+                    phoneNumber: {
+                        contains: searchTerm,
+                    },
                 };
             }}
             transformVariables={variables => {
