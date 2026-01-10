@@ -11,6 +11,7 @@ services:
             MARIADB_USER: vendure
             MARIADB_PASSWORD: password
             MARIADB_ROOT_PASSWORD: password
+        command: ["mysqld", "--innodb_file_per_table=1", "--default-storage-engine=InnoDB"]
         volumes:
             - 'mariadb_data:/var/lib/mysql'
         ports:

@@ -215,6 +215,7 @@ export class OrderService {
         ctx: RequestContext,
         orderId: ID,
         relations?: RelationPaths<Order>,
+        lock?: { mode: 'pessimistic_read' | 'pessimistic_write' },
     ): Promise<Order | undefined> {
         const qb = this.connection.getRepository(ctx, Order).createQueryBuilder('order');
         const effectiveRelations = relations ?? [
@@ -251,8 +252,9 @@ export class OrderService {
         qb.setFindOptions({
             relations: orderRelations,
             relationLoadStrategy: 'query',
+            lock,
         })
-            .leftJoin('order.channels', 'channel')
+            .innerJoin('order.channels', 'channel')
             .where('order.id = :orderId', { orderId })
             .andWhere('channel.id = :channelId', { channelId: ctx.channelId });
 
@@ -501,7 +503,7 @@ export class OrderService {
      * Updates the custom fields of an Order.
      */
     async updateCustomFields(ctx: RequestContext, orderId: ID, customFields: any) {
-        let order = await this.getOrderOrThrow(ctx, orderId);
+        let order = await this.getOrderOrThrow(ctx, orderId, undefined, { mode: 'pessimistic_write' });
         order = patchEntity(order, { customFields });
         const updatedOrder = await this.connection.getRepository(ctx, Order).save(order);
         await this.customFieldRelationService.updateRelations(ctx, Order, { customFields }, updatedOrder);
@@ -517,7 +519,9 @@ export class OrderService {
      * @since 2.2.0
      */
     async updateOrderCustomer(ctx: RequestContext, { customerId, orderId, note }: SetOrderCustomerInput) {
-        const order = await this.getOrderOrThrow(ctx, orderId, ['channels', 'customer']);
+        const order = await this.getOrderOrThrow(ctx, orderId, ['channels', 'customer'], {
+            mode: 'pessimistic_write',
+        });
         const currentCustomer = order.customer;
         if (currentCustomer?.id === customerId) {
             // No change in customer, so just return the order as-is
@@ -605,7 +609,7 @@ export class OrderService {
         }>,
         relations?: RelationPaths<Order>,
     ): Promise<{ order: Order; errorResults: Array<JustErrorResults<UpdateOrderItemsResult>> }> {
-        const order = await this.getOrderOrThrow(ctx, orderId);
+        const order = await this.getOrderOrThrow(ctx, orderId, undefined, { mode: 'pessimistic_write' });
         const errorResults: Array<JustErrorResults<UpdateOrderItemsResult>> = [];
         const updatedOrderLines: OrderLine[] = [];
         addItem: for (const item of items) {
@@ -752,7 +756,7 @@ export class OrderService {
         lines: Array<{ orderLineId: ID; quantity: number; customFields?: { [key: string]: any } }>,
         relations?: RelationPaths<Order>,
     ): Promise<{ order: Order; errorResults: Array<JustErrorResults<UpdateOrderItemsResult>> }> {
-        const order = await this.getOrderOrThrow(ctx, orderId);
+        const order = await this.getOrderOrThrow(ctx, orderId, undefined, { mode: 'pessimistic_write' });
         const errorResults: Array<JustErrorResults<UpdateOrderItemsResult>> = [];
         const updatedOrderLines: OrderLine[] = [];
         adjustLine: for (const line of lines) {
@@ -880,7 +884,7 @@ export class OrderService {
         orderId: ID,
         orderLineIds: ID[],
     ): Promise<ErrorResultUnion<RemoveOrderItemsResult, Order>> {
-        const order = await this.getOrderOrThrow(ctx, orderId);
+        const order = await this.getOrderOrThrow(ctx, orderId, undefined, { mode: 'pessimistic_write' });
         const validationError = this.assertAddingItemsState(order);
         if (validationError) {
             return validationError;
@@ -923,7 +927,7 @@ export class OrderService {
         ctx: RequestContext,
         orderId: ID,
     ): Promise<ErrorResultUnion<RemoveOrderItemsResult, Order>> {
-        const order = await this.getOrderOrThrow(ctx, orderId);
+        const order = await this.getOrderOrThrow(ctx, orderId, undefined, { mode: 'pessimistic_write' });
         const validationError = this.assertAddingItemsState(order);
         if (validationError) {
             return validationError;
@@ -956,7 +960,7 @@ export class OrderService {
         orderId: ID,
         surchargeInput: Partial<Omit<Surcharge, 'id' | 'createdAt' | 'updatedAt' | 'order'>>,
     ): Promise<Order> {
-        const order = await this.getOrderOrThrow(ctx, orderId);
+        const order = await this.getOrderOrThrow(ctx, orderId, undefined, { mode: 'pessimistic_write' });
         const surcharge = await this.connection.getRepository(ctx, Surcharge).save(
             new Surcharge({
                 taxLines: [],
@@ -976,7 +980,7 @@ export class OrderService {
      * Removes a {@link Surcharge} from the Order.
      */
     async removeSurchargeFromOrder(ctx: RequestContext, orderId: ID, surchargeId: ID): Promise<Order> {
-        const order = await this.getOrderOrThrow(ctx, orderId);
+        const order = await this.getOrderOrThrow(ctx, orderId, undefined, { mode: 'pessimistic_write' });
         const surcharge = await this.connection.getEntityOrThrow(ctx, Surcharge, surchargeId);
         if (order.surcharges.find(s => idsAreEqual(s.id, surcharge.id))) {
             order.surcharges = order.surcharges.filter(s => !idsAreEqual(s.id, surchargeId));
@@ -998,7 +1002,7 @@ export class OrderService {
         orderId: ID,
         couponCode: string,
     ): Promise<ErrorResultUnion<ApplyCouponCodeResult, Order>> {
-        const order = await this.getOrderOrThrow(ctx, orderId);
+        const order = await this.getOrderOrThrow(ctx, orderId, undefined, { mode: 'pessimistic_write' });
         if (order.couponCodes.includes(couponCode)) {
             return order;
         }
@@ -1026,7 +1030,7 @@ export class OrderService {
      * Removes a coupon code from the Order.
      */
     async removeCouponCode(ctx: RequestContext, orderId: ID, couponCode: string) {
-        const order = await this.getOrderOrThrow(ctx, orderId);
+        const order = await this.getOrderOrThrow(ctx, orderId, undefined, { mode: 'pessimistic_write' });
         if (order.couponCodes.includes(couponCode)) {
             // When removing a couponCode which has triggered an Order-level discount
             // we need to make sure we persist the changes to the adjustments array of
@@ -1077,7 +1081,7 @@ export class OrderService {
      * Sets the shipping address for the Order.
      */
     async setShippingAddress(ctx: RequestContext, orderId: ID, input: CreateAddressInput): Promise<Order> {
-        const order = await this.getOrderOrThrow(ctx, orderId);
+        const order = await this.getOrderOrThrow(ctx, orderId, undefined, { mode: 'pessimistic_write' });
         const country = await this.countryService.findOneByCode(ctx, input.countryCode);
         const shippingAddress = { ...input, countryCode: input.countryCode, country: country.name };
         await this.connection
@@ -1101,7 +1105,7 @@ export class OrderService {
      * Sets the billing address for the Order.
      */
     async setBillingAddress(ctx: RequestContext, orderId: ID, input: CreateAddressInput): Promise<Order> {
-        const order = await this.getOrderOrThrow(ctx, orderId);
+        const order = await this.getOrderOrThrow(ctx, orderId, undefined, { mode: 'pessimistic_write' });
         const country = await this.countryService.findOneByCode(ctx, input.countryCode);
         const billingAddress = { ...input, countryCode: input.countryCode, country: country.name };
         await this.connection
@@ -1127,7 +1131,7 @@ export class OrderService {
      * @since 3.1.0
      */
     async unsetShippingAddress(ctx: RequestContext, orderId: ID): Promise<Order> {
-        const order = await this.getOrderOrThrow(ctx, orderId);
+        const order = await this.getOrderOrThrow(ctx, orderId, undefined, { mode: 'pessimistic_write' });
         await this.connection
             .getRepository(ctx, Order)
             .createQueryBuilder('order')
@@ -1151,7 +1155,7 @@ export class OrderService {
      * @since 3.1.0
      */
     async unsetBillingAddress(ctx: RequestContext, orderId: ID): Promise<Order> {
-        const order = await this.getOrderOrThrow(ctx, orderId);
+        const order = await this.getOrderOrThrow(ctx, orderId, undefined, { mode: 'pessimistic_write' });
         await this.connection
             .getRepository(ctx, Order)
             .createQueryBuilder('order')
@@ -1212,7 +1216,7 @@ export class OrderService {
         orderId: ID,
         shippingMethodIds: ID[],
     ): Promise<ErrorResultUnion<SetOrderShippingMethodResult, Order>> {
-        const order = await this.getOrderOrThrow(ctx, orderId);
+        const order = await this.getOrderOrThrow(ctx, orderId, undefined, { mode: 'pessimistic_write' });
         const validationError = this.assertAddingItemsState(order);
         if (validationError) {
             return validationError;
@@ -1221,7 +1225,9 @@ export class OrderService {
         if (isGraphQlErrorResult(result)) {
             return result;
         }
-        const updatedOrder = await this.getOrderOrThrow(ctx, orderId);
+        const updatedOrder = await this.getOrderOrThrow(ctx, orderId, undefined, {
+            mode: 'pessimistic_write',
+        });
         await this.applyPriceAdjustments(ctx, updatedOrder);
         return this.connection.getRepository(ctx, Order).save(updatedOrder);
     }
@@ -1235,7 +1241,7 @@ export class OrderService {
         orderId: ID,
         state: OrderState,
     ): Promise<Order | OrderStateTransitionError> {
-        const order = await this.getOrderOrThrow(ctx, orderId);
+        const order = await this.getOrderOrThrow(ctx, orderId, undefined, { mode: 'pessimistic_write' });
         order.payments = await this.getOrderPayments(ctx, orderId);
         const fromState = order.state;
         let finalize: () => Promise<any>;
@@ -1321,7 +1327,9 @@ export class OrderService {
         ctx: RequestContext,
         input: ModifyOrderInput,
     ): Promise<ErrorResultUnion<ModifyOrderResult, Order>> {
-        const order = await this.getOrderOrThrow(ctx, input.orderId);
+        const order = await this.getOrderOrThrow(ctx, input.orderId, undefined, {
+            mode: 'pessimistic_write',
+        });
         const result = await this.orderModifier.modifyOrder(ctx, input, order);
 
         if (isGraphQlErrorResult(result)) {
@@ -1340,7 +1348,7 @@ export class OrderService {
                 modificationId: result.modification.id,
             },
         });
-        return this.getOrderOrThrow(ctx, input.orderId);
+        return this.getOrderOrThrow(ctx, input.orderId, undefined, { mode: 'pessimistic_write' });
     }
 
     /**
@@ -1365,7 +1373,7 @@ export class OrderService {
         orderId: ID,
         input: PaymentInput,
     ): Promise<ErrorResultUnion<AddPaymentToOrderResult, Order>> {
-        const order = await this.getOrderOrThrow(ctx, orderId);
+        const order = await this.getOrderOrThrow(ctx, orderId, undefined, { mode: 'pessimistic_write' });
         if (!this.canAddPaymentToOrder(order)) {
             return new OrderPaymentStateError();
         }
@@ -1434,7 +1442,9 @@ export class OrderService {
         ctx: RequestContext,
         input: ManualPaymentInput,
     ): Promise<ErrorResultUnion<AddManualPaymentToOrderResult, Order>> {
-        const order = await this.getOrderOrThrow(ctx, input.orderId);
+        const order = await this.getOrderOrThrow(ctx, input.orderId, undefined, {
+            mode: 'pessimistic_write',
+        });
         if (order.state !== 'ArrangingAdditionalPayment' && order.state !== 'ArrangingPayment') {
             return new ManualPaymentStateError();
         }
@@ -1683,7 +1693,9 @@ export class OrderService {
     }
 
     private async cancelOrderById(ctx: RequestContext, input: CancelOrderInput) {
-        const order = await this.getOrderOrThrow(ctx, input.orderId);
+        const order = await this.getOrderOrThrow(ctx, input.orderId, undefined, {
+            mode: 'pessimistic_write',
+        });
         if (order.active) {
             return true;
         } else {
@@ -1775,7 +1787,7 @@ export class OrderService {
         const order =
             orderIdOrOrder instanceof Order
                 ? orderIdOrOrder
-                : await this.getOrderOrThrow(ctx, orderIdOrOrder);
+                : await this.getOrderOrThrow(ctx, orderIdOrOrder, undefined, { mode: 'pessimistic_write' });
         order.customer = customer;
         await this.connection.getRepository(ctx, Order).save(order, { reload: false });
         let updatedOrder = order;
@@ -1801,7 +1813,7 @@ export class OrderService {
      * Creates a new "ORDER_NOTE" type {@link OrderHistoryEntry} in the Order's history timeline.
      */
     async addNoteToOrder(ctx: RequestContext, input: AddNoteToOrderInput): Promise<Order> {
-        const order = await this.getOrderOrThrow(ctx, input.id);
+        const order = await this.getOrderOrThrow(ctx, input.id, undefined, { mode: 'pessimistic_write' });
         await this.historyService.createHistoryEntryForOrder(
             {
                 ctx,
@@ -1969,6 +1981,7 @@ export class OrderService {
         ctx: RequestContext,
         orderId: ID,
         relations?: RelationPaths<Order>,
+        lock?: { mode: 'pessimistic_read' | 'pessimistic_write' },
     ): Promise<Order> {
         const order = await this.findOne(
             ctx,
@@ -1981,6 +1994,7 @@ export class OrderService {
                 'surcharges',
                 'customer',
             ],
+            lock,
         );
         if (!order) {
             throw new EntityNotFoundError('Order', orderId);

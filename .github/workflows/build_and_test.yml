@@ -84,6 +84,12 @@ jobs:
                 image: mariadb:11.5
                 env:
                     MARIADB_ROOT_PASSWORD: password
+                    MARIADB_DATABASE: vendure
+                    MARIADB_USER: vendure
+                    MARIADB_PASSWORD: password
+                    # Ensure InnoDB is used for locking support
+                    MARIADB_MYSQL_LOCALHOST_USER: 1
+                    MARIADB_INITDB_SKIP_TZINFO: 1
                 ports:
                     - 3306
                 options: --health-cmd="mariadb-admin ping -h localhost -u vendure -ppassword" --health-interval=10s --health-timeout=5s --health-retries=3
@@ -91,9 +97,12 @@ jobs:
                 image: vendure/mysql-8-native-auth:latest
                 env:
                     MYSQL_ROOT_PASSWORD: password
+                    MYSQL_DATABASE: vendure
+                    MYSQL_USER: vendure
+                    MYSQL_PASSWORD: password
                 ports:
                     - 3306
-                options: --health-cmd="mysqladmin ping --silent" --health-interval=10s --health-timeout=20s --health-retries=10
+                options: --health-cmd="mysqladmin ping -h localhost -u vendure -ppassword" --health-interval=10s --health-timeout=20s --health-retries=10
             postgres:
                 image: postgres:16
                 env:
@@ -101,13 +110,13 @@ jobs:
                     POSTGRES_PASSWORD: password
                 ports:
                     - 5432
-                options: --health-cmd=pg_isready --health-interval=10s --health-timeout=5s --health-retries=3
+                options: --health-cmd="pg_isready -U vendure" --health-interval=10s --health-timeout=5s --health-retries=10
             elastic:
                 image: docker.elastic.co/elasticsearch/elasticsearch:7.1.1
                 env:
                     discovery.type: single-node
-                    bootstrap.memory_lock: true
-                    ES_JAVA_OPTS: -Xms512m -Xmx512m
+                    bootstrap.memory_lock: "false"
+                    ES_JAVA_OPTS: -Xms256m -Xmx256m
                     # Elasticsearch will force read-only mode when total available disk space is less than 5%. Since we will
                     # be running on a shared Azure instance with 84GB SSD, we easily go below 5% available even when there are still
                     # > 3GB free. So we set this value to an absolute one rather than a percentage to prevent all the Elasticsearch
@@ -117,7 +126,7 @@ jobs:
                     cluster.routing.allocation.disk.watermark.flood_stage: 100mb
                 ports:
                     - 9200
-                options: --health-cmd="curl --silent --fail localhost:9200/_cluster/health" --health-interval=10s --health-timeout=5s --health-retries=3
+                options: --health-cmd="curl --silent --fail localhost:9200/_cluster/health" --health-interval=10s --health-timeout=10s --health-retries=5
             redis:
                 image: redis:7.4.1
                 ports:
@@ -139,6 +148,50 @@ jobs:
                   npm install --os=linux --cpu=x64 sharp
             - name: Build
               run: npx lerna run ci
+            - name: Wait for services to be ready
+              env:
+                  E2E_MYSQL_PORT: ${{ job.services.mysql.ports['3306'] }}
+                  E2E_MARIADB_PORT: ${{ job.services.mariadb.ports['3306'] }}
+                  E2E_POSTGRES_PORT: ${{ job.services.postgres.ports['5432'] }}
+                  E2E_ELASTIC_PORT: ${{ job.services.elastic.ports['9200'] }}
+                  E2E_REDIS_PORT: ${{ job.services.redis.ports['6379'] }}
+                  DB: ${{ matrix.db }}
+              run: |
+                  echo "Waiting for required services..."
+                  # Wait for redis
+                  for i in {1..30}; do
+                    if nc -z localhost $E2E_REDIS_PORT; then echo "Redis Ready"; break; fi
+                    if [ $i -eq 30 ]; then echo "Redis Timeout"; exit 1; fi
+                    sleep 1
+                  done
+
+                  # Wait for DB ports depending on matrix value
+                  if [ "$DB" = "postgres" ]; then
+                    for i in {1..30}; do
+                      if nc -z localhost $E2E_POSTGRES_PORT; then echo "Postgres Ready"; break; fi
+                      if [ $i -eq 30 ]; then echo "Postgres Timeout"; exit 1; fi
+                      sleep 1
+                    done
+                  elif [ "$DB" = "mariadb" ]; then
+                    for i in {1..30}; do
+                      if nc -z localhost $E2E_MARIADB_PORT; then echo "MariaDB Ready"; break; fi
+                      if [ $i -eq 30 ]; then echo "MariaDB Timeout"; exit 1; fi
+                      sleep 1
+                    done
+                  elif [ "$DB" = "mysql" ]; then
+                    for i in {1..30}; do
+                      if nc -z localhost $E2E_MYSQL_PORT; then echo "MySQL Ready"; break; fi
+                      if [ $i -eq 30 ]; then echo "MySQL Timeout"; exit 1; fi
+                      sleep 1
+                    done
+                  fi
+
+                  # Wait for Elasticsearch
+                  for i in {1..30}; do
+                    if curl --silent --fail "http://localhost:$E2E_ELASTIC_PORT/_cluster/health?wait_for_status=yellow&timeout=1s" >/dev/null 2>&1; then echo "Elasticsearch Ready"; break; fi
+                    if [ $i -eq 30 ]; then echo "Elasticsearch Timeout"; exit 1; fi
+                    sleep 1
+                  done
             - name: e2e tests
               env:
                   E2E_MYSQL_PORT: ${{ job.services.mysql.ports['3306'] }}
