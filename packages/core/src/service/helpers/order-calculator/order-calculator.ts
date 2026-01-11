@@ -10,6 +10,7 @@ import { InternalServerError } from '../../../common/error/errors';
 import { Instrument } from '../../../common/instrument-decorator';
 import { idsAreEqual } from '../../../common/utils';
 import { ConfigService } from '../../../config/config.service';
+import { TransactionalConnection } from '../../../connection';
 import { OrderLine, TaxRate } from '../../../entity';
 import { Order } from '../../../entity/order/order.entity';
 import { Promotion } from '../../../entity/promotion/promotion.entity';
@@ -42,6 +43,7 @@ export class OrderCalculator {
         private shippingMethodService: ShippingMethodService,
         private shippingCalculator: ShippingCalculator,
         private requestContextCache: RequestContextCacheService,
+        private connection: TransactionalConnection,
     ) {}
 
     /**
@@ -137,6 +139,7 @@ export class OrderCalculator {
             order,
             orderLine: line,
         });
+        await this.connection.getRepository(ctx, OrderLine).save(line, { reload: false });
     }
 
     /**
