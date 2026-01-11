@@ -8,6 +8,7 @@ import {
     CreatePromotionResult,
     DeletionResponse,
     DeletionResult,
+    OrderType,
     RemovePromotionsFromChannelInput,
     UpdatePromotionInput,
     UpdatePromotionResult,
@@ -349,7 +350,8 @@ export class PromotionService {
             .where('promotion.id = :promotionId', { promotionId })
             .andWhere('order.customer = :customerId', { customerId })
             .andWhere('order.state != :state', { state: 'Cancelled' as OrderState })
-            .andWhere('order.active = :active', { active: false });
+            .andWhere('order.active = :active', { active: false })
+            .andWhere('order.type != :type', { type: OrderType.Seller });
 
         return qb.getCount();
     }
@@ -361,7 +363,8 @@ export class PromotionService {
             .leftJoin('order.promotions', 'promotion')
             .where('promotion.id = :promotionId', { promotionId })
             .andWhere('order.state != :state', { state: 'Cancelled' as OrderState })
-            .andWhere('order.active = :active', { active: false });
+            .andWhere('order.active = :active', { active: false })
+            .andWhere('order.type != :type', { type: OrderType.Seller });
 
         return qb.getCount();
     }
