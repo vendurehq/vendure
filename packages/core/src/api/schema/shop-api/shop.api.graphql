@@ -70,6 +70,8 @@ type PublicShippingMethod {
 type Mutation {
     "Adds an item to the Order. If custom fields are defined on the OrderLine entity, a third argument 'customFields' will be available."
     addItemToOrder(productVariantId: ID!, quantity: Int!): UpdateOrderItemsResult!
+    "Re-prices the active order in the new channel currency and is only valid when that currency is available on the current channel."
+    setCurrencyCodeForOrder(currencyCode: CurrencyCode!): UpdateOrderItemsResult!
     "Adds mutliple items to the Order. Returns a list of errors for each item that failed to add. It will still add successful items."
     addItemsToOrder(inputs: [AddItemInput!]!): UpdateMultipleOrderItemsResult!
     "Remove an OrderLine from the Order"

@@ -1226,6 +1226,7 @@ export enum HistoryEntryType {
     ORDER_CANCELLATION = 'ORDER_CANCELLATION',
     ORDER_COUPON_APPLIED = 'ORDER_COUPON_APPLIED',
     ORDER_COUPON_REMOVED = 'ORDER_COUPON_REMOVED',
+    ORDER_CURRENCY_UPDATED = 'ORDER_CURRENCY_UPDATED',
     ORDER_CUSTOMER_UPDATED = 'ORDER_CUSTOMER_UPDATED',
     ORDER_FULFILLMENT = 'ORDER_FULFILLMENT',
     ORDER_FULFILLMENT_TRANSITION = 'ORDER_FULFILLMENT_TRANSITION',
@@ -1762,6 +1763,7 @@ export type Mutation = {
     requestUpdateCustomerEmailAddress: RequestUpdateCustomerEmailAddressResult;
     /** Resets a Customer's password based on the provided token */
     resetPassword: ResetPasswordResult;
+    setCurrencyCodeForOrder: UpdateOrderItemsResult;
     /** Set the Customer for the Order. Required only if the Customer is not currently logged in */
     setCustomerForOrder: SetCustomerForOrderResult;
     /** Sets the billing address for the active Order */
@@ -1872,6 +1874,10 @@ export type MutationRequestUpdateCustomerEmailAddressArgs = {
 export type MutationResetPasswordArgs = {
     password: Scalars['String']['input'];
     token: Scalars['String']['input'];
+};
+
+export type MutationSetCurrencyCodeForOrderArgs = {
+    currencyCode: CurrencyCode;
 };
 
 export type MutationSetCustomerForOrderArgs = {
@@ -3691,6 +3697,89 @@ export type AddItemsToOrderMutation = {
             | { errorCode: ErrorCode; message: string }
         >;
     };
+};
+
+export type SetCurrencyCodeForOrderMutationVariables = Exact<{
+    currencyCode: CurrencyCode;
+}>;
+
+export type SetCurrencyCodeForOrderMutation = {
+    setCurrencyCodeForOrder:
+        | {
+              errorCode: ErrorCode;
+              message: string;
+              quantityAvailable: number;
+              order: {
+                  id: string;
+                  code: string;
+                  state: string;
+                  active: boolean;
+                  total: number;
+                  totalWithTax: number;
+                  currencyCode: CurrencyCode;
+                  lines: Array<{
+                      id: string;
+                      quantity: number;
+                      unitPrice: number;
+                      unitPriceWithTax: number;
+                      linePrice: number;
+                      linePriceWithTax: number;
+                      productVariant: { id: string };
+                      featuredAsset?: { id: string } | null;
+                      discounts: Array<{
+                          adjustmentSource: string;
+                          amount: number;
+                          amountWithTax: number;
+                          description: string;
+                          type: AdjustmentType;
+                      }>;
+                  }>;
+                  discounts: Array<{
+                      adjustmentSource: string;
+                      amount: number;
+                      amountWithTax: number;
+                      description: string;
+                      type: AdjustmentType;
+                  }>;
+              };
+          }
+        | { errorCode: ErrorCode; message: string }
+        | {
+              id: string;
+              code: string;
+              state: string;
+              active: boolean;
+              total: number;
+              totalWithTax: number;
+              currencyCode: CurrencyCode;
+              lines: Array<{
+                  id: string;
+                  quantity: number;
+                  unitPrice: number;
+                  unitPriceWithTax: number;
+                  linePrice: number;
+                  linePriceWithTax: number;
+                  productVariant: { id: string };
+                  featuredAsset?: { id: string } | null;
+                  discounts: Array<{
+                      adjustmentSource: string;
+                      amount: number;
+                      amountWithTax: number;
+                      description: string;
+                      type: AdjustmentType;
+                  }>;
+              }>;
+              discounts: Array<{
+                  adjustmentSource: string;
+                  amount: number;
+                  amountWithTax: number;
+                  description: string;
+                  type: AdjustmentType;
+              }>;
+          }
+        | { errorCode: ErrorCode; message: string; interceptorError: string }
+        | { errorCode: ErrorCode; message: string }
+        | { errorCode: ErrorCode; message: string };
 };
 
 export type SearchProductsShopQueryVariables = Exact<{
@@ -5988,6 +6077,186 @@ export const AddItemsToOrderDocument = {
         },
     ],
 } as unknown as DocumentNode<AddItemsToOrderMutation, AddItemsToOrderMutationVariables>;
+export const SetCurrencyCodeForOrderDocument = {
+    kind: 'Document',
+    definitions: [
+        {
+            kind: 'OperationDefinition',
+            operation: 'mutation',
+            name: { kind: 'Name', value: 'SetCurrencyCodeForOrder' },
+            variableDefinitions: [
+                {
+                    kind: 'VariableDefinition',
+                    variable: { kind: 'Variable', name: { kind: 'Name', value: 'currencyCode' } },
+                    type: {
+                        kind: 'NonNullType',
+                        type: { kind: 'NamedType', name: { kind: 'Name', value: 'CurrencyCode' } },
+                    },
+                },
+            ],
+            selectionSet: {
+                kind: 'SelectionSet',
+                selections: [
+                    {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'setCurrencyCodeForOrder' },
+                        arguments: [
+                            {
+                                kind: 'Argument',
+                                name: { kind: 'Name', value: 'currencyCode' },
+                                value: { kind: 'Variable', name: { kind: 'Name', value: 'currencyCode' } },
+                            },
+                        ],
+                        selectionSet: {
+                            kind: 'SelectionSet',
+                            selections: [
+                                { kind: 'FragmentSpread', name: { kind: 'Name', value: 'UpdatedOrder' } },
+                                {
+                                    kind: 'InlineFragment',
+                                    typeCondition: {
+                                        kind: 'NamedType',
+                                        name: { kind: 'Name', value: 'ErrorResult' },
+                                    },
+                                    selectionSet: {
+                                        kind: 'SelectionSet',
+                                        selections: [
+                                            { kind: 'Field', name: { kind: 'Name', value: 'errorCode' } },
+                                            { kind: 'Field', name: { kind: 'Name', value: 'message' } },
+                                        ],
+                                    },
+                                },
+                                {
+                                    kind: 'InlineFragment',
+                                    typeCondition: {
+                                        kind: 'NamedType',
+                                        name: { kind: 'Name', value: 'InsufficientStockError' },
+                                    },
+                                    selectionSet: {
+                                        kind: 'SelectionSet',
+                                        selections: [
+                                            {
+                                                kind: 'Field',
+                                                name: { kind: 'Name', value: 'quantityAvailable' },
+                                            },
+                                            {
+                                                kind: 'Field',
+                                                name: { kind: 'Name', value: 'order' },
+                                                selectionSet: {
+                                                    kind: 'SelectionSet',
+                                                    selections: [
+                                                        {
+                                                            kind: 'FragmentSpread',
+                                                            name: { kind: 'Name', value: 'UpdatedOrder' },
+                                                        },
+                                                    ],
+                                                },
+                                            },
+                                        ],
+                                    },
+                                },
+                                {
+                                    kind: 'InlineFragment',
+                                    typeCondition: {
+                                        kind: 'NamedType',
+                                        name: { kind: 'Name', value: 'OrderInterceptorError' },
+                                    },
+                                    selectionSet: {
+                                        kind: 'SelectionSet',
+                                        selections: [
+                                            {
+                                                kind: 'Field',
+                                                name: { kind: 'Name', value: 'interceptorError' },
+                                            },
+                                        ],
+                                    },
+                                },
+                            ],
+                        },
+                    },
+                ],
+            },
+        },
+        {
+            kind: 'FragmentDefinition',
+            name: { kind: 'Name', value: 'UpdatedOrder' },
+            typeCondition: { kind: 'NamedType', name: { kind: 'Name', value: 'Order' } },
+            selectionSet: {
+                kind: 'SelectionSet',
+                selections: [
+                    { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'code' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'state' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'active' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'total' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'totalWithTax' } },
+                    { kind: 'Field', name: { kind: 'Name', value: 'currencyCode' } },
+                    {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'lines' },
+                        selectionSet: {
+                            kind: 'SelectionSet',
+                            selections: [
+                                { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'quantity' } },
+                                {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'productVariant' },
+                                    selectionSet: {
+                                        kind: 'SelectionSet',
+                                        selections: [{ kind: 'Field', name: { kind: 'Name', value: 'id' } }],
+                                    },
+                                },
+                                { kind: 'Field', name: { kind: 'Name', value: 'unitPrice' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'unitPriceWithTax' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'linePrice' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'linePriceWithTax' } },
+                                {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'featuredAsset' },
+                                    selectionSet: {
+                                        kind: 'SelectionSet',
+                                        selections: [{ kind: 'Field', name: { kind: 'Name', value: 'id' } }],
+                                    },
+                                },
+                                {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: 'discounts' },
+                                    selectionSet: {
+                                        kind: 'SelectionSet',
+                                        selections: [
+                                            {
+                                                kind: 'Field',
+                                                name: { kind: 'Name', value: 'adjustmentSource' },
+                                            },
+                                            { kind: 'Field', name: { kind: 'Name', value: 'amount' } },
+                                            { kind: 'Field', name: { kind: 'Name', value: 'amountWithTax' } },
+                                            { kind: 'Field', name: { kind: 'Name', value: 'description' } },
+                                            { kind: 'Field', name: { kind: 'Name', value: 'type' } },
+                                        ],
+                                    },
+                                },
+                            ],
+                        },
+                    },
+                    {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'discounts' },
+                        selectionSet: {
+                            kind: 'SelectionSet',
+                            selections: [
+                                { kind: 'Field', name: { kind: 'Name', value: 'adjustmentSource' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'amount' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'amountWithTax' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'description' } },
+                                { kind: 'Field', name: { kind: 'Name', value: 'type' } },
+                            ],
+                        },
+                    },
+                ],
+            },
+        },
+    ],
+} as unknown as DocumentNode<SetCurrencyCodeForOrderMutation, SetCurrencyCodeForOrderMutationVariables>;
 export const SearchProductsShopDocument = {
     kind: 'Document',
     definitions: [

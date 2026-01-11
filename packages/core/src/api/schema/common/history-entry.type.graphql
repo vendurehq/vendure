@@ -32,6 +32,7 @@ enum HistoryEntryType {
     ORDER_COUPON_REMOVED
     ORDER_MODIFIED
     ORDER_CUSTOMER_UPDATED
+    ORDER_CURRENCY_UPDATED
 }
 
 type HistoryEntryList implements PaginatedList {

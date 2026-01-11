@@ -137,12 +137,33 @@ export const ADD_MULTIPLE_ITEMS_TO_ORDER = gql`
                 ...UpdatedOrder
             }
             errorResults {
-                ...on ErrorResult {
+                ... on ErrorResult {
                     errorCode
                     message
                 }
             }
-            
+        }
+    }
+    ${UPDATED_ORDER_FRAGMENT}
+`;
+
+export const SET_CURRENCY_CODE_FOR_ORDER = gql`
+    mutation SetCurrencyCodeForOrder($currencyCode: CurrencyCode!) {
+        setCurrencyCodeForOrder(currencyCode: $currencyCode) {
+            ...UpdatedOrder
+            ... on ErrorResult {
+                errorCode
+                message
+            }
+            ... on InsufficientStockError {
+                quantityAvailable
+                order {
+                    ...UpdatedOrder
+                }
+            }
+            ... on OrderInterceptorError {
+                interceptorError
+            }
         }
     }
     ${UPDATED_ORDER_FRAGMENT}
