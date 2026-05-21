@@ -173,6 +173,73 @@ describe('themeVariablesPlugin', () => {
         const result = callTransform(plugin, css, '/app/styles.css');
         expect(result).toContain('@theme inline');
     });
+
+    it('replaces virtual:vendure-user-styles with additionalStylesheets (single path)', () => {
+        const plugin = themeVariablesPlugin({
+            additionalStylesheets: '/abs/project/src/dashboard.css',
+        });
+        const css = `@import 'tailwindcss';\n@import 'virtual:vendure-user-styles';\n@import 'tw-animate-css';`;
+        const result = callTransform(plugin, css, '/app/styles.css');
+        expect(result).toContain(
+            `@import 'tailwindcss';\n@import '/abs/project/src/dashboard.css';\n@import 'tw-animate-css';`,
+        );
+        expect(result).not.toContain('virtual:vendure-user-styles');
+    });
+
+    it('replaces virtual:vendure-user-styles with multiple stylesheets in order', () => {
+        const plugin = themeVariablesPlugin({
+            additionalStylesheets: ['/abs/project/a.css', '/abs/project/b.css'],
+        });
+        const css = `@import 'tailwindcss';\n@import 'virtual:vendure-user-styles';`;
+        const result = callTransform(plugin, css, '/app/styles.css');
+        expect(result).toContain(
+            `@import 'tailwindcss';\n@import '/abs/project/a.css';\n@import '/abs/project/b.css';`,
+        );
+    });
+
+    it('replaces double-quoted virtual:vendure-user-styles', () => {
+        const plugin = themeVariablesPlugin({
+            additionalStylesheets: '/abs/project/custom.css',
+        });
+        const css = `@import "virtual:vendure-user-styles";`;
+        const result = callTransform(plugin, css, '/app/styles.css');
+        expect(result).toContain(`@import '/abs/project/custom.css';`);
+        expect(result).not.toContain('virtual:vendure-user-styles');
+    });
+
+    it('resolves relative additionalStylesheets paths against cwd', () => {
+        const plugin = themeVariablesPlugin({
+            additionalStylesheets: 'src/dashboard.css',
+        });
+        const css = `@import 'virtual:vendure-user-styles';`;
+        const result = callTransform(plugin, css, '/app/styles.css');
+        const expected = path.resolve('src/dashboard.css').replace(/\\/g, '/');
+        expect(result).toContain(`@import '${expected}';`);
+    });
+
+    it('removes the virtual:vendure-user-styles placeholder when no stylesheets are configured', () => {
+        const plugin = themeVariablesPlugin({ additionalStylesheets: [] });
+        const css = `@import 'tailwindcss';\n@import 'virtual:vendure-user-styles';\nbody { color: red; }`;
+        const result = callTransform(plugin, css, '/app/styles.css');
+        expect(result).not.toContain('virtual:vendure-user-styles');
+        expect(result).toContain('body { color: red; }');
+    });
+
+    it('also removes the placeholder when additionalStylesheets is omitted entirely', () => {
+        const plugin = themeVariablesPlugin({});
+        const css = `@import 'virtual:vendure-user-styles';`;
+        const result = callTransform(plugin, css, '/app/styles.css');
+        expect(result).not.toContain('virtual:vendure-user-styles');
+    });
+
+    it('leaves the file untouched when the placeholder is absent', () => {
+        const plugin = themeVariablesPlugin({
+            additionalStylesheets: '/abs/project/custom.css',
+        });
+        const css = `@import 'tailwindcss';\nbody { color: red; }`;
+        const result = callTransform(plugin, css, '/app/styles.css');
+        expect(result).toBeNull();
+    });
 });
 
 // ─── transformIndexHtmlPlugin ────────────────────────────────────────────────
