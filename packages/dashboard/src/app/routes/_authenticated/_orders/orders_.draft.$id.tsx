@@ -26,12 +26,14 @@ import { CustomerAddressSelector } from './components/customer-address-selector.
 import { DraftOrderStatus } from './components/draft-order-status.js';
 import { EditOrderTable } from './components/edit-order-table.js';
 import { OrderAddress } from './components/order-address.js';
+import { addressFragment } from '../_customers/customers.graphql.js';
 import {
     addItemToDraftOrderDocument,
     adjustDraftOrderLineDocument,
     applyCouponCodeToDraftOrderDocument,
     deleteDraftOrderDocument,
     draftOrderEligibleShippingMethodsDocument,
+    getCustomerAddressesDocument,
     orderDetailDocument,
     removeCouponCodeFromDraftOrderDocument,
     removeDraftOrderLineDocument,
@@ -163,22 +165,47 @@ function DraftOrderPage() {
 
     const { mutate: setCustomerForDraftOrder } = useMutation({
         mutationFn: api.mutate(setCustomerForDraftOrderDocument),
-        onSuccess: (result: ResultOf<typeof setCustomerForDraftOrderDocument>) => {
+        onSuccess: async (result: ResultOf<typeof setCustomerForDraftOrderDocument>) => {
             const order = result.setCustomerForDraftOrder;
             switch (order.__typename) {
-                case 'Order':
+                case 'Order': {
                     toast.success(t`Customer set for order`);
 
-                    // When we change the customer, we should clear
-                    // any selected shipping/billing address
-                    if (entity?.shippingAddress) {
-                        unsetShippingAddressForDraftOrder({ orderId: entity.id });
+                    // When the customer changes, populate the shipping/billing
+                    // addresses from the customer's default addresses, or clear
+                    // any previously selected address if there is no default
+                    let addresses: Array<ResultOf<typeof addressFragment>> = [];
+                    if (order.customer) {
+                        const { customer } = await api.query(getCustomerAddressesDocument, {
+                            customerId: order.customer.id,
+                        });
+                        addresses = customer?.addresses ?? [];
                     }
-                    if (entity?.billingAddress) {
-                        unsetBillingAddressForDraftOrder({ orderId: entity.id });
+                    const defaultShippingAddress = addresses.find(
+                        address => address.defaultShippingAddress,
+                    );
+                    const defaultBillingAddress = addresses.find(
+                        address => address.defaultBillingAddress,
+                    );
+                    if (defaultShippingAddress) {
+                        setShippingAddressForDraftOrder({
+                            orderId: order.id,
+                            input: mapToAddressInput(defaultShippingAddress),
+                        });
+                    } else if (entity?.shippingAddress) {
+                        unsetShippingAddressForDraftOrder({ orderId: order.id });
+                    }
+                    if (defaultBillingAddress) {
+                        setBillingAddressForDraftOrder({
+                            orderId: order.id,
+                            input: mapToAddressInput(defaultBillingAddress),
+                        });
+                    } else if (entity?.billingAddress) {
+                        unsetBillingAddressForDraftOrder({ orderId: order.id });
                     }
                     refreshEntity();
                     break;
+                }
                 default:
                     toast.error(order.message);
                     break;
@@ -481,17 +508,7 @@ function DraftOrderPage() {
                                     onSelect={address => {
                                         setShippingAddressForDraftOrder({
                                             orderId: entity.id,
-                                            input: {
-                                                fullName: address.fullName,
-                                                company: address.company,
-                                                streetLine1: address.streetLine1,
-                                                streetLine2: address.streetLine2,
-                                                city: address.city,
-                                                province: address.province,
-                                                postalCode: address.postalCode,
-                                                countryCode: address.country.code,
-                                                phoneNumber: address.phoneNumber,
-                                            },
+                                            input: mapToAddressInput(address),
                                         });
                                     }}
                                 />
@@ -513,17 +530,7 @@ function DraftOrderPage() {
                                     onSelect={address => {
                                         setBillingAddressForDraftOrder({
                                             orderId: entity.id,
-                                            input: {
-                                                fullName: address.fullName,
-                                                company: address.company,
-                                                streetLine1: address.streetLine1,
-                                                streetLine2: address.streetLine2,
-                                                city: address.city,
-                                                province: address.province,
-                                                postalCode: address.postalCode,
-                                                countryCode: address.country.code,
-                                                phoneNumber: address.phoneNumber,
-                                            },
+                                            input: mapToAddressInput(address),
                                         });
                                     }}
                                 />
@@ -534,6 +541,22 @@ function DraftOrderPage() {
             </PageLayout>
         </Page>
     );
+}
+
+function mapToAddressInput(address: ResultOf<typeof addressFragment>) {
+    return {
+        fullName: address.fullName,
+        company: address.company,
+        streetLine1: address.streetLine1,
+        streetLine2: address.streetLine2,
+        city: address.city,
+        province: address.province,
+        postalCode: address.postalCode,
+        countryCode: address.country.code,
+        phoneNumber: address.phoneNumber,
+        defaultShippingAddress: address.defaultShippingAddress,
+        defaultBillingAddress: address.defaultBillingAddress,
+    };
 }
 
 function RemoveAddressButton(props: { onClick: () => void }) {

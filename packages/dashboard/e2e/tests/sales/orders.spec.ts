@@ -157,6 +157,80 @@ test.describe('Orders', () => {
         await expect(page.getByTestId('page-heading')).toBeVisible();
     });
 
+    // selecting a customer on a draft order should populate the order's addresses
+    // from the customer's default addresses (parity with the Angular admin-ui, see #3196)
+    test('should populate default addresses when selecting a customer', async ({ page }) => {
+        test.setTimeout(60_000);
+
+        const client = new VendureAdminClient(page);
+        await client.login();
+
+        // Create a customer whose address is flagged as default shipping & billing.
+        // The seeded e2e customers have addresses without default flags.
+        const { createCustomer } = await client.gql(
+            `mutation ($input: CreateCustomerInput!) {
+                createCustomer(input: $input) {
+                    ... on Customer { id }
+                    ... on ErrorResult { errorCode message }
+                }
+            }`,
+            {
+                input: {
+                    firstName: 'Daphne',
+                    lastName: 'Defaults',
+                    emailAddress: `daphne.defaults.${Date.now()}@test.com`,
+                },
+            },
+        );
+        await client.gql(
+            `mutation ($customerId: ID!, $input: CreateAddressInput!) {
+                createCustomerAddress(customerId: $customerId, input: $input) { id }
+            }`,
+            {
+                customerId: createCustomer.id,
+                input: {
+                    fullName: 'Daphne Defaults',
+                    streetLine1: '42 Default Lane',
+                    city: 'Defaultville',
+                    postalCode: 'D1 1AA',
+                    countryCode: 'GB',
+                    defaultShippingAddress: true,
+                    defaultBillingAddress: true,
+                },
+            },
+        );
+
+        // Create a draft order and select the customer
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+        await lp.newButton.click();
+        await expect(page).toHaveURL(/\/orders\/draft\//, { timeout: 10_000 });
+
+        await page.getByRole('button', { name: /Select customer/i }).click();
+        await page.getByPlaceholder('Search customers...').fill('daphne');
+        // The customer list is debounced, so wait for the matching option
+        // rather than clicking the first one (which may be from a stale list)
+        const daphneOption = page.getByRole('option').filter({ hasText: 'Daphne Defaults' });
+        await expect(daphneOption.first()).toBeVisible({ timeout: 5_000 });
+        await daphneOption.first().click();
+
+        // Both the shipping and billing address blocks should be populated
+        // from the customer's default address
+        await expect(page.getByText('42 Default Lane')).toHaveCount(2, { timeout: 10_000 });
+
+        // Switching to a customer without default addresses should clear them again
+        await page.getByRole('button', { name: /Select customer/i }).click();
+        await page.getByPlaceholder('Search customers...').fill('hayden');
+        const haydenOption = page.getByRole('option').filter({ hasText: /hayden/i });
+        await expect(haydenOption.first()).toBeVisible({ timeout: 5_000 });
+        await haydenOption.first().click();
+
+        await expect(page.getByText('42 Default Lane')).toHaveCount(0, { timeout: 10_000 });
+        // The manual address selectors should be offered again
+        await expect(page.getByRole('button', { name: /Select address/i })).toHaveCount(2);
+    });
+
     // #4393 — custom order history entry types should be displayed with key-value data
     test('should display custom order history entry types', async ({ page }) => {
         test.setTimeout(60_000);
