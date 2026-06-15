@@ -14,7 +14,7 @@ import { defaultLocale, dynamicActivate } from '@/vdb/providers/i18n-provider.js
 import { AnyRoute, createRouter, RouterOptions, RouterProvider } from '@tanstack/react-router';
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import ReactDOM from 'react-dom/client';
+import { createRoot } from 'react-dom/client';
 
 import { useDisplayLocale } from '@/vdb/hooks/use-display-locale.js';
 import { useUiLanguageLoader } from '@/vdb/hooks/use-ui-language-loader.js';
@@ -27,7 +27,25 @@ import { routeTree } from './routeTree.gen.js';
 import './styles.css';
 
 const processedBaseUrl = (() => {
-    const baseUrl = import.meta.env.BASE_URL;
+    // Derive the base from this module's own URL when possible. This works
+    // in BOTH source-shipping mode (`<base>/src/app/main.tsx`) AND the
+    // experimental bundle mode (`<base>/dist/bundle/main.js` — see
+    // issue #4719). Using `import.meta.url` is stable regardless of what
+    // sub-route the page was first loaded on, which is important: previous
+    // attempts to read `document.baseURI` broke deep-link navigation because
+    // it reflects the CURRENT page URL, not the dashboard root.
+    let derived: string | undefined;
+    try {
+        const moduleUrl = typeof import.meta?.url === 'string' ? import.meta.url : '';
+        if (moduleUrl) {
+            const entryRe = /^(.*?)\/(?:src\/app\/main|dist\/bundle\/main)\.[a-z]+/;
+            const m = entryRe.exec(new URL(moduleUrl).pathname);
+            if (m) derived = m[1] || '/';
+        }
+    } catch {
+        // Ignore — fall back to import.meta.env.BASE_URL below.
+    }
+    const baseUrl = derived ?? import.meta.env.BASE_URL;
     if (!baseUrl || baseUrl === '/') return undefined;
     // Ensure leading slash, remove trailing slash
     const normalized = baseUrl.startsWith('/') ? baseUrl : '/' + baseUrl;
@@ -169,7 +187,7 @@ function App() {
 const rootElement = document.getElementById('app')!;
 
 if (!rootElement.innerHTML) {
-    const root = ReactDOM.createRoot(rootElement);
+    const root = createRoot(rootElement);
     root.render(
         <React.StrictMode>
             <App />

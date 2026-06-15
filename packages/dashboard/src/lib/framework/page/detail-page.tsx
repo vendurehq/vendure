@@ -178,7 +178,7 @@ export function DetailPage<
     const translations = updateFields.find(fieldInfo => fieldInfo.name === 'translations');
 
     return (
-        <Page pageId={pageId} form={form} submitHandler={submitHandler}>
+        <Page pageId={pageId} form={form} submitHandler={submitHandler} entity={entity}>
             <PageTitle>{title(entity)}</PageTitle>
             <PageActionBar>
                 <PageActionBarRight>

@@ -160,6 +160,151 @@ export const cliCommands: CliCommandDefinition[] = [
         },
     },
     {
+        name: 'dev',
+        description: 'Run Vendure in development mode',
+        arguments: [
+            {
+                name: 'target',
+                description: 'Target to run: all, server, worker or dashboard (default: all)',
+                required: false,
+            },
+        ],
+        options: [
+            {
+                long: '--server-entry <path>',
+                description:
+                    'Path to the TypeScript server entry file that calls bootstrap() (default: ./src/index.ts)',
+                required: false,
+            },
+            {
+                long: '--worker-entry <path>',
+                description:
+                    'Path to the TypeScript worker entry file that calls bootstrapWorker() (default: ./src/index-worker.ts)',
+                required: false,
+            },
+            {
+                long: '--vite-config <path>',
+                description:
+                    'Path to the Vite config file used by the Dashboard (default: Vite config discovery)',
+                required: false,
+            },
+            {
+                long: '--inspect [host:port]',
+                description:
+                    'Enable the Node.js inspector for server and worker processes (default: disabled; dev all uses ports 9229/9230)',
+                required: false,
+            },
+            {
+                long: '--inspect-brk [host:port]',
+                description:
+                    'Enable the Node.js inspector and break before user code starts (default: disabled; dev all uses ports 9229/9230)',
+                required: false,
+            },
+            {
+                long: '--no-reload',
+                description: 'Disable automatic server and worker restarts when backend source files change',
+                required: false,
+            },
+        ],
+        action: async (target, options) => {
+            const { devCommand } = await import('./dev/dev');
+            const exitCode = await devCommand(target, options);
+            process.exit(exitCode);
+        },
+    },
+    {
+        name: 'build',
+        description: 'Build a Vendure project',
+        arguments: [
+            {
+                name: 'target',
+                description: 'Target to build: all, server, worker or dashboard (default: all)',
+                required: false,
+            },
+        ],
+        options: [
+            {
+                long: '--tsconfig <path>',
+                description:
+                    'Path to the server TypeScript config file (also used by the worker unless --worker-tsconfig is set; ' +
+                    'default: first existing tsconfig.server.json, tsconfig.build.json or tsconfig.json)',
+                required: false,
+            },
+            {
+                long: '--worker-tsconfig <path>',
+                description:
+                    'Path to the worker TypeScript config file (default: --tsconfig or first existing tsconfig.worker.json, tsconfig.build.json or tsconfig.json)',
+                required: false,
+            },
+            {
+                long: '--vite-config <path>',
+                description:
+                    'Path to the Vite config file used by the Dashboard (default: Vite config discovery)',
+                required: false,
+            },
+            {
+                long: '--experimental-tsgo',
+                description:
+                    'Use the experimental native TypeScript compiler for server and worker builds (default: use tsc)',
+                required: false,
+            },
+            {
+                long: '--clean',
+                description: 'Clean build output directories before building (default: false)',
+                required: false,
+            },
+            {
+                long: '--no-progress',
+                description:
+                    'Disable spinner/progress rendering for stable logs (default: enabled in interactive non-CI builds)',
+                required: false,
+            },
+            {
+                long: '--verbose',
+                description: 'Show full build output from underlying tools (default: false)',
+                required: false,
+            },
+            {
+                long: '--watch',
+                description: 'Watch source files and rebuild when they change (default: false)',
+                required: false,
+            },
+        ],
+        action: async (target, options) => {
+            const { buildCommand } = await import('./build/build');
+            const exitCode = await buildCommand(target, options);
+            process.exit(exitCode);
+        },
+    },
+    {
+        name: 'start',
+        description: 'Start a built Vendure project',
+        arguments: [
+            {
+                name: 'target',
+                description: 'Target to start: all, server or worker (default: all)',
+                required: false,
+            },
+        ],
+        options: [
+            {
+                long: '--server-entry <path>',
+                description: 'Path to the compiled server entry file (default: ./dist/index.js)',
+                required: false,
+            },
+            {
+                long: '--worker-entry <path>',
+                description: 'Path to the compiled worker entry file (default: ./dist/index-worker.js)',
+                required: false,
+            },
+        ],
+        action: async (target, options) => {
+            const { startCommand } = await import('./start/start');
+            const exitCode = await startCommand(target, options);
+            process.exit(exitCode);
+        },
+    },
+    {
         name: 'migrate',
         description: 'Generate, run or revert a database migration',
         options: [

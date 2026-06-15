@@ -2,6 +2,13 @@
  * CI environment variables to check for.
  * These are standard environment variables set by popular CI/CD systems.
  * Exported for testing purposes.
+ *
+ * Note: hosting platforms such as Vercel and Netlify are intentionally NOT
+ * included here. Their `VERCEL` / `NETLIFY` flags are set at application
+ * runtime, not just during builds, so treating them as CI would suppress
+ * telemetry for every production deployment on those platforms. Build-only
+ * signals such as `NOW_BUILDER` (Vercel build step) are kept, since they are
+ * never present when the server is actually running.
  */
 export const CI_ENV_VARS = [
     'CI',
@@ -18,8 +25,6 @@ export const CI_ENV_VARS = [
     'CODEBUILD_BUILD_ID',
     'HEROKU_TEST_RUN_ID',
     'APPVEYOR',
-    'NETLIFY',
-    'VERCEL',
     'NOW_BUILDER',
 ];
 

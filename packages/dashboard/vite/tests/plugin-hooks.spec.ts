@@ -4,6 +4,7 @@ import type { Plugin } from 'vite';
 import { describe, expect, it, vi } from 'vitest';
 
 import { PluginInfo } from '../types.js';
+import { bundleEntryPlugin } from '../vite-plugin-bundle-entry.js';
 import { viteConfigPlugin } from '../vite-plugin-config.js';
 import { dashboardMetadataPlugin } from '../vite-plugin-dashboard-metadata.js';
 import { hmrPlugin } from '../vite-plugin-hmr.js';
@@ -571,5 +572,211 @@ describe('dashboardTailwindSourcePlugin', () => {
             .split('\n')
             .some((l: string) => l.trimStart().startsWith("@source '"));
         expect(hasSourceDirective).toBe(false);
+    });
+
+    // Tests for the bundle-mode (#4719 `useExperimentalBundle`) extension entry
+    describe('useExperimentalBundle: extension-tailwind.css handling', () => {
+        function setupBundlePlugin(pluginInfo: PluginInfo[], packageRoot = '/fake/dashboard') {
+            return setupConfigLoaderPlugin(
+                dashboardTailwindSourcePlugin({ packageRoot, useExperimentalBundle: true }),
+                pluginInfo,
+            );
+        }
+
+        it('also matches extension-tailwind.css', async () => {
+            const plugin = setupBundlePlugin([]);
+            const css = `@tailwind utilities;\n${markerComment}\n`;
+            const result = await callTransformWithContext(
+                plugin,
+                {},
+                css,
+                '/some/app/extension-tailwind.css',
+            );
+            // The result is defined (the transform ran) — confirms the file matched
+            expect(result).toBeDefined();
+            expect(result.code).toContain(markerComment);
+        });
+
+        it('adds @source for the bundle dir when transforming extension-tailwind.css', async () => {
+            const packageRoot = '/fake/dashboard';
+            const plugin = setupBundlePlugin([], packageRoot);
+            const css = `@tailwind utilities;\n${markerComment}\n`;
+            const result = await callTransformWithContext(
+                plugin,
+                {},
+                css,
+                '/some/app/extension-tailwind.css',
+            );
+            expect(result.code).toContain(
+                `@source '${path.join(packageRoot, 'dist/bundle')}'`,
+            );
+        });
+
+        it('does NOT add bundle @source when transforming the regular styles.css (only extension-tailwind.css)', async () => {
+            const packageRoot = '/fake/dashboard';
+            const plugin = setupBundlePlugin([], packageRoot);
+            const css = `@tailwind utilities;\n${markerComment}\n`;
+            const result = await callTransformWithContext(
+                plugin,
+                {},
+                css,
+                '/some/app/styles.css',
+            );
+            // Bundle source dir should not appear; styles.css is the source-mode entry
+            expect(result.code).not.toContain('dist/bundle');
+        });
+
+        it('without useExperimentalBundle: extension-tailwind.css still transforms but no bundle @source', async () => {
+            const plugin = setupConfigLoaderPlugin(dashboardTailwindSourcePlugin(), []);
+            const css = `@tailwind utilities;\n${markerComment}\n`;
+            const result = await callTransformWithContext(
+                plugin,
+                {},
+                css,
+                '/some/app/extension-tailwind.css',
+            );
+            // Transform fires (matches the file) but no bundle dir is injected
+            expect(result).toBeDefined();
+            expect(result.code).not.toContain('dist/bundle');
+        });
+    });
+});
+
+// ─── bundleEntryPlugin (#4719) ───────────────────────────────────────────────
+
+describe('bundleEntryPlugin', () => {
+    /**
+     * The plugin's transformIndexHtml is the object form: `{ order, handler }`.
+     * This helper extracts the actual handler so we can call it consistently
+     * with how Vite would.
+     */
+    function callBundleEntryTransform(
+        plugin: Plugin,
+        html: string,
+        ctx: { filename: string },
+    ) {
+        const hook = plugin.transformIndexHtml as
+            | ((html: string, ctx: { filename: string }) => any)
+            | { order?: 'pre' | 'post'; handler: (html: string, ctx: { filename: string }) => any };
+        if (typeof hook === 'function') return hook(html, ctx);
+        return hook.handler(html, ctx);
+    }
+
+    const sourceEntryHtml = [
+        '<html>',
+        '<head></head>',
+        '<body>',
+        '<div id="app"></div>',
+        '<script type="module" src="/src/app/main.jsx"></script>',
+        '</body>',
+        '</html>',
+    ].join('\n');
+
+    it('declares transformIndexHtml with order: pre', () => {
+        const plugin = bundleEntryPlugin();
+        const hook = plugin.transformIndexHtml as any;
+        // We use the object form to pin ordering — confirm the shape is intact
+        expect(hook).toBeTypeOf('object');
+        expect(hook.order).toBe('pre');
+        expect(hook.handler).toBeTypeOf('function');
+    });
+
+    it('replaces the source-entry script with the bundled entry + CSS link', () => {
+        const plugin = bundleEntryPlugin();
+        const result = callBundleEntryTransform(plugin, sourceEntryHtml, {
+            filename: 'index.html',
+        });
+        expect(result).toContain('/dist/bundle/main.js');
+        expect(result).toContain('/dist/bundle/dashboard.css');
+        expect(result).toContain('<link rel="stylesheet"');
+        expect(result).not.toContain('/src/app/main.jsx');
+    });
+
+    it('matches the script src even when Vite has already prepended the base path', () => {
+        const plugin = bundleEntryPlugin();
+        const htmlWithBase = sourceEntryHtml.replace(
+            'src="/src/app/main.jsx"',
+            'src="/dashboard/src/app/main.jsx"',
+        );
+        const result = callBundleEntryTransform(plugin, htmlWithBase, {
+            filename: 'index.html',
+        });
+        expect(result).toContain('/dist/bundle/main.js');
+        expect(result).not.toContain('main.jsx');
+    });
+
+    it('leaves HTML unchanged when the source-entry script is not present', () => {
+        const plugin = bundleEntryPlugin();
+        const unrelatedHtml = '<html><body><script src="/other.js"></script></body></html>';
+        const result = callBundleEntryTransform(plugin, unrelatedHtml, {
+            filename: 'index.html',
+        });
+        expect(result).toBe(unrelatedHtml);
+    });
+
+    it('passes Storybook HTML through unchanged', () => {
+        const plugin = bundleEntryPlugin();
+        const result = callBundleEntryTransform(plugin, sourceEntryHtml, {
+            filename: 'iframe.html',
+        });
+        expect(result).toBe(sourceEntryHtml);
+    });
+});
+
+// ─── viteConfigPlugin: useExperimentalBundle (#4719) ─────────────────────────
+
+describe('viteConfigPlugin: useExperimentalBundle', () => {
+    const packageRoot = '/fake/dashboard';
+
+    it('without flag: no @vendure/dashboard alias (defaults to source-shipping)', () => {
+        const plugin = viteConfigPlugin({ packageRoot });
+        const result = callConfig(plugin, {}, { command: 'serve' });
+        const aliases = result.resolve.alias as Record<string, string>;
+        expect(aliases['@vendure/dashboard']).toBeUndefined();
+    });
+
+    it('with flag: adds Vite resolve alias @vendure/dashboard -> dist/bundle/lib.js', () => {
+        const plugin = viteConfigPlugin({ packageRoot, useExperimentalBundle: true });
+        const result = callConfig(plugin, {}, { command: 'serve' });
+        const aliases = result.resolve.alias as Record<string, string>;
+        expect(aliases['@vendure/dashboard']).toBe(
+            path.resolve(packageRoot, './dist/bundle/lib.js'),
+        );
+    });
+
+    it('with flag: still keeps @/vdb and @/graphql aliases', () => {
+        const plugin = viteConfigPlugin({ packageRoot, useExperimentalBundle: true });
+        const result = callConfig(plugin, {}, { command: 'serve' });
+        const aliases = result.resolve.alias as Record<string, string>;
+        expect(aliases['@/vdb']).toBe(path.resolve(packageRoot, './src/lib'));
+        expect(aliases['@/graphql']).toBe(path.resolve(packageRoot, './src/lib/graphql'));
+    });
+
+    it('optimizeDeps.exclude always includes virtual:plugin-translations (regardless of flag)', () => {
+        const off = callConfig(viteConfigPlugin({ packageRoot }), {}, { command: 'serve' });
+        const on = callConfig(
+            viteConfigPlugin({ packageRoot, useExperimentalBundle: true }),
+            {},
+            { command: 'serve' },
+        );
+        expect(off.optimizeDeps.exclude).toContain('virtual:plugin-translations');
+        expect(on.optimizeDeps.exclude).toContain('virtual:plugin-translations');
+    });
+
+    it('optimizeDeps.exclude still contains @vendure/dashboard + @/vdb in both modes', () => {
+        // Source-mode needs them excluded so Vite doesn't try to pre-bundle the
+        // dashboard source. Bundle-mode keeps them excluded as well so Vite's
+        // dep scanner doesn't walk into the dashboard's source files for things
+        // like `await import('virtual:plugin-translations')` in load-i18n-messages.
+        const off = callConfig(viteConfigPlugin({ packageRoot }), {}, { command: 'serve' });
+        const on = callConfig(
+            viteConfigPlugin({ packageRoot, useExperimentalBundle: true }),
+            {},
+            { command: 'serve' },
+        );
+        expect(off.optimizeDeps.exclude).toContain('@vendure/dashboard');
+        expect(off.optimizeDeps.exclude).toContain('@/vdb');
+        expect(on.optimizeDeps.exclude).toContain('@vendure/dashboard');
+        expect(on.optimizeDeps.exclude).toContain('@/vdb');
     });
 });

@@ -1,0 +1,41 @@
+---
+title: "DefaultAssetImportStrategyOptions"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/asset-import-strategy/default-asset-import-strategy.ts" sourceLine="89" packageName="@vendure/core" since="1.7.0" />
+
+Options for [DefaultAssetImportStrategy](/reference/typescript-api/import-export/default-asset-import-strategy#defaultassetimportstrategy).
+
+```ts title="Signature"
+interface DefaultAssetImportStrategyOptions {
+    retryDelayMs?: number;
+    retryCount?: number;
+    allowPrivateNetworks?: boolean;
+}
+```
+
+<div className="members-wrapper">
+
+### retryDelayMs
+
+<MemberInfo kind="property" type={`number`} default={`200`}   />
+
+Delay between retries when a fetch fails, in milliseconds.
+### retryCount
+
+<MemberInfo kind="property" type={`number`} default={`3`}   />
+
+Maximum number of retries when a fetch fails.
+### allowPrivateNetworks
+
+<MemberInfo kind="property" type={`boolean`} default={`false`}  since="3.6.4"  />
+
+If `true`, the strategy permits fetching from hostnames that resolve to
+private, loopback, link-local or other non-public IP addresses. The
+default `false` rejects such hostnames in order to mitigate server-side
+request forgery against the host's internal network and cloud metadata
+services. Enable only when importing from a trusted internal asset
+server or for local development.
+
+
+</div>

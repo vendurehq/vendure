@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest';
 
 import { FieldInfo, getOperationVariablesFields } from '../document-introspection/get-document-structure.js';
 
+import { ConfigurableFieldDef } from './form-engine-types.js';
 import {
     convertEmptyStringsToNull,
+    isFieldNullable,
     removeEmptyIdFields,
     stripNullNullableFields,
     transformRelationFields,
@@ -672,5 +674,53 @@ describe('stripNullNullableFields', () => {
         const result = stripNullNullableFields(values, fields);
         expect(values.threshold).toBeNull();
         expect(result).toEqual({});
+    });
+});
+
+describe('isFieldNullable', () => {
+    it('should return true for nullable custom fields', () => {
+        expect(
+            isFieldNullable({
+                name: 'featureType',
+                type: 'string',
+                nullable: true,
+                readonly: false,
+                list: false,
+            } as ConfigurableFieldDef),
+        ).toBe(true);
+    });
+
+    it('should return false for non-nullable custom fields', () => {
+        expect(
+            isFieldNullable({
+                name: 'priority',
+                type: 'string',
+                nullable: false,
+                readonly: false,
+                list: false,
+            } as ConfigurableFieldDef),
+        ).toBe(false);
+    });
+
+    it('should return true for nullable struct sub-fields', () => {
+        expect(
+            isFieldNullable({
+                name: 'kind',
+                type: 'string',
+                nullable: true,
+                options: [{ value: 'a' }],
+            } as ConfigurableFieldDef),
+        ).toBe(true);
+    });
+
+    it('should return false for configurable operation args', () => {
+        expect(
+            isFieldNullable({
+                name: 'arg',
+                type: 'string',
+                list: false,
+                ui: { options: [{ value: 'a' }] },
+            } as ConfigurableFieldDef),
+        ).toBe(false);
     });
 });

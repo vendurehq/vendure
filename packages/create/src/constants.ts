@@ -21,6 +21,13 @@ export const VITE_VERSION = '^7.3.1';
 
 // Port scanning
 export const PORT_SCAN_RANGE = 20;
+/**
+ * Per-attempt timeout for the TCP probe used by `isServerPortInUse`. Guards against
+ * scenarios where a firewall silently drops SYN packets (rather than rejecting them):
+ * without this, the OS-level connect timeout (75s on macOS, ~127s on Linux) multiplied
+ * by `PORT_SCAN_RANGE` could stall the CLI for tens of minutes.
+ */
+export const SOCKET_TIMEOUT_MS = 2_000;
 
 // Timing constants (milliseconds)
 export const SCAFFOLD_DELAY_MS = 500;

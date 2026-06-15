@@ -4,7 +4,7 @@ generated: true
 ---
 ## vendureDashboardPlugin
 
-<GenerationInfo sourceFile="packages/dashboard/vite/vite-plugin-vendure-dashboard.ts" sourceLine="168" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/vite/vite-plugin-vendure-dashboard.ts" sourceLine="196" packageName="@vendure/dashboard" since="3.4.0" />
 
 This is the Vite plugin which powers the Vendure Dashboard, including:
 
@@ -23,7 +23,7 @@ Parameters
 
 ## VitePluginVendureDashboardOptions
 
-<GenerationInfo sourceFile="packages/dashboard/vite/vite-plugin-vendure-dashboard.ts" sourceLine="32" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/vite/vite-plugin-vendure-dashboard.ts" sourceLine="34" packageName="@vendure/dashboard" since="3.4.0" />
 
 Options for the [vendureDashboardPlugin](/reference/dashboard/vite-plugin/vendure-dashboard-plugin#venduredashboardplugin) Vite plugin.
 
@@ -129,6 +129,7 @@ type VitePluginVendureDashboardOptions = {
         tailwindcss?: boolean;
         configLoader?: boolean;
         viteConfig?: boolean;
+        bundleEntry?: boolean;
         adminApiSchema?: boolean;
         dashboardMetadata?: boolean;
         uiConfig?: boolean;
@@ -137,6 +138,31 @@ type VitePluginVendureDashboardOptions = {
         translations?: boolean;
         hmr?: boolean;
     };
+    /**
+     * @description
+     * **EXPERIMENTAL** — Opt into the pre-bundled dashboard architecture.
+     *
+     * When `true`, the dashboard is loaded from a pre-built ESM bundle
+     * (`@vendure/dashboard/dist/publishable/`) shipped inside the npm package,
+     * instead of being compiled from TypeScript source by your Vite dev server.
+     * This dramatically reduces the number of HTTP requests during `vite dev`
+     * (~3000 raw module fetches → ~40 bundled chunks) which avoids the
+     * Chromium renderer crash reported in issue #4715.
+     *
+     * Trade-offs while this is experimental:
+     * - Some dashboard internals are now opaque to your `vite dev` (no per-file HMR
+     *   for the dashboard itself; extension HMR still works)
+     * - Reports of behavioural regressions are very welcome — this flag exists so
+     *   the bundled mode can be tested in real-world projects alongside the stable
+     *   source-shipping mode.
+     *
+     * This flag will be removed (and the bundled mode will become the default)
+     * once it has been validated across enough real-world setups.
+     *
+     * @default false
+     * @since 3.7.0
+     */
+    useExperimentalBundle?: boolean;
 } & UiConfigPluginOptions &
     ThemeVariablesPluginOptions
 ```

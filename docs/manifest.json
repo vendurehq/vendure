@@ -1,7 +1,7 @@
 {
   "id": "core",
   "name": "Vendure Core Documentation",
-  "version": "3.6.3",
+  "version": "3.6.4",
   "vendureVersion": "v3",
   "navigation": [
     {
@@ -85,7 +85,7 @@
           "title": "Payment",
           "slug": "payment",
           "file": "docs/guides/core-concepts/payment/index.mdx",
-          "lastModified": "2026-04-08T18:11:57+02:00"
+          "lastModified": "2026-04-29T16:04:40+02:00"
         },
         {
           "title": "Customers",
@@ -163,7 +163,7 @@
           "title": "Healthchecks",
           "slug": "healthchecks",
           "file": "docs/guides/core-concepts/healthchecks/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-05-22T15:41:37+02:00"
         },
         {
           "title": "Auth",
@@ -482,7 +482,7 @@
           "title": "Telemetry",
           "slug": "telemetry",
           "file": "docs/guides/how-to/telemetry/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-05-22T15:38:26+02:00"
         }
       ]
     },
@@ -532,7 +532,7 @@
               "lastModified": "2026-02-12T16:47:03+01:00"
             }
           ],
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-06-12T10:15:51+02:00"
         },
         {
           "title": "Customizing Pages",
@@ -704,7 +704,7 @@
           "title": "Checkout Flow",
           "slug": "checkout-flow",
           "file": "docs/guides/storefront/checkout-flow/index.mdx",
-          "lastModified": "2026-04-08T18:11:57+02:00"
+          "lastModified": "2026-04-29T16:04:40+02:00"
         },
         {
           "title": "Customer Accounts",
@@ -729,7 +729,7 @@
           "title": "Using Docker",
           "slug": "using-docker",
           "file": "docs/guides/deployment/using-docker.mdx",
-          "lastModified": "2026-05-26T10:57:06+02:00"
+          "lastModified": "2026-05-27T11:00:24+02:00"
         },
         {
           "title": "Horizontal Scaling",
@@ -1222,7 +1222,7 @@
                   "title": "Middleware",
                   "slug": "middleware",
                   "file": "docs/reference/typescript-api/common/middleware.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-05-22T16:47:46+02:00"
                 },
                 {
                   "title": "PaginatedList",
@@ -2003,28 +2003,58 @@
               "file": "docs/reference/typescript-api/health-check/index.mdx",
               "children": [
                 {
+                  "title": "HealthCheckError",
+                  "slug": "health-check-error",
+                  "file": "docs/reference/typescript-api/health-check/health-check-error.mdx",
+                  "lastModified": "2026-05-22T15:41:37+02:00"
+                },
+                {
                   "title": "HealthCheckRegistryService",
                   "slug": "health-check-registry-service",
                   "file": "docs/reference/typescript-api/health-check/health-check-registry-service.mdx",
-                  "lastModified": "2026-03-10T13:44:11+01:00"
+                  "lastModified": "2026-05-22T15:41:37+02:00"
                 },
                 {
                   "title": "HealthCheckStrategy",
                   "slug": "health-check-strategy",
                   "file": "docs/reference/typescript-api/health-check/health-check-strategy.mdx",
-                  "lastModified": "2026-03-10T13:44:11+01:00"
+                  "lastModified": "2026-05-22T15:41:37+02:00"
+                },
+                {
+                  "title": "HealthIndicator",
+                  "slug": "health-indicator",
+                  "file": "docs/reference/typescript-api/health-check/health-indicator.mdx",
+                  "lastModified": "2026-05-22T15:41:37+02:00"
+                },
+                {
+                  "title": "HealthIndicatorFunction",
+                  "slug": "health-indicator-function",
+                  "file": "docs/reference/typescript-api/health-check/health-indicator-function.mdx",
+                  "lastModified": "2026-05-22T15:41:37+02:00"
+                },
+                {
+                  "title": "HealthIndicatorResult",
+                  "slug": "health-indicator-result",
+                  "file": "docs/reference/typescript-api/health-check/health-indicator-result.mdx",
+                  "lastModified": "2026-05-22T15:41:37+02:00"
+                },
+                {
+                  "title": "HealthIndicatorStatus",
+                  "slug": "health-indicator-status",
+                  "file": "docs/reference/typescript-api/health-check/health-indicator-status.mdx",
+                  "lastModified": "2026-05-22T15:41:37+02:00"
                 },
                 {
                   "title": "HttpHealthCheckStrategy",
                   "slug": "http-health-check-strategy",
                   "file": "docs/reference/typescript-api/health-check/http-health-check-strategy.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-05-22T16:47:46+02:00"
                 },
                 {
                   "title": "TypeORMHealthCheckStrategy",
                   "slug": "type-ormhealth-check-strategy",
                   "file": "docs/reference/typescript-api/health-check/type-ormhealth-check-strategy.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-05-22T15:41:37+02:00"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -2050,7 +2080,13 @@
                   "title": "DefaultAssetImportStrategy",
                   "slug": "default-asset-import-strategy",
                   "file": "docs/reference/typescript-api/import-export/default-asset-import-strategy.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-05-22T14:56:03+02:00"
+                },
+                {
+                  "title": "DefaultAssetImportStrategyOptions",
+                  "slug": "default-asset-import-strategy-options",
+                  "file": "docs/reference/typescript-api/import-export/default-asset-import-strategy-options.mdx",
+                  "lastModified": "2026-05-22T14:56:03+02:00"
                 },
                 {
                   "title": "FastImporterService",
@@ -2688,7 +2724,7 @@
                   "title": "Relations Decorator",
                   "slug": "relations-decorator",
                   "file": "docs/reference/typescript-api/request/relations-decorator.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-05-22T15:43:04+02:00"
                 },
                 {
                   "title": "RequestContext",
@@ -2910,7 +2946,7 @@
                   "title": "OrderService",
                   "slug": "order-service",
                   "file": "docs/reference/typescript-api/services/order-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-04-29T16:04:40+02:00"
                 },
                 {
                   "title": "OrderTestingService",
@@ -2958,7 +2994,7 @@
                   "title": "PromotionService",
                   "slug": "promotion-service",
                   "file": "docs/reference/typescript-api/services/promotion-service.mdx",
-                  "lastModified": "2026-04-30T17:21:55+02:00"
+                  "lastModified": "2026-04-29T16:04:40+02:00"
                 },
                 {
                   "title": "ProvinceService",
@@ -3324,7 +3360,7 @@
                   "title": "SimpleGraphQLClient",
                   "slug": "simple-graph-qlclient",
                   "file": "docs/reference/typescript-api/testing/simple-graph-qlclient.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-05-22T16:47:46+02:00"
                 },
                 {
                   "title": "TestConfig",
@@ -3631,7 +3667,7 @@
                   "title": "GetSdkConfiguration",
                   "slug": "get-sdk-configuration",
                   "file": "docs/reference/core-plugins/telemetry-plugin/get-sdk-configuration.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-05-22T15:38:26+02:00"
                 },
                 {
                   "title": "OtelLogger",
@@ -3708,7 +3744,7 @@
                   "title": "Enums",
                   "slug": "enums",
                   "file": "docs/reference/graphql-api/shop/enums.mdx",
-                  "lastModified": "2026-03-05T15:08:55+01:00"
+                  "lastModified": "2026-04-29T16:04:40+02:00"
                 },
                 {
                   "title": "Input Objects",
@@ -3732,7 +3768,7 @@
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/shop/object-types.mdx",
-                  "lastModified": "2026-03-10T16:50:41+01:00"
+                  "lastModified": "2026-04-29T16:04:40+02:00"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -3833,7 +3869,7 @@
                   "title": "UseGeneratedForm",
                   "slug": "use-generated-form",
                   "file": "docs/reference/dashboard/detail-views/use-generated-form.mdx",
-                  "lastModified": "2026-05-08T12:27:16+02:00"
+                  "lastModified": "2026-06-02T07:50:38+02:00"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -4135,7 +4171,7 @@
                   "title": "PaginatedListDataTable",
                   "slug": "paginated-list-data-table",
                   "file": "docs/reference/dashboard/list-views/paginated-list-data-table.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-05-22T14:56:03+02:00"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -4155,19 +4191,19 @@
                   "title": "PageActionBar",
                   "slug": "page-action-bar",
                   "file": "docs/reference/dashboard/page-layout/page-action-bar.mdx",
-                  "lastModified": "2026-05-08T12:27:16+02:00"
+                  "lastModified": "2026-06-12T10:15:51+02:00"
                 },
                 {
                   "title": "PageBlock",
                   "slug": "page-block",
                   "file": "docs/reference/dashboard/page-layout/page-block.mdx",
-                  "lastModified": "2026-05-08T12:27:16+02:00"
+                  "lastModified": "2026-06-12T10:15:51+02:00"
                 },
                 {
                   "title": "PageTitle",
                   "slug": "page-title",
                   "file": "docs/reference/dashboard/page-layout/page-title.mdx",
-                  "lastModified": "2026-05-08T12:27:16+02:00"
+                  "lastModified": "2026-06-12T10:15:51+02:00"
                 },
                 {
                   "title": "UsePageBlock",
@@ -4176,7 +4212,7 @@
                   "lastModified": "2026-01-28T14:49:21+01:00"
                 }
               ],
-              "lastModified": "2026-05-08T12:27:16+02:00"
+              "lastModified": "2026-06-12T10:15:51+02:00"
             },
             {
               "title": "Vite Plugin",
@@ -4187,7 +4223,7 @@
                   "title": "VendureDashboardPlugin",
                   "slug": "vendure-dashboard-plugin",
                   "file": "docs/reference/dashboard/vite-plugin/vendure-dashboard-plugin.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-06-02T07:50:38+02:00"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"

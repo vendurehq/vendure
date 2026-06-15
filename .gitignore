@@ -393,3 +393,7 @@ __admin-ui/
 
 # Vendure telemetry installation ID
 .vendure/
+
+# Bun is the canonical package manager; package-lock.json is only generated
+# locally (e.g. for the dependency-tracker script) and must not be committed.
+package-lock.json

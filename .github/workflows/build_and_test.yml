@@ -38,7 +38,7 @@ jobs:
             packages: ${{ steps.check.outputs.packages }}
             dashboard: ${{ steps.check.outputs.dashboard }}
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
               with:
                   fetch-depth: 0
             - name: Detect changed paths
@@ -80,7 +80,7 @@ jobs:
         permissions:
             contents: read
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
             - uses: ./.github/actions/setup
             - name: Build
               run: bun run build
@@ -96,7 +96,7 @@ jobs:
             matrix:
                 node: [20.x, 22.x, 24.x]
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
             - uses: ./.github/actions/setup
               with:
                   node-version: ${{ matrix.node }}
@@ -112,7 +112,7 @@ jobs:
         permissions:
             contents: read
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
             - uses: ./.github/actions/setup
             - name: Check i18n catalogs are in sync
               working-directory: packages/dashboard
@@ -129,21 +129,26 @@ jobs:
             matrix:
                 shard: [1, 2, 3, 4]
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
             - uses: ./.github/actions/setup
             - name: Build
               run: bunx lerna run ci --scope @vendure/testing --include-dependencies
             - name: Cache Playwright browsers
               id: playwright-cache
-              uses: actions/cache@v4
+              uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
               with:
                   path: ~/.cache/ms-playwright
-                  key: playwright-${{ runner.os }}-${{ hashFiles('**/bun.lock') }}
-                  restore-keys: |
-                      playwright-${{ runner.os }}-
+                  # The key version prefix (v2) lets us evict caches poisoned by an
+                  # earlier incomplete browser install. No restore-keys: a prefix
+                  # fallback would drag stale browser binaries forward on a Playwright
+                  # version bump, and an exact hit on that poisoned cache then skips
+                  # the install step indefinitely.
+                  key: playwright-v2-${{ runner.os }}-${{ hashFiles('**/bun.lock') }}
             - name: Install Playwright browsers
               if: steps.playwright-cache.outputs.cache-hit != 'true'
-              run: bunx playwright install chromium
+              # chromium-headless-shell is a separate download since Playwright 1.49
+              # and is what headless CI runs actually launch.
+              run: bunx playwright install chromium chromium-headless-shell
               working-directory: packages/dashboard
             - name: Install Playwright system deps
               run: bunx playwright install-deps chromium
@@ -159,7 +164,7 @@ jobs:
         permissions:
             contents: read
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
               with:
                   fetch-depth: 0
             - name: SonarQube Scan
@@ -183,7 +188,7 @@ jobs:
             matrix:
                 node: ${{ github.event_name == 'pull_request' && fromJSON('["22.x"]') || fromJSON('["20.x", "22.x", "24.x"]') }}
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
             - uses: ./.github/actions/setup
               with:
                   node-version: ${{ matrix.node }}
@@ -220,7 +225,7 @@ jobs:
             matrix:
                 node: ${{ github.event_name == 'pull_request' && fromJSON('["22.x"]') || fromJSON('["20.x", "22.x", "24.x"]') }}
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
             - uses: ./.github/actions/setup
               with:
                   node-version: ${{ matrix.node }}
@@ -256,7 +261,7 @@ jobs:
             matrix:
                 node: ${{ github.event_name == 'pull_request' && fromJSON('["22.x"]') || fromJSON('["20.x", "22.x", "24.x"]') }}
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
             - uses: ./.github/actions/setup
               with:
                   node-version: ${{ matrix.node }}
@@ -293,7 +298,7 @@ jobs:
             matrix:
                 node: ${{ github.event_name == 'pull_request' && fromJSON('["22.x"]') || fromJSON('["20.x", "22.x", "24.x"]') }}
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
             - uses: ./.github/actions/setup
               with:
                   node-version: ${{ matrix.node }}

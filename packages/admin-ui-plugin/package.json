@@ -1,6 +1,6 @@
 {
     "name": "@vendure/admin-ui-plugin",
-    "version": "3.6.3",
+    "version": "3.6.4",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
     "files": [
@@ -25,9 +25,9 @@
     "devDependencies": {
         "@types/express": "^5.0.1",
         "@types/fs-extra": "^11.0.4",
-        "@vendure/admin-ui": "3.6.3",
-        "@vendure/common": "3.6.3",
-        "@vendure/core": "3.6.3",
+        "@vendure/admin-ui": "3.6.4",
+        "@vendure/common": "3.6.4",
+        "@vendure/core": "3.6.4",
         "express": "^5.1.0",
         "rimraf": "^5.0.5",
         "typescript": "5.8.2"

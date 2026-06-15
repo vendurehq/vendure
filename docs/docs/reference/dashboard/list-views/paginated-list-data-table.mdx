@@ -4,7 +4,7 @@ generated: true
 ---
 ## PaginatedListDataTable
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/paginated-list-data-table.tsx" sourceLine="347" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/paginated-list-data-table.tsx" sourceLine="357" packageName="@vendure/dashboard" since="3.4.0" />
 
 A wrapper around the [DataTable](/reference/dashboard/list-views/data-table#datatable) component, which automatically configures functionality common to
 list queries that implement the `PaginatedList` interface, which is the common way of representing lists
@@ -207,7 +207,13 @@ interface PaginatedListDataTableProps<T extends TypedDocumentNode<U, V>, U exten
 
 <MemberInfo kind="property" type={`(searchTerm: string) => NonNullable<V['options']>['filter']`}   />
 
-
+Called whenever the debounced search term changes (including when it
+becomes empty). Return a partial filter to merge with the column /
+faceted filters. The returned filter is only applied when the term is
+non-empty — when the term is `''`, the returned value is discarded so
+that callers can write `{ field: { contains: searchTerm } }` without
+producing tautological `contains: ''` clauses. The callback itself is
+still invoked on every change so pages can use it as a state-sync hook.
 ### page
 
 <MemberInfo kind="property" type={`number`}   />

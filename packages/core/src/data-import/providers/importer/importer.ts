@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { ImportInfo, LanguageCode } from '@vendure/common/lib/generated-types';
 import { normalizeString } from '@vendure/common/lib/normalize-string';
 import { ID } from '@vendure/common/lib/shared-types';
-import ProgressBar from 'progress';
 import { Observable } from 'rxjs';
 import { Stream } from 'stream';
 
@@ -27,6 +26,7 @@ import {
 } from '../import-parser/import-parser';
 
 import { FastImporterService } from './fast-importer.service';
+import { ProgressBar } from './progress-bar';
 
 export interface ImportProgress extends ImportInfo {
     currentProduct: string;

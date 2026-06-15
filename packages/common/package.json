@@ -1,6 +1,6 @@
 {
     "name": "@vendure/common",
-    "version": "3.6.3",
+    "version": "3.6.4",
     "main": "index.js",
     "license": "GPL-3.0-or-later",
     "repository": {

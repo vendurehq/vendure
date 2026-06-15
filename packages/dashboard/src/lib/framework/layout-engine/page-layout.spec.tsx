@@ -234,6 +234,20 @@ describe('PageLayout', () => {
         ]);
     });
 
+    // A directly-authored full-width block must render inside PageLayout on desktop. Regression:
+    // the layout engine only routed the FullWidthPageBlock *type* into the full-width column, so a
+    // plain <PageBlock column="full"> matched none of the main/side/full filters and silently vanished.
+    it('renders a directly-authored PageBlock with column="full" on desktop', () => {
+        const markup = renderPageLayout(
+            <PageBlock column="full" blockId="full-block">
+                <div data-testid="page-block-full">full</div>
+            </PageBlock>,
+            { isDesktop: true },
+        );
+
+        expect(getRenderedBlockIds(markup)).toEqual(['page-block-full']);
+    });
+
     it("won't render blocks without required permissions", () => {
         hasPermissionsMock.mockReturnValue(false);
 

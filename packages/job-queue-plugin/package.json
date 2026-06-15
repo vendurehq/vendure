@@ -1,6 +1,6 @@
 {
     "name": "@vendure/job-queue-plugin",
-    "version": "3.6.3",
+    "version": "3.6.4",
     "license": "GPL-3.0-or-later",
     "main": "package/index.js",
     "types": "package/index.d.ts",
@@ -25,8 +25,8 @@
         "access": "public"
     },
     "devDependencies": {
-        "@vendure/common": "3.6.3",
-        "@vendure/core": "3.6.3",
+        "@vendure/common": "3.6.4",
+        "@vendure/core": "3.6.4",
         "bullmq": "^5.67.1",
         "ioredis": "5.9.3",
         "rimraf": "^5.0.5",

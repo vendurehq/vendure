@@ -71,6 +71,25 @@ export class CouponCodeLimitError extends ErrorResult {
   }
 }
 
+export class CouponRemovedDuringCheckoutError extends ErrorResult {
+  readonly __typename = 'CouponRemovedDuringCheckoutError';
+  readonly errorCode = 'COUPON_REMOVED_DURING_CHECKOUT_ERROR' as any;
+  readonly message = 'COUPON_REMOVED_DURING_CHECKOUT_ERROR';
+  readonly currencyCode: any;
+  readonly newTotalWithTax: any;
+  readonly previousTotalWithTax: any;
+  readonly removedCouponCodes: Scalars['String'][];
+  constructor(
+    input: { currencyCode: any, newTotalWithTax: any, previousTotalWithTax: any, removedCouponCodes: Scalars['String'][] }
+  ) {
+    super();
+    this.currencyCode = input.currencyCode
+    this.newTotalWithTax = input.newTotalWithTax
+    this.previousTotalWithTax = input.previousTotalWithTax
+    this.removedCouponCodes = input.removedCouponCodes
+  }
+}
+
 export class EmailAddressConflictError extends ErrorResult {
   readonly __typename = 'EmailAddressConflictError';
   readonly errorCode = 'EMAIL_ADDRESS_CONFLICT_ERROR' as any;
@@ -384,7 +403,7 @@ export class VerificationTokenInvalidError extends ErrorResult {
 }
 
 
-const errorTypeNames = new Set<string>(['AlreadyLoggedInError', 'CouponCodeExpiredError', 'CouponCodeInvalidError', 'CouponCodeLimitError', 'EmailAddressConflictError', 'GuestCheckoutError', 'IdentifierChangeTokenExpiredError', 'IdentifierChangeTokenInvalidError', 'IneligiblePaymentMethodError', 'IneligibleShippingMethodError', 'InsufficientStockError', 'InvalidCredentialsError', 'MissingPasswordError', 'NativeAuthStrategyError', 'NegativeQuantityError', 'NoActiveOrderError', 'NotVerifiedError', 'OrderInterceptorError', 'OrderLimitError', 'OrderModificationError', 'OrderPaymentStateError', 'OrderStateTransitionError', 'PasswordAlreadySetError', 'PasswordResetTokenExpiredError', 'PasswordResetTokenInvalidError', 'PasswordValidationError', 'PaymentDeclinedError', 'PaymentFailedError', 'VerificationTokenExpiredError', 'VerificationTokenInvalidError']);
+const errorTypeNames = new Set<string>(['AlreadyLoggedInError', 'CouponCodeExpiredError', 'CouponCodeInvalidError', 'CouponCodeLimitError', 'CouponRemovedDuringCheckoutError', 'EmailAddressConflictError', 'GuestCheckoutError', 'IdentifierChangeTokenExpiredError', 'IdentifierChangeTokenInvalidError', 'IneligiblePaymentMethodError', 'IneligibleShippingMethodError', 'InsufficientStockError', 'InvalidCredentialsError', 'MissingPasswordError', 'NativeAuthStrategyError', 'NegativeQuantityError', 'NoActiveOrderError', 'NotVerifiedError', 'OrderInterceptorError', 'OrderLimitError', 'OrderModificationError', 'OrderPaymentStateError', 'OrderStateTransitionError', 'PasswordAlreadySetError', 'PasswordResetTokenExpiredError', 'PasswordResetTokenInvalidError', 'PasswordValidationError', 'PaymentDeclinedError', 'PaymentFailedError', 'VerificationTokenExpiredError', 'VerificationTokenInvalidError']);
 function isGraphQLError(input: any): input is import('@vendure/common/lib/generated-types').ErrorResult {
   return input instanceof ErrorResult || errorTypeNames.has(input.__typename);
 }

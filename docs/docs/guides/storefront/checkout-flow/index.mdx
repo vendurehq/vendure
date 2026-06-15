@@ -374,6 +374,10 @@ mutation AddPaymentToOrder($input: PaymentInput!) {
 </TabItem>
 </Tabs>
 
+:::info
+If the order has a coupon code applied whose usage limit was exhausted by a concurrent checkout (or whose promotion was disabled or whose eligibility conditions are no longer met) and removing it would increase the customer's total, `addPaymentToOrder` returns a [`CouponRemovedDuringCheckoutError`](/reference/graphql-api/shop/object-types#couponremovedduringcheckouterror) rather than charging the customer the new (higher) total. The error includes `removedCouponCodes`, `previousTotalWithTax`, `newTotalWithTax`, and `currencyCode` so your storefront can present the customer with a clear choice to continue at the new price or abandon the checkout.
+:::
+
 Other payment integrations have specific setup instructions you must follow:
 
 ### Stripe

@@ -88,8 +88,10 @@ export function themeVariablesPlugin(options: ThemeVariablesPluginOptions): Plug
         name: 'vendure:admin-theme',
         enforce: 'pre', // This ensures our plugin runs before other CSS processors
         transform(code, id) {
-            // Only transform CSS files
-            if (!id.endsWith('styles.css')) {
+            // Only transform CSS files: the dashboard's main `styles.css` and
+            // the dashboard-extension entry `extension-tailwind.css` (used in
+            // experimental-bundle mode, see issue #4719).
+            if (!id.endsWith('styles.css') && !id.endsWith('extension-tailwind.css')) {
                 return null;
             }
 

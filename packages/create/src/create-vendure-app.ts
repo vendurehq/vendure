@@ -576,15 +576,17 @@ export async function createVendureApp(
  */
 function getServerPackageScripts(): Record<string, string> {
     return {
-        'dev:server': 'ts-node ./src/index.ts',
-        'dev:worker': 'ts-node ./src/index-worker.ts',
-        'dev:dashboard': 'vite --clearScreen false',
-        dev: 'concurrently --kill-others npm:dev:*',
-        build: 'tsc',
-        'build:dashboard': 'vite build',
+        'dev:server': 'vendure dev server',
+        'dev:worker': 'vendure dev worker',
+        'dev:dashboard': 'vendure dev dashboard',
+        dev: 'vendure dev all',
+        build: 'vendure build all',
+        'build:server': 'vendure build server',
+        'build:worker': 'vendure build worker',
+        'build:dashboard': 'vendure build dashboard',
         'start:server': 'node ./dist/index.js',
         'start:worker': 'node ./dist/index-worker.js',
-        start: 'concurrently npm:start:*',
+        start: 'vendure start all',
     };
 }
 

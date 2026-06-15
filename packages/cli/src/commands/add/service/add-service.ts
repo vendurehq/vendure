@@ -1,5 +1,5 @@
 import { cancel, isCancel, log, select, spinner, text } from '@clack/prompts';
-import { paramCase } from 'change-case';
+import { kebabCase } from '../../../utilities/case-utils';
 import path from 'path';
 import { ClassDeclaration, Scope, SourceFile } from 'ts-morph';
 
@@ -267,7 +267,7 @@ export async function addService(
 }
 
 function getServiceFilePath(plugin: VendurePluginRef, serviceName: string) {
-    const serviceFileName = paramCase(serviceName).replace(/-service$/, '.service');
+    const serviceFileName = kebabCase(serviceName).replace(/-service$/, '.service');
     return path.join(plugin.getPluginDir().getPath(), 'services', `${serviceFileName}.ts`);
 }
 
