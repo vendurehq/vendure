@@ -8,11 +8,12 @@ export interface StockLevelInput {
  * loaded into the form (`original`): edited locations and newly-added locations.
  * Unchanged locations are dropped.
  *
- * Core applies submitted stock as an absolute target relative to the *current* DB
- * value, so resending an unchanged page-load value silently reverts any stock
- * movement (orders, another admin, integrations) that happened since the page was
- * opened. Mirrors the legacy Angular UI, which only sent dirty stock locations.
- * See #4803.
+ * Core treats a submitted `stockOnHand` as an absolute target and applies the delta
+ * against the *current* DB value (it no-ops when the value already matches). So
+ * resending an unchanged page-load value is harmless only while the DB value hasn't
+ * drifted — if stock moved concurrently (an order completed, another admin edited,
+ * an integration ran), the stale value silently reverts that movement. Mirrors the
+ * legacy Angular UI, which only sent dirty stock locations. See #4803.
  */
 export function getChangedStockLevels<T extends StockLevelInput>(
     submitted: readonly T[] | null | undefined,

@@ -127,10 +127,8 @@ function ProductVariantDetailPage() {
             };
         },
         transformUpdateInput: input => {
-            // Only send stock levels the admin actually edited. Core applies submitted
-            // stock as an absolute target relative to the current DB value, so resending
-            // unchanged page-load values would silently revert stock that changed
-            // concurrently (orders, another admin, integrations). See #4803.
+            // Only send stock levels the admin actually edited — see getChangedStockLevels
+            // and #4803 for why resending unchanged stock is destructive.
             const changedStockLevels = getChangedStockLevels(
                 input.stockLevels,
                 originalStockLevelsRef.current,

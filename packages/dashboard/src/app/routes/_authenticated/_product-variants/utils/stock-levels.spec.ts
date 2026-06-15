@@ -28,17 +28,33 @@ describe('getChangedStockLevels', () => {
         ]);
     });
 
-    it('does not send an unchanged location even when another location is edited', () => {
-        // The unedited location may have changed concurrently in the DB; resending its
+    it('sends only the edited location across many, leaving the others untouched', () => {
+        // Each unedited location may have changed concurrently in the DB; resending its
         // stale page-load value would overwrite that concurrent change.
+        const threeLocations = [
+            { stockLocationId: '1', stockOnHand: 100 },
+            { stockLocationId: '2', stockOnHand: 50 },
+            { stockLocationId: '3', stockOnHand: 25 },
+        ];
         const submitted = [
-            { stockLocationId: '1', stockOnHand: 120 },
+            { stockLocationId: '1', stockOnHand: 100 },
+            { stockLocationId: '2', stockOnHand: 70 },
+            { stockLocationId: '3', stockOnHand: 25 },
+        ];
+        expect(getChangedStockLevels(submitted, threeLocations)).toEqual([
+            { stockLocationId: '2', stockOnHand: 70 },
+        ]);
+    });
+
+    it('does not include a location edited then reverted to its original value', () => {
+        // Guards against switching to a dirty-flag approach: a field edited and changed
+        // back is still "dirty" in react-hook-form, but its value is unchanged, so it
+        // must not be resent.
+        const submitted = [
+            { stockLocationId: '1', stockOnHand: 100 }, // 100 -> 120 -> 100
             { stockLocationId: '2', stockOnHand: 50 },
         ];
-        expect(getChangedStockLevels(submitted, original)).not.toContainEqual({
-            stockLocationId: '2',
-            stockOnHand: 50,
-        });
+        expect(getChangedStockLevels(submitted, original)).toEqual([]);
     });
 
     it('includes newly-added stock locations', () => {
@@ -57,7 +73,12 @@ describe('getChangedStockLevels', () => {
         expect(getChangedStockLevels(submitted, undefined)).toEqual(submitted);
     });
 
-    it('returns empty for missing submitted', () => {
+    it('returns empty for an empty submitted array', () => {
+        expect(getChangedStockLevels([], original)).toEqual([]);
+    });
+
+    it('returns empty for null or undefined submitted', () => {
+        expect(getChangedStockLevels(null, original)).toEqual([]);
         expect(getChangedStockLevels(undefined, original)).toEqual([]);
     });
 });
