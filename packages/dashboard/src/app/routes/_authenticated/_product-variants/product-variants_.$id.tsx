@@ -36,6 +36,7 @@ import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { VariablesOf } from 'gql.tada';
 import { Edit2, Trash } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 
 import { AddCurrencyDropdown } from './components/add-currency-dropdown.js';
@@ -47,6 +48,7 @@ import {
     stockLocationsQueryDocument,
     updateProductVariantDocument,
 } from './product-variants.graphql.js';
+import { getChangedStockLevels, StockLevelInput } from './utils/stock-levels.js';
 
 const pageId = 'product-variant-detail';
 
@@ -86,6 +88,10 @@ function ProductVariantDetailPage() {
         queryFn: () => api.query(stockLocationsQueryDocument, {}),
     });
 
+    // Holds the stock levels as loaded into the form, so the update transform can
+    // tell which ones the admin actually edited (see #4803).
+    const originalStockLevelsRef = useRef<StockLevelInput[] | undefined>(undefined);
+
     const { form, submitHandler, entity, isPending, resetForm } = useDetailPage({
         pageId,
         queryDocument: addCustomFields(productVariantDetailDocument, {
@@ -120,6 +126,21 @@ function ProductVariantDetailPage() {
                 customFields: entity.customFields,
             };
         },
+        transformUpdateInput: input => {
+            // Only send stock levels the admin actually edited. Core applies submitted
+            // stock as an absolute target relative to the current DB value, so resending
+            // unchanged page-load values would silently revert stock that changed
+            // concurrently (orders, another admin, integrations). See #4803.
+            const changedStockLevels = getChangedStockLevels(
+                input.stockLevels,
+                originalStockLevelsRef.current,
+            );
+            if (changedStockLevels.length === 0) {
+                const { stockLevels: _omittedStockLevels, ...rest } = input;
+                return rest;
+            }
+            return { ...input, stockLevels: changedStockLevels };
+        },
         params: { id: params.id },
         onSuccess: data => {
             toast.success(
@@ -141,6 +162,13 @@ function ProductVariantDetailPage() {
             );
         },
     });
+
+    useEffect(() => {
+        originalStockLevelsRef.current = entity?.stockLevels.map(stockLevel => ({
+            stockLocationId: stockLevel.stockLocation.id,
+            stockOnHand: stockLevel.stockOnHand,
+        }));
+    }, [entity]);
 
     const availableCurrencies = activeChannel?.availableCurrencyCodes ?? [];
     const [prices, taxCategoryId, stockLevels] = form.watch(['prices', 'taxCategoryId', 'stockLevels']);
