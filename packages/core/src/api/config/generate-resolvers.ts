@@ -9,6 +9,7 @@ import {
     ErrorResult,
 } from '../../common/error/generated-graphql-admin-errors';
 import { shopErrorOperationTypeResolvers } from '../../common/error/generated-graphql-shop-errors';
+import { Injector } from '../../common/injector';
 import { Translatable } from '../../common/types/locale-types';
 import { ConfigService } from '../../config/config.service';
 import {
@@ -37,6 +38,7 @@ export async function generateResolvers(
     customFieldRelationResolverService: CustomFieldRelationResolverService,
     apiType: ApiType,
     schema: GraphQLSchema,
+    injector: Injector,
 ) {
     // Prevent `Type "Node" is missing a "resolveType" resolver.` warnings.
     // See https://github.com/apollographql/apollo-server/issues/1075
@@ -155,6 +157,7 @@ export async function generateResolvers(
         configService,
         customFieldRelationResolverService,
         schema,
+        injector,
     );
 
     const adminResolvers = {
@@ -192,8 +195,10 @@ function generateCustomFieldResolvers(
     configService: ConfigService,
     customFieldRelationResolverService: CustomFieldRelationResolverService,
     schema: GraphQLSchema,
+    injector: Injector,
 ) {
     const ENTITY_ID_KEY = '__entityId__';
+    const ENTITY_KEY = Symbol('entity');
     const adminResolvers: IResolvers = {};
     const shopResolvers: IResolvers = {};
 
@@ -212,10 +217,10 @@ function generateCustomFieldResolvers(
         // access to the entity id. Therefore, we attach it to the resolved value
         // so that it is available to the `relationResolver` below.
         const customFieldResolver: IFieldResolver<any, any> = (source: any) => {
-            return {
-                ...source.customFields,
-                [ENTITY_ID_KEY]: source.id,
-            };
+            const customFields = { ...source.customFields };
+            Object.defineProperty(customFields, ENTITY_ID_KEY, { value: source.id });
+            Object.defineProperty(customFields, ENTITY_KEY, { value: source });
+            return customFields;
         };
         const resolverObject = {
             customFields: customFieldResolver,
@@ -266,7 +271,14 @@ function generateCustomFieldResolvers(
                     });
                 };
             } else if (isStructType(fieldDef)) {
-                resolver = async (source: any) => {
+                resolver = async (source: any, args: any, context: any) => {
+                    const ctx = internal_getRequestContext(context.req);
+                    const resolvedValue = await resolveCustomFieldValue(
+                        fieldDef,
+                        source,
+                        source[fieldDef.name],
+                        ctx,
+                    );
                     const fields = fieldDef.fields;
                     function buildStructObject(valueFromDb: any) {
                         const result: Record<string, any> = {};
@@ -282,36 +294,25 @@ function generateCustomFieldResolvers(
                         return result;
                     }
                     if (fieldDef.list === true) {
-                        const structArray = Array.isArray(source[fieldDef.name])
-                            ? source[fieldDef.name]
-                            : source[fieldDef.name]
-                              ? [source[fieldDef.name]]
+                        const structArray = Array.isArray(resolvedValue)
+                            ? resolvedValue
+                            : resolvedValue
+                              ? [resolvedValue]
                               : [];
                         source[fieldDef.name] = structArray.map(buildStructObject);
                     } else {
-                        source[fieldDef.name] = buildStructObject(source[fieldDef.name]);
+                        source[fieldDef.name] = buildStructObject(resolvedValue);
                     }
 
                     return source[fieldDef.name];
                 };
-                adminResolvers[customFieldTypeName] = {
-                    ...adminResolvers[customFieldTypeName],
-                    [fieldDef.name]: resolver,
-                } as any;
-
-                if (fieldDef.public !== false && !excludeFromShopApi) {
-                    shopResolvers[customFieldTypeName] = {
-                        ...shopResolvers[customFieldTypeName],
-                        [fieldDef.name]: resolver,
-                    } as any;
-                }
             } else {
                 resolver = async (source: any, args: any, context: any) => {
                     const ctx = internal_getRequestContext(context.req);
                     if (!userHasPermissionsOnCustomField(ctx, fieldDef)) {
                         return null;
                     }
-                    return source[fieldDef.name];
+                    return resolveCustomFieldValue(fieldDef, source, source[fieldDef.name], ctx);
                 };
             }
 
@@ -339,6 +340,18 @@ function generateCustomFieldResolvers(
         }
     }
     return { adminResolvers, shopResolvers };
+
+    function resolveCustomFieldValue(
+        fieldDef: Exclude<CustomFieldConfig, RelationCustomFieldConfig>,
+        source: any,
+        value: unknown,
+        ctx: ReturnType<typeof internal_getRequestContext>,
+    ) {
+        if (typeof fieldDef.resolve !== 'function') {
+            return value;
+        }
+        return fieldDef.resolve(value, injector, ctx, source[ENTITY_KEY]);
+    }
 }
 
 function getCustomScalars(configService: ConfigService, apiType: 'admin' | 'shop') {

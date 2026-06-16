@@ -25,6 +25,7 @@ import { fixPostgresTimezone } from './utils/fix-pg-timezone';
 fixPostgresTimezone();
 
 const validateInjectorSpy = vi.fn();
+const resolveInjectorSpy = vi.fn();
 
 const customConfig = mergeConfig(testConfig(), {
     dbConnectionOptions: {
@@ -161,6 +162,16 @@ const customConfig = mergeConfig(testConfig(), {
                 name: 'stringList',
                 type: 'string',
                 list: true,
+                resolve: (value, injector, ctx, entity) => {
+                    const connection = injector.get(TransactionalConnection);
+                    resolveInjectorSpy({
+                        value,
+                        apiType: ctx.apiType,
+                        entityId: String(entity.id),
+                        connection,
+                    });
+                    return [`resolved:${String(entity.id)}`];
+                },
             },
             {
                 name: 'localeStringList',
@@ -729,6 +740,30 @@ describe('Custom fields', () => {
             expect(updateProduct.customFields.validateFn3).toBe('some value');
             expect(validateInjectorSpy).toHaveBeenCalledTimes(1);
             expect(validateInjectorSpy.mock.calls[0][0] instanceof TransactionalConnection).toBe(true);
+        });
+
+        it('can resolve custom field values for GraphQL reads without changing persisted values', async () => {
+            resolveInjectorSpy.mockClear();
+
+            const { updateProduct } = await adminClient.query(updateProductStringListDocument, {
+                id: 'T_1',
+                values: ['stored'],
+            });
+
+            expect(updateProduct.customFields.stringList).toEqual(['resolved:1']);
+            expect(resolveInjectorSpy).toHaveBeenCalledTimes(1);
+
+            const resolverCall = resolveInjectorSpy.mock.calls[0][0];
+            expect(resolverCall).toMatchObject({
+                value: ['stored'],
+                apiType: 'admin',
+                entityId: '1',
+            });
+            expect(resolverCall.connection).toBeInstanceOf(TransactionalConnection);
+
+            const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+            const product = await server.app.get(ProductService).findOne(ctx, 1);
+            expect(product?.customFields.stringList).toEqual(['stored']);
         });
 
         it(
@@ -1439,6 +1474,17 @@ const updateProductIntListDocument = graphql(`
             id
             customFields {
                 intListWithValidation
+            }
+        }
+    }
+`);
+
+const updateProductStringListDocument = graphql(`
+    mutation UpdateProductStringList($id: ID!, $values: [String!]!) {
+        updateProduct(input: { id: $id, customFields: { stringList: $values } }) {
+            id
+            customFields {
+                stringList
             }
         }
     }

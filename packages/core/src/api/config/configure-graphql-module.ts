@@ -1,8 +1,10 @@
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { DynamicModule } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { GraphQLModule, GraphQLTypesLoader } from '@nestjs/graphql';
 import { GraphQLSchema, printSchema, ValidationContext } from 'graphql';
 
+import { Injector } from '../../common/injector';
 import { ConfigModule } from '../../config/config.module';
 import { ConfigService } from '../../config/config.service';
 import { I18nModule } from '../../i18n/i18n.module';
@@ -43,6 +45,7 @@ export function configureGraphQLModule(
             idCodecService: IdCodecService,
             typesLoader: GraphQLTypesLoader,
             customFieldRelationResolverService: CustomFieldRelationResolverService,
+            moduleRef: ModuleRef,
         ) => {
             return createGraphQLOptions(
                 i18nService,
@@ -50,6 +53,7 @@ export function configureGraphQLModule(
                 idCodecService,
                 typesLoader,
                 customFieldRelationResolverService,
+                new Injector(moduleRef),
                 getOptions(configService),
             );
         },
@@ -59,6 +63,7 @@ export function configureGraphQLModule(
             IdCodecService,
             GraphQLTypesLoader,
             CustomFieldRelationResolverService,
+            ModuleRef,
         ],
         imports: [ConfigModule, I18nModule, ApiSharedModule, ServiceModule],
     });
@@ -70,6 +75,7 @@ async function createGraphQLOptions(
     idCodecService: IdCodecService,
     typesLoader: GraphQLTypesLoader,
     customFieldRelationResolverService: CustomFieldRelationResolverService,
+    injector: Injector,
     options: GraphQLApiOptions,
 ): Promise<ApolloDriverConfig> {
     const builtSchema = await buildSchemaForApi(options.apiType);
@@ -78,6 +84,7 @@ async function createGraphQLOptions(
         customFieldRelationResolverService,
         options.apiType,
         builtSchema,
+        injector,
     );
 
     const apolloServerPlugins = [

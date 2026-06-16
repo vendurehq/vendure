@@ -33,6 +33,13 @@ import { RequestContext } from '../../api/common/request-context';
 import { Injector } from '../../common/injector';
 import { VendureEntity } from '../../entity/base/base.entity';
 
+export type CustomFieldValueResolver = (
+    value: unknown,
+    injector: Injector,
+    ctx: RequestContext,
+    entity: VendureEntity,
+) => unknown | Promise<unknown>;
+
 // prettier-ignore
 export type DefaultValueType<T extends CustomFieldType | StructFieldType> =
     T extends 'string' | 'localeString' | 'text' | 'localeText' ? string :
@@ -90,7 +97,18 @@ export type BaseTypedCustomFieldConfig<T extends CustomFieldType, C extends Cust
      * ```
      */
     ui?: UiComponentConfig<DefaultFormComponentId | string> | { dashboard?: boolean };
-};
+} & (T extends 'relation'
+    ? unknown
+    : {
+          /**
+           * @description
+           * Allows the value returned by the GraphQL API to be resolved dynamically.
+           * This does not affect the value persisted to the database.
+           *
+           * @since 3.7.0
+           */
+          resolve?: CustomFieldValueResolver;
+      });
 
 /**
  * @description
