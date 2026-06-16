@@ -139,7 +139,7 @@ function resolveChecks(checkFlags?: string[]): string[] {
     if (invalid.length > 0) {
         log.warn(`Unknown check(s): ${invalid.join(', ')}. Valid checks: ${ALL_CHECKS.join(', ')}`);
     }
-    return valid.length > 0 ? valid : [...ALL_CHECKS];
+    return valid;
 }
 
 function validateProfile(profile?: string): void {

@@ -86,6 +86,7 @@ export async function runProjectCheck(configFlag?: string): Promise<CheckResult>
             status: 'fail',
             message: configResult.error,
             details,
+            packageManager,
         };
     }
 

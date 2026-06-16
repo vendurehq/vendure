@@ -6,6 +6,9 @@ import { CheckResult } from '../types';
 /**
  * Known @vendure/* packages that use fixed versioning.
  * These should all be at the same version when installed.
+ *
+ * TODO: Consider deriving this list dynamically from the monorepo
+ * or from a published registry to avoid manual maintenance.
  */
 const VENDURE_PACKAGES = [
     '@vendure/admin-ui',
@@ -20,6 +23,7 @@ const VENDURE_PACKAGES = [
     '@vendure/graphiql-plugin',
     '@vendure/harden-plugin',
     '@vendure/job-queue-plugin',
+    '@vendure/sentry-plugin',
     '@vendure/telemetry-plugin',
     '@vendure/testing',
     '@vendure/ui-devkit',

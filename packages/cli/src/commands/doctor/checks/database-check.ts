@@ -22,13 +22,6 @@ export async function runDatabaseCheck(config: RuntimeVendureConfig): Promise<Ch
     const details: string[] = [];
     const dbOptions = config.dbConnectionOptions;
     const dbType = (dbOptions as any).type || 'unknown';
-    let worstStatus: 'pass' | 'warn' | 'fail' = 'pass';
-
-    // Check for synchronize: true (risky regardless of environment)
-    if ((dbOptions as any).synchronize) {
-        worstStatus = 'warn';
-        details.push('Warning: synchronize is enabled (use migrations instead)');
-    }
 
     let dataSource: DataSource | undefined;
     try {
@@ -58,7 +51,7 @@ export async function runDatabaseCheck(config: RuntimeVendureConfig): Promise<Ch
 
         return {
             name: 'Database',
-            status: worstStatus,
+            status: 'pass',
             message: `Successfully connected to ${dbType} database`,
             details,
         };

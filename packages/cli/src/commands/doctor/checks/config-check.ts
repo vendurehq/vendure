@@ -91,7 +91,7 @@ export async function runConfigCheck(configFlag?: string): Promise<ConfigCheckRe
             vendureVersion: VENDURE_VERSION,
         };
     } finally {
-        process.env.VENDURE_RUNNING_IN_CLI = undefined;
+        delete process.env.VENDURE_RUNNING_IN_CLI;
     }
 }
 

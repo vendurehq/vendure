@@ -81,21 +81,39 @@ describe('CLI Doctor Command E2E', () => {
         it('should treat warnings as failures with --strict', async () => {
             testProject = createTestProject('doctor-strict');
 
-            // Create a project with multiple lockfiles to trigger a warning
-            testProject.writeFile('yarn.lock', '');
-            testProject.writeFile('package-lock.json', '{}');
-
-            const result = await testProject.runCliCommand(
-                ['doctor', '--check', 'project', '--format', 'json', '--strict'],
-                { expectError: true },
+            // Create node_modules with duplicate graphql versions to trigger a warn
+            testProject.writeFile(
+                'node_modules/graphql/package.json',
+                JSON.stringify({ name: 'graphql', version: '16.11.0' }),
+            );
+            testProject.writeFile(
+                'node_modules/some-pkg/node_modules/graphql/package.json',
+                JSON.stringify({ name: 'graphql', version: '16.14.0' }),
+            );
+            // The test project config uses better-sqlite3, so we need to fake the driver
+            testProject.writeFile(
+                'node_modules/better-sqlite3/package.json',
+                JSON.stringify({ name: 'better-sqlite3', version: '9.0.0' }),
             );
 
-            // The project check itself passes but the multiple lockfiles
-            // don't cause a warn status on the project check -- they're just
-            // informational details. So strict mode won't change the outcome here.
-            // This test verifies the --strict flag is accepted without error.
-            const report = JSON.parse(result.stdout);
-            expect(report).toHaveProperty('overallStatus');
+            // Without --strict, duplicate singletons are a warning and result is 'passed'
+            const passResult = await testProject.runCliCommand(
+                ['doctor', '--check', 'dependencies', '--format', 'json'],
+                { expectError: true },
+            );
+            const passReport = JSON.parse(passResult.stdout);
+            expect(passReport.overallStatus).toBe('passed');
+            expect(passReport.checks[0].status).toBe('warn');
+            expect(passResult.exitCode).toBe(0);
+
+            // With --strict, the same warning causes a failure
+            const failResult = await testProject.runCliCommand(
+                ['doctor', '--check', 'dependencies', '--format', 'json', '--strict'],
+                { expectError: true },
+            );
+            expect(failResult.exitCode).toBe(1);
+            const failReport = JSON.parse(failResult.stdout);
+            expect(failReport.overallStatus).toBe('failed');
         });
     });
 
