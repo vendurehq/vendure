@@ -57,14 +57,7 @@ Questions? Join [our Discord](https://www.vendure.io/community) for support and 
 
 ## What's in this repo
 
-Vendure is a Lerna monorepo. The packages you'll touch most:
-
-- **`@vendure/core`**: the framework itself. Entities, services, GraphQL APIs, the plugin system.
-- **`@vendure/create`**: `npx @vendure/create` scaffolds a new project.
-- **`@vendure/dashboard`**: the React and TanStack admin dashboard.
-- **`@vendure/cli`**: dev tooling for generating plugins, migrations, etc.
-- **Official plugins**: `email-plugin`, `asset-server-plugin`, `job-queue-plugin`, `harden-plugin`, `telemetry-plugin`, `graphiql-plugin`.
-- **`@vendure/testing`**: e2e test harness with a programmable mock server.
+This is the Vendure source monorepo: the `@vendure/core` framework, the React and TanStack admin dashboard, the CLI, the official plugins, and an e2e testing harness. To build with Vendure, run `npx @vendure/create` (see [Getting started](#getting-started)) rather than cloning; clone this repo only to contribute to Vendure itself.
 
 ## Where it runs
 
