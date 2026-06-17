@@ -77,7 +77,7 @@ Patch releases ship regularly. Check our [release notes](https://github.com/vend
 
 ## License
 
-Vendure is open source under the [GPLv3 license](./LICENSE.md). GPLv3 applies to the Vendure source itself; the storefronts and services you build against the Vendure GraphQL API are separate works and aren't subject to it. Commercial licensing for Vendure Platform is covered on our [pricing page](https://vendure.io/pricing).
+Vendure is open source under the [GPLv3 license](./LICENSE.md). Building against the GraphQL API doesn't make your storefront or services subject to GPLv3, and a [plugin license exception](./license/plugin-exception.txt) lets you release your own Vendure plugins under any license you choose (see the [licensing FAQ](./license/license-faq.md)). Commercial licensing for Vendure Platform is on our [pricing page](https://vendure.io/pricing).
 
 ## Professional services
 
