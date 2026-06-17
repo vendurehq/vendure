@@ -47,7 +47,7 @@ Vendure is an open-source headless commerce platform. Model your catalog, orders
 
 Vendure runs anywhere Node.js runs: self-hosted, Docker, Kubernetes, or any cloud. You own the deployment.
 
-Want a managed runtime, or enterprise modules like SSO, B2B pricing, and approval workflows? [Vendure Cloud](https://vendure.io/products/cloud) is a fully managed PaaS with git-push deploys, a modern CLI, and agent-first DevOps workflows. [Vendure Platform](https://vendure.io/product/platform) adds the enterprise capability layer. Start with what's here, and add them when you need them.
+Want a managed runtime, or enterprise modules like SSO, B2B pricing, and approval workflows? [Vendure Cloud](https://vendure.io/product/cloud) is a fully managed PaaS with git-push deploys, a modern CLI, and agent-first DevOps workflows. [Vendure Platform](https://vendure.io/product/platform) adds the enterprise capability layer. Start with what's here, and add them when you need them.
 
 ## Getting started
 
@@ -63,7 +63,7 @@ Contributions are welcome: bugs, features, or docs. Our **[Contribution Guide](.
 
 Pick up a [labelled issue](https://github.com/vendurehq/vendure/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22%F0%9F%91%8B%20contributions%20welcome%22) as a good first contribution.
 
-## Upgrades & plugins
+## Releases
 
 Patch releases ship regularly. Check our [release notes](https://github.com/vendurehq/vendure/releases) to keep up to date.
 
