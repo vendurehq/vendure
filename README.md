@@ -39,27 +39,42 @@ Vendure is an open-source headless commerce platform. Model your catalog, orders
 
 - **Model your business, no forks required**: Extend or override any part of the system through stable plugin contracts and service overrides. Add custom entities, pricing logic, and workflows, and change core behaviour without patching it.
 - **One backend, every channel**: A single extensible core serves any frontend through a GraphQL API, across D2C, B2B, marketplace, and omnichannel. No stitching together separate commerce services.
-- **One TypeScript stack**: Node.js, NestJS, and GraphQL, with strong types across the stack and no proprietary query language. Agent-ready APIs that work with the AI tools your developers already use.
+- **One TypeScript stack**: Node.js, NestJS, and GraphQL, with strong types across the stack and no proprietary query language. The introspectable GraphQL schema makes it straightforward to wire up LLM tool-calling, MCP servers, and agent frameworks.
 - **Commerce building blocks from day one**: Catalog, orders, customers, promotions, channels, tax, shipping, payments, and stock are built in. The same extension model lets you build the workflows specific to your business on top.
 - **Proven in production**: Used in production by enterprise teams and proven at high transaction volume. Stable plugin contracts give you safe extension points without forking.
 
-## Where it runs
-
-Vendure runs anywhere Node.js runs: self-hosted, Docker, Kubernetes, or any cloud. You own the deployment.
-
-Want a managed runtime, or enterprise modules like SSO, B2B pricing, and approval workflows? [Vendure Cloud](https://vendure.io/product/cloud) is a fully managed PaaS with git-push deploys, a modern CLI, and agent-first DevOps workflows. [Vendure Platform](https://vendure.io/product/platform) adds the enterprise capability layer. Start with what's here, and add them when you need them.
-
 ## Getting started
 
-Visit our [Getting Started guide](https://docs.vendure.io/guides/getting-started/installation/) to spin up Vendure locally with a single command.
+Scaffold a new project with the server, admin dashboard, and GraphQL API ready to run:
+
+```bash
+npx @vendure/create my-shop
+```
+
+Requires Node.js (20.19+ or 22.12+) and a SQL database (PostgreSQL, MySQL, MariaDB, or SQLite). Full walkthrough and configuration options are in the [Getting Started guide](https://docs.vendure.io/guides/getting-started/installation/).
 
 Questions? Join [our Discord](https://www.vendure.io/community) for support and discussions.
+
+## What's in this repo
+
+Vendure is a Lerna monorepo. The packages you'll touch most:
+
+- **`@vendure/core`**: the framework itself. Entities, services, GraphQL APIs, the plugin system.
+- **`@vendure/create`**: `npx @vendure/create` scaffolds a new project.
+- **`@vendure/dashboard`**: the React and TanStack admin dashboard.
+- **`@vendure/cli`**: dev tooling for generating plugins, migrations, etc.
+- **Official plugins**: `email-plugin`, `asset-server-plugin`, `job-queue-plugin`, `harden-plugin`, `telemetry-plugin`, `graphiql-plugin`.
+- **`@vendure/testing`**: e2e test harness with a programmable mock server.
+
+## Where it runs
+
+Vendure runs anywhere Node.js runs: self-hosted, Docker, Kubernetes, or any cloud. You own the deployment, the data, and the stack.
+
+If you want git-push deploys and a managed runtime, [Vendure Cloud](https://vendure.io/product/cloud) is a fully managed PaaS with a modern CLI and agent-first DevOps workflows. [Vendure Platform](https://vendure.io/product/platform) adds an optional enterprise capability layer (SSO, approval workflows, and B2B pricing) on the same open-source core.
 
 ## Contribution
 
 Contributions are welcome: bugs, features, or docs. Our **[Contribution Guide](./CONTRIBUTING.md)** covers everything from setting up your development environment to submitting your first pull request.
-
-**Packages in this monorepo:** `@vendure/core` (the framework), `@vendure/dashboard` (the admin dashboard), `@vendure/cli`, `@vendure/create`, the official plugins, and `@vendure/testing`.
 
 Pick up a [labelled issue](https://github.com/vendurehq/vendure/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22%F0%9F%91%8B%20contributions%20welcome%22) as a good first contribution.
 
@@ -69,7 +84,7 @@ Patch releases ship regularly. Check our [release notes](https://github.com/vend
 
 ## License
 
-Vendure is open source under the [GPLv3 license](./LICENSE.md). Commercial licensing for Vendure Platform is covered on our [pricing page](https://vendure.io/pricing).
+Vendure is open source under the [GPLv3 license](./LICENSE.md). GPLv3 applies to the Vendure source itself; the storefronts and services you build against the Vendure GraphQL API are separate works and aren't subject to it. Commercial licensing for Vendure Platform is covered on our [pricing page](https://vendure.io/pricing).
 
 ## Professional services
 
