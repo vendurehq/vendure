@@ -209,7 +209,7 @@ msgstr "Автообновление: {0}"
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:34
 msgid "Successfully cancelled {fulfilled} job"
-msgstr ""
+msgstr "Успешно отменена {fulfilled} задача"
 
 #: src/app/routes/_authenticated/_system/healthchecks.tsx:43
 #~ msgid "Health checks"
@@ -687,7 +687,7 @@ msgstr "Метаданные"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:251
 msgid "Failed to set shipping method for order: {0}"
-msgstr ""
+msgstr "Не удалось задать способ доставки для заказа: {0}"
 
 #: src/app/routes/_authenticated/_option-groups/components/option-group-products-block.tsx:48
 #: src/lib/components/data-table/data-table.tsx:378
@@ -862,7 +862,7 @@ msgstr "Подтвердить"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:303
 msgid "Failed to complete draft order: {0}"
-msgstr ""
+msgstr "Не удалось завершить черновик заказа: {0}"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:118
 msgid "Failed to create collection"
@@ -1014,7 +1014,7 @@ msgstr "Выделено"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:270
 msgid "Failed to set coupon code for order: {0}"
-msgstr ""
+msgstr "Не удалось применить промокод к заказу: {0}"
 
 #: src/lib/components/layout/nav-user.tsx:102
 msgid "Explore Platform & Cloud"
@@ -1128,7 +1128,7 @@ msgstr "Адрес электронной почты"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:281
 msgid "Failed to remove coupon code from order: {0}"
-msgstr ""
+msgstr "Не удалось удалить промокод из заказа: {0}"
 
 #: src/lib/components/data-input/slug-input.tsx:266
 #: src/lib/components/data-input/slug-input.tsx:267
@@ -1272,7 +1272,7 @@ msgstr "Доступны только роли, назначенные ваше�
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:63
 msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
-msgstr ""
+msgstr "{cancellableCount, plural, one {Отменить {cancellableCount} задачу} few {Отменить {cancellableCount} задачи} many {Отменить {cancellableCount} задач} other {Отменить {cancellableCount} задачи}}"
 
 #: src/lib/components/data-input/product-multi-selector-input.tsx:399
 #: src/lib/components/shared/configurable-operation-multi-selector.tsx:265
@@ -1412,7 +1412,7 @@ msgstr "до"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:188
 msgid "Failed to set customer for order: {0}"
-msgstr ""
+msgstr "Не удалось задать клиента для заказа: {0}"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx:745
 msgid "Size"
@@ -1543,7 +1543,7 @@ msgstr "Выберите целевую коллекцию для перемещ
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:232
 msgid "Failed to unset billing address for order: {0}"
-msgstr ""
+msgstr "Не удалось удалить адрес выставления счёта заказа: {0}"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:45
 msgid "Customer details updated"
@@ -1596,7 +1596,7 @@ msgstr "Отменить"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:95
 msgid "Failed to update order custom fields: {0}"
-msgstr ""
+msgstr "Не удалось обновить пользовательские поля заказа: {0}"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:127
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:160
@@ -2347,7 +2347,7 @@ msgstr "Зарегистрирован"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:199
 msgid "Failed to set shipping address for order: {0}"
-msgstr ""
+msgstr "Не удалось задать адрес доставки для заказа: {0}"
 
 #: src/app/routes/_authenticated/_system/job-queue.tsx:231
 msgid "Cancel Job"
@@ -3140,7 +3140,7 @@ msgstr "Поиск ролей..."
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:35
 msgid "Successfully cancelled {fulfilled} jobs"
-msgstr ""
+msgstr "Успешно отменено {fulfilled} задач"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:69
 #: src/app/routes/_authenticated/_product-variants/product-variants.tsx:19
@@ -3811,7 +3811,7 @@ msgstr "Страны"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:160
 msgid "Failed to remove order line: {0}"
-msgstr ""
+msgstr "Не удалось удалить позицию заказа: {0}"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:182
 msgid "Street Address 2"
@@ -4076,7 +4076,7 @@ msgstr "Суперадминистратор"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:141
 msgid "Failed to update order line: {0}"
-msgstr ""
+msgstr "Не удалось обновить позицию заказа: {0}"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:84
 msgid "Insert link"
@@ -4250,7 +4250,7 @@ msgstr "Информация о клиенте обновлена"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:318
 msgid "Failed to delete draft order: {0}"
-msgstr ""
+msgstr "Не удалось удалить черновик заказа: {0}"
 
 #: src/lib/components/data-table/views-sheet.tsx:120
 msgid "Failed to convert view to global"
@@ -4413,7 +4413,7 @@ msgstr "Заказ выполнен"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:210
 msgid "Failed to set billing address for order: {0}"
-msgstr ""
+msgstr "Не удалось задать адрес выставления счёта для заказа: {0}"
 
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:271
 msgid "No shipping address"
@@ -4837,7 +4837,7 @@ msgstr "Содержимое"
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:43
 msgid "Failed to cancel {rejected} jobs"
-msgstr ""
+msgstr "Не удалось отменить {rejected} задач"
 
 #: src/lib/components/data-table/views-sheet.tsx:110
 msgid "Failed to convert global view to personal view"
@@ -5289,7 +5289,7 @@ msgstr "Страница {page} из {totalPages}"
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:42
 msgid "Failed to cancel {rejected} job"
-msgstr ""
+msgstr "Не удалось отменить {rejected} задачу"
 
 #: src/lib/components/date-range-picker.tsx:79
 msgctxt "date-range"
@@ -5459,7 +5459,7 @@ msgstr "Для этих изменений не требуется платёж 
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:70
 msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
-msgstr ""
+msgstr "{cancellableCount, plural, one {Вы уверены, что хотите отменить {cancellableCount} задачу? Это действие нельзя отменить.} few {Вы уверены, что хотите отменить {cancellableCount} задачи? Это действие нельзя отменить.} many {Вы уверены, что хотите отменить {cancellableCount} задач? Это действие нельзя отменить.} other {Вы уверены, что хотите отменить {cancellableCount} задачи? Это действие нельзя отменить.}}"
 
 #: src/lib/framework/dashboard-widget/orders-summary/index.tsx:100
 msgid "Total Revenue"
@@ -5688,7 +5688,7 @@ msgstr "Добавить значение опции в {groupName}"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:221
 msgid "Failed to unset shipping address for order: {0}"
-msgstr ""
+msgstr "Не удалось удалить адрес доставки заказа: {0}"
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:82
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:96
