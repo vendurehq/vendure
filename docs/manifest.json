@@ -532,7 +532,7 @@
               "lastModified": "2026-02-12T16:47:03+01:00"
             }
           ],
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-06-12T10:15:51+02:00"
         },
         {
           "title": "Customizing Pages",
@@ -4161,19 +4161,19 @@
                   "title": "PageActionBar",
                   "slug": "page-action-bar",
                   "file": "docs/reference/dashboard/page-layout/page-action-bar.mdx",
-                  "lastModified": "2026-05-08T12:27:16+02:00"
+                  "lastModified": "2026-06-12T10:15:51+02:00"
                 },
                 {
                   "title": "PageBlock",
                   "slug": "page-block",
                   "file": "docs/reference/dashboard/page-layout/page-block.mdx",
-                  "lastModified": "2026-05-08T12:27:16+02:00"
+                  "lastModified": "2026-06-12T10:15:51+02:00"
                 },
                 {
                   "title": "PageTitle",
                   "slug": "page-title",
                   "file": "docs/reference/dashboard/page-layout/page-title.mdx",
-                  "lastModified": "2026-05-08T12:27:16+02:00"
+                  "lastModified": "2026-06-12T10:15:51+02:00"
                 },
                 {
                   "title": "UsePageBlock",
@@ -4182,7 +4182,7 @@
                   "lastModified": "2026-01-28T14:49:21+01:00"
                 }
               ],
-              "lastModified": "2026-05-08T12:27:16+02:00"
+              "lastModified": "2026-06-12T10:15:51+02:00"
             },
             {
               "title": "Vite Plugin",
