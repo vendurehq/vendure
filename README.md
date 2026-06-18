@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/vendurehq-vendure-badge.png)](https://mseep.ai/app/vendurehq-vendure)
+
 <p align="center">
   <a href="https://vendure.io">
     <img alt="Vendure logo" height="60" width="auto" src="https://assets.vendure.io/brand/logo-icon-vendure-blue.svg">
