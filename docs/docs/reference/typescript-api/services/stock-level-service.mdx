@@ -1,0 +1,52 @@
+---
+title: "StockLevelService"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/services/stock-level.service.ts" sourceLine="23" packageName="@vendure/core" since="2.0.0" />
+
+The StockLevelService is responsible for managing the stock levels of ProductVariants.
+Whenever you need to adjust the `stockOnHand` or `stockAllocated` for a ProductVariant,
+you should use this service.
+
+```ts title="Signature"
+class StockLevelService {
+    constructor(connection: TransactionalConnection, stockLocationService: StockLocationService, configService: ConfigService)
+    getStockLevel(ctx: RequestContext, productVariantId: ID, stockLocationId: ID) => Promise<StockLevel>;
+    getStockLevelsForVariant(ctx: RequestContext, productVariantId: ID) => Promise<StockLevel[]>;
+    getAvailableStock(ctx: RequestContext, productVariantId: ID) => Promise<AvailableStock>;
+    updateStockOnHandForLocation(ctx: RequestContext, productVariantId: ID, stockLocationId: ID, change: number) => ;
+    updateStockAllocatedForLocation(ctx: RequestContext, productVariantId: ID, stockLocationId: ID, change: number) => ;
+}
+```
+
+<div className="members-wrapper">
+
+### getStockLevel
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productVariantId: <a href='/reference/typescript-api/common/id#id'>ID</a>, stockLocationId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/stock-level#stocklevel'>StockLevel</a>>`}   />
+
+Returns the StockLevel for the given [ProductVariant](/reference/typescript-api/entities/product-variant#productvariant) and [StockLocation](/reference/typescript-api/entities/stock-location#stocklocation).
+### getStockLevelsForVariant
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productVariantId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/stock-level#stocklevel'>StockLevel</a>[]>`}   />
+
+
+### getAvailableStock
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productVariantId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/products-stock/stock-location-strategy#availablestock'>AvailableStock</a>>`}   />
+
+Returns the available stock (on hand and allocated) for the given [ProductVariant](/reference/typescript-api/entities/product-variant#productvariant). This is determined
+by the configured [StockLocationStrategy](/reference/typescript-api/products-stock/stock-location-strategy#stocklocationstrategy).
+### updateStockOnHandForLocation
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productVariantId: <a href='/reference/typescript-api/common/id#id'>ID</a>, stockLocationId: <a href='/reference/typescript-api/common/id#id'>ID</a>, change: number) => `}   />
+
+Updates the `stockOnHand` for the given [ProductVariant](/reference/typescript-api/entities/product-variant#productvariant) and [StockLocation](/reference/typescript-api/entities/stock-location#stocklocation).
+### updateStockAllocatedForLocation
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productVariantId: <a href='/reference/typescript-api/common/id#id'>ID</a>, stockLocationId: <a href='/reference/typescript-api/common/id#id'>ID</a>, change: number) => `}   />
+
+Updates the `stockAllocated` for the given [ProductVariant](/reference/typescript-api/entities/product-variant#productvariant) and [StockLocation](/reference/typescript-api/entities/stock-location#stocklocation).
+
+
+</div>

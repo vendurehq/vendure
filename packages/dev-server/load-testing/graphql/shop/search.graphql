@@ -1,0 +1,41 @@
+query {
+  search(input: {
+    take: 20
+    groupByProduct: true
+  }) {
+    items {
+      productId
+      productVariantId
+      productName
+      productVariantName
+      productAsset {
+          preview
+      }
+      productVariantAsset {
+          preview
+      }
+      price {
+        ... on PriceRange {
+          min
+          max
+        }
+        ... on SinglePrice {
+          value
+        }
+      }
+      score
+    }
+    totalItems
+    facetValues {
+      count
+      facetValue {
+        id
+        name
+        facet {
+          id
+          name
+        }
+      }
+    }
+  }
+}

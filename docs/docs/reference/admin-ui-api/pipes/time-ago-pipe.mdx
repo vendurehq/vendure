@@ -1,0 +1,34 @@
+---
+title: "TimeAgoPipe"
+generated: true
+---
+<GenerationInfo sourceFile="packages/admin-ui/src/lib/core/src/shared/pipes/time-ago.pipe.ts" sourceLine="18" packageName="@vendure/admin-ui" />
+
+Converts a date into the format "3 minutes ago", "5 hours ago" etc.
+
+*Example*
+
+```HTML
+{{ order.orderPlacedAt | timeAgo }}
+```
+
+```ts title="Signature"
+class TimeAgoPipe implements PipeTransform {
+    constructor(i18nService: I18nService)
+    transform(value: string | Date, nowVal?: string | Date) => string;
+}
+```
+* Implements: PipeTransform
+
+
+
+<div className="members-wrapper">
+
+### transform
+
+<MemberInfo kind="method" type={`(value: string | Date, nowVal?: string | Date) => string`}   />
+
+
+
+
+</div>

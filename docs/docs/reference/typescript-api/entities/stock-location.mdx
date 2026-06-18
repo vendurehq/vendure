@@ -1,0 +1,66 @@
+---
+title: "StockLocation"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/stock-location/stock-location.entity.ts" sourceLine="22" packageName="@vendure/core" />
+
+A StockLocation represents a physical location where stock is held. For example, a warehouse or a shop.
+
+When the stock of a [ProductVariant](/reference/typescript-api/entities/product-variant#productvariant) is adjusted, the adjustment is applied to a specific StockLocation,
+and the stockOnHand of that ProductVariant is updated accordingly. When there are multiple StockLocations
+configured, the [StockLocationStrategy](/reference/typescript-api/products-stock/stock-location-strategy#stocklocationstrategy) is used to determine which StockLocation should be used for
+a given operation.
+
+```ts title="Signature"
+class StockLocation extends VendureEntity implements HasCustomFields, ChannelAware {
+    constructor(input: DeepPartial<StockLocation>)
+    @Column()
+    name: string;
+    @Column()
+    description: string;
+    @Column(type => CustomStockLocationFields)
+    customFields: CustomStockLocationFields;
+    @ManyToMany(type => Channel, channel => channel.stockLocations)
+    @JoinTable()
+    channels: Channel[];
+    @OneToMany(type => StockMovement, movement => movement.stockLocation)
+    stockMovements: StockMovement[];
+}
+```
+* Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
+
+
+* Implements: HasCustomFields, [`ChannelAware`](/reference/typescript-api/entities/interfaces#channelaware)
+
+
+
+<div className="members-wrapper">
+
+### name
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### description
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### customFields
+
+<MemberInfo kind="property" type={`CustomStockLocationFields`}   />
+
+
+### channels
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>[]`}   />
+
+
+### stockMovements
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/stock-movement#stockmovement'>StockMovement</a>[]`}   />
+
+
+
+
+</div>

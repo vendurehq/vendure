@@ -1,0 +1,26 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "baseUrl": "./",
+    "outDir": "./compiler",
+    "removeComments": false,
+    "sourceMap": true,
+    "module": "commonjs",
+    "declaration": true,
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "strict": true,
+    "target": "esnext",
+    "skipLibCheck": true,
+    "lib": [
+      "es2017"
+    ]
+  },
+  "files": [
+    "src/compiler/index.ts"
+  ],
+  "exclude": [
+    "src/**/*"
+  ]
+}
+

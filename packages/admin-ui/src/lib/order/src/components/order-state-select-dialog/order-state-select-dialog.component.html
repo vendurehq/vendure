@@ -1,0 +1,17 @@
+<ng-template vdrDialogTitle>{{ 'order.select-state' | translate }}</ng-template>
+<p>{{ message | translate }}</p>
+<vdr-form-field>
+    <select name="state" [(ngModel)]="selectedState">
+        <option *ngFor="let state of nextStates" [value]="state">
+            {{ state | stateI18nToken | translate }}
+        </option>
+    </select>
+</vdr-form-field>
+<ng-template vdrDialogButtons>
+    <button type="submit" *ngIf="cancellable" (click)="cancel()" class="btn btn-secondary">
+        {{ 'common.cancel' | translate }}
+    </button>
+    <button type="submit" (click)="select()" class="btn btn-primary" [disabled]="!selectedState">
+        {{ 'order.transition-to-state' | translate: { state: (selectedState | stateI18nToken | translate) } }}
+    </button>
+</ng-template>

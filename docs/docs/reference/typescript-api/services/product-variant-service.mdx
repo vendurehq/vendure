@@ -1,0 +1,169 @@
+---
+title: "ProductVariantService"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/services/product-variant.service.ts" sourceLine="70" packageName="@vendure/core" />
+
+Contains methods relating to [ProductVariant](/reference/typescript-api/entities/product-variant#productvariant) entities.
+
+```ts title="Signature"
+class ProductVariantService {
+    constructor(connection: TransactionalConnection, configService: ConfigService, taxCategoryService: TaxCategoryService, facetValueService: FacetValueService, assetService: AssetService, translatableSaver: TranslatableSaver, eventBus: EventBus, listQueryBuilder: ListQueryBuilder, globalSettingsService: GlobalSettingsService, stockMovementService: StockMovementService, stockLevelService: StockLevelService, channelService: ChannelService, roleService: RoleService, customFieldRelationService: CustomFieldRelationService, requestCache: RequestContextCacheService, productPriceApplicator: ProductPriceApplicator, translator: TranslatorService)
+    findAll(ctx: RequestContext, options?: ListQueryOptions<ProductVariant>) => Promise<PaginatedList<Translated<ProductVariant>>>;
+    findOne(ctx: RequestContext, productVariantId: ID, relations?: RelationPaths<ProductVariant>) => Promise<Translated<ProductVariant> | undefined>;
+    findByIds(ctx: RequestContext, ids: ID[]) => Promise<Array<Translated<ProductVariant>>>;
+    getVariantsByProductId(ctx: RequestContext, productId: ID, options: ListQueryOptions<ProductVariant> = {}, relations?: RelationPaths<ProductVariant>) => Promise<PaginatedList<Translated<ProductVariant>>>;
+    getVariantsByCollectionId(ctx: RequestContext, collectionId: ID, options: ListQueryOptions<ProductVariant>, relations: RelationPaths<ProductVariant> = []) => Promise<PaginatedList<Translated<ProductVariant>>>;
+    getProductVariantChannels(ctx: RequestContext, productVariantId: ID) => Promise<Channel[]>;
+    getProductVariantPrices(ctx: RequestContext, productVariantId: ID) => Promise<ProductVariantPrice[]>;
+    getVariantByOrderLineId(ctx: RequestContext, orderLineId: ID) => Promise<Translated<ProductVariant>>;
+    getOptionsForVariant(ctx: RequestContext, variantId: ID) => Promise<Array<Translated<ProductOption>>>;
+    getFacetValuesForVariant(ctx: RequestContext, variantId: ID) => Promise<Array<Translated<FacetValue>>>;
+    getProductForVariant(ctx: RequestContext, variant: ProductVariant) => Promise<Translated<Product>>;
+    getSaleableStockLevel(ctx: RequestContext, variant: ProductVariant) => Promise<number>;
+    getDisplayStockLevel(ctx: RequestContext, variant: ProductVariant) => Promise<string>;
+    getFulfillableStockLevel(ctx: RequestContext, variant: ProductVariant) => Promise<number>;
+    create(ctx: RequestContext, input: CreateProductVariantInput[]) => Promise<Array<Translated<ProductVariant>>>;
+    update(ctx: RequestContext, input: UpdateProductVariantInput[]) => Promise<Array<Translated<ProductVariant>>>;
+    createOrUpdateProductVariantPrice(ctx: RequestContext, productVariantId: ID, price: number, channelId: ID, currencyCode?: CurrencyCode, customFields?: CustomFieldsObject) => Promise<ProductVariantPrice>;
+    deleteProductVariantPrice(ctx: RequestContext, variantId: ID, channelId: ID, currencyCode: CurrencyCode) => ;
+    softDelete(ctx: RequestContext, id: ID | ID[]) => Promise<DeletionResponse>;
+    hydratePriceFields(ctx: RequestContext, variant: ProductVariant, priceField: F) => Promise<ProductVariant[F]>;
+    applyChannelPriceAndTax(variant: ProductVariant, ctx: RequestContext, order?: Order, throwIfNoPriceFound:  = false) => Promise<ProductVariant>;
+    assignProductVariantsToChannel(ctx: RequestContext, input: AssignProductVariantsToChannelInput) => Promise<Array<Translated<ProductVariant>>>;
+    removeProductVariantsFromChannel(ctx: RequestContext, input: RemoveProductVariantsFromChannelInput) => Promise<Array<Translated<ProductVariant>>>;
+}
+```
+
+<div className="members-wrapper">
+
+### findAll
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: ListQueryOptions<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>>) => Promise<<a href='/reference/typescript-api/common/paginated-list#paginatedlist'>PaginatedList</a><Translated<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>>>>`}   />
+
+
+### findOne
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productVariantId: <a href='/reference/typescript-api/common/id#id'>ID</a>, relations?: RelationPaths<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>>) => Promise<Translated<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>> | undefined>`}   />
+
+
+### findByIds
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, ids: <a href='/reference/typescript-api/common/id#id'>ID</a>[]) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>>>>`}   />
+
+
+### getVariantsByProductId
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productId: <a href='/reference/typescript-api/common/id#id'>ID</a>, options: ListQueryOptions<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>> = {}, relations?: RelationPaths<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>>) => Promise<<a href='/reference/typescript-api/common/paginated-list#paginatedlist'>PaginatedList</a><Translated<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>>>>`}   />
+
+
+### getVariantsByCollectionId
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, collectionId: <a href='/reference/typescript-api/common/id#id'>ID</a>, options: ListQueryOptions<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>>, relations: RelationPaths<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>> = []) => Promise<<a href='/reference/typescript-api/common/paginated-list#paginatedlist'>PaginatedList</a><Translated<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>>>>`}   />
+
+Returns a [PaginatedList](/reference/typescript-api/common/paginated-list#paginatedlist) of all ProductVariants associated with the given Collection.
+### getProductVariantChannels
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productVariantId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>[]>`}   />
+
+Returns all Channels to which the ProductVariant is assigned.
+### getProductVariantPrices
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productVariantId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/product-variant-price#productvariantprice'>ProductVariantPrice</a>[]>`}   />
+
+
+### getVariantByOrderLineId
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, orderLineId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<Translated<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>>>`}   />
+
+Returns the ProductVariant associated with the given [OrderLine](/reference/typescript-api/entities/order-line#orderline).
+### getOptionsForVariant
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, variantId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/product-option#productoption'>ProductOption</a>>>>`}   />
+
+Returns the [ProductOption](/reference/typescript-api/entities/product-option#productoption)s for the given ProductVariant.
+### getFacetValuesForVariant
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, variantId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/facet-value#facetvalue'>FacetValue</a>>>>`}   />
+
+
+### getProductForVariant
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, variant: <a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>) => Promise<Translated<<a href='/reference/typescript-api/entities/product#product'>Product</a>>>`}   />
+
+Returns the Product associated with the ProductVariant. Whereas the `ProductService.findOne()`
+method performs a large multi-table join with all the typical data needed for a "product detail"
+page, this method returns only the Product itself.
+### getSaleableStockLevel
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, variant: <a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>) => Promise<number>`}   />
+
+Returns the number of saleable units of the ProductVariant, i.e. how many are available
+for purchase by Customers. This is determined by the ProductVariant's `stockOnHand` value,
+as well as the local and global `outOfStockThreshold` settings.
+### getDisplayStockLevel
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, variant: <a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>) => Promise<string>`}   />
+
+Returns the stockLevel to display to the customer, as specified by the configured
+[StockDisplayStrategy](/reference/typescript-api/products-stock/stock-display-strategy#stockdisplaystrategy).
+### getFulfillableStockLevel
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, variant: <a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>) => Promise<number>`}   />
+
+Returns the number of fulfillable units of the ProductVariant, equivalent to stockOnHand
+for those variants which are tracking inventory.
+### create
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: CreateProductVariantInput[]) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>>>>`}   />
+
+
+### update
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: UpdateProductVariantInput[]) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>>>>`}   />
+
+
+### createOrUpdateProductVariantPrice
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productVariantId: <a href='/reference/typescript-api/common/id#id'>ID</a>, price: number, channelId: <a href='/reference/typescript-api/common/id#id'>ID</a>, currencyCode?: <a href='/reference/typescript-api/common/currency-code#currencycode'>CurrencyCode</a>, customFields?: CustomFieldsObject) => Promise<<a href='/reference/typescript-api/entities/product-variant-price#productvariantprice'>ProductVariantPrice</a>>`}   />
+
+Creates a [ProductVariantPrice](/reference/typescript-api/entities/product-variant-price#productvariantprice) for the given ProductVariant/Channel combination.
+If the `currencyCode` is not specified, the default currency of the Channel will be used.
+### deleteProductVariantPrice
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, variantId: <a href='/reference/typescript-api/common/id#id'>ID</a>, channelId: <a href='/reference/typescript-api/common/id#id'>ID</a>, currencyCode: <a href='/reference/typescript-api/common/currency-code#currencycode'>CurrencyCode</a>) => `}   />
+
+
+### softDelete
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a> | <a href='/reference/typescript-api/common/id#id'>ID</a>[]) => Promise<DeletionResponse>`}   />
+
+
+### hydratePriceFields
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, variant: <a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>, priceField: F) => Promise<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>[F]>`}   />
+
+This method is intended to be used by the ProductVariant GraphQL entity resolver to resolve the
+price-related fields which need to be populated at run-time using the `applyChannelPriceAndTax`
+method.
+
+Is optimized to make as few DB calls as possible using caching based on the open request.
+### applyChannelPriceAndTax
+
+<MemberInfo kind="method" type={`(variant: <a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>, ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order?: <a href='/reference/typescript-api/entities/order#order'>Order</a>, throwIfNoPriceFound:  = false) => Promise<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>>`}   />
+
+Populates the `price` field with the price for the specified channel.
+### assignProductVariantsToChannel
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: AssignProductVariantsToChannelInput) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>>>>`}   />
+
+Assigns the specified ProductVariants to the specified Channel. In doing so, it will create a new
+[ProductVariantPrice](/reference/typescript-api/entities/product-variant-price#productvariantprice) and also assign the associated Product and any Assets to the Channel too.
+### removeProductVariantsFromChannel
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: RemoveProductVariantsFromChannelInput) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>>>>`}   />
+
+
+
+
+</div>

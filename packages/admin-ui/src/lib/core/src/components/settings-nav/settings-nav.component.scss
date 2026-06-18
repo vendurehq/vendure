@@ -1,0 +1,29 @@
+@import "variables";
+
+.setting-link {
+    width: 100%;
+    border: none;
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--font-size-xs);
+    align-items: center;
+    cursor: pointer;
+    background-color: transparent;
+    padding: var(--space-unit);
+    color: var(--color-left-nav-text);
+    &:hover {
+        color: var(--color-left-nav-text-hover);
+    }
+
+    clr-icon {
+        margin-inline-end: 6px;
+    }
+}
+
+.menu-link {
+    position: relative;
+    vdr-status-badge {
+        left: 20px;
+        top: 3px;
+    }
+}

@@ -1,0 +1,41 @@
+type Collection implements Node {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    languageCode: LanguageCode
+    name: String!
+    slug: String!
+    breadcrumbs: [CollectionBreadcrumb!]!
+    position: Int!
+    description: String!
+    featuredAsset: Asset
+    assets: [Asset!]!
+    parent: Collection
+    parentId: ID!
+    children: [Collection!]
+    filters: [ConfigurableOperation!]!
+    translations: [CollectionTranslation!]!
+    productVariants(options: ProductVariantListOptions): ProductVariantList!
+    productVariantCount: Int!
+}
+
+type CollectionBreadcrumb {
+    id: ID!
+    name: String!
+    slug: String!
+}
+
+type CollectionTranslation {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    languageCode: LanguageCode!
+    name: String!
+    slug: String!
+    description: String!
+}
+
+type CollectionList implements PaginatedList {
+    items: [Collection!]!
+    totalItems: Int!
+}

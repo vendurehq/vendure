@@ -1,0 +1,91 @@
+
+:host {
+    display: block;
+}
+.collection {
+    background-color: var(--clr-table-bgcolor);
+    border-radius: var(--clr-global-borderradius);
+    font-size: 0.65rem;
+    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+    margin-bottom: 2px;
+    border-inline-start: 2px solid transparent;
+    transition: border-left-color 0.2s;
+
+    &.private {
+        background-color: var(--color-component-bg-200);
+    }
+
+    .collection-detail {
+        padding: 6px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--color-component-border-100);
+
+        &.active {
+            background-color: var(--clr-global-selection-color);
+        }
+
+        &.depth-1 { padding-inline-start: 12px + 24px; }
+        &.depth-2 { padding-inline-start: 12px + 48px; }
+        &.depth-3 { padding-inline-start: 12px + 72px; }
+        &.depth-4 { padding-inline-start: 12px + 96px; }
+
+        .folder-button-spacer {
+            display: inline-block;
+            width: 28px;
+        }
+    }
+}
+
+.tree-node {
+    display: block;
+    background-color: var(--clr-table-bgcolor);
+    border-radius: var(--clr-global-borderradius);
+    overflow: hidden;
+    &.cdk-drop-list-dragging {
+        > .collection {
+            border-left-color: var(--color-primary-300);
+        }
+    }
+}
+
+.drag-placeholder {
+    min-height: 120px;
+    background-color: var(--color-component-bg-300);
+    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.cdk-drag-preview {
+    box-sizing: border-box;
+    border-radius: 4px;
+    box-shadow: 0 5px 5px -3px rgba(0, 0, 0, 0.2),
+    0 8px 10px 1px rgba(0, 0, 0, 0.14),
+    0 3px 14px 2px rgba(0, 0, 0, 0.12);
+}
+
+.cdk-drag-placeholder {
+    opacity: 0;
+}
+
+.cdk-drag-animating {
+    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.example-list.cdk-drop-list-dragging .tree-node:not(.cdk-drag-placeholder) {
+    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.move-to-item {
+    display: flex;
+    white-space: normal;
+    align-items: baseline;
+
+    .move-icon {
+        flex: none;
+        margin-inline-end: 3px;
+    }
+    .path {
+        line-height: 18px;
+    }
+}

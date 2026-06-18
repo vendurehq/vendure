@@ -1,0 +1,158 @@
+---
+title: "BaseDetailComponent"
+generated: true
+---
+<GenerationInfo sourceFile="packages/admin-ui/src/lib/core/src/common/base-detail.component.ts" sourceLine="57" packageName="@vendure/admin-ui" />
+
+A base class for entity detail views. It should be used in conjunction with the
+[BaseEntityResolver](/reference/admin-ui-api/list-detail-views/base-entity-resolver#baseentityresolver).
+
+*Example*
+
+```ts
+@Component({
+  selector: 'app-my-entity',
+  templateUrl: './my-entity.component.html',
+  styleUrls: ['./my-entity.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class GlobalSettingsComponent extends BaseDetailComponent<MyEntityFragment> implements OnInit {
+  detailForm: FormGroup;
+
+  constructor(
+    router: Router,
+    route: ActivatedRoute,
+    serverConfigService: ServerConfigService,
+    protected dataService: DataService,
+    private formBuilder: FormBuilder,
+  ) {
+    super(route, router, serverConfigService, dataService);
+    this.detailForm = this.formBuilder.group({
+      name: [''],
+    });
+  }
+
+  protected setFormValues(entity: MyEntityFragment, languageCode: LanguageCode): void {
+    this.detailForm.patchValue({
+      name: entity.name,
+    });
+  }
+}
+```
+
+```ts title="Signature"
+class BaseDetailComponent<Entity extends { id: string; updatedAt?: string }> implements DeactivateAware {
+    entity$: Observable<Entity>;
+    availableLanguages$: Observable<LanguageCode[]>;
+    languageCode$: Observable<LanguageCode>;
+    languageCode: LanguageCode;
+    isNew$: Observable<boolean>;
+    id: string;
+    abstract detailForm: UntypedFormGroup;
+    protected destroy$ = new Subject<void>();
+    constructor(route: ActivatedRoute, router: Router, serverConfigService: ServerConfigService, dataService: DataService, permissionsService: PermissionsService)
+    init() => ;
+    setUpStreams() => ;
+    destroy() => ;
+    setLanguage(code: LanguageCode) => ;
+    canDeactivate() => boolean;
+    setFormValues(entity: Entity, languageCode: LanguageCode) => void;
+    setCustomFieldFormValues(customFields: CustomFieldConfig[], formGroup: AbstractControl | null, entity: T, currentTranslation?: TranslationOf<T>) => ;
+    getCustomFieldConfig(key: Exclude<keyof CustomFields, '__typename'>) => CustomFieldConfig[];
+    setQueryParam(key: string, value: any) => ;
+}
+```
+* Implements: DeactivateAware
+
+
+
+<div className="members-wrapper">
+
+### entity$
+
+<MemberInfo kind="property" type={`Observable<Entity>`}   />
+
+
+### availableLanguages$
+
+<MemberInfo kind="property" type={`Observable<<a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>[]>`}   />
+
+
+### languageCode$
+
+<MemberInfo kind="property" type={`Observable<<a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>>`}   />
+
+
+### languageCode
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>`}   />
+
+
+### isNew$
+
+<MemberInfo kind="property" type={`Observable<boolean>`}   />
+
+
+### id
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### detailForm
+
+<MemberInfo kind="property" type={`UntypedFormGroup`}   />
+
+
+### destroy$
+
+<MemberInfo kind="property" type={``}   />
+
+
+### init
+
+<MemberInfo kind="method" type={`() => `}   />
+
+
+### setUpStreams
+
+<MemberInfo kind="method" type={`() => `}   />
+
+
+### destroy
+
+<MemberInfo kind="method" type={`() => `}   />
+
+
+### setLanguage
+
+<MemberInfo kind="method" type={`(code: <a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>) => `}   />
+
+
+### canDeactivate
+
+<MemberInfo kind="method" type={`() => boolean`}   />
+
+
+### setFormValues
+
+<MemberInfo kind="method" type={`(entity: Entity, languageCode: <a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>) => void`}   />
+
+
+### setCustomFieldFormValues
+
+<MemberInfo kind="method" type={`(customFields: <a href='/reference/typescript-api/custom-fields/custom-field-config#customfieldconfig'>CustomFieldConfig</a>[], formGroup: AbstractControl | null, entity: T, currentTranslation?: TranslationOf<T>) => `}   />
+
+
+### getCustomFieldConfig
+
+<MemberInfo kind="method" type={`(key: Exclude<keyof <a href='/reference/typescript-api/custom-fields/#customfields'>CustomFields</a>, '__typename'>) => <a href='/reference/typescript-api/custom-fields/custom-field-config#customfieldconfig'>CustomFieldConfig</a>[]`}   />
+
+
+### setQueryParam
+
+<MemberInfo kind="method" type={`(key: string, value: any) => `}   />
+
+
+
+
+</div>

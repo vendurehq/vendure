@@ -1,0 +1,348 @@
+---
+title: "Paginated lists"
+metaTitle: "Implementing Paginated List Queries in Vendure"
+metaDescription: "Define custom paginated list queries with filtering, sorting, and advanced nested filters using Vendure's ListQueryBuilder and GraphQL conventions."
+---
+
+Vendure's list queries follow a set pattern which allows for pagination, filtering & sorting. This guide will demonstrate how
+to implement your own paginated list queries.
+
+## API definition
+
+Let's start with defining the GraphQL schema for our query. In this example, we'll image that we have defined a [custom entity](/developer-guide/database-entity/) to
+represent a `ProductReview`. We want to be able to query a list of reviews in the Admin API. Here's how the schema definition
+would look:
+
+```ts title="src/plugins/reviews/api/api-extensions.ts"
+import gql from 'graphql-tag';
+
+export const adminApiExtensions = gql`
+type ProductReview implements Node {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  product: Product!
+  productId: ID!
+  text: String!
+  rating: Float!
+}
+
+type ProductReviewList implements PaginatedList {
+  items: [ProductReview!]!
+  totalItems: Int!
+}
+
+# Generated at run-time by Vendure
+input ProductReviewListOptions
+
+extend type Query {
+   productReviews(options: ProductReviewListOptions): ProductReviewList!
+}
+`;
+```
+
+Note that we need to follow these conventions:
+
+- The type must implement the `Node` interface, i.e. it must have an `id: ID!` field.
+- The list type must be named `<EntityName>List` and must implement the `PaginatedList` interface.
+- The list options input type must be named `<EntityName>ListOptions`.
+
+Given this schema, at runtime Vendure will automatically generate the `ProductReviewListOptions` input type, including all the
+filtering & sorting fields. This means that we don't need to define the input type ourselves.
+
+## Resolver
+
+Next, we need to define the resolver for the query.
+
+```ts title="src/plugins/reviews/api/admin.resolver.ts"
+import { Args, Query, Resolver } from '@nestjs/graphql';
+import { Ctx, PaginatedList, RequestContext } from '@vendure/core';
+
+import { ProductReview } from '../entities/product-review.entity';
+import { ProductReviewService } from '../services/product-review.service';
+
+@Resolver()
+export class ProductReviewAdminResolver {
+    constructor(private productReviewService: ProductReviewService) {}
+
+    @Query()
+    async productReviews(
+        @Ctx() ctx: RequestContext,
+        @Args() args: any,
+    ): Promise<PaginatedList<ProductReview>> {
+        return this.productReviewService.findAll(ctx, args.options || undefined);
+    }
+}
+```
+
+## Service
+
+Finally, we need to implement the `findAll()` method on the `ProductReviewService`. Here we will use the
+[`ListQueryBuilder`](/reference/typescript-api/data-access/list-query-builder/) to build the list query. The
+`ListQueryBuilder` will take care of
+
+```ts title="src/plugins/reviews/services/product-review.service.ts"
+import { Injectable } from '@nestjs/common';
+import { InjectConnection } from '@nestjs/typeorm';
+import { ListQueryBuilder, ListQueryOptions, PaginatedList, RequestContext } from '@vendure/core';
+
+import { ProductReview } from '../entities/product-review.entity';
+
+@Injectable()
+export class ProductReviewService {
+    constructor(
+        private listQueryBuilder: ListQueryBuilder,
+    ) {}
+
+    findAll(ctx: RequestContext, options?: ListQueryOptions<ProductReview>): Promise<PaginatedList<ProductReview>> {
+        return this.listQueryBuilder
+            .build(ProductReview, options, { relations: ['product'], ctx })
+            .getManyAndCount()
+            .then(([items, totalItems]) => ({ items, totalItems }));
+    }
+}
+```
+
+## Usage
+
+Given the above parts of the plugin, we can now query the list of reviews in the Admin API:
+
+
+<Tabs>
+<TabItem value="Query" label="Query" default>
+
+```graphql
+query {
+  productReviews(
+    options: {
+      skip: 0 # [!code highlight]
+      take: 10 # [!code highlight]
+      sort: { # [!code highlight]
+        createdAt: DESC # [!code highlight]
+      } # [!code highlight]
+      filter: { # [!code highlight]
+        rating: { # [!code highlight]
+          between: { start: 3, end: 5 } # [!code highlight]
+        } # [!code highlight]
+      } # [!code highlight]
+    }) {
+    totalItems
+    items {
+      id
+      createdAt
+      product {
+        name
+      }
+      text
+      rating
+    }
+  }
+}
+```
+
+</TabItem>
+<TabItem value="Response" label="Response" >
+
+```json
+{
+  "data": {
+    "productReviews": {
+      "totalItems": 3,
+      "items": [
+        {
+          "id": "12",
+          "createdAt": "2023-08-23T12:00:00Z",
+          "product": {
+            "name": "Smartphone X"
+          },
+          "text": "The best phone I've ever had!",
+          "rating": 5
+        },
+        {
+          "id": "42",
+          "createdAt": "2023-08-22T15:30:00Z",
+          "product": {
+            "name": "Laptop Y"
+          },
+          "text": "Impressive performance and build quality.",
+          "rating": 4
+        },
+        {
+          "id": "33",
+          "createdAt": "2023-08-21T09:45:00Z",
+          "product": {
+            "name": "Headphones Z"
+          },
+          "text": "Decent sound quality but uncomfortable.",
+          "rating": 3
+        }
+      ]
+    }
+  }
+}
+```
+
+</TabItem>
+</Tabs>
+
+In the above example, we are querying the first 10 reviews, sorted by `createdAt` in descending order, and filtered to only
+include reviews with a rating between 3 and 5.
+
+## Advanced filtering
+
+Vendure v2.2.0 introduced the ability to construct complex nested filters on any PaginatedList query. For example, we could
+filter the above query to only include reviews for products with a name starting with "Smartphone":
+
+<Tabs>
+<TabItem value="Query" label="Query" default>
+
+```graphql
+query {
+  productReviews(
+    options: {
+    skip: 0
+    take: 10
+    filter: { # [!code highlight]
+      _and: [ # [!code highlight]
+        { text: { startsWith: "phone" } }, # [!code highlight]
+        { # [!code highlight]
+          _or: [ # [!code highlight]
+            { rating: { gte: 4 } }, # [!code highlight]
+            { rating: { eq: 0 } } # [!code highlight]
+          ] # [!code highlight]
+        } # [!code highlight]
+      ] # [!code highlight]
+    } # [!code highlight]
+    }) {
+    totalItems
+    items {
+      id
+      createdAt
+      product {
+        name
+      }
+      text
+      rating
+    }
+  }
+}
+```
+
+</TabItem>
+<TabItem value="Response" label="Response" >
+
+```json
+{
+  "data": {
+    "productReviews": {
+      "totalItems": 3,
+      "items": [
+        {
+          "id": "12",
+          "createdAt": "2023-08-23T12:00:00Z",
+          "product": {
+            "name": "Smartphone X"
+          },
+          "text": "The best phone I've ever had!",
+          "rating": 5
+        },
+        {
+          "id": "42",
+          "createdAt": "2023-08-22T15:30:00Z",
+          "product": {
+            "name": "Smartphone Y"
+          },
+          "text": "Not a very good phone at all.",
+          "rating": 0
+        }
+      ]
+    }
+  }
+}
+```
+
+</TabItem>
+</Tabs>
+
+In the example above, we are filtering for reviews of products with the word "phone" and a rating of 4 or more,
+or a rating of 0. The `_and` and `_or` operators can be nested to any depth, allowing for arbitrarily complex filters.
+
+## Filtering by custom properties
+
+By default, the `ListQueryBuilder` will only allow filtering by properties which are defined on the entity itself.
+So in the case of the `ProductReview`, we can filter by `rating` and `text` etc., but not by `product.name`.
+
+However, it is possible to extend your GraphQL type to allow filtering by custom properties. Let's implement filtering
+but the `product.name` property. First, we need to manually add the `productName` field to
+the `ProductReviewFilterParameter` type:
+
+```ts title="src/plugins/reviews/api/api-extensions.ts"
+import gql from 'graphql-tag';
+
+export const adminApiExtensions = gql`
+# ... existing definitions from earlier example omitted
+
+input ProductReviewFilterParameter { # [!code highlight]
+  productName: StringOperators # [!code highlight]
+} # [!code highlight]
+`;
+```
+
+Next we need to update our `ProductReviewService` to be able to handle filtering on this new field using the
+[customPropertyMap](/reference/typescript-api/data-access/list-query-builder/#custompropertymap) option:
+
+```ts title="src/plugins/reviews/services/product-review.service.ts"
+import { Injectable } from '@nestjs/common';
+import { InjectConnection } from '@nestjs/typeorm';
+import { ListQueryBuilder, ListQueryOptions, PaginatedList, RequestContext } from '@vendure/core';
+
+import { ProductReview } from '../entities/product-review.entity';
+
+@Injectable()
+export class ProductReviewService {
+    constructor(
+        private listQueryBuilder: ListQueryBuilder,
+    ) {}
+
+    findAll(ctx: RequestContext, options?: ListQueryOptions<ProductReview>): Promise<PaginatedList<ProductReview>> {
+        return this.listQueryBuilder
+            .build(ProductReview, options, {
+                relations: ['product'], // [!code highlight]
+                ctx,
+                customPropertyMap: { // [!code highlight]
+                    productName: 'product.name', // [!code highlight]
+                } // [!code highlight]
+            })
+            .getManyAndCount()
+            .then(([items, totalItems]) => ({ items, totalItems }));
+    }
+}
+```
+
+Upon restarting your server, you should now be able to filter by `productName`:
+
+```graphql
+query {
+  productReviews(
+    options: {
+      skip: 0
+      take: 10
+      filter: { # [!code highlight]
+        productName: { # [!code highlight]
+          contains: "phone" # [!code highlight]
+        } # [!code highlight]
+      } # [!code highlight]
+  }) {
+    totalItems
+    items {
+      id
+      createdAt
+      product {
+        name
+      }
+      text
+      rating
+    }
+  }
+}
+```

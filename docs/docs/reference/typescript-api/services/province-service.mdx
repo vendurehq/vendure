@@ -1,0 +1,49 @@
+---
+title: "ProvinceService"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/services/province.service.ts" sourceLine="32" packageName="@vendure/core" />
+
+Contains methods relating to [Province](/reference/typescript-api/entities/province#province) entities.
+
+```ts title="Signature"
+class ProvinceService {
+    constructor(connection: TransactionalConnection, listQueryBuilder: ListQueryBuilder, translatableSaver: TranslatableSaver, eventBus: EventBus, translator: TranslatorService)
+    findAll(ctx: RequestContext, options?: ListQueryOptions<Province>, relations: RelationPaths<Province> = []) => Promise<PaginatedList<Translated<Province>>>;
+    findOne(ctx: RequestContext, provinceId: ID, relations: RelationPaths<Province> = []) => Promise<Translated<Province> | undefined>;
+    create(ctx: RequestContext, input: CreateProvinceInput) => Promise<Translated<Province>>;
+    update(ctx: RequestContext, input: UpdateProvinceInput) => Promise<Translated<Province>>;
+    delete(ctx: RequestContext, id: ID) => Promise<DeletionResponse>;
+}
+```
+
+<div className="members-wrapper">
+
+### findAll
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: ListQueryOptions<<a href='/reference/typescript-api/entities/province#province'>Province</a>>, relations: RelationPaths<<a href='/reference/typescript-api/entities/province#province'>Province</a>> = []) => Promise<<a href='/reference/typescript-api/common/paginated-list#paginatedlist'>PaginatedList</a><Translated<<a href='/reference/typescript-api/entities/province#province'>Province</a>>>>`}   />
+
+
+### findOne
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, provinceId: <a href='/reference/typescript-api/common/id#id'>ID</a>, relations: RelationPaths<<a href='/reference/typescript-api/entities/province#province'>Province</a>> = []) => Promise<Translated<<a href='/reference/typescript-api/entities/province#province'>Province</a>> | undefined>`}   />
+
+
+### create
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: CreateProvinceInput) => Promise<Translated<<a href='/reference/typescript-api/entities/province#province'>Province</a>>>`}   />
+
+
+### update
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: UpdateProvinceInput) => Promise<Translated<<a href='/reference/typescript-api/entities/province#province'>Province</a>>>`}   />
+
+
+### delete
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<DeletionResponse>`}   />
+
+
+
+
+</div>

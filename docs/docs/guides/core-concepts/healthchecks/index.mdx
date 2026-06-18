@@ -1,0 +1,61 @@
+---
+title: "Health Checks"
+metaTitle: "Health Check Endpoint for Monitoring Vendure"
+metaDescription: "How Vendure exposes a /health endpoint for monitoring system dependencies like the database and external services, built on NestJS Terminus."
+---
+
+Vendure exposes a **`/health`** endpoint that reports the status of critical system dependencies.
+This endpoint is essential for production deployments where load balancers, container orchestrators,
+and monitoring tools need to know whether the application is healthy and ready to serve traffic.
+
+## How it works
+
+The health check system is built on the [NestJS Terminus](https://docs.nestjs.com/recipes/terminus)
+module. Each configured health check strategy probes a specific dependency and reports back with
+a status. The `/health` endpoint aggregates all strategy results into a single response.
+
+A healthy response indicates that all dependencies are reachable and functioning correctly. If any
+strategy reports a failure, the endpoint returns an unhealthy status, signaling that the system
+may not be able to serve requests reliably.
+
+## Built-in strategies
+
+Vendure ships with two health check strategies out of the box:
+
+- **`TypeORMHealthCheckStrategy`** — verifies that the database connection is alive by executing
+  a simple query. Since the database is the most critical dependency for any Vendure instance,
+  this strategy is enabled by default.
+
+- **`HttpHealthCheckStrategy`** — checks the availability of an external HTTP service. This is
+  useful when your Vendure instance depends on external APIs, such as a payment gateway or a
+  third-party inventory system.
+
+## Configuration
+
+Health checks are configured via the `systemOptions.healthChecks` property in the
+[`VendureConfig`](/reference/typescript-api/configuration/vendure-config/). You can enable or disable
+individual strategies and configure their parameters to match your infrastructure.
+
+## Use cases
+
+The `/health` endpoint serves several important operational purposes:
+
+- **Load balancer probes** — configure your load balancer to poll `/health` and route traffic
+  only to healthy instances.
+- **Container orchestration** — use the endpoint as a Kubernetes liveness or readiness probe
+  to automatically restart unhealthy pods or delay traffic until the application is ready.
+- **Monitoring dashboards** — integrate with monitoring tools to track uptime and get alerted
+  when dependencies become unreachable.
+
+## Custom strategies
+
+When your application has dependencies beyond the database and HTTP services, you can implement
+the `HealthCheckStrategy` interface to create custom checks. For example, a custom strategy might
+verify connectivity to a Redis cache, an Elasticsearch cluster, or a message broker.
+
+Custom strategies are added to the same `systemOptions.healthChecks` configuration array alongside
+the built-in strategies, and their results are included in the aggregated `/health` response.
+
+## Further reading
+
+- [Production configuration guide](/deployment/production-configuration/) — deploying Vendure with proper health checks and monitoring

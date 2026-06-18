@@ -1,0 +1,35 @@
+---
+title: "HydrateOptions"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/helpers/entity-hydrator/entity-hydrator-types.ts" sourceLine="12" packageName="@vendure/core" since="1.3.0" />
+
+Options used to control which relations of the entity get hydrated
+when using the [EntityHydrator](/reference/typescript-api/data-access/entity-hydrator#entityhydrator) helper.
+
+```ts title="Signature"
+interface HydrateOptions<Entity extends VendureEntity> {
+    relations: Array<EntityRelationPaths<Entity>>;
+    applyProductVariantPrices?: boolean;
+}
+```
+
+<div className="members-wrapper">
+
+### relations
+
+<MemberInfo kind="property" type={`Array<<a href='/reference/typescript-api/common/entity-relation-paths#entityrelationpaths'>EntityRelationPaths</a><Entity>>`}   />
+
+Defines the relations to hydrate, using strings with dot notation to indicate
+nested joins. If the entity already has a particular relation available, that relation
+will be skipped (no extra DB join will be added).
+### applyProductVariantPrices
+
+<MemberInfo kind="property" type={`boolean`} default={`false`}   />
+
+If set to `true`, any ProductVariants will also have their `price` and `priceWithTax` fields
+applied based on the current context. If prices are not required, this can be left `false` which
+will be slightly more efficient.
+
+
+</div>

@@ -1,0 +1,174 @@
+---
+title: "DefineDashboardExtension"
+generated: true
+---
+## defineDashboardExtension
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/define-dashboard-extension.ts" sourceLine="89" packageName="@vendure/dashboard" since="3.3.0" />
+
+The main entry point for extensions to the React-based dashboard. Every dashboard extension
+must contain a call to this function, usually in the entry point file that is referenced by
+the `dashboard` property of the plugin decorator.
+
+Every type of customisation of the dashboard can be defined here, including:
+
+- Navigation (nav sections and routes)
+- Layout (action bar items and page blocks)
+- Widgets
+- Form components (custom form components, input components, and display components)
+- Data tables
+- Detail forms
+- Login
+- Custom history entries
+- Toolbar items
+
+*Example*
+
+```tsx
+defineDashboardExtension({
+ navSections: [],
+ routes: [],
+ pageBlocks: [],
+ actionBarItems: [],
+});
+```
+
+```ts title="Signature"
+function defineDashboardExtension(extension: DashboardExtension): void
+```
+Parameters
+
+### extension
+
+<MemberInfo kind="parameter" type={`<a href='/reference/dashboard/extensions-api/define-dashboard-extension#dashboardextension'>DashboardExtension</a>`} />
+
+## DashboardExtension
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/extension-api-types.ts" sourceLine="37" packageName="@vendure/dashboard" since="3.3.0" />
+
+This is the main interface for defining _all_ extensions to the dashboard.
+
+Every type of customisation of the dashboard can be defined here, including:
+
+- Navigation (nav sections and routes)
+- Layout (action bar items and page blocks)
+- Widgets for the Insights page
+- Form components
+- Data tables
+- Detail forms
+- Login page customisation
+
+```ts title="Signature"
+interface DashboardExtension {
+    routes?: DashboardRouteDefinition[];
+    navSections?: DashboardNavSectionDefinition[] | ((config: NavMenuConfig) => NavMenuConfig);
+    pageBlocks?: DashboardPageBlockDefinition[];
+    actionBarItems?: DashboardActionBarItem[];
+    alerts?: DashboardAlertDefinition[];
+    widgets?: DashboardWidgetDefinition[];
+    customFormComponents?: DashboardCustomFormComponents;
+    dataTables?: DashboardDataTableExtensionDefinition[];
+    detailForms?: DashboardDetailFormExtensionDefinition[];
+    login?: DashboardLoginExtensions;
+    historyEntries?: DashboardHistoryEntryComponent[];
+    toolbarItems?: DashboardToolbarItemDefinition[];
+}
+```
+
+<div className="members-wrapper">
+
+### routes
+
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/routes#dashboardroutedefinition'>DashboardRouteDefinition</a>[]`}   />
+
+Allows you to define custom routes such as list or detail views.
+### navSections
+
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/navigation#dashboardnavsectiondefinition'>DashboardNavSectionDefinition</a>[] | ((config: NavMenuConfig) => NavMenuConfig)`}   />
+
+Allows you to define custom nav sections for the dashboard.
+
+Can be provided as either:
+- An **array** of `DashboardNavSectionDefinition` objects to declaratively add new sections
+- A **function** that receives the current `NavMenuConfig` and returns a new one, allowing
+  full control over the nav menu (move, remove, reorder items between sections)
+
+When using the function form, the function is guaranteed to run _after_ all array-form
+registrations have completed, so it always sees the fully-populated nav config.
+
+*Example*
+
+```ts
+// Array form (existing)
+navSections: [{ id: 'my-section', title: 'My Section' }]
+
+// Function form (new)
+navSections: (config) => ({
+    sections: config.sections.map(s =>
+        s.id === 'settings' && 'items' in s
+            ? { ...s, items: s.items?.filter(i => i.id !== 'administrators') }
+            : s
+    ),
+})
+```
+
+Note: modifier functions should return a **new** config object rather than
+mutating the input, to ensure predictable behavior when multiple modifiers
+are composed. The function form was introduced in version 3.6.0.
+### pageBlocks
+
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/page-blocks#dashboardpageblockdefinition'>DashboardPageBlockDefinition</a>[]`}   />
+
+Allows you to define custom page blocks for any page in the dashboard.
+### actionBarItems
+
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/action-bar#dashboardactionbaritem'>DashboardActionBarItem</a>[]`}   />
+
+Allows you to define custom action bar items for any page in the dashboard.
+### alerts
+
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/alerts#dashboardalertdefinition'>DashboardAlertDefinition</a>[]`}   />
+
+Allows you to define custom alerts that can be displayed in the dashboard.
+### widgets
+
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/widgets#dashboardwidgetdefinition'>DashboardWidgetDefinition</a>[]`}   />
+
+Allows you to define custom routes for the dashboard, which will render the
+given components and optionally also add a nav menu item.
+### customFormComponents
+
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/form-components#dashboardcustomformcomponents'>DashboardCustomFormComponents</a>`}   />
+
+Unified registration for custom form custom field components.
+### dataTables
+
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/data-tables#dashboarddatatableextensiondefinition'>DashboardDataTableExtensionDefinition</a>[]`}   />
+
+Allows you to customize aspects of existing data tables in the dashboard.
+### detailForms
+
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/detail-forms#dashboarddetailformextensiondefinition'>DashboardDetailFormExtensionDefinition</a>[]`}   />
+
+Allows you to customize the detail form for any page in the dashboard.
+### login
+
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/login#dashboardloginextensions'>DashboardLoginExtensions</a>`}   />
+
+Allows you to customize the login page with custom components.
+### historyEntries
+
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/history-entries#dashboardhistoryentrycomponent'>DashboardHistoryEntryComponent</a>[]`}   />
+
+Allows a custom component to be used to render a history entry item
+in the Order or Customer history lists.
+### toolbarItems
+
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/toolbar#dashboardtoolbaritemdefinition'>DashboardToolbarItemDefinition</a>[]`}  since="3.5.3"  />
+
+Allows you to define custom toolbar items in the app shell header bar.
+Toolbar items appear alongside the breadcrumbs, dev mode indicator,
+and alerts icon.
+
+
+</div>

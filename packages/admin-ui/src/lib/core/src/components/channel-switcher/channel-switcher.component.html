@@ -1,0 +1,29 @@
+<ng-container>
+    <vdr-dropdown>
+        <button class="active-channel m-auto" vdrDropdownTrigger>
+            <vdr-channel-badge [channelCode]="activeChannelCode$ | async"></vdr-channel-badge>
+            <span class="channel-label">{{
+                activeChannelCode$ | async | channelCodeToLabel | translate
+            }}</span>
+            <span class="trigger"><clr-icon shape="ellipsis-vertical" size="12"></clr-icon></span>
+        </button>
+        <vdr-dropdown-menu vdrPosition="bottom-right">
+            <input
+                *ngIf="((channelCount$ | async) || 0) >= displayFilterThreshold"
+                [formControl]="filterControl"
+                type="text"
+                class="ml2 mr2"
+                [placeholder]="'common.filter' | translate"
+            />
+            <button
+                *ngFor="let channel of channels$ | async"
+                type="button"
+                vdrDropdownItem
+                (click)="setActiveChannel(channel.id)"
+            >
+                <vdr-channel-badge [channelCode]="channel.code"></vdr-channel-badge>
+                {{ channel.code | channelCodeToLabel | translate }}
+            </button>
+        </vdr-dropdown-menu>
+    </vdr-dropdown>
+</ng-container>

@@ -1,0 +1,69 @@
+# {{ name }}
+
+A full-stack e-commerce application built with [Vendure](https://www.vendure.io/) and [Next.js](https://nextjs.org/).
+
+## Project Structure
+
+This is a monorepo using npm workspaces:
+
+```
+{{ name }}/
+├── apps/
+│   ├── server/       # Vendure backend (GraphQL API, Admin Dashboard)
+│   └── storefront/   # Next.js frontend
+└── package.json      # Root workspace configuration
+```
+
+## Getting Started
+
+### Development
+
+Start both the server and storefront in development mode:
+
+```bash
+npm run dev
+```
+
+Or run them individually:
+
+```bash
+# Start only the server
+npm run dev:server
+
+# Start only the storefront
+npm run dev:storefront
+```
+
+### Access Points
+
+- **Vendure Dashboard**: http://localhost:{{ serverPort }}/dashboard
+- **Shop GraphQL API**: http://localhost:{{ serverPort }}/shop-api
+- **Admin GraphQL API**: http://localhost:{{ serverPort }}/admin-api
+- **Storefront**: http://localhost:{{ storefrontPort }}
+
+### Admin Credentials
+
+Use these credentials to log in to the Vendure Dashboard:
+
+- **Username**: {{ superadminIdentifier }}
+- **Password**: {{ superadminPassword }}
+
+## Production Build
+
+Build all packages:
+
+```bash
+npm run build
+```
+
+Start the production server:
+
+```bash
+npm run start
+```
+
+## Learn More
+
+- [Vendure Documentation](https://docs.vendure.io)
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Vendure Discord Community](https://vendure.io/community)

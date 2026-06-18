@@ -1,0 +1,191 @@
+<vdr-page-block>
+    <vdr-action-bar>
+        <vdr-ab-left>
+            <vdr-language-selector
+                [disabled]="isNew$ | async"
+                [availableLanguageCodes]="availableLanguages$ | async"
+                [currentLanguageCode]="languageCode$ | async"
+                (languageCodeChange)="setLanguage($event)"
+            />
+        </vdr-ab-left>
+
+        <vdr-ab-right>
+            <vdr-action-bar-items locationId="shipping-method-detail" />
+            <button
+                class="btn btn-primary"
+                *ngIf="isNew$ | async; else updateButton"
+                (click)="create()"
+                [disabled]="
+                    detailForm.pristine || detailForm.invalid || !selectedChecker || !selectedCalculator
+                "
+            >
+                {{ 'common.create' | translate }}
+            </button>
+            <ng-template #updateButton>
+                <button
+                    class="btn btn-primary"
+                    (click)="save()"
+                    *vdrIfPermissions="updatePermission"
+                    [disabled]="
+                        detailForm.pristine || detailForm.invalid || !selectedChecker || !selectedCalculator
+                    "
+                >
+                    {{ 'common.update' | translate }}
+                </button>
+            </ng-template>
+            <vdr-action-bar-dropdown-menu locationId="shipping-method-detail" />
+        </vdr-ab-right>
+    </vdr-action-bar>
+</vdr-page-block>
+
+<form class="form" [formGroup]="detailForm">
+    <vdr-page-detail-layout>
+        <vdr-page-detail-sidebar>
+            <vdr-card *ngIf="entity$ | async as entity">
+                <vdr-page-entity-info [entity]="entity" />
+            </vdr-card>
+        </vdr-page-detail-sidebar>
+        <vdr-page-block>
+            <vdr-card>
+                <div class="form-grid">
+                    <vdr-form-field [label]="'common.name' | translate" for="name">
+                        <input
+                            id="name"
+                            type="text"
+                            formControlName="name"
+                            [readonly]="!(updatePermission | hasPermission)"
+                            (input)="updateCode(entity?.code, $event.target.value)"
+                        />
+                    </vdr-form-field>
+                    <vdr-form-field
+                        [label]="'common.code' | translate"
+                        for="code"
+                        [readOnlyToggle]="updatePermission | hasPermission"
+                    >
+                        <input
+                            id="code"
+                            type="text"
+                            formControlName="code"
+                            [readonly]="!(updatePermission | hasPermission)"
+                        />
+                    </vdr-form-field>
+                    <vdr-rich-text-editor
+                        class="form-grid-span"
+                        formControlName="description"
+                        [readonly]="!(updatePermission | hasPermission)"
+                        [label]="'common.description' | translate"
+                    ></vdr-rich-text-editor>
+                    <vdr-form-field
+                        [label]="'settings.fulfillment-handler' | translate"
+                        for="fulfillmentHandler"
+                    >
+                        <select
+                            name="fulfillmentHandler"
+                            formControlName="fulfillmentHandler"
+                            [vdrDisabled]="!(updatePermission | hasPermission)"
+                        >
+                            <option *ngFor="let handler of fulfillmentHandlers" [value]="handler.code">
+                                {{ handler.code }}: {{ handler.description }}
+                            </option>
+                        </select>
+                    </vdr-form-field>
+                </div>
+            </vdr-card>
+
+            <vdr-card
+                formGroupName="customFields"
+                *ngIf="customFields.length"
+                [title]="'common.custom-fields' | translate"
+            >
+                <vdr-tabbed-custom-fields
+                    entityName="ShippingMethod"
+                    [customFields]="customFields"
+                    [customFieldsFormGroup]="detailForm.get('customFields')"
+                ></vdr-tabbed-custom-fields>
+            </vdr-card>
+
+            <vdr-custom-detail-component-host
+                locationId="shipping-method-detail"
+                [entity$]="entity$"
+                [detailForm]="detailForm"
+            ></vdr-custom-detail-component-host>
+
+            <vdr-card [title]="'settings.shipping-eligibility-checker' | translate">
+                <vdr-configurable-input
+                    class="card-span"
+                    *ngIf="selectedChecker && selectedCheckerDefinition"
+                    [operation]="selectedChecker"
+                    [operationDefinition]="selectedCheckerDefinition"
+                    [readonly]="!(updatePermission | hasPermission)"
+                    (remove)="selectedChecker = null"
+                    formControlName="checker"
+                ></vdr-configurable-input>
+                <div *ngIf="!selectedChecker || !selectedCheckerDefinition" class="card-span">
+                    <vdr-dropdown>
+                        <button class="btn btn-outline" vdrDropdownTrigger>
+                            <clr-icon shape="plus"></clr-icon>
+                            {{ 'common.select' | translate }}
+                        </button>
+                        <vdr-dropdown-menu vdrPosition="bottom-left">
+                            <button
+                                *ngFor="let checker of checkers"
+                                type="button"
+                                vdrDropdownItem
+                                (click)="selectChecker(checker)"
+                            >
+                                {{ checker.description }}
+                            </button>
+                        </vdr-dropdown-menu>
+                    </vdr-dropdown>
+                </div>
+            </vdr-card>
+            <vdr-card [title]="'settings.shipping-calculator' | translate">
+                <vdr-configurable-input
+                    class="card-span"
+                    *ngIf="selectedCalculator && selectedCalculatorDefinition"
+                    [operation]="selectedCalculator"
+                    [operationDefinition]="selectedCalculatorDefinition"
+                    [readonly]="!(updatePermission | hasPermission)"
+                    (remove)="selectedCalculator = null"
+                    formControlName="calculator"
+                ></vdr-configurable-input>
+                <div *ngIf="!selectedCalculator || !selectedCalculatorDefinition" class="card-span">
+                    <vdr-dropdown>
+                        <button class="btn btn-outline" vdrDropdownTrigger>
+                            <clr-icon shape="plus"></clr-icon>
+                            {{ 'common.select' | translate }}
+                        </button>
+                        <vdr-dropdown-menu vdrPosition="bottom-left">
+                            <button
+                                *ngFor="let calculator of calculators"
+                                type="button"
+                                vdrDropdownItem
+                                (click)="selectCalculator(calculator)"
+                            >
+                                {{ calculator.description }}
+                            </button>
+                        </vdr-dropdown-menu>
+                    </vdr-dropdown>
+                </div>
+            </vdr-card>
+            <vdr-card [title]="'settings.test-shipping-method' | translate">
+                <vdr-test-order-builder
+                    class="card-span"
+                    (orderLinesChange)="setTestOrderLines($event)"
+                ></vdr-test-order-builder>
+                <vdr-test-address-form
+                    (addressChange)="setTestAddress($event)"
+                    class="mt-2"
+                ></vdr-test-address-form>
+                <vdr-shipping-method-test-result
+                    class="mt-2"
+                    [currencyCode]="(activeChannel$ | async)?.currencyCode"
+                    [okToRun]="allTestDataPresent() && testDataUpdated && detailForm.valid"
+                    [testDataUpdated]="testDataUpdated"
+                    [testResult]="testResult$ | async"
+                    (runTest)="runTest()"
+                ></vdr-shipping-method-test-result>
+            </vdr-card>
+        </vdr-page-block>
+    </vdr-page-detail-layout>
+</form>

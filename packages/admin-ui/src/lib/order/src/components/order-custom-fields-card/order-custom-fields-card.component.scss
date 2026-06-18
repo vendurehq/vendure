@@ -1,0 +1,17 @@
+
+vdr-custom-field-control {
+    margin-bottom: 6px;
+    display: block;
+}
+
+.custom-field-form {
+    ::ng-deep .clr-control-label {
+        color: var(--color-grey-400);
+    }
+
+    &.editable {
+        ::ng-deep .clr-control-label {
+            color: inherit;
+        }
+    }
+}

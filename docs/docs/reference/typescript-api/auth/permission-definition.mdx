@@ -1,0 +1,245 @@
+---
+title: "PermissionDefinition"
+generated: true
+---
+## PermissionDefinition
+
+<GenerationInfo sourceFile="packages/core/src/common/permission-definition.ts" sourceLine="86" packageName="@vendure/core" />
+
+Defines a new Permission with which to control access to GraphQL resolvers & REST controllers.
+Used in conjunction with the [Allow](/reference/typescript-api/request/allow-decorator#allow) decorator (see example below).
+
+**Note:** To define CRUD permissions, use the [CrudPermissionDefinition](/reference/typescript-api/auth/permission-definition#crudpermissiondefinition).
+
+*Example*
+
+```ts
+export const sync = new PermissionDefinition({
+  name: 'SyncInventory',
+  description: 'Allows syncing stock levels via Admin API'
+});
+```
+
+```ts
+const config: VendureConfig = {
+  authOptions: {
+    customPermissions: [sync],
+  },
+}
+```
+
+```ts
+@Resolver()
+export class ExternalSyncResolver {
+
+  @Allow(sync.Permission)
+  @Mutation()
+  syncStockLevels() {
+    // ...
+  }
+}
+```
+
+```ts title="Signature"
+class PermissionDefinition {
+    constructor(config: PermissionDefinitionConfig)
+    Permission: Permission
+}
+```
+
+<div className="members-wrapper">
+
+### Permission
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/permission#permission'>Permission</a>`}   />
+
+Returns the permission defined by this definition, for use in the
+[Allow](/reference/typescript-api/request/allow-decorator#allow) decorator.
+
+
+</div>
+## CrudPermissionDefinition
+
+<GenerationInfo sourceFile="packages/core/src/common/permission-definition.ts" sourceLine="146" packageName="@vendure/core" />
+
+Defines a set of CRUD Permissions for the given name, i.e. a `name` of 'Wishlist' will create
+4 Permissions: 'CreateWishlist', 'ReadWishlist', 'UpdateWishlist' & 'DeleteWishlist'.
+
+*Example*
+
+```ts
+export const wishlist = new CrudPermissionDefinition('Wishlist');
+```
+
+```ts
+const config: VendureConfig = {
+  authOptions: {
+    customPermissions: [wishlist],
+  },
+}
+```
+
+```ts
+@Resolver()
+export class WishlistResolver {
+
+  @Allow(wishlist.Create)
+  @Mutation()
+  createWishlist() {
+    // ...
+  }
+}
+```
+
+```ts title="Signature"
+class CrudPermissionDefinition extends PermissionDefinition {
+    constructor(name: string, descriptionFn?: (operation: 'create' | 'read' | 'update' | 'delete') => string)
+    Create: Permission
+    Read: Permission
+    Update: Permission
+    Delete: Permission
+}
+```
+* Extends: [`PermissionDefinition`](/reference/typescript-api/auth/permission-definition#permissiondefinition)
+
+
+
+<div className="members-wrapper">
+
+### Create
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/permission#permission'>Permission</a>`}   />
+
+Returns the 'Create' CRUD permission defined by this definition, for use in the
+[Allow](/reference/typescript-api/request/allow-decorator#allow) decorator.
+### Read
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/permission#permission'>Permission</a>`}   />
+
+Returns the 'Read' CRUD permission defined by this definition, for use in the
+[Allow](/reference/typescript-api/request/allow-decorator#allow) decorator.
+### Update
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/permission#permission'>Permission</a>`}   />
+
+Returns the 'Update' CRUD permission defined by this definition, for use in the
+[Allow](/reference/typescript-api/request/allow-decorator#allow) decorator.
+### Delete
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/permission#permission'>Permission</a>`}   />
+
+Returns the 'Delete' CRUD permission defined by this definition, for use in the
+[Allow](/reference/typescript-api/request/allow-decorator#allow) decorator.
+
+
+</div>
+## RwPermissionDefinition
+
+<GenerationInfo sourceFile="packages/core/src/common/permission-definition.ts" sourceLine="245" packageName="@vendure/core" since="3.5.0" />
+
+Defines a set of Read-Write Permissions for the given name, i.e. a `name` of 'DashboardSavedViews' will create
+2 Permissions: 'ReadDashboardSavedViews' and 'WriteDashboardSavedViews'.
+
+*Example*
+
+```ts
+export const dashboardSavedViews = new RwPermissionDefinition('DashboardSavedViews');
+```
+
+```ts
+const config: VendureConfig = {
+  authOptions: {
+    customPermissions: [dashboardSavedViews],
+  },
+}
+```
+
+```ts
+@Resolver()
+export class DashboardResolver {
+
+  @Allow(dashboardSavedViews.Read)
+  @Query()
+  getDashboardSavedViews() {
+    // ...
+  }
+
+  @Allow(dashboardSavedViews.Write)
+  @Mutation()
+  saveDashboardView() {
+    // ...
+  }
+}
+```
+
+```ts title="Signature"
+class RwPermissionDefinition extends PermissionDefinition {
+    constructor(name: string, descriptionFn?: (operation: 'read' | 'write') => string)
+    Read: Permission
+    Write: Permission
+}
+```
+* Extends: [`PermissionDefinition`](/reference/typescript-api/auth/permission-definition#permissiondefinition)
+
+
+
+<div className="members-wrapper">
+
+### Read
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/permission#permission'>Permission</a>`}   />
+
+Returns the 'Read' permission defined by this definition, for use in the
+[Allow](/reference/typescript-api/request/allow-decorator#allow) decorator.
+### Write
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/permission#permission'>Permission</a>`}   />
+
+Returns the 'Write' permission defined by this definition, for use in the
+[Allow](/reference/typescript-api/request/allow-decorator#allow) decorator.
+
+
+</div>
+## PermissionDefinitionConfig
+
+<GenerationInfo sourceFile="packages/core/src/common/permission-definition.ts" sourceLine="10" packageName="@vendure/core" />
+
+Configures a [PermissionDefinition](/reference/typescript-api/auth/permission-definition#permissiondefinition)
+
+```ts title="Signature"
+interface PermissionDefinitionConfig {
+    name: string;
+    description?: string;
+    assignable?: boolean;
+    internal?: boolean;
+}
+```
+
+<div className="members-wrapper">
+
+### name
+
+<MemberInfo kind="property" type={`string`}   />
+
+The name of the permission. By convention this should be
+UpperCamelCased.
+### description
+
+<MemberInfo kind="property" type={`string`}   />
+
+A description of the permission.
+### assignable
+
+<MemberInfo kind="property" type={`boolean`} default={`true`}   />
+
+Whether this permission can be assigned to a Role. In general this
+should be left as the default `true` except in special cases.
+### internal
+
+<MemberInfo kind="property" type={`boolean`} default={`false`}   />
+
+Internal permissions are not exposed via the API and are reserved for
+special use-cases such at the `Owner` or `Public` permissions.
+
+
+</div>

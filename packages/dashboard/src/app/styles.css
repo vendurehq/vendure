@@ -1,0 +1,87 @@
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/public-sans';
+@import '@fontsource-variable/geist-mono';
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import "shadcn/tailwind.css";
+
+html[dir="rtl"] * {
+    direction: rtl;
+}
+
+@custom-variant dark (&:is(.dark *));
+
+/* @source rules from extensions will be added here by the dashboardTailwindSourcePlugin */
+
+/*
+ * The virtual:admin-theme import is replaced at build time by the themeVariablesPlugin.
+ * It injects :root and .dark CSS custom properties sourced from @vendure-io/design-tokens,
+ * extended with dashboard-specific tokens and any user overrides.
+ */
+@import 'virtual:admin-theme';
+
+/*
+ * Tailwind @theme inline block generated at build time by the themeVariablesPlugin.
+ * It produces --color-*, --radius-*, --shadow-*, and --font-* mappings
+ * directly from @vendure-io/design-tokens JS exports, plus dashboard-specific
+ * extensions (dev-mode, brand). This keeps the dashboard in sync with the
+ * design system without duplicating token values.
+ */
+@import 'virtual:admin-theme-inline';
+
+@layer base {
+    * {
+        @apply border-border outline-ring/50;
+    }
+
+    body {
+        @apply bg-background text-foreground;
+        font-family: var(--font-body);
+    }
+
+    #app {
+        isolation: isolate;
+    }
+
+    /* Restore h-svh on sidebar-gap to prevent sidebar fixed container
+       from intercepting pointer events in the main content area */
+    [data-slot="sidebar-gap"] {
+        height: 100svh;
+    }
+}
+
+@utility col-main {
+    grid-column: span 3 / span 3;
+}
+@utility scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+@utility col-side {
+    grid-column: span 2 / span 2;
+}
+
+@layer utilities {
+    @keyframes rotate {
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+
+    .animate-rotate {
+        animation: rotate 0.5s linear infinite;
+    }
+}
+
+/* Prevent the main content area from overflowing horizontally on mobile,
+   which otherwise extends behind the sidebar Sheet backdrop and blocks
+   tap-to-close interactions. */
+[data-slot="sidebar-inset"] {
+    overflow-x: hidden;
+}

@@ -1,0 +1,88 @@
+---
+title: "FacetValue"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/facet-value/facet-value.entity.ts" sourceLine="23" packageName="@vendure/core" />
+
+A particular value of a [Facet](/reference/typescript-api/entities/facet#facet).
+
+```ts title="Signature"
+class FacetValue extends VendureEntity implements Translatable, HasCustomFields, ChannelAware {
+    constructor(input?: DeepPartial<FacetValue>)
+    name: LocaleString;
+    @Column() code: string;
+    @OneToMany(type => FacetValueTranslation, translation => translation.base, { eager: true })
+    translations: Array<Translation<FacetValue>>;
+    @Index()
+    @ManyToOne(type => Facet, group => group.values, { onDelete: 'CASCADE' })
+    facet: Facet;
+    @EntityId()
+    facetId: ID;
+    @Column(type => CustomFacetValueFields)
+    customFields: CustomFacetValueFields;
+    @ManyToMany(type => Channel, channel => channel.facetValues)
+    @JoinTable()
+    channels: Channel[];
+    @ManyToMany(() => Product, product => product.facetValues, { onDelete: 'CASCADE' })
+    products: Product[];
+    @ManyToMany(type => ProductVariant, productVariant => productVariant.facetValues)
+    productVariants: ProductVariant[];
+}
+```
+* Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
+
+
+* Implements: [`Translatable`](/reference/typescript-api/entities/interfaces#translatable), HasCustomFields, [`ChannelAware`](/reference/typescript-api/entities/interfaces#channelaware)
+
+
+
+<div className="members-wrapper">
+
+### name
+
+<MemberInfo kind="property" type={`LocaleString`}   />
+
+
+### code
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### translations
+
+<MemberInfo kind="property" type={`Array<Translation<<a href='/reference/typescript-api/entities/facet-value#facetvalue'>FacetValue</a>>>`}   />
+
+
+### facet
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/facet#facet'>Facet</a>`}   />
+
+
+### facetId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
+
+
+### customFields
+
+<MemberInfo kind="property" type={`CustomFacetValueFields`}   />
+
+
+### channels
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>[]`}   />
+
+
+### products
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/product#product'>Product</a>[]`}   />
+
+
+### productVariants
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>[]`}   />
+
+
+
+
+</div>

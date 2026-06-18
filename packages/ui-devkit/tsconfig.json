@@ -1,0 +1,25 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "baseUrl": "./",
+    "importHelpers": true,
+    "removeComments": false,
+    "outDir": "./client",
+    "sourceMap": true,
+    "declaration": true,
+    "moduleResolution": "node",
+    "strict": true,
+    "noImplicitAny": true,
+    "strictPropertyInitialization": false,
+    "target": "es5",
+    "module": "esnext",
+    "lib": [
+      "es2017",
+      "dom",
+      "esnext.asynciterable"
+    ]
+  },
+  "files": [
+    "./src/client/index.ts"
+  ]
+}

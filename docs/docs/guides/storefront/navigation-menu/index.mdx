@@ -1,0 +1,154 @@
+---
+title: "Navigation Menu"
+metaTitle: "Building a Collection-Based Navigation Menu in Vendure"
+metaDescription: "Query top-level collections from the Vendure Shop API and transform them into a hierarchical navigation tree for your storefront."
+---
+
+A navigation menu allows your customers to navigate your store and find the products they are looking for.
+
+Typically, navigation is based on a hierarchy of [collections](/core-concepts/collections/). We can get the top-level
+collections using the `collections` query with the `topLevelOnly` filter:
+
+
+<Tabs>
+<TabItem value="Query" label="Query" default>
+
+```graphql
+query GetTopLevelCollections {
+  collections(options: { topLevelOnly: true }) {
+    items {
+      id
+      slug
+      name
+      featuredAsset {
+        id
+        preview
+      }
+    }
+  }
+}
+```
+
+</TabItem>
+<TabItem value="Response" label="Response">
+
+```json
+{
+  "data": {
+    "collections": {
+      "items": [
+        {
+          "id": "2",
+          "slug": "electronics",
+          "name": "Electronics",
+          "featuredAsset": {
+            "id": "16",
+            "preview": "https://demo.vendure.io/assets/preview/5b/jakob-owens-274337-unsplash__preview.jpg"
+          }
+        },
+        {
+          "id": "5",
+          "slug": "home-garden",
+          "name": "Home & Garden",
+          "featuredAsset": {
+            "id": "47",
+            "preview": "https://demo.vendure.io/assets/preview/3e/paul-weaver-1120584-unsplash__preview.jpg"
+          }
+        },
+        {
+          "id": "8",
+          "slug": "sports-outdoor",
+          "name": "Sports & Outdoor",
+          "featuredAsset": {
+            "id": "24",
+            "preview": "https://demo.vendure.io/assets/preview/96/michael-guite-571169-unsplash__preview.jpg"
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+</TabItem>
+</Tabs>
+
+## Building a navigation tree
+
+The `collections` query returns a flat list of collections, but we often want to display them in a tree-like structure.
+This way, we can build up a navigation menu which reflects the hierarchy of collections.
+
+First of all we need to ensure that we have the `parentId` property on each collection.
+
+```graphql title="Shop API"
+query GetAllCollections {
+  collections(options: { topLevelOnly: true }) {
+    items {
+      id
+      slug
+      name
+      parentId # [!code highlight]
+      featuredAsset {
+        id
+        preview
+      }
+    }
+  }
+}
+```
+
+Then we can use this data to build up a tree structure. The following code snippet shows how this can be done in TypeScript:
+
+```ts title="src/utils/array-to-tree.ts"
+export type HasParent = { id: string; parentId: string | null };
+export type TreeNode<T extends HasParent> = T & {
+    children: Array<TreeNode<T>>;
+};
+export type RootNode<T extends HasParent> = {
+    id?: string;
+    children: Array<TreeNode<T>>;
+};
+
+/**
+ * Builds a tree from an array of nodes which have a parent.
+ * Based on https://stackoverflow.com/a/31247960/772859, modified to preserve ordering.
+ */
+export function arrayToTree<T extends HasParent>(nodes: T[]): RootNode<T> {
+    const topLevelNodes: Array<TreeNode<T>> = [];
+    const mappedArr: { [id: string]: TreeNode<T> } = {};
+
+    // First map the nodes of the array to an object -> create a hash table.
+    for (const node of nodes) {
+        mappedArr[node.id] = { ...(node as any), children: [] };
+    }
+
+    for (const id of nodes.map((n) => n.id)) {
+        if (mappedArr.hasOwnProperty(id)) {
+            const mappedElem = mappedArr[id];
+            const parentId = mappedElem.parentId;
+            if (!parentId) {
+                continue;
+            }
+            // If the element is not at the root level, add it to its parent array of children.
+            const parentIsRoot = !mappedArr[parentId];
+            if (!parentIsRoot) {
+                if (mappedArr[parentId]) {
+                    mappedArr[parentId].children.push(mappedElem);
+                } else {
+                    mappedArr[parentId] = { children: [mappedElem] } as any;
+                }
+            } else {
+                topLevelNodes.push(mappedElem);
+            }
+        }
+    }
+    const rootId = topLevelNodes.length ? topLevelNodes[0].parentId : undefined;
+    return { id: rootId, children: topLevelNodes };
+}
+```
+
+## Live example
+
+Here's a live demo of the above code in action:
+
+<Stackblitz id='vendure-docs-collection-tree' />

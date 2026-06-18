@@ -1,0 +1,47 @@
+---
+title: "SettingsStoreEntry"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/settings-store-entry/settings-store-entry.entity.ts" sourceLine="15" packageName="@vendure/core" since="3.4.0" />
+
+An entity for storing arbitrary settings data with scoped isolation.
+This is used by the SettingsStore system to provide flexible key-value storage
+with support for user, channel, and custom scoping.
+
+```ts title="Signature"
+class SettingsStoreEntry extends VendureEntity {
+    constructor(input?: Partial<SettingsStoreEntry>)
+    @Index()
+    @Column()
+    key: string;
+    @Column('json', { nullable: true })
+    value: any | null;
+    @Index()
+    @Column({ type: 'varchar', nullable: true })
+    scope: string | null;
+}
+```
+* Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
+
+
+
+<div className="members-wrapper">
+
+### key
+
+<MemberInfo kind="property" type={`string`}   />
+
+The settings key, typically in the format 'namespace.fieldName'
+### value
+
+<MemberInfo kind="property" type={`any | null`}   />
+
+The JSON value stored for this setting
+### scope
+
+<MemberInfo kind="property" type={`string | null`}   />
+
+The scope string that isolates this setting (e.g., 'user:123', 'channel:456', '')
+
+
+</div>

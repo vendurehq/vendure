@@ -1,0 +1,4 @@
+{
+  "name": "Load testing admin schema",
+  "schemaPath": "../../../../../schema-admin.json"
+}

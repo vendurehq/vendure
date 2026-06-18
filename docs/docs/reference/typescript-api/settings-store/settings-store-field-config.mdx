@@ -1,0 +1,87 @@
+---
+title: "SettingsStoreFieldConfig"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/settings-store/settings-store-types.ts" sourceLine="41" packageName="@vendure/core" since="3.4.0" />
+
+Configuration for a settings store field, defining how it should be stored,
+scoped, validated, and accessed.
+
+```ts title="Signature"
+interface SettingsStoreFieldConfig {
+    name: string;
+    scope?: SettingsStoreScopeFunction;
+    readonly?: boolean;
+    requiresPermission?:
+        | Array<Permission | string>
+        | Permission
+        | string
+        | {
+              read?: Array<Permission | string> | Permission | string;
+              write?: Array<Permission | string> | Permission | string;
+          };
+    validate?: (
+        value: any,
+        injector: Injector,
+        ctx: RequestContext,
+    ) => string | LocalizedString[] | void | Promise<string | LocalizedString[] | void>;
+}
+```
+
+<div className="members-wrapper">
+
+### name
+
+<MemberInfo kind="property" type={`string`}   />
+
+The name of the field. This will be combined with the namespace
+to create the full key (e.g., 'dashboard.theme').
+### scope
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/settings-store/settings-store-scope-function#settingsstorescopefunction'>SettingsStoreScopeFunction</a>`}   />
+
+Function that determines how this field should be scoped.
+Defaults to global scoping (no isolation).
+### readonly
+
+<MemberInfo kind="property" type={`boolean`} default={`false`}   />
+
+Whether this field is readonly via the GraphQL API.
+Readonly fields can still be modified programmatically via a service.
+### requiresPermission
+
+<MemberInfo kind="property" type={`| Array<<a href='/reference/typescript-api/common/permission#permission'>Permission</a> | string>         | <a href='/reference/typescript-api/common/permission#permission'>Permission</a>         | string         | {               read?: Array<<a href='/reference/typescript-api/common/permission#permission'>Permission</a> | string> | <a href='/reference/typescript-api/common/permission#permission'>Permission</a> | string;               write?: Array<<a href='/reference/typescript-api/common/permission#permission'>Permission</a> | string> | <a href='/reference/typescript-api/common/permission#permission'>Permission</a> | string;           }`}  since="3.5.0 - Added support for object with read/write properties"  />
+
+Permissions required to access this field. If not specified,
+basic authentication is required for admin API access.
+
+Can be either:
+- A single permission or array of permissions (applies to both read and write)
+- An object with `read` and `write` properties for granular control
+
+*Example*
+
+```ts
+// Single permission for both read and write
+requiresPermission: Permission.UpdateSettings
+
+// Separate read and write permissions
+requiresPermission: {
+  read: Permission.ReadSettings,
+  write: Permission.UpdateSettings
+}
+
+// Using custom RwPermissionDefinition
+requiresPermission: {
+  read: dashboardSavedViews.Read,
+  write: dashboardSavedViews.Write
+}
+```
+### validate
+
+<MemberInfo kind="property" type={`(         value: any,         injector: <a href='/reference/typescript-api/common/injector#injector'>Injector</a>,         ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>,     ) => string | LocalizedString[] | void | Promise<string | LocalizedString[] | void>`}   />
+
+Custom validation function for field values.
+
+
+</div>

@@ -1,0 +1,99 @@
+<vdr-page-block>
+    <vdr-action-bar>
+        <vdr-ab-right>
+            <vdr-action-bar-items locationId="order-list" />
+            <ng-container *ngIf="canCreateDraftOrder">
+                <a class="btn" *vdrIfPermissions="['CreateOrder']" [routerLink]="['./draft/create']">
+                    <clr-icon shape="plus"></clr-icon>
+                    {{ 'catalog.create-draft-order' | translate }}
+                </a>
+            </ng-container>
+            <vdr-action-bar-dropdown-menu locationId="order-list" />
+        </vdr-ab-right>
+    </vdr-action-bar>
+</vdr-page-block>
+<vdr-data-table-2
+    class="mt-2"
+    [id]="dataTableListId"
+    [items]="items$ | async"
+    [itemsPerPage]="itemsPerPage$ | async"
+    [totalItems]="totalItems$ | async"
+    [currentPage]="currentPage$ | async"
+    [filters]="filters"
+    (pageChange)="setPageNumber($event)"
+    (itemsPerPageChange)="setItemsPerPage($event)"
+    (visibleColumnsChange)="setVisibleColumns($event)"
+>
+    <vdr-bulk-action-menu
+        locationId="order-list"
+        [hostComponent]="this"
+        [selectionManager]="selectionManager"
+    ></vdr-bulk-action-menu>
+    <vdr-dt2-search
+        [searchTermControl]="searchTermControl"
+        [searchTermPlaceholder]="'order.search-by-order-filters' | translate"
+    />
+    <vdr-dt2-column [heading]="'common.id' | translate" id="id" [hiddenByDefault]="true" [sort]="sorts.get('id')">
+        <ng-template let-order="item">
+            {{ order.id }}
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column [heading]="'common.created-at' | translate" id="created-at" [hiddenByDefault]="true">
+        <ng-template let-order="item">
+            {{ order.createdAt | localeDate : 'short' }}
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column [heading]="'common.code' | translate" id="code" [optional]="false">
+        <ng-template let-order="item">
+            <a class="button-ghost" [routerLink]="order.state === 'Draft' ? ['./draft', order.id] : ['./', order.id]"
+                ><span>{{ order.code }}</span>
+                <clr-icon shape="arrow right"></clr-icon>
+            </a>
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column [heading]="'order.customer' | translate" id="customer" [sort]="sorts.get('customerLastName')">
+        <ng-template let-order="item">
+            <vdr-customer-label
+                [customer]="order.customer"
+                (click)="$event.stopPropagation()"
+            ></vdr-customer-label>
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column [heading]="'order.order-type' | translate" id="order-type" [hiddenByDefault]="true">
+        <ng-template let-order="item">
+            <vdr-chip *ngIf="order.type === OrderType.Regular">{{ 'order.order-type-regular' | translate }}</vdr-chip>
+            <vdr-chip *ngIf="order.type === OrderType.Aggregate">{{ 'order.order-type-aggregate' | translate }}</vdr-chip>
+            <vdr-chip *ngIf="order.type === OrderType.Seller">{{ 'order.order-type-seller' | translate }}</vdr-chip>
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column [heading]="'order.state' | translate" id="state" [sort]="sorts.get('state')">
+        <ng-template let-order="item">
+            <vdr-order-state-label [state]="order.state"></vdr-order-state-label>
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column [heading]="'order.total' | translate" id="total" [sort]="sorts.get('totalWithTax')">
+        <ng-template let-order="item">
+            {{ order.totalWithTax | localeCurrency : order.currencyCode }}
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column [heading]="'common.updated-at' | translate" id="updated-at">
+        <ng-template let-order="item">
+            {{ order.updatedAt | timeAgo }}
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column [heading]="'order.placed-at' | translate" id="placed-at" [sort]="sorts.get('orderPlacedAt')">
+        <ng-template let-order="item">
+            {{ order.orderPlacedAt | localeDate : 'short' }}
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column [heading]="'order.shipping' | translate" id="shipping">
+        <ng-template let-order="item">
+            {{ getShippingNames(order) }}
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-custom-field-column
+        *ngFor="let customField of customFields"
+        [customField]="customField"
+        [sorts]="sorts"
+    />
+</vdr-data-table-2>

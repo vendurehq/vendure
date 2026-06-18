@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Vendure Development Inbox</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+            font-family: Helvetica, Arial, sans-serif;
+        }
+        .top-bar {
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            background-color: #2a2929;
+            color: #efefef;
+            height: 60px;
+        }
+        .heading {
+            margin: 0;
+            font-size: 22px;
+        }
+        button#refresh {
+            margin-left: 12px;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+        }
+        button#refresh .label {
+            margin-left: 6px;
+        }
+        .generate-controls {
+            flex: 1;
+            display: flex;
+            justify-content: flex-end;
+        }
+        input,
+        select,
+        button {
+            padding: 6px;
+            border-radius: 3px;
+            border: 1px solid #0b384b;
+            margin-left: 3px;
+        }
+        button {
+            text-transform: uppercase;
+            font-size: 12px;
+            transition: background-color 0.2s;
+            padding: 0 12px;
+            height: 32px;
+        }
+        button:hover {
+            background-color: #efefef;
+        }
+        #language-code {
+            width: 32px;
+        }
+        .content {
+            display: flex;
+            flex: 1;
+            height: calc(100% - 60px);
+        }
+        .list {
+            width: 40vw;
+            min-width: 300px;
+            overflow: auto;
+        }
+        .row {
+            border-bottom: 1px dashed #ddd;
+            padding: 12px 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .row.selected {
+            background-color: #d4e1e7;
+        }
+        .row:not(.selected):hover {
+            background-color: #efefef;
+        }
+        .meta {
+            display: flex;
+            justify-content: space-between;
+            color: #666;
+        }
+        .detail {
+            flex: 1;
+            border: 1px solid #999;
+            display: flex;
+            flex-direction: column;
+        }
+        .detail iframe {
+            height: 100%;
+            border: 1px solid #eee;
+            overflow: auto;
+        }
+        .metadata {
+            padding: 6px;
+            color: #333;
+            background-color: white;
+            z-index: 1;
+            box-shadow: 0px 5px 8px -7px rgba(0, 0, 0, 0.49);
+        }
+    </style>
+</head>
+<body>
+<div class="top-bar">
+    <h1 class="heading">Vendure Dev Mailbox</h1>
+    <div class="generate-controls">
+        <select id="type-selector"></select>
+        <input id="language-code" value="en" type="text" />
+        <button id="generate-test">Generate test</button>
+    </div>
+</div>
+<div class="content">
+    <div class="list"></div>
+    <div class="detail"></div>
+</div>
+<script>
+    let selectedId = '';
+    const normalizePath = (endpoint) => {
+        const pathname = location.pathname;
+        return pathname.endsWith('/') ? `${pathname}${endpoint}` : `${pathname}/${endpoint}`;
+    };
+    refreshInbox();
+    setInterval(refreshInbox, 5000);
+
+    const typeSelect = document.querySelector('#type-selector');
+    fetch(normalizePath('types'))
+        .then((res) => res.json())
+        .then((res) => {
+            res.forEach((type) => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.text = type;
+                typeSelect.appendChild(option);
+            });
+        });
+
+    const languageCodeInput = document.querySelector('#language-code');
+    const generateTestButton = document.querySelector('#generate-test');
+    generateTestButton.addEventListener('click', (e) => {
+        fetch(normalizePath(`generate/${typeSelect.value}/${languageCodeInput.value}`))
+            .then(() => new Promise((resolve) => setTimeout(resolve, 500)))
+            .then(() => refreshInbox());
+    });
+
+    const list = document.querySelector('.list');
+
+    function refreshInbox() {
+        fetch(normalizePath('list'))
+            .then((res) => res.json())
+            .then((res) => renderList(res));
+    }
+
+    const ESCAPE_ENTITIES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
+    const escapeChar = char => ESCAPE_ENTITIES[char] || char;
+    const escapeHTMLEntities = value => String(value).replace(/[<>"&]/g, escapeChar);
+
+    function renderList(items) {
+        const list = document.querySelector('.list');
+        list.innerHTML = '';
+        const rows = items.forEach((item) => {
+            const row = document.createElement('div');
+            row.classList.add('row');
+            row.dataset.id = item.fileName;
+            row.innerHTML = `
+                <div class="meta">
+                    <div class="date">${item.date}</div>
+                    <div class="recipient">${escapeHTMLEntities(item.recipient)}</div>
+                </div>
+                <div class="subject">${item.subject}</div>`;
+
+            row.addEventListener('click', (e) => {
+                selectedId = item.fileName;
+                fetch(normalizePath('item/' + item.fileName))
+                    .then((res) => res.json())
+                    .then((res) => renderEmail(res))
+                    .then(() => highlightSelectedRow());
+            });
+            list.appendChild(row);
+        });
+        highlightSelectedRow();
+    }
+
+    function highlightSelectedRow() {
+        document.querySelectorAll('.list .row').forEach((row) => {
+            row.classList.remove('selected');
+            if (row.dataset.id === selectedId) {
+                row.classList.add('selected');
+            }
+        });
+    }
+
+    function renderEmail(email) {
+        const content = `
+    <div class="metadata">
+        <table>
+            <tr>
+                <td>Recipient:</td>
+                <td>${escapeHTMLEntities(email.recipient)}</td>
+            </tr>
+            <tr>
+                <td>Subject:</td>
+                <td>${email.subject}</td>
+            </tr>
+            <tr>
+                <td>Date:</td>
+                <td>${new Date().toLocaleString()}</td>
+            </tr>
+        </table>
+    </div>
+    <iframe srcdoc="${email.body.replace(/"/g, '&quot;')}"></iframe>
+`;
+
+        document.querySelector('.detail').innerHTML = content;
+    }
+</script>
+</body>
+</html>

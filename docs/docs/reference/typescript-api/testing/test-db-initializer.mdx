@@ -1,0 +1,55 @@
+---
+title: "TestDbInitializer"
+generated: true
+---
+<GenerationInfo sourceFile="packages/testing/src/initializers/test-db-initializer.ts" sourceLine="23" packageName="@vendure/testing" />
+
+Defines how the e2e TestService sets up a particular DB to run a single test suite.
+The `@vendure/testing` package ships with initializers for sql.js, MySQL & Postgres.
+
+Custom initializers can be created by implementing this interface and registering
+it with the [registerInitializer](/reference/typescript-api/testing/register-initializer#registerinitializer) function:
+
+*Example*
+
+```ts
+export class CockroachDbInitializer implements TestDbInitializer<CockroachConnectionOptions> {
+    // database-specific implementation goes here
+}
+
+registerInitializer('cockroachdb', new CockroachDbInitializer());
+```
+
+```ts title="Signature"
+interface TestDbInitializer<T extends BaseConnectionOptions> {
+    init(testFileName: string, connectionOptions: T): Promise<T>;
+    populate(populateFn: () => Promise<void>): Promise<void>;
+    destroy(): void | Promise<void>;
+}
+```
+
+<div className="members-wrapper">
+
+### init
+
+<MemberInfo kind="method" type={`(testFileName: string, connectionOptions: T) => Promise<T>`}   />
+
+Responsible for creating a database for the current test suite.
+Typically, this method will:
+
+* use the testFileName parameter to derive a database name
+* create the database
+* mutate the `connetionOptions` object to point to that new database
+### populate
+
+<MemberInfo kind="method" type={`(populateFn: () => Promise<void>) => Promise<void>`}   />
+
+Execute the populateFn to populate your database.
+### destroy
+
+<MemberInfo kind="method" type={`() => void | Promise<void>`}   />
+
+Clean up any resources used during the init() phase (i.e. close open DB connections)
+
+
+</div>

@@ -1,0 +1,36 @@
+:host {
+    display: inline-block;
+}
+.radio-card {
+    background: none;
+    position: relative;
+    display: block;
+    border: 1px solid var(--clr-btn-default-border-color, #0072a3);
+    border-radius: var(--clr-btn-border-radius, 0.15rem);
+    padding: 6px;
+    text-align: start;
+    margin: 6px;
+    &:hover {
+        cursor: pointer;
+        outline: 1px solid var(--color-primary-500);
+    }
+    &.selected {
+        outline: 1px solid var(--color-primary-500);
+        background-color: var(--color-primary-100);
+    }
+}
+
+input.hidden {
+    visibility: hidden;
+    position: absolute;
+}
+
+vdr-select-toggle {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+}
+
+.content {
+    margin-inline-start: 24px;
+}

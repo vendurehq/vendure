@@ -1,0 +1,18 @@
+import { PluginCommonModule, Type, VendurePlugin } from '@vendure/core';
+import { ScaffoldEntity } from './entity';
+
+type PluginInitOptions = any;
+
+@VendurePlugin({
+    imports: [PluginCommonModule],
+    compatibility: '^3.0.0',
+    entities: [ScaffoldEntity],
+})
+export class TestOnePlugin {
+    static options: PluginInitOptions;
+
+    static init(options: PluginInitOptions): Type<TestOnePlugin> {
+        this.options = options;
+        return TestOnePlugin;
+    }
+}

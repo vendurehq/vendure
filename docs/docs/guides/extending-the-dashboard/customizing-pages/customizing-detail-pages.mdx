@@ -1,0 +1,137 @@
+---
+title: 'Customizing Detail Pages'
+metaTitle: "Customizing Detail Pages in the Vendure Dashboard"
+metaDescription: "Replace default form inputs, extend GraphQL detail queries, and interact with the detail page form using DashboardDetailFormExtensionDefinition."
+---
+
+Using the [DashboardDetailFormExtensionDefinition](/reference/dashboard/extensions-api/detail-forms#dashboarddetailformextensiondefinition) you can
+customize any existing detail page in the Dashboard.
+
+## Custom form inputs
+
+:::warning[Custom Fields]
+This feature replaces inputs for **built-in entity fields** only (like `name`, `description`, `slug`).
+
+To customize the form input for a **custom field** you defined in your plugin, use the [Custom Field Components](/guides/extending-the-dashboard/custom-form-components/#custom-field-components) instead.
+:::
+
+You can replace any of the default form inputs with your own components using the `inputs` property.
+
+Let's say you want to replace the default HTML description editor with a markdown editor component:
+
+```tsx title="index.tsx"
+import { defineDashboardExtension } from '@vendure/dashboard';
+
+import { MarkdownEditor } from './markdown-editor';
+
+defineDashboardExtension({
+    detailForms: [
+        {
+            pageId: 'product-detail',
+            inputs: [
+                {
+                    blockId: 'main-form',
+                    field: 'description',
+                    component: MarkdownEditor,
+                },
+            ],
+        },
+    ],
+});
+```
+
+To learn how to build custom form components, see the [Custom Form Elements guide](/extending-the-dashboard/custom-form-components/).
+
+## Extending the detail query
+
+You might want to extend the GraphQL query used to fetch the data for the detail page. For example, to include new
+fields that your plugin has defined so that you can render them in [custom page blocks](/extending-the-dashboard/customizing-pages/page-blocks).
+
+```tsx title="index.tsx"
+import { defineDashboardExtension } from '@vendure/dashboard';
+
+defineDashboardExtension({
+    detailForms: [
+        {
+            pageId: 'product-detail',
+            extendDetailDocument: `
+          query {
+              product(id: $id) {
+                  relatedProducts {
+                      id
+                      name
+                      featuredAsset {
+                        id
+                        preview
+                      }
+                  }
+              }
+          }
+      `,
+        },
+    ],
+});
+```
+
+## Interacting with the detail page form
+
+Sometimes you want to define a [page block](./page-blocks.md) that needs to interact with the detail page's form:
+
+- To take some action when the form is submitted
+- To mark the form as dirty from inside your page block
+
+These advanced use-cases can be achieved by using the `useFormContext` hook from `@vendure/dashboard`.
+
+### Reacting to form submission
+
+Here's how you can use the `formState` to react to a form submission:
+
+```tsx
+import { useEffect } from 'react';
+import { useFormContext } from '@vendure/dashboard';
+
+export function MyPageBlock() {
+    const { formState: { isSubmitSuccessful } } = useFormContext();
+
+    useEffect(() => {
+        if (isSubmitSuccessful) {
+            console.log('The detail page form was submitted');
+        }
+    }, [isSubmitSuccessful]);
+}
+```
+
+### Setting the form as dirty
+
+Let's say you have a page block that interacts with a custom mutation to set some
+data related to a Product. You want to fire your custom mutation when the form is submitted -
+this is done using the pattern above.
+
+However, you need to somehow signal to the form that it is now dirty and can be save, even though
+no property of the Product itself may have changed.
+
+Here's a work-around to allow this:
+
+```tsx
+import { useEffect } from 'react';
+import { useFormContext } from '@vendure/dashboard';
+import { Button } from '@vendure/dashboard';
+
+export function MyPageBlock() {
+    const { register } = useFormContext();
+
+    useEffect(() => {
+        // We register a "fake" field on the form that we only use
+        // to track the dirty state of this page block component
+        register('my-page-block-dirty-tracker')
+    }, [register]);
+    
+    return (
+        <Button onClick={() => {
+            // We set that "fake" field to a random value to mark the whole
+            // form as dirty, so the "save" button becomes enabled.
+            setValue('dirty-tracker', Math.random(), { shouldDirty: true });
+        }}>Set dirty</Button>
+    );
+}
+```

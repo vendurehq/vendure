@@ -1,0 +1,211 @@
+<div class="bulk-actions">
+    <ng-content select="vdr-bulk-action-menu"></ng-content>
+</div>
+<div class="table-wrapper">
+    <table
+        class=""
+        [class.no-select]="disableSelect"
+    >
+        <thead [class.items-selected]="selectionManager?.selection.length">
+            <tr class="heading-row">
+                <th *ngIf="selectionManager" class="selection-col">
+                    <input
+                        type="checkbox"
+                        clrCheckbox
+                        [checked]="selectionManager?.areAllCurrentItemsSelected()"
+                        (change)="onToggleAllClick()"
+                    />
+                </th>
+                <th
+                    *ngFor="let column of visibleSortedColumns; last as isLast"
+                    [class.expand]="column.expand"
+                >
+                    <div class="cell-content" [ngClass]="column.align">
+                        <vdr-ui-extension-point
+                            [locationId]="id"
+                            [metadata]="column.id"
+                            api="dataTable"
+                            [topPx]="-6"
+                            [leftPx]="-24"
+                            display="block"
+                        >
+                            <span>{{ column.heading }}</span>
+                        </vdr-ui-extension-point>
+                        <div *ngIf="column.sort as sort" class="sort-toggle">
+                            <button (click)="sort.toggleSortOrder()" [class.active]="sort.sortOrder">
+                                <clr-icon *ngIf="!sort.sortOrder" shape="two-way-arrows left"></clr-icon>
+                                <clr-icon *ngIf="sort.sortOrder === 'ASC'" shape="arrow up"></clr-icon>
+                                <clr-icon *ngIf="sort.sortOrder === 'DESC'" shape="arrow down"></clr-icon>
+                            </button>
+                            <div class="sort-label" *ngIf="sort.sortOrder">{{ sort.sortOrder }}</div>
+                        </div>
+                    </div>
+                </th>
+                <th>
+                    <div class="column-picker">
+                        <vdr-data-table-colum-picker
+                            [uiLanguage]="uiLanguage$ | async"
+                            [columns]="sortedColumns"
+                            (reorder)="onColumnReorder($event)"
+                            (resetColumns)="onColumnsReset()"
+                        ></vdr-data-table-colum-picker>
+                    </div>
+                </th>
+            </tr>
+            <tr *ngIf="searchComponent || customSearchTemplate || filters?.length">
+                <th
+                    [attr.colspan]="visibleSortedColumns.length + (selectionManager ? 2 : 1)"
+                    class="filter-row"
+                    [class.active]="showSearchFilterRow"
+                >
+                    <button
+                        class="button-ghost toggle-search-filter-row"
+                        [class.active]="showSearchFilterRow"
+                        (click)="toggleSearchFilterRow()"
+                        [title]="'common.search-and-filter-list' | translate"
+                    >
+                        <clr-icon shape="search"></clr-icon>
+                    </button>
+                    <div class="filter-row-wrapper" [class.hidden]="!showSearchFilterRow">
+                        <ng-container *ngTemplateOutlet="searchComponent?.template"></ng-container>
+                        <ng-container *ngTemplateOutlet="customSearchTemplate"></ng-container>
+                        <ng-container *ngIf="filters">
+                            <div class="filters">
+                                <vdr-data-table-filters
+                                    *ngFor="let activeFilter of filters.activeFilters"
+                                    [filterWithValue]="activeFilter"
+                                    [filters]="filters"
+                                    class="mt-1"
+                                ></vdr-data-table-filters>
+                                <vdr-data-table-filters
+                                    *ngIf="filters.length"
+                                    [filters]="filters"
+                                    class="mt-1"
+                                ></vdr-data-table-filters>
+                            </div>
+                        </ng-container>
+                    </div>
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr
+                *ngFor="
+                    let item of items
+                        | paginate
+                            : {
+                                  id: id,
+                                  itemsPerPage: itemsPerPage,
+                                  currentPage: currentPage,
+                                  totalItems: totalItems
+                              };
+                    index as i;
+                    trackBy: trackByFn.bind(this)
+                "
+            >
+                <td *ngIf="selectionManager" class="selection-col" [class.active]="activeIndex === i">
+                    <input
+                        type="checkbox"
+                        clrCheckbox
+                        [checked]="selectionManager?.isSelected(item)"
+                        (click)="onRowClick(item, $event)"
+                    />
+                </td>
+                <td *ngFor="let column of visibleSortedColumns" [class.active]="activeIndex === i">
+                    <div class="cell-content" [ngClass]="column.align">
+                        <ng-container
+                            *ngIf="customComponents.get(column.id) as componentConfig; else defaultComponent"
+                        >
+                            <ng-container
+                                *ngComponentOutlet="
+                                    componentConfig.config.component;
+                                    inputs: { rowItem: item };
+                                    injector: componentConfig.injector
+                                "
+                            ></ng-container>
+                        </ng-container>
+                        <ng-template #defaultComponent>
+                            <ng-container
+                                *ngTemplateOutlet="column.template; context: { item: item, index: i }"
+                            ></ng-container>
+                        </ng-template>
+                    </div>
+                </td>
+                <td [class.active]="activeIndex === i"><!-- column select --></td>
+            </tr>
+            <ng-container>
+                <tr *ngIf="!items?.length">
+                    <td [attr.colspan]="visibleSortedColumns.length + (selectionManager ? 2 : 1)">
+                        <vdr-empty-placeholder [emptyStateLabel]="'order.order-is-empty' | translate"></vdr-empty-placeholder>
+                    </td>
+                </tr>
+            </ng-container>
+            <tr class="surcharge" *ngFor="let surcharge of order.surcharges">
+                <td class="align-middle name left" colspan="2">{{ surcharge.description }}</td>
+                <td class="align-middle sku">{{ surcharge.sku }}</td>
+                <td class="align-middle" [attr.colspan]="visibleSortedColumns.length - 4"></td>
+                <td class="align-middle total">
+                    {{ surcharge.priceWithTax | localeCurrency : order.currencyCode }}
+                    <div class="net-price" [title]="'order.net-price' | translate">
+                        {{ surcharge.price | localeCurrency : order.currencyCode }}
+                    </div>
+                </td>
+                <td><!-- column select --></td>
+            </tr>
+            <ng-container *ngFor="let discount of order.discounts">
+                <tr class="order-adjustment" *ngIf="discount.type !== 'OTHER'">
+                    <td [attr.colspan]="visibleSortedColumns.length - 1" class="">
+                        <a [routerLink]="getPromotionLink(discount)">{{ discount.description }}</a>
+                        <vdr-chip *ngIf="getCouponCodeForAdjustment(order, discount) as couponCode">{{
+                            couponCode
+                        }}</vdr-chip>
+                    </td>
+                    <td class="">
+                        {{ discount.amountWithTax | localeCurrency : order.currencyCode }}
+                        <div class="net-price" [title]="'order.net-price' | translate">
+                            {{ discount.amount | localeCurrency : order.currencyCode }}
+                        </div>
+                    </td>
+                    <td><!-- column select --></td>
+                </tr>
+            </ng-container>
+            <tr class="sub-total">
+                <td class="">{{ 'order.sub-total' | translate }}</td>
+                <td [attr.colspan]="visibleSortedColumns.length - 2"></td>
+                <td class="clr-align-middle">
+                    {{ order.subTotalWithTax | localeCurrency : order.currencyCode }}
+                    <div class="net-price" [title]="'order.net-price' | translate">
+                        {{ order.subTotal | localeCurrency : order.currencyCode }}
+                    </div>
+                </td>
+                <td><!-- column select --></td>
+            </tr>
+            <tr class="shipping">
+                <td class="">{{ 'order.shipping' | translate }}</td>
+                <td [attr.colspan]="visibleSortedColumns.length - 2">
+                    <vdr-chip *ngFor="let shippingLine of order.shippingLines" class="shipping-method-name">
+                        {{ shippingLine.shippingMethod.name }}
+                    </vdr-chip>
+                </td>
+                <td class="clr-align-middle">
+                    {{ order.shippingWithTax | localeCurrency : order.currencyCode }}
+                    <div class="net-price" [title]="'order.net-price' | translate">
+                        {{ order.shipping | localeCurrency : order.currencyCode }}
+                    </div>
+                </td>
+                <td><!-- column select --></td>
+            </tr>
+            <tr class="total">
+                <td class="">{{ 'order.total' | translate }}</td>
+                <td [attr.colspan]="visibleSortedColumns.length - 2"></td>
+                <td class="clr-align-middle">
+                    {{ order.totalWithTax | localeCurrency : order.currencyCode }}
+                    <div class="net-price" [title]="'order.net-price' | translate">
+                        {{ order.total | localeCurrency : order.currencyCode }}
+                    </div>
+                </td>
+                <td><!-- column select --></td>
+            </tr>
+        </tbody>
+    </table>
+</div>

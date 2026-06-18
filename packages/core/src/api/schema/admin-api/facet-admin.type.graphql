@@ -1,0 +1,3 @@
+type Facet implements Node {
+    isPrivate: Boolean!
+}

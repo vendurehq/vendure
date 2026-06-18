@@ -1,0 +1,227 @@
+---
+title: "UseDetailPage"
+generated: true
+---
+## useDetailPage
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/use-detail-page.ts" sourceLine="241" packageName="@vendure/dashboard" since="3.3.0" />
+
+**Status: Developer Preview**
+
+This hook is used to create an entity detail page which can read
+and update an entity.
+
+*Example*
+
+```ts
+const { form, submitHandler, entity, isPending, resetForm } = useDetailPage({
+    queryDocument: paymentMethodDetailDocument,
+    createDocument: createPaymentMethodDocument,
+    updateDocument: updatePaymentMethodDocument,
+    setValuesForUpdate: entity => {
+        return {
+            id: entity.id,
+            enabled: entity.enabled,
+            name: entity.name,
+            code: entity.code,
+            description: entity.description,
+            checker: entity.checker?.code
+                ? {
+                      code: entity.checker?.code,
+                      arguments: entity.checker?.args,
+                  }
+                : null,
+            handler: entity.handler?.code
+                ? {
+                      code: entity.handler?.code,
+                      arguments: entity.handler?.args,
+                  }
+                : null,
+            translations: entity.translations.map(translation => ({
+                id: translation.id,
+                languageCode: translation.languageCode,
+                name: translation.name,
+                description: translation.description,
+            })),
+            customFields: entity.customFields,
+        };
+    },
+    transformCreateInput: input => {
+        return {
+            ...input,
+            checker: input.checker?.code ? input.checker : undefined,
+            handler: input.handler,
+        };
+    },
+    params: { id: params.id },
+    onSuccess: async data => {
+        toast.success(i18n.t('Successfully updated payment method'));
+        resetForm();
+        if (creatingNewEntity) {
+            await navigate({ to: `../$id`, params: { id: data.id } });
+        }
+    },
+    onError: err => {
+        toast.error(i18n.t('Failed to update payment method'), {
+            description: err instanceof Error ? err.message : 'Unknown error',
+        });
+    },
+});
+```
+
+```ts title="Signature"
+function useDetailPage<T extends TypedDocumentNode<any, any>, C extends TypedDocumentNode<any, any>, U extends TypedDocumentNode<any, any>, EntityField extends keyof ResultOf<T> = keyof ResultOf<T>, VarNameUpdate extends keyof VariablesOf<U> = 'input', VarNameCreate extends keyof VariablesOf<C> = 'input'>(options: DetailPageOptions<T, C, U, EntityField, VarNameCreate, VarNameUpdate>): UseDetailPageResult<T, U, EntityField>
+```
+Parameters
+
+### options
+
+<MemberInfo kind="parameter" type={`<a href='/reference/dashboard/detail-views/use-detail-page#detailpageoptions'>DetailPageOptions</a><T, C, U, EntityField, VarNameCreate, VarNameUpdate>`} />
+
+## DetailPageOptions
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/use-detail-page.ts" sourceLine="47" packageName="@vendure/dashboard" since="3.3.0" />
+
+Options used to configure the result of the `useDetailPage` hook.
+
+```ts title="Signature"
+interface DetailPageOptions<T extends TypedDocumentNode<any, any>, C extends TypedDocumentNode<any, any>, U extends TypedDocumentNode<any, any>, EntityField extends keyof ResultOf<T> = DetailEntityPath<T>, VarNameCreate extends keyof VariablesOf<C> = 'input', VarNameUpdate extends keyof VariablesOf<U> = 'input'> {
+    pageId?: string;
+    queryDocument: T;
+    entityField?: EntityField;
+    params: {
+        id: string;
+    };
+    entityName?: string;
+    createDocument?: C;
+    updateDocument?: U;
+    setValuesForUpdate: (
+        entity: NonNullable<ResultOf<T>[EntityField]>,
+    ) => WithLooseCustomFields<VariablesOf<U>[VarNameUpdate]>;
+    transformCreateInput?: (input: VariablesOf<C>[VarNameCreate]) => VariablesOf<C>[VarNameCreate];
+    transformUpdateInput?: (input: VariablesOf<U>[VarNameUpdate]) => VariablesOf<U>[VarNameUpdate];
+    onSuccess?: (entity: ResultOf<C>[keyof ResultOf<C>] | ResultOf<U>[keyof ResultOf<U>]) => void;
+    onError?: (error: unknown) => void;
+}
+```
+
+<div className="members-wrapper">
+
+### pageId
+
+<MemberInfo kind="property" type={`string`}   />
+
+The page id. This is optional, but if provided, it will be used to
+identify the page when extending the detail page query
+### queryDocument
+
+<MemberInfo kind="property" type={`T`}   />
+
+The query document to fetch the entity.
+### entityField
+
+<MemberInfo kind="property" type={`EntityField`}   />
+
+The field of the query document that contains the entity.
+### params
+
+<MemberInfo kind="property" type={`{         id: string;     }`}   />
+
+The parameters used to identify the entity.
+### entityName
+
+<MemberInfo kind="property" type={`string`}   />
+
+The entity type name for custom field configuration lookup.
+Required to filter out readonly custom fields before mutations.
+If not provided, the function will try to infer it from the query document.
+### createDocument
+
+<MemberInfo kind="property" type={`C`}   />
+
+The document to create the entity.
+### updateDocument
+
+<MemberInfo kind="property" type={`U`}   />
+
+The document to update the entity.
+### setValuesForUpdate
+
+<MemberInfo kind="property" type={`(         entity: NonNullable<ResultOf<T>[EntityField]>,     ) => WithLooseCustomFields<VariablesOf<U>[VarNameUpdate]>`}   />
+
+The function to set the values for the update document.
+### transformCreateInput
+
+<MemberInfo kind="property" type={`(input: VariablesOf<C>[VarNameCreate]) => VariablesOf<C>[VarNameCreate]`}   />
+
+
+### transformUpdateInput
+
+<MemberInfo kind="property" type={`(input: VariablesOf<U>[VarNameUpdate]) => VariablesOf<U>[VarNameUpdate]`}   />
+
+
+### onSuccess
+
+<MemberInfo kind="property" type={`(entity: ResultOf<C>[keyof ResultOf<C>] | ResultOf<U>[keyof ResultOf<U>]) => void`}   />
+
+The function to call when the update is successful.
+### onError
+
+<MemberInfo kind="property" type={`(error: unknown) => void`}   />
+
+The function to call when the update is successful.
+
+
+</div>
+## UseDetailPageResult
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/use-detail-page.ts" sourceLine="159" packageName="@vendure/dashboard" since="3.3.0" />
+
+
+
+```ts title="Signature"
+interface UseDetailPageResult<T extends TypedDocumentNode<any, any>, U extends TypedDocumentNode<any, any>, EntityField extends keyof ResultOf<T>> {
+    form: UseFormReturn<RemoveNullFields<VariablesOf<U>['input']>>;
+    submitHandler: (event: FormEvent<HTMLFormElement>) => void;
+    entity?: DetailPageEntity<T, EntityField>;
+    isPending: boolean;
+    refreshEntity: () => void;
+    resetForm: () => void;
+}
+```
+
+<div className="members-wrapper">
+
+### form
+
+<MemberInfo kind="property" type={`UseFormReturn<RemoveNullFields<VariablesOf<U>['input']>>`}   />
+
+
+### submitHandler
+
+<MemberInfo kind="property" type={`(event: FormEvent<HTMLFormElement>) => void`}   />
+
+
+### entity
+
+<MemberInfo kind="property" type={`DetailPageEntity<T, EntityField>`}   />
+
+
+### isPending
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+
+### refreshEntity
+
+<MemberInfo kind="property" type={`() => void`}   />
+
+
+### resetForm
+
+<MemberInfo kind="property" type={`() => void`}   />
+
+
+
+
+</div>

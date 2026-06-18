@@ -1,0 +1,40 @@
+extend type Query {
+    """
+    Returns all configured EntityDuplicators.
+    """
+    entityDuplicators: [EntityDuplicatorDefinition!]!
+}
+
+extend type Mutation {
+    """
+    Duplicate an existing entity using a specific EntityDuplicator.
+    Since v2.2.0.
+    """
+    duplicateEntity(input: DuplicateEntityInput!): DuplicateEntityResult!
+}
+
+type EntityDuplicatorDefinition {
+    code: String!
+    args: [ConfigArgDefinition!]!
+    description: String!
+    forEntities: [String!]!
+    requiresPermission: [Permission!]!
+}
+
+type DuplicateEntitySuccess {
+    newEntityId: ID!
+}
+
+type DuplicateEntityError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+    duplicationError: String!
+}
+
+union DuplicateEntityResult = DuplicateEntitySuccess | DuplicateEntityError
+
+input DuplicateEntityInput {
+    entityName: String!
+    entityId: ID!
+    duplicatorInput: ConfigurableOperationInput!
+}

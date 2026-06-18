@@ -1,0 +1,20 @@
+{
+  "$schema": "../../node_modules/ng-packagr/ng-package.schema.json",
+  "dest": "../../package",
+  "allowedNonPeerDependencies": ["."],
+  "assets": [
+    "./static/favicon.ico",
+    "./static/index.html",
+    "./static/polyfills.ts",
+    "./static/vendure-ui-config.json",
+    "./static/assets/*.*",
+    "./static/styles/**/*.scss",
+    "./static/fonts/*.woff2",
+    "./static/fonts/*.scss",
+    "./static/i18n-messages/*.json"
+  ],
+  "lib": {
+    "styleIncludePaths": ["./static/styles"],
+    "entryFile": "./public_api.ts"
+  }
+}

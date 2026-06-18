@@ -1,0 +1,40 @@
+
+:host {}
+
+.object-tree-node {
+    list-style-type: none;
+    line-height: 16px;
+    font-size: 12px;
+    overflow: hidden;
+    &.depth-0 {
+        margin-inline-start: 0;
+        margin-top: 8px;
+    }
+    &.depth-1 { margin-inline-start: 6px; }
+    &.depth-2 { margin-inline-start: 6px; }
+    &.depth-3 { margin-inline-start: 6px; }
+    &.depth-4 { margin-inline-start: 6px; }
+    &.depth-5 { margin-inline-start: 6px; }
+    &.depth-6 { margin-inline-start: 6px; }
+
+    max-height: 0;
+    &.expanded {
+        max-height: 5000px;
+    }
+
+    li {
+        // display: flex;
+    }
+    &.array-item {
+        margin-top: -16px;
+        margin-inline-start: 16px;
+    }
+    &.array-value.expanded > li + li {
+        margin-top: 6px;
+    }
+}
+
+.key {
+    color: var(--color-text-300);
+}
+

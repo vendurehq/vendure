@@ -1,0 +1,150 @@
+---
+title: "AssetPickerDialogComponent"
+generated: true
+---
+<GenerationInfo sourceFile="packages/admin-ui/src/lib/core/src/shared/components/asset-picker-dialog/asset-picker-dialog.component.ts" sourceLine="51" packageName="@vendure/admin-ui" />
+
+A dialog which allows the creation and selection of assets.
+
+*Example*
+
+```ts
+selectAssets() {
+  this.modalService
+    .fromComponent(AssetPickerDialogComponent, {
+        size: 'xl',
+    })
+    .subscribe(result => {
+        if (result && result.length) {
+            // ...
+        }
+    });
+}
+```
+
+```ts title="Signature"
+class AssetPickerDialogComponent implements OnInit, AfterViewInit, OnDestroy, Dialog<Asset[]> {
+    assets$: Observable<AssetLike[]>;
+    allTags$: Observable<TagFragment[]>;
+    paginationConfig: PaginationInstance = {
+        currentPage: 1,
+        itemsPerPage: 25,
+        totalItems: 1,
+    };
+    multiSelect = true;
+    initialTags: string[] = [];
+    resolveWith: (result?: Asset[]) => void;
+    selection: Asset[] = [];
+    searchTerm$ = new BehaviorSubject<string | undefined>(undefined);
+    filterByTags$ = new BehaviorSubject<TagFragment[] | undefined>(undefined);
+    uploading = false;
+    constructor(dataService: DataService, notificationService: NotificationService)
+    ngOnInit() => ;
+    ngAfterViewInit() => ;
+    ngOnDestroy() => void;
+    pageChange(page: number) => ;
+    itemsPerPageChange(itemsPerPage: number) => ;
+    cancel() => ;
+    select() => ;
+    createAssets(files: File[]) => ;
+}
+```
+* Implements: OnInit, AfterViewInit, OnDestroy, [`Dialog`](/reference/admin-ui-api/services/modal-service#dialog)`<`[`Asset`](/reference/typescript-api/entities/asset#asset)`[]>`
+
+
+
+<div className="members-wrapper">
+
+### assets$
+
+<MemberInfo kind="property" type={`Observable<AssetLike[]>`}   />
+
+
+### allTags$
+
+<MemberInfo kind="property" type={`Observable<TagFragment[]>`}   />
+
+
+### paginationConfig
+
+<MemberInfo kind="property" type={`PaginationInstance`}   />
+
+
+### multiSelect
+
+<MemberInfo kind="property" type={``}   />
+
+
+### initialTags
+
+<MemberInfo kind="property" type={`string[]`}   />
+
+
+### resolveWith
+
+<MemberInfo kind="property" type={`(result?: <a href='/reference/typescript-api/entities/asset#asset'>Asset</a>[]) => void`}   />
+
+
+### selection
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/asset#asset'>Asset</a>[]`}   />
+
+
+### searchTerm$
+
+<MemberInfo kind="property" type={``}   />
+
+
+### filterByTags$
+
+<MemberInfo kind="property" type={``}   />
+
+
+### uploading
+
+<MemberInfo kind="property" type={``}   />
+
+
+### ngOnInit
+
+<MemberInfo kind="method" type={`() => `}   />
+
+
+### ngAfterViewInit
+
+<MemberInfo kind="method" type={`() => `}   />
+
+
+### ngOnDestroy
+
+<MemberInfo kind="method" type={`() => void`}   />
+
+
+### pageChange
+
+<MemberInfo kind="method" type={`(page: number) => `}   />
+
+
+### itemsPerPageChange
+
+<MemberInfo kind="method" type={`(itemsPerPage: number) => `}   />
+
+
+### cancel
+
+<MemberInfo kind="method" type={`() => `}   />
+
+
+### select
+
+<MemberInfo kind="method" type={`() => `}   />
+
+
+### createAssets
+
+<MemberInfo kind="method" type={`(files: File[]) => `}   />
+
+
+
+
+</div>

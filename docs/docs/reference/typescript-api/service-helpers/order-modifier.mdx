@@ -1,0 +1,81 @@
+---
+title: "OrderModifier"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/helpers/order-modifier/order-modifier.ts" sourceLine="84" packageName="@vendure/core" />
+
+This helper is responsible for modifying the contents of an Order.
+
+Note:
+There is not a clear separation of concerns between the OrderService and this, since
+the OrderService also contains some method which modify the Order (e.g. removeItemFromOrder).
+So this helper was mainly extracted to isolate the huge `modifyOrder` method since the
+OrderService was just growing too large. Future refactoring could improve the organization
+of these Order-related methods into a more clearly-delineated set of classes.
+
+```ts title="Signature"
+class OrderModifier {
+    constructor(connection: TransactionalConnection, configService: ConfigService, orderCalculator: OrderCalculator, paymentService: PaymentService, countryService: CountryService, stockMovementService: StockMovementService, productVariantService: ProductVariantService, customFieldRelationService: CustomFieldRelationService, promotionService: PromotionService, eventBus: EventBus, shippingCalculator: ShippingCalculator, historyService: HistoryService, translator: TranslatorService)
+    constrainQuantityToSaleable(ctx: RequestContext, variant: ProductVariant, quantity: number, existingOrderLineQuantity:  = 0, quantityInOtherOrderLines:  = 0) => ;
+    getExistingOrderLine(ctx: RequestContext, order: Order, productVariantId: ID, customFields?: { [key: string]: any }) => Promise<OrderLine | undefined>;
+    getOrCreateOrderLine(ctx: RequestContext, order: Order, productVariantId: ID, customFields?: { [key: string]: any }) => ;
+    updateOrderLineQuantity(ctx: RequestContext, orderLine: OrderLine, quantity: number, order: Order) => Promise<OrderLine>;
+    cancelOrderByOrderLines(ctx: RequestContext, input: CancelOrderInput, lineInputs: OrderLineInput[]) => ;
+    modifyOrder(ctx: RequestContext, input: ModifyOrderInput, order: Order) => Promise<JustErrorResults<ModifyOrderResult> | { order: Order; modification: OrderModification }>;
+    setShippingMethods(ctx: RequestContext, order: Order, shippingMethodIds: ID[]) => ;
+}
+```
+
+<div className="members-wrapper">
+
+### constrainQuantityToSaleable
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, variant: <a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>, quantity: number, existingOrderLineQuantity:  = 0, quantityInOtherOrderLines:  = 0) => `}   />
+
+Ensure that the ProductVariant has sufficient saleable stock to add the given
+quantity to an Order.
+
+- `existingOrderLineQuantity` is used when adding an item to the order, since if an OrderLine
+already exists then we will be adding the new quantity to the existing quantity.
+- `quantityInOtherOrderLines` is used when we have more than 1 OrderLine containing the same
+ProductVariant. This occurs when there are custom fields defined on the OrderLine and the lines
+have differing values for one or more custom fields. In this case, we need to take _all_ of these
+OrderLines into account when constraining the quantity. See https://github.com/vendurehq/vendure/issues/2702
+for more on this.
+### getExistingOrderLine
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>, productVariantId: <a href='/reference/typescript-api/common/id#id'>ID</a>, customFields?: { [key: string]: any }) => Promise<<a href='/reference/typescript-api/entities/order-line#orderline'>OrderLine</a> | undefined>`}   />
+
+Given a ProductVariant ID and optional custom fields, this method will return an existing OrderLine that
+matches, or `undefined` if no match is found.
+### getOrCreateOrderLine
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>, productVariantId: <a href='/reference/typescript-api/common/id#id'>ID</a>, customFields?: { [key: string]: any }) => `}   />
+
+Returns the OrderLine containing the given [ProductVariant](/reference/typescript-api/entities/product-variant#productvariant), taking into account any custom field values. If no existing
+OrderLine is found, a new OrderLine will be created.
+### updateOrderLineQuantity
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, orderLine: <a href='/reference/typescript-api/entities/order-line#orderline'>OrderLine</a>, quantity: number, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => Promise<<a href='/reference/typescript-api/entities/order-line#orderline'>OrderLine</a>>`}   />
+
+Updates the quantity of an OrderLine, taking into account the available saleable stock level.
+Returns the actual quantity that the OrderLine was updated to (which may be less than the
+`quantity` argument if insufficient stock was available.
+### cancelOrderByOrderLines
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: CancelOrderInput, lineInputs: OrderLineInput[]) => `}   />
+
+
+### modifyOrder
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: ModifyOrderInput, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => Promise<JustErrorResults<ModifyOrderResult> | { order: <a href='/reference/typescript-api/entities/order#order'>Order</a>; modification: <a href='/reference/typescript-api/entities/order-modification#ordermodification'>OrderModification</a> }>`}   />
+
+
+### setShippingMethods
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>, shippingMethodIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[]) => `}   />
+
+
+
+
+</div>

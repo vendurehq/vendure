@@ -1,0 +1,84 @@
+---
+title: "PaymentMethod"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/payment-method/payment-method.entity.ts" sourceLine="21" packageName="@vendure/core" />
+
+A PaymentMethod is created automatically according to the configured [PaymentMethodHandler](/reference/typescript-api/payment/payment-method-handler#paymentmethodhandler)s defined
+in the [PaymentOptions](/reference/typescript-api/payment/payment-options#paymentoptions) config.
+
+```ts title="Signature"
+class PaymentMethod extends VendureEntity implements Translatable, ChannelAware, HasCustomFields {
+    constructor(input?: DeepPartial<PaymentMethod>)
+    name: LocaleString;
+    @Column({ default: '' }) code: string;
+    description: LocaleString;
+    @OneToMany(type => PaymentMethodTranslation, translation => translation.base, { eager: true })
+    translations: Array<Translation<PaymentMethod>>;
+    @Column() enabled: boolean;
+    @Column('simple-json', { nullable: true }) checker: ConfigurableOperation | null;
+    @Column('simple-json') handler: ConfigurableOperation;
+    @ManyToMany(type => Channel, channel => channel.paymentMethods)
+    @JoinTable()
+    channels: Channel[];
+    @Column(type => CustomPaymentMethodFields)
+    customFields: CustomPaymentMethodFields;
+}
+```
+* Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
+
+
+* Implements: [`Translatable`](/reference/typescript-api/entities/interfaces#translatable), [`ChannelAware`](/reference/typescript-api/entities/interfaces#channelaware), HasCustomFields
+
+
+
+<div className="members-wrapper">
+
+### name
+
+<MemberInfo kind="property" type={`LocaleString`}   />
+
+
+### code
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### description
+
+<MemberInfo kind="property" type={`LocaleString`}   />
+
+
+### translations
+
+<MemberInfo kind="property" type={`Array<Translation<<a href='/reference/typescript-api/entities/payment-method#paymentmethod'>PaymentMethod</a>>>`}   />
+
+
+### enabled
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+
+### checker
+
+<MemberInfo kind="property" type={`ConfigurableOperation | null`}   />
+
+
+### handler
+
+<MemberInfo kind="property" type={`ConfigurableOperation`}   />
+
+
+### channels
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>[]`}   />
+
+
+### customFields
+
+<MemberInfo kind="property" type={`CustomPaymentMethodFields`}   />
+
+
+
+
+</div>

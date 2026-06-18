@@ -1,0 +1,37 @@
+type Order {
+    nextStates: [String!]!
+    modifications: [OrderModification!]!
+    sellerOrders: [Order!]
+    aggregateOrder: Order
+    aggregateOrderId: ID
+    channels: [Channel!]!
+}
+
+type Fulfillment {
+    nextStates: [String!]!
+}
+
+type Payment {
+    nextStates: [String!]!
+}
+
+type OrderModificationLine {
+    orderLine: OrderLine!
+    orderLineId: ID!
+    quantity: Int!
+    modification: OrderModification!
+    modificationId: ID!
+}
+
+type OrderModification implements Node {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    priceChange: Money!
+    note: String!
+    lines: [OrderModificationLine!]!
+    surcharges: [Surcharge!]
+    payment: Payment
+    refund: Refund
+    isSettled: Boolean!
+}

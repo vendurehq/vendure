@@ -1,0 +1,27 @@
+<vdr-page-block>
+    <vdr-action-bar>
+        <vdr-ab-left></vdr-ab-left>
+
+        <vdr-ab-right>
+            <vdr-action-bar-items locationId="asset-detail" />
+            <button
+                *vdrIfPermissions="['UpdateCatalog', 'UpdateAsset']"
+                class="btn btn-primary"
+                (click)="save()"
+                [disabled]="detailForm.invalid || detailForm.pristine"
+            >
+                {{ 'common.update' | translate }}
+            </button>
+            <vdr-action-bar-dropdown-menu locationId="asset-detail" />
+        </vdr-ab-right>
+    </vdr-action-bar>
+</vdr-page-block>
+<vdr-page-block>
+    <vdr-asset-preview
+        [asset]="entity$ | async"
+        [editable]="true"
+        [customFields]="customFields"
+        [customFieldsForm]="detailForm.get('customFields')"
+        (assetChange)="onAssetChange($event)"
+    />
+</vdr-page-block>

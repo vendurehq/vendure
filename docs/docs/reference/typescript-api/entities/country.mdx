@@ -1,0 +1,30 @@
+---
+title: "Country"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/region/country.entity.ts" sourceLine="14" packageName="@vendure/core" />
+
+A country to which is available when creating / updating an [Address](/reference/typescript-api/entities/address#address). Countries are
+grouped together into [Zone](/reference/typescript-api/entities/zone#zone)s which are in turn used to determine applicable shipping
+and taxes for an [Order](/reference/typescript-api/entities/order#order).
+
+```ts title="Signature"
+class Country extends Region {
+    constructor(input?: DeepPartial<Country>)
+    readonly type: RegionType = 'country';
+}
+```
+* Extends: [`Region`](/reference/typescript-api/entities/region#region)
+
+
+
+<div className="members-wrapper">
+
+### type
+
+<MemberInfo kind="property" type={`RegionType`}   />
+
+
+
+
+</div>

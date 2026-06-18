@@ -1,0 +1,1403 @@
+---
+title: "Queries"
+generated: true
+---
+
+
+
+<a name="activeadministrator"></a>
+
+## activeAdministrator
+
+<GraphQLDoc
+  type="query"
+  typeName="activeAdministrator"
+  typeLinks={{
+    Administrator: '/reference/graphql-api/admin/object-types#administrator',
+  }}
+>
+{`type Query {
+  activeAdministrator: Administrator
+}`}
+</GraphQLDoc>
+
+<a name="activechannel"></a>
+
+## activeChannel
+
+<GraphQLDoc
+  type="query"
+  typeName="activeChannel"
+  typeLinks={{
+    Channel: '/reference/graphql-api/admin/object-types#channel',
+  }}
+>
+{`type Query {
+  activeChannel: Channel!
+}`}
+</GraphQLDoc>
+
+<a name="administrator"></a>
+
+## administrator
+
+<GraphQLDoc
+  type="query"
+  typeName="administrator"
+  typeLinks={{
+    Administrator: '/reference/graphql-api/admin/object-types#administrator',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Query {
+  administrator(id: ID!): Administrator
+}`}
+</GraphQLDoc>
+
+<a name="administrators"></a>
+
+## administrators
+
+<GraphQLDoc
+  type="query"
+  typeName="administrators"
+  typeLinks={{
+    AdministratorList: '/reference/graphql-api/admin/object-types#administratorlist',
+    AdministratorListOptions: '/reference/graphql-api/admin/input-types#administratorlistoptions',
+  }}
+>
+{`type Query {
+  administrators(options: AdministratorListOptions): AdministratorList!
+}`}
+</GraphQLDoc>
+
+<a name="apikey"></a>
+
+## apiKey
+
+<GraphQLDoc
+  type="query"
+  typeName="apiKey"
+  typeLinks={{
+    ApiKey: '/reference/graphql-api/admin/object-types#apikey',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Query {
+  apiKey(id: ID!): ApiKey
+}`}
+</GraphQLDoc>
+
+<a name="apikeys"></a>
+
+## apiKeys
+
+<GraphQLDoc
+  type="query"
+  typeName="apiKeys"
+  typeLinks={{
+    ApiKeyList: '/reference/graphql-api/admin/object-types#apikeylist',
+    ApiKeyListOptions: '/reference/graphql-api/admin/input-types#apikeylistoptions',
+  }}
+>
+{`type Query {
+  apiKeys(options: ApiKeyListOptions): ApiKeyList!
+}`}
+</GraphQLDoc>
+
+<a name="asset"></a>
+
+## asset
+
+<GraphQLDoc
+  type="query"
+  typeName="asset"
+  typeLinks={{
+    Asset: '/reference/graphql-api/admin/object-types#asset',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Get a single Asset by id"""
+type Query {
+  asset(id: ID!): Asset
+}`}
+</GraphQLDoc>
+
+<a name="assets"></a>
+
+## assets
+
+<GraphQLDoc
+  type="query"
+  typeName="assets"
+  typeLinks={{
+    AssetList: '/reference/graphql-api/admin/object-types#assetlist',
+    AssetListOptions: '/reference/graphql-api/admin/input-types#assetlistoptions',
+  }}
+>
+{`"""Get a list of Assets"""
+type Query {
+  assets(options: AssetListOptions): AssetList!
+}`}
+</GraphQLDoc>
+
+<a name="channel"></a>
+
+## channel
+
+<GraphQLDoc
+  type="query"
+  typeName="channel"
+  typeLinks={{
+    Channel: '/reference/graphql-api/admin/object-types#channel',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Query {
+  channel(id: ID!): Channel
+}`}
+</GraphQLDoc>
+
+<a name="channels"></a>
+
+## channels
+
+<GraphQLDoc
+  type="query"
+  typeName="channels"
+  typeLinks={{
+    ChannelList: '/reference/graphql-api/admin/object-types#channellist',
+    ChannelListOptions: '/reference/graphql-api/admin/input-types#channellistoptions',
+  }}
+>
+{`type Query {
+  channels(options: ChannelListOptions): ChannelList!
+}`}
+</GraphQLDoc>
+
+<a name="collection"></a>
+
+## collection
+
+<GraphQLDoc
+  type="query"
+  typeName="collection"
+  typeLinks={{
+    Collection: '/reference/graphql-api/admin/object-types#collection',
+    ID: '/reference/graphql-api/admin/object-types#id',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`"""Get a Collection either by id or slug. If neither id nor slug is specified, an error will result."""
+type Query {
+  collection(id: ID, slug: String): Collection
+}`}
+</GraphQLDoc>
+
+<a name="collectionfilters"></a>
+
+## collectionFilters
+
+<GraphQLDoc
+  type="query"
+  typeName="collectionFilters"
+  typeLinks={{
+    ConfigurableOperationDefinition: '/reference/graphql-api/admin/object-types#configurableoperationdefinition',
+  }}
+>
+{`type Query {
+  collectionFilters: [ConfigurableOperationDefinition!]!
+}`}
+</GraphQLDoc>
+
+<a name="collections"></a>
+
+## collections
+
+<GraphQLDoc
+  type="query"
+  typeName="collections"
+  typeLinks={{
+    CollectionList: '/reference/graphql-api/admin/object-types#collectionlist',
+    CollectionListOptions: '/reference/graphql-api/admin/input-types#collectionlistoptions',
+  }}
+>
+{`type Query {
+  collections(options: CollectionListOptions): CollectionList!
+}`}
+</GraphQLDoc>
+
+<a name="countries"></a>
+
+## countries
+
+<GraphQLDoc
+  type="query"
+  typeName="countries"
+  typeLinks={{
+    CountryList: '/reference/graphql-api/admin/object-types#countrylist',
+    CountryListOptions: '/reference/graphql-api/admin/input-types#countrylistoptions',
+  }}
+>
+{`type Query {
+  countries(options: CountryListOptions): CountryList!
+}`}
+</GraphQLDoc>
+
+<a name="country"></a>
+
+## country
+
+<GraphQLDoc
+  type="query"
+  typeName="country"
+  typeLinks={{
+    Country: '/reference/graphql-api/admin/object-types#country',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Query {
+  country(id: ID!): Country
+}`}
+</GraphQLDoc>
+
+<a name="customer"></a>
+
+## customer
+
+<GraphQLDoc
+  type="query"
+  typeName="customer"
+  typeLinks={{
+    Customer: '/reference/graphql-api/admin/object-types#customer',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Query {
+  customer(id: ID!): Customer
+}`}
+</GraphQLDoc>
+
+<a name="customergroup"></a>
+
+## customerGroup
+
+<GraphQLDoc
+  type="query"
+  typeName="customerGroup"
+  typeLinks={{
+    CustomerGroup: '/reference/graphql-api/admin/object-types#customergroup',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Query {
+  customerGroup(id: ID!): CustomerGroup
+}`}
+</GraphQLDoc>
+
+<a name="customergroups"></a>
+
+## customerGroups
+
+<GraphQLDoc
+  type="query"
+  typeName="customerGroups"
+  typeLinks={{
+    CustomerGroupList: '/reference/graphql-api/admin/object-types#customergrouplist',
+    CustomerGroupListOptions: '/reference/graphql-api/admin/input-types#customergrouplistoptions',
+  }}
+>
+{`type Query {
+  customerGroups(options: CustomerGroupListOptions): CustomerGroupList!
+}`}
+</GraphQLDoc>
+
+<a name="customers"></a>
+
+## customers
+
+<GraphQLDoc
+  type="query"
+  typeName="customers"
+  typeLinks={{
+    CustomerList: '/reference/graphql-api/admin/object-types#customerlist',
+    CustomerListOptions: '/reference/graphql-api/admin/input-types#customerlistoptions',
+  }}
+>
+{`type Query {
+  customers(options: CustomerListOptions): CustomerList!
+}`}
+</GraphQLDoc>
+
+<a name="eligibleshippingmethodsfordraftorder"></a>
+
+## eligibleShippingMethodsForDraftOrder
+
+<GraphQLDoc
+  type="query"
+  typeName="eligibleShippingMethodsForDraftOrder"
+  typeLinks={{
+    ShippingMethodQuote: '/reference/graphql-api/admin/object-types#shippingmethodquote',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Returns a list of eligible shipping methods for the draft Order"""
+type Query {
+  eligibleShippingMethodsForDraftOrder(orderId: ID!): [ShippingMethodQuote!]!
+}`}
+</GraphQLDoc>
+
+<a name="entityduplicators"></a>
+
+## entityDuplicators
+
+<GraphQLDoc
+  type="query"
+  typeName="entityDuplicators"
+  typeLinks={{
+    EntityDuplicatorDefinition: '/reference/graphql-api/admin/object-types#entityduplicatordefinition',
+  }}
+>
+{`"""Returns all configured EntityDuplicators."""
+type Query {
+  entityDuplicators: [EntityDuplicatorDefinition!]!
+}`}
+</GraphQLDoc>
+
+<a name="facet"></a>
+
+## facet
+
+<GraphQLDoc
+  type="query"
+  typeName="facet"
+  typeLinks={{
+    Facet: '/reference/graphql-api/admin/object-types#facet',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Query {
+  facet(id: ID!): Facet
+}`}
+</GraphQLDoc>
+
+<a name="facetvalue"></a>
+
+## facetValue
+
+<GraphQLDoc
+  type="query"
+  typeName="facetValue"
+  typeLinks={{
+    FacetValue: '/reference/graphql-api/admin/object-types#facetvalue',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Query {
+  facetValue(id: ID!): FacetValue
+}`}
+</GraphQLDoc>
+
+<a name="facetvalues"></a>
+
+## facetValues
+
+<GraphQLDoc
+  type="query"
+  typeName="facetValues"
+  typeLinks={{
+    FacetValueList: '/reference/graphql-api/admin/object-types#facetvaluelist',
+    FacetValueListOptions: '/reference/graphql-api/admin/input-types#facetvaluelistoptions',
+  }}
+>
+{`type Query {
+  facetValues(options: FacetValueListOptions): FacetValueList!
+}`}
+</GraphQLDoc>
+
+<a name="facets"></a>
+
+## facets
+
+<GraphQLDoc
+  type="query"
+  typeName="facets"
+  typeLinks={{
+    FacetList: '/reference/graphql-api/admin/object-types#facetlist',
+    FacetListOptions: '/reference/graphql-api/admin/input-types#facetlistoptions',
+  }}
+>
+{`type Query {
+  facets(options: FacetListOptions): FacetList!
+}`}
+</GraphQLDoc>
+
+<a name="fulfillmenthandlers"></a>
+
+## fulfillmentHandlers
+
+<GraphQLDoc
+  type="query"
+  typeName="fulfillmentHandlers"
+  typeLinks={{
+    ConfigurableOperationDefinition: '/reference/graphql-api/admin/object-types#configurableoperationdefinition',
+  }}
+>
+{`type Query {
+  fulfillmentHandlers: [ConfigurableOperationDefinition!]!
+}`}
+</GraphQLDoc>
+
+<a name="getsettingsstorevalue"></a>
+
+## getSettingsStoreValue
+
+<GraphQLDoc
+  type="query"
+  typeName="getSettingsStoreValue"
+  typeLinks={{
+    JSON: '/reference/graphql-api/admin/object-types#json',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`"""Get value for a specific key (automatically scoped based on field configuration)"""
+type Query {
+  getSettingsStoreValue(key: String!): JSON
+}`}
+</GraphQLDoc>
+
+<a name="getsettingsstorevalues"></a>
+
+## getSettingsStoreValues
+
+<GraphQLDoc
+  type="query"
+  typeName="getSettingsStoreValues"
+  typeLinks={{
+    JSON: '/reference/graphql-api/admin/object-types#json',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`"""Get multiple key-value pairs (each automatically scoped)"""
+type Query {
+  getSettingsStoreValues(keys: [String!]!): JSON
+}`}
+</GraphQLDoc>
+
+<a name="globalsettings"></a>
+
+## globalSettings
+
+<GraphQLDoc
+  type="query"
+  typeName="globalSettings"
+  typeLinks={{
+    GlobalSettings: '/reference/graphql-api/admin/object-types#globalsettings',
+  }}
+>
+{`type Query {
+  globalSettings: GlobalSettings!
+}`}
+</GraphQLDoc>
+
+<a name="job"></a>
+
+## job
+
+<GraphQLDoc
+  type="query"
+  typeName="job"
+  typeLinks={{
+    Job: '/reference/graphql-api/admin/object-types#job',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Query {
+  job(jobId: ID!): Job
+}`}
+</GraphQLDoc>
+
+<a name="jobbuffersize"></a>
+
+## jobBufferSize
+
+<GraphQLDoc
+  type="query"
+  typeName="jobBufferSize"
+  typeLinks={{
+    JobBufferSize: '/reference/graphql-api/admin/object-types#jobbuffersize',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`type Query {
+  jobBufferSize(bufferIds: [String!]): [JobBufferSize!]!
+}`}
+</GraphQLDoc>
+
+<a name="jobqueues"></a>
+
+## jobQueues
+
+<GraphQLDoc
+  type="query"
+  typeName="jobQueues"
+  typeLinks={{
+    JobQueue: '/reference/graphql-api/admin/object-types#jobqueue',
+  }}
+>
+{`type Query {
+  jobQueues: [JobQueue!]!
+}`}
+</GraphQLDoc>
+
+<a name="jobs"></a>
+
+## jobs
+
+<GraphQLDoc
+  type="query"
+  typeName="jobs"
+  typeLinks={{
+    JobList: '/reference/graphql-api/admin/object-types#joblist',
+    JobListOptions: '/reference/graphql-api/admin/input-types#joblistoptions',
+  }}
+>
+{`type Query {
+  jobs(options: JobListOptions): JobList!
+}`}
+</GraphQLDoc>
+
+<a name="jobsbyid"></a>
+
+## jobsById
+
+<GraphQLDoc
+  type="query"
+  typeName="jobsById"
+  typeLinks={{
+    Job: '/reference/graphql-api/admin/object-types#job',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Query {
+  jobsById(jobIds: [ID!]!): [Job!]!
+}`}
+</GraphQLDoc>
+
+<a name="me"></a>
+
+## me
+
+<GraphQLDoc
+  type="query"
+  typeName="me"
+  typeLinks={{
+    CurrentUser: '/reference/graphql-api/admin/object-types#currentuser',
+  }}
+>
+{`type Query {
+  me: CurrentUser
+}`}
+</GraphQLDoc>
+
+<a name="metricsummary"></a>
+
+## metricSummary
+
+<GraphQLDoc
+  type="query"
+  typeName="metricSummary"
+  typeLinks={{
+    MetricSummary: '/reference/graphql-api/admin/object-types#metricsummary',
+    MetricSummaryInput: '/reference/graphql-api/admin/input-types#metricsummaryinput',
+  }}
+>
+{`"""Get metrics for the given interval and metric types."""
+type Query {
+  metricSummary(input: MetricSummaryInput): [MetricSummary!]!
+}`}
+</GraphQLDoc>
+
+<a name="order"></a>
+
+## order
+
+<GraphQLDoc
+  type="query"
+  typeName="order"
+  typeLinks={{
+    Order: '/reference/graphql-api/admin/object-types#order',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Query {
+  order(id: ID!): Order
+}`}
+</GraphQLDoc>
+
+<a name="orders"></a>
+
+## orders
+
+<GraphQLDoc
+  type="query"
+  typeName="orders"
+  typeLinks={{
+    OrderList: '/reference/graphql-api/admin/object-types#orderlist',
+    OrderListOptions: '/reference/graphql-api/admin/input-types#orderlistoptions',
+  }}
+>
+{`type Query {
+  orders(options: OrderListOptions): OrderList!
+}`}
+</GraphQLDoc>
+
+<a name="paymentmethod"></a>
+
+## paymentMethod
+
+<GraphQLDoc
+  type="query"
+  typeName="paymentMethod"
+  typeLinks={{
+    PaymentMethod: '/reference/graphql-api/admin/object-types#paymentmethod',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Query {
+  paymentMethod(id: ID!): PaymentMethod
+}`}
+</GraphQLDoc>
+
+<a name="paymentmethodeligibilitycheckers"></a>
+
+## paymentMethodEligibilityCheckers
+
+<GraphQLDoc
+  type="query"
+  typeName="paymentMethodEligibilityCheckers"
+  typeLinks={{
+    ConfigurableOperationDefinition: '/reference/graphql-api/admin/object-types#configurableoperationdefinition',
+  }}
+>
+{`type Query {
+  paymentMethodEligibilityCheckers: [ConfigurableOperationDefinition!]!
+}`}
+</GraphQLDoc>
+
+<a name="paymentmethodhandlers"></a>
+
+## paymentMethodHandlers
+
+<GraphQLDoc
+  type="query"
+  typeName="paymentMethodHandlers"
+  typeLinks={{
+    ConfigurableOperationDefinition: '/reference/graphql-api/admin/object-types#configurableoperationdefinition',
+  }}
+>
+{`type Query {
+  paymentMethodHandlers: [ConfigurableOperationDefinition!]!
+}`}
+</GraphQLDoc>
+
+<a name="paymentmethods"></a>
+
+## paymentMethods
+
+<GraphQLDoc
+  type="query"
+  typeName="paymentMethods"
+  typeLinks={{
+    PaymentMethodList: '/reference/graphql-api/admin/object-types#paymentmethodlist',
+    PaymentMethodListOptions: '/reference/graphql-api/admin/input-types#paymentmethodlistoptions',
+  }}
+>
+{`type Query {
+  paymentMethods(options: PaymentMethodListOptions): PaymentMethodList!
+}`}
+</GraphQLDoc>
+
+<a name="pendingsearchindexupdates"></a>
+
+## pendingSearchIndexUpdates
+
+<GraphQLDoc
+  type="query"
+  typeName="pendingSearchIndexUpdates"
+  typeLinks={{
+    Int: '/reference/graphql-api/admin/object-types#int',
+  }}
+>
+{`type Query {
+  pendingSearchIndexUpdates: Int!
+}`}
+</GraphQLDoc>
+
+<a name="previewcollectionvariants"></a>
+
+## previewCollectionVariants
+
+<GraphQLDoc
+  type="query"
+  typeName="previewCollectionVariants"
+  typeLinks={{
+    ProductVariantList: '/reference/graphql-api/admin/object-types#productvariantlist',
+    PreviewCollectionVariantsInput: '/reference/graphql-api/admin/input-types#previewcollectionvariantsinput',
+    ProductVariantListOptions: '/reference/graphql-api/admin/input-types#productvariantlistoptions',
+  }}
+>
+{`"""Used for real-time previews of the contents of a Collection"""
+type Query {
+  previewCollectionVariants(input: PreviewCollectionVariantsInput!, options: ProductVariantListOptions): ProductVariantList!
+}`}
+</GraphQLDoc>
+
+<a name="product"></a>
+
+## product
+
+<GraphQLDoc
+  type="query"
+  typeName="product"
+  typeLinks={{
+    Product: '/reference/graphql-api/admin/object-types#product',
+    ID: '/reference/graphql-api/admin/object-types#id',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`"""Get a Product either by id or slug. If neither id nor slug is specified, an error will result."""
+type Query {
+  product(id: ID, slug: String): Product
+}`}
+</GraphQLDoc>
+
+<a name="productoption"></a>
+
+## productOption
+
+<GraphQLDoc
+  type="query"
+  typeName="productOption"
+  typeLinks={{
+    ProductOption: '/reference/graphql-api/admin/object-types#productoption',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Query {
+  productOption(id: ID!): ProductOption
+}`}
+</GraphQLDoc>
+
+<a name="productoptiongroup"></a>
+
+## productOptionGroup
+
+<GraphQLDoc
+  type="query"
+  typeName="productOptionGroup"
+  typeLinks={{
+    ProductOptionGroup: '/reference/graphql-api/admin/object-types#productoptiongroup',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Query {
+  productOptionGroup(id: ID!): ProductOptionGroup
+}`}
+</GraphQLDoc>
+
+<a name="productoptiongroups"></a>
+
+## productOptionGroups
+
+<GraphQLDoc
+  type="query"
+  typeName="productOptionGroups"
+  typeLinks={{
+    ProductOptionGroupList: '/reference/graphql-api/admin/object-types#productoptiongrouplist',
+    ProductOptionGroupListOptions: '/reference/graphql-api/admin/input-types#productoptiongrouplistoptions',
+  }}
+>
+{`type Query {
+  productOptionGroups(options: ProductOptionGroupListOptions): ProductOptionGroupList!
+}`}
+</GraphQLDoc>
+
+<a name="productoptions"></a>
+
+## productOptions
+
+<GraphQLDoc
+  type="query"
+  typeName="productOptions"
+  typeLinks={{
+    ProductOptionList: '/reference/graphql-api/admin/object-types#productoptionlist',
+    ProductOptionListOptions: '/reference/graphql-api/admin/input-types#productoptionlistoptions',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Query {
+  productOptions(options: ProductOptionListOptions, groupId: ID): ProductOptionList!
+}`}
+</GraphQLDoc>
+
+<a name="productvariant"></a>
+
+## productVariant
+
+<GraphQLDoc
+  type="query"
+  typeName="productVariant"
+  typeLinks={{
+    ProductVariant: '/reference/graphql-api/admin/object-types#productvariant',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Get a ProductVariant by id"""
+type Query {
+  productVariant(id: ID!): ProductVariant
+}`}
+</GraphQLDoc>
+
+<a name="productvariants"></a>
+
+## productVariants
+
+<GraphQLDoc
+  type="query"
+  typeName="productVariants"
+  typeLinks={{
+    ProductVariantList: '/reference/graphql-api/admin/object-types#productvariantlist',
+    ProductVariantListOptions: '/reference/graphql-api/admin/input-types#productvariantlistoptions',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""List ProductVariants either all or for the specific product."""
+type Query {
+  productVariants(options: ProductVariantListOptions, productId: ID): ProductVariantList!
+}`}
+</GraphQLDoc>
+
+<a name="products"></a>
+
+## products
+
+<GraphQLDoc
+  type="query"
+  typeName="products"
+  typeLinks={{
+    ProductList: '/reference/graphql-api/admin/object-types#productlist',
+    ProductListOptions: '/reference/graphql-api/admin/input-types#productlistoptions',
+  }}
+>
+{`"""List Products"""
+type Query {
+  products(options: ProductListOptions): ProductList!
+}`}
+</GraphQLDoc>
+
+<a name="promotion"></a>
+
+## promotion
+
+<GraphQLDoc
+  type="query"
+  typeName="promotion"
+  typeLinks={{
+    Promotion: '/reference/graphql-api/admin/object-types#promotion',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Query {
+  promotion(id: ID!): Promotion
+}`}
+</GraphQLDoc>
+
+<a name="promotionactions"></a>
+
+## promotionActions
+
+<GraphQLDoc
+  type="query"
+  typeName="promotionActions"
+  typeLinks={{
+    ConfigurableOperationDefinition: '/reference/graphql-api/admin/object-types#configurableoperationdefinition',
+  }}
+>
+{`type Query {
+  promotionActions: [ConfigurableOperationDefinition!]!
+}`}
+</GraphQLDoc>
+
+<a name="promotionconditions"></a>
+
+## promotionConditions
+
+<GraphQLDoc
+  type="query"
+  typeName="promotionConditions"
+  typeLinks={{
+    ConfigurableOperationDefinition: '/reference/graphql-api/admin/object-types#configurableoperationdefinition',
+  }}
+>
+{`type Query {
+  promotionConditions: [ConfigurableOperationDefinition!]!
+}`}
+</GraphQLDoc>
+
+<a name="promotions"></a>
+
+## promotions
+
+<GraphQLDoc
+  type="query"
+  typeName="promotions"
+  typeLinks={{
+    PromotionList: '/reference/graphql-api/admin/object-types#promotionlist',
+    PromotionListOptions: '/reference/graphql-api/admin/input-types#promotionlistoptions',
+  }}
+>
+{`type Query {
+  promotions(options: PromotionListOptions): PromotionList!
+}`}
+</GraphQLDoc>
+
+<a name="province"></a>
+
+## province
+
+<GraphQLDoc
+  type="query"
+  typeName="province"
+  typeLinks={{
+    Province: '/reference/graphql-api/admin/object-types#province',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Query {
+  province(id: ID!): Province
+}`}
+</GraphQLDoc>
+
+<a name="provinces"></a>
+
+## provinces
+
+<GraphQLDoc
+  type="query"
+  typeName="provinces"
+  typeLinks={{
+    ProvinceList: '/reference/graphql-api/admin/object-types#provincelist',
+    ProvinceListOptions: '/reference/graphql-api/admin/input-types#provincelistoptions',
+  }}
+>
+{`type Query {
+  provinces(options: ProvinceListOptions): ProvinceList!
+}`}
+</GraphQLDoc>
+
+<a name="role"></a>
+
+## role
+
+<GraphQLDoc
+  type="query"
+  typeName="role"
+  typeLinks={{
+    Role: '/reference/graphql-api/admin/object-types#role',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Query {
+  role(id: ID!): Role
+}`}
+</GraphQLDoc>
+
+<a name="roles"></a>
+
+## roles
+
+<GraphQLDoc
+  type="query"
+  typeName="roles"
+  typeLinks={{
+    RoleList: '/reference/graphql-api/admin/object-types#rolelist',
+    RoleListOptions: '/reference/graphql-api/admin/input-types#rolelistoptions',
+  }}
+>
+{`type Query {
+  roles(options: RoleListOptions): RoleList!
+}`}
+</GraphQLDoc>
+
+<a name="scheduledtasks"></a>
+
+## scheduledTasks
+
+<GraphQLDoc
+  type="query"
+  typeName="scheduledTasks"
+  typeLinks={{
+    ScheduledTask: '/reference/graphql-api/admin/object-types#scheduledtask',
+  }}
+>
+{`type Query {
+  scheduledTasks: [ScheduledTask!]!
+}`}
+</GraphQLDoc>
+
+<a name="search"></a>
+
+## search
+
+<GraphQLDoc
+  type="query"
+  typeName="search"
+  typeLinks={{
+    SearchResponse: '/reference/graphql-api/admin/object-types#searchresponse',
+    SearchInput: '/reference/graphql-api/admin/input-types#searchinput',
+  }}
+>
+{`type Query {
+  search(input: SearchInput!): SearchResponse!
+}`}
+</GraphQLDoc>
+
+<a name="seller"></a>
+
+## seller
+
+<GraphQLDoc
+  type="query"
+  typeName="seller"
+  typeLinks={{
+    Seller: '/reference/graphql-api/admin/object-types#seller',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Query {
+  seller(id: ID!): Seller
+}`}
+</GraphQLDoc>
+
+<a name="sellers"></a>
+
+## sellers
+
+<GraphQLDoc
+  type="query"
+  typeName="sellers"
+  typeLinks={{
+    SellerList: '/reference/graphql-api/admin/object-types#sellerlist',
+    SellerListOptions: '/reference/graphql-api/admin/input-types#sellerlistoptions',
+  }}
+>
+{`type Query {
+  sellers(options: SellerListOptions): SellerList!
+}`}
+</GraphQLDoc>
+
+<a name="settingsstorefielddefinitions"></a>
+
+## settingsStoreFieldDefinitions
+
+<GraphQLDoc
+  type="query"
+  typeName="settingsStoreFieldDefinitions"
+  typeLinks={{
+    SettingsStoreFieldDefinition: '/reference/graphql-api/admin/object-types#settingsstorefielddefinition',
+  }}
+>
+{`"""Returns all registered settings store field definitions with their current values"""
+type Query {
+  settingsStoreFieldDefinitions: [SettingsStoreFieldDefinition!]!
+}`}
+</GraphQLDoc>
+
+<a name="shippingcalculators"></a>
+
+## shippingCalculators
+
+<GraphQLDoc
+  type="query"
+  typeName="shippingCalculators"
+  typeLinks={{
+    ConfigurableOperationDefinition: '/reference/graphql-api/admin/object-types#configurableoperationdefinition',
+  }}
+>
+{`type Query {
+  shippingCalculators: [ConfigurableOperationDefinition!]!
+}`}
+</GraphQLDoc>
+
+<a name="shippingeligibilitycheckers"></a>
+
+## shippingEligibilityCheckers
+
+<GraphQLDoc
+  type="query"
+  typeName="shippingEligibilityCheckers"
+  typeLinks={{
+    ConfigurableOperationDefinition: '/reference/graphql-api/admin/object-types#configurableoperationdefinition',
+  }}
+>
+{`type Query {
+  shippingEligibilityCheckers: [ConfigurableOperationDefinition!]!
+}`}
+</GraphQLDoc>
+
+<a name="shippingmethod"></a>
+
+## shippingMethod
+
+<GraphQLDoc
+  type="query"
+  typeName="shippingMethod"
+  typeLinks={{
+    ShippingMethod: '/reference/graphql-api/admin/object-types#shippingmethod',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Query {
+  shippingMethod(id: ID!): ShippingMethod
+}`}
+</GraphQLDoc>
+
+<a name="shippingmethods"></a>
+
+## shippingMethods
+
+<GraphQLDoc
+  type="query"
+  typeName="shippingMethods"
+  typeLinks={{
+    ShippingMethodList: '/reference/graphql-api/admin/object-types#shippingmethodlist',
+    ShippingMethodListOptions: '/reference/graphql-api/admin/input-types#shippingmethodlistoptions',
+  }}
+>
+{`type Query {
+  shippingMethods(options: ShippingMethodListOptions): ShippingMethodList!
+}`}
+</GraphQLDoc>
+
+<a name="slugforentity"></a>
+
+## slugForEntity
+
+<GraphQLDoc
+  type="query"
+  typeName="slugForEntity"
+  typeLinks={{
+    String: '/reference/graphql-api/admin/object-types#string',
+    SlugForEntityInput: '/reference/graphql-api/admin/input-types#slugforentityinput',
+  }}
+>
+{`"""Generate slug for entity"""
+type Query {
+  slugForEntity(input: SlugForEntityInput!): String!
+}`}
+</GraphQLDoc>
+
+<a name="stocklocation"></a>
+
+## stockLocation
+
+<GraphQLDoc
+  type="query"
+  typeName="stockLocation"
+  typeLinks={{
+    StockLocation: '/reference/graphql-api/admin/object-types#stocklocation',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Query {
+  stockLocation(id: ID!): StockLocation
+}`}
+</GraphQLDoc>
+
+<a name="stocklocations"></a>
+
+## stockLocations
+
+<GraphQLDoc
+  type="query"
+  typeName="stockLocations"
+  typeLinks={{
+    StockLocationList: '/reference/graphql-api/admin/object-types#stocklocationlist',
+    StockLocationListOptions: '/reference/graphql-api/admin/input-types#stocklocationlistoptions',
+  }}
+>
+{`type Query {
+  stockLocations(options: StockLocationListOptions): StockLocationList!
+}`}
+</GraphQLDoc>
+
+<a name="tag"></a>
+
+## tag
+
+<GraphQLDoc
+  type="query"
+  typeName="tag"
+  typeLinks={{
+    Tag: '/reference/graphql-api/admin/object-types#tag',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Query {
+  tag(id: ID!): Tag!
+}`}
+</GraphQLDoc>
+
+<a name="tags"></a>
+
+## tags
+
+<GraphQLDoc
+  type="query"
+  typeName="tags"
+  typeLinks={{
+    TagList: '/reference/graphql-api/admin/object-types#taglist',
+    TagListOptions: '/reference/graphql-api/admin/input-types#taglistoptions',
+  }}
+>
+{`type Query {
+  tags(options: TagListOptions): TagList!
+}`}
+</GraphQLDoc>
+
+<a name="taxcategories"></a>
+
+## taxCategories
+
+<GraphQLDoc
+  type="query"
+  typeName="taxCategories"
+  typeLinks={{
+    TaxCategoryList: '/reference/graphql-api/admin/object-types#taxcategorylist',
+    TaxCategoryListOptions: '/reference/graphql-api/admin/input-types#taxcategorylistoptions',
+  }}
+>
+{`type Query {
+  taxCategories(options: TaxCategoryListOptions): TaxCategoryList!
+}`}
+</GraphQLDoc>
+
+<a name="taxcategory"></a>
+
+## taxCategory
+
+<GraphQLDoc
+  type="query"
+  typeName="taxCategory"
+  typeLinks={{
+    TaxCategory: '/reference/graphql-api/admin/object-types#taxcategory',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Query {
+  taxCategory(id: ID!): TaxCategory
+}`}
+</GraphQLDoc>
+
+<a name="taxrate"></a>
+
+## taxRate
+
+<GraphQLDoc
+  type="query"
+  typeName="taxRate"
+  typeLinks={{
+    TaxRate: '/reference/graphql-api/admin/object-types#taxrate',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Query {
+  taxRate(id: ID!): TaxRate
+}`}
+</GraphQLDoc>
+
+<a name="taxrates"></a>
+
+## taxRates
+
+<GraphQLDoc
+  type="query"
+  typeName="taxRates"
+  typeLinks={{
+    TaxRateList: '/reference/graphql-api/admin/object-types#taxratelist',
+    TaxRateListOptions: '/reference/graphql-api/admin/input-types#taxratelistoptions',
+  }}
+>
+{`type Query {
+  taxRates(options: TaxRateListOptions): TaxRateList!
+}`}
+</GraphQLDoc>
+
+<a name="testeligibleshippingmethods"></a>
+
+## testEligibleShippingMethods
+
+<GraphQLDoc
+  type="query"
+  typeName="testEligibleShippingMethods"
+  typeLinks={{
+    ShippingMethodQuote: '/reference/graphql-api/admin/object-types#shippingmethodquote',
+    TestEligibleShippingMethodsInput: '/reference/graphql-api/admin/input-types#testeligibleshippingmethodsinput',
+  }}
+>
+{`type Query {
+  testEligibleShippingMethods(input: TestEligibleShippingMethodsInput!): [ShippingMethodQuote!]!
+}`}
+</GraphQLDoc>
+
+<a name="testshippingmethod"></a>
+
+## testShippingMethod
+
+<GraphQLDoc
+  type="query"
+  typeName="testShippingMethod"
+  typeLinks={{
+    TestShippingMethodResult: '/reference/graphql-api/admin/object-types#testshippingmethodresult',
+    TestShippingMethodInput: '/reference/graphql-api/admin/input-types#testshippingmethodinput',
+  }}
+>
+{`type Query {
+  testShippingMethod(input: TestShippingMethodInput!): TestShippingMethodResult!
+}`}
+</GraphQLDoc>
+
+<a name="zone"></a>
+
+## zone
+
+<GraphQLDoc
+  type="query"
+  typeName="zone"
+  typeLinks={{
+    Zone: '/reference/graphql-api/admin/object-types#zone',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Query {
+  zone(id: ID!): Zone
+}`}
+</GraphQLDoc>
+
+<a name="zones"></a>
+
+## zones
+
+<GraphQLDoc
+  type="query"
+  typeName="zones"
+  typeLinks={{
+    ZoneList: '/reference/graphql-api/admin/object-types#zonelist',
+    ZoneListOptions: '/reference/graphql-api/admin/input-types#zonelistoptions',
+  }}
+>
+{`type Query {
+  zones(options: ZoneListOptions): ZoneList!
+}`}
+</GraphQLDoc>

@@ -1,0 +1,18 @@
+@import 'order-table-mixin';
+
+:host {
+    @include order-table;
+}
+
+::ng-deep .line-promotion {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 12px;
+    .promotion-amount {
+        margin-inline-start: 12px;
+    }
+    .net-price {
+        font-size: 11px;
+        color: var(--color-text-300);
+    }
+}

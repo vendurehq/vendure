@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "paths": {
+      "@/gql": [
+        "./src/gql/graphql.ts"
+      ],
+      "@/vdb/*": [
+        "{{#if isMonorepo}}../../{{/if}}./node_modules/@vendure/dashboard/src/lib/*"
+      ]
+    }
+  },
+  "include": [
+    "src/plugins/**/dashboard/*",
+    "src/gql/**/*.ts",
+    "vite.*.*ts"
+  ]
+}

@@ -1,0 +1,18 @@
+<vdr-dropdown *ngIf="entity.id">
+    <button class="button-small" [class.btn-sm]="small" vdrDropdownTrigger>
+        <clr-icon shape="info-standard"></clr-icon>
+    </button>
+    <vdr-dropdown-menu>
+        <div class="entity-info">
+            <vdr-labeled-data [label]="'common.ID' | translate">
+                {{ entity.id }}
+            </vdr-labeled-data>
+            <vdr-labeled-data *ngIf="entity.createdAt" [label]="'common.created-at' | translate">
+                {{ entity.createdAt | localeDate: 'medium' }}
+            </vdr-labeled-data>
+            <vdr-labeled-data *ngIf="entity.updatedAt" [label]="'common.updated-at' | translate">
+                {{ entity.updatedAt | localeDate: 'medium' }}
+            </vdr-labeled-data>
+        </div>
+    </vdr-dropdown-menu>
+</vdr-dropdown>

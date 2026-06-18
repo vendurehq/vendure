@@ -1,0 +1,11 @@
+mutation LogIn($username: String! $password: String!) {
+    login(username: $username password: $password) {
+        ...on CurrentUser {
+            id
+        }
+        ...on ErrorResult {
+            errorCode
+            message
+        }
+    }
+}

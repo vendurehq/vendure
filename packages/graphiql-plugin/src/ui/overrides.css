@@ -1,0 +1,40 @@
+/* Embedded mode: transparent backgrounds for iframe embedding */
+/* Override GraphiQL's hsl(var(--color-base)) backgrounds with transparent */
+body.embedded-mode {
+    background: transparent !important;
+}
+
+body.embedded-mode .graphiql-app,
+body.embedded-mode .graphiql-wrapper {
+    background: transparent !important;
+}
+
+body.embedded-mode .graphiql-container {
+    background: transparent !important;
+}
+
+body.embedded-mode .graphiql-main,
+body.embedded-mode .graphiql-sessions,
+body.embedded-mode .graphiql-session,
+body.embedded-mode .graphiql-session-header,
+body.embedded-mode .graphiql-editors,
+body.embedded-mode .graphiql-response {
+    background: transparent !important;
+}
+
+.graphiql-container.embedded-mode {
+    --sidebar-width: 0px;
+    border-radius: var(--border-radius-12);
+}
+
+.graphiql-container.embedded-mode .graphiql-sidebar {
+    padding: 0;
+}
+
+.graphiql-container.embedded-mode .graphiql-sessions {
+    margin: 0;
+}
+
+.graphiql-container.embedded-mode .graphiql-logo {
+    display: none;
+}

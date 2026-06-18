@@ -1,0 +1,99 @@
+{
+  "root": true,
+  "ignorePatterns": [
+    "projects/**/*"
+  ],
+  "overrides": [
+    {
+      "files": [
+        "*.ts"
+      ],
+      "parserOptions": {
+        "project": [
+          "tsconfig.json"
+        ],
+        "createDefaultProgram": true
+      },
+      "extends": [
+        "plugin:@typescript-eslint/recommended",
+        "plugin:@angular-eslint/recommended",
+        "plugin:@angular-eslint/template/process-inline-templates"
+      ],
+      "plugins": [
+        "import"
+      ],
+      "rules": {
+        "@angular-eslint/directive-selector": [
+          "error",
+          {
+            "type": "attribute",
+            "prefix": "vdr",
+            "style": "camelCase"
+          }
+        ],
+        "@angular-eslint/component-selector": [
+          "error",
+          {
+            "type": "element",
+            "prefix": "vdr",
+            "style": "kebab-case"
+          }
+        ],
+        "@angular-eslint/prefer-standalone": [
+          "off"
+        ],
+        "@angular-eslint/no-input-rename": "off",
+        "@typescript-eslint/array-type": [
+          "error",
+          {
+            "default": "array-simple"
+          }
+        ],
+        "@typescript-eslint/naming-convention": "off",
+        "@typescript-eslint/consistent-type-definitions": "off",
+        "@typescript-eslint/dot-notation": "off",
+        "@typescript-eslint/explicit-member-accessibility": [
+          "off",
+          {
+            "accessibility": "explicit"
+          }
+        ],
+        "@typescript-eslint/member-ordering": "off",
+        "@typescript-eslint/no-empty-function": "error",
+        "@typescript-eslint/no-empty-interface": "off",
+        "@typescript-eslint/no-floating-promises": "off",
+        "@typescript-eslint/no-var-requires": "error",
+        "arrow-parens": [
+          "off",
+          "always"
+        ],
+        "id-blacklist": "off",
+        "id-match": "off",
+        "import/order": "error",
+        "jsdoc/check-alignment": "off",
+        "jsdoc/newline-after-description": "off",
+        "max-len": [
+          "error",
+          {
+            "code": 170
+          }
+        ],
+        "no-empty": "error",
+        "no-underscore-dangle": "off",
+        "prefer-arrow/prefer-arrow-functions": "off"
+      }
+    },
+    {
+      "files": [
+        "*.html"
+      ],
+      "extends": [
+        "plugin:@angular-eslint/template/recommended"
+      ],
+      "rules": {
+        "@angular-eslint/template/no-negated-async": "off",
+        "@angular-eslint/template/eqeqeq": "off"
+      }
+    }
+  ]
+}

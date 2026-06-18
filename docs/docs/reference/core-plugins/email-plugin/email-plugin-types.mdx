@@ -1,0 +1,249 @@
+---
+title: "Email Plugin Types"
+generated: true
+---
+## EventWithContext
+
+<GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="22" packageName="@vendure/email-plugin" />
+
+A VendureEvent which also includes a `ctx` property containing the current
+[RequestContext](/reference/typescript-api/request/request-context#requestcontext), which is used to determine the channel and language
+to use when generating the email.
+
+```ts title="Signature"
+type EventWithContext = VendureEvent & { ctx: RequestContext }
+```
+## EventWithAsyncData
+
+<GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="32" packageName="@vendure/email-plugin" />
+
+A VendureEvent with a [RequestContext](/reference/typescript-api/request/request-context#requestcontext) and a `data` property which contains the
+value resolved from the [EmailEventHandler](/reference/core-plugins/email-plugin/email-event-handler#emaileventhandler)`.loadData()` callback.
+
+```ts title="Signature"
+type EventWithAsyncData<Event extends EventWithContext, R> = Event & { data: R }
+```
+## EmailDetails
+
+<GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="288" packageName="@vendure/email-plugin" />
+
+The final, generated email details to be sent.
+
+```ts title="Signature"
+interface EmailDetails<Type extends 'serialized' | 'unserialized' = 'unserialized'> {
+    from: string;
+    recipient: string;
+    subject: string;
+    body: string;
+    attachments: Array<Type extends 'serialized' ? SerializedAttachment : Attachment>;
+    cc?: string;
+    bcc?: string;
+    replyTo?: string;
+}
+```
+
+<div className="members-wrapper">
+
+### from
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### recipient
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### subject
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### body
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### attachments
+
+<MemberInfo kind="property" type={`Array<Type extends 'serialized' ? SerializedAttachment : Attachment>`}   />
+
+
+### cc
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### bcc
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### replyTo
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+
+
+</div>
+## LoadDataFn
+
+<GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="322" packageName="@vendure/email-plugin" />
+
+A function used to load async data for use by an [EmailEventHandler](/reference/core-plugins/email-plugin/email-event-handler#emaileventhandler).
+
+```ts title="Signature"
+type LoadDataFn<Event extends EventWithContext, R> = (context: {
+    event: Event;
+    injector: Injector;
+}) => Promise<R>
+```
+## EmailAttachment
+
+<GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="341" packageName="@vendure/email-plugin" />
+
+An object defining a file attachment for an email. Based on the object described
+[here in the Nodemailer docs](https://nodemailer.com/message/attachments/), but
+only uses the `path` property to define a filesystem path or a URL pointing to
+the attachment file.
+
+```ts title="Signature"
+type EmailAttachment = Omit<Attachment, 'raw'> & { path?: string }
+```
+## LoadTemplateInput
+
+<GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="402" packageName="@vendure/email-plugin" />
+
+The object passed to the [TemplateLoader](/reference/core-plugins/email-plugin/template-loader#templateloader) `loadTemplate()` method.
+
+```ts title="Signature"
+interface LoadTemplateInput {
+    type: string;
+    templateName: string;
+    templateVars: any;
+}
+```
+
+<div className="members-wrapper">
+
+### type
+
+<MemberInfo kind="property" type={`string`}   />
+
+The type corresponds to the string passed to the EmailEventListener constructor.
+### templateName
+
+<MemberInfo kind="property" type={`string`}   />
+
+The template name is specified by the EmailEventHander's call to
+the `addTemplate()` method, and will default to `body.hbs`
+### templateVars
+
+<MemberInfo kind="property" type={`any`}   />
+
+The variables defined by the globalTemplateVars as well as any variables defined in the
+EmailEventHandler's `setTemplateVars()` method.
+
+
+</div>
+## SetTemplateVarsFn
+
+<GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="435" packageName="@vendure/email-plugin" />
+
+A function used to define template variables available to email templates.
+See [EmailEventHandler](/reference/core-plugins/email-plugin/email-event-handler#emaileventhandler).setTemplateVars().
+
+```ts title="Signature"
+type SetTemplateVarsFn<Event> = (
+    event: Event,
+    globals: { [key: string]: any },
+) => { [key: string]: any }
+```
+## SetAttachmentsFn
+
+<GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="449" packageName="@vendure/email-plugin" />
+
+A function used to define attachments to be sent with the email.
+See https://nodemailer.com/message/attachments/ for more information about
+how attachments work in Nodemailer.
+
+```ts title="Signature"
+type SetAttachmentsFn<Event> = (event: Event) => EmailAttachment[] | Promise<EmailAttachment[]>
+```
+## SetSubjectFn
+
+<GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="457" packageName="@vendure/email-plugin" />
+
+A function used to define the subject to be sent with the email.
+
+```ts title="Signature"
+type SetSubjectFn<Event> = (
+    event: Event,
+    ctx: RequestContext,
+    injector: Injector,
+) => string | Promise<string>
+```
+## OptionalAddressFields
+
+<GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="471" packageName="@vendure/email-plugin" since="1.1.0" />
+
+Optional address-related fields for sending the email.
+
+```ts title="Signature"
+interface OptionalAddressFields {
+    cc?: string;
+    bcc?: string;
+    replyTo?: string;
+}
+```
+
+<div className="members-wrapper">
+
+### cc
+
+<MemberInfo kind="property" type={`string`}   />
+
+Comma separated list of recipients email addresses that will appear on the _Cc:_ field
+### bcc
+
+<MemberInfo kind="property" type={`string`}   />
+
+Comma separated list of recipients email addresses that will appear on the _Bcc:_ field
+### replyTo
+
+<MemberInfo kind="property" type={`string`}   />
+
+An email address that will appear on the _Reply-To:_ field
+
+
+</div>
+## SetOptionalAddressFieldsFn
+
+<GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="497" packageName="@vendure/email-plugin" since="1.1.0" />
+
+A function used to set the [OptionalAddressFields](/reference/core-plugins/email-plugin/email-plugin-types#optionaladdressfields).
+
+```ts title="Signature"
+type SetOptionalAddressFieldsFn<Event> = (
+    event: Event,
+) => OptionalAddressFields | Promise<OptionalAddressFields>
+```
+## SetMetadataFn
+
+<GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="509" packageName="@vendure/email-plugin" since="3.1.0" />
+
+A function used to set the [EmailMetadata](/reference/core-plugins/email-plugin/email-plugin-types#emailmetadata).
+
+```ts title="Signature"
+type SetMetadataFn<Event> = (event: Event) => EmailMetadata | Promise<EmailMetadata>
+```
+## EmailMetadata
+
+<GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="519" packageName="@vendure/email-plugin" since="3.1.0" />
+
+Metadata that can be attached to an email via the [EmailEventHandler](/reference/core-plugins/email-plugin/email-event-handler#emaileventhandler)`.setMetadata()` method.
+
+```ts title="Signature"
+type EmailMetadata = Record<string, any>
+```

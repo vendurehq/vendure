@@ -1,0 +1,45 @@
+{
+    "name": "@vendure/asset-server-plugin",
+    "version": "3.6.4",
+    "main": "lib/index.js",
+    "types": "lib/index.d.ts",
+    "files": [
+        "lib/**/*"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/vendurehq/vendure"
+    },
+    "license": "GPL-3.0-or-later",
+    "scripts": {
+        "watch": "tsc -p ./tsconfig.build.json --watch",
+        "build": "rimraf lib && tsc -p ./tsconfig.build.json && node build.js",
+        "lint": "eslint --fix .",
+        "test": "vitest --run",
+        "e2e": "cross-env PACKAGE=asset-server-plugin vitest --config ../../e2e-common/vitest.config.mts --run",
+        "e2e:watch": "cross-env PACKAGE=asset-server-plugin vitest --config ../../e2e-common/vitest.config.mts"
+    },
+    "homepage": "https://www.vendure.io",
+    "funding": "https://github.com/sponsors/michaelbromley",
+    "publishConfig": {
+        "access": "public"
+    },
+    "devDependencies": {
+        "@aws-sdk/client-s3": "^3.529.1",
+        "@aws-sdk/lib-storage": "^3.529.1",
+        "@types/express": "^5.0.1",
+        "@types/fs-extra": "^11.0.4",
+        "@types/node-fetch": "^2.6.11",
+        "@vendure/common": "3.6.4",
+        "@vendure/core": "3.6.4",
+        "express": "^5.1.0",
+        "node-fetch": "^2.7.0",
+        "rimraf": "^5.0.5",
+        "typescript": "5.8.2"
+    },
+    "dependencies": {
+        "file-type": "^19.0.0",
+        "fs-extra": "^11.2.0",
+        "sharp": "~0.34.5"
+    }
+}

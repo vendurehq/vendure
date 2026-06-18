@@ -1,0 +1,232 @@
+---
+title: "StockMovement"
+generated: true
+---
+## StockMovement
+
+<GenerationInfo sourceFile="packages/core/src/entity/stock-movement/stock-movement.entity.ts" sourceLine="21" packageName="@vendure/core" />
+
+A StockMovement is created whenever stock of a particular ProductVariant goes in
+or out.
+
+```ts title="Signature"
+class StockMovement extends VendureEntity implements HasCustomFields {
+    @Column({ nullable: false, type: 'varchar' })
+    readonly type: StockMovementType;
+    @Index()
+    @ManyToOne(type => ProductVariant, variant => variant.stockMovements)
+    productVariant: ProductVariant;
+    @Index()
+    @ManyToOne(type => StockLocation, stockLocation => stockLocation.stockMovements, { onDelete: 'CASCADE' })
+    stockLocation: StockLocation;
+    @EntityId()
+    stockLocationId: ID;
+    @Column()
+    quantity: number;
+    @Column(type => CustomStockMovementFields)
+    customFields: CustomStockMovementFields;
+}
+```
+* Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
+
+
+* Implements: HasCustomFields
+
+
+
+<div className="members-wrapper">
+
+### type
+
+<MemberInfo kind="property" type={`StockMovementType`}   />
+
+
+### productVariant
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>`}   />
+
+
+### stockLocation
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/stock-location#stocklocation'>StockLocation</a>`}   />
+
+
+### stockLocationId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
+
+
+### quantity
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### customFields
+
+<MemberInfo kind="property" type={`CustomStockMovementFields`}   />
+
+
+
+
+</div>
+## Allocation
+
+<GenerationInfo sourceFile="packages/core/src/entity/stock-movement/allocation.entity.ts" sourceLine="17" packageName="@vendure/core" />
+
+An Allocation is created for each ProductVariant in an Order when the checkout is completed
+(as configured by the [StockAllocationStrategy](/reference/typescript-api/orders/stock-allocation-strategy#stockallocationstrategy). This prevents stock being sold twice.
+
+```ts title="Signature"
+class Allocation extends StockMovement {
+    readonly type = StockMovementType.ALLOCATION;
+    constructor(input: DeepPartial<Allocation>)
+    @Index()
+    @ManyToOne(type => OrderLine, orderLine => orderLine.allocations)
+    orderLine: OrderLine;
+}
+```
+* Extends: [`StockMovement`](/reference/typescript-api/entities/stock-movement#stockmovement)
+
+
+
+<div className="members-wrapper">
+
+### type
+
+<MemberInfo kind="property" type={``}   />
+
+
+### orderLine
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/order-line#orderline'>OrderLine</a>`}   />
+
+
+
+
+</div>
+## Cancellation
+
+<GenerationInfo sourceFile="packages/core/src/entity/stock-movement/cancellation.entity.ts" sourceLine="16" packageName="@vendure/core" />
+
+A Cancellation is created when OrderItems from a fulfilled Order are cancelled.
+
+```ts title="Signature"
+class Cancellation extends StockMovement {
+    readonly type = StockMovementType.CANCELLATION;
+    constructor(input: DeepPartial<Cancellation>)
+    @ManyToOne(type => OrderLine, orderLine => orderLine.cancellations)
+    orderLine: OrderLine;
+}
+```
+* Extends: [`StockMovement`](/reference/typescript-api/entities/stock-movement#stockmovement)
+
+
+
+<div className="members-wrapper">
+
+### type
+
+<MemberInfo kind="property" type={``}   />
+
+
+### orderLine
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/order-line#orderline'>OrderLine</a>`}   />
+
+
+
+
+</div>
+## Release
+
+<GenerationInfo sourceFile="packages/core/src/entity/stock-movement/release.entity.ts" sourceLine="17" packageName="@vendure/core" />
+
+A Release is created when OrderItems which have been allocated (but not yet fulfilled)
+are cancelled.
+
+```ts title="Signature"
+class Release extends StockMovement {
+    readonly type = StockMovementType.RELEASE;
+    constructor(input: DeepPartial<Release>)
+    @ManyToOne(type => OrderLine)
+    orderLine: OrderLine;
+}
+```
+* Extends: [`StockMovement`](/reference/typescript-api/entities/stock-movement#stockmovement)
+
+
+
+<div className="members-wrapper">
+
+### type
+
+<MemberInfo kind="property" type={``}   />
+
+
+### orderLine
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/order-line#orderline'>OrderLine</a>`}   />
+
+
+
+
+</div>
+## Sale
+
+<GenerationInfo sourceFile="packages/core/src/entity/stock-movement/sale.entity.ts" sourceLine="16" packageName="@vendure/core" />
+
+A Sale is created when OrderItems are fulfilled.
+
+```ts title="Signature"
+class Sale extends StockMovement {
+    readonly type = StockMovementType.SALE;
+    constructor(input: DeepPartial<Sale>)
+    @ManyToOne(type => OrderLine, line => line.sales)
+    orderLine: OrderLine;
+}
+```
+* Extends: [`StockMovement`](/reference/typescript-api/entities/stock-movement#stockmovement)
+
+
+
+<div className="members-wrapper">
+
+### type
+
+<MemberInfo kind="property" type={``}   />
+
+
+### orderLine
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/order-line#orderline'>OrderLine</a>`}   />
+
+
+
+
+</div>
+## StockAdjustment
+
+<GenerationInfo sourceFile="packages/core/src/entity/stock-movement/stock-adjustment.entity.ts" sourceLine="14" packageName="@vendure/core" />
+
+A StockAdjustment is created when the `stockOnHand` level of a ProductVariant is manually adjusted.
+
+```ts title="Signature"
+class StockAdjustment extends StockMovement {
+    readonly type = StockMovementType.ADJUSTMENT;
+    constructor(input: DeepPartial<StockAdjustment>)
+}
+```
+* Extends: [`StockMovement`](/reference/typescript-api/entities/stock-movement#stockmovement)
+
+
+
+<div className="members-wrapper">
+
+### type
+
+<MemberInfo kind="property" type={``}   />
+
+
+
+
+</div>

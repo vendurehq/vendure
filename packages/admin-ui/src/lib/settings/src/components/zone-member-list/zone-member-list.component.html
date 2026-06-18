@@ -1,0 +1,53 @@
+<vdr-data-table-2
+    [id]="locationId"
+    [items]="filteredMembers$ | async"
+    [totalItems]="totalItems$ | async"
+    [itemsPerPage]="itemsPerPage"
+    [currentPage]="currentPage"
+    (itemsPerPageChange)="itemsPerPage = $event"
+    (pageChange)="currentPage = $event"
+>
+    <vdr-bulk-action-menu
+        [locationId]="locationId"
+        [hostComponent]="this"
+        [selectionManager]="selectionManager"
+    ></vdr-bulk-action-menu>
+    <vdr-dt2-search
+        [searchTermControl]="filterTermControl"
+        [searchTermPlaceholder]="'common.search-by-name' | translate"
+    ></vdr-dt2-search>
+    <vdr-dt2-column [heading]="'common.id' | translate" id="id" [hiddenByDefault]="true">
+        <ng-template let-member="item">
+            {{ member.id }}
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column [heading]="'common.created-at' | translate" id="created-at" [hiddenByDefault]="true">
+        <ng-template let-member="item">
+            {{ member.createdAt | localeDate : 'short' }}
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column [heading]="'common.updated-at' | translate" id="updated-at" [hiddenByDefault]="true">
+        <ng-template let-member="item">
+            {{ member.createdAt | localeDate : 'short' }}
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column [heading]="'common.name' | translate" id="name" [optional]="false">
+        <ng-template let-member="item">
+            <a class="button-ghost" [routerLink]="['/settings/countries', member.id]"
+                ><span> {{ member.name }}</span>
+                <clr-icon shape="arrow right"></clr-icon>
+            </a>
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column [heading]="'common.code' | translate" id="code">
+        <ng-template let-member="item">
+            {{ member.code }}
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column [heading]="'common.enabled' | translate" id="enabled">
+        <ng-template let-member="item">
+            <vdr-chip  *ngIf="member.enabled" colorType="success">{{ 'common.enabled' | translate }}</vdr-chip>
+            <vdr-chip  *ngIf="!member.enabled" colorType="warning">{{ 'common.disabled' | translate }}</vdr-chip>
+        </ng-template>
+    </vdr-dt2-column>
+</vdr-data-table-2>

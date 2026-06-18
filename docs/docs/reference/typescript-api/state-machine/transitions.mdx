@@ -1,0 +1,38 @@
+---
+title: "Transitions"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/common/finite-state-machine/types.ts" sourceLine="30" packageName="@vendure/core" />
+
+A type which is used to define valid states and transitions for a state machine based
+on [FSM](/reference/typescript-api/state-machine/fsm#fsm).
+
+*Example*
+
+```ts
+type LightColor = 'Green' | 'Amber' | 'Red';
+
+const trafficLightTransitions: Transitions<LightColor> = {
+  Green: {
+    to: ['Amber'],
+  },
+  Amber: {
+    to: ['Red'],
+  },
+  Red: {
+    to: ['Green'],
+  },
+};
+```
+
+The `mergeStrategy` property defines how to handle the merging of states when one set of
+transitions is being merged with another (as in the case of defining a [OrderProcess](/reference/typescript-api/orders/order-process#orderprocess))
+
+```ts title="Signature"
+type Transitions<State extends string, Target extends string = State> = {
+    [S in State]: {
+        to: Readonly<Target[]>;
+        mergeStrategy?: 'merge' | 'replace';
+    };
+}
+```

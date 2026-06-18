@@ -1,0 +1,50 @@
+@import 'variables';
+
+.zone-wrapper {
+    display: flex;
+    height: calc(100% - 50px);
+
+    .zone-list {
+        flex: 1;
+        overflow: auto;
+        margin-top: 0;
+
+        tr.active {
+            background-color: var(--color-component-bg-200);
+        }
+    }
+}
+.zone-members {
+    height: 100%;
+    width: 0;
+    opacity: 0;
+    visibility: hidden;
+    overflow: auto;
+    transition: width 0.3s, opacity 0.2s 0.3s, visibility 0s 0.3s;
+
+    &.expanded {
+        width: 40vw;
+        visibility: visible;
+        opacity: 1;
+        padding-inline-start: 12px;
+    }
+
+    .close-button {
+        margin: 0;
+        background: none;
+        border: none;
+        cursor: pointer;
+    }
+
+    ::ng-deep table.table {
+        margin-top: 0;
+        th {
+            top: 0;
+        }
+    }
+
+    .controls {
+        display: flex;
+        justify-content: space-between;
+    }
+}

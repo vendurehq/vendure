@@ -1,0 +1,77 @@
+<div class="login-wrapper" [dir]="direction$ | async">
+    <div class="login-wrapper-inner">
+        <div class="login-wrapper-image">
+            <div class="login-wrapper-image-content">
+                <div class="login-wrapper-image-title">
+                    {{ 'common.login-image-title' | translate }}
+                </div>
+                <div class="login-wrapper-image-copyright">
+                    <p *ngIf="imageCreator" class="creator">
+                        Photo by <a [href]="imageCreatorUrl" target="_blank">{{ imageCreator }}</a> on
+                        <a [href]="imageUnsplashUrl" target="_blank">Unsplash</a>
+                    </p>
+                    <p *ngIf="imageLocation" class="location">{{ imageLocation }}</p>
+                </div>
+            </div>
+            <img *ngIf="imageUrl" [src]="imageUrl" [alt]="imageUrl" />
+        </div>
+        <div class="login-wrapper-form">
+            <p class="login-title">
+                {{ 'common.login-title' | translate : { brand: hideVendureBranding ? brand : 'Vendure' } }}
+            </p>
+            <form class="login-form">
+                <div class="login-group">
+                    <input
+                        class="username"
+                        type="text"
+                        name="username"
+                        id="login_username"
+                        [(ngModel)]="username"
+                        [placeholder]="'common.username' | translate"
+                    />
+                    <input
+                        class="password"
+                        name="password"
+                        type="password"
+                        id="login_password"
+                        [(ngModel)]="password"
+                        [placeholder]="'common.password' | translate"
+                    />
+                    <clr-alert
+                        [clrAlertType]="'danger'"
+                        [clrAlertClosable]="false"
+                        [class.visible]="errorMessage"
+                        class="login-error"
+                    >
+                        <clr-alert-item>
+                            <span class="alert-text">
+                                {{ errorMessage }}
+                            </span>
+                        </clr-alert-item>
+                    </clr-alert>
+                    <clr-checkbox-wrapper>
+                        <input
+                            type="checkbox"
+                            clrCheckbox
+                            id="rememberme"
+                            name="rememberme"
+                            [(ngModel)]="rememberMe"
+                        />
+                        <label>{{ 'common.remember-me' | translate }}</label>
+                    </clr-checkbox-wrapper>
+                    <div>
+                        <button
+                            type="submit"
+                            class="button primary login-button"
+                            (click)="logIn()"
+                            [disabled]="!username || !password"
+                        >
+                            {{ 'common.login' | translate }}
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <img class="login-wrapper-logo" src="assets/logo-login.webp" *ngIf="!hideVendureBranding" />
+    </div>
+</div>

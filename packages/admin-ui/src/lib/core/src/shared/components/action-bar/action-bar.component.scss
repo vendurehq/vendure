@@ -1,0 +1,31 @@
+@import 'variables';
+
+:host, .vdr-action-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    z-index: 25;
+
+    > .grow {
+        flex: 1;
+    }
+
+    flex-direction: column-reverse;
+
+    .right-content {
+        width: 100%;
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    ::ng-deep vdr-ab-right > *:last-child {
+        margin-inline-end: 0px;
+    }
+
+    @media screen and (min-width: $breakpoint-small) {
+        flex-direction: row;
+        .right-content {
+            width: initial;
+        }
+    }
+}

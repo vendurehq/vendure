@@ -1,0 +1,120 @@
+<vdr-page-block>
+    <vdr-card>
+        <div *ngFor="let group of optionGroups; index as i" class="option-groups">
+            <vdr-form-field [label]="'catalog.option' | translate">
+                <input clrInput [(ngModel)]="group.name" name="name" [readonly]="!group.isNew" />
+            </vdr-form-field>
+            <vdr-form-field [label]="'catalog.option-values' | translate" class="flex-spacer">
+                <vdr-option-value-input
+                    #optionValueInputComponent
+                    [options]="group.values"
+                    [groupName]="group.name"
+                    [disabled]="group.name === ''"
+                    (add)="addOption(i, $event.name)"
+                    (remove)="removeOption(i, $event)"
+                ></vdr-option-value-input>
+            </vdr-form-field>
+            <div>
+                <button class="button-small mt-4" (click)="removeOptionGroup(group)">
+                    <clr-icon shape="trash"></clr-icon>
+                </button>
+            </div>
+        </div>
+        <button class="button mt-1" (click)="addOptionGroup()">
+            <clr-icon shape="plus"></clr-icon>
+            {{ 'catalog.create-product-option-group' | translate }}
+        </button>
+    </vdr-card>
+    <vdr-card [paddingX]="false">
+        <div class="mx-3">
+            <button class="button" (click)="createNewVariant()">
+                <clr-icon shape="plus"></clr-icon>
+                {{ 'catalog.create-product-variant' | translate }}
+            </button>
+        </div>
+        <vdr-data-table-2
+            id="manage-product-variant-list"
+            [items]="variants$ | async"
+            [itemsPerPage]="itemsPerPage"
+            [totalItems]="totalItems$ | async"
+            [currentPage]="currentPage"
+            (pageChange)="setPageNumber($event)"
+            (itemsPerPageChange)="setItemsPerPage($event)"
+        >
+            <vdr-dt2-search
+                [searchTermControl]="searchTermControl"
+                [searchTermPlaceholder]="'catalog.filter-by-name' | translate"
+            />
+            <vdr-dt2-column [heading]="'common.id' | translate" id="id" [hiddenByDefault]="true">
+                <ng-template let-variant="item">
+                    {{ variant.id }}
+                </ng-template>
+            </vdr-dt2-column>
+            <vdr-dt2-column [heading]="'common.created-at' | translate" id="created-at" [hiddenByDefault]="true">
+                <ng-template let-variant="item">
+                    {{ variant.createdAt | localeDate : 'short' }}
+                </ng-template>
+            </vdr-dt2-column>
+            <vdr-dt2-column [heading]="'common.updated-at' | translate" id="updated-at" [hiddenByDefault]="true">
+                <ng-template let-variant="item">
+                    {{ variant.updatedAt | localeDate : 'short' }}
+                </ng-template>
+            </vdr-dt2-column>
+            <vdr-dt2-column [heading]="'catalog.name' | translate" id="name" [optional]="false">
+                <ng-template let-variant="item">
+                    {{ variant.name }}
+                </ng-template>
+            </vdr-dt2-column>
+            <vdr-dt2-column [heading]="'catalog.sku' | translate" id="sku" [optional]="false">
+                <ng-template let-variant="item">
+                    {{ variant.sku }}
+                </ng-template>
+            </vdr-dt2-column>
+            <vdr-dt2-column *ngFor="let optionGroup of optionGroups$ | async" [heading]="optionGroup.name" [id]="optionGroup.code">
+                <ng-template let-variant="item">
+                    <vdr-chip
+                        *ngIf="getOption(variant, optionGroup.id) as option; else selectOption"
+                        [colorFrom]="optionGroup.code"
+                        >{{ option.name }}</vdr-chip
+                    >
+                    <ng-template #selectOption>
+                        <div class="flex center">
+                            <ng-select
+                                [items]="optionGroup.options"
+                                bindLabel="name"
+                                bindValue="id"
+                                appendTo="body"
+                                (change)="setOptionToAddToVariant(variant.id, optionGroup.id, $event?.id)"
+                            ></ng-select>
+                            <button
+                                class="button-small ml-1"
+                                [class.primary]="!!optionsToAddToVariant[variant.id]?.[optionGroup.id]"
+                                (click)="addOptionToVariant(variant)"
+                                [disabled]="!optionsToAddToVariant[variant.id]?.[optionGroup.id]"
+                            >
+                                <clr-icon shape="floppy"></clr-icon>
+                            </button>
+                        </div>
+                    </ng-template>
+                </ng-template>
+            </vdr-dt2-column>
+            <vdr-dt2-column [heading]="'common.price' | translate" id="price" [hiddenByDefault]="true">
+                <ng-template let-variant="item">
+                    {{ variant.price | localeCurrency : variant.currencyCode }}
+                </ng-template>
+            </vdr-dt2-column>
+            <vdr-dt2-column [heading]="'common.price-with-tax' | translate" id="price-with-tax" [hiddenByDefault]="true">
+                <ng-template let-variant="item">
+                    {{ variant.priceWithTax | localeCurrency : variant.currencyCode }}
+                </ng-template>
+            </vdr-dt2-column>
+            <vdr-dt2-column [heading]="'common.delete' | translate" id="delete" [optional]="false">
+                <ng-template let-variant="item">
+                    <button class="button-small" (click)="deleteVariant(variant)">
+                        <clr-icon shape="trash is-danger"></clr-icon>
+                    </button>
+                </ng-template>
+            </vdr-dt2-column>
+        </vdr-data-table-2>
+    </vdr-card>
+</vdr-page-block>

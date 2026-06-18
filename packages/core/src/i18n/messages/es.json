@@ -1,0 +1,38 @@
+{
+  "error": {
+    "cannot-modify-role": "El rol \"{ roleCode }\" no puede ser modificado",
+    "cannot-move-product-category-into-self": "No se puede mover la categoría de producto, a dentro de si misma",
+    "cannot-transition-order-from-to": "No se puede cambiar el estado del pedido de \"{ fromState }\" a \"{ toState }\"",
+    "cannot-transition-to-shipping-when-order-is-empty": "No se puede cambiar el estado del envío a \"ArrangingShipping\" cuando esta vacío",
+    "cannot-transition-to-payment-without-customer": "No se puede cambiar el estado del pago a \"ArrangingPayment\"sin detalles del Cliente",
+    "channel-not-found":  "Ningún canal con el token \"{ token }\" existe",
+    "country-code-not-valid":  "El código de país  \"{ countryCode }\" no fue reconocido",
+    "email-address-not-verified": "Por favor verifica este email, antes de iniciar sesión",
+    "entity-has-no-translation-in-language": "Entidad traducible \"{ entityName }\" no ha sido traducida al idioma seleccionando ({ languageCode })",
+    "entity-with-id-not-found": "No { entityName } con el id \"{ id }\" se ha encontrado",
+    "forbidden": "Actualmente no estás autorizado a realizar esta acción",
+    "invalid-sort-field": "El campo de ordenar \"{ fieldName }\" es inválido. Campos válidos: { validFields }",
+    "missing-password-on-registration": "Una contraseña debe proporcionarse cuándo `authOptions.requireVerification` está en \"false\"",
+    "no-search-plugin-configured": "No se ha configurado ningún plugin de búsqueda",
+    "no-valid-channel-specified": "No se ha especificado ningún canal válido (asegúrate de que el encabezado 'vendure-token'  sea especificado en el requisito)",
+    "order-contents-may-only-be-modified-in-addingitems-state": "Los contenidos de un pedido solo pueden ser modificados durante el \"AddingItems\" estado ",
+    "order-does-not-contain-line-with-id": "Este pedido no contiene una línea de pedido con el id { id }",
+    "order-item-quantity-must-be-positive": "no es una cantidad válida para una linea de pedido",
+    "order-items-limit-exceeded": "No es posible añadir artículos, Un pedido puede consistir de un máximo de { maxItems } artículos ",
+    "payment-may-only-be-added-in-arrangingpayment-state": "Un pago sólo puede ser añadido cuando el pedido se encuentra en el estado de \"ArrangingPayment\"",
+    "password-reset-token-has-expired": "Este token de restablecimiento de contraseña ha expirado.",
+    "password-reset-token-not-recognized": "No reconocemos este token de restablecimiento de contraseña",
+    "verification-token-has-expired": "Este token de verificación ha expirado.  Utiliza refreshCustomerVerification para enviar un nuevo token.",
+    "verification-token-not-recognized": "No reconocemos este token de verificación",
+    "unauthorized": "Las credenciales no concuerdan, por favor comprueba y vuelve a probar",
+    "unexpected-password-on-registration": "No proveer conntraseña cuándo `authOptions.requireVerification` está \"true\""
+  },
+  "message": {
+    "country-used-in-addresses": "El país seleccionado no puede ser eliminado ya que es usado en {count, plural, one {1 Dirección} other {# Direcciones}}",
+    "facet-force-deleted": "El valor de faceta fue eliminado, y sus instancias fueron eliminadas en {products, plural, =0 {} one {1 Producto} other {# Productos}}{both, select, both {, } single {} other {}}{variants, plural, =0 {} one {1 ProductVariant} other {# ProductVariants}}",
+    "facet-used": "El valor de faceta seleccionado, incluye valores que están asignados a {products, plural, =0 {} one {1 Producto} other {# Productos}}{both, select, both {, } single {} other {}}{variants, plural, =0 {} one {1 ProductVariant} other {# ProductVariants}}",
+    "facet-value-force-deleted": "El valor de faceta seleccionado, fue eliminnado de {products, plural, =0 {} one {1 Producto} other {# Productos}}{both, select, both {, } single {} other {}}{variants, plural, =0 {} one {1 ProductVariant} other {# ProductVariants}} and deleted",
+    "facet-value-used": "El valor de faceta seleccionado, está asignado a {products, plural, =0 {} one {1 Producto} other {# Productos}}{both, select, both {, } single {} other {}}{variants, plural, =0 {} one {1 ProductVariant} other {# ProductVariants}}",
+    "zone-used-in-tax-rates": "La zona seleccionada no se puede eliminar, es usada por estas Tasas de impuestos: { taxRateNames }"
+  }
+}

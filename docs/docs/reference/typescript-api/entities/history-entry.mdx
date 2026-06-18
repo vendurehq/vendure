@@ -1,0 +1,61 @@
+---
+title: "HistoryEntry"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/history-entry/history-entry.entity.ts" sourceLine="16" packageName="@vendure/core" />
+
+An abstract entity representing an entry in the history of an Order ([OrderHistoryEntry](/reference/typescript-api/entities/order-history-entry#orderhistoryentry))
+or a Customer ([CustomerHistoryEntry](/reference/typescript-api/entities/customer-history-entry#customerhistoryentry)).
+
+```ts title="Signature"
+class HistoryEntry extends VendureEntity implements HasCustomFields {
+    @Index()
+    @ManyToOne(type => Administrator)
+    administrator?: Administrator;
+    @Column({ nullable: false, type: 'varchar' })
+    readonly type: HistoryEntryType;
+    @Column()
+    isPublic: boolean;
+    @Column('simple-json')
+    data: any;
+    @Column(type => CustomHistoryEntryFields)
+    customFields: CustomHistoryEntryFields;
+}
+```
+* Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
+
+
+* Implements: HasCustomFields
+
+
+
+<div className="members-wrapper">
+
+### administrator
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>`}   />
+
+
+### type
+
+<MemberInfo kind="property" type={`HistoryEntryType`}   />
+
+
+### isPublic
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+
+### data
+
+<MemberInfo kind="property" type={`any`}   />
+
+
+### customFields
+
+<MemberInfo kind="property" type={`CustomHistoryEntryFields`}   />
+
+
+
+
+</div>

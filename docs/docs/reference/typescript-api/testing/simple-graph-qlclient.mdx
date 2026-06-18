@@ -1,0 +1,113 @@
+---
+title: "SimpleGraphQLClient"
+generated: true
+---
+<GenerationInfo sourceFile="packages/testing/src/simple-graphql-client.ts" sourceLine="40" packageName="@vendure/testing" />
+
+A minimalistic GraphQL client for populating and querying test data.
+
+```ts title="Signature"
+class SimpleGraphQLClient {
+    constructor(vendureConfig: Required<VendureConfig>, apiUrl: string = '')
+    setAuthToken(token: string) => ;
+    setChannelToken(token: string | null) => ;
+    getAuthToken() => string;
+    query(query: DocumentNode | TypedDocumentNode<T, V>, variables?: V, queryParams?: QueryParams) => Promise<T>;
+    fetch(url: string, options: RequestInit = {}) => Promise<Response>;
+    queryStatus(query: DocumentNode, variables?: V) => Promise<number>;
+    asUserWithCredentials(username: string, password: string) => ;
+    asSuperAdmin() => ;
+    asAnonymousUser() => ;
+    fileUploadMutation(options: {
+        mutation: DocumentNode;
+        filePaths: string[];
+        mapVariables: (filePaths: string[]) => any;
+    }) => Promise<any>;
+}
+```
+
+<div className="members-wrapper">
+
+### setAuthToken
+
+<MemberInfo kind="method" type={`(token: string) => `}   />
+
+Sets the authToken to be used in each GraphQL request.
+### setChannelToken
+
+<MemberInfo kind="method" type={`(token: string | null) => `}   />
+
+Sets the authToken to be used in each GraphQL request.
+### getAuthToken
+
+<MemberInfo kind="method" type={`() => string`}   />
+
+Returns the authToken currently being used.
+### query
+
+<MemberInfo kind="method" type={`(query: DocumentNode | TypedDocumentNode<T, V>, variables?: V, queryParams?: QueryParams) => Promise<T>`}   />
+
+Performs both query and mutation operations.
+### fetch
+
+<MemberInfo kind="method" type={`(url: string, options: RequestInit = {}) => Promise<Response>`}   />
+
+Performs a raw HTTP request to the given URL, but also includes the authToken & channelToken
+headers if they have been set. Useful for testing non-GraphQL endpoints, e.g. for plugins
+which make use of REST controllers.
+### queryStatus
+
+<MemberInfo kind="method" type={`(query: DocumentNode, variables?: V) => Promise<number>`}   />
+
+Performs a query or mutation and returns the resulting status code.
+### asUserWithCredentials
+
+<MemberInfo kind="method" type={`(username: string, password: string) => `}   />
+
+Attempts to log in with the specified credentials.
+### asSuperAdmin
+
+<MemberInfo kind="method" type={`() => `}   />
+
+Logs in as the SuperAdmin user.
+### asAnonymousUser
+
+<MemberInfo kind="method" type={`() => `}   />
+
+Logs out so that the client is then treated as an anonymous user.
+### fileUploadMutation
+
+<MemberInfo kind="method" type={`(options: {         mutation: DocumentNode;         filePaths: string[];         mapVariables: (filePaths: string[]) => any;     }) => Promise<any>`}   />
+
+Perform a file upload mutation.
+
+Upload spec: https://github.com/jaydenseric/graphql-multipart-request-spec
+
+Discussion of issue: https://github.com/jaydenseric/apollo-upload-client/issues/32
+
+*Example*
+
+```ts
+// Testing a custom mutation:
+const result = await client.fileUploadMutation({
+  mutation: gql`
+    mutation AddSellerImages($input: AddSellerImagesInput!) {
+      addSellerImages(input: $input) {
+        id
+        name
+      }
+    }
+  `,
+  filePaths: ['./images/profile-picture.jpg', './images/logo.png'],
+  mapVariables: () => ({
+    name: "George's Pans",
+    profilePicture: null,  // corresponds to filePaths[0]
+    branding: {
+      logo: null  // corresponds to filePaths[1]
+    }
+  })
+});
+```
+
+
+</div>

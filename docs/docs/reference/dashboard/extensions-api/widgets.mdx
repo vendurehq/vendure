@@ -1,0 +1,65 @@
+---
+title: "Widgets"
+generated: true
+---
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/widgets.ts" sourceLine="70" packageName="@vendure/dashboard" since="3.3.0" />
+
+**Status: Developer Preview**
+
+Defines a dashboard widget that can be added to the dashboard.
+
+```ts title="Signature"
+type DashboardWidgetDefinition = {
+    id: string;
+    name: string;
+    component: React.ComponentType<DashboardBaseWidgetProps>;
+    defaultSize: { w: number; h: number; x?: number; y?: number };
+    minSize?: { w: number; h: number };
+    maxSize?: { w: number; h: number };
+    requiresPermissions?: string[];
+}
+```
+
+<div className="members-wrapper">
+
+### id
+
+<MemberInfo kind="property" type={`string`}   />
+
+A unique identifier for the widget.
+### name
+
+<MemberInfo kind="property" type={`string`}   />
+
+The display name of the widget.
+### component
+
+<MemberInfo kind="property" type={`React.ComponentType<<a href='/reference/dashboard/extensions-api/widgets#dashboardbasewidgetprops'>DashboardBaseWidgetProps</a>>`}   />
+
+The React component that renders the widget.
+### defaultSize
+
+<MemberInfo kind="property" type={`{ w: number; h: number; x?: number; y?: number }`}   />
+
+The default size and position of the widget.
+### minSize
+
+<MemberInfo kind="property" type={`{ w: number; h: number }`}   />
+
+The minimum size constraints for the widget.
+### maxSize
+
+<MemberInfo kind="property" type={`{ w: number; h: number }`}   />
+
+The maximum size constraints for the widget.
+### requiresPermissions
+
+<MemberInfo kind="property" type={`string[]`}   />
+
+If set, the widget will only be displayed if the current user has
+at least one of the specified permissions in the active channel.
+
+If not set, the widget will be visible to all users.
+
+
+</div>

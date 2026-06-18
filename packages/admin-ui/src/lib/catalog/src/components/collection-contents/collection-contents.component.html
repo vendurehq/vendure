@@ -1,0 +1,51 @@
+<div class="table-wrapper">
+    <div class="progress loop" [class.visible]="isLoading"></div>
+    <div class="header-title-row">
+        <ng-container
+            *ngTemplateOutlet="headerTemplate; context: { $implicit: contentsTotalItems$ | async }"
+        ></ng-container>
+    </div>
+    <vdr-data-table-2
+        id="collection-contents"
+        [class.loading]="isLoading"
+        [items]="contents$ | async"
+        [itemsPerPage]="contentsItemsPerPage$ | async"
+        [totalItems]="contentsTotalItems$ | async"
+        [currentPage]="contentsCurrentPage$ | async"
+        (pageChange)="setContentsPageNumber($event)"
+        (itemsPerPageChange)="setContentsItemsPerPage($event)"
+    >
+        <vdr-dt2-search
+            [searchTermControl]="filterTermControl"
+            [searchTermPlaceholder]="'catalog.filter-by-name' | translate"
+        />
+        <vdr-dt2-column [heading]="'common.id' | translate" id="id" [hiddenByDefault]="true">
+            <ng-template let-variant="item">
+                {{ variant.id }}
+            </ng-template>
+        </vdr-dt2-column>
+        <vdr-dt2-column [heading]="'common.created-at' | translate" id="created-at" [hiddenByDefault]="true">
+            <ng-template let-variant="item">
+                {{ variant.createdAt | localeDate : 'short' }}
+            </ng-template>
+        </vdr-dt2-column>
+        <vdr-dt2-column [heading]="'common.updated-at' | translate" id="updated-at" [hiddenByDefault]="true">
+            <ng-template let-variant="item">
+                {{ variant.updatedAt | localeDate : 'short' }}
+            </ng-template>
+        </vdr-dt2-column>
+        <vdr-dt2-column [heading]="'common.name' | translate" id="name" [optional]="false">
+            <ng-template let-variant="item">
+                <a class="button-ghost" [routerLink]="['/catalog/products', variant.productId]"
+                    ><span>{{ variant.name }}</span
+                    ><clr-icon shape="arrow right"
+                /></a>
+            </ng-template>
+        </vdr-dt2-column>
+        <vdr-dt2-column [heading]="'catalog.sku' | translate" id="sku" [optional]="false">
+            <ng-template let-variant="item">
+                {{ variant.sku }}
+            </ng-template>
+        </vdr-dt2-column>
+    </vdr-data-table-2>
+</div>

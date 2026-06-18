@@ -1,0 +1,118 @@
+<vdr-page-block>
+    <vdr-action-bar>
+        <vdr-ab-left>
+            <vdr-language-selector
+                [availableLanguageCodes]="availableLanguages$ | async"
+                [currentLanguageCode]="contentLanguage$ | async"
+                (languageCodeChange)="setLanguage($event)"
+            />
+        </vdr-ab-left>
+        <vdr-ab-right>
+            <vdr-action-bar-items locationId="zone-list" />
+            <a
+                class="btn btn-primary"
+                *vdrIfPermissions="['CreateSettings', 'CreateZone']"
+                [routerLink]="['./', 'create']"
+            >
+                <clr-icon shape="plus"></clr-icon>
+                {{ 'settings.create-new-zone' | translate }}
+            </a>
+            <vdr-action-bar-dropdown-menu locationId="zone-list" />
+        </vdr-ab-right>
+    </vdr-action-bar>
+</vdr-page-block>
+<vdr-split-view [rightPanelOpen]="activeZone$ | async" (closeClicked)="closeMembers()">
+    <ng-template vdrSplitViewLeft>
+        <vdr-data-table-2
+            [id]="dataTableListId"
+            [items]="items$ | async"
+            [itemsPerPage]="itemsPerPage$ | async"
+            [totalItems]="totalItems$ | async"
+            [currentPage]="currentPage$ | async"
+            [filters]="filters"
+            [activeIndex]="activeIndex$ | async"
+            (pageChange)="setPageNumber($event)"
+            (itemsPerPageChange)="setItemsPerPage($event)"
+            (visibleColumnsChange)="setVisibleColumns($event)"
+        >
+            <vdr-bulk-action-menu
+                locationId="zone-list"
+                [hostComponent]="this"
+                [selectionManager]="selectionManager"
+            />
+            <vdr-dt2-search
+                [searchTermControl]="searchTermControl"
+                [searchTermPlaceholder]="'common.search-by-name' | translate"
+            />
+            <vdr-dt2-column [heading]="'common.id' | translate" id="id" [hiddenByDefault]="true">
+                <ng-template let-customerGroup="item">
+                    {{ customerGroup.id }}
+                </ng-template>
+            </vdr-dt2-column>
+            <vdr-dt2-column
+                [heading]="'common.created-at' | translate" id="created-at"
+                [hiddenByDefault]="true"
+                [sort]="sorts.get('createdAt')"
+            >
+                <ng-template let-customerGroup="item">
+                    {{ customerGroup.createdAt | localeDate : 'short' }}
+                </ng-template>
+            </vdr-dt2-column>
+            <vdr-dt2-column
+                [heading]="'common.updated-at' | translate" id="updated-at"
+                [hiddenByDefault]="true"
+                [sort]="sorts.get('updatedAt')"
+            >
+                <ng-template let-customerGroup="item">
+                    {{ customerGroup.updatedAt | localeDate : 'short' }}
+                </ng-template>
+            </vdr-dt2-column>
+            <vdr-dt2-column
+                [heading]="'common.name' | translate" id="name"
+                [optional]="false"
+                [sort]="sorts.get('name')"
+            >
+                <ng-template let-customerGroup="item">
+                    <a class="button-ghost" [routerLink]="['./', customerGroup.id]"
+                        ><span>{{ customerGroup.name }}</span>
+                        <clr-icon shape="arrow right"></clr-icon>
+                    </a>
+                </ng-template>
+            </vdr-dt2-column>
+            <vdr-dt2-column [heading]="'common.view-contents' | translate" id="view-contents" [optional]="false">
+                <ng-template let-customerGroup="item">
+                    <a
+                        class="button-small bg-weight-150"
+                        [routerLink]="['./', { contents: customerGroup.id }]"
+                        queryParamsHandling="preserve"
+                    >
+                        <span>{{ 'settings.view-zone-members' | translate }}</span>
+                        <clr-icon shape="file-group"></clr-icon>
+                    </a>
+                </ng-template>
+            </vdr-dt2-column>
+            <vdr-dt2-custom-field-column
+                *ngFor="let customField of customFields"
+                [customField]="customField"
+                [sort]="sorts"
+            />
+        </vdr-data-table-2>
+    </ng-template>
+    <ng-template vdrSplitViewRight [splitViewTitle]="(activeZone$ | async)?.name">
+        <ng-container *ngIf="activeZone$ | async as activeZone">
+            <button class="button-ghost ml-4" (click)="addToZone(activeZone)">
+                <clr-icon shape="plus"></clr-icon>
+                <span>{{
+                    'settings.add-countries-to-zone' | translate : { zoneName: activeZone.name }
+                }}</span>
+            </button>
+            <vdr-zone-member-list
+                *ngIf="activeZone$ | async as activeZone"
+                locationId="zone-members-list"
+                [selectedMemberIds]="selectedMemberIds"
+                [activeZone]="activeZone"
+                (selectionChange)="selectedMemberIds = $event"
+            />
+        </ng-container>
+    </ng-template>
+</vdr-split-view>

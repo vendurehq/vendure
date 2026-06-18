@@ -1,0 +1,27 @@
+---
+title: "AssetImporter"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/data-import/providers/asset-importer/asset-importer.ts" sourceLine="17" packageName="@vendure/core" />
+
+This service creates new [Asset](/reference/typescript-api/entities/asset#asset) entities based on string paths provided in the CSV
+import format. The source files are resolved by joining the value of `importExportOptions.importAssetsDir`
+with the asset path. This service is used internally by the [Importer](/reference/typescript-api/import-export/importer#importer) service.
+
+```ts title="Signature"
+class AssetImporter {
+    getAssets(assetPaths: string[], ctx?: RequestContext) => Promise<{ assets: Asset[]; errors: string[] }>;
+}
+```
+
+<div className="members-wrapper">
+
+### getAssets
+
+<MemberInfo kind="method" type={`(assetPaths: string[], ctx?: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<{ assets: <a href='/reference/typescript-api/entities/asset#asset'>Asset</a>[]; errors: string[] }>`}   />
+
+Creates Asset entities for the given paths, using the assetMap cache to prevent the
+creation of duplicates.
+
+
+</div>

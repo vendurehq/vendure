@@ -1,0 +1,21 @@
+<div [formGroup]="structFormGroup" class="struct-container p-2">
+    <div *ngFor="let field of fields" class="flex mb-1">
+        <label class="struct-field-wrapper">
+            <div class="struct-field-label">
+                {{ field.def | customFieldLabel: (uiLanguage$ | async) }}
+                <vdr-help-tooltip
+                    *ngIf="field.def | customFieldDescription: (uiLanguage$ | async) as description"
+                    [content]="description"
+                ></vdr-help-tooltip>
+            </div>
+
+            <vdr-dynamic-form-input
+                [readonly]="false"
+                [control]="field.formControl"
+                [def]="field.def"
+                [formControlName]="field.def.name"
+            >
+            </vdr-dynamic-form-input>
+        </label>
+    </div>
+</div>

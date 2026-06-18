@@ -1,0 +1,20 @@
+<vdr-dropdown>
+    <button class="button" vdrDropdownTrigger>
+        <span>{{ 'common.items-per-page-option' | translate : { count: itemsPerPage } }}</span>
+        <clr-icon shape="ellipsis-vertical"></clr-icon>
+    </button>
+    <vdr-dropdown-menu vdrPosition="bottom-left">
+        <button vdrDropdownItem (click)="itemsPerPageChange.emit(10)">
+            {{ 'common.items-per-page-option' | translate : { count: 10 } }}
+        </button>
+        <button vdrDropdownItem (click)="itemsPerPageChange.emit(25)">
+            {{ 'common.items-per-page-option' | translate : { count: 25 } }}
+        </button>
+        <button vdrDropdownItem (click)="itemsPerPageChange.emit(50)">
+            {{ 'common.items-per-page-option' | translate : { count: 50 } }}
+        </button>
+        <button vdrDropdownItem (click)="itemsPerPageChange.emit(100)">
+            {{ 'common.items-per-page-option' | translate : { count: 100 } }}
+        </button>
+    </vdr-dropdown-menu>
+</vdr-dropdown>

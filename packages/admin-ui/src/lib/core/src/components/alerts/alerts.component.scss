@@ -1,0 +1,40 @@
+@import 'variables';
+
+.alerts-button {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: none;
+    font-size: var(--font-size-sm);
+    width: 100%;
+    line-height: 100%;
+    height: 40px;
+    color: var(--color-text-100);
+    background-color: var(--color-page-header-item-bg);
+    border-radius: var(--border-radius-lg);
+
+    cursor: pointer;
+    padding: calc(var(--space-unit) * 1.5);
+
+    &:hover {
+        color: var(--color-text-200);
+    }
+}
+
+vdr-status-badge {
+    position: absolute;
+    top: 9px;
+    right: 9px;
+}
+
+.no-alerts {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+    color: var(--color-text-300);
+    font-size: var(--font-size-sm);
+    padding: 0 calc(var(--space-unit) * 1.5);
+}

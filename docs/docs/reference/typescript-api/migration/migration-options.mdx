@@ -1,0 +1,31 @@
+---
+title: "MigrationOptions"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/migrate.ts" sourceLine="19" packageName="@vendure/core" />
+
+Configuration for generating a new migration script via [generateMigration](/reference/typescript-api/migration/generate-migration#generatemigration).
+
+```ts title="Signature"
+interface MigrationOptions {
+    name: string;
+    outputDir?: string;
+}
+```
+
+<div className="members-wrapper">
+
+### name
+
+<MemberInfo kind="property" type={`string`}   />
+
+The name of the migration. The resulting migration script will be named
+`{TIMESTAMP}-{name}.ts`.
+### outputDir
+
+<MemberInfo kind="property" type={`string`}   />
+
+The output directory of the generated migration scripts.
+
+
+</div>

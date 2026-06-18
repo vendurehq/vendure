@@ -1,0 +1,15 @@
+assets
+vendure
+test-emails
+vendure.sqlite*
+vendure-import-error.log
+load-testing/data-sources/products*.csv
+load-testing/results/**/*.json
+load-testing/results/**/*.csv
+load-testing/static/assets
+dev-config-override.ts
+vendure.log
+scripts/dev-test
+custom-admin-ui
+docker-compose.*.yml
+graphql/graphql-env.d.ts

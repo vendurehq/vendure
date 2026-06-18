@@ -1,0 +1,17 @@
+<ng-select
+    [addTag]="addTagFn"
+    [multiple]="true"
+    [ngModel]="_value"
+    [clearable]="true"
+    [searchable]="true"
+    [disabled]="disabled"
+    [placeholder]="placeholder"
+    (change)="valueChanged($event)"
+>
+    <ng-template ng-label-tmp let-tag="item" let-clear="clear">
+        <vdr-chip [colorFrom]="tag" icon="close" (iconClick)="clear(tag)"><clr-icon shape="tag" class="mr2"></clr-icon> {{ tag }}</vdr-chip>
+    </ng-template>
+    <ng-option *ngFor="let tag of allTags$ | async" [value]="tag">
+        <vdr-chip [colorFrom]="tag"><clr-icon shape="tag" class="mr2"></clr-icon> {{ tag }}</vdr-chip>
+    </ng-option>
+</ng-select>

@@ -1,0 +1,102 @@
+:host {
+    display: flex;
+    width: 100%;
+}
+
+.input-wrapper {
+    flex: 1;
+    display: flex;
+}
+
+input.selected-datetime {
+    flex: 1;
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    border-inline-end: none !important;
+}
+
+button.clear-value-button {
+    margin: 0;
+    border-radius: 0;
+    border-inline-start: none;
+    border: none;
+    border-top: 1px solid var(--color-weight-200);
+    border-bottom: 1px solid var(--color-weight-200);
+    border-inline-end: 1px solid var(--color-weight-200);
+    background-color: var(--color-button-bg);
+    color: var(--color-text-100);
+    display: none;
+    &.visible {
+        display: block;
+    }
+}
+
+button.calendar-button {
+    margin: 0;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border: 1px solid var(--color-weight-200);
+    border-radius: var(--border-radius-sm);
+    border-inline-start: none;
+    height: 100%;
+    background-color: var(--color-button-bg);
+    color: var(--color-text-100);
+}
+
+.datetime-picker {
+    margin: 0 12px;
+}
+table.calendar-table {
+    padding: 6px;
+    &:focus {
+        outline: 1px solid var(--color-primary-500);
+        box-shadow: 0 0 1px 2px var(--color-primary-100);
+    }
+    td {
+        width: 24px;
+        text-align: center;
+        border: 1px solid transparent;
+        user-select: none;
+    }
+    .day-cell {
+        background-color: var(--color-component-bg-200);
+        color: var(--color-text-100);
+
+        cursor: pointer;
+        transition: background-color 0.1s;
+        &.current-month {
+            background-color: var(--color-weight-100);
+            color: var(--color-text-100);
+        }
+        &.selected {
+            background-color: var(--color-primary-500);
+            color: white;
+        }
+        &.viewing:not(.selected) {
+            background-color: var(--color-primary-200);
+        }
+        &.today {
+            border: 1px solid var(--color-component-border-300);
+        }
+        &:hover:not(.selected):not(.disabled) {
+            background-color: var(--color-primary-100);
+        }
+        &.disabled {
+            cursor: default;
+            color: var(--color-text-200);
+        }
+    }
+}
+.selects {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+.control-buttons {
+    display: flex;
+}
+.time-picker {
+    display: flex;
+    align-items: baseline;
+    margin-top: 12px;
+}

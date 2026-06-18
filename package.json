@@ -1,0 +1,120 @@
+{
+  "name": "vendure",
+  "version": "0.0.0",
+  "private": true,
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "homepage": "https://www.vendure.io",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vendurehq/vendure"
+  },
+  "scripts": {
+    "watch": "lerna run watch --parallel",
+    "watch:core-common": "lerna run --scope @vendure/common --scope @vendure/core watch --parallel",
+    "build:core-common": "lerna run --scope @vendure/common --scope @vendure/core build",
+    "lint": "eslint --fix",
+    "format": "prettier --write --html-whitespace-sensitivity ignore",
+    "docs:generate-typescript-docs": "ts-node scripts/docs/generate-typescript-docs.ts",
+    "docs:generate-graphql-docs": "ts-node scripts/docs/generate-graphql-docs.ts --api=shop && ts-node scripts/docs/generate-graphql-docs.ts --api=admin",
+    "docs:build": "bun run docs:generate-typescript-docs && bun run docs:generate-graphql-docs",
+    "codegen": "tsc -p scripts/codegen/plugins && ts-node scripts/codegen/generate-graphql-types.ts && bun run codegen:gql-tada",
+    "codegen:gql-tada": "ts-node scripts/codegen/generate-gql-tada-types.ts",
+    "version": "bun install && bun run check-imports && bun run check-angular-versions && bun run build && bun run check-core-type-defs && bun run generate-changelog && git add CHANGELOG* && git add */version.ts && git add bun.lock",
+    "test": "lerna run test --stream --no-bail",
+    "e2e": "lerna run e2e --stream --no-bail",
+    "build": "lerna run build",
+    "check-imports": "ts-node scripts/check-imports.ts",
+    "check-core-type-defs": "ts-node scripts/check-core-type-defs.ts",
+    "check-angular-versions": "ts-node scripts/check-angular-versions.ts",
+    "generate-changelog": "ts-node scripts/changelogs/generate-changelog.ts",
+    "publish-release": "lerna version -m \"chore: Publish %s\" --no-push --force-publish --exact",
+    "publish-prerelease": "lerna version -m \"chore: Pre-release %s\" prerelease --exact --no-push --force-publish --preid next --dist-tag next",
+    "publish-local": "lerna version --force-publish --no-git-tag-version && cd scripts && ./publish-to-verdaccio.sh"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.1.0",
+    "@commitlint/config-conventional": "^19.1.0",
+    "@gql.tada/cli-utils": "^1.6.5",
+    "@graphql-codegen/add": "6.0.0",
+    "@graphql-codegen/cli": "6.0.0",
+    "@graphql-codegen/fragment-matcher": "6.0.0",
+    "@graphql-codegen/typed-document-node": "^6.0.1",
+    "@graphql-codegen/typescript": "5.0.1",
+    "@graphql-codegen/typescript-operations": "5.0.1",
+    "@graphql-tools/schema": "^10.0.25",
+    "@swc/core": "^1.4.6",
+    "@types/node": "^20.11.19",
+    "@vendure-io/docs-generator": "^0.1.1",
+    "concurrently": "^9.2.0",
+    "conventional-changelog-core": "^7.0.0",
+    "cross-env": "^7.0.3",
+    "find": "^0.3.0",
+    "gql.tada": "^1.8.10",
+    "graphql": "^16.11.0",
+    "husky": "^4.3.0",
+    "lerna": "^9.0.3",
+    "lint-staged": "^10.5.4",
+    "prettier": "^3.2.5",
+    "prettier-plugin-organize-imports": "^4.1.0",
+    "rollup": "^4.18.0",
+    "tinybench": "^2.6.0",
+    "ts-node": "^10.9.2",
+    "typescript": "5.8.2",
+    "unplugin-swc": "^1.4.4",
+    "vite": "^7.3.1",
+    "vitest": "^3.2.4"
+  },
+  "//": "Fix for https://github.com/npm/cli/issues/4828",
+  "optionalDependencies": {
+    "@nx/nx-darwin-arm64": "17.2.8",
+    "@nx/nx-darwin-x64": "17.2.8",
+    "@nx/nx-linux-x64-gnu": "17.2.8",
+    "@nx/nx-win32-x64-msvc": "17.2.8",
+    "@rollup/rollup-linux-x64-gnu": "^4.13.0",
+    "@swc/core-darwin-arm64": "1.7.19",
+    "@swc/core-linux-x64-gnu": "1.4.7"
+  },
+  "//overrides": "Force a single graphql version across the monorepo install. Without this, transitive deps (e.g. @types/graphql-upload) keep a nested graphql@16.11.0 alongside the hoisted copy, which breaks TS type portability (TS2742) when building @vendure/core. Mirrors the ^16.11.0 dependency ranges. Relates to #4701.",
+  "overrides": {
+    "graphql": "^16.11.0"
+  },
+  "trustedDependencies": [
+    "husky",
+    "better-sqlite3"
+  ],
+  "workspaces": [
+    "packages/*"
+  ],
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ],
+    "rules": {
+      "subject-case": [
+        2,
+        "always",
+        [
+          "sentence-case"
+        ]
+      ]
+    }
+  },
+  "husky": {
+    "hooks": {
+      "commit-msg": "commitlint -e $HUSKY_GIT_PARAMS",
+      "post-commit": "git update-index --again",
+      "pre-commit": "NODE_OPTIONS=\"--max-old-space-size=8096\" lint-staged"
+    }
+  },
+  "dependencies": {
+    "@typescript-eslint/eslint-plugin": "^5.54.1",
+    "@typescript-eslint/parser": "^5.54.1",
+    "eslint": "^8.41.0",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-jsdoc": "^45.0.0",
+    "eslint-plugin-prefer-arrow": "^1.2.3"
+  }
+}

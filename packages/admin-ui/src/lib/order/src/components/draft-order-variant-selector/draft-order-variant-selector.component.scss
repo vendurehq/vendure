@@ -1,0 +1,25 @@
+.variant-details {
+    display: flex;
+    align-items: center;
+
+    img {
+        border-radius: var(--border-radius-img);
+        width: 32px;
+        height: 32px;
+    }
+
+    .details {
+        font-size: 0.65rem;
+        line-height: 0.7rem;
+    }
+
+    input {
+        width: 48px;
+        margin: 0 6px;
+    }
+
+    .small {
+        font-size: 11px;
+        color: var(--color-text-300);
+    }
+}

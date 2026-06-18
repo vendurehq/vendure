@@ -1,0 +1,150 @@
+<vdr-page-detail-layout>
+    <vdr-page-detail-sidebar>
+        <vdr-card>
+            <div *ngIf="!editable" class="mb-2">
+                <a
+                    class="button-ghost"
+                    [routerLink]="['/catalog', 'assets', asset.id]"
+                    (click)="editClick.emit()"
+                >
+                    <clr-icon shape="edit"></clr-icon>
+                    {{ 'common.edit' | translate }}
+                    <clr-icon shape="arrow right"></clr-icon>
+                </a>
+            </div>
+            <vdr-form-field *ngIf="editable" [label]="'common.name' | translate" class="mb-2">
+                <input
+                    type="text"
+                    [formControl]="form.get('name')"
+                    [readonly]="!(['UpdateCatalog', 'UpdateAsset'] | hasPermission) || settingFocalPoint"
+                />
+            </vdr-form-field>
+            <vdr-labeled-data [label]="'common.name' | translate" *ngIf="!editable">
+                <span class="elide">
+                    {{ asset.name }}
+                </span>
+            </vdr-labeled-data>
+            <vdr-labeled-data [label]="'asset.source-file' | translate">
+                <a [href]="asset.source" [title]="asset.source" target="_blank" class="elide source-link">{{
+                    getSourceFileName()
+                }}</a>
+            </vdr-labeled-data>
+
+            <vdr-labeled-data [label]="'asset.original-asset-size' | translate">
+                {{ asset.fileSize | filesize }}
+            </vdr-labeled-data>
+
+            <vdr-labeled-data [label]="'asset.dimensions' | translate">
+                {{ asset.width }} x {{ asset.height }}
+            </vdr-labeled-data>
+
+            <vdr-labeled-data [label]="'asset.focal-point' | translate">
+                <span *ngIf="fpx"
+                    ><clr-icon shape="crosshairs"></clr-icon> x: {{ fpx | number : '1.2-2' }}, y:
+                    {{ fpy | number : '1.2-2' }}</span
+                >
+                <span *ngIf="!fpx">{{ 'common.not-set' | translate }}</span>
+                <div class="flex mt-1">
+                    <button
+                        class="button-small mr-1"
+                        [disabled]="settingFocalPoint"
+                        (click)="setFocalPointStart()"
+                    >
+                        <ng-container *ngIf="!fpx">{{ 'asset.set-focal-point' | translate }}</ng-container>
+                        <ng-container *ngIf="fpx">{{ 'asset.update-focal-point' | translate }}</ng-container>
+                    </button>
+                    <button
+                        class="button-small"
+                        [disabled]="settingFocalPoint"
+                        *ngIf="!!fpx"
+                        (click)="removeFocalPoint()"
+                    >
+                        {{ 'asset.unset-focal-point' | translate }}
+                    </button>
+                </div>
+            </vdr-labeled-data>
+            <vdr-labeled-data [label]="'common.tags' | translate">
+                <ng-container *ngIf="editable">
+                    <vdr-tag-selector [formControl]="form.get('tags')"></vdr-tag-selector>
+                    <button class="button-small mt-1" (click)="manageTags()">
+                        <clr-icon shape="tags"></clr-icon>
+                        {{ 'common.manage-tags' | translate }}
+                    </button>
+                </ng-container>
+                <div *ngIf="!editable">
+                    <vdr-chip *ngFor="let tag of asset.tags" [colorFrom]="tag.value">
+                        <clr-icon shape="tag" class="mr2"></clr-icon>
+                        {{ tag.value }}</vdr-chip
+                    >
+                </div>
+            </vdr-labeled-data>
+        </vdr-card>
+        <vdr-card *ngIf="customFields.length" [title]="'common.custom-fields' | translate">
+            <vdr-tabbed-custom-fields
+                entityName="Asset"
+                [compact]="true"
+                [customFields]="customFields"
+                [customFieldsFormGroup]="customFieldsForm"
+                [readonly]="!(['UpdateCatalog', 'UpdateAsset'] | hasPermission)"
+            ></vdr-tabbed-custom-fields>
+        </vdr-card>
+        <vdr-card [title]="'asset.preview' | translate">
+            <vdr-form-field>
+                <select name="options" [(ngModel)]="size" [disabled]="settingFocalPoint">
+                    <option value="tiny">tiny</option>
+                    <option value="thumb">thumb</option>
+                    <option value="small">small</option>
+                    <option value="medium">medium</option>
+                    <option value="large">large</option>
+                    <option value="">full size</option>
+                </select>
+            </vdr-form-field>
+            <div class="asset-detail">{{ width }} x {{ height }}</div>
+            <vdr-asset-preview-links [asset]="asset"></vdr-asset-preview-links>
+        </vdr-card>
+        <vdr-card>
+            <vdr-page-entity-info *ngIf="asset as entity" [entity]="entity"></vdr-page-entity-info>
+        </vdr-card>
+    </vdr-page-detail-sidebar>
+    <div class="carousel-container">
+        <button *ngIf="showSlideButtons" (click)="previousImage()" class="carousel-button" [class.disabled]="disablePreviousButton">
+            <clr-icon shape="caret left" class="color-weight-800"></clr-icon>
+        </button>
+        <div class="preview-image" #previewDiv [class.centered]="centered">
+            <div class="image-wrapper">
+                <vdr-focal-point-control
+                    [width]="width"
+                    [height]="height"
+                    [fpx]="fpx"
+                    [fpy]="fpy"
+                    [editable]="settingFocalPoint"
+                    (focalPointChange)="onFocalPointChange($event)"
+                >
+                    <img
+                        class="asset-image"
+                        [src]="asset | assetPreview : size"
+                        [ngClass]="size"
+                        #imageElement
+                        (load)="onImageLoad()"
+                    />
+                </vdr-focal-point-control>
+                <div class="focal-point-info" *ngIf="settingFocalPoint">
+                    <button class="icon-button" (click)="setFocalPointCancel()">
+                        <clr-icon shape="times"></clr-icon>
+                    </button>
+                    <button
+                        class="btn btn-primary btn-sm"
+                        (click)="setFocalPointEnd()"
+                        [disabled]="!lastFocalPoint"
+                    >
+                        <clr-icon shape="crosshairs"></clr-icon>
+                        {{ 'asset.set-focal-point' | translate }}
+                    </button>
+                </div>
+            </div>
+        </div>
+        <button *ngIf="showSlideButtons" (click)="nextImage()" class="carousel-button" [class.disabled]="disableNextButton">
+            <clr-icon shape="caret right" class="color-weight-800"></clr-icon>
+        </button>
+    </div>
+</vdr-page-detail-layout>

@@ -1,0 +1,591 @@
+// Vendure dark theme
+// Based on this dark theme example from Scott Mathis:
+// https://github.com/mathisscott/clarity-theming-starter/blob/20f4680b43a9a7fd3d43a6ba36f717fdafc6e570/src/_dark-theme.scss
+:root [data-theme="dark"] {
+    --color-grey-100: hsl(211, 10%, 90%);
+    --color-grey-200: hsl(211, 10%, 67%);
+    --color-grey-300: hsl(211, 10%, 47%);
+    --color-grey-400: hsl(208, 14%, 39%);
+    --color-grey-500: hsl(208, 16%, 34%);
+    --color-grey-600: hsl(198, 28%, 18%);
+    --color-grey-700: hsl(201, 30%, 15%);
+    --color-grey-800: hsl(201, 30%, 13%);
+    --color-grey-900: hsl(203, 30%, 8%);
+
+    --color-component-bg-100: hsl(201, 30%, 18%);
+    --color-component-bg-200: hsl(201, 30%, 22%);
+    --color-component-bg-300: hsl(201, 30%, 28%);
+    --color-component-border-100: var(--color-grey-700);
+    --color-component-border-200: var(--color-grey-600);
+    --color-component-border-300: var(--color-grey-500);
+    --color-text-100: hsl(210, 16%, 93%);
+    --color-text-200: hsl(203, 16%, 72%);
+    --color-text-300: var(--color-grey-300);
+    --color-text-inverse: var(--clr-global-font-color);
+    --color-text-active: var(--color-primary-600);
+
+    --color-weight-100: hsl(201 30% 15%);
+    --color-weight-125: hsl(201 30% 17%);
+    --color-weight-150: hsl(201 30% 20%);
+    --color-weight-200: hsl(201 30% 35%);
+    --color-weight-300: hsl(201 30% 45%);
+    --color-weight-400: hsl(201 30% 55%);
+    --color-weight-500: hsl(201 30% 65%);
+    --color-weight-600: hsl(201 30% 75%);
+    --color-weight-700: hsl(201 30% 85%);
+    --color-weight-800: hsl(201 30% 90%);
+    --color-weight-900: hsl(201 30% 92%);
+    --color-weight-950: hsl(201 30% 94%);
+    --color-weight-975: hsl(201 30% 96%);
+    --color-weight-1000: hsl(201 30% 98%);
+
+
+    --color-scrollbar-bg: var(--color-weight-125);
+    --color-scrollbar-thumb: var(--color-weight-200);
+    --color-scrollbar-thumb-hover: var(--color-weight-300);
+    --color-surface-bg: hsl(201, 30%, 13%);
+    --color-page-header:hsl(201, 30%, 15%);
+    --color-page-header-item-bg: var(--color-weight-150);
+    --color-top-bar-bg: hsl(201, 30%, 15%);
+    --color-left-nav-bg: hsl(201, 30%, 20%);
+    --color-left-nav-text-hover: var(--color-primary-200);
+
+    --color-card-border: var(--color-weight-150);
+    --color-card-bg: var(--color-weight-100);
+
+    --color-button-bg: var(--color-weight-150);
+    --color-button-hover-bg: var(--color-weight-200);
+    --color-button-ghost-bg: var(--color-weight-125);
+    --color-button-ghost-text: var(--color-text-100);
+    --color-button-ghost-hover-text: var(--color-primary-100);
+    --color-button-ghost-hover-bg: var(--color-weight-200);
+    --color-button-small-bg: var(--color-weight-150);
+    --color-button-small-hover-bg: var(--color-weight-200);
+    --color-button-small-text: var(--color-weight-700);
+
+    --color-channel-switcher-bg: var(--color-weight-125);
+    --color-channel-switcher-hover-bg: var(--color-weight-100);
+
+    --color-chip-warning-border: var(--color-warning-800);
+    --color-chip-warning-text: #fff;
+    --color-chip-warning-bg: var(--color-warning-700);
+    --color-chip-success-border: var(--color-success-800);
+    --color-chip-success-text: #fff;
+    --color-chip-success-bg: var(--color-success-700);
+    --color-chip-error-border: var(--color-error-800);
+    --color-chip-error-text: #fff;
+    --color-chip-error-bg: var(--color-error-700);
+
+    --color-icon-button: var(--color-grey-200);
+    --color-icon-button-hover: var(--color-primary-200);
+    --color-form-input-bg: var(--color-weight-150);
+    --color-form-input-focus: var(--color-primary-500);
+
+    --color-json-editor-background-color: var(--color-grey-600);
+    --color-json-editor-text: var(--color-grey-100);
+    --color-json-editor-string: var(--color-secondary-300);
+    --color-json-editor-number: var(--color-primary-300);
+    --color-json-editor-boolean: var(--color-primary-300);
+    --color-json-editor-null: var(--color-grey-300-grey-500);
+    --color-json-editor-key: var(--color-success-300);
+    --color-json-editor-error: var(--color-error-200);
+
+    --color-split-view-separator-border: var(--color-weight-150);
+    --color-split-view-separator-resize-border: var(--color-primary-700);
+
+
+    // clarity styles
+    --clr-global-app-background: hsl(201, 30%, 15%);
+    --clr-global-selection-color: hsl(203, 32%, 29%);
+    --clr-global-hover-bg-color: hsl(201, 31%, 23%);
+
+    --clr-close-color--normal: hsl(201, 17%, 80%);
+    --clr-close-color--normal-opacity: 1;
+    --clr-close-color--hover: hsl(201, 0%, 100%);
+    --clr-close-color--hover-opacity: 1;
+
+    --clr-popover-box-shadow-color: hsla(0, 0%, 0%, 0.5);
+
+    --clr-link-visited-color: var(--color-weight-700);
+    --clr-link-hover-color: var(--color-weight-700);
+    --clr-link-active-color: var(--color-weight-700);
+    --clr-link-color: var(--color-weight-700);
+
+    --clr-theme-alert-font-color: hsl(210, 16%, 93%);
+    --clr-theme-app-alert-font-color: hsl(0, 0%, 0%);
+
+    /*****************
+    * Badge
+    */
+    --clr-badge-font-color-light: hsl(0, 0%, 0%);
+    --clr-badge-font-color-dark: hsl(0, 0%, 0%);
+    --clr-badge-info-bg-color: hsl(198, 65%, 57%);
+    --clr-badge-info-color: hsl(0, 0%, 0%);
+    --clr-badge-success-bg-color: hsl(90, 67%, 38%);
+    --clr-badge-success-color: hsl(0, 0%, 0%);
+    --clr-badge-warning-bg-color: hsl(49, 98%, 51%);
+    --clr-badge-warning-color: hsl(0, 0%, 0%);
+    --clr-badge-danger-bg-color: hsl(3, 90%, 62%);
+    --clr-badge-danger-color: hsl(0, 0%, 0%);
+    --clr-badge-gray-bg-color: hsl(211, 10%, 47%);
+    --clr-badge-purple-bg-color: hsl(281, 44%, 62%);
+    --clr-badge-blue-bg-color: hsl(201, 100%, 36%);
+    --clr-badge-orange-bg-color: hsl(31, 100%, 60%);
+    --clr-badge-light-blue-bg-color: hsl(194, 57%, 71%);
+    // END: Badge
+
+    /*****************
+    * Buttons
+    */
+
+    // Use these to control the disabled appearance for all buttons.
+    --clr-btn-disabled-font-color: hsl(0, 0%, 0%);
+    --clr-btn-outline-disabled-font-color: hsl(0, 0%, 100%);
+    --clr-btn-disabled-bg-color: hsl(0, 0%, 100%);
+    --clr-btn-disabled-border-color: hsl(0, 0%, 100%);
+
+    // Disabled icon color
+    --clr-btn-icon-disabled-color: var(--clr-btn-outline-disabled-font-color);
+
+    // Default button
+    --clr-btn-default-color: hsl(198, 65%, 57%); // border-color, color, checked-background-color
+    --clr-btn-default-bg-color: transparent; // background-color, disabled-background-color
+    --clr-btn-default-hover-bg-color: hsla(0, 0%, 100%, 0.1); // hover-background-color
+    --clr-btn-default-hover-color: hsl(194, 78%, 63%); // hover-color
+    --clr-btn-default-box-shadow-color: hsl(0, 0%, 0%); // active-box-shadow-color
+    --clr-btn-default-checked-color: hsl(0, 0%, 100%); // checked-color
+    --clr-btn-default-checked-bg-color: var(--clr-btn-default-color);
+    --clr-btn-default-disabled-color: var(--clr-btn-outline-disabled-font-color); // disabled-color
+    --clr-btn-default-disabled-border-color: var(--clr-btn-disabled-border-color); // disabled-border-color
+
+    // Default button
+    --clr-btn-default-outline-color: hsl(198, 65%, 57%); // border-color, color, checked-background-color
+    --clr-btn-default-outline-bg-color: transparent; // background-color, disabled-background-color
+    --clr-btn-default-outline-hover-bg-color: hsla(0, 0%, 100%, 0.1); // hover-background-color
+    --clr-btn-default-outline-hover-color: hsl(194, 78%, 63%); // hover-color
+    --clr-btn-default-outline-box-shadow-color: hsl(0, 0%, 0%); // active-box-shadow-color
+    --clr-btn-default-outline-checked-color: hsl(0, 0%, 100%); // checked-color
+    --clr-btn-default-outline-checked-bg-color: var(--clr-btn-default-outline-color); // checked-color
+    --clr-btn-default-outline-disabled-color: var(--clr-btn-outline-disabled-font-color); // disabled-color
+    --clr-btn-default-outline-disabled-border-color: var(--clr-btn-disabled-border-color); // disabled-border-color
+    --clr-btn-default-outline-disabled-checked-color: var(--clr-btn-disabled-bg-color);
+
+    // Primary button
+    --clr-btn-primary-color: hsl(0, 0%, 0%); // color, checked-background-color
+    --clr-btn-primary-bg-color: hsl(198, 65%, 57%); // background-color, disabled-background-color
+    --clr-btn-primary-border-color: hsl(198, 65%, 57%); // border-color
+    --clr-btn-primary-hover-bg-color: hsl(194, 78%, 63%); // hover-background-color
+    --clr-btn-primary-hover-color: hsl(0, 0%, 0%); // hover-color
+    --clr-btn-primary-box-shadow-color: hsl(205, 100%, 34%); // active-box-shadow-color
+    --clr-btn-primary-checked-color: hsl(0, 0%, 100%); // checked-color
+    --clr-btn-primary-disabled-color: var(--clr-btn-disabled-font-color); // disabled-color
+    --clr-btn-primary-disabled-bg-color: var(--clr-btn-disabled-bg-color); // disabled-bg-color
+    --clr-btn-primary-disabled-border-color: var(--clr-btn-disabled-border-color); // disabled-border-color
+
+    // Success button
+    --clr-btn-success-color: hsl(0, 0%, 0%); // color, checked-color,
+    --clr-btn-success-bg-color: hsl(92, 79%, 40%); // background-color, border-color
+    --clr-btn-success-hover-bg-color: hsl(83, 77%, 44%); // hover-background-color
+    --clr-btn-success-hover-color: var(--clr-btn-success-color); // hover-color
+    --clr-btn-success-box-shadow-color: hsl(98, 100%, 21%); // active-box-shadow-color
+    --clr-btn-success-checked-bg-color: var(--clr-btn-success-hover-bg-color); // checked-background-color
+    --clr-btn-success-disabled-color: var(--clr-btn-disabled-font-color); // disabled-color
+    --clr-btn-success-disabled-bg-color: var(--clr-btn-disabled-bg-color); // disabled-background-color
+    --clr-btn-success-disabled-border-color: var(--clr-btn-disabled-border-color); // disabled-border-color
+
+    // Success outline button
+    --clr-btn-success-outline-color: hsl(92, 79%, 40%); // color
+    --clr-btn-success-outline-border-color: hsl(92, 79%, 40%); // border-color, checked-background-color
+    --clr-btn-success-outline-hover-bg-color: hsla(0, 0%, 100%, 0.1); // hover-background-color
+    --clr-btn-success-outline-hover-color: hsl(83, 77%, 44%); // hover-color
+    --clr-btn-success-outline-box-shadow-color: hsl(0, 0%, 0%); // active-box-shadow-color
+    --clr-btn-success-outline-checked-color: hsl(0, 0%, 100%); // checked-color
+    --clr-btn-success-outline-disabled-color: var(--clr-btn-outline-disabled-font-color); // disabled-color
+    --clr-btn-success-outline-disabled-bg-color: transparent; // disabled-background-color
+    --clr-btn-success-outline-disabled-border-color: var(--clr-btn-disabled-border-color); // disabled-border-color
+
+    // Danger button
+    --clr-btn-danger-color: hsl(0, 0%, 0%); // color, checked-color,
+    --clr-btn-danger-bg-color: hsl(3, 90%, 62%); // background-color, border-color
+    --clr-btn-danger-hover-bg-color: hsl(3, 100%, 69%); // hover-background-color
+    --clr-btn-danger-hover-color: var(--clr-btn-danger-color); // hover-color
+    --clr-btn-danger-box-shadow-color: hsl(10, 100%, 39%); // active-box-shadow-color
+    --clr-btn-danger-checked-bg-color: hsl(10, 100%, 39%); // checked-background-color
+    --clr-btn-danger-disabled-color: var(--clr-btn-disabled-font-color); // disabled-color),
+    --clr-btn-danger-disabled-bg-color: var(--clr-btn-disabled-bg-color); // disabled-background-color
+    --clr-btn-danger-disabled-border-color: var(--clr-btn-disabled-border-color); // disabled-border-color
+
+    // Danger outline button
+    --clr-btn-danger-outline-border-color: hsl(3, 90%, 62%); // border-color
+    --clr-btn-danger-outline-color: hsl(3, 90%, 62%); // color
+    --clr-btn-danger-outline-hover-bg-color: hsla(0, 0%, 100%, 0.1); // hover-background-color
+    --clr-btn-danger-outline-hover-color: hsl(3, 100%, 69%); // hover-color
+    --clr-btn-danger-outline-box-shadow-color: hsl(0, 0%, 0%); // active-box-shadow-color
+    --clr-btn-danger-outline-checked-bg-color: hsl(3, 90%, 62%); // checked-background-color
+    --clr-btn-danger-outline-checked-color: hsl(0, 0%, 100%); // checked-color
+    --clr-btn-danger-outline-disabled-color: var(--clr-btn-outline-disabled-font-color); // disabled-color
+    --clr-btn-danger-outline-disabled-bg-color: transparent; // disabled-background-color
+    --clr-btn-danger-outline-disabled-border-color: var(--clr-btn-disabled-border-color); // disabled-border-color
+
+    // Link button
+    --clr-btn-link-color: hsl(198, 65%, 57%); // color
+    --clr-btn-link-hover-color: hsl(194, 78%, 63%); // hover-color
+    --clr-btn-link-checked-color: hsl(198, 65%, 57%); // checked-color
+    --clr-btn-link-disabled-color: var(--clr-btn-outline-disabled-font-color); // disabled-color
+
+    // Inverse button
+    --clr-btn-inverse-border-color: hsl(210, 16%, 93%); // border-color
+    --clr-btn-inverse-bg-color: transparent; // background-color
+    --clr-btn-inverse-color: hsl(210, 16%, 93%); // color
+    --clr-btn-inverse-hover-bg-color: rgba(0, 0, 0, 0.1); // hover-background-color
+    --clr-btn-inverse-hover-color: hsl(0, 0%, 100%); // hover-color
+    --clr-btn-inverse-box-shadow-color: hsl(203, 14%, 70%); // active-box-shadow-color
+    --clr-btn-inverse-checked-bg-color: hsla(0, 0%, 100%, 0.15); // checked-background-color
+    --clr-btn-inverse-checked-color: hsl(0, 0%, 100%); // checked-color
+    --clr-btn-inverse-disabled-color: var(--clr-btn-outline-disabled-font-color); // disabled-color
+    --clr-btn-inverse-disabled-border-color: var(--clr-btn-disabled-border-color); // disabled-border-color
+    // END: Buttons
+
+    /**********
+    * Card
+    */
+    --clr-card-header-title-color: var(--color-text-200);
+    --clr-card-bg-color: hsl(198, 28%, 18%);
+    --clr-card-border-color: hsl(203, 30%, 13%);
+    --clr-card-title-color: hsl(210, 16%, 93%);
+    --clr-card-box-shadow-color: var(--clr-card-border-color);
+    --clr-card-box-shadow: 0 0.15rem 0 0 var(--clr-card-border-color);
+    --clr-card-divider-color: var(--clr-card-border-color);
+    // END: Card
+
+    /**********
+    * Datagrid
+    */
+    --clr-datagrid-icon-color: hsl(203, 16%, 72%);
+    --clr-datagrid-row-hover: hsl(201, 31%, 23%);
+    --clr-datagrid-row-selected: hsl(0, 0%, 100%);
+    --clr-datagrid-popover-bg-color: hsl(198, 28%, 18%);
+    --clr-datagrid-action-toggle: hsl(203, 16%, 72%);
+    --clr-datagrid-pagination-btn-color: hsl(210, 16%, 93%);
+    --clr-datagrid-pagination-btn-disabled-color: hsl(210, 16%, 93%);
+    --clr-datagrid-pagination-btn-disabled-opacity: 0.46;
+    --clr-datagrid-pagination-input-border-color: hsl(208, 16%, 34%);
+    --clr-datagrid-pagination-input-border-focus-color: hsl(198, 65%, 57%);
+    --clr-datagrid-popover-border-color: hsl(0, 0%, 0%);
+    --clr-datagrid-action-popover-hover-color: var(--clr-datagrid-row-hover);
+    --clr-datagrid-loading-background: rgba(0, 0, 0, 0.5);
+    // END: Datagrid
+
+    /*********
+    * Dropdown
+    */
+    --clr-dropdown-active-text-color: hsl(0, 0%, 100%);
+    --clr-dropdown-bg-color: hsl(198, 28%, 18%);
+    --clr-dropdown-border-color: rgb(62, 97, 116);
+    --clr-dropdown-text-color: hsl(203, 16%, 72%);
+    --clr-dropdown-item-color: hsl(203, 16%, 72%);
+    --clr-dropdown-item-hover-color: hsl(203, 16%, 72%);
+    --clr-dropdown-child-border-color: hsl(0, 0%, 0%);
+    --clr-dropdown-bg-active-color: var(--clr-global-selection-color);
+    --clr-dropdown-bg-hover-color: var(--clr-global-hover-bg-color);
+    --clr-dropdown-selection-color: hsl(203, 32%, 29%);
+    --clr-dropdown-box-shadow: var(--clr-popover-box-shadow-color);
+    --clr-dropdown-divider-color: var(--clr-dropdown-border-color);
+    --clr-dropdown-header-color: hsl(203, 16%, 72%);
+    // END: Dropdown overrides
+
+    // Datepicker
+    --clr-calendar-background-color: hsl(198, 28%, 18%);
+    --clr-calendar-border-color: hsl(0, 0%, 0%);
+    --clr-datepicker-trigger-color: hsl(198, 65%, 57%);
+    --clr-datepicker-trigger-hover-color: hsl(194, 78%, 63%);
+    --clr-calendar-btn-color: hsl(198, 65%, 57%);
+    --clr-calendar-btn-hover-focus-color: hsl(201, 31%, 23%);
+    --clr-calendar-active-cell-background-color: hsl(203, 32%, 29%);
+    --clr-calendar-active-focus-cell-background-color: hsl(203, 32%, 29%);
+    --clr-calendar-today-date-cell-color: hsl(0, 0%, 100%);
+    --clr-calendar-active-cell-color: hsl(0, 0%, 100%);
+
+    /******
+    * Forms: TODO: track down component usages and names
+    */
+
+    //GENERIC
+    --clr-forms-label-color: hsl(203, 16%, 72%);
+    --clr-forms-text-color: hsl(210, 16%, 13%);
+    --clr-forms-invalid-color: hsl(3, 90%, 62%);
+    --clr-forms-subtext-color: hsl(0, 0%, 45%);
+    --clr-forms-subtext-color: hsl(203, 16%, 72%);
+    --clr-forms-border-color: hsl(203, 16%, 72%);
+    --clr-forms-focused-color: hsl(198, 65%, 57%);
+
+    // Textarea
+    --clr-forms-textarea-background-color: hsl(201, 30%, 13%);
+    --clr-forms-select-multiple-background-color: hsl(198, 28%, 18%);
+    --clr-forms-select-multiple-border-color: hsl(0, 0%, 0%);
+
+    // Select
+    --clr-forms-select-option-color: hsl(201, 30%, 13%); // Option bg color on chrome/windows is white.
+
+    // Checkbox
+    --clr-forms-checkbox-label-color: hsl(203, 16%, 72%);
+    --clr-forms-checkbox-background-color: hsl(198, 65%, 57%); // Use color here
+    --clr-forms-checkbox-checked-shadow: inset 0 0 0 0.3rem var(--clr-forms-checkbox-background-color);
+    --clr-forms-checkbox-indeterminate-border-color: hsl(203, 16%, 72%);
+    --clr-forms-checkbox-mark-color: hsl(0, 0%, 0%);
+    --clr-forms-checkbox-disabled-background-color: hsl(204, 10%, 60%);
+    --clr-forms-checkbox-disabled-mark-color: hsl(0, 0%, 0%);
+
+    // Radio
+    --clr-forms-radio-label-color: hsl(203, 16%, 72%);
+    --clr-forms-radio-selected-shadow: var(--clr-forms-checkbox-checked-shadow);
+    --clr-forms-radio-focused-shadow: 0 0 0.1rem 0.1rem var(--clr-link-active-color);
+    --clr-forms-radio-disabled-background-color: hsl(0, 0%, 0%);
+    --clr-forms-radio-disabled-mark-color: var(--clr-forms-checkbox-disabled-mark-color);
+    --clr-forms-radio-disabled-shadow: var(--clr-forms-checkbox-checked-shadow);
+
+    /**********
+    * Header
+    */
+    --clr-header-bg-color: hsl(201, 30%, 11%);
+    --clr-header-default-bg-color: var(--clr-header-bg-color);
+    --clr-header-1-bg-color: var(--clr-header-bg-color);
+    --clr-header-2-bg-color: hsl(195, 65%, 24%);
+    --clr-header-3-bg-color: hsl(206, 63%, 27%);
+    --clr-header-4-bg-color: hsl(315, 27%, 28%);
+    --clr-header-5-bg-color: hsl(233, 26%, 33%);
+    --clr-header-6-bg-color: hsl(203, 30%, 8%);
+    // END Header overrides
+
+    /**********
+    * Icons
+    */
+    --clr-icon-color-success: hsl(92, 79%, 40%);
+    --clr-icon-color-error: hsl(3, 90%, 62%);
+    --clr-icon-color-warning: hsl(49, 98%, 51%);
+    --clr-icon-color-info: hsl(198, 65%, 57%);
+    --clr-icon-color-inverse: hsl(0, 0%, 100%);
+    --clr-icon-color-highlight: hsl(198, 65%, 57%);
+    // END: Icons
+
+    /*****************
+    * Label
+    */
+    --clr-label-font-color-light: hsl(0, 0%, 100%);
+    --clr-label-font-color-dark: hsl(0, 0%, 0%);
+    --clr-label-bg-hover-color: hsl(0, 0%, 34%);
+    --clr-label-gray-bg-color: hsl(211, 10%, 47%);
+    --clr-label-purple-bg-color: hsl(281, 44%, 62%);
+    --clr-label-blue-bg-color: hsl(201, 100%, 36%);
+    --clr-label-orange-bg-color: hsl(31, 100%, 60%);
+    --clr-label-light-blue-bg-color: hsl(194, 57%, 71%);
+    --clr-label-info-bg-color: hsl(198, 79%, 28%);
+    --clr-label-info-font-color: var(--clr-label-font-color-light);
+    --clr-label-info-border-color: var(--clr-label-info-bg-color);
+    --clr-label-success-bg-color: hsl(122, 45%, 23%);
+    --clr-label-success-font-color: var(--clr-label-font-color-light);
+    --clr-label-success-border-color: var(--clr-label-success-bg-color);
+    --clr-label-danger-bg-color: hsl(357, 50%, 35%);
+    --clr-label-danger-font-color: var(--clr-label-font-color-light);
+    --clr-label-danger-border-color: var(--clr-label-danger-bg-color);
+    --clr-label-warning-bg-color: hsl(47, 87%, 27%);
+    --clr-label-warning-font-color: var(--clr-label-font-color-light);
+    --clr-label-warning-border-color: var(--clr-label-warning-bg-color);
+    // END: Labels
+
+    /********
+    * Login
+    */
+    --login-wrapper-inner-bg: var(--color-weight-150);
+    --clr-login-background-color: var(--clr-global-app-background);
+    --clr-login-background: '%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22UTF-8%22%20standalone%3D%22no%22%3F%3E%3Csvg%20width%3D%22736px%22%20height%3D%22838px%22%20viewBox%3D%220%200%20736%20838%22%20version%3D%221.1%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20xmlns%3Axlink%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxlink%22%3E%3Ctitle%3Evector%20art%3C%2Ftitle%3E%3Cdesc%3ECreated%20with%20Sketch.%3C%2Fdesc%3E%3Cdefs%3E%3C%2Fdefs%3E%3Cg%20id%3D%22symbols%22%20stroke%3D%22none%22%20stroke-width%3D%221%22%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20id%3D%22Login%22%20transform%3D%22translate(-504.000000%2C%200.000000)%22%3E%3Cg%20id%3D%22replaceable-image%22%20transform%3D%22translate(504.000000%2C%200.000000)%22%3E%3Cg%20id%3D%22vector-art%22%20transform%3D%22translate(-78.000000%2C%20-82.000000)%22%3E%3Crect%20id%3D%22Rectangle-path%22%20fill%3D%22%2322343E%22%20x%3D%220%22%20y%3D%220.38%22%20width%3D%221127.55%22%20height%3D%22921.62%22%3E%3C%2Frect%3E%3Cpolygon%20id%3D%22Shape%22%20fill%3D%22%232F657B%22%20points%3D%220%203.06%200%20599.24%20298.14%20301.43%22%3E%3C%2Fpolygon%3E%3Cpolygon%20id%3D%22Shape%22%20fill%3D%22%23438597%22%20points%3D%220%20408.65%200%20599.24%2095.29%20504.06%22%3E%3C%2Fpolygon%3E%3Cpolygon%20id%3D%22Shape%22%20fill%3D%22%232F657B%22%20points%3D%22918.21%20921.95%20818.63%20822.3%20718.89%20921.95%22%3E%3C%2Fpolygon%3E%3Cpolygon%20id%3D%22Shape%22%20fill%3D%22%233B758E%22%20points%3D%22818.63%20822.3%20298.14%20301.43%200%20599.24%200%20655.02%20266.51%20921.95%20718.89%20921.95%22%3E%3C%2Fpolygon%3E%3Cpolygon%20id%3D%22Shape%22%20fill%3D%22%23579EB2%22%20points%3D%22512.67%20921.95%2095.29%20504.06%200%20599.24%200%20654.97%20267.06%20921.95%22%3E%3C%2Fpolygon%3E%3Cpolygon%20id%3D%22Shape%22%20fill%3D%22%23344B57%22%20points%3D%22266.51%20921.95%200%20655.02%200%20921.95%22%3E%3C%2Fpolygon%3E%3Cpolygon%20id%3D%22Shape%22%20fill%3D%22%23A7C9D5%22%20points%3D%221128%200%20799.58%200%201128%20329.83%22%3E%3C%2Fpolygon%3E%3Cpolygon%20id%3D%22Shape%22%20fill%3D%22%23344B57%22%20points%3D%221128%20329.83%20799.58%200%20599.9%200%20298.14%20301.43%20818.63%20822.3%201128%20513.18%22%3E%3C%2Fpolygon%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E';
+    // END LOGIN
+
+    /**********
+    * Modal
+    */
+    --clr-modal-close-color: hsl(203, 16%, 72%);
+    --clr-modal-bg-color: hsl(198, 28%, 18%);
+    --clr-modal-title-color: var(--clr-global-font-color);
+    --clr-modal-backdrop-color: hsla(0, 0%, 0%, 0.85);
+    --clr-modal-text-color: var(--color-text-100);
+    // END Modal
+
+    /***************
+    * Nav
+    */
+    --clr-sliding-panel-text-color: hsl(0, 0%, 34%);
+    --clr-transition-style: ease;
+    --clr-nav-background-color: var(--clr-header-bg-color);
+    --clr-responsive-nav-hover-bg: var(--clr-global-selection-color);
+    --clr-sliding-panel-text-color: hsl(0, 0%, 100%);
+
+    --clr-sidenav-border-color: var(--color-component-border-100);
+    --clr-sidenav-link-hover-color: var(--color-component-bg-200);
+    --clr-sidenav-color: var(--clr-global-font-color);
+    --clr-sidenav-header-color: var(--clr-global-font-color);
+    --clr-sidenav-link-active-color: hsl(210, 16%, 93%);
+    --clr-sidenav-link-active-bg-color: var(--color-component-bg-300);
+
+    --clr-subnav-bg-color: var(--color-component-bg-200);
+    --clr-nav-shadow: 0 -0.05rem 0 hsl(208, 16%, 34%) inset;
+    // END Nav
+
+    /**************
+    * Progress Bars
+    */
+    --clr-progress-defaultBarColor: hsl(198, 65%, 57%);
+    --clr-progress-success-color: hsl(92, 79%, 40%);
+    --clr-progress-danger-color: hsl(3, 90%, 62%);
+    --clr-progress-warning-color: var(--clr-progress-danger-color);
+    --clr-progress-bg-color: hsl(200, 23%, 25%);
+    // END Progress Bars
+
+    /*********
+    * Signpost
+    */
+    --clr-signpost-action-color: hsl(210, 16%, 93%);
+    --clr-signpost-action-hover-color: hsl(198, 65%, 57%);
+    --clr-signpost-content-bg-color: hsl(198, 28%, 18%);
+    --clr-signpost-content-border-color: hsl(0, 0%, 0%);
+    --clr-signpost-border-size: 0.5rem;
+    --clr-signpost-pointer-border: var(--clr-signpost-border-size solid --clr-signpost-content-border-color);
+    --clr-signpost-pointer-invisible-border: var(--clr-signpost-border-size solid transparent);
+    --clr-signpost-pointer-psuedo-border: var(--clr-signpost-border-size solid --clr-signpost-content-bg-color);
+
+    // END Signpost overrides
+
+    /*********
+    * Spinner
+    */
+    --clr-spinner-color: hsl(198, 65%, 57%);
+    --clr-spinner-bg-color: hsl(200, 23%, 25%);
+    --clr-spinner-opacity: 1;
+    // END Spinners
+
+    /**********
+    * Table
+    */
+    --clr-thead-bgcolor: hsl(201, 30%, 15%);
+    --clr-table-bgcolor: hsl(198, 28%, 18%);
+    --clr-table-font-color: hsl(203, 16%, 72%);
+    --clr-thead-color: var(--clr-table-font-color);
+    --clr-datagrid-default-border-color: hsl(208, 16%, 34%);
+    --clr-table-header-border-bottom-color: var(--clr-datagrid-default-border-color);
+    --clr-table-footer-border-top-color: var(--clr-datagrid-default-border-color);
+    --clr-tablerow-bordercolor: var(--color-component-border-100);
+    --clr-table-border-color: var(--clr-datagrid-default-border-color);
+    --clr-table-bordercolor: var(--clr-datagrid-default-border-color);
+    --clr-table-borderstyle: 0.05rem solid var(--clr-datagrid-default-border-color);
+    --color-table-header-border: var(--color-weight-150);
+    --color-table-row-hover-bg: var(--color-weight-125);
+    --color-table-row-active-bg: var(--color-primary-900);
+    --color-table-row-separator: var(--color-weight-150);
+    --data-table-filter-box-shadow: inset -1px 6px 5px 0px hsla(201, 30%, 5%, 0.2);
+    // END: Table
+
+    /**********
+    * Tabs
+    */
+    --clr-nav-box-shadow-color: var(--color-component-border-100);
+    --clr-nav-active-box-shadow-color: hsl(198, 65%, 57%);
+    --clr-nav-link-active-color: hsl(0, 0%, 100%);
+    --clr-nav-link-color: hsl(203, 16%, 72%);
+    // END: Tabs
+
+    /**
+    * Timeline
+    */
+
+    // colors
+    --clr-timeline-line-color: hsl(203, 16%, 72%);
+    --clr-timeline-step-header-color: hsl(210, 17%, 93%);
+    --clr-timeline-step-title-color: hsl(203, 16%, 72%); // #565656
+    --clr-timeline-step-description-color: hsl(203, 16%, 72%); // #565656
+
+    --clr-timeline-incomplete-step-color: hsl(210, 17%, 93%);
+    --clr-timeline-current-step-color: hsl(198, 65%, 57%);
+    --clr-timeline-success-step-color: hsl(92, 79%, 40%);
+    --clr-timeline-error-step-color: hsl(3, 90%, 62%);
+    // END Timeline
+
+    /**********
+    * Tooltip
+    */
+    --clr-tooltip-color: hsl(0, 0%, 0%);
+    --clr-tooltip-background-color: hsl(0, 0%, 100%);
+    // END: Tooltip
+
+    /**********
+    * Tree View
+    */
+    --clr-tree-node-caret-link-hover-color: hsl(0, 0%, 100%);
+    --clr-tree-link-hover-color: hsl(0, 0%, 93%);
+    --clr-tree-link-hover-color: var(--clr-global-hover-bg-color);
+    --clr-tree-link-selection-color: var(--clr-global-selection-color);
+    --clr-tree-link-text-color: hsl(203, 16%, 72%);
+    --clr-tree-node-caret-color: hsl(203, 16%, 72%);
+    // END Tree View variables
+
+    /**********
+    * Typography
+    */
+    --clr-global-font-color: var(--color-text-100);
+    --clr-global-font-color-secondary: var(--color-text-100);
+
+    --clr-h1-color: var(--clr-global-font-color);
+    --clr-h2-color: var(--clr-global-font-color);
+    --clr-h3-color: var(--clr-global-font-color);
+    --clr-h4-color: var(--clr-global-font-color);
+    --clr-h5-color: var(--clr-global-font-color);
+    --clr-h6-color: var(--clr-global-font-color-secondary);
+
+    --clr-p1-color: var(--clr-global-font-color-secondary);
+    --clr-p2-color: var(--clr-global-font-color-secondary);
+    --clr-p3-color: var(--clr-global-font-color-secondary);
+    --clr-p4-color: var(--clr-global-font-color);
+    --clr-p5-color: var(--clr-global-font-color);
+    --clr-p6-color: var(--clr-global-font-color);
+    --clr-p7-color: var(--clr-global-font-color);
+    --clr-p8-color: var(--clr-global-font-color);
+
+    // ACCORDION
+    --clr-accordion-text-color: var(--clr-color-neutral-0);
+    --clr-accordion-active-background-color: var(--clr-global-selection-color);
+    --clr-accordion-header-hover-background-color: var(--clr-global-selection-color);
+    --clr-accordion-content-background-color: hsl(198, 28%, 18%);
+    --clr-accordion-header-background-color: hsl(201, 30%, 15%);
+    --clr-accordion-border-left-color: hsl(202, 30%, 24%);
+    --clr-accordion-border-color: hsl(208, 16%, 34%);
+    // END: ACCORDION
+
+    --clr-list-item-color: var(--color-text-100);
+
+
+    clr-icon {
+        &.is-green,
+        &.is-success {
+            fill: var(--clr-icon-color-success);
+        }
+        &.is-red,
+        &.is-danger,
+        &.is-error {
+            fill: var(--clr-icon-color-error);
+        }
+        &.is-warning {
+            fill: var(--clr-icon-color-warning);
+        }
+        &.is-blue,
+        &.is-info {
+            fill: var(--clr-icon-color-info);
+        }
+        &.is-white,
+        &.is-inverse {
+            fill: var(--clr-icon-color-inverse);
+        }
+        &.is-highlight {
+            fill: var(--clr-icon-color-highlight);
+        }
+    }
+
+}

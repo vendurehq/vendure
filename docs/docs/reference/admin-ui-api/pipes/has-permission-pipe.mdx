@@ -1,0 +1,41 @@
+---
+title: "HasPermissionPipe"
+generated: true
+---
+<GenerationInfo sourceFile="packages/admin-ui/src/lib/core/src/shared/pipes/has-permission.pipe.ts" sourceLine="16" packageName="@vendure/admin-ui" />
+
+A pipe which checks the provided permission against all the permissions of the current user.
+Returns `true` if the current user has that permission.
+
+*Example*
+
+```HTML
+<button [disabled]="!('UpdateCatalog' | hasPermission)">Save Changes</button>
+```
+
+```ts title="Signature"
+class HasPermissionPipe implements PipeTransform, OnDestroy {
+    constructor(permissionsService: PermissionsService, changeDetectorRef: ChangeDetectorRef)
+    transform(input: string | string[]) => any;
+    ngOnDestroy() => ;
+}
+```
+* Implements: PipeTransform, OnDestroy
+
+
+
+<div className="members-wrapper">
+
+### transform
+
+<MemberInfo kind="method" type={`(input: string | string[]) => any`}   />
+
+
+### ngOnDestroy
+
+<MemberInfo kind="method" type={`() => `}   />
+
+
+
+
+</div>

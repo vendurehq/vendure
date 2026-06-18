@@ -1,0 +1,69 @@
+---
+title: "Job Queue"
+metaTitle: "Background Job Queue Architecture in Vendure"
+metaDescription: "How Vendure uses a background job queue to handle long-running tasks like search indexing, collection updates, and email sending without blocking API requests."
+---
+
+Vendure uses a **background job queue** to offload long-running or resource-intensive tasks from the
+main request-response cycle. Instead of making an API consumer wait while a heavy operation completes,
+the server adds a job to the queue and returns immediately. A separate worker process then picks up
+and executes the job asynchronously.
+
+## Architecture
+
+The job queue system has two sides:
+
+- **The Server** — receives API requests and enqueues jobs when an operation requires background
+  processing. For example, when a product is updated, the server enqueues a job to update the
+  search index rather than doing it synchronously.
+
+- **The Worker** — a separate NestJS standalone application that listens to the queue and processes
+  jobs. The worker runs the same Vendure plugins and services as the server, but it is optimized
+  for background processing rather than handling HTTP requests.
+
+This separation means the API remains responsive even when the system is processing heavy workloads
+like bulk imports or large-scale index rebuilds.
+
+## Built-in uses
+
+Several core features rely on the job queue:
+
+- **Search index updates** — when products, variants, or collections change, the search index is
+  updated via background jobs rather than inline with the API request.
+- **Collection filter updates** — recalculating which products belong to a collection can be
+  expensive, so this work is queued.
+- **Email sending** — transactional emails (order confirmation, shipping notification, etc.) are
+  dispatched as background jobs to avoid slowing down the triggering operation.
+
+Plugins can also add their own job types to the queue for any custom background processing needs.
+
+## Job queue strategies
+
+The underlying storage and processing mechanism for the job queue is controlled by a
+**JobQueueStrategy**. Vendure supports several strategies:
+
+- **In-memory** — jobs are held in process memory. Simple and requires no infrastructure, but jobs
+  are lost if the process restarts. Suitable only for development.
+- **SQL-based (DefaultJobQueuePlugin)** — jobs are persisted to the database. Reliable and works
+  with any supported database. A good default for small to medium deployments.
+- **BullMQ / Redis** — jobs are managed by Redis via the BullMQ library. Provides the best
+  performance and is recommended for production workloads with high job volumes.
+
+## Running multiple workers
+
+For larger deployments, you can run multiple worker instances to increase throughput. Workers can also
+be configured to only process specific queue types, allowing you to dedicate resources to
+high-priority or resource-intensive jobs.
+
+For example, you might run one worker dedicated to search indexing and another for email delivery,
+ensuring that a flood of emails never delays search index updates.
+
+## Monitoring
+
+Each job tracks its state through a lifecycle: `PENDING`, `RUNNING`, `COMPLETED`, `FAILED`, or
+`CANCELLED`. The Admin API provides queries to inspect job status, making it straightforward to build
+monitoring dashboards or alert on failed jobs.
+
+## Further reading
+
+- [Worker & Job Queue developer guide](/developer-guide/worker-job-queue/) — setting up workers and creating custom jobs

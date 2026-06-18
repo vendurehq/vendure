@@ -1,0 +1,38 @@
+---
+title: "AuthenticatedSession"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/session/authenticated-session.entity.ts" sourceLine="14" packageName="@vendure/core" />
+
+An AuthenticatedSession is created upon successful authentication.
+
+```ts title="Signature"
+class AuthenticatedSession extends Session {
+    constructor(input: DeepPartial<AuthenticatedSession>)
+    @Index()
+    @ManyToOne(type => User, user => user.sessions)
+    user: User;
+    @Column()
+    authenticationStrategy: string;
+}
+```
+* Extends: [`Session`](/reference/typescript-api/entities/session#session)
+
+
+
+<div className="members-wrapper">
+
+### user
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/user#user'>User</a>`}   />
+
+The [User](/reference/typescript-api/entities/user#user) who has authenticated to create this session.
+### authenticationStrategy
+
+<MemberInfo kind="property" type={`string`}   />
+
+The name of the [AuthenticationStrategy](/reference/typescript-api/auth/authentication-strategy#authenticationstrategy) used when authenticating
+to create this session.
+
+
+</div>

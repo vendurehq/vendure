@@ -1,0 +1,83 @@
+---
+title: "DefaultGuestCheckoutStrategy"
+generated: true
+---
+## DefaultGuestCheckoutStrategy
+
+<GenerationInfo sourceFile="packages/core/src/config/order/default-guest-checkout-strategy.ts" sourceLine="64" packageName="@vendure/core" since="2.0.0" />
+
+The default implementation of the [GuestCheckoutStrategy](/reference/typescript-api/orders/guest-checkout-strategy#guestcheckoutstrategy). This strategy allows
+guest checkouts by default, but can be configured to disallow them.
+
+*Example*
+
+```ts
+import { DefaultGuestCheckoutStrategy, VendureConfig } from '@vendure/core';
+
+export const config: VendureConfig = {
+  orderOptions: {
+    guestCheckoutStrategy: new DefaultGuestCheckoutStrategy({
+      allowGuestCheckouts: false,
+      allowGuestCheckoutForRegisteredCustomers: false,
+    }),
+  },
+  // ...
+};
+```
+
+```ts title="Signature"
+class DefaultGuestCheckoutStrategy implements GuestCheckoutStrategy {
+    init(injector: Injector) => ;
+    constructor(options?: DefaultGuestCheckoutStrategyOptions)
+    setCustomerForOrder(ctx: RequestContext, order: Order, input: CreateCustomerInput) => Promise<ErrorResultUnion<SetCustomerForOrderResult, Customer>>;
+}
+```
+* Implements: [`GuestCheckoutStrategy`](/reference/typescript-api/orders/guest-checkout-strategy#guestcheckoutstrategy)
+
+
+
+<div className="members-wrapper">
+
+### init
+
+<MemberInfo kind="method" type={`(injector: <a href='/reference/typescript-api/common/injector#injector'>Injector</a>) => `}   />
+
+
+### setCustomerForOrder
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>, input: CreateCustomerInput) => Promise<<a href='/reference/typescript-api/errors/error-result-union#errorresultunion'>ErrorResultUnion</a><SetCustomerForOrderResult, <a href='/reference/typescript-api/entities/customer#customer'>Customer</a>>>`}   />
+
+
+
+
+</div>
+## DefaultGuestCheckoutStrategyOptions
+
+<GenerationInfo sourceFile="packages/core/src/config/order/default-guest-checkout-strategy.ts" sourceLine="20" packageName="@vendure/core" since="2.0.0" />
+
+Options available for the [DefaultGuestCheckoutStrategy](/reference/typescript-api/orders/default-guest-checkout-strategy#defaultguestcheckoutstrategy).
+
+```ts title="Signature"
+interface DefaultGuestCheckoutStrategyOptions {
+    allowGuestCheckouts?: boolean;
+    allowGuestCheckoutForRegisteredCustomers?: boolean;
+}
+```
+
+<div className="members-wrapper">
+
+### allowGuestCheckouts
+
+<MemberInfo kind="property" type={`boolean`} default={`true`}   />
+
+Whether to allow guest checkouts.
+### allowGuestCheckoutForRegisteredCustomers
+
+<MemberInfo kind="property" type={`boolean`} default={`false`}   />
+
+Whether to allow guest checkouts for customers who already have an account.
+Note that when this is enabled, the details provided in the `CreateCustomerInput`
+will overwrite the existing customer details of the registered customer.
+
+
+</div>

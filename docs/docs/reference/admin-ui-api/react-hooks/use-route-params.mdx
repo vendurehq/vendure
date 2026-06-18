@@ -1,0 +1,24 @@
+---
+title: "UseRouteParams"
+generated: true
+---
+<GenerationInfo sourceFile="packages/admin-ui/src/lib/react/src/react-hooks/use-route-params.ts" sourceLine="23" packageName="@vendure/admin-ui" />
+
+Provides access to the current route params and query params.
+
+*Example*
+
+```ts
+import { useRouteParams } from '@vendure/admin-ui/react';
+import React from 'react';
+
+export function MyComponent() {
+    const { params, queryParams } = useRouteParams();
+    // ...
+    return <div>{ params.id }</div>;
+}
+```
+
+```ts title="Signature"
+function useRouteParams(): void
+```

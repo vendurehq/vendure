@@ -1,0 +1,79 @@
+---
+title: "Facet"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/facet/facet.entity.ts" sourceLine="25" packageName="@vendure/core" />
+
+A Facet is a class of properties which can be applied to a [Product](/reference/typescript-api/entities/product#product) or [ProductVariant](/reference/typescript-api/entities/product-variant#productvariant).
+They are used to enable [faceted search](https://en.wikipedia.org/wiki/Faceted_search) whereby products
+can be filtered along a number of dimensions (facets).
+
+For example, there could be a Facet named "Brand" which has a number of [FacetValue](/reference/typescript-api/entities/facet-value#facetvalue)s representing
+the various brands of product, e.g. "Apple", "Samsung", "Dell", "HP" etc.
+
+```ts title="Signature"
+class Facet extends VendureEntity implements Translatable, HasCustomFields, ChannelAware {
+    constructor(input?: DeepPartial<Facet>)
+    name: LocaleString;
+    @Column({ default: false })
+    isPrivate: boolean;
+    @Column({ unique: true })
+    code: string;
+    @OneToMany(type => FacetTranslation, translation => translation.base, { eager: true })
+    translations: Array<Translation<Facet>>;
+    @OneToMany(type => FacetValue, value => value.facet)
+    values: FacetValue[];
+    @Column(type => CustomFacetFields)
+    customFields: CustomFacetFields;
+    @ManyToMany(type => Channel, channel => channel.facets)
+    @JoinTable()
+    channels: Channel[];
+}
+```
+* Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
+
+
+* Implements: [`Translatable`](/reference/typescript-api/entities/interfaces#translatable), HasCustomFields, [`ChannelAware`](/reference/typescript-api/entities/interfaces#channelaware)
+
+
+
+<div className="members-wrapper">
+
+### name
+
+<MemberInfo kind="property" type={`LocaleString`}   />
+
+
+### isPrivate
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+
+### code
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### translations
+
+<MemberInfo kind="property" type={`Array<Translation<<a href='/reference/typescript-api/entities/facet#facet'>Facet</a>>>`}   />
+
+
+### values
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/facet-value#facetvalue'>FacetValue</a>[]`}   />
+
+
+### customFields
+
+<MemberInfo kind="property" type={`CustomFacetFields`}   />
+
+
+### channels
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>[]`}   />
+
+
+
+
+</div>

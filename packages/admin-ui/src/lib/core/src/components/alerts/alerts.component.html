@@ -1,0 +1,23 @@
+<vdr-dropdown>
+    <button class="alerts-button" vdrDropdownTrigger>
+        <vdr-status-badge *ngIf="hasAlerts$ | async" [type]="'warning'"></vdr-status-badge>
+        <div class="user-circle">
+            <clr-icon shape="bell" size="16"></clr-icon>
+        </div>
+    </button>
+    <vdr-dropdown-menu vdrPosition="bottom-right">
+        <ng-container *ngIf="activeAlerts$ | async as activeAlerts">
+            <ng-container *ngIf="activeAlerts.length; else noAlerts">
+                <button *ngFor="let alert of activeAlerts" vdrDropdownItem (click)="alert.runAction()" [disabled]="alert.hasRun">
+                    <clr-icon shape="check is-success" *ngIf="alert.hasRun"></clr-icon>
+                    {{ alert.label.text | translate : alert.label.translationVars }}
+                </button>
+            </ng-container>
+        </ng-container>
+        <ng-template #noAlerts>
+            <div class="no-alerts">
+                <clr-icon shape="check" class="mr-1" /><span>{{ 'common.no-alerts' | translate }}</span>
+            </div></ng-template
+        >
+    </vdr-dropdown-menu>
+</vdr-dropdown>

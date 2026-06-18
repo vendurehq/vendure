@@ -1,0 +1,31 @@
+
+.entry-list {
+    margin: 24px 12px 24px 24px;
+}
+
+.note-entry {
+    display: flex;
+    align-items: center;
+    .note {
+        flex: 1;
+    }
+
+    button {
+        margin: 0;
+    }
+}
+textarea.note {
+    flex: 1;
+    height: 36px;
+    border-radius: 3px;
+    margin-inline-end: 6px;
+}
+.note-text {
+    color: var(--color-text-100);
+    white-space: pre-wrap;
+}
+
+.address-string {
+    font-size: smaller;
+    color: var(--color-text-200);
+}

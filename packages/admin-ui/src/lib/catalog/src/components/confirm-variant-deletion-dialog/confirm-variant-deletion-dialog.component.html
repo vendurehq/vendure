@@ -1,0 +1,13 @@
+<ng-template vdrDialogTitle>
+    {{ 'catalog.confirm-deletion-of-unused-variants-title' | translate }}
+</ng-template>
+{{ 'catalog.confirm-deletion-of-unused-variants-body' | translate }}
+<ul>
+    <li *ngFor="let variant of variants">{{ variant.name }} ({{ variant.sku }})</li>
+</ul>
+<ng-template vdrDialogButtons>
+    <button type="button" class="btn" (click)="cancel()">{{ 'common.cancel' | translate }}</button>
+    <button type="submit" (click)="confirm()" class="btn btn-primary">
+        {{ 'common.confirm' | translate }}
+    </button>
+</ng-template>

@@ -1,0 +1,32 @@
+<div class="stats">
+    <div class="stat">
+        <div class="stat-figure">{{ totalOrderCount$ | async }}</div>
+        <div class="stat-label">{{ 'dashboard.total-orders' | translate }}</div>
+    </div>
+    <div class="stat">
+        <div class="stat-figure">
+            {{ totalOrderValue$ | async | localeCurrency: (currencyCode$ | async) || undefined }}
+        </div>
+        <div class="stat-label">{{ 'dashboard.total-order-value' | translate }}</div>
+    </div>
+</div>
+<div class="footer">
+    <div class="flex" *ngIf="selection$ | async as selection">
+        <button class="button-small" [class.active]="selection.date === today" (click)="selection$.next({timeframe: 'day', date: today})">
+            {{ 'dashboard.today' | translate }}
+        </button>
+        <button class="ml-1 button-small" [class.active]="selection.date === yesterday" (click)="selection$.next({timeframe: 'day', date: yesterday})">
+            {{ 'dashboard.yesterday' | translate }}
+        </button>
+        <button class="ml-1 button-small" [class.active]="selection.timeframe === 'week'" (click)="selection$.next({timeframe: 'week'})">
+            {{ 'dashboard.thisWeek' | translate }}
+        </button>
+        <button class="ml-1 button-small" [class.active]="selection.timeframe === 'month'" (click)="selection$.next({timeframe: 'month'})">
+            {{ 'dashboard.thisMonth' | translate }}
+        </button>
+    </div>
+
+    <div class="date-range" *ngIf="dateRange$ | async as range">
+        {{ range.start | localeDate }} - {{ range.end | localeDate }}
+    </div>
+</div>

@@ -1,0 +1,66 @@
+---
+title: "Populate"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/cli/populate.ts" sourceLine="51" packageName="@vendure/core" />
+
+Populates the Vendure server with some initial data and (optionally) product data from
+a supplied CSV file. The format of the CSV file is described in the section
+[Importing Product Data](/developer-guide/importing-data/).
+
+If the `channelOrToken` argument is provided, all ChannelAware entities (Products, ProductVariants,
+Assets, ShippingMethods, PaymentMethods etc.) will be assigned to the specified Channel.
+The argument can be either a Channel object or a valid channel `token`.
+
+Internally the `populate()` function does the following:
+
+1. Uses the [Populator](/reference/typescript-api/import-export/populator#populator) to populate the [InitialData](/reference/typescript-api/import-export/initial-data#initialdata).
+2. If `productsCsvPath` is provided, uses [Importer](/reference/typescript-api/import-export/importer#importer) to populate Product data.
+3. Uses [Populator](/reference/typescript-api/import-export/populator#populator) to populate collections specified in the [InitialData](/reference/typescript-api/import-export/initial-data#initialdata).
+
+*Example*
+
+```ts
+import { bootstrap } from '@vendure/core';
+import { populate } from '@vendure/core/cli';
+import { config } from './vendure-config.ts'
+import { initialData } from './my-initial-data.ts';
+
+const productsCsvFile = path.join(__dirname, 'path/to/products.csv')
+
+populate(
+  () => bootstrap(config),
+  initialData,
+  productsCsvFile,
+)
+.then(app => app.close())
+.then(
+  () => process.exit(0),
+  err => {
+    console.log(err);
+    process.exit(1);
+  },
+);
+```
+
+```ts title="Signature"
+function populate<T extends INestApplicationContext>(bootstrapFn: () => Promise<T | undefined>, initialDataPathOrObject: string | object, productsCsvPath?: string, channelOrToken?: string | import('@vendure/core').Channel): Promise<T>
+```
+Parameters
+
+### bootstrapFn
+
+<MemberInfo kind="parameter" type={`() => Promise<T | undefined>`} />
+
+### initialDataPathOrObject
+
+<MemberInfo kind="parameter" type={`string | object`} />
+
+### productsCsvPath
+
+<MemberInfo kind="parameter" type={`string`} />
+
+### channelOrToken
+
+<MemberInfo kind="parameter" type={`string | import('@vendure/core').<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>`} />
+

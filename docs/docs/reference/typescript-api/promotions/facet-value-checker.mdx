@@ -1,0 +1,68 @@
+---
+title: "FacetValueChecker"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/helpers/facet-value-checker/facet-value-checker.ts" sourceLine="53" packageName="@vendure/core" />
+
+The FacetValueChecker is a helper class used to determine whether a given OrderLine consists
+of ProductVariants containing the given FacetValues.
+
+*Example*
+
+```ts
+import { FacetValueChecker, LanguageCode, PromotionCondition, TransactionalConnection } from '@vendure/core';
+
+let facetValueChecker: FacetValueChecker;
+
+export const hasFacetValues = new PromotionCondition({
+  code: 'at_least_n_with_facets',
+  description: [
+    { languageCode: LanguageCode.en, value: 'Buy at least { minimum } products with the given facets' },
+  ],
+  args: {
+    minimum: { type: 'int' },
+    facets: { type: 'ID', list: true, ui: { component: 'facet-value-form-input' } },
+  },
+  init(injector) {
+    facetValueChecker = injector.get(FacetValueChecker);
+  },
+  async check(ctx, order, args) {
+    let matches = 0;
+    for (const line of order.lines) {
+      if (await facetValueChecker.hasFacetValues(line, args.facets)) {
+          matches += line.quantity;
+      }
+    }
+    return args.minimum <= matches;
+  },
+});
+```
+
+```ts title="Signature"
+class FacetValueChecker implements OnModuleInit {
+    constructor(connection: TransactionalConnection, cacheService: CacheService, eventBus?: EventBus)
+    onModuleInit() => any;
+    hasFacetValues(orderLine: OrderLine, facetValueIds: ID[], ctx?: RequestContext) => Promise<boolean>;
+}
+```
+* Implements: OnModuleInit
+
+
+
+<div className="members-wrapper">
+
+### onModuleInit
+
+<MemberInfo kind="method" type={`() => any`}   />
+
+
+### hasFacetValues
+
+<MemberInfo kind="method" type={`(orderLine: <a href='/reference/typescript-api/entities/order-line#orderline'>OrderLine</a>, facetValueIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[], ctx?: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<boolean>`}   />
+
+Checks a given [OrderLine](/reference/typescript-api/entities/order-line#orderline) against the facetValueIds and returns
+`true` if the associated [ProductVariant](/reference/typescript-api/entities/product-variant#productvariant) & [Product](/reference/typescript-api/entities/product#product) together
+have *all* the specified [FacetValue](/reference/typescript-api/entities/facet-value#facetvalue)s.
+
+
+</div>

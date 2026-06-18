@@ -1,0 +1,35 @@
+---
+title: "DefaultAssetImportStrategy"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/asset-import-strategy/default-asset-import-strategy.ts" sourceLine="127" packageName="@vendure/core" since="1.7.0" />
+
+The DefaultAssetImportStrategy is able to import paths from the local filesystem (taking into account the
+`importExportOptions.importAssetsDir` setting) as well as remote http/https urls.
+
+```ts title="Signature"
+class DefaultAssetImportStrategy implements AssetImportStrategy {
+    constructor(options?: DefaultAssetImportStrategyOptions)
+    init(injector: Injector) => ;
+    getStreamFromPath(assetPath: string) => ;
+}
+```
+* Implements: [`AssetImportStrategy`](/reference/typescript-api/import-export/asset-import-strategy#assetimportstrategy)
+
+
+
+<div className="members-wrapper">
+
+### init
+
+<MemberInfo kind="method" type={`(injector: <a href='/reference/typescript-api/common/injector#injector'>Injector</a>) => `}   />
+
+
+### getStreamFromPath
+
+<MemberInfo kind="method" type={`(assetPath: string) => `}   />
+
+
+
+
+</div>

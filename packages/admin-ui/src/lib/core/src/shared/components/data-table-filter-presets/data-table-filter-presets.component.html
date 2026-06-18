@@ -1,0 +1,43 @@
+<ng-container *ngIf="filterPresets$ | async as filterPresets">
+    <div
+        class="preset-tabs"
+        *ngIf="filters && filterPresets.length"
+        cdkDropList
+        cdkDropListOrientation="horizontal"
+        (cdkDropListDropped)="drop($event)"
+    >
+        <div
+            *ngFor="let preset of filterPresets"
+            class="preset-tab"
+            [class.active]="preset.value === serializedActiveFilters"
+            cdkDrag
+            cdkDragBoundary=".preset-tabs"
+            cdkDragLockAxis="x"
+        >
+            <div class="drag-handle" cdkDragHandle>
+                <clr-icon shape="drag-handle"></clr-icon>
+            </div>
+            <a
+                [routerLink]="['./']"
+                [queryParams]="getQueryParamsForPreset(preset.value, serializedActiveFilters)"
+            >
+                <div>{{ preset.name }}</div>
+            </a>
+            <vdr-dropdown>
+                <button class="icon-button" vdrDropdownTrigger>
+                    <clr-icon shape="ellipsis-vertical" size="12"/>
+                </button>
+                <vdr-dropdown-menu vdrPosition="bottom-left">
+                    <button vdrDropdownItem (click)="renameFilterPreset(preset.name)">
+                        <clr-icon shape="edit"></clr-icon>
+                        {{ 'common.rename-filter-preset' | translate }}
+                    </button>
+                    <button vdrDropdownItem (click)="deleteFilterPreset(preset.name)">
+                        <clr-icon shape="trash" class="is-danger"></clr-icon>
+                        {{ 'common.delete' | translate }}
+                    </button>
+                </vdr-dropdown-menu>
+            </vdr-dropdown>
+        </div>
+    </div>
+</ng-container>

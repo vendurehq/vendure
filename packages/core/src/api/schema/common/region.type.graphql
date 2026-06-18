@@ -1,0 +1,65 @@
+interface Region implements Node {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    languageCode: LanguageCode!
+    code: String!
+    type: String!
+    name: String!
+    enabled: Boolean!
+    parent: Region
+    parentId: ID
+    translations: [RegionTranslation!]!
+}
+
+type RegionTranslation {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    languageCode: LanguageCode!
+    name: String!
+}
+
+"""
+A Country of the world which your shop operates in.
+
+The `code` field is typically a 2-character ISO code such as "GB", "US", "DE" etc. This code is used in certain inputs such as
+`UpdateAddressInput` and `CreateAddressInput` to specify the country.
+"""
+type Country implements Region & Node {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    languageCode: LanguageCode!
+    code: String!
+    type: String!
+    name: String!
+    enabled: Boolean!
+    parent: Region
+    parentId: ID
+    translations: [RegionTranslation!]!
+}
+
+type CountryList implements PaginatedList {
+    items: [Country!]!
+    totalItems: Int!
+}
+
+type Province implements Region & Node {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    languageCode: LanguageCode!
+    code: String!
+    type: String!
+    name: String!
+    enabled: Boolean!
+    parent: Region
+    parentId: ID
+    translations: [RegionTranslation!]!
+}
+
+type ProvinceList implements PaginatedList {
+    items: [Province!]!
+    totalItems: Int!
+}

@@ -1,0 +1,14 @@
+<ng-content></ng-content>
+<div class="frame" #frame [style.width.px]="width" [style.height.px]="height">
+    <div
+        #dot
+        class="dot"
+        [class.visible]="visible"
+        [class.editable]="editable"
+        cdkDrag
+        [cdkDragDisabled]="!editable"
+        cdkDragBoundary=".frame"
+        (cdkDragEnded)="onDragEnded($event)"
+        [cdkDragFreeDragPosition]="initialPosition"
+    ></div>
+</div>

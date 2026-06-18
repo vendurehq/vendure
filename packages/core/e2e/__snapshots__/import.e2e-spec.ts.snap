@@ -1,0 +1,510 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Import resolver > imports products 1`] = `
+{
+  "assets": [
+    {
+      "id": "T_1",
+      "name": "pps1.jpg",
+      "preview": "test-url/test-assets/pps1__preview.jpg",
+      "source": "test-url/test-assets/pps1.jpg",
+    },
+    {
+      "id": "T_2",
+      "name": "pps2.jpg",
+      "preview": "test-url/test-assets/pps2__preview.jpg",
+      "source": "test-url/test-assets/pps2.jpg",
+    },
+  ],
+  "customFields": {
+    "keywords": [
+      "paper",
+      "stretching",
+      "watercolor",
+    ],
+    "localName": "localPPS",
+    "owner": {
+      "id": "T_1",
+    },
+    "pageType": "default",
+  },
+  "description": "A great device for stretching paper.",
+  "featuredAsset": {
+    "id": "T_1",
+    "name": "pps1.jpg",
+    "preview": "test-url/test-assets/pps1__preview.jpg",
+    "source": "test-url/test-assets/pps1.jpg",
+  },
+  "id": "T_1",
+  "name": "Perfect Paper Stretcher",
+  "optionGroups": [
+    {
+      "code": "perfect-paper-stretcher-size",
+      "id": "T_1",
+      "name": "size",
+    },
+  ],
+  "slug": "perfect-paper-stretcher",
+  "variants": [
+    {
+      "assets": [],
+      "customFields": {
+        "valid": null,
+        "weight": 100,
+      },
+      "featuredAsset": null,
+      "id": "T_1",
+      "name": "Perfect Paper Stretcher Half Imperial",
+      "price": 4530,
+      "sku": "PPS12",
+      "stockMovements": {
+        "items": [],
+      },
+      "stockOnHand": 0,
+      "taxCategory": {
+        "id": "T_1",
+        "name": "Standard Tax",
+      },
+      "trackInventory": "FALSE",
+    },
+    {
+      "assets": [],
+      "customFields": {
+        "valid": null,
+        "weight": 100,
+      },
+      "featuredAsset": null,
+      "id": "T_2",
+      "name": "Perfect Paper Stretcher Quarter Imperial",
+      "price": 3250,
+      "sku": "PPS14",
+      "stockMovements": {
+        "items": [],
+      },
+      "stockOnHand": 0,
+      "taxCategory": {
+        "id": "T_1",
+        "name": "Standard Tax",
+      },
+      "trackInventory": "FALSE",
+    },
+    {
+      "assets": [],
+      "customFields": {
+        "valid": null,
+        "weight": 100,
+      },
+      "featuredAsset": null,
+      "id": "T_3",
+      "name": "Perfect Paper Stretcher Full Imperial",
+      "price": 5950,
+      "sku": "PPSF",
+      "stockMovements": {
+        "items": [
+          {
+            "id": "T_1",
+            "quantity": -10,
+            "type": "ADJUSTMENT",
+          },
+        ],
+      },
+      "stockOnHand": -10,
+      "taxCategory": {
+        "id": "T_1",
+        "name": "Standard Tax",
+      },
+      "trackInventory": "FALSE",
+    },
+  ],
+}
+`;
+
+exports[`Import resolver > imports products 2`] = `
+{
+  "assets": [],
+  "customFields": {
+    "keywords": [],
+    "localName": "localMabef",
+    "owner": {
+      "id": "T_1",
+    },
+    "pageType": "expanded",
+  },
+  "description": "Mabef description",
+  "featuredAsset": null,
+  "id": "T_2",
+  "name": "Mabef M/02 Studio Easel",
+  "optionGroups": [],
+  "slug": "mabef-m02-studio-easel",
+  "variants": [
+    {
+      "assets": [],
+      "customFields": {
+        "valid": null,
+        "weight": 300,
+      },
+      "featuredAsset": null,
+      "id": "T_4",
+      "name": "Mabef M/02 Studio Easel",
+      "price": 91070,
+      "sku": "M02",
+      "stockMovements": {
+        "items": [
+          {
+            "id": "T_2",
+            "quantity": 100,
+            "type": "ADJUSTMENT",
+          },
+        ],
+      },
+      "stockOnHand": 100,
+      "taxCategory": {
+        "id": "T_1",
+        "name": "Standard Tax",
+      },
+      "trackInventory": "FALSE",
+    },
+  ],
+}
+`;
+
+exports[`Import resolver > imports products 3`] = `
+{
+  "assets": [],
+  "customFields": {
+    "keywords": [],
+    "localName": "localGiotto",
+    "owner": {
+      "id": "T_1",
+    },
+    "pageType": "default",
+  },
+  "description": "Really mega pencils",
+  "featuredAsset": null,
+  "id": "T_3",
+  "name": "Giotto Mega Pencils",
+  "optionGroups": [
+    {
+      "code": "giotto-mega-pencils-box-size",
+      "id": "T_2",
+      "name": "box size",
+    },
+  ],
+  "slug": "giotto-mega-pencils",
+  "variants": [
+    {
+      "assets": [
+        {
+          "id": "T_3",
+          "name": "box-of-8.jpg",
+          "preview": "test-url/test-assets/box-of-8__preview.jpg",
+          "source": "test-url/test-assets/box-of-8.jpg",
+        },
+      ],
+      "customFields": {
+        "valid": null,
+        "weight": 200,
+      },
+      "featuredAsset": {
+        "id": "T_3",
+        "name": "box-of-8.jpg",
+        "preview": "test-url/test-assets/box-of-8__preview.jpg",
+        "source": "test-url/test-assets/box-of-8.jpg",
+      },
+      "id": "T_5",
+      "name": "Giotto Mega Pencils Box of 8",
+      "price": 416,
+      "sku": "225400",
+      "stockMovements": {
+        "items": [],
+      },
+      "stockOnHand": 0,
+      "taxCategory": {
+        "id": "T_1",
+        "name": "Standard Tax",
+      },
+      "trackInventory": "FALSE",
+    },
+    {
+      "assets": [
+        {
+          "id": "T_4",
+          "name": "box-of-12.jpg",
+          "preview": "test-url/test-assets/box-of-12__preview.jpg",
+          "source": "test-url/test-assets/box-of-12.jpg",
+        },
+      ],
+      "customFields": {
+        "valid": null,
+        "weight": 200,
+      },
+      "featuredAsset": {
+        "id": "T_4",
+        "name": "box-of-12.jpg",
+        "preview": "test-url/test-assets/box-of-12__preview.jpg",
+        "source": "test-url/test-assets/box-of-12.jpg",
+      },
+      "id": "T_6",
+      "name": "Giotto Mega Pencils Box of 12",
+      "price": 624,
+      "sku": "225600",
+      "stockMovements": {
+        "items": [],
+      },
+      "stockOnHand": 0,
+      "taxCategory": {
+        "id": "T_1",
+        "name": "Standard Tax",
+      },
+      "trackInventory": "FALSE",
+    },
+  ],
+}
+`;
+
+exports[`Import resolver > imports products 4`] = `
+{
+  "assets": [],
+  "customFields": {
+    "keywords": [
+      "apron",
+      "clothing",
+    ],
+    "localName": "localSmock",
+    "owner": {
+      "id": "T_1",
+    },
+    "pageType": "default",
+  },
+  "description": "Keeps the paint off the clothes",
+  "featuredAsset": null,
+  "id": "T_4",
+  "name": "Artists Smock",
+  "optionGroups": [
+    {
+      "code": "artists-smock-size",
+      "id": "T_3",
+      "name": "size",
+    },
+    {
+      "code": "artists-smock-colour",
+      "id": "T_4",
+      "name": "colour",
+    },
+  ],
+  "slug": "artists-smock",
+  "variants": [
+    {
+      "assets": [],
+      "customFields": {
+        "valid": true,
+        "weight": 500,
+      },
+      "featuredAsset": null,
+      "id": "T_7",
+      "name": "Artists Smock small beige",
+      "price": 1199,
+      "sku": "10112",
+      "stockMovements": {
+        "items": [],
+      },
+      "stockOnHand": 0,
+      "taxCategory": {
+        "id": "T_2",
+        "name": "Reduced Tax",
+      },
+      "trackInventory": "FALSE",
+    },
+    {
+      "assets": [],
+      "customFields": {
+        "valid": false,
+        "weight": 500,
+      },
+      "featuredAsset": null,
+      "id": "T_8",
+      "name": "Artists Smock large beige",
+      "price": 1199,
+      "sku": "10113",
+      "stockMovements": {
+        "items": [],
+      },
+      "stockOnHand": 0,
+      "taxCategory": {
+        "id": "T_2",
+        "name": "Reduced Tax",
+      },
+      "trackInventory": "FALSE",
+    },
+    {
+      "assets": [],
+      "customFields": {
+        "valid": null,
+        "weight": 500,
+      },
+      "featuredAsset": null,
+      "id": "T_9",
+      "name": "Artists Smock small navy",
+      "price": 1199,
+      "sku": "10114",
+      "stockMovements": {
+        "items": [],
+      },
+      "stockOnHand": 0,
+      "taxCategory": {
+        "id": "T_2",
+        "name": "Reduced Tax",
+      },
+      "trackInventory": "FALSE",
+    },
+    {
+      "assets": [],
+      "customFields": {
+        "valid": true,
+        "weight": 500,
+      },
+      "featuredAsset": null,
+      "id": "T_10",
+      "name": "Artists Smock large navy",
+      "price": 1199,
+      "sku": "10115",
+      "stockMovements": {
+        "items": [],
+      },
+      "stockOnHand": 0,
+      "taxCategory": {
+        "id": "T_2",
+        "name": "Reduced Tax",
+      },
+      "trackInventory": "FALSE",
+    },
+    {
+      "assets": [],
+      "customFields": {
+        "valid": false,
+        "weight": null,
+      },
+      "featuredAsset": null,
+      "id": "T_11",
+      "name": "Artists Smock large navy",
+      "price": 1199,
+      "sku": "10115",
+      "stockMovements": {
+        "items": [],
+      },
+      "stockOnHand": 0,
+      "taxCategory": {
+        "id": "T_2",
+        "name": "Reduced Tax",
+      },
+      "trackInventory": "FALSE",
+    },
+  ],
+}
+`;
+
+exports[`Import resolver > imports products with multiple languages 1`] = `
+{
+  "assets": [],
+  "customFields": {
+    "keywords": [
+      "paper, stretch",
+    ],
+    "localName": "纸张拉伸器",
+    "owner": null,
+    "pageType": null,
+  },
+  "description": "一个用于拉伸纸张的伟大装置",
+  "featuredAsset": null,
+  "id": "T_5",
+  "name": "奇妙的纸张拉伸器",
+  "optionGroups": [
+    {
+      "code": "fantastic-paper-stretcher-size",
+      "id": "T_5",
+      "name": "size",
+    },
+  ],
+  "slug": "奇妙的纸张拉伸器",
+  "variants": [
+    {
+      "assets": [],
+      "customFields": {
+        "weight": 243,
+      },
+      "featuredAsset": null,
+      "id": "T_12",
+      "name": "奇妙的纸张拉伸器 半英制",
+      "price": 4530,
+      "sku": "PPS12",
+      "stockMovements": {
+        "items": [
+          {
+            "id": "T_3",
+            "quantity": 10,
+            "type": "ADJUSTMENT",
+          },
+        ],
+      },
+      "stockOnHand": 10,
+      "taxCategory": {
+        "id": "T_1",
+        "name": "Standard Tax",
+      },
+      "trackInventory": "FALSE",
+    },
+    {
+      "assets": [],
+      "customFields": {
+        "weight": 344,
+      },
+      "featuredAsset": null,
+      "id": "T_13",
+      "name": "奇妙的纸张拉伸器 四分之一英制",
+      "price": 3250,
+      "sku": "PPS14",
+      "stockMovements": {
+        "items": [
+          {
+            "id": "T_4",
+            "quantity": 10,
+            "type": "ADJUSTMENT",
+          },
+        ],
+      },
+      "stockOnHand": 10,
+      "taxCategory": {
+        "id": "T_1",
+        "name": "Standard Tax",
+      },
+      "trackInventory": "FALSE",
+    },
+    {
+      "assets": [],
+      "customFields": {
+        "weight": 656,
+      },
+      "featuredAsset": null,
+      "id": "T_14",
+      "name": "奇妙的纸张拉伸器 全英制",
+      "price": 5950,
+      "sku": "PPSF",
+      "stockMovements": {
+        "items": [
+          {
+            "id": "T_5",
+            "quantity": 10,
+            "type": "ADJUSTMENT",
+          },
+        ],
+      },
+      "stockOnHand": 10,
+      "taxCategory": {
+        "id": "T_1",
+        "name": "Standard Tax",
+      },
+      "trackInventory": "FALSE",
+    },
+  ],
+}
+`;

@@ -1,0 +1,13 @@
+<ng-template vdrDialogTitle>
+    <div class="title-row">
+        {{ asset.name }}
+    </div>
+</ng-template>
+
+<vdr-asset-preview
+    *ngIf="assetWithTags$ | async as assetWithTags"
+    [asset]="assetWithTags"
+    (assetChange)="assetChanges = $event"
+    (editClick)="resolveWith()"
+    [assets]="assetsWithTags$ | async"
+></vdr-asset-preview>

@@ -1,0 +1,38 @@
+---
+title: "LocaleDatePipe"
+generated: true
+---
+<GenerationInfo sourceFile="packages/admin-ui/src/lib/core/src/shared/pipes/locale-date.pipe.ts" sourceLine="19" packageName="@vendure/admin-ui" />
+
+A replacement of the Angular DatePipe which makes use of the Intl API
+to format dates according to the selected UI language.
+
+*Example*
+
+```HTML
+{{ order.orderPlacedAt | localeDate }}
+```
+
+```ts title="Signature"
+class LocaleDatePipe extends LocaleBasePipe implements PipeTransform {
+    constructor(dataService?: DataService, changeDetectorRef?: ChangeDetectorRef)
+    transform(value: unknown, args: unknown[]) => unknown;
+}
+```
+* Extends: LocaleBasePipe
+
+
+* Implements: PipeTransform
+
+
+
+<div className="members-wrapper">
+
+### transform
+
+<MemberInfo kind="method" type={`(value: unknown, args: unknown[]) => unknown`}   />
+
+
+
+
+</div>

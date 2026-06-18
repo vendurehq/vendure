@@ -1,0 +1,16 @@
+<ng-select
+    [items]="currencyCodes"
+    [addTag]="false"
+    [hideSelected]="true"
+    [searchFn]="searchCurrencyCodes"
+    multiple="true"
+    appendTo="body"
+    [(ngModel)]="value"
+    (ngModelChange)="onChangeFn($event)"
+>
+    <ng-template ng-label-tmp let-item="item" let-clear="clear">
+        <span class="ng-value-icon left" (click)="clear.call(null, item)" aria-hidden="true"> × </span>
+        <span class="ng-value-label">{{ item | localeCurrencyName }}</span>
+    </ng-template>
+    <ng-template ng-option-tmp let-item="item">{{ item | localeCurrencyName }}</ng-template>
+</ng-select>

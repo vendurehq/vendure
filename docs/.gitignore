@@ -1,0 +1,14 @@
+# Dependencies
+/node_modules
+
+# Build output
+/dist
+
+# Misc
+.DS_Store
+npm-debug.log*
+
+# Generated files
+src/dates.generated.ts
+src/*.js
+scripts/*.js

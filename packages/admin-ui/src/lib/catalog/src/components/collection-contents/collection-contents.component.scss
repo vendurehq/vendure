@@ -1,0 +1,31 @@
+:host {
+    display: block;
+    ::ng-deep table {
+        margin-top: -1px;
+    }
+}
+vdr-data-table {
+    opacity: 1;
+    transition: opacity 0.3s;
+    &.loading {
+        opacity: 0.5;
+    }
+}
+.table-wrapper {
+    position: relative;
+}
+.progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    overflow: hidden;
+    height: 6px;
+    opacity: 0;
+    transition: opacity 0.1s;
+    &.visible {
+        opacity: 1;
+    }
+}
+.sku {
+    color: var(--color-text-200)
+}

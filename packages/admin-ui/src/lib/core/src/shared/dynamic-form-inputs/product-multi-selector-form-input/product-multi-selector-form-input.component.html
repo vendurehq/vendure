@@ -1,0 +1,5 @@
+<div class="flex">
+    <button (click)="select()" class="btn btn-sm btn-secondary">
+        {{ 'common.items-selected-count' | translate: { count: formControl.value?.length ?? 0 } }}...
+    </button>
+</div>

@@ -1,0 +1,127 @@
+# INFORMATION
+# We are not exposing the default ports for the services in this file.
+# This is to avoid conflicts with existing services on your machine.
+# In case you don't have any services running on the default ports, you can expose them by changing the
+# ports section in the services block. Please don't forget to update the ports in the .env file as well.
+
+services:
+    postgres_db:
+        image: postgres:16-alpine
+        volumes:
+            - postgres_db_data:/var/lib/postgresql/data
+        ports:
+            - "6543:5432"
+        environment:
+            POSTGRES_DB: {{{ escapeSingle dbName }}}
+            POSTGRES_USER: {{{ escapeSingle dbUserName }}}
+            POSTGRES_PASSWORD: {{{ escapeSingle dbPassword }}}
+        labels:
+            - "io.vendure.create.name={{{ escapeSingle name }}}"
+
+    mysql_db:
+        image: mysql:8
+        volumes:
+            - mysql_db_data:/var/lib/mysql
+        environment:
+            MYSQL_ROOT_PASSWORD: 'ROOT'
+            MYSQL_DATABASE: {{{ escapeSingle dbName }}}
+            MYSQL_USER: {{{ escapeSingle dbUserName }}}
+            MYSQL_PASSWORD: {{{ escapeSingle dbPassword }}}
+        ports:
+            - "4306:3306"
+        labels:
+            - "io.vendure.create.name={{{ escapeSingle name }}}"
+
+    mariadb_db:
+        image: mariadb:10
+        volumes:
+            - mariadb_db_data:/var/lib/mysql
+        environment:
+            MARIADB_ROOT_PASSWORD: 'ROOT'
+            MARIADB_DATABASE: {{{ escapeSingle dbName }}}
+            MARIADB_USER: {{{ escapeSingle dbUserName }}}
+            MARIADB_PASSWORD: {{{ escapeSingle dbPassword }}}
+        ports:
+            - "3306:3306"
+        labels:
+            - "io.vendure.create.name={{{ escapeSingle name }}}"
+
+    # RECOMMENDED (especially for production)
+    # Want to use our BullMQ with Redis instead of our default database job queue?
+    # Checkout our BullMQ plugin: https://docs.vendure.io/reference/core-plugins/job-queue-plugin/bull-mqjob-queue-plugin/
+    redis:
+        image: redis:7-alpine
+        ports:
+            - "6479:6379"
+        volumes:
+            - redis_data:/data
+        labels:
+            - "io.vendure.create.name={{{ escapeSingle name }}}"
+
+    # RECOMMENDED
+    # Want to use Typesense instead of our default search engine?
+    # Checkout our advanced search plugin: https://vendure.io/hub/vendure-plus-advanced-search-plugin
+    # To run the typesense container run "docker compose up -d typesense"
+    typesense:
+        image: typesense/typesense:27.0
+        command: [ '--data-dir', '/data', '--api-key', 'SuperSecret' ]
+        ports:
+            - "8208:8108"
+        volumes:
+            - typesense_data:/data
+        labels:
+            - "io.vendure.create.name={{{ escapeSingle name }}}"
+
+    # Want to use Elasticsearch instead of our default database engine?
+    # Checkout the community Elasticsearch plugin: https://github.com/vendurehq/vendure-community-plugins
+    # To run the elasticsearch container run "docker compose up -d elasticsearch"
+    elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:9.1.0
+        container_name: elasticsearch
+        environment:
+            - node.name=es
+            - cluster.name=es-docker-cluster
+            - xpack.security.enabled=false
+            - xpack.security.http.ssl.enabled=false
+            - xpack.security.transport.ssl.enabled=false
+            - xpack.license.self_generated.type=basic
+            - discovery.type=single-node
+            - bootstrap.memory_lock=true
+            - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+        mem_limit: 536870912
+        ulimits:
+            memlock:
+                soft: -1
+                hard: -1
+        volumes:
+            - elasticsearch_data:/usr/share/elasticsearch/data
+        ports:
+            - 9200:9200
+        labels:
+            - "io.vendure.create.name={{{ escapeSingle name }}}"
+
+volumes:
+    postgres_db_data:
+        driver: local
+        labels:
+            - "io.vendure.create.name={{{ escapeSingle name }}}"
+    mysql_db_data:
+        driver: local
+        labels:
+            - "io.vendure.create.name={{{ escapeSingle name }}}"
+    mariadb_db_data:
+        driver: local
+        labels:
+            - "io.vendure.create.name={{{ escapeSingle name }}}"
+    typesense_data:
+        driver: local
+        labels:
+            - "io.vendure.create.name={{{ escapeSingle name }}}"
+    elasticsearch_data:
+        driver: local
+        labels:
+            - "io.vendure.create.name={{{ escapeSingle name }}}"
+    redis_data:
+        driver: local
+        labels:
+            - "io.vendure.create.name={{{ escapeSingle name }}}"

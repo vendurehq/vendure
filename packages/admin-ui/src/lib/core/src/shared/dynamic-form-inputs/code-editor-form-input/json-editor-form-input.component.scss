@@ -1,0 +1,19 @@
+@import './base-code-editor';
+
+@include code-editor;
+
+.code-editor {
+    // prettier-ignore
+    ::ng-deep {
+       .je-string { color: var(--color-json-editor-string); }
+       .je-number { color: var(--color-json-editor-number); }
+       .je-boolean { color: var(--color-json-editor-boolean); }
+       .je-null { color: var(--color-json-editor-null); }
+       .je-key { color: var(--color-json-editor-key); }
+       .je-error {
+           text-decoration-line: underline;
+           text-decoration-style: wavy;
+           text-decoration-color: var(--color-json-editor-error);
+       }
+    }
+}

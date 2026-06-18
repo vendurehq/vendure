@@ -1,0 +1,11 @@
+<div class="card-container" [class.padding-x]="paddingX">
+    <div *ngIf="title || controlsTemplate" class="title-row">
+        <span class="title">{{ title }}</span>
+        <div class="controls" *ngIf="controlsTemplate">
+            <ng-container *ngTemplateOutlet="controlsTemplate"></ng-container>
+        </div>
+    </div>
+    <div class="contents">
+        <ng-content></ng-content>
+    </div>
+</div>

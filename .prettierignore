@@ -1,0 +1,7 @@
+generated-types.ts
+lazy-extensions.module.ts
+shared-extensions.module.ts
+generated-graphql-shop-errors.ts
+generated-graphql-admin-errors.ts
+packages/dashboard/src/app/routeTree.gen.ts
+/.nx/workspace-data

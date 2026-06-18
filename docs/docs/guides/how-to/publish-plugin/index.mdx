@@ -1,0 +1,400 @@
+---
+title: "Publishing a Plugin"
+metaTitle: "Publishing a Vendure Plugin to npm and Vendure Hub"
+metaDescription: "Package, document, and publish your Vendure plugin to npm, and meet the requirements for listing on Vendure Hub including changelog, docs, and tests."
+---
+
+Vendure's [plugin-based architecture](/developer-guide/plugins/) means you'll be writing a lot of plugins.
+Some of those plugins may be useful to others, and you may want to share them with the community.
+
+We have created [Vendure Hub](https://vendure.io/hub) as a central listing for high-quality Vendure plugins.
+
+This guide will walk you through the process of publishing a plugin to npm and submitting it to Vendure Hub.
+
+## Project setup
+
+There are a couple of ways you can structure your plugin project:
+
+### Repo structure
+
+We recommend that you use a "monorepo" structure to develop your plugins. This means that you have a single repository
+which contains all your plugins, each in its own subdirectory. This makes it easy to manage dependencies between plugins,
+and to share common code such as utility functions & dev tooling.
+
+Even if you only have a single plugin at the moment, it's a good idea to set up your project in this way from the start.
+
+To that end, we provide a [monorepo plugin starter template](https://github.com/vendurehq/plugin-template)
+which you can use as a starting point for your plugin development.
+
+This starter template includes support for:
+
+- Development & build scripts already set up
+- Admin UI extensions already configured
+- End-to-end testing infrastructure fully configured
+- Code generation for your schema extensions
+
+### Plugin naming
+
+We recommend that you use [scoped packages](https://docs.npmjs.com/cli/v10/using-npm/scope#publishing-scoped-packages) for your plugins, which means
+they will be named like `@<scope>/<plugin-name>`. For example, if your company is called `acme`, and you are publishing a plugin that
+implements a loyalty points system, you could name it `@acme/vendure-plugin-loyalty-points`.
+
+### Dependencies
+
+Your plugin should **not** include Vendure packages as dependencies in the `package.json` file. You _may_ declare them as a peer dependencies, but this is not
+a must. The same goes for any of the transitive dependencies of Vendure core such as `@nestjs/graphql`, `@nestjs/common`, `typeorm` etc. You can assume
+that these dependencies will be available in the Vendure project that uses your plugin.
+
+As for version compatibility, you should use the
+[compatibility property](/developer-guide/plugins/#step-7-specify-compatibility) in your plugin definition to ensure that the Vendure project
+is using a compatible version of Vendure.
+
+### License
+
+You are free to license your plugin as you wish. Although Vendure itself is licensed under the GPLv3, there is
+a special exception for plugins which allows you to distribute them under a different license. See the
+[plugin exception](https://github.com/vendurehq/vendure/blob/master/license/plugin-exception.txt) for more details.
+
+## Publishing to npm
+
+Once your plugin is ready, you can publish it to npm. This is covered in the [npm documentation on publishing packages](https://docs.npmjs.com/creating-and-publishing-scoped-public-packages).
+
+## Requirements for Vendure Hub
+
+[Vendure Hub](https://vendure.io/hub) is a curated list of high-quality plugins. To be accepted into Vendure Hub, we require some additional
+requirements be satisfied.
+
+### Changelog
+
+Your plugin package **must** include a `CHANGELOG.md` file which looks like this:
+
+```md
+# Changelog
+
+## 1.6.1 (2024-06-07)
+
+- Fix a bug where the `foo` was not correctly bar (Fixes [#123](https://github.com/myorg/my-repo/issues/31))
+
+## 1.6.0 (2024-03-11)
+
+- Add a new feature to the `bar` service
+- Update the `baz` service to use the new `qux` method
+
+... etc
+```
+
+The exact format of the entries is up to you - you can e.g. use [Keep a Changelog](https://keepachangelog.com/) format, grouping by type of change, using tooling
+to help generate the entries, etc. The important thing is that the `CHANGELOG.md` file is present and up-to-date, and published as part of your
+package by specifying it in the `files` field of your `package.json` file.
+
+```json
+{
+ "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md" // [!code highlight]
+  ]
+}
+```
+
+Vendure Hub will read the contents of your changelog to display the latest changes in your plugin listing.
+
+### Documentation
+
+Good documentation is a key criteria for acceptance into Vendure Hub.
+
+#### README.md
+
+Your plugin package **must** include a `README.md` file which contains full instructions on how to install and use your plugin. Here's a template you can use:
+
+<div class="limited-height-code-block">
+
+````md
+# Acme Loyalty Points Plugin
+
+This plugin adds a loyalty points system to your Vendure store.
+
+## Installation
+
+```bash
+npm install @acme/vendure-plugin-loyalty-points
+```
+
+Add the plugin to your Vendure config:
+
+```ts
+// vendure-config.ts
+import { LoyaltyPointsPlugin } from '@acme/vendure-plugin-loyalty-points';
+
+export const config = {
+    //...
+    plugins: [
+        LoyaltyPointsPlugin.init({
+            enablePartialRedemption: true,
+        }),
+    ],
+};
+```
+
+[If your plugin includes UI extensions]
+If not already installed, install the `@vendure/ui-devkit` package:
+
+```bash
+npm install @vendure/ui-devkit
+```
+
+Then set up the compilation of the UI extensions for the Admin UI:
+
+```ts
+// vendure-config.ts
+import { compileUiExtensions } from '@vendure/ui-devkit/compiler';
+import { LoyaltyPointsPlugin } from '@acme/vendure-plugin-loyalty-points';
+
+// ...
+plugins: [
+  AdminUiPlugin.init({
+    route: 'admin',
+    port: 3002,
+    app: compileUiExtensions({
+      outputPath: path.join(__dirname, '../admin-ui'),
+      extensions: [LoyaltyPointsPlugin.uiExtensions],
+      devMode: false,
+    })
+  }),
+],
+```
+[/If your plugin includes UI extensions]
+
+## Usage
+
+Describe how to use your plugin here. Make sure to cover the key
+functionality and any configuration options. Include examples
+where possible.
+
+Make sure to document any extensions made to the GraphQL APIs,
+as well as how to integrate the plugin with a storefront app.
+````
+
+</div>
+
+#### JS Docs
+
+All publicly-exposed services, entities, strategies, interfaces etc should be documented using JSDoc comments.
+Not only does this improve the developer experience for your users, but it also allows Vendure Hub to auto-generate
+documentation pages for your plugin.
+
+Here are some examples of well-documented plugin code (implementation details omitted for brevity):
+
+<Tabs>
+<TabItem value="plugin" label="Plugin">
+
+- Tag the plugin with `@category Plugin`. This will be used when generating the docs pages to group plugins together.
+- Usually the `.init()` method is the thing that users will call to configure the plugin. Document this method with an example of how to use it.
+- The constructor and any lifecycle methods should be tagged with `@internal`.
+
+<div class="limited-height-code-block">
+
+```ts
+/**
+ * Advanced search and search analytics for Vendure.
+ *
+ * @category Plugin
+ */
+@VendurePlugin({
+    imports: [PluginCommonModule],
+    // ...
+})
+export class LoyaltyPointsPlugin implements OnApplicationBootstrap {
+    /** @internal */
+    static options: LoyaltyPointsPluginInitOptions;
+
+    /**
+     * The static `init()` method is called with the options to
+     * configure the plugin.
+     *
+     * @example
+     * ```ts
+     * LoyaltyPointsPlugin.init({
+     *     enablePartialRedemption: true
+     * }),
+     * ```
+     */
+    static init(options: LoyaltyPointsPluginInitOptions) {
+        this.options = options;
+        return AdvancedSearchPlugin;
+    }
+
+    /**
+     * The static `uiExtensions` property is used to provide the
+     * necessary UI extensions to the Admin UI
+     * in order to display the loyalty points admin features.
+     * This property is used in the `AdminUiPlugin` initialization.
+     *
+     * @example
+     * ```ts
+     * import { compileUiExtensions } from '@vendure/ui-devkit/compiler';
+     * import { AdvancedSearchPlugin } from '@acme/vendure-plugin-loyalty-points';
+     *
+     * // ...
+     * plugins: [
+     *   AdminUiPlugin.init({
+     *     route: 'admin',
+     *     port: 3002,
+     *     app: compileUiExtensions({
+     *       outputPath: path.join(__dirname, '../admin-ui'),
+     *       extensions: [LoyaltyPointsPlugin.uiExtensions],
+     *       devMode: false,
+     *     })
+     *   }),
+     * ],
+     * ```
+     */
+    static uiExtensions = advancedSearchPluginUi;
+
+    /** @internal */
+    constructor(/* ... */) {}
+
+    /** @internal */
+    async onApplicationBootstrap() {
+        // Logic to set up event subscribers etc.
+    }
+}
+```
+
+</div>
+</TabItem>
+<TabItem value="plugin-options" label="Plugin options">
+- Tag the options interface with `@category Plugin`.
+- Document any default values for optional properties.
+
+```ts
+/**
+ * Configuration options for the LoyaltyPointsPlugin.
+ *
+ * @category Plugin
+ */
+export interface LoyaltyPointsPluginInitOptions {
+    /**
+     * Whether to allow partial redemption of points.
+     *
+     * @default true
+     */
+    enablePartialRedemption?: boolean;
+}
+```
+
+</TabItem>
+<TabItem value="services" label="Services">
+
+- Only services that are exported in the plugin's `exports` array need to be documented. Internal services can be left undocumented.
+- Tag services with `@category Services`. This will be used when generating the docs pages to group services together.
+- By default all non-private methods are included in the docs. If you want to exclude a method, tag it with `@internal`.
+
+```ts
+/**
+ * The LoyaltyPointsService provides methods for managing a
+ * customer's loyalty points balance.
+ *
+ * @category Services
+ */
+@Injectable()
+export class LoyaltyPointsService {
+
+    /** @internal */
+    constructor(private connection: TransactionalConnection) {}
+
+    /**
+     * Adds the given number of points to the customer's balance.
+     */
+    addPoints(ctx: RequestContext, customerId: ID, points: number): Promise<LoyaltyPointsTransaction> {
+        // implementation...
+    }
+
+    /**
+     * Deducts the given number of points from the customer's balance.
+     */
+    deductPoints(customerId: ID, points: number): Promise<LoyaltyPointsTransaction> {
+        // implementation...
+    }
+}
+```
+
+</TabItem>
+<TabItem value="entities" label="Entities">
+
+- Tag entities with `@category Entities`. This will be used when generating the docs pages to group entities together.
+
+```ts
+/**
+ * Represents a transaction of loyalty points,
+ * when points are added or deducted.
+ *
+ * @category Entities
+ */
+@Entity()
+export class LoyaltyPointsTransaction extends VendureEntity {
+
+    /**
+     * The number of points added or deducted.
+     * A negative value indicates points deducted.
+     */
+    @Column()
+    points: number;
+
+    /**
+     * The Customer to whom the points were added or deducted.
+     */
+    @ManyToOne(type => Customer)
+    customer: Customer;
+
+    /**
+     * The reason for the points transaction.
+     */
+    @Column()
+    reason: string;
+}
+```
+
+</TabItem>
+<TabItem value="events" label="Events">
+
+- Tag events with `@category Events`. This will be used when generating the docs pages to group events together.
+
+```ts
+/**
+ * This event is fired whenever a LoyaltyPointsTransaction is created.
+ *
+ * @category Events
+ */
+export class LoyaltyPointsTransactionEvent extends VendureEvent {
+    constructor(public ctx: RequestContext, public transaction: LoyaltyPointsTransaction) {
+        super();
+    }
+}
+```
+
+</TabItem>
+</Tabs>
+
+### Tests
+
+Testing is an important part of ensuring the quality of your plugin, as well as preventing regressions when you make
+changes.
+
+For plugins of any complexity, you should aim to have a suite of end-to-end tests as covered in the [testing docs](/developer-guide/testing/).
+
+In future we may use the test results to help determine the quality of a plugin.
+
+## Submitting to Vendure Hub
+
+Once your plugin is published to npm and satisfies the requirements above, you can submit it to Vendure Hub
+via our [contact form](https://vendure.io/contact?interested_in=publish_paid_plugins), making sure to include
+a link to the npm package and the GitHub repository.
+
+## Publishing a paid plugin
+
+Vendure Hub supports the listing of paid plugins. If you would like to sell plugins through Vendure Hub,
+    please [contact us](https://vendure.io/contact?interested_in=publish_paid_plugins) and provide
+details about the plugins you would like to sell.
+
+

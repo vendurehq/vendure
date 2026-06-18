@@ -1,0 +1,49 @@
+---
+title: "Importer"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/data-import/providers/importer/importer.ts" sourceLine="47" packageName="@vendure/core" />
+
+Parses and imports Products using the CSV import format.
+
+Internally it is using the [ImportParser](/reference/typescript-api/import-export/import-parser#importparser) to parse the CSV file, and then the
+[FastImporterService](/reference/typescript-api/import-export/fast-importer-service#fastimporterservice) and the [AssetImporter](/reference/typescript-api/import-export/asset-importer#assetimporter) to actually create the resulting
+entities in the Vendure database.
+
+```ts title="Signature"
+class Importer {
+    parseAndImport(input: string | Stream, ctxOrLanguageCode: RequestContext | LanguageCode, reportProgress: boolean = false) => Observable<ImportProgress>;
+    importProducts(ctx: RequestContext, rows: ParsedProductWithVariants[], onProgress: OnProgressFn) => Promise<string[]>;
+    getFacetValueIds(ctx: RequestContext, facets: ParsedFacet[], languageCode: LanguageCode) => Promise<ID[]>;
+    processCustomFieldValues(customFields: { [field: string]: string }, config: CustomFieldConfig[]) => ;
+}
+```
+
+<div className="members-wrapper">
+
+### parseAndImport
+
+<MemberInfo kind="method" type={`(input: string | Stream, ctxOrLanguageCode: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a> | <a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>, reportProgress: boolean = false) => Observable<ImportProgress>`}   />
+
+Parses the contents of the [product import CSV file](/developer-guide/importing-data/#product-import-format) and imports
+the resulting Product & ProductVariants, as well as any associated Assets, Facets & FacetValues.
+
+The `ctxOrLanguageCode` argument is used to specify the languageCode to be used when creating the Products.
+### importProducts
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, rows: <a href='/reference/typescript-api/import-export/import-parser#parsedproductwithvariants'>ParsedProductWithVariants</a>[], onProgress: OnProgressFn) => Promise<string[]>`}   />
+
+Imports the products specified in the rows object. Return an array of error messages.
+### getFacetValueIds
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, facets: <a href='/reference/typescript-api/import-export/import-parser#parsedfacet'>ParsedFacet</a>[], languageCode: <a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>) => Promise<<a href='/reference/typescript-api/common/id#id'>ID</a>[]>`}   />
+
+
+### processCustomFieldValues
+
+<MemberInfo kind="method" type={`(customFields: { [field: string]: string }, config: <a href='/reference/typescript-api/custom-fields/custom-field-config#customfieldconfig'>CustomFieldConfig</a>[]) => `}   />
+
+
+
+
+</div>

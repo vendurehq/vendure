@@ -1,0 +1,98 @@
+query ($id: ID!){
+  product(id: $id) {
+    ...ProductWithVariants
+  }
+}
+
+fragment ProductWithVariants on Product {
+  id
+  languageCode
+  name
+  slug
+  description
+  featuredAsset {
+    ...Asset
+  }
+  assets {
+    ...Asset
+  }
+  translations {
+    languageCode
+    name
+    slug
+    description
+  }
+  optionGroups {
+    id
+    languageCode
+    code
+    name
+  }
+  variants {
+    ...ProductVariant
+  }
+  facetValues {
+    id
+    code
+    name
+    facet {
+      id
+      name
+    }
+  }
+}
+
+fragment Asset on Asset {
+  id
+  name
+  fileSize
+  mimeType
+  type
+  preview
+  source
+}
+
+fragment ProductVariant on ProductVariant {
+  id
+  languageCode
+  name
+  price
+  currencyCode
+  priceWithTax
+  taxRateApplied {
+    id
+    name
+    value
+  }
+  taxCategory {
+    id
+    name
+  }
+  sku
+  options {
+    id
+    code
+    languageCode
+    name
+  }
+  facetValues {
+    id
+    code
+    name
+    facet {
+      id
+      name
+    }
+  }
+  featuredAsset {
+    ...Asset
+  }
+  assets {
+    ...Asset
+  }
+  translations {
+    id
+    languageCode
+    name
+  }
+}

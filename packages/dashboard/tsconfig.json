@@ -1,0 +1,30 @@
+{
+  "extends": [
+    "../../tsconfig.json"
+  ],
+  "compilerOptions": {
+    "lib": [
+      "dom"
+    ],
+    "types": [
+      "node"
+    ],
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@/vdb/*": [
+        "./src/lib/*"
+      ]
+    },
+    "plugins": [
+      {
+        "name": "gql.tada/ts-plugin",
+        "schema": "http://localhost:3000/admin-api",
+        "tadaOutputLocation": "./src/lib/graphql/graphql-env.d.ts"
+      }
+    ]
+  },
+  "exclude": [
+    "./lib"
+  ]
+}

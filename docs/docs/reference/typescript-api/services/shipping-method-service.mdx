@@ -1,0 +1,85 @@
+---
+title: "ShippingMethodService"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/services/shipping-method.service.ts" sourceLine="45" packageName="@vendure/core" />
+
+Contains methods relating to [ShippingMethod](/reference/typescript-api/entities/shipping-method#shippingmethod) entities.
+
+```ts title="Signature"
+class ShippingMethodService {
+    constructor(connection: TransactionalConnection, configService: ConfigService, roleService: RoleService, listQueryBuilder: ListQueryBuilder, channelService: ChannelService, configArgService: ConfigArgService, translatableSaver: TranslatableSaver, customFieldRelationService: CustomFieldRelationService, eventBus: EventBus, translator: TranslatorService)
+    findAll(ctx: RequestContext, options?: ListQueryOptions<ShippingMethod>, relations: RelationPaths<ShippingMethod> = []) => Promise<PaginatedList<Translated<ShippingMethod>>>;
+    findOne(ctx: RequestContext, shippingMethodId: ID, includeDeleted:  = false, relations: RelationPaths<ShippingMethod> = []) => Promise<Translated<ShippingMethod> | undefined>;
+    create(ctx: RequestContext, input: CreateShippingMethodInput) => Promise<Translated<ShippingMethod>>;
+    update(ctx: RequestContext, input: UpdateShippingMethodInput) => Promise<Translated<ShippingMethod>>;
+    softDelete(ctx: RequestContext, id: ID) => Promise<DeletionResponse>;
+    assignShippingMethodsToChannel(ctx: RequestContext, input: AssignShippingMethodsToChannelInput) => Promise<Array<Translated<ShippingMethod>>>;
+    removeShippingMethodsFromChannel(ctx: RequestContext, input: RemoveShippingMethodsFromChannelInput) => Promise<Array<Translated<ShippingMethod>>>;
+    getShippingEligibilityCheckers(ctx: RequestContext) => ConfigurableOperationDefinition[];
+    getShippingCalculators(ctx: RequestContext) => ConfigurableOperationDefinition[];
+    getFulfillmentHandlers(ctx: RequestContext) => ConfigurableOperationDefinition[];
+    getActiveShippingMethods(ctx: RequestContext) => Promise<ShippingMethod[]>;
+}
+```
+
+<div className="members-wrapper">
+
+### findAll
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: ListQueryOptions<<a href='/reference/typescript-api/entities/shipping-method#shippingmethod'>ShippingMethod</a>>, relations: RelationPaths<<a href='/reference/typescript-api/entities/shipping-method#shippingmethod'>ShippingMethod</a>> = []) => Promise<<a href='/reference/typescript-api/common/paginated-list#paginatedlist'>PaginatedList</a><Translated<<a href='/reference/typescript-api/entities/shipping-method#shippingmethod'>ShippingMethod</a>>>>`}   />
+
+
+### findOne
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, shippingMethodId: <a href='/reference/typescript-api/common/id#id'>ID</a>, includeDeleted:  = false, relations: RelationPaths<<a href='/reference/typescript-api/entities/shipping-method#shippingmethod'>ShippingMethod</a>> = []) => Promise<Translated<<a href='/reference/typescript-api/entities/shipping-method#shippingmethod'>ShippingMethod</a>> | undefined>`}   />
+
+
+### create
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: CreateShippingMethodInput) => Promise<Translated<<a href='/reference/typescript-api/entities/shipping-method#shippingmethod'>ShippingMethod</a>>>`}   />
+
+
+### update
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: UpdateShippingMethodInput) => Promise<Translated<<a href='/reference/typescript-api/entities/shipping-method#shippingmethod'>ShippingMethod</a>>>`}   />
+
+
+### softDelete
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<DeletionResponse>`}   />
+
+
+### assignShippingMethodsToChannel
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: AssignShippingMethodsToChannelInput) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/shipping-method#shippingmethod'>ShippingMethod</a>>>>`}   />
+
+
+### removeShippingMethodsFromChannel
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: RemoveShippingMethodsFromChannelInput) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/shipping-method#shippingmethod'>ShippingMethod</a>>>>`}   />
+
+
+### getShippingEligibilityCheckers
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => ConfigurableOperationDefinition[]`}   />
+
+
+### getShippingCalculators
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => ConfigurableOperationDefinition[]`}   />
+
+
+### getFulfillmentHandlers
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => ConfigurableOperationDefinition[]`}   />
+
+
+### getActiveShippingMethods
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<<a href='/reference/typescript-api/entities/shipping-method#shippingmethod'>ShippingMethod</a>[]>`}   />
+
+
+
+
+</div>

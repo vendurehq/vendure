@@ -1,0 +1,112 @@
+---
+title: "ActionBar"
+generated: true
+---
+## DashboardActionBarItem
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/layout.ts" sourceLine="17" packageName="@vendure/dashboard" since="3.3.0" />
+
+Allows you to define custom action bar items for any page in the dashboard, which is the
+top bar that normally contains the main call-to-action buttons such as "update" or "create".
+
+This API also allows you to specify dropdown menu items, which when defined, will appear in
+a context menu to the very right of the ActionBar.
+
+```ts title="Signature"
+interface DashboardActionBarItem {
+    pageId: string;
+    component: React.FunctionComponent<{ context: PageContextValue }>;
+    type?: 'button' | 'dropdown';
+    requiresPermission?: string | string[];
+    id?: string;
+    position?: ActionBarItemPosition;
+}
+```
+
+<div className="members-wrapper">
+
+### pageId
+
+<MemberInfo kind="property" type={`string`}   />
+
+The ID of the page where the action bar item should be displayed.
+### component
+
+<MemberInfo kind="property" type={`React.FunctionComponent<{ context: PageContextValue }>`}   />
+
+A React component that will be rendered in the action bar. Typically, you would use
+the default Shadcn `<Button>` component.
+### type
+
+<MemberInfo kind="property" type={`'button' | 'dropdown'`} default={`'button'`}   />
+
+The type of action bar item to display. Defaults to `button`.
+The 'dropdown' type is used to display the action bar item as a dropdown menu item.
+
+When using the dropdown type, use a suitable [dropdown item](https://ui.shadcn.com/docs/components/dropdown-menu)
+component, such as:
+
+```tsx
+import { DropdownMenuItem } from '@vendure/dashboard';
+
+// ...
+
+{
+  component: () => <DropdownMenuItem>My Item</DropdownMenuItem>
+}
+```
+### requiresPermission
+
+<MemberInfo kind="property" type={`string | string[]`}   />
+
+Any permissions that are required to display this action bar item.
+### id
+
+<MemberInfo kind="property" type={`string`}  since="3.5.2"  />
+
+A unique identifier for this action bar item. This is required if you want
+other extensions to be able to position their items relative to this one.
+### position
+
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/action-bar#actionbaritemposition'>ActionBarItemPosition</a>`}  since="3.5.2"  />
+
+Position this item relative to another action bar item. The `itemId` should
+match the `id` of an existing action bar item (either a built-in item or one
+added by another extension).
+
+- `'before'`: Place this item before the target item
+- `'after'`: Place this item after the target item
+- `'replace'`: Replace the target item entirely with this item
+
+
+</div>
+## ActionBarItemPosition
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/layout.ts" sourceLine="88" packageName="@vendure/dashboard" since="3.5.2" />
+
+The relative position of an ActionBar item. This is determined by finding an existing
+action bar item by its `id`, and then specifying whether your custom item should come
+before, after, or completely replace that item.
+
+```ts title="Signature"
+type ActionBarItemPosition = {
+    itemId: string;
+    order: 'before' | 'after' | 'replace'
+}
+```
+
+<div className="members-wrapper">
+
+### itemId
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### order
+
+<MemberInfo kind="property" type={`'before' | 'after' | 'replace'`}   />
+
+
+
+
+</div>

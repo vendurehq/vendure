@@ -1,0 +1,20 @@
+<button class="icon-button" (click)="expanded = !expanded" *ngIf="depth !== 0 && !isArrayItem">
+    <clr-icon shape="caret" size="12" [dir]="expanded ? 'down' : 'right'"></clr-icon>
+</button>
+<ul
+    class="object-tree-node"
+    [ngClass]="'depth-' + depth"
+    [class.array-value]="valueIsArray"
+    [class.array-item]="isArrayItem"
+    [class.expanded]="expanded"
+>
+    <li *ngFor="let entry of entries">
+        <span class="key" *ngIf="entry.key">{{ entry.key }}:</span>
+        <ng-container *ngIf="isObject(entry.value); else primitive">
+            <vdr-object-tree [value]="entry.value" [isArrayItem]="valueIsArray"></vdr-object-tree>
+        </ng-container>
+        <ng-template #primitive>
+            {{ entry.value }}
+        </ng-template>
+    </li>
+</ul>

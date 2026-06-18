@@ -1,0 +1,314 @@
+---
+title: "Error Handling"
+metaTitle: "Error Handling in Vendure - Expected vs Unexpected Errors"
+metaDescription: "Handle errors in Vendure GraphQL APIs using ErrorResult union types for expected errors and standard GraphQL error responses for unexpected failures."
+---
+
+Errors in Vendure can be divided into two categories:
+
+* Unexpected errors
+* Expected errors
+
+These two types have different meanings and are handled differently from one another.
+
+## Unexpected Errors
+
+This type of error occurs when something goes unexpectedly wrong during the processing of a request. Examples include internal server errors, database connectivity issues, lacking permissions for a resource, etc. In short, these are errors that are *not supposed to happen*.
+
+Internally, these situations are handled by throwing an Error:
+
+```ts
+const customer = await this.findOneByUserId(ctx, user.id);
+// in this case, the customer *should always* be found, and if
+// not then something unknown has gone wrong...
+if (!customer) {
+    throw new InternalServerError('error.cannot-locate-customer-for-user');
+}
+```
+
+In the GraphQL APIs, these errors are returned in the standard `errors` array:
+
+```json
+{
+  "errors": [
+    {
+      "message": "You are not currently authorized to perform this action",
+      "locations": [
+        {
+          "line": 2,
+          "column": 2
+        }
+      ],
+      "path": [
+        "me"
+      ],
+      "extensions": {
+        "code": "FORBIDDEN"
+      }
+    }
+  ],
+  "data": {
+    "me": null
+  }
+}
+```
+So your client applications need a generic way of detecting and handling this kind of error. For example, many http client libraries support "response interceptors" which can be used to intercept all API responses and check the `errors` array.
+
+:::note
+GraphQL will return a `200` status even if there are errors in the `errors` array. This is because in GraphQL it is still possible to return good data _alongside_ any errors.
+:::
+
+Here's how it might look in a simple Fetch-based client:
+
+```ts title="src/client.ts"
+export function query(document: string, variables: Record<string, any> = {}) {
+    return fetch(endpoint, {
+        method: 'POST',
+        headers,
+        credentials: 'include',
+        body: JSON.stringify({
+            query: document,
+            variables,
+        }),
+    })
+        .then(async (res) => {
+            if (!res.ok) {
+                const body = await res.json();
+                throw new Error(body);
+            }
+            const newAuthToken = res.headers.get('vendure-auth-token');
+            if (newAuthToken) {
+                localStorage.setItem(AUTH_TOKEN_KEY, newAuthToken);
+            }
+            return res.json();
+        })
+        .catch((err) => {
+            // This catches non-200 responses, such as malformed queries or
+            // network errors. Handle this with your own error handling logic.
+            // For this demo we just show an alert.
+            window.alert(err.message);
+        })
+        .then((result) => {
+            // We check for any GraphQL errors which would be in the // [!code highlight]
+            // `errors` array of the response body: // [!code highlight]
+            if (Array.isArray(result.errors)) { // [!code highlight]
+                // It looks like we have an unexpected error. // [!code highlight]
+                // At this point you could take actions like: // [!code highlight]
+                // - logging the error to a remote service // [!code highlight]
+                // - displaying an error popup to the user // [!code highlight]
+                // - inspecting the `error.extensions.code` to determine the // [!code highlight]
+                //   type of error and take appropriate action. E.g. a // [!code highlight]
+                //   in response to a FORBIDDEN_ERROR you can redirect the // [!code highlight]
+                //   user to a login page. // [!code highlight]
+
+                // In this example we just display an alert: // [!code highlight]
+                const errorMessage = result.errors.map((e) => e.message).join('\n'); // [!code highlight]
+                window.alert(`Unexpected error caught:\n\n${errorMessage}`); // [!code highlight]
+            } // [!code highlight]
+            return result;
+        });
+}
+```
+
+## Expected errors (ErrorResults)
+
+This type of error represents a well-defined result of (typically) a GraphQL mutation which is not considered "successful". For example, when using the `applyCouponCode` mutation, the code may be invalid, or it may have expired. These are examples of "expected" errors and are named in Vendure "ErrorResults". These ErrorResults are encoded into the GraphQL schema itself.
+
+ErrorResults all implement the `ErrorResult` interface:
+
+```graphql
+interface ErrorResult {
+  errorCode: ErrorCode!
+  message: String!
+}
+```
+
+Some ErrorResults add other relevant fields to the type:
+
+```graphql
+"Returned if there is an error in transitioning the Order state"
+type OrderStateTransitionError implements ErrorResult {
+  errorCode: ErrorCode!
+  message: String!
+  transitionError: String!
+  fromState: String!
+  toState: String!
+}
+```
+
+Operations that may return ErrorResults use a GraphQL `union` as their return type:
+
+```graphql
+type Mutation {
+  "Applies the given coupon code to the active Order"
+  applyCouponCode(couponCode: String!): ApplyCouponCodeResult!
+}
+
+union ApplyCouponCodeResult = Order
+  | CouponCodeExpiredError
+  | CouponCodeInvalidError
+  | CouponCodeLimitError
+```
+
+### Querying an ErrorResult union
+
+When performing an operation of a query or mutation which returns a union, you will need to use the [GraphQL conditional fragment](https://graphql.org/learn/schema/#union-types) to select the desired fields:
+
+```graphql
+mutation ApplyCoupon($code: String!) {
+  applyCouponCode(couponCode: $code) {
+    __typename
+    ...on Order {
+      id
+      couponCodes
+      totalWithTax
+    }
+    # querying the ErrorResult fields
+    # "catches" all possible errors
+    ...on ErrorResult {
+      errorCode
+      message
+    }
+    # you can also specify particular fields
+    # if your client app needs that specific data
+    # as part of handling the error.
+    ...on CouponCodeLimitError {
+      limit
+    }
+  }
+}
+```
+
+:::note
+The `__typename` field is added by GraphQL to _all_ object types, so we can include it no matter whether the result will end up being
+an `Order` object or an `ErrorResult` object. We can then use the `__typename` value to determine what kind of object we have received.
+
+Some clients such as Apollo Client will automatically add the `__typename` field to all queries and mutations. If you are using a client which does not do this, you will need to add it manually.
+:::
+
+Here's how a response would look in both the success and error result cases:
+
+<Tabs>
+<TabItem value="Success case" label="Success case" >
+
+```json
+{
+  "data": {
+    "applyCouponCode": {
+      "__typename": "Order", // [!code highlight]
+      "id": "123",
+      "couponCodes": ["VALID-CODE"],
+      "totalWithTax": 12599,
+    }
+  }
+}
+```
+
+</TabItem>
+<TabItem value="Error case" label="Error case" >
+
+```json
+{
+  "data": {
+    "applyCouponCode": {
+      "__typename": "CouponCodeLimitError", // [!code highlight]
+      "errorCode": "COUPON_CODE_LIMIT_ERROR",
+      "message": "Coupon code cannot be used more than once per customer",
+      "limit": 1 // [!code highlight]
+    }
+  }
+}
+```
+
+</TabItem>
+</Tabs>
+
+### Handling ErrorResults in plugin code
+
+If you are writing a plugin which deals with internal Vendure service methods that may return ErrorResults,
+then you can use the `isGraphQlErrorResult()` function to check whether the result is an ErrorResult:
+
+```ts
+import { Injectable} from '@nestjs/common';
+import { isGraphQlErrorResult, Order, OrderService, OrderState, RequestContext } from '@vendure/core';
+
+@Injectable()
+export class MyService {
+
+    constructor(private orderService: OrderService) {}
+
+    async myMethod(ctx: RequestContext, order: Order, newState: OrderState) {
+        const transitionResult = await this.orderService.transitionToState(ctx, order.id, newState);
+        if (isGraphQlErrorResult(transitionResult)) {
+            // The transition failed with an ErrorResult
+            throw transitionResult;
+        } else {
+            // TypeScript will correctly infer the type of `transitionResult` to be `Order`
+            return transitionResult;
+        }
+    }
+}
+```
+
+### Handling ErrorResults in client code
+
+Because we know all possible ErrorResult that may occur for a given mutation, we can handle them in an exhaustive manner. In other
+words, we can ensure our storefront has some sensible response to all possible errors. Typically this will be done with
+a `switch` statement:
+
+```ts
+const result = await query(APPLY_COUPON_CODE, { code: 'INVALID-CODE' });
+
+switch (result.applyCouponCode.__typename) {
+    case 'Order':
+        // handle success
+        break;
+    case 'CouponCodeExpiredError':
+        // handle expired code
+        break;
+    case 'CouponCodeInvalidError':
+        // handle invalid code
+        break;
+    case 'CouponCodeLimitError':
+        // handle limit error
+        break;
+    default:
+        // any other ErrorResult can be handled with a generic error message
+}
+```
+
+If we combine this approach with [GraphQL code generation](/storefront/codegen/), then TypeScript will even be able to
+help us ensure that we have handled all possible ErrorResults:
+
+```ts
+// Here we are assuming that the APPLY_COUPON_CODE query has been generated
+// by the codegen tool, and therefore has the
+// type `TypedDocumentNode<ApplyCouponCode, ApplyCouponCodeVariables>`.
+const result = await query(APPLY_COUPON_CODE, { code: 'INVALID-CODE' });
+
+switch (result.applyCouponCode.__typename) {
+    case 'Order':
+        // handle success
+        break;
+    case 'CouponCodeExpiredError':
+        // handle expired code
+        break;
+    case 'CouponCodeInvalidError':
+        // handle invalid code
+        break;
+    case 'CouponCodeLimitError':
+        // handle limit error
+        break;
+    default:
+        // this line will cause a TypeScript error if there are any // [!code highlight]
+        // ErrorResults which we have not handled in the switch cases // [!code highlight]
+        // above. // [!code highlight]
+        const _exhaustiveCheck: never = result.applyCouponCode; // [!code highlight]
+}
+```
+
+## Live example
+
+Here is a live example which the handling of unexpected errors as well as ErrorResults:
+
+<Stackblitz id='vendure-docs-error-handling' />

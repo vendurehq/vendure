@@ -1,0 +1,22 @@
+<ng-template vdrDialogTitle>
+    <span *ngIf="addressForm.get('streetLine1')?.value as streetLine1">{{ streetLine1 }},</span>
+    <span *ngIf="addressForm.get('countryCode')?.value as countryCode"> {{ countryCode }}</span>
+</ng-template>
+
+<vdr-address-form
+    [formGroup]="addressForm"
+    [availableCountries]="availableCountries"
+    [customFields]="customFields"
+></vdr-address-form>
+
+<ng-template vdrDialogButtons>
+    <button type="button" class="btn" (click)="cancel()">{{ 'common.cancel' | translate }}</button>
+    <button
+        type="submit"
+        (click)="save()"
+        [disabled]="!addressForm.valid || !addressForm.touched"
+        class="btn btn-primary"
+    >
+        {{ 'common.update' | translate }}
+    </button>
+</ng-template>

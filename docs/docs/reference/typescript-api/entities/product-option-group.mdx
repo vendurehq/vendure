@@ -1,0 +1,81 @@
+---
+title: "ProductOptionGroup"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/product-option-group/product-option-group.entity.ts" sourceLine="21" packageName="@vendure/core" />
+
+A grouping of one or more [ProductOption](/reference/typescript-api/entities/product-option#productoption)s.
+
+```ts title="Signature"
+class ProductOptionGroup extends VendureEntity implements Translatable, HasCustomFields, SoftDeletable, ChannelAware {
+    constructor(input?: DeepPartial<ProductOptionGroup>)
+    @Column({ type: Date, nullable: true })
+    deletedAt: Date | null;
+    name: LocaleString;
+    @Column()
+    code: string;
+    @OneToMany(type => ProductOptionGroupTranslation, translation => translation.base, { eager: true })
+    translations: Array<Translation<ProductOptionGroup>>;
+    @OneToMany(type => ProductOption, option => option.group)
+    options: ProductOption[];
+    @ManyToMany(type => Product, product => product.optionGroups)
+    products: Product[];
+    @ManyToMany(type => Channel, channel => channel.productOptionGroups)
+    @JoinTable()
+    channels: Channel[];
+    @Column(type => CustomProductOptionGroupFields)
+    customFields: CustomProductOptionGroupFields;
+}
+```
+* Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
+
+
+* Implements: [`Translatable`](/reference/typescript-api/entities/interfaces#translatable), HasCustomFields, [`SoftDeletable`](/reference/typescript-api/entities/interfaces#softdeletable), [`ChannelAware`](/reference/typescript-api/entities/interfaces#channelaware)
+
+
+
+<div className="members-wrapper">
+
+### deletedAt
+
+<MemberInfo kind="property" type={`Date | null`}   />
+
+
+### name
+
+<MemberInfo kind="property" type={`LocaleString`}   />
+
+
+### code
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### translations
+
+<MemberInfo kind="property" type={`Array<Translation<<a href='/reference/typescript-api/entities/product-option-group#productoptiongroup'>ProductOptionGroup</a>>>`}   />
+
+
+### options
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/product-option#productoption'>ProductOption</a>[]`}   />
+
+
+### products
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/product#product'>Product</a>[]`}   />
+
+
+### channels
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>[]`}   />
+
+
+### customFields
+
+<MemberInfo kind="property" type={`CustomProductOptionGroupFields`}   />
+
+
+
+
+</div>

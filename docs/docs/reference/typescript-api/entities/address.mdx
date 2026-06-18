@@ -1,0 +1,114 @@
+---
+title: "Address"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/address/address.entity.ts" sourceLine="16" packageName="@vendure/core" />
+
+Represents a [Customer](/reference/typescript-api/entities/customer#customer)'s address.
+
+```ts title="Signature"
+class Address extends VendureEntity implements HasCustomFields {
+    constructor(input?: DeepPartial<Address>)
+    @Index()
+    @ManyToOne(type => Customer, customer => customer.addresses)
+    customer: Customer;
+    @Column({ default: '' }) fullName: string;
+    @Column({ default: '' })
+    company: string;
+    @Column() streetLine1: string;
+    @Column({ default: '' })
+    streetLine2: string;
+    @Column({ default: '' }) city: string;
+    @Column({ default: '' })
+    province: string;
+    @Column({ default: '' }) postalCode: string;
+    @Index()
+    @ManyToOne(type => Country)
+    country: Country;
+    @Column({ default: '' })
+    phoneNumber: string;
+    @Column({ default: false })
+    defaultShippingAddress: boolean;
+    @Column({ default: false })
+    defaultBillingAddress: boolean;
+    @Column(type => CustomAddressFields)
+    customFields: CustomAddressFields;
+}
+```
+* Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
+
+
+* Implements: HasCustomFields
+
+
+
+<div className="members-wrapper">
+
+### customer
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/customer#customer'>Customer</a>`}   />
+
+
+### fullName
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### company
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### streetLine1
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### streetLine2
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### city
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### province
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### postalCode
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### country
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/country#country'>Country</a>`}   />
+
+
+### phoneNumber
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### defaultShippingAddress
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+
+### defaultBillingAddress
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+
+### customFields
+
+<MemberInfo kind="property" type={`CustomAddressFields`}   />
+
+
+
+
+</div>

@@ -1,0 +1,11 @@
+.gitignore
+.angular
+yarn-error.log
+e2e
+dist
+*.spec.ts
+src/lib/extensions/modules
+src/lib/extensions/*.generated
+scripts
+/src
+.angular

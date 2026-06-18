@@ -1,0 +1,216 @@
+<vdr-page-block>
+    <vdr-action-bar *ngIf="entity$ | async as order">
+        <vdr-ab-left> </vdr-ab-left>
+
+        <vdr-ab-right>
+            <vdr-action-bar-items locationId="order-detail"></vdr-action-bar-items>
+            <button
+                class="button primary mr-1"
+                *ngIf="
+                    order.type !== 'Aggregate' &&
+                    (order.state === 'ArrangingPayment' || order.state === 'ArrangingAdditionalPayment') &&
+                    (hasUnsettledModifications(order) || 0 < outstandingPaymentAmount(order))
+                "
+                (click)="addManualPayment(order)"
+            >
+                {{ 'order.add-payment-to-order' | translate }}
+                ({{ outstandingPaymentAmount(order) | localeCurrency : order.currencyCode }})
+            </button>
+            <button
+                class="button primary mr-1"
+                *ngIf="
+                    order.type !== 'Aggregate' &&
+                    order.active === false &&
+                    order.state !== 'ArrangingAdditionalPayment' &&
+                    order.state !== 'ArrangingPayment' &&
+                    0 < outstandingPaymentAmount(order)
+                "
+                (click)="transitionToState('ArrangingAdditionalPayment')"
+            >
+                {{ 'order.arrange-additional-payment' | translate }}
+            </button>
+            <button
+                *ngIf="order.type !== 'Aggregate'"
+                class="button primary mr-1"
+                (click)="fulfillOrder()"
+                [disabled]="!canAddFulfillment(order)"
+            >
+                {{ 'order.fulfill-order' | translate }}
+            </button>
+            <vdr-action-bar-dropdown-menu [alwaysShow]="true" locationId="order-detail">
+                <ng-container *ngIf="order.type !== 'Aggregate' && order.nextStates.includes('Modifying')">
+                    <button type="button" vdrDropdownItem (click)="transitionToModifying()">
+                        <clr-icon shape="pencil"></clr-icon>
+                        {{ 'order.modify-order' | translate }}
+                    </button>
+                    <div class="dropdown-divider"></div>
+                </ng-container>
+                <button
+                    type="button"
+                    vdrDropdownItem
+                    *ngIf="order.type !== 'Aggregate' && order.nextStates.includes('Cancelled')"
+                    (click)="cancelOrRefund(order)"
+                >
+                    <clr-icon shape="error-standard" class="is-error"></clr-icon>
+                    <ng-container *ngIf="orderHasSettledPayments(order); else cancelOnly">
+                        {{ 'order.refund-and-cancel-order' | translate }}
+                    </ng-container>
+                    <ng-template #cancelOnly>
+                        {{ 'order.cancel-order' | translate }}
+                    </ng-template>
+                </button>
+
+                <ng-container *ngIf="(nextStates$ | async)?.length">
+                    <div class="dropdown-divider"></div>
+                    <button
+                        *ngFor="let nextState of nextStates$ | async"
+                        type="button"
+                        vdrDropdownItem
+                        (click)="transitionToState(nextState)"
+                    >
+                        <clr-icon shape="step-forward-2"></clr-icon>
+                        {{
+                            'order.transition-to-state'
+                                | translate : { state: (nextState | stateI18nToken | translate) }
+                        }}
+                    </button>
+                </ng-container>
+                <div class="dropdown-divider"></div>
+                <button type="button" vdrDropdownItem (click)="manuallyTransitionToState(order)">
+                    <clr-icon shape="step-forward-2" class="is-warning"></clr-icon>
+                    {{ 'order.manually-transition-to-state' | translate }}
+                </button>
+            </vdr-action-bar-dropdown-menu>
+        </vdr-ab-right>
+    </vdr-action-bar>
+</vdr-page-block>
+
+<vdr-page-detail-layout *ngIf="entity$ | async as order">
+    <vdr-page-detail-sidebar>
+        <vdr-card [title]="'order.state' | translate">
+            <ng-template vdrCardControls>
+                <button
+                    class="button-small"
+                    (click)="openStateDiagram()"
+                    [title]="'order.order-state-diagram' | translate"
+                >
+                    <clr-icon shape="list"></clr-icon>
+                </button>
+            </ng-template>
+            <vdr-order-state-label [state]="order.state"></vdr-order-state-label>
+        </vdr-card>
+        <vdr-card [title]="'order.customer' | translate">
+            <ng-template vdrCardControls>
+                <button
+                    *vdrIfPermissions="['UpdateOrder', 'ReadCustomer']"
+                    class="button-small"
+                    (click)="setOrderCustomer()"
+                    [title]="'order.assign-order-to-another-customer' | translate"
+                >
+                    <clr-icon shape="switch"></clr-icon>
+                </button>
+            </ng-template>
+            <vdr-customer-label [customer]="order.customer"></vdr-customer-label>
+            <vdr-labeled-data
+                class="mt-2"
+                [label]="'order.shipping-address' | translate"
+                *ngIf="getOrderAddressLines(order.shippingAddress).length"
+            >
+                <vdr-formatted-address [address]="order.shippingAddress" class="mt-1"></vdr-formatted-address>
+            </vdr-labeled-data>
+            <vdr-labeled-data
+                [label]="'order.billing-address' | translate"
+                *ngIf="getOrderAddressLines(order.billingAddress).length"
+            >
+                <vdr-formatted-address [address]="order.billingAddress" class="mt-1"></vdr-formatted-address>
+            </vdr-labeled-data>
+        </vdr-card>
+        <vdr-card [title]="'order.payments' | translate" *ngIf="order.payments?.length">
+            <vdr-order-payment-card
+                *ngFor="let payment of order.payments"
+                [currencyCode]="order.currencyCode"
+                [payment]="payment"
+                (settlePayment)="settlePayment($event)"
+                (transitionPaymentState)="transitionPaymentState($event)"
+                (settleRefund)="settleRefund($event)"
+            ></vdr-order-payment-card>
+        </vdr-card>
+        <vdr-card *ngIf="order.fulfillments?.length">
+            <vdr-fulfillment-card
+                *ngFor="let fulfillment of order.fulfillments"
+                [fulfillment]="fulfillment"
+                [order]="order"
+                (transitionState)="transitionFulfillment(fulfillment.id, $event)"
+            ></vdr-fulfillment-card>
+        </vdr-card>
+        <vdr-card>
+            <vdr-page-entity-info *ngIf="entity$ | async as entity" [entity]="entity" />
+        </vdr-card>
+    </vdr-page-detail-sidebar>
+
+    <vdr-page-block>
+        <vdr-seller-orders-card
+            class="mb-2"
+            *ngIf="order.sellerOrders.length"
+            [orderId]="order.id"
+        ></vdr-seller-orders-card>
+        <vdr-card [paddingX]="false">
+            <vdr-order-table
+                [order]="order"
+                [orderLineCustomFields]="orderLineCustomFields"
+            ></vdr-order-table>
+        </vdr-card>
+        <vdr-card [title]="'order.tax-summary' | translate" [paddingX]="false">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>{{ 'common.description' | translate }}</th>
+                        <th>{{ 'order.tax-rate' | translate }}</th>
+                        <th>{{ 'order.tax-base' | translate }}</th>
+                        <th>{{ 'order.tax-total' | translate }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let row of order.taxSummary">
+                        <td>{{ row.description }}</td>
+                        <td>{{ row.taxRate / 100 | percent : '0.0-3' }}</td>
+                        <td>{{ row.taxBase | localeCurrency : order.currencyCode }}</td>
+                        <td>{{ row.taxTotal | localeCurrency : order.currencyCode }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </vdr-card>
+        <vdr-card [title]="'common.custom-fields' | translate" *ngIf="customFields.length">
+            <vdr-tabbed-custom-fields
+                entityName="Order"
+                [customFields]="customFields"
+                [customFieldsFormGroup]="detailForm.get('customFields')"
+                [readonly]="!('UpdateOrder' | hasPermission)"
+            />
+            <button
+                class="button primary"
+                (click)="updateCustomFields()"
+                [disabled]="
+                    detailForm.get('customFields')?.pristine || detailForm.get('customFields')?.invalid
+                "
+            >
+                {{ 'common.update' | translate }}
+            </button>
+        </vdr-card>
+        <vdr-custom-detail-component-host
+            locationId="order-detail"
+            [entity$]="entity$"
+            [detailForm]="detailForm"
+        ></vdr-custom-detail-component-host>
+
+        <vdr-card [title]="'order.order-history' | translate">
+            <vdr-order-history
+                [order]="order"
+                [history]="history$ | async"
+                (addNote)="addNote($event)"
+                (updateNote)="updateNote($event)"
+                (deleteNote)="deleteNote($event)"
+            ></vdr-order-history>
+        </vdr-card>
+    </vdr-page-block>
+</vdr-page-detail-layout>

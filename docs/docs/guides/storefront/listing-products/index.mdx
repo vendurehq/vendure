@@ -1,0 +1,698 @@
+---
+title: "Listing Products"
+metaTitle: "Listing and Searching Products in a Vendure Storefront"
+metaDescription: "Display collection products, perform full-text search, and implement faceted filtering using Vendure's optimized search query in your storefront."
+---
+
+Products are listed when:
+
+- Displaying the contents of a collection
+- Displaying search results
+
+In Vendure, we usually use the `search` query for both of these. The reason is that the `search` query is optimized
+for high performance, because it is backed by a dedicated search index. Other queries such as `products` or `Collection.productVariants` _can_ also
+be used to fetch a list of products, but they need to perform much more complex database queries, and are therefore slower.
+
+## Listing products in a collection
+
+Following on from the [navigation example](/storefront/navigation-menu/), let's assume that a customer has
+clicked on a collection item from the menu, and we want to display the products in that collection.
+
+Typically, we will know the `slug` of the selected collection, so we can use the `collection` query to fetch the
+details of this collection:
+
+<Tabs>
+<TabItem value="Query" label="Query" default>
+
+```graphql
+query GetCollection($slug: String!) {
+  collection(slug: $slug) {
+    id
+    name
+    slug
+    description
+    featuredAsset {
+      id
+      preview
+    }
+  }
+}
+```
+
+</TabItem>
+<TabItem value="Variables" label="Variables">
+
+```json
+{
+  "slug": "electronics"
+}
+```
+
+</TabItem>
+<TabItem value="Response" label="Response" >
+
+```json
+{
+  "data": {
+    "collection": {
+      "id": "2",
+      "name": "Electronics",
+      "slug": "electronics",
+      "description": "",
+      "featuredAsset": {
+        "id": "16",
+        "preview": "https://demo.vendure.io/assets/preview/5b/jakob-owens-274337-unsplash__preview.jpg"
+      }
+    }
+  }
+}
+```
+
+</TabItem>
+</Tabs>
+
+The collection data can be used to render the page header.
+
+Next, we can use the `search` query to fetch the products in the collection:
+
+
+<Tabs>
+<TabItem value="Query" label="Query" default>
+
+```graphql
+query GetCollectionProducts($slug: String!, $skip: Int, $take: Int) {
+  search(
+    input: {
+      collectionSlug: $slug, # [!code highlight]
+      groupByProduct: true,
+      skip: $skip,
+      take: $take }
+  ) {
+    totalItems
+    items {
+      productName
+      slug
+      productAsset {
+        id
+        preview
+      }
+      priceWithTax {
+        ... on SinglePrice {
+          value
+        }
+        ... on PriceRange {
+          min
+          max
+        }
+      }
+      currencyCode
+    }
+  }
+}
+```
+
+</TabItem>
+<TabItem value="Variables" label="Variables">
+
+```json
+{
+  "slug": "electronics",
+  "skip": 0,
+  "take": 10
+}
+```
+
+</TabItem>
+<TabItem value="Response" label="Response" >
+
+(the following data has been truncated for brevity)
+
+```json
+{
+  "data": {
+    "search": {
+      "totalItems": 20,
+      "items": [
+        {
+          "productName": "Laptop",
+          "slug": "laptop",
+          "productAsset": {
+            "id": "1",
+            "preview": "https://demo.vendure.io/assets/preview/71/derick-david-409858-unsplash__preview.jpg"
+          },
+          "priceWithTax": {
+            "min": 155880,
+            "max": 275880
+          },
+          "currencyCode": "USD"
+        },
+        {
+          "productName": "Tablet",
+          "slug": "tablet",
+          "productAsset": {
+            "id": "2",
+            "preview": "https://demo.vendure.io/assets/preview/b8/kelly-sikkema-685291-unsplash__preview.jpg"
+          },
+          "priceWithTax": {
+            "min": 39480,
+            "max": 53400
+          },
+          "currencyCode": "USD"
+        },
+      ],
+    },
+  },
+}
+```
+
+
+</TabItem>
+</Tabs>
+
+:::note
+The key thing to note here is that we are using the `collectionSlug` input to the `search` query. This ensures
+that the results all belong to the selected collection.
+:::
+
+Here's a live demo of the above code in action:
+
+<Stackblitz id='vendure-docs-listing-collection-products' />
+
+## Product search
+
+The `search` query can also be used to perform a full-text search of the products in the catalog by passing the
+`term` input:
+
+<Tabs>
+<TabItem value="Query" label="Query">
+
+```graphql
+query SearchProducts($term: String!, $skip: Int, $take: Int) {
+  search(
+    input: {
+      term: $term, # [!code highlight]
+      groupByProduct: true,
+      skip: $skip,
+      take: $take }
+  ) {
+    totalItems
+    items {
+      productName
+      slug
+      productAsset {
+        id
+        preview
+      }
+      priceWithTax {
+        ... on SinglePrice {
+          value
+        }
+        ... on PriceRange {
+          min
+          max
+        }
+      }
+      currencyCode
+    }
+  }
+}
+```
+
+</TabItem>
+<TabItem value="Variables" label="Variables">
+
+```json
+{
+  "term": "camera",
+  "skip": 0,
+  "take": 10
+}
+```
+
+</TabItem>
+<TabItem value="Response" label="Response" >
+
+(the following data has been truncated for brevity)
+
+```json
+{
+  "data": {
+    "search": {
+      "totalItems": 8,
+      "items": [
+        {
+          "productName": "Instant Camera",
+          "slug": "instant-camera",
+          "productAsset": {
+            "id": "12",
+            "preview": "https://demo.vendure.io/assets/preview/b5/eniko-kis-663725-unsplash__preview.jpg"
+          },
+          "priceWithTax": {
+            "min": 20999,
+            "max": 20999
+          },
+          "currencyCode": "USD"
+        },
+        {
+          "productName": "Camera Lens",
+          "slug": "camera-lens",
+          "productAsset": {
+            "id": "13",
+            "preview": "https://demo.vendure.io/assets/preview/9b/brandi-redd-104140-unsplash__preview.jpg"
+          },
+          "priceWithTax": {
+            "min": 12480,
+            "max": 12480
+          },
+          "currencyCode": "USD"
+        }
+      ]
+    }
+  }
+}
+```
+
+</TabItem>
+</Tabs>
+
+:::tip
+You can also limit the full-text search to a specific collection by passing the
+`collectionSlug` or `collectionId` input.
+:::
+
+## Faceted search
+
+The `search` query can also be used to perform faceted search. This is a powerful feature which allows customers
+to filter the results according to the facet values assigned to the products & variants.
+
+By using the `facetValues` field, the search query will return a list of all the facet values which are present
+in the result set. This can be used to render a list of checkboxes or other UI elements which allow the customer
+to filter the results.
+
+<Tabs>
+<TabItem value="Query" label="Query">
+
+```graphql
+query SearchProducts($term: String!, $skip: Int, $take: Int) {
+  search(
+    input: {
+      term: $term,
+      groupByProduct: true,
+      skip: $skip,
+      take: $take }
+  ) {
+    totalItems
+    facetValues { # [!code highlight]
+      count # [!code highlight]
+      facetValue { # [!code highlight]
+        id # [!code highlight]
+        name # [!code highlight]
+        facet { # [!code highlight]
+          id # [!code highlight]
+          name # [!code highlight]
+        } # [!code highlight]
+      } # [!code highlight]
+    } # [!code highlight]
+    items {
+      productName
+      slug
+      productAsset {
+        id
+        preview
+      }
+      priceWithTax {
+        ... on SinglePrice {
+          value
+        }
+        ... on PriceRange {
+          min
+          max
+        }
+      }
+      currencyCode
+    }
+  }
+}
+```
+
+</TabItem>
+<TabItem value="Variables" label="Variables" default>
+
+```json
+{
+  "term": "camera",
+  "skip": 0,
+  "take": 10
+}
+```
+
+</TabItem>
+<TabItem value="Response" label="Response" >
+
+(the following data has been truncated for brevity)
+
+```json
+{
+  "data": {
+    "search": {
+      "totalItems": 8,
+      "facetValues": [ // [!code highlight]
+        { // [!code highlight]
+          "facetValue": { // [!code highlight]
+            "id": "1", // [!code highlight]
+            "name": "Electronics", // [!code highlight]
+            "facet": { // [!code highlight]
+              "id": "1", // [!code highlight]
+              "name": "category" // [!code highlight]
+            } // [!code highlight]
+          }, // [!code highlight]
+          "count": 8 // [!code highlight]
+        }, // [!code highlight]
+        { // [!code highlight]
+          "facetValue": { // [!code highlight]
+            "id": "9", // [!code highlight]
+            "name": "Photo", // [!code highlight]
+            "facet": { // [!code highlight]
+              "id": "1", // [!code highlight]
+              "name": "category" // [!code highlight]
+            } // [!code highlight]
+          }, // [!code highlight]
+          "count": 8 // [!code highlight]
+        }, // [!code highlight]
+        { // [!code highlight]
+          "facetValue": { // [!code highlight]
+            "id": "10", // [!code highlight]
+            "name": "Polaroid", // [!code highlight]
+            "facet": { // [!code highlight]
+              "id": "2", // [!code highlight]
+              "name": "brand" // [!code highlight]
+            } // [!code highlight]
+          }, // [!code highlight]
+          "count": 1 // [!code highlight]
+        }, // [!code highlight]
+        { // [!code highlight]
+          "facetValue": { // [!code highlight]
+            "id": "11", // [!code highlight]
+            "name": "Nikkon", // [!code highlight]
+            "facet": { // [!code highlight]
+              "id": "2", // [!code highlight]
+              "name": "brand" // [!code highlight]
+            } // [!code highlight]
+          }, // [!code highlight]
+          "count": 2 // [!code highlight]
+        }, // [!code highlight]
+        { // [!code highlight]
+          "facetValue": { // [!code highlight]
+            "id": "12", // [!code highlight]
+            "name": "Agfa", // [!code highlight]
+            "facet": { // [!code highlight]
+              "id": "2", // [!code highlight]
+              "name": "brand" // [!code highlight]
+            } // [!code highlight]
+          }, // [!code highlight]
+          "count": 1 // [!code highlight]
+        }, // [!code highlight]
+        { // [!code highlight]
+          "facetValue": { // [!code highlight]
+            "id": "14", // [!code highlight]
+            "name": "Kodak", // [!code highlight]
+            "facet": { // [!code highlight]
+              "id": "2", // [!code highlight]
+              "name": "brand" // [!code highlight]
+            } // [!code highlight]
+          }, // [!code highlight]
+          "count": 1 // [!code highlight]
+        }, // [!code highlight]
+        { // [!code highlight]
+          "facetValue": { // [!code highlight]
+            "id": "15", // [!code highlight]
+            "name": "Sony", // [!code highlight]
+            "facet": { // [!code highlight]
+              "id": "2", // [!code highlight]
+              "name": "brand" // [!code highlight]
+            } // [!code highlight]
+          }, // [!code highlight]
+          "count": 1 // [!code highlight]
+        }, // [!code highlight]
+        { // [!code highlight]
+          "facetValue": { // [!code highlight]
+            "id": "16", // [!code highlight]
+            "name": "Rolleiflex", // [!code highlight]
+            "facet": { // [!code highlight]
+              "id": "2", // [!code highlight]
+              "name": "brand" // [!code highlight]
+            } // [!code highlight]
+          }, // [!code highlight]
+          "count": 1 // [!code highlight]
+        } // [!code highlight]
+      ], // [!code highlight]
+      "items": [
+        {
+          "productName": "Instant Camera",
+          "slug": "instant-camera",
+          "productAsset": {
+            "id": "12",
+            "preview": "https://demo.vendure.io/assets/preview/b5/eniko-kis-663725-unsplash__preview.jpg"
+          },
+          "priceWithTax": {
+            "min": 20999,
+            "max": 20999
+          },
+          "currencyCode": "USD"
+        },
+        {
+          "productName": "Camera Lens",
+          "slug": "camera-lens",
+          "productAsset": {
+            "id": "13",
+            "preview": "https://demo.vendure.io/assets/preview/9b/brandi-redd-104140-unsplash__preview.jpg"
+          },
+          "priceWithTax": {
+            "min": 12480,
+            "max": 12480
+          },
+          "currencyCode": "USD"
+        },
+        {
+          "productName": "Vintage Folding Camera",
+          "slug": "vintage-folding-camera",
+          "productAsset": {
+            "id": "14",
+            "preview": "https://demo.vendure.io/assets/preview/3c/jonathan-talbert-697262-unsplash__preview.jpg"
+          },
+          "priceWithTax": {
+            "min": 642000,
+            "max": 642000
+          },
+          "currencyCode": "USD"
+        }
+      ]
+    }
+  }
+}
+```
+
+</TabItem>
+</Tabs>
+
+These facet values can then be used to filter the results by passing them to the `facetValueFilters` input
+
+For example, let's filter the results to only include products which have the "Nikkon" brand. Based on our last
+request we know that there should be 2 such products, and that the `facetValue.id` for the "Nikkon" brand is `11`.
+
+```json
+{
+  "facetValue": {
+    "id": "11", // [!code highlight]
+    "name": "Nikkon",
+    "facet": {
+      "id": "2",
+      "name": "brand"
+    }
+  },
+  "count": 2 // [!code highlight]
+}
+```
+
+Here's how we can use this information to filter the results:
+
+:::note
+In the next example, rather than passing each individual variable (skip, take, term) as a separate argument,
+we are passing the entire `SearchInput` object as a variable. This allows us more flexibility in how
+we use the query, as we can easily add or remove properties from the input object without having to
+change the query itself.
+:::
+
+
+<Tabs>
+<TabItem value="Query" label="Query">
+
+```graphql
+query SearchProducts($input: SearchInput!) {
+  search(input: $input) { # [!code highlight]
+    totalItems
+    facetValues {
+      count
+      facetValue {
+        id
+        name
+        facet {
+          id
+          name
+        }
+      }
+    }
+    items {
+      productName
+      slug
+      productAsset {
+        id
+        preview
+      }
+      priceWithTax {
+        ... on SinglePrice {
+          value
+        }
+        ... on PriceRange {
+          min
+          max
+        }
+      }
+      currencyCode
+    }
+  }
+}
+```
+
+</TabItem>
+<TabItem value="Variables" label="Variables" default>
+
+```json
+{
+  "input": {
+    "term": "camera",
+    "skip": 0,
+    "take": 10,
+    "groupByProduct": true,
+    "facetValueFilters": [ // [!code highlight]
+      { "and": "11" } // [!code highlight]
+    ] // [!code highlight]
+  }
+}
+```
+
+</TabItem>
+<TabItem value="Response" label="Response" >
+
+```json
+{
+  "data": {
+    "search": {
+      "totalItems": 2,
+      "facetValues": [
+        {
+          "facetValue": {
+            "id": "1",
+            "name": "Electronics",
+            "facet": {
+              "id": "1",
+              "name": "category"
+            }
+          },
+          "count": 2
+        },
+        {
+          "facetValue": {
+            "id": "9",
+            "name": "Photo",
+            "facet": {
+              "id": "1",
+              "name": "category"
+            }
+          },
+          "count": 2
+        },
+        {
+          "facetValue": {
+            "id": "11",
+            "name": "Nikkon",
+            "facet": {
+              "id": "2",
+              "name": "brand"
+            }
+          },
+          "count": 2
+        }
+      ],
+      "items": [
+        {
+          "productName": "Camera Lens",
+          "slug": "camera-lens",
+          "productAsset": {
+            "id": "13",
+            "preview": "https://demo.vendure.io/assets/preview/9b/brandi-redd-104140-unsplash__preview.jpg"
+          },
+          "priceWithTax": {
+            "value": 12480
+          },
+          "currencyCode": "USD"
+        },
+        {
+          "productName": "Nikkormat SLR Camera",
+          "slug": "nikkormat-slr-camera",
+          "productAsset": {
+            "id": "18",
+            "preview": "https://demo.vendure.io/assets/preview/95/chuttersnap-324234-unsplash__preview.jpg"
+          },
+          "priceWithTax": {
+            "value": 73800
+          },
+          "currencyCode": "USD"
+        }
+      ]
+    }
+  }
+}
+```
+
+</TabItem>
+</Tabs>
+
+:::info
+The `facetValueFilters` input can be used to specify multiple filters, combining each with either `and` or `or`.
+
+For example, to filter by both the "Camera" **and** "Nikkon" facet values, we would use:
+
+```json
+{
+  "facetValueFilters": [
+    { "and": "9" },
+    { "and": "11" }
+  ]
+}
+```
+
+To filter by "Nikkon" **or** "Sony", we would use:
+
+```json
+{
+  "facetValueFilters": [
+    { "or": ["11", "15"] }
+  ]
+}
+```
+:::
+
+Here's a live example of faceted search. Try searching for terms like "shoe", "plant" or "ball".
+
+<Stackblitz id="vendure-docs-faceted-search"></Stackblitz>
+
+## Listing custom product data
+
+If you have defined custom fields on the `Product` or `ProductVariant` entity, you might want to include these in the
+search results. With the [`DefaultSearchPlugin`](/reference/typescript-api/default-search-plugin/) this is
+not possible, as this plugin is designed to be a minimal and simple search implementation.
+
+Instead, you can use the [`@vendure-community/elasticsearch-plugin`](https://github.com/vendurehq/community-plugins) which
+provides advanced features which allow you to index custom data. The Elasticsearch plugin is designed as a drop-in
+replacement for the `DefaultSearchPlugin`, so you can simply swap out the plugins in your `vendure-config.ts` file.

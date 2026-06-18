@@ -1,0 +1,86 @@
+---
+title: "Payment"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/payment/payment.entity.ts" sourceLine="20" packageName="@vendure/core" />
+
+A Payment represents a single payment transaction and exists in a well-defined state
+defined by the [PaymentState](/reference/typescript-api/payment/payment-state#paymentstate) type.
+
+```ts title="Signature"
+class Payment extends VendureEntity implements HasCustomFields {
+    constructor(input?: DeepPartial<Payment>)
+    @Column() method: string;
+    @Money() amount: number;
+    @Column('varchar') state: PaymentState;
+    @Column({ type: 'varchar', nullable: true })
+    errorMessage: string | undefined;
+    @Column({ nullable: true })
+    transactionId: string;
+    @Column('simple-json') metadata: PaymentMetadata;
+    @Index()
+    @ManyToOne(type => Order, order => order.payments)
+    order: Order;
+    @OneToMany(type => Refund, refund => refund.payment)
+    refunds: Refund[];
+    @Column(type => CustomPaymentFields)
+    customFields: CustomPaymentFields;
+}
+```
+* Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
+
+
+* Implements: HasCustomFields
+
+
+
+<div className="members-wrapper">
+
+### method
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### amount
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### state
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/payment/payment-state#paymentstate'>PaymentState</a>`}   />
+
+
+### errorMessage
+
+<MemberInfo kind="property" type={`string | undefined`}   />
+
+
+### transactionId
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### metadata
+
+<MemberInfo kind="property" type={`PaymentMetadata`}   />
+
+
+### order
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/order#order'>Order</a>`}   />
+
+
+### refunds
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/refund#refund'>Refund</a>[]`}   />
+
+
+### customFields
+
+<MemberInfo kind="property" type={`CustomPaymentFields`}   />
+
+
+
+
+</div>

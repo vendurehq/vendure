@@ -1,0 +1,11 @@
+@import "mixins";
+
+:host {
+    display: block;
+    margin-top: 12px;
+    position: relative;
+
+    ::ng-deep {
+        @include ng-select-facet-values;
+    }
+}

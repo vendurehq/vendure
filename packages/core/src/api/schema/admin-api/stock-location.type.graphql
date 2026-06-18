@@ -1,0 +1,7 @@
+type StockLocation implements Node {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    name: String!
+    description: String!
+}

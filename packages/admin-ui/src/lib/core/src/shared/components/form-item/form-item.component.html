@@ -1,0 +1,7 @@
+<div class="form-group">
+    <label class="">{{ label }}</label>
+    <div *ngIf="tooltip" class="tooltip-text">
+        {{ tooltip }}
+    </div>
+    <div class="content"><ng-content></ng-content></div>
+</div>

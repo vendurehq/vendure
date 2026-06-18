@@ -1,0 +1,65 @@
+<ng-template let-item="item">
+    <ng-container
+        *ngIf="!item.customFields || item.customFields[customField.name] == null || item.customFields[customField.name] === ''"
+    >
+        <span class="empty">-</span>
+    </ng-container>
+    <ng-container *ngIf="item.customFields && item.customFields[customField.name] != null">
+        <ng-container [ngSwitch]="customField.type">
+            <ng-container *ngSwitchCase="'boolean'">
+                <clr-icon
+                    *ngIf="item.customFields[customField.name]"
+                    shape="check"
+                    class="color-success-700"
+                ></clr-icon>
+                <clr-icon *ngIf="!item.customFields[customField.name]" shape="times"></clr-icon>
+            </ng-container>
+            <ng-container *ngSwitchCase="'datetime'">
+                {{ item.customFields[customField.name] | localeDate }}
+            </ng-container>
+            <ng-container *ngSwitchCase="'text'">
+                {{ item.customFields[customField.name] | slice : 0 : 50 }}
+            </ng-container>
+            <ng-container *ngSwitchCase="'relation'">
+                <ng-container *ngIf="item.customFields[customField.name] as value">
+                    <vdr-dropdown>
+                        <button
+                            class="button-small"
+                            vdrDropdownTrigger
+                            [title]="'common.details' | translate"
+                        >
+                            <clr-icon shape="details"></clr-icon>
+                        </button>
+                        <vdr-dropdown-menu>
+                            <div class="result-detail px-2 py-1">
+                                <vdr-object-tree [value]="value"></vdr-object-tree>
+                            </div>
+                        </vdr-dropdown-menu>
+                    </vdr-dropdown>
+                </ng-container>
+
+            </ng-container>
+            <ng-container *ngSwitchCase="'struct'">
+                <ng-container *ngIf="item.customFields[customField.name] as value">
+                    <vdr-dropdown>
+                        <button
+                            class="button-small"
+                            vdrDropdownTrigger
+                            [title]="'common.details' | translate"
+                        >
+                            <clr-icon shape="details"></clr-icon>
+                        </button>
+                        <vdr-dropdown-menu>
+                            <div class="result-detail px-2 py-1">
+                                <vdr-object-tree [value]="value"></vdr-object-tree>
+                            </div>
+                        </vdr-dropdown-menu>
+                    </vdr-dropdown>
+                </ng-container>
+            </ng-container>
+            <ng-container *ngSwitchDefault>
+                {{ item.customFields[customField.name] }}
+            </ng-container>
+        </ng-container>
+    </ng-container>
+</ng-template>

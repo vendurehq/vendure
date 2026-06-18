@@ -1,0 +1,48 @@
+@import 'variables';
+
+.search-form {
+    display: flex;
+    flex-direction: column;
+    @media screen and (min-width: $breakpoint-small) {
+        //flex-direction: row;
+    }
+    align-items: baseline;
+    width: 100%;
+    max-width: 100vw;
+    margin-bottom: 6px;
+}
+
+.filter-presets {
+    max-width: 90vw;
+    overflow-x: auto;
+}
+
+.search-input {
+    margin-top: 6px;
+    min-width: 300px;
+}
+
+.custom-filters {
+    overflow: hidden;
+    max-height: 0;
+    padding-bottom: 6px;
+    &.expanded {
+        max-height: initial;
+    }
+    > form {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        > div {
+            width: 100%;
+        }
+    }
+}
+ng-select {
+    flex: 1;
+    min-width: 200px;
+    height: 36px;
+    ::ng-deep .ng-select-container {
+        height: 36px;
+    }
+}

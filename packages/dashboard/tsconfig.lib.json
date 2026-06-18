@@ -1,0 +1,14 @@
+{
+  "extends": ["./tsconfig.json"],
+  "compilerOptions": {
+    "types": ["./src/virtual.d.ts", "node"],
+    "module": "umd",
+    "moduleResolution": "node",
+    "resolveJsonModule": false,
+    "skipLibCheck": true,
+    "plugins": [],
+    "declaration": true,
+    "outDir": "./dist/lib"
+  },
+  "include": ["src/lib/*"],
+}

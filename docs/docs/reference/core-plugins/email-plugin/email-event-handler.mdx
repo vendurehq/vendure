@@ -1,0 +1,289 @@
+---
+title: "EmailEventHandler"
+generated: true
+---
+<GenerationInfo sourceFile="packages/email-plugin/src/handler/event-handler.ts" sourceLine="150" packageName="@vendure/email-plugin" />
+
+The EmailEventHandler defines how the EmailPlugin will respond to a given event.
+
+A handler is created by creating a new [EmailEventListener](/reference/core-plugins/email-plugin/email-event-listener#emaileventlistener) and calling the `.on()` method
+to specify which event to respond to.
+
+*Example*
+
+```ts
+const confirmationHandler = new EmailEventListener('order-confirmation')
+  .on(OrderStateTransitionEvent)
+  .filter(event => event.toState === 'PaymentSettled')
+  .setRecipient(event => event.order.customer.emailAddress)
+  .setFrom('{{ fromAddress }}')
+  .setSubject(`Order confirmation for #{{ order.code }}`)
+  .setTemplateVars(event => ({ order: event.order }));
+```
+
+This example creates a handler which listens for the `OrderStateTransitionEvent` and if the Order has
+transitioned to the `'PaymentSettled'` state, it will generate and send an email.
+
+The string argument passed into the `EmailEventListener` constructor is used to identify the handler, and
+also to locate the directory of the email template files. So in the example above, there should be a directory
+`<app root>/static/email/templates/order-confirmation` which contains a Handlebars template named `body.hbs`.
+
+## Handling other languages
+
+By default, the handler will respond to all events on all channels and use the same subject ("Order confirmation for #12345" above)
+and body template.
+
+Since v2.0 the `.addTemplate()` method has been **deprecated**. To serve different templates — for example, based on the current
+`languageCode` — implement a custom [TemplateLoader](/reference/core-plugins/email-plugin/template-loader#templateloader) and pass it to `EmailPlugin.init({ templateLoader: new MyTemplateLoader() })`.
+
+The language is typically determined by the `languageCode` property of the event's `ctx` ([RequestContext](/reference/typescript-api/request/request-context#requestcontext)) object, so the
+`loadTemplate()` method can use that to locate the correct template file.
+
+*Example*
+
+```ts
+import { EmailPlugin, TemplateLoader } from '@vendure/email-plugin';
+import { readFileSync } from 'fs';
+import path from 'path';
+
+class CustomLanguageAwareTemplateLoader implements TemplateLoader {
+  constructor(private templateDir: string) {}
+
+  async loadTemplate(_injector, ctx, { type, templateName }) {
+    // e.g. returns the content of "body.de.hbs" or "body.en.hbs" depending on ctx.languageCode
+    const filePath = path.join(this.templateDir, type, `${templateName}.${ctx.languageCode}.hbs`);
+    return readFileSync(filePath, 'utf-8');
+  }
+}
+
+EmailPlugin.init({
+  templateLoader: new CustomLanguageAwareTemplateLoader(path.join(__dirname, '../static/email/templates')),
+  handlers: defaultEmailHandlers,
+});
+```
+
+## Defining a custom handler
+
+Let's say you have a plugin which defines a new event type, `QuoteRequestedEvent`. In your plugin you have defined a mutation
+which is executed when the customer requests a quote in your storefront, and in your resolver, you use the [EventBus](/reference/typescript-api/events/event-bus#eventbus) to publish a
+new `QuoteRequestedEvent`.
+
+You now want to email the customer with their quote. Here are the steps you would take to set this up:
+
+### 1. Create a new handler
+
+```ts
+import { EmailEventListener } from `@vendure/email-plugin`;
+import { QuoteRequestedEvent } from `./events`;
+
+const quoteRequestedHandler = new EmailEventListener('quote-requested')
+  .on(QuoteRequestedEvent)
+  .setRecipient(event => event.customer.emailAddress)
+  .setSubject(`Here's the quote you requested`)
+  .setFrom('{{ fromAddress }}')
+  .setTemplateVars(event => ({ details: event.details }));
+```
+
+### 2. Create the email template
+
+Next you need to make sure there is a template defined at `<app root>/static/email/templates/quote-requested/body.hbs`. The path
+segment `quote-requested` must match the string passed to the `EmailEventListener` constructor.
+
+The template would look something like this:
+
+```handlebars
+{{> header title="Here's the quote you requested" }}
+
+<mj-section background-color="#fafafa">
+    <mj-column>
+        <mj-text color="#525252">
+            Thank you for your interest in our products! Here's the details
+            of the quote you recently requested:
+        </mj-text>
+
+        <!-- your custom email layout goes here -->
+    </mj-column>
+</mj-section>
+
+
+{{> footer }}
+```
+
+You can find pre-made templates on the [MJML website](https://mjml.io/templates/).
+
+### 3. Register the handler
+
+Finally, you need to register the handler with the EmailPlugin:
+
+```ts {hl_lines=[8]}
+import { defaultEmailHandlers, EmailPlugin } from '@vendure/email-plugin';
+import { quoteRequestedHandler } from './plugins/quote-plugin';
+
+const config: VendureConfig = {
+  // Add an instance of the plugin to the plugins array
+  plugins: [
+    EmailPlugin.init({
+      handler: [...defaultEmailHandlers, quoteRequestedHandler],
+      // ... etc
+    }),
+  ],
+};
+```
+
+```ts title="Signature"
+class EmailEventHandler<T extends string = string, Event extends EventWithContext = EventWithContext> {
+    constructor(listener: EmailEventListener<T>, event: Type<Event>)
+    filter(filterFn: (event: Event) => boolean) => EmailEventHandler<T, Event>;
+    setRecipient(setRecipientFn: (event: Event) => string) => EmailEventHandler<T, Event>;
+    setLanguageCode(setLanguageCodeFn: (event: Event) => LanguageCode | undefined) => EmailEventHandler<T, Event>;
+    setTemplateVars(templateVarsFn: SetTemplateVarsFn<Event>) => EmailEventHandler<T, Event>;
+    setSubject(defaultSubject: string | SetSubjectFn<Event>) => EmailEventHandler<T, Event>;
+    setFrom(from: string) => EmailEventHandler<T, Event>;
+    setOptionalAddressFields(optionalAddressFieldsFn: SetOptionalAddressFieldsFn<Event>) => ;
+    setMetadata(optionalSetMetadataFn: SetMetadataFn<Event>) => ;
+    setAttachments(setAttachmentsFn: SetAttachmentsFn<Event>) => ;
+    addTemplate(config: EmailTemplateConfig) => EmailEventHandler<T, Event>;
+    loadData(loadDataFn: LoadDataFn<Event, R>) => EmailEventHandlerWithAsyncData<R, T, Event, EventWithAsyncData<Event, R>>;
+    setMockEvent(event: Omit<Event, 'ctx' | 'data'>) => EmailEventHandler<T, Event>;
+}
+```
+
+<div className="members-wrapper">
+
+### filter
+
+<MemberInfo kind="method" type={`(filterFn: (event: Event) => boolean) => <a href='/reference/core-plugins/email-plugin/email-event-handler#emaileventhandler'>EmailEventHandler</a><T, Event>`}   />
+
+Defines a predicate function which is used to determine whether the event will trigger an email.
+Multiple filter functions may be defined.
+### setRecipient
+
+<MemberInfo kind="method" type={`(setRecipientFn: (event: Event) => string) => <a href='/reference/core-plugins/email-plugin/email-event-handler#emaileventhandler'>EmailEventHandler</a><T, Event>`}   />
+
+A function which defines how the recipient email address should be extracted from the incoming event.
+
+The recipient can be a plain email address: `'foobar@example.com'`
+Or with a formatted name (includes unicode support): `'Ноде Майлер <foobar@example.com>'`
+Or a comma-separated list of addresses: `'foobar@example.com, "Ноде Майлер" <bar@example.com>'`
+### setLanguageCode
+
+<MemberInfo kind="method" type={`(setLanguageCodeFn: (event: Event) => <a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a> | undefined) => <a href='/reference/core-plugins/email-plugin/email-event-handler#emaileventhandler'>EmailEventHandler</a><T, Event>`}  since="1.8.0"  />
+
+A function which allows to override the language of the email. If not defined, the language from the context will be used.
+### setTemplateVars
+
+<MemberInfo kind="method" type={`(templateVarsFn: <a href='/reference/core-plugins/email-plugin/email-plugin-types#settemplatevarsfn'>SetTemplateVarsFn</a><Event>) => <a href='/reference/core-plugins/email-plugin/email-event-handler#emaileventhandler'>EmailEventHandler</a><T, Event>`}   />
+
+A function which returns an object hash of variables which will be made available to the Handlebars template
+and subject line for interpolation.
+### setSubject
+
+<MemberInfo kind="method" type={`(defaultSubject: string | <a href='/reference/core-plugins/email-plugin/email-plugin-types#setsubjectfn'>SetSubjectFn</a><Event>) => <a href='/reference/core-plugins/email-plugin/email-event-handler#emaileventhandler'>EmailEventHandler</a><T, Event>`}   />
+
+Sets the default subject of the email. The subject string may use Handlebars variables defined by the
+setTemplateVars() method.
+### setFrom
+
+<MemberInfo kind="method" type={`(from: string) => <a href='/reference/core-plugins/email-plugin/email-event-handler#emaileventhandler'>EmailEventHandler</a><T, Event>`}   />
+
+Sets the default from field of the email. The from string may use Handlebars variables defined by the
+setTemplateVars() method.
+### setOptionalAddressFields
+
+<MemberInfo kind="method" type={`(optionalAddressFieldsFn: <a href='/reference/core-plugins/email-plugin/email-plugin-types#setoptionaladdressfieldsfn'>SetOptionalAddressFieldsFn</a><Event>) => `}  since="1.1.0"  />
+
+A function which allows [OptionalAddressFields](/reference/core-plugins/email-plugin/email-plugin-types#optionaladdressfields) to be specified such as "cc" and "bcc".
+### setMetadata
+
+<MemberInfo kind="method" type={`(optionalSetMetadataFn: <a href='/reference/core-plugins/email-plugin/email-plugin-types#setmetadatafn'>SetMetadataFn</a><Event>) => `}  since="3.1.0"  />
+
+A function which allows [EmailMetadata](/reference/core-plugins/email-plugin/email-plugin-types#emailmetadata) to be specified for the email. This can be used
+to store arbitrary data about the email which can be used for tracking or other purposes.
+
+It will be exposed in the [EmailSendEvent](/reference/core-plugins/email-plugin/email-send-event#emailsendevent) as `event.metadata`. Here's an example of usage:
+
+- An [OrderStateTransitionEvent](/reference/typescript-api/events/event-types#orderstatetransitionevent) occurs, and the EmailEventListener starts processing it.
+- The EmailEventHandler attaches metadata to the email:
+   ```ts
+   new EmailEventListener(EventType.ORDER_CONFIRMATION)
+     .on(OrderStateTransitionEvent)
+     .setMetadata(event => ({
+       type: EventType.ORDER_CONFIRMATION,
+       orderId: event.order.id,
+     }));
+  ```
+- Then, the EmailPlugin tries to send the email and publishes [EmailSendEvent](/reference/core-plugins/email-plugin/email-send-event#emailsendevent),
+  passing ctx, emailDetails, error or success, and this metadata.
+- In another part of the server, we have an eventBus that subscribes to EmailSendEvent. We can use
+  `metadata.type` and `metadata.orderId` to identify the related order. For example, we can indicate on the
+   order that the email was successfully sent, or in case of an error, send a notification confirming
+   the order in another available way.
+### setAttachments
+
+<MemberInfo kind="method" type={`(setAttachmentsFn: <a href='/reference/core-plugins/email-plugin/email-plugin-types#setattachmentsfn'>SetAttachmentsFn</a><Event>) => `}   />
+
+Defines one or more files to be attached to the email. An attachment can be specified
+as either a `path` (to a file or URL) or as `content` which can be a string, Buffer or Stream.
+
+**Note:** When using the `content` to pass a Buffer or Stream, the raw data will get serialized
+into the job queue. For this reason the total size of all attachments passed as `content` should kept to
+**less than ~50k**. If the attachments are greater than that limit, a warning will be logged and
+errors may result if using the DefaultJobQueuePlugin with certain DBs such as MySQL/MariaDB.
+
+*Example*
+
+```ts
+const testAttachmentHandler = new EmailEventListener('activate-voucher')
+  .on(ActivateVoucherEvent)
+  // ... omitted some steps for brevity
+  .setAttachments(async (event) => {
+    const { imageUrl, voucherCode } = await getVoucherDataForUser(event.user.id);
+    return [
+      {
+        filename: `voucher-${voucherCode}.jpg`,
+        path: imageUrl,
+      },
+    ];
+  });
+```
+### addTemplate
+
+<MemberInfo kind="method" type={`(config: EmailTemplateConfig) => <a href='/reference/core-plugins/email-plugin/email-event-handler#emaileventhandler'>EmailEventHandler</a><T, Event>`}   />
+
+Add configuration for another template other than the default `"body.hbs"`. Use this method to define specific
+templates for channels or languageCodes other than the default.
+### loadData
+
+<MemberInfo kind="method" type={`(loadDataFn: <a href='/reference/core-plugins/email-plugin/email-plugin-types#loaddatafn'>LoadDataFn</a><Event, R>) => <a href='/reference/core-plugins/email-plugin/email-event-handler-with-async-data#emaileventhandlerwithasyncdata'>EmailEventHandlerWithAsyncData</a><R, T, Event, <a href='/reference/core-plugins/email-plugin/email-plugin-types#eventwithasyncdata'>EventWithAsyncData</a><Event, R>>`}   />
+
+Allows data to be loaded asynchronously which can then be used as template variables.
+The `loadDataFn` has access to the event, the TypeORM `Connection` object, and an
+`inject()` function which can be used to inject any of the providers exported
+by the [PluginCommonModule](/reference/typescript-api/plugin/plugin-common-module#plugincommonmodule). The return value of the `loadDataFn` will be
+added to the `event` as the `data` property.
+
+*Example*
+
+```ts
+new EmailEventListener('order-confirmation')
+  .on(OrderStateTransitionEvent)
+  .filter(event => event.toState === 'PaymentSettled' && !!event.order.customer)
+  .loadData(({ event, injector }) => {
+    const orderService = injector.get(OrderService);
+    return orderService.getOrderPayments(event.order.id);
+  })
+  .setTemplateVars(event => ({
+    order: event.order,
+    payments: event.data,
+  }))
+  // ...
+```
+### setMockEvent
+
+<MemberInfo kind="method" type={`(event: Omit<Event, 'ctx' | 'data'>) => <a href='/reference/core-plugins/email-plugin/email-event-handler#emaileventhandler'>EmailEventHandler</a><T, Event>`}   />
+
+Optionally define a mock Event which is used by the dev mode mailbox app for generating mock emails
+from this handler, which is useful when developing the email templates.
+
+
+</div>

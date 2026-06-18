@@ -1,0 +1,45 @@
+<ng-container *ngIf="1 < tabbedCustomFields.length; else singleGroup">
+    <clr-tabs>
+        <clr-tab *ngFor="let group of tabbedCustomFields">
+            <button clrTabLink>
+                {{
+                    group.tabName === defaultTabName
+                        ? ('common.general' | translate)
+                        : (group.tabName | translate)
+                }}
+            </button>
+            <clr-tab-content *clrIfActive>
+                <div class="mt-2 form-grid">
+                    <ng-container *ngFor="let customField of group.customFields">
+                        <vdr-custom-field-control
+                            *ngIf="customFieldIsSet(customField.name)"
+                            [entityName]="entityName"
+                            [class.form-grid-span]="componentShouldSpanGrid(customField)"
+                            [customFieldsFormGroup]="customFieldsFormGroup"
+                            [customField]="customField"
+                            [readonly]="readonly"
+                            [compact]="compact"
+                            [showLabel]="showLabel"
+                        ></vdr-custom-field-control>
+                    </ng-container>
+                </div>
+            </clr-tab-content>
+        </clr-tab>
+    </clr-tabs>
+</ng-container>
+<ng-template #singleGroup>
+    <div class="form-grid">
+        <ng-container *ngFor="let customField of tabbedCustomFields[0]?.customFields">
+            <vdr-custom-field-control
+                *ngIf="customFieldIsSet(customField.name)"
+                [entityName]="entityName"
+                [class.form-grid-span]="componentShouldSpanGrid(customField)"
+                [customFieldsFormGroup]="customFieldsFormGroup"
+                [customField]="customField"
+                [readonly]="readonly"
+                [compact]="compact"
+                [showLabel]="showLabel"
+            ></vdr-custom-field-control>
+        </ng-container>
+    </div>
+</ng-template>

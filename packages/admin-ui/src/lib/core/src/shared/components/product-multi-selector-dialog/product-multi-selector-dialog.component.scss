@@ -1,0 +1,79 @@
+:host {
+    display: flex;
+    flex-direction: column;
+    flex-direction: 1;
+    height: 70vh;
+}
+
+.flex-wrapper {
+    display: flex;
+    overflow-y: hidden;
+}
+
+.gallery {
+    /* autoprefixer: off */
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 125px);
+    grid-template-rows: repeat(auto-fill, 200px);
+    grid-gap: 10px 20px;
+    padding-inline-start: 12px;
+    padding-top: 12px;
+    padding-bottom: 64px;
+    overflow-y: auto;
+
+    .card:hover {
+        box-shadow: 0 0.125rem 0 0 var(--color-primary-500);
+        border: 1px solid var(--color-primary-500);
+    }
+}
+
+.detail {
+    margin: 0 3px;
+    font-size: 12px;
+    line-height: 0.8rem;
+    color: var(--color-text-100);
+}
+
+vdr-select-toggle {
+    position: absolute;
+    ::ng-deep .toggle {
+        box-shadow: 0px 5px 5px -4px rgba(0, 0, 0, 0.75);
+    }
+    top: -12px;
+    left: -12px;
+}
+
+.card.selected {
+    box-shadow: 0 0.125rem 0 0 var(--color-primary-500);
+    border: 1px solid var(--color-primary-500);
+
+    .selected-checkbox {
+        opacity: 1;
+    }
+}
+
+.selection {
+    width: 23vw;
+    max-width: 400px;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    .selected-items {
+        flex: 1;
+        overflow-y: auto;
+        .item-row {
+            padding-inline-start: 3px;
+            color: var(--color-text-100);
+            &:hover {
+                background-color: var(--color-component-bg-200);
+            }
+        }
+    }
+}
+.paging-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+

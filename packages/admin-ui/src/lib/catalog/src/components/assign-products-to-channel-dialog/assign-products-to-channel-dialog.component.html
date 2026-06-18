@@ -1,0 +1,73 @@
+<ng-template vdrDialogTitle>
+    <ng-container *ngIf="isProductVariantMode; else productModeTitle">{{
+        'catalog.assign-variants-to-channel' | translate
+    }}</ng-container>
+    <ng-template #productModeTitle>{{ 'catalog.assign-products-to-channel' | translate }}</ng-template>
+</ng-template>
+
+<div class="flex">
+    <clr-input-container>
+        <label>{{ 'common.channel' | translate }}</label>
+        <vdr-channel-assignment-control
+            clrInput
+            [multiple]="false"
+            [includeDefaultChannel]="false"
+            [disableChannelIds]="currentChannelIds"
+            [formControl]="selectedChannelIdControl"
+        ></vdr-channel-assignment-control>
+    </clr-input-container>
+    <div class="flex-spacer"></div>
+    <clr-input-container>
+        <label>{{ 'catalog.price-conversion-factor' | translate }}</label>
+        <input clrInput type="number" min="0" max="99999" [formControl]="priceFactorControl" />
+    </clr-input-container>
+</div>
+
+<div class="channel-price-preview">
+    <label class="clr-control-label">{{ 'catalog.channel-price-preview' | translate }}</label>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>{{ 'common.name' | translate }}</th>
+                <th>
+                    {{
+                        'catalog.price-in-channel'
+                            | translate: { channel: currentChannel?.code | channelCodeToLabel | translate }
+                    }}
+                </th>
+                <th>
+                    <ng-template [ngIf]="selectedChannel" [ngIfElse]="noSelection">
+                        {{ 'catalog.price-in-channel' | translate: { channel: selectedChannel?.code } }}
+                    </ng-template>
+                    <ng-template #noSelection>
+                        {{ 'catalog.no-channel-selected' | translate }}
+                    </ng-template>
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr *ngFor="let row of variantsPreview$ | async">
+                <td>{{ row.name }}</td>
+                <td>{{ row.price | localeCurrency: currentChannel?.defaultCurrencyCode }}</td>
+                <td>
+                    <ng-template [ngIf]="selectedChannel" [ngIfElse]="noChannelSelected">
+                        {{ row.pricePreview | localeCurrency: selectedChannel?.defaultCurrencyCode }}
+                    </ng-template>
+                    <ng-template #noChannelSelected> - </ng-template>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<ng-template vdrDialogButtons>
+    <button type="button" class="btn" (click)="cancel()">{{ 'common.cancel' | translate }}</button>
+    <button type="submit" (click)="assign()" [disabled]="!selectedChannel" class="btn btn-primary">
+        <ng-template [ngIf]="selectedChannel" [ngIfElse]="noSelection">
+            {{ 'catalog.assign-to-named-channel' | translate: { channelCode: selectedChannel?.code } }}
+        </ng-template>
+        <ng-template #noSelection>
+            {{ 'catalog.no-channel-selected' | translate }}
+        </ng-template>
+    </button>
+</ng-template>

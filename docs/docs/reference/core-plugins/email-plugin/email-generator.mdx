@@ -1,0 +1,73 @@
+---
+title: "EmailGenerator"
+generated: true
+---
+## EmailGenerator
+
+<GenerationInfo sourceFile="packages/email-plugin/src/generator/email-generator.ts" sourceLine="15" packageName="@vendure/email-plugin" />
+
+An EmailGenerator generates the subject and body details of an email.
+
+```ts title="Signature"
+interface EmailGenerator<T extends string = any, E extends VendureEvent = any> extends InjectableStrategy {
+    onInit?(options: EmailPluginOptions): void | Promise<void>;
+    generate(
+        from: string,
+        subject: string,
+        body: string,
+        templateVars: { [key: string]: any },
+    ): EmailGeneratorResult | Promise<EmailGeneratorResult>;
+}
+```
+* Extends: [`InjectableStrategy`](/reference/typescript-api/common/injectable-strategy#injectablestrategy)
+
+
+
+<div className="members-wrapper">
+
+### onInit
+
+<MemberInfo kind="method" type={`(options: <a href='/reference/core-plugins/email-plugin/email-plugin-options#emailpluginoptions'>EmailPluginOptions</a>) => void | Promise<void>`}   />
+
+Any necessary setup can be performed here.
+### generate
+
+<MemberInfo kind="method" type={`(from: string, subject: string, body: string, templateVars: { [key: string]: any }) => EmailGeneratorResult | Promise<EmailGeneratorResult>`}   />
+
+Given a subject and body from an email template, this method generates the final
+interpolated email text.
+
+
+</div>
+## HandlebarsMjmlGenerator
+
+<GenerationInfo sourceFile="packages/email-plugin/src/generator/handlebars-mjml-generator.ts" sourceLine="17" packageName="@vendure/email-plugin" />
+
+Uses Handlebars (https://handlebarsjs.com/) to output MJML (https://mjml.io) which is then
+compiled down to responsive email HTML.
+
+```ts title="Signature"
+class HandlebarsMjmlGenerator implements EmailGenerator {
+    onInit(options: InitializedEmailPluginOptions) => ;
+    generate(from: string, subject: string, template: string, templateVars: any) => ;
+}
+```
+* Implements: [`EmailGenerator`](/reference/core-plugins/email-plugin/email-generator#emailgenerator)
+
+
+
+<div className="members-wrapper">
+
+### onInit
+
+<MemberInfo kind="method" type={`(options: InitializedEmailPluginOptions) => `}   />
+
+
+### generate
+
+<MemberInfo kind="method" type={`(from: string, subject: string, template: string, templateVars: any) => `}   />
+
+
+
+
+</div>

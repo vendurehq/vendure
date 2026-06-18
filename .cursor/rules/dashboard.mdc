@@ -1,0 +1,173 @@
+---
+description: Dashboard package
+globs: packages/dashboard/**/*
+alwaysApply: false
+---
+
+The project in the /packages/dashboard dir uses the following stack. Please make sure to use these in any solutions:
+
+- React
+- Shadcn UI & tailwind
+- TanStack Query for data fetching, i.e. useQuery or useMutation. Not Apollo Client.
+- TanStack router for any routing & navigation
+
+## API Interaction
+
+When creating useQuery or useMutation calls, use the following pattern as a guide:
+
+```
+import { api } from '@/graphql/api.js';
+import { graphql } from '@/graphql/graphql.js';
+import { useQuery } from '@tanstack/react-query';
+
+const taxCategoriesDocument = graphql(`
+    query TaxCategories($options: TaxCategoryListOptions) {
+        taxCategories(options: $options) {
+            items {
+                id
+                name
+                isDefault
+            }
+        }
+    }
+`);
+
+export function MyComponent() {
+    const { data, isLoading, isPending, status } = useQuery({
+        queryKey: ['taxCategories'],
+        staleTime: 1000 * 60 * 5,
+        queryFn: () =>
+            api.query(taxCategoriesDocument, {
+                options: {
+                    take: 100,
+                },
+            }),
+    });
+}
+```
+
+When performing mutations, use this example as a guide:
+
+```tsx
+import { graphql } from '@/graphql/graphql.js';
+import { api } from '@/graphql/api.js';
+import { useMutation } from '@tanstack/react-query';
+
+const createProductOptionsMutation = graphql(`
+    mutation CreateOptionGroups($input: CreateProductOptionGroupInput!) {
+        createProductOptionGroup(input: $input) {
+            id
+            name
+            options {
+                id
+                code
+                name
+            }
+        }
+    }
+`);
+
+export function MyComponent() {
+    // Note that explicit typings or generic params should _not_ be needed since the
+    // type info will flow from the use of the `graphql` function, which uses gql.tada.
+   const createOptionGroupMutation = useMutation({
+        // note that variables are not passed at this point of declaration
+        mutationFn: api.mutate(createProductOptionsMutation),
+        onSuccess: () => {
+            // whatever makes sense, e.g. show toast
+        },
+        onError: () => {
+            // whatever makes sense
+        },
+    });
+
+
+   // ...
+
+   function handleClick() {
+        // variables are passed here
+        createOptionGroupMutation.mutate({
+            input: {
+                // etc
+            }
+        })
+   }
+
+   //...
+
+}
+
+```
+
+## Package Layout
+
+The architecture of the dashboard is as follows:
+
+- /src/lib contains shared code that is used across the dashboard.
+- /src/app contains the routes and pages of the dashboard app.
+
+In the "app" context, we try as much as possible to use the same patterns across all pages. Most of the app routes
+are CRUD list/detail pages.
+
+- A representative list page is [administrators.tsx](mdc:packages/dashboard/src/app/routes/_authenticated/_administrators/administrators.tsx)
+- A representative detail page is [administrators_.$id.tsx](mdc:packages/dashboard/src/app/routes/_authenticated/_administrators/administrators_.$id.tsx)
+
+These examples show the common components, hooks and patterns that should be used across the app
+
+**Important** All the files in the /src/app/routes/ dir are interpreted as routes by Tanstack
+Router. The exception is any file in a `/components`, `/hooks` dir, or any file ending `.graphql.ts`. So
+don't just create new directories and files that do not fit this pattern otherwise Tanstack router
+will break.
+
+In the "lib" context, we try to re-use components from the /src/lib/components dir, including preferring the Shadcn components
+as much as possible from the /src/lib/components/ui dir.
+
+## Forms
+
+We have a special wrapper around the Shadcn react-hook-form components to make typical form controls
+more concise:
+
+```
+ <FormFieldWrapper
+    control={form.control}
+    name="facetValueIds"
+    label={<Trans>Facet values</Trans>}
+    render={({ field }) => (
+        <AssignedFacetValues facetValues={entity?.facetValues ?? []} {...field} />
+    )}
+/>
+```
+
+Please prefer this form over the raw Shadcn components where possible.
+
+## Localization
+
+Any labels or user-facing messages should use localization following this example:
+
+```tsx
+import { Trans, useLingui } from '@lingui/react/macro';
+
+
+export function MyComponent() {
+
+    const { i18n } = useLingui();
+
+    const message = i18n.t('This is a localized string')
+
+    return (
+        <div>
+            <Trans>This is a localized string in the markup</Trans>
+        </div>
+    )
+}
+```
+
+## Typing React Components
+
+React components should have their props objects set to `Readonly<>`, for instance:
+
+```ts
+export function PaymentDetails({ payment, currencyCode }: Readonly<PaymentDetailsProps>) {
+  //...
+}
+```

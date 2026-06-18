@@ -1,0 +1,39 @@
+@import "variables";
+
+:host {
+    height: 100%;
+    display: flex;
+    min-height: 64vh;
+}
+.fulfillment-wrapper {
+    flex: 1;
+    @media screen and (min-width: $breakpoint-small) {
+        display: flex;
+        flex-direction: row;
+    }
+
+    .cancellation-details {
+        @media screen and (min-width: $breakpoint-small) {
+            margin-top: 0;
+            margin-inline-start: 24px;
+            width: 250px;
+        }
+    }
+    .order-lines {
+        flex: 1;
+        overflow-y: auto;
+        table {
+            margin-top: 0;
+        }
+    }
+    tr.ignore {
+        color: var(--color-grey-300);
+    }
+    .is-cancelled td {
+        text-decoration: line-through;
+        background-color: var(--color-component-bg-200);
+    }
+    .is-disabled td, .is-disabled td input {
+        background-color: var(--color-component-bg-200);
+    }
+}

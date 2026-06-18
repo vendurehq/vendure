@@ -1,0 +1,199 @@
+---
+title: "Managing the Active Order"
+metaTitle: "Managing the Active Order (Cart) in Vendure"
+metaDescription: "Add, remove, and adjust items in the shopping cart, and apply or remove coupon codes using the Vendure Shop API active order mutations."
+---
+
+The "active order" is what is also known as the "cart" - it is the order that is currently being worked on by the customer.
+
+An order remains active until it is completed, and during this time it can be modified by the customer in various ways:
+
+- Adding an item
+- Removing an item
+- Changing the quantity of items
+- Applying a coupon
+- Removing a coupon
+
+This guide will cover how to manage the active order.
+
+## Define an Order fragment
+
+Since all the mutations that we will be using in this guide require an `Order` object, we will define a fragment that we can
+reuse in all of our mutations.
+
+```ts title="src/fragments.ts"
+const ACTIVE_ORDER_FRAGMENT = /*GraphQL*/`
+fragment ActiveOrder on Order {
+  __typename
+  id
+  code
+  couponCodes
+  state
+  currencyCode
+  totalQuantity
+  subTotalWithTax
+  shippingWithTax
+  totalWithTax
+  discounts {
+    description
+    amountWithTax
+  }
+  lines {
+    id
+    unitPriceWithTax
+    quantity
+    linePriceWithTax
+    productVariant {
+      id
+      name
+      sku
+    }
+    featuredAsset {
+      id
+      preview
+    }
+  }
+  shippingLines {
+    shippingMethod {
+      description
+    }
+    priceWithTax
+  }
+}`
+```
+
+:::note
+The `__typename` field is used to determine the type of the object returned by the GraphQL server. In this case, it will always be `'Order'`.
+
+Some GraphQL clients such as Apollo Client will automatically add the `__typename` field to all queries and mutations, but if you are using a different client you may need to add it manually.
+:::
+
+This fragment can then be used in subsequent queries and mutations by using the `...` spread operator in the place where an `Order` object is expected.
+You can then embed the fragment in the query or mutation by using the `${ACTIVE_ORDER_FRAGMENT}` syntax:
+
+```ts title="src/queries.ts"
+import { ACTIVE_ORDER_FRAGMENT } from './fragments';
+
+export const GET_ACTIVE_ORDER = /*GraphQL*/`
+  query GetActiveOrder {
+    activeOrder {
+      ...ActiveOrder # [!code highlight]
+    }
+  }
+  ${ACTIVE_ORDER_FRAGMENT} # [!code highlight]
+`;
+```
+
+For the remainder of this guide, we will list just the body of the query or mutation, and assume that the fragment is defined and imported as above.
+
+## Get the active order
+
+This fragment can then be used in subsequent queries and mutations. Let's start with a query to get the active order using the [`activeOrder` query](/reference/graphql-api/shop/queries#activeorder):
+
+```graphql
+query GetActiveOrder {
+  activeOrder {
+    ...ActiveOrder
+  }
+}
+```
+
+## Add an item
+
+To add an item to the active order, we use the [`addItemToOrder` mutation](/reference/graphql-api/shop/mutations/#additemtoorder), as we have seen in the [Product Detail Page guide](/storefront/product-detail/).
+
+```graphql
+mutation AddItemToOrder($productVariantId: ID!, $quantity: Int!) {
+  addItemToOrder(productVariantId: $productVariantId, quantity: $quantity) {
+    ...ActiveOrder
+    ... on ErrorResult {
+      errorCode
+      message
+    }
+    ... on InsufficientStockError {
+      quantityAvailable
+      order {
+        ...ActiveOrder
+      }
+    }
+  }
+}
+```
+
+:::info
+If you have defined any custom fields on the `OrderLine` entity, you will be able to pass them as a `customFields` argument to the `addItemToOrder` mutation.
+See the [Configurable Products guide](/how-to/configurable-products/) for more information.
+:::
+
+## Remove an item
+
+To remove an item from the active order, we use the [`removeOrderLine` mutation](/reference/graphql-api/shop/mutations/#removeorderline),
+and pass the `id` of the `OrderLine` to remove.
+
+```graphql
+mutation RemoveItemFromOrder($orderLineId: ID!) {
+  removeOrderLine(orderLineId: $orderLineId) {
+    ...ActiveOrder
+    ... on ErrorResult {
+      errorCode
+      message
+    }
+  }
+}
+```
+
+## Change the quantity of an item
+
+To change the quantity of an item in the active order, we use the [`adjustOrderLine` mutation](/reference/graphql-api/shop/mutations/#adjustorderline).
+
+```graphql
+mutation AdjustOrderLine($orderLineId: ID!, $quantity: Int!) {
+  adjustOrderLine(orderLineId: $orderLineId, quantity: $quantity) {
+    ...ActiveOrder
+    ... on ErrorResult {
+        errorCode
+        message
+    }
+  }
+}
+```
+
+:::info
+If you have defined any custom fields on the `OrderLine` entity, you will be able to update their values by passing a `customFields` argument to the `adjustOrderLine` mutation.
+See the [Configurable Products guide](/how-to/configurable-products/) for more information.
+:::
+
+## Applying a coupon code
+
+If you have defined any [Promotions](/core-concepts/promotions/) which use coupon codes, you can apply the a coupon code to the active order
+using the [`applyCouponCode` mutation](/reference/graphql-api/shop/mutations/#applycouponcode).
+
+```graphql
+mutation ApplyCouponCode($couponCode: String!) {
+  applyCouponCode(couponCode: $couponCode) {
+    ...ActiveOrder
+    ... on ErrorResult {
+      errorCode
+      message
+    }
+  }
+}
+```
+
+## Removing a coupon code
+
+To remove a coupon code from the active order, we use the [`removeCouponCode` mutation](/reference/graphql-api/shop/mutations/#removecouponcode).
+
+```graphql
+mutation RemoveCouponCode($couponCode: String!) {
+  removeCouponCode(couponCode: $couponCode) {
+    ...ActiveOrder
+  }
+}
+```
+
+## Live example
+
+Here is a live example which demonstrates adding, updating and removing items from the active order:
+
+<Stackblitz id='vendure-docs-active-order' />

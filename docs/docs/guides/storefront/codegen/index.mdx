@@ -1,0 +1,150 @@
+---
+title: "Storefront GraphQL Code Generation"
+metaTitle: "GraphQL Code Generation for Vendure Storefronts"
+metaDescription: "Set up GraphQL Code Generator with a Vendure storefront to produce TypedDocumentNode types for fully type-safe API calls in TypeScript."
+---
+
+Code generation means the automatic generation of TypeScript types based on your GraphQL schema and your GraphQL operations.
+This is a very powerful feature that allows you to write your code in a type-safe manner, without you needing to manually
+write any types for your API calls.
+
+To do this, we will use [Graphql Code Generator](https://the-guild.dev/graphql/codegen).
+
+:::note
+This guide is for adding codegen to your storefront. For a guide on adding codegen to your backend Vendure plugins or UI extensions, see the [Plugin Codegen](/how-to/codegen/) guide.
+:::
+
+## Installation
+
+Follow the installation instructions in the [GraphQL Code Generator Quick Start](https://the-guild.dev/graphql/codegen/docs/getting-started/installation).
+
+Namely:
+
+```bash
+npm i graphql
+npm i -D typescript @graphql-codegen/cli
+
+npx graphql-code-generator init
+
+npm install
+```
+
+During the `init` step, you'll be prompted to select various options about how to configure the code generation.
+
+- Where is your schema?: Use `http://localhost:3000/shop-api` (unless you have configured a different GraphQL API URL)
+- Where are your operations and fragments?: Use the appropriate glob pattern for you project. For example, `src/**/*.{ts,tsx}`.
+- Select `codegen.ts` as the name of the config file.
+
+## Configuration
+
+The `init` step above will create a `codegen.ts` file in your project root. Add the highlighted lines:
+
+```ts title="codegen.ts"
+
+import type { CodegenConfig } from '@graphql-codegen/cli';
+
+const config: CodegenConfig = {
+  overwrite: true,
+  schema: 'http://localhost:3000/shop-api',
+  documents: 'src/**/*.graphql.ts',
+  generates: {
+    'src/gql/': {
+      preset: 'client',
+      plugins: [],
+      config: { // [!code highlight]
+        scalars: { // [!code highlight]
+            // This tells codegen that the `Money` scalar is a number // [!code highlight]
+            Money: 'number', // [!code highlight]
+        }, // [!code highlight]
+        namingConvention: { // [!code highlight]
+            // This ensures generated enums do not conflict with the built-in types. // [!code highlight]
+            enumValues: 'keep', // [!code highlight]
+        }, // [!code highlight]
+      } // [!code highlight]
+    },
+  }
+};
+
+export default config;
+```
+
+## Running Codegen
+
+During the `init` step, you will have installed a `codegen` script in your `package.json`. You can run this script to
+generate the TypeScript types for your GraphQL operations.
+
+:::note
+Ensure you have the Vendure server running before running the codegen script.
+:::
+
+```bash
+npm run codegen
+```
+
+This will generate a `src/gql` directory containing the TypeScript types for your GraphQL operations.
+
+## Use the `graphql()` function
+
+If you have existing GraphQL queries and mutations in your application, you can now use the `graphql()` function
+exported by the `src/gql/index.ts` file to execute them. If you were previously using the `gql` tagged template function,
+replace it with the `graphql()` function.
+
+```ts title="src/App.tsx"
+import { useQuery } from '@tanstack/react-query';
+import request from 'graphql-request'
+import { graphql } from './gql'; // [!code highlight]
+
+// GET_PRODUCTS will be a `TypedDocumentNode` type, // [!code highlight]
+// which encodes the types of the query variables and the response data. // [!code highlight]
+const GET_PRODUCTS = graphql(` // [!code highlight]
+    query GetProducts($options: ProductListOptions) {
+        products(options: $options) {
+            items {
+                id
+                name
+                slug
+                featuredAsset {
+                    preview
+                }
+            }
+        }
+    }
+`);
+
+export default function App() {
+  // `data` will now be correctly typed // [!code highlight]
+  const { isLoading, data } = useQuery({ // [!code highlight]
+    queryKey: ['products'],
+    queryFn: async () =>
+      request(
+        'http://localhost:3000/shop-api',
+        GET_PRODUCTS, // [!code highlight]
+        { // [!code highlight]
+        // The variables will also be correctly typed // [!code highlight]
+        options: { take: 3 }, // [!code highlight]
+        } // [!code highlight]
+      ),
+  });
+
+  if (isLoading) return <p>Loading...</p>;
+
+  return data ? (
+    data.products.items.map(({ id, name, slug, featuredAsset }) => (
+      <div key={id}>
+        <h3>{name}</h3>
+        <img src={`${featuredAsset.preview}?preset=small`} alt={name} />
+      </div>
+    ))
+  ) : (
+    <>Loading...</>
+  );
+}
+```
+
+In the above example, the type information all works out of the box because the `graphql-request` library from v5.0.0
+has built-in support for the [`TypedDocumentNode`](https://github.com/dotansimha/graphql-typed-document-node) type,
+as do the latest versions of most of the popular GraphQL client libraries, such as Apollo Client & Urql.
+
+:::note
+In the documentation examples on other pages, we do not assume the use of code generation in order to keep the examples as simple as possible.
+:::

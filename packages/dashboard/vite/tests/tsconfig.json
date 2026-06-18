@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "module": "NodeNext",
+    "sourceMap": true,
+    "jsx": "react-jsx",
+    "paths": {
+      "@plugins/*": [
+        "./fixtures-path-alias/*"
+      ],
+      "@other/ts-aliased": [
+        "./fixtures-path-alias/ts-aliased/index.ts"
+      ],
+      "@other/js-aliased": [
+        "./fixtures-path-alias/js-aliased/index.js"
+      ],
+      "@esm-plugins/*": [
+        "./fixtures-esm-path-alias/*"
+      ]
+    }
+  },
+  "exclude": [
+    "node_modules"
+  ]
+}

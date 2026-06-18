@@ -1,0 +1,11 @@
+.progress {
+    position: absolute;
+    overflow: hidden;
+    height: 4px;
+    background-color: var(--color-grey-500);
+    opacity: 0;
+    transition: opacity 0.1s;
+    &.visible {
+        opacity: 1;
+    }
+}

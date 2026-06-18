@@ -1,0 +1,547 @@
+---
+title: 'Settings Store'
+metaTitle: "Vendure Settings Store - Scoped Configuration Data Storage"
+metaDescription: "Store and retrieve scoped configuration data in Vendure using the Settings Store API, with per-user, per-channel, and global scoping plus permission controls."
+---
+
+The Settings Store is a flexible system for storing configuration data with support for scoping, permissions,
+and validation. It allows plugins and the core system to store and retrieve arbitrary JSON data with
+fine-grained control over access and isolation.
+
+It provides a robust, secure, and flexible system for managing configuration data in your Vendure
+application. Use it to store user preferences, plugin settings, feature flags, and any other
+settings data your application needs.
+
+
+:::info
+The APIs in this guide were introduced in Vendure v3.4
+:::
+
+## Overview
+
+The Settings Store provides:
+
+- **Scoped Storage**: Data can be scoped globally, per-user, per-channel, or with custom scope
+- **Permission Control**: Fields can require specific permissions to access
+- **Validation**: Custom validation functions for field values
+- **GraphQL API**: Admin API for reading and writing values
+- **Service API**: Programmatic access via the [SettingsStoreService](/reference/typescript-api/services/settings-store-service)
+- **Automatic Cleanup**: Scheduled task to remove orphaned entries
+
+## Settings Store vs Custom Fields
+
+Settings fields share some similarities to custom fields, but the important differences are:
+
+- Custom fields are attached to particular Vendure entities. Settings fields are not.
+- Defining a custom field adds a new column in the database, whereas settings fields do not.
+- Custom fields are reflected in corresponding GraphQL APIs and in the Dashboard UI.
+- Custom fields are statically typed, whereas settings fields store any kind of JSON-serializable data.
+
+Settings fields are best suited to storing config-like values that are global in scope, or which
+configure data for a particular plugin.
+
+## Defining Settings Fields
+
+Settings fields are defined in your Vendure configuration using the `settingsStoreFields` option:
+
+<Tabs>
+    <TabItem value="basic" label="Basic Example">
+
+        ```ts
+        import { VendureConfig, SettingsStoreScopes } from '@vendure/core';
+
+        export const config: VendureConfig = {
+          // ... other config
+          settingsStoreFields: {
+            dashboard: [
+                {
+                  name: 'theme',
+                  scope: SettingsStoreScopes.user,
+                },
+                {
+                  name: 'companyName',
+                  scope: SettingsStoreScopes.global,
+                }
+              ]
+            }
+          };
+        ```
+
+    </TabItem>
+    <TabItem value="advanced" label="Advanced Example">
+
+        ```ts
+        import { VendureConfig, SettingsStoreScopes, Permission } from '@vendure/core';
+
+        export const config: VendureConfig = {
+          // ... other config
+          settingsStoreFields: {
+            dashboard: [
+              {
+                name: 'theme',
+                scope: SettingsStoreScopes.user,
+              },
+              {
+                name: 'tableFilters',
+                scope: SettingsStoreScopes.userAndChannel,
+              }
+            ],
+            payment: [
+              {
+                name: 'stripeApiKey',
+                scope: SettingsStoreScopes.global,
+                readonly: true, // Cannot be modified via GraphQL API
+                requiresPermission: Permission.SuperAdmin,
+                validate: (value, injector, ctx) => {
+                  if (typeof value !== 'string' || !value.startsWith('sk_')) {
+                    return 'Stripe API key must be a string starting with "sk_"';
+                  }
+                }
+              }
+            ],
+            ui: [
+              {
+                name: 'welcomeMessage',
+                scope: SettingsStoreScopes.channel,
+                validate: async (value, injector, ctx) => {
+                  if (typeof value !== 'string' || value.length > 500) {
+                    return 'Welcome message must be a string with max 500 characters';
+                  }
+                }
+              }
+            ]
+          }
+        };
+        ```
+
+    </TabItem>
+
+</Tabs>
+
+### Field Configuration Options
+
+Each field supports the following configuration options:
+
+| Option               | Type                         | Description                                                 |
+| -------------------- | ---------------------------- | ----------------------------------------------------------- |
+| `name`               | `string`                     | The field name (combined with namespace to create full key) |
+| `scope`              | `SettingsStoreScopeFunction`      | How the field should be scoped (see scoping section)        |
+| `readonly`           | `boolean`                    | If true, field cannot be modified via GraphQL API           |
+| `requiresPermission` | `Permission \| Permission[] \| { read: Permission, write: Permission }` | Permissions required to access this field                   |
+| `validate`           | `function`                   | Custom validation function for field values                 |
+
+### Scoping
+
+The Settings Store supports four built-in scoping strategies:
+
+```ts
+import { SettingsStoreScopes } from '@vendure/core';
+
+// Global - single value for entire system
+SettingsStoreScopes.global;
+
+// User-specific - separate values per user
+SettingsStoreScopes.user;
+
+// Channel-specific - separate values per channel
+SettingsStoreScopes.channel;
+
+// User and channel specific - separate values per user per channel
+SettingsStoreScopes.userAndChannel;
+```
+
+You can also create custom scope functions:
+
+```ts
+import { VendureConfig, SettingsStoreScopeFunction } from '@vendure/core';
+
+const customScope: SettingsStoreScopeFunction = ({ key, value, ctx }) => {
+    // Custom scoping logic
+    const env = process.env.NODE_ENV === 'production' ? 'prod' : 'dev';
+    return `env:${env}`;
+};
+
+export const config: VendureConfig = {
+    settingsStoreFields: {
+        myNamespace: [
+            {
+                name: 'customField',
+                // The value will be saved with the scope
+                // "env:prod" or "env:dev"
+                scope: customScope,
+            },
+        ],
+    },
+};
+```
+
+### Permissions
+
+You can control access to the Settings Store entry via the `requiresPermission` configuration property.
+If not specified, basic authentication is required for Admin API access.
+
+Can be either:
+- A single permission or array of permissions (applies to both read and write)
+- An object with `read` and `write` properties for granular control. For custom permissions you can use
+  a [RwPermissionDefinition](/reference/typescript-api/auth/permission-definition#rwpermissiondefinition).
+
+@example
+```ts
+import { Permission, VendureConfig, RwPermissionDefinition } from '@vendure/core';
+
+export const dashboardSavedViews = new RwPermissionDefinition('DashboardSavedViews');
+
+export const config: VendureConfig = {
+    settingsStoreFields: {
+        myNamespace: [
+            {
+                name: 'myField1',
+                // Single permission for both read and write
+                requiresPermission: Permission.UpdateSettings,
+            },
+            {
+                name: 'myField2',
+                // Separate read and write permissions
+                requiresPermission: {
+                  read: Permission.ReadSettings,
+                  write: Permission.UpdateSettings,
+                },
+            },
+            {
+                name: 'myField3',
+                // Using custom RwPermissionDefinition
+                requiresPermission: {
+                  read: dashboardSavedViews.Read,
+                  write: dashboardSavedViews.Write,
+                },
+            },
+        ],
+    },
+};
+```
+
+## GraphQL API
+
+The Settings Store provides GraphQL queries and mutations in the Admin API:
+
+### Queries
+
+```graphql
+# Get a single value
+query GetSettingsStoreValue($key: String!) {
+    getSettingsStoreValue(key: $key)
+}
+
+# Get multiple values
+query GetSettingsStoreValues($keys: [String!]!) {
+    getSettingsStoreValues(keys: $keys)
+}
+```
+
+### Mutations
+
+Any kind of JSON-serializable data can be set as the value. For example: strings, numbers,
+arrays, or even deeply-nested objects and arrays.
+
+```graphql
+# Set a single value
+mutation SetSettingsStoreValue($input: SettingsStoreInput!) {
+    setSettingsStoreValue(input: $input) {
+        key
+        result
+        error
+    }
+}
+
+# Set multiple values
+mutation SetSettingsStoreValues($inputs: [SettingsStoreInput!]!) {
+    setSettingsStoreValues(inputs: $inputs) {
+        key
+        result
+        error
+    }
+}
+```
+
+:::note
+By default, the Settings Store is not exposed in the Shop API.
+However, you can expose this functionality via a custom mutations & queries
+that internally use the `SettingsStoreService` (see next section).
+:::
+
+### Usage Examples
+
+<Tabs>
+    <TabItem value="single" label="Single Value">
+
+        ```ts
+        // Setting a value
+        const result = await adminClient.query(gql`
+            mutation SetSettingsStoreValue($input: SettingsStoreInput!) {
+                setSettingsStoreValue(input: $input) {
+                    key
+                    result
+                    error
+                }
+            }
+        `, {
+            input: {
+                key: 'dashboard.theme',
+                value: 'dark'
+            }
+        });
+
+        // Getting a value
+        const theme = await adminClient.query(gql`
+            query GetSettingsStoreValue($key: String!) {
+                getSettingsStoreValue(key: $key)
+            }
+        `, {
+            key: 'dashboard.theme'
+        });
+        ```
+
+    </TabItem>
+    <TabItem value="multiple" label="Multiple Values">
+
+        ```ts
+        // Setting multiple values
+        const results = await adminClient.query(gql`
+            mutation SetSettingsStoreValues($inputs: [SettingsStoreInput!]!) {
+                setSettingsStoreValues(inputs: $inputs) {
+                    key
+                    result
+                    error
+                }
+            }
+        `, {
+            inputs: [
+                { key: 'dashboard.theme', value: 'dark' },
+                { key: 'dashboard.language', value: 'en' }
+            ]
+        });
+
+        // Getting multiple values
+        const settings = await adminClient.query(gql`
+            query GetSettingsStoreValues($keys: [String!]!) {
+                getSettingsStoreValues(keys: $keys)
+            }
+        `, {
+            keys: ['dashboard.theme', 'dashboard.language']
+        });
+
+        // Returns: {"dashboard.theme": "dark", "dashboard.language": "en"}
+        ```
+
+    </TabItem>
+
+</Tabs>
+
+## Using the SettingsStoreService
+
+For programmatic access within plugins or services, use the [SettingsStoreService](/reference/typescript-api/services/settings-store-service):
+
+<Tabs>
+    <TabItem value="basic-service" label="Basic Usage">
+
+        ```ts
+        import { Injectable } from '@nestjs/common';
+        import { SettingsStoreService, RequestContext } from '@vendure/core';
+
+        @Injectable()
+        export class MyService {
+            constructor(private settingsStoreService: SettingsStoreService) {}
+
+            async getUserTheme(ctx: RequestContext): Promise<string> {
+                const theme = await this.settingsStoreService.get<string>(ctx, 'dashboard.theme');
+                return theme || 'light'; // Default fallback
+            }
+
+            async setUserTheme(ctx: RequestContext, theme: string): Promise<boolean> {
+                const result = await this.settingsStoreService.set(ctx, 'dashboard.theme', theme);
+                return result.result;
+            }
+        }
+        ```
+
+    </TabItem>
+    <TabItem value="advanced-service" label="Advanced Usage">
+
+        ```ts
+        import { Injectable } from '@nestjs/common';
+        import { SettingsStoreService, RequestContext } from '@vendure/core';
+
+        interface DashboardSettings {
+            theme: 'light' | 'dark';
+            language: string;
+            notifications: boolean;
+        }
+
+        @Injectable()
+        export class DashboardService {
+            constructor(private settingsStoreService: SettingsStoreService) {}
+
+            async getDashboardSettings(ctx: RequestContext): Promise<DashboardSettings> {
+                const settings = await this.settingsStoreService.getMany(ctx, [
+                    'dashboard.theme',
+                    'dashboard.language',
+                    'dashboard.notifications'
+                ]);
+
+                return {
+                    theme: settings['dashboard.theme'] || 'light',
+                    language: settings['dashboard.language'] || 'en',
+                    notifications: settings['dashboard.notifications'] ?? true,
+                };
+            }
+
+            async updateDashboardSettings(
+                ctx: RequestContext,
+                settings: Partial<DashboardSettings>
+            ): Promise<{ success: boolean; errors: string[] }> {
+                const updates: Record<string, any> = {};
+
+                if (settings.theme) updates['dashboard.theme'] = settings.theme;
+                if (settings.language) updates['dashboard.language'] = settings.language;
+                if (settings.notifications !== undefined) {
+                    updates['dashboard.notifications'] = settings.notifications;
+                }
+
+                const results = await this.settingsStoreService.setMany(ctx, updates);
+
+                return {
+                    success: results.every(r => r.result),
+                    errors: results.filter(r => !r.result).map(r => r.error || 'Unknown error')
+                };
+            }
+        }
+        ```
+
+    </TabItem>
+
+</Tabs>
+
+### SettingsStoreService Methods
+
+| Method                    | Description                                         |
+| ------------------------- | --------------------------------------------------- |
+| `get<T>(ctx, key)`        | Get a single value with optional type parameter     |
+| `getMany(ctx, keys)`      | Get multiple values efficiently in a single query   |
+| `set<T>(ctx, key, value)` | Set a value with structured result feedback         |
+| `setMany(ctx, values)`    | Set multiple values with individual result feedback |
+| `getFieldDefinition(key)` | Get the field configuration for a key               |
+
+:::note
+Prior to v3.4.2, `ctx` was the _last_ argument to the above methods. However, since
+this is contrary to all other method usage which has `ctx` as the _first_ argument, it was
+changed while deprecating (but still supporting) the former signature.
+:::
+
+## Orphaned Entries Cleanup
+
+When field definitions are removed from your configuration, the corresponding
+database entries become "orphaned". The Settings Store includes an automatic cleanup system to handle this.
+
+### Manual Cleanup
+
+You can also perform cleanup manually via the service:
+
+```ts
+// Find orphaned entries
+const orphanedEntries = await settingsStoreService.findOrphanedEntries({
+    olderThan: '7d',
+    maxDeleteCount: 1000,
+});
+
+// Clean them up
+const cleanupResult = await settingsStoreService.cleanupOrphanedEntries({
+    olderThan: '7d',
+    dryRun: false,
+    batchSize: 100,
+});
+```
+
+## Best Practices
+
+1. **Use appropriate scoping**: Choose the most restrictive scope that meets your needs
+2. **Implement validation**: Add validation for fields that accept user input
+3. **Set permissions**: Use`requiresPermission` for sensitive configuration data
+4. **Mark sensitive fields readonly**: Prevent GraphQL modification of critical settings
+5. **Consider value size limits**: Large values can impact performance
+
+## Examples
+
+### Plugin Integration
+
+```ts
+import { VendurePlugin, SettingsStoreScopes } from '@vendure/core';
+
+@VendurePlugin({
+    configuration: config => {
+        config.settingsStoreFields = {
+            ...config.settingsStoreFields,
+            myPlugin: [
+                {
+                    name: 'apiEndpoint',
+                    scope: SettingsStoreScopes.global,
+                    requiresPermission: Permission.UpdateSettings,
+                    validate: value => {
+                        if (typeof value !== 'string' || !value.startsWith('https://')) {
+                            return 'API endpoint must be a valid HTTPS URL';
+                        }
+                    },
+                },
+                {
+                    name: 'userPreferences',
+                    scope: SettingsStoreScopes.userAndChannel,
+                },
+            ],
+        };
+        return config;
+    },
+})
+export class MyPlugin {}
+```
+
+### Frontend usage
+
+```tsx
+import React from 'react';
+import { useQuery, useMutation } from '@apollo/client';
+import gql from 'graphql-tag';
+
+const GET_THEME = gql`
+    query GetTheme {
+        getSettingsStoreValue(key: "dashboard.theme")
+    }
+`;
+
+const SET_THEME = gql`
+    mutation SetTheme($theme: String!) {
+        setSettingsStoreValue(input: { key: "dashboard.theme", value: $theme }) {
+            result
+            error
+        }
+    }
+`;
+
+export function ThemeSelector() {
+    const { data } = useQuery(GET_THEME);
+    const [setTheme] = useMutation(SET_THEME, {
+        refetchQueries: [GET_THEME],
+    });
+
+    const currentTheme = data?.getSettingsStoreValue || 'light';
+
+    const handleThemeChange = (theme: string) => {
+        setTheme({ variables: { theme } });
+    };
+
+    return (
+        <select value={currentTheme} onChange={e => handleThemeChange(e.target.value)}>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+        </select>
+    );
+}
+```

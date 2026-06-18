@@ -1,0 +1,16 @@
+---
+title: "StructCustomFieldConfig"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/custom-field/custom-field-types.ts" sourceLine="241" packageName="@vendure/core" since="3.1.0" />
+
+Configures a "struct" custom field.
+
+```ts title="Signature"
+type StructCustomFieldConfig = TypedCustomFieldConfig<
+    'struct',
+    Omit<GraphQLStructCustomFieldConfig, 'fields'>
+> & {
+    fields: StructFieldConfig[];
+}
+```

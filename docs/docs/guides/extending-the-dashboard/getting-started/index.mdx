@@ -1,0 +1,187 @@
+---
+title: 'Getting Started'
+metaTitle: "Getting Started with the Vendure Dashboard"
+metaDescription: "Install and configure the Vendure Dashboard package, set up Vite and TypeScript, configure the DashboardPlugin, and run the development server."
+---
+
+:::info
+From Vendure v3.5.0, the `@vendure/dashboard` package and configuration comes as standard with new projects that are started with
+the `npx @vendure/create` command.
+
+This guide serves mainly for those adding the Dashboard to existing project set up prior to v3.5.0.
+:::
+
+## Installation & Setup
+
+:::note
+This guide assumes an existing project based on the `@vendure/create` folder structure.
+If you have a different setup (e.g. an Nx monorepo), you may need to adapt the instructions accordingly.
+:::
+
+First install the `@vendure/dashboard` package:
+
+```bash
+npm install @vendure/dashboard
+```
+
+Then create a `vite.config.mts` file in the root of your project (on the same level as your `package.json`) with the following content:
+
+```ts title="vite.config.mts"
+import { vendureDashboardPlugin } from '@vendure/dashboard/vite';
+import { join, resolve } from 'path';
+import { pathToFileURL } from 'url';
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+    base: '/dashboard',
+    build: {
+        outDir: join(__dirname, 'dist/dashboard'),
+    },
+    plugins: [
+        vendureDashboardPlugin({
+            // The vendureDashboardPlugin will scan your configuration in order
+            // to find any plugins which have dashboard extensions, as well as
+            // to introspect the GraphQL schema based on any API extensions
+            // and custom fields that are configured.
+            vendureConfigPath: pathToFileURL('./src/vendure-config.ts'),
+            // Points to the location of your Vendure server.
+            api: { host: 'http://localhost', port: 3000 },
+            // When you start the Vite server, your Admin API schema will
+            // be introspected and the types will be generated in this location.
+            // These types can be used in your dashboard extensions to provide
+            // type safety when writing queries and mutations.
+            gqlOutputPath: './src/gql',
+        }),
+    ],
+    resolve: {
+        alias: {
+            // This allows all plugins to reference a shared set of
+            // GraphQL types.
+            '@/gql': resolve(__dirname, './src/gql/graphql.ts'),
+        },
+    },
+});
+```
+
+You should also add the following to your existing `tsconfig.json` file to exclude the dashboard extensions and Vite config
+from your build, and reference a new `tsconfig.dashboard.json` that will have compiler settings for the Dashboard code.
+
+```json title="tsconfig.json"
+{
+    // ... existing options
+    "exclude": [
+        "node_modules",
+        "migration.ts",
+        "src/plugins/**/ui/*",
+        "admin-ui",
+        "src/plugins/**/dashboard/*", // [!code highlight]
+        "src/gql/*", // [!code highlight]
+        "vite.*.*ts" // [!code highlight]
+    ],
+    "references": [ // [!code highlight]
+        { // [!code highlight]
+            "path": "./tsconfig.dashboard.json" // [!code highlight]
+        } // [!code highlight]
+    ] // [!code highlight]
+}
+```
+
+Now create a new `tsconfig.dashboard.json` to allow your IDE
+to correctly resolve imports of GraphQL types & interpret JSX in your dashboard extensions:
+
+```json title="tsconfig.dashboard.json"
+{
+    "compilerOptions": {
+        "composite": true,
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "jsx": "react-jsx",
+        "paths": {
+            // Import alias for the GraphQL types
+            // Please adjust to the location that you have set in your `vite.config.mts`
+            "@/gql": [
+                "./src/gql/graphql.ts"
+            ],
+            // This line allows TypeScript to properly resolve internal
+            // Vendure Dashboard imports, which is necessary for
+            // type safety in your dashboard extensions.
+            // This path assumes a root-level tsconfig.json file.
+            // You may need to adjust it if your project structure is different.
+            "@/vdb/*": [
+                "./node_modules/@vendure/dashboard/src/lib/*"
+            ]
+        }
+    },
+    "include": [
+        "src/plugins/**/dashboard/*",
+        "src/gql/**/*.ts"
+    ]
+}
+```
+
+### Monorepo Setup
+
+If your project uses a monorepo structure, such as with Nx or Turborepo, then you'll need to make some adjustments
+to the paths given above:
+
+If each Vendure plugin is its own "package", outside the main Vendure server app, then it would need its own
+tsconfig for each plugin package. You might run into errors like:
+
+```
+Error loading Vendure config: Cannot find module
+```
+
+In this case, you'll need to configure a [PathAdapter](/reference/dashboard/vite-plugin/vendure-dashboard-plugin#pathadapter).
+
+You should also put your `vite.config.mts` file into the Vendure app directory rather than the root.
+
+## The DashboardPlugin
+
+In your `vendure-config.ts` file, you should also import and configure the [DashboardPlugin](/reference/core-plugins/dashboard-plugin/).
+
+```ts title="src/vendure-config.ts"
+import { DashboardPlugin } from '@vendure/dashboard/plugin';
+
+const config: VendureConfig = {
+    plugins: [
+        // ... existing plugins
+        DashboardPlugin.init({ // [!code highlight]
+            // The route should correspond to the `base` setting // [!code highlight]
+            // in the vite.config.mts file // [!code highlight]
+            route: 'dashboard', // [!code highlight]
+            // This appDir should correspond to the `build.outDir` // [!code highlight]
+            // setting in the vite.config.mts file // [!code highlight]
+            appDir: './dist/dashboard', // [!code highlight]
+        }), // [!code highlight]  
+    ],
+};
+```
+
+The `DashboardPlugin` adds the following features that enhance the use of the Dashboard:
+
+- It exposes a set of queries which power the Insights page metrics.
+- It registers SettingsStore entries that are used to store your personal display settings on the server side, which
+  allow administrators to enjoy a consistent experience across browsers and devices.
+- It serves the dashboard with a static server at the `/dashboard` route (by default), meaning you do not
+  need to set up a separate web server.
+
+## Running the Dashboard
+
+Once the above is set up, you can run `npm run dev` to start your Vendure server, and then visit
+
+```
+http://localhost:3000/dashboard
+```
+
+which will display a developer placeholder until you start the Vite dev server using
+
+```bash
+npx vite
+```
+
+To stop the running dashboard, type `q` and hit enter.
+
+:::info[Compatibility with the legacy Admin UI]
+If you still need to run the legacy Angular-based Admin UI in parallel with the Dashboard,
+this is totally possible. Both plugins can now be used simultaneously without any special configuration.
+:::

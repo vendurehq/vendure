@@ -1,0 +1,2 @@
+name  ,slug  ,description  ,assets                          ,facets,optionGroups,optionValues,sku     ,price,taxCategory,stockOnHand,trackInventory,variantAssets,variantFacets
+Guitar,guitar,A nice guitar,http://localhost:3456/guitar.jpg,      ,            ,            ,GUIT0001,8999 ,standard   ,25         ,true          ,             ,

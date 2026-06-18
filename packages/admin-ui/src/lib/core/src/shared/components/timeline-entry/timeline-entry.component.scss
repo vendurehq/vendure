@@ -1,0 +1,202 @@
+@import 'variables';
+
+:host {
+    display: block;
+}
+
+.first {
+    .timeline {
+        &:before {
+            border-left-color: var(--color-weight-200);
+        }
+    }
+
+    .entry-body {
+        max-height: initial;
+        @media screen and (min-width: $breakpoint-small) {
+            flex-direction: column;
+        }
+    }
+    .featured-entry {
+        width: 100%;
+    }
+}
+
+.entry {
+    display: flex;
+
+    &:not(.collapsed):hover {
+        background-color: var(--color-table-row-hover-bg);
+    }
+}
+
+.timeline {
+    border-inline-start: 2px solid var(--color-weight-200);
+    padding-bottom: 8px;
+    position: relative;
+
+    &:before {
+        content: '';
+        position: absolute;
+        width: 2px;
+        height: 32px;
+        left: -2px;
+        border-inline-start: 2px solid var(--color-weight-200);
+    }
+
+    &:after {
+        content: '';
+        display: block;
+        border-radius: 50%;
+        width: 8px;
+        height: 8px;
+        background-color: var(--color-weight-100);
+        border: 1px solid var(--color-weight-300);
+        position: absolute;
+        left: -5px;
+        top: 42%;
+        transition: top 0.2s;
+        cursor: pointer;
+        outline: 2px solid var(--color-card-bg);
+    }
+
+    .custom-icon {
+        position: absolute;
+        width: 32px;
+        height: 32px;
+        left: -17px;
+        top: 30%;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        color: var(--color-primary-700);
+        background-color: var(--color-weight-100);
+        border: 1px solid var(--color-weight-200);
+        outline: 7px solid var(--color-card-bg);
+        padding: 6px;
+        display: none;
+    }
+}
+
+.entry.has-custom-icon {
+    .timeline:after {
+        display: none;
+    }
+
+    .custom-icon {
+        display: flex;
+    }
+}
+
+.entry.last {
+    .timeline {
+        border-left-color: transparent;
+    }
+}
+
+.entry-body {
+    font-size: var(--font-size-xs);
+    flex: 1;
+    padding: 16px 0;
+    padding-inline-start: 12px;
+    line-height: 16px;
+    margin-inline-start: 12px;
+    color: var(--color-text-200);
+    overflow: visible;
+    max-height: 100px;
+    transition: max-height 0.2s, padding-top 0.2s, opacity 0.2s 0.2s;
+    @media screen and (min-width: $breakpoint-small) {
+        display: flex;
+        gap: var(--space-unit);
+        flex-direction: row-reverse;
+        justify-content: space-between;
+        align-items: center;
+        padding-inline-end: var(--space-unit);
+    }
+}
+
+.featured-entry ::ng-deep {
+    .title {
+        color: var(--color-text-100);
+        font-size: var(--font-size-sm);
+        line-height: 26px;
+        display: flex;
+        align-items: center;
+        gap: var(--space-unit);
+    }
+
+    .note-text {
+        color: var(--color-text-100);
+        white-space: pre-wrap;
+    }
+}
+
+.detail {
+    display: flex;
+    gap: 12px;
+    color: var(--color-text-300);
+    font-size: var(--font-size-xs);
+    @media screen and (min-width: $breakpoint-small) {
+        flex-direction: row-reverse;
+    }
+}
+
+.muted {
+    .timeline,
+    .timeline .custom-icon {
+        color: var(--color-text-300);
+    }
+}
+
+.success {
+    .timeline,
+    .timeline .custom-icon {
+        color: var(--color-success-700);
+    }
+
+    .timeline:after {
+        background-color: var(--color-success-200);
+        border: 1px solid var(--color-success-400);
+    }
+}
+
+.error {
+    .timeline,
+    .timeline .custom-icon {
+        color: var(--color-error-700);
+    }
+
+    .timeline:after {
+        background-color: var(--color-error-200);
+        border: 1px solid var(--color-error-400);
+    }
+}
+
+.warning {
+    .timeline,
+    .timeline .custom-icon {
+        color: var(--color-warning-700);
+    }
+
+    .timeline:after {
+        background-color: var(--color-warning-200);
+        border: 1px solid var(--color-warning-600);
+    }
+}
+
+.collapsed {
+    .entry-body {
+        max-height: 0;
+        overflow: hidden;
+        opacity: 0;
+        padding: 0;
+    }
+
+    .timeline {
+        border-left-color: transparent;
+    }
+
+    .timeline:after {
+        top: 0;
+    }
+}

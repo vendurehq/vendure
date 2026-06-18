@@ -1,0 +1,5 @@
+"name"          , "slug" , "description"                     , "assets" , facets , "optionGroups" , "optionValues" , "sku"   , "price" , "taxCategory" , stockOnHand , trackInventory , "variantAssets" , variantFacets
+"Artists Smock" , ""     , "Keeps the paint off the clothes" , ""       ,        , "size"         , "small|beige"  , "10112" , "11.99" , "standard"    , 10          , false          , ""              ,
+""              , ""     , ""                                , ""       ,        , ""             , "large|beige"  , "10113" , "11.99" , "standard"    , 10          , false          , ""              ,
+""              , ""     , ""                                , ""       ,        , ""             , "small|navy"   , "10114" , "11.99" , "standard"    , 10          , false          , ""              ,
+""              , ""     , ""                                , ""       ,        , ""             , "large|navy"   , "10115" , "11.99" , "standard"    , 10          , false          , ""              ,

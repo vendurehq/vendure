@@ -1,0 +1,30 @@
+<vdr-relation-card
+    (select)="selectCustomer()"
+    (remove)="remove()"
+    placeholderIcon="user"
+    [entity]="customer"
+    [selectLabel]="'customer.select-customer' | translate"
+    [removable]="!config.list"
+    [readonly]="readonly"
+>
+    <ng-template vdrRelationCardPreview>
+        <div class="placeholder">
+            <clr-icon shape="user" class="is-solid" size="50"></clr-icon>
+        </div>
+    </ng-template>
+    <ng-template vdrRelationCardDetail let-c="entity">
+        <div class="">
+            <a [routerLink]="['/customer/customers', c.id]">{{ c.firstName }} {{ c.lastName }}</a>
+        </div>
+        <div class="">{{ c.emailAddress }}</div>
+    </ng-template>
+</vdr-relation-card>
+
+<ng-template #selector let-select="select">
+    <ng-select [items]="results$ | async" [typeahead]="searchTerm$" appendTo="body" (change)="select($event)">
+        <ng-template ng-option-tmp let-item="item">
+            <b>{{ item.emailAddress }}</b>
+            {{ item.firstName }} {{ item.lastName }}
+        </ng-template>
+    </ng-select>
+</ng-template>

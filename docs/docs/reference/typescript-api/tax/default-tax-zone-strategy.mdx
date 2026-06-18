@@ -1,0 +1,30 @@
+---
+title: "DefaultTaxZoneStrategy"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/tax/default-tax-zone-strategy.ts" sourceLine="15" packageName="@vendure/core" />
+
+A default method of determining Zone for tax calculations. The strategy simply returns the default
+tax zone of the Channel. In many cases you actually want to base the tax zone
+on the shipping or billing address of the Order, in which case you would use the
+[AddressBasedTaxZoneStrategy](/reference/typescript-api/tax/address-based-tax-zone-strategy#addressbasedtaxzonestrategy).
+
+```ts title="Signature"
+class DefaultTaxZoneStrategy implements TaxZoneStrategy {
+    determineTaxZone(ctx: RequestContext, zones: Zone[], channel: Channel, order?: Order) => Zone;
+}
+```
+* Implements: [`TaxZoneStrategy`](/reference/typescript-api/tax/tax-zone-strategy#taxzonestrategy)
+
+
+
+<div className="members-wrapper">
+
+### determineTaxZone
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, zones: <a href='/reference/typescript-api/entities/zone#zone'>Zone</a>[], channel: <a href='/reference/typescript-api/entities/channel#channel'>Channel</a>, order?: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => <a href='/reference/typescript-api/entities/zone#zone'>Zone</a>`}   />
+
+
+
+
+</div>

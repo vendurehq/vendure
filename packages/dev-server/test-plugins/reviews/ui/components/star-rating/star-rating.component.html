@@ -1,0 +1,8 @@
+<span class="rating" *ngIf="showLabel">{{ starRating | number: '0.2-2' }}</span>
+<ng-container *ngFor="let star of stars">
+    <clr-icon
+        size="12"
+        [attr.shape]="star === 'half' ? 'half-star' : 'star'"
+        [class.is-solid]="star !== 'empty'"
+    ></clr-icon>
+</ng-container>

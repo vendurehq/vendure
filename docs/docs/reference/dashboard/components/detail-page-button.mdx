@@ -1,0 +1,44 @@
+---
+title: "DetailPageButton"
+generated: true
+---
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/detail-page-button.tsx" sourceLine="33" packageName="@vendure/dashboard" since="3.4.0" />
+
+DetailPageButton is a reusable navigation component designed to provide consistent UX
+across list views when linking to detail pages. It renders as a ghost button with
+a chevron indicator, making it easy for users to identify clickable links that
+navigate to detail views.
+
+*Example*
+
+```tsx
+// Basic usage with ID (relative navigation)
+<DetailPageButton id="123" label="Product Name" />
+
+*Example*
+
+```tsx
+// Custom href with search params
+<DetailPageButton
+  href="/products/detail/456"
+  label="Custom Product"
+  search={{ tab: 'variants' }}
+/>
+```
+
+```ts title="Signature"
+function DetailPageButton(props: Readonly<{
+    label: string | React.ReactNode;
+    id?: string;
+    href?: string;
+    disabled?: boolean;
+    search?: Record<string, string>;
+    className?: string;
+}>): void
+```
+Parameters
+
+### props
+
+<MemberInfo kind="parameter" type={`Readonly<{     label: string | React.ReactNode;     id?: string;     href?: string;     disabled?: boolean;     search?: Record<string, string>;     className?: string; }>`} />
+

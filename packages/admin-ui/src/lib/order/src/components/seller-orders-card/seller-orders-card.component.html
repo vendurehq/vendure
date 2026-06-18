@@ -1,0 +1,18 @@
+<vdr-card [title]="'order.seller-orders' | translate">
+    <div class="form-grid">
+        <div *ngFor="let order of sellerOrders$ | async">
+            <a [routerLink]="['seller-orders', order.id]" class="button-ghost mb-1"
+                >{{ order.code }} <clr-icon shape="arrow right"></clr-icon
+            ></a>
+            <vdr-labeled-data [label]="'order.state' | translate">
+                <vdr-order-state-label [state]="order.state"></vdr-order-state-label>
+            </vdr-labeled-data>
+            <vdr-labeled-data *ngIf="getSeller(order) as seller" [label]="'common.seller' | translate">
+                {{ seller.name }}
+            </vdr-labeled-data>
+            <vdr-labeled-data *ngIf="getSeller(order) as seller" [label]="'order.total' | translate">
+                {{ order.totalWithTax | localeCurrency : order.currencyCode }}
+            </vdr-labeled-data>
+        </div>
+    </div>
+</vdr-card>

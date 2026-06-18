@@ -1,0 +1,68 @@
+---
+title: "Zone"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/zone/zone.entity.ts" sourceLine="19" packageName="@vendure/core" />
+
+A Zone is a grouping of one or more [Country](/reference/typescript-api/entities/country#country) entities. It is used for
+calculating applicable shipping and taxes.
+
+```ts title="Signature"
+class Zone extends VendureEntity implements HasCustomFields {
+    constructor(input?: DeepPartial<Zone>)
+    @Column() name: string;
+    @ManyToMany(type => Region)
+    @JoinTable()
+    members: Region[];
+    @Column(type => CustomZoneFields)
+    customFields: CustomZoneFields;
+    @OneToMany(type => Channel, country => country.defaultShippingZone)
+    defaultShippingZoneChannels: Channel[];
+    @OneToMany(type => Channel, country => country.defaultTaxZone)
+    defaultTaxZoneChannels: Channel[];
+    @OneToMany(type => TaxRate, taxRate => taxRate.zone)
+    taxRates: TaxRate[];
+}
+```
+* Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
+
+
+* Implements: HasCustomFields
+
+
+
+<div className="members-wrapper">
+
+### name
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### members
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/region#region'>Region</a>[]`}   />
+
+
+### customFields
+
+<MemberInfo kind="property" type={`CustomZoneFields`}   />
+
+
+### defaultShippingZoneChannels
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>[]`}   />
+
+
+### defaultTaxZoneChannels
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>[]`}   />
+
+
+### taxRates
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/tax-rate#taxrate'>TaxRate</a>[]`}   />
+
+
+
+
+</div>

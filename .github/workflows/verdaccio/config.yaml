@@ -1,0 +1,77 @@
+#
+# Look here for more config file examples:
+# https://github.com/verdaccio/verdaccio/tree/master/conf
+#
+
+# path to a directory with all packages
+storage: ./storage
+# path to a directory with plugins to include
+plugins: ./plugins
+max_body_size: 1000mb
+web:
+  # WebUI is enabled as default, if you want disable it, just uncomment this line
+  enable: true
+  title: Verdaccio
+
+auth:
+  htpasswd:
+    file: ./htpasswd
+    # Maximum amount of users allowed to register, defaults to "+inf".
+    # You can set this to -1 to disable registration.
+    #max_users: 1000
+
+# a list of other known repositories we can talk to
+uplinks:
+  npmjs:
+    url: https://registry.npmjs.org/
+    timeout: 10m
+    fail_timeout: 10m
+    cache: false
+    max_fails: 40
+    maxage: 30m
+    # See https://github.com/verdaccio/verdaccio/issues/1329
+    # Attempting to make install from Verdaccio more resilient in CI
+    agent_options:
+      keepAlive: true
+      maxSockets: 40
+      maxFreeSockets: 10
+
+
+packages:
+  '@*/*':
+    # scoped packages
+    access: $all
+    publish: $all
+    proxy: npmjs
+
+  '**':
+    # allow all users (including non-authenticated users) to read and
+    # publish all packages
+    #
+    # you can specify usernames/groupnames (depending on your auth plugin)
+    # and three keywords: "$all", "$anonymous", "$authenticated"
+    access: $all
+
+    # allow all known users to publish packages
+    # (anyone can register by default, remember?)
+    publish: $all
+
+    # if package is not available locally, proxy requests to 'npmjs' registry
+    proxy: npmjs
+
+# You can specify HTTP/1.1 server keep alive timeout in seconds for incomming connections.
+# A value of 0 makes the http server behave similarly to Node.js versions prior to 8.0.0, which did not have a keep-alive timeout.
+# WORKAROUND: Through given configuration you can workaround following issue https://github.com/verdaccio/verdaccio/issues/301. Set to 0 in case 60 is not enought.
+server:
+  keepAliveTimeout: 0
+
+# To use `npm audit` uncomment the following section
+# middlewares:
+#   audit:
+#     enabled: true
+
+# log settings
+logs:
+  - {type: stdout, format: pretty, level: info}
+  #- {type: file, path: verdaccio.log, level: info}
+

@@ -1,0 +1,47 @@
+---
+title: "DetailComponentWithResolver"
+generated: true
+---
+<GenerationInfo sourceFile="packages/admin-ui/src/lib/core/src/common/base-detail.component.ts" sourceLine="256" packageName="@vendure/admin-ui" />
+
+A helper function for creating tabs that point to a [TypedBaseDetailComponent](/reference/admin-ui-api/list-detail-views/typed-base-detail-component#typedbasedetailcomponent). This takes
+care of the route resolver parts so that the detail component automatically has access to the
+correct resolved detail data.
+
+*Example*
+
+```ts
+@NgModule({
+  imports: [ReviewsSharedModule],
+  declarations: [/* ... *\/],
+  providers: [
+    registerPageTab({
+      location: 'product-detail',
+      tab: 'Specs',
+      route: 'specs',
+      component: detailComponentWithResolver({
+        component: ProductSpecDetailComponent,
+        query: GetProductSpecsDocument,
+        entityKey: 'spec',
+      }),
+    }),
+  ],
+})
+export class ProductSpecsUiExtensionModule {}
+```
+
+```ts title="Signature"
+function detailComponentWithResolver<T extends TypedDocumentNode<any, { id: string }>, Field extends keyof ResultOf<T>, R extends Field>(config: {
+    component: Type<TypedBaseDetailComponent<T, Field>>;
+    query: T;
+    entityKey: R;
+    getBreadcrumbs?: (entity: ResultOf<T>[R]) => BreadcrumbValue;
+    variables?: T extends TypedDocumentNode<any, infer V> ? Omit<V, 'id'> : never;
+}): void
+```
+Parameters
+
+### config
+
+<MemberInfo kind="parameter" type={`{     component: Type<<a href='/reference/admin-ui-api/list-detail-views/typed-base-detail-component#typedbasedetailcomponent'>TypedBaseDetailComponent</a><T, Field>>;     query: T;     entityKey: R;     getBreadcrumbs?: (entity: ResultOf<T>[R]) => BreadcrumbValue;     variables?: T extends TypedDocumentNode<any, infer V> ? Omit<V, 'id'> : never; }`} />
+

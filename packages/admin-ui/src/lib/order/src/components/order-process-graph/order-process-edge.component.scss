@@ -1,0 +1,23 @@
+@import 'variables';
+
+.edge {
+    position: absolute;
+    border: 1px solid var(--color-component-border-200);
+    background-color: var(--color-component-bg-300);
+    opacity: 0.3;
+    transition: border 0.2s, opacity 0.2s, background-color 0.2s;
+    &.active {
+        border-color: var(--color-primary-500);
+        background-color: var(--color-primary-500);
+        opacity: 1;
+        .arrow {
+            color: var(--color-primary-500);
+        }
+    }
+    .arrow {
+        position: absolute;
+        bottom: -4px;
+        left: -8px;
+        color: var(--color-grey-300);
+    }
+}

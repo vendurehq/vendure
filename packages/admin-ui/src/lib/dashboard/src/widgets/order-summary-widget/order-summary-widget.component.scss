@@ -1,0 +1,30 @@
+@import "variables";
+
+.stats {
+    display: flex;
+    justify-content: space-evenly;
+}
+.stat {
+    text-align: center;
+}
+.stat-figure {
+    font-size: 2rem;
+    line-height: 3rem;
+}
+.stat-label {
+    text-transform: uppercase;
+}
+.date-range {
+    margin-top: calc(var(--space-unit) * 3);
+    font-size: var(--font-size-xs);
+}
+.footer {
+    margin-top: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+.button-small.active {
+    background-color: var(--color-primary-200);
+    color: var(--color-primary-900);
+}

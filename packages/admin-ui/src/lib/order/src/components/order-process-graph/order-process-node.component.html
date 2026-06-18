@@ -1,0 +1,16 @@
+<div class="node-wrapper" [ngStyle]="getStyle()" [class.active]="active$ | async">
+    <div
+        class="node"
+        [class.active-target]="activeTarget$ | async"
+    >
+        {{ node.name | stateI18nToken | translate }}
+    </div>
+    <div class="cancelled-wrapper" *ngIf="isCancellable">
+        <div class="cancelled-edge">
+        </div>
+        <clr-icon shape="dot-circle"></clr-icon>
+        <div class="cancelled-node">
+            {{ cancelledState | stateI18nToken | translate }}
+        </div>
+    </div>
+</div>

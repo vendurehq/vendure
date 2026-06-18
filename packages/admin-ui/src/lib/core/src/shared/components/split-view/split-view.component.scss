@@ -1,0 +1,108 @@
+:host {
+    --separator-border: var(--color-split-view-separator-border);
+    max-width: var(--surface-width);
+}
+
+.split-view-wrapper {
+    display: flex;
+    height: calc(100% - 50px);
+
+    &.resizing {
+        user-select: none;
+    }
+
+    .left-panel {
+        flex: 1;
+        overflow: auto;
+        margin-top: 0;
+
+        .active {
+            background-color: var(--clr-global-selection-color);
+        }
+        &.expanded {
+            // Fix for Firefox layout https://github.com/vendurehq/vendure/issues/531
+            width: calc(100% - 40vw);
+        }
+    }
+}
+.separator {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin-inline-start: -1px;
+    z-index: 10;
+
+    &.hidden {
+        display: none;
+    }
+    .resize-handle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 1;
+        border-inline-start: 1px solid var(--separator-border);
+        border-inline-end: 1px solid var(--separator-border);
+        cursor: ew-resize;
+        transition: background-color 0.2s;
+    }
+    .top,
+    .bottom {
+        height: 48px;
+        width: 100%;
+        border-style: solid;
+        border-width: 0 1px;
+    }
+    .top {
+        border-image: linear-gradient(0deg, var(--separator-border), transparent) 1;
+    }
+    .bottom {
+        border-image: linear-gradient(180deg, var(--separator-border), transparent) 1;
+    }
+}
+.resizing {
+    .resize-handle {
+        color: var(--color-primary-700);
+    }
+    --separator-border: var(--color-split-view-separator-resize-border);
+}
+.close-row {
+    display: flex;
+    justify-content: space-between;
+    padding: calc(var(--space-unit) * 1);
+    padding-inline-start: var(--surface-margin-left);
+    padding-inline-end: 4px;
+}
+.right-panel {
+    height: 100%;
+    opacity: 0;
+    visibility: hidden;
+    overflow: auto;
+    &:not(.resizing) {
+        transition: width 0.3s, opacity 0.2s 0.3s, visibility 0s 0.3s;
+    }
+
+    &.expanded {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    .close-button {
+        margin: 0;
+        background: none;
+        border: none;
+        cursor: pointer;
+    }
+
+    ::ng-deep table.table {
+        margin-top: 0;
+        th {
+            top: 0;
+        }
+    }
+
+    .controls {
+        display: flex;
+        justify-content: space-between;
+    }
+}

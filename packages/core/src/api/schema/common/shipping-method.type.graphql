@@ -1,0 +1,27 @@
+type ShippingMethod implements Node {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    languageCode: LanguageCode!
+    code: String!
+    name: String!
+    description: String!
+    fulfillmentHandlerCode: String!
+    checker: ConfigurableOperation!
+    calculator: ConfigurableOperation!
+    translations: [ShippingMethodTranslation!]!
+}
+
+type ShippingMethodTranslation {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    languageCode: LanguageCode!
+    name: String!
+    description: String!
+}
+
+type ShippingMethodList implements PaginatedList {
+    items: [ShippingMethod!]!
+    totalItems: Int!
+}

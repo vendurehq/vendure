@@ -1,0 +1,81 @@
+<vdr-page-block>
+    <vdr-action-bar>
+        <vdr-ab-left></vdr-ab-left>
+        <vdr-ab-right>
+            <vdr-action-bar-items locationId="role-detail" />
+            <button
+                class="btn btn-primary"
+                *ngIf="isNew$ | async; else updateButton"
+                (click)="create()"
+                [disabled]="detailForm.invalid || detailForm.pristine"
+            >
+                {{ 'common.create' | translate }}
+            </button>
+            <ng-template #updateButton>
+                <button
+                    class="btn btn-primary"
+                    (click)="save()"
+                    *vdrIfPermissions="'UpdateAdministrator'"
+                    [disabled]="detailForm.invalid || detailForm.pristine"
+                >
+                    {{ 'common.update' | translate }}
+                </button>
+            </ng-template>
+            <vdr-action-bar-dropdown-menu locationId="role-detail" />
+        </vdr-ab-right>
+    </vdr-action-bar>
+</vdr-page-block>
+
+<form class="form" [formGroup]="detailForm">
+    <vdr-page-detail-layout>
+        <vdr-page-detail-sidebar>
+            <vdr-card *ngIf="entity$ | async as entity">
+                <vdr-page-entity-info [entity]="entity" />
+            </vdr-card>
+        </vdr-page-detail-sidebar>
+        <vdr-page-block>
+            <vdr-card>
+                <div class="form-grid">
+                    <vdr-form-field [label]="'common.description' | translate" for="description">
+                        <input
+                            id="description"
+                            type="text"
+                            formControlName="description"
+                            [readonly]="!('UpdateAdministrator' | hasPermission)"
+                            (input)="updateCode($event.target.value)"
+                        />
+                    </vdr-form-field>
+                    <vdr-form-field
+                        [label]="'common.code' | translate"
+                        for="code"
+                        [readOnlyToggle]="'UpdateAdministrator' | hasPermission"
+                    >
+                        <input
+                            id="code"
+                            type="text"
+                            formControlName="code"
+                            [readonly]="!('UpdateAdministrator' | hasPermission)"
+                        />
+                    </vdr-form-field>
+                </div>
+            </vdr-card>
+        </vdr-page-block>
+    </vdr-page-detail-layout>
+    <vdr-page-block class="mt-2">
+        <vdr-card [title]="'settings.permissions' | translate">
+            <vdr-form-field [label]="'settings.channel' | translate">
+                <vdr-channel-assignment-control
+                    formControlName="channelIds"
+                    [vdrDisabled]="!('UpdateAdministrator' | hasPermission)"
+                ></vdr-channel-assignment-control>
+            </vdr-form-field>
+            <vdr-permission-grid
+                class="mt-2"
+                [permissionDefinitions]="permissionDefinitions"
+                [activePermissions]="detailForm.get('permissions')?.value"
+                (permissionChange)="setPermission($event)"
+                [readonly]="!('UpdateAdministrator' | hasPermission)"
+            ></vdr-permission-grid>
+        </vdr-card>
+    </vdr-page-block>
+</form>

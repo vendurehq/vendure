@@ -1,0 +1,35 @@
+---
+title: "DurationPipe"
+generated: true
+---
+<GenerationInfo sourceFile="packages/admin-ui/src/lib/core/src/shared/pipes/duration.pipe.ts" sourceLine="18" packageName="@vendure/admin-ui" />
+
+Displays a number of milliseconds in a more human-readable format,
+e.g. "12ms", "33s", "2:03m"
+
+*Example*
+
+```ts
+{{ timeInMs | duration }}
+```
+
+```ts title="Signature"
+class DurationPipe implements PipeTransform {
+    constructor(i18nService: I18nService)
+    transform(value: number) => string;
+}
+```
+* Implements: PipeTransform
+
+
+
+<div className="members-wrapper">
+
+### transform
+
+<MemberInfo kind="method" type={`(value: number) => string`}   />
+
+
+
+
+</div>

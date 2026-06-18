@@ -1,0 +1,35 @@
+<vdr-relation-card
+    (select)="selectRelationId()"
+    (remove)="remove()"
+    placeholderIcon="objects"
+    [entity]="parentFormControl.value"
+    [selectLabel]="'common.select-relation-id' | translate"
+    [removable]="!config.list"
+    [readonly]="readonly"
+>
+    {{ parentFormControl.value | json }}
+    <ng-template vdrRelationCardPreview>
+        <div class="placeholder">
+            <clr-icon shape="objects" size="50"></clr-icon>
+        </div>
+    </ng-template>
+    <ng-template vdrRelationCardDetail let-entity="entity">
+        <div class="">
+            {{ config.entity }}: <strong>{{ entity.id }}</strong>
+        </div>
+        <vdr-object-tree [value]="{ properties: parentFormControl.value }"></vdr-object-tree>
+    </ng-template>
+</vdr-relation-card>
+
+<ng-template #selector let-select="select">
+    <div class="id-select-wrapper">
+        <clr-input-container>
+            <input [(ngModel)]="relationId" type="text" clrInput [readonly]="readonly" />
+        </clr-input-container>
+        <div>
+            <button class="btn btn-primary m0" (click)="select(relationId)">
+                {{ 'common.confirm' | translate }}
+            </button>
+        </div>
+    </div>
+</ng-template>

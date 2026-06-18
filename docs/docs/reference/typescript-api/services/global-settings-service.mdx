@@ -1,0 +1,31 @@
+---
+title: "GlobalSettingsService"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/services/global-settings.service.ts" sourceLine="23" packageName="@vendure/core" />
+
+Contains methods relating to the [GlobalSettings](/reference/typescript-api/entities/global-settings#globalsettings) entity.
+
+```ts title="Signature"
+class GlobalSettingsService {
+    constructor(connection: TransactionalConnection, configService: ConfigService, customFieldRelationService: CustomFieldRelationService, eventBus: EventBus, requestCache: RequestContextCacheService)
+    getSettings(ctx: RequestContext) => Promise<GlobalSettings>;
+    updateSettings(ctx: RequestContext, input: UpdateGlobalSettingsInput) => Promise<GlobalSettings>;
+}
+```
+
+<div className="members-wrapper">
+
+### getSettings
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<<a href='/reference/typescript-api/entities/global-settings#globalsettings'>GlobalSettings</a>>`}   />
+
+Returns the GlobalSettings entity.
+### updateSettings
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: UpdateGlobalSettingsInput) => Promise<<a href='/reference/typescript-api/entities/global-settings#globalsettings'>GlobalSettings</a>>`}   />
+
+
+
+
+</div>

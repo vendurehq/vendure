@@ -1,0 +1,77 @@
+---
+title: "StockLevel"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/stock-level/stock-level.entity.ts" sourceLine="18" packageName="@vendure/core" />
+
+A StockLevel represents the number of a particular [ProductVariant](/reference/typescript-api/entities/product-variant#productvariant) which are available
+at a particular [StockLocation](/reference/typescript-api/entities/stock-location#stocklocation).
+
+```ts title="Signature"
+class StockLevel extends VendureEntity implements HasCustomFields {
+    constructor(input: DeepPartial<StockLevel>)
+    @Index()
+    @ManyToOne(type => ProductVariant, productVariant => productVariant.stockLevels, { onDelete: 'CASCADE' })
+    productVariant: ProductVariant;
+    @EntityId()
+    productVariantId: ID;
+    @Index()
+    @ManyToOne(type => StockLocation, { onDelete: 'CASCADE' })
+    stockLocation: StockLocation;
+    @EntityId()
+    stockLocationId: ID;
+    @Column()
+    stockOnHand: number;
+    @Column()
+    stockAllocated: number;
+    @Column(type => CustomStockLevelFields)
+    customFields: CustomStockLevelFields;
+}
+```
+* Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
+
+
+* Implements: HasCustomFields
+
+
+
+<div className="members-wrapper">
+
+### productVariant
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>`}   />
+
+
+### productVariantId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
+
+
+### stockLocation
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/stock-location#stocklocation'>StockLocation</a>`}   />
+
+
+### stockLocationId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
+
+
+### stockOnHand
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### stockAllocated
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### customFields
+
+<MemberInfo kind="property" type={`CustomStockLevelFields`}   />
+
+
+
+
+</div>

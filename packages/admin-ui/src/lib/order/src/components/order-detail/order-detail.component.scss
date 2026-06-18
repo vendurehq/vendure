@@ -1,0 +1,18 @@
+@import "mixins";
+@import "../order-table/order-table-mixin";
+
+.shipping-address {
+    list-style-type: none;
+    line-height: 1.3em;
+}
+
+.order-cards {
+    h6 {
+        margin-top: 6px;
+        color: var(--color-text-200);
+    }
+}
+
+vdr-order-payment-card + vdr-order-payment-card {
+    margin-top: calc(var(--space-unit) * 2);
+}

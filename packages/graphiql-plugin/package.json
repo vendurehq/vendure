@@ -1,0 +1,46 @@
+{
+    "name": "@vendure/graphiql-plugin",
+    "version": "3.6.4",
+    "license": "GPL-3.0-or-later",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist/**/*"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/vendurehq/vendure"
+    },
+    "scripts": {
+        "watch": "tsc -p ./tsconfig.build.json --watch",
+        "build": "rimraf dist && npm run build:app && tsc -p ./tsconfig.build.json",
+        "build:app": "vite build",
+        "dev": "vite",
+        "lint": "eslint --fix .",
+        "test": "vitest --config vitest.config.mts --run",
+        "e2e": "cross-env PACKAGE=graphiql-plugin vitest --config ../../e2e-common/vitest.config.mts --run"
+    },
+    "homepage": "https://www.vendure.io/",
+    "funding": "https://github.com/sponsors/michaelbromley",
+    "publishConfig": {
+        "access": "public"
+    },
+    "dependencies": {
+        "express": "^5.1.0"
+    },
+    "devDependencies": {
+        "@graphiql/toolkit": "^0.11.1",
+        "@types/express": "^5.0.0",
+        "@types/react": "^19.0.0",
+        "@types/react-dom": "^19.0.0",
+        "@vendure/common": "3.6.4",
+        "@vendure/core": "3.6.4",
+        "@vitejs/plugin-react": "^5.0.4",
+        "graphiql": "^4.0.2",
+        "react": "^19.0.0",
+        "react-dom": "^19.0.0",
+        "rimraf": "^6.0.1",
+        "vite": "^7.3.1",
+        "vite-plugin-dts": "^4.5.4"
+    }
+}

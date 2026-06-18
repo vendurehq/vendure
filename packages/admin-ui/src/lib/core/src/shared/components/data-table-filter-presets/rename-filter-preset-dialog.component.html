@@ -1,0 +1,11 @@
+<ng-template vdrDialogTitle>
+    {{ 'common.rename-filter-preset' | translate }}
+</ng-template>
+    <vdr-form-field>
+        <input type="text" [(ngModel)]="name">
+    </vdr-form-field>
+<ng-template vdrDialogButtons>
+    <button type="submit" (click)="rename()" [disabled]="!name" class="button primary">
+       {{ 'common.update' | translate }}
+    </button>
+</ng-template>

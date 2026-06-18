@@ -1,0 +1,44 @@
+---
+title: "OrderCalculator"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/helpers/order-calculator/order-calculator.ts" sourceLine="35" packageName="@vendure/core" />
+
+This helper is used when making changes to an Order, to apply all applicable price adjustments to that Order,
+including:
+
+- Promotions
+- Taxes
+- Shipping
+
+```ts title="Signature"
+class OrderCalculator {
+    constructor(configService: ConfigService, zoneService: ZoneService, taxRateService: TaxRateService, shippingMethodService: ShippingMethodService, shippingCalculator: ShippingCalculator, requestContextCache: RequestContextCacheService)
+    applyPriceAdjustments(ctx: RequestContext, order: Order, promotions: Promotion[], updatedOrderLines: OrderLine[] = [], options?: { recalculateShipping?: boolean }) => Promise<Order>;
+    calculateOrderTotals(order: Order) => ;
+}
+```
+
+<div className="members-wrapper">
+
+### applyPriceAdjustments
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>, promotions: <a href='/reference/typescript-api/entities/promotion#promotion'>Promotion</a>[], updatedOrderLines: <a href='/reference/typescript-api/entities/order-line#orderline'>OrderLine</a>[] = [], options?: { recalculateShipping?: boolean }) => Promise<<a href='/reference/typescript-api/entities/order#order'>Order</a>>`}   />
+
+Applies taxes and promotions to an Order. Mutates the order object.
+Returns an array of any OrderItems which had new adjustments
+applied, either tax or promotions.
+### calculateOrderTotals
+
+<MemberInfo kind="method" type={`(order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => `}   />
+
+Sets the totals properties on an Order by summing each OrderLine, and taking
+into account any Surcharges and ShippingLines. Does not save the Order, so
+the entity must be persisted to the DB after calling this method.
+
+Note that this method does *not* evaluate any taxes or promotions. It assumes
+that has already been done and is solely responsible for summing the
+totals.
+
+
+</div>

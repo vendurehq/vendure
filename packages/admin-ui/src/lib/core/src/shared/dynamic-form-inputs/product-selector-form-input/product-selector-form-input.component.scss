@@ -1,0 +1,21 @@
+
+.variant {
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    transition: background-color 0.2s;
+    &:hover {
+        background-color: var(--color-component-bg-200);
+    }
+}
+.thumb {
+    margin-inline-end: 6px;
+    img {
+        border-radius: var(--border-radius);
+    }
+}
+.sku {
+    color: var(--color-grey-400);
+    font-size: smaller;
+    line-height: 1em;
+}

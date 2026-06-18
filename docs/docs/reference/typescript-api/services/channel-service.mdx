@@ -1,0 +1,101 @@
+---
+title: "ChannelService"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/services/channel.service.ts" sourceLine="54" packageName="@vendure/core" />
+
+Contains methods relating to [Channel](/reference/typescript-api/entities/channel#channel) entities.
+
+```ts title="Signature"
+class ChannelService {
+    constructor(connection: TransactionalConnection, configService: ConfigService, globalSettingsService: GlobalSettingsService, customFieldRelationService: CustomFieldRelationService, eventBus: EventBus, listQueryBuilder: ListQueryBuilder)
+    assignToCurrentChannel(entity: T, ctx: RequestContext) => Promise<T>;
+    assignToChannels(ctx: RequestContext, entityType: Type<T>, entityId: ID, channelIds: ID[]) => Promise<T>;
+    removeFromChannels(ctx: RequestContext, entityType: Type<T>, entityId: ID, channelIds: ID[]) => Promise<T | undefined>;
+    getChannelFromToken(token: string) => Promise<Channel>;
+    getChannelFromToken(ctx: RequestContext, token: string) => Promise<Channel>;
+    getChannelFromToken(ctxOrToken: RequestContext | string, token?: string) => Promise<Channel>;
+    getDefaultChannel(ctx?: RequestContext) => Promise<Channel>;
+    findAll(ctx: RequestContext, options?: ListQueryOptions<Channel>, relations?: RelationPaths<Channel>) => Promise<PaginatedList<Channel>>;
+    findOne(ctx: RequestContext, id: ID) => Promise<Channel | undefined>;
+    create(ctx: RequestContext, input: CreateChannelInput) => Promise<ErrorResultUnion<CreateChannelResult, Channel>>;
+    update(ctx: RequestContext, input: UpdateChannelInput) => Promise<ErrorResultUnion<UpdateChannelResult, Channel>>;
+    delete(ctx: RequestContext, id: ID) => Promise<DeletionResponse>;
+    isChannelAware(entity: VendureEntity) => entity is VendureEntity & ChannelAware;
+}
+```
+
+<div className="members-wrapper">
+
+### assignToCurrentChannel
+
+<MemberInfo kind="method" type={`(entity: T, ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<T>`}   />
+
+Assigns a ChannelAware entity to the default Channel as well as any channel
+specified in the RequestContext. This method will not save the entity to the database, but
+assigns the `channels` property of the entity.
+### assignToChannels
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entityType: Type<T>, entityId: <a href='/reference/typescript-api/common/id#id'>ID</a>, channelIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[]) => Promise<T>`}   />
+
+Assigns the entity to the given Channels and saves all changes to the database.
+### removeFromChannels
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entityType: Type<T>, entityId: <a href='/reference/typescript-api/common/id#id'>ID</a>, channelIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[]) => Promise<T | undefined>`}   />
+
+Removes the entity from the given Channels and saves.
+### getChannelFromToken
+
+<MemberInfo kind="method" type={`(token: string) => Promise<<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>>`}   />
+
+Given a channel token, returns the corresponding Channel if it exists, else will throw
+a [ChannelNotFoundError](/reference/typescript-api/errors/error-types#channelnotfounderror).
+### getChannelFromToken
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, token: string) => Promise<<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>>`}   />
+
+
+### getChannelFromToken
+
+<MemberInfo kind="method" type={`(ctxOrToken: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a> | string, token?: string) => Promise<<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>>`}   />
+
+
+### getDefaultChannel
+
+<MemberInfo kind="method" type={`(ctx?: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>>`}   />
+
+Returns the default Channel.
+### findAll
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: ListQueryOptions<<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>>, relations?: RelationPaths<<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>>) => Promise<<a href='/reference/typescript-api/common/paginated-list#paginatedlist'>PaginatedList</a><<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>>>`}   />
+
+
+### findOne
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/channel#channel'>Channel</a> | undefined>`}   />
+
+
+### create
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: CreateChannelInput) => Promise<<a href='/reference/typescript-api/errors/error-result-union#errorresultunion'>ErrorResultUnion</a><CreateChannelResult, <a href='/reference/typescript-api/entities/channel#channel'>Channel</a>>>`}   />
+
+
+### update
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: UpdateChannelInput) => Promise<<a href='/reference/typescript-api/errors/error-result-union#errorresultunion'>ErrorResultUnion</a><UpdateChannelResult, <a href='/reference/typescript-api/entities/channel#channel'>Channel</a>>>`}   />
+
+
+### delete
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<DeletionResponse>`}   />
+
+
+### isChannelAware
+
+<MemberInfo kind="method" type={`(entity: <a href='/reference/typescript-api/entities/vendure-entity#vendureentity'>VendureEntity</a>) => entity is <a href='/reference/typescript-api/entities/vendure-entity#vendureentity'>VendureEntity</a> &#38; <a href='/reference/typescript-api/entities/interfaces#channelaware'>ChannelAware</a>`}   />
+
+Type guard method which returns true if the given entity is an
+instance of a class which implements the [ChannelAware](/reference/typescript-api/entities/interfaces#channelaware) interface.
+
+
+</div>

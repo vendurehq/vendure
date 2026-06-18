@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "module": "nodenext",
+    "jsx": "react-jsx",
+    "paths": {
+      "@/vdb/*": ["../../../../dashboard/src/lib/*"],
+      "@/graphql/*": ["../../../graphql/*"]
+    }
+  }
+}

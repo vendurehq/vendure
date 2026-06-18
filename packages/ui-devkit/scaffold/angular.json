@@ -1,0 +1,131 @@
+{
+  "$schema": "../node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "newProjectRoot": "projects",
+  "projects": {
+    "vendure-admin": {
+      "root": "",
+      "sourceRoot": "src",
+      "projectType": "application",
+      "prefix": "vdr",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:application",
+          "options": {
+            "baseHref": "/admin/",
+            "outputPath": {
+              "base": "dist"
+            },
+            "index": "src/index.html",
+            "polyfills": [
+              "src/polyfills.ts"
+            ],
+            "tsConfig": "src/tsconfig.app.json",
+            "assets": [
+              {
+                "glob": "**/*.*",
+                "input": "static-assets",
+                "output": "assets"
+              },
+              "src/favicon.ico",
+              {
+                "glob": "favicon.ico",
+                "input": "static-assets",
+                "output": "/"
+              },
+              "src/vendure-ui-config.json",
+              "src/theme.min.css",
+              "src/assets",
+              "src/i18n-messages",
+              {
+                "glob": "logo-*.*",
+                "input": "static-assets",
+                "output": "assets"
+              }
+            ],
+            "styles": [
+              "src/global-styles.scss"
+            ],
+            "stylePreprocessorOptions": {
+              "includePaths": [
+                "./src/styles",
+                "./src/fonts"
+              ],
+              "sass": {
+                "silenceDeprecations": ["mixed-decls", "color-functions", "global-builtin", "import"]
+              }
+            },
+            "allowedCommonJsDependencies": [
+              "graphql-tag",
+              "zen-observable",
+              "lodash",
+              "dayjs",
+              "apollo-upload-client",
+              "@clr/icons",
+              "@clr/icons/shapes/all-shapes",
+              "@vendure/common/lib/generated-types",
+              "@vendure/common/lib/simple-deep-clone",
+              "@vendure/common/lib/shared-constants",
+              "@vendure/common/lib/shared-utils",
+              "@vendure/common/lib/normalize-string",
+              "@vendure/common/lib/unique",
+              "@vendure/common/lib/omit",
+              "@vendure/common/lib/pick",
+              "@messageformat/core"
+            ],
+            "extractLicenses": false,
+            "sourceMap": true,
+            "optimization": false,
+            "namedChunks": true,
+            "browser": "src/main.ts"
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "6kb"
+                }
+              ],
+              "fileReplacements": [
+                {
+                  "replace": "src/environment.ts",
+                  "with": "src/environment.prod.ts"
+                }
+              ],
+              "optimization": {
+                "styles": {
+                  "inlineCritical": false
+                }
+              },
+              "outputHashing": "all",
+              "namedChunks": false,
+              "extractLicenses": true
+            }
+          },
+          "defaultConfiguration": ""
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "options": {
+            "buildTarget": "vendure-admin:build"
+          }
+        }
+      }
+    }
+  },
+  "schematics": {
+    "@schematics/angular:component": {
+      "skipTests": true,
+      "changeDetection": "OnPush"
+    }
+  },
+  "cli": {
+    "analytics": false
+  }
+}

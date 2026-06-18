@@ -1,0 +1,53 @@
+---
+title: "CustomerGroup"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/customer-group/customer-group.entity.ts" sourceLine="17" packageName="@vendure/core" />
+
+A grouping of [Customer](/reference/typescript-api/entities/customer#customer)s which enables features such as group-based promotions
+or tax rules.
+
+```ts title="Signature"
+class CustomerGroup extends VendureEntity implements HasCustomFields {
+    constructor(input?: DeepPartial<CustomerGroup>)
+    @Column() name: string;
+    @ManyToMany(type => Customer, customer => customer.groups)
+    customers: Customer[];
+    @Column(type => CustomCustomerGroupFields)
+    customFields: CustomCustomerGroupFields;
+    @OneToMany(type => TaxRate, taxRate => taxRate.zone)
+    taxRates: TaxRate[];
+}
+```
+* Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
+
+
+* Implements: HasCustomFields
+
+
+
+<div className="members-wrapper">
+
+### name
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### customers
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/customer#customer'>Customer</a>[]`}   />
+
+
+### customFields
+
+<MemberInfo kind="property" type={`CustomCustomerGroupFields`}   />
+
+
+### taxRates
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/tax-rate#taxrate'>TaxRate</a>[]`}   />
+
+
+
+
+</div>

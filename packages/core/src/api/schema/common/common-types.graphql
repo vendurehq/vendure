@@ -1,0 +1,288 @@
+# Third-party custom scalars
+scalar JSON
+scalar DateTime
+scalar Upload
+
+# Our custom scalars
+scalar Money
+
+interface PaginatedList {
+    items: [Node!]!
+    totalItems: Int!
+}
+
+interface Node {
+    id: ID!
+}
+
+interface ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+}
+
+type Adjustment {
+    adjustmentSource: String!
+    type: AdjustmentType!
+    description: String!
+    amount: Money!
+    data: JSON
+}
+
+type TaxLine {
+    description: String!
+    taxRate: Float!
+}
+
+type ConfigArg {
+    name: String!
+    value: String!
+}
+
+type ConfigArgDefinition {
+    name: String!
+    type: String!
+    list: Boolean!
+    required: Boolean!
+    defaultValue: JSON
+    label: String
+    description: String
+    ui: JSON
+}
+
+type ConfigurableOperation {
+    code: String!
+    args: [ConfigArg!]!
+}
+
+type ConfigurableOperationDefinition {
+    code: String!
+    args: [ConfigArgDefinition!]!
+    description: String!
+}
+
+
+type DeletionResponse {
+    result: DeletionResult!
+    message: String
+}
+
+input ConfigArgInput {
+    name: String!
+    "A JSON stringified representation of the actual value"
+    value: String!
+}
+
+input ConfigurableOperationInput {
+    code: String!
+    arguments: [ConfigArgInput!]!
+}
+
+"Operators for filtering on a String field"
+input StringOperators {
+    eq: String
+    notEq: String
+    contains: String
+    notContains: String
+    in: [String!]
+    notIn: [String!]
+    regex: String
+    isNull: Boolean
+}
+
+"Operators for filtering on an ID field"
+input IDOperators {
+    eq: String
+    notEq: String
+    in: [String!]
+    notIn: [String!]
+    isNull: Boolean
+}
+
+"Operators for filtering on a Boolean field"
+input BooleanOperators {
+    eq: Boolean
+    isNull: Boolean
+}
+
+input NumberRange {
+    start: Float!
+    end: Float!
+}
+
+"Operators for filtering on a Int or Float field"
+input NumberOperators {
+    eq: Float
+    lt: Float
+    lte: Float
+    gt: Float
+    gte: Float
+    between: NumberRange
+    isNull: Boolean
+}
+
+input DateRange {
+    start: DateTime!
+    end: DateTime!
+}
+
+"Operators for filtering on a DateTime field"
+input DateOperators {
+    eq: DateTime
+    before: DateTime
+    after: DateTime
+    between: DateRange
+    isNull: Boolean
+}
+
+"Operators for filtering on a list of String fields"
+input StringListOperators {
+    inList: String!
+}
+
+"Operators for filtering on a list of Number fields"
+input NumberListOperators {
+    inList: Float!
+}
+
+"Operators for filtering on a list of Boolean fields"
+input BooleanListOperators {
+    inList: Boolean!
+}
+
+"Operators for filtering on a list of ID fields"
+input IDListOperators {
+    inList: ID!
+}
+
+"Operators for filtering on a list of Date fields"
+input DateListOperators {
+    inList: DateTime!
+}
+
+"""
+Used to construct boolean expressions for filtering search results
+by FacetValue ID. Examples:
+
+* ID=1 OR ID=2: `{ facetValueFilters: [{ or: [1,2] }] }`
+* ID=1 AND ID=2: `{ facetValueFilters: [{ and: 1 }, { and: 2 }] }`
+* ID=1 AND (ID=2 OR ID=3): `{ facetValueFilters: [{ and: 1 }, { or: [2,3] }] }`
+"""
+input FacetValueFilterInput {
+    and: ID
+    or: [ID!]
+}
+
+input SearchInput {
+    term: String
+    facetValueIds: [ID!] @deprecated(reason: "Use `facetValueFilters` instead")
+    facetValueOperator: LogicalOperator @deprecated(reason: "Use `facetValueFilters` instead")
+    facetValueFilters: [FacetValueFilterInput!]
+    collectionId: ID
+    collectionIds: [ID!]
+    collectionSlug: String
+    collectionSlugs: [String!]
+    groupByProduct: Boolean
+    take: Int
+    skip: Int
+    sort: SearchResultSortParameter
+}
+
+input SearchResultSortParameter {
+    name: SortOrder
+    price: SortOrder
+}
+
+input CreateCustomerInput {
+    title: String
+    firstName: String!
+    lastName: String!
+    phoneNumber: String
+    emailAddress: String!
+}
+
+"""
+Input used to create an Address.
+
+The countryCode must correspond to a `code` property of a Country that has been defined in the
+Vendure server. The `code` property is typically a 2-character ISO code such as "GB", "US", "DE" etc.
+If an invalid code is passed, the mutation will fail.
+"""
+input CreateAddressInput {
+    fullName: String
+    company: String
+    streetLine1: String!
+    streetLine2: String
+    city: String
+    province: String
+    postalCode: String
+    countryCode: String!
+    phoneNumber: String
+    defaultShippingAddress: Boolean
+    defaultBillingAddress: Boolean
+}
+
+"""
+Input used to update an Address.
+
+The countryCode must correspond to a `code` property of a Country that has been defined in the
+Vendure server. The `code` property is typically a 2-character ISO code such as "GB", "US", "DE" etc.
+If an invalid code is passed, the mutation will fail.
+"""
+input UpdateAddressInput {
+    id: ID!
+    fullName: String
+    company: String
+    streetLine1: String
+    streetLine2: String
+    city: String
+    province: String
+    postalCode: String
+    countryCode: String
+    phoneNumber: String
+    defaultShippingAddress: Boolean
+    defaultBillingAddress: Boolean
+}
+
+"""
+Indicates that an operation succeeded, where we do not want to return any more specific information.
+"""
+type Success {
+    success: Boolean!
+}
+
+type ShippingMethodQuote {
+    id: ID!
+    price: Money!
+    priceWithTax: Money!
+    code: String!
+    name: String!
+    description: String!
+    "Any optional metadata returned by the ShippingCalculator in the ShippingCalculationResult"
+    metadata: JSON
+}
+
+type PaymentMethodQuote {
+    id: ID!
+    code: String!
+    name: String!
+    description: String!
+    isEligible: Boolean!
+    eligibilityMessage: String
+}
+
+union UpdateOrderItemsResult =
+      Order
+    | OrderModificationError
+    | OrderLimitError
+    | NegativeQuantityError
+    | InsufficientStockError
+    | OrderInterceptorError
+
+union RemoveOrderItemsResult = Order | OrderModificationError | OrderInterceptorError
+union SetOrderShippingMethodResult =
+      Order
+    | OrderModificationError
+    | IneligibleShippingMethodError
+    | NoActiveOrderError
+union ApplyCouponCodeResult = Order | CouponCodeExpiredError | CouponCodeInvalidError | CouponCodeLimitError
+

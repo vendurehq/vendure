@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noLib": false,
+    "skipLibCheck": true,
+    "lib": ["es2019", "esnext.asynciterable"],
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "target": "es2017",
+    "strict": true,
+    "strictPropertyInitialization": false,
+    "sourceMap": false,
+    "newLine": "LF",
+    "resolveJsonModule": true
+  }
+}

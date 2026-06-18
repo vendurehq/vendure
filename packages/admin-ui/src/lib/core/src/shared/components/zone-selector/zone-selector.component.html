@@ -1,0 +1,11 @@
+<ng-select
+    [items]="zones$ | async"
+    [addTag]="false"
+    appendTo="body"
+    bindLabel="name"
+    bindValue="id"
+    [disabled]="disabled || readonly"
+    [ngModel]="value"
+    (change)="onChange($event)"
+>
+</ng-select>

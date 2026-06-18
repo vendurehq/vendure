@@ -1,0 +1,39 @@
+<ng-select
+    [addTag]="addTagFn"
+    [placeholder]="'catalog.search-product-name-or-code' | translate"
+    [items]="facetValueResults"
+    [searchFn]="filterFacetResults"
+    [hideSelected]="true"
+    [multiple]="true"
+    [markFirst]="false"
+    (change)="onSelectChange($event)"
+    #selectComponent
+>
+    <ng-template ng-header-tmp>
+        <div
+            class="search-header"
+            *ngIf="selectComponent.searchTerm"
+            [class.selected]="isSearchHeaderSelected()"
+            (click)="selectComponent.selectTag()"
+        >
+            {{ 'catalog.search-for-term' | translate }}: {{ selectComponent.searchTerm }}
+        </div>
+    </ng-template>
+    <ng-template ng-label-tmp let-item="item" let-clear="clear">
+        <ng-container *ngIf="item.facetValue">
+            <vdr-facet-value-chip
+                [facetValue]="item.facetValue"
+                [removable]="true"
+                (remove)="clear(item)"
+            ></vdr-facet-value-chip>
+        </ng-container>
+        <ng-container *ngIf="!item.facetValue">
+            <vdr-chip [icon]="'times'" (iconClick)="clear(item)">"{{ item.label }}"</vdr-chip>
+        </ng-container>
+    </ng-template>
+    <ng-template ng-option-tmp let-item="item" let-index="index" let-search="searchTerm">
+        <ng-container *ngIf="item.facetValue">
+            <vdr-facet-value-chip [facetValue]="item.facetValue" [removable]="false"></vdr-facet-value-chip>
+        </ng-container>
+    </ng-template>
+</ng-select>

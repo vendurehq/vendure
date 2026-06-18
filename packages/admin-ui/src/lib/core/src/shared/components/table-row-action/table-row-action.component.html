@@ -1,0 +1,12 @@
+<ng-container *ngIf="!disabled; else: disabledLink">
+    <a class="btn btn-link btn-sm" [routerLink]="linkTo">
+        <clr-icon [attr.shape]="iconShape"></clr-icon>
+        {{ label }}
+    </a>
+</ng-container>
+<ng-template #disabledLink>
+    <button class="btn btn-link btn-sm" disabled>
+        <clr-icon [attr.shape]="iconShape"></clr-icon>
+        {{ label }}
+    </button>
+</ng-template>

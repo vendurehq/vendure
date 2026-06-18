@@ -1,0 +1,64 @@
+---
+title: "Zones"
+metaTitle: "Zones for Tax and Shipping Configuration in Vendure"
+metaDescription: "Understand how Vendure uses Zones to group countries and regions for tax rate calculation, shipping eligibility, and channel default configuration."
+---
+
+A [`Zone`](/reference/typescript-api/entities/zone/) groups one or more countries or regions into a named set that can be referenced by other parts of the system. Zones are the geographic building blocks that Vendure uses to determine which tax rates apply and which shipping methods are available.
+
+## What is a Zone?
+
+A Zone is simply a name and a collection of [`Country`](/reference/typescript-api/entities/country/) (or `Region`) members. For example:
+
+- **"EU"** — Contains all European Union member states.
+- **"North America"** — Contains the United States, Canada, and Mexico.
+- **"Domestic"** — Contains only your home country.
+- **"Rest of World"** — Contains all countries not covered by other zones.
+
+A country can belong to multiple zones. For example, Germany could be in both an "EU" zone and a "DACH" (Germany, Austria, Switzerland) zone.
+
+## Zones and tax rates
+
+Zones are a core part of [tax configuration](/core-concepts/taxes/). A tax rate in Vendure is defined as a combination of:
+
+- A **tax category** (e.g., "Standard", "Reduced", "Zero-rated")
+- A **Zone** (e.g., "EU", "North America")
+
+This means you can define different tax rates for the same type of product depending on the customer's geographic zone. For example, "Standard" goods might be taxed at 20% in the "UK" zone but 19% in the "Germany" zone.
+
+The active zone for tax calculation is determined by the [`TaxZoneStrategy`](/reference/typescript-api/tax/tax-zone-strategy/). By default, Vendure uses the channel's default tax zone, but you can configure it to use the customer's shipping address instead with the [`AddressBasedTaxZoneStrategy`](/reference/typescript-api/tax/address-based-tax-zone-strategy).
+
+## Zones and shipping
+
+[Shipping methods](/core-concepts/shipping/) use zones to determine eligibility. A shipping method can be restricted to specific zones, so it only appears as an option when the customer's shipping address falls within one of those zones. For example, a "Free Domestic Shipping" method might be limited to the "Domestic" zone, while "International Express" applies to a "Rest of World" zone.
+
+## Channel defaults
+
+Each [`Channel`](/reference/typescript-api/entities/channel/) has two zone-related settings:
+
+- **defaultTaxZone** — The zone used for tax calculations when no more specific zone can be determined (e.g., when the customer has not yet provided an address). This ensures that product prices can always display a tax amount, even before checkout.
+- **defaultShippingZone** — The zone used as a fallback for shipping-related calculations.
+
+These defaults are especially important for storefronts that display tax-inclusive prices on product listing pages, where the customer's actual location is not yet known.
+
+## Managing zones
+
+Zones are managed through the Admin API or the Admin UI. When you create or update a zone, you specify its name and assign country members. Changes to zone membership take effect immediately for new orders, but do not retroactively affect existing orders that were placed under the previous zone configuration.
+
+:::info
+Vendure ships with a set of commonly-used countries pre-defined. You can enable or disable countries and organize them into zones as needed for your business during initial setup or at any time afterwards.
+:::
+
+## Common patterns
+
+**Single-country store** — Create one zone containing your home country and use it as both the default tax zone and default shipping zone for your channel.
+
+**Regional setup** — Create zones for each region you serve (e.g., "EU", "North America", "Asia-Pacific") with appropriate tax rates and shipping methods for each. Use the `AddressBasedTaxZoneStrategy` so that tax is calculated based on the customer's address.
+
+**Marketplace** — In a multi-channel marketplace, each seller's channel can have its own default zones, reflecting where that seller operates and ships to.
+
+## Related topics
+
+- [Taxes](/core-concepts/taxes/) — Tax categories, rates, and calculation strategies
+- [Shipping](/core-concepts/shipping/) — Shipping methods and zone-based eligibility
+- [Channels](/core-concepts/channels/) — Channel configuration including default zones

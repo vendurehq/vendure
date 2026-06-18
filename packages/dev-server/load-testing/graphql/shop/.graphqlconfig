@@ -1,0 +1,4 @@
+{
+  "name": "Load testing shop schema",
+  "schemaPath": "../../../../../schema-shop.json"
+}

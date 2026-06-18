@@ -1,0 +1,96 @@
+---
+title: "DashboardPlugin"
+generated: true
+---
+<GenerationInfo sourceFile="packages/dashboard/plugin/dashboard.plugin.ts" sourceLine="119" packageName="@vendure/dashboard" />
+
+This plugin serves the static files of the Vendure Dashboard and provides the
+GraphQL extensions needed for the order metrics on the dashboard index page.
+
+## Installation
+
+`npm install @vendure/dashboard`
+
+## Usage
+
+First you need to set up compilation of the Dashboard, using the Vite configuration
+described in the [Dashboard Getting Started Guide](/extending-the-dashboard/getting-started/)
+
+## Development vs Production
+
+When developing, you can run `npx vite` (or `npm run dev`) to start the Vite development server.
+The plugin will automatically detect if Vite is running on the default port (5173) and proxy
+requests to it instead of serving static files. This enables hot module replacement and faster
+development iterations.
+
+For production, run `npx vite build` to build the dashboard app. The built app files will be
+output to the location specified by `build.outDir` in your Vite config file. This should then
+be passed to the `appDir` init option, as in the example below:
+
+*Example*
+
+```ts
+import { DashboardPlugin } from '@vendure/dashboard/plugin';
+
+const config: VendureConfig = {
+  // Add an instance of the plugin to the plugins array
+  plugins: [
+    DashboardPlugin.init({
+      route: 'dashboard',
+      appDir: './dist/dashboard',
+      // Optional: customize Vite dev server port (defaults to 5173)
+      viteDevServerPort: 3000,
+    }),
+  ],
+};
+```
+
+## Metrics
+
+This plugin defines a `metricSummary` query which is used by the Dashboard UI to
+display the order metrics on the dashboard.
+
+If you are building a stand-alone version of the Dashboard UI app, and therefore
+don't need this plugin to serve the Dashboard UI, you can still use the
+`metricSummary` query by adding the `DashboardPlugin` to the `plugins` array,
+but without calling the `init()` method:
+
+*Example*
+
+```ts
+import { DashboardPlugin } from '@vendure/dashboard-plugin';
+
+const config: VendureConfig = {
+  plugins: [
+    DashboardPlugin, // <-- no call to .init()
+  ],
+  // ...
+};
+```
+
+```ts title="Signature"
+class DashboardPlugin implements NestModule {
+    constructor(processContext: ProcessContext)
+    init(options: DashboardPluginOptions) => Type<DashboardPlugin>;
+    configure(consumer: MiddlewareConsumer) => ;
+}
+```
+* Implements: NestModule
+
+
+
+<div className="members-wrapper">
+
+### init
+
+<MemberInfo kind="method" type={`(options: <a href='/reference/core-plugins/dashboard-plugin/dashboard-plugin-options#dashboardpluginoptions'>DashboardPluginOptions</a>) => Type<<a href='/reference/core-plugins/dashboard-plugin/#dashboardplugin'>DashboardPlugin</a>>`}   />
+
+Set the plugin options
+### configure
+
+<MemberInfo kind="method" type={`(consumer: MiddlewareConsumer) => `}   />
+
+
+
+
+</div>

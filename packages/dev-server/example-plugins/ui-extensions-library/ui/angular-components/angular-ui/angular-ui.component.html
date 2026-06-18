@@ -1,0 +1,96 @@
+<vdr-page-block>
+    <vdr-action-bar>
+        <vdr-ab-left>Action bar left contents</vdr-ab-left>
+        <vdr-ab-right>
+            <button class="button primary" (click)="updateTitle()" [disabled]="pageTitleControl.pristine">Update page title</button>
+        </vdr-ab-right>
+    </vdr-action-bar>
+</vdr-page-block>
+<vdr-page-detail-layout>
+    <vdr-page-detail-sidebar>
+        <vdr-card> Sidebar content </vdr-card>
+    </vdr-page-detail-sidebar>
+    <vdr-page-block>
+        <vdr-card title="Card">
+            This is a card. On a detail page, content should usually be placed inside a card.
+        </vdr-card>
+        <vdr-card title="Form inputs">
+            <div class="form-grid">
+                <vdr-form-field label="Page title">
+                    <input type="text" [formControl]="pageTitleControl" />
+                </vdr-form-field>
+                <vdr-form-field label="Select input">
+                    <select>
+                        <option>Option 1</option>
+                        <option>Option 2</option>
+                    </select>
+                </vdr-form-field>
+                <vdr-form-field label="Checkbox input">
+                    <input type="checkbox" />
+                </vdr-form-field>
+                <vdr-form-field label="Textarea input">
+                    <textarea></textarea>
+                </vdr-form-field>
+                <vdr-form-field label="With tooltip" tooltip="This is a tooltip for the form input">
+                    <input type="text" />
+                </vdr-form-field>
+                <vdr-form-field label="Invalid with error">
+                    <input type="text" [formControl]="invalidFormControl" />
+                </vdr-form-field>
+                <vdr-rich-text-editor
+                    class="form-grid-span"
+                    label="Description"
+                ></vdr-rich-text-editor>
+            </div>
+        </vdr-card>
+
+        <vdr-card title="Icons">
+            <demo-block label="Sizes">
+                <clr-icon shape="star" size="8"></clr-icon>
+                <clr-icon shape="star" size="16"></clr-icon>
+                <clr-icon shape="star" size="24"></clr-icon>
+                <clr-icon shape="star" size="36"></clr-icon>
+                <clr-icon shape="star" size="48"></clr-icon>
+                <clr-icon shape="star" size="56"></clr-icon>
+            </demo-block>
+
+            <demo-block label="Badges">
+                <clr-icon shape="user" class="has-badge--success"></clr-icon>
+                <clr-icon shape="user" class="has-alert"></clr-icon>
+                <clr-icon shape="user" class="has-badge--info"></clr-icon>
+                <clr-icon shape="user" class="has-badge--error"></clr-icon>
+            </demo-block>
+
+            <demo-block label="Status colors">
+                <clr-icon shape="user" class="is-success"></clr-icon>
+                <clr-icon shape="user" class="is-info"></clr-icon>
+                <clr-icon shape="user" class="is-warning"></clr-icon>
+                <clr-icon shape="user" class="is-error"></clr-icon>
+            </demo-block>
+        </vdr-card>
+
+        <vdr-card title="Buttons">
+            <demo-block label="Regular">
+                <button class="button primary">Primary</button>
+                <button class="button secondary">Secondary</button>
+                <button class="button success">Success</button>
+                <button class="button warning">Warning</button>
+                <button class="button danger">Danger</button>
+            </demo-block>
+            <demo-block label="Ghost">
+                <button class="button-ghost">Ghost</button>
+                <a class="button-ghost" [routerLink]="['/extensions/ui-library/angular-ui']">
+                    <clr-icon shape="arrow" dir="right"></clr-icon>
+                    John Smith
+                </a>
+            </demo-block>
+            <demo-block label="Small">
+                <button class="button-small">Small</button>
+                <button class="button-small">
+                    <clr-icon shape="layers"></clr-icon>
+                    Assign to channel
+                </button>
+            </demo-block>
+        </vdr-card>
+    </vdr-page-block>
+</vdr-page-detail-layout>

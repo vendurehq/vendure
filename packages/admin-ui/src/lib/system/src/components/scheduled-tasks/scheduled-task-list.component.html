@@ -1,0 +1,109 @@
+<vdr-page-header>
+    <vdr-page-title></vdr-page-title>
+</vdr-page-header>
+<vdr-page-body>
+    <vdr-page-block>
+        <vdr-action-bar>
+            <vdr-ab-left> </vdr-ab-left>
+            <vdr-ab-right> </vdr-ab-right>
+        </vdr-action-bar>
+    </vdr-page-block>
+
+    <vdr-data-table-2 id="scheduled-task-list" [items]="tasks$ | async">
+        <vdr-dt2-column [heading]="'system.task-id' | translate" id="task-id" [optional]="false">
+            <ng-template let-task="item">
+                {{ task.id }}
+            </ng-template>
+        </vdr-dt2-column>
+        <vdr-dt2-column [heading]="'common.description' | translate" id="description">
+            <ng-template let-task="item">
+                {{ task.description }}
+            </ng-template>
+        </vdr-dt2-column>
+        <vdr-dt2-column [heading]="'system.schedule' | translate" id="schedule">
+            <ng-template let-task="item">
+                <div class="">{{ task.scheduleDescription }}</div>
+            </ng-template>
+        </vdr-dt2-column>
+        <vdr-dt2-column [heading]="'system.last-executed-at' | translate" id="last-executed-at">
+            <ng-template let-task="item">
+                <span *ngIf="task.lastExecutedAt" [title]="task.lastExecutedAt | localeDate">
+                    {{ task.lastExecutedAt | timeAgo }}
+                </span>
+            </ng-template>
+        </vdr-dt2-column>
+        <vdr-dt2-column
+            [heading]="'system.next-execution-at' | translate"
+            id="next-execution-at"
+            [hiddenByDefault]="true"
+        >
+            <ng-template let-task="item">
+                {{ task.nextExecutionAt | localeDate }}
+            </ng-template>
+        </vdr-dt2-column>
+        <vdr-dt2-column [heading]="'system.last-result' | translate" id="last-result">
+            <ng-template let-task="item">
+                <vdr-dropdown *ngIf="task.lastResult">
+                    <button class="button-small mr-1" vdrDropdownTrigger>
+                        <clr-icon shape="details"></clr-icon>
+                        {{ 'system.last-result' | translate }}
+                    </button>
+                    <vdr-dropdown-menu>
+                        <div class="result-detail">
+                            <vdr-object-tree [value]="task.lastResult"></vdr-object-tree>
+                        </div>
+                    </vdr-dropdown-menu>
+                </vdr-dropdown>
+            </ng-template>
+        </vdr-dt2-column>
+        <vdr-dt2-column [heading]="'common.enabled' | translate" id="enabled">
+            <ng-template let-task="item">
+                <ng-container *ngIf="task.enabled">
+                    <vdr-chip [colorType]="'success'">{{ 'common.enabled' | translate }}</vdr-chip>
+                </ng-container>
+                <ng-container *ngIf="!task.enabled">
+                    <vdr-chip [colorType]="'warning'">{{ 'common.disabled' | translate }}</vdr-chip>
+                </ng-container>
+            </ng-template>
+        </vdr-dt2-column>
+        <vdr-dt2-column id="actions">
+            <ng-template let-task="item">
+                <vdr-dropdown *ngIf="!task.isSettled && task.state !== 'FAILED'">
+                    <button class="icon-button" vdrDropdownTrigger>
+                        <clr-icon shape="ellipsis-vertical" size="12"></clr-icon>
+                    </button>
+                    <vdr-dropdown-menu vdrPosition="bottom-right">
+                        <button
+                            type="button"
+                            *ngIf="task.enabled"
+                            class=""
+                            (click)="runTask(task)"
+                            [disabled]="!(['UpdateSettings', 'UpdateSystem'] | hasPermission)"
+                            vdrDropdownItem
+                        >
+                            <clr-icon shape="play" class=""></clr-icon>
+                            <div>
+                                {{ 'system.run-task' | translate }}
+                            </div>
+                        </button>
+                        <button
+                            type="button"
+                            class="delete-button"
+                            (click)="toggleEnabled(task)"
+                            [disabled]="!(['UpdateSettings', 'UpdateSystem'] | hasPermission)"
+                            vdrDropdownItem
+                        >
+                            <clr-icon shape="ban" class="is-danger"></clr-icon>
+                            <div *ngIf="task.enabled">
+                                {{ 'common.disable' | translate }}
+                            </div>
+                            <div *ngIf="!task.enabled">
+                                {{ 'common.enable' | translate }}
+                            </div>
+                        </button>
+                    </vdr-dropdown-menu>
+                </vdr-dropdown>
+            </ng-template>
+        </vdr-dt2-column>
+    </vdr-data-table-2>
+</vdr-page-body>

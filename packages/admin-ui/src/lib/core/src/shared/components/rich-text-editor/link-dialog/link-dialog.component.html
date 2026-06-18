@@ -1,0 +1,28 @@
+<form [formGroup]="form">
+    <div class="form-grid">
+        <vdr-form-field [label]="'editor.link-href' | translate" for="href" class="form-grid-span">
+            <input id="href" type="text" formControlName="href"/>
+        </vdr-form-field>
+        <vdr-form-field [label]="'editor.link-title' | translate" for="title">
+            <input id="title" type="text" formControlName="title"/>
+        </vdr-form-field>
+        <vdr-form-field [label]="'editor.link-target' | translate" for="target">
+            <select id="target" formControlName="target">
+                <option value=""></option>
+                <option value="_self">_self</option>
+                <option value="_blank">_blank</option>
+                <option value="_parent">_parent</option>
+                <option value="_top">_top</option>
+            </select>
+        </vdr-form-field>
+    </div>
+</form>
+<ng-template vdrDialogButtons>
+    <button type="button" class="btn btn-secondary" (click)="remove()" *ngIf="existing">
+        <clr-icon shape="unlink"></clr-icon>
+        {{ 'editor.remove-link' | translate }}
+    </button>
+    <button type="submit" (click)="select()" class="btn btn-primary" [disabled]="form.invalid">
+        {{ 'editor.set-link' | translate }}
+    </button>
+</ng-template>

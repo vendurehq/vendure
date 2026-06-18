@@ -1,0 +1,101 @@
+---
+title: "ProductService"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/services/product.service.ts" sourceLine="55" packageName="@vendure/core" />
+
+Contains methods relating to [Product](/reference/typescript-api/entities/product#product) entities.
+
+```ts title="Signature"
+class ProductService {
+    constructor(connection: TransactionalConnection, channelService: ChannelService, assetService: AssetService, productVariantService: ProductVariantService, facetValueService: FacetValueService, listQueryBuilder: ListQueryBuilder, translatableSaver: TranslatableSaver, eventBus: EventBus, slugValidator: SlugValidator, customFieldRelationService: CustomFieldRelationService, translator: TranslatorService, productOptionGroupService: ProductOptionGroupService)
+    findAll(ctx: RequestContext, options?: ListQueryOptions<Product>, relations?: RelationPaths<Product>) => Promise<PaginatedList<Translated<Product>>>;
+    findOne(ctx: RequestContext, productId: ID, relations?: RelationPaths<Product>) => Promise<Translated<Product> | undefined>;
+    findByIds(ctx: RequestContext, productIds: ID[], relations?: RelationPaths<Product>) => Promise<Array<Translated<Product>>>;
+    getProductChannels(ctx: RequestContext, productId: ID) => Promise<Channel[]>;
+    getFacetValuesForProduct(ctx: RequestContext, productId: ID) => Promise<Array<Translated<FacetValue>>>;
+    findOneBySlug(ctx: RequestContext, slug: string, relations?: RelationPaths<Product>) => Promise<Translated<Product> | undefined>;
+    create(ctx: RequestContext, input: CreateProductInput) => Promise<Translated<Product>>;
+    update(ctx: RequestContext, input: UpdateProductInput) => Promise<Translated<Product>>;
+    softDelete(ctx: RequestContext, productId: ID) => Promise<DeletionResponse>;
+    assignProductsToChannel(ctx: RequestContext, input: AssignProductsToChannelInput) => Promise<Array<Translated<Product>>>;
+    removeProductsFromChannel(ctx: RequestContext, input: RemoveProductsFromChannelInput) => Promise<Array<Translated<Product>>>;
+    addOptionGroupToProduct(ctx: RequestContext, productId: ID, optionGroupId: ID) => Promise<Translated<Product>>;
+    removeOptionGroupFromProduct(ctx: RequestContext, productId: ID, optionGroupId: ID, force?: boolean) => Promise<ErrorResultUnion<RemoveOptionGroupFromProductResult, Translated<Product>>>;
+}
+```
+
+<div className="members-wrapper">
+
+### findAll
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: ListQueryOptions<<a href='/reference/typescript-api/entities/product#product'>Product</a>>, relations?: RelationPaths<<a href='/reference/typescript-api/entities/product#product'>Product</a>>) => Promise<<a href='/reference/typescript-api/common/paginated-list#paginatedlist'>PaginatedList</a><Translated<<a href='/reference/typescript-api/entities/product#product'>Product</a>>>>`}   />
+
+
+### findOne
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productId: <a href='/reference/typescript-api/common/id#id'>ID</a>, relations?: RelationPaths<<a href='/reference/typescript-api/entities/product#product'>Product</a>>) => Promise<Translated<<a href='/reference/typescript-api/entities/product#product'>Product</a>> | undefined>`}   />
+
+
+### findByIds
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[], relations?: RelationPaths<<a href='/reference/typescript-api/entities/product#product'>Product</a>>) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/product#product'>Product</a>>>>`}   />
+
+
+### getProductChannels
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>[]>`}   />
+
+Returns all Channels to which the Product is assigned.
+### getFacetValuesForProduct
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/facet-value#facetvalue'>FacetValue</a>>>>`}   />
+
+
+### findOneBySlug
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, slug: string, relations?: RelationPaths<<a href='/reference/typescript-api/entities/product#product'>Product</a>>) => Promise<Translated<<a href='/reference/typescript-api/entities/product#product'>Product</a>> | undefined>`}   />
+
+
+### create
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: CreateProductInput) => Promise<Translated<<a href='/reference/typescript-api/entities/product#product'>Product</a>>>`}   />
+
+
+### update
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: UpdateProductInput) => Promise<Translated<<a href='/reference/typescript-api/entities/product#product'>Product</a>>>`}   />
+
+
+### softDelete
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<DeletionResponse>`}   />
+
+
+### assignProductsToChannel
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: AssignProductsToChannelInput) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/product#product'>Product</a>>>>`}   />
+
+Assigns a Product to the specified Channel, and optionally uses a `priceFactor` to set the ProductVariantPrices
+on the new Channel.
+
+Internally, this method will also call [ProductVariantService](/reference/typescript-api/services/product-variant-service#productvariantservice) `assignProductVariantsToChannel()` for
+each of the Product's variants, and will assign the Product's Assets to the Channel too.
+### removeProductsFromChannel
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: RemoveProductsFromChannelInput) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/product#product'>Product</a>>>>`}   />
+
+
+### addOptionGroupToProduct
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productId: <a href='/reference/typescript-api/common/id#id'>ID</a>, optionGroupId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<Translated<<a href='/reference/typescript-api/entities/product#product'>Product</a>>>`}   />
+
+
+### removeOptionGroupFromProduct
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productId: <a href='/reference/typescript-api/common/id#id'>ID</a>, optionGroupId: <a href='/reference/typescript-api/common/id#id'>ID</a>, force?: boolean) => Promise<<a href='/reference/typescript-api/errors/error-result-union#errorresultunion'>ErrorResultUnion</a><RemoveOptionGroupFromProductResult, Translated<<a href='/reference/typescript-api/entities/product#product'>Product</a>>>>`}   />
+
+
+
+
+</div>

@@ -1,0 +1,36 @@
+---
+title: "Assets"
+metaTitle: "Asset Management in Vendure"
+metaDescription: "Manage product images, videos, and files in Vendure with customizable naming, preview, and storage strategies plus the AssetServerPlugin."
+---
+
+[`Assets`](/reference/typescript-api/entities/asset/) are used to store files such as images, videos, PDFs, etc. Assets can be
+assigned to **products**, **variants** and **collections** by default. By using [custom fields](/developer-guide/custom-fields/) it is
+possible to assign assets to other entities. For example, for implementing customer profile images.
+
+The handling of assets in Vendure is implemented in a modular way, allowing you full control over the way assets
+are stored, named, imported and previewed.
+
+![Asset creation and retrieval](./asset-flow.webp)
+
+1. An asset is created by uploading an image. Internally the [`createAssets` mutation](/reference/graphql-api/admin/mutations/#createassets) will be executed.
+2. The [`AssetNamingStrategy`](/reference/typescript-api/assets/asset-naming-strategy/) is used to generate file names for the source image and the preview. This is useful for normalizing file names as well as handling name conflicts.
+3. The [`AssetPreviewStrategy`](/reference/typescript-api/assets/asset-preview-strategy) generates a preview image of the asset. For images, this typically involves creating a version with constraints on the maximum dimensions. It could also be used to e.g. generate a preview image for uploaded PDF files, videos or other non-image assets (such functionality would require a custom `AssetPreviewStrategy` to be defined).
+4. The source file as well as the preview image are then passed to the [`AssetStorageStrategy`](/reference/typescript-api/assets/asset-storage-strategy) which stores the files to some form of storage. This could be the local disk or an object store such as AWS S3 or Minio.
+5. When an asset is later read, e.g. when a customer views a product detail page which includes an image of the product, the `AssetStorageStrategy` can be used to
+read the file from the storage location.
+
+
+## AssetServerPlugin
+
+Vendure comes with the [`AssetServerPlugin`](/reference/core-plugins/asset-server-plugin/) pre-installed, which provides ready-made strategies for asset handling, a powerful image transformation API (resize, crop, format conversion via query parameters), and support for custom storage backends such as AWS S3 or Minio.
+
+:::info
+See the [AssetServerPlugin docs](/reference/core-plugins/asset-server-plugin/) for a detailed description of all the features.
+:::
+
+## Asset Tags
+
+Assets can be tagged. A [`Tag`](/reference/typescript-api/entities/tag/) is a simple text label that can be applied to an asset. An asset can have multiple tags or none. Tags are useful for organizing assets, since assets are otherwise organized as a flat list with no concept of a directory structure.
+
+![Asset tags](./asset-tags.webp)

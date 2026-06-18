@@ -1,0 +1,257 @@
+enum OrderType {
+    Regular
+    Seller
+    Aggregate
+}
+
+type Order implements Node {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    type: OrderType!
+    """
+    The date & time that the Order was placed, i.e. the Customer
+    completed the checkout and the Order is no longer "active"
+    """
+    orderPlacedAt: DateTime
+    "A unique code for the Order"
+    code: String!
+    state: String!
+    "An order is active as long as the payment process has not been completed"
+    active: Boolean!
+    customer: Customer
+    shippingAddress: OrderAddress
+    billingAddress: OrderAddress
+    lines: [OrderLine!]!
+    """
+    Surcharges are arbitrary modifications to the Order total which are neither
+    ProductVariants nor discounts resulting from applied Promotions. For example,
+    one-off discounts based on customer interaction, or surcharges based on payment
+    methods.
+    """
+    surcharges: [Surcharge!]!
+    discounts: [Discount!]!
+    "An array of all coupon codes applied to the Order"
+    couponCodes: [String!]!
+    "Promotions applied to the order. Only gets populated after the payment process has completed."
+    promotions: [Promotion!]!
+    payments: [Payment!]
+    fulfillments: [Fulfillment!]
+    totalQuantity: Int!
+    """
+    The subTotal is the total of all OrderLines in the Order. This figure also includes any Order-level
+    discounts which have been prorated (proportionally distributed) amongst the items of each OrderLine.
+    To get a total of all OrderLines which does not account for prorated discounts, use the
+    sum of `OrderLine.discountedLinePrice` values.
+    """
+    subTotal: Money!
+    "Same as subTotal, but inclusive of tax"
+    subTotalWithTax: Money!
+    currencyCode: CurrencyCode!
+    shippingLines: [ShippingLine!]!
+    shipping: Money!
+    shippingWithTax: Money!
+    """
+    Equal to subTotal plus shipping
+    """
+    total: Money!
+    """
+    The final payable amount. Equal to subTotalWithTax plus shippingWithTax
+    """
+    totalWithTax: Money!
+    """
+    A summary of the taxes being applied to this Order
+    """
+    taxSummary: [OrderTaxSummary!]!
+    history(options: HistoryEntryListOptions): HistoryEntryList!
+}
+
+"""
+A summary of the taxes being applied to this order, grouped
+by taxRate.
+"""
+type OrderTaxSummary {
+    "A description of this tax"
+    description: String!
+    "The taxRate as a percentage"
+    taxRate: Float!
+    "The total net price of OrderLines to which this taxRate applies"
+    taxBase: Money!
+    "The total tax being applied to the Order at this taxRate"
+    taxTotal: Money!
+}
+
+type OrderAddress {
+    fullName: String
+    company: String
+    streetLine1: String
+    streetLine2: String
+    city: String
+    province: String
+    postalCode: String
+    country: String
+    countryCode: String
+    phoneNumber: String
+}
+
+type OrderList implements PaginatedList {
+    items: [Order!]!
+    totalItems: Int!
+}
+
+type ShippingLine {
+    id: ID!
+    shippingMethod: ShippingMethod!
+    price: Money!
+    priceWithTax: Money!
+    discountedPrice: Money!
+    discountedPriceWithTax: Money!
+    discounts: [Discount!]!
+}
+
+type Discount {
+    adjustmentSource: String!
+    type: AdjustmentType!
+    description: String!
+    amount: Money!
+    amountWithTax: Money!
+}
+
+type OrderLine implements Node {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    productVariant: ProductVariant!
+    featuredAsset: Asset
+    "The price of a single unit, excluding tax and discounts"
+    unitPrice: Money!
+    "The price of a single unit, including tax but excluding discounts"
+    unitPriceWithTax: Money!
+    """
+    Non-zero if the unitPrice has changed since it was initially added to Order
+    """
+    unitPriceChangeSinceAdded: Money!
+    """
+    Non-zero if the unitPriceWithTax has changed since it was initially added to Order
+    """
+    unitPriceWithTaxChangeSinceAdded: Money!
+    """
+    The price of a single unit including discounts, excluding tax.
+
+    If Order-level discounts have been applied, this will not be the
+    actual taxable unit price (see `proratedUnitPrice`), but is generally the
+    correct price to display to customers to avoid confusion
+    about the internal handling of distributed Order-level discounts.
+    """
+    discountedUnitPrice: Money!
+    "The price of a single unit including discounts and tax"
+    discountedUnitPriceWithTax: Money!
+    """
+    The actual unit price, taking into account both item discounts _and_ prorated (proportionally-distributed)
+    Order-level discounts. This value is the true economic value of the OrderItem, and is used in tax
+    and refund calculations.
+    """
+    proratedUnitPrice: Money!
+    "The proratedUnitPrice including tax"
+    proratedUnitPriceWithTax: Money!
+    "The quantity of items purchased"
+    quantity: Int!
+    "The quantity at the time the Order was placed"
+    orderPlacedQuantity: Int!
+    taxRate: Float!
+    """
+    The total price of the line excluding tax and discounts.
+    """
+    linePrice: Money!
+    """
+    The total price of the line including tax but excluding discounts.
+    """
+    linePriceWithTax: Money!
+    "The price of the line including discounts, excluding tax"
+    discountedLinePrice: Money!
+    "The price of the line including discounts and tax"
+    discountedLinePriceWithTax: Money!
+    """
+    The actual line price, taking into account both item discounts _and_ prorated (proportionally-distributed)
+    Order-level discounts. This value is the true economic value of the OrderLine, and is used in tax
+    and refund calculations.
+    """
+    proratedLinePrice: Money!
+    "The proratedLinePrice including tax"
+    proratedLinePriceWithTax: Money!
+    "The total tax on this line"
+    lineTax: Money!
+    discounts: [Discount!]!
+    taxLines: [TaxLine!]!
+    order: Order!
+    fulfillmentLines: [FulfillmentLine!]
+}
+
+type Payment implements Node {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    method: String!
+    amount: Money!
+    state: String!
+    transactionId: String
+    errorMessage: String
+    refunds: [Refund!]!
+    metadata: JSON
+}
+
+type RefundLine {
+    orderLine: OrderLine!
+    orderLineId: ID!
+    quantity: Int!
+    refund: Refund!
+    refundId: ID!
+}
+
+type Refund implements Node {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    items: Money!
+    shipping: Money!
+    adjustment: Money!
+    total: Money!
+    method: String
+    state: String!
+    transactionId: String
+    reason: String
+    lines: [RefundLine!]!
+    paymentId: ID!
+    metadata: JSON
+}
+
+type FulfillmentLine {
+    orderLine: OrderLine!
+    orderLineId: ID!
+    quantity: Int!
+    fulfillment: Fulfillment!
+    fulfillmentId: ID!
+}
+
+type Fulfillment implements Node {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    lines: [FulfillmentLine!]!
+    summary: [FulfillmentLine!]! @deprecated(reason: "Use the `lines` field instead")
+    state: String!
+    method: String!
+    trackingCode: String
+}
+
+type Surcharge implements Node {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    description: String!
+    sku: String
+    taxLines: [TaxLine!]!
+    price: Money!
+    priceWithTax: Money!
+    taxRate: Float!
+}

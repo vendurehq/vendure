@@ -1,0 +1,17 @@
+<ng-template vdrDialogTitle>{{ 'catalog.add-facets' | translate }}</ng-template>
+
+<vdr-facet-value-selector
+    (selectedValuesChange)="selectedValues = $event"
+></vdr-facet-value-selector>
+
+<ng-template vdrDialogButtons>
+    <button type="button" class="btn" (click)="cancel()">{{ 'common.cancel' | translate }}</button>
+    <button
+        type="submit"
+        (click)="selectValues()"
+        [disabled]="selectedValues.length === 0"
+        class="btn btn-primary"
+    >
+        {{ 'catalog.add-facets' | translate }}
+    </button>
+</ng-template>

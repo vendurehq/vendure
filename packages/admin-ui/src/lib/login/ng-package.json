@@ -1,0 +1,7 @@
+{
+  "lib": {
+    "styleIncludePaths": [
+      "../static/styles"
+    ]
+  }
+}

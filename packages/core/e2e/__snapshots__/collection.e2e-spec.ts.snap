@@ -1,0 +1,139 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Collection resolver > createCollection > creates a root collection 1`] = `
+{
+  "assets": [
+    {
+      "fileSize": 1680,
+      "id": "T_2",
+      "mimeType": "image/jpeg",
+      "name": "alexandru-acea-686569-unsplash.jpg",
+      "preview": "test-url/test-assets/alexandru-acea-686569-unsplash__preview.jpg",
+      "source": "test-url/test-assets/alexandru-acea-686569-unsplash.jpg",
+      "type": "IMAGE",
+    },
+    {
+      "fileSize": 1680,
+      "id": "T_1",
+      "mimeType": "image/jpeg",
+      "name": "derick-david-409858-unsplash.jpg",
+      "preview": "test-url/test-assets/derick-david-409858-unsplash__preview.jpg",
+      "source": "test-url/test-assets/derick-david-409858-unsplash.jpg",
+      "type": "IMAGE",
+    },
+  ],
+  "children": [],
+  "description": "",
+  "featuredAsset": {
+    "fileSize": 1680,
+    "id": "T_1",
+    "mimeType": "image/jpeg",
+    "name": "derick-david-409858-unsplash.jpg",
+    "preview": "test-url/test-assets/derick-david-409858-unsplash__preview.jpg",
+    "source": "test-url/test-assets/derick-david-409858-unsplash.jpg",
+    "type": "IMAGE",
+  },
+  "filters": [
+    {
+      "args": [
+        {
+          "name": "facetValueIds",
+          "value": "["T_1"]",
+        },
+        {
+          "name": "containsAny",
+          "value": "false",
+        },
+      ],
+      "code": "facet-value-filter",
+    },
+  ],
+  "id": "T_3",
+  "isPrivate": false,
+  "languageCode": "en",
+  "name": "Electronics",
+  "parent": {
+    "id": "T_1",
+    "name": "__root_collection__",
+  },
+  "slug": "electronics",
+  "translations": [
+    {
+      "description": "",
+      "id": "T_3",
+      "languageCode": "en",
+      "name": "Electronics",
+      "slug": "electronics",
+    },
+  ],
+}
+`;
+
+exports[`Collection resolver > updateCollection > updates with assets 1`] = `
+{
+  "assets": [
+    {
+      "fileSize": 1680,
+      "id": "T_1",
+      "mimeType": "image/jpeg",
+      "name": "derick-david-409858-unsplash.jpg",
+      "preview": "test-url/test-assets/derick-david-409858-unsplash__preview.jpg",
+      "source": "test-url/test-assets/derick-david-409858-unsplash.jpg",
+      "type": "IMAGE",
+    },
+    {
+      "fileSize": 1680,
+      "id": "T_3",
+      "mimeType": "image/jpeg",
+      "name": "florian-olivo-1166419-unsplash.jpg",
+      "preview": "test-url/test-assets/florian-olivo-1166419-unsplash__preview.jpg",
+      "source": "test-url/test-assets/florian-olivo-1166419-unsplash.jpg",
+      "type": "IMAGE",
+    },
+  ],
+  "children": [],
+  "description": "Apple stuff ",
+  "featuredAsset": {
+    "fileSize": 1680,
+    "id": "T_1",
+    "mimeType": "image/jpeg",
+    "name": "derick-david-409858-unsplash.jpg",
+    "preview": "test-url/test-assets/derick-david-409858-unsplash__preview.jpg",
+    "source": "test-url/test-assets/derick-david-409858-unsplash.jpg",
+    "type": "IMAGE",
+  },
+  "filters": [
+    {
+      "args": [
+        {
+          "name": "facetValueIds",
+          "value": "["T_3"]",
+        },
+        {
+          "name": "containsAny",
+          "value": "false",
+        },
+      ],
+      "code": "facet-value-filter",
+    },
+  ],
+  "id": "T_5",
+  "isPrivate": false,
+  "languageCode": "en",
+  "name": "Pear",
+  "parent": {
+    "id": "T_4",
+    "name": "Computers",
+  },
+  "slug": "apple-stuff",
+  "translations": [
+    {
+      "description": "Apple stuff ",
+      "id": "T_5",
+      "languageCode": "en",
+      "name": "Pear",
+      "slug": "apple-stuff",
+    },
+  ],
+}
+`;

@@ -1,0 +1,4 @@
+@import "../order-table/order-table-mixin";
+:host {
+    @include order-table;
+}

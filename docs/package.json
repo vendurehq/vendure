@@ -1,0 +1,18 @@
+{
+    "name": "@vendure/docs",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "test:mdx": "tsx scripts/test-mdx.ts",
+        "test:mdx:verbose": "tsx scripts/test-mdx.ts --verbose",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@vendure-io/docs-provider": "^0.11.0"
+    },
+    "devDependencies": {
+        "@types/node": "^22.10.10",
+        "tsx": "^4.7.0",
+        "typescript": "5.8.2"
+    }
+}

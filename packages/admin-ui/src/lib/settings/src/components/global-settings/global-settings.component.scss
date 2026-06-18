@@ -1,0 +1,12 @@
+
+::ng-deep ng-select {
+    .ng-value > span {
+        margin: 0 !important;
+    }
+    .ng-arrow-wrapper .ng-arrow {
+        margin: 0 !important;
+    }
+    .ng-select-container > span {
+        margin: 0 !important;
+    }
+}

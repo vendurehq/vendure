@@ -1,0 +1,56 @@
+@import 'variables';
+
+.widget-header {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.placeholder {
+    color: var(--color-grey-300);
+    text-align: center;
+    .version {
+        font-size: 3em;
+        margin: 24px;
+        line-height: 1em;
+    }
+    ::ng-deep .clr-i-outline {
+        fill: var(--color-grey-200);
+    }
+}
+
+vdr-dashboard-widget {
+    margin-bottom: 24px;
+}
+
+.drag-handle {
+    cursor: move;
+}
+
+.cdk-drag-preview {
+    box-sizing: border-box;
+    border-radius: 4px;
+}
+
+.cdk-drag-placeholder {
+    opacity: 0;
+}
+
+.cdk-drag-animating {
+    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.dashboard-row {
+    padding: 0;
+    border-width: 1;
+    margin-bottom: 6px;
+    transition: padding 0.2s, margin 0.2s;
+}
+
+.dashboard-row.cdk-drop-list-dragging, .dashboard-row.cdk-drop-list-receiving  {
+    border: 2px dashed var(--color-component-border-200);
+    border-radius: var(--border-radius);
+    padding: 6px;
+}
+.dashboard-row.cdk-drop-list-dragging .dashboard-item:not(.cdk-drag-placeholder) {
+    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}

@@ -1,0 +1,35 @@
+enum GlobalFlag {
+    TRUE
+    FALSE
+    INHERIT
+}
+
+enum AdjustmentType {
+    PROMOTION
+    DISTRIBUTED_ORDER_PROMOTION
+    OTHER
+}
+
+enum DeletionResult {
+    "The entity was successfully deleted"
+    DELETED
+    "Deletion did not take place, reason given in message"
+    NOT_DELETED
+}
+
+# Populated at run-time
+enum Permission
+
+enum SortOrder {
+    ASC
+    DESC
+}
+
+enum ErrorCode {
+    UNKNOWN_ERROR
+}
+
+enum LogicalOperator {
+    AND
+    OR
+}

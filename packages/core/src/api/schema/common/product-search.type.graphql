@@ -1,0 +1,69 @@
+type SearchReindexResponse {
+    success: Boolean!
+}
+
+type SearchResponse {
+    items: [SearchResult!]!
+    totalItems: Int!
+    facetValues: [FacetValueResult!]!
+    collections: [CollectionResult!]!
+}
+
+"""
+Which FacetValues are present in the products returned
+by the search, and in what quantity.
+"""
+type FacetValueResult {
+    facetValue: FacetValue!
+    count: Int!
+}
+
+"""
+Which Collections are present in the products returned
+by the search, and in what quantity.
+"""
+type CollectionResult {
+    collection: Collection!
+    count: Int!
+}
+
+type SearchResultAsset {
+    id: ID!
+    preview: String!
+    focalPoint: Coordinate
+}
+
+type SearchResult {
+    sku: String!
+    slug: String!
+    productId: ID!
+    productName: String!
+    productAsset: SearchResultAsset
+    productVariantId: ID!
+    productVariantName: String!
+    productVariantAsset: SearchResultAsset
+    price: SearchResultPrice!
+    priceWithTax: SearchResultPrice!
+    currencyCode: CurrencyCode!
+    description: String!
+    facetIds: [ID!]!
+    facetValueIds: [ID!]!
+    "An array of ids of the Collections in which this result appears"
+    collectionIds: [ID!]!
+    "A relevance score for the result. Differs between database implementations"
+    score: Float!
+}
+
+"The price of a search result product, either as a range or as a single price"
+union SearchResultPrice = PriceRange | SinglePrice
+
+"The price value where the result has a single price"
+type SinglePrice {
+    value: Money!
+}
+
+"The price range where the result has more than one price"
+type PriceRange {
+    min: Money!
+    max: Money!
+}

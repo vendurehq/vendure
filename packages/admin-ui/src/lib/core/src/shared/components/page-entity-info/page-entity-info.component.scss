@@ -1,0 +1,18 @@
+:host {
+    gap: calc(var(--space-unit) * 2);
+}
+.property {
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 2px;
+    line-height: 1em;
+    &:not(:last-of-type) { margin-bottom: calc(var(--space-unit) * 1);}
+}
+.prop-label {
+    font-size: var(--font-size-xs);
+    color: var(--color-weight-400);
+}
+.value {
+    font-size: var(--font-size-xs);
+    color: var(--color-weight-600);
+}

@@ -1,0 +1,29 @@
+query GetProductList($options: ProductListOptions) {
+    products(options: $options) {
+        totalItems
+        items {
+            id
+            name
+            slug
+            description
+            optionGroups {
+                id
+                name
+            }
+            enabled
+            variants {
+                id
+                name
+                sku
+                stockLevel
+                priceWithTax
+                currencyCode
+                options {
+                    id
+                    name
+                    groupId
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,24 @@
+<ng-template vdrDialogTitle>
+    {{ 'catalog.create-product-option-group' | translate }}
+</ng-template>
+<div class="form-grid" [formGroup]="form">
+    <vdr-form-field [label]="'common.name' | translate" for="name">
+        <input id="name" type="text" formControlName="name" (input)="updateCode()" />
+    </vdr-form-field>
+    <vdr-form-field
+        [label]="'common.code' | translate"
+        for="code"
+    >
+        <input
+            id="code"
+            type="text"
+            formControlName="code"
+        />
+    </vdr-form-field>
+</div>
+<ng-template vdrDialogButtons>
+    <button type="button" class="btn" (click)="cancel()">{{ 'common.cancel' | translate }}</button>
+    <button type="submit" (click)="confirm()" class="btn btn-primary" [disabled]="form.invalid">
+        {{ 'common.confirm' | translate }}
+    </button>
+</ng-template>

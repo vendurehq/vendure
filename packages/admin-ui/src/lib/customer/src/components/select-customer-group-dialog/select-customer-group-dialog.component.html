@@ -1,0 +1,30 @@
+<ng-template vdrDialogTitle>
+    {{ 'customer.add-customer-to-group' | translate }}
+</ng-template>
+
+<ng-select
+    [items]="groups$ | async"
+    appendTo="body"
+    [addTag]="false"
+    [multiple]="true"
+    bindValue="id"
+    [(ngModel)]="selectedGroupIds"
+    [clearable]="true"
+    [searchable]="false"
+>
+    <ng-template ng-label-tmp let-item="item" let-clear="clear">
+        <span aria-hidden="true" class="ng-value-icon left" (click)="clear(item)"> × </span>
+        <vdr-chip [colorFrom]="item.id">{{ item.name }}</vdr-chip>
+    </ng-template>
+    <ng-template ng-option-tmp let-item="item">
+        <vdr-chip [colorFrom]="item.id">{{ item.name }}</vdr-chip>
+    </ng-template>
+</ng-select>
+
+
+<ng-template vdrDialogButtons>
+    <button type="button" class="btn" (click)="cancel()">{{ 'common.cancel' | translate }}</button>
+    <button type="submit" (click)="add()" [disabled]="!selectedGroupIds.length" class="btn btn-primary">
+        {{ 'customer.add-customer-to-groups-with-count' | translate: {count: selectedGroupIds.length} }}
+    </button>
+</ng-template>

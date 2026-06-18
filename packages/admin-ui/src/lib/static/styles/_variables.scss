@@ -1,0 +1,11 @@
+@import "./global/sass-overrides";
+@import "@clr/ui/src/utils/_mixins";
+@import "@clr/ui/src/utils/_variables.clarity.scss";
+
+// breakpoints
+// Breakpoints are defined in SCSS because CSS does not
+// support custom properties in media queries.
+// See https://stackoverflow.com/a/40723269/772859
+$breakpoint-small: 768px;
+$breakpoint-medium: 992px;
+$breakpoint-large: 1280px;

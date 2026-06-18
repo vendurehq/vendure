@@ -1,0 +1,14 @@
+:host {
+    padding: 0;
+    border: none;
+    &.ng-invalid input[type='number'] {
+        color: var(--color-error-700);
+        border-color: var(--color-error-300);
+    }
+}
+
+input {
+    &[readonly] {
+        background-color: transparent;
+    }
+}

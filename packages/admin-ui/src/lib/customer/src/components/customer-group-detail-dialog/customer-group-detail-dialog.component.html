@@ -1,0 +1,29 @@
+<ng-template vdrDialogTitle>
+    <span *ngIf="group.id">{{ 'customer.update-customer-group' | translate }}</span>
+    <span *ngIf="!group.id">{{ 'customer.create-customer-group' | translate }}</span>
+</ng-template>
+<form [formGroup]="form">
+    <vdr-form-field [label]="'common.name' | translate" for="name">
+        <input
+            id="name"
+            type="text"
+            formControlName="name"
+            [readonly]="!(['CreateCustomerGroup', 'UpdateCustomerGroup'] | hasPermission)"
+        />
+    </vdr-form-field>
+    <section formGroupName="customFields" *ngIf="customFields.length">
+        <label>{{ 'common.custom-fields' | translate }}</label>
+        <vdr-tabbed-custom-fields
+            entityName="CustomerGroup"
+            [customFields]="customFields"
+            [customFieldsFormGroup]="form.get('customFields')"
+        ></vdr-tabbed-custom-fields>
+    </section>
+</form>
+<ng-template vdrDialogButtons>
+    <button type="button" class="btn" (click)="cancel()">{{ 'common.cancel' | translate }}</button>
+    <button type="submit" (click)="save()" [disabled]="!form.valid" class="btn btn-primary">
+        <span *ngIf="group.id">{{ 'customer.update-customer-group' | translate }}</span>
+        <span *ngIf="!group.id">{{ 'customer.create-customer-group' | translate }}</span>
+    </button>
+</ng-template>

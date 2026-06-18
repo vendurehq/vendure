@@ -1,0 +1,74 @@
+---
+title: "SlugValidator"
+generated: true
+---
+## SlugValidator
+
+<GenerationInfo sourceFile="packages/core/src/service/helpers/slug-validator/slug-validator.ts" sourceLine="44" packageName="@vendure/core" />
+
+Used to validate slugs to ensure they are URL-safe and unique. Designed to be used with translatable
+entities such as [Product](/reference/typescript-api/entities/product#product) and [Collection](/reference/typescript-api/entities/collection#collection).
+
+```ts title="Signature"
+class SlugValidator {
+    constructor(connection: TransactionalConnection)
+    validateSlugs(ctx: RequestContext, input: T, translationEntity: Type<E>) => Promise<T>;
+}
+```
+
+<div className="members-wrapper">
+
+### validateSlugs
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: T, translationEntity: Type<E>) => Promise<T>`}   />
+
+
+
+
+</div>
+## InputWithSlug
+
+<GenerationInfo sourceFile="packages/core/src/service/helpers/slug-validator/slug-validator.ts" sourceLine="16" packageName="@vendure/core" />
+
+
+
+```ts title="Signature"
+type InputWithSlug = {
+    id?: ID | null;
+    translations?: Array<{
+        id?: ID | null;
+        languageCode: LanguageCode;
+        slug?: string | null;
+    }> | null;
+}
+```
+
+<div className="members-wrapper">
+
+### id
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a> | null`}   />
+
+
+### translations
+
+<MemberInfo kind="property" type={`Array<{         id?: <a href='/reference/typescript-api/common/id#id'>ID</a> | null;         languageCode: <a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>;         slug?: string | null;     }> | null`}   />
+
+
+
+
+</div>
+## TranslationEntity
+
+<GenerationInfo sourceFile="packages/core/src/service/helpers/slug-validator/slug-validator.ts" sourceLine="29" packageName="@vendure/core" />
+
+
+
+```ts title="Signature"
+type TranslationEntity = VendureEntity & {
+    id: ID;
+    languageCode: LanguageCode;
+    slug: string;
+    base: any;
+}
+```

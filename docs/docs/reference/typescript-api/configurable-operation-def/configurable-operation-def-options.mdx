@@ -1,0 +1,52 @@
+---
+title: "ConfigurableOperationDefOptions"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/common/configurable-operation.ts" sourceLine="230" packageName="@vendure/core" />
+
+Common configuration options used when creating a new instance of a
+[ConfigurableOperationDef](/reference/typescript-api/configurable-operation-def/#configurableoperationdef) (
+
+```ts title="Signature"
+interface ConfigurableOperationDefOptions<T extends ConfigArgs> extends InjectableStrategy {
+    code: string;
+    args: T;
+    description: LocalizedStringArray;
+}
+```
+* Extends: [`InjectableStrategy`](/reference/typescript-api/common/injectable-strategy#injectablestrategy)
+
+
+
+<div className="members-wrapper">
+
+### code
+
+<MemberInfo kind="property" type={`string`}   />
+
+A unique code used to identify this operation.
+### args
+
+<MemberInfo kind="property" type={`T`}   />
+
+Optional provider-specific arguments which, when specified, are
+editable in the admin-ui. For example, args could be used to store an API key
+for a payment provider service.
+
+*Example*
+
+```ts
+args: {
+  apiKey: { type: 'string' },
+}
+```
+
+See [ConfigArgs](/reference/typescript-api/configurable-operation-def/config-args#configargs) for available configuration options.
+### description
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/configurable-operation-def/localized-string-array#localizedstringarray'>LocalizedStringArray</a>`}   />
+
+A human-readable description for the operation method.
+
+
+</div>

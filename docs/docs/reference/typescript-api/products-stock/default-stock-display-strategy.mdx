@@ -1,0 +1,30 @@
+---
+title: "DefaultStockDisplayStrategy"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/catalog/default-stock-display-strategy.ts" sourceLine="14" packageName="@vendure/core" />
+
+Displays the `ProductVariant.stockLevel` as either `'IN_STOCK'`, `'OUT_OF_STOCK'` or `'LOW_STOCK'`.
+Low stock is defined as a saleable stock level less than or equal to the `lowStockLevel` as passed in
+to the constructor (defaults to `2`).
+
+```ts title="Signature"
+class DefaultStockDisplayStrategy implements StockDisplayStrategy {
+    constructor(lowStockLevel: number = 2)
+    getStockLevel(ctx: RequestContext, productVariant: ProductVariant, saleableStockLevel: number) => string;
+}
+```
+* Implements: [`StockDisplayStrategy`](/reference/typescript-api/products-stock/stock-display-strategy#stockdisplaystrategy)
+
+
+
+<div className="members-wrapper">
+
+### getStockLevel
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productVariant: <a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>, saleableStockLevel: number) => string`}   />
+
+
+
+
+</div>

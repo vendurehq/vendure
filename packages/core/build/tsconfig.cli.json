@@ -1,0 +1,10 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../cli"
+  },
+  "files": [
+    "../src/cli/index.ts",
+    "../typings.d.ts"
+  ]
+}

@@ -1,0 +1,11 @@
+type Tag implements Node {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    value: String!
+}
+
+type TagList implements PaginatedList {
+    items: [Tag!]!
+    totalItems: Int!
+}

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Feature Request
+    url: https://github.com/vendurehq/vendure/discussions/new?category=feature-requests
+    about: Suggest an idea or new feature for Vendure Core
+  - name: Support Request
+    url: https://vendure.io/contact?interestedIn=SUPPORT_SERVICES
+    about: Get professional support for your Vendure project

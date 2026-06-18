@@ -1,0 +1,44 @@
+<vdr-dropdown *ngIf="actions$ | async as actions">
+    <button
+        *ngIf="actions.length"
+        class="btn btn-sm btn-outline mr-2"
+        vdrDropdownTrigger
+        [disabled]="!selectionManager.selection?.length"
+        [class.hidden]="!selectionManager.selection?.length"
+    >
+        <clr-icon shape="file-group"></clr-icon>
+        {{ 'common.with-selected' | translate: { count:selectionManager.selection.length } }}
+        <clr-icon shape="ellipsis-vertical"></clr-icon>
+    </button>
+    <vdr-dropdown-menu vdrPosition="bottom-left">
+        <ng-container *ngIf="actions.length; else noActions">
+            <ng-container *ngFor="let action of actions">
+                <button
+                    *ngIf="action.display"
+                    [disabled]="!hasPermissions(action)"
+                    type="button"
+                    vdrDropdownItem
+                    (click)="actionClick($event, action)"
+                >
+                    <clr-icon
+                        *ngIf="action.icon"
+                        [attr.shape]="action.icon"
+                        [ngClass]="action.iconClass || ''"
+                    ></clr-icon>
+                    {{ action.label | translate: action.translationVars }}
+                </button>
+            </ng-container>
+        </ng-container>
+        <ng-template #noActions>
+            <button type="button" disabled vdrDropdownItem>{{ 'common.no-bulk-actions-available' | translate }}</button>
+        </ng-template>
+    </vdr-dropdown-menu>
+</vdr-dropdown>
+<button
+    class="button-small"
+    (click)="clearSelection()"
+    [class.hidden]="!selectionManager.selection?.length"
+>
+    <span>{{ 'common.clear-selection' | translate }}</span>
+    <clr-icon shape="times"></clr-icon>
+</button>

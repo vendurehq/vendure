@@ -1,0 +1,64 @@
+---
+title: "RegisterFormInputComponent"
+generated: true
+---
+<GenerationInfo sourceFile="packages/admin-ui/src/lib/core/src/extension/register-form-input-component.ts" sourceLine="51" packageName="@vendure/admin-ui" />
+
+Registers a custom FormInputComponent which can be used to control the argument inputs
+of a [ConfigurableOperationDef](/reference/typescript-api/configurable-operation-def/#configurableoperationdef) (e.g. CollectionFilter, ShippingMethod etc.) or for
+a custom field.
+
+*Example*
+
+```ts title="providers.ts"
+import { registerFormInputComponent } from '@vendure/admin-ui/core';
+
+export default [
+    registerFormInputComponent('my-custom-input', MyCustomFieldControl), // [!code highlight]
+];
+```
+
+This input component can then be used in a custom field:
+
+*Example*
+
+```ts title="src/vendure-config.ts"
+import { VendureConfig } from '@vendure/core';
+
+const config: VendureConfig = {
+  // ...
+  customFields: {
+    ProductVariant: [
+      {
+        name: 'rrp',
+        type: 'int',
+        ui: { component: 'my-custom-input' }, // [!code highlight]
+      },
+    ]
+  }
+}
+```
+
+or with an argument of a [ConfigurableOperationDef](/reference/typescript-api/configurable-operation-def/#configurableoperationdef):
+
+*Example*
+
+```ts
+args: {
+  rrp: { type: 'int', ui: { component: 'my-custom-input' } },
+}
+```
+
+```ts title="Signature"
+function registerFormInputComponent(id: string, component: Type<FormInputComponent>): void
+```
+Parameters
+
+### id
+
+<MemberInfo kind="parameter" type={`string`} />
+
+### component
+
+<MemberInfo kind="parameter" type={`Type<<a href='/reference/admin-ui-api/custom-input-components/form-input-component#forminputcomponent'>FormInputComponent</a>>`} />
+

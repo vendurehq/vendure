@@ -1,0 +1,16 @@
+<ng-template vdrDialogTitle>{{ 'settings.add-countries-to-zone' | translate: { zoneName: zoneName } }}</ng-template>
+
+<vdr-zone-member-list
+    locationId="zone-members-list"
+    [members]="availableCountries$ | async"
+    [selectedMemberIds]="selectedMemberIds"
+    (selectionChange)="selectedMemberIds = $event"
+>
+</vdr-zone-member-list>
+
+<ng-template vdrDialogButtons>
+    <button type="button" class="btn" (click)="cancel()">{{ 'common.cancel' | translate }}</button>
+    <button type="submit" (click)="add()" [disabled]="!selectedMemberIds.length" class="btn btn-primary">
+        {{ 'settings.add-countries-to-zone' | translate: { zoneName: zoneName } }}
+    </button>
+</ng-template>

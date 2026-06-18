@@ -1,0 +1,20 @@
+<vdr-dropdown>
+    <button class="button" vdrDropdownTrigger>
+        <clr-icon shape="link"></clr-icon> {{ 'catalog.asset-preview-links' | translate
+        }}<clr-icon shape="ellipsis-vertical"></clr-icon>
+    </button>
+    <vdr-dropdown-menu vdrPosition="bottom-left">
+        <a
+            *ngFor="let size of sizes"
+            [href]="asset | assetPreview : size"
+            [title]="asset | assetPreview : size"
+            target="_blank"
+            class="asset-preview-link"
+            vdrDropdownItem
+        >
+            <vdr-chip
+                ><clr-icon shape="link"></clr-icon> {{ 'asset.preview' | translate }}: {{ size }}</vdr-chip
+            >
+        </a>
+    </vdr-dropdown-menu></vdr-dropdown
+>

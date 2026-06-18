@@ -1,0 +1,33 @@
+<div [ngSwitch]="config.entity">
+    <vdr-relation-asset-input
+        *ngSwitchCase="'Asset'"
+        [parentFormControl]="formControl"
+        [config]="config"
+        [readonly]="readonly"
+    ></vdr-relation-asset-input>
+    <vdr-relation-product-input
+        *ngSwitchCase="'Product'"
+        [parentFormControl]="formControl"
+        [config]="config"
+        [readonly]="readonly"
+    ></vdr-relation-product-input>
+    <vdr-relation-customer-input
+        *ngSwitchCase="'Customer'"
+        [parentFormControl]="formControl"
+        [config]="config"
+        [readonly]="readonly"
+    ></vdr-relation-customer-input>
+    <vdr-relation-product-variant-input
+        *ngSwitchCase="'ProductVariant'"
+        [parentFormControl]="formControl"
+        [config]="config"
+        [readonly]="readonly"
+    ></vdr-relation-product-variant-input>
+    <ng-template ngSwitchDefault>
+        <vdr-relation-generic-input
+            [parentFormControl]="formControl"
+               [config]="config"
+               [readonly]="readonly"
+        ></vdr-relation-generic-input>
+    </ng-template>
+</div>

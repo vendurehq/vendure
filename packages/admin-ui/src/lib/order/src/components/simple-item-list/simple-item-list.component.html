@@ -1,0 +1,9 @@
+<div class="items-list">
+    <ul>
+        <li *ngFor="let item of items" [title]="item.name">
+            <div class="quantity" *ngIf="item.quantity != null">{{ item.quantity }}</div>
+            <clr-icon shape="times" size="12" *ngIf="item.quantity != null"></clr-icon>
+            {{ item.name }}
+        </li>
+    </ul>
+</div>

@@ -1,0 +1,21 @@
+mutation SetShippingMethod($id: [ID!]!) {
+    setOrderShippingMethod(shippingMethodId: $id) {
+        ...on Order {
+            code
+        }
+    }
+    transitionOrderToState(state: "ArrangingPayment") {
+        ...on Order {
+            code
+        }
+    }
+    addPaymentToOrder(input: {
+        method: "standard-payment",
+        metadata: {}
+    }) {
+        ...on Order {
+            code
+            state
+        }
+    }
+}

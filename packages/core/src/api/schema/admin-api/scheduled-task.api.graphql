@@ -1,0 +1,25 @@
+type Query {
+    scheduledTasks: [ScheduledTask!]!
+}
+
+input UpdateScheduledTaskInput {
+    id: String!
+    enabled: Boolean
+}
+
+type Mutation {
+    updateScheduledTask(input: UpdateScheduledTaskInput!): ScheduledTask!
+    runScheduledTask(id: String!): Success!
+}
+
+type ScheduledTask {
+    id: String!
+    description: String!
+    schedule: String!
+    scheduleDescription: String!
+    lastExecutedAt: DateTime
+    nextExecutionAt: DateTime
+    isRunning: Boolean!
+    lastResult: JSON
+    enabled: Boolean!
+}

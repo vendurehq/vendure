@@ -1,0 +1,562 @@
+---
+title: Introducing GraphQL
+metaTitle: "GraphQL Basics for Vendure Developers"
+metaDescription: "A developer-friendly introduction to GraphQL concepts used in Vendure: queries, mutations, types, fragments, variables, union types, and IDE tooling."
+---
+
+:::info
+
+Vendure uses [GraphQL](https://graphql.org/) as its API layer.
+
+This is an introduction to GraphQL for those who are new to it. If you are already familiar with GraphQL, you may choose
+to skip this section.
+
+:::
+
+## What is GraphQL?
+
+From [graphql.org](https://graphql.org/):
+
+> GraphQL is a query language for APIs and a runtime for fulfilling those queries with your existing data. GraphQL provides a complete and understandable description of the data in your API, gives clients the power to ask for exactly what they need and nothing more, makes it easier to evolve APIs over time, and enables powerful developer tools.
+
+To put it simply: GraphQL allows you to fetch data from an API via _queries_, and to update data via _mutations_.
+
+Here's a GraphQL query which fetches the product with the slug "football":
+
+<Playground api="shop" document={`
+query GetProduct {
+    product(slug: "football") {
+      id
+      name
+      slug
+    }
+}
+`} />
+
+
+## GraphQL vs REST
+
+If you are familiar with REST-style APIs, you may be wondering how GraphQL differs. Here are the key ways in which GraphQL differs from REST:
+
+- GraphQL uses **a single endpoint**, whereas REST uses a different endpoint for each resource.
+- GraphQL allows you to **specify exactly which fields** you want to fetch, whereas REST APIs usually return all fields by default.
+- GraphQL allows you to fetch data from **multiple resources** in a single request (e.g. "fetch a customer including their last 5 orders"), whereas REST APIs usually require you to make multiple requests.
+- GraphQL APIs are always defined by a **statically typed schema**, whereas REST APIs do not have this guarantee.
+
+## Why GraphQL?
+
+Both GraphQL and REST are valid approaches to building an API. These are some of the reasons we chose GraphQL when building Vendure:
+
+- **No over-fetching**: With REST, you often end up fetching more data than you need. For example, if you want to fetch a list of products, you might end up fetching the product name, description, price, and other fields. With GraphQL, you can specify exactly which fields you want to fetch, so you only fetch the data you need. This
+    can result in a significant reduction in the amount of data transferred over the network.
+- **Many resources in a single request**: Very often, a single page in a web app will need to fetch data from multiple resources. For example, a product detail page might need to fetch the product, the product's variants, the product's collections, the product's reviews, and the product's images. With REST, this would require multiple requests. With GraphQL, you can fetch all of this data in a single request.
+- **Static typing**: GraphQL APIs are always defined by a statically typed schema. This means that you can be sure that the data you receive from the API will always be in the format you expect.
+- **Developer tooling**: The schema definition allows for powerful developer tooling. For example, the GraphQL Playground above with auto-complete and full documentation is generated automatically from the schema definition. You can also get auto-complete and type-checking directly in your IDE.
+- **Code generation**: TypeScript types can be generated automatically from the schema definition. This means that you can be sure that your frontend code is always in sync with the API. This end-to-end type safety is extremely valuable, especially when working on large projects or with teams. See the [GraphQL Code Generation guide](/storefront/codegen/)
+- **Extensible**: Vendure is designed with extensibility in mind, and GraphQL is a perfect fit. You can extend the GraphQL API with your own custom queries, mutations, and types. You can also extend the built-in types with your own custom fields, or supply you own custom logic to resolve existing fields. See the [Extend the GraphQL API guide](/developer-guide/extend-graphql-api/)
+
+## GraphQL Terminology
+
+Let's clear up some of the terminology used in GraphQL.
+
+### Types & Fields
+
+GraphQL has a type system which works in a similar way to other statically typed languages like TypeScript.
+
+Here is an example of a GraphQL type:
+
+```graphql
+type Customer {
+  id: ID!
+  name: String!
+  email: String!
+}
+```
+
+The `Customer` is an **object type**, and it has three **fields**: `id`, `name`, and `email`. Each field has a **type** (e.g. `ID!` or `String!`), which
+can refer to either a **scalar type** (a "primitive" type which does not have any fields, but represents a single value) or another object type.
+
+GraphQL has a number of built-in scalar types, including `ID`, `String`, `Int`, `Float`, `Boolean`. Vendure further defines a few custom scalar types: `DateTime`, `JSON`, `Upload` & `Money`.
+It is also possible to define your own custom scalar types if required.
+
+The `!` symbol after the type name indicates that the field is **required** (it cannot be `null`). If a field does not have the `!` symbol, it is **optional** (it can be `null`).
+
+Here's another example of a couple of types:
+
+```graphql
+type Order {
+  id: ID!
+  orderPlacedAt: DateTime
+  isActive: Boolean!
+  customer: Customer!
+  lines: [OrderLine!]!
+}
+
+type OrderLine {
+  id: ID!
+  productId: ID!
+  quantity: Int!
+}
+```
+
+Here the `Order` type has a field called `customer` which is of type `Customer`. The `Order` type also has a field called `lines` which is a list (an array) of `OrderLine` objects.
+
+In GraphQL, lists are denoted by square brackets (`[]`). The `!` symbol inside the square brackets indicates that the list cannot contain `null` values.
+
+:::note
+The types given here are not the actual types used in the Vendure GraphQL schema, but are used here for illustrative purposes.
+:::
+
+### Query & Mutation types
+
+There are two special types in GraphQL: `Query` and `Mutation`. These are the entry points into the API.
+
+The `Query` type is used for fetching data, and the `Mutation` type is used for updating data.
+
+Here is an example of a query type:
+
+```graphql
+type Query {
+  customers: [Customer!]!
+}
+```
+
+This defines a `customers` field on the `Query` type. This field returns a list of `Customer` objects.
+
+Here's a mutation type:
+
+```graphql
+type Mutation {
+  updateCustomerEmail(customerId: ID!, email: String!): Customer!
+}
+```
+
+This defines a `updateCustomerEmail` field on the `Mutation` type. This field takes two arguments, `customerId` and `email`, and returns a `Customer` object.
+It would be used to update the name of the specified customer.
+
+### Input types
+
+Input types are used to pass complex (non-scalar) data to queries or mutations. For example, the `updateCustomerEmail` mutation above could be re-written
+to use an input type:
+
+```graphql
+type Mutation {
+  updateCustomerEmail(input: UpdateCustomerEmailInput!): Customer!
+}
+
+input UpdateCustomerEmailInput {
+  customerId: ID!
+  email: String!
+}
+```
+
+Input types look just like object types, but with the `input` keyword rather than `type`.
+
+### Schema
+
+The schema is the complete definition of the GraphQL API. It defines the types, fields, queries and mutations which are available.
+
+In a GraphQL API like Vendure, you can only query data according to the fields which are defined in the schema.
+
+Here is a complete, minimal schema:
+
+```graphql
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+type Query {
+  customers: [Customer!]!
+}
+
+type Mutation {
+  updateCustomerEmail(input: UpdateCustomerEmailInput!): Customer!
+}
+
+input UpdateCustomerEmailInput {
+  customerId: ID!
+  email: String!
+}
+
+type Customer {
+  id: ID!
+  name: String!
+  email: String!
+}
+```
+
+The schema above tells you _everything_ that you can do with the API. You can fetch a list of customers, and you can update a customer's name.
+
+:::info
+The schema is one of the key benefits of GraphQL. It allows advanced tooling to be built around the API, such as autocomplete in IDEs, and
+automatic code generation.
+
+It also ensures that only valid queries can be made against the API.
+:::
+
+### Operations
+
+An **operation** is the general name for a GraphQL query or mutation. When you are building your client application, you will
+be defining operations which you can then send to the server.
+
+Here's an example of a query operation based on the schema above:
+
+<Tabs>
+<TabItem value="Query" label="Query" default>
+
+```graphql
+query {
+  customers {
+    id
+    name
+    email
+  }
+}
+```
+
+</TabItem>
+<TabItem value="Response" label="Response" >
+
+```json
+{
+  "data": {
+    "customers": [
+        {
+            "id": "1",
+            "name": "John Smith",
+            "email": "j.smith@email.com"
+        },
+        {
+            "id": "2",
+            "name": "Jane Doe",
+            "email": "j.doe@email.com"
+        }
+    ]
+  }
+}
+```
+
+</TabItem>
+</Tabs>
+
+Here's an example mutation operation to update the first customer's email:
+
+<Tabs>
+<TabItem value="Query" label="Query" default>
+
+```graphql
+mutation {
+  updateCustomerEmail(input: {
+    customerId: "1",
+    email: "john.smith@email.com"
+  }) {
+    id
+    name
+    email
+  }
+}
+```
+
+</TabItem>
+<TabItem value="Response" label="Response" >
+
+```json
+{
+  "data": {
+    "updateCustomerEmail": {
+      "id": "1",
+      "name": "John Smith",
+      "email": "john.smith@email.com" // [!code highlight]
+    }
+  }
+}
+```
+
+</TabItem>
+</Tabs>
+
+Operations can also have a **name**, which, while not required, is recommended for real applications as it makes debugging easier
+(similar to having named vs anonymous functions in JavaScript), and also allows you to take advantage of code generation tools.
+
+Here's the above query with a name:
+
+```graphql
+query GetCustomers { # [!code highlight]
+  customers {
+    id
+    name
+    email
+  }
+}
+```
+
+### Variables
+
+Operations can also have **variables**. Variables are used to pass input values into the operation. In the example `updateCustomerEmail` mutation
+operation above, we are passing an input object specifying the `customerId` and `email`. However, in that example they are hard-coded into the
+operation. In a real application, you would want to pass those values in dynamically.
+
+Here's how we can re-write the above mutation operation to use variables:
+
+<Tabs>
+<TabItem value="Mutation" label="Mutation" default>
+
+```graphql
+mutation UpdateCustomerEmail($input: UpdateCustomerEmailInput!) { # [!code highlight]
+  updateCustomerEmail(input: $input) { # [!code highlight]
+    id
+    name
+    email
+  }
+}
+```
+
+</TabItem>
+<TabItem value="Variables" label="Variables" >
+
+```json
+{
+  "input": {
+    "customerId": "1",
+    "email": "john.smith@email.com"
+  }
+}
+```
+
+</TabItem>
+<TabItem value="Response" label="Response" >
+
+```json
+{
+  "data": {
+    "updateCustomerEmail": {
+      "id": "1",
+      "name": "John Smith",
+      "email": "john.smith@email.com" // [!code highlight]
+    }
+  }
+}
+```
+
+</TabItem>
+</Tabs>
+
+### Fragments
+
+A **fragment** is a reusable set of fields on an object type. Let's define a fragment for the `Customer` type that
+we can re-use in both the query and the mutation:
+
+```graphql
+fragment CustomerFields on Customer {
+  id
+  name
+  email
+}
+```
+
+Now we can re-write the query and mutation operations to use the fragment:
+
+```graphql
+query GetCustomers{
+  customers {
+    ...CustomerFields
+  }
+}
+```
+
+```graphql
+mutation UpdateCustomerEmail($input: UpdateCustomerEmailInput!) {
+  updateCustomerEmail(input: $input) {
+    ...CustomerFields
+  }
+}
+```
+
+You can think of the syntax as similar to the JavaScript object spread operator (`...`).
+
+### Union types
+
+A **union type** is a special type which can be one of a number of other types. Let's say for example that when attempting to update a customer's
+email address, we want to return an error type if the email address is already in use. We can update our schema to model this as a union type:
+
+```graphql
+type Mutation {
+  updateCustomerEmail(input: UpdateCustomerEmailInput!): UpdateCustomerEmailResult!
+}
+
+union UpdateCustomerEmailResult = Customer | EmailAddressInUseError # [!code highlight]
+
+type EmailAddressInUseError {
+  errorCode: String!
+  message: String!
+}
+```
+
+:::info
+In Vendure, we use this pattern for almost all mutations. You can read more about it in the [Error Handling guide](/developer-guide/error-handling/).
+:::
+
+Now, when we perform this mutation, we need alter the way we select the fields in the response, since the response could be one of two types:
+
+<Tabs>
+<TabItem value="Mutation" label="Mutation" default>
+
+```graphql
+mutation UpdateCustomerEmail($input: UpdateCustomerEmailInput!) {
+  updateCustomerEmail(input: $input) {
+    __typename
+    ... on Customer {
+      id
+      name
+      email
+    }
+    ... on EmailAddressInUseError {
+      errorCode
+      message
+    }
+  }
+}
+```
+
+</TabItem>
+<TabItem value="Success case" label="Success case" >
+
+```json
+{
+  "data": {
+    "updateCustomerEmail": {
+      "__typename": "Customer",
+      "id": "1",
+      "name": "John Smith",
+      "email": "john.smith@email.com"
+    }
+  }
+}
+```
+
+</TabItem>
+<TabItem value="Error case" label="Error case" >
+
+```json
+{
+  "data": {
+    "updateCustomerEmail": {
+      "__typename": "EmailAddressInUseError",
+      "errorCode": "EMAIL_ADDRESS_IN_USE",
+      "message": "The email address is already in use"
+    }
+  }
+}
+```
+
+</TabItem>
+</Tabs>
+
+The `__typename` field is a special field available on all types which returns the name of the type. This is useful for
+determining which type was returned in the response in your client application.
+
+:::tip
+The above operation could also be written to use the `CustomerFields` fragment we defined earlier:
+```graphql
+mutation UpdateCustomerEmail($input: UpdateCustomerEmailInput!) {
+  updateCustomerEmail(input: $input) {
+    ...CustomerFields # [!code highlight]
+    ... on EmailAddressInUseError {
+      errorCode
+      message
+    }
+  }
+}
+```
+:::
+
+### Resolvers
+
+The schema defines the _shape_ of the data, but it does not define _how_ the data is fetched. This is the job of the resolvers.
+
+A resolver is a function which is responsible for fetching the data for a particular field. For example, the `customers` field on the `Query` type
+would be resolved by a function which fetches the list of customers from the database.
+
+To get started with Vendure's APIs, you don't need to know much about resolvers beyond this basic understanding. However,
+later on you may want to write your own custom resolvers to extend the API. This is covered in the [Extending the GraphQL API guide](/developer-guide/extend-graphql-api/).
+
+## Querying data
+
+Now that we have a basic understanding of the GraphQL type system, let's look at how we can use it to query data from the Vendure API.
+
+In REST terms, a GraphQL query is equivalent to a GET request. It is used to fetch data from the API. Queries should not change any
+data on the server.
+
+This is a GraphQL Playground running on a real Vendure server. You can run the query by clicking the "play" button in the
+middle of the two panes.
+
+<Playground api="shop" document={`
+query GetProduct {
+    product(slug: "football") {
+      id
+      name
+      slug
+    }
+}
+`} />
+
+Let's get familiar with the schema:
+
+1. Hover your mouse over any field to see its type, and in the case of the `product` field itself, you'll see documentation about what it does.
+2. Add a new line after `slug` and press `Ctrl / ⌘` + `space` to see the available fields. At the bottom of the field list, you'll see the type of that field.
+3. Try adding the `description` field and press play. You should see the product's description in the response.
+4. Try adding `variants` to the field list. You'll see a red warning in the left edge, and hovering over `variants` will inform
+you that it must have a selection of subfields. This is because the `variants` field refers to an **object type**, so we must select
+which fields of that object type we want to fetch. For example:
+  ```graphql
+  query {
+    product(slug: "football") {
+      id
+      name
+      slug
+      variants {
+        # Sub-fields are required for object types # [!code highlight]
+        sku # [!code highlight]
+        priceWithTax # [!code highlight]
+      }
+    }
+  }
+  ```
+
+## IDE plugins
+
+Plugins are available for most popular IDEs & editors which provide auto-complete and type-checking for GraphQL operations
+as you write them. This is a huge productivity boost, and is **highly recommended**.
+
+- [GraphQL extension for VS Code](https://marketplace.visualstudio.com/items?itemName=GraphQL.vscode-graphql)
+- [GraphQL plugin for IntelliJ](https://plugins.jetbrains.com/plugin/8097-graphql) (including WebStorm)
+
+:::cli
+Run the `npx vendure schema` to generate a GraphQL schema file that your IDE plugin
+can use to provide autocomplete.
+:::
+
+1. Install the GraphQL plugin for your IDE
+2. Run `npx vendure schema --api admin` to generate a `schema.graphql` file in your root directory
+3. Create a `graphql.config.yml` file in your root directory with the following content:
+   ```yaml title="graphql.config.yml"
+   schema: 'schema.graphql'
+   ```
+
+## Code generation
+
+Code generation means the automatic generation of TypeScript types based on your GraphQL schema and your GraphQL operations. This is a very powerful feature that allows you to write your code in a type-safe manner, without you needing to manually write any types for your API calls.
+
+For more information see the [GraphQL Code Generation guide](/storefront/codegen).
+
+## Further reading
+
+This is just a very brief overview, intended to introduce you to the main concepts you'll need to build with Vendure.
+There are many more language features and best practices to learn about which we did not cover here.
+
+Here are some resources you can use to gain a deeper understanding of GraphQL:
+
+- The official [Introduction to GraphQL on graphql.org](https://graphql.org/learn/) is comprehensive and easy to follow.
+- For a really fundamental understanding, see the [GraphQL language spec](https://spec.graphql.org/).
+- If you like to learn from videos, the [graphql.wtf](https://graphql.wtf/) series is a great resource.

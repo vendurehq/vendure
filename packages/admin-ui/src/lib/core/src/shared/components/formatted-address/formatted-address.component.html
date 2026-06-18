@@ -1,0 +1,20 @@
+<ul class="address-lines">
+    <li *ngIf="address.fullName">{{ address.fullName }}</li>
+    <li *ngIf="address.company">{{ address.company }}</li>
+    <li *ngIf="address.streetLine1">{{ address.streetLine1 }}</li>
+    <li *ngIf="address.streetLine2">{{ address.streetLine2 }}</li>
+    <li *ngIf="address.city">{{ address.city }}</li>
+    <li *ngIf="address.province">{{ address.province }}</li>
+    <li *ngIf="address.postalCode">{{ address.postalCode }}</li>
+    <li *ngIf="address.country">
+        <clr-icon shape="world" size="12"></clr-icon>
+        {{ getCountryName() }}
+    </li>
+    <li *ngIf="address.phoneNumber">
+        <clr-icon shape="phone-handset" size="12"></clr-icon>
+        {{ address.phoneNumber }}
+    </li>
+    <li *ngFor="let customField of getCustomFields()" class="custom-field">
+        <vdr-labeled-data [label]="customField.key">{{ customField.value }}</vdr-labeled-data>
+    </li>
+</ul>

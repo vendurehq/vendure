@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>My App</title>
+        <link rel="stylesheet" href="../../theme.min.css" />
+        <script src="../devkit/ui-devkit.js"></script>
+    </head>
+    <body>
+        <div class="page-block">
+            <h1>Hello!</h1>
+            <button class="button primary" id="trigger">Trigger a notification</button>
+
+            <div style="background-color: antiquewhite; margin: 50px; height: 1700px; width: 200px"></div>
+        </div>
+        <script>
+            document.querySelector('#trigger').addEventListener('click', () => {
+                VendureUiClient.notify({
+                    message: 'Hello!',
+                });
+            });
+        </script>
+    </body>
+</html>

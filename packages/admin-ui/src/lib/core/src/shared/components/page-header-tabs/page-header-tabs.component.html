@@ -1,0 +1,12 @@
+<div class="tab-bar" *ngIf="tabs.length">
+    <a
+        [routerLink]="tab.route"
+        class="tab"
+        *ngFor="let tab of tabs"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="routerLinkActiveOptions"
+    >
+        <clr-icon *ngIf="tab.icon" [attr.shape]="tab.icon"></clr-icon>
+        {{ tab.label | translate }}
+    </a>
+</div>

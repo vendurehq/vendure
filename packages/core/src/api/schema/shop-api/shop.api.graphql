@@ -1,0 +1,305 @@
+type Query {
+    "The active Channel"
+    activeChannel: Channel!
+    "The active Customer"
+    activeCustomer: Customer
+    """
+    The active Order. Will be `null` until an Order is created via `addItemToOrder`. Once an Order reaches the
+    state of `PaymentAuthorized` or `PaymentSettled`, then that Order is no longer considered "active" and this
+    query will once again return `null`.
+    """
+    activeOrder: Order
+    "An array of supported Countries"
+    availableCountries: [Country!]!
+    "A list of Collections available to the shop"
+    collections(options: CollectionListOptions): CollectionList!
+    "Returns a Collection either by its id or slug. If neither 'id' nor 'slug' is specified, an error will result."
+    collection(id: ID, slug: String): Collection
+    "Returns a list of eligible shipping methods based on the current active Order"
+    eligibleShippingMethods: [ShippingMethodQuote!]!
+    "Returns a list of payment methods and their eligibility based on the current active Order"
+    eligiblePaymentMethods: [PaymentMethodQuote!]!
+    "A list of Facets available to the shop"
+    facets(options: FacetListOptions): FacetList!
+    "Returns a Facet by its id"
+    facet(id: ID!): Facet
+    "Returns information about the current authenticated User"
+    me: CurrentUser
+    "Returns the possible next states that the activeOrder can transition to"
+    nextOrderStates: [String!]!
+    """
+    Returns an Order based on the id. Note that in the Shop API, only orders belonging to the
+    currently-authenticated User may be queried.
+    """
+    order(id: ID!): Order
+    """
+    Returns an Order based on the order `code`. For guest Orders (i.e. Orders placed by non-authenticated Customers)
+    this query will only return the Order within 2 hours of the Order being placed. This allows an Order confirmation
+    screen to be shown immediately after completion of a guest checkout, yet prevents security risks of allowing
+    general anonymous access to Order data.
+    """
+    orderByCode(code: String!): Order
+    "Get a Product either by id or slug. If neither 'id' nor 'slug' is specified, an error will result."
+    product(id: ID, slug: String): Product
+    "Get a list of Products"
+    products(options: ProductListOptions): ProductList!
+    "Search Products based on the criteria set by the `SearchInput`"
+    search(input: SearchInput!): SearchResponse!
+    "Get active payment methods"
+    activePaymentMethods: [PublicPaymentMethod]!
+    "Get active shipping methods"
+    activeShippingMethods: [PublicShippingMethod]!
+}
+
+type PublicPaymentMethod {
+    id: ID!
+    code: String!
+    name: String!
+    description: String
+    translations: [PaymentMethodTranslation!]!
+}
+
+type PublicShippingMethod {
+    id: ID!
+    code: String!
+    name: String!
+    description: String
+    translations: [ShippingMethodTranslation!]!
+}
+
+type Mutation {
+    "Adds an item to the Order. If custom fields are defined on the OrderLine entity, a third argument 'customFields' will be available."
+    addItemToOrder(productVariantId: ID!, quantity: Int!): UpdateOrderItemsResult!
+    "Adds mutliple items to the Order. Returns a list of errors for each item that failed to add. It will still add successful items."
+    addItemsToOrder(inputs: [AddItemInput!]!): UpdateMultipleOrderItemsResult!
+    "Remove an OrderLine from the Order"
+    removeOrderLine(orderLineId: ID!): RemoveOrderItemsResult!
+    "Remove all OrderLine from the Order"
+    removeAllOrderLines: RemoveOrderItemsResult!
+    "Adjusts an OrderLine. If custom fields are defined on the OrderLine entity, a third argument 'customFields' of type `OrderLineCustomFieldsInput` will be available."
+    adjustOrderLine(orderLineId: ID!, quantity: Int!): UpdateOrderItemsResult!
+    "Applies the given coupon code to the active Order"
+    applyCouponCode(couponCode: String!): ApplyCouponCodeResult!
+    "Removes the given coupon code from the active Order"
+    removeCouponCode(couponCode: String!): Order
+    "Transitions an Order to a new state. Valid next states can be found by querying `nextOrderStates`"
+    transitionOrderToState(state: String!): TransitionOrderToStateResult
+    "Sets the shipping address for the active Order"
+    setOrderShippingAddress(input: CreateAddressInput!): ActiveOrderResult!
+    "Sets the billing address for the active Order"
+    setOrderBillingAddress(input: CreateAddressInput!): ActiveOrderResult!
+    "Unsets the shipping address for the active Order. Available since version 3.1.0"
+    unsetOrderShippingAddress: ActiveOrderResult!
+    "Unsets the billing address for the active Order. Available since version 3.1.0"
+    unsetOrderBillingAddress: ActiveOrderResult!
+    "Allows any custom fields to be set for the active Order"
+    setOrderCustomFields(input: UpdateOrderInput!): ActiveOrderResult!
+    """
+    Sets the shipping method by id, which can be obtained with the `eligibleShippingMethods` query.
+    An Order can have multiple shipping methods, in which case you can pass an array of ids. In this case,
+    you should configure a custom ShippingLineAssignmentStrategy in order to know which OrderLines each
+    shipping method will apply to.
+    """
+    setOrderShippingMethod(shippingMethodId: [ID!]!): SetOrderShippingMethodResult!
+    "Sets the currency code for the active Order"
+    setCurrencyCodeForOrder(currencyCode: CurrencyCode!): UpdateOrderItemsResult!
+    "Add a Payment to the Order"
+    addPaymentToOrder(input: PaymentInput!): AddPaymentToOrderResult!
+    "Set the Customer for the Order. Required only if the Customer is not currently logged in"
+    setCustomerForOrder(input: CreateCustomerInput!): SetCustomerForOrderResult!
+    """
+    Authenticates the user using the native authentication strategy. This mutation is an alias for authenticate({ native: { ... }})
+
+    The `rememberMe` option applies when using cookie-based sessions, and if `true` it will set the maxAge of the session cookie
+    to 1 year.
+    """
+    login(username: String!, password: String!, rememberMe: Boolean): NativeAuthenticationResult!
+    "Authenticates the user using a named authentication strategy"
+    authenticate(input: AuthenticationInput!, rememberMe: Boolean): AuthenticationResult!
+    "End the current authenticated session"
+    logout: Success!
+    """
+    Register a Customer account with the given credentials. There are three possible registration flows:
+
+    _If `authOptions.requireVerification` is set to `true`:_
+
+    1. **The Customer is registered _with_ a password**. A verificationToken will be created (and typically emailed to the Customer). That
+       verificationToken would then be passed to the `verifyCustomerAccount` mutation _without_ a password. The Customer is then
+       verified and authenticated in one step.
+    2. **The Customer is registered _without_ a password**. A verificationToken will be created (and typically emailed to the Customer). That
+       verificationToken would then be passed to the `verifyCustomerAccount` mutation _with_ the chosen password of the Customer. The Customer is then
+       verified and authenticated in one step.
+
+    _If `authOptions.requireVerification` is set to `false`:_
+
+    3. The Customer _must_ be registered _with_ a password. No further action is needed - the Customer is able to authenticate immediately.
+    """
+    registerCustomerAccount(input: RegisterCustomerInput!): RegisterCustomerAccountResult!
+    "Regenerate and send a verification token for a new Customer registration. Only applicable if `authOptions.requireVerification` is set to true."
+    refreshCustomerVerification(emailAddress: String!): RefreshCustomerVerificationResult!
+    "Update an existing Customer"
+    updateCustomer(input: UpdateCustomerInput!): Customer!
+    "Create a new Customer Address"
+    createCustomerAddress(input: CreateAddressInput!): Address!
+    "Update an existing Address"
+    updateCustomerAddress(input: UpdateAddressInput!): Address!
+    "Delete an existing Address"
+    deleteCustomerAddress(id: ID!): Success!
+    """
+    Verify a Customer email address with the token sent to that address. Only applicable if `authOptions.requireVerification` is set to true.
+
+    If the Customer was not registered with a password in the `registerCustomerAccount` mutation, the password _must_ be
+    provided here.
+    """
+    verifyCustomerAccount(token: String!, password: String): VerifyCustomerAccountResult!
+    "Update the password of the active Customer"
+    updateCustomerPassword(currentPassword: String!, newPassword: String!): UpdateCustomerPasswordResult!
+    """
+    Request to update the emailAddress of the active Customer. If `authOptions.requireVerification` is enabled
+    (as is the default), then the `identifierChangeToken` will be assigned to the current User and
+    a IdentifierChangeRequestEvent will be raised. This can then be used e.g. by the EmailPlugin to email
+    that verification token to the Customer, which is then used to verify the change of email address.
+    """
+    requestUpdateCustomerEmailAddress(
+        password: String!
+        newEmailAddress: String!
+    ): RequestUpdateCustomerEmailAddressResult!
+    """
+    Confirm the update of the emailAddress with the provided token, which has been generated by the
+    `requestUpdateCustomerEmailAddress` mutation.
+    """
+    updateCustomerEmailAddress(token: String!): UpdateCustomerEmailAddressResult!
+    "Requests a password reset email to be sent"
+    requestPasswordReset(emailAddress: String!): RequestPasswordResetResult
+    "Resets a Customer's password based on the provided token"
+    resetPassword(token: String!, password: String!): ResetPasswordResult!
+}
+
+# Populated at run-time
+input AuthenticationInput
+
+input RegisterCustomerInput {
+    emailAddress: String!
+    title: String
+    firstName: String
+    lastName: String
+    phoneNumber: String
+    password: String
+}
+
+input UpdateCustomerInput {
+    title: String
+    firstName: String
+    lastName: String
+    phoneNumber: String
+}
+
+# Populated with any custom fields at run-time
+input UpdateOrderInput
+
+"""
+Passed as input to the `addPaymentToOrder` mutation.
+"""
+input PaymentInput {
+    """
+    This field should correspond to the `code` property of a PaymentMethod.
+    """
+    method: String!
+    """
+    This field should contain arbitrary data passed to the specified PaymentMethodHandler's `createPayment()` method
+    as the "metadata" argument. For example, it could contain an ID for the payment and other
+    data generated by the payment provider.
+    """
+    metadata: JSON!
+}
+
+# generated by generateListOptions function
+input CollectionListOptions {
+    topLevelOnly: Boolean
+}
+
+# generated by generateListOptions function
+input FacetListOptions
+
+# generated by generateListOptions function
+input OrderListOptions
+
+# generated by generateListOptions function
+input ProductListOptions
+
+# generated by generateListOptions function
+input ProductVariantListOptions
+
+union AddPaymentToOrderResult =
+    | Order
+    | OrderPaymentStateError
+    | IneligiblePaymentMethodError
+    | PaymentFailedError
+    | PaymentDeclinedError
+    | OrderStateTransitionError
+    | NoActiveOrderError
+union TransitionOrderToStateResult = Order | OrderStateTransitionError
+union SetCustomerForOrderResult =
+    | Order
+    | AlreadyLoggedInError
+    | EmailAddressConflictError
+    | NoActiveOrderError
+    | GuestCheckoutError
+union RegisterCustomerAccountResult =
+    | Success
+    | MissingPasswordError
+    | PasswordValidationError
+    | NativeAuthStrategyError
+union RefreshCustomerVerificationResult = Success | NativeAuthStrategyError
+union VerifyCustomerAccountResult =
+    | CurrentUser
+    | VerificationTokenInvalidError
+    | VerificationTokenExpiredError
+    | MissingPasswordError
+    | PasswordValidationError
+    | PasswordAlreadySetError
+    | NativeAuthStrategyError
+union UpdateCustomerPasswordResult =
+    | Success
+    | InvalidCredentialsError
+    | PasswordValidationError
+    | NativeAuthStrategyError
+union RequestUpdateCustomerEmailAddressResult =
+    | Success
+    | InvalidCredentialsError
+    | EmailAddressConflictError
+    | NativeAuthStrategyError
+union UpdateCustomerEmailAddressResult =
+    | Success
+    | IdentifierChangeTokenInvalidError
+    | IdentifierChangeTokenExpiredError
+    | NativeAuthStrategyError
+union RequestPasswordResetResult = Success | NativeAuthStrategyError
+union ResetPasswordResult =
+    | CurrentUser
+    | PasswordResetTokenInvalidError
+    | PasswordResetTokenExpiredError
+    | PasswordValidationError
+    | NativeAuthStrategyError
+    | NotVerifiedError
+union NativeAuthenticationResult =
+    | CurrentUser
+    | InvalidCredentialsError
+    | NotVerifiedError
+    | NativeAuthStrategyError
+union AuthenticationResult = CurrentUser | InvalidCredentialsError | NotVerifiedError
+union ActiveOrderResult = Order | NoActiveOrderError
+
+"""
+Returned when multiple items are added to an Order.
+The errorResults array contains the errors that occurred for each item, if any.
+"""
+type UpdateMultipleOrderItemsResult  {
+    order: Order!
+    errorResults: [UpdateOrderItemErrorResult!]!
+}
+
+input AddItemInput {
+    productVariantId: ID!
+    quantity: Int!
+}

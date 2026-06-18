@@ -1,0 +1,33 @@
+@mixin code-editor {
+    .code-editor {
+        min-height: 6rem;
+        background-color: var(--color-json-editor-background-color);
+        color: var(--color-json-editor-text);
+        border: 1px solid var(--color-weight-200);
+        border-radius: 3px;
+        padding: 6px;
+        tab-size: 4;
+        font-family: 'Source Code Pro', 'Lucida Console', Monaco, monospace;
+        font-size: 14px;
+        font-weight: 400;
+        height: 340px;
+        letter-spacing: normal;
+        line-height: 20px;
+        resize: both;
+        text-align: initial;
+        min-width: 200px;
+
+        &:focus {
+            border-color: var(--color-primary-500);
+        }
+
+        &.invalid {
+            border-color: var(--clr-forms-invalid-color);
+        }
+    }
+
+    .error-message {
+        min-height: 1rem;
+        color: var(--color-json-editor-error);
+    }
+}

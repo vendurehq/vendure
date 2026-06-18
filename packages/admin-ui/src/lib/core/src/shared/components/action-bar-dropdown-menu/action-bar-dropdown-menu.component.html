@@ -1,0 +1,28 @@
+<vdr-ui-extension-point [locationId]="locationId" api="actionBarDropdown" [leftPx]="-24">
+    <vdr-dropdown #dropdownComponent *ngIf="alwaysShow || (items$ | async)?.length">
+        <button class="icon-button" vdrDropdownTrigger>
+            <clr-icon shape="ellipsis-vertical"></clr-icon>
+        </button>
+        <vdr-dropdown-menu vdrPosition="bottom-right">
+            <ng-content />
+            <ng-container *ngFor="let item of items$ | async">
+                <ng-container *ngIf="buttonStates[item.id] | async as buttonState">
+                    <div class="dropdown-divider" *ngIf="item.hasDivider === true"></div>
+                    <button
+                        type="button"
+                        vdrDropdownItem
+                        *vdrIfPermissions="item.requiresPermission"
+                        [routerLink]="getRouterLink(item)"
+                        [class.hidden]="buttonState.visible === false"
+                        [disabled]="buttonState.disabled"
+                        (click)="handleClick($event, item)"
+                        class="mr-2"
+                    >
+                        <clr-icon *ngIf="item.icon" [attr.shape]="item.icon"></clr-icon>
+                        {{ item.label | translate }}
+                    </button>
+                </ng-container>
+            </ng-container>
+        </vdr-dropdown-menu>
+    </vdr-dropdown>
+</vdr-ui-extension-point>

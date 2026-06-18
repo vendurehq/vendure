@@ -1,0 +1,75 @@
+<ng-template vdrDialogTitle>{{ 'order.confirm-modifications' | translate }}</ng-template>
+<vdr-order-table
+    [order]="order"
+    [orderLineCustomFields]="orderLineCustomFields"
+    class="order-edits-preview-table"
+></vdr-order-table>
+<div class="payments-wrapper mb-2">
+    <div class="flex-spacer">
+        <vdr-payment-for-refund-selector
+            *ngIf="priceDifference < 0"
+            class=""
+            [refundablePayments]="refundablePayments"
+            (paymentSelected)="onPaymentSelected($event.payment, $event.selected)"
+            [order]="order"
+        ></vdr-payment-for-refund-selector>
+    </div>
+    <div class="flex-spacer">
+        <vdr-card [title]="'order.modify-order' | translate">
+            <vdr-order-modification-summary
+                [orderSnapshot]="orderSnapshot"
+                [modifyOrderInput]="modifyOrderInput"
+                [addedLines]="addedLines"
+                [shippingAddressForm]="shippingAddressForm"
+                [billingAddressForm]="billingAddressForm"
+                [couponCodesControl]="couponCodesControl"
+                [updatedShippingMethods]="updatedShippingMethods"
+            ></vdr-order-modification-summary>
+            <vdr-labeled-data [label]="'order.note' | translate">
+                {{ modifyOrderInput.note || '-' }}
+            </vdr-labeled-data>
+            <vdr-form-field
+                [label]="'order.refund-cancellation-reason' | translate"
+                *ngIf="priceDifference < 0"
+            >
+                <textarea [(ngModel)]="refundNote" name="refundNote" required></textarea>
+            </vdr-form-field>
+        </vdr-card>
+    </div>
+</div>
+<ng-template vdrDialogButtons>
+    <div>
+        <div class="errors">
+            <clr-alert
+                class="mb-1"
+                *ngIf="priceDifference < 0 && !refundsCoverDifference()"
+                [clrAlertType]="'danger'"
+                [clrAlertClosable]="false"
+            >
+                <clr-alert-item>
+                    {{ 'order.refund-total-warning' | translate }}
+                </clr-alert-item>
+            </clr-alert>
+        </div>
+        <div class="modal-buttons">
+            <clr-alert class="" [clrAlertType]="'primary'" [clrAlertClosable]="false">
+                <clr-alert-item>
+                    {{ 'order.modify-order-price-difference' | translate }}
+                    {{ 0 < priceDifference ? '+' : ''
+                    }}{{ priceDifference | localeCurrency : order.currencyCode }}
+                </clr-alert-item>
+            </clr-alert>
+            <button type="button" class="btn" (click)="cancel()">
+                {{ 'common.cancel' | translate }}
+            </button>
+            <button
+                type="submit"
+                (click)="submit()"
+                [disabled]="priceDifference < 0 ? !refundsCoverDifference() : false"
+                class="btn btn-primary"
+            >
+                {{ 'common.confirm' | translate }}
+            </button>
+        </div>
+    </div>
+</ng-template>

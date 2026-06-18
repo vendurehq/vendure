@@ -1,0 +1,296 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+export const RightArrow = () => <svg
+    viewBox="0 0 14 14"
+    width="8px"
+    height="14px"
+    style={{
+        marginLeft: '4px',
+        display: 'inline-block',
+        shapeRendering: 'inherit',
+        verticalAlign: 'middle',
+        fill: 'currentColor',
+        'path fill': 'currentColor'
+    }}
+>
+    <path d="m11.1 7.35-5.5 5.5a.5.5 0 0 1-.7-.7L10.04 7 4.9 1.85a.5.5 0 1 1 .7-.7l5.5 5.5c.2.2.2.5 0 .7Z" />
+</svg>
+
+<Meta title="Introduction" />
+
+<div className="sb-container">
+    <div className='sb-section-title'>
+        # Vendure Dashboard Component Reference
+
+        ![hero image](./hero.webp)
+
+        This is a visual reference of the available components you can use while building custom extensions to the
+        Vendure Dashboard.
+    </div>
+</div>
+
+<div className="sb-container">
+    <div className='sb-section-title'>
+        ## Getting Started with Extensions
+
+        Before you can use these components, you'll need to make sure your Vendure application is set up correctly:
+    </div>
+
+    <div className="sb-section">
+        <div className="sb-section-item">
+            <h4 className="sb-section-item-heading">Installing Vendure</h4>
+            <p className="sb-section-item-paragraph">If you've not yet set up Vendure, you can get started in just a few minutes
+                using the `npx @vendure/create my-shop` command.</p>
+            <a
+                href="https://docs.vendure.io/guides/getting-started/installation/"
+                target="_blank"
+            >Vendure Getting Started Guide<RightArrow /></a>
+        </div>
+        <div className="sb-section-item">
+            <h4 className="sb-section-item-heading">Installing the Dashboard</h4>
+            <p className="sb-section-item-paragraph">Make sure you have installed and configured the
+                `@vendure/dashboard` package</p>
+            <a
+                href="https://docs.vendure.io/guides/extending-the-dashboard/getting-started/"
+                target="_blank"
+            >Dashboard Installation guide<RightArrow /></a>
+        </div>
+        <div className="sb-section-item">
+            <h4 className="sb-section-item-heading">Creating a Plugin</h4>
+            <p className="sb-section-item-paragraph">Dashboard extensions are housed in Vendure plugins. Find out how
+            to create a plugin in just a few commands</p>
+            <a
+                href="https://docs.vendure.io/guides/extending-the-dashboard/extending-overview/"
+                target="_blank"
+            >Plugin setup guide<RightArrow /></a>
+        </div>
+    </div>
+</div>
+
+<div className="sb-container">
+    <div className='sb-section-title'>
+        ## Component Categories
+
+        Browse components by category to find what you need for your extension.
+    </div>
+
+    <div className="sb-section">
+        <div className="sb-section-item">
+            <h4 className="sb-section-item-heading">Layout</h4>
+            <p className="sb-section-item-paragraph">Components that you use to lay out your page.</p>
+        </div>
+        <div className="sb-section-item">
+            <h4 className="sb-section-item-heading">Framework</h4>
+            <p className="sb-section-item-paragraph">More complex components that often interact with
+                the app context, make data calls, or combine several lower-level components.</p>
+        </div>
+        <div className="sb-section-item">
+            <h4 className="sb-section-item-heading">Form Inputs</h4>
+            <p className="sb-section-item-paragraph">Components used to interact with data via forms.</p>
+        </div>
+        <div className="sb-section-item">
+            <h4 className="sb-section-item-heading">UI</h4>
+            <p className="sb-section-item-paragraph">Low-level components from [shadcn/ui](https://ui.shadcn.com/docs).</p>
+        </div>
+
+    </div>
+</div>
+
+<div className="sb-container">
+    <div className='sb-section-title'>
+        ## Resources and Documentation
+
+        Additional resources for building Vendure Dashboard extensions.
+    </div>
+
+    <div className="sb-section">
+        <div className="sb-section-item">
+            <div>
+                <h4 className="sb-section-item-heading">Vendure Docs</h4>
+                <p>Comprehensive guides and references on every aspect of building with Vendure.</p>
+                <a
+                    href="https://docs.vendure.io/"
+                    target="_blank"
+                >View documentation<RightArrow /></a>
+            </div>
+        </div>
+        <div className="sb-section-item">
+            <div>
+                <h4 className="sb-section-item-heading">Vendure Discord</h4>
+                <p>Get help from the community, ask questions, and share your custom extensions.</p>
+                <a
+                    href="https://vendure.io/community"
+                    target="_blank"
+                >Join the community<RightArrow /></a>
+            </div>
+        </div>
+        <div className="sb-section-item">
+            <div>
+                <h4 className="sb-section-item-heading">GitHub Repository</h4>
+                <p>Explore the source code, report issues, and contribute to Vendure Dashboard development.</p>
+                <a
+                    href="https://github.com/vendurehq/vendure"
+                    target="_blank"
+                >View on GitHub<RightArrow /></a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    {`
+  .sb-container {
+    margin-bottom: 48px;
+  }
+
+          .sb-section {
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+          }
+
+          img {
+            object-fit: cover;
+          }
+
+          .sb-section-title {
+            margin-bottom: 32px;
+          }
+
+          .sb-section a:not(h1 a, h2 a, h3 a) {
+            font-size: 14px;
+          }
+
+          .sb-section-item, .sb-grid-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+          }
+
+          .sb-section-item-heading {
+            padding-top: 20px !important;
+            padding-bottom: 5px !important;
+            margin: 0 !important;
+          }
+          .sb-section-item-paragraph {
+            margin: 0;
+            padding-bottom: 10px;
+          }
+
+          .sb-chevron {
+            margin-left: 5px;
+          }
+
+          .sb-features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-gap: 32px 20px;
+          }
+
+          .sb-socials {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+          }
+
+          .sb-socials p {
+            margin-bottom: 10px;
+          }
+
+          .sb-explore-image {
+            max-height: 32px;
+            align-self: flex-start;
+          }
+
+          .sb-addon {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            position: relative;
+            background-color: #EEF3F8;
+            border-radius: 5px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            background: #EEF3F8;
+            height: 180px;
+            margin-bottom: 48px;
+            overflow: hidden;
+          }
+
+          .sb-addon-text {
+            padding-left: 48px;
+            max-width: 240px;
+          }
+
+          .sb-addon-text h4 {
+            padding-top: 0px;
+          }
+
+          .sb-addon-img {
+            position: absolute;
+            left: 345px;
+            top: 0;
+            height: 100%;
+            width: 200%;
+            overflow: hidden;
+          }
+
+          .sb-addon-img img {
+            width: 650px;
+            transform: rotate(-15deg);
+            margin-left: 40px;
+            margin-top: -72px;
+            box-shadow: 0 0 1px rgba(255, 255, 255, 0);
+            backface-visibility: hidden;
+          }
+
+          @media screen and (max-width: 800px) {
+            .sb-addon-img {
+              left: 300px;
+            }
+          }
+
+          @media screen and (max-width: 600px) {
+            .sb-section {
+              flex-direction: column;
+            }
+
+            .sb-features-grid {
+              grid-template-columns: repeat(1, 1fr);
+            }
+
+            .sb-socials {
+              grid-template-columns: repeat(2, 1fr);
+            }
+
+            .sb-addon {
+              height: 280px;
+              align-items: flex-start;
+              padding-top: 32px;
+              overflow: hidden;
+            }
+
+            .sb-addon-text {
+              padding-left: 24px;
+            }
+
+            .sb-addon-img {
+              right: 0;
+              left: 0;
+              top: 130px;
+              bottom: 0;
+              overflow: hidden;
+              height: auto;
+              width: 124%;
+            }
+
+            .sb-addon-img img {
+              width: 1200px;
+              transform: rotate(-12deg);
+              margin-left: 0;
+              margin-top: 48px;
+              margin-bottom: -40px;
+              margin-left: -24px;
+            }
+          }
+`}
+</style>

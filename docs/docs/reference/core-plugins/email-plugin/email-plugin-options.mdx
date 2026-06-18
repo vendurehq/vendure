@@ -1,0 +1,147 @@
+---
+title: "EmailPluginOptions"
+generated: true
+---
+## EmailPluginOptions
+
+<GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="77" packageName="@vendure/email-plugin" />
+
+Configuration for the EmailPlugin.
+
+```ts title="Signature"
+interface EmailPluginOptions {
+    templatePath?: string;
+    templateLoader?: TemplateLoader;
+    transport:
+        | EmailTransportOptions
+        | ((
+              injector?: Injector,
+              ctx?: RequestContext,
+          ) => EmailTransportOptions | Promise<EmailTransportOptions>);
+    handlers: Array<EmailEventHandler<string, any>>;
+    globalTemplateVars?: { [key: string]: any } | GlobalTemplateVarsFn;
+    emailSender?: EmailSender;
+    emailGenerator?: EmailGenerator;
+}
+```
+
+<div className="members-wrapper">
+
+### templatePath
+
+<MemberInfo kind="property" type={`string`}   />
+
+The path to the location of the email templates. In a default Vendure installation,
+the templates are installed to `<project root>/vendure/email/templates`.
+### templateLoader
+
+<MemberInfo kind="property" type={`<a href='/reference/core-plugins/email-plugin/template-loader#templateloader'>TemplateLoader</a>`}  since="2.0.0"  />
+
+An optional TemplateLoader which can be used to load templates from a custom location or async service.
+The default uses the FileBasedTemplateLoader which loads templates from `<project root>/vendure/email/templates`
+### transport
+
+<MemberInfo kind="property" type={`| <a href='/reference/core-plugins/email-plugin/transport-options#emailtransportoptions'>EmailTransportOptions</a>         | ((               injector?: <a href='/reference/typescript-api/common/injector#injector'>Injector</a>,               ctx?: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>,           ) => <a href='/reference/core-plugins/email-plugin/transport-options#emailtransportoptions'>EmailTransportOptions</a> | Promise<<a href='/reference/core-plugins/email-plugin/transport-options#emailtransportoptions'>EmailTransportOptions</a>>)`}   />
+
+Configures how the emails are sent.
+### handlers
+
+<MemberInfo kind="property" type={`Array<<a href='/reference/core-plugins/email-plugin/email-event-handler#emaileventhandler'>EmailEventHandler</a><string, any>>`}   />
+
+An array of [EmailEventHandler](/reference/core-plugins/email-plugin/email-event-handler#emaileventhandler)s which define which Vendure events will trigger
+emails, and how those emails are generated.
+### globalTemplateVars
+
+<MemberInfo kind="property" type={`{ [key: string]: any } | <a href='/reference/core-plugins/email-plugin/email-plugin-options#globaltemplatevarsfn'>GlobalTemplateVarsFn</a>`}   />
+
+An object containing variables which are made available to all templates. For example,
+the storefront URL could be defined here and then used in the "email address verification"
+email. Use the GlobalTemplateVarsFn if you need to retrieve variables from Vendure or
+plugin services.
+### emailSender
+
+<MemberInfo kind="property" type={`<a href='/reference/core-plugins/email-plugin/email-sender#emailsender'>EmailSender</a>`} default={`<a href='/reference/core-plugins/email-plugin/email-sender#nodemaileremailsender'>NodemailerEmailSender</a>`}   />
+
+An optional allowed EmailSender, used to allow custom implementations of the send functionality
+while still utilizing the existing emailPlugin functionality.
+### emailGenerator
+
+<MemberInfo kind="property" type={`<a href='/reference/core-plugins/email-plugin/email-generator#emailgenerator'>EmailGenerator</a>`} default={`<a href='/reference/core-plugins/email-plugin/email-generator#handlebarsmjmlgenerator'>HandlebarsMjmlGenerator</a>`}   />
+
+An optional allowed EmailGenerator, used to allow custom email generation functionality to
+better match with custom email sending functionality.
+
+
+</div>
+## GlobalTemplateVarsFn
+
+<GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="64" packageName="@vendure/email-plugin" since="2.3.0" />
+
+Allows you to dynamically load the "globalTemplateVars" key async and access Vendure services
+to create the object. This is not a requirement. You can also specify a simple static object if your
+projects doesn't need to access async or dynamic values.
+
+*Example*
+
+```ts
+
+EmailPlugin.init({
+   globalTemplateVars: async (ctx, injector) => {
+         const myAsyncService = injector.get(MyAsyncService);
+         const asyncValue = await myAsyncService.get(ctx);
+         const channel = ctx.channel;
+         const { primaryColor } = channel.customFields.theme;
+         const theme = {
+             primaryColor,
+             asyncValue,
+         };
+         return theme;
+     }
+  [...]
+})
+
+```
+
+```ts title="Signature"
+type GlobalTemplateVarsFn = (
+    ctx: RequestContext,
+    injector: Injector,
+) => Promise<{ [key: string]: any }>
+```
+## EmailPluginDevModeOptions
+
+<GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="150" packageName="@vendure/email-plugin" />
+
+Configuration for running the EmailPlugin in development mode.
+
+```ts title="Signature"
+interface EmailPluginDevModeOptions extends Omit<EmailPluginOptions, 'transport'> {
+    devMode: true;
+    outputPath: string;
+    route: string;
+}
+```
+* Extends: `Omit<`[`EmailPluginOptions`](/reference/core-plugins/email-plugin/email-plugin-options#emailpluginoptions)`, 'transport'>`
+
+
+
+<div className="members-wrapper">
+
+### devMode
+
+<MemberInfo kind="property" type={`true`}   />
+
+
+### outputPath
+
+<MemberInfo kind="property" type={`string`}   />
+
+The path to which html email files will be saved rather than being sent.
+### route
+
+<MemberInfo kind="property" type={`string`}   />
+
+The route to the dev mailbox server.
+
+
+</div>

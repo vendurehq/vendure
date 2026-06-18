@@ -1,0 +1,4058 @@
+---
+title: "Types"
+generated: true
+---
+
+
+
+<a name="activeorderresult"></a>
+
+## ActiveOrderResult
+
+<GraphQLDoc
+  type="union"
+  typeName="ActiveOrderResult"
+  typeLinks={{
+    Order: '/reference/graphql-api/shop/object-types#order',
+    NoActiveOrderError: '/reference/graphql-api/shop/object-types#noactiveordererror',
+  }}
+>
+{`union ActiveOrderResult = Order | NoActiveOrderError`}
+</GraphQLDoc>
+
+<a name="addpaymenttoorderresult"></a>
+
+## AddPaymentToOrderResult
+
+<GraphQLDoc
+  type="union"
+  typeName="AddPaymentToOrderResult"
+  typeLinks={{
+    Order: '/reference/graphql-api/shop/object-types#order',
+    OrderPaymentStateError: '/reference/graphql-api/shop/object-types#orderpaymentstateerror',
+    IneligiblePaymentMethodError: '/reference/graphql-api/shop/object-types#ineligiblepaymentmethoderror',
+    PaymentFailedError: '/reference/graphql-api/shop/object-types#paymentfailederror',
+    PaymentDeclinedError: '/reference/graphql-api/shop/object-types#paymentdeclinederror',
+    OrderStateTransitionError: '/reference/graphql-api/shop/object-types#orderstatetransitionerror',
+    NoActiveOrderError: '/reference/graphql-api/shop/object-types#noactiveordererror',
+  }}
+>
+{`union AddPaymentToOrderResult = Order | OrderPaymentStateError | IneligiblePaymentMethodError | PaymentFailedError | PaymentDeclinedError | OrderStateTransitionError | NoActiveOrderError`}
+</GraphQLDoc>
+
+<a name="address"></a>
+
+## Address
+
+<GraphQLDoc
+  type="type"
+  typeName="Address"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    String: '/reference/graphql-api/shop/object-types#string',
+    Country: '/reference/graphql-api/shop/object-types#country',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type Address {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  fullName: String
+  company: String
+  streetLine1: String!
+  streetLine2: String
+  city: String
+  province: String
+  postalCode: String
+  country: Country!
+  phoneNumber: String
+  defaultShippingAddress: Boolean
+  defaultBillingAddress: Boolean
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="adjustment"></a>
+
+## Adjustment
+
+<GraphQLDoc
+  type="type"
+  typeName="Adjustment"
+  typeLinks={{
+    String: '/reference/graphql-api/shop/object-types#string',
+    AdjustmentType: '/reference/graphql-api/shop/enums#adjustmenttype',
+    Money: '/reference/graphql-api/shop/object-types#money',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type Adjustment {
+  adjustmentSource: String!
+  type: AdjustmentType!
+  description: String!
+  amount: Money!
+  data: JSON
+}`}
+</GraphQLDoc>
+
+<a name="alreadyloggedinerror"></a>
+
+## AlreadyLoggedInError
+
+<GraphQLDoc
+  type="type"
+  typeName="AlreadyLoggedInError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""Returned when attempting to set the Customer for an Order when already logged in."""
+type AlreadyLoggedInError {
+  errorCode: ErrorCode!
+  message: String!
+}`}
+</GraphQLDoc>
+
+<a name="applycouponcoderesult"></a>
+
+## ApplyCouponCodeResult
+
+<GraphQLDoc
+  type="union"
+  typeName="ApplyCouponCodeResult"
+  typeLinks={{
+    Order: '/reference/graphql-api/shop/object-types#order',
+    CouponCodeExpiredError: '/reference/graphql-api/shop/object-types#couponcodeexpirederror',
+    CouponCodeInvalidError: '/reference/graphql-api/shop/object-types#couponcodeinvaliderror',
+    CouponCodeLimitError: '/reference/graphql-api/shop/object-types#couponcodelimiterror',
+  }}
+>
+{`union ApplyCouponCodeResult = Order | CouponCodeExpiredError | CouponCodeInvalidError | CouponCodeLimitError`}
+</GraphQLDoc>
+
+<a name="asset"></a>
+
+## Asset
+
+<GraphQLDoc
+  type="type"
+  typeName="Asset"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    LanguageCode: '/reference/graphql-api/shop/enums#languagecode',
+    String: '/reference/graphql-api/shop/object-types#string',
+    AssetType: '/reference/graphql-api/shop/enums#assettype',
+    Int: '/reference/graphql-api/shop/object-types#int',
+    Coordinate: '/reference/graphql-api/shop/object-types#coordinate',
+    Tag: '/reference/graphql-api/shop/object-types#tag',
+    AssetTranslation: '/reference/graphql-api/shop/object-types#assettranslation',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type Asset {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  languageCode: LanguageCode!
+  name: String!
+  type: AssetType!
+  fileSize: Int!
+  mimeType: String!
+  width: Int!
+  height: Int!
+  source: String!
+  preview: String!
+  focalPoint: Coordinate
+  tags: [Tag!]!
+  translations: [AssetTranslation!]!
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="assetlist"></a>
+
+## AssetList
+
+<GraphQLDoc
+  type="type"
+  typeName="AssetList"
+  typeLinks={{
+    Asset: '/reference/graphql-api/shop/object-types#asset',
+    Int: '/reference/graphql-api/shop/object-types#int',
+  }}
+>
+{`type AssetList {
+  items: [Asset!]!
+  totalItems: Int!
+}`}
+</GraphQLDoc>
+
+<a name="assettranslation"></a>
+
+## AssetTranslation
+
+<GraphQLDoc
+  type="type"
+  typeName="AssetTranslation"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    LanguageCode: '/reference/graphql-api/shop/enums#languagecode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`type AssetTranslation {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  languageCode: LanguageCode!
+  name: String!
+}`}
+</GraphQLDoc>
+
+<a name="authenticationmethod"></a>
+
+## AuthenticationMethod
+
+<GraphQLDoc
+  type="type"
+  typeName="AuthenticationMethod"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`type AuthenticationMethod {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  strategy: String!
+}`}
+</GraphQLDoc>
+
+<a name="authenticationresult"></a>
+
+## AuthenticationResult
+
+<GraphQLDoc
+  type="union"
+  typeName="AuthenticationResult"
+  typeLinks={{
+    CurrentUser: '/reference/graphql-api/shop/object-types#currentuser',
+    InvalidCredentialsError: '/reference/graphql-api/shop/object-types#invalidcredentialserror',
+    NotVerifiedError: '/reference/graphql-api/shop/object-types#notverifiederror',
+  }}
+>
+{`union AuthenticationResult = CurrentUser | InvalidCredentialsError | NotVerifiedError`}
+</GraphQLDoc>
+
+<a name="boolean"></a>
+
+## Boolean
+
+<GraphQLDoc
+  type="scalar"
+  typeName="Boolean"
+  typeLinks={{}}
+>
+{`"""The \`Boolean\` scalar type represents \`true\` or \`false\`."""
+scalar Boolean`}
+</GraphQLDoc>
+
+<a name="booleancustomfieldconfig"></a>
+
+## BooleanCustomFieldConfig
+
+<GraphQLDoc
+  type="type"
+  typeName="BooleanCustomFieldConfig"
+  typeLinks={{
+    String: '/reference/graphql-api/shop/object-types#string',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+    LocalizedString: '/reference/graphql-api/shop/object-types#localizedstring',
+    Permission: '/reference/graphql-api/shop/enums#permission',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type BooleanCustomFieldConfig {
+  name: String!
+  type: String!
+  list: Boolean!
+  label: [LocalizedString!]
+  description: [LocalizedString!]
+  readonly: Boolean
+  internal: Boolean
+  nullable: Boolean
+  requiresPermission: [Permission!]
+  deprecated: Boolean
+  deprecationReason: String
+  ui: JSON
+}`}
+</GraphQLDoc>
+
+<a name="booleanstructfieldconfig"></a>
+
+## BooleanStructFieldConfig
+
+<GraphQLDoc
+  type="type"
+  typeName="BooleanStructFieldConfig"
+  typeLinks={{
+    String: '/reference/graphql-api/shop/object-types#string',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+    LocalizedString: '/reference/graphql-api/shop/object-types#localizedstring',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type BooleanStructFieldConfig {
+  name: String!
+  type: String!
+  list: Boolean!
+  label: [LocalizedString!]
+  description: [LocalizedString!]
+  ui: JSON
+}`}
+</GraphQLDoc>
+
+<a name="channel"></a>
+
+## Channel
+
+<GraphQLDoc
+  type="type"
+  typeName="Channel"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    String: '/reference/graphql-api/shop/object-types#string',
+    Zone: '/reference/graphql-api/shop/object-types#zone',
+    LanguageCode: '/reference/graphql-api/shop/enums#languagecode',
+    CurrencyCode: '/reference/graphql-api/shop/enums#currencycode',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+    Int: '/reference/graphql-api/shop/object-types#int',
+    Seller: '/reference/graphql-api/shop/object-types#seller',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type Channel {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  code: String!
+  token: String!
+  defaultTaxZone: Zone
+  defaultShippingZone: Zone
+  defaultLanguageCode: LanguageCode!
+  availableLanguageCodes: [LanguageCode!]
+  currencyCode: CurrencyCode!
+  defaultCurrencyCode: CurrencyCode!
+  availableCurrencyCodes: [CurrencyCode!]!
+  """Not yet used - will be implemented in a future release."""
+  trackInventory: Boolean
+  """Not yet used - will be implemented in a future release."""
+  outOfStockThreshold: Int
+  pricesIncludeTax: Boolean!
+  seller: Seller
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="collection"></a>
+
+## Collection
+
+<GraphQLDoc
+  type="type"
+  typeName="Collection"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    LanguageCode: '/reference/graphql-api/shop/enums#languagecode',
+    String: '/reference/graphql-api/shop/object-types#string',
+    CollectionBreadcrumb: '/reference/graphql-api/shop/object-types#collectionbreadcrumb',
+    Int: '/reference/graphql-api/shop/object-types#int',
+    Asset: '/reference/graphql-api/shop/object-types#asset',
+    Collection: '/reference/graphql-api/shop/object-types#collection',
+    ConfigurableOperation: '/reference/graphql-api/shop/object-types#configurableoperation',
+    CollectionTranslation: '/reference/graphql-api/shop/object-types#collectiontranslation',
+    ProductVariantList: '/reference/graphql-api/shop/object-types#productvariantlist',
+    ProductVariantListOptions: '/reference/graphql-api/shop/input-types#productvariantlistoptions',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type Collection {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  languageCode: LanguageCode
+  name: String!
+  slug: String!
+  breadcrumbs: [CollectionBreadcrumb!]!
+  position: Int!
+  description: String!
+  featuredAsset: Asset
+  assets: [Asset!]!
+  parent: Collection
+  parentId: ID!
+  children: [Collection!]
+  filters: [ConfigurableOperation!]!
+  translations: [CollectionTranslation!]!
+  productVariants(options: ProductVariantListOptions): ProductVariantList!
+  productVariantCount: Int!
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="collectionbreadcrumb"></a>
+
+## CollectionBreadcrumb
+
+<GraphQLDoc
+  type="type"
+  typeName="CollectionBreadcrumb"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`type CollectionBreadcrumb {
+  id: ID!
+  name: String!
+  slug: String!
+}`}
+</GraphQLDoc>
+
+<a name="collectionlist"></a>
+
+## CollectionList
+
+<GraphQLDoc
+  type="type"
+  typeName="CollectionList"
+  typeLinks={{
+    Collection: '/reference/graphql-api/shop/object-types#collection',
+    Int: '/reference/graphql-api/shop/object-types#int',
+  }}
+>
+{`type CollectionList {
+  items: [Collection!]!
+  totalItems: Int!
+}`}
+</GraphQLDoc>
+
+<a name="collectionresult"></a>
+
+## CollectionResult
+
+<GraphQLDoc
+  type="type"
+  typeName="CollectionResult"
+  typeLinks={{
+    Collection: '/reference/graphql-api/shop/object-types#collection',
+    Int: '/reference/graphql-api/shop/object-types#int',
+  }}
+>
+{`"""
+Which Collections are present in the products returned
+by the search, and in what quantity.
+"""
+type CollectionResult {
+  collection: Collection!
+  count: Int!
+}`}
+</GraphQLDoc>
+
+<a name="collectiontranslation"></a>
+
+## CollectionTranslation
+
+<GraphQLDoc
+  type="type"
+  typeName="CollectionTranslation"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    LanguageCode: '/reference/graphql-api/shop/enums#languagecode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`type CollectionTranslation {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  languageCode: LanguageCode!
+  name: String!
+  slug: String!
+  description: String!
+}`}
+</GraphQLDoc>
+
+<a name="configarg"></a>
+
+## ConfigArg
+
+<GraphQLDoc
+  type="type"
+  typeName="ConfigArg"
+  typeLinks={{
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`type ConfigArg {
+  name: String!
+  value: String!
+}`}
+</GraphQLDoc>
+
+<a name="configargdefinition"></a>
+
+## ConfigArgDefinition
+
+<GraphQLDoc
+  type="type"
+  typeName="ConfigArgDefinition"
+  typeLinks={{
+    String: '/reference/graphql-api/shop/object-types#string',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type ConfigArgDefinition {
+  name: String!
+  type: String!
+  list: Boolean!
+  required: Boolean!
+  defaultValue: JSON
+  label: String
+  description: String
+  ui: JSON
+}`}
+</GraphQLDoc>
+
+<a name="configurableoperation"></a>
+
+## ConfigurableOperation
+
+<GraphQLDoc
+  type="type"
+  typeName="ConfigurableOperation"
+  typeLinks={{
+    String: '/reference/graphql-api/shop/object-types#string',
+    ConfigArg: '/reference/graphql-api/shop/object-types#configarg',
+  }}
+>
+{`type ConfigurableOperation {
+  code: String!
+  args: [ConfigArg!]!
+}`}
+</GraphQLDoc>
+
+<a name="configurableoperationdefinition"></a>
+
+## ConfigurableOperationDefinition
+
+<GraphQLDoc
+  type="type"
+  typeName="ConfigurableOperationDefinition"
+  typeLinks={{
+    String: '/reference/graphql-api/shop/object-types#string',
+    ConfigArgDefinition: '/reference/graphql-api/shop/object-types#configargdefinition',
+  }}
+>
+{`type ConfigurableOperationDefinition {
+  code: String!
+  args: [ConfigArgDefinition!]!
+  description: String!
+}`}
+</GraphQLDoc>
+
+<a name="coordinate"></a>
+
+## Coordinate
+
+<GraphQLDoc
+  type="type"
+  typeName="Coordinate"
+  typeLinks={{
+    Float: '/reference/graphql-api/shop/object-types#float',
+  }}
+>
+{`type Coordinate {
+  x: Float!
+  y: Float!
+}`}
+</GraphQLDoc>
+
+<a name="country"></a>
+
+## Country
+
+<GraphQLDoc
+  type="type"
+  typeName="Country"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    LanguageCode: '/reference/graphql-api/shop/enums#languagecode',
+    String: '/reference/graphql-api/shop/object-types#string',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+    Region: '/reference/graphql-api/shop/object-types#region',
+    RegionTranslation: '/reference/graphql-api/shop/object-types#regiontranslation',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`"""
+A Country of the world which your shop operates in.
+
+The \`code\` field is typically a 2-character ISO code such as "GB", "US", "DE" etc. This code is used in certain inputs such as
+\`UpdateAddressInput\` and \`CreateAddressInput\` to specify the country.
+"""
+type Country {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  languageCode: LanguageCode!
+  code: String!
+  type: String!
+  name: String!
+  enabled: Boolean!
+  parent: Region
+  parentId: ID
+  translations: [RegionTranslation!]!
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="countrylist"></a>
+
+## CountryList
+
+<GraphQLDoc
+  type="type"
+  typeName="CountryList"
+  typeLinks={{
+    Country: '/reference/graphql-api/shop/object-types#country',
+    Int: '/reference/graphql-api/shop/object-types#int',
+  }}
+>
+{`type CountryList {
+  items: [Country!]!
+  totalItems: Int!
+}`}
+</GraphQLDoc>
+
+<a name="couponcodeexpirederror"></a>
+
+## CouponCodeExpiredError
+
+<GraphQLDoc
+  type="type"
+  typeName="CouponCodeExpiredError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""Returned if the provided coupon code is invalid"""
+type CouponCodeExpiredError {
+  errorCode: ErrorCode!
+  message: String!
+  couponCode: String!
+}`}
+</GraphQLDoc>
+
+<a name="couponcodeinvaliderror"></a>
+
+## CouponCodeInvalidError
+
+<GraphQLDoc
+  type="type"
+  typeName="CouponCodeInvalidError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""Returned if the provided coupon code is invalid"""
+type CouponCodeInvalidError {
+  errorCode: ErrorCode!
+  message: String!
+  couponCode: String!
+}`}
+</GraphQLDoc>
+
+<a name="couponcodelimiterror"></a>
+
+## CouponCodeLimitError
+
+<GraphQLDoc
+  type="type"
+  typeName="CouponCodeLimitError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+    Int: '/reference/graphql-api/shop/object-types#int',
+  }}
+>
+{`"""Returned if the provided coupon code is invalid"""
+type CouponCodeLimitError {
+  errorCode: ErrorCode!
+  message: String!
+  couponCode: String!
+  limit: Int!
+}`}
+</GraphQLDoc>
+
+<a name="currentuser"></a>
+
+## CurrentUser
+
+<GraphQLDoc
+  type="type"
+  typeName="CurrentUser"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    String: '/reference/graphql-api/shop/object-types#string',
+    CurrentUserChannel: '/reference/graphql-api/shop/object-types#currentuserchannel',
+  }}
+>
+{`type CurrentUser {
+  id: ID!
+  identifier: String!
+  channels: [CurrentUserChannel!]!
+}`}
+</GraphQLDoc>
+
+<a name="currentuserchannel"></a>
+
+## CurrentUserChannel
+
+<GraphQLDoc
+  type="type"
+  typeName="CurrentUserChannel"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    String: '/reference/graphql-api/shop/object-types#string',
+    Permission: '/reference/graphql-api/shop/enums#permission',
+  }}
+>
+{`type CurrentUserChannel {
+  id: ID!
+  token: String!
+  code: String!
+  permissions: [Permission!]!
+}`}
+</GraphQLDoc>
+
+<a name="customfieldconfig"></a>
+
+## CustomFieldConfig
+
+<GraphQLDoc
+  type="union"
+  typeName="CustomFieldConfig"
+  typeLinks={{
+    StringCustomFieldConfig: '/reference/graphql-api/shop/object-types#stringcustomfieldconfig',
+    LocaleStringCustomFieldConfig: '/reference/graphql-api/shop/object-types#localestringcustomfieldconfig',
+    IntCustomFieldConfig: '/reference/graphql-api/shop/object-types#intcustomfieldconfig',
+    FloatCustomFieldConfig: '/reference/graphql-api/shop/object-types#floatcustomfieldconfig',
+    BooleanCustomFieldConfig: '/reference/graphql-api/shop/object-types#booleancustomfieldconfig',
+    DateTimeCustomFieldConfig: '/reference/graphql-api/shop/object-types#datetimecustomfieldconfig',
+    RelationCustomFieldConfig: '/reference/graphql-api/shop/object-types#relationcustomfieldconfig',
+    TextCustomFieldConfig: '/reference/graphql-api/shop/object-types#textcustomfieldconfig',
+    LocaleTextCustomFieldConfig: '/reference/graphql-api/shop/object-types#localetextcustomfieldconfig',
+    StructCustomFieldConfig: '/reference/graphql-api/shop/object-types#structcustomfieldconfig',
+  }}
+>
+{`union CustomFieldConfig = StringCustomFieldConfig | LocaleStringCustomFieldConfig | IntCustomFieldConfig | FloatCustomFieldConfig | BooleanCustomFieldConfig | DateTimeCustomFieldConfig | RelationCustomFieldConfig | TextCustomFieldConfig | LocaleTextCustomFieldConfig | StructCustomFieldConfig`}
+</GraphQLDoc>
+
+<a name="customer"></a>
+
+## Customer
+
+<GraphQLDoc
+  type="type"
+  typeName="Customer"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    String: '/reference/graphql-api/shop/object-types#string',
+    Address: '/reference/graphql-api/shop/object-types#address',
+    OrderList: '/reference/graphql-api/shop/object-types#orderlist',
+    OrderListOptions: '/reference/graphql-api/shop/input-types#orderlistoptions',
+    User: '/reference/graphql-api/shop/object-types#user',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type Customer {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  title: String
+  firstName: String!
+  lastName: String!
+  phoneNumber: String
+  emailAddress: String!
+  addresses: [Address!]
+  orders(options: OrderListOptions): OrderList!
+  user: User
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="customergroup"></a>
+
+## CustomerGroup
+
+<GraphQLDoc
+  type="type"
+  typeName="CustomerGroup"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    String: '/reference/graphql-api/shop/object-types#string',
+    CustomerList: '/reference/graphql-api/shop/object-types#customerlist',
+    CustomerListOptions: '/reference/graphql-api/shop/input-types#customerlistoptions',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type CustomerGroup {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  name: String!
+  customers(options: CustomerListOptions): CustomerList!
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="customerlist"></a>
+
+## CustomerList
+
+<GraphQLDoc
+  type="type"
+  typeName="CustomerList"
+  typeLinks={{
+    Customer: '/reference/graphql-api/shop/object-types#customer',
+    Int: '/reference/graphql-api/shop/object-types#int',
+  }}
+>
+{`type CustomerList {
+  items: [Customer!]!
+  totalItems: Int!
+}`}
+</GraphQLDoc>
+
+<a name="datetime"></a>
+
+## DateTime
+
+<GraphQLDoc
+  type="scalar"
+  typeName="DateTime"
+  typeLinks={{}}
+>
+{`scalar DateTime`}
+</GraphQLDoc>
+
+<a name="datetimecustomfieldconfig"></a>
+
+## DateTimeCustomFieldConfig
+
+<GraphQLDoc
+  type="type"
+  typeName="DateTimeCustomFieldConfig"
+  typeLinks={{
+    String: '/reference/graphql-api/shop/object-types#string',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+    LocalizedString: '/reference/graphql-api/shop/object-types#localizedstring',
+    Permission: '/reference/graphql-api/shop/enums#permission',
+    Int: '/reference/graphql-api/shop/object-types#int',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`"""
+Expects the same validation formats as the \`<input type="datetime-local">\` HTML element.
+See https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/datetime-local#Additional_attributes
+"""
+type DateTimeCustomFieldConfig {
+  name: String!
+  type: String!
+  list: Boolean!
+  label: [LocalizedString!]
+  description: [LocalizedString!]
+  readonly: Boolean
+  internal: Boolean
+  nullable: Boolean
+  requiresPermission: [Permission!]
+  deprecated: Boolean
+  deprecationReason: String
+  min: String
+  max: String
+  step: Int
+  ui: JSON
+}`}
+</GraphQLDoc>
+
+<a name="datetimestructfieldconfig"></a>
+
+## DateTimeStructFieldConfig
+
+<GraphQLDoc
+  type="type"
+  typeName="DateTimeStructFieldConfig"
+  typeLinks={{
+    String: '/reference/graphql-api/shop/object-types#string',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+    LocalizedString: '/reference/graphql-api/shop/object-types#localizedstring',
+    Int: '/reference/graphql-api/shop/object-types#int',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`"""
+Expects the same validation formats as the \`<input type="datetime-local">\` HTML element.
+See https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/datetime-local#Additional_attributes
+"""
+type DateTimeStructFieldConfig {
+  name: String!
+  type: String!
+  list: Boolean!
+  label: [LocalizedString!]
+  description: [LocalizedString!]
+  min: String
+  max: String
+  step: Int
+  ui: JSON
+}`}
+</GraphQLDoc>
+
+<a name="deletionresponse"></a>
+
+## DeletionResponse
+
+<GraphQLDoc
+  type="type"
+  typeName="DeletionResponse"
+  typeLinks={{
+    DeletionResult: '/reference/graphql-api/shop/enums#deletionresult',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`type DeletionResponse {
+  result: DeletionResult!
+  message: String
+}`}
+</GraphQLDoc>
+
+<a name="discount"></a>
+
+## Discount
+
+<GraphQLDoc
+  type="type"
+  typeName="Discount"
+  typeLinks={{
+    String: '/reference/graphql-api/shop/object-types#string',
+    AdjustmentType: '/reference/graphql-api/shop/enums#adjustmenttype',
+    Money: '/reference/graphql-api/shop/object-types#money',
+  }}
+>
+{`type Discount {
+  adjustmentSource: String!
+  type: AdjustmentType!
+  description: String!
+  amount: Money!
+  amountWithTax: Money!
+}`}
+</GraphQLDoc>
+
+<a name="emailaddressconflicterror"></a>
+
+## EmailAddressConflictError
+
+<GraphQLDoc
+  type="type"
+  typeName="EmailAddressConflictError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""Returned when attempting to create a Customer with an email address already registered to an existing User."""
+type EmailAddressConflictError {
+  errorCode: ErrorCode!
+  message: String!
+}`}
+</GraphQLDoc>
+
+<a name="facet"></a>
+
+## Facet
+
+<GraphQLDoc
+  type="type"
+  typeName="Facet"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    LanguageCode: '/reference/graphql-api/shop/enums#languagecode',
+    String: '/reference/graphql-api/shop/object-types#string',
+    FacetValue: '/reference/graphql-api/shop/object-types#facetvalue',
+    FacetValueList: '/reference/graphql-api/shop/object-types#facetvaluelist',
+    FacetValueListOptions: '/reference/graphql-api/shop/input-types#facetvaluelistoptions',
+    FacetTranslation: '/reference/graphql-api/shop/object-types#facettranslation',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type Facet {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  languageCode: LanguageCode!
+  name: String!
+  code: String!
+  values: [FacetValue!]!
+  """Returns a paginated, sortable, filterable list of the Facet's values. Added in v2.1.0."""
+  valueList(options: FacetValueListOptions): FacetValueList!
+  translations: [FacetTranslation!]!
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="facetlist"></a>
+
+## FacetList
+
+<GraphQLDoc
+  type="type"
+  typeName="FacetList"
+  typeLinks={{
+    Facet: '/reference/graphql-api/shop/object-types#facet',
+    Int: '/reference/graphql-api/shop/object-types#int',
+  }}
+>
+{`type FacetList {
+  items: [Facet!]!
+  totalItems: Int!
+}`}
+</GraphQLDoc>
+
+<a name="facettranslation"></a>
+
+## FacetTranslation
+
+<GraphQLDoc
+  type="type"
+  typeName="FacetTranslation"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    LanguageCode: '/reference/graphql-api/shop/enums#languagecode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`type FacetTranslation {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  languageCode: LanguageCode!
+  name: String!
+}`}
+</GraphQLDoc>
+
+<a name="facetvalue"></a>
+
+## FacetValue
+
+<GraphQLDoc
+  type="type"
+  typeName="FacetValue"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    LanguageCode: '/reference/graphql-api/shop/enums#languagecode',
+    Facet: '/reference/graphql-api/shop/object-types#facet',
+    String: '/reference/graphql-api/shop/object-types#string',
+    FacetValueTranslation: '/reference/graphql-api/shop/object-types#facetvaluetranslation',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type FacetValue {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  languageCode: LanguageCode!
+  facet: Facet!
+  facetId: ID!
+  name: String!
+  code: String!
+  translations: [FacetValueTranslation!]!
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="facetvaluelist"></a>
+
+## FacetValueList
+
+<GraphQLDoc
+  type="type"
+  typeName="FacetValueList"
+  typeLinks={{
+    FacetValue: '/reference/graphql-api/shop/object-types#facetvalue',
+    Int: '/reference/graphql-api/shop/object-types#int',
+  }}
+>
+{`type FacetValueList {
+  items: [FacetValue!]!
+  totalItems: Int!
+}`}
+</GraphQLDoc>
+
+<a name="facetvalueresult"></a>
+
+## FacetValueResult
+
+<GraphQLDoc
+  type="type"
+  typeName="FacetValueResult"
+  typeLinks={{
+    FacetValue: '/reference/graphql-api/shop/object-types#facetvalue',
+    Int: '/reference/graphql-api/shop/object-types#int',
+  }}
+>
+{`"""
+Which FacetValues are present in the products returned
+by the search, and in what quantity.
+"""
+type FacetValueResult {
+  facetValue: FacetValue!
+  count: Int!
+}`}
+</GraphQLDoc>
+
+<a name="facetvaluetranslation"></a>
+
+## FacetValueTranslation
+
+<GraphQLDoc
+  type="type"
+  typeName="FacetValueTranslation"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    LanguageCode: '/reference/graphql-api/shop/enums#languagecode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`type FacetValueTranslation {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  languageCode: LanguageCode!
+  name: String!
+}`}
+</GraphQLDoc>
+
+<a name="float"></a>
+
+## Float
+
+<GraphQLDoc
+  type="scalar"
+  typeName="Float"
+  typeLinks={{}}
+>
+{`"""The \`Float\` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point)."""
+scalar Float`}
+</GraphQLDoc>
+
+<a name="floatcustomfieldconfig"></a>
+
+## FloatCustomFieldConfig
+
+<GraphQLDoc
+  type="type"
+  typeName="FloatCustomFieldConfig"
+  typeLinks={{
+    String: '/reference/graphql-api/shop/object-types#string',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+    LocalizedString: '/reference/graphql-api/shop/object-types#localizedstring',
+    Permission: '/reference/graphql-api/shop/enums#permission',
+    Float: '/reference/graphql-api/shop/object-types#float',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type FloatCustomFieldConfig {
+  name: String!
+  type: String!
+  list: Boolean!
+  label: [LocalizedString!]
+  description: [LocalizedString!]
+  readonly: Boolean
+  internal: Boolean
+  nullable: Boolean
+  requiresPermission: [Permission!]
+  deprecated: Boolean
+  deprecationReason: String
+  min: Float
+  max: Float
+  step: Float
+  ui: JSON
+}`}
+</GraphQLDoc>
+
+<a name="floatstructfieldconfig"></a>
+
+## FloatStructFieldConfig
+
+<GraphQLDoc
+  type="type"
+  typeName="FloatStructFieldConfig"
+  typeLinks={{
+    String: '/reference/graphql-api/shop/object-types#string',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+    LocalizedString: '/reference/graphql-api/shop/object-types#localizedstring',
+    Float: '/reference/graphql-api/shop/object-types#float',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type FloatStructFieldConfig {
+  name: String!
+  type: String!
+  list: Boolean!
+  label: [LocalizedString!]
+  description: [LocalizedString!]
+  min: Float
+  max: Float
+  step: Float
+  ui: JSON
+}`}
+</GraphQLDoc>
+
+<a name="fulfillment"></a>
+
+## Fulfillment
+
+<GraphQLDoc
+  type="type"
+  typeName="Fulfillment"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    FulfillmentLine: '/reference/graphql-api/shop/object-types#fulfillmentline',
+    String: '/reference/graphql-api/shop/object-types#string',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type Fulfillment {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  lines: [FulfillmentLine!]!
+  summary: [FulfillmentLine!]!
+  state: String!
+  method: String!
+  trackingCode: String
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="fulfillmentline"></a>
+
+## FulfillmentLine
+
+<GraphQLDoc
+  type="type"
+  typeName="FulfillmentLine"
+  typeLinks={{
+    OrderLine: '/reference/graphql-api/shop/object-types#orderline',
+    ID: '/reference/graphql-api/shop/object-types#id',
+    Int: '/reference/graphql-api/shop/object-types#int',
+    Fulfillment: '/reference/graphql-api/shop/object-types#fulfillment',
+  }}
+>
+{`type FulfillmentLine {
+  orderLine: OrderLine!
+  orderLineId: ID!
+  quantity: Int!
+  fulfillment: Fulfillment!
+  fulfillmentId: ID!
+}`}
+</GraphQLDoc>
+
+<a name="guestcheckouterror"></a>
+
+## GuestCheckoutError
+
+<GraphQLDoc
+  type="type"
+  typeName="GuestCheckoutError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""Returned when attempting to set the Customer on a guest checkout when the configured GuestCheckoutStrategy does not allow it."""
+type GuestCheckoutError {
+  errorCode: ErrorCode!
+  message: String!
+  errorDetail: String!
+}`}
+</GraphQLDoc>
+
+<a name="historyentry"></a>
+
+## HistoryEntry
+
+<GraphQLDoc
+  type="type"
+  typeName="HistoryEntry"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    HistoryEntryType: '/reference/graphql-api/shop/enums#historyentrytype',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type HistoryEntry {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  type: HistoryEntryType!
+  data: JSON!
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="historyentrylist"></a>
+
+## HistoryEntryList
+
+<GraphQLDoc
+  type="type"
+  typeName="HistoryEntryList"
+  typeLinks={{
+    HistoryEntry: '/reference/graphql-api/shop/object-types#historyentry',
+    Int: '/reference/graphql-api/shop/object-types#int',
+  }}
+>
+{`type HistoryEntryList {
+  items: [HistoryEntry!]!
+  totalItems: Int!
+}`}
+</GraphQLDoc>
+
+<a name="id"></a>
+
+## ID
+
+<GraphQLDoc
+  type="scalar"
+  typeName="ID"
+  typeLinks={{}}
+>
+{`"""The \`ID\` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as \`"4"\`) or integer (such as \`4\`) input value will be accepted as an ID."""
+scalar ID`}
+</GraphQLDoc>
+
+<a name="identifierchangetokenexpirederror"></a>
+
+## IdentifierChangeTokenExpiredError
+
+<GraphQLDoc
+  type="type"
+  typeName="IdentifierChangeTokenExpiredError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""
+Returned if the token used to change a Customer's email address is valid, but has
+expired according to the \`verificationTokenDuration\` setting in the AuthOptions.
+"""
+type IdentifierChangeTokenExpiredError {
+  errorCode: ErrorCode!
+  message: String!
+}`}
+</GraphQLDoc>
+
+<a name="identifierchangetokeninvaliderror"></a>
+
+## IdentifierChangeTokenInvalidError
+
+<GraphQLDoc
+  type="type"
+  typeName="IdentifierChangeTokenInvalidError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""
+Returned if the token used to change a Customer's email address is either
+invalid or does not match any expected tokens.
+"""
+type IdentifierChangeTokenInvalidError {
+  errorCode: ErrorCode!
+  message: String!
+}`}
+</GraphQLDoc>
+
+<a name="ineligiblepaymentmethoderror"></a>
+
+## IneligiblePaymentMethodError
+
+<GraphQLDoc
+  type="type"
+  typeName="IneligiblePaymentMethodError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""Returned when attempting to add a Payment using a PaymentMethod for which the Order is not eligible."""
+type IneligiblePaymentMethodError {
+  errorCode: ErrorCode!
+  message: String!
+  eligibilityCheckerMessage: String
+}`}
+</GraphQLDoc>
+
+<a name="ineligibleshippingmethoderror"></a>
+
+## IneligibleShippingMethodError
+
+<GraphQLDoc
+  type="type"
+  typeName="IneligibleShippingMethodError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""Returned when attempting to set a ShippingMethod for which the Order is not eligible"""
+type IneligibleShippingMethodError {
+  errorCode: ErrorCode!
+  message: String!
+}`}
+</GraphQLDoc>
+
+<a name="insufficientstockerror"></a>
+
+## InsufficientStockError
+
+<GraphQLDoc
+  type="type"
+  typeName="InsufficientStockError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+    Int: '/reference/graphql-api/shop/object-types#int',
+    Order: '/reference/graphql-api/shop/object-types#order',
+  }}
+>
+{`"""Returned when attempting to add more items to the Order than are available"""
+type InsufficientStockError {
+  errorCode: ErrorCode!
+  message: String!
+  quantityAvailable: Int!
+  order: Order!
+}`}
+</GraphQLDoc>
+
+<a name="int"></a>
+
+## Int
+
+<GraphQLDoc
+  type="scalar"
+  typeName="Int"
+  typeLinks={{}}
+>
+{`"""The \`Int\` scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1."""
+scalar Int`}
+</GraphQLDoc>
+
+<a name="intcustomfieldconfig"></a>
+
+## IntCustomFieldConfig
+
+<GraphQLDoc
+  type="type"
+  typeName="IntCustomFieldConfig"
+  typeLinks={{
+    String: '/reference/graphql-api/shop/object-types#string',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+    LocalizedString: '/reference/graphql-api/shop/object-types#localizedstring',
+    Permission: '/reference/graphql-api/shop/enums#permission',
+    Int: '/reference/graphql-api/shop/object-types#int',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type IntCustomFieldConfig {
+  name: String!
+  type: String!
+  list: Boolean!
+  label: [LocalizedString!]
+  description: [LocalizedString!]
+  readonly: Boolean
+  internal: Boolean
+  nullable: Boolean
+  requiresPermission: [Permission!]
+  deprecated: Boolean
+  deprecationReason: String
+  min: Int
+  max: Int
+  step: Int
+  ui: JSON
+}`}
+</GraphQLDoc>
+
+<a name="intstructfieldconfig"></a>
+
+## IntStructFieldConfig
+
+<GraphQLDoc
+  type="type"
+  typeName="IntStructFieldConfig"
+  typeLinks={{
+    String: '/reference/graphql-api/shop/object-types#string',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+    LocalizedString: '/reference/graphql-api/shop/object-types#localizedstring',
+    Int: '/reference/graphql-api/shop/object-types#int',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type IntStructFieldConfig {
+  name: String!
+  type: String!
+  list: Boolean!
+  label: [LocalizedString!]
+  description: [LocalizedString!]
+  min: Int
+  max: Int
+  step: Int
+  ui: JSON
+}`}
+</GraphQLDoc>
+
+<a name="invalidcredentialserror"></a>
+
+## InvalidCredentialsError
+
+<GraphQLDoc
+  type="type"
+  typeName="InvalidCredentialsError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""Returned if the user authentication credentials are not valid"""
+type InvalidCredentialsError {
+  errorCode: ErrorCode!
+  message: String!
+  authenticationError: String!
+}`}
+</GraphQLDoc>
+
+<a name="json"></a>
+
+## JSON
+
+<GraphQLDoc
+  type="scalar"
+  typeName="JSON"
+  typeLinks={{}}
+>
+{`scalar JSON`}
+</GraphQLDoc>
+
+<a name="localestringcustomfieldconfig"></a>
+
+## LocaleStringCustomFieldConfig
+
+<GraphQLDoc
+  type="type"
+  typeName="LocaleStringCustomFieldConfig"
+  typeLinks={{
+    String: '/reference/graphql-api/shop/object-types#string',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+    Int: '/reference/graphql-api/shop/object-types#int',
+    LocalizedString: '/reference/graphql-api/shop/object-types#localizedstring',
+    Permission: '/reference/graphql-api/shop/enums#permission',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type LocaleStringCustomFieldConfig {
+  name: String!
+  type: String!
+  list: Boolean!
+  length: Int
+  label: [LocalizedString!]
+  description: [LocalizedString!]
+  readonly: Boolean
+  internal: Boolean
+  nullable: Boolean
+  requiresPermission: [Permission!]
+  deprecated: Boolean
+  deprecationReason: String
+  pattern: String
+  ui: JSON
+}`}
+</GraphQLDoc>
+
+<a name="localetextcustomfieldconfig"></a>
+
+## LocaleTextCustomFieldConfig
+
+<GraphQLDoc
+  type="type"
+  typeName="LocaleTextCustomFieldConfig"
+  typeLinks={{
+    String: '/reference/graphql-api/shop/object-types#string',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+    LocalizedString: '/reference/graphql-api/shop/object-types#localizedstring',
+    Permission: '/reference/graphql-api/shop/enums#permission',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type LocaleTextCustomFieldConfig {
+  name: String!
+  type: String!
+  list: Boolean!
+  label: [LocalizedString!]
+  description: [LocalizedString!]
+  readonly: Boolean
+  internal: Boolean
+  nullable: Boolean
+  requiresPermission: [Permission!]
+  deprecated: Boolean
+  deprecationReason: String
+  ui: JSON
+}`}
+</GraphQLDoc>
+
+<a name="localizedstring"></a>
+
+## LocalizedString
+
+<GraphQLDoc
+  type="type"
+  typeName="LocalizedString"
+  typeLinks={{
+    LanguageCode: '/reference/graphql-api/shop/enums#languagecode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`type LocalizedString {
+  languageCode: LanguageCode!
+  value: String!
+}`}
+</GraphQLDoc>
+
+<a name="missingpassworderror"></a>
+
+## MissingPasswordError
+
+<GraphQLDoc
+  type="type"
+  typeName="MissingPasswordError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""Returned when attempting to register or verify a customer account without a password, when one is required."""
+type MissingPasswordError {
+  errorCode: ErrorCode!
+  message: String!
+}`}
+</GraphQLDoc>
+
+<a name="money"></a>
+
+## Money
+
+<GraphQLDoc
+  type="scalar"
+  typeName="Money"
+  typeLinks={{}}
+>
+{`scalar Money`}
+</GraphQLDoc>
+
+<a name="nativeauthstrategyerror"></a>
+
+## NativeAuthStrategyError
+
+<GraphQLDoc
+  type="type"
+  typeName="NativeAuthStrategyError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""Returned when attempting an operation that relies on the NativeAuthStrategy, if that strategy is not configured."""
+type NativeAuthStrategyError {
+  errorCode: ErrorCode!
+  message: String!
+}`}
+</GraphQLDoc>
+
+<a name="nativeauthenticationresult"></a>
+
+## NativeAuthenticationResult
+
+<GraphQLDoc
+  type="union"
+  typeName="NativeAuthenticationResult"
+  typeLinks={{
+    CurrentUser: '/reference/graphql-api/shop/object-types#currentuser',
+    InvalidCredentialsError: '/reference/graphql-api/shop/object-types#invalidcredentialserror',
+    NotVerifiedError: '/reference/graphql-api/shop/object-types#notverifiederror',
+    NativeAuthStrategyError: '/reference/graphql-api/shop/object-types#nativeauthstrategyerror',
+  }}
+>
+{`union NativeAuthenticationResult = CurrentUser | InvalidCredentialsError | NotVerifiedError | NativeAuthStrategyError`}
+</GraphQLDoc>
+
+<a name="negativequantityerror"></a>
+
+## NegativeQuantityError
+
+<GraphQLDoc
+  type="type"
+  typeName="NegativeQuantityError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""Returned when attempting to set a negative OrderLine quantity."""
+type NegativeQuantityError {
+  errorCode: ErrorCode!
+  message: String!
+}`}
+</GraphQLDoc>
+
+<a name="noactiveordererror"></a>
+
+## NoActiveOrderError
+
+<GraphQLDoc
+  type="type"
+  typeName="NoActiveOrderError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""
+Returned when invoking a mutation which depends on there being an active Order on the
+current session.
+"""
+type NoActiveOrderError {
+  errorCode: ErrorCode!
+  message: String!
+}`}
+</GraphQLDoc>
+
+<a name="notverifiederror"></a>
+
+## NotVerifiedError
+
+<GraphQLDoc
+  type="type"
+  typeName="NotVerifiedError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""
+Returned if \`authOptions.requireVerification\` is set to \`true\` (which is the default)
+and an unverified user attempts to authenticate.
+"""
+type NotVerifiedError {
+  errorCode: ErrorCode!
+  message: String!
+}`}
+</GraphQLDoc>
+
+<a name="order"></a>
+
+## Order
+
+<GraphQLDoc
+  type="type"
+  typeName="Order"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    OrderType: '/reference/graphql-api/shop/enums#ordertype',
+    String: '/reference/graphql-api/shop/object-types#string',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+    Customer: '/reference/graphql-api/shop/object-types#customer',
+    OrderAddress: '/reference/graphql-api/shop/object-types#orderaddress',
+    OrderLine: '/reference/graphql-api/shop/object-types#orderline',
+    Surcharge: '/reference/graphql-api/shop/object-types#surcharge',
+    Discount: '/reference/graphql-api/shop/object-types#discount',
+    Promotion: '/reference/graphql-api/shop/object-types#promotion',
+    Payment: '/reference/graphql-api/shop/object-types#payment',
+    Fulfillment: '/reference/graphql-api/shop/object-types#fulfillment',
+    Int: '/reference/graphql-api/shop/object-types#int',
+    Money: '/reference/graphql-api/shop/object-types#money',
+    CurrencyCode: '/reference/graphql-api/shop/enums#currencycode',
+    ShippingLine: '/reference/graphql-api/shop/object-types#shippingline',
+    OrderTaxSummary: '/reference/graphql-api/shop/object-types#ordertaxsummary',
+    HistoryEntryList: '/reference/graphql-api/shop/object-types#historyentrylist',
+    HistoryEntryListOptions: '/reference/graphql-api/shop/input-types#historyentrylistoptions',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type Order {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  type: OrderType!
+  """
+  The date & time that the Order was placed, i.e. the Customer
+  completed the checkout and the Order is no longer "active"
+  """
+  orderPlacedAt: DateTime
+  """A unique code for the Order"""
+  code: String!
+  state: String!
+  """An order is active as long as the payment process has not been completed"""
+  active: Boolean!
+  customer: Customer
+  shippingAddress: OrderAddress
+  billingAddress: OrderAddress
+  lines: [OrderLine!]!
+  """
+  Surcharges are arbitrary modifications to the Order total which are neither
+  ProductVariants nor discounts resulting from applied Promotions. For example,
+  one-off discounts based on customer interaction, or surcharges based on payment
+  methods.
+  """
+  surcharges: [Surcharge!]!
+  discounts: [Discount!]!
+  """An array of all coupon codes applied to the Order"""
+  couponCodes: [String!]!
+  """Promotions applied to the order. Only gets populated after the payment process has completed."""
+  promotions: [Promotion!]!
+  payments: [Payment!]
+  fulfillments: [Fulfillment!]
+  totalQuantity: Int!
+  """
+  The subTotal is the total of all OrderLines in the Order. This figure also includes any Order-level
+  discounts which have been prorated (proportionally distributed) amongst the items of each OrderLine.
+  To get a total of all OrderLines which does not account for prorated discounts, use the
+  sum of \`OrderLine.discountedLinePrice\` values.
+  """
+  subTotal: Money!
+  """Same as subTotal, but inclusive of tax"""
+  subTotalWithTax: Money!
+  currencyCode: CurrencyCode!
+  shippingLines: [ShippingLine!]!
+  shipping: Money!
+  shippingWithTax: Money!
+  """Equal to subTotal plus shipping"""
+  total: Money!
+  """The final payable amount. Equal to subTotalWithTax plus shippingWithTax"""
+  totalWithTax: Money!
+  """A summary of the taxes being applied to this Order"""
+  taxSummary: [OrderTaxSummary!]!
+  history(options: HistoryEntryListOptions): HistoryEntryList!
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="orderaddress"></a>
+
+## OrderAddress
+
+<GraphQLDoc
+  type="type"
+  typeName="OrderAddress"
+  typeLinks={{
+    String: '/reference/graphql-api/shop/object-types#string',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type OrderAddress {
+  fullName: String
+  company: String
+  streetLine1: String
+  streetLine2: String
+  city: String
+  province: String
+  postalCode: String
+  country: String
+  countryCode: String
+  phoneNumber: String
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="orderinterceptorerror"></a>
+
+## OrderInterceptorError
+
+<GraphQLDoc
+  type="type"
+  typeName="OrderInterceptorError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""Returned when an order operation is rejected by an OrderInterceptor method."""
+type OrderInterceptorError {
+  errorCode: ErrorCode!
+  message: String!
+  interceptorError: String!
+}`}
+</GraphQLDoc>
+
+<a name="orderlimiterror"></a>
+
+## OrderLimitError
+
+<GraphQLDoc
+  type="type"
+  typeName="OrderLimitError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+    Int: '/reference/graphql-api/shop/object-types#int',
+  }}
+>
+{`"""Returned when the maximum order size limit has been reached."""
+type OrderLimitError {
+  errorCode: ErrorCode!
+  message: String!
+  maxItems: Int!
+}`}
+</GraphQLDoc>
+
+<a name="orderline"></a>
+
+## OrderLine
+
+<GraphQLDoc
+  type="type"
+  typeName="OrderLine"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    ProductVariant: '/reference/graphql-api/shop/object-types#productvariant',
+    Asset: '/reference/graphql-api/shop/object-types#asset',
+    Money: '/reference/graphql-api/shop/object-types#money',
+    Int: '/reference/graphql-api/shop/object-types#int',
+    Float: '/reference/graphql-api/shop/object-types#float',
+    Discount: '/reference/graphql-api/shop/object-types#discount',
+    TaxLine: '/reference/graphql-api/shop/object-types#taxline',
+    Order: '/reference/graphql-api/shop/object-types#order',
+    FulfillmentLine: '/reference/graphql-api/shop/object-types#fulfillmentline',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type OrderLine {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  productVariant: ProductVariant!
+  featuredAsset: Asset
+  """The price of a single unit, excluding tax and discounts"""
+  unitPrice: Money!
+  """The price of a single unit, including tax but excluding discounts"""
+  unitPriceWithTax: Money!
+  """Non-zero if the unitPrice has changed since it was initially added to Order"""
+  unitPriceChangeSinceAdded: Money!
+  """Non-zero if the unitPriceWithTax has changed since it was initially added to Order"""
+  unitPriceWithTaxChangeSinceAdded: Money!
+  """
+  The price of a single unit including discounts, excluding tax.
+  
+  If Order-level discounts have been applied, this will not be the
+  actual taxable unit price (see \`proratedUnitPrice\`), but is generally the
+  correct price to display to customers to avoid confusion
+  about the internal handling of distributed Order-level discounts.
+  """
+  discountedUnitPrice: Money!
+  """The price of a single unit including discounts and tax"""
+  discountedUnitPriceWithTax: Money!
+  """
+  The actual unit price, taking into account both item discounts _and_ prorated (proportionally-distributed)
+  Order-level discounts. This value is the true economic value of the OrderItem, and is used in tax
+  and refund calculations.
+  """
+  proratedUnitPrice: Money!
+  """The proratedUnitPrice including tax"""
+  proratedUnitPriceWithTax: Money!
+  """The quantity of items purchased"""
+  quantity: Int!
+  """The quantity at the time the Order was placed"""
+  orderPlacedQuantity: Int!
+  taxRate: Float!
+  """The total price of the line excluding tax and discounts."""
+  linePrice: Money!
+  """The total price of the line including tax but excluding discounts."""
+  linePriceWithTax: Money!
+  """The price of the line including discounts, excluding tax"""
+  discountedLinePrice: Money!
+  """The price of the line including discounts and tax"""
+  discountedLinePriceWithTax: Money!
+  """
+  The actual line price, taking into account both item discounts _and_ prorated (proportionally-distributed)
+  Order-level discounts. This value is the true economic value of the OrderLine, and is used in tax
+  and refund calculations.
+  """
+  proratedLinePrice: Money!
+  """The proratedLinePrice including tax"""
+  proratedLinePriceWithTax: Money!
+  """The total tax on this line"""
+  lineTax: Money!
+  discounts: [Discount!]!
+  taxLines: [TaxLine!]!
+  order: Order!
+  fulfillmentLines: [FulfillmentLine!]
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="orderlist"></a>
+
+## OrderList
+
+<GraphQLDoc
+  type="type"
+  typeName="OrderList"
+  typeLinks={{
+    Order: '/reference/graphql-api/shop/object-types#order',
+    Int: '/reference/graphql-api/shop/object-types#int',
+  }}
+>
+{`type OrderList {
+  items: [Order!]!
+  totalItems: Int!
+}`}
+</GraphQLDoc>
+
+<a name="ordermodificationerror"></a>
+
+## OrderModificationError
+
+<GraphQLDoc
+  type="type"
+  typeName="OrderModificationError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""Returned when attempting to modify the contents of an Order that is not in the \`AddingItems\` state."""
+type OrderModificationError {
+  errorCode: ErrorCode!
+  message: String!
+}`}
+</GraphQLDoc>
+
+<a name="orderpaymentstateerror"></a>
+
+## OrderPaymentStateError
+
+<GraphQLDoc
+  type="type"
+  typeName="OrderPaymentStateError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""Returned when attempting to add a Payment to an Order that is not in the \`ArrangingPayment\` state."""
+type OrderPaymentStateError {
+  errorCode: ErrorCode!
+  message: String!
+}`}
+</GraphQLDoc>
+
+<a name="orderstatetransitionerror"></a>
+
+## OrderStateTransitionError
+
+<GraphQLDoc
+  type="type"
+  typeName="OrderStateTransitionError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""Returned if there is an error in transitioning the Order state"""
+type OrderStateTransitionError {
+  errorCode: ErrorCode!
+  message: String!
+  transitionError: String!
+  fromState: String!
+  toState: String!
+}`}
+</GraphQLDoc>
+
+<a name="ordertaxsummary"></a>
+
+## OrderTaxSummary
+
+<GraphQLDoc
+  type="type"
+  typeName="OrderTaxSummary"
+  typeLinks={{
+    String: '/reference/graphql-api/shop/object-types#string',
+    Float: '/reference/graphql-api/shop/object-types#float',
+    Money: '/reference/graphql-api/shop/object-types#money',
+  }}
+>
+{`"""
+A summary of the taxes being applied to this order, grouped
+by taxRate.
+"""
+type OrderTaxSummary {
+  """A description of this tax"""
+  description: String!
+  """The taxRate as a percentage"""
+  taxRate: Float!
+  """The total net price of OrderLines to which this taxRate applies"""
+  taxBase: Money!
+  """The total tax being applied to the Order at this taxRate"""
+  taxTotal: Money!
+}`}
+</GraphQLDoc>
+
+<a name="passwordalreadyseterror"></a>
+
+## PasswordAlreadySetError
+
+<GraphQLDoc
+  type="type"
+  typeName="PasswordAlreadySetError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""Returned when attempting to verify a customer account with a password, when a password has already been set."""
+type PasswordAlreadySetError {
+  errorCode: ErrorCode!
+  message: String!
+}`}
+</GraphQLDoc>
+
+<a name="passwordresettokenexpirederror"></a>
+
+## PasswordResetTokenExpiredError
+
+<GraphQLDoc
+  type="type"
+  typeName="PasswordResetTokenExpiredError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""
+Returned if the token used to reset a Customer's password is valid, but has
+expired according to the \`verificationTokenDuration\` setting in the AuthOptions.
+"""
+type PasswordResetTokenExpiredError {
+  errorCode: ErrorCode!
+  message: String!
+}`}
+</GraphQLDoc>
+
+<a name="passwordresettokeninvaliderror"></a>
+
+## PasswordResetTokenInvalidError
+
+<GraphQLDoc
+  type="type"
+  typeName="PasswordResetTokenInvalidError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""
+Returned if the token used to reset a Customer's password is either
+invalid or does not match any expected tokens.
+"""
+type PasswordResetTokenInvalidError {
+  errorCode: ErrorCode!
+  message: String!
+}`}
+</GraphQLDoc>
+
+<a name="passwordvalidationerror"></a>
+
+## PasswordValidationError
+
+<GraphQLDoc
+  type="type"
+  typeName="PasswordValidationError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""Returned when attempting to register or verify a customer account where the given password fails password validation."""
+type PasswordValidationError {
+  errorCode: ErrorCode!
+  message: String!
+  validationErrorMessage: String!
+}`}
+</GraphQLDoc>
+
+<a name="payment"></a>
+
+## Payment
+
+<GraphQLDoc
+  type="type"
+  typeName="Payment"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    String: '/reference/graphql-api/shop/object-types#string',
+    Money: '/reference/graphql-api/shop/object-types#money',
+    Refund: '/reference/graphql-api/shop/object-types#refund',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type Payment {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  method: String!
+  amount: Money!
+  state: String!
+  transactionId: String
+  errorMessage: String
+  refunds: [Refund!]!
+  metadata: JSON
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="paymentdeclinederror"></a>
+
+## PaymentDeclinedError
+
+<GraphQLDoc
+  type="type"
+  typeName="PaymentDeclinedError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""Returned when a Payment is declined by the payment provider."""
+type PaymentDeclinedError {
+  errorCode: ErrorCode!
+  message: String!
+  paymentErrorMessage: String!
+}`}
+</GraphQLDoc>
+
+<a name="paymentfailederror"></a>
+
+## PaymentFailedError
+
+<GraphQLDoc
+  type="type"
+  typeName="PaymentFailedError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""Returned when a Payment fails due to an error."""
+type PaymentFailedError {
+  errorCode: ErrorCode!
+  message: String!
+  paymentErrorMessage: String!
+}`}
+</GraphQLDoc>
+
+<a name="paymentmethod"></a>
+
+## PaymentMethod
+
+<GraphQLDoc
+  type="type"
+  typeName="PaymentMethod"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    String: '/reference/graphql-api/shop/object-types#string',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+    ConfigurableOperation: '/reference/graphql-api/shop/object-types#configurableoperation',
+    PaymentMethodTranslation: '/reference/graphql-api/shop/object-types#paymentmethodtranslation',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type PaymentMethod {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  name: String!
+  code: String!
+  description: String!
+  enabled: Boolean!
+  checker: ConfigurableOperation
+  handler: ConfigurableOperation!
+  translations: [PaymentMethodTranslation!]!
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="paymentmethodquote"></a>
+
+## PaymentMethodQuote
+
+<GraphQLDoc
+  type="type"
+  typeName="PaymentMethodQuote"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    String: '/reference/graphql-api/shop/object-types#string',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type PaymentMethodQuote {
+  id: ID!
+  code: String!
+  name: String!
+  description: String!
+  isEligible: Boolean!
+  eligibilityMessage: String
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="paymentmethodtranslation"></a>
+
+## PaymentMethodTranslation
+
+<GraphQLDoc
+  type="type"
+  typeName="PaymentMethodTranslation"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    LanguageCode: '/reference/graphql-api/shop/enums#languagecode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`type PaymentMethodTranslation {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  languageCode: LanguageCode!
+  name: String!
+  description: String!
+}`}
+</GraphQLDoc>
+
+<a name="pricerange"></a>
+
+## PriceRange
+
+<GraphQLDoc
+  type="type"
+  typeName="PriceRange"
+  typeLinks={{
+    Money: '/reference/graphql-api/shop/object-types#money',
+  }}
+>
+{`"""The price range where the result has more than one price"""
+type PriceRange {
+  min: Money!
+  max: Money!
+}`}
+</GraphQLDoc>
+
+<a name="product"></a>
+
+## Product
+
+<GraphQLDoc
+  type="type"
+  typeName="Product"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    LanguageCode: '/reference/graphql-api/shop/enums#languagecode',
+    String: '/reference/graphql-api/shop/object-types#string',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+    Asset: '/reference/graphql-api/shop/object-types#asset',
+    ProductVariant: '/reference/graphql-api/shop/object-types#productvariant',
+    ProductVariantList: '/reference/graphql-api/shop/object-types#productvariantlist',
+    ProductVariantListOptions: '/reference/graphql-api/shop/input-types#productvariantlistoptions',
+    ProductOptionGroup: '/reference/graphql-api/shop/object-types#productoptiongroup',
+    FacetValue: '/reference/graphql-api/shop/object-types#facetvalue',
+    ProductTranslation: '/reference/graphql-api/shop/object-types#producttranslation',
+    Collection: '/reference/graphql-api/shop/object-types#collection',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type Product {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  languageCode: LanguageCode!
+  name: String!
+  slug: String!
+  description: String!
+  enabled: Boolean!
+  featuredAsset: Asset
+  assets: [Asset!]!
+  """Returns all ProductVariants"""
+  variants: [ProductVariant!]!
+  """Returns a paginated, sortable, filterable list of ProductVariants"""
+  variantList(options: ProductVariantListOptions): ProductVariantList!
+  optionGroups: [ProductOptionGroup!]!
+  facetValues: [FacetValue!]!
+  translations: [ProductTranslation!]!
+  collections: [Collection!]!
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="productlist"></a>
+
+## ProductList
+
+<GraphQLDoc
+  type="type"
+  typeName="ProductList"
+  typeLinks={{
+    Product: '/reference/graphql-api/shop/object-types#product',
+    Int: '/reference/graphql-api/shop/object-types#int',
+  }}
+>
+{`type ProductList {
+  items: [Product!]!
+  totalItems: Int!
+}`}
+</GraphQLDoc>
+
+<a name="productoption"></a>
+
+## ProductOption
+
+<GraphQLDoc
+  type="type"
+  typeName="ProductOption"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    LanguageCode: '/reference/graphql-api/shop/enums#languagecode',
+    String: '/reference/graphql-api/shop/object-types#string',
+    ProductOptionGroup: '/reference/graphql-api/shop/object-types#productoptiongroup',
+    ProductOptionTranslation: '/reference/graphql-api/shop/object-types#productoptiontranslation',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type ProductOption {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  languageCode: LanguageCode!
+  code: String!
+  name: String!
+  groupId: ID!
+  group: ProductOptionGroup!
+  translations: [ProductOptionTranslation!]!
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="productoptiongroup"></a>
+
+## ProductOptionGroup
+
+<GraphQLDoc
+  type="type"
+  typeName="ProductOptionGroup"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    LanguageCode: '/reference/graphql-api/shop/enums#languagecode',
+    String: '/reference/graphql-api/shop/object-types#string',
+    ProductOption: '/reference/graphql-api/shop/object-types#productoption',
+    Int: '/reference/graphql-api/shop/object-types#int',
+    ProductOptionGroupTranslation: '/reference/graphql-api/shop/object-types#productoptiongrouptranslation',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type ProductOptionGroup {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  languageCode: LanguageCode!
+  code: String!
+  name: String!
+  options: [ProductOption!]!
+  """The number of products that use this option group"""
+  productCount: Int!
+  translations: [ProductOptionGroupTranslation!]!
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="productoptiongrouptranslation"></a>
+
+## ProductOptionGroupTranslation
+
+<GraphQLDoc
+  type="type"
+  typeName="ProductOptionGroupTranslation"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    LanguageCode: '/reference/graphql-api/shop/enums#languagecode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`type ProductOptionGroupTranslation {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  languageCode: LanguageCode!
+  name: String!
+}`}
+</GraphQLDoc>
+
+<a name="productoptiontranslation"></a>
+
+## ProductOptionTranslation
+
+<GraphQLDoc
+  type="type"
+  typeName="ProductOptionTranslation"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    LanguageCode: '/reference/graphql-api/shop/enums#languagecode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`type ProductOptionTranslation {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  languageCode: LanguageCode!
+  name: String!
+}`}
+</GraphQLDoc>
+
+<a name="producttranslation"></a>
+
+## ProductTranslation
+
+<GraphQLDoc
+  type="type"
+  typeName="ProductTranslation"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    LanguageCode: '/reference/graphql-api/shop/enums#languagecode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`type ProductTranslation {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  languageCode: LanguageCode!
+  name: String!
+  slug: String!
+  description: String!
+}`}
+</GraphQLDoc>
+
+<a name="productvariant"></a>
+
+## ProductVariant
+
+<GraphQLDoc
+  type="type"
+  typeName="ProductVariant"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    Product: '/reference/graphql-api/shop/object-types#product',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    LanguageCode: '/reference/graphql-api/shop/enums#languagecode',
+    String: '/reference/graphql-api/shop/object-types#string',
+    Asset: '/reference/graphql-api/shop/object-types#asset',
+    Money: '/reference/graphql-api/shop/object-types#money',
+    CurrencyCode: '/reference/graphql-api/shop/enums#currencycode',
+    TaxRate: '/reference/graphql-api/shop/object-types#taxrate',
+    TaxCategory: '/reference/graphql-api/shop/object-types#taxcategory',
+    ProductOption: '/reference/graphql-api/shop/object-types#productoption',
+    FacetValue: '/reference/graphql-api/shop/object-types#facetvalue',
+    ProductVariantTranslation: '/reference/graphql-api/shop/object-types#productvarianttranslation',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type ProductVariant {
+  id: ID!
+  product: Product!
+  productId: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  languageCode: LanguageCode!
+  sku: String!
+  name: String!
+  featuredAsset: Asset
+  assets: [Asset!]!
+  price: Money!
+  currencyCode: CurrencyCode!
+  priceWithTax: Money!
+  stockLevel: String!
+  taxRateApplied: TaxRate!
+  taxCategory: TaxCategory!
+  options: [ProductOption!]!
+  facetValues: [FacetValue!]!
+  translations: [ProductVariantTranslation!]!
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="productvariantlist"></a>
+
+## ProductVariantList
+
+<GraphQLDoc
+  type="type"
+  typeName="ProductVariantList"
+  typeLinks={{
+    ProductVariant: '/reference/graphql-api/shop/object-types#productvariant',
+    Int: '/reference/graphql-api/shop/object-types#int',
+  }}
+>
+{`type ProductVariantList {
+  items: [ProductVariant!]!
+  totalItems: Int!
+}`}
+</GraphQLDoc>
+
+<a name="productvarianttranslation"></a>
+
+## ProductVariantTranslation
+
+<GraphQLDoc
+  type="type"
+  typeName="ProductVariantTranslation"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    LanguageCode: '/reference/graphql-api/shop/enums#languagecode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`type ProductVariantTranslation {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  languageCode: LanguageCode!
+  name: String!
+}`}
+</GraphQLDoc>
+
+<a name="promotion"></a>
+
+## Promotion
+
+<GraphQLDoc
+  type="type"
+  typeName="Promotion"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    String: '/reference/graphql-api/shop/object-types#string',
+    Int: '/reference/graphql-api/shop/object-types#int',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+    ConfigurableOperation: '/reference/graphql-api/shop/object-types#configurableoperation',
+    PromotionTranslation: '/reference/graphql-api/shop/object-types#promotiontranslation',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type Promotion {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  startsAt: DateTime
+  endsAt: DateTime
+  couponCode: String
+  perCustomerUsageLimit: Int
+  usageLimit: Int
+  name: String!
+  description: String!
+  enabled: Boolean!
+  conditions: [ConfigurableOperation!]!
+  actions: [ConfigurableOperation!]!
+  translations: [PromotionTranslation!]!
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="promotionlist"></a>
+
+## PromotionList
+
+<GraphQLDoc
+  type="type"
+  typeName="PromotionList"
+  typeLinks={{
+    Promotion: '/reference/graphql-api/shop/object-types#promotion',
+    Int: '/reference/graphql-api/shop/object-types#int',
+  }}
+>
+{`type PromotionList {
+  items: [Promotion!]!
+  totalItems: Int!
+}`}
+</GraphQLDoc>
+
+<a name="promotiontranslation"></a>
+
+## PromotionTranslation
+
+<GraphQLDoc
+  type="type"
+  typeName="PromotionTranslation"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    LanguageCode: '/reference/graphql-api/shop/enums#languagecode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`type PromotionTranslation {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  languageCode: LanguageCode!
+  name: String!
+  description: String!
+}`}
+</GraphQLDoc>
+
+<a name="province"></a>
+
+## Province
+
+<GraphQLDoc
+  type="type"
+  typeName="Province"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    LanguageCode: '/reference/graphql-api/shop/enums#languagecode',
+    String: '/reference/graphql-api/shop/object-types#string',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+    Region: '/reference/graphql-api/shop/object-types#region',
+    RegionTranslation: '/reference/graphql-api/shop/object-types#regiontranslation',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type Province {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  languageCode: LanguageCode!
+  code: String!
+  type: String!
+  name: String!
+  enabled: Boolean!
+  parent: Region
+  parentId: ID
+  translations: [RegionTranslation!]!
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="provincelist"></a>
+
+## ProvinceList
+
+<GraphQLDoc
+  type="type"
+  typeName="ProvinceList"
+  typeLinks={{
+    Province: '/reference/graphql-api/shop/object-types#province',
+    Int: '/reference/graphql-api/shop/object-types#int',
+  }}
+>
+{`type ProvinceList {
+  items: [Province!]!
+  totalItems: Int!
+}`}
+</GraphQLDoc>
+
+<a name="publicpaymentmethod"></a>
+
+## PublicPaymentMethod
+
+<GraphQLDoc
+  type="type"
+  typeName="PublicPaymentMethod"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    String: '/reference/graphql-api/shop/object-types#string',
+    PaymentMethodTranslation: '/reference/graphql-api/shop/object-types#paymentmethodtranslation',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type PublicPaymentMethod {
+  id: ID!
+  code: String!
+  name: String!
+  description: String
+  translations: [PaymentMethodTranslation!]!
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="publicshippingmethod"></a>
+
+## PublicShippingMethod
+
+<GraphQLDoc
+  type="type"
+  typeName="PublicShippingMethod"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    String: '/reference/graphql-api/shop/object-types#string',
+    ShippingMethodTranslation: '/reference/graphql-api/shop/object-types#shippingmethodtranslation',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type PublicShippingMethod {
+  id: ID!
+  code: String!
+  name: String!
+  description: String
+  translations: [ShippingMethodTranslation!]!
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="refreshcustomerverificationresult"></a>
+
+## RefreshCustomerVerificationResult
+
+<GraphQLDoc
+  type="union"
+  typeName="RefreshCustomerVerificationResult"
+  typeLinks={{
+    Success: '/reference/graphql-api/shop/object-types#success',
+    NativeAuthStrategyError: '/reference/graphql-api/shop/object-types#nativeauthstrategyerror',
+  }}
+>
+{`union RefreshCustomerVerificationResult = Success | NativeAuthStrategyError`}
+</GraphQLDoc>
+
+<a name="refund"></a>
+
+## Refund
+
+<GraphQLDoc
+  type="type"
+  typeName="Refund"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    Money: '/reference/graphql-api/shop/object-types#money',
+    String: '/reference/graphql-api/shop/object-types#string',
+    RefundLine: '/reference/graphql-api/shop/object-types#refundline',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type Refund {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  items: Money!
+  shipping: Money!
+  adjustment: Money!
+  total: Money!
+  method: String
+  state: String!
+  transactionId: String
+  reason: String
+  lines: [RefundLine!]!
+  paymentId: ID!
+  metadata: JSON
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="refundline"></a>
+
+## RefundLine
+
+<GraphQLDoc
+  type="type"
+  typeName="RefundLine"
+  typeLinks={{
+    OrderLine: '/reference/graphql-api/shop/object-types#orderline',
+    ID: '/reference/graphql-api/shop/object-types#id',
+    Int: '/reference/graphql-api/shop/object-types#int',
+    Refund: '/reference/graphql-api/shop/object-types#refund',
+  }}
+>
+{`type RefundLine {
+  orderLine: OrderLine!
+  orderLineId: ID!
+  quantity: Int!
+  refund: Refund!
+  refundId: ID!
+}`}
+</GraphQLDoc>
+
+<a name="regiontranslation"></a>
+
+## RegionTranslation
+
+<GraphQLDoc
+  type="type"
+  typeName="RegionTranslation"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    LanguageCode: '/reference/graphql-api/shop/enums#languagecode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`type RegionTranslation {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  languageCode: LanguageCode!
+  name: String!
+}`}
+</GraphQLDoc>
+
+<a name="registercustomeraccountresult"></a>
+
+## RegisterCustomerAccountResult
+
+<GraphQLDoc
+  type="union"
+  typeName="RegisterCustomerAccountResult"
+  typeLinks={{
+    Success: '/reference/graphql-api/shop/object-types#success',
+    MissingPasswordError: '/reference/graphql-api/shop/object-types#missingpassworderror',
+    PasswordValidationError: '/reference/graphql-api/shop/object-types#passwordvalidationerror',
+    NativeAuthStrategyError: '/reference/graphql-api/shop/object-types#nativeauthstrategyerror',
+  }}
+>
+{`union RegisterCustomerAccountResult = Success | MissingPasswordError | PasswordValidationError | NativeAuthStrategyError`}
+</GraphQLDoc>
+
+<a name="relationcustomfieldconfig"></a>
+
+## RelationCustomFieldConfig
+
+<GraphQLDoc
+  type="type"
+  typeName="RelationCustomFieldConfig"
+  typeLinks={{
+    String: '/reference/graphql-api/shop/object-types#string',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+    LocalizedString: '/reference/graphql-api/shop/object-types#localizedstring',
+    Permission: '/reference/graphql-api/shop/enums#permission',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type RelationCustomFieldConfig {
+  name: String!
+  type: String!
+  list: Boolean!
+  label: [LocalizedString!]
+  description: [LocalizedString!]
+  readonly: Boolean
+  internal: Boolean
+  nullable: Boolean
+  requiresPermission: [Permission!]
+  deprecated: Boolean
+  deprecationReason: String
+  entity: String!
+  scalarFields: [String!]!
+  ui: JSON
+}`}
+</GraphQLDoc>
+
+<a name="removeorderitemsresult"></a>
+
+## RemoveOrderItemsResult
+
+<GraphQLDoc
+  type="union"
+  typeName="RemoveOrderItemsResult"
+  typeLinks={{
+    Order: '/reference/graphql-api/shop/object-types#order',
+    OrderModificationError: '/reference/graphql-api/shop/object-types#ordermodificationerror',
+    OrderInterceptorError: '/reference/graphql-api/shop/object-types#orderinterceptorerror',
+  }}
+>
+{`union RemoveOrderItemsResult = Order | OrderModificationError | OrderInterceptorError`}
+</GraphQLDoc>
+
+<a name="requestpasswordresetresult"></a>
+
+## RequestPasswordResetResult
+
+<GraphQLDoc
+  type="union"
+  typeName="RequestPasswordResetResult"
+  typeLinks={{
+    Success: '/reference/graphql-api/shop/object-types#success',
+    NativeAuthStrategyError: '/reference/graphql-api/shop/object-types#nativeauthstrategyerror',
+  }}
+>
+{`union RequestPasswordResetResult = Success | NativeAuthStrategyError`}
+</GraphQLDoc>
+
+<a name="requestupdatecustomeremailaddressresult"></a>
+
+## RequestUpdateCustomerEmailAddressResult
+
+<GraphQLDoc
+  type="union"
+  typeName="RequestUpdateCustomerEmailAddressResult"
+  typeLinks={{
+    Success: '/reference/graphql-api/shop/object-types#success',
+    InvalidCredentialsError: '/reference/graphql-api/shop/object-types#invalidcredentialserror',
+    EmailAddressConflictError: '/reference/graphql-api/shop/object-types#emailaddressconflicterror',
+    NativeAuthStrategyError: '/reference/graphql-api/shop/object-types#nativeauthstrategyerror',
+  }}
+>
+{`union RequestUpdateCustomerEmailAddressResult = Success | InvalidCredentialsError | EmailAddressConflictError | NativeAuthStrategyError`}
+</GraphQLDoc>
+
+<a name="resetpasswordresult"></a>
+
+## ResetPasswordResult
+
+<GraphQLDoc
+  type="union"
+  typeName="ResetPasswordResult"
+  typeLinks={{
+    CurrentUser: '/reference/graphql-api/shop/object-types#currentuser',
+    PasswordResetTokenInvalidError: '/reference/graphql-api/shop/object-types#passwordresettokeninvaliderror',
+    PasswordResetTokenExpiredError: '/reference/graphql-api/shop/object-types#passwordresettokenexpirederror',
+    PasswordValidationError: '/reference/graphql-api/shop/object-types#passwordvalidationerror',
+    NativeAuthStrategyError: '/reference/graphql-api/shop/object-types#nativeauthstrategyerror',
+    NotVerifiedError: '/reference/graphql-api/shop/object-types#notverifiederror',
+  }}
+>
+{`union ResetPasswordResult = CurrentUser | PasswordResetTokenInvalidError | PasswordResetTokenExpiredError | PasswordValidationError | NativeAuthStrategyError | NotVerifiedError`}
+</GraphQLDoc>
+
+<a name="role"></a>
+
+## Role
+
+<GraphQLDoc
+  type="type"
+  typeName="Role"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    String: '/reference/graphql-api/shop/object-types#string',
+    Permission: '/reference/graphql-api/shop/enums#permission',
+    Channel: '/reference/graphql-api/shop/object-types#channel',
+  }}
+>
+{`type Role {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  code: String!
+  description: String!
+  permissions: [Permission!]!
+  channels: [Channel!]!
+}`}
+</GraphQLDoc>
+
+<a name="rolelist"></a>
+
+## RoleList
+
+<GraphQLDoc
+  type="type"
+  typeName="RoleList"
+  typeLinks={{
+    Role: '/reference/graphql-api/shop/object-types#role',
+    Int: '/reference/graphql-api/shop/object-types#int',
+  }}
+>
+{`type RoleList {
+  items: [Role!]!
+  totalItems: Int!
+}`}
+</GraphQLDoc>
+
+<a name="searchreindexresponse"></a>
+
+## SearchReindexResponse
+
+<GraphQLDoc
+  type="type"
+  typeName="SearchReindexResponse"
+  typeLinks={{
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+  }}
+>
+{`type SearchReindexResponse {
+  success: Boolean!
+}`}
+</GraphQLDoc>
+
+<a name="searchresponse"></a>
+
+## SearchResponse
+
+<GraphQLDoc
+  type="type"
+  typeName="SearchResponse"
+  typeLinks={{
+    SearchResult: '/reference/graphql-api/shop/object-types#searchresult',
+    Int: '/reference/graphql-api/shop/object-types#int',
+    FacetValueResult: '/reference/graphql-api/shop/object-types#facetvalueresult',
+    CollectionResult: '/reference/graphql-api/shop/object-types#collectionresult',
+  }}
+>
+{`type SearchResponse {
+  items: [SearchResult!]!
+  totalItems: Int!
+  facetValues: [FacetValueResult!]!
+  collections: [CollectionResult!]!
+}`}
+</GraphQLDoc>
+
+<a name="searchresult"></a>
+
+## SearchResult
+
+<GraphQLDoc
+  type="type"
+  typeName="SearchResult"
+  typeLinks={{
+    String: '/reference/graphql-api/shop/object-types#string',
+    ID: '/reference/graphql-api/shop/object-types#id',
+    SearchResultAsset: '/reference/graphql-api/shop/object-types#searchresultasset',
+    SearchResultPrice: '/reference/graphql-api/shop/object-types#searchresultprice',
+    CurrencyCode: '/reference/graphql-api/shop/enums#currencycode',
+    Float: '/reference/graphql-api/shop/object-types#float',
+  }}
+>
+{`type SearchResult {
+  sku: String!
+  slug: String!
+  productId: ID!
+  productName: String!
+  productAsset: SearchResultAsset
+  productVariantId: ID!
+  productVariantName: String!
+  productVariantAsset: SearchResultAsset
+  price: SearchResultPrice!
+  priceWithTax: SearchResultPrice!
+  currencyCode: CurrencyCode!
+  description: String!
+  facetIds: [ID!]!
+  facetValueIds: [ID!]!
+  """An array of ids of the Collections in which this result appears"""
+  collectionIds: [ID!]!
+  """A relevance score for the result. Differs between database implementations"""
+  score: Float!
+}`}
+</GraphQLDoc>
+
+<a name="searchresultasset"></a>
+
+## SearchResultAsset
+
+<GraphQLDoc
+  type="type"
+  typeName="SearchResultAsset"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    String: '/reference/graphql-api/shop/object-types#string',
+    Coordinate: '/reference/graphql-api/shop/object-types#coordinate',
+  }}
+>
+{`type SearchResultAsset {
+  id: ID!
+  preview: String!
+  focalPoint: Coordinate
+}`}
+</GraphQLDoc>
+
+<a name="searchresultprice"></a>
+
+## SearchResultPrice
+
+<GraphQLDoc
+  type="union"
+  typeName="SearchResultPrice"
+  typeLinks={{
+    PriceRange: '/reference/graphql-api/shop/object-types#pricerange',
+    SinglePrice: '/reference/graphql-api/shop/object-types#singleprice',
+  }}
+>
+{`"""The price of a search result product, either as a range or as a single price"""
+union SearchResultPrice = PriceRange | SinglePrice`}
+</GraphQLDoc>
+
+<a name="seller"></a>
+
+## Seller
+
+<GraphQLDoc
+  type="type"
+  typeName="Seller"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    String: '/reference/graphql-api/shop/object-types#string',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type Seller {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  name: String!
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="setcustomerfororderresult"></a>
+
+## SetCustomerForOrderResult
+
+<GraphQLDoc
+  type="union"
+  typeName="SetCustomerForOrderResult"
+  typeLinks={{
+    Order: '/reference/graphql-api/shop/object-types#order',
+    AlreadyLoggedInError: '/reference/graphql-api/shop/object-types#alreadyloggedinerror',
+    EmailAddressConflictError: '/reference/graphql-api/shop/object-types#emailaddressconflicterror',
+    NoActiveOrderError: '/reference/graphql-api/shop/object-types#noactiveordererror',
+    GuestCheckoutError: '/reference/graphql-api/shop/object-types#guestcheckouterror',
+  }}
+>
+{`union SetCustomerForOrderResult = Order | AlreadyLoggedInError | EmailAddressConflictError | NoActiveOrderError | GuestCheckoutError`}
+</GraphQLDoc>
+
+<a name="setordershippingmethodresult"></a>
+
+## SetOrderShippingMethodResult
+
+<GraphQLDoc
+  type="union"
+  typeName="SetOrderShippingMethodResult"
+  typeLinks={{
+    Order: '/reference/graphql-api/shop/object-types#order',
+    OrderModificationError: '/reference/graphql-api/shop/object-types#ordermodificationerror',
+    IneligibleShippingMethodError: '/reference/graphql-api/shop/object-types#ineligibleshippingmethoderror',
+    NoActiveOrderError: '/reference/graphql-api/shop/object-types#noactiveordererror',
+  }}
+>
+{`union SetOrderShippingMethodResult = Order | OrderModificationError | IneligibleShippingMethodError | NoActiveOrderError`}
+</GraphQLDoc>
+
+<a name="shippingline"></a>
+
+## ShippingLine
+
+<GraphQLDoc
+  type="type"
+  typeName="ShippingLine"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    ShippingMethod: '/reference/graphql-api/shop/object-types#shippingmethod',
+    Money: '/reference/graphql-api/shop/object-types#money',
+    Discount: '/reference/graphql-api/shop/object-types#discount',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type ShippingLine {
+  id: ID!
+  shippingMethod: ShippingMethod!
+  price: Money!
+  priceWithTax: Money!
+  discountedPrice: Money!
+  discountedPriceWithTax: Money!
+  discounts: [Discount!]!
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="shippingmethod"></a>
+
+## ShippingMethod
+
+<GraphQLDoc
+  type="type"
+  typeName="ShippingMethod"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    LanguageCode: '/reference/graphql-api/shop/enums#languagecode',
+    String: '/reference/graphql-api/shop/object-types#string',
+    ConfigurableOperation: '/reference/graphql-api/shop/object-types#configurableoperation',
+    ShippingMethodTranslation: '/reference/graphql-api/shop/object-types#shippingmethodtranslation',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type ShippingMethod {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  languageCode: LanguageCode!
+  code: String!
+  name: String!
+  description: String!
+  fulfillmentHandlerCode: String!
+  checker: ConfigurableOperation!
+  calculator: ConfigurableOperation!
+  translations: [ShippingMethodTranslation!]!
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="shippingmethodlist"></a>
+
+## ShippingMethodList
+
+<GraphQLDoc
+  type="type"
+  typeName="ShippingMethodList"
+  typeLinks={{
+    ShippingMethod: '/reference/graphql-api/shop/object-types#shippingmethod',
+    Int: '/reference/graphql-api/shop/object-types#int',
+  }}
+>
+{`type ShippingMethodList {
+  items: [ShippingMethod!]!
+  totalItems: Int!
+}`}
+</GraphQLDoc>
+
+<a name="shippingmethodquote"></a>
+
+## ShippingMethodQuote
+
+<GraphQLDoc
+  type="type"
+  typeName="ShippingMethodQuote"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    Money: '/reference/graphql-api/shop/object-types#money',
+    String: '/reference/graphql-api/shop/object-types#string',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type ShippingMethodQuote {
+  id: ID!
+  price: Money!
+  priceWithTax: Money!
+  code: String!
+  name: String!
+  description: String!
+  """Any optional metadata returned by the ShippingCalculator in the ShippingCalculationResult"""
+  metadata: JSON
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="shippingmethodtranslation"></a>
+
+## ShippingMethodTranslation
+
+<GraphQLDoc
+  type="type"
+  typeName="ShippingMethodTranslation"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    LanguageCode: '/reference/graphql-api/shop/enums#languagecode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`type ShippingMethodTranslation {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  languageCode: LanguageCode!
+  name: String!
+  description: String!
+}`}
+</GraphQLDoc>
+
+<a name="singleprice"></a>
+
+## SinglePrice
+
+<GraphQLDoc
+  type="type"
+  typeName="SinglePrice"
+  typeLinks={{
+    Money: '/reference/graphql-api/shop/object-types#money',
+  }}
+>
+{`"""The price value where the result has a single price"""
+type SinglePrice {
+  value: Money!
+}`}
+</GraphQLDoc>
+
+<a name="string"></a>
+
+## String
+
+<GraphQLDoc
+  type="scalar"
+  typeName="String"
+  typeLinks={{}}
+>
+{`"""The \`String\` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text."""
+scalar String`}
+</GraphQLDoc>
+
+<a name="stringcustomfieldconfig"></a>
+
+## StringCustomFieldConfig
+
+<GraphQLDoc
+  type="type"
+  typeName="StringCustomFieldConfig"
+  typeLinks={{
+    String: '/reference/graphql-api/shop/object-types#string',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+    Int: '/reference/graphql-api/shop/object-types#int',
+    LocalizedString: '/reference/graphql-api/shop/object-types#localizedstring',
+    Permission: '/reference/graphql-api/shop/enums#permission',
+    StringFieldOption: '/reference/graphql-api/shop/object-types#stringfieldoption',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type StringCustomFieldConfig {
+  name: String!
+  type: String!
+  list: Boolean!
+  length: Int
+  label: [LocalizedString!]
+  description: [LocalizedString!]
+  readonly: Boolean
+  internal: Boolean
+  nullable: Boolean
+  requiresPermission: [Permission!]
+  deprecated: Boolean
+  deprecationReason: String
+  pattern: String
+  options: [StringFieldOption!]
+  ui: JSON
+}`}
+</GraphQLDoc>
+
+<a name="stringfieldoption"></a>
+
+## StringFieldOption
+
+<GraphQLDoc
+  type="type"
+  typeName="StringFieldOption"
+  typeLinks={{
+    String: '/reference/graphql-api/shop/object-types#string',
+    LocalizedString: '/reference/graphql-api/shop/object-types#localizedstring',
+  }}
+>
+{`type StringFieldOption {
+  value: String!
+  label: [LocalizedString!]
+}`}
+</GraphQLDoc>
+
+<a name="stringstructfieldconfig"></a>
+
+## StringStructFieldConfig
+
+<GraphQLDoc
+  type="type"
+  typeName="StringStructFieldConfig"
+  typeLinks={{
+    String: '/reference/graphql-api/shop/object-types#string',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+    LocalizedString: '/reference/graphql-api/shop/object-types#localizedstring',
+    Int: '/reference/graphql-api/shop/object-types#int',
+    StringFieldOption: '/reference/graphql-api/shop/object-types#stringfieldoption',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type StringStructFieldConfig {
+  name: String!
+  type: String!
+  list: Boolean!
+  label: [LocalizedString!]
+  description: [LocalizedString!]
+  length: Int
+  pattern: String
+  options: [StringFieldOption!]
+  ui: JSON
+}`}
+</GraphQLDoc>
+
+<a name="structcustomfieldconfig"></a>
+
+## StructCustomFieldConfig
+
+<GraphQLDoc
+  type="type"
+  typeName="StructCustomFieldConfig"
+  typeLinks={{
+    String: '/reference/graphql-api/shop/object-types#string',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+    StructFieldConfig: '/reference/graphql-api/shop/object-types#structfieldconfig',
+    LocalizedString: '/reference/graphql-api/shop/object-types#localizedstring',
+    Permission: '/reference/graphql-api/shop/enums#permission',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type StructCustomFieldConfig {
+  name: String!
+  type: String!
+  list: Boolean!
+  fields: [StructFieldConfig!]!
+  label: [LocalizedString!]
+  description: [LocalizedString!]
+  readonly: Boolean
+  internal: Boolean
+  nullable: Boolean
+  requiresPermission: [Permission!]
+  deprecated: Boolean
+  deprecationReason: String
+  ui: JSON
+}`}
+</GraphQLDoc>
+
+<a name="structfieldconfig"></a>
+
+## StructFieldConfig
+
+<GraphQLDoc
+  type="union"
+  typeName="StructFieldConfig"
+  typeLinks={{
+    StringStructFieldConfig: '/reference/graphql-api/shop/object-types#stringstructfieldconfig',
+    IntStructFieldConfig: '/reference/graphql-api/shop/object-types#intstructfieldconfig',
+    FloatStructFieldConfig: '/reference/graphql-api/shop/object-types#floatstructfieldconfig',
+    BooleanStructFieldConfig: '/reference/graphql-api/shop/object-types#booleanstructfieldconfig',
+    DateTimeStructFieldConfig: '/reference/graphql-api/shop/object-types#datetimestructfieldconfig',
+    TextStructFieldConfig: '/reference/graphql-api/shop/object-types#textstructfieldconfig',
+  }}
+>
+{`union StructFieldConfig = StringStructFieldConfig | IntStructFieldConfig | FloatStructFieldConfig | BooleanStructFieldConfig | DateTimeStructFieldConfig | TextStructFieldConfig`}
+</GraphQLDoc>
+
+<a name="success"></a>
+
+## Success
+
+<GraphQLDoc
+  type="type"
+  typeName="Success"
+  typeLinks={{
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+  }}
+>
+{`"""Indicates that an operation succeeded, where we do not want to return any more specific information."""
+type Success {
+  success: Boolean!
+}`}
+</GraphQLDoc>
+
+<a name="surcharge"></a>
+
+## Surcharge
+
+<GraphQLDoc
+  type="type"
+  typeName="Surcharge"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    String: '/reference/graphql-api/shop/object-types#string',
+    TaxLine: '/reference/graphql-api/shop/object-types#taxline',
+    Money: '/reference/graphql-api/shop/object-types#money',
+    Float: '/reference/graphql-api/shop/object-types#float',
+  }}
+>
+{`type Surcharge {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  description: String!
+  sku: String
+  taxLines: [TaxLine!]!
+  price: Money!
+  priceWithTax: Money!
+  taxRate: Float!
+}`}
+</GraphQLDoc>
+
+<a name="tag"></a>
+
+## Tag
+
+<GraphQLDoc
+  type="type"
+  typeName="Tag"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`type Tag {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  value: String!
+}`}
+</GraphQLDoc>
+
+<a name="taglist"></a>
+
+## TagList
+
+<GraphQLDoc
+  type="type"
+  typeName="TagList"
+  typeLinks={{
+    Tag: '/reference/graphql-api/shop/object-types#tag',
+    Int: '/reference/graphql-api/shop/object-types#int',
+  }}
+>
+{`type TagList {
+  items: [Tag!]!
+  totalItems: Int!
+}`}
+</GraphQLDoc>
+
+<a name="taxcategory"></a>
+
+## TaxCategory
+
+<GraphQLDoc
+  type="type"
+  typeName="TaxCategory"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    String: '/reference/graphql-api/shop/object-types#string',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type TaxCategory {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  name: String!
+  isDefault: Boolean!
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="taxline"></a>
+
+## TaxLine
+
+<GraphQLDoc
+  type="type"
+  typeName="TaxLine"
+  typeLinks={{
+    String: '/reference/graphql-api/shop/object-types#string',
+    Float: '/reference/graphql-api/shop/object-types#float',
+  }}
+>
+{`type TaxLine {
+  description: String!
+  taxRate: Float!
+}`}
+</GraphQLDoc>
+
+<a name="taxrate"></a>
+
+## TaxRate
+
+<GraphQLDoc
+  type="type"
+  typeName="TaxRate"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    String: '/reference/graphql-api/shop/object-types#string',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+    Float: '/reference/graphql-api/shop/object-types#float',
+    TaxCategory: '/reference/graphql-api/shop/object-types#taxcategory',
+    Zone: '/reference/graphql-api/shop/object-types#zone',
+    CustomerGroup: '/reference/graphql-api/shop/object-types#customergroup',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type TaxRate {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  name: String!
+  enabled: Boolean!
+  value: Float!
+  category: TaxCategory!
+  zone: Zone!
+  customerGroup: CustomerGroup
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="taxratelist"></a>
+
+## TaxRateList
+
+<GraphQLDoc
+  type="type"
+  typeName="TaxRateList"
+  typeLinks={{
+    TaxRate: '/reference/graphql-api/shop/object-types#taxrate',
+    Int: '/reference/graphql-api/shop/object-types#int',
+  }}
+>
+{`type TaxRateList {
+  items: [TaxRate!]!
+  totalItems: Int!
+}`}
+</GraphQLDoc>
+
+<a name="textcustomfieldconfig"></a>
+
+## TextCustomFieldConfig
+
+<GraphQLDoc
+  type="type"
+  typeName="TextCustomFieldConfig"
+  typeLinks={{
+    String: '/reference/graphql-api/shop/object-types#string',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+    LocalizedString: '/reference/graphql-api/shop/object-types#localizedstring',
+    Permission: '/reference/graphql-api/shop/enums#permission',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type TextCustomFieldConfig {
+  name: String!
+  type: String!
+  list: Boolean!
+  label: [LocalizedString!]
+  description: [LocalizedString!]
+  readonly: Boolean
+  internal: Boolean
+  nullable: Boolean
+  requiresPermission: [Permission!]
+  deprecated: Boolean
+  deprecationReason: String
+  ui: JSON
+}`}
+</GraphQLDoc>
+
+<a name="textstructfieldconfig"></a>
+
+## TextStructFieldConfig
+
+<GraphQLDoc
+  type="type"
+  typeName="TextStructFieldConfig"
+  typeLinks={{
+    String: '/reference/graphql-api/shop/object-types#string',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+    LocalizedString: '/reference/graphql-api/shop/object-types#localizedstring',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type TextStructFieldConfig {
+  name: String!
+  type: String!
+  list: Boolean!
+  label: [LocalizedString!]
+  description: [LocalizedString!]
+  ui: JSON
+}`}
+</GraphQLDoc>
+
+<a name="transitionordertostateresult"></a>
+
+## TransitionOrderToStateResult
+
+<GraphQLDoc
+  type="union"
+  typeName="TransitionOrderToStateResult"
+  typeLinks={{
+    Order: '/reference/graphql-api/shop/object-types#order',
+    OrderStateTransitionError: '/reference/graphql-api/shop/object-types#orderstatetransitionerror',
+  }}
+>
+{`union TransitionOrderToStateResult = Order | OrderStateTransitionError`}
+</GraphQLDoc>
+
+<a name="updatecustomeremailaddressresult"></a>
+
+## UpdateCustomerEmailAddressResult
+
+<GraphQLDoc
+  type="union"
+  typeName="UpdateCustomerEmailAddressResult"
+  typeLinks={{
+    Success: '/reference/graphql-api/shop/object-types#success',
+    IdentifierChangeTokenInvalidError: '/reference/graphql-api/shop/object-types#identifierchangetokeninvaliderror',
+    IdentifierChangeTokenExpiredError: '/reference/graphql-api/shop/object-types#identifierchangetokenexpirederror',
+    NativeAuthStrategyError: '/reference/graphql-api/shop/object-types#nativeauthstrategyerror',
+  }}
+>
+{`union UpdateCustomerEmailAddressResult = Success | IdentifierChangeTokenInvalidError | IdentifierChangeTokenExpiredError | NativeAuthStrategyError`}
+</GraphQLDoc>
+
+<a name="updatecustomerpasswordresult"></a>
+
+## UpdateCustomerPasswordResult
+
+<GraphQLDoc
+  type="union"
+  typeName="UpdateCustomerPasswordResult"
+  typeLinks={{
+    Success: '/reference/graphql-api/shop/object-types#success',
+    InvalidCredentialsError: '/reference/graphql-api/shop/object-types#invalidcredentialserror',
+    PasswordValidationError: '/reference/graphql-api/shop/object-types#passwordvalidationerror',
+    NativeAuthStrategyError: '/reference/graphql-api/shop/object-types#nativeauthstrategyerror',
+  }}
+>
+{`union UpdateCustomerPasswordResult = Success | InvalidCredentialsError | PasswordValidationError | NativeAuthStrategyError`}
+</GraphQLDoc>
+
+<a name="updatemultipleorderitemsresult"></a>
+
+## UpdateMultipleOrderItemsResult
+
+<GraphQLDoc
+  type="type"
+  typeName="UpdateMultipleOrderItemsResult"
+  typeLinks={{
+    Order: '/reference/graphql-api/shop/object-types#order',
+    UpdateOrderItemErrorResult: '/reference/graphql-api/shop/object-types#updateorderitemerrorresult',
+  }}
+>
+{`"""
+Returned when multiple items are added to an Order.
+The errorResults array contains the errors that occurred for each item, if any.
+"""
+type UpdateMultipleOrderItemsResult {
+  order: Order!
+  errorResults: [UpdateOrderItemErrorResult!]!
+}`}
+</GraphQLDoc>
+
+<a name="updateorderitemerrorresult"></a>
+
+## UpdateOrderItemErrorResult
+
+<GraphQLDoc
+  type="union"
+  typeName="UpdateOrderItemErrorResult"
+  typeLinks={{
+    OrderModificationError: '/reference/graphql-api/shop/object-types#ordermodificationerror',
+    OrderLimitError: '/reference/graphql-api/shop/object-types#orderlimiterror',
+    NegativeQuantityError: '/reference/graphql-api/shop/object-types#negativequantityerror',
+    InsufficientStockError: '/reference/graphql-api/shop/object-types#insufficientstockerror',
+    OrderInterceptorError: '/reference/graphql-api/shop/object-types#orderinterceptorerror',
+  }}
+>
+{`"""Union type of all possible errors that can occur when adding or removing items from an Order."""
+union UpdateOrderItemErrorResult = OrderModificationError | OrderLimitError | NegativeQuantityError | InsufficientStockError | OrderInterceptorError`}
+</GraphQLDoc>
+
+<a name="updateorderitemsresult"></a>
+
+## UpdateOrderItemsResult
+
+<GraphQLDoc
+  type="union"
+  typeName="UpdateOrderItemsResult"
+  typeLinks={{
+    Order: '/reference/graphql-api/shop/object-types#order',
+    OrderModificationError: '/reference/graphql-api/shop/object-types#ordermodificationerror',
+    OrderLimitError: '/reference/graphql-api/shop/object-types#orderlimiterror',
+    NegativeQuantityError: '/reference/graphql-api/shop/object-types#negativequantityerror',
+    InsufficientStockError: '/reference/graphql-api/shop/object-types#insufficientstockerror',
+    OrderInterceptorError: '/reference/graphql-api/shop/object-types#orderinterceptorerror',
+  }}
+>
+{`union UpdateOrderItemsResult = Order | OrderModificationError | OrderLimitError | NegativeQuantityError | InsufficientStockError | OrderInterceptorError`}
+</GraphQLDoc>
+
+<a name="upload"></a>
+
+## Upload
+
+<GraphQLDoc
+  type="scalar"
+  typeName="Upload"
+  typeLinks={{}}
+>
+{`scalar Upload`}
+</GraphQLDoc>
+
+<a name="user"></a>
+
+## User
+
+<GraphQLDoc
+  type="type"
+  typeName="User"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    String: '/reference/graphql-api/shop/object-types#string',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+    Role: '/reference/graphql-api/shop/object-types#role',
+    AuthenticationMethod: '/reference/graphql-api/shop/object-types#authenticationmethod',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type User {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  identifier: String!
+  verified: Boolean!
+  roles: [Role!]!
+  lastLogin: DateTime
+  authenticationMethods: [AuthenticationMethod!]!
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="verificationtokenexpirederror"></a>
+
+## VerificationTokenExpiredError
+
+<GraphQLDoc
+  type="type"
+  typeName="VerificationTokenExpiredError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""
+Returned if the verification token (used to verify a Customer's email address) is valid, but has
+expired according to the \`verificationTokenDuration\` setting in the AuthOptions.
+"""
+type VerificationTokenExpiredError {
+  errorCode: ErrorCode!
+  message: String!
+}`}
+</GraphQLDoc>
+
+<a name="verificationtokeninvaliderror"></a>
+
+## VerificationTokenInvalidError
+
+<GraphQLDoc
+  type="type"
+  typeName="VerificationTokenInvalidError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/shop/enums#errorcode',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""
+Returned if the verification token (used to verify a Customer's email address) is either
+invalid or does not match any expected tokens.
+"""
+type VerificationTokenInvalidError {
+  errorCode: ErrorCode!
+  message: String!
+}`}
+</GraphQLDoc>
+
+<a name="verifycustomeraccountresult"></a>
+
+## VerifyCustomerAccountResult
+
+<GraphQLDoc
+  type="union"
+  typeName="VerifyCustomerAccountResult"
+  typeLinks={{
+    CurrentUser: '/reference/graphql-api/shop/object-types#currentuser',
+    VerificationTokenInvalidError: '/reference/graphql-api/shop/object-types#verificationtokeninvaliderror',
+    VerificationTokenExpiredError: '/reference/graphql-api/shop/object-types#verificationtokenexpirederror',
+    MissingPasswordError: '/reference/graphql-api/shop/object-types#missingpassworderror',
+    PasswordValidationError: '/reference/graphql-api/shop/object-types#passwordvalidationerror',
+    PasswordAlreadySetError: '/reference/graphql-api/shop/object-types#passwordalreadyseterror',
+    NativeAuthStrategyError: '/reference/graphql-api/shop/object-types#nativeauthstrategyerror',
+  }}
+>
+{`union VerifyCustomerAccountResult = CurrentUser | VerificationTokenInvalidError | VerificationTokenExpiredError | MissingPasswordError | PasswordValidationError | PasswordAlreadySetError | NativeAuthStrategyError`}
+</GraphQLDoc>
+
+<a name="zone"></a>
+
+## Zone
+
+<GraphQLDoc
+  type="type"
+  typeName="Zone"
+  typeLinks={{
+    ID: '/reference/graphql-api/shop/object-types#id',
+    DateTime: '/reference/graphql-api/shop/object-types#datetime',
+    String: '/reference/graphql-api/shop/object-types#string',
+    Region: '/reference/graphql-api/shop/object-types#region',
+    JSON: '/reference/graphql-api/shop/object-types#json',
+  }}
+>
+{`type Zone {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  name: String!
+  members: [Region!]!
+  customFields: JSON
+}`}
+</GraphQLDoc>

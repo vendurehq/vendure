@@ -1,0 +1,163 @@
+<vdr-page-block>
+    <vdr-action-bar>
+        <vdr-ab-left>
+            <vdr-language-selector
+                [availableLanguageCodes]="availableLanguages$ | async"
+                [currentLanguageCode]="contentLanguage$ | async"
+                (languageCodeChange)="setLanguage($event)"
+            ></vdr-language-selector>
+        </vdr-ab-left>
+        <vdr-ab-right>
+            <vdr-action-bar-items locationId="collection-list" />
+            <a
+                class="btn btn-primary"
+                *vdrIfPermissions="['CreateCatalog', 'CreateCollection']"
+                [routerLink]="['./create']"
+            >
+                <clr-icon shape="plus"></clr-icon>
+                {{ 'catalog.create-new-collection' | translate }}
+            </a>
+            <vdr-action-bar-dropdown-menu locationId="collection-list" />
+        </vdr-ab-right>
+    </vdr-action-bar>
+</vdr-page-block>
+<vdr-split-view [rightPanelOpen]="activeCollectionId$ | async" (closeClicked)="closeContents()">
+    <ng-template vdrSplitViewLeft>
+        <vdr-collection-data-table
+            class="mt-2"
+            [id]="dataTableListId"
+            [items]="items$ | async"
+            [subCollections]="subCollections$ | async"
+            [itemsPerPage]="itemsPerPage$ | async"
+            [totalItems]="totalItems$ | async"
+            [currentPage]="currentPage$ | async"
+            [filters]="filters"
+            [activeIndex]="activeCollectionIndex$ | async"
+            (pageChange)="setPageNumber($event)"
+            (itemsPerPageChange)="setItemsPerPage($event)"
+            (changeOrder)="onRearrange($event)"
+            (visibleColumnsChange)="setVisibleColumns($event)"
+        >
+            <vdr-bulk-action-menu
+                locationId="collection-list"
+                [hostComponent]="this"
+                [selectionManager]="selectionManager"
+            ></vdr-bulk-action-menu>
+            <vdr-dt2-search
+                [searchTermControl]="searchTermControl"
+                [searchTermPlaceholder]="'common.search-by-name' | translate"
+            ></vdr-dt2-search>
+            <vdr-dt2-column [heading]="'common.id' | translate" id="id" [hiddenByDefault]="true">
+                <ng-template let-collection="item">
+                    {{ collection.id }}
+                </ng-template>
+            </vdr-dt2-column>
+            <vdr-dt2-column
+                [heading]="'common.created-at' | translate" id="created-at"
+                [hiddenByDefault]="true"
+                [sort]="sorts.get('createdAt')"
+            >
+                <ng-template let-collection="item">
+                    {{ collection.createdAt | localeDate : 'short' }}
+                </ng-template>
+            </vdr-dt2-column>
+            <vdr-dt2-column
+                [heading]="'common.updated-at' | translate" id="updated-at"
+                [hiddenByDefault]="true"
+                [sort]="sorts.get('updatedAt')"
+            >
+                <ng-template let-collection="item">
+                    {{ collection.updatedAt | localeDate : 'short' }}
+                </ng-template>
+            </vdr-dt2-column>
+            <vdr-dt2-column
+                [heading]="'common.position' | translate" id="position"
+                [hiddenByDefault]="true"
+                [sort]="sorts.get('position')"
+            >
+                <ng-template let-collection="item">
+                    {{ collection.position }}
+                </ng-template>
+            </vdr-dt2-column>
+            <vdr-dt2-column
+                [heading]="'common.name' | translate" id="name"
+                [optional]="false"
+                [sort]="sorts.get('name')"
+            >
+                <ng-template let-collection="item" let-depth="depth">
+                    <div [ngClass]="'indent-' + depth"></div>
+                    <clr-icon
+                        class="child-arrow"
+                        [class.transparent]="depth === 0"
+                        shape="child-arrow"
+                        *ngIf="!collection.children?.length"
+                    ></clr-icon>
+                    <button
+                        class="icon-button folder-button"
+                        *ngIf="collection.children?.length"
+                        (click)="toggleExpanded(collection)"
+                    >
+                        <clr-icon shape="folder" *ngIf="!expandedIds.includes(collection.id)"></clr-icon>
+                        <clr-icon shape="folder-open" *ngIf="expandedIds.includes(collection.id)"></clr-icon>
+                    </button>
+                    <a class="button-ghost" [routerLink]="['./', collection.id]"
+                        ><span>{{ collection.name }}</span>
+                        <clr-icon shape="arrow right"></clr-icon>
+                    </a>
+                </ng-template>
+            </vdr-dt2-column>
+            <vdr-dt2-column [heading]="'common.breadcrumb' | translate" id="breadcrumb">
+                <ng-template let-collection="item">
+                    <div class="breadcrumb">
+                        <ng-container *ngIf="collection | collectionBreadcrumb as breadcrumbs">
+                            <ng-container *ngIf="breadcrumbs.length">
+                                <div *ngFor="let item of breadcrumbs">
+                                    <span class="separator">/</span>{{ item.name }}
+                                </div>
+                            </ng-container>
+                            <span class="separator" *ngIf="!breadcrumbs.length">/</span>
+                        </ng-container>
+                    </div>
+                </ng-template>
+            </vdr-dt2-column>
+            <vdr-dt2-column [heading]="'common.slug' | translate" id="slug" [sort]="sorts.get('slug')">
+                <ng-template let-collection="item">
+                    {{ collection.slug }}
+                </ng-template>
+            </vdr-dt2-column>
+            <vdr-dt2-column [heading]="'common.visibility' | translate" id="visibility">
+                <ng-template let-collection="item">
+                    <vdr-chip *ngIf="collection.isPrivate" colorType="warning">{{
+                        'common.private' | translate
+                        }}</vdr-chip>
+                    <vdr-chip *ngIf="!collection.isPrivate" colorType="success">{{
+                        'common.public' | translate
+                        }}</vdr-chip>
+                </ng-template>
+            </vdr-dt2-column>
+            <vdr-dt2-column [heading]="'common.view-contents' | translate" id="view-contents" [optional]="false">
+                <ng-template let-collection="item">
+                    <a
+                        class="button-small bg-weight-150"
+                        [routerLink]="['./', { contents: collection.id }]"
+                        [queryParams]="{ contentsPage: 1 }"
+                        queryParamsHandling="merge"
+                    >
+                        <span>{{ 'common.view-contents' | translate }}</span>
+                        <clr-icon shape="file-group"></clr-icon>
+                    </a>
+                </ng-template>
+            </vdr-dt2-column>
+            <vdr-dt2-custom-field-column
+                *ngFor="let customField of customFields"
+                [customField]="customField"
+                [sorts]="sorts"
+            />
+        </vdr-collection-data-table>
+    </ng-template>
+    <ng-template vdrSplitViewRight [splitViewTitle]="activeCollectionTitle$ | async">
+        <ng-container *ngIf="activeCollectionId$ | async as activeGroup">
+            <vdr-collection-contents [collectionId]="activeCollectionId$ | async"></vdr-collection-contents>
+        </ng-container>
+    </ng-template>
+</vdr-split-view>

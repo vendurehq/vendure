@@ -1,0 +1,13 @@
+
+vdr-data-table {
+    ::ng-deep {
+        table {
+            margin-top: 0;
+        }
+    }
+}
+
+vdr-order-state-label {
+    display: inline-block;
+    margin-top: 2px;
+}

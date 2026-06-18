@@ -1,0 +1,67 @@
+---
+title: "UseChannel"
+generated: true
+---
+## useChannel
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/hooks/use-channel.ts" sourceLine="21" packageName="@vendure/dashboard" since="3.3.0" />
+
+Provides access to the [ChannelContext](/reference/dashboard/hooks/use-channel#channelcontext) which contains information
+about the active channel.
+
+*Example*
+
+```tsx
+const { activeChannel } = useChannel();
+```
+
+```ts title="Signature"
+function useChannel(): void
+```
+## ChannelContext
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/providers/channel-provider.tsx" sourceLine="71" packageName="@vendure/dashboard" since="3.3.0" />
+
+Provides information about the active channel, and the means to set a new
+active channel.
+
+```ts title="Signature"
+interface ChannelContext {
+    isLoading: boolean;
+    channels: Channel[];
+    activeChannel: ActiveChannel | undefined;
+    setActiveChannel: (channelId: string) => void;
+    refreshChannels: () => void;
+}
+```
+
+<div className="members-wrapper">
+
+### isLoading
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+Whether the channels are loading.
+### channels
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>[]`}   />
+
+An array of all available channels.
+### activeChannel
+
+<MemberInfo kind="property" type={`ActiveChannel | undefined`}   />
+
+The active channel.
+### setActiveChannel
+
+<MemberInfo kind="property" type={`(channelId: string) => void`}   />
+
+The function to set the active channel.
+### refreshChannels
+
+<MemberInfo kind="property" type={`() => void`}   />
+
+The function to refresh the channels.
+
+
+</div>

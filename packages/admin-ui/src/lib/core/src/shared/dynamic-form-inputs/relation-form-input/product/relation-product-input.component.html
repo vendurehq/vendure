@@ -1,0 +1,30 @@
+<vdr-relation-card
+    (select)="selectProduct()"
+    (remove)="remove()"
+    placeholderIcon="library"
+    [entity]="product$ | async"
+    [selectLabel]="'catalog.select-product' | translate"
+    [removable]="!config.list"
+    [readonly]="readonly"
+>
+    <ng-template vdrRelationCardPreview let-product="entity">
+        <div>
+        <img class="thumb" *ngIf="product.featuredAsset" [src]="product.featuredAsset | assetPreview: 'tiny'" />
+        </div>
+        <div class="placeholder" *ngIf="!product.featuredAsset">
+            <clr-icon shape="image" size="50"></clr-icon>
+        </div>
+    </ng-template>
+    <ng-template vdrRelationCardDetail let-product="entity">
+        <a [routerLink]="['/catalog/inventory', product.id]">{{ product.name }}</a>
+    </ng-template>
+</vdr-relation-card>
+
+<ng-template #selector let-select="select">
+    <ng-select [items]="results$ | async" [typeahead]="searchTerm$" appendTo="body" (change)="select($event)">
+        <ng-template ng-option-tmp let-item="item">
+            <img [src]="item.featuredAsset | assetPreview: 32" />
+            {{ item.name }}
+        </ng-template>
+    </ng-select>
+</ng-template>

@@ -1,0 +1,620 @@
+---
+title: "Mutations"
+generated: true
+---
+
+
+
+<a name="additemtoorder"></a>
+
+## addItemToOrder
+
+<GraphQLDoc
+  type="mutation"
+  typeName="addItemToOrder"
+  typeLinks={{
+    UpdateOrderItemsResult: '/reference/graphql-api/shop/object-types#updateorderitemsresult',
+    ID: '/reference/graphql-api/shop/object-types#id',
+    Int: '/reference/graphql-api/shop/object-types#int',
+  }}
+>
+{`"""Adds an item to the Order. If custom fields are defined on the OrderLine entity, a third argument 'customFields' will be available."""
+type Mutation {
+  addItemToOrder(productVariantId: ID!, quantity: Int!): UpdateOrderItemsResult!
+}`}
+</GraphQLDoc>
+
+<a name="additemstoorder"></a>
+
+## addItemsToOrder
+
+<GraphQLDoc
+  type="mutation"
+  typeName="addItemsToOrder"
+  typeLinks={{
+    UpdateMultipleOrderItemsResult: '/reference/graphql-api/shop/object-types#updatemultipleorderitemsresult',
+    AddItemInput: '/reference/graphql-api/shop/input-types#additeminput',
+  }}
+>
+{`"""Adds mutliple items to the Order. Returns a list of errors for each item that failed to add. It will still add successful items."""
+type Mutation {
+  addItemsToOrder(inputs: [AddItemInput!]!): UpdateMultipleOrderItemsResult!
+}`}
+</GraphQLDoc>
+
+<a name="addpaymenttoorder"></a>
+
+## addPaymentToOrder
+
+<GraphQLDoc
+  type="mutation"
+  typeName="addPaymentToOrder"
+  typeLinks={{
+    AddPaymentToOrderResult: '/reference/graphql-api/shop/object-types#addpaymenttoorderresult',
+    PaymentInput: '/reference/graphql-api/shop/input-types#paymentinput',
+  }}
+>
+{`"""Add a Payment to the Order"""
+type Mutation {
+  addPaymentToOrder(input: PaymentInput!): AddPaymentToOrderResult!
+}`}
+</GraphQLDoc>
+
+<a name="adjustorderline"></a>
+
+## adjustOrderLine
+
+<GraphQLDoc
+  type="mutation"
+  typeName="adjustOrderLine"
+  typeLinks={{
+    UpdateOrderItemsResult: '/reference/graphql-api/shop/object-types#updateorderitemsresult',
+    ID: '/reference/graphql-api/shop/object-types#id',
+    Int: '/reference/graphql-api/shop/object-types#int',
+  }}
+>
+{`"""Adjusts an OrderLine. If custom fields are defined on the OrderLine entity, a third argument 'customFields' of type \`OrderLineCustomFieldsInput\` will be available."""
+type Mutation {
+  adjustOrderLine(orderLineId: ID!, quantity: Int!): UpdateOrderItemsResult!
+}`}
+</GraphQLDoc>
+
+<a name="applycouponcode"></a>
+
+## applyCouponCode
+
+<GraphQLDoc
+  type="mutation"
+  typeName="applyCouponCode"
+  typeLinks={{
+    ApplyCouponCodeResult: '/reference/graphql-api/shop/object-types#applycouponcoderesult',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""Applies the given coupon code to the active Order"""
+type Mutation {
+  applyCouponCode(couponCode: String!): ApplyCouponCodeResult!
+}`}
+</GraphQLDoc>
+
+<a name="authenticate"></a>
+
+## authenticate
+
+<GraphQLDoc
+  type="mutation"
+  typeName="authenticate"
+  typeLinks={{
+    AuthenticationResult: '/reference/graphql-api/shop/object-types#authenticationresult',
+    AuthenticationInput: '/reference/graphql-api/shop/input-types#authenticationinput',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+  }}
+>
+{`"""Authenticates the user using a named authentication strategy"""
+type Mutation {
+  authenticate(input: AuthenticationInput!, rememberMe: Boolean): AuthenticationResult!
+}`}
+</GraphQLDoc>
+
+<a name="createcustomeraddress"></a>
+
+## createCustomerAddress
+
+<GraphQLDoc
+  type="mutation"
+  typeName="createCustomerAddress"
+  typeLinks={{
+    Address: '/reference/graphql-api/shop/object-types#address',
+    CreateAddressInput: '/reference/graphql-api/shop/input-types#createaddressinput',
+  }}
+>
+{`"""Create a new Customer Address"""
+type Mutation {
+  createCustomerAddress(input: CreateAddressInput!): Address!
+}`}
+</GraphQLDoc>
+
+<a name="deletecustomeraddress"></a>
+
+## deleteCustomerAddress
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteCustomerAddress"
+  typeLinks={{
+    Success: '/reference/graphql-api/shop/object-types#success',
+    ID: '/reference/graphql-api/shop/object-types#id',
+  }}
+>
+{`"""Delete an existing Address"""
+type Mutation {
+  deleteCustomerAddress(id: ID!): Success!
+}`}
+</GraphQLDoc>
+
+<a name="login"></a>
+
+## login
+
+<GraphQLDoc
+  type="mutation"
+  typeName="login"
+  typeLinks={{
+    NativeAuthenticationResult: '/reference/graphql-api/shop/object-types#nativeauthenticationresult',
+    String: '/reference/graphql-api/shop/object-types#string',
+    Boolean: '/reference/graphql-api/shop/object-types#boolean',
+  }}
+>
+{`"""
+Authenticates the user using the native authentication strategy. This mutation is an alias for authenticate({ native: { ... }})
+
+The \`rememberMe\` option applies when using cookie-based sessions, and if \`true\` it will set the maxAge of the session cookie
+to 1 year.
+"""
+type Mutation {
+  login(username: String!, password: String!, rememberMe: Boolean): NativeAuthenticationResult!
+}`}
+</GraphQLDoc>
+
+<a name="logout"></a>
+
+## logout
+
+<GraphQLDoc
+  type="mutation"
+  typeName="logout"
+  typeLinks={{
+    Success: '/reference/graphql-api/shop/object-types#success',
+  }}
+>
+{`"""End the current authenticated session"""
+type Mutation {
+  logout: Success!
+}`}
+</GraphQLDoc>
+
+<a name="refreshcustomerverification"></a>
+
+## refreshCustomerVerification
+
+<GraphQLDoc
+  type="mutation"
+  typeName="refreshCustomerVerification"
+  typeLinks={{
+    RefreshCustomerVerificationResult: '/reference/graphql-api/shop/object-types#refreshcustomerverificationresult',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""Regenerate and send a verification token for a new Customer registration. Only applicable if \`authOptions.requireVerification\` is set to true."""
+type Mutation {
+  refreshCustomerVerification(emailAddress: String!): RefreshCustomerVerificationResult!
+}`}
+</GraphQLDoc>
+
+<a name="registercustomeraccount"></a>
+
+## registerCustomerAccount
+
+<GraphQLDoc
+  type="mutation"
+  typeName="registerCustomerAccount"
+  typeLinks={{
+    RegisterCustomerAccountResult: '/reference/graphql-api/shop/object-types#registercustomeraccountresult',
+    RegisterCustomerInput: '/reference/graphql-api/shop/input-types#registercustomerinput',
+  }}
+>
+{`"""
+Register a Customer account with the given credentials. There are three possible registration flows:
+
+_If \`authOptions.requireVerification\` is set to \`true\`:_
+
+1. **The Customer is registered _with_ a password**. A verificationToken will be created (and typically emailed to the Customer). That
+   verificationToken would then be passed to the \`verifyCustomerAccount\` mutation _without_ a password. The Customer is then
+   verified and authenticated in one step.
+2. **The Customer is registered _without_ a password**. A verificationToken will be created (and typically emailed to the Customer). That
+   verificationToken would then be passed to the \`verifyCustomerAccount\` mutation _with_ the chosen password of the Customer. The Customer is then
+   verified and authenticated in one step.
+
+_If \`authOptions.requireVerification\` is set to \`false\`:_
+
+3. The Customer _must_ be registered _with_ a password. No further action is needed - the Customer is able to authenticate immediately.
+"""
+type Mutation {
+  registerCustomerAccount(input: RegisterCustomerInput!): RegisterCustomerAccountResult!
+}`}
+</GraphQLDoc>
+
+<a name="removeallorderlines"></a>
+
+## removeAllOrderLines
+
+<GraphQLDoc
+  type="mutation"
+  typeName="removeAllOrderLines"
+  typeLinks={{
+    RemoveOrderItemsResult: '/reference/graphql-api/shop/object-types#removeorderitemsresult',
+  }}
+>
+{`"""Remove all OrderLine from the Order"""
+type Mutation {
+  removeAllOrderLines: RemoveOrderItemsResult!
+}`}
+</GraphQLDoc>
+
+<a name="removecouponcode"></a>
+
+## removeCouponCode
+
+<GraphQLDoc
+  type="mutation"
+  typeName="removeCouponCode"
+  typeLinks={{
+    Order: '/reference/graphql-api/shop/object-types#order',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""Removes the given coupon code from the active Order"""
+type Mutation {
+  removeCouponCode(couponCode: String!): Order
+}`}
+</GraphQLDoc>
+
+<a name="removeorderline"></a>
+
+## removeOrderLine
+
+<GraphQLDoc
+  type="mutation"
+  typeName="removeOrderLine"
+  typeLinks={{
+    RemoveOrderItemsResult: '/reference/graphql-api/shop/object-types#removeorderitemsresult',
+    ID: '/reference/graphql-api/shop/object-types#id',
+  }}
+>
+{`"""Remove an OrderLine from the Order"""
+type Mutation {
+  removeOrderLine(orderLineId: ID!): RemoveOrderItemsResult!
+}`}
+</GraphQLDoc>
+
+<a name="requestpasswordreset"></a>
+
+## requestPasswordReset
+
+<GraphQLDoc
+  type="mutation"
+  typeName="requestPasswordReset"
+  typeLinks={{
+    RequestPasswordResetResult: '/reference/graphql-api/shop/object-types#requestpasswordresetresult',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""Requests a password reset email to be sent"""
+type Mutation {
+  requestPasswordReset(emailAddress: String!): RequestPasswordResetResult
+}`}
+</GraphQLDoc>
+
+<a name="requestupdatecustomeremailaddress"></a>
+
+## requestUpdateCustomerEmailAddress
+
+<GraphQLDoc
+  type="mutation"
+  typeName="requestUpdateCustomerEmailAddress"
+  typeLinks={{
+    RequestUpdateCustomerEmailAddressResult: '/reference/graphql-api/shop/object-types#requestupdatecustomeremailaddressresult',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""
+Request to update the emailAddress of the active Customer. If \`authOptions.requireVerification\` is enabled
+(as is the default), then the \`identifierChangeToken\` will be assigned to the current User and
+a IdentifierChangeRequestEvent will be raised. This can then be used e.g. by the EmailPlugin to email
+that verification token to the Customer, which is then used to verify the change of email address.
+"""
+type Mutation {
+  requestUpdateCustomerEmailAddress(password: String!, newEmailAddress: String!): RequestUpdateCustomerEmailAddressResult!
+}`}
+</GraphQLDoc>
+
+<a name="resetpassword"></a>
+
+## resetPassword
+
+<GraphQLDoc
+  type="mutation"
+  typeName="resetPassword"
+  typeLinks={{
+    ResetPasswordResult: '/reference/graphql-api/shop/object-types#resetpasswordresult',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""Resets a Customer's password based on the provided token"""
+type Mutation {
+  resetPassword(token: String!, password: String!): ResetPasswordResult!
+}`}
+</GraphQLDoc>
+
+<a name="setcurrencycodefororder"></a>
+
+## setCurrencyCodeForOrder
+
+<GraphQLDoc
+  type="mutation"
+  typeName="setCurrencyCodeForOrder"
+  typeLinks={{
+    UpdateOrderItemsResult: '/reference/graphql-api/shop/object-types#updateorderitemsresult',
+    CurrencyCode: '/reference/graphql-api/shop/enums#currencycode',
+  }}
+>
+{`"""Sets the currency code for the active Order"""
+type Mutation {
+  setCurrencyCodeForOrder(currencyCode: CurrencyCode!): UpdateOrderItemsResult!
+}`}
+</GraphQLDoc>
+
+<a name="setcustomerfororder"></a>
+
+## setCustomerForOrder
+
+<GraphQLDoc
+  type="mutation"
+  typeName="setCustomerForOrder"
+  typeLinks={{
+    SetCustomerForOrderResult: '/reference/graphql-api/shop/object-types#setcustomerfororderresult',
+    CreateCustomerInput: '/reference/graphql-api/shop/input-types#createcustomerinput',
+  }}
+>
+{`"""Set the Customer for the Order. Required only if the Customer is not currently logged in"""
+type Mutation {
+  setCustomerForOrder(input: CreateCustomerInput!): SetCustomerForOrderResult!
+}`}
+</GraphQLDoc>
+
+<a name="setorderbillingaddress"></a>
+
+## setOrderBillingAddress
+
+<GraphQLDoc
+  type="mutation"
+  typeName="setOrderBillingAddress"
+  typeLinks={{
+    ActiveOrderResult: '/reference/graphql-api/shop/object-types#activeorderresult',
+    CreateAddressInput: '/reference/graphql-api/shop/input-types#createaddressinput',
+  }}
+>
+{`"""Sets the billing address for the active Order"""
+type Mutation {
+  setOrderBillingAddress(input: CreateAddressInput!): ActiveOrderResult!
+}`}
+</GraphQLDoc>
+
+<a name="setordercustomfields"></a>
+
+## setOrderCustomFields
+
+<GraphQLDoc
+  type="mutation"
+  typeName="setOrderCustomFields"
+  typeLinks={{
+    ActiveOrderResult: '/reference/graphql-api/shop/object-types#activeorderresult',
+    UpdateOrderInput: '/reference/graphql-api/shop/input-types#updateorderinput',
+  }}
+>
+{`"""Allows any custom fields to be set for the active Order"""
+type Mutation {
+  setOrderCustomFields(input: UpdateOrderInput!): ActiveOrderResult!
+}`}
+</GraphQLDoc>
+
+<a name="setordershippingaddress"></a>
+
+## setOrderShippingAddress
+
+<GraphQLDoc
+  type="mutation"
+  typeName="setOrderShippingAddress"
+  typeLinks={{
+    ActiveOrderResult: '/reference/graphql-api/shop/object-types#activeorderresult',
+    CreateAddressInput: '/reference/graphql-api/shop/input-types#createaddressinput',
+  }}
+>
+{`"""Sets the shipping address for the active Order"""
+type Mutation {
+  setOrderShippingAddress(input: CreateAddressInput!): ActiveOrderResult!
+}`}
+</GraphQLDoc>
+
+<a name="setordershippingmethod"></a>
+
+## setOrderShippingMethod
+
+<GraphQLDoc
+  type="mutation"
+  typeName="setOrderShippingMethod"
+  typeLinks={{
+    SetOrderShippingMethodResult: '/reference/graphql-api/shop/object-types#setordershippingmethodresult',
+    ID: '/reference/graphql-api/shop/object-types#id',
+  }}
+>
+{`"""
+Sets the shipping method by id, which can be obtained with the \`eligibleShippingMethods\` query.
+An Order can have multiple shipping methods, in which case you can pass an array of ids. In this case,
+you should configure a custom ShippingLineAssignmentStrategy in order to know which OrderLines each
+shipping method will apply to.
+"""
+type Mutation {
+  setOrderShippingMethod(shippingMethodId: [ID!]!): SetOrderShippingMethodResult!
+}`}
+</GraphQLDoc>
+
+<a name="transitionordertostate"></a>
+
+## transitionOrderToState
+
+<GraphQLDoc
+  type="mutation"
+  typeName="transitionOrderToState"
+  typeLinks={{
+    TransitionOrderToStateResult: '/reference/graphql-api/shop/object-types#transitionordertostateresult',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""Transitions an Order to a new state. Valid next states can be found by querying \`nextOrderStates\`"""
+type Mutation {
+  transitionOrderToState(state: String!): TransitionOrderToStateResult
+}`}
+</GraphQLDoc>
+
+<a name="unsetorderbillingaddress"></a>
+
+## unsetOrderBillingAddress
+
+<GraphQLDoc
+  type="mutation"
+  typeName="unsetOrderBillingAddress"
+  typeLinks={{
+    ActiveOrderResult: '/reference/graphql-api/shop/object-types#activeorderresult',
+  }}
+>
+{`"""Unsets the billing address for the active Order. Available since version 3.1.0"""
+type Mutation {
+  unsetOrderBillingAddress: ActiveOrderResult!
+}`}
+</GraphQLDoc>
+
+<a name="unsetordershippingaddress"></a>
+
+## unsetOrderShippingAddress
+
+<GraphQLDoc
+  type="mutation"
+  typeName="unsetOrderShippingAddress"
+  typeLinks={{
+    ActiveOrderResult: '/reference/graphql-api/shop/object-types#activeorderresult',
+  }}
+>
+{`"""Unsets the shipping address for the active Order. Available since version 3.1.0"""
+type Mutation {
+  unsetOrderShippingAddress: ActiveOrderResult!
+}`}
+</GraphQLDoc>
+
+<a name="updatecustomer"></a>
+
+## updateCustomer
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateCustomer"
+  typeLinks={{
+    Customer: '/reference/graphql-api/shop/object-types#customer',
+    UpdateCustomerInput: '/reference/graphql-api/shop/input-types#updatecustomerinput',
+  }}
+>
+{`"""Update an existing Customer"""
+type Mutation {
+  updateCustomer(input: UpdateCustomerInput!): Customer!
+}`}
+</GraphQLDoc>
+
+<a name="updatecustomeraddress"></a>
+
+## updateCustomerAddress
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateCustomerAddress"
+  typeLinks={{
+    Address: '/reference/graphql-api/shop/object-types#address',
+    UpdateAddressInput: '/reference/graphql-api/shop/input-types#updateaddressinput',
+  }}
+>
+{`"""Update an existing Address"""
+type Mutation {
+  updateCustomerAddress(input: UpdateAddressInput!): Address!
+}`}
+</GraphQLDoc>
+
+<a name="updatecustomeremailaddress"></a>
+
+## updateCustomerEmailAddress
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateCustomerEmailAddress"
+  typeLinks={{
+    UpdateCustomerEmailAddressResult: '/reference/graphql-api/shop/object-types#updatecustomeremailaddressresult',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""
+Confirm the update of the emailAddress with the provided token, which has been generated by the
+\`requestUpdateCustomerEmailAddress\` mutation.
+"""
+type Mutation {
+  updateCustomerEmailAddress(token: String!): UpdateCustomerEmailAddressResult!
+}`}
+</GraphQLDoc>
+
+<a name="updatecustomerpassword"></a>
+
+## updateCustomerPassword
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateCustomerPassword"
+  typeLinks={{
+    UpdateCustomerPasswordResult: '/reference/graphql-api/shop/object-types#updatecustomerpasswordresult',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""Update the password of the active Customer"""
+type Mutation {
+  updateCustomerPassword(currentPassword: String!, newPassword: String!): UpdateCustomerPasswordResult!
+}`}
+</GraphQLDoc>
+
+<a name="verifycustomeraccount"></a>
+
+## verifyCustomerAccount
+
+<GraphQLDoc
+  type="mutation"
+  typeName="verifyCustomerAccount"
+  typeLinks={{
+    VerifyCustomerAccountResult: '/reference/graphql-api/shop/object-types#verifycustomeraccountresult',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""
+Verify a Customer email address with the token sent to that address. Only applicable if \`authOptions.requireVerification\` is set to true.
+
+If the Customer was not registered with a password in the \`registerCustomerAccount\` mutation, the password _must_ be
+provided here.
+"""
+type Mutation {
+  verifyCustomerAccount(token: String!, password: String): VerifyCustomerAccountResult!
+}`}
+</GraphQLDoc>

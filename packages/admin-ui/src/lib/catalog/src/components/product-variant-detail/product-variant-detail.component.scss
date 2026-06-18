@@ -1,0 +1,40 @@
+.facets, .options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+}
+
+vdr-product-variant-quick-jump {
+    flex: 1;
+    margin-inline-end: calc(var(--space-unit) * 2);
+}
+.stock-levels, .prices {
+    margin-top: calc(var(--space-unit) * 2);
+    padding-top: calc(var(--space-unit) * 2);
+    border-top: 1px solid var(--color-weight-150);
+}
+.price-wrapper {
+    display: flex;
+    align-items: center;
+    gap: var(--space-unit);
+    width: 100%;
+
+    &.pending-deletion {
+        vdr-currency-input {
+            opacity: 0.7;
+        }
+        .delete-button {
+            background-color: var(--color-error-700);
+            color: var(--color-error-100);
+        }
+    }
+}
+
+.title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.title {
+    font-size: var(--font-size-base);
+}

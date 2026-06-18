@@ -1,0 +1,8 @@
+.placeholder {
+    color: var(--color-grey-300);
+}
+.thumb {
+    min-width: 50px;
+    object-fit: contain;
+    border-radius: var(--border-radius);
+}

@@ -1,0 +1,30 @@
+.visible-toggle {
+    margin-top: -3px !important;
+}
+clr-checkbox-wrapper {
+    transition: opacity 0.3s;
+    &.disabled {
+        opacity: 0.5;
+    }
+}
+.collection-breadcrumbs {
+    list-style-type: none;
+    background-color: var(--color-component-bg-200);
+    padding: 2px 6px;
+    margin-bottom: 6px;
+    border-radius: var(--clr-global-borderradius);
+    li {
+        font-size: 0.65rem;
+        display: inline-block;
+        margin-inline-end: 10px;
+        &:last-child {
+            font-weight: 600;
+        }
+    }
+    li:not(:last-child)::after {
+        content: '›';
+        top: 0;
+        color: var(--color-grey-400);
+        margin-inline-start: 10px;
+    }
+}

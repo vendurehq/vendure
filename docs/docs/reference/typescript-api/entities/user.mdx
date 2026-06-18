@@ -1,0 +1,101 @@
+---
+title: "User"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/user/user.entity.ts" sourceLine="21" packageName="@vendure/core" />
+
+A User represents any authenticated user of the Vendure API. This includes both
+[Administrator](/reference/typescript-api/entities/administrator#administrator)s as well as registered [Customer](/reference/typescript-api/entities/customer#customer)s.
+
+```ts title="Signature"
+class User extends VendureEntity implements HasCustomFields, SoftDeletable {
+    constructor(input?: DeepPartial<User>)
+    @Column({ type: Date, nullable: true })
+    deletedAt: Date | null;
+    @Column()
+    identifier: string;
+    @OneToMany(type => AuthenticationMethod, method => method.user)
+    authenticationMethods: AuthenticationMethod[];
+    @Column({ default: false })
+    verified: boolean;
+    @ManyToMany(type => Role)
+    @JoinTable()
+    roles: Role[];
+    @Column({ type: Date, nullable: true })
+    lastLogin: Date | null;
+    @Column(type => CustomUserFields)
+    customFields: CustomUserFields;
+    @OneToMany(type => AuthenticatedSession, session => session.user)
+    sessions: AuthenticatedSession[];
+    getNativeAuthenticationMethod() => NativeAuthenticationMethod;
+    getNativeAuthenticationMethod(strict?: boolean) => NativeAuthenticationMethod | undefined;
+    getNativeAuthenticationMethod(strict?: boolean) => NativeAuthenticationMethod | undefined;
+}
+```
+* Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
+
+
+* Implements: HasCustomFields, [`SoftDeletable`](/reference/typescript-api/entities/interfaces#softdeletable)
+
+
+
+<div className="members-wrapper">
+
+### deletedAt
+
+<MemberInfo kind="property" type={`Date | null`}   />
+
+
+### identifier
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### authenticationMethods
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/authentication-method#authenticationmethod'>AuthenticationMethod</a>[]`}   />
+
+
+### verified
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+
+### roles
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/role#role'>Role</a>[]`}   />
+
+
+### lastLogin
+
+<MemberInfo kind="property" type={`Date | null`}   />
+
+
+### customFields
+
+<MemberInfo kind="property" type={`CustomUserFields`}   />
+
+
+### sessions
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/authenticated-session#authenticatedsession'>AuthenticatedSession</a>[]`}   />
+
+
+### getNativeAuthenticationMethod
+
+<MemberInfo kind="method" type={`() => <a href='/reference/typescript-api/entities/authentication-method#nativeauthenticationmethod'>NativeAuthenticationMethod</a>`}   />
+
+
+### getNativeAuthenticationMethod
+
+<MemberInfo kind="method" type={`(strict?: boolean) => <a href='/reference/typescript-api/entities/authentication-method#nativeauthenticationmethod'>NativeAuthenticationMethod</a> | undefined`}   />
+
+
+### getNativeAuthenticationMethod
+
+<MemberInfo kind="method" type={`(strict?: boolean) => <a href='/reference/typescript-api/entities/authentication-method#nativeauthenticationmethod'>NativeAuthenticationMethod</a> | undefined`}   />
+
+
+
+
+</div>

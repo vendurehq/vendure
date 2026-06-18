@@ -1,0 +1,42 @@
+<vdr-relation-card
+    (select)="selectProductVariant()"
+    (remove)="remove()"
+    placeholderIcon="library"
+    [entity]="productVariant$ | async"
+    [selectLabel]="'catalog.select-product-variant' | translate"
+    [removable]="!config.list"
+    [readonly]="readonly"
+>
+    <ng-template vdrRelationCardPreview let-variant="entity">
+        <div>
+            <img
+                class="thumb"
+                *ngIf="variant.featuredAsset || variant.product.featuredAsset as asset; else placeholder"
+                [src]="asset | assetPreview : 'tiny'"
+            />
+        </div>
+        <ng-template #placeholder>
+            <div class="placeholder" *ngIf="!variant.featuredAsset">
+                <clr-icon shape="image" size="50"></clr-icon>
+            </div>
+        </ng-template>
+    </ng-template>
+    <ng-template vdrRelationCardDetail let-variant="entity">
+        <a [routerLink]="['/catalog/inventory', variant.product.id, { tab: 'variants' }]">{{
+            variant.name
+        }}</a>
+        <div class="">{{ variant.sku }}</div>
+    </ng-template>
+</vdr-relation-card>
+
+<ng-template #selector let-select="select">
+    <ng-select [items]="results$ | async" [typeahead]="searchTerm$" appendTo="body" (change)="select($event)">
+        <ng-template ng-option-tmp let-item="item">
+            <img
+                *ngIf="item.featuredAsset || item.product.featuredAsset as asset"
+                [src]="asset | assetPreview : 32"
+            />
+            {{ item.name }}
+        </ng-template>
+    </ng-select>
+</ng-template>

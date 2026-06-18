@@ -1,0 +1,52 @@
+---
+title: "SqliteSearchStrategy"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/plugin/default-search-plugin/search-strategy/sqlite-search-strategy.ts" sourceLine="30" packageName="@vendure/core" />
+
+A rather naive search for SQLite / SQL.js. Rather than proper
+full-text searching, it uses a weighted `LIKE "%term%"` operator instead.
+
+```ts title="Signature"
+class SqliteSearchStrategy implements SearchStrategy {
+    init(injector: Injector) => ;
+    getFacetValueIds(ctx: RequestContext, input: SearchInput, enabledOnly: boolean) => Promise<Map<ID, number>>;
+    getCollectionIds(ctx: RequestContext, input: SearchInput, enabledOnly: boolean) => Promise<Map<ID, number>>;
+    getSearchResults(ctx: RequestContext, input: SearchInput, enabledOnly: boolean) => Promise<SearchResult[]>;
+    getTotalCount(ctx: RequestContext, input: SearchInput, enabledOnly: boolean) => Promise<number>;
+}
+```
+* Implements: [`SearchStrategy`](/reference/typescript-api/default-search-plugin/search-strategy#searchstrategy)
+
+
+
+<div className="members-wrapper">
+
+### init
+
+<MemberInfo kind="method" type={`(injector: <a href='/reference/typescript-api/common/injector#injector'>Injector</a>) => `}   />
+
+
+### getFacetValueIds
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: SearchInput, enabledOnly: boolean) => Promise<Map<<a href='/reference/typescript-api/common/id#id'>ID</a>, number>>`}   />
+
+
+### getCollectionIds
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: SearchInput, enabledOnly: boolean) => Promise<Map<<a href='/reference/typescript-api/common/id#id'>ID</a>, number>>`}   />
+
+
+### getSearchResults
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: SearchInput, enabledOnly: boolean) => Promise<SearchResult[]>`}   />
+
+
+### getTotalCount
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: SearchInput, enabledOnly: boolean) => Promise<number>`}   />
+
+
+
+
+</div>

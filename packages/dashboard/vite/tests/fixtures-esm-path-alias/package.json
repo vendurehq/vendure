@@ -1,0 +1,6 @@
+{
+    "type": "module",
+    "name": "esm-path-alias",
+    "version": "0.0.1",
+    "main": "index.ts"
+}

@@ -1,0 +1,102 @@
+<div *ngFor="let group of optionGroups" class="option-groups">
+    <div class="name">
+        <label>{{ 'catalog.option' | translate }}</label>
+        <input
+            #optionGroupName
+            placeholder="e.g. Size"
+            clrInput
+            [(ngModel)]="group.name"
+            name="name"
+            required
+            (keydown.enter)="handleEnter($event, optionValueInputComponent)"
+        />
+    </div>
+    <div class="values">
+        <label>{{ 'catalog.option-values' | translate }}</label>
+        <vdr-option-value-input
+            #optionValueInputComponent
+            [(ngModel)]="group.values"
+            (ngModelChange)="generateVariants()"
+            (edit)="generateVariants()"
+            [groupName]="group.name"
+            [disabled]="group.name === ''"
+        ></vdr-option-value-input>
+    </div>
+    <div class="remove-group">
+        <button
+            class="button-small mt-2"
+            [title]="'catalog.remove-option' | translate"
+            (click)="removeOption(group.name)"
+        >
+            <clr-icon shape="trash"></clr-icon>
+        </button>
+    </div>
+</div>
+<button class="button mb-2" (click)="addOption()">
+    <clr-icon shape="plus"></clr-icon>
+    {{ 'catalog.add-option' | translate }}
+</button>
+
+<ng-container *ngIf="stockLocations$ | async as stockLocations">
+    <clr-alert *ngIf="stockLocations.length === 0" clrAlertType="warning" [clrAlertClosable]="false" class="">
+        <clr-alert-item>
+            <span class="alert-text">
+                {{ 'catalog.no-stock-locations-available-on-current-channel' | translate }}
+            </span>
+        </clr-alert-item>
+    </clr-alert>
+
+    <div class="form-grid mb-2">
+        <vdr-form-field *ngIf="stockLocations.length" [label]="'catalog.add-stock-to-location' | translate">
+            <select [(ngModel)]="selectedStockLocationId">
+                <option *ngFor="let location of stockLocations" [value]="location.id">
+                    {{ location.name }}
+                </option>
+            </select>
+        </vdr-form-field>
+    </div>
+
+    <div class="variants-preview" *ngIf="0 < stockLocations.length">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th *ngIf="1 < variants.length">{{ 'common.create' | translate }}</th>
+                    <th *ngIf="1 < variants.length">{{ 'catalog.variant' | translate }}</th>
+                    <th>{{ 'catalog.sku' | translate }}</th>
+                    <th>{{ 'catalog.price' | translate }}</th>
+                    <th>{{ 'catalog.stock-on-hand' | translate }}</th>
+                </tr>
+            </thead>
+            <tr
+                *ngFor="let variant of variants; trackBy: trackByFn"
+                [class.disabled]="!variantFormValues[variant.id].value.enabled === false"
+                [formGroup]="variantFormValues[variant.id]"
+            >
+                <td *ngIf="1 < variants.length">
+                    <input type="checkbox" formControlName="enabled" clrCheckbox />
+                </td>
+                <td *ngIf="1 < variants.length">
+                    {{ variant.values.join(' ') }}
+                </td>
+                <td>
+                    <vdr-form-field>
+                        <input type="text" formControlName="sku" [placeholder]="'catalog.sku' | translate" />
+                    </vdr-form-field>
+                </td>
+                <td>
+                    <vdr-form-field>
+                        <vdr-currency-input
+                            formControlName="price"
+                            [currencyCode]="currencyCode"
+                        ></vdr-currency-input>
+                    </vdr-form-field>
+                </td>
+                <td>
+                    <vdr-form-field>
+                        <input type="number" formControlName="stock" min="0" step="1" />
+                    </vdr-form-field>
+                </td>
+            </tr>
+        </table>
+    </div>
+</ng-container>

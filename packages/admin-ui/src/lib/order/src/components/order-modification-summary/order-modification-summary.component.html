@@ -1,0 +1,53 @@
+<vdr-labeled-data
+        *ngIf="modifyOrderInput.adjustOrderLines?.length"
+        [label]="
+                    'order.modification-adjusting-lines'
+                        | translate : { count: modifyOrderInput.adjustOrderLines?.length }
+                "
+>
+    <div *ngFor="let line of adjustedLines" class="mb-1">
+        {{ line }}
+    </div>
+</vdr-labeled-data>
+<vdr-labeled-data
+        *ngIf="modifyOrderInput.addItems?.length"
+        [label]="
+                    'order.modification-adding-items'
+                        | translate : { count: modifyOrderInput.addItems?.length }
+                "
+>
+    <div *ngFor="let item of addedLines">
+        {{ item.productVariant.name }} x {{ item.quantity }}
+    </div>
+</vdr-labeled-data>
+<vdr-labeled-data
+        *ngIf="modifyOrderInput.surcharges?.length"
+        [label]="
+                    'order.modification-adding-surcharges'
+                        | translate : { count: modifyOrderInput.surcharges?.length }
+                "
+>
+    <div *ngFor="let surcharge of modifyOrderInput.surcharges" class="mb-1">
+        {{ surcharge.description }}: {{ surcharge.price | localeCurrency : orderSnapshot.currencyCode }}
+    </div>
+</vdr-labeled-data>
+<vdr-labeled-data
+        *ngIf="getModifiedFields(shippingAddressForm) as updatedShippingFields"
+        [label]="'order.modification-updating-shipping-address' | translate"
+>
+    {{ updatedShippingFields }}
+</vdr-labeled-data>
+<vdr-labeled-data
+        *ngIf="getModifiedFields(billingAddressForm) as updatedBillingFields"
+        [label]="'order.modification-updating-billing-address' | translate"
+>
+    {{ updatedBillingFields }}
+</vdr-labeled-data>
+<vdr-labeled-data *ngIf="couponCodeChanges.length" [label]="'order.set-coupon-codes' | translate">
+    <div *ngFor="let change of couponCodeChanges" class="mb-1">{{ change }}</div>
+</vdr-labeled-data>
+<ng-container *ngIf="getUpdatedShippingMethodLines() as updatedShippingMethods">
+    <vdr-labeled-data *ngIf="updatedShippingMethods.length" [label]="'order.shipping-method' | translate">
+        <div *ngFor="let change of updatedShippingMethods" class="mb-1">{{ change }}</div>
+    </vdr-labeled-data>
+</ng-container>

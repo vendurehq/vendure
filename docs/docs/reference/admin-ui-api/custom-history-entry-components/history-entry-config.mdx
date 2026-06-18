@@ -1,0 +1,30 @@
+---
+title: "HistoryEntryConfig"
+generated: true
+---
+<GenerationInfo sourceFile="packages/admin-ui/src/lib/core/src/providers/custom-history-entry-component/history-entry-component-types.ts" sourceLine="75" packageName="@vendure/admin-ui" since="1.9.0" />
+
+Configuration for registering a custom [HistoryEntryComponent](/reference/admin-ui-api/custom-history-entry-components/history-entry-component#historyentrycomponent).
+
+```ts title="Signature"
+interface HistoryEntryConfig {
+    type: string;
+    component: Type<HistoryEntryComponent>;
+}
+```
+
+<div className="members-wrapper">
+
+### type
+
+<MemberInfo kind="property" type={`string`}   />
+
+The type should correspond to the custom HistoryEntryType string.
+### component
+
+<MemberInfo kind="property" type={`Type<<a href='/reference/admin-ui-api/custom-history-entry-components/history-entry-component#historyentrycomponent'>HistoryEntryComponent</a>>`}   />
+
+The component to be rendered for this history entry type.
+
+
+</div>

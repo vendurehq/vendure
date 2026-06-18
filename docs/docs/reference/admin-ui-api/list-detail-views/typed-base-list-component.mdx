@@ -1,0 +1,115 @@
+---
+title: "TypedBaseListComponent"
+generated: true
+---
+<GenerationInfo sourceFile="packages/admin-ui/src/lib/core/src/common/base-list.component.ts" sourceLine="217" packageName="@vendure/admin-ui" />
+
+A version of the [BaseListComponent](/reference/admin-ui-api/list-detail-views/base-list-component#baselistcomponent) which is designed to be used with a
+[TypedDocumentNode](https://the-guild.dev/graphql/codegen/plugins/typescript/typed-document-node).
+
+```ts title="Signature"
+class TypedBaseListComponent<T extends TypedDocumentNode<any, Vars>, Field extends keyof ResultOf<T>, Vars extends { options: { filter: any; sort: any } } = VariablesOf<T>> extends BaseListComponent<ResultOf<T>, ItemOf<ResultOf<T>, Field>, VariablesOf<T>> implements OnInit {
+    availableLanguages$: Observable<LanguageCode[]>;
+    contentLanguage$: Observable<LanguageCode>;
+    protected dataService = inject(DataService);
+    protected router = inject(Router);
+    protected serverConfigService = inject(ServerConfigService);
+    protected permissionsService = inject(PermissionsService);
+    protected dataTableConfigService = inject(DataTableConfigService);
+    protected dataTableListId: string | undefined;
+    constructor()
+    configure(config: {
+        document: T;
+        getItems: (data: ResultOf<T>) => { items: Array<ItemOf<ResultOf<T>, Field>>; totalItems: number };
+        setVariables?: (skip: number, take: number) => VariablesOf<T>;
+        refreshListOnChanges?: Array<Observable<any>>;
+    }) => ;
+    ngOnInit() => ;
+    createFilterCollection() => DataTableFilterCollection<NonNullable<NonNullable<Vars['options']>['filter']>>;
+    createSortCollection() => DataTableSortCollection<NonNullable<NonNullable<Vars['options']>['sort']>>;
+    setLanguage(code: LanguageCode) => ;
+    getCustomFieldConfig(key: Exclude<keyof CustomFields, '__typename'> | string) => CustomFieldConfig[];
+}
+```
+* Extends: [`BaseListComponent`](/reference/admin-ui-api/list-detail-views/base-list-component#baselistcomponent)`<ResultOf<T>, ItemOf<ResultOf<T>, Field>, VariablesOf<T>>`
+
+
+* Implements: OnInit
+
+
+
+<div className="members-wrapper">
+
+### availableLanguages$
+
+<MemberInfo kind="property" type={`Observable<<a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>[]>`}   />
+
+
+### contentLanguage$
+
+<MemberInfo kind="property" type={`Observable<<a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>>`}   />
+
+
+### dataService
+
+<MemberInfo kind="property" type={``}   />
+
+
+### router
+
+<MemberInfo kind="property" type={``}   />
+
+
+### serverConfigService
+
+<MemberInfo kind="property" type={``}   />
+
+
+### permissionsService
+
+<MemberInfo kind="property" type={``}   />
+
+
+### dataTableConfigService
+
+<MemberInfo kind="property" type={``}   />
+
+
+### dataTableListId
+
+<MemberInfo kind="property" type={`string | undefined`}   />
+
+
+### configure
+
+<MemberInfo kind="method" type={`(config: {         document: T;         getItems: (data: ResultOf<T>) => { items: Array<ItemOf<ResultOf<T>, Field>>; totalItems: number };         setVariables?: (skip: number, take: number) => VariablesOf<T>;         refreshListOnChanges?: Array<Observable<any>>;     }) => `}   />
+
+
+### ngOnInit
+
+<MemberInfo kind="method" type={`() => `}   />
+
+
+### createFilterCollection
+
+<MemberInfo kind="method" type={`() => DataTableFilterCollection<NonNullable<NonNullable<Vars['options']>['filter']>>`}   />
+
+
+### createSortCollection
+
+<MemberInfo kind="method" type={`() => DataTableSortCollection<NonNullable<NonNullable<Vars['options']>['sort']>>`}   />
+
+
+### setLanguage
+
+<MemberInfo kind="method" type={`(code: <a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>) => `}   />
+
+
+### getCustomFieldConfig
+
+<MemberInfo kind="method" type={`(key: Exclude<keyof <a href='/reference/typescript-api/custom-fields/#customfields'>CustomFields</a>, '__typename'> | string) => <a href='/reference/typescript-api/custom-fields/custom-field-config#customfieldconfig'>CustomFieldConfig</a>[]`}   />
+
+
+
+
+</div>

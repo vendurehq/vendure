@@ -1,0 +1,145 @@
+---
+title: "FacetValueSelectorComponent"
+generated: true
+---
+<GenerationInfo sourceFile="packages/admin-ui/src/lib/core/src/shared/components/facet-value-selector/facet-value-selector.component.ts" sourceLine="34" packageName="@vendure/admin-ui" />
+
+A form control for selecting facet values.
+
+*Example*
+
+```HTML
+<vdr-facet-value-selector
+  (selectedValuesChange)="selectedValues = $event"
+></vdr-facet-value-selector>
+```
+The `selectedValuesChange` event will emit an array of `FacetValue` objects.
+
+```ts title="Signature"
+class FacetValueSelectorComponent implements OnInit, OnDestroy, ControlValueAccessor {
+    @Output() selectedValuesChange = new EventEmitter<FacetValueFragment[]>();
+    @Input() readonly = false;
+    @Input() transformControlValueAccessorValue: (value: FacetValueFragment[]) => any[] = value => value;
+    searchInput$ = new Subject<string>();
+    searchLoading = false;
+    searchResults$: Observable<FacetValueFragment[]>;
+    selectedIds$ = new Subject<string[]>();
+    onChangeFn: (val: any) => void;
+    onTouchFn: () => void;
+    disabled = false;
+    value: Array<string | FacetValueFragment>;
+    constructor(dataService: DataService, changeDetectorRef: ChangeDetectorRef)
+    ngOnInit() => void;
+    ngOnDestroy() => ;
+    onChange(selected: FacetValueFragment[]) => ;
+    registerOnChange(fn: any) => ;
+    registerOnTouched(fn: any) => ;
+    setDisabledState(isDisabled: boolean) => void;
+    focus() => ;
+    writeValue(obj: string | FacetValueFragment[] | Array<string | number> | null) => void;
+}
+```
+* Implements: OnInit, OnDestroy, ControlValueAccessor
+
+
+
+<div className="members-wrapper">
+
+### selectedValuesChange
+
+<MemberInfo kind="property" type={``}   />
+
+
+### readonly
+
+<MemberInfo kind="property" type={``}   />
+
+
+### transformControlValueAccessorValue
+
+<MemberInfo kind="property" type={`(value: FacetValueFragment[]) => any[]`}   />
+
+
+### searchInput$
+
+<MemberInfo kind="property" type={``}   />
+
+
+### searchLoading
+
+<MemberInfo kind="property" type={``}   />
+
+
+### searchResults$
+
+<MemberInfo kind="property" type={`Observable<FacetValueFragment[]>`}   />
+
+
+### selectedIds$
+
+<MemberInfo kind="property" type={``}   />
+
+
+### onChangeFn
+
+<MemberInfo kind="property" type={`(val: any) => void`}   />
+
+
+### onTouchFn
+
+<MemberInfo kind="property" type={`() => void`}   />
+
+
+### disabled
+
+<MemberInfo kind="property" type={``}   />
+
+
+### value
+
+<MemberInfo kind="property" type={`Array<string | FacetValueFragment>`}   />
+
+
+### ngOnInit
+
+<MemberInfo kind="method" type={`() => void`}   />
+
+
+### ngOnDestroy
+
+<MemberInfo kind="method" type={`() => `}   />
+
+
+### onChange
+
+<MemberInfo kind="method" type={`(selected: FacetValueFragment[]) => `}   />
+
+
+### registerOnChange
+
+<MemberInfo kind="method" type={`(fn: any) => `}   />
+
+
+### registerOnTouched
+
+<MemberInfo kind="method" type={`(fn: any) => `}   />
+
+
+### setDisabledState
+
+<MemberInfo kind="method" type={`(isDisabled: boolean) => void`}   />
+
+
+### focus
+
+<MemberInfo kind="method" type={`() => `}   />
+
+
+### writeValue
+
+<MemberInfo kind="method" type={`(obj: string | FacetValueFragment[] | Array<string | number> | null) => void`}   />
+
+
+
+
+</div>

@@ -1,0 +1,200 @@
+---
+title: "RequestContext"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/api/common/request-context.ts" sourceLine="179" packageName="@vendure/core" />
+
+The RequestContext holds information relevant to the current request, which may be
+required at various points of the stack.
+
+It is a good practice to inject the RequestContext (using the [Ctx](/reference/typescript-api/request/ctx-decorator#ctx) decorator) into
+_all_ resolvers & REST handler, and then pass it through to the service layer.
+
+This allows the service layer to access information about the current user, the active language,
+the active Channel, and so on. In addition, the [TransactionalConnection](/reference/typescript-api/data-access/transactional-connection#transactionalconnection) relies on the
+presence of the RequestContext object in order to correctly handle per-request database transactions.
+
+The RequestContext also provides mechanisms for managing the database replication mode via the
+`setReplicationMode` method and the `replicationMode` getter. This allows for finer control
+over whether database queries within the context should be executed against the master or a replica
+database, which can be particularly useful in distributed database environments.
+
+*Example*
+
+```ts
+@Query()
+myQuery(@Ctx() ctx: RequestContext) {
+  return this.myService.getData(ctx);
+}
+```
+
+*Example*
+
+```ts
+@Query()
+myMutation(@Ctx() ctx: RequestContext) {
+  ctx.setReplicationMode('master');
+  return this.myService.getData(ctx);
+}
+```
+
+```ts title="Signature"
+class RequestContext {
+    empty() => RequestContext;
+    deserialize(ctxObject: SerializedRequestContext) => RequestContext;
+    userHasPermissions(permissions: Permission[]) => boolean;
+    userHasAllPermissions(permissions: Permission[]) => boolean;
+    serialize() => SerializedRequestContext;
+    copy() => RequestContext;
+    req: Request | undefined
+    apiType: ApiType
+    channel: Channel
+    channelId: ID
+    languageCode: LanguageCode
+    currencyCode: CurrencyCode
+    session: CachedSession | undefined
+    activeUserId: ID | undefined
+    isAuthorized: boolean
+    authorizedAsOwnerOnly: boolean
+    translate(key: string, variables?: { [k: string]: any }) => string;
+    setReplicationMode(mode: ReplicationMode) => void;
+    replicationMode: ReplicationMode | undefined
+}
+```
+
+<div className="members-wrapper">
+
+### empty
+
+<MemberInfo kind="method" type={`() => <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>`}   />
+
+Creates an "empty" RequestContext object. This is only intended to be used
+when a service method must be called outside the normal request-response
+cycle, e.g. when programmatically populating data. Usually a better alternative
+is to use the [RequestContextService](/reference/typescript-api/request/request-context-service#requestcontextservice) `create()` method, which allows more control
+over the resulting RequestContext object.
+### deserialize
+
+<MemberInfo kind="method" type={`(ctxObject: SerializedRequestContext) => <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>`}   />
+
+Creates a new RequestContext object from a serialized object created by the
+`serialize()` method.
+### userHasPermissions
+
+<MemberInfo kind="method" type={`(permissions: <a href='/reference/typescript-api/common/permission#permission'>Permission</a>[]) => boolean`}   />
+
+Returns `true` if there is an active Session & User associated with this request,
+and that User has **at least one** of the specified permissions on the active Channel.
+
+This method uses OR logic - it checks if the user has ANY of the given permissions,
+not ALL of them. For AND logic, use `userHasAllPermissions`.
+
+*Example*
+
+```ts
+// Returns true if user has ReadProduct OR ReadCatalog
+ctx.userHasPermissions([Permission.ReadProduct, Permission.ReadCatalog]);
+```
+### userHasAllPermissions
+
+<MemberInfo kind="method" type={`(permissions: <a href='/reference/typescript-api/common/permission#permission'>Permission</a>[]) => boolean`}  since="3.6.0"  />
+
+Returns `true` if there is an active Session & User associated with this request,
+and that User has **all** of the specified permissions on the active Channel.
+
+This method uses AND logic - it checks if the user has EVERY one of the given permissions.
+For OR logic (any permission), use `userHasPermissions`.
+
+*Example*
+
+```ts
+// Returns true only if user has BOTH ReadProduct AND UpdateProduct
+ctx.userHasAllPermissions([Permission.ReadProduct, Permission.UpdateProduct]);
+```
+### serialize
+
+<MemberInfo kind="method" type={`() => SerializedRequestContext`}   />
+
+Serializes the RequestContext object into a JSON-compatible simple object.
+This is useful when you need to send a RequestContext object to another
+process, e.g. to pass it to the Job Queue via the [JobQueueService](/reference/typescript-api/job-queue/job-queue-service#jobqueueservice).
+### copy
+
+<MemberInfo kind="method" type={`() => <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>`}   />
+
+Creates a shallow copy of the RequestContext instance. This means that
+mutations to the copy itself will not affect the original, but deep mutations
+(e.g. copy.channel.code = 'new') *will* also affect the original.
+### req
+
+<MemberInfo kind="property" type={`Request | undefined`}   />
+
+The raw Express request object.
+### apiType
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/request/api-type#apitype'>ApiType</a>`}   />
+
+Signals which API this request was received by, e.g. `admin` or `shop`.
+### channel
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>`}   />
+
+The active [Channel](/reference/typescript-api/entities/channel#channel) of this request.
+### channelId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
+
+
+### languageCode
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>`}   />
+
+
+### currencyCode
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/currency-code#currencycode'>CurrencyCode</a>`}   />
+
+
+### session
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/auth/session-cache-strategy#cachedsession'>CachedSession</a> | undefined`}   />
+
+
+### activeUserId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a> | undefined`}   />
+
+
+### isAuthorized
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+True if the current session is authorized to access the current resolver method.
+### authorizedAsOwnerOnly
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+True if the current anonymous session is only authorized to operate on entities that
+are owned by the current session.
+### translate
+
+<MemberInfo kind="method" type={`(key: string, variables?: { [k: string]: any }) => string`}   />
+
+Translate the given i18n key
+### setReplicationMode
+
+<MemberInfo kind="method" type={`(mode: ReplicationMode) => void`}   />
+
+Sets the replication mode for the current RequestContext. This mode determines whether the operations
+within this context should interact with the master database or a replica. Use this method to explicitly
+define the replication mode for the context.
+### replicationMode
+
+<MemberInfo kind="property" type={`ReplicationMode | undefined`}   />
+
+Gets the current replication mode of the RequestContext. If no replication mode has been set,
+it returns `undefined`. This property indicates whether the context is configured to interact with
+the master database or a replica.
+
+
+</div>

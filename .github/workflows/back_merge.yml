@@ -1,0 +1,170 @@
+name: Back-merge
+
+on:
+    push:
+        branches:
+            - master
+            # NOTE: The minor → major cascade is disabled because GitHub's
+            # "Automatically delete head branches" setting deletes the `minor`
+            # branch when a conflict-resolution PR (minor → major) is merged.
+            # There is no exclusion list for that setting, and rulesets' "Restrict
+            # deletions" rule does not reliably prevent it.
+            #
+            # Merge minor → major manually instead:
+            #   git checkout major && git pull && git merge origin/minor && git push
+            #
+            # See:
+            # - https://github.com/orgs/community/discussions/135012
+            # - https://github.com/orgs/community/discussions/152926
+            #
+            # - minor
+    workflow_dispatch:
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    resolve-branches:
+        name: Resolve merge target
+        runs-on: ubuntu-latest
+        outputs:
+            source: ${{ github.ref_name }}
+            target: ${{ steps.target.outputs.branch }}
+        steps:
+            - name: Determine target branch
+              id: target
+              env:
+                  BRANCH: ${{ github.ref_name }}
+              run: |
+                  if [ "$BRANCH" = "master" ]; then
+                    echo "branch=minor" >> "$GITHUB_OUTPUT"
+                  fi
+                  # Disabled: see comment at top of file
+                  # elif [ "$BRANCH" = "minor" ]; then
+                  #   echo "branch=major" >> "$GITHUB_OUTPUT"
+                  # fi
+
+    back-merge:
+        name: 'Merge ${{ needs.resolve-branches.outputs.source }} → ${{ needs.resolve-branches.outputs.target }}'
+        runs-on: ubuntu-latest
+        needs: resolve-branches
+        permissions:
+            contents: write
+            pull-requests: write
+        steps:
+            - name: Generate CI Bot Token
+              id: app-token
+              uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
+              with:
+                  app-id: ${{ secrets.CI_BOT_APP_ID }}
+                  private-key: ${{ secrets.CI_BOT_APP_PRIVATE_KEY }}
+                  # Least privilege: token is used to push the back-merge to the target branch and
+                  # to look up the bot user id (a public /users endpoint needing no extra permission).
+                  permission-contents: write
+
+            - name: Checkout target branch
+              uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+              with:
+                  token: ${{ steps.app-token.outputs.token }}
+                  ref: ${{ needs.resolve-branches.outputs.target }}
+                  fetch-depth: 0
+
+            - name: Get CI Bot user ID
+              id: get-user-id
+              env:
+                  GH_TOKEN: ${{ steps.app-token.outputs.token }}
+                  APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+              run: |
+                  echo "user-id=$(gh api "/users/${APP_SLUG}%5Bbot%5D" --jq .id)" >> "$GITHUB_OUTPUT"
+
+            - name: Attempt merge
+              id: merge
+              env:
+                  SOURCE: ${{ needs.resolve-branches.outputs.source }}
+                  TARGET: ${{ needs.resolve-branches.outputs.target }}
+                  APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+                  USER_ID: ${{ steps.get-user-id.outputs.user-id }}
+              run: |
+                  git config user.name "${APP_SLUG}[bot]"
+                  git config user.email "${USER_ID}+${APP_SLUG}[bot]@users.noreply.github.com"
+
+                  git fetch origin "$SOURCE"
+
+                  if git merge-base --is-ancestor "origin/$SOURCE" HEAD; then
+                    echo "result=up-to-date" >> "$GITHUB_OUTPUT"
+                    echo "::notice::$TARGET is already up to date with $SOURCE"
+                  elif git merge "origin/$SOURCE" --no-edit; then
+                    echo "result=clean" >> "$GITHUB_OUTPUT"
+                  else
+                    git merge --abort
+                    echo "result=conflict" >> "$GITHUB_OUTPUT"
+                  fi
+
+            # App token is used for the push (not GITHUB_TOKEN) so that
+            # the push triggers downstream workflow runs for the cascade.
+            - name: Push merge
+              if: steps.merge.outputs.result == 'clean'
+              env:
+                  TARGET: ${{ needs.resolve-branches.outputs.target }}
+              run: git push origin "$TARGET"
+
+            # GITHUB_TOKEN is sufficient for PR operations — they don't need
+            # to trigger downstream workflows, and it avoids burning App token quota.
+            - name: Check for existing back-merge PR
+              if: steps.merge.outputs.result == 'conflict'
+              id: check-pr
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  SOURCE: ${{ needs.resolve-branches.outputs.source }}
+                  TARGET: ${{ needs.resolve-branches.outputs.target }}
+              run: |
+                  EXISTING_PR=$(gh pr list \
+                    --base "$TARGET" \
+                    --head "$SOURCE" \
+                    --state open \
+                    --json number \
+                    --jq '.[0].number // empty')
+
+                  if [ -n "$EXISTING_PR" ]; then
+                    echo "found=true" >> "$GITHUB_OUTPUT"
+                    echo "pr_number=$EXISTING_PR" >> "$GITHUB_OUTPUT"
+                    echo "::notice::Found existing back-merge PR #$EXISTING_PR"
+                  else
+                    echo "found=false" >> "$GITHUB_OUTPUT"
+                  fi
+
+            - name: Create back-merge PR
+              if: steps.merge.outputs.result == 'conflict' && steps.check-pr.outputs.found != 'true'
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  SOURCE: ${{ needs.resolve-branches.outputs.source }}
+                  TARGET: ${{ needs.resolve-branches.outputs.target }}
+              run: |
+                  gh pr create \
+                    --base "$TARGET" \
+                    --head "$SOURCE" \
+                    --title "chore(repo): Back-merge $SOURCE into $TARGET (conflicts)" \
+                    --body "Automatic back-merge of \`$SOURCE\` into \`$TARGET\` failed due to merge conflicts.
+
+                  To resolve: check out \`$TARGET\`, merge \`$SOURCE\`, resolve the conflicts, and push to \`$TARGET\`.
+
+                  \`\`\`sh
+                  git checkout $TARGET
+                  git merge origin/$SOURCE
+                  # resolve conflicts
+                  git push origin $TARGET
+                  \`\`\`
+
+                  > Created automatically by the back-merge workflow."
+
+            - name: Comment on existing back-merge PR
+              if: steps.merge.outputs.result == 'conflict' && steps.check-pr.outputs.found == 'true'
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  PR_NUMBER: ${{ steps.check-pr.outputs.pr_number }}
+                  SOURCE: ${{ needs.resolve-branches.outputs.source }}
+                  TARGET: ${{ needs.resolve-branches.outputs.target }}
+              run: |
+                  gh pr comment "$PR_NUMBER" \
+                    --body "New conflicts detected during back-merge of \`$SOURCE\` into \`$TARGET\`. Please resolve the conflicts in this PR."

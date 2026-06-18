@@ -1,0 +1,25 @@
+<div class="card">
+    <div class="card-header">
+        {{ 'settings.test-address' | translate }}
+    </div>
+    <div class="card-block">
+        <form [formGroup]="form" class="form-grid">
+            <vdr-form-field [label]="'customer.city' | translate">
+                <input formControlName="city" type="text"  />
+            </vdr-form-field>
+            <vdr-form-field [label]="'customer.province' | translate">
+                <input formControlName="province" type="text"  />
+            </vdr-form-field>
+            <vdr-form-field [label]="'customer.postal-code' | translate">
+                <input formControlName="postalCode" type="text"  />
+            </vdr-form-field>
+            <vdr-form-field [label]="'customer.country' | translate">
+                <select name="countryCode" formControlName="countryCode" >
+                    <option *ngFor="let country of availableCountries$ | async" [value]="country.code">
+                        {{ country.name }}
+                    </option>
+                </select>
+            </vdr-form-field>
+        </form>
+    </div>
+</div>

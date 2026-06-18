@@ -1,0 +1,90 @@
+<ng-template vdrDialogTitle>{{ title | translate }}</ng-template>
+
+<ng-container *ngIf="!canCreateNew">
+    <ng-container *ngTemplateOutlet="customerSelect"></ng-container>
+    <vdr-form-field [label]="'common.add-note' | translate" *ngIf="includeNoteInput" class="mt-4">
+        <textarea [(ngModel)]="note"></textarea>
+    </vdr-form-field>
+</ng-container>
+
+<clr-tabs *ngIf="canCreateNew" class="pt-1">
+    <clr-tab>
+        <button clrTabLink>{{ 'order.existing-customer' | translate }}</button>
+
+        <ng-template [(clrIfActive)]="useExisting">
+            <clr-tab-content>
+                <div class="mt-4">
+                    <ng-container *ngTemplateOutlet="customerSelect"></ng-container>
+                </div>
+            </clr-tab-content>
+        </ng-template>
+    </clr-tab>
+    <clr-tab *ngIf="canCreateNew">
+        <button clrTabLink>{{ 'customer.create-new-customer' | translate }}</button>
+
+        <ng-template [(clrIfActive)]="createNew">
+            <clr-tab-content>
+                <form [formGroup]="customerForm">
+                    <vdr-form-field [label]="'customer.title' | translate" for="title">
+                        <input id="title" type="text" formControlName="title" />
+                    </vdr-form-field>
+                    <vdr-form-field [label]="'customer.first-name' | translate" for="firstName">
+                        <input id="firstName" type="text" formControlName="firstName" />
+                    </vdr-form-field>
+                    <vdr-form-field [label]="'customer.last-name' | translate" for="lastName">
+                        <input id="lastName" type="text" formControlName="lastName" />
+                    </vdr-form-field>
+                    <vdr-form-field [label]="'customer.email-address' | translate" for="emailAddress">
+                        <input id="emailAddress" type="text" formControlName="emailAddress" />
+                    </vdr-form-field>
+                    <vdr-form-field [label]="'customer.phone-number' | translate" for="phoneNumber">
+                        <input id="phoneNumber" type="text" formControlName="phoneNumber" />
+                    </vdr-form-field>
+                </form>
+            </clr-tab-content>
+        </ng-template>
+    </clr-tab>
+</clr-tabs>
+
+<ng-template #customerSelect>
+    <ng-select
+        [items]="customers$ | async"
+        appendTo="body"
+        bindLabel="name"
+        [addTag]="false"
+        [multiple]="true"
+        [hideSelected]="true"
+        [trackByFn]="trackByFn"
+        [minTermLength]="2"
+        [loading]="isLoading"
+        [typeahead]="input$"
+        [(ngModel)]="selectedCustomer"
+    >
+        <ng-template ng-label-tmp let-item="item" let-clear="clear">
+            <span class="item-row">
+                <clr-icon shape="user" class="is-solid"></clr-icon
+                ><span class="mx-1">{{ item.firstName }} {{ item.lastName }}</span>
+                <vdr-chip>{{ item.emailAddress }}</vdr-chip>
+            </span>
+        </ng-template>
+        <ng-template ng-option-tmp let-item="item">
+            <span class="item-row">
+                <clr-icon shape="user" class="is-solid"></clr-icon
+                ><span class="mx-1">{{ item.firstName }} {{ item.lastName }}</span>
+                <vdr-chip>{{ item.emailAddress }}</vdr-chip>
+            </span>
+        </ng-template>
+    </ng-select>
+</ng-template>
+
+<ng-template vdrDialogButtons>
+    <button type="button" class="btn" (click)="cancel()">{{ 'common.cancel' | translate }}</button>
+    <button
+        type="submit"
+        (click)="select()"
+        [disabled]="(useExisting && selectedCustomer.length === 0) || (createNew && customerForm.invalid)"
+        class="btn btn-primary"
+    >
+        {{ 'common.okay' | translate }}
+    </button>
+</ng-template>

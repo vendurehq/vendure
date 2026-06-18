@@ -1,0 +1,17 @@
+---
+title: "ConfigArgType"
+generated: true
+---
+<GenerationInfo sourceFile="packages/common/src/shared-types.ts" sourceLine="130" packageName="@vendure/common" />
+
+Certain entities (those which implement [ConfigurableOperationDef](/reference/typescript-api/configurable-operation-def/#configurableoperationdef)) allow arbitrary
+configuration arguments to be specified which can then be set in the admin-ui and used in
+the business logic of the app. These are the valid data types of such arguments.
+The data type influences:
+
+1. How the argument form field is rendered in the admin-ui
+2. The JavaScript type into which the value is coerced before being passed to the business logic.
+
+```ts title="Signature"
+type ConfigArgType = 'string' | 'int' | 'float' | 'boolean' | 'datetime' | 'ID'
+```

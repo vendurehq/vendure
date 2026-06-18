@@ -1,0 +1,14 @@
+<div [dir]="direction$ | async">
+    <clr-modal [clrModalOpen]="true" (clrModalOpenChange)="modalOpenChange($event)"
+        [clrModalClosable]="options?.closable" [clrModalSize]="options?.size"
+        [ngClass]="'modal-valign-' + (options?.verticalAlign || 'center')">
+        <h3 class="modal-title"><ng-container *ngTemplateOutlet="(titleTemplateRef$ | async)"></ng-container></h3>
+        <div class="modal-body">
+            <vdr-dialog-component-outlet [component]="childComponentType"
+                (create)="onCreate($event)"></vdr-dialog-component-outlet>
+        </div>
+        <div class="modal-footer">
+            <ng-container *ngTemplateOutlet="(buttonsTemplateRef$ | async)"></ng-container>
+        </div>
+    </clr-modal>
+</div>

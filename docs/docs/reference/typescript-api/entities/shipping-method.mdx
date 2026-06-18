@@ -1,0 +1,113 @@
+---
+title: "ShippingMethod"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/shipping-method/shipping-method.entity.ts" sourceLine="34" packageName="@vendure/core" />
+
+A ShippingMethod is used to apply a shipping price to an [Order](/reference/typescript-api/entities/order#order). It is composed of a
+[ShippingEligibilityChecker](/reference/typescript-api/shipping/shipping-eligibility-checker#shippingeligibilitychecker) and a [ShippingCalculator](/reference/typescript-api/shipping/shipping-calculator#shippingcalculator). For a given Order,
+the `checker` is used to determine whether this ShippingMethod can be used. If yes, then
+the ShippingMethod can be applied and the `calculator` is used to determine the price of
+shipping.
+
+```ts title="Signature"
+class ShippingMethod extends VendureEntity implements ChannelAware, SoftDeletable, HasCustomFields, Translatable {
+    constructor(input?: DeepPartial<ShippingMethod>)
+    @Column({ type: Date, nullable: true })
+    deletedAt: Date | null;
+    @Column() code: string;
+    name: LocaleString;
+    description: LocaleString;
+    @Column('simple-json') checker: ConfigurableOperation;
+    @Column('simple-json') calculator: ConfigurableOperation;
+    @Column()
+    fulfillmentHandlerCode: string;
+    @ManyToMany(type => Channel, channel => channel.shippingMethods)
+    @JoinTable()
+    channels: Channel[];
+    @OneToMany(type => ShippingMethodTranslation, translation => translation.base, { eager: true })
+    translations: Array<Translation<ShippingMethod>>;
+    @Column(type => CustomShippingMethodFields)
+    customFields: CustomShippingMethodFields;
+    apply(ctx: RequestContext, order: Order) => Promise<ShippingCalculationResult | undefined>;
+    test(ctx: RequestContext, order: Order) => Promise<boolean>;
+    toJSON() => any;
+}
+```
+* Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
+
+
+* Implements: [`ChannelAware`](/reference/typescript-api/entities/interfaces#channelaware), [`SoftDeletable`](/reference/typescript-api/entities/interfaces#softdeletable), HasCustomFields, [`Translatable`](/reference/typescript-api/entities/interfaces#translatable)
+
+
+
+<div className="members-wrapper">
+
+### deletedAt
+
+<MemberInfo kind="property" type={`Date | null`}   />
+
+
+### code
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### name
+
+<MemberInfo kind="property" type={`LocaleString`}   />
+
+
+### description
+
+<MemberInfo kind="property" type={`LocaleString`}   />
+
+
+### checker
+
+<MemberInfo kind="property" type={`ConfigurableOperation`}   />
+
+
+### calculator
+
+<MemberInfo kind="property" type={`ConfigurableOperation`}   />
+
+
+### fulfillmentHandlerCode
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### channels
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>[]`}   />
+
+
+### translations
+
+<MemberInfo kind="property" type={`Array<Translation<<a href='/reference/typescript-api/entities/shipping-method#shippingmethod'>ShippingMethod</a>>>`}   />
+
+
+### customFields
+
+<MemberInfo kind="property" type={`CustomShippingMethodFields`}   />
+
+
+### apply
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => Promise<<a href='/reference/typescript-api/shipping/shipping-calculator#shippingcalculationresult'>ShippingCalculationResult</a> | undefined>`}   />
+
+
+### test
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => Promise<boolean>`}   />
+
+
+### toJSON
+
+<MemberInfo kind="method" type={`() => any`}   />
+
+
+
+
+</div>

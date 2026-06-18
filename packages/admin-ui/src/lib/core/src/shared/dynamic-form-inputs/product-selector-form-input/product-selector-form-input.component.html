@@ -1,0 +1,20 @@
+<ul class="list-unstyled">
+    <li *ngFor="let variant of selection$ | async" class="variant">
+        <div class="thumb">
+            <img [src]="variant.product.featuredAsset | assetPreview: 32" />
+        </div>
+        <div class="detail">
+            <div>{{ variant.name }}</div>
+            <div class="sku">{{ variant.sku }}</div>
+        </div>
+        <div class="flex-spacer"></div>
+        <button
+            class="button-small"
+            (click)="removeProductVariant(variant.id)"
+            [title]="'common.remove-item-from-list' | translate"
+        >
+            <clr-icon shape="times"></clr-icon>
+        </button>
+    </li>
+</ul>
+<vdr-product-variant-selector (productSelected)="addProductVariant($event)"></vdr-product-variant-selector>

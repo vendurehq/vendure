@@ -1,0 +1,7 @@
+<div class="empty-state">
+    <clr-icon shape="bubble-exclamation" size="64"></clr-icon>
+    <div class="empty-label">
+        <ng-container *ngIf="emptyStateLabel; else defaultEmptyLabel">{{ emptyStateLabel }}</ng-container>
+        <ng-template #defaultEmptyLabel>{{ 'common.no-results' | translate }}</ng-template>
+    </div>
+</div>

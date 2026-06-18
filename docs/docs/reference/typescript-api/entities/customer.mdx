@@ -1,0 +1,112 @@
+---
+title: "Customer"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/customer/customer.entity.ts" sourceLine="22" packageName="@vendure/core" />
+
+This entity represents a customer of the store, typically an individual person. A Customer can be
+a guest, in which case it has no associated [User](/reference/typescript-api/entities/user#user). Customers with registered account will
+have an associated User entity.
+
+```ts title="Signature"
+class Customer extends VendureEntity implements ChannelAware, HasCustomFields, SoftDeletable {
+    constructor(input?: DeepPartial<Customer>)
+    @Column({ type: Date, nullable: true })
+    deletedAt: Date | null;
+    @Column({ nullable: true })
+    title: string;
+    @Column() firstName: string;
+    @Column() lastName: string;
+    @Column({ nullable: true })
+    phoneNumber: string;
+    @Column()
+    emailAddress: string;
+    @ManyToMany(type => CustomerGroup, group => group.customers)
+    @JoinTable()
+    groups: CustomerGroup[];
+    @OneToMany(type => Address, address => address.customer)
+    addresses: Address[];
+    @OneToMany(type => Order, order => order.customer)
+    orders: Order[];
+    @OneToOne(type => User, { eager: true })
+    @JoinColumn()
+    user?: User;
+    @Column(type => CustomCustomerFields)
+    customFields: CustomCustomerFields;
+    @ManyToMany(type => Channel, channel => channel.customers)
+    @JoinTable()
+    channels: Channel[];
+}
+```
+* Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
+
+
+* Implements: [`ChannelAware`](/reference/typescript-api/entities/interfaces#channelaware), HasCustomFields, [`SoftDeletable`](/reference/typescript-api/entities/interfaces#softdeletable)
+
+
+
+<div className="members-wrapper">
+
+### deletedAt
+
+<MemberInfo kind="property" type={`Date | null`}   />
+
+
+### title
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### firstName
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### lastName
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### phoneNumber
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### emailAddress
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### groups
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/customer-group#customergroup'>CustomerGroup</a>[]`}   />
+
+
+### addresses
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/address#address'>Address</a>[]`}   />
+
+
+### orders
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/order#order'>Order</a>[]`}   />
+
+
+### user
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/user#user'>User</a>`}   />
+
+
+### customFields
+
+<MemberInfo kind="property" type={`CustomCustomerFields`}   />
+
+
+### channels
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>[]`}   />
+
+
+
+
+</div>

@@ -1,0 +1,33 @@
+---
+title: "IfPermissionsDirective"
+generated: true
+---
+<GenerationInfo sourceFile="packages/admin-ui/src/lib/core/src/shared/directives/if-permissions.directive.ts" sourceLine="26" packageName="@vendure/admin-ui" />
+
+Conditionally shows/hides templates based on the current active user having the specified permission.
+Based on the ngIf source. Also support "else" templates:
+
+*Example*
+
+```html
+<button *vdrIfPermissions="'DeleteCatalog'; else unauthorized">Delete Product</button>
+<ng-template #unauthorized>Not allowed!</ng-template>
+```
+
+The permission can be a single string, or an array. If an array is passed, then _all_ of the permissions
+must match (logical AND)
+
+```ts title="Signature"
+class IfPermissionsDirective extends IfDirectiveBase<Array<Permission[] | null>> {
+    constructor(_viewContainer: ViewContainerRef, templateRef: TemplateRef<any>, changeDetectorRef: ChangeDetectorRef, permissionsService: PermissionsService)
+}
+```
+* Extends: `IfDirectiveBase<Array<`[`Permission`](/reference/typescript-api/common/permission#permission)`[] | null>>`
+
+
+
+<div className="members-wrapper">
+
+
+
+</div>

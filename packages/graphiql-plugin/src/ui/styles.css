@@ -1,0 +1,65 @@
+html, body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+body.embedded-mode,
+body.embedded-mode html {
+    background: transparent;
+}
+
+.graphiql-container {
+    height: calc(100vh - 40px);
+}
+
+.vendure-header {
+    background-color: #13b7f3;
+    color: white;
+    height: 40px;
+    padding: 0 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.vendure-header h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.switch-api {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.switch-api a {
+    color: white;
+    text-decoration: none;
+    padding: 4px 12px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.switch-api a.active {
+    background-color: rgba(255, 255, 255, 0.2);
+    font-weight: bold;
+}
+
+.switch-api a:hover:not(.active) {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.graphiql-wrapper {
+    height: calc(100vh - 40px);
+}
+
+body.embedded-mode .graphiql-wrapper {
+    height: 100vh;
+}
+
+body.embedded-mode .graphiql-container {
+    height: 100vh;
+}

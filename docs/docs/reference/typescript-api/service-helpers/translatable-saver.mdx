@@ -1,0 +1,56 @@
+---
+title: "TranslatableSaver"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/helpers/translatable-saver/translatable-saver.ts" sourceLine="55" packageName="@vendure/core" />
+
+A helper which contains methods for creating and updating entities which implement the [Translatable](/reference/typescript-api/entities/interfaces#translatable) interface.
+
+*Example*
+
+```ts
+export class MyService {
+  constructor(private translatableSaver: TranslatableSaver) {}
+
+  async create(ctx: RequestContext, input: CreateFacetInput): Promise<Translated<Facet>> {
+    const facet = await this.translatableSaver.create({
+      ctx,
+      input,
+      entityType: Facet,
+      translationType: FacetTranslation,
+      beforeSave: async f => {
+          f.code = await this.ensureUniqueCode(ctx, f.code);
+      },
+    });
+    return facet;
+  }
+
+  // ...
+}
+```
+
+```ts title="Signature"
+class TranslatableSaver {
+    constructor(connection: TransactionalConnection)
+    create(options: CreateTranslatableOptions<T>) => Promise<T>;
+    update(options: UpdateTranslatableOptions<T>) => Promise<T>;
+}
+```
+
+<div className="members-wrapper">
+
+### create
+
+<MemberInfo kind="method" type={`(options: CreateTranslatableOptions<T>) => Promise<T>`}   />
+
+Create a translatable entity, including creating any translation entities according
+to the `translations` array.
+### update
+
+<MemberInfo kind="method" type={`(options: UpdateTranslatableOptions<T>) => Promise<T>`}   />
+
+Update a translatable entity. Performs a diff of the `translations` array in order to
+perform the correct operation on the translations.
+
+
+</div>

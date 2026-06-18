@@ -1,0 +1,336 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`addGraphQLCustomFields() > extends OrderAddress if Address custom fields defined 1`] = `
+"type Address {
+  id: ID
+  streetLine1: String
+  customFields: AddressCustomFields
+}
+
+type OrderAddress {
+  streetLine1: String
+  customFields: AddressCustomFields
+}
+
+scalar JSON
+
+scalar DateTime
+
+type AddressCustomFields {
+  instructions: String
+}"
+`;
+
+exports[`addGraphQLCustomFields() > extends a type 1`] = `
+"type Product {
+  id: ID
+  customFields: ProductCustomFields
+}
+
+scalar JSON
+
+scalar DateTime
+
+type ProductCustomFields {
+  available: Boolean
+}"
+`;
+
+exports[`addGraphQLCustomFields() > extends a type with FilterParameters 1`] = `
+"type Product {
+  name: String
+  customFields: ProductCustomFields
+}
+
+input ProductFilterParameter {
+  id: StringOperators
+  available: BooleanOperators
+  shortName: StringOperators
+  rating: NumberOperators
+  published: DateOperators
+}
+
+input StringOperators {
+  eq: String
+}
+
+input NumberOperators {
+  eq: Float
+}
+
+input DateOperators {
+  eq: String
+}
+
+input BooleanOperators {
+  eq: Boolean
+}
+
+scalar JSON
+
+scalar DateTime
+
+type ProductCustomFields {
+  available: Boolean
+  shortName: String
+  rating: Float
+  published: DateTime
+}"
+`;
+
+exports[`addGraphQLCustomFields() > extends a type with SortParameters 1`] = `
+"type Product {
+  id: ID
+  customFields: ProductCustomFields
+}
+
+input ProductSortParameter {
+  id: SortOrder
+  available: SortOrder
+  shortName: SortOrder
+}
+
+enum SortOrder {
+  ASC
+  DESC
+}
+
+scalar JSON
+
+scalar DateTime
+
+type ProductCustomFields {
+  available: Boolean
+  shortName: String
+}"
+`;
+
+exports[`addGraphQLCustomFields() > extends a type with a Create input 1`] = `
+"type Product {
+  id: ID
+  customFields: ProductCustomFields
+}
+
+input CreateProductInput {
+  image: String
+  customFields: CreateProductCustomFieldsInput
+}
+
+scalar JSON
+
+scalar DateTime
+
+type ProductCustomFields {
+  available: Boolean
+  shortName: String
+}
+
+input CreateProductCustomFieldsInput {
+  available: Boolean
+}"
+`;
+
+exports[`addGraphQLCustomFields() > extends a type with a Create input and a translation 1`] = `
+"type Product {
+  id: ID
+  customFields: ProductCustomFields
+}
+
+type ProductTranslation {
+  id: ID
+  customFields: ProductTranslationCustomFields
+}
+
+input ProductTranslationInput {
+  id: ID
+  customFields: ProductTranslationInputCustomFields
+}
+
+input CreateProductInput {
+  image: String
+  customFields: CreateProductCustomFieldsInput
+}
+
+scalar JSON
+
+scalar DateTime
+
+type ProductCustomFields {
+  available: Boolean
+  shortName: String
+}
+
+type ProductTranslationCustomFields {
+  shortName: String
+}
+
+input CreateProductCustomFieldsInput {
+  available: Boolean
+}
+
+input ProductTranslationInputCustomFields {
+  shortName: String
+}"
+`;
+
+exports[`addGraphQLCustomFields() > extends a type with a translation 1`] = `
+"type Product {
+  id: ID
+  translations: [ProductTranslation!]!
+  customFields: ProductCustomFields
+}
+
+type ProductTranslation {
+  id: ID
+  customFields: ProductTranslationCustomFields
+}
+
+scalar JSON
+
+scalar DateTime
+
+type ProductCustomFields {
+  available: Boolean
+  shortName: String
+}
+
+type ProductTranslationCustomFields {
+  shortName: String
+}"
+`;
+
+exports[`addGraphQLCustomFields() > extends a type with an Update input 1`] = `
+"type Product {
+  id: ID
+  customFields: ProductCustomFields
+}
+
+input UpdateProductInput {
+  image: String
+  customFields: UpdateProductCustomFieldsInput
+}
+
+scalar JSON
+
+scalar DateTime
+
+type ProductCustomFields {
+  available: Boolean
+  shortName: String
+}
+
+input UpdateProductCustomFieldsInput {
+  available: Boolean
+}"
+`;
+
+exports[`addGraphQLCustomFields() > handles deprecated custom fields 1`] = `
+"type Product {
+  id: ID
+  customFields: ProductCustomFields
+}
+
+scalar JSON
+
+scalar DateTime
+
+type ProductCustomFields {
+  available: Boolean
+  oldField: String @deprecated
+  legacyField: Int @deprecated(reason: "Use newField instead")
+}"
+`;
+
+exports[`addGraphQLCustomFields() > handles deprecated custom fields with translations 1`] = `
+"type Product {
+  id: ID
+  translations: [ProductTranslation!]!
+  customFields: ProductCustomFields
+}
+
+type ProductTranslation {
+  id: ID
+  customFields: ProductTranslationCustomFields
+}
+
+scalar JSON
+
+scalar DateTime
+
+type ProductCustomFields {
+  available: Boolean
+  oldName: String @deprecated(reason: "Use name instead")
+}
+
+type ProductTranslationCustomFields {
+  oldName: String @deprecated(reason: "Use name instead")
+}"
+`;
+
+exports[`addGraphQLCustomFields() > publicOnly = true 1`] = `
+"type Product {
+  id: ID
+  customFields: ProductCustomFields
+}
+
+scalar JSON
+
+scalar DateTime
+
+type ProductCustomFields {
+  available: Boolean
+}"
+`;
+
+exports[`addGraphQLCustomFields() > uses JSON scalar if no custom fields defined 1`] = `
+"type Product {
+  id: ID
+  customFields: JSON
+}
+
+scalar JSON
+
+scalar DateTime"
+`;
+
+exports[`addGraphQLCustomFields() > uses JSON scalar in UpdateActiveAdministratorInput if only internal custom fields defined on Administrator 1`] = `
+"scalar JSON
+
+input UpdateActiveAdministratorInput {
+  placeholder: String
+  customFields: JSON
+}"
+`;
+
+exports[`addOrderLineCustomFieldsInput() > Modifies the schema when the addItemToOrder & adjustOrderLine mutation is present 1`] = `
+"type Mutation {
+  addItemToOrder(id: ID!, quantity: Int!, customFields: OrderLineCustomFieldsInput = null): Boolean
+  adjustOrderLine(id: ID!, quantity: Int, customFields: OrderLineCustomFieldsInput = null): Boolean
+}
+
+input OrderLineCustomFieldsInput {
+  giftWrap: Boolean
+  message: String
+}"
+`;
+
+exports[`addRegisterCustomerCustomFieldsInput() > add public writable custom fields to RegisterCustomerInput 1`] = `
+"input RegisterCustomerInput {
+  emailAddress: String!
+  title: String
+  firstName: String
+  lastName: String
+  phoneNumber: String
+  password: String
+  customFields: RegisterCustomerCustomFieldsInput
+}
+
+type Mutation {
+  registerCustomerAccount(input: RegisterCustomerInput!): Boolean!
+}
+
+input RegisterCustomerCustomFieldsInput {
+  isB2B: Boolean
+  message: String
+}"
+`;

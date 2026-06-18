@@ -1,0 +1,135 @@
+---
+title: "AssetGallery"
+generated: true
+---
+## AssetGallery
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/asset/asset-gallery.tsx" sourceLine="178" packageName="@vendure/dashboard" />
+
+A component for displaying a gallery of assets.
+
+*Example*
+
+```tsx
+ <AssetGallery
+  onSelect={handleAssetSelect}
+  multiSelect="manual"
+  initialSelectedAssets={initialSelectedAssets}
+  fixedHeight={false}
+  displayBulkActions={false}
+  />
+```
+
+```ts title="Signature"
+function AssetGallery(props: AssetGalleryProps): void
+```
+Parameters
+
+### props
+
+<MemberInfo kind="parameter" type={`<a href='/reference/dashboard/components/asset-gallery#assetgalleryprops'>AssetGalleryProps</a>`} />
+
+## AssetGalleryProps
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/asset/asset-gallery.tsx" sourceLine="90" packageName="@vendure/dashboard" />
+
+Props for the [AssetGallery](/reference/dashboard/components/asset-gallery#assetgallery) component.
+
+```ts title="Signature"
+interface AssetGalleryProps {
+    onSelect?: (assets: Asset[]) => void;
+    selectable?: boolean;
+    multiSelect?: 'auto' | 'manual';
+    initialSelectedAssets?: Asset[];
+    pageSize?: number;
+    fixedHeight?: boolean;
+    showHeader?: boolean;
+    className?: string;
+    onFilesDropped?: (files: File[]) => void;
+    bulkActions?: AssetBulkAction[];
+    displayBulkActions?: boolean;
+    onPageSizeChange?: (pageSize: number) => void;
+    viewMode?: AssetViewMode;
+    onViewModeChange?: (mode: AssetViewMode) => void;
+}
+```
+
+<div className="members-wrapper">
+
+### onSelect
+
+<MemberInfo kind="property" type={`(assets: <a href='/reference/typescript-api/entities/asset#asset'>Asset</a>[]) => void`}   />
+
+
+### selectable
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+
+### multiSelect
+
+<MemberInfo kind="property" type={`'auto' | 'manual'`}   />
+
+Defines whether multiple assets can be selected.
+
+If set to 'auto', the asset selection will be toggled when the user clicks on an asset.
+If set to 'manual', multiple selection will occur only if the user holds down the control/cmd key.
+### initialSelectedAssets
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/asset#asset'>Asset</a>[]`}   />
+
+The initial assets that should be selected.
+### pageSize
+
+<MemberInfo kind="property" type={`number`}   />
+
+The number of assets to display per page.
+### fixedHeight
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+Whether the gallery should have a fixed height.
+### showHeader
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+Whether the gallery should show a header.
+### className
+
+<MemberInfo kind="property" type={`string`}   />
+
+The class name to apply to the gallery.
+### onFilesDropped
+
+<MemberInfo kind="property" type={`(files: File[]) => void`}   />
+
+The function to call when files are dropped.
+### bulkActions
+
+<MemberInfo kind="property" type={`AssetBulkAction[]`}   />
+
+The bulk actions to display in the gallery.
+### displayBulkActions
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+Whether the gallery should display bulk actions.
+### onPageSizeChange
+
+<MemberInfo kind="property" type={`(pageSize: number) => void`}   />
+
+The function to call when the page size changes.
+### viewMode
+
+<MemberInfo kind="property" type={`AssetViewMode`}   />
+
+The current view mode for the gallery. Defaults to 'grid'.
+### onViewModeChange
+
+<MemberInfo kind="property" type={`(mode: AssetViewMode) => void`}   />
+
+The function to call when the view mode changes.
+When provided, a toggle will be rendered in the header bar.
+
+
+</div>

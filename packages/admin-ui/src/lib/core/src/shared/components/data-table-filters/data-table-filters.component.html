@@ -1,0 +1,148 @@
+<vdr-dropdown [manualToggle]="true" #dropdown>
+    <div class="filter-button" [ngClass]="state">
+        <clr-icon shape="plus" size="12" *ngIf="state === 'new'"></clr-icon>
+        <button *ngIf="state === 'active'" class="remove" (click)="deactivate()">
+            <clr-icon shape="times" size="12"></clr-icon>
+        </button>
+        <button vdrDropdownTrigger class="">
+            <span *ngIf="state === 'new'"
+                >{{ 'common.add-filter' | translate }} <span class="filter-hotkey">f</span></span
+            >
+            <span *ngIf="state === 'active'">
+                <vdr-data-table-filter-label
+                    [filterWithValue]="filterWithValue"
+                ></vdr-data-table-filter-label>
+            </span>
+            <clr-icon shape="ellipsis-vertical" size="12"></clr-icon>
+        </button>
+    </div>
+    <vdr-dropdown-menu vdrPosition="bottom-left">
+        <div *ngIf="!selectedFilter">
+            <div class="filter-heading">Filter by:</div>
+            <div *ngFor="let filter of filters.getFilters()">
+                <button vdrDropdownItem (click)="selectFilter(filter)">
+                    <vdr-localized-text [text]="filter?.label" />
+                </button>
+            </div>
+        </div>
+
+        <div class="filter-heading" *ngIf="selectedFilter">
+            Filter by <vdr-localized-text [text]="selectedFilter.label" />:
+        </div>
+        <div class="mx-2 mt-1">
+            <div vdrCustomFilterComponentHost #customComponentHost></div>
+        </div>
+        <form *ngIf="selectedFilter" class="" [cdkTrapFocus]="true" [cdkTrapFocusAutoCapture]="true">
+            <ng-container *ngIf="selectedFilter.type.kind !== 'custom'">
+                <div class="mx-2 mt-1" [ngSwitch]="selectedFilter.type.kind">
+                    <div *ngSwitchCase="'select'" [formGroup]="formControl">
+                        <label *ngFor="let option of $any(selectedFilter.type).options; index as i">
+                            <input type="checkbox" [formControlName]="i" />
+                            <span>{{ option.label | translate }}</span>
+                        </label>
+                    </div>
+                    <div *ngSwitchCase="'boolean'">
+                        <label
+                            ><input type="checkbox" [formControl]="formControl" clrToggle />
+                            <span *ngIf="formControl.value">{{ 'common.boolean-true' | translate }}</span>
+                            <span *ngIf="!formControl.value">{{ 'common.boolean-false' | translate }}</span>
+                        </label>
+                    </div>
+                    <div *ngSwitchCase="'text'">
+                        <div [formGroup]="formControl">
+                            <div>
+                                <select name="options" formControlName="operator" class="mb-1">
+                                    <option value="contains">
+                                        {{ 'common.operator-contains' | translate }}
+                                    </option>
+                                    <option value="eq">{{ 'common.operator-eq' | translate }}</option>
+                                    <option value="notContains">
+                                        {{ 'common.operator-not-contains' | translate }}
+                                    </option>
+                                    <option value="notEq">{{ 'common.operator-not-eq' | translate }}</option>
+                                    <option value="regex">{{ 'common.operator-regex' | translate }}</option>
+                                </select>
+                            </div>
+                            <input type="text" formControlName="term" />
+                        </div>
+                    </div>
+                    <div *ngSwitchCase="'id'">
+                        <div [formGroup]="formControl">
+                            <div>
+                                <select name="options" formControlName="operator" class="mb-1">
+                                    <option value="eq">{{ 'common.operator-eq' | translate }}</option>
+                                    <option value="notEq">{{ 'common.operator-not-eq' | translate }}</option>
+                                </select>
+                            </div>
+                            <input type="text" formControlName="term" />
+                        </div>
+                    </div>
+                    <div *ngSwitchCase="'number'">
+                        <div [formGroup]="formControl">
+                            <div>
+                                <select name="options" formControlName="operator" class="mb-1">
+                                    <option value="eq">{{ 'common.operator-eq' | translate }}</option>
+                                    <option value="gt">{{ 'common.operator-gt' | translate }}</option>
+                                    <option value="lt">{{ 'common.operator-lt' | translate }}</option>
+                                </select>
+                            </div>
+                            <input
+                                *ngIf="$any(selectedFilter.type).inputType !== 'currency'"
+                                type="text"
+                                formControlName="amount"
+                            />
+                            <vdr-currency-input
+                                *ngIf="$any(selectedFilter.type).inputType === 'currency'"
+                                formControlName="amount"
+                            />
+                        </div>
+                    </div>
+                    <div *ngSwitchCase="'dateRange'">
+                        <div [formGroup]="formControl">
+                            <vdr-form-field [label]="'common.data-table-filter-date-mode' | translate">
+                                <select name="mode" formControlName="mode" class="mb-1">
+                                    <option value="relative">
+                                        {{ 'common.data-table-filter-date-relative' | translate }}
+                                    </option>
+                                    <option value="range">
+                                        {{ 'common.data-table-filter-date-range' | translate }}
+                                    </option>
+                                </select>
+                            </vdr-form-field>
+                            <ng-container *ngIf="formControl.get('mode')?.value === 'relative'">
+                                <div class="flex mt-2">
+                                    <vdr-form-field class="mr-1">
+                                        <input type="number" min="1" formControlName="relativeValue" />
+                                    </vdr-form-field>
+                                    <vdr-form-field>
+                                        <select name="mode" formControlName="relativeUnit">
+                                            <option value="day">{{ 'datetime.day' | translate }}</option>
+                                            <option value="month">{{ 'datetime.month' | translate }}</option>
+                                            <option value="year">{{ 'datetime.year' | translate }}</option>
+                                        </select>
+                                    </vdr-form-field>
+                                </div>
+                            </ng-container>
+                            <ng-container *ngIf="formControl.get('mode')?.value === 'range'">
+                                <label>
+                                    <div>{{ 'common.start-date' | translate }}</div>
+                                </label>
+                                <vdr-datetime-picker formControlName="start"></vdr-datetime-picker>
+                                <label>
+                                    <div>{{ 'common.end-date' | translate }}</div>
+                                </label>
+                                <vdr-datetime-picker formControlName="end"></vdr-datetime-picker>
+                            </ng-container>
+                        </div>
+                    </div>
+                </div>
+            </ng-container>
+            <div class="apply-wrapper mt-2">
+                <button class="button" (click)="activate($event)" [disabled]="!formControl?.valid">
+                    <span>{{ 'common.apply' | translate }}</span>
+                    <clr-icon shape="check"></clr-icon>
+                </button>
+            </div>
+        </form>
+    </vdr-dropdown-menu>
+</vdr-dropdown>

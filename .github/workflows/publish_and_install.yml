@@ -1,0 +1,211 @@
+name: Publish & Install
+on:
+    workflow_dispatch:
+    push:
+        branches:
+            - master
+            - minor
+            - major
+        paths:
+            - 'packages/**'
+            - 'package.json'
+            - 'bun.lock'
+            - 'bunfig.toml'
+    pull_request:
+        branches:
+            - master
+            - major
+            - minor
+        paths:
+            - 'packages/**'
+            - 'package.json'
+            - 'bun.lock'
+            - 'bunfig.toml'
+
+defaults:
+    run:
+        shell: bash
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    # Job 1: Build all packages and publish to Verdaccio (runs once)
+    build_and_publish:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+        steps:
+            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+            - name: Use Node.js 22.x
+              uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+              with:
+                  node-version: 22.x
+            - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+              with:
+                  bun-version: '1.3.10'
+            - name: Install Verdaccio
+              run: |
+                  npm install -g verdaccio
+                  npm install -g wait-on
+                  mkdir -p $HOME/.config/verdaccio
+                  cp -v ./.github/workflows/verdaccio/config.yaml $HOME/.config/verdaccio/config.yaml
+                  nohup verdaccio --config $HOME/.config/verdaccio/config.yaml &
+                  wait-on http://localhost:4873
+                  TOKEN_RES=$(curl -XPUT \
+                    -H "Content-type: application/json" \
+                    -d '{ "name": "test", "password": "test" }' \
+                    'http://localhost:4873/-/user/org.couchdb.user:test')
+                  TOKEN=$(echo "$TOKEN_RES" | jq -r '.token')
+                  npm set //localhost:4873/:_authToken $TOKEN
+            - name: bun install
+              run: bun install --frozen-lockfile
+              env:
+                  CI: true
+            - name: Publish to Verdaccio
+              run: |
+                  nohup verdaccio --config $HOME/.config/verdaccio/config.yaml &
+                  wait-on http://localhost:4873
+                  bunx lerna publish prepatch --preid ci --no-push --no-git-tag-version --no-commit-hooks --force-publish "*" --yes --dist-tag ci --registry http://localhost:4873
+            - name: Package Verdaccio storage
+              run: |
+                  cd $HOME/.config/verdaccio
+                  tar -czf verdaccio-storage.tar.gz storage htpasswd
+            - name: Upload Verdaccio storage
+              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+              with:
+                  name: verdaccio-storage
+                  path: ~/.config/verdaccio/verdaccio-storage.tar.gz
+                  retention-days: 1
+
+    # Job 2: Test installation on various OS/Node combinations
+    test:
+        needs: build_and_publish
+        runs-on: ${{ matrix.os }}
+        permissions:
+            contents: read
+        strategy:
+            matrix:
+                # For PRs: run minimal matrix (1 job). For push: run full matrix (9 jobs)
+                os: ${{ github.event_name == 'pull_request' && fromJSON('["ubuntu-latest"]') || fromJSON('["ubuntu-latest", "windows-latest", "macos-latest"]') }}
+                node-version: ${{ github.event_name == 'pull_request' && fromJSON('["22.x"]') || fromJSON('["20.x", "22.x", "24.x"]') }}
+            fail-fast: false
+        steps:
+            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+            - name: Use Node.js ${{ matrix.node-version }}
+              uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+              with:
+                  node-version: ${{ matrix.node-version }}
+            - name: Download Verdaccio storage
+              uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+              with:
+                  name: verdaccio-storage
+                  path: ~/verdaccio-download
+            - name: Setup Verdaccio with pre-built packages
+              run: |
+                  npm install -g verdaccio
+                  npm install -g wait-on
+                  mkdir -p $HOME/.config/verdaccio
+                  cp -v ./.github/workflows/verdaccio/config.yaml $HOME/.config/verdaccio/config.yaml
+                  # Extract the pre-built storage
+                  cd $HOME/.config/verdaccio
+                  tar -xzf ~/verdaccio-download/verdaccio-storage.tar.gz
+                  # Start Verdaccio
+                  nohup verdaccio --config $HOME/.config/verdaccio/config.yaml &
+                  wait-on http://localhost:4873
+                  # Setup auth token
+                  TOKEN_RES=$(curl -XPUT \
+                    -H "Content-type: application/json" \
+                    -d '{ "name": "test", "password": "test" }' \
+                    'http://localhost:4873/-/user/org.couchdb.user:test')
+                  TOKEN=$(echo "$TOKEN_RES" | jq -r '.token')
+                  npm set //localhost:4873/:_authToken $TOKEN
+            - name: Windows dependencies
+              if: matrix.os == 'windows-latest'
+              run: npm install -g @angular/cli
+            - name: Install via @vendure/create
+              run: |
+                  mkdir -p $HOME/install
+                  cd $HOME/install
+                  nohup verdaccio --config $HOME/.config/verdaccio/config.yaml &
+                  wait-on http://localhost:4873
+                  npm set registry=http://localhost:4873
+                  npm dist-tag ls @vendure/create
+                  npx @vendure/create@ci test-app --ci --use-npm --log-level info
+            - name: Server smoke tests
+              run: |
+                  cd $HOME/install/test-app
+                  npm run dev &
+                  node $GITHUB_WORKSPACE/.github/workflows/scripts/smoke-tests
+            - name: Kill dev server after smoke tests
+              shell: bash
+              run: |
+                  # Kill everything on ports 3000 and 5173 so the dashboard tests can start fresh.
+                  # `npm run dev` spawns child processes (server on 3000, dashboard Vite on 5173)
+                  # that aren't killed by killing the parent, so we kill by port. Freeing 5173 here
+                  # is essential: otherwise the smoke-test dashboard lingers and the next step's
+                  # dashboard fails to bind it.
+                  if [[ "$RUNNER_OS" == "Windows" ]]; then
+                      # Windows: use netstat to find PIDs and taskkill
+                      netstat -ano | grep -E ':(3000|5173)[[:space:]]' | grep 'LISTENING' | awk '{print $5}' | sort -u | xargs -r -I {} taskkill //F //PID {} 2>/dev/null || true
+                  else
+                      # Linux/macOS: use lsof
+                      lsof -ti:3000,5173 | xargs kill 2>/dev/null || true
+                  fi
+            - name: Copy files (Windows)
+              if: runner.os == 'Windows'
+              shell: pwsh
+              run: |
+                cd ~/install/test-app
+                New-Item -ItemType Directory -Force -Path src/plugins/test-plugin
+                Copy-Item "$env:GITHUB_WORKSPACE/.github/workflows/scripts/test-plugin/*" -Destination "src/plugins/test-plugin/" -Recurse -Force
+                Copy-Item "$env:GITHUB_WORKSPACE/.github/workflows/scripts/setup-test-plugin.js" -Destination "./setup-test-plugin.js"
+            - name: Copy files (Unix)
+              if: runner.os != 'Windows'
+              run: |
+                cd ~/install/test-app
+                mkdir -p src/plugins/test-plugin
+                cp -r "$GITHUB_WORKSPACE/.github/workflows/scripts/test-plugin/." src/plugins/test-plugin/
+                cp "$GITHUB_WORKSPACE/.github/workflows/scripts/setup-test-plugin.js" ./setup-test-plugin.js
+            - name: Run setup script
+              shell: bash
+              run: |
+                cd ~/install/test-app
+                node setup-test-plugin.js
+            - name: Cache Playwright browsers
+              uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: playwright-${{ runner.os }}-${{ hashFiles('**/bun.lock') }}
+                  restore-keys: |
+                      playwright-${{ runner.os }}-
+            - name: Install Playwright
+              run: |
+                  cd ~/install/test-app
+                  npm install --no-save playwright
+                  npx playwright install chromium
+                  npx playwright install-deps chromium
+            - name: Start dashboard and run tests
+              run: |
+                cd ~/install/test-app
+                # `npm run dev` already starts BOTH the Vendure server (port 3000) and the
+                # dashboard Vite dev server (port 5173) concurrently. Starting a second Vite
+                # on 5173 here caused an intermittent EADDRINUSE race against the one that
+                # `npm run dev` had already bound, so we rely on the single dev process.
+                npm run dev &
+                DEV_PID=$!
+                # Wait for the server (use /health endpoint, not root) and the dashboard to be available
+                wait-on http://localhost:3000/health --timeout 60000
+                wait-on http://localhost:5173/dashboard --timeout 120000
+                # Run the dashboard tests
+                NODE_PATH=~/install/test-app/node_modules node $GITHUB_WORKSPACE/.github/workflows/scripts/dashboard-tests.js
+                # Clean up dev server process
+                kill $DEV_PID 2>/dev/null || true
+            - name: Upload dashboard test screenshots
+              if: always()
+              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+              with:
+                name: dashboard-test-screenshots-${{ matrix.os }}-${{ matrix.node-version }}
+                path: /tmp/dashboard-test-*.png
+                retention-days: 28

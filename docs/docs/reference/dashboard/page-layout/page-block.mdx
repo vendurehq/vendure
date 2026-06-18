@@ -1,0 +1,128 @@
+---
+title: "PageBlock"
+generated: true
+---
+## PageBlock
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/layout-engine/page-layout.tsx" sourceLine="902" packageName="@vendure/dashboard" since="3.3.0" />
+
+*
+A component for displaying a block of content on a page. This should be used inside the [PageLayout](/reference/dashboard/page-layout/#pagelayout) component.
+It should be provided with a `column` prop to determine which column it should appear in, and a `blockId` prop
+to identify the block.
+
+*Example*
+
+```tsx
+<PageBlock column="main" blockId="my-block">
+ <div>My Block</div>
+</PageBlock>
+```
+
+```ts title="Signature"
+function PageBlock(props: Readonly<PageBlockProps>): void
+```
+Parameters
+
+### props
+
+<MemberInfo kind="parameter" type={`Readonly<<a href='/reference/dashboard/page-layout/page-block#pageblockprops'>PageBlockProps</a>>`} />
+
+## PageBlockProps
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/layout-engine/page-layout.tsx" sourceLine="851" packageName="@vendure/dashboard" since="3.3.0" />
+
+Props used to configure the [PageBlock](/reference/dashboard/page-layout/page-block#pageblock) component.
+
+```ts title="Signature"
+type PageBlockProps = {
+    children?: React.ReactNode;
+    column: 'main' | 'side' | 'full';
+    blockId?: string;
+    title?: React.ReactNode | string;
+    description?: React.ReactNode | string;
+    className?: string;
+}
+```
+
+<div className="members-wrapper">
+
+### children
+
+<MemberInfo kind="property" type={`React.ReactNode`}   />
+
+The content of the block.
+### column
+
+<MemberInfo kind="property" type={`'main' | 'side' | 'full'`}   />
+
+Which column this block should appear in
+### blockId
+
+<MemberInfo kind="property" type={`string`}   />
+
+The ID of the block, e.g. "gift-cards" or "related-products".
+### title
+
+<MemberInfo kind="property" type={`React.ReactNode | string`}   />
+
+The title of the block, e.g. "Gift Cards" or "Related Products".
+### description
+
+<MemberInfo kind="property" type={`React.ReactNode | string`}   />
+
+An optional description of the block.
+### className
+
+<MemberInfo kind="property" type={`string`}   />
+
+An optional set of CSS classes to apply to the block.
+
+
+</div>
+## FullWidthPageBlock
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/layout-engine/page-layout.tsx" sourceLine="947" packageName="@vendure/dashboard" since="3.3.0" />
+
+**Status: Developer Preview**
+
+A component for displaying a block of content on a page that takes up the full width of the page.
+This should be used inside the [PageLayout](/reference/dashboard/page-layout/#pagelayout) component.
+
+```ts title="Signature"
+function FullWidthPageBlock(props: Readonly<Pick<PageBlockProps, 'children' | 'className' | 'blockId'>>): void
+```
+Parameters
+
+### props
+
+<MemberInfo kind="parameter" type={`Readonly<Pick<<a href='/reference/dashboard/page-layout/page-block#pageblockprops'>PageBlockProps</a>, 'children' | 'className' | 'blockId'>>`} />
+
+## CustomFieldsPageBlock
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/layout-engine/page-layout.tsx" sourceLine="977" packageName="@vendure/dashboard" since="3.3.0" />
+
+*
+A component for displaying an auto-generated form for custom fields on a page.
+This is a special form of [PageBlock](/reference/dashboard/page-layout/page-block#pageblock) that automatically generates
+a form corresponding to the custom fields for the given entity type.
+
+*Example*
+
+```tsx
+<CustomFieldsPageBlock column="main" entityType="Product" control={form.control} />
+```
+
+```ts title="Signature"
+function CustomFieldsPageBlock(props: Readonly<{
+    column: 'main' | 'side';
+    entityType: string;
+    control: Control<any, any>;
+}>): void
+```
+Parameters
+
+### props
+
+<MemberInfo kind="parameter" type={`Readonly<{     column: 'main' | 'side';     entityType: string;     control: Control<any, any>; }>`} />
+

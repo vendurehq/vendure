@@ -1,0 +1,17 @@
+<vdr-chip
+    [icon]="removable ? 'times' : undefined"
+    [colorFrom]="facetValue.facet.name"
+    (iconClick)="remove.emit()"
+    [title]="formattedTitle"
+>
+    <span *ngIf="displayFacetName" class="facet-name">
+        {{ facetValue.facet.name }}
+    </span>
+    <span>{{ facetValue.name }}</span>
+    <div class="flex">
+        <vdr-help-tooltip
+            *ngIf="facetValue.facet.code"
+            [content]="'Facet code: ' + facetValue.facet.code"
+        ></vdr-help-tooltip>
+    </div>
+</vdr-chip>

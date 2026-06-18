@@ -1,0 +1,39 @@
+---
+title: "VendureEntity"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/base/base.entity.ts" sourceLine="13" packageName="@vendure/core" />
+
+This is the base class from which all entities inherit. The type of
+the `id` property is defined by the [EntityIdStrategy](/reference/typescript-api/configuration/entity-id-strategy#entityidstrategy).
+
+```ts title="Signature"
+class VendureEntity {
+    constructor(input?: DeepPartial<VendureEntity>)
+    @PrimaryGeneratedId()
+    id: ID;
+    @CreateDateColumn() createdAt: Date;
+    @UpdateDateColumn() updatedAt: Date;
+}
+```
+
+<div className="members-wrapper">
+
+### id
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
+
+
+### createdAt
+
+<MemberInfo kind="property" type={`Date`}   />
+
+
+### updatedAt
+
+<MemberInfo kind="property" type={`Date`}   />
+
+
+
+
+</div>

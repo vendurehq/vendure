@@ -1,0 +1,60 @@
+<ng-template vdrDialogTitle>{{ 'order.fulfill-order' | translate }}</ng-template>
+
+<div class="fulfillment-wrapper">
+    <div class="order-table">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>{{ 'order.product-name' | translate }}</th>
+                    <th>{{ 'order.product-sku' | translate }}</th>
+                    <th>{{ 'order.unfulfilled' | translate }}</th>
+                    <th>{{ 'catalog.stock-on-hand' | translate }}</th>
+                    <th>{{ 'order.fulfill' | translate }}</th>
+                </tr>
+            </thead>
+            <tr
+                *ngFor="let line of order.lines"
+                class="order-line"
+                [class.ignore]="getUnfulfilledCount(line) === 0"
+            >
+                <td class="align-middle thumb">
+                    <img *ngIf="line.featuredAsset" [src]="line.featuredAsset | assetPreview: 'tiny'" />
+                </td>
+                <td class="align-middle name">{{ line.productVariant.name }}</td>
+                <td class="align-middle sku">{{ line.productVariant.sku }}</td>
+                <td class="align-middle quantity">{{ getUnfulfilledCount(line) }}</td>
+                <td class="align-middle quantity">{{ line.productVariant.stockOnHand }}</td>
+                <td class="align-middle fulfil">
+                    <input
+                        *ngIf="fulfillmentQuantities[line.id]"
+                        [disabled]="getUnfulfilledCount(line) === 0"
+                        [(ngModel)]="fulfillmentQuantities[line.id].fulfillCount"
+                        type="number"
+                        [max]="fulfillmentQuantities[line.id].max"
+                        min="0"
+                    />
+                </td>
+            </tr>
+        </table>
+    </div>
+    <div class="shipping-details">
+        <vdr-formatted-address [address]="order.shippingAddress"></vdr-formatted-address>
+        <h6>{{ 'order.shipping-method' | translate }}</h6>
+        {{ order.shippingLines[0]?.shippingMethod?.name }}
+        <strong>{{ order.shipping | localeCurrency: order.currencyCode }}</strong>
+        <vdr-configurable-input
+            [operationDefinition]="fulfillmentHandlerDef"
+            [operation]="fulfillmentHandler"
+            [formControl]="fulfillmentHandlerControl"
+            [removable]="false"
+        ></vdr-configurable-input>
+    </div>
+</div>
+
+<ng-template vdrDialogButtons>
+    <button type="button" class="btn" (click)="cancel()">{{ 'common.cancel' | translate }}</button>
+    <button type="submit" (click)="select()" [disabled]="!canSubmit()" class="btn btn-primary">
+        {{ 'order.create-fulfillment' | translate }}
+    </button>
+</ng-template>

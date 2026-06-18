@@ -1,0 +1,227 @@
+<vdr-page-block>
+    <vdr-action-bar>
+        <vdr-ab-left>
+            <vdr-language-selector
+                [disabled]="isNew$ | async"
+                [availableLanguageCodes]="availableLanguages$ | async"
+                [currentLanguageCode]="languageCode$ | async"
+                (languageCodeChange)="setLanguage($event)"
+            ></vdr-language-selector>
+        </vdr-ab-left>
+        <vdr-ab-right>
+            <vdr-action-bar-items locationId="collection-detail" />
+            <button
+                class="btn btn-primary"
+                *ngIf="isNew$ | async; else updateButton"
+                (click)="create()"
+                [disabled]="detailForm.invalid || detailForm.pristine"
+            >
+                {{ 'common.create' | translate }}
+            </button>
+            <ng-template #updateButton>
+                <button
+                    *vdrIfPermissions="updatePermission"
+                    class="btn btn-primary"
+                    (click)="save()"
+                    [disabled]="(detailForm.invalid || detailForm.pristine) && !assetsChanged()"
+                >
+                    {{ 'common.update' | translate }}
+                </button>
+            </ng-template>
+            <vdr-action-bar-dropdown-menu locationId="collection-detail" />
+        </vdr-ab-right>
+    </vdr-action-bar>
+</vdr-page-block>
+<form class="form" [formGroup]="detailForm">
+    <vdr-page-detail-layout>
+        <vdr-page-detail-sidebar>
+            <vdr-card>
+                <vdr-form-field [label]="'catalog.visibility' | translate" for="visibility">
+                    <clr-toggle-wrapper>
+                        <input
+                            type="checkbox"
+                            clrToggle
+                            formControlName="visible"
+                            id="visibility"
+                            [vdrDisabled]="!(updatePermission | hasPermission)"
+                        />
+                        <label class="visible-toggle">
+                            <ng-container *ngIf="detailForm.value.visible; else private">{{
+                                'catalog.public' | translate
+                            }}</ng-container>
+                            <ng-template #private>{{ 'catalog.private' | translate }}</ng-template>
+                        </label>
+                    </clr-toggle-wrapper>
+                </vdr-form-field>
+            </vdr-card>
+            <vdr-card *ngIf="entity$ | async as entity">
+                <vdr-page-entity-info [entity]="entity"></vdr-page-entity-info>
+            </vdr-card>
+        </vdr-page-detail-sidebar>
+
+        <vdr-page-block *ngIf="entity$ | async as entity"
+            ><nav role="navigation">
+                <ul class="collection-breadcrumbs">
+                    <li *ngFor="let breadcrumb of entity.breadcrumbs; let isFirst = first; let isLast = last">
+                        <a [routerLink]="['/catalog/collections']" *ngIf="isFirst">{{
+                            'catalog.root-collection' | translate
+                        }}</a>
+                        <a
+                            [routerLink]="['/catalog/collections', breadcrumb.id]"
+                            *ngIf="!isFirst && !isLast"
+                            >{{ breadcrumb.name | translate }}</a
+                        >
+                        <ng-container *ngIf="isLast">{{ breadcrumb.name | translate }}</ng-container>
+                    </li>
+                </ul>
+            </nav>
+        </vdr-page-block>
+
+        <vdr-page-block>
+            <vdr-card>
+                <div class="form-grid">
+                    <vdr-form-field [label]="'common.name' | translate" for="name">
+                        <input
+                            id="name"
+                            type="text"
+                            formControlName="name"
+                            [readonly]="!(updatePermission | hasPermission)"
+                            (input)="updateSlug($event.target.value)"
+                        />
+                    </vdr-form-field>
+                    <vdr-form-field
+                        [label]="'catalog.slug' | translate"
+                        for="slug"
+                        [errors]="{ pattern: ('catalog.slug-pattern-error' | translate) }"
+                    >
+                        <input
+                            id="slug"
+                            type="text"
+                            formControlName="slug"
+                            [readonly]="!(updatePermission | hasPermission)"
+                        />
+                    </vdr-form-field>
+                    <vdr-form-field
+                        class="form-grid-span"
+                        [label]="'common.description' | translate"
+                        for="slug"
+                    >
+                        <vdr-rich-text-editor
+                            formControlName="description"
+                            [readonly]="!(updatePermission | hasPermission)"
+                        ></vdr-rich-text-editor>
+                    </vdr-form-field>
+                </div>
+            </vdr-card>
+            <vdr-card
+                formGroupName="customFields"
+                *ngIf="customFields.length"
+                [title]="'common.custom-fields' | translate"
+            >
+                <vdr-tabbed-custom-fields
+                    entityName="Collection"
+                    [customFields]="customFields"
+                    [customFieldsFormGroup]="detailForm.get('customFields')"
+                    [readonly]="!(updatePermission | hasPermission)"
+                ></vdr-tabbed-custom-fields>
+            </vdr-card>
+            <vdr-custom-detail-component-host
+                locationId="collection-detail"
+                [entity$]="entity$"
+                [detailForm]="detailForm"
+            ></vdr-custom-detail-component-host>
+            <vdr-card [title]="'catalog.assets' | translate">
+                <vdr-assets
+                    [assets]="entity?.assets"
+                    [featuredAsset]="entity?.featuredAsset"
+                    [updatePermissions]="updatePermission"
+                    (change)="assetChanges = $event"
+                ></vdr-assets>
+            </vdr-card>
+            <vdr-card [title]="'catalog.filters' | translate">
+                <vdr-form-field [label]="'catalog.filter-inheritance' | translate" for="inheritFilters">
+                    <clr-toggle-wrapper>
+                        <input
+                            type="checkbox"
+                            clrToggle
+                            formControlName="inheritFilters"
+                            id="inheritFilters"
+                            [vdrDisabled]="!(updatePermission | hasPermission)"
+                        />
+                        <label class="visible-toggle">
+                            <ng-container *ngIf="detailForm.value.inheritFilters; else noInherit">{{
+                                'catalog.inherit-filters-from-parent' | translate
+                            }}</ng-container>
+                            <ng-template #noInherit>{{
+                                'catalog.do-not-inherit-filters' | translate
+                            }}</ng-template>
+                        </label>
+                    </clr-toggle-wrapper>
+                </vdr-form-field>
+                <div formArrayName="filters">
+                    <ng-container *ngFor="let filter of filters; index as i; trackBy: trackByFn">
+                        <vdr-configurable-input
+                            (remove)="removeFilter(i)"
+                            [position]="i"
+                            [operation]="filter"
+                            [operationDefinition]="getFilterDefinition(filter)"
+                            [formControlName]="i"
+                            [readonly]="!(updatePermission | hasPermission)"
+                        ></vdr-configurable-input>
+                    </ng-container>
+                </div>
+                <div *vdrIfPermissions="updatePermission">
+                    <vdr-dropdown>
+                        <button class="btn btn-outline" vdrDropdownTrigger>
+                            <clr-icon shape="plus"></clr-icon>
+                            <span>{{ 'marketing.add-condition' | translate }}</span>
+                            <clr-icon shape="ellipsis-vertical"></clr-icon>
+                        </button>
+                        <vdr-dropdown-menu vdrPosition="bottom-left">
+                            <button
+                                *ngFor="let filter of allFilters"
+                                type="button"
+                                vdrDropdownItem
+                                (click)="addFilter(filter)"
+                            >
+                                {{ filter.description }}
+                            </button>
+                        </vdr-dropdown-menu>
+                    </vdr-dropdown>
+                </div>
+            </vdr-card>
+
+            <vdr-card [title]="'common.contents' | translate" [paddingX]="false">
+                <vdr-collection-contents
+                    [collectionId]="id"
+                    [parentId]="parentId$ | async"
+                    [updatedFilters]="updatedFilters$ | async"
+                    [inheritFilters]="inheritFilters$ | async"
+                    [previewUpdatedFilters]="livePreview"
+                    #collectionContents
+                >
+                    <ng-template let-count>
+                        <div class="ml-3">
+                            <div class="contents-title">
+                                {{ 'catalog.collection-contents' | translate }} ({{
+                                    'common.results-count' | translate : { count: count }
+                                }})
+                            </div>
+                            <clr-checkbox-wrapper [class.disabled]="detailForm.get('filters')?.pristine">
+                                <input
+                                    type="checkbox"
+                                    clrCheckbox
+                                    [ngModelOptions]="{ standalone: true }"
+                                    [disabled]="detailForm.get('filters')?.pristine"
+                                    [ngModel]="livePreview"
+                                    (ngModelChange)="toggleLivePreview()"
+                                />
+                                <label>{{ 'catalog.live-preview-contents' | translate }}</label>
+                            </clr-checkbox-wrapper>
+                        </div>
+                    </ng-template>
+                </vdr-collection-contents>
+            </vdr-card>
+        </vdr-page-block>
+    </vdr-page-detail-layout>
+</form>

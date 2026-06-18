@@ -1,0 +1,30 @@
+---
+title: "OrderHistoryEntry"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/history-entry/order-history-entry.entity.ts" sourceLine="14" packageName="@vendure/core" />
+
+Represents an event in the history of a particular [Order](/reference/typescript-api/entities/order#order).
+
+```ts title="Signature"
+class OrderHistoryEntry extends HistoryEntry {
+    constructor(input: DeepPartial<OrderHistoryEntry>)
+    @Index()
+    @ManyToOne(type => Order, { onDelete: 'CASCADE' })
+    order: Order;
+}
+```
+* Extends: [`HistoryEntry`](/reference/typescript-api/entities/history-entry#historyentry)
+
+
+
+<div className="members-wrapper">
+
+### order
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/order#order'>Order</a>`}   />
+
+
+
+
+</div>

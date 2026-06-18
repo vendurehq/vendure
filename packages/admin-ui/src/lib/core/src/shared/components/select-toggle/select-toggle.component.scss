@@ -1,0 +1,67 @@
+@import 'variables';
+@import 'mixins';
+
+:host {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toggle {
+    @include no-select();
+    cursor: pointer;
+    color: var(--color-grey-300);
+    background-color: var(--color-component-bg-100);
+    border-radius: 50%;
+    top: -12px;
+    left: -12px;
+    transition: opacity 0.1s, color 0.1s;
+
+    &.hide-when-off {
+        opacity: 0;
+    }
+
+    &.small {
+        width: 24px;
+        height: 24px;
+    }
+
+    &:not(.disabled):hover {
+        color: var(--color-success-600);
+        opacity: 0.9;
+    }
+
+    &.selected {
+        opacity: 1;
+        color: var(--color-success-700);
+
+        &:not(.disabled):hover {
+            color: var(--color-success-600);
+            opacity: 0.9;
+        }
+    }
+
+    &:focus {
+        outline: none;
+        box-shadow: 0 0 2px 2px var(--color-primary-700);
+    }
+
+    &.disabled {
+        cursor: default;
+    }
+}
+
+.toggle-label {
+    flex: 1;
+    margin-inline-start: 6px;
+    text-align: start;
+    font-size: 12px;
+
+    &:not(.disabled) {
+        cursor: pointer;
+    }
+
+    &.selected {
+        color: var(--color-success-800);
+    }
+}

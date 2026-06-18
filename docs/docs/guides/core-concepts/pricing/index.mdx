@@ -1,0 +1,66 @@
+---
+title: "Pricing"
+metaTitle: "How Vendure Calculates Product Prices from Catalog to Checkout"
+metaDescription: "Understand Vendure's price pipeline: from ProductVariantPrice through strategies, promotions, and tax to the final price shown at checkout."
+---
+
+Vendure uses a multi-stage pipeline to determine the price a customer actually pays. Rather than storing a single "final" price, the system starts with a base price and transforms it step-by-step through strategies, promotions, and tax calculations. This makes it possible to support complex scenarios like channel-specific pricing, dynamic discounts, and tax-inclusive or tax-exclusive display.
+
+## The price pipeline
+
+When an item is added to an order, Vendure resolves its price through the following stages:
+
+1. **ProductVariantPrice** — The base price stored in the database. Each [`ProductVariant`](/reference/typescript-api/entities/product-variant/) has one or more [`ProductVariantPrice`](/reference/typescript-api/entities/product-variant-price/) records, scoped by channel and currency.
+2. **ProductVariantPriceSelectionStrategy** — Selects which `ProductVariantPrice` to use when multiple prices exist for the active channel and currency.
+3. **OrderItemPriceCalculationStrategy** — Determines the unit price and whether it includes tax. This is the main extension point for custom pricing logic such as customer-specific pricing, tiered pricing, or time-based deals.
+4. **Promotions** — Any active [promotions](/core-concepts/promotions/) that apply order-level or item-level discounts are calculated and applied as adjustments.
+5. **Tax calculation** — The applicable tax rate is determined (based on [tax category, zone, and strategy](/core-concepts/taxes/)) and applied to produce the final tax-inclusive price.
+
+The result of this pipeline is exposed in the GraphQL API as a pair of fields on every taxable price: a **base** field and a **WithTax** field. For example, an `OrderLine` exposes `linePrice` and `linePriceWithTax`, and the `Order` itself exposes `subTotal` / `subTotalWithTax`, `total` / `totalWithTax`, and so on.
+
+## Channel-specific pricing
+
+Because [`ProductVariantPrice`](/reference/typescript-api/entities/product-variant-price/) records are scoped to a specific [channel](/core-concepts/channels/) and currency, the same product variant can have entirely different prices in different channels. This is essential for multi-region or multi-vendor setups where each storefront operates with its own currency and pricing structure.
+
+A single variant might have a price of $30 USD in the US channel and 25 GBP in the UK channel. If a channel supports multiple currencies, the variant can even have more than one price within that channel.
+
+## The `price` vs `priceWithTax` convention
+
+Throughout the Vendure GraphQL APIs, monetary values always come in pairs:
+
+- **`price`** — The amount _without_ tax (or the tax-inclusive amount if the channel is configured for tax-inclusive pricing, in which case tax has been back-calculated).
+- **`priceWithTax`** — The amount _with_ tax included.
+
+This convention applies to individual line items, order subtotals, shipping costs, and the order total. Your storefront can choose which value to display based on local regulations and conventions.
+
+:::info
+All monetary values in Vendure are stored as **integers in the smallest currency unit** (e.g., cents for USD). See [Money & Currency](/core-concepts/money/) for details on how Vendure handles monetary arithmetic.
+:::
+
+## Promotions and adjustments
+
+After the base price is resolved, Vendure applies any qualifying [promotions](/core-concepts/promotions/). Promotions never modify the base price directly. Instead, they add **adjustments** to the order or order line, which are tracked separately. This means the original price is always preserved, and discounts can be clearly itemized for the customer.
+
+There are two levels of adjustment:
+
+- **Order-level adjustments** — Applied to the order as a whole, such as "10% off your entire order" or "$5 off when you spend over $50".
+- **Item-level adjustments** — Applied to individual order lines, such as "buy one get one free" on a specific product.
+
+Both types are stored alongside the order and are visible in the API, so your storefront can show the customer exactly which discounts were applied and how much they saved.
+
+## Extending the pipeline
+
+The pricing pipeline is designed to be customized at each stage. The two most common extension points are:
+
+- **OrderItemPriceCalculationStrategy** — For scenarios where the price depends on runtime context such as the logged-in customer, the quantity, or external data.
+- **ProductVariantPriceSelectionStrategy** — For controlling which stored price is selected when multiple options exist.
+
+Both strategies are configured at the server level and apply globally. For details on implementing custom strategies, see the [TypeScript API reference](/reference/typescript-api/orders/order-item-price-calculation-strategy/).
+
+## Related topics
+
+- [Money & Currency](/core-concepts/money/) — Integer-based monetary values and currency handling
+- [Taxes](/core-concepts/taxes/) — Tax categories, rates, zones, and calculation strategies
+- [Promotions](/core-concepts/promotions/) — Discount rules and coupon codes
+- [Channels](/core-concepts/channels/) — Multi-storefront pricing and currency configuration
+- [Products](/core-concepts/products/) — Product variants and how prices relate to variants

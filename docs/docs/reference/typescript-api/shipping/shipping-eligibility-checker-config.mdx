@@ -1,0 +1,34 @@
+---
+title: "ShippingEligibilityCheckerConfig"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/shipping-method/shipping-eligibility-checker.ts" sourceLine="23" packageName="@vendure/core" />
+
+Configuration passed into the constructor of a [ShippingEligibilityChecker](/reference/typescript-api/shipping/shipping-eligibility-checker#shippingeligibilitychecker) to
+configure its behavior.
+
+```ts title="Signature"
+interface ShippingEligibilityCheckerConfig<T extends ConfigArgs> extends ConfigurableOperationDefOptions<T> {
+    check: CheckShippingEligibilityCheckerFn<T>;
+    shouldRunCheck?: ShouldRunCheckFn<T>;
+}
+```
+* Extends: [`ConfigurableOperationDefOptions`](/reference/typescript-api/configurable-operation-def/configurable-operation-def-options#configurableoperationdefoptions)`<T>`
+
+
+
+<div className="members-wrapper">
+
+### check
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/shipping/check-shipping-eligibility-checker-fn#checkshippingeligibilitycheckerfn'>CheckShippingEligibilityCheckerFn</a><T>`}   />
+
+
+### shouldRunCheck
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/shipping/should-run-check-fn#shouldruncheckfn'>ShouldRunCheckFn</a><T>`}   />
+
+
+
+
+</div>

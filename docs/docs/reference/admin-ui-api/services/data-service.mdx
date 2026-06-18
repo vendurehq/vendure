@@ -1,0 +1,132 @@
+---
+title: "DataService"
+generated: true
+---
+## DataService
+
+<GenerationInfo sourceFile="packages/admin-ui/src/lib/core/src/data/providers/data.service.ts" sourceLine="34" packageName="@vendure/admin-ui" />
+
+Used to interact with the Admin API via GraphQL queries. Internally this service uses the
+Apollo Client, which means it maintains a normalized entity cache. For this reason, it is
+advisable to always select the `id` field of any entity, which will allow the returned data
+to be effectively cached.
+
+```ts title="Signature"
+class DataService {
+    query(query: DocumentNode | TypedDocumentNode<T, V>, variables?: V, fetchPolicy: WatchQueryFetchPolicy = 'cache-and-network', options: ExtendedQueryOptions = {}) => QueryResult<T, V>;
+    mutate(mutation: DocumentNode | TypedDocumentNode<T, V>, variables?: V, update?: MutationUpdaterFunction<T, V, any, any>, options: ExtendedQueryOptions = {}) => Observable<T>;
+}
+```
+
+<div className="members-wrapper">
+
+### query
+
+<MemberInfo kind="method" type={`(query: DocumentNode | TypedDocumentNode<T, V>, variables?: V, fetchPolicy: WatchQueryFetchPolicy = 'cache-and-network', options: ExtendedQueryOptions = {}) => <a href='/reference/admin-ui-api/services/data-service#queryresult'>QueryResult</a><T, V>`}   />
+
+Perform a GraphQL query. Returns a [QueryResult](/reference/admin-ui-api/services/data-service#queryresult) which allows further control over
+they type of result returned, e.g. stream of values, single value etc.
+
+*Example*
+
+```ts
+const result$ = this.dataService.query(gql`
+  query MyQuery($id: ID!) {
+    product(id: $id) {
+      id
+      name
+      slug
+    }
+  },
+  { id: 123 },
+).mapSingle(data => data.product);
+```
+### mutate
+
+<MemberInfo kind="method" type={`(mutation: DocumentNode | TypedDocumentNode<T, V>, variables?: V, update?: MutationUpdaterFunction<T, V, any, any>, options: ExtendedQueryOptions = {}) => Observable<T>`}   />
+
+Perform a GraphQL mutation.
+
+*Example*
+
+```ts
+const result$ = this.dataService.mutate(gql`
+  mutation MyMutation($Codegen.UpdateEntityInput!) {
+    updateEntity(input: $input) {
+      id
+      name
+    }
+  },
+  { Codegen.updateEntityInput },
+);
+```
+
+
+</div>
+## QueryResult
+
+<GenerationInfo sourceFile="packages/admin-ui/src/lib/core/src/data/query-result.ts" sourceLine="31" packageName="@vendure/admin-ui" />
+
+This class wraps the Apollo Angular QueryRef object and exposes some getters
+for convenience.
+
+```ts title="Signature"
+class QueryResult<T, V extends Record<string, any> = Record<string, any>> {
+    constructor(queryRef: QueryRef<T, V>, apollo: Apollo, customFieldMap: Map<string, CustomFieldConfig[]>)
+    refetchOnChannelChange() => QueryResult<T, V>;
+    refetchOnCustomFieldsChange(customFieldsToInclude$: Observable<string[]>) => QueryResult<T, V>;
+    single$: Observable<T>
+    stream$: Observable<T>
+    ref: QueryRef<T, V>
+    mapSingle(mapFn: (item: T) => R) => Observable<R>;
+    mapStream(mapFn: (item: T) => R) => Observable<R>;
+    destroy() => ;
+}
+```
+
+<div className="members-wrapper">
+
+### refetchOnChannelChange
+
+<MemberInfo kind="method" type={`() => <a href='/reference/admin-ui-api/services/data-service#queryresult'>QueryResult</a><T, V>`}   />
+
+Re-fetch this query whenever the active Channel changes.
+### refetchOnCustomFieldsChange
+
+<MemberInfo kind="method" type={`(customFieldsToInclude$: Observable<string[]>) => <a href='/reference/admin-ui-api/services/data-service#queryresult'>QueryResult</a><T, V>`}  since="3.0.4"  />
+
+Re-fetch this query whenever the custom fields change, updating the query to include the
+specified custom fields.
+### single$
+
+<MemberInfo kind="property" type={`Observable<T>`}   />
+
+Returns an Observable which emits a single result and then completes.
+### stream$
+
+<MemberInfo kind="property" type={`Observable<T>`}   />
+
+Returns an Observable which emits until unsubscribed.
+### ref
+
+<MemberInfo kind="property" type={`QueryRef<T, V>`}   />
+
+
+### mapSingle
+
+<MemberInfo kind="method" type={`(mapFn: (item: T) => R) => Observable<R>`}   />
+
+Returns a single-result Observable after applying the map function.
+### mapStream
+
+<MemberInfo kind="method" type={`(mapFn: (item: T) => R) => Observable<R>`}   />
+
+Returns a multiple-result Observable after applying the map function.
+### destroy
+
+<MemberInfo kind="method" type={`() => `}   />
+
+Signals to the internal Observable subscriptions that they should complete.
+
+
+</div>

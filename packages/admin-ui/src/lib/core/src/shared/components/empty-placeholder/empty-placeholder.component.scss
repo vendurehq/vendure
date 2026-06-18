@@ -1,0 +1,14 @@
+:host {
+    display: block;
+}
+.empty-state {
+    text-align: center;
+    padding: 60px;
+    color: var(--color-grey-400);
+    width: 100%;
+
+    .empty-label {
+        margin-top: 12px;
+        font-size: 22px;
+    }
+}

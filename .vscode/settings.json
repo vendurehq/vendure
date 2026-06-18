@@ -1,0 +1,26 @@
+{
+    "conventionalCommits.scopes": [
+        "admin-ui",
+        "admin-ui-plugin",
+        "asset-server-plugin",
+        "cli",
+        "common",
+        "core",
+        "create",
+        "dev-server",
+        "email-plugin",
+        "harden-plugin",
+        "job-queue-plugin",
+        "testing",
+        "ui-devkit",
+        "repo",
+        "dashboard"
+    ],
+    "conventionalCommits.gitmoji": false,
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "angular.enable-strict-mode-prompt": false,
+    "sonarlint.connectedMode.project": {
+        "connectionId": "vendure-ecommerce",
+        "projectKey": "vendure-ecommerce_vendure"
+    }
+}

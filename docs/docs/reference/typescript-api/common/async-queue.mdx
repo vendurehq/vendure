@@ -1,0 +1,28 @@
+---
+title: "AsyncQueue"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/common/async-queue.ts" sourceLine="13" packageName="@vendure/core" />
+
+A queue class for limiting concurrent async tasks. This can be used e.g. to prevent
+race conditions when working on a shared resource such as writing to a database.
+
+```ts title="Signature"
+class AsyncQueue {
+    constructor(label: string = 'default', concurrency: number = 1)
+    push(task: Task<T>) => Promise<T>;
+}
+```
+
+<div className="members-wrapper">
+
+### push
+
+<MemberInfo kind="method" type={`(task: Task<T>) => Promise<T>`}   />
+
+Pushes a new task onto the queue, upon which the task will either execute immediately or
+(if the number of running tasks is equal to the concurrency limit) enqueue the task to
+be executed at the soonest opportunity.
+
+
+</div>

@@ -1,0 +1,21 @@
+<ng-container *ngIf="selectable$ | async; else default">
+    <div class="btn-group btn-outline-primary btn-sm mode-select">
+        <button
+            class="btn"
+            (click)="setCombinationModeAnd()"
+            [class.btn-primary]="formControl.value === true"
+        >
+            {{ 'common.boolean-and' | translate }}
+        </button>
+        <button
+            class="btn"
+            (click)="setCombinationModeOr()"
+            [class.btn-primary]="formControl.value === false"
+        >
+            {{ 'common.boolean-or' | translate }}
+        </button>
+    </div>
+</ng-container>
+<ng-template #default>
+    <small>{{ 'common.not-applicable' | translate }}</small>
+</ng-template>

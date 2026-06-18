@@ -1,0 +1,55 @@
+<div
+    class="test-result card"
+    [ngClass]="{
+        success: testResult?.eligible === true,
+        error: testResult?.eligible === false,
+        unknown: !testResult
+    }"
+>
+    <div class="card-header">
+        {{ 'settings.test-result' | translate }}
+    </div>
+    <div class="card-block">
+        <div class="result-details" [class.stale]="testDataUpdated">
+            <vdr-labeled-data [label]="'settings.eligible' | translate">
+                <div class="eligible-icon">
+                    <clr-icon
+                        shape="success-standard"
+                        class="is-solid success"
+                        *ngIf="testResult?.eligible"
+                    ></clr-icon>
+                    <clr-icon
+                        shape="ban"
+                        class="is-solid error"
+                        *ngIf="testResult?.eligible === false"
+                    ></clr-icon>
+                    <clr-icon shape="unknown-status" *ngIf="!testResult"></clr-icon>
+                </div>
+                {{ testResult?.eligible }}
+            </vdr-labeled-data>
+            <div class="price-row">
+                <vdr-labeled-data
+                    [label]="'common.price' | translate"
+                    *ngIf="testResult?.quote?.price != null"
+                >
+                    {{ testResult.quote?.price | localeCurrency: currencyCode }}
+                </vdr-labeled-data>
+                <vdr-labeled-data
+                    [label]="'common.price-with-tax' | translate"
+                    *ngIf="testResult?.quote?.priceWithTax != null"
+                >
+                    {{ testResult.quote?.priceWithTax | localeCurrency: currencyCode }}
+                </vdr-labeled-data>
+            </div>
+            <vdr-object-tree
+                *ngIf="testResult?.quote?.metadata"
+                [value]="testResult?.quote?.metadata"
+            ></vdr-object-tree>
+        </div>
+    </div>
+    <div class="card-footer">
+        <button class="btn btn-secondary" (click)="runTest.emit()" [disabled]="!okToRun">
+            {{ 'settings.test-shipping-method' | translate }}
+        </button>
+    </div>
+</div>

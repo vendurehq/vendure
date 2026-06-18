@@ -1,0 +1,70 @@
+<vdr-page-block>
+    <div class="widget-header mb-1">
+        <vdr-dropdown>
+            <button class="btn btn-secondary btn-sm" vdrDropdownTrigger>
+                <clr-icon shape="plus"></clr-icon>
+                {{ 'dashboard.add-widget' | translate }}
+                <clr-icon shape="ellipsis-vertical"></clr-icon>
+            </button>
+            <vdr-dropdown-menu vdrPosition="bottom-right">
+                <button
+                    vdrDropdownItem
+                    *ngFor="let widget of availableWidgets$ | async"
+                    (click)="addWidget(widget.id)"
+                >
+                    {{ (widget.config.title ?? widget.id) | translate }}
+                </button>
+            </vdr-dropdown-menu>
+        </vdr-dropdown>
+    </div>
+    <div cdkDropListGroup>
+        <div
+            class="clr-row dashboard-row"
+            *ngFor="let row of widgetLayout; index as rowIndex; trackBy: trackRow"
+            cdkDropList
+            (cdkDropListDropped)="drop($event)"
+            cdkDropListOrientation="horizontal"
+            [cdkDropListData]="{ index: rowIndex }"
+        >
+            <div
+                *ngFor="let widget of row; trackBy: trackRowItem"
+                class="dashboard-item"
+                [ngClass]="getClassForWidth(widget.width)"
+                cdkDrag
+                [cdkDragData]="widget"
+            >
+                <vdr-dashboard-widget
+                    *vdrIfPermissions="widget.config.requiresPermissions || null"
+                    [widgetConfig]="widget.config"
+                >
+                    <div class="flex">
+                        <div class="drag-handle" cdkDragHandle>
+                            <clr-icon shape="drag-handle" size="24"></clr-icon>
+                        </div>
+                        <vdr-dropdown>
+                            <button class="icon-button" vdrDropdownTrigger>
+                                <clr-icon shape="ellipsis-vertical"></clr-icon>
+                            </button>
+                            <vdr-dropdown-menu vdrPosition="bottom-right">
+                                <h4 class="dropdown-header">{{ 'dashboard.widget-resize' | translate }}</h4>
+                                <button
+                                    vdrDropdownItem
+                                    [disabled]="width === widget.width"
+                                    *ngFor="let width of getSupportedWidths(widget.config)"
+                                    (click)="setWidgetWidth(widget, width)"
+                                >
+                                    {{ 'dashboard.widget-width' | translate : { width: width } }}
+                                </button>
+                                <div class="dropdown-divider" role="separator"></div>
+                                <button vdrDropdownItem (click)="removeWidget(widget)">
+                                    <clr-icon shape="trash" class="is-danger"></clr-icon>
+                                    {{ 'dashboard.remove-widget' | translate }}
+                                </button>
+                            </vdr-dropdown-menu>
+                        </vdr-dropdown>
+                    </div>
+                </vdr-dashboard-widget>
+            </div>
+        </div>
+    </div>
+</vdr-page-block>

@@ -1,0 +1,23 @@
+---
+title: "EmailEventHandlerWithAsyncData"
+generated: true
+---
+<GenerationInfo sourceFile="packages/email-plugin/src/handler/event-handler.ts" sourceLine="506" packageName="@vendure/email-plugin" />
+
+Identical to the [EmailEventHandler](/reference/core-plugins/email-plugin/email-event-handler#emaileventhandler) but with a `data` property added to the `event` based on the result
+of the `.loadData()` function.
+
+```ts title="Signature"
+class EmailEventHandlerWithAsyncData<Data, T extends string = string, InputEvent extends EventWithContext = EventWithContext, Event extends EventWithAsyncData<InputEvent, Data> = EventWithAsyncData<InputEvent, Data>> extends EmailEventHandler<T, Event> {
+    constructor(_loadDataFn: LoadDataFn<InputEvent, Data>, listener: EmailEventListener<T>, event: Type<InputEvent>)
+}
+```
+* Extends: [`EmailEventHandler`](/reference/core-plugins/email-plugin/email-event-handler#emaileventhandler)`<T, Event>`
+
+
+
+<div className="members-wrapper">
+
+
+
+</div>

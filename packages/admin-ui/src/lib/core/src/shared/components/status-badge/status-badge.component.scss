@@ -1,0 +1,25 @@
+:host {
+    display: block;
+    position: absolute;
+}
+
+.status-badge {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1px solid var(--color-component-border-100);
+
+    &.info {
+        background-color: var(--color-primary-600);
+    }
+    &.success {
+        background-color: var(--color-success-600);
+    }
+    &.warning {
+        background-color: var(--color-warning-600);
+    }
+    &.error {
+        background-color: var(--color-error-600);
+    }
+}
+

@@ -1,0 +1,6 @@
+{
+    "type": "commonjs",
+    "name": "with-translations",
+    "version": "0.0.1",
+    "main": "index.ts"
+}

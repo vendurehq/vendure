@@ -1,0 +1,82 @@
+<div class="app-container" [dir]="direction$ | async">
+    <div class="left-nav" [class.expanded]="mainNavExpanded$ | async">
+        <div class="branding">
+            <a [routerLink]="['/']" *ngIf="!hideVendureBranding"
+                ><img src="assets/logo-top.webp" class="logo" style="max-width: 100px"
+            /></a>
+            <div class="collapse-menu">
+                <button class="" (click)="collapseNav()">
+                    <clr-icon shape="window-close" size="24"></clr-icon>
+                </button>
+            </div>
+        </div>
+        <div class="mx-4">
+            <vdr-channel-switcher *vdrIfMultichannel></vdr-channel-switcher>
+        </div>
+        <div class="main-nav-container">
+            <vdr-main-nav (itemClick)="collapseNav()"></vdr-main-nav>
+        </div>
+        <div class="settings-nav-container">
+            <hr />
+            <vdr-main-nav displayMode="settings" (itemClick)="collapseNav()"></vdr-main-nav>
+        </div>
+        <div class="mx-2 flex center mb-1" [class.mt-2]="hideVersion && !devMode">
+            <div *ngIf="!hideVersion" class="version">
+                v{{ version }}
+            </div>
+            <vdr-dropdown *ngIf="devMode">
+                <button class="icon-button dev-mode-button" vdrDropdownTrigger title="DEV MODE">
+                    <clr-icon shape="code" size="24"></clr-icon> DEV MODE
+                </button>
+                <vdr-dropdown-menu>
+                    <div class="px-2 py-1">
+                        <div>Version: {{ version }}</div>
+                        <div>View UI extension points: <kbd>CTRL + U</kbd></div>
+                    </div>
+                </vdr-dropdown-menu>
+            </vdr-dropdown>
+        </div>
+    </div>
+
+    <div class="surface">
+        <div class="content-container">
+            <div class="top-bar">
+                <div class="expand-menu mr-1">
+                    <button class="" (click)="expandNav()">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke-width="1.5"
+                            stroke="currentColor"
+                            class="bars"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+                            />
+                        </svg>
+                    </button>
+                </div>
+                <div>
+                    <vdr-breadcrumb></vdr-breadcrumb>
+                </div>
+                <div class="universal-search flex-spacer"></div>
+                <div class="mx-1">
+                    <vdr-alerts></vdr-alerts>
+                </div>
+                <div>
+                    <vdr-user-menu
+                        [userName]="userName$ | async"
+                        [uiLanguageAndLocale]="uiLanguageAndLocale$ | async"
+                        [availableLanguages]="availableLanguages"
+                        (selectUiLanguage)="selectUiLanguage()"
+                        (logOut)="logOut()"
+                    />
+                </div>
+            </div>
+            <div class="content-area"><router-outlet></router-outlet></div>
+        </div>
+    </div>
+</div>

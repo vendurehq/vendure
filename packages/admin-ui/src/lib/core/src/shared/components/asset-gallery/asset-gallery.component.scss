@@ -1,0 +1,130 @@
+@import 'variables';
+
+:host {
+    display: flex;
+    flex-direction: column-reverse;
+    @media screen and (min-width: $breakpoint-medium) {
+        flex-direction: row;
+    }
+}
+
+.gallery {
+    /* autoprefixer: off */
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 150px);
+    grid-gap: 10px 20px;
+
+    .card:hover {
+        box-shadow: 0 0.125rem 0 0 var(--color-primary-500);
+        border: 1px solid var(--color-primary-500);
+    }
+}
+
+.card {
+    margin-top: 0;
+    position: relative;
+}
+
+
+img.asset-thumb {
+    aspect-ratio: 1;
+}
+
+vdr-select-toggle {
+    position: absolute;
+    ::ng-deep .toggle {
+        box-shadow: 0px 5px 5px -4px rgba(0, 0, 0, 0.75);
+    }
+    top: -12px;
+    left: -12px;
+}
+
+.card.selected {
+    box-shadow: 0 0.125rem 0 0 var(--color-primary-500);
+    border: 1px solid var(--color-primary-500);
+
+    .selected-checkbox {
+        opacity: 1;
+    }
+}
+
+.detail {
+    display: flex;
+    align-items: normal;
+    gap: 4px;
+    min-height: 24px;
+    font-size: 12px;
+    margin: 3px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.info-bar {
+    @media screen and (min-width: $breakpoint-medium) {
+        width: 25%;
+    }
+    padding: 0 6px;
+    overflow-y: auto;
+
+    .card {
+        z-index: 1;
+    }
+
+    .stack {
+        z-index: 0;
+        opacity: 0;
+        transform: perspective(500px) translateZ(0px) translateY(-16px);
+        height: 16px;
+        transition: transform 0.3s, opacity 0s 0.3s;
+        background-color: white;
+
+        &.visible {
+            opacity: 1;
+            transform: perspective(500px) translateZ(-44px) translateY(0px);
+            background-color: var(--color-component-bg-100);
+            transition: transform 0.3s, color 0.3s;
+        }
+    }
+
+    .selection-count {
+        opacity: 0;
+        position: relative;
+        text-align: center;
+        visibility: hidden;
+        transition: opacity 0.3s, visibility 0s 0.3s;
+        &.visible {
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.3s, visibility 0s;
+        }
+        ul {
+            text-align: start;
+            list-style-type: none;
+            margin-inline-start: 12px;
+            li {
+                font-size: 12px;
+            }
+        }
+    }
+
+    .placeholder {
+        text-align: center;
+        color: var(--color-grey-300);
+    }
+
+    .preview {
+        img {
+            max-width: 100%;
+        }
+    }
+    .details {
+        font-size: 12px;
+        word-break: break-all;
+    }
+    .name {
+        line-height: 14px;
+        font-weight: bold;
+    }
+}

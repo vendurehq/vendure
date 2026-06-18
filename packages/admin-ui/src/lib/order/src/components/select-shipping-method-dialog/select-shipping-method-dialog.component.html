@@ -1,0 +1,35 @@
+<ng-template vdrDialogTitle>{{ 'order.select-shipping-method' | translate }}</ng-template>
+<vdr-radio-card-fieldset
+    [idFn]="methodIdFn"
+    [selectedItemId]="selectedMethod?.id"
+    (selectItem)="selectedMethod = $event"
+>
+    <vdr-radio-card *ngFor="let quote of eligibleShippingMethods" [item]="quote">
+        <div class="result-details">
+            <vdr-labeled-data [label]="'settings.shipping-method' | translate">
+                {{ quote.name }}
+            </vdr-labeled-data>
+            <div class="price-row">
+                <vdr-labeled-data [label]="'common.price' | translate">
+                    {{ quote.price | localeCurrency: currencyCode }}
+                </vdr-labeled-data>
+                <vdr-labeled-data [label]="'common.price-with-tax' | translate">
+                    {{ quote.priceWithTax | localeCurrency: currencyCode }}
+                </vdr-labeled-data>
+            </div>
+            <vdr-object-tree *ngIf="quote.metadata" [value]="quote.metadata"></vdr-object-tree>
+        </div>
+    </vdr-radio-card>
+</vdr-radio-card-fieldset>
+
+<ng-template vdrDialogButtons>
+    <button type="button" class="btn" (click)="cancel()">{{ 'common.cancel' | translate }}</button>
+    <button
+        type="submit"
+        (click)="select()"
+        [disabled]="!selectedMethod"
+        class="btn btn-primary"
+    >
+        {{ 'common.okay' | translate }}
+    </button>
+</ng-template>

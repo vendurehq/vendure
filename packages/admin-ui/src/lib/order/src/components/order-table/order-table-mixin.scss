@@ -1,0 +1,76 @@
+@mixin order-table {
+    .is-cancelled td {
+        text-decoration: line-through;
+        background-color: var(--color-component-bg-200);
+    }
+
+    .sub-total td {
+        border-top: 1px dashed var(--color-component-border-200);
+    }
+
+    .total td {
+        font-weight: bold;
+        border-top: 1px dashed var(--color-component-border-200);
+    }
+
+    td.custom-fields-row {
+        border-top-style: dashed;
+        border-top-color: var(--color-grey-200);
+    }
+
+    img {
+        border-radius: var(--border-radius-img);
+    }
+
+    .order-line-custom-fields {
+        display: flex;
+        flex-wrap: wrap;
+
+        .custom-field {
+            text-align: start;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 6px;
+            margin-inline-end: 18px;
+        }
+    }
+
+    .draft-qty {
+        max-width: 48px;
+    }
+
+    .order-line-custom-field {
+        background-color: var(--color-component-bg-100);
+
+        .custom-field-ellipsis {
+            color: var(--color-text-300);
+        }
+    }
+
+    .net-price {
+        font-size: 11px;
+        color: var(--color-text-300);
+        line-height: 14px;
+    }
+    .promotions-label {
+        text-decoration: underline dotted var(--color-text-200);
+        font-size: 11px;
+        margin-top: 6px;
+        cursor: pointer;
+        text-transform: lowercase;
+    }
+    .thumb img {
+        width: 50px;
+        height: 50px;
+    }
+    .shipping-method-name {
+        font-size: var(--font-size-xs);
+        margin-inline-end: 2px;
+    }
+    .order-placed-quantity {
+        text-decoration: line-through;
+        color: var(--color-text-300);
+        margin-inline-end: 2px;
+    }
+}

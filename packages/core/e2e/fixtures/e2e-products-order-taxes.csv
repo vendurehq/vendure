@@ -1,0 +1,4 @@
+name  ,slug  ,description,assets,facets,optionGroups,optionValues,sku,price,taxCategory ,stockOnHand,trackInventory,variantAssets,variantFacets
+item-1,item-1,           ,      ,      ,            ,            ,I1 ,1.00 ,standard tax,100        ,false         ,             ,
+item-2,item-2,           ,      ,      ,            ,            ,I12,1.00 ,reduced tax ,100        ,false         ,             ,
+item-3,item-3,           ,      ,      ,            ,            ,I12,1.00 ,zero tax    ,100        ,false         ,             ,

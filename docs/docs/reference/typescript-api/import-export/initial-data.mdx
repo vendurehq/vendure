@@ -1,0 +1,66 @@
+---
+title: "InitialData"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/data-import/types.ts" sourceLine="47" packageName="@vendure/core" />
+
+An object defining initial settings for a new Vendure installation.
+
+```ts title="Signature"
+interface InitialData {
+    defaultLanguage: LanguageCode;
+    defaultZone: string;
+    roles?: RoleDefinition[];
+    countries: CountryDefinition[];
+    taxRates: Array<{ name: string; percentage: number }>;
+    shippingMethods: Array<{ name: string; price: number; taxRate?: number }>;
+    paymentMethods: Array<{ name: string; handler: ConfigurableOperationInput }>;
+    collections: CollectionDefinition[];
+}
+```
+
+<div className="members-wrapper">
+
+### defaultLanguage
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>`}   />
+
+
+### defaultZone
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### roles
+
+<MemberInfo kind="property" type={`RoleDefinition[]`}   />
+
+
+### countries
+
+<MemberInfo kind="property" type={`CountryDefinition[]`}   />
+
+
+### taxRates
+
+<MemberInfo kind="property" type={`Array<{ name: string; percentage: number }>`}   />
+
+
+### shippingMethods
+
+<MemberInfo kind="property" type={`Array<{ name: string; price: number; taxRate?: number }>`}   />
+
+
+### paymentMethods
+
+<MemberInfo kind="property" type={`Array<{ name: string; handler: ConfigurableOperationInput }>`}   />
+
+
+### collections
+
+<MemberInfo kind="property" type={`CollectionDefinition[]`}   />
+
+
+
+
+</div>

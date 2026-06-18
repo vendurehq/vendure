@@ -1,0 +1,63 @@
+---
+title: "DefaultSessionCacheStrategy"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/session-cache/default-session-cache-strategy.ts" sourceLine="17" packageName="@vendure/core" since="3.1.0" />
+
+The default [SessionCacheStrategy](/reference/typescript-api/auth/session-cache-strategy#sessioncachestrategy) delegates to the configured
+[CacheStrategy](/reference/typescript-api/cache/cache-strategy#cachestrategy) to store the session data. This should be suitable
+for most use-cases, assuming you select a suitable [CacheStrategy](/reference/typescript-api/cache/cache-strategy#cachestrategy)
+
+```ts title="Signature"
+class DefaultSessionCacheStrategy implements SessionCacheStrategy {
+    protected cacheService: CacheService;
+    constructor(options?: {
+            ttl?: number;
+            cachePrefix?: string;
+        })
+    init(injector: Injector) => ;
+    set(session: CachedSession) => Promise<void>;
+    get(sessionToken: string) => Promise<CachedSession | undefined>;
+    delete(sessionToken: string) => void | Promise<void>;
+    clear() => Promise<void>;
+}
+```
+* Implements: [`SessionCacheStrategy`](/reference/typescript-api/auth/session-cache-strategy#sessioncachestrategy)
+
+
+
+<div className="members-wrapper">
+
+### cacheService
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/cache/cache-service#cacheservice'>CacheService</a>`}   />
+
+
+### init
+
+<MemberInfo kind="method" type={`(injector: <a href='/reference/typescript-api/common/injector#injector'>Injector</a>) => `}   />
+
+
+### set
+
+<MemberInfo kind="method" type={`(session: <a href='/reference/typescript-api/auth/session-cache-strategy#cachedsession'>CachedSession</a>) => Promise<void>`}   />
+
+
+### get
+
+<MemberInfo kind="method" type={`(sessionToken: string) => Promise<<a href='/reference/typescript-api/auth/session-cache-strategy#cachedsession'>CachedSession</a> | undefined>`}   />
+
+
+### delete
+
+<MemberInfo kind="method" type={`(sessionToken: string) => void | Promise<void>`}   />
+
+
+### clear
+
+<MemberInfo kind="method" type={`() => Promise<void>`}   />
+
+
+
+
+</div>

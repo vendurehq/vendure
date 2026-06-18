@@ -1,0 +1,37 @@
+---
+title: "LocaleCurrencyNamePipe"
+generated: true
+---
+<GenerationInfo sourceFile="packages/admin-ui/src/lib/core/src/shared/pipes/locale-currency-name.pipe.ts" sourceLine="18" packageName="@vendure/admin-ui" />
+
+Displays a human-readable name for a given ISO 4217 currency code.
+
+*Example*
+
+```HTML
+{{ order.currencyCode | localeCurrencyName }}
+```
+
+```ts title="Signature"
+class LocaleCurrencyNamePipe extends LocaleBasePipe implements PipeTransform {
+    constructor(dataService?: DataService, changeDetectorRef?: ChangeDetectorRef)
+    transform(value: any, display: 'full' | 'symbol' | 'name' = 'full', locale?: unknown) => any;
+}
+```
+* Extends: LocaleBasePipe
+
+
+* Implements: PipeTransform
+
+
+
+<div className="members-wrapper">
+
+### transform
+
+<MemberInfo kind="method" type={`(value: any, display: 'full' | 'symbol' | 'name' = 'full', locale?: unknown) => any`}   />
+
+
+
+
+</div>

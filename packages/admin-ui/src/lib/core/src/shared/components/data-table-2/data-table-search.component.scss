@@ -1,0 +1,14 @@
+.search-wrapper {
+    position: relative;
+    .search-icon {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        left: 8px;
+        color: var(--color-weight-600);
+    }
+    > input {
+        padding-inline-start: 32px !important;
+        width: 100%;
+    }
+}

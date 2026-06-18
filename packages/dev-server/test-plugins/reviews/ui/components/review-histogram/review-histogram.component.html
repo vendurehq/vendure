@@ -1,0 +1,16 @@
+<div class="bar-container" *ngFor="let bin of bins">
+    <star-rating [rating]="bin" [showLabel]="false"></star-rating>
+    <div class="bar">
+        <div class="fill" [style.width.%]="getPercentage(bin)"></div>
+    </div>
+    <div class="frequency">
+        {{ getFrequency(bin) }}
+    </div>
+    <button class="icon-button filter-button"
+            title="Filter reviews with this rating"
+            [class.active]="filteredBin === bin"
+            (click)="toggleBinFilter(bin)"
+            [disabled]="getFrequency(bin) === 0">
+        <clr-icon shape="filter-2"></clr-icon>
+    </button>
+</div>

@@ -1,0 +1,143 @@
+// This file contains overrides to handle specific layout/display issues when in a right-to-left language.
+.app-container[dir="rtl"] {
+    .nav-group-header {
+        font-size: 20px !important;
+    }
+
+    .nav-link {
+        font-size: 16px !important;
+    }
+
+    .nav-link span {
+        margin-inline-end: 6px !important;
+    }
+
+    .section-header {
+        padding-inline-end: 16px !important;
+        padding-inline-start: 32px !important;
+    }
+
+    .dropdown-content-wrapper {
+        direction: rtl !important;
+    }
+
+    .dropdown-item {
+        padding-inline-end: 12px !important;
+        padding-inline-start: 12px !important;
+    }
+
+    .dropdown-item clr-icon {
+        margin-inline-start: 6px !important;
+    }
+
+    .login-wrapper-inner {
+        flex-direction: row-reverse;
+    }
+
+    .login-wrapper-form {
+        direction: rtl;
+    }
+
+    .dropdown-menu .dropdown-header {
+        text-align: end;
+    }
+
+    .button-small {
+        font-size: 14px;
+    }
+
+    .flex .button-small {
+        margin-inline-start: 6px !important;
+        margin-inline-end: 6px !important;
+    }
+
+    .page-title h1 {
+        font-size: 26px;
+        margin-inline-end: 32px;
+    }
+
+    .table thead tr th {
+        text-align: end !important;
+    }
+
+    .table thead tr th:first-child {
+        padding-inline-end: 48px !important;
+        padding-inline-start: 8px !important;
+    }
+
+    .table tbody tr td {
+        text-align: end !important;
+    }
+
+    .is-warning {
+        transform: rotate(360deg) scaleX(-1);
+    }
+
+    .modal-content {
+        direction: rtl;
+    }
+
+    vdr-timeline-entry .entry .entry-body {
+        margin-right: 20px;
+    }
+
+    vdr-timeline-entry .entry .entry-body .name {
+        margin-right: 12px;
+    }
+
+    .visible-toggle.clr-control-label {
+        margin-right: 30px;
+    }
+
+    .clr-toggle-wrapper {
+        margin-right: 0;
+        margin-left: 0.6rem;
+    }
+
+    .clr-toggle-wrapper input[type=checkbox]:checked + label::before {
+        right: -42px !important;
+        left: 0 !important;
+    }
+
+
+    .clr-toggle-wrapper input[type=checkbox]:not(:checked) + label {
+        &::before {
+            right: -2.1rem !important;
+        }
+        &::after {
+            right: -25px;
+        }
+    }
+
+    .header-title-row .ml-3 {
+        margin-right: 24px;
+    }
+
+    .calendar-button {
+        border: 1px solid var(--color-weight-200) !important;
+    }
+
+    .selected-datetime {
+
+
+    }
+
+    .input-wrapper input:not([type=checkbox]):not([type=radio]) {
+        border-bottom-left-radius: 0px !important;
+        border-bottom-right-radius: 4px !important;
+        border-top-left-radius: 0px !important;
+        border-top-right-radius: 4px !important;
+        border-inline-end: 1px solid var(--color-weight-300) !important;
+        border-inline-start: 0px !important;
+    }
+
+    .clr-toggle-wrapper .clr-control-label {
+        margin-right: 42px;
+        margin-left: 0px;
+    }
+
+    vdr-ab-left > clr-checkbox-wrapper {
+        margin-inline-end: 16px;
+    }
+
+}

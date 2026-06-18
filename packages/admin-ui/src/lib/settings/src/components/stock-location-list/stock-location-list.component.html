@@ -1,0 +1,79 @@
+<vdr-page-block>
+    <vdr-action-bar>
+        <vdr-ab-left> </vdr-ab-left>
+        <vdr-ab-right>
+            <vdr-action-bar-items locationId="stock-location-list" />
+            <a
+                class="button primary"
+                *vdrIfPermissions="['CreateStockLocation']"
+                [routerLink]="['./', 'create']"
+            >
+                <clr-icon shape="plus"></clr-icon>
+                {{ 'catalog.create-new-stock-location' | translate }}
+            </a>
+            <vdr-action-bar-dropdown-menu locationId="stock-location-list" />
+        </vdr-ab-right>
+    </vdr-action-bar>
+</vdr-page-block>
+<vdr-data-table-2
+    class="mt-2"
+    [id]="dataTableListId"
+    [items]="items$ | async"
+    [itemsPerPage]="itemsPerPage$ | async"
+    [totalItems]="totalItems$ | async"
+    [currentPage]="currentPage$ | async"
+    [filters]="filters"
+    (pageChange)="setPageNumber($event)"
+    (itemsPerPageChange)="setItemsPerPage($event)"
+    (visibleColumnsChange)="setVisibleColumns($event)"
+>
+    <vdr-bulk-action-menu
+        locationId="stock-location-list"
+        [hostComponent]="this"
+        [selectionManager]="selectionManager"
+    />
+    <vdr-dt2-search
+        [searchTermControl]="searchTermControl"
+        [searchTermPlaceholder]="'catalog.filter-by-name' | translate"
+    />
+    <vdr-dt2-column [heading]="'common.id' | translate" id="id" [hiddenByDefault]="true" [sort]="sorts.get('id')">
+        <ng-template let-stockLocation="item">
+            {{ stockLocation.id }}
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column
+        [heading]="'common.created-at' | translate" id="created-at"
+        [hiddenByDefault]="true"
+        [sort]="sorts.get('createdAt')"
+    >
+        <ng-template let-stockLocation="item">
+            {{ stockLocation.createdAt | localeDate : 'short' }}
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column
+        [heading]="'common.updated-at' | translate" id="updated-at"
+        [hiddenByDefault]="true"
+        [sort]="sorts.get('updatedAt')"
+    >
+        <ng-template let-stockLocation="item">
+            {{ stockLocation.updatedAt | localeDate : 'short' }}
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column [heading]="'common.name' | translate" id="name" [optional]="false" [sort]="sorts.get('name')">
+        <ng-template let-stockLocation="item">
+            <a class="button-ghost" [routerLink]="['./', stockLocation.id]"
+                ><span>{{ stockLocation.name }}</span
+                ><clr-icon shape="arrow right"
+            /></a>
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column [heading]="'common.description' | translate" id="description" [sort]="sorts.get('description')">
+        <ng-template let-stockLocation="item">
+            <div class="description" [innerHTML]="stockLocation.description"></div>
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-custom-field-column
+        *ngFor="let field of customFields"
+        [customField]="field"
+        [sorts]="sorts" />
+</vdr-data-table-2>

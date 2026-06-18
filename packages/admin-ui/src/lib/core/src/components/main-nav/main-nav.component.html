@@ -1,0 +1,72 @@
+<nav class="main-nav">
+    <section class="">
+        <ng-container *ngFor="let section of mainMenuConfig$ | async">
+            <section
+                class="nav-group"
+                [attr.data-section-id]="section.id"
+                [class.collapsible]="section.collapsible"
+                [class.collapsed]="section.collapsible && !expandedSections.includes(section.id)"
+                routerLinkActive="active"
+                (isActiveChange)="setExpanded(section, $event)"
+                *ngIf="shouldDisplayLink(section)"
+            >
+                <vdr-ui-extension-point
+                    [locationId]="section.id"
+                    api="navMenu"
+                    [topPx]="0"
+                    [leftPx]="8"
+                    display="block"
+                >
+                    <div class="section-header">
+                        <ng-container
+                            *ngIf="navBuilderService.sectionBadges[section.id] | async as sectionBadge"
+                        >
+                            <vdr-status-badge
+                                *ngIf="sectionBadge !== 'none'"
+                                [type]="sectionBadge"
+                            ></vdr-status-badge>
+                        </ng-container>
+                        <label class="nav-group-header mx-4" [for]="section.id">{{
+                            section.label | translate
+                        }}</label>
+                        <button *ngIf="section.collapsible" class="button-small bg-weight-150" (click)="toggleExpand(section)">
+                            <clr-icon
+                                [attr.shape]="expandedSections.includes(section.id) ? 'caret up' : 'caret down'"
+                                size="12"
+                                [title]="'common.expand-entries' | translate"
+                            ></clr-icon>
+                        </button>
+                    </div>
+                    <div class="nav-list" [ngStyle]="getStyleForSection(section)">
+                        <ng-container *ngFor="let item of section.items">
+                            <div
+                                *ngIf="shouldDisplayLink(item)"
+                                class="nav-link px-4"
+                                routerLinkActive="active"
+                            >
+                                <a
+                                    [attr.data-item-id]="section.id"
+                                    [routerLink]="getRouterLink(item)"
+                                    (click)="onItemClick(item, $event)"
+                                >
+                                    <ng-container *ngIf="item.statusBadge | async as itemBadge">
+                                        <vdr-status-badge
+                                            *ngIf="itemBadge.type !== 'none'"
+                                            [type]="itemBadge.type"
+                                        ></vdr-status-badge>
+                                    </ng-container>
+                                    <clr-icon
+                                        [attr.shape]="item.icon || 'block'"
+                                        size="16"
+                                        [title]="item.label | translate"
+                                    ></clr-icon>
+                                    <span class="">{{ item.label | translate }}</span>
+                                </a>
+                            </div>
+                        </ng-container>
+                    </div>
+                </vdr-ui-extension-point>
+            </section>
+        </ng-container>
+    </section>
+</nav>

@@ -1,0 +1,49 @@
+<table class="order-table table" *ngIf="lines.length; else emptyPlaceholder">
+    <thead>
+        <tr>
+            <th></th>
+            <th>{{ 'order.product-name' | translate }}</th>
+            <th>{{ 'order.product-sku' | translate }}</th>
+            <th>{{ 'order.unit-price' | translate }}</th>
+            <th>{{ 'order.quantity' | translate }}</th>
+            <th>{{ 'order.total' | translate }}</th>
+        </tr>
+    </thead>
+    <tr *ngFor="let line of lines" class="order-line">
+        <td class="align-middle thumb">
+            <img [src]="line.preview + '?preset=tiny'" />
+        </td>
+        <td class="align-middle name">{{ line.name }}</td>
+        <td class="align-middle sku">{{ line.sku }}</td>
+        <td class="align-middle unit-price">
+            {{ line.unitPriceWithTax | localeCurrency : currencyCode }}
+        </td>
+        <td class="align-middle quantity">
+            <input [(ngModel)]="line.quantity" (change)="updateQuantity()" type="number" max="9999" min="1" />
+            <button class="icon-button" (click)="removeLine(line)">
+                <clr-icon shape="trash"></clr-icon>
+            </button>
+        </td>
+        <td class="align-middle total">
+            {{ line.unitPriceWithTax * line.quantity | localeCurrency : currencyCode }}
+        </td>
+    </tr>
+    <tr class="sub-total">
+        <td class="left">{{ 'order.sub-total' | translate }}</td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td>{{ subTotal | localeCurrency : currencyCode }}</td>
+    </tr>
+</table>
+
+<ng-template #emptyPlaceholder>
+    <div class="card-block empty-placeholder card-span">
+        <div class="empty-text">{{ 'settings.add-products-to-test-order' | translate }}</div>
+        <clr-icon shape="arrow" dir="down" size="96"></clr-icon>
+    </div>
+</ng-template>
+<div class="card-block">
+    <vdr-product-variant-selector (productSelected)="selectResult($event)"> </vdr-product-variant-selector>
+</div>

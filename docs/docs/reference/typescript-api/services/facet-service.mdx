@@ -1,0 +1,85 @@
+---
+title: "FacetService"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/services/facet.service.ts" sourceLine="45" packageName="@vendure/core" />
+
+Contains methods relating to [Facet](/reference/typescript-api/entities/facet#facet) entities.
+
+```ts title="Signature"
+class FacetService {
+    constructor(connection: TransactionalConnection, facetValueService: FacetValueService, translatableSaver: TranslatableSaver, listQueryBuilder: ListQueryBuilder, configService: ConfigService, channelService: ChannelService, customFieldRelationService: CustomFieldRelationService, eventBus: EventBus, translator: TranslatorService, roleService: RoleService)
+    findAll(ctx: RequestContext, options?: ListQueryOptions<Facet>, relations?: RelationPaths<Facet>) => Promise<PaginatedList<Translated<Facet>>>;
+    findOne(ctx: RequestContext, facetId: ID, relations?: RelationPaths<Facet>) => Promise<Translated<Facet> | undefined>;
+    findByCode(facetCode: string, lang: LanguageCode) => Promise<Translated<Facet> | undefined>;
+    findByCode(ctx: RequestContext, facetCode: string, lang: LanguageCode) => Promise<Translated<Facet> | undefined>;
+    findByCode(ctxOrFacetCode: RequestContext | string, facetCodeOrLang: string | LanguageCode, lang?: LanguageCode) => Promise<Translated<Facet> | undefined>;
+    findByFacetValueId(ctx: RequestContext, id: ID) => Promise<Translated<Facet> | undefined>;
+    create(ctx: RequestContext, input: CreateFacetInput) => Promise<Translated<Facet>>;
+    update(ctx: RequestContext, input: UpdateFacetInput) => Promise<Translated<Facet>>;
+    delete(ctx: RequestContext, id: ID, force: boolean = false) => Promise<DeletionResponse>;
+    assignFacetsToChannel(ctx: RequestContext, input: AssignFacetsToChannelInput) => Promise<Array<Translated<Facet>>>;
+    removeFacetsFromChannel(ctx: RequestContext, input: RemoveFacetsFromChannelInput) => Promise<Array<ErrorResultUnion<RemoveFacetFromChannelResult, Facet>>>;
+}
+```
+
+<div className="members-wrapper">
+
+### findAll
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: ListQueryOptions<<a href='/reference/typescript-api/entities/facet#facet'>Facet</a>>, relations?: RelationPaths<<a href='/reference/typescript-api/entities/facet#facet'>Facet</a>>) => Promise<<a href='/reference/typescript-api/common/paginated-list#paginatedlist'>PaginatedList</a><Translated<<a href='/reference/typescript-api/entities/facet#facet'>Facet</a>>>>`}   />
+
+
+### findOne
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, facetId: <a href='/reference/typescript-api/common/id#id'>ID</a>, relations?: RelationPaths<<a href='/reference/typescript-api/entities/facet#facet'>Facet</a>>) => Promise<Translated<<a href='/reference/typescript-api/entities/facet#facet'>Facet</a>> | undefined>`}   />
+
+
+### findByCode
+
+<MemberInfo kind="method" type={`(facetCode: string, lang: <a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>) => Promise<Translated<<a href='/reference/typescript-api/entities/facet#facet'>Facet</a>> | undefined>`}   />
+
+
+### findByCode
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, facetCode: string, lang: <a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>) => Promise<Translated<<a href='/reference/typescript-api/entities/facet#facet'>Facet</a>> | undefined>`}   />
+
+
+### findByCode
+
+<MemberInfo kind="method" type={`(ctxOrFacetCode: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a> | string, facetCodeOrLang: string | <a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>, lang?: <a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>) => Promise<Translated<<a href='/reference/typescript-api/entities/facet#facet'>Facet</a>> | undefined>`}   />
+
+
+### findByFacetValueId
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<Translated<<a href='/reference/typescript-api/entities/facet#facet'>Facet</a>> | undefined>`}   />
+
+Returns the Facet which contains the given FacetValue id.
+### create
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: CreateFacetInput) => Promise<Translated<<a href='/reference/typescript-api/entities/facet#facet'>Facet</a>>>`}   />
+
+
+### update
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: UpdateFacetInput) => Promise<Translated<<a href='/reference/typescript-api/entities/facet#facet'>Facet</a>>>`}   />
+
+
+### delete
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a>, force: boolean = false) => Promise<DeletionResponse>`}   />
+
+
+### assignFacetsToChannel
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: AssignFacetsToChannelInput) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/facet#facet'>Facet</a>>>>`}   />
+
+Assigns Facets to the specified Channel
+### removeFacetsFromChannel
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: RemoveFacetsFromChannelInput) => Promise<Array<<a href='/reference/typescript-api/errors/error-result-union#errorresultunion'>ErrorResultUnion</a><RemoveFacetFromChannelResult, <a href='/reference/typescript-api/entities/facet#facet'>Facet</a>>>>`}   />
+
+Remove Facets from the specified Channel
+
+
+</div>

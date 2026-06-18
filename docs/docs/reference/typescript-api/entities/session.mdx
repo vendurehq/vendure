@@ -1,0 +1,82 @@
+---
+title: "Session"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/session/session.entity.ts" sourceLine="18" packageName="@vendure/core" />
+
+A Session is created when a user makes a request to restricted API operations. A Session can be an [AnonymousSession](/reference/typescript-api/entities/anonymous-session#anonymoussession)
+in the case of un-authenticated users, otherwise it is an [AuthenticatedSession](/reference/typescript-api/entities/authenticated-session#authenticatedsession).
+
+```ts title="Signature"
+class Session extends VendureEntity implements HasCustomFields {
+    @Index({ unique: true })
+    @Column()
+    token: string;
+    @Column() expires: Date;
+    @Column() invalidated: boolean;
+    @EntityId({ nullable: true })
+    activeOrderId?: ID;
+    @Index()
+    @ManyToOne(type => Order)
+    activeOrder: Order | null;
+    @EntityId({ nullable: true })
+    activeChannelId?: ID;
+    @Index()
+    @ManyToOne(type => Channel)
+    activeChannel: Channel | null;
+    @Column(type => CustomSessionFields)
+    customFields: CustomSessionFields;
+}
+```
+* Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
+
+
+* Implements: HasCustomFields
+
+
+
+<div className="members-wrapper">
+
+### token
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### expires
+
+<MemberInfo kind="property" type={`Date`}   />
+
+
+### invalidated
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+
+### activeOrderId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
+
+
+### activeOrder
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/order#order'>Order</a> | null`}   />
+
+
+### activeChannelId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
+
+
+### activeChannel
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/channel#channel'>Channel</a> | null`}   />
+
+
+### customFields
+
+<MemberInfo kind="property" type={`CustomSessionFields`}   />
+
+
+
+
+</div>

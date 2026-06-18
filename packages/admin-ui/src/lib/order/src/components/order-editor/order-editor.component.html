@@ -1,0 +1,319 @@
+<vdr-page-block>
+    <vdr-action-bar *ngIf="entity$ | async as order">
+        <vdr-ab-left>
+            <div class="flex clr-align-items-center"></div>
+        </vdr-ab-left>
+
+        <vdr-ab-right>
+            <button class="btn btn-secondary" (click)="transitionToPriorState(order)">
+                {{ 'order.cancel-modification' | translate }}
+            </button>
+        </vdr-ab-right>
+    </vdr-action-bar>
+</vdr-page-block>
+
+<vdr-page-detail-layout *ngIf="entity as order">
+    <vdr-page-detail-sidebar>
+        <vdr-card [title]="'order.modification-summary' | translate">
+            <vdr-order-modification-summary
+                [orderSnapshot]="orderSnapshot"
+                [modifyOrderInput]="modifyOrderInput"
+                [addedLines]="addedLines"
+                [shippingAddressForm]="shippingAddressForm"
+                [billingAddressForm]="billingAddressForm"
+                [couponCodesControl]="couponCodesControl"
+                [updatedShippingMethods]="updatedShippingMethods"
+            ></vdr-order-modification-summary>
+
+            <div *ngIf="!hasModifications()" class="no-modifications">
+                {{ 'order.no-modifications-made' | translate }}
+            </div>
+
+            <div class="summary-controls">
+                <vdr-form-field [label]="'order.note' | translate">
+                    <textarea
+                        [(ngModel)]="note"
+                        name="note"
+                        required
+                        [disabled]="!hasModifications()"
+                    ></textarea>
+                </vdr-form-field>
+                <label class="flex items-center">
+                    <input
+                        type="checkbox"
+                        [(ngModel)]="recalculateShipping"
+                        [disabled]="!hasModifications()"
+                    />
+                    <div class="ml-1">{{ 'order.modification-recalculate-shipping' | translate }}</div>
+                </label>
+                <button
+                    class="btn btn-primary mt-2"
+                    [disabled]="!hasModifications()"
+                    (click)="previewAndModify(order)"
+                >
+                    {{ 'order.preview-changes' | translate }}
+                </button>
+            </div>
+        </vdr-card>
+        <vdr-card [title]="'order.set-coupon-codes' | translate">
+            <vdr-coupon-code-selector [control]="couponCodesControl"></vdr-coupon-code-selector>
+        </vdr-card>
+        <vdr-card [title]="'order.shipping-address' | translate">
+            <ng-template vdrCardControls>
+                <button
+                    class="button-small"
+                    [title]="'order.edit-shipping-address' | translate"
+                    (click)="editingShippingAddress = !editingShippingAddress"
+                >
+                    <clr-icon shape="edit"></clr-icon>
+                </button>
+            </ng-template>
+            <vdr-formatted-address
+                *ngIf="!editingShippingAddress"
+                [address]="shippingAddressForm.value"
+            ></vdr-formatted-address>
+            <vdr-address-form
+                *ngIf="editingShippingAddress"
+                [formGroup]="shippingAddressForm"
+                [availableCountries]="availableCountries$ | async"
+                [customFields]="addressCustomFields"
+            ></vdr-address-form>
+        </vdr-card>
+        <vdr-card [title]="'order.billing-address' | translate">
+            <ng-template vdrCardControls>
+                <button
+                    class="button-small"
+                    [title]="'order.edit-billing-address' | translate"
+                    (click)="editingBillingAddress = !editingBillingAddress"
+                >
+                    <clr-icon shape="edit"></clr-icon>
+                </button>
+            </ng-template>
+            <vdr-formatted-address
+                *ngIf="!editingBillingAddress"
+                [address]="billingAddressForm.value"
+            ></vdr-formatted-address>
+            <vdr-address-form
+                *ngIf="editingBillingAddress"
+                [formGroup]="billingAddressForm"
+                [availableCountries]="availableCountries$ | async"
+                [customFields]="addressCustomFields"
+            ></vdr-address-form>
+        </vdr-card>
+    </vdr-page-detail-sidebar>
+
+    <vdr-page-block>
+        <vdr-card [paddingX]="false">
+            <vdr-data-table-2 id="modify-order" class="order-table" [items]="order.lines.concat(addedLines)">
+                <!-- Here we define all the available columns -->
+                <vdr-dt2-column id="id" [heading]="'common.id' | translate" [hiddenByDefault]="true">
+                    <ng-template let-line="item">
+                        {{ line.id }}
+                    </ng-template>
+                </vdr-dt2-column>
+                <vdr-dt2-column
+                    id="created-at"
+                    [heading]="'common.created-at' | translate"
+                    [hiddenByDefault]="true"
+                >
+                    <ng-template let-line="item">
+                        {{ line.createdAt | localeDate : 'short' }}
+                    </ng-template>
+                </vdr-dt2-column>
+                <vdr-dt2-column
+                    id="updated-at"
+                    [heading]="'common.updated-at' | translate"
+                    [hiddenByDefault]="true"
+                >
+                    <ng-template let-line="item">
+                        {{ line.updatedAt | localeDate : 'short' }}
+                    </ng-template>
+                </vdr-dt2-column>
+                <vdr-dt2-column [heading]="'common.image' | translate" id="image">
+                    <ng-template let-line="item">
+                        <div class="image-placeholder">
+                            <img
+                                *ngIf="line.featuredAsset as asset; else imagePlaceholder"
+                                [src]="asset | assetPreview : 'tiny'"
+                            />
+                            <ng-template #imagePlaceholder>
+                                <div class="placeholder">
+                                    <clr-icon shape="image" size="48"></clr-icon>
+                                </div>
+                            </ng-template>
+                        </div>
+                    </ng-template>
+                </vdr-dt2-column>
+                <vdr-dt2-column
+                    id="product-name"
+                    [heading]="'order.product-name' | translate"
+                    [optional]="false"
+                >
+                    <ng-template let-line="item">
+                        {{ line.productVariant.name }}
+                    </ng-template>
+                </vdr-dt2-column>
+                <vdr-dt2-column id="product-sku" [heading]="'order.product-sku' | translate">
+                    <ng-template let-line="item">
+                        {{ line.productVariant.sku }}
+                    </ng-template>
+                </vdr-dt2-column>
+                <vdr-dt2-column id="unit-price" [heading]="'order.unit-price' | translate">
+                    <ng-template let-line="item">
+                        <div class="text-center">
+                            <div>{{ line.unitPriceWithTax | localeCurrency : order.currencyCode }}</div>
+                            <div class="net-price" [title]="'order.net-price' | translate">
+                                {{ line.unitPrice | localeCurrency : order.currencyCode }}
+                            </div>
+                        </div>
+                    </ng-template>
+                </vdr-dt2-column>
+                <vdr-dt2-column id="quantity" [heading]="'order.quantity' | translate" [optional]="false">
+                    <ng-template let-line="item">
+                        <input
+                            type="number"
+                            class="draft-qty mr-1"
+                            min="0"
+                            [value]="getInitialLineQuantity(line.id)"
+                            (input)="updateLineQuantity(line, $event.target.value)"
+                        />
+                        <button
+                            class="button-small"
+                            *ngIf="isAddedLine(line)"
+                            (click)="removeAddedItem(line.id)"
+                        >
+                            <clr-icon shape="trash"></clr-icon>
+                        </button>
+                        <vdr-line-refunds [line]="line" [payments]="order.payments"></vdr-line-refunds>
+                        <vdr-line-fulfillment
+                            [line]="line"
+                            [allOrderFulfillments]="order.fulfillments"
+                            [orderState]="order.state"
+                        ></vdr-line-fulfillment>
+                    </ng-template>
+                </vdr-dt2-column>
+                <vdr-dt2-column
+                    *ngFor="let customField of orderLineCustomFields"
+                    [id]="customField.name"
+                    [heading]="customField | customFieldLabel : (uiLanguage$ | async)"
+                    [hiddenByDefault]="true"
+                >
+                    <ng-template let-line="item" let-index="index">
+                        <vdr-custom-field-control
+                            [compact]="true"
+                            [entityName]="'OrderLine'"
+                            [customField]="customField"
+                            [customFieldsFormGroup]="orderLineCustomFieldsFormArray.at(index)"
+                        />
+                    </ng-template>
+                </vdr-dt2-column>
+            </vdr-data-table-2>
+        </vdr-card>
+        <vdr-card [title]="'order.add-item-to-order' | translate">
+            <vdr-product-variant-selector class="mb-4" (productSelected)="addItemSelectedVariant = $event">
+            </vdr-product-variant-selector>
+            <div class="flex">
+                <div>
+                    <div *ngIf="addItemSelectedVariant" class="flex mb-4">
+                        <img
+                            *ngIf="addItemSelectedVariant.productAsset as asset"
+                            [src]="asset | assetPreview : 'tiny'"
+                            class="mr-4 add-item-thumb"
+                        />
+                        <div>
+                            <strong class="mr-4">{{ addItemSelectedVariant.productVariantName }}</strong>
+                            <small>{{ addItemSelectedVariant.sku }}</small>
+                            <div>
+                                {{
+                                    getSelectedItemPrice(addItemSelectedVariant)
+                                        | localeCurrency : order.currencyCode
+                                }}
+                            </div>
+                        </div>
+                    </div>
+                    <div *ngIf="addItemSelectedVariant">
+                        <vdr-tabbed-custom-fields
+                            entityName="Order"
+                            [customFields]="orderLineCustomFields"
+                            [customFieldsFormGroup]="addItemCustomFieldsForm"
+                        ></vdr-tabbed-custom-fields>
+                    </div>
+                </div>
+                <div class="flex-spacer"></div>
+                <div>
+                    <button
+                        *ngIf="addItemSelectedVariant"
+                        class="btn btn-secondary"
+                        [disabled]="!addItemSelectedVariant || addItemCustomFieldsForm.invalid"
+                        (click)="addItemToOrder(addItemSelectedVariant)"
+                    >
+                        {{ 'order.add-item-to-order' | translate }}
+                    </button>
+                </div>
+            </div>
+        </vdr-card>
+        <vdr-card [title]="'order.shipping' | translate">
+            <div *ngFor="let shippingLine of order.shippingLines" class="flex items-center">
+                <ng-container *ngIf="getShippingLineDetails(shippingLine) as details">
+                    <div>{{ details.name }}:</div>
+                    <div class="mx-1">
+                        {{ details.price | localeCurrency : order.currencyCode }}
+                    </div>
+                    <button class="button-small" (click)="setShippingMethod(shippingLine.id)">
+                        {{ 'order.set-shipping-method' | translate }}
+                    </button>
+                </ng-container>
+            </div>
+        </vdr-card>
+        <vdr-card [title]="'order.add-surcharge' | translate">
+            <form [formGroup]="surchargeForm" (submit)="addSurcharge(surchargeForm.value)">
+                <div class="form-grid">
+                    <vdr-form-field [label]="'common.description' | translate" for="description"
+                        ><input id="description" type="text" formControlName="description"
+                    /></vdr-form-field>
+                    <vdr-form-field [label]="'order.product-sku' | translate" for="sku"
+                        ><input id="sku" type="text" formControlName="sku"
+                    /></vdr-form-field>
+                    <vdr-form-field [label]="'common.price' | translate" for="price">
+                        <vdr-currency-input
+                            [currencyCode]="order.currencyCode"
+                            id="price"
+                            formControlName="price"
+                        ></vdr-currency-input>
+                    </vdr-form-field>
+                    <vdr-form-field
+                        [label]="
+                            'catalog.price-includes-tax-at'
+                                | translate : { rate: surchargeForm.get('taxRate')?.value ?? 0 }
+                        "
+                        for="priceIncludesTax"
+                        ><input
+                            id="priceIncludesTax"
+                            type="checkbox"
+                            clrCheckbox
+                            formControlName="priceIncludesTax"
+                    /></vdr-form-field>
+                    <vdr-form-field [label]="'order.tax-rate' | translate" for="taxRate">
+                        <vdr-affixed-input suffix="%"
+                            ><input id="taxRate" type="number" min="0" max="100" formControlName="taxRate"
+                        /></vdr-affixed-input>
+                    </vdr-form-field>
+                    <vdr-form-field [label]="'order.tax-description' | translate" for="taxDescription"
+                        ><input id="taxDescription" type="text" formControlName="taxDescription"
+                    /></vdr-form-field>
+                </div>
+                <button
+                    class="btn btn-secondary mt-2"
+                    [disabled]="
+                        surchargeForm.invalid ||
+                        surchargeForm.pristine ||
+                        surchargeForm.get('price')?.value === 0 ||
+                        !surchargeForm.get('description')?.value
+                    "
+                >
+                    {{ 'order.add-surcharge' | translate }}
+                </button>
+            </form>
+        </vdr-card>
+    </vdr-page-block>
+</vdr-page-detail-layout>

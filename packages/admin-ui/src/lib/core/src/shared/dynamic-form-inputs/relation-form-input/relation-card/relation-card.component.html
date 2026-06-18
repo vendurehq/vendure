@@ -1,0 +1,31 @@
+<div class="flex">
+    <ng-container *ngIf="entity; else placeholder">
+        <div class="preview">
+            <ng-container *ngTemplateOutlet="previewTemplate; context: { entity: entity }"></ng-container>
+        </div>
+        <div class="detail">
+            <div class="pl-1">
+                <ng-container *ngTemplateOutlet="detailTemplate; context: { entity: entity }"></ng-container>
+            </div>
+            <button *ngIf="!readonly" class="button-small m-1" (click)="select.emit()">
+                <clr-icon shape="link"></clr-icon> {{ 'common.change-selection' | translate }}
+            </button>
+            <button *ngIf="!readonly && removable" class="button-small m-1" (click)="remove.emit()">
+                <clr-icon shape="times"></clr-icon> {{ 'common.remove' | translate }}
+            </button>
+        </div>
+    </ng-container>
+    <ng-template #placeholder>
+        <div class="preview">
+            <div class="placeholder" (click)="!readonly && select.emit()">
+                <clr-icon [attr.shape]="placeholderIcon" size="50"></clr-icon>
+            </div>
+        </div>
+        <div class="detail">
+            <div class="pl3 not-set">{{ 'common.not-set' | translate }}</div>
+            <button *ngIf="!readonly" class="button-small m-1" (click)="select.emit()">
+                <clr-icon shape="link"></clr-icon> {{ selectLabel }}
+            </button>
+        </div>
+    </ng-template>
+</div>

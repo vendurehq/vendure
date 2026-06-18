@@ -1,0 +1,38 @@
+<vdr-card
+        [title]="'order.payment' | translate"
+        [class.selected]="payment.selected"
+        [class.unselected]="!payment.selected"
+        *ngFor="let payment of refundablePayments"
+>
+    <ng-template vdrCardControls>
+        <vdr-select-toggle
+                size="small"
+                [title]="'order.refund-this-payment' | translate"
+                [label]="'order.refund-this-payment' | translate"
+                [disabled]="refundablePayments.length === 1"
+                [(selected)]="payment.selected"
+                (selectedChange)="paymentSelected.emit({ payment: payment, selected: $event })"
+        ></vdr-select-toggle>
+    </ng-template>
+    <div class="form-grid">
+        <vdr-labeled-data [label]="'order.payment-method' | translate">
+            {{ payment.method }}
+        </vdr-labeled-data>
+        <vdr-labeled-data [label]="'order.transaction-id' | translate">
+            {{ payment.transactionId }}
+        </vdr-labeled-data>
+        <vdr-labeled-data [label]="'order.payment-amount' | translate">
+            {{ payment.amount | localeCurrency : order.currencyCode }}
+        </vdr-labeled-data>
+        <vdr-labeled-data [label]="'order.refundable-amount' | translate">
+            {{ payment.refundableAmount | localeCurrency : order.currencyCode }}
+        </vdr-labeled-data>
+    </div>
+    <vdr-form-field [label]="'order.refund-amount' | translate">
+        <vdr-currency-input
+                [readonly]="!payment.selected"
+                [currencyCode]="order.currencyCode"
+                [formControl]="payment.amountToRefundControl"
+        ></vdr-currency-input>
+    </vdr-form-field>
+</vdr-card>

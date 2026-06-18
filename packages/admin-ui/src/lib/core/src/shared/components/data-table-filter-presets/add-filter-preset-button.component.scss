@@ -1,0 +1,25 @@
+
+.add-preset-button {
+    display: flex;
+    flex-direction: row;
+    cursor: pointer;
+    gap: 6px;
+    align-items: center;
+    border: none;
+    padding: 0 var(--space-unit);
+    height: calc(var(--space-unit) * 3);
+    font-size: var(--font-size-xs);
+    border-radius: var(--border-radius-lg);
+    background-color: var(--color-button-small-bg);
+    color: var(--color-button-small-text);
+    opacity: 0;
+    transition: opacity 0.2s;
+    &.visible {
+        opacity: 1;
+    }
+}
+
+.preset-create-row {
+    display: flex;
+    justify-content: flex-end;
+}

@@ -1,0 +1,95 @@
+<vdr-page-block
+    ><vdr-action-bar>
+        <vdr-ab-left>
+            <vdr-language-selector
+                [disabled]="isNew$ | async"
+                [availableLanguageCodes]="availableLanguages$ | async"
+                [currentLanguageCode]="languageCode$ | async"
+                (languageCodeChange)="setLanguage($event)"
+            />
+        </vdr-ab-left>
+        <vdr-ab-right>
+            <vdr-action-bar-items locationId="country-detail" />
+            <button
+                class="btn btn-primary"
+                *ngIf="isNew$ | async; else updateButton"
+                (click)="create()"
+                [disabled]="detailForm.invalid || detailForm.pristine"
+            >
+                {{ 'common.create' | translate }}
+            </button>
+            <ng-template #updateButton>
+                <button
+                    class="btn btn-primary"
+                    *vdrIfPermissions="updatePermission"
+                    (click)="save()"
+                    [disabled]="detailForm.invalid || detailForm.pristine"
+                >
+                    {{ 'common.update' | translate }}
+                </button>
+            </ng-template>
+            <vdr-action-bar-dropdown-menu locationId="country-detail" />
+        </vdr-ab-right>
+    </vdr-action-bar>
+</vdr-page-block>
+
+<form class="form" [formGroup]="detailForm">
+    <vdr-page-detail-layout>
+        <vdr-page-detail-sidebar>
+            <vdr-card>
+                <vdr-form-field [label]="'common.enabled' | translate" for="enabled">
+                    <clr-toggle-wrapper>
+                        <input
+                            type="checkbox"
+                            clrToggle
+                            id="enabled"
+                            formControlName="enabled"
+                            [vdrDisabled]="!(updatePermission | hasPermission)"
+                        />
+                    </clr-toggle-wrapper>
+                </vdr-form-field>
+            </vdr-card>
+            <vdr-card *ngIf="entity$ | async as entity">
+                <vdr-page-entity-info [entity]="entity" />
+            </vdr-card>
+        </vdr-page-detail-sidebar>
+        <vdr-page-block>
+            <vdr-card>
+                <div class="form-grid">
+                    <vdr-form-field [label]="'common.name' | translate" for="name">
+                        <input
+                            id="name"
+                            type="text"
+                            formControlName="name"
+                            [readonly]="!(updatePermission | hasPermission)"
+                        />
+                    </vdr-form-field>
+                    <vdr-form-field [label]="'common.code' | translate" for="code">
+                        <input
+                            id="code"
+                            type="text"
+                            formControlName="code"
+                            [readonly]="!(updatePermission | hasPermission)"
+                        />
+                    </vdr-form-field>
+                </div>
+            </vdr-card>
+            <vdr-card
+                formGroupName="customFields"
+                *ngIf="customFields.length"
+                [title]="'common.custom-fields' | translate"
+            >
+                <vdr-tabbed-custom-fields
+                    entityName="Region"
+                    [customFields]="customFields"
+                    [customFieldsFormGroup]="detailForm.get('customFields')"
+                ></vdr-tabbed-custom-fields>
+            </vdr-card>
+            <vdr-custom-detail-component-host
+                locationId="country-detail"
+                [entity$]="entity$"
+                [detailForm]="detailForm"
+            ></vdr-custom-detail-component-host>
+        </vdr-page-block>
+    </vdr-page-detail-layout>
+</form>

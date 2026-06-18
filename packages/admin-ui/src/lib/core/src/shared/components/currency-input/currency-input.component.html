@@ -1,0 +1,14 @@
+<vdr-affixed-input
+    [prefix]="prefix$ | async | localeCurrencyName: 'symbol'"
+    [suffix]="suffix$ | async | localeCurrencyName: 'symbol'"
+>
+    <input
+        type="number"
+        [step]="hasFractionPart ? 1 / precisionFactor : 1"
+        [value]="_inputValue"
+        [disabled]="disabled"
+        [readonly]="readonly"
+        (input)="onInput($event.target.value)"
+        (focus)="onFocus()"
+    />
+</vdr-affixed-input>

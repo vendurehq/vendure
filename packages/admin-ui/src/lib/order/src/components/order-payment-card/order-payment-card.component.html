@@ -1,0 +1,84 @@
+<div class="card">
+    <div class="card-header payment-header">
+        <div>
+            {{ 'order.payment' | translate }}
+            <ng-container *ngIf="payment.amount">{{ payment.amount | localeCurrency : currencyCode }}</ng-container>
+        </div>
+        <div class="payment-state">
+            <vdr-payment-state-label [state]="payment.state"></vdr-payment-state-label>
+        </div>
+    </div>
+    <div class="card-block">
+        <vdr-payment-detail [payment]="payment" [currencyCode]="currencyCode"></vdr-payment-detail>
+    </div>
+    <ng-container *ngFor="let refund of payment.refunds">
+        <div class="refund-wrapper card-block">
+            <div class="card-header payment-header refund-header">
+                <clr-icon shape="redo" class="refund-icon" dir="down"></clr-icon>
+                {{ 'order.refund' | translate }} #{{ refund.id }}
+                <div class="clr-flex-fill"></div>
+                <vdr-refund-state-label [state]="refund.state"></vdr-refund-state-label>
+            </div>
+            <div class="card-block">
+                <vdr-labeled-data [label]="'common.created-at' | translate">
+                    {{ refund.createdAt | localeDate : 'medium' }}
+                </vdr-labeled-data>
+                <vdr-labeled-data [label]="'order.refund-total' | translate">
+                    {{ refund.total | localeCurrency : currencyCode }}
+                </vdr-labeled-data>
+                <vdr-labeled-data [label]="'order.transaction-id' | translate" *ngIf="refund.transactionId">
+                    {{ refund.transactionId }}
+                </vdr-labeled-data>
+                <vdr-labeled-data [label]="'order.refund-reason' | translate" *ngIf="refund.reason">
+                    {{ refund.reason }}
+                </vdr-labeled-data>
+                <vdr-labeled-data
+                    [label]="'order.refund-metadata' | translate"
+                    *ngIf="refundHasMetadata(refund)"
+                >
+                    <vdr-object-tree [value]="refund.metadata"></vdr-object-tree>
+                </vdr-labeled-data>
+            </div>
+            <div class="card-footer" *ngIf="refund.state === 'Pending'">
+                <button class="btn btn-sm btn-primary" (click)="settleRefund.emit(refund)">
+                    {{ 'order.settle-refund' | translate }}
+                </button>
+            </div>
+        </div>
+    </ng-container>
+    <div class="card-footer" *ngIf="payment.nextStates.length">
+        <button
+            class="btn btn-sm btn-primary"
+            *ngIf="payment.nextStates.includes('Settled')"
+            (click)="settlePayment.emit(payment)"
+        >
+            {{ 'order.settle-payment' | translate }}
+        </button>
+        <vdr-dropdown>
+            <button class="icon-button" vdrDropdownTrigger>
+                <clr-icon shape="ellipsis-vertical"></clr-icon>
+            </button>
+            <vdr-dropdown-menu vdrPosition="bottom-right">
+                <ng-container *ngFor="let nextState of nextOtherStates()">
+                    <button
+                        type="button"
+                        vdrDropdownItem
+                        (click)="transitionPaymentState.emit({ payment: payment, state: nextState })"
+                    >
+                        <ng-container *ngIf="nextState !== 'Cancelled'; else cancel">
+                            <clr-icon shape="step-forward-2"></clr-icon>
+                            {{
+                                'order.transition-to-state'
+                                    | translate : { state: (nextState | stateI18nToken | translate) }
+                            }}
+                        </ng-container>
+                        <ng-template #cancel>
+                            <clr-icon shape="error-standard" class="is-error"></clr-icon>
+                            {{ 'order.cancel-payment' | translate }}
+                        </ng-template>
+                    </button>
+                </ng-container>
+            </vdr-dropdown-menu>
+        </vdr-dropdown>
+    </div>
+</div>

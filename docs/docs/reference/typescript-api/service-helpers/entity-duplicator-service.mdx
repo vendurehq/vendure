@@ -1,0 +1,33 @@
+---
+title: "EntityDuplicatorService"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/helpers/entity-duplicator/entity-duplicator.service.ts" sourceLine="23" packageName="@vendure/core" since="2.2.0" />
+
+This service is used to duplicate entities using one of the configured
+[EntityDuplicator](/reference/typescript-api/configuration/entity-duplicator#entityduplicator) functions.
+
+```ts title="Signature"
+class EntityDuplicatorService {
+    constructor(configService: ConfigService, configArgService: ConfigArgService, connection: TransactionalConnection)
+    getEntityDuplicators(ctx: RequestContext) => EntityDuplicatorDefinition[];
+    duplicateEntity(ctx: RequestContext, input: DuplicateEntityInput) => Promise<DuplicateEntityResult>;
+}
+```
+
+<div className="members-wrapper">
+
+### getEntityDuplicators
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => EntityDuplicatorDefinition[]`}   />
+
+Returns all configured [EntityDuplicator](/reference/typescript-api/configuration/entity-duplicator#entityduplicator) definitions.
+### duplicateEntity
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: DuplicateEntityInput) => Promise<DuplicateEntityResult>`}   />
+
+Duplicates an entity using the specified [EntityDuplicator](/reference/typescript-api/configuration/entity-duplicator#entityduplicator). The duplication is performed
+within a transaction, so if an error occurs, the transaction will be rolled back.
+
+
+</div>

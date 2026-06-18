@@ -1,0 +1,55 @@
+
+:host {
+    display: block;
+    position: relative;
+
+    ::ng-deep input {
+        font-size: 18px;
+        color: var(--clr-p1-color);
+        max-width: 100%;
+        &:not(:focus) {
+            border-color: transparent !important;
+            background-color: var(--color-component-bg-100) !important;
+        }
+        &:focus {
+            background-color: var(--clr-global-app-background);
+        }
+    }
+
+    ::ng-deep .clr-control-container {
+        max-width: 100%;
+    }
+
+    ::ng-deep .clr-input-wrapper {
+        max-width: 100% !important;
+    }
+
+    .edit-icon {
+        position: absolute;
+        right: 8px;
+        top: 6px;
+        color: var(--color-grey-400);
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    &:hover {
+        ::ng-deep input:not(:focus) {
+            background-color: var(--color-component-bg-200) !important;
+        }
+        .edit-icon {
+            opacity: 1;
+        }
+    }
+
+    &.readonly {
+        .edit-icon {
+            display: none;
+        }
+        &:hover {
+            ::ng-deep input:not(:focus) {
+                background-color: var(--color-grey-200) !important;
+            }
+        }
+    }
+}

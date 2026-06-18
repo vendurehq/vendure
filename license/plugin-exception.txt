@@ -1,0 +1,20 @@
+Vendure Plugin Exception
+
+0. Definitions
+
+"Vendure Core" includes all the source code files included in this repository, which are licensed under the
+GPL v3.0 license.
+
+A "Plugin" is a software module that is designed to enable additional functionality by
+ using APIs exposed by the Vendure Core packages, including but not limited to the public
+APIs described in the Vendure documentation at https://docs.vendure.io. A Plugin does not include any source code from
+the Vendure Core itself.
+
+1. Grant of Additional Permission.
+
+For Plugins that are distributed separately from Vendure Core (such as via a package repository),
+Vendure GmbH hereby grants you permission to link the Vendure Core from that Plugin and to
+distribute the Plugin under terms of your choice, including licenses which are not compatible with the GPL v3.0,
+ without any of the additional requirements listed in the GNU Library General Public License.
+
+(The GPL v3.0 restrictions do apply in other respects; for example, they cover modifications made to the Vendure Core.)

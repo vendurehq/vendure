@@ -1,0 +1,108 @@
+<vdr-page-block>
+    <vdr-action-bar>
+        <vdr-ab-left>
+            <div class="review-info">
+                <review-state-label [state]="reviewState$ | async"></review-state-label>
+            </div>
+        </vdr-ab-left>
+        <vdr-ab-right>
+            <ng-container *ngIf="(reviewState$ | async) === 'new'; else updateButton">
+                <button
+                    *vdrIfPermissions="'UpdateCatalog'"
+                    class="button success mr-2"
+                    (click)="approve()"
+                    [disabled]="detailForm.invalid"
+                >
+                    <clr-icon shape="check"></clr-icon>
+                    Approve
+                </button>
+                <button
+                    *vdrIfPermissions="'UpdateCatalog'"
+                    class="button warning"
+                    (click)="reject()"
+                    [disabled]="detailForm.invalid"
+                >
+                    <clr-icon shape="times"></clr-icon>
+                    Reject
+                </button>
+            </ng-container>
+            <ng-template #updateButton>
+                <button
+                    *vdrIfPermissions="'UpdateCatalog'"
+                    class="button primary"
+                    (click)="save()"
+                    [disabled]="detailForm.invalid || detailForm.pristine"
+                >
+                    {{ 'common.update' | translate }}
+                </button>
+            </ng-template>
+        </vdr-ab-right>
+    </vdr-action-bar>
+</vdr-page-block>
+
+<form class="form" [formGroup]="detailForm">
+    <vdr-page-detail-layout>
+        <vdr-page-detail-sidebar>
+            <vdr-card title="Product">
+                <img
+                    class="product-image"
+                    [src]="(entity?.product)!.featuredAsset?.preview + '?preset=small'"
+                />
+                <a class="button-ghost mt-2" [routerLink]="['/catalog', 'inventory', entity?.product.id]"
+                    >{{ entity?.product.name }}
+                    <clr-icon shape="arrow right"></clr-icon>
+                </a>
+            </vdr-card>
+            <vdr-card *ngIf="entity$ | async as entity">
+                <vdr-page-entity-info [entity]="entity" />
+            </vdr-card>
+        </vdr-page-detail-sidebar>
+        <vdr-page-block>
+            <vdr-card>
+                <div class="form-grid">
+                    <vdr-form-field label="Summary" for="summary">
+                        <input
+                            id="summary"
+                            type="text"
+                            formControlName="summary"
+                            [readonly]="!('UpdateCatalog' | hasPermission)"
+                        />
+                    </vdr-form-field>
+                    <vdr-form-field label="Rating" for="rating">
+                        <star-rating [rating]="detailForm.get('rating')?.value"></star-rating>
+                    </vdr-form-field>
+                    <vdr-form-field label="Body" for="body" class="form-grid-span">
+                        <textarea
+                            id="body"
+                            formControlName="body"
+                            [readonly]="!('UpdateCatalog' | hasPermission)"
+                        ></textarea>
+                    </vdr-form-field>
+                    <vdr-form-field label="Author name" for="authorName">
+                        <input
+                            id="authorName"
+                            type="text"
+                            formControlName="authorName"
+                            [readonly]="!('UpdateCatalog' | hasPermission)"
+                        />
+                    </vdr-form-field>
+                    <vdr-form-field label="Author location" for="authorLocation">
+                        <input
+                            id="authorLocation"
+                            type="text"
+                            formControlName="authorLocation"
+                            [readonly]="!('UpdateCatalog' | hasPermission)"
+                        />
+                    </vdr-form-field>
+                    <vdr-form-field label="Response" for="response" class="form-grid-span">
+                        <textarea
+                            id="response"
+                            formControlName="response"
+                            [readonly]="!('UpdateCatalog' | hasPermission)"
+                        ></textarea>
+                    </vdr-form-field>
+                </div>
+            </vdr-card>
+        </vdr-page-block>
+    </vdr-page-detail-layout>
+</form>

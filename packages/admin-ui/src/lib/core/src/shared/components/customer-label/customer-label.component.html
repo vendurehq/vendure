@@ -1,0 +1,6 @@
+<a *ngIf="customer" class="button-ghost" [routerLink]="['/customer', 'customers', customer.id]">
+    <clr-icon shape="user" [class.is-solid]="customer"></clr-icon>
+    <span>{{ customer.firstName }} {{ customer.lastName }}</span>
+    <clr-icon shape="arrow right"></clr-icon>
+</a>
+<div *ngIf="!customer">{{ 'common.guest' | translate }}</div>

@@ -1,0 +1,31 @@
+---
+title: "ImportExportOptions"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="990" packageName="@vendure/core" />
+
+Options related to importing & exporting data.
+
+```ts title="Signature"
+interface ImportExportOptions {
+    importAssetsDir?: string;
+    assetImportStrategy?: AssetImportStrategy;
+}
+```
+
+<div className="members-wrapper">
+
+### importAssetsDir
+
+<MemberInfo kind="property" type={`string`} default={`__dirname`}   />
+
+The directory in which assets to be imported are located.
+### assetImportStrategy
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/import-export/asset-import-strategy#assetimportstrategy'>AssetImportStrategy</a>`}  since="1.7.0"  />
+
+This strategy determines how asset files get imported based on the path given in the
+import CSV or via the [AssetImporter](/reference/typescript-api/import-export/asset-importer#assetimporter) `getAssets()` method.
+
+
+</div>

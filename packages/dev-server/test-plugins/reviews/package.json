@@ -1,0 +1,19 @@
+{
+    "name": "vendure-reviews-plugin-test",
+    "version": "0.0.1",
+    "description": "",
+    "scripts": {
+        "build": "tsc && cp -r dashboard dist/",
+        "publish": "npm publish --registry=http://localhost:4873"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/vendurehq/vendure"
+    },
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "files": [
+        "dist"
+    ],
+    "private": false
+}

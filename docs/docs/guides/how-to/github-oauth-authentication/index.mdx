@@ -1,0 +1,358 @@
+---
+title: "GitHub OAuth Authentication"
+metaTitle: "Setting Up GitHub OAuth Authentication in Vendure"
+metaDescription: "Implement GitHub OAuth login for your Vendure storefront using a custom AuthenticationStrategy, including frontend callback handling and GraphQL integration."
+---
+
+:::info
+The complete source of the following example plugin can be found here: [example-plugins/github-auth-plugin](https://github.com/vendurehq/examples/tree/publish/examples/shop-github-auth)
+:::
+
+GitHub OAuth authentication allows customers to sign in using their GitHub accounts, eliminating the need for password-based registration.
+
+This is particularly valuable for developer-focused stores or B2B marketplaces.
+
+This guide shows you how to add GitHub OAuth support to your Vendure store using a custom [AuthenticationStrategy](/reference/typescript-api/auth/authentication-strategy/).
+
+## Creating the Plugin
+
+First, use the Vendure CLI to create a new plugin for GitHub authentication:
+
+```bash
+npx vendure add -p GitHubAuthPlugin
+```
+
+This creates a basic plugin structure with the necessary files.
+
+## Creating the Authentication Strategy
+
+Now create the GitHub authentication strategy. This handles the OAuth flow and creates customer accounts using GitHub profile data:
+
+```ts title="src/plugins/github-auth-plugin/github-auth-strategy.ts"
+import { AuthenticationStrategy, ExternalAuthenticationService, Injector, RequestContext, User } from '@vendure/core';
+import { DocumentNode } from 'graphql';
+import gql from 'graphql-tag';
+
+export interface GitHubAuthData {
+  code: string;
+  state: string;
+}
+
+export interface GitHubAuthOptions {
+  clientId: string;
+  clientSecret: string;
+}
+
+export class GitHubAuthenticationStrategy implements AuthenticationStrategy<GitHubAuthData> {
+  readonly name = 'github';
+  private externalAuthenticationService: ExternalAuthenticationService;
+
+  constructor(private options: GitHubAuthOptions) {}
+
+  init(injector: Injector) {
+    // Get the service we'll use to create/find customer accounts
+    this.externalAuthenticationService = injector.get(ExternalAuthenticationService);
+  }
+
+  defineInputType(): DocumentNode {
+    // Define the GraphQL input type for the authenticate mutation
+    return gql`
+      input GitHubAuthInput {
+        code: String!
+        state: String!
+      }
+    `;
+  }
+
+  async authenticate(ctx: RequestContext, data: GitHubAuthData): Promise<User | false> {
+    const { code, state } = data;
+
+    // Step 1: Exchange the authorization code for an access token
+    const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        client_id: this.options.clientId,
+        client_secret: this.options.clientSecret,
+        code,
+        state,
+      }),
+    });
+
+    const tokenData = await tokenResponse.json();
+    if (tokenData.error) {
+      throw new Error(`GitHub OAuth error: ${tokenData.error_description}`);
+    }
+
+    // Step 2: Use the access token to get user info from GitHub
+    const userResponse = await fetch('https://api.github.com/user', {
+      headers: {
+        'Authorization': `Bearer ${tokenData.access_token}`,
+        'Accept': 'application/vnd.github.v3+json',
+      },
+    });
+
+    const user = await userResponse.json();
+    if (!user.login) {
+      throw new Error('Unable to retrieve user information from GitHub');
+    }
+
+    // Step 3: Check if this GitHub user already has a Vendure account
+    const existingCustomer = await this.externalAuthenticationService.findCustomerUser(
+      ctx,
+      this.name,
+      user.login, // GitHub username as external identifier
+    );
+
+    if (existingCustomer) {
+      // User exists, log them in
+      return existingCustomer;
+    }
+
+    // Step 4: Create a new customer account for first-time GitHub users
+    const newCustomer = await this.externalAuthenticationService.createCustomerAndUser(ctx, {
+      strategy: this.name,
+      externalIdentifier: user.login, // Store GitHub username
+      verified: true, // GitHub accounts are pre-verified
+      emailAddress: `${user.login}-github@vendure.io`, // Unique email to avoid conflicts
+      firstName: user.name?.split(' ')[0] || user.login,
+      lastName: user.name?.split(' ').slice(1).join(' ') || '',
+    });
+
+    return newCustomer;
+  }
+}
+```
+
+The strategy uses Vendure's [ExternalAuthenticationService](/reference/typescript-api/auth/external-authentication-service/) to handle customer creation.
+
+It generates a unique email address for each GitHub user to avoid conflicts, and stores the GitHub username as the external identifier for future logins.
+
+## Registering the Strategy
+
+Now update the generated plugin file to register your authentication strategy:
+
+```ts title="src/plugins/github-auth-plugin/github-auth-plugin.plugin.ts"
+import { PluginCommonModule, VendurePlugin } from '@vendure/core';
+
+import { GitHubAuthenticationStrategy, GitHubAuthOptions } from './github-auth-strategy';
+
+@VendurePlugin({
+  imports: [PluginCommonModule],
+  configuration: config => {
+    config.authOptions.shopAuthenticationStrategy.push(new GitHubAuthenticationStrategy(GitHubAuthPlugin.options));
+    return config;
+  },
+})
+export class GitHubAuthPlugin {
+  static options: GitHubAuthOptions;
+
+  static init(options: GitHubAuthOptions) {
+    this.options = options;
+    return GitHubAuthPlugin;
+  }
+}
+```
+
+## Adding to Vendure Config
+
+Add the plugin to your Vendure configuration:
+
+```ts title="src/vendure-config.ts"
+import { VendureConfig } from '@vendure/core';
+import { GitHubAuthPlugin } from './plugins/github-auth-plugin/github-auth-plugin.plugin';
+
+export const config: VendureConfig = {
+  // ... other config
+  plugins: [
+    // ... other plugins
+    GitHubAuthPlugin.init({
+      clientId: process.env.GITHUB_CLIENT_ID!,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+    }),
+  ],
+  // ... rest of config
+};
+```
+
+## Setting up GitHub OAuth App
+
+Before you can test the integration, you need to create a GitHub OAuth App:
+
+1. Go to [GitHub Settings → Developer settings → OAuth Apps](https://github.com/settings/developers)
+2. Click "New OAuth App"
+3. Fill in the required fields:
+   - **Application name**: Your app name (e.g., "My Vendure Store")
+   - **Homepage URL**: `http://localhost:3001` (your storefront URL)
+   - **Authorization callback URL**: `http://localhost:3001/auth/github/callback`
+4. Click "Register application"
+5. Copy the Client ID and generate a Client Secret
+
+:::note
+The localhost URLs shown here are for local development only. In production, replace `localhost:3001` with your actual domain (e.g., `https://mystore.com`).
+:::
+
+Add these credentials to your environment:
+
+```bash title=".env"
+GITHUB_CLIENT_ID=your_github_client_id
+GITHUB_CLIENT_SECRET=your_github_client_secret
+```
+
+## Frontend Integration
+
+### Creating the Sign-in URL
+
+In your storefront, create a function to generate the GitHub authorization URL:
+
+```typescript title="utils/github-auth.ts"
+export function createGitHubSignInUrl(): string {
+  const clientId = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID;
+  const redirectUri = encodeURIComponent('http://localhost:3001/auth/github/callback');
+  const state = Math.random().toString(36).substring(2);
+
+  // Store state for CSRF protection
+  sessionStorage.setItem('github_oauth_state', state);
+
+  return `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=read:user&state=${state}`;
+}
+```
+
+### Handling the Callback
+
+Create a callback handler to process the GitHub response and authenticate with Vendure:
+
+```typescript title="pages/auth/github/callback.ts"
+import { gql } from 'graphql-request';
+
+const AUTHENTICATE_MUTATION = gql`
+  mutation Authenticate($input: GitHubAuthInput!) {
+    authenticate(input: { github: $input }) {
+      ... on CurrentUser {
+        id
+        identifier
+        channels {
+          code
+          token
+          permissions
+        }
+      }
+      ... on InvalidCredentialsError {
+        authenticationError
+        errorCode
+        message
+      }
+    }
+  }
+`;
+
+export async function handleGitHubCallback(code: string, state: string) {
+  // Verify CSRF protection
+  const storedState = sessionStorage.getItem('github_oauth_state');
+  if (state !== storedState) {
+    throw new Error('Invalid state parameter');
+  }
+
+  sessionStorage.removeItem('github_oauth_state');
+
+  // Authenticate with Vendure
+  const result = await vendureClient.request(AUTHENTICATE_MUTATION, {
+    input: { code, state }
+  });
+
+  if (result.authenticate.__typename === 'CurrentUser') {
+    // Authentication successful - redirect to account page
+    return result.authenticate;
+  } else {
+    // Handle authentication error
+    throw new Error(result.authenticate.message);
+  }
+}
+```
+
+The OAuth flow follows these steps:
+
+1. User clicks "Sign in with GitHub" → redirected to GitHub
+2. User authorizes your app → GitHub redirects back with code and state
+3. Your callback exchanges the code for user data → creates Vendure session
+
+## Using the GraphQL API
+
+Once your plugin is running, the GitHub authentication will be available in your shop API:
+
+<Tabs>
+<TabItem value="Mutation" label="Mutation" default>
+
+```graphql
+mutation AuthenticateWithGitHub {
+  authenticate(input: {
+    github: {
+      code: "authorization_code_from_github",
+      state: "csrf_protection_state"
+    }
+  }) {
+    ... on CurrentUser {
+      id
+      identifier
+      channels {
+        code
+        token
+        permissions
+      }
+    }
+    ... on InvalidCredentialsError {
+      authenticationError
+      errorCode
+      message
+    }
+  }
+}
+```
+
+</TabItem>
+<TabItem value="Response" label="Response">
+
+```json
+{
+  "data": {
+    "authenticate": {
+      "id": "1",
+      "identifier": "github-user-github@vendure.io",
+      "channels": [
+        {
+          "code": "__default_channel__",
+          "token": "session_token_here",
+          "permissions": ["Authenticated"]
+        }
+      ]
+    }
+  }
+}
+```
+
+</TabItem>
+</Tabs>
+
+## Customer Data Management
+
+GitHub-authenticated customers are managed like any other Vendure [Customer](/reference/typescript-api/entities/customer/):
+
+- **Email**: Generated as `{username}-github@vendure.io` to avoid conflicts
+- **Verification**: Automatically verified (GitHub handles email verification)
+- **External ID**: GitHub username stored for future authentication
+- **Profile**: Name extracted from GitHub profile when available
+
+This means GitHub users work seamlessly with Vendure's [order management](/core-concepts/orders/), [promotions](/core-concepts/promotions/), and customer workflows.
+
+## Testing the Integration
+
+To test your GitHub OAuth integration:
+
+1. Start your Vendure server with the plugin configured
+2. Navigate to your storefront and click the GitHub sign-in link
+3. Authorize your GitHub app when prompted
+4. Verify that a new customer is created in the Vendure Dashboard
+5. Check that subsequent logins find the existing customer account

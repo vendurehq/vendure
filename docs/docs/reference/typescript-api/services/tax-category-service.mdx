@@ -1,0 +1,49 @@
+---
+title: "TaxCategoryService"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/services/tax-category.service.ts" sourceLine="29" packageName="@vendure/core" />
+
+Contains methods relating to [TaxCategory](/reference/typescript-api/entities/tax-category#taxcategory) entities.
+
+```ts title="Signature"
+class TaxCategoryService {
+    constructor(connection: TransactionalConnection, eventBus: EventBus, listQueryBuilder: ListQueryBuilder)
+    findAll(ctx: RequestContext, options?: ListQueryOptions<TaxCategory>) => Promise<PaginatedList<TaxCategory>>;
+    findOne(ctx: RequestContext, taxCategoryId: ID) => Promise<TaxCategory | undefined>;
+    create(ctx: RequestContext, input: CreateTaxCategoryInput) => Promise<TaxCategory>;
+    update(ctx: RequestContext, input: UpdateTaxCategoryInput) => Promise<TaxCategory>;
+    delete(ctx: RequestContext, id: ID) => Promise<DeletionResponse>;
+}
+```
+
+<div className="members-wrapper">
+
+### findAll
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: ListQueryOptions<<a href='/reference/typescript-api/entities/tax-category#taxcategory'>TaxCategory</a>>) => Promise<<a href='/reference/typescript-api/common/paginated-list#paginatedlist'>PaginatedList</a><<a href='/reference/typescript-api/entities/tax-category#taxcategory'>TaxCategory</a>>>`}   />
+
+
+### findOne
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, taxCategoryId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/tax-category#taxcategory'>TaxCategory</a> | undefined>`}   />
+
+
+### create
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: CreateTaxCategoryInput) => Promise<<a href='/reference/typescript-api/entities/tax-category#taxcategory'>TaxCategory</a>>`}   />
+
+
+### update
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: UpdateTaxCategoryInput) => Promise<<a href='/reference/typescript-api/entities/tax-category#taxcategory'>TaxCategory</a>>`}   />
+
+
+### delete
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<DeletionResponse>`}   />
+
+
+
+
+</div>

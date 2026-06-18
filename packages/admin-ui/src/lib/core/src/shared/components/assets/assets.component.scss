@@ -1,0 +1,134 @@
+
+:host {
+    display: block;
+    container-type: inline-size;
+
+    &.compact {
+        width: 162px;
+    }
+}
+
+.standard-view-container {
+    display: flex;
+    gap: calc(var(--space-unit) * 2);
+}
+
+
+.all-assets-container {
+    display: flex;
+    max-width: 50%;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+
+@container (max-width: 500px) {
+    .standard-view-container {
+        flex-direction: column;
+    }
+    .all-assets-container {
+        max-width: 100%;
+    }
+}
+
+.placeholder {
+    text-align: center;
+    color: var(--color-grey-300);
+}
+
+.featured-asset {
+    text-align: center;
+    background: var(--color-component-bg-200);
+    padding: 6px;
+    cursor: pointer;
+    border-radius: var(--border-radius-img);
+
+    img {
+        border-radius: var(--border-radius-img);
+        max-height: 400px;
+        max-width: 100%;
+        object-fit: contain;
+    }
+
+    &.compact {
+        width: 100%;
+        min-height: 40px;
+        padding: 0;
+        position: relative;
+        padding: 6px;
+    }
+
+    .compact-select {
+        position: absolute;
+        bottom: 6px;
+        right: 6px;
+        margin: 0;
+    }
+}
+
+.all-assets {
+    display: flex;
+    flex-wrap: wrap;
+
+    .drop-list {
+        min-width: 60px;
+    }
+
+    .asset-thumb {
+        margin: 3px;
+        padding: 0;
+        border: 2px solid var(--color-component-border-100);
+        border-radius: var(--border-radius-img);
+        cursor: pointer;
+
+        img {
+            width: 50px;
+            height: 50px;
+            border-radius: var(--border-radius-img);
+        }
+
+        &.featured {
+            border-color: var(--color-primary-500);
+            border-radius: calc(var(--border-radius-img) + 2px);
+        }
+    }
+
+    .remove-asset {
+        color: var(--color-warning-500);
+    }
+
+    &.compact {
+        .drop-list {
+            min-width: 54px;
+        }
+
+        .asset-thumb {
+            margin: 1px;
+            border-width: 1px;
+        }
+    }
+}
+
+.all-assets.compact .cdk-drag-placeholder {
+    width: 50px;
+
+    .asset-thumb {
+        width: 50px;
+    }
+}
+
+.cdk-drag-animating {
+    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.example-box:last-child {
+    border: none;
+}
+
+.all-assets.cdk-drop-list-dragging vdr-dropdown:not(.cdk-drag-placeholder) {
+    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.cdk-drop-list-dragging > *:not(.cdk-drag-placeholder) {
+    display: none;
+}

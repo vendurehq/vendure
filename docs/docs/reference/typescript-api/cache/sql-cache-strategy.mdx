@@ -1,0 +1,77 @@
+---
+title: "SqlCacheStrategy"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/plugin/default-cache-plugin/sql-cache-strategy.ts" sourceLine="21" packageName="@vendure/core" since="3.1.0" />
+
+A [CacheStrategy](/reference/typescript-api/cache/cache-strategy#cachestrategy) that stores cached items in the database. This
+is the strategy used by the [DefaultCachePlugin](/reference/typescript-api/cache/default-cache-plugin#defaultcacheplugin).
+
+```ts title="Signature"
+class SqlCacheStrategy implements CacheStrategy {
+    protected cacheSize = 10_000;
+    protected ttlProvider: CacheTtlProvider;
+    constructor(config?: { cacheSize?: number; cacheTtlProvider?: CacheTtlProvider })
+    protected connection: TransactionalConnection;
+    protected configService: ConfigService;
+    init(injector: Injector) => ;
+    get(key: string) => Promise<T | undefined>;
+    set(key: string, value: T, options?: SetCacheKeyOptions) => ;
+    delete(key: string) => ;
+    invalidateTags(tags: string[]) => ;
+}
+```
+* Implements: [`CacheStrategy`](/reference/typescript-api/cache/cache-strategy#cachestrategy)
+
+
+
+<div className="members-wrapper">
+
+### cacheSize
+
+<MemberInfo kind="property" type={``}   />
+
+
+### ttlProvider
+
+<MemberInfo kind="property" type={`CacheTtlProvider`}   />
+
+
+### connection
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/data-access/transactional-connection#transactionalconnection'>TransactionalConnection</a>`}   />
+
+
+### configService
+
+<MemberInfo kind="property" type={`ConfigService`}   />
+
+
+### init
+
+<MemberInfo kind="method" type={`(injector: <a href='/reference/typescript-api/common/injector#injector'>Injector</a>) => `}   />
+
+
+### get
+
+<MemberInfo kind="method" type={`(key: string) => Promise<T | undefined>`}   />
+
+
+### set
+
+<MemberInfo kind="method" type={`(key: string, value: T, options?: <a href='/reference/typescript-api/cache/cache-strategy#setcachekeyoptions'>SetCacheKeyOptions</a>) => `}   />
+
+
+### delete
+
+<MemberInfo kind="method" type={`(key: string) => `}   />
+
+
+### invalidateTags
+
+<MemberInfo kind="method" type={`(tags: string[]) => `}   />
+
+
+
+
+</div>

@@ -1,0 +1,162 @@
+# This contains the services required to develop and test Vendure
+# locally. It includes multiple SQL databases (for testing specific
+# versions), Elasticsearch, Redis etc.
+name: vendure-monorepo
+services:
+    mariadb:
+        image: 'mariadb:latest'
+        container_name: mariadb
+        environment:
+            MARIADB_DATABASE: vendure-dev
+            MARIADB_USER: vendure
+            MARIADB_PASSWORD: password
+            MARIADB_ROOT_PASSWORD: password
+        volumes:
+            - 'mariadb_data:/var/lib/mysql'
+        ports:
+            - '3306:3306'
+    mysql_8:
+        image: mysql:8.0
+        container_name: mysql-8
+        environment:
+            MYSQL_DATABASE: vendure-dev
+            MYSQL_USER: vendure
+            MYSQL_PASSWORD: password
+            MYSQL_ROOT_PASSWORD: password
+        volumes:
+            - 'mysql_data:/var/lib/mysql'
+        ports:
+            - '3306:3306'
+    mysql_5:
+        image: mysql:5.7
+        container_name: mysql-5.7
+        environment:
+            MYSQL_DATABASE: vendure-dev
+            MYSQL_USER: vendure
+            MYSQL_PASSWORD: password
+            MYSQL_ROOT_PASSWORD: password
+        volumes:
+            - 'mysql_data:/var/lib/mysql'
+        ports:
+            - '3306:3306'
+    postgres_12:
+        image: postgres:12.3
+        container_name: postgres_12
+        environment:
+            POSTGRES_DB: vendure-dev
+            POSTGRES_USER: vendure
+            POSTGRES_PASSWORD: password
+            PGDATA: /var/lib/postgresql/data
+        volumes:
+            - postgres_12_data:/var/lib/postgresql/data
+        ports:
+            - '5432:5432'
+        command: postgres -c shared_preload_libraries=pg_stat_statements -c pg_stat_statements.track=all -c pg_stat_statements.max=100000 -c max_connections=200
+    postgres_16:
+        image: postgres:16
+        container_name: postgres_16
+        environment:
+            POSTGRES_DB: vendure-dev
+            POSTGRES_USER: vendure
+            POSTGRES_PASSWORD: password
+            PGDATA: /var/lib/postgresql/data
+        volumes:
+            - postgres_16_data:/var/lib/postgresql/data
+        ports:
+            - '5432:5432'
+        command: postgres -c shared_preload_libraries=pg_stat_statements -c pg_stat_statements.track=all -c pg_stat_statements.max=100000 -c max_connections=200
+    # This is the Keycloak service which is used
+    # to test the Keycloak auth strategy
+    keycloak:
+        image: quay.io/keycloak/keycloak
+        ports:
+            - '9000:8080'
+        environment:
+            KEYCLOAK_ADMIN: admin
+            KEYCLOAK_ADMIN_PASSWORD: admin
+        command:
+            - start-dev
+            - --import-realm
+        volumes:
+            - keycloak_data:/opt/keycloak/data
+    elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:9.1.0
+        container_name: elasticsearch
+        environment:
+            - node.name=es
+            - cluster.name=es-docker-cluster
+            - xpack.security.enabled=false
+            - xpack.security.http.ssl.enabled=false
+            - xpack.security.transport.ssl.enabled=false
+            - xpack.license.self_generated.type=basic
+            - discovery.type=single-node
+            - bootstrap.memory_lock=true
+            - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+        mem_limit: 536870912
+        ulimits:
+            memlock:
+                soft: -1
+                hard: -1
+        volumes:
+            - esdata:/usr/share/elasticsearch/data
+        ports:
+            - 9200:9200
+    redis:
+        image: redis:7.2-alpine
+        hostname: redis
+        environment: []
+        ports:
+            - '6379:6379'
+    jaeger:
+        image: jaegertracing/all-in-one:latest
+        container_name: jaeger
+        ports:
+            - '4318:4318' # OTLP HTTP receiver
+            - '16686:16686' # Web UI
+        environment:
+            - COLLECTOR_OTLP_ENABLED=true
+        volumes:
+            - jaeger_data:/badger
+
+    loki:
+        image: grafana/loki:3.4
+        ports:
+            - '3100:3100'
+        networks:
+            - loki
+
+    grafana:
+        environment:
+            - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+            - GF_AUTH_ANONYMOUS_ENABLED=true
+            - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+            - GF_FEATURE_TOGGLES_ENABLE=alertingSimplifiedRouting,alertingQueryAndExpressionsStepMode
+        image: grafana/grafana:latest
+        ports:
+            - '3200:3000'
+        volumes:
+          - grafana-storage:/var/lib/grafana
+        networks:
+            - loki
+
+networks:
+    loki:
+        driver: bridge
+
+volumes:
+    postgres_16_data:
+        driver: local
+    postgres_12_data:
+        driver: local
+    mariadb_data:
+        driver: local
+    mysql_data:
+        driver: local
+    keycloak_data:
+        driver: local
+    esdata:
+        driver: local
+    jaeger_data:
+        driver: local
+    grafana-storage:
+        driver: local

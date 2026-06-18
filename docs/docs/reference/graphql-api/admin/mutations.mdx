@@ -1,0 +1,3246 @@
+---
+title: "Mutations"
+generated: true
+---
+
+
+
+<a name="addcustomerstogroup"></a>
+
+## addCustomersToGroup
+
+<GraphQLDoc
+  type="mutation"
+  typeName="addCustomersToGroup"
+  typeLinks={{
+    CustomerGroup: '/reference/graphql-api/admin/object-types#customergroup',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Add Customers to a CustomerGroup"""
+type Mutation {
+  addCustomersToGroup(customerGroupId: ID!, customerIds: [ID!]!): CustomerGroup!
+}`}
+</GraphQLDoc>
+
+<a name="addfulfillmenttoorder"></a>
+
+## addFulfillmentToOrder
+
+<GraphQLDoc
+  type="mutation"
+  typeName="addFulfillmentToOrder"
+  typeLinks={{
+    AddFulfillmentToOrderResult: '/reference/graphql-api/admin/object-types#addfulfillmenttoorderresult',
+    FulfillOrderInput: '/reference/graphql-api/admin/input-types#fulfillorderinput',
+  }}
+>
+{`type Mutation {
+  addFulfillmentToOrder(input: FulfillOrderInput!): AddFulfillmentToOrderResult!
+}`}
+</GraphQLDoc>
+
+<a name="additemtodraftorder"></a>
+
+## addItemToDraftOrder
+
+<GraphQLDoc
+  type="mutation"
+  typeName="addItemToDraftOrder"
+  typeLinks={{
+    UpdateOrderItemsResult: '/reference/graphql-api/admin/object-types#updateorderitemsresult',
+    ID: '/reference/graphql-api/admin/object-types#id',
+    AddItemToDraftOrderInput: '/reference/graphql-api/admin/input-types#additemtodraftorderinput',
+  }}
+>
+{`"""Adds an item to the draft Order."""
+type Mutation {
+  addItemToDraftOrder(orderId: ID!, input: AddItemToDraftOrderInput!): UpdateOrderItemsResult!
+}`}
+</GraphQLDoc>
+
+<a name="addmanualpaymenttoorder"></a>
+
+## addManualPaymentToOrder
+
+<GraphQLDoc
+  type="mutation"
+  typeName="addManualPaymentToOrder"
+  typeLinks={{
+    AddManualPaymentToOrderResult: '/reference/graphql-api/admin/object-types#addmanualpaymenttoorderresult',
+    ManualPaymentInput: '/reference/graphql-api/admin/input-types#manualpaymentinput',
+  }}
+>
+{`"""
+Used to manually create a new Payment against an Order.
+This can be used by an Administrator when an Order is in the ArrangingPayment state.
+
+It is also used when a completed Order
+has been modified (using \`modifyOrder\`) and the price has increased. The extra payment
+can then be manually arranged by the administrator, and the details used to create a new
+Payment.
+"""
+type Mutation {
+  addManualPaymentToOrder(input: ManualPaymentInput!): AddManualPaymentToOrderResult!
+}`}
+</GraphQLDoc>
+
+<a name="addmemberstozone"></a>
+
+## addMembersToZone
+
+<GraphQLDoc
+  type="mutation"
+  typeName="addMembersToZone"
+  typeLinks={{
+    Zone: '/reference/graphql-api/admin/object-types#zone',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Add members to a Zone"""
+type Mutation {
+  addMembersToZone(zoneId: ID!, memberIds: [ID!]!): Zone!
+}`}
+</GraphQLDoc>
+
+<a name="addnotetocustomer"></a>
+
+## addNoteToCustomer
+
+<GraphQLDoc
+  type="mutation"
+  typeName="addNoteToCustomer"
+  typeLinks={{
+    Customer: '/reference/graphql-api/admin/object-types#customer',
+    AddNoteToCustomerInput: '/reference/graphql-api/admin/input-types#addnotetocustomerinput',
+  }}
+>
+{`type Mutation {
+  addNoteToCustomer(input: AddNoteToCustomerInput!): Customer!
+}`}
+</GraphQLDoc>
+
+<a name="addnotetoorder"></a>
+
+## addNoteToOrder
+
+<GraphQLDoc
+  type="mutation"
+  typeName="addNoteToOrder"
+  typeLinks={{
+    Order: '/reference/graphql-api/admin/object-types#order',
+    AddNoteToOrderInput: '/reference/graphql-api/admin/input-types#addnotetoorderinput',
+  }}
+>
+{`type Mutation {
+  addNoteToOrder(input: AddNoteToOrderInput!): Order!
+}`}
+</GraphQLDoc>
+
+<a name="addoptiongrouptoproduct"></a>
+
+## addOptionGroupToProduct
+
+<GraphQLDoc
+  type="mutation"
+  typeName="addOptionGroupToProduct"
+  typeLinks={{
+    Product: '/reference/graphql-api/admin/object-types#product',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Add an OptionGroup to a Product"""
+type Mutation {
+  addOptionGroupToProduct(productId: ID!, optionGroupId: ID!): Product!
+}`}
+</GraphQLDoc>
+
+<a name="adjustdraftorderline"></a>
+
+## adjustDraftOrderLine
+
+<GraphQLDoc
+  type="mutation"
+  typeName="adjustDraftOrderLine"
+  typeLinks={{
+    UpdateOrderItemsResult: '/reference/graphql-api/admin/object-types#updateorderitemsresult',
+    ID: '/reference/graphql-api/admin/object-types#id',
+    AdjustDraftOrderLineInput: '/reference/graphql-api/admin/input-types#adjustdraftorderlineinput',
+  }}
+>
+{`"""Adjusts a draft OrderLine. If custom fields are defined on the OrderLine entity, a third argument 'customFields' of type \`OrderLineCustomFieldsInput\` will be available."""
+type Mutation {
+  adjustDraftOrderLine(orderId: ID!, input: AdjustDraftOrderLineInput!): UpdateOrderItemsResult!
+}`}
+</GraphQLDoc>
+
+<a name="applycouponcodetodraftorder"></a>
+
+## applyCouponCodeToDraftOrder
+
+<GraphQLDoc
+  type="mutation"
+  typeName="applyCouponCodeToDraftOrder"
+  typeLinks={{
+    ApplyCouponCodeResult: '/reference/graphql-api/admin/object-types#applycouponcoderesult',
+    ID: '/reference/graphql-api/admin/object-types#id',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`"""Applies the given coupon code to the draft Order"""
+type Mutation {
+  applyCouponCodeToDraftOrder(orderId: ID!, couponCode: String!): ApplyCouponCodeResult!
+}`}
+</GraphQLDoc>
+
+<a name="assignassetstochannel"></a>
+
+## assignAssetsToChannel
+
+<GraphQLDoc
+  type="mutation"
+  typeName="assignAssetsToChannel"
+  typeLinks={{
+    Asset: '/reference/graphql-api/admin/object-types#asset',
+    AssignAssetsToChannelInput: '/reference/graphql-api/admin/input-types#assignassetstochannelinput',
+  }}
+>
+{`"""Assign assets to channel"""
+type Mutation {
+  assignAssetsToChannel(input: AssignAssetsToChannelInput!): [Asset!]!
+}`}
+</GraphQLDoc>
+
+<a name="assigncollectionstochannel"></a>
+
+## assignCollectionsToChannel
+
+<GraphQLDoc
+  type="mutation"
+  typeName="assignCollectionsToChannel"
+  typeLinks={{
+    Collection: '/reference/graphql-api/admin/object-types#collection',
+    AssignCollectionsToChannelInput: '/reference/graphql-api/admin/input-types#assigncollectionstochannelinput',
+  }}
+>
+{`"""Assigns Collections to the specified Channel"""
+type Mutation {
+  assignCollectionsToChannel(input: AssignCollectionsToChannelInput!): [Collection!]!
+}`}
+</GraphQLDoc>
+
+<a name="assignfacetstochannel"></a>
+
+## assignFacetsToChannel
+
+<GraphQLDoc
+  type="mutation"
+  typeName="assignFacetsToChannel"
+  typeLinks={{
+    Facet: '/reference/graphql-api/admin/object-types#facet',
+    AssignFacetsToChannelInput: '/reference/graphql-api/admin/input-types#assignfacetstochannelinput',
+  }}
+>
+{`"""Assigns Facets to the specified Channel"""
+type Mutation {
+  assignFacetsToChannel(input: AssignFacetsToChannelInput!): [Facet!]!
+}`}
+</GraphQLDoc>
+
+<a name="assignpaymentmethodstochannel"></a>
+
+## assignPaymentMethodsToChannel
+
+<GraphQLDoc
+  type="mutation"
+  typeName="assignPaymentMethodsToChannel"
+  typeLinks={{
+    PaymentMethod: '/reference/graphql-api/admin/object-types#paymentmethod',
+    AssignPaymentMethodsToChannelInput: '/reference/graphql-api/admin/input-types#assignpaymentmethodstochannelinput',
+  }}
+>
+{`"""Assigns PaymentMethods to the specified Channel"""
+type Mutation {
+  assignPaymentMethodsToChannel(input: AssignPaymentMethodsToChannelInput!): [PaymentMethod!]!
+}`}
+</GraphQLDoc>
+
+<a name="assignproductoptiongroupstochannel"></a>
+
+## assignProductOptionGroupsToChannel
+
+<GraphQLDoc
+  type="mutation"
+  typeName="assignProductOptionGroupsToChannel"
+  typeLinks={{
+    ProductOptionGroup: '/reference/graphql-api/admin/object-types#productoptiongroup',
+    AssignProductOptionGroupsToChannelInput: '/reference/graphql-api/admin/input-types#assignproductoptiongroupstochannelinput',
+  }}
+>
+{`"""Assigns ProductOptionGroups to the specified Channel"""
+type Mutation {
+  assignProductOptionGroupsToChannel(input: AssignProductOptionGroupsToChannelInput!): [ProductOptionGroup!]!
+}`}
+</GraphQLDoc>
+
+<a name="assignproductvariantstochannel"></a>
+
+## assignProductVariantsToChannel
+
+<GraphQLDoc
+  type="mutation"
+  typeName="assignProductVariantsToChannel"
+  typeLinks={{
+    ProductVariant: '/reference/graphql-api/admin/object-types#productvariant',
+    AssignProductVariantsToChannelInput: '/reference/graphql-api/admin/input-types#assignproductvariantstochannelinput',
+  }}
+>
+{`"""Assigns ProductVariants to the specified Channel"""
+type Mutation {
+  assignProductVariantsToChannel(input: AssignProductVariantsToChannelInput!): [ProductVariant!]!
+}`}
+</GraphQLDoc>
+
+<a name="assignproductstochannel"></a>
+
+## assignProductsToChannel
+
+<GraphQLDoc
+  type="mutation"
+  typeName="assignProductsToChannel"
+  typeLinks={{
+    Product: '/reference/graphql-api/admin/object-types#product',
+    AssignProductsToChannelInput: '/reference/graphql-api/admin/input-types#assignproductstochannelinput',
+  }}
+>
+{`"""Assigns all ProductVariants of Product to the specified Channel"""
+type Mutation {
+  assignProductsToChannel(input: AssignProductsToChannelInput!): [Product!]!
+}`}
+</GraphQLDoc>
+
+<a name="assignpromotionstochannel"></a>
+
+## assignPromotionsToChannel
+
+<GraphQLDoc
+  type="mutation"
+  typeName="assignPromotionsToChannel"
+  typeLinks={{
+    Promotion: '/reference/graphql-api/admin/object-types#promotion',
+    AssignPromotionsToChannelInput: '/reference/graphql-api/admin/input-types#assignpromotionstochannelinput',
+  }}
+>
+{`"""Assigns Promotions to the specified Channel"""
+type Mutation {
+  assignPromotionsToChannel(input: AssignPromotionsToChannelInput!): [Promotion!]!
+}`}
+</GraphQLDoc>
+
+<a name="assignroletoadministrator"></a>
+
+## assignRoleToAdministrator
+
+<GraphQLDoc
+  type="mutation"
+  typeName="assignRoleToAdministrator"
+  typeLinks={{
+    Administrator: '/reference/graphql-api/admin/object-types#administrator',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Assign a Role to an Administrator"""
+type Mutation {
+  assignRoleToAdministrator(administratorId: ID!, roleId: ID!): Administrator!
+}`}
+</GraphQLDoc>
+
+<a name="assignshippingmethodstochannel"></a>
+
+## assignShippingMethodsToChannel
+
+<GraphQLDoc
+  type="mutation"
+  typeName="assignShippingMethodsToChannel"
+  typeLinks={{
+    ShippingMethod: '/reference/graphql-api/admin/object-types#shippingmethod',
+    AssignShippingMethodsToChannelInput: '/reference/graphql-api/admin/input-types#assignshippingmethodstochannelinput',
+  }}
+>
+{`"""Assigns ShippingMethods to the specified Channel"""
+type Mutation {
+  assignShippingMethodsToChannel(input: AssignShippingMethodsToChannelInput!): [ShippingMethod!]!
+}`}
+</GraphQLDoc>
+
+<a name="assignstocklocationstochannel"></a>
+
+## assignStockLocationsToChannel
+
+<GraphQLDoc
+  type="mutation"
+  typeName="assignStockLocationsToChannel"
+  typeLinks={{
+    StockLocation: '/reference/graphql-api/admin/object-types#stocklocation',
+    AssignStockLocationsToChannelInput: '/reference/graphql-api/admin/input-types#assignstocklocationstochannelinput',
+  }}
+>
+{`"""Assigns StockLocations to the specified Channel"""
+type Mutation {
+  assignStockLocationsToChannel(input: AssignStockLocationsToChannelInput!): [StockLocation!]!
+}`}
+</GraphQLDoc>
+
+<a name="authenticate"></a>
+
+## authenticate
+
+<GraphQLDoc
+  type="mutation"
+  typeName="authenticate"
+  typeLinks={{
+    AuthenticationResult: '/reference/graphql-api/admin/object-types#authenticationresult',
+    AuthenticationInput: '/reference/graphql-api/admin/input-types#authenticationinput',
+    Boolean: '/reference/graphql-api/admin/object-types#boolean',
+  }}
+>
+{`"""Authenticates the user using a named authentication strategy"""
+type Mutation {
+  authenticate(input: AuthenticationInput!, rememberMe: Boolean): AuthenticationResult!
+}`}
+</GraphQLDoc>
+
+<a name="canceljob"></a>
+
+## cancelJob
+
+<GraphQLDoc
+  type="mutation"
+  typeName="cancelJob"
+  typeLinks={{
+    Job: '/reference/graphql-api/admin/object-types#job',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Mutation {
+  cancelJob(jobId: ID!): Job!
+}`}
+</GraphQLDoc>
+
+<a name="cancelorder"></a>
+
+## cancelOrder
+
+<GraphQLDoc
+  type="mutation"
+  typeName="cancelOrder"
+  typeLinks={{
+    CancelOrderResult: '/reference/graphql-api/admin/object-types#cancelorderresult',
+    CancelOrderInput: '/reference/graphql-api/admin/input-types#cancelorderinput',
+  }}
+>
+{`type Mutation {
+  cancelOrder(input: CancelOrderInput!): CancelOrderResult!
+}`}
+</GraphQLDoc>
+
+<a name="cancelpayment"></a>
+
+## cancelPayment
+
+<GraphQLDoc
+  type="mutation"
+  typeName="cancelPayment"
+  typeLinks={{
+    CancelPaymentResult: '/reference/graphql-api/admin/object-types#cancelpaymentresult',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Mutation {
+  cancelPayment(id: ID!): CancelPaymentResult!
+}`}
+</GraphQLDoc>
+
+<a name="createadministrator"></a>
+
+## createAdministrator
+
+<GraphQLDoc
+  type="mutation"
+  typeName="createAdministrator"
+  typeLinks={{
+    Administrator: '/reference/graphql-api/admin/object-types#administrator',
+    CreateAdministratorInput: '/reference/graphql-api/admin/input-types#createadministratorinput',
+  }}
+>
+{`"""Create a new Administrator"""
+type Mutation {
+  createAdministrator(input: CreateAdministratorInput!): Administrator!
+}`}
+</GraphQLDoc>
+
+<a name="createapikey"></a>
+
+## createApiKey
+
+<GraphQLDoc
+  type="mutation"
+  typeName="createApiKey"
+  typeLinks={{
+    CreateApiKeyResult: '/reference/graphql-api/admin/object-types#createapikeyresult',
+    CreateApiKeyInput: '/reference/graphql-api/admin/input-types#createapikeyinput',
+  }}
+>
+{`"""
+Generates a new API-Key and attaches it to an Administrator.
+Returns the generated API-Key.
+API-Keys cannot be viewed again after creation.
+"""
+type Mutation {
+  createApiKey(input: CreateApiKeyInput!): CreateApiKeyResult!
+}`}
+</GraphQLDoc>
+
+<a name="createassets"></a>
+
+## createAssets
+
+<GraphQLDoc
+  type="mutation"
+  typeName="createAssets"
+  typeLinks={{
+    CreateAssetResult: '/reference/graphql-api/admin/object-types#createassetresult',
+    CreateAssetInput: '/reference/graphql-api/admin/input-types#createassetinput',
+  }}
+>
+{`"""Create a new Asset"""
+type Mutation {
+  createAssets(input: [CreateAssetInput!]!): [CreateAssetResult!]!
+}`}
+</GraphQLDoc>
+
+<a name="createchannel"></a>
+
+## createChannel
+
+<GraphQLDoc
+  type="mutation"
+  typeName="createChannel"
+  typeLinks={{
+    CreateChannelResult: '/reference/graphql-api/admin/object-types#createchannelresult',
+    CreateChannelInput: '/reference/graphql-api/admin/input-types#createchannelinput',
+  }}
+>
+{`"""Create a new Channel"""
+type Mutation {
+  createChannel(input: CreateChannelInput!): CreateChannelResult!
+}`}
+</GraphQLDoc>
+
+<a name="createcollection"></a>
+
+## createCollection
+
+<GraphQLDoc
+  type="mutation"
+  typeName="createCollection"
+  typeLinks={{
+    Collection: '/reference/graphql-api/admin/object-types#collection',
+    CreateCollectionInput: '/reference/graphql-api/admin/input-types#createcollectioninput',
+  }}
+>
+{`"""Create a new Collection"""
+type Mutation {
+  createCollection(input: CreateCollectionInput!): Collection!
+}`}
+</GraphQLDoc>
+
+<a name="createcountry"></a>
+
+## createCountry
+
+<GraphQLDoc
+  type="mutation"
+  typeName="createCountry"
+  typeLinks={{
+    Country: '/reference/graphql-api/admin/object-types#country',
+    CreateCountryInput: '/reference/graphql-api/admin/input-types#createcountryinput',
+  }}
+>
+{`"""Create a new Country"""
+type Mutation {
+  createCountry(input: CreateCountryInput!): Country!
+}`}
+</GraphQLDoc>
+
+<a name="createcustomer"></a>
+
+## createCustomer
+
+<GraphQLDoc
+  type="mutation"
+  typeName="createCustomer"
+  typeLinks={{
+    CreateCustomerResult: '/reference/graphql-api/admin/object-types#createcustomerresult',
+    CreateCustomerInput: '/reference/graphql-api/admin/input-types#createcustomerinput',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`"""Create a new Customer. If a password is provided, a new User will also be created an linked to the Customer."""
+type Mutation {
+  createCustomer(input: CreateCustomerInput!, password: String): CreateCustomerResult!
+}`}
+</GraphQLDoc>
+
+<a name="createcustomeraddress"></a>
+
+## createCustomerAddress
+
+<GraphQLDoc
+  type="mutation"
+  typeName="createCustomerAddress"
+  typeLinks={{
+    Address: '/reference/graphql-api/admin/object-types#address',
+    ID: '/reference/graphql-api/admin/object-types#id',
+    CreateAddressInput: '/reference/graphql-api/admin/input-types#createaddressinput',
+  }}
+>
+{`"""Create a new Address and associate it with the Customer specified by customerId"""
+type Mutation {
+  createCustomerAddress(customerId: ID!, input: CreateAddressInput!): Address!
+}`}
+</GraphQLDoc>
+
+<a name="createcustomergroup"></a>
+
+## createCustomerGroup
+
+<GraphQLDoc
+  type="mutation"
+  typeName="createCustomerGroup"
+  typeLinks={{
+    CustomerGroup: '/reference/graphql-api/admin/object-types#customergroup',
+    CreateCustomerGroupInput: '/reference/graphql-api/admin/input-types#createcustomergroupinput',
+  }}
+>
+{`"""Create a new CustomerGroup"""
+type Mutation {
+  createCustomerGroup(input: CreateCustomerGroupInput!): CustomerGroup!
+}`}
+</GraphQLDoc>
+
+<a name="createdraftorder"></a>
+
+## createDraftOrder
+
+<GraphQLDoc
+  type="mutation"
+  typeName="createDraftOrder"
+  typeLinks={{
+    Order: '/reference/graphql-api/admin/object-types#order',
+  }}
+>
+{`"""Creates a draft Order"""
+type Mutation {
+  createDraftOrder: Order!
+}`}
+</GraphQLDoc>
+
+<a name="createfacet"></a>
+
+## createFacet
+
+<GraphQLDoc
+  type="mutation"
+  typeName="createFacet"
+  typeLinks={{
+    Facet: '/reference/graphql-api/admin/object-types#facet',
+    CreateFacetInput: '/reference/graphql-api/admin/input-types#createfacetinput',
+  }}
+>
+{`"""Create a new Facet"""
+type Mutation {
+  createFacet(input: CreateFacetInput!): Facet!
+}`}
+</GraphQLDoc>
+
+<a name="createfacetvalue"></a>
+
+## createFacetValue
+
+<GraphQLDoc
+  type="mutation"
+  typeName="createFacetValue"
+  typeLinks={{
+    FacetValue: '/reference/graphql-api/admin/object-types#facetvalue',
+    CreateFacetValueInput: '/reference/graphql-api/admin/input-types#createfacetvalueinput',
+  }}
+>
+{`"""Create a single FacetValue"""
+type Mutation {
+  createFacetValue(input: CreateFacetValueInput!): FacetValue!
+}`}
+</GraphQLDoc>
+
+<a name="createfacetvalues"></a>
+
+## createFacetValues
+
+<GraphQLDoc
+  type="mutation"
+  typeName="createFacetValues"
+  typeLinks={{
+    FacetValue: '/reference/graphql-api/admin/object-types#facetvalue',
+    CreateFacetValueInput: '/reference/graphql-api/admin/input-types#createfacetvalueinput',
+  }}
+>
+{`"""Create one or more FacetValues"""
+type Mutation {
+  createFacetValues(input: [CreateFacetValueInput!]!): [FacetValue!]!
+}`}
+</GraphQLDoc>
+
+<a name="createpaymentmethod"></a>
+
+## createPaymentMethod
+
+<GraphQLDoc
+  type="mutation"
+  typeName="createPaymentMethod"
+  typeLinks={{
+    PaymentMethod: '/reference/graphql-api/admin/object-types#paymentmethod',
+    CreatePaymentMethodInput: '/reference/graphql-api/admin/input-types#createpaymentmethodinput',
+  }}
+>
+{`"""Create existing PaymentMethod"""
+type Mutation {
+  createPaymentMethod(input: CreatePaymentMethodInput!): PaymentMethod!
+}`}
+</GraphQLDoc>
+
+<a name="createproduct"></a>
+
+## createProduct
+
+<GraphQLDoc
+  type="mutation"
+  typeName="createProduct"
+  typeLinks={{
+    Product: '/reference/graphql-api/admin/object-types#product',
+    CreateProductInput: '/reference/graphql-api/admin/input-types#createproductinput',
+  }}
+>
+{`"""Create a new Product"""
+type Mutation {
+  createProduct(input: CreateProductInput!): Product!
+}`}
+</GraphQLDoc>
+
+<a name="createproductoption"></a>
+
+## createProductOption
+
+<GraphQLDoc
+  type="mutation"
+  typeName="createProductOption"
+  typeLinks={{
+    ProductOption: '/reference/graphql-api/admin/object-types#productoption',
+    CreateProductOptionInput: '/reference/graphql-api/admin/input-types#createproductoptioninput',
+  }}
+>
+{`"""Create a new ProductOption within a ProductOptionGroup"""
+type Mutation {
+  createProductOption(input: CreateProductOptionInput!): ProductOption!
+}`}
+</GraphQLDoc>
+
+<a name="createproductoptiongroup"></a>
+
+## createProductOptionGroup
+
+<GraphQLDoc
+  type="mutation"
+  typeName="createProductOptionGroup"
+  typeLinks={{
+    ProductOptionGroup: '/reference/graphql-api/admin/object-types#productoptiongroup',
+    CreateProductOptionGroupInput: '/reference/graphql-api/admin/input-types#createproductoptiongroupinput',
+  }}
+>
+{`"""Create a new ProductOptionGroup"""
+type Mutation {
+  createProductOptionGroup(input: CreateProductOptionGroupInput!): ProductOptionGroup!
+}`}
+</GraphQLDoc>
+
+<a name="createproductvariants"></a>
+
+## createProductVariants
+
+<GraphQLDoc
+  type="mutation"
+  typeName="createProductVariants"
+  typeLinks={{
+    ProductVariant: '/reference/graphql-api/admin/object-types#productvariant',
+    CreateProductVariantInput: '/reference/graphql-api/admin/input-types#createproductvariantinput',
+  }}
+>
+{`"""Create a set of ProductVariants based on the OptionGroups assigned to the given Product"""
+type Mutation {
+  createProductVariants(input: [CreateProductVariantInput!]!): [ProductVariant]!
+}`}
+</GraphQLDoc>
+
+<a name="createpromotion"></a>
+
+## createPromotion
+
+<GraphQLDoc
+  type="mutation"
+  typeName="createPromotion"
+  typeLinks={{
+    CreatePromotionResult: '/reference/graphql-api/admin/object-types#createpromotionresult',
+    CreatePromotionInput: '/reference/graphql-api/admin/input-types#createpromotioninput',
+  }}
+>
+{`type Mutation {
+  createPromotion(input: CreatePromotionInput!): CreatePromotionResult!
+}`}
+</GraphQLDoc>
+
+<a name="createprovince"></a>
+
+## createProvince
+
+<GraphQLDoc
+  type="mutation"
+  typeName="createProvince"
+  typeLinks={{
+    Province: '/reference/graphql-api/admin/object-types#province',
+    CreateProvinceInput: '/reference/graphql-api/admin/input-types#createprovinceinput',
+  }}
+>
+{`"""Create a new Province"""
+type Mutation {
+  createProvince(input: CreateProvinceInput!): Province!
+}`}
+</GraphQLDoc>
+
+<a name="createrole"></a>
+
+## createRole
+
+<GraphQLDoc
+  type="mutation"
+  typeName="createRole"
+  typeLinks={{
+    Role: '/reference/graphql-api/admin/object-types#role',
+    CreateRoleInput: '/reference/graphql-api/admin/input-types#createroleinput',
+  }}
+>
+{`"""Create a new Role"""
+type Mutation {
+  createRole(input: CreateRoleInput!): Role!
+}`}
+</GraphQLDoc>
+
+<a name="createseller"></a>
+
+## createSeller
+
+<GraphQLDoc
+  type="mutation"
+  typeName="createSeller"
+  typeLinks={{
+    Seller: '/reference/graphql-api/admin/object-types#seller',
+    CreateSellerInput: '/reference/graphql-api/admin/input-types#createsellerinput',
+  }}
+>
+{`"""Create a new Seller"""
+type Mutation {
+  createSeller(input: CreateSellerInput!): Seller!
+}`}
+</GraphQLDoc>
+
+<a name="createshippingmethod"></a>
+
+## createShippingMethod
+
+<GraphQLDoc
+  type="mutation"
+  typeName="createShippingMethod"
+  typeLinks={{
+    ShippingMethod: '/reference/graphql-api/admin/object-types#shippingmethod',
+    CreateShippingMethodInput: '/reference/graphql-api/admin/input-types#createshippingmethodinput',
+  }}
+>
+{`"""Create a new ShippingMethod"""
+type Mutation {
+  createShippingMethod(input: CreateShippingMethodInput!): ShippingMethod!
+}`}
+</GraphQLDoc>
+
+<a name="createstocklocation"></a>
+
+## createStockLocation
+
+<GraphQLDoc
+  type="mutation"
+  typeName="createStockLocation"
+  typeLinks={{
+    StockLocation: '/reference/graphql-api/admin/object-types#stocklocation',
+    CreateStockLocationInput: '/reference/graphql-api/admin/input-types#createstocklocationinput',
+  }}
+>
+{`type Mutation {
+  createStockLocation(input: CreateStockLocationInput!): StockLocation!
+}`}
+</GraphQLDoc>
+
+<a name="createtag"></a>
+
+## createTag
+
+<GraphQLDoc
+  type="mutation"
+  typeName="createTag"
+  typeLinks={{
+    Tag: '/reference/graphql-api/admin/object-types#tag',
+    CreateTagInput: '/reference/graphql-api/admin/input-types#createtaginput',
+  }}
+>
+{`"""Create a new Tag"""
+type Mutation {
+  createTag(input: CreateTagInput!): Tag!
+}`}
+</GraphQLDoc>
+
+<a name="createtaxcategory"></a>
+
+## createTaxCategory
+
+<GraphQLDoc
+  type="mutation"
+  typeName="createTaxCategory"
+  typeLinks={{
+    TaxCategory: '/reference/graphql-api/admin/object-types#taxcategory',
+    CreateTaxCategoryInput: '/reference/graphql-api/admin/input-types#createtaxcategoryinput',
+  }}
+>
+{`"""Create a new TaxCategory"""
+type Mutation {
+  createTaxCategory(input: CreateTaxCategoryInput!): TaxCategory!
+}`}
+</GraphQLDoc>
+
+<a name="createtaxrate"></a>
+
+## createTaxRate
+
+<GraphQLDoc
+  type="mutation"
+  typeName="createTaxRate"
+  typeLinks={{
+    TaxRate: '/reference/graphql-api/admin/object-types#taxrate',
+    CreateTaxRateInput: '/reference/graphql-api/admin/input-types#createtaxrateinput',
+  }}
+>
+{`"""Create a new TaxRate"""
+type Mutation {
+  createTaxRate(input: CreateTaxRateInput!): TaxRate!
+}`}
+</GraphQLDoc>
+
+<a name="createzone"></a>
+
+## createZone
+
+<GraphQLDoc
+  type="mutation"
+  typeName="createZone"
+  typeLinks={{
+    Zone: '/reference/graphql-api/admin/object-types#zone',
+    CreateZoneInput: '/reference/graphql-api/admin/input-types#createzoneinput',
+  }}
+>
+{`"""Create a new Zone"""
+type Mutation {
+  createZone(input: CreateZoneInput!): Zone!
+}`}
+</GraphQLDoc>
+
+<a name="deleteadministrator"></a>
+
+## deleteAdministrator
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteAdministrator"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Delete an Administrator"""
+type Mutation {
+  deleteAdministrator(id: ID!): DeletionResponse!
+}`}
+</GraphQLDoc>
+
+<a name="deleteadministrators"></a>
+
+## deleteAdministrators
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteAdministrators"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Delete multiple Administrators"""
+type Mutation {
+  deleteAdministrators(ids: [ID!]!): [DeletionResponse!]!
+}`}
+</GraphQLDoc>
+
+<a name="deleteapikeys"></a>
+
+## deleteApiKeys
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteApiKeys"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Deletes API-Keys"""
+type Mutation {
+  deleteApiKeys(ids: [ID!]!): [DeletionResponse!]!
+}`}
+</GraphQLDoc>
+
+<a name="deleteasset"></a>
+
+## deleteAsset
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteAsset"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    DeleteAssetInput: '/reference/graphql-api/admin/input-types#deleteassetinput',
+  }}
+>
+{`"""Delete an Asset"""
+type Mutation {
+  deleteAsset(input: DeleteAssetInput!): DeletionResponse!
+}`}
+</GraphQLDoc>
+
+<a name="deleteassets"></a>
+
+## deleteAssets
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteAssets"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    DeleteAssetsInput: '/reference/graphql-api/admin/input-types#deleteassetsinput',
+  }}
+>
+{`"""Delete multiple Assets"""
+type Mutation {
+  deleteAssets(input: DeleteAssetsInput!): DeletionResponse!
+}`}
+</GraphQLDoc>
+
+<a name="deletechannel"></a>
+
+## deleteChannel
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteChannel"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Delete a Channel"""
+type Mutation {
+  deleteChannel(id: ID!): DeletionResponse!
+}`}
+</GraphQLDoc>
+
+<a name="deletechannels"></a>
+
+## deleteChannels
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteChannels"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Delete multiple Channels"""
+type Mutation {
+  deleteChannels(ids: [ID!]!): [DeletionResponse!]!
+}`}
+</GraphQLDoc>
+
+<a name="deletecollection"></a>
+
+## deleteCollection
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteCollection"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Delete a Collection and all of its descendants"""
+type Mutation {
+  deleteCollection(id: ID!): DeletionResponse!
+}`}
+</GraphQLDoc>
+
+<a name="deletecollections"></a>
+
+## deleteCollections
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteCollections"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Delete multiple Collections and all of their descendants"""
+type Mutation {
+  deleteCollections(ids: [ID!]!): [DeletionResponse!]!
+}`}
+</GraphQLDoc>
+
+<a name="deletecountries"></a>
+
+## deleteCountries
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteCountries"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Delete multiple Countries"""
+type Mutation {
+  deleteCountries(ids: [ID!]!): [DeletionResponse!]!
+}`}
+</GraphQLDoc>
+
+<a name="deletecountry"></a>
+
+## deleteCountry
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteCountry"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Delete a Country"""
+type Mutation {
+  deleteCountry(id: ID!): DeletionResponse!
+}`}
+</GraphQLDoc>
+
+<a name="deletecustomer"></a>
+
+## deleteCustomer
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteCustomer"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Delete a Customer"""
+type Mutation {
+  deleteCustomer(id: ID!): DeletionResponse!
+}`}
+</GraphQLDoc>
+
+<a name="deletecustomeraddress"></a>
+
+## deleteCustomerAddress
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteCustomerAddress"
+  typeLinks={{
+    Success: '/reference/graphql-api/admin/object-types#success',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Update an existing Address"""
+type Mutation {
+  deleteCustomerAddress(id: ID!): Success!
+}`}
+</GraphQLDoc>
+
+<a name="deletecustomergroup"></a>
+
+## deleteCustomerGroup
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteCustomerGroup"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Delete a CustomerGroup"""
+type Mutation {
+  deleteCustomerGroup(id: ID!): DeletionResponse!
+}`}
+</GraphQLDoc>
+
+<a name="deletecustomergroups"></a>
+
+## deleteCustomerGroups
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteCustomerGroups"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Delete multiple CustomerGroups"""
+type Mutation {
+  deleteCustomerGroups(ids: [ID!]!): [DeletionResponse!]!
+}`}
+</GraphQLDoc>
+
+<a name="deletecustomernote"></a>
+
+## deleteCustomerNote
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteCustomerNote"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Mutation {
+  deleteCustomerNote(id: ID!): DeletionResponse!
+}`}
+</GraphQLDoc>
+
+<a name="deletecustomers"></a>
+
+## deleteCustomers
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteCustomers"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Deletes Customers"""
+type Mutation {
+  deleteCustomers(ids: [ID!]!): [DeletionResponse!]!
+}`}
+</GraphQLDoc>
+
+<a name="deletedraftorder"></a>
+
+## deleteDraftOrder
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteDraftOrder"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Deletes a draft Order"""
+type Mutation {
+  deleteDraftOrder(orderId: ID!): DeletionResponse!
+}`}
+</GraphQLDoc>
+
+<a name="deletefacet"></a>
+
+## deleteFacet
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteFacet"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+    Boolean: '/reference/graphql-api/admin/object-types#boolean',
+  }}
+>
+{`"""Delete an existing Facet"""
+type Mutation {
+  deleteFacet(id: ID!, force: Boolean): DeletionResponse!
+}`}
+</GraphQLDoc>
+
+<a name="deletefacetvalues"></a>
+
+## deleteFacetValues
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteFacetValues"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+    Boolean: '/reference/graphql-api/admin/object-types#boolean',
+  }}
+>
+{`"""Delete one or more FacetValues"""
+type Mutation {
+  deleteFacetValues(ids: [ID!]!, force: Boolean): [DeletionResponse!]!
+}`}
+</GraphQLDoc>
+
+<a name="deletefacets"></a>
+
+## deleteFacets
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteFacets"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+    Boolean: '/reference/graphql-api/admin/object-types#boolean',
+  }}
+>
+{`"""Delete multiple existing Facets"""
+type Mutation {
+  deleteFacets(ids: [ID!]!, force: Boolean): [DeletionResponse!]!
+}`}
+</GraphQLDoc>
+
+<a name="deleteordernote"></a>
+
+## deleteOrderNote
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteOrderNote"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Mutation {
+  deleteOrderNote(id: ID!): DeletionResponse!
+}`}
+</GraphQLDoc>
+
+<a name="deletepaymentmethod"></a>
+
+## deletePaymentMethod
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deletePaymentMethod"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+    Boolean: '/reference/graphql-api/admin/object-types#boolean',
+  }}
+>
+{`"""Delete a PaymentMethod"""
+type Mutation {
+  deletePaymentMethod(id: ID!, force: Boolean): DeletionResponse!
+}`}
+</GraphQLDoc>
+
+<a name="deletepaymentmethods"></a>
+
+## deletePaymentMethods
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deletePaymentMethods"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+    Boolean: '/reference/graphql-api/admin/object-types#boolean',
+  }}
+>
+{`"""Delete multiple PaymentMethods"""
+type Mutation {
+  deletePaymentMethods(ids: [ID!]!, force: Boolean): [DeletionResponse!]!
+}`}
+</GraphQLDoc>
+
+<a name="deleteproduct"></a>
+
+## deleteProduct
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteProduct"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Delete a Product"""
+type Mutation {
+  deleteProduct(id: ID!): DeletionResponse!
+}`}
+</GraphQLDoc>
+
+<a name="deleteproductoption"></a>
+
+## deleteProductOption
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteProductOption"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Delete a ProductOption"""
+type Mutation {
+  deleteProductOption(id: ID!): DeletionResponse!
+}`}
+</GraphQLDoc>
+
+<a name="deleteproductoptiongroup"></a>
+
+## deleteProductOptionGroup
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteProductOptionGroup"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+    Boolean: '/reference/graphql-api/admin/object-types#boolean',
+  }}
+>
+{`"""Delete a ProductOptionGroup"""
+type Mutation {
+  deleteProductOptionGroup(id: ID!, force: Boolean): DeletionResponse!
+}`}
+</GraphQLDoc>
+
+<a name="deleteproductoptiongroups"></a>
+
+## deleteProductOptionGroups
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteProductOptionGroups"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+    Boolean: '/reference/graphql-api/admin/object-types#boolean',
+  }}
+>
+{`"""Delete multiple ProductOptionGroups"""
+type Mutation {
+  deleteProductOptionGroups(ids: [ID!]!, force: Boolean): [DeletionResponse!]!
+}`}
+</GraphQLDoc>
+
+<a name="deleteproductvariant"></a>
+
+## deleteProductVariant
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteProductVariant"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Delete a ProductVariant"""
+type Mutation {
+  deleteProductVariant(id: ID!): DeletionResponse!
+}`}
+</GraphQLDoc>
+
+<a name="deleteproductvariants"></a>
+
+## deleteProductVariants
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteProductVariants"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Delete multiple ProductVariants"""
+type Mutation {
+  deleteProductVariants(ids: [ID!]!): [DeletionResponse!]!
+}`}
+</GraphQLDoc>
+
+<a name="deleteproducts"></a>
+
+## deleteProducts
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteProducts"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Delete multiple Products"""
+type Mutation {
+  deleteProducts(ids: [ID!]!): [DeletionResponse!]!
+}`}
+</GraphQLDoc>
+
+<a name="deletepromotion"></a>
+
+## deletePromotion
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deletePromotion"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Mutation {
+  deletePromotion(id: ID!): DeletionResponse!
+}`}
+</GraphQLDoc>
+
+<a name="deletepromotions"></a>
+
+## deletePromotions
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deletePromotions"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Mutation {
+  deletePromotions(ids: [ID!]!): [DeletionResponse!]!
+}`}
+</GraphQLDoc>
+
+<a name="deleteprovince"></a>
+
+## deleteProvince
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteProvince"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Delete a Province"""
+type Mutation {
+  deleteProvince(id: ID!): DeletionResponse!
+}`}
+</GraphQLDoc>
+
+<a name="deleterole"></a>
+
+## deleteRole
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteRole"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Delete an existing Role"""
+type Mutation {
+  deleteRole(id: ID!): DeletionResponse!
+}`}
+</GraphQLDoc>
+
+<a name="deleteroles"></a>
+
+## deleteRoles
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteRoles"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Delete multiple Roles"""
+type Mutation {
+  deleteRoles(ids: [ID!]!): [DeletionResponse!]!
+}`}
+</GraphQLDoc>
+
+<a name="deleteseller"></a>
+
+## deleteSeller
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteSeller"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Delete a Seller"""
+type Mutation {
+  deleteSeller(id: ID!): DeletionResponse!
+}`}
+</GraphQLDoc>
+
+<a name="deletesellers"></a>
+
+## deleteSellers
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteSellers"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Delete multiple Sellers"""
+type Mutation {
+  deleteSellers(ids: [ID!]!): [DeletionResponse!]!
+}`}
+</GraphQLDoc>
+
+<a name="deleteshippingmethod"></a>
+
+## deleteShippingMethod
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteShippingMethod"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Delete a ShippingMethod"""
+type Mutation {
+  deleteShippingMethod(id: ID!): DeletionResponse!
+}`}
+</GraphQLDoc>
+
+<a name="deleteshippingmethods"></a>
+
+## deleteShippingMethods
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteShippingMethods"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Delete multiple ShippingMethods"""
+type Mutation {
+  deleteShippingMethods(ids: [ID!]!): [DeletionResponse!]!
+}`}
+</GraphQLDoc>
+
+<a name="deletestocklocation"></a>
+
+## deleteStockLocation
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteStockLocation"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    DeleteStockLocationInput: '/reference/graphql-api/admin/input-types#deletestocklocationinput',
+  }}
+>
+{`type Mutation {
+  deleteStockLocation(input: DeleteStockLocationInput!): DeletionResponse!
+}`}
+</GraphQLDoc>
+
+<a name="deletestocklocations"></a>
+
+## deleteStockLocations
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteStockLocations"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    DeleteStockLocationInput: '/reference/graphql-api/admin/input-types#deletestocklocationinput',
+  }}
+>
+{`type Mutation {
+  deleteStockLocations(input: [DeleteStockLocationInput!]!): [DeletionResponse!]!
+}`}
+</GraphQLDoc>
+
+<a name="deletetag"></a>
+
+## deleteTag
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteTag"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Delete an existing Tag"""
+type Mutation {
+  deleteTag(id: ID!): DeletionResponse!
+}`}
+</GraphQLDoc>
+
+<a name="deletetaxcategories"></a>
+
+## deleteTaxCategories
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteTaxCategories"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Deletes multiple TaxCategories"""
+type Mutation {
+  deleteTaxCategories(ids: [ID!]!): [DeletionResponse!]!
+}`}
+</GraphQLDoc>
+
+<a name="deletetaxcategory"></a>
+
+## deleteTaxCategory
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteTaxCategory"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Deletes a TaxCategory"""
+type Mutation {
+  deleteTaxCategory(id: ID!): DeletionResponse!
+}`}
+</GraphQLDoc>
+
+<a name="deletetaxrate"></a>
+
+## deleteTaxRate
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteTaxRate"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Delete a TaxRate"""
+type Mutation {
+  deleteTaxRate(id: ID!): DeletionResponse!
+}`}
+</GraphQLDoc>
+
+<a name="deletetaxrates"></a>
+
+## deleteTaxRates
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteTaxRates"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Delete multiple TaxRates"""
+type Mutation {
+  deleteTaxRates(ids: [ID!]!): [DeletionResponse!]!
+}`}
+</GraphQLDoc>
+
+<a name="deletezone"></a>
+
+## deleteZone
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteZone"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Delete a Zone"""
+type Mutation {
+  deleteZone(id: ID!): DeletionResponse!
+}`}
+</GraphQLDoc>
+
+<a name="deletezones"></a>
+
+## deleteZones
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteZones"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Delete a Zone"""
+type Mutation {
+  deleteZones(ids: [ID!]!): [DeletionResponse!]!
+}`}
+</GraphQLDoc>
+
+<a name="duplicateentity"></a>
+
+## duplicateEntity
+
+<GraphQLDoc
+  type="mutation"
+  typeName="duplicateEntity"
+  typeLinks={{
+    DuplicateEntityResult: '/reference/graphql-api/admin/object-types#duplicateentityresult',
+    DuplicateEntityInput: '/reference/graphql-api/admin/input-types#duplicateentityinput',
+  }}
+>
+{`"""
+Duplicate an existing entity using a specific EntityDuplicator.
+Since v2.2.0.
+"""
+type Mutation {
+  duplicateEntity(input: DuplicateEntityInput!): DuplicateEntityResult!
+}`}
+</GraphQLDoc>
+
+<a name="flushbufferedjobs"></a>
+
+## flushBufferedJobs
+
+<GraphQLDoc
+  type="mutation"
+  typeName="flushBufferedJobs"
+  typeLinks={{
+    Success: '/reference/graphql-api/admin/object-types#success',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`type Mutation {
+  flushBufferedJobs(bufferIds: [String!]): Success!
+}`}
+</GraphQLDoc>
+
+<a name="importproducts"></a>
+
+## importProducts
+
+<GraphQLDoc
+  type="mutation"
+  typeName="importProducts"
+  typeLinks={{
+    ImportInfo: '/reference/graphql-api/admin/object-types#importinfo',
+    Upload: '/reference/graphql-api/admin/object-types#upload',
+  }}
+>
+{`type Mutation {
+  importProducts(csvFile: Upload!): ImportInfo
+}`}
+</GraphQLDoc>
+
+<a name="login"></a>
+
+## login
+
+<GraphQLDoc
+  type="mutation"
+  typeName="login"
+  typeLinks={{
+    NativeAuthenticationResult: '/reference/graphql-api/admin/object-types#nativeauthenticationresult',
+    String: '/reference/graphql-api/admin/object-types#string',
+    Boolean: '/reference/graphql-api/admin/object-types#boolean',
+  }}
+>
+{`"""
+Authenticates the user using the native authentication strategy. This mutation is an alias for authenticate({ native: { ... }})
+
+The \`rememberMe\` option applies when using cookie-based sessions, and if \`true\` it will set the maxAge of the session cookie
+to 1 year.
+"""
+type Mutation {
+  login(username: String!, password: String!, rememberMe: Boolean): NativeAuthenticationResult!
+}`}
+</GraphQLDoc>
+
+<a name="logout"></a>
+
+## logout
+
+<GraphQLDoc
+  type="mutation"
+  typeName="logout"
+  typeLinks={{
+    Success: '/reference/graphql-api/admin/object-types#success',
+  }}
+>
+{`type Mutation {
+  logout: Success!
+}`}
+</GraphQLDoc>
+
+<a name="modifyorder"></a>
+
+## modifyOrder
+
+<GraphQLDoc
+  type="mutation"
+  typeName="modifyOrder"
+  typeLinks={{
+    ModifyOrderResult: '/reference/graphql-api/admin/object-types#modifyorderresult',
+    ModifyOrderInput: '/reference/graphql-api/admin/input-types#modifyorderinput',
+  }}
+>
+{`"""
+Allows an Order to be modified after it has been completed by the Customer. The Order must first
+be in the \`Modifying\` state.
+"""
+type Mutation {
+  modifyOrder(input: ModifyOrderInput!): ModifyOrderResult!
+}`}
+</GraphQLDoc>
+
+<a name="movecollection"></a>
+
+## moveCollection
+
+<GraphQLDoc
+  type="mutation"
+  typeName="moveCollection"
+  typeLinks={{
+    Collection: '/reference/graphql-api/admin/object-types#collection',
+    MoveCollectionInput: '/reference/graphql-api/admin/input-types#movecollectioninput',
+  }}
+>
+{`"""Move a Collection to a different parent or index"""
+type Mutation {
+  moveCollection(input: MoveCollectionInput!): Collection!
+}`}
+</GraphQLDoc>
+
+<a name="refundorder"></a>
+
+## refundOrder
+
+<GraphQLDoc
+  type="mutation"
+  typeName="refundOrder"
+  typeLinks={{
+    RefundOrderResult: '/reference/graphql-api/admin/object-types#refundorderresult',
+    RefundOrderInput: '/reference/graphql-api/admin/input-types#refundorderinput',
+  }}
+>
+{`type Mutation {
+  refundOrder(input: RefundOrderInput!): RefundOrderResult!
+}`}
+</GraphQLDoc>
+
+<a name="reindex"></a>
+
+## reindex
+
+<GraphQLDoc
+  type="mutation"
+  typeName="reindex"
+  typeLinks={{
+    Job: '/reference/graphql-api/admin/object-types#job',
+  }}
+>
+{`type Mutation {
+  reindex: Job!
+}`}
+</GraphQLDoc>
+
+<a name="removecollectionsfromchannel"></a>
+
+## removeCollectionsFromChannel
+
+<GraphQLDoc
+  type="mutation"
+  typeName="removeCollectionsFromChannel"
+  typeLinks={{
+    Collection: '/reference/graphql-api/admin/object-types#collection',
+    RemoveCollectionsFromChannelInput: '/reference/graphql-api/admin/input-types#removecollectionsfromchannelinput',
+  }}
+>
+{`"""Removes Collections from the specified Channel"""
+type Mutation {
+  removeCollectionsFromChannel(input: RemoveCollectionsFromChannelInput!): [Collection!]!
+}`}
+</GraphQLDoc>
+
+<a name="removecouponcodefromdraftorder"></a>
+
+## removeCouponCodeFromDraftOrder
+
+<GraphQLDoc
+  type="mutation"
+  typeName="removeCouponCodeFromDraftOrder"
+  typeLinks={{
+    Order: '/reference/graphql-api/admin/object-types#order',
+    ID: '/reference/graphql-api/admin/object-types#id',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`"""Removes the given coupon code from the draft Order"""
+type Mutation {
+  removeCouponCodeFromDraftOrder(orderId: ID!, couponCode: String!): Order
+}`}
+</GraphQLDoc>
+
+<a name="removecustomersfromgroup"></a>
+
+## removeCustomersFromGroup
+
+<GraphQLDoc
+  type="mutation"
+  typeName="removeCustomersFromGroup"
+  typeLinks={{
+    CustomerGroup: '/reference/graphql-api/admin/object-types#customergroup',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Remove Customers from a CustomerGroup"""
+type Mutation {
+  removeCustomersFromGroup(customerGroupId: ID!, customerIds: [ID!]!): CustomerGroup!
+}`}
+</GraphQLDoc>
+
+<a name="removedraftorderline"></a>
+
+## removeDraftOrderLine
+
+<GraphQLDoc
+  type="mutation"
+  typeName="removeDraftOrderLine"
+  typeLinks={{
+    RemoveOrderItemsResult: '/reference/graphql-api/admin/object-types#removeorderitemsresult',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Remove an OrderLine from the draft Order"""
+type Mutation {
+  removeDraftOrderLine(orderId: ID!, orderLineId: ID!): RemoveOrderItemsResult!
+}`}
+</GraphQLDoc>
+
+<a name="removefacetsfromchannel"></a>
+
+## removeFacetsFromChannel
+
+<GraphQLDoc
+  type="mutation"
+  typeName="removeFacetsFromChannel"
+  typeLinks={{
+    RemoveFacetFromChannelResult: '/reference/graphql-api/admin/object-types#removefacetfromchannelresult',
+    RemoveFacetsFromChannelInput: '/reference/graphql-api/admin/input-types#removefacetsfromchannelinput',
+  }}
+>
+{`"""Removes Facets from the specified Channel"""
+type Mutation {
+  removeFacetsFromChannel(input: RemoveFacetsFromChannelInput!): [RemoveFacetFromChannelResult!]!
+}`}
+</GraphQLDoc>
+
+<a name="removemembersfromzone"></a>
+
+## removeMembersFromZone
+
+<GraphQLDoc
+  type="mutation"
+  typeName="removeMembersFromZone"
+  typeLinks={{
+    Zone: '/reference/graphql-api/admin/object-types#zone',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Remove members from a Zone"""
+type Mutation {
+  removeMembersFromZone(zoneId: ID!, memberIds: [ID!]!): Zone!
+}`}
+</GraphQLDoc>
+
+<a name="removeoptiongroupfromproduct"></a>
+
+## removeOptionGroupFromProduct
+
+<GraphQLDoc
+  type="mutation"
+  typeName="removeOptionGroupFromProduct"
+  typeLinks={{
+    RemoveOptionGroupFromProductResult: '/reference/graphql-api/admin/object-types#removeoptiongroupfromproductresult',
+    ID: '/reference/graphql-api/admin/object-types#id',
+    Boolean: '/reference/graphql-api/admin/object-types#boolean',
+  }}
+>
+{`"""
+Remove an OptionGroup from a Product. If the OptionGroup is in use by any ProductVariants
+the mutation will return a ProductOptionInUseError, and the OptionGroup will not be removed.
+Setting the \`force\` argument to \`true\` will override this and remove the OptionGroup anyway,
+as well as removing any of the group's options from the Product's ProductVariants.
+"""
+type Mutation {
+  removeOptionGroupFromProduct(productId: ID!, optionGroupId: ID!, force: Boolean): RemoveOptionGroupFromProductResult!
+}`}
+</GraphQLDoc>
+
+<a name="removepaymentmethodsfromchannel"></a>
+
+## removePaymentMethodsFromChannel
+
+<GraphQLDoc
+  type="mutation"
+  typeName="removePaymentMethodsFromChannel"
+  typeLinks={{
+    PaymentMethod: '/reference/graphql-api/admin/object-types#paymentmethod',
+    RemovePaymentMethodsFromChannelInput: '/reference/graphql-api/admin/input-types#removepaymentmethodsfromchannelinput',
+  }}
+>
+{`"""Removes PaymentMethods from the specified Channel"""
+type Mutation {
+  removePaymentMethodsFromChannel(input: RemovePaymentMethodsFromChannelInput!): [PaymentMethod!]!
+}`}
+</GraphQLDoc>
+
+<a name="removeproductoptiongroupsfromchannel"></a>
+
+## removeProductOptionGroupsFromChannel
+
+<GraphQLDoc
+  type="mutation"
+  typeName="removeProductOptionGroupsFromChannel"
+  typeLinks={{
+    RemoveProductOptionGroupFromChannelResult: '/reference/graphql-api/admin/object-types#removeproductoptiongroupfromchannelresult',
+    RemoveProductOptionGroupsFromChannelInput: '/reference/graphql-api/admin/input-types#removeproductoptiongroupsfromchannelinput',
+  }}
+>
+{`"""Removes ProductOptionGroups from the specified Channel"""
+type Mutation {
+  removeProductOptionGroupsFromChannel(input: RemoveProductOptionGroupsFromChannelInput!): [RemoveProductOptionGroupFromChannelResult!]!
+}`}
+</GraphQLDoc>
+
+<a name="removeproductvariantsfromchannel"></a>
+
+## removeProductVariantsFromChannel
+
+<GraphQLDoc
+  type="mutation"
+  typeName="removeProductVariantsFromChannel"
+  typeLinks={{
+    ProductVariant: '/reference/graphql-api/admin/object-types#productvariant',
+    RemoveProductVariantsFromChannelInput: '/reference/graphql-api/admin/input-types#removeproductvariantsfromchannelinput',
+  }}
+>
+{`"""Removes ProductVariants from the specified Channel"""
+type Mutation {
+  removeProductVariantsFromChannel(input: RemoveProductVariantsFromChannelInput!): [ProductVariant!]!
+}`}
+</GraphQLDoc>
+
+<a name="removeproductsfromchannel"></a>
+
+## removeProductsFromChannel
+
+<GraphQLDoc
+  type="mutation"
+  typeName="removeProductsFromChannel"
+  typeLinks={{
+    Product: '/reference/graphql-api/admin/object-types#product',
+    RemoveProductsFromChannelInput: '/reference/graphql-api/admin/input-types#removeproductsfromchannelinput',
+  }}
+>
+{`"""Removes all ProductVariants of Product from the specified Channel"""
+type Mutation {
+  removeProductsFromChannel(input: RemoveProductsFromChannelInput!): [Product!]!
+}`}
+</GraphQLDoc>
+
+<a name="removepromotionsfromchannel"></a>
+
+## removePromotionsFromChannel
+
+<GraphQLDoc
+  type="mutation"
+  typeName="removePromotionsFromChannel"
+  typeLinks={{
+    Promotion: '/reference/graphql-api/admin/object-types#promotion',
+    RemovePromotionsFromChannelInput: '/reference/graphql-api/admin/input-types#removepromotionsfromchannelinput',
+  }}
+>
+{`"""Removes Promotions from the specified Channel"""
+type Mutation {
+  removePromotionsFromChannel(input: RemovePromotionsFromChannelInput!): [Promotion!]!
+}`}
+</GraphQLDoc>
+
+<a name="removesettledjobs"></a>
+
+## removeSettledJobs
+
+<GraphQLDoc
+  type="mutation"
+  typeName="removeSettledJobs"
+  typeLinks={{
+    Int: '/reference/graphql-api/admin/object-types#int',
+    String: '/reference/graphql-api/admin/object-types#string',
+    DateTime: '/reference/graphql-api/admin/object-types#datetime',
+  }}
+>
+{`"""Remove all settled jobs in the given queues older than the given date. Returns the number of jobs deleted."""
+type Mutation {
+  removeSettledJobs(queueNames: [String!], olderThan: DateTime): Int!
+}`}
+</GraphQLDoc>
+
+<a name="removeshippingmethodsfromchannel"></a>
+
+## removeShippingMethodsFromChannel
+
+<GraphQLDoc
+  type="mutation"
+  typeName="removeShippingMethodsFromChannel"
+  typeLinks={{
+    ShippingMethod: '/reference/graphql-api/admin/object-types#shippingmethod',
+    RemoveShippingMethodsFromChannelInput: '/reference/graphql-api/admin/input-types#removeshippingmethodsfromchannelinput',
+  }}
+>
+{`"""Removes ShippingMethods from the specified Channel"""
+type Mutation {
+  removeShippingMethodsFromChannel(input: RemoveShippingMethodsFromChannelInput!): [ShippingMethod!]!
+}`}
+</GraphQLDoc>
+
+<a name="removestocklocationsfromchannel"></a>
+
+## removeStockLocationsFromChannel
+
+<GraphQLDoc
+  type="mutation"
+  typeName="removeStockLocationsFromChannel"
+  typeLinks={{
+    StockLocation: '/reference/graphql-api/admin/object-types#stocklocation',
+    RemoveStockLocationsFromChannelInput: '/reference/graphql-api/admin/input-types#removestocklocationsfromchannelinput',
+  }}
+>
+{`"""Removes StockLocations from the specified Channel"""
+type Mutation {
+  removeStockLocationsFromChannel(input: RemoveStockLocationsFromChannelInput!): [StockLocation!]!
+}`}
+</GraphQLDoc>
+
+<a name="rotateapikey"></a>
+
+## rotateApiKey
+
+<GraphQLDoc
+  type="mutation"
+  typeName="rotateApiKey"
+  typeLinks={{
+    RotateApiKeyResult: '/reference/graphql-api/admin/object-types#rotateapikeyresult',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""
+Replaces the old with a new API-Key.
+This is a convenience method to invalidate an API-Key without
+deleting the underlying roles and permissions.
+"""
+type Mutation {
+  rotateApiKey(id: ID!): RotateApiKeyResult!
+}`}
+</GraphQLDoc>
+
+<a name="runpendingsearchindexupdates"></a>
+
+## runPendingSearchIndexUpdates
+
+<GraphQLDoc
+  type="mutation"
+  typeName="runPendingSearchIndexUpdates"
+  typeLinks={{
+    Success: '/reference/graphql-api/admin/object-types#success',
+  }}
+>
+{`type Mutation {
+  runPendingSearchIndexUpdates: Success!
+}`}
+</GraphQLDoc>
+
+<a name="runscheduledtask"></a>
+
+## runScheduledTask
+
+<GraphQLDoc
+  type="mutation"
+  typeName="runScheduledTask"
+  typeLinks={{
+    Success: '/reference/graphql-api/admin/object-types#success',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`type Mutation {
+  runScheduledTask(id: String!): Success!
+}`}
+</GraphQLDoc>
+
+<a name="setcustomerfordraftorder"></a>
+
+## setCustomerForDraftOrder
+
+<GraphQLDoc
+  type="mutation"
+  typeName="setCustomerForDraftOrder"
+  typeLinks={{
+    SetCustomerForDraftOrderResult: '/reference/graphql-api/admin/object-types#setcustomerfordraftorderresult',
+    ID: '/reference/graphql-api/admin/object-types#id',
+    CreateCustomerInput: '/reference/graphql-api/admin/input-types#createcustomerinput',
+  }}
+>
+{`type Mutation {
+  setCustomerForDraftOrder(orderId: ID!, customerId: ID, input: CreateCustomerInput): SetCustomerForDraftOrderResult!
+}`}
+</GraphQLDoc>
+
+<a name="setdraftorderbillingaddress"></a>
+
+## setDraftOrderBillingAddress
+
+<GraphQLDoc
+  type="mutation"
+  typeName="setDraftOrderBillingAddress"
+  typeLinks={{
+    Order: '/reference/graphql-api/admin/object-types#order',
+    ID: '/reference/graphql-api/admin/object-types#id',
+    CreateAddressInput: '/reference/graphql-api/admin/input-types#createaddressinput',
+  }}
+>
+{`"""Sets the billing address for a draft Order"""
+type Mutation {
+  setDraftOrderBillingAddress(orderId: ID!, input: CreateAddressInput!): Order!
+}`}
+</GraphQLDoc>
+
+<a name="setdraftordercustomfields"></a>
+
+## setDraftOrderCustomFields
+
+<GraphQLDoc
+  type="mutation"
+  typeName="setDraftOrderCustomFields"
+  typeLinks={{
+    Order: '/reference/graphql-api/admin/object-types#order',
+    ID: '/reference/graphql-api/admin/object-types#id',
+    UpdateOrderInput: '/reference/graphql-api/admin/input-types#updateorderinput',
+  }}
+>
+{`"""Allows any custom fields to be set for the active order"""
+type Mutation {
+  setDraftOrderCustomFields(orderId: ID!, input: UpdateOrderInput!): Order!
+}`}
+</GraphQLDoc>
+
+<a name="setdraftordershippingaddress"></a>
+
+## setDraftOrderShippingAddress
+
+<GraphQLDoc
+  type="mutation"
+  typeName="setDraftOrderShippingAddress"
+  typeLinks={{
+    Order: '/reference/graphql-api/admin/object-types#order',
+    ID: '/reference/graphql-api/admin/object-types#id',
+    CreateAddressInput: '/reference/graphql-api/admin/input-types#createaddressinput',
+  }}
+>
+{`"""Sets the shipping address for a draft Order"""
+type Mutation {
+  setDraftOrderShippingAddress(orderId: ID!, input: CreateAddressInput!): Order!
+}`}
+</GraphQLDoc>
+
+<a name="setdraftordershippingmethod"></a>
+
+## setDraftOrderShippingMethod
+
+<GraphQLDoc
+  type="mutation"
+  typeName="setDraftOrderShippingMethod"
+  typeLinks={{
+    SetOrderShippingMethodResult: '/reference/graphql-api/admin/object-types#setordershippingmethodresult',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Sets the shipping method by id, which can be obtained with the \`eligibleShippingMethodsForDraftOrder\` query"""
+type Mutation {
+  setDraftOrderShippingMethod(orderId: ID!, shippingMethodId: ID!): SetOrderShippingMethodResult!
+}`}
+</GraphQLDoc>
+
+<a name="setordercustomfields"></a>
+
+## setOrderCustomFields
+
+<GraphQLDoc
+  type="mutation"
+  typeName="setOrderCustomFields"
+  typeLinks={{
+    Order: '/reference/graphql-api/admin/object-types#order',
+    UpdateOrderInput: '/reference/graphql-api/admin/input-types#updateorderinput',
+  }}
+>
+{`type Mutation {
+  setOrderCustomFields(input: UpdateOrderInput!): Order
+}`}
+</GraphQLDoc>
+
+<a name="setordercustomer"></a>
+
+## setOrderCustomer
+
+<GraphQLDoc
+  type="mutation"
+  typeName="setOrderCustomer"
+  typeLinks={{
+    Order: '/reference/graphql-api/admin/object-types#order',
+    SetOrderCustomerInput: '/reference/graphql-api/admin/input-types#setordercustomerinput',
+  }}
+>
+{`"""Allows a different Customer to be assigned to an Order. Added in v2.2.0."""
+type Mutation {
+  setOrderCustomer(input: SetOrderCustomerInput!): Order
+}`}
+</GraphQLDoc>
+
+<a name="setsettingsstorevalue"></a>
+
+## setSettingsStoreValue
+
+<GraphQLDoc
+  type="mutation"
+  typeName="setSettingsStoreValue"
+  typeLinks={{
+    SetSettingsStoreValueResult: '/reference/graphql-api/admin/object-types#setsettingsstorevalueresult',
+    SettingsStoreInput: '/reference/graphql-api/admin/input-types#settingsstoreinput',
+  }}
+>
+{`"""Set a single key-value pair (automatically scoped based on field configuration)"""
+type Mutation {
+  setSettingsStoreValue(input: SettingsStoreInput!): SetSettingsStoreValueResult!
+}`}
+</GraphQLDoc>
+
+<a name="setsettingsstorevalues"></a>
+
+## setSettingsStoreValues
+
+<GraphQLDoc
+  type="mutation"
+  typeName="setSettingsStoreValues"
+  typeLinks={{
+    SetSettingsStoreValueResult: '/reference/graphql-api/admin/object-types#setsettingsstorevalueresult',
+    SettingsStoreInput: '/reference/graphql-api/admin/input-types#settingsstoreinput',
+  }}
+>
+{`"""Set multiple key-value pairs in a transaction (each automatically scoped)"""
+type Mutation {
+  setSettingsStoreValues(inputs: [SettingsStoreInput!]!): [SetSettingsStoreValueResult!]!
+}`}
+</GraphQLDoc>
+
+<a name="settlepayment"></a>
+
+## settlePayment
+
+<GraphQLDoc
+  type="mutation"
+  typeName="settlePayment"
+  typeLinks={{
+    SettlePaymentResult: '/reference/graphql-api/admin/object-types#settlepaymentresult',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Mutation {
+  settlePayment(id: ID!): SettlePaymentResult!
+}`}
+</GraphQLDoc>
+
+<a name="settlerefund"></a>
+
+## settleRefund
+
+<GraphQLDoc
+  type="mutation"
+  typeName="settleRefund"
+  typeLinks={{
+    SettleRefundResult: '/reference/graphql-api/admin/object-types#settlerefundresult',
+    SettleRefundInput: '/reference/graphql-api/admin/input-types#settlerefundinput',
+  }}
+>
+{`type Mutation {
+  settleRefund(input: SettleRefundInput!): SettleRefundResult!
+}`}
+</GraphQLDoc>
+
+<a name="transitionfulfillmenttostate"></a>
+
+## transitionFulfillmentToState
+
+<GraphQLDoc
+  type="mutation"
+  typeName="transitionFulfillmentToState"
+  typeLinks={{
+    TransitionFulfillmentToStateResult: '/reference/graphql-api/admin/object-types#transitionfulfillmenttostateresult',
+    ID: '/reference/graphql-api/admin/object-types#id',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`type Mutation {
+  transitionFulfillmentToState(id: ID!, state: String!): TransitionFulfillmentToStateResult!
+}`}
+</GraphQLDoc>
+
+<a name="transitionordertostate"></a>
+
+## transitionOrderToState
+
+<GraphQLDoc
+  type="mutation"
+  typeName="transitionOrderToState"
+  typeLinks={{
+    TransitionOrderToStateResult: '/reference/graphql-api/admin/object-types#transitionordertostateresult',
+    ID: '/reference/graphql-api/admin/object-types#id',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`type Mutation {
+  transitionOrderToState(id: ID!, state: String!): TransitionOrderToStateResult
+}`}
+</GraphQLDoc>
+
+<a name="transitionpaymenttostate"></a>
+
+## transitionPaymentToState
+
+<GraphQLDoc
+  type="mutation"
+  typeName="transitionPaymentToState"
+  typeLinks={{
+    TransitionPaymentToStateResult: '/reference/graphql-api/admin/object-types#transitionpaymenttostateresult',
+    ID: '/reference/graphql-api/admin/object-types#id',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`type Mutation {
+  transitionPaymentToState(id: ID!, state: String!): TransitionPaymentToStateResult!
+}`}
+</GraphQLDoc>
+
+<a name="unsetdraftorderbillingaddress"></a>
+
+## unsetDraftOrderBillingAddress
+
+<GraphQLDoc
+  type="mutation"
+  typeName="unsetDraftOrderBillingAddress"
+  typeLinks={{
+    Order: '/reference/graphql-api/admin/object-types#order',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Unsets the billing address for a draft Order"""
+type Mutation {
+  unsetDraftOrderBillingAddress(orderId: ID!): Order!
+}`}
+</GraphQLDoc>
+
+<a name="unsetdraftordershippingaddress"></a>
+
+## unsetDraftOrderShippingAddress
+
+<GraphQLDoc
+  type="mutation"
+  typeName="unsetDraftOrderShippingAddress"
+  typeLinks={{
+    Order: '/reference/graphql-api/admin/object-types#order',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Unsets the shipping address for a draft Order"""
+type Mutation {
+  unsetDraftOrderShippingAddress(orderId: ID!): Order!
+}`}
+</GraphQLDoc>
+
+<a name="updateactiveadministrator"></a>
+
+## updateActiveAdministrator
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateActiveAdministrator"
+  typeLinks={{
+    Administrator: '/reference/graphql-api/admin/object-types#administrator',
+    UpdateActiveAdministratorInput: '/reference/graphql-api/admin/input-types#updateactiveadministratorinput',
+  }}
+>
+{`"""Update the active (currently logged-in) Administrator"""
+type Mutation {
+  updateActiveAdministrator(input: UpdateActiveAdministratorInput!): Administrator!
+}`}
+</GraphQLDoc>
+
+<a name="updateadministrator"></a>
+
+## updateAdministrator
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateAdministrator"
+  typeLinks={{
+    Administrator: '/reference/graphql-api/admin/object-types#administrator',
+    UpdateAdministratorInput: '/reference/graphql-api/admin/input-types#updateadministratorinput',
+  }}
+>
+{`"""Update an existing Administrator"""
+type Mutation {
+  updateAdministrator(input: UpdateAdministratorInput!): Administrator!
+}`}
+</GraphQLDoc>
+
+<a name="updateapikey"></a>
+
+## updateApiKey
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateApiKey"
+  typeLinks={{
+    ApiKey: '/reference/graphql-api/admin/object-types#apikey',
+    UpdateApiKeyInput: '/reference/graphql-api/admin/input-types#updateapikeyinput',
+  }}
+>
+{`"""Updates an API-Key"""
+type Mutation {
+  updateApiKey(input: UpdateApiKeyInput!): ApiKey!
+}`}
+</GraphQLDoc>
+
+<a name="updateasset"></a>
+
+## updateAsset
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateAsset"
+  typeLinks={{
+    Asset: '/reference/graphql-api/admin/object-types#asset',
+    UpdateAssetInput: '/reference/graphql-api/admin/input-types#updateassetinput',
+  }}
+>
+{`"""Update an existing Asset"""
+type Mutation {
+  updateAsset(input: UpdateAssetInput!): Asset!
+}`}
+</GraphQLDoc>
+
+<a name="updatechannel"></a>
+
+## updateChannel
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateChannel"
+  typeLinks={{
+    UpdateChannelResult: '/reference/graphql-api/admin/object-types#updatechannelresult',
+    UpdateChannelInput: '/reference/graphql-api/admin/input-types#updatechannelinput',
+  }}
+>
+{`"""Update an existing Channel"""
+type Mutation {
+  updateChannel(input: UpdateChannelInput!): UpdateChannelResult!
+}`}
+</GraphQLDoc>
+
+<a name="updatecollection"></a>
+
+## updateCollection
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateCollection"
+  typeLinks={{
+    Collection: '/reference/graphql-api/admin/object-types#collection',
+    UpdateCollectionInput: '/reference/graphql-api/admin/input-types#updatecollectioninput',
+  }}
+>
+{`"""Update an existing Collection"""
+type Mutation {
+  updateCollection(input: UpdateCollectionInput!): Collection!
+}`}
+</GraphQLDoc>
+
+<a name="updatecountry"></a>
+
+## updateCountry
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateCountry"
+  typeLinks={{
+    Country: '/reference/graphql-api/admin/object-types#country',
+    UpdateCountryInput: '/reference/graphql-api/admin/input-types#updatecountryinput',
+  }}
+>
+{`"""Update an existing Country"""
+type Mutation {
+  updateCountry(input: UpdateCountryInput!): Country!
+}`}
+</GraphQLDoc>
+
+<a name="updatecustomer"></a>
+
+## updateCustomer
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateCustomer"
+  typeLinks={{
+    UpdateCustomerResult: '/reference/graphql-api/admin/object-types#updatecustomerresult',
+    UpdateCustomerInput: '/reference/graphql-api/admin/input-types#updatecustomerinput',
+  }}
+>
+{`"""Update an existing Customer"""
+type Mutation {
+  updateCustomer(input: UpdateCustomerInput!): UpdateCustomerResult!
+}`}
+</GraphQLDoc>
+
+<a name="updatecustomeraddress"></a>
+
+## updateCustomerAddress
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateCustomerAddress"
+  typeLinks={{
+    Address: '/reference/graphql-api/admin/object-types#address',
+    UpdateAddressInput: '/reference/graphql-api/admin/input-types#updateaddressinput',
+  }}
+>
+{`"""Update an existing Address"""
+type Mutation {
+  updateCustomerAddress(input: UpdateAddressInput!): Address!
+}`}
+</GraphQLDoc>
+
+<a name="updatecustomergroup"></a>
+
+## updateCustomerGroup
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateCustomerGroup"
+  typeLinks={{
+    CustomerGroup: '/reference/graphql-api/admin/object-types#customergroup',
+    UpdateCustomerGroupInput: '/reference/graphql-api/admin/input-types#updatecustomergroupinput',
+  }}
+>
+{`"""Update an existing CustomerGroup"""
+type Mutation {
+  updateCustomerGroup(input: UpdateCustomerGroupInput!): CustomerGroup!
+}`}
+</GraphQLDoc>
+
+<a name="updatecustomernote"></a>
+
+## updateCustomerNote
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateCustomerNote"
+  typeLinks={{
+    HistoryEntry: '/reference/graphql-api/admin/object-types#historyentry',
+    UpdateCustomerNoteInput: '/reference/graphql-api/admin/input-types#updatecustomernoteinput',
+  }}
+>
+{`type Mutation {
+  updateCustomerNote(input: UpdateCustomerNoteInput!): HistoryEntry!
+}`}
+</GraphQLDoc>
+
+<a name="updatefacet"></a>
+
+## updateFacet
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateFacet"
+  typeLinks={{
+    Facet: '/reference/graphql-api/admin/object-types#facet',
+    UpdateFacetInput: '/reference/graphql-api/admin/input-types#updatefacetinput',
+  }}
+>
+{`"""Update an existing Facet"""
+type Mutation {
+  updateFacet(input: UpdateFacetInput!): Facet!
+}`}
+</GraphQLDoc>
+
+<a name="updatefacetvalue"></a>
+
+## updateFacetValue
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateFacetValue"
+  typeLinks={{
+    FacetValue: '/reference/graphql-api/admin/object-types#facetvalue',
+    UpdateFacetValueInput: '/reference/graphql-api/admin/input-types#updatefacetvalueinput',
+  }}
+>
+{`"""Update a single FacetValue"""
+type Mutation {
+  updateFacetValue(input: UpdateFacetValueInput!): FacetValue!
+}`}
+</GraphQLDoc>
+
+<a name="updatefacetvalues"></a>
+
+## updateFacetValues
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateFacetValues"
+  typeLinks={{
+    FacetValue: '/reference/graphql-api/admin/object-types#facetvalue',
+    UpdateFacetValueInput: '/reference/graphql-api/admin/input-types#updatefacetvalueinput',
+  }}
+>
+{`"""Update one or more FacetValues"""
+type Mutation {
+  updateFacetValues(input: [UpdateFacetValueInput!]!): [FacetValue!]!
+}`}
+</GraphQLDoc>
+
+<a name="updateglobalsettings"></a>
+
+## updateGlobalSettings
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateGlobalSettings"
+  typeLinks={{
+    UpdateGlobalSettingsResult: '/reference/graphql-api/admin/object-types#updateglobalsettingsresult',
+    UpdateGlobalSettingsInput: '/reference/graphql-api/admin/input-types#updateglobalsettingsinput',
+  }}
+>
+{`type Mutation {
+  updateGlobalSettings(input: UpdateGlobalSettingsInput!): UpdateGlobalSettingsResult!
+}`}
+</GraphQLDoc>
+
+<a name="updateordernote"></a>
+
+## updateOrderNote
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateOrderNote"
+  typeLinks={{
+    HistoryEntry: '/reference/graphql-api/admin/object-types#historyentry',
+    UpdateOrderNoteInput: '/reference/graphql-api/admin/input-types#updateordernoteinput',
+  }}
+>
+{`type Mutation {
+  updateOrderNote(input: UpdateOrderNoteInput!): HistoryEntry!
+}`}
+</GraphQLDoc>
+
+<a name="updatepaymentmethod"></a>
+
+## updatePaymentMethod
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updatePaymentMethod"
+  typeLinks={{
+    PaymentMethod: '/reference/graphql-api/admin/object-types#paymentmethod',
+    UpdatePaymentMethodInput: '/reference/graphql-api/admin/input-types#updatepaymentmethodinput',
+  }}
+>
+{`"""Update an existing PaymentMethod"""
+type Mutation {
+  updatePaymentMethod(input: UpdatePaymentMethodInput!): PaymentMethod!
+}`}
+</GraphQLDoc>
+
+<a name="updateproduct"></a>
+
+## updateProduct
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateProduct"
+  typeLinks={{
+    Product: '/reference/graphql-api/admin/object-types#product',
+    UpdateProductInput: '/reference/graphql-api/admin/input-types#updateproductinput',
+  }}
+>
+{`"""Update an existing Product"""
+type Mutation {
+  updateProduct(input: UpdateProductInput!): Product!
+}`}
+</GraphQLDoc>
+
+<a name="updateproductoption"></a>
+
+## updateProductOption
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateProductOption"
+  typeLinks={{
+    ProductOption: '/reference/graphql-api/admin/object-types#productoption',
+    UpdateProductOptionInput: '/reference/graphql-api/admin/input-types#updateproductoptioninput',
+  }}
+>
+{`"""Create a new ProductOption within a ProductOptionGroup"""
+type Mutation {
+  updateProductOption(input: UpdateProductOptionInput!): ProductOption!
+}`}
+</GraphQLDoc>
+
+<a name="updateproductoptiongroup"></a>
+
+## updateProductOptionGroup
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateProductOptionGroup"
+  typeLinks={{
+    ProductOptionGroup: '/reference/graphql-api/admin/object-types#productoptiongroup',
+    UpdateProductOptionGroupInput: '/reference/graphql-api/admin/input-types#updateproductoptiongroupinput',
+  }}
+>
+{`"""Update an existing ProductOptionGroup"""
+type Mutation {
+  updateProductOptionGroup(input: UpdateProductOptionGroupInput!): ProductOptionGroup!
+}`}
+</GraphQLDoc>
+
+<a name="updateproductvariant"></a>
+
+## updateProductVariant
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateProductVariant"
+  typeLinks={{
+    ProductVariant: '/reference/graphql-api/admin/object-types#productvariant',
+    UpdateProductVariantInput: '/reference/graphql-api/admin/input-types#updateproductvariantinput',
+  }}
+>
+{`"""Update an existing ProductVariant"""
+type Mutation {
+  updateProductVariant(input: UpdateProductVariantInput!): ProductVariant!
+}`}
+</GraphQLDoc>
+
+<a name="updateproductvariants"></a>
+
+## updateProductVariants
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateProductVariants"
+  typeLinks={{
+    ProductVariant: '/reference/graphql-api/admin/object-types#productvariant',
+    UpdateProductVariantInput: '/reference/graphql-api/admin/input-types#updateproductvariantinput',
+  }}
+>
+{`"""Update existing ProductVariants"""
+type Mutation {
+  updateProductVariants(input: [UpdateProductVariantInput!]!): [ProductVariant]!
+}`}
+</GraphQLDoc>
+
+<a name="updateproducts"></a>
+
+## updateProducts
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateProducts"
+  typeLinks={{
+    Product: '/reference/graphql-api/admin/object-types#product',
+    UpdateProductInput: '/reference/graphql-api/admin/input-types#updateproductinput',
+  }}
+>
+{`"""Update multiple existing Products"""
+type Mutation {
+  updateProducts(input: [UpdateProductInput!]!): [Product!]!
+}`}
+</GraphQLDoc>
+
+<a name="updatepromotion"></a>
+
+## updatePromotion
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updatePromotion"
+  typeLinks={{
+    UpdatePromotionResult: '/reference/graphql-api/admin/object-types#updatepromotionresult',
+    UpdatePromotionInput: '/reference/graphql-api/admin/input-types#updatepromotioninput',
+  }}
+>
+{`type Mutation {
+  updatePromotion(input: UpdatePromotionInput!): UpdatePromotionResult!
+}`}
+</GraphQLDoc>
+
+<a name="updateprovince"></a>
+
+## updateProvince
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateProvince"
+  typeLinks={{
+    Province: '/reference/graphql-api/admin/object-types#province',
+    UpdateProvinceInput: '/reference/graphql-api/admin/input-types#updateprovinceinput',
+  }}
+>
+{`"""Update an existing Province"""
+type Mutation {
+  updateProvince(input: UpdateProvinceInput!): Province!
+}`}
+</GraphQLDoc>
+
+<a name="updaterole"></a>
+
+## updateRole
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateRole"
+  typeLinks={{
+    Role: '/reference/graphql-api/admin/object-types#role',
+    UpdateRoleInput: '/reference/graphql-api/admin/input-types#updateroleinput',
+  }}
+>
+{`"""Update an existing Role"""
+type Mutation {
+  updateRole(input: UpdateRoleInput!): Role!
+}`}
+</GraphQLDoc>
+
+<a name="updatescheduledtask"></a>
+
+## updateScheduledTask
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateScheduledTask"
+  typeLinks={{
+    ScheduledTask: '/reference/graphql-api/admin/object-types#scheduledtask',
+    UpdateScheduledTaskInput: '/reference/graphql-api/admin/input-types#updatescheduledtaskinput',
+  }}
+>
+{`type Mutation {
+  updateScheduledTask(input: UpdateScheduledTaskInput!): ScheduledTask!
+}`}
+</GraphQLDoc>
+
+<a name="updateseller"></a>
+
+## updateSeller
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateSeller"
+  typeLinks={{
+    Seller: '/reference/graphql-api/admin/object-types#seller',
+    UpdateSellerInput: '/reference/graphql-api/admin/input-types#updatesellerinput',
+  }}
+>
+{`"""Update an existing Seller"""
+type Mutation {
+  updateSeller(input: UpdateSellerInput!): Seller!
+}`}
+</GraphQLDoc>
+
+<a name="updateshippingmethod"></a>
+
+## updateShippingMethod
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateShippingMethod"
+  typeLinks={{
+    ShippingMethod: '/reference/graphql-api/admin/object-types#shippingmethod',
+    UpdateShippingMethodInput: '/reference/graphql-api/admin/input-types#updateshippingmethodinput',
+  }}
+>
+{`"""Update an existing ShippingMethod"""
+type Mutation {
+  updateShippingMethod(input: UpdateShippingMethodInput!): ShippingMethod!
+}`}
+</GraphQLDoc>
+
+<a name="updatestocklocation"></a>
+
+## updateStockLocation
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateStockLocation"
+  typeLinks={{
+    StockLocation: '/reference/graphql-api/admin/object-types#stocklocation',
+    UpdateStockLocationInput: '/reference/graphql-api/admin/input-types#updatestocklocationinput',
+  }}
+>
+{`type Mutation {
+  updateStockLocation(input: UpdateStockLocationInput!): StockLocation!
+}`}
+</GraphQLDoc>
+
+<a name="updatetag"></a>
+
+## updateTag
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateTag"
+  typeLinks={{
+    Tag: '/reference/graphql-api/admin/object-types#tag',
+    UpdateTagInput: '/reference/graphql-api/admin/input-types#updatetaginput',
+  }}
+>
+{`"""Update an existing Tag"""
+type Mutation {
+  updateTag(input: UpdateTagInput!): Tag!
+}`}
+</GraphQLDoc>
+
+<a name="updatetaxcategory"></a>
+
+## updateTaxCategory
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateTaxCategory"
+  typeLinks={{
+    TaxCategory: '/reference/graphql-api/admin/object-types#taxcategory',
+    UpdateTaxCategoryInput: '/reference/graphql-api/admin/input-types#updatetaxcategoryinput',
+  }}
+>
+{`"""Update an existing TaxCategory"""
+type Mutation {
+  updateTaxCategory(input: UpdateTaxCategoryInput!): TaxCategory!
+}`}
+</GraphQLDoc>
+
+<a name="updatetaxrate"></a>
+
+## updateTaxRate
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateTaxRate"
+  typeLinks={{
+    TaxRate: '/reference/graphql-api/admin/object-types#taxrate',
+    UpdateTaxRateInput: '/reference/graphql-api/admin/input-types#updatetaxrateinput',
+  }}
+>
+{`"""Update an existing TaxRate"""
+type Mutation {
+  updateTaxRate(input: UpdateTaxRateInput!): TaxRate!
+}`}
+</GraphQLDoc>
+
+<a name="updatezone"></a>
+
+## updateZone
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateZone"
+  typeLinks={{
+    Zone: '/reference/graphql-api/admin/object-types#zone',
+    UpdateZoneInput: '/reference/graphql-api/admin/input-types#updatezoneinput',
+  }}
+>
+{`"""Update an existing Zone"""
+type Mutation {
+  updateZone(input: UpdateZoneInput!): Zone!
+}`}
+</GraphQLDoc>

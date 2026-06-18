@@ -1,0 +1,61 @@
+---
+title: "Facets & Filters"
+metaTitle: "Facets and Facet Values for Catalog Filtering in Vendure"
+metaDescription: "Learn how Vendure uses Facets and FacetValues to organize, filter, and drive logic across your product catalog, collections, promotions, and shipping."
+---
+
+Facets are the primary mechanism for attaching structured, queryable metadata to your catalog. A [`Facet`](/reference/typescript-api/entities/facet/) represents a label category — such as "Brand", "Material", or "Season" — and contains one or more [`FacetValues`](/reference/typescript-api/entities/facet-value/) representing specific entries within that category, like "Nike", "Cotton", or "Summer 2025".
+
+## Facets and FacetValues
+
+The relationship is straightforward:
+
+- A **Facet** is a named grouping (e.g., "Color").
+- A **FacetValue** is a specific value within that grouping (e.g., "Red", "Blue", "Green").
+
+FacetValues can be assigned to [`Products`](/reference/typescript-api/entities/product/) or [`ProductVariants`](/reference/typescript-api/entities/product-variant/). Assigning at the product level applies the value to all of that product's variants. Assigning at the variant level allows more granular control — for instance, tagging only certain color variants with a "Limited Edition" value.
+
+## Three primary use cases
+
+Facets serve three distinct purposes in Vendure, all built on the same underlying data model:
+
+### 1. Collection basis
+
+[Collections](/core-concepts/collections/) can be configured to automatically include products based on facet value membership. For example, a "Running Shoes" collection might include all products tagged with the "Running" value from the "Category" facet. When new products receive that facet value, they are automatically added to the collection.
+
+### 2. Storefront filtering (faceted search)
+
+When customers browse a collection or search the catalog, facet values power the familiar "filter by" sidebar. The [search system](/core-concepts/search/) returns **facet value aggregations** — counts of how many results match each facet value — so your storefront can display dynamic filter options like "Brand: Nike (12), Adidas (8)" and let customers narrow their results.
+
+Filters within the same facet are typically combined with OR logic (show Nike _or_ Adidas), while filters across different facets use AND logic (show Nike _and_ size Large).
+
+### 3. Internal logic
+
+Facets are not limited to customer-facing features. You can use them to drive backend behavior:
+
+- A [promotion](/core-concepts/promotions/) that applies a 20% discount to all variants tagged with "Clearance".
+- A [shipping](/core-concepts/shipping/) rule that adds a surcharge for products tagged with "Oversized" or "Fragile".
+- Business reporting that groups sales by "Product Line" or "Supplier".
+
+## Public vs. private facets
+
+Each facet has a `isPrivate` flag. When set to `true`, the facet and its values are hidden from the Shop API and will not appear in storefront search results or filter menus. Private facets are only visible in the Admin API.
+
+This is useful for facets that drive internal logic — like a "Warehouse Location" or "Margin Tier" facet — that should not be exposed to customers.
+
+## Facet values and custom fields
+
+Like most Vendure entities, both Facets and FacetValues support [custom fields](/developer-guide/custom-fields/). This allows you to attach additional data to facet values — for example, a hex color code on "Color" facet values for rendering color swatches in your storefront, or an icon identifier for category facets.
+
+## Channel awareness
+
+Facets and FacetValues are [channel-aware](/core-concepts/channels/). In a multi-channel setup, you can control which facets are available in each channel. A facet created in one channel will also be visible in the default channel, but not necessarily in other sub-channels unless explicitly assigned.
+
+This means you can have channel-specific facets — for instance, a "Region Exclusive" facet that only exists in certain regional channels — while still sharing common facets like "Brand" across all channels.
+
+## Related topics
+
+- [Products](/core-concepts/products/) — How facet values are assigned to products and variants
+- [Collections](/core-concepts/collections/) — Using facet values as the basis for dynamic collections
+- [Search](/core-concepts/search/) — Facet value aggregations in search results
+- [Promotions](/core-concepts/promotions/) — Using facet values to target promotion conditions and actions

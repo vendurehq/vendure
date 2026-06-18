@@ -1,0 +1,47 @@
+<ng-template vdrDialogTitle>
+    <div class="title-row">
+        <span>{{ 'asset.select-assets' | translate }}</span>
+        <div class="flex-spacer"></div>
+        <vdr-asset-file-input
+            class="ml3"
+            (selectFiles)="createAssets($event)"
+            [uploading]="uploading"
+            dropZoneTarget=".modal-content"
+        ></vdr-asset-file-input>
+    </div>
+</ng-template>
+<vdr-asset-search-input
+    class="mb-2"
+    [tags]="allTags$ | async"
+    (searchTermChange)="searchTerm$.next($event)"
+    (tagsChange)="filterByTags$.next($event)"
+    #assetSearchInputComponent
+></vdr-asset-search-input>
+<vdr-asset-gallery
+    [assets]="(assets$ | async)! | paginate: paginationConfig"
+    [multiSelect]="multiSelect"
+    (selectionChange)="selection = $event"
+    (editAssetClick)="cancel()"
+    #assetGalleryComponent
+></vdr-asset-gallery>
+
+<div class="paging-controls">
+    <vdr-items-per-page-controls
+        [itemsPerPage]="paginationConfig.itemsPerPage"
+        (itemsPerPageChange)="itemsPerPageChange($event)"
+    ></vdr-items-per-page-controls>
+
+    <vdr-pagination-controls
+        [currentPage]="paginationConfig.currentPage"
+        [itemsPerPage]="paginationConfig.itemsPerPage"
+        [totalItems]="paginationConfig.totalItems"
+        (pageChange)="pageChange($event)"
+    ></vdr-pagination-controls>
+</div>
+
+<ng-template vdrDialogButtons>
+    <button type="button" class="btn" (click)="cancel()">{{ 'common.cancel' | translate }}</button>
+    <button type="submit" (click)="select()" class="btn btn-primary" [disabled]="selection.length === 0">
+        {{ 'asset.add-asset-with-count' | translate: { count: selection.length } }}
+    </button>
+</ng-template>

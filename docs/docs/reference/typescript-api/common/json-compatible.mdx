@@ -1,0 +1,18 @@
+---
+title: "JsonCompatible"
+generated: true
+---
+<GenerationInfo sourceFile="packages/common/src/shared-types.ts" sourceLine="52" packageName="@vendure/common" />
+
+A type representing JSON-compatible values.
+From https://github.com/microsoft/TypeScript/issues/1897#issuecomment-580962081
+
+```ts title="Signature"
+type JsonCompatible<T> = {
+    [P in keyof T]: T[P] extends Json
+        ? T[P]
+        : Pick<T, P> extends Required<Pick<T, P>>
+          ? never
+          : JsonCompatible<T[P]>;
+}
+```

@@ -1,0 +1,187 @@
+.clr-form-control {
+    margin-top: 0;
+}
+
+.form,
+form {
+    padding-top: 0;
+}
+
+.form .form-block,
+form .form-block {
+    margin: 0.5rem 0 1.5rem;
+}
+
+.form-grid {
+    display: grid;
+    gap: calc(var(--space-unit) * 4);
+    grid-template-columns: 1fr 1fr;
+    .form-grid-span {
+        grid-column: span 2;
+    }
+
+    @container (max-width: 500px) {
+        grid-template-columns: 1fr;
+    }
+    @container (max-width: 700px) {
+        gap: calc(var(--space-unit) * 2);
+    }
+    @container (max-width: 500px) {
+        grid-template-columns: 1fr;
+
+        .form-grid-span {
+            grid-column: initial;
+        }
+    }
+}
+
+input:not([type='checkbox']):not([type='radio']),
+select,
+textarea,
+.clr-input {
+    color: var(--color-text-100);
+    background-color: var(--color-form-input-bg);
+    &:not([readonly]) {
+        background-color: var(--color-form-input-bg);
+        &:focus {
+            background-size: 0% 100%;
+        }
+    }
+    &[readonly] {
+        border-color: var(--color-weight-200);
+    }
+    font-weight: 400;
+    &::placeholder {
+        color: var(--color-weight-400);
+    }
+
+    &.ng-invalid {
+        color: var(--color-error-700);
+        border-color: var(--color-error-300);
+    }
+}
+
+input:not([type='checkbox']):not([type='radio']),
+textarea,
+select {
+    border-radius: var(--border-radius-input) !important;
+    border: 1px solid var(--color-weight-200);
+    padding: 5px !important;
+    transition: background-color 0.2s, box-shadow 0.2s !important;
+    &:focus {
+        border-color: var(--color-primary-500);
+        box-shadow: 0 0 1px 1px var(--color-form-input-focus);
+        outline: none;
+    }
+    &[readonly]:focus {
+        border-color: var(--color-weight-400);
+    }
+}
+input:not([type='checkbox']):not([type='radio']),
+select {
+    height: 36px !important;
+}
+
+textarea {
+    &:focus {
+        border-color: var(--color-primary-500);
+        outline: none;
+    }
+}
+
+// Add the "expand" class to make the input container full width
+clr-input-container.expand {
+    .clr-control-container {
+        width: 100%;
+
+        input {
+            width: 100%;
+        }
+    }
+}
+
+.clr-input {
+    max-height: none !important;
+}
+
+.clr-input-wrapper {
+    max-height: none !important;
+}
+
+.clr-input-group {
+    height: initial !important;
+    border-bottom: none;
+    &:focus,
+    &.clr-focus {
+        background: none;
+        border-bottom: none;
+    }
+}
+
+.clr-toggle-wrapper .clr-control-label {
+    display: inline-block;
+    font-size: var(--font-size-sm);
+}
+
+.clr-checkbox-wrapper .clr-control-label {
+    display: inline-block;
+}
+
+.tooltip.tooltip-validation::before {
+    top: 10px !important;
+}
+
+select {
+    padding-inline-end: 24px !important;
+}
+
+.select::after,
+.clr-select-wrapper {
+    max-height: inherit;
+}
+.clr-select-wrapper::after {
+    z-index: 10;
+    top: 13px;
+}
+
+.ng-select .ng-select-container {
+    background: var(--color-form-input-bg) !important;
+    color: var(--color-text-100);
+    line-height: initial;
+    position: initial !important;
+    border: 1px solid var(--color-weight-200);
+}
+.ng-select .ng-select-container .ng-value-container {
+    //padding-top: 0;
+    min-width: 60px;
+    .ng-value {
+        margin: 0 6px 0 0;
+        background-color: var(--color-form-input-bg) !important;
+        color: var(--color-text-100) !important;
+    }
+    .ng-input {
+        margin: 0;
+    }
+    input {
+        border: none !important;
+        background: none !important;
+        height: initial !important;
+    }
+}
+.ng-select.ng-select-single > .ng-select-container {
+    //padding-top: 9px;
+    input {
+        padding-inline-start: 0 !important;
+    }
+}
+.ng-select.ng-select-focused > .ng-select-container {
+    border-color: var(--color-primary-500) !important;
+    box-shadow: 0 0 1px 1px var(--color-primary-100);
+    border-radius: 3px;
+}
+.ng-dropdown-panel {
+    background: var(--color-form-input-bg) !important;
+}
+.ng-dropdown-panel .ng-dropdown-panel-items .ng-option.ng-option-marked {
+    background-color: var(--color-grey-200);
+}

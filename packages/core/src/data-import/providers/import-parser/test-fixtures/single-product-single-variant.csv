@@ -1,0 +1,2 @@
+name                    , slug , description                          , assets              , facets                  , optionGroups , optionValues , sku   , price , taxCategory , stockOnHand , trackInventory , variantAssets , variantFacets
+Perfect Paper Stretcher ,      , A great device for stretching paper. , "pps1.jpg|pps2.jpg" , brand:KB|type:Accessory ,              ,              , PPS12 , 45.3  , standard    , 10          , false          ,               , material:Wood

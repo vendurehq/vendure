@@ -1,0 +1,50 @@
+---
+title: "InMemoryJobBufferStorageStrategy"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/job-queue/job-buffer/in-memory-job-buffer-storage-strategy.ts" sourceLine="17" packageName="@vendure/core" since="1.3.0" />
+
+A [JobBufferStorageStrategy](/reference/typescript-api/job-queue/job-buffer-storage-strategy#jobbufferstoragestrategy) which keeps the buffered jobs in memory. Should
+_not_ be used in production, since it will lose data in the event of the server
+stopping.
+
+Instead, use the [DefaultJobQueuePlugin](/reference/typescript-api/job-queue/default-job-queue-plugin#defaultjobqueueplugin) with the `useDatabaseForBuffer: true` option set,
+or the [BullMQJobQueuePlugin](/reference/core-plugins/job-queue-plugin/bull-mqjob-queue-plugin#bullmqjobqueueplugin) or another custom strategy with persistent storage.
+
+```ts title="Signature"
+class InMemoryJobBufferStorageStrategy implements JobBufferStorageStrategy {
+    protected bufferStorage = new Map<string, Set<Job>>();
+    add(bufferId: string, job: Job) => Promise<Job>;
+    bufferSize(bufferIds?: string[]) => Promise<{ [bufferId: string]: number }>;
+    flush(bufferIds?: string[]) => Promise<{ [bufferId: string]: Job[] }>;
+}
+```
+* Implements: [`JobBufferStorageStrategy`](/reference/typescript-api/job-queue/job-buffer-storage-strategy#jobbufferstoragestrategy)
+
+
+
+<div className="members-wrapper">
+
+### bufferStorage
+
+<MemberInfo kind="property" type={``}   />
+
+
+### add
+
+<MemberInfo kind="method" type={`(bufferId: string, job: <a href='/reference/typescript-api/job-queue/job#job'>Job</a>) => Promise<<a href='/reference/typescript-api/job-queue/job#job'>Job</a>>`}   />
+
+
+### bufferSize
+
+<MemberInfo kind="method" type={`(bufferIds?: string[]) => Promise<{ [bufferId: string]: number }>`}   />
+
+
+### flush
+
+<MemberInfo kind="method" type={`(bufferIds?: string[]) => Promise<{ [bufferId: string]: <a href='/reference/typescript-api/job-queue/job#job'>Job</a>[] }>`}   />
+
+
+
+
+</div>

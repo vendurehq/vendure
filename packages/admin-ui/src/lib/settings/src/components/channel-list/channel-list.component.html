@@ -1,0 +1,72 @@
+<vdr-page-block>
+    <vdr-action-bar>
+        <vdr-ab-left> </vdr-ab-left>
+        <vdr-ab-right>
+            <vdr-action-bar-items locationId="channel-list" />
+            <a class="btn btn-primary" *vdrIfPermissions="['SuperAdmin', 'CreateChannel']" [routerLink]="['./', 'create']">
+                <clr-icon shape="plus"></clr-icon>
+                {{ 'settings.create-new-channel' | translate }}
+            </a>
+            <vdr-action-bar-dropdown-menu locationId="channel-list" />
+        </vdr-ab-right>
+    </vdr-action-bar>
+</vdr-page-block>
+<vdr-data-table-2
+    class="mt-2"
+    [id]="dataTableListId"
+    [items]="items$ | async"
+    [itemsPerPage]="itemsPerPage$ | async"
+    [totalItems]="totalItems$ | async"
+    [currentPage]="currentPage$ | async"
+    [filters]="filters"
+    (pageChange)="setPageNumber($event)"
+    (itemsPerPageChange)="setItemsPerPage($event)"
+    (visibleColumnsChange)="setVisibleColumns($event)"
+>
+    <vdr-bulk-action-menu
+        locationId="channel-list"
+        [hostComponent]="this"
+        [selectionManager]="selectionManager"
+    />
+    <vdr-dt2-search
+        [searchTermControl]="searchTermControl"
+        [searchTermPlaceholder]="'catalog.filter-by-name' | translate"
+    />
+    <vdr-dt2-column [heading]="'common.id' | translate" id="id" [hiddenByDefault]="true">
+        <ng-template let-channel="item">
+            {{ channel.id }}
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column
+        [heading]="'common.created-at' | translate" id="created-at"
+        [hiddenByDefault]="true"
+        [sort]="sorts.get('createdAt')"
+    >
+        <ng-template let-channel="item">
+            {{ channel.createdAt | localeDate : 'short' }}
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column
+        [heading]="'common.updated-at' | translate" id="updated-at"
+        [hiddenByDefault]="true"
+        [sort]="sorts.get('updatedAt')"
+    >
+        <ng-template let-channel="item">
+            {{ channel.updatedAt | localeDate : 'short' }}
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column [heading]="'common.code' | translate" id="code" [optional]="false" [sort]="sorts.get('code')">
+        <ng-template let-channel="item">
+            <a class="button-ghost" [routerLink]="['./', channel.id]"
+                ><span>{{ channel.code | channelCodeToLabel | translate }}</span>
+                <clr-icon shape="arrow right"></clr-icon>
+            </a>
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column [heading]="'settings.channel-token' | translate" id="channel-token" [sort]="sorts.get('token')">
+        <ng-template let-channel="item">
+            {{ channel.token }}
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-custom-field-column *ngFor="let customField of customFields" [customField]="customField" [sorts]="sorts" />
+</vdr-data-table-2>

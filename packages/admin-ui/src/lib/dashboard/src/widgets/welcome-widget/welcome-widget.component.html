@@ -1,0 +1,13 @@
+<div *ngIf="administrator$ | async as administrator">
+    <h4 class="">
+        Welcome, {{ administrator.firstName }} {{ administrator.lastName }}<br />
+        <small class="p5">Last login: {{ administrator.user.lastLogin | timeAgo }}</small>
+    </h4>
+
+    <p class="p5" *ngIf="!hideVendureBranding || !hideVersion">
+        {{ hideVendureBranding ? '' : 'Vendure' }} {{ hideVersion ? '' : ('Admin UI v' + version) }}
+    </p>
+</div>
+<div class="placeholder">
+    <clr-icon shape="line-chart" size="128"></clr-icon>
+</div>

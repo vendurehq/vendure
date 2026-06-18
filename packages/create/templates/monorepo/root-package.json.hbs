@@ -1,0 +1,22 @@
+{
+  "name": "{{ name }}",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,storefront -c blue,magenta \"npm run dev -w server\" \"npm run dev -w storefront\"",
+    "dev:server": "npm run dev -w server",
+    "dev:storefront": "npm run dev -w storefront",
+    "build": "npm run build -w server && npm run build -w storefront",
+    "build:server": "npm run build -w server",
+    "build:storefront": "npm run build -w storefront",
+    "start": "concurrently -n server,storefront -c blue,magenta \"npm run start -w server\" \"npm run start -w storefront\"",
+    "start:server": "npm run start -w server",
+    "start:storefront": "npm run start -w storefront"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}

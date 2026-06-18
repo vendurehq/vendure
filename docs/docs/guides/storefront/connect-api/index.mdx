@@ -1,0 +1,668 @@
+---
+title: Connect to the API
+metaTitle: "Connecting Your Storefront to the Vendure Shop API"
+metaDescription: "Configure a GraphQL client to connect to Vendure's Shop API with session management, channel tokens, and language settings. Includes Fetch, Apollo, and TanStack examples."
+---
+
+The first thing you'll need to do is to connect your storefront app to the **Shop API**. The Shop API is a GraphQL API
+that provides access to the products, collections, customer data, and exposes mutations that allow you to add items to
+the cart, checkout, manage customer accounts, and more.
+
+:::tip
+You can explore the Shop API by opening the GraphQL Playground in your browser at
+[`http://localhost:3000/shop-api`](http://localhost:3000/shop-api) when your Vendure
+server is running locally.
+:::
+
+## Select a GraphQL client
+
+GraphQL requests are made over HTTP, so you can use any HTTP client such as the [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) to make requests to the Shop API. However, there are also a number of specialized GraphQL clients which can make working with GraphQL APIs easier. Here are some popular options:
+
+* [Apollo Client](https://www.apollographql.com/docs/react): A full-featured client which includes a caching layer and React integration.
+* [urql](https://formidable.com/open-source/urql/): The highly customizable and versatile GraphQL client for React, Svelte, Vue, or plain JavaScript
+* [graphql-request](https://github.com/jasonkuhrt/graphql-request): Minimal GraphQL client supporting Node and browsers for scripts or simple apps
+* [TanStack Query](https://tanstack.com/query/latest): Powerful asynchronous state management for TS/JS, React, Solid, Vue and Svelte, which can be combined with `graphql-request`.
+
+
+## Managing Sessions
+
+Vendure supports two ways to manage user sessions: **cookies** and **bearer token**. The method you choose depends on your requirements, and is specified by the [`authOptions.tokenMethod` property](/reference/typescript-api/auth/auth-options/#tokenmethod) of the VendureConfig. By default, both are enabled on the server:
+
+```ts title="src/vendure-config.ts"
+import { VendureConfig } from '@vendure/core';
+
+export const config: VendureConfig = {
+    // ...
+    authOptions: {
+        tokenMethod: ['bearer', 'cookie'], // [!code highlight]
+    },
+};
+```
+
+### Cookie-based sessions
+
+Using cookies is the simpler approach for browser-based applications, since the browser will manage the cookies for you automatically.
+
+1. Enable the `credentials` option in your HTTP client. This allows the browser to send the session cookie with each request.
+
+    For example, if using a fetch-based client (such as [Apollo client](https://www.apollographql.com/docs/react/recipes/authentication/#cookie)) you would set `credentials: 'include'` or if using [XMLHttpRequest](https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/withCredentials), you would set `withCredentials: true`
+
+2. When using cookie-based sessions, you should set the [`authOptions.cookieOptions.secret` property](/reference/typescript-api/auth/cookie-options#secret) to some secret string which will be used to sign the cookies sent to clients to prevent tampering. This string could be hard-coded in your config file, or (better) reside in an environment variable:
+
+    ```ts title="src/vendure-config.ts"
+    import { VendureConfig } from '@vendure/core';
+
+    export const config: VendureConfig = {
+        // ...
+        authOptions: {
+            tokenMethod: ['bearer', 'cookie'],
+            cookieOptions: { // [!code highlight]
+                secret: process.env.COOKIE_SESSION_SECRET // [!code highlight]
+            } // [!code highlight]
+        }
+    }
+    ```
+
+:::caution
+**SameSite cookies**
+
+When using cookies to manage sessions, you need to be aware of the SameSite cookie policy. This policy is designed to prevent cross-site request forgery (CSRF) attacks, but can cause problems when using a headless storefront app which is hosted on a different domain to the Vendure server. See [this article](https://web.dev/samesite-cookies-explained/) for more information.
+:::
+
+### Bearer-token sessions
+
+Using bearer tokens involves a bit more work on your part: you'll need to manually read response headers to get the token, and once you have it you'll have to manually add it to the headers of each request.
+
+The workflow would be as follows:
+
+1. Certain mutations and queries initiate a session (e.g. logging in, adding an item to an order etc.). When this happens, the response will contain a HTTP header which [by default is called `'vendure-auth-token'`](/reference/typescript-api/auth/auth-options#authtokenheaderkey).
+2. So your http client would need to check for the presence of this header each time it receives a response from the server.
+3. If the `'vendure-auth-token'` header is present, read the value and store it because this is your bearer token.
+4. Attach this bearer token to each subsequent request as `Authorization: Bearer <token>`.
+
+Here's a simplified example of how that would look:
+
+```ts
+let token: string | undefined = localStorage.getItem('token')
+
+export async function request(query: string, variables: any) {
+     // If we already know the token, set the Authorization header.
+     const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+     const response = await someGraphQlClient(query, variables, headers);
+
+     // Check the response headers to see if Vendure has set the
+     // auth token. The header key "vendure-auth-token" may be set to
+     // a custom value with the authOptions.authTokenHeaderKey config option.
+     const authToken = response.headers.get('vendure-auth-token');
+     if (authToken != null) {
+         token = authToken;
+     }
+     return response.data;
+}
+```
+
+There are some concrete examples of this approach in the examples later on in this guide.
+
+### Session duration
+
+The duration of a session is determined by the [AuthOptions.sessionDuration](/reference/typescript-api/auth/auth-options#sessionduration) config
+property. Sessions will automatically extend (or "refresh") when a user interacts with the API, so in effect the `sessionDuration` signifies the
+length of time that a session will stay valid since the last API call.
+
+## Specifying a channel
+
+If your project has multiple [channels](/core-concepts/channels/), you can specify the active channel by setting
+the `vendure-token` header on each request to match the `channelToken` for the desired channel.
+
+Let's say you have a channel with the token `uk-channel` and you want to make a request to the Shop API to get the
+products in that channel. You would set the `vendure-token` header to `uk-channel`:
+
+```ts title="src/client.ts"
+export function query(document: string, variables: Record<string, any> = {}) {
+    return fetch('https://localhost:3000/shop-api', {
+        method: 'POST',
+        headers: {
+            'content-type': 'application/json',
+            'vendure-token': 'uk-channel', // [!code highlight]
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          query: document,
+          variables,
+        }),
+    })
+      .then((res) => res.json())
+      .catch((err) => console.log(err));
+}
+```
+
+:::note
+If no channel token is specified, then the **default channel** will be used.
+:::
+
+:::info
+The header name `vendure-token` is the default, but can be changed using the [`apiOptions.channelTokenKey`](/reference/typescript-api/configuration/api-options/#channeltokenkey) config option.
+:::
+
+## Setting language
+
+If you have translations of your products, collections, facets etc, you can specify the language for the request by setting the `languageCode` query string on the request. The value should be one of the ISO 639-1 codes defined by the [`LanguageCode` enum](/reference/typescript-api/common/language-code/).
+
+```
+POST http://localhost:3000/shop-api?languageCode=de
+```
+
+## Code generation
+
+If you are building your storefront with TypeScript, we highly recommend you set up code generation to ensure
+that the responses from your queries & mutation are always correctly typed according the fields you request.
+
+See the [GraphQL Code Generation guide](/storefront/codegen/) for more information.
+
+## Examples
+
+Here are some examples of how to set up clients to connect to the Shop API. All of these examples include functions for setting the language and channel token.
+
+### Fetch
+
+First we'll look at a plain [fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)-based implementation, to show you that there's no special magic to a GraphQL request - it's just a POST request with a JSON body.
+
+Note that we also include a React hook in this example, but that's just to make it more convenient to use the client
+in a React component - it is not required.
+
+
+<Tabs>
+<TabItem value="client.ts" label="client.ts" default>
+
+```ts title="src/client.ts"
+import { useState, useEffect } from 'react';
+
+// If using bearer-token based session management, we'll store the token
+// in localStorage using this key.
+const AUTH_TOKEN_KEY = 'auth_token';
+
+const API_URL = 'https://readonlydemo.vendure.io/shop-api';
+
+let languageCode: string | undefined;
+let channelToken: string | undefined;
+
+export function setLanguageCode(value: string | undefined) {
+    languageCode = value;
+}
+
+export function setChannelToken(value: string | undefined) {
+    channelToken = value;
+}
+
+export function query(document: string, variables: Record<string, any> = {}) {
+    const authToken = localStorage.getItem(AUTH_TOKEN_KEY);
+    const headers = new Headers({
+        'content-type': 'application/json',
+    });
+    if (authToken) {
+        headers.append('authorization', `Bearer ${authToken}`);
+    }
+    if (channelToken) {
+        headers.append('vendure-token', channelToken);
+    }
+    let endpoint = API_URL;
+    if (languageCode) {
+        endpoint += `?languageCode=${languageCode}`;
+    }
+    return fetch(endpoint, { // [!code highlight]
+        method: 'POST', // [!code highlight]
+        headers, // [!code highlight]
+        credentials: 'include', // [!code highlight]
+        body: JSON.stringify({ // [!code highlight]
+            query: document, // [!code highlight]
+            variables, // [!code highlight]
+        }), // [!code highlight]
+    }).then((res) => {
+        if (!res.ok) {
+            throw new Error(`An error ocurred, HTTP status: ${res.status}`);
+        }
+        const newAuthToken = res.headers.get('vendure-auth-token');
+        if (newAuthToken) {
+            localStorage.setItem(AUTH_TOKEN_KEY, newAuthToken);
+        }
+        return res.json();
+    });
+}
+
+/**
+ * Here we have wrapped the `query` function into a React hook for convenient use in
+ * React components.
+ */
+ export function useQuery(
+    document: string,
+    variables: Record<string, any> = {}
+) {
+    const [data, setData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        query(document, variables)
+            .then((result) => {
+                setData(result.data);
+                setError(null);
+            })
+            .catch((err) => {
+                setError(err.message);
+                setData(null);
+            })
+            .finally(() => {
+                setLoading(false);
+            });
+    }, []);
+
+    return { data, loading, error };
+}
+```
+
+</TabItem>
+<TabItem value="App.tsx" label="App.tsx" default>
+
+```ts title="src/App.tsx"
+import { useQuery } from './client';
+import './style.css';
+
+const GET_PRODUCTS = /*GraphQL*/ `
+    query GetProducts($options: ProductListOptions) {
+        products(options: $options) {
+            items {
+                id
+                name
+                slug
+                featuredAsset {
+                    preview
+                }
+            }
+        }
+    }
+`;
+
+export default function App() {
+    const { data, loading, error } = useQuery(GET_PRODUCTS, {
+        options: { take: 3 },
+    });
+
+    if (loading) return <p>Loading...</p>;
+    if (error) return <p>Error : {error.message}</p>;
+
+    return data.products.items.map(({ id, name, slug, featuredAsset }) => (
+        <div key={id}>
+            <h3>{name}</h3>
+            <img src={`${featuredAsset.preview}?preset=small`} alt={name} />
+        </div>
+    ));
+}
+
+```
+
+</TabItem>
+<TabItem value="index.ts" label="index.ts" default>
+
+```ts title="src/index.ts"
+ import * as React from 'react';
+ import { StrictMode } from 'react';
+ import { createRoot } from 'react-dom/client';
+
+ import App from './App';
+
+ const rootElement = document.getElementById('root');
+ const root = createRoot(rootElement);
+
+ root.render(
+     <StrictMode>
+         <App />
+     </StrictMode>
+ );
+```
+
+</TabItem>
+</Tabs>
+
+Here's a live version of this example:
+
+<Stackblitz id='vendure-docs-fetch-react' />
+
+As you can see, the basic implementation with `fetch` is quite straightforward. However, it is also lacking some features that other,
+dedicated client libraries will provide.
+
+### Apollo Client
+
+Here's an example configuration for [Apollo Client](https://www.apollographql.com/docs/react/) with a React app.
+
+Follow the [getting started instructions](https://www.apollographql.com/docs/react/get-started) to install the required
+packages.
+
+
+<Tabs>
+<TabItem value="client.ts" label="client.ts" default>
+
+```ts title="src/client.ts"
+import {
+    ApolloClient,
+    ApolloLink,
+    HttpLink,
+    InMemoryCache,
+} from '@apollo/client';
+import { setContext } from '@apollo/client/link/context';
+
+const API_URL = `https://demo.vendure.io/shop-api`;
+
+// If using bearer-token based session management, we'll store the token
+// in localStorage using this key.
+const AUTH_TOKEN_KEY = 'auth_token';
+
+let channelToken: string | undefined;
+let languageCode: string | undefined;
+
+const httpLink = new HttpLink({
+    uri: () => {
+        if (languageCode) {
+            return `${API_URL}?languageCode=${languageCode}`;
+        } else {
+            return API_URL;
+        }
+    },
+    // This is required if using cookie-based session management,
+    // so that any cookies get sent with the request.
+    credentials: 'include',
+});
+
+// This part is used to check for and store the session token
+// if it is returned by the server.
+const afterwareLink = new ApolloLink((operation, forward) => {
+    return forward(operation).map((response) => {
+        const context = operation.getContext();
+        const authHeader = context.response.headers.get('vendure-auth-token');
+        if (authHeader) {
+            // If the auth token has been returned by the Vendure
+            // server, we store it in localStorage
+            localStorage.setItem(AUTH_TOKEN_KEY, authHeader);
+        }
+        return response;
+    });
+});
+
+/**
+ * Used to specify a channel token for projects that use
+ * multiple Channels.
+ */
+export function setChannelToken(value: string | undefined) {
+    channelToken = value;
+}
+
+/**
+ * Used to specify a language for any localized results.
+ */
+export function setLanguageCode(value: string | undefined) {
+    languageCode = value;
+}
+
+export const client = new ApolloClient({
+    link: ApolloLink.from([
+        // If we have stored the authToken from a previous
+        // response, we attach it to all subsequent requests.
+        setContext((request, operation) => {
+            const authToken = localStorage.getItem(AUTH_TOKEN_KEY);
+            let headers: Record<string, any> = {};
+            if (authToken) {
+                headers.authorization = `Bearer ${authToken}`;
+            }
+            if (channelToken) {
+                headers['vendure-token'] = channelToken;
+            }
+            return { headers };
+        }),
+        afterwareLink,
+        httpLink,
+    ]),
+    cache: new InMemoryCache(),
+});
+```
+
+</TabItem>
+<TabItem value='index.tsx' label='index.tsx'>
+
+```tsx title="src/index.tsx"
+import React from 'react';
+import * as ReactDOM from 'react-dom/client';
+import { ApolloProvider } from '@apollo/client';
+import App from './App';
+import { client } from './client';
+
+// Supported in React 18+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+
+root.render(
+    <ApolloProvider client={client}>
+        <App />
+    </ApolloProvider>,
+);
+```
+
+</TabItem>
+<TabItem value="App.tsx" label="App.tsx">
+
+```tsx title="src/App.tsx"
+import { useQuery, gql } from '@apollo/client';
+
+const GET_PRODUCTS = gql`
+    query GetProducts($options: ProductListOptions) {
+        products(options: $options) {
+            items {
+                id
+                name
+                slug
+                featuredAsset {
+                    preview
+                }
+            }
+        }
+    }
+`;
+
+export default function App() {
+    const { loading, error, data } = useQuery(GET_PRODUCTS, {
+        variables: { options: { take: 3 } },
+    });
+
+    if (loading) return <p>Loading...</p>;
+    if (error) return <p>Error : {error.message}</p>;
+
+    return data.products.items.map(({ id, name, slug, featuredAsset }) => (
+        <div key={id}>
+            <h3>{name}</h3>
+            <img src={`${featuredAsset.preview}?preset=small`} alt={name} />
+        </div>
+    ));
+}
+```
+
+</TabItem>
+</Tabs>
+
+
+Here's a live version of this example:
+
+<Stackblitz id='vendure-docs-apollo-client' />
+
+### TanStack Query
+
+Here's an example using [@tanstack/query](https://tanstack.com/query/latest) in combination with [graphql-request](https://github.com/jasonkuhrt/graphql-request) based on [this guide](https://tanstack.com/query/v4/docs/react/graphql).
+
+Note that in this example we have also installed the [`@graphql-typed-document-node/core` package](https://github.com/dotansimha/graphql-typed-document-node), which allows the
+client to work with TypeScript code generation for type-safe queries.
+
+<Tabs>
+
+<TabItem value="client.ts" label="client.ts" default>
+
+```tsx title="src/client.ts"
+import type { TypedDocumentNode } from '@graphql-typed-document-node/core';
+import {
+    GraphQLClient,
+    RequestDocument,
+    RequestMiddleware,
+    ResponseMiddleware,
+    Variables,
+} from 'graphql-request';
+
+// If using bearer-token based session management, we'll store the token
+// in localStorage using this key.
+const AUTH_TOKEN_KEY = 'auth_token';
+
+const API_URL = 'http://localhost:3000/shop-api';
+
+// If we have a session token, add it to the outgoing request
+const requestMiddleware: RequestMiddleware = async (request) => {
+    const authToken = localStorage.getItem(AUTH_TOKEN_KEY);
+    return {
+        ...request,
+        headers: {
+            ...request.headers,
+            ...(authToken ? { authorization: `Bearer ${authToken}` } : {}),
+        },
+    };
+};
+
+// Check all responses for a new session token
+const responseMiddleware: ResponseMiddleware = (response) => {
+    if (!(response instanceof Error) && !response.errors) {
+        const authHeader = response.headers.get('vendure-auth-token');
+        if (authHeader) {
+            // If the session token has been returned by the Vendure
+            // server, we store it in localStorage
+            localStorage.setItem(AUTH_TOKEN_KEY, authHeader);
+        }
+    }
+};
+
+const client = new GraphQLClient(API_URL, {
+    // Required for cookie-based sessions
+    credentials: 'include',
+    requestMiddleware,
+    responseMiddleware,
+});
+
+/**
+ * Sets the languageCode to be used for all subsequent requests.
+ */
+export function setLanguageCode(languageCode: string | undefined) {
+    if (!languageCode) {
+        client.setEndpoint(API_URL);
+    } else {
+        client.setEndpoint(`${API_URL}?languageCode=${languageCode}`);
+    }
+}
+
+/**
+ * Sets the channel token to be used for all subsequent requests.
+ */
+export function setChannelToken(channelToken: string | undefined) {
+    if (!channelToken) {
+        client.setHeader('vendure-token', undefined);
+    } else {
+        client.setHeader('vendure-token', channelToken);
+    }
+}
+
+/**
+ * Makes a GraphQL request using the `graphql-request` client.
+ */
+export function request<T, V extends Variables = Variables>(
+    document: RequestDocument | TypedDocumentNode<T, V>,
+    variables: Record<string, any> = {}
+) {
+    return client.request(document, variables);
+}
+```
+
+</TabItem>
+
+<TabItem value="App.tsx" label="App.tsx">
+
+```tsx title="src/App.tsx"
+import * as React from 'react';
+import { gql } from 'graphql-request';
+import { useQuery } from '@tanstack/react-query';
+import { request } from './client';
+
+const GET_PRODUCTS = gql`
+    query GetProducts($options: ProductListOptions) {
+        products(options: $options) {
+            items {
+                id
+                name
+                slug
+                featuredAsset {
+                    preview
+                }
+            }
+        }
+    }
+`;
+
+export default function App() {
+    const { isLoading, data } = useQuery({
+        queryKey: ['products'],
+        queryFn: async () =>
+            request(GET_PRODUCTS, {
+                options: { take: 3 },
+            }),
+    });
+
+    if (isLoading) return <p>Loading...</p>;
+
+    return data ? (
+        data.products.items.map(({ id, name, slug, featuredAsset }) => (
+            <div key={id}>
+                <h3>{name}</h3>
+                <img src={`${featuredAsset.preview}?preset=small`} alt={name} />
+            </div>
+        ))
+    ) : (
+        <>Loading...</>
+    );
+}
+```
+
+</TabItem>
+
+
+<TabItem value="index.tsx" label="index.tsx" default>
+
+```ts title="src/index.tsx"
+import * as React from 'react';
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+import App from './App';
+
+// Create a client
+const queryClient = new QueryClient();
+
+const rootElement = document.getElementById('root');
+const root = createRoot(rootElement);
+
+root.render(
+    <StrictMode>
+        <QueryClientProvider client={queryClient}>
+            <App />
+        </QueryClientProvider>
+    </StrictMode>
+);
+```
+
+</TabItem>
+</Tabs>
+
+Here's a live version of this example:
+
+<Stackblitz id='vendure-docs-tanstack-query' />
+

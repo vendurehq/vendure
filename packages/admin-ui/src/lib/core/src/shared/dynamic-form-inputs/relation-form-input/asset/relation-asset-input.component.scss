@@ -1,0 +1,17 @@
+.preview {
+    cursor: pointer;
+    border-radius: var(--border-radius);
+    max-width: 100px;
+    max-height: 100px;
+}
+
+.detail {
+    flex: 1;
+    overflow: hidden;
+}
+
+.name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

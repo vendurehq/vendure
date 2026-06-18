@@ -1,0 +1,45 @@
+<ng-template vdrDialogTitle>{{ 'order.select-address' | translate }}</ng-template>
+
+<clr-tabs *ngIf="addresses$ | async as addresses">
+    <clr-tab *ngIf="customerId && addresses.length">
+        <button clrTabLink>{{ 'order.existing-address' | translate }}</button>
+        <ng-template [(clrIfActive)]="useExisting">
+            <clr-tab-content>
+                <vdr-radio-card-fieldset
+                    class="block mt-4"
+                    [idFn]="addressIdFn"
+                    [selectedItemId]="selectedAddress && addressIdFn(selectedAddress)"
+                    (selectItem)="selectedAddress = $event"
+                >
+                    <vdr-radio-card *ngFor="let address of addresses" [item]="address">
+                        <vdr-formatted-address [address]="address"></vdr-formatted-address>
+                    </vdr-radio-card>
+                </vdr-radio-card-fieldset>
+            </clr-tab-content>
+        </ng-template>
+    </clr-tab>
+    <clr-tab>
+        <button clrTabLink>{{ 'customer.create-new-address' | translate }}</button>
+
+        <ng-template [(clrIfActive)]="createNew">
+            <clr-tab-content>
+                <vdr-address-form
+                    [formGroup]="addressForm"
+                    [availableCountries]="availableCountries$ | async"
+                ></vdr-address-form>
+            </clr-tab-content>
+        </ng-template>
+    </clr-tab>
+</clr-tabs>
+
+<ng-template vdrDialogButtons>
+    <button type="button" class="btn" (click)="cancel()">{{ 'common.cancel' | translate }}</button>
+    <button
+        type="submit"
+        (click)="select()"
+        [disabled]="(useExisting && !selectedAddress) || (createNew && addressForm.invalid)"
+        class="btn btn-primary"
+    >
+        {{ 'common.okay' | translate }}
+    </button>
+</ng-template>

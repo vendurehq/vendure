@@ -1,0 +1,73 @@
+<vdr-page-header>
+    <vdr-page-title></vdr-page-title>
+</vdr-page-header>
+<vdr-page-body>
+    <vdr-page-block>
+        <vdr-action-bar>
+            <vdr-ab-left>
+                <div class="system-status-header" *ngIf="healthCheckService.status$ | async as status">
+                    <div class="status-icon">
+                        <clr-icon
+                            [attr.shape]="status === 'ok' ? 'check-circle' : 'exclamation-circle'"
+                            [ngClass]="{ 'is-success': status === 'ok', 'is-danger': status !== 'ok' }"
+                            size="48"
+                        ></clr-icon>
+                    </div>
+                    <div class="status-detail">
+                        <ng-container *ngIf="status === 'ok'; else error">
+                            {{ 'system.health-all-systems-up' | translate }}
+                        </ng-container>
+                        <ng-template #error>
+                            {{ 'system.health-error' | translate }}
+                        </ng-template>
+                        <div class="last-checked">
+                            {{ 'system.health-last-checked' | translate }}:
+                            {{ healthCheckService.lastCheck$ | async | localeDate : 'mediumTime' }}
+                        </div>
+                    </div>
+                </div>
+            </vdr-ab-left>
+            <vdr-ab-right>
+                <vdr-action-bar-items locationId="system-status"></vdr-action-bar-items>
+                <button class="btn btn-secondary" (click)="healthCheckService.refresh()">
+                    <clr-icon shape="refresh"></clr-icon> {{ 'system.health-refresh' | translate }}
+                </button>
+            </vdr-ab-right>
+        </vdr-action-bar>
+    </vdr-page-block>
+    <vdr-page-block>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th class="left">
+                        {{ 'common.name' | translate }}
+                    </th>
+                    <th class="left">
+                        {{ 'system.health-status' | translate }}
+                    </th>
+                    <th class="left">
+                        {{ 'system.health-message' | translate }}
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let row of healthCheckService.details$ | async">
+                    <td class="align-middle left">{{ row.key }}</td>
+                    <td class="align-middle left">
+                        <vdr-chip [colorType]="row.result.status === 'up' ? 'success' : 'error'">
+                            <ng-container *ngIf="row.result.status === 'up'; else down">
+                                <clr-icon shape="check-circle"></clr-icon>
+                                {{ 'system.health-status-up' | translate }}
+                            </ng-container>
+                            <ng-template #down>
+                                <clr-icon shape="exclamation-circle"></clr-icon>
+                                {{ 'system.health-status-down' | translate }}
+                            </ng-template>
+                        </vdr-chip>
+                    </td>
+                    <td class="align-middle left">{{ row.result.message }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </vdr-page-block>
+</vdr-page-body>

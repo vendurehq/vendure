@@ -1,0 +1,22 @@
+:host {
+    display: block;
+}
+
+.form-group {
+    label {
+        font-size: var(--font-size-sm);
+        color: var(--color-weight-800);
+    }
+}
+.tooltip-text {
+    font-size: var(--font-size-xs);
+    line-height: var(--font-size-sm);
+}
+
+//::ng-deep vdr-form-item + vdr-form-item {
+//    margin-top: calc(var(--space-unit) * 2);
+//}
+//
+//::ng-deep vdr-form-item + vdr-form-field {
+//    margin-top: calc(var(--space-unit) * 2);
+//}

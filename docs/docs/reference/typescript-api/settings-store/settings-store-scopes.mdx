@@ -1,0 +1,31 @@
+---
+title: "SettingsStoreScopes"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/settings-store/settings-store-types.ts" sourceLine="174" packageName="@vendure/core" since="3.4.0" />
+
+Pre-built scope functions for common scoping patterns.
+
+*Example*
+
+```ts
+const config: VendureConfig = {
+  settingsStoreFields: {
+    dashboard: [
+      {
+        name: 'theme',
+        scope: SettingsStoreScopes.user, // User-specific
+      },
+      {
+        name: 'currency',
+        scope: SettingsStoreScopes.channel, // Channel-specific
+      },
+      {
+        name: 'tableFilters',
+        scope: SettingsStoreScopes.userAndChannel, // User-specific per channel
+      }
+    ]
+  }
+};
+```
+

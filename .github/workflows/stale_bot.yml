@@ -1,0 +1,60 @@
+name: Close label-gated stale issues
+
+on:
+    schedule:
+        - cron: '0 2 * * *' # 02:00 UTC daily
+    workflow_dispatch: # allow manual runs
+
+permissions:
+    issues: write
+    pull-requests: write
+
+jobs:
+    sweep:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/stale@5bef64f19d7facfb25b37b414482c7164d639639 # v9.1.0
+              with:
+                  days-before-stale: 30
+                  days-before-close: 3
+                  # Temporary fix to avoid touching PRs at all
+                  only-pr-labels: 'no-response'
+                  # Act ONLY on issues that *still* have one of these labels
+                  any-of-issue-labels: |
+                      status: missing info ❓,
+                      status: reproduction needed 🔁,
+                      type: bug 🐛
+                  # Never touch these
+                  exempt-issue-labels: |
+                      type: feature ✨,
+                      type: chore 🧤,
+                      type: security 🔐,
+                      👋 contributions welcome,
+                      🚀 good first task,
+                      status: blocked 🚧,
+                      status: research needed 🔍,
+                      ORM,
+                      @vendure/admin-ui,
+                      @vendure/admin-ui-plugin,
+                      @vendure/asset-server-plugin,
+                      @vendure/cli,
+                      @vendure/core,
+                      @vendure/create,
+                      @vendure/dashboard,
+                      @vendure/email-plugin,
+                      @vendure/job-queue-plugin,
+                      @vendure/testing,
+                      @vendure/ui-devkit,
+                      P1: urgent,
+                      P2: important,
+                      P3: minor,
+                      P4: low
+                  stale-issue-label: stale
+                  stale-issue-message: >
+                      This issue has been automatically marked as stale because it has not had any recent activity in the last 30 days.
+                      Please comment with new information and remove the label to re-open.
+                  close-issue-message: >
+                      Closed automatically because there has been no activity for 3
+                      days after a reminder.  Please comment with new information and
+                      remove the `stale` label to re-open.
+                  operations-per-run: 1000

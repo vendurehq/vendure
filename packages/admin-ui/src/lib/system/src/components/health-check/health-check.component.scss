@@ -1,0 +1,15 @@
+
+.system-status-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+
+    .status-detail {
+        font-weight: bold;
+        margin-inline-end: 6px;
+    }
+    .last-checked {
+        font-weight: normal;
+        color: var(--color-grey-500);
+    }
+}

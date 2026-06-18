@@ -1,0 +1,7 @@
+name          ,slug          ,description,assets,facets    ,optionGroups,optionValues,sku ,price,taxCategory,stockOnHand,trackInventory,variantAssets,variantFacets
+item-100      ,item-100      ,           ,      ,          ,            ,            ,I1  ,1.00 ,standard   ,100        ,false         ,             ,
+item-1000     ,item-1000     ,           ,      ,          ,            ,            ,I12 ,10.00,standard   ,100        ,false         ,             ,
+item-5000     ,item-5000     ,           ,      ,          ,            ,            ,I60 ,50.00,standard   ,100        ,false         ,             ,
+item-sale-100 ,item-sale-100 ,           ,      ,promo:sale,            ,            ,I10 ,1.00 ,standard   ,100        ,false         ,             ,
+item-sale-1000,item-sale-1000,           ,      ,promo:sale,            ,            ,I12S,10.00,standard   ,100        ,false         ,             ,
+item-0        ,item-0        ,           ,      ,          ,            ,            ,I0  ,0.00 ,standard   ,100        ,false         ,             ,

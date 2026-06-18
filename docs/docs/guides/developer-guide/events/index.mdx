@@ -1,0 +1,394 @@
+---
+title: 'Events'
+metaTitle: "Vendure EventBus - Subscribe to System Events in Plugins"
+metaDescription: "A complete reference of Vendure events and how to subscribe to entity changes, order state transitions, and user actions using the EventBus."
+---
+
+Vendure emits events which can be subscribed to by plugins. These events are published by the [EventBus](/reference/typescript-api/events/event-bus/) and
+likewise the `EventBus` is used to subscribe to events.
+
+An event exists for virtually all significant actions which occur in the system, such as:
+
+-   When entities (e.g. `Product`, `Order`, `Customer`) are created, updated or deleted
+-   When a user registers an account
+-   When a user logs in or out
+-   When the state of an `Order`, `Payment`, `Fulfillment` or `Refund` changes
+
+A full list of the available events follows.
+
+## Event types
+
+<div class="row">
+<div class="col col--6">
+
+-   [`AccountRegistrationEvent`](/reference/typescript-api/events/event-types#accountregistrationevent)
+-   [`AccountVerifiedEvent`](/reference/typescript-api/events/event-types#accountverifiedevent)
+-   [`AdministratorEvent`](/reference/typescript-api/events/event-types#administratorevent)
+-   [`AssetChannelEvent`](/reference/typescript-api/events/event-types#assetchannelevent)
+-   [`AssetEvent`](/reference/typescript-api/events/event-types#assetevent)
+-   [`AttemptedLoginEvent`](/reference/typescript-api/events/event-types#attemptedloginevent)
+-   [`ChangeChannelEvent`](/reference/typescript-api/events/event-types#changechannelevent)
+-   [`ChannelEvent`](/reference/typescript-api/events/event-types#channelevent)
+-   [`CollectionEvent`](/reference/typescript-api/events/event-types#collectionevent)
+-   [`CollectionModificationEvent`](/reference/typescript-api/events/event-types#collectionmodificationevent)
+-   [`CountryEvent`](/reference/typescript-api/events/event-types#countryevent)
+-   [`CouponCodeEvent`](/reference/typescript-api/events/event-types#couponcodeevent)
+-   [`CustomerAddressEvent`](/reference/typescript-api/events/event-types#customeraddressevent)
+-   [`CustomerEvent`](/reference/typescript-api/events/event-types#customerevent)
+-   [`CustomerGroupChangeEvent`](/reference/typescript-api/events/event-types#customergroupchangeevent)
+-   [`CustomerGroupEvent`](/reference/typescript-api/events/event-types#customergroupevent)
+-   [`FacetEvent`](/reference/typescript-api/events/event-types#facetevent)
+-   [`FacetValueEvent`](/reference/typescript-api/events/event-types#facetvalueevent)
+-   [`FulfillmentEvent`](/reference/typescript-api/events/event-types#fulfillmentevent)
+-   [`FulfillmentStateTransitionEvent`](/reference/typescript-api/events/event-types#fulfillmentstatetransitionevent)
+-   [`GlobalSettingsEvent`](/reference/typescript-api/events/event-types#globalsettingsevent)
+-   [`HistoryEntryEvent`](/reference/typescript-api/events/event-types#historyentryevent)
+-   [`IdentifierChangeEvent`](/reference/typescript-api/events/event-types#identifierchangeevent)
+-   [`IdentifierChangeRequestEvent`](/reference/typescript-api/events/event-types#identifierchangerequestevent)
+-   [`InitializerEvent`](/reference/typescript-api/events/event-types#initializerevent)
+-   [`LoginEvent`](/reference/typescript-api/events/event-types#loginevent)
+-   [`LogoutEvent`](/reference/typescript-api/events/event-types#logoutevent)
+-   [`OrderEvent`](/reference/typescript-api/events/event-types#orderevent)
+
+</div>
+<div class="col col--6">
+
+-   [`OrderLineEvent`](/reference/typescript-api/events/event-types#orderlineevent)
+-   [`OrderPlacedEvent`](/reference/typescript-api/events/event-types#orderplacedevent)
+-   [`OrderStateTransitionEvent`](/reference/typescript-api/events/event-types#orderstatetransitionevent)
+-   [`PasswordResetEvent`](/reference/typescript-api/events/event-types#passwordresetevent)
+-   [`PasswordResetVerifiedEvent`](/reference/typescript-api/events/event-types#passwordresetverifiedevent)
+-   [`PaymentMethodEvent`](/reference/typescript-api/events/event-types#paymentmethodevent)
+-   [`PaymentStateTransitionEvent`](/reference/typescript-api/events/event-types#paymentstatetransitionevent)
+-   [`ProductChannelEvent`](/reference/typescript-api/events/event-types#productchannelevent)
+-   [`ProductEvent`](/reference/typescript-api/events/event-types#productevent)
+-   [`ProductOptionEvent`](/reference/typescript-api/events/event-types#productoptionevent)
+-   [`ProductOptionGroupChangeEvent`](/reference/typescript-api/events/event-types#productoptiongroupchangeevent)
+-   [`ProductOptionGroupEvent`](/reference/typescript-api/events/event-types#productoptiongroupevent)
+-   [`ProductVariantChannelEvent`](/reference/typescript-api/events/event-types#productvariantchannelevent)
+-   [`ProductVariantEvent`](/reference/typescript-api/events/event-types#productvariantevent)
+-   [`PromotionEvent`](/reference/typescript-api/events/event-types#promotionevent)
+-   [`ProvinceEvent`](/reference/typescript-api/events/event-types#provinceevent)
+-   [`RefundStateTransitionEvent`](/reference/typescript-api/events/event-types#refundstatetransitionevent)
+-   [`RoleChangeEvent`](/reference/typescript-api/events/event-types#rolechangeevent)
+-   [`RoleEvent`](/reference/typescript-api/events/event-types#roleevent)
+-   [`SearchEvent`](/reference/typescript-api/events/event-types#searchevent)
+-   [`SellerEvent`](/reference/typescript-api/events/event-types#sellerevent)
+-   [`ShippingMethodEvent`](/reference/typescript-api/events/event-types#shippingmethodevent)
+-   [`StockMovementEvent`](/reference/typescript-api/events/event-types#stockmovementevent)
+-   [`TaxCategoryEvent`](/reference/typescript-api/events/event-types#taxcategoryevent)
+-   [`TaxRateEvent`](/reference/typescript-api/events/event-types#taxrateevent)
+-   [`TaxRateModificationEvent`](/reference/typescript-api/events/event-types#taxratemodificationevent)
+-   [`ZoneEvent`](/reference/typescript-api/events/event-types#zoneevent)
+-   [`ZoneMembersEvent`](/reference/typescript-api/events/event-types#zonemembersevent)
+
+</div>
+</div>
+
+## Subscribing to events
+
+To subscribe to an event, use the `EventBus`'s `.ofType()` method. It is typical to set up subscriptions in the `onModuleInit()` or `onApplicationBootstrap()`
+lifecycle hooks of a plugin or service (see [NestJS Lifecycle events](https://docs.nestjs.com/fundamentals/lifecycle-events)).
+
+Here's an example where we subscribe to the `ProductEvent` and use it to trigger a rebuild of a static storefront:
+
+```ts title="src/plugins/storefront-build/storefront-build.plugin.ts"
+import { OnModuleInit } from '@nestjs/common';
+import { EventBus, ProductEvent, PluginCommonModule, VendurePlugin } from '@vendure/core';
+
+import { StorefrontBuildService } from './services/storefront-build.service';
+
+@VendurePlugin({
+    imports: [PluginCommonModule],
+})
+export class StorefrontBuildPlugin implements OnModuleInit {
+    constructor(
+        private eventBus: EventBus, // [!code highlight]
+        private storefrontBuildService: StorefrontBuildService,
+    ) {}
+
+    onModuleInit() {
+        this.eventBus.ofType(ProductEvent).subscribe(event => { // [!code highlight]
+            this.storefrontBuildService.triggerBuild(); // [!code highlight]
+        }); // [!code highlight]
+    }
+}
+```
+
+:::info
+The `EventBus.ofType()` and related `EventBus.filter()` methods return an RxJS `Observable`.
+This means that you can use any of the [RxJS operators](https://rxjs-dev.firebaseapp.com/guide/operators) to transform the stream of events.
+
+For example, to debounce the stream of events, you could do this:
+
+```ts
+import { debounceTime } from 'rxjs/operators'; // [!code highlight]
+
+// ...
+
+this.eventBus
+    .ofType(ProductEvent)
+    .pipe(debounceTime(1000)) // [!code highlight]
+    .subscribe(event => {
+        this.storefrontBuildService.triggerBuild();
+    });
+```
+
+:::
+
+### Subscribing to multiple event types
+
+Using the `.ofType()` method allows us to subscribe to a single event type. If we want to subscribe to multiple event types, we can use the `.filter()` method instead:
+
+```ts title="src/plugins/my-plugin/my-plugin.plugin.ts"
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import {
+    EventBus,
+    PluginCommonModule,
+    VendurePlugin,
+    ProductEvent,
+    ProductVariantEvent,
+} from '@vendure/core';
+
+@VendurePlugin({
+    imports: [PluginCommonModule],
+})
+export class MyPluginPlugin implements OnModuleInit {
+    constructor(private eventBus: EventBus) {}
+
+    onModuleInit() {
+        this.eventBus
+            .filter(event => event instanceof ProductEvent || event instanceof ProductVariantEvent) // [!code highlight]
+            .subscribe(event => {
+                // the event will be a ProductEvent or ProductVariantEvent
+            });
+    }
+}
+```
+
+## Publishing events
+
+You can publish events using the `EventBus.publish()` method. This is useful if you want to trigger an event from within a plugin or service.
+
+For example, to publish a `ProductEvent`:
+
+```ts title="src/plugins/my-plugin/services/my-plugin.service.ts"
+import { Injectable } from '@nestjs/common';
+import { EventBus, ProductEvent, RequestContext, Product } from '@vendure/core';
+
+@Injectable()
+export class MyPluginService {
+    constructor(private eventBus: EventBus) {}
+
+    async doSomethingWithProduct(ctx: RequestContext, product: Product) {
+        // ... do something
+        await this.eventBus.publish(new ProductEvent(ctx, product, 'updated')); // [!code highlight]
+    }
+}
+```
+
+## Creating custom events
+
+You can create your own custom events by extending the [`VendureEvent`](/reference/typescript-api/events/vendure-event) class. For example, to create a custom event which is triggered when a customer submits a review, you could do this:
+
+```ts title="src/plugins/reviews/events/review-submitted.event.ts"
+import { ID, RequestContext, VendureEvent } from '@vendure/core';
+import { ProductReviewInput } from '../types';
+
+/**
+ * @description
+ * This event is fired whenever a ProductReview is submitted.
+ */
+export class ReviewSubmittedEvent extends VendureEvent {
+    constructor(
+        public ctx: RequestContext,
+        public input: ProductReviewInput,
+    ) {
+        super();
+    }
+}
+```
+
+The event would then be published from your plugin's `ProductReviewService`:
+
+```ts title="src/plugins/reviews/services/product-review.service.ts"
+import { Injectable } from '@nestjs/common';
+import { EventBus, ProductReviewService, RequestContext } from '@vendure/core';
+
+import { ReviewSubmittedEvent } from '../events/review-submitted.event';
+import { ProductReviewInput } from '../types';
+
+@Injectable()
+export class ProductReviewService {
+    constructor(
+        private eventBus: EventBus,
+        private productReviewService: ProductReviewService,
+    ) {}
+
+    async submitReview(ctx: RequestContext, input: ProductReviewInput) {
+        this.eventBus.publish(new ReviewSubmittedEvent(ctx, input)); // [!code highlight]
+        // handle creation of the new review
+        // ...
+    }
+}
+```
+
+### Entity events
+
+There is a special event class [`VendureEntityEvent`](/reference/typescript-api/events/vendure-entity-event) for events relating to the creation, update or deletion of entities. Let's say you have a custom entity (see [defining a database entity](/developer-guide/database-entity)) `BlogPost` and you want to trigger an event whenever a new `BlogPost` is created, updated or deleted:
+
+```ts title="src/plugins/blog/events/blog-post-event.ts"
+import { ID, RequestContext, VendureEntityEvent } from '@vendure/core';
+import { BlogPost } from '../entities/blog-post.entity';
+import { CreateBlogPostInput, UpdateBlogPostInput } from '../types';
+
+type BlogPostInputTypes = CreateBlogPostInput | UpdateBlogPostInput | ID | ID[];
+
+/**
+ * This event is fired whenever a BlogPost is added, updated
+ * or deleted.
+ */
+export class BlogPostEvent extends VendureEntityEvent<BlogPost, BlogPostInputTypes> {
+    constructor(
+        ctx: RequestContext,
+        entity: BlogPost,
+        type: 'created' | 'updated' | 'deleted',
+        input?: BlogPostInputTypes,
+    ) {
+        super(entity, type, ctx, input);
+    }
+}
+```
+
+Using this event, you can subscribe to all `BlogPost` events, and for instance filter for only the `created` events:
+
+```ts title="src/plugins/blog/blog-plugin.ts"
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { EventBus, PluginCommonModule, VendurePlugin } from '@vendure/core';
+import { filter } from 'rxjs/operators';
+
+import { BlogPostEvent } from './events/blog-post-event';
+
+@VendurePlugin({
+    imports: [PluginCommonModule],
+    // ...
+})
+export class BlogPlugin implements OnModuleInit {
+    constructor(private eventBus: EventBus) {}
+
+    onModuleInit() {
+        this.eventBus
+            .ofType(BlogPostEvent) // [!code highlight]
+            .pipe(filter(event => event.type === 'created')) // [!code highlight]
+            .subscribe(event => { // [!code highlight]
+                const blogPost = event.entity; // [!code highlight]
+                // do something with the newly created BlogPost // [!code highlight]
+            }); // [!code highlight]
+    }
+}
+```
+
+## Blocking event handlers
+
+:::note
+The following section is an advanced topic.
+
+The API described in this section was added in Vendure v2.2.0.
+:::
+
+When using the `.ofType().subscribe()` pattern, the event handler is non-blocking. This means that the code that publishes
+the event (the "publishing code") will have no knowledge of any subscribers, and in fact any subscribers will be executed after the code that
+published the event has completed (technically, any ongoing database transactions are completed before the event gets
+emitted to the subscribers). This follows the typical [Observer pattern](https://en.wikipedia.org/wiki/Observer_pattern) and is a good fit for most use-cases.
+
+However, there may be certain situations in which you want the event handler to cause the publishing code to block
+until the event handler has completed. This is done by using a "blocking event handler", which does _not_ follow the
+Observer pattern, but rather it behaves more like a synchronous function call occurring within the publishing code.
+
+You may want to use a blocking event handler in the following situations:
+
+-   The event handler is so critical that you need to ensure that it has completed before the publishing code continues. For
+    example, if the event handler must manipulate some financial records.
+-   Errors in the event handler code should cause the publishing code to fail (and any database transaction to be rolled back).
+-   You want to guard against the edge case that a server instance gets shut down (due to e.g. a fatal error or an auto-scaling event)
+    before event subscribers have been invoked.
+
+In these cases, you can use the `EventBus.registerBlockingEventHandler()` method:
+
+```ts title="src/plugins/my-plugin/my-plugin.plugin.ts"
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { EventBus, PluginCommonModule, VendurePlugin, CustomerEvent } from '@vendure/core';
+import { CustomerSyncService } from './services/customer-sync.service';
+
+@VendurePlugin({
+    imports: [PluginCommonModule],
+})
+export class MyPluginPlugin implements OnModuleInit {
+    constructor(
+        private eventBus: EventBus,
+        private customerSyncService: CustomerSyncService,
+    ) {}
+
+    onModuleInit() {
+        this.eventBus.registerBlockingEventHandler({ // [!code highlight]
+            event: CustomerEvent, // [!code highlight]
+            id: 'sync-customer-details-handler', // [!code highlight]
+            handler: async event => { // [!code highlight]
+                // This hypothetical service method would do nothing // [!code highlight]
+                // more than adding a new job to the job queue. This gives us // [!code highlight]
+                // the guarantee that the job is added before the publishing // [!code highlight]
+                // code is able to continue, while minimizing the time spent // [!code highlight]
+                // in the event handler. // [!code highlight]
+                await this.customerSyncService.triggerCustomerSyncJob(event); // [!code highlight]
+            }, // [!code highlight]
+        }); // [!code highlight]
+    }
+}
+```
+
+Key differences between event subscribers and blocking event handlers:
+
+
+Aspect | Event subscribers | Blocking event handlers |
+|---|---|---|
+| **Execution** | Executed _after_ publishing code completes | Execute _during_ the publishing code |
+| **Error handling** | Errors do not affect publishing code | Errors propagated to publishing code |
+| **Transactions** | Guaranteed to execute only after the publishing code transaction has completed | Executed within the transaction of the publishing code |
+| **Performance** | Non-blocking: subscriber function performance has no effect on publishing code | Blocking: handler function will block execution of publishing code. Handler must be fast. |
+
+### Performance considerations
+
+Since blocking event handlers execute within the same transaction as the publishing code, it is important to ensure that they are fast.
+If a single handler takes longer than 100ms to execute, a warning will be logged. Ideally they should be much faster than that - you can
+set your Logger's `logLevel` to `LogLevel.DEBUG` to see the execution time of each handler.
+
+If multiple handlers are registered for a single event, they will be executed sequentially, so the publishing code will be blocked until
+all handlers have completed.
+
+### Order of execution
+
+If you register multiple handlers for the same event, they will be executed in the order in which they were registered.
+If you need more control over this order, i.e. to _guarantee_ that a particular handler will execute before another, you can use
+the `before` or `after` options:
+
+```ts
+// In one part of your code base
+this.eventBus.registerBlockingEventHandler({
+    type: CustomerEvent,
+    id: 'sync-customer-details-handler',
+    handler: async event => {
+        // ...
+    },
+});
+
+
+// In another part of your code base
+this.eventBus.registerBlockingEventHandler({
+    type: CustomerEvent,
+    id: 'check-customer-details-handler',
+    handler: async event => {
+        // ...
+    },
+    before: 'sync-customer-details-handler', // [!code highlight]
+});
+```

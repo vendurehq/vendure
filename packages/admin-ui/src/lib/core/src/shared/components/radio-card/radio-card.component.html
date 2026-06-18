@@ -1,0 +1,21 @@
+<label
+    [ngClass]="{
+        'selected': isSelected(item),
+        'focussed': isFocussed(item)
+    }"
+    class="radio-card"
+>
+    <input
+        type="radio"
+        [name]="name"
+        [value]="getItemId(item)"
+        class="hidden"
+        (focus)="setFocussedId(item)"
+        (blur)="setFocussedId(undefined)"
+        (change)="selectChanged(item)"
+    />
+    <vdr-select-toggle [selected]="isSelected(item)" size="small"></vdr-select-toggle>
+    <div class="content">
+        <ng-content></ng-content>
+    </div>
+</label>

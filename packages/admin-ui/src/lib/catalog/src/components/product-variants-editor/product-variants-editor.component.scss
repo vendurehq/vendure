@@ -1,0 +1,20 @@
+
+.option-groups {
+    display: flex;
+    width: 100%;
+    gap: var(--space-unit);
+}
+
+.values {
+    flex: 1;
+    margin: 0 6px;
+}
+
+.variants-preview {
+    tr.disabled {
+        td {
+            background-color: var(--color-component-bg-100);
+            color: var(--color-grey-400);
+        }
+    }
+}

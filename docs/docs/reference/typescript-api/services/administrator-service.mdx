@@ -1,0 +1,61 @@
+---
+title: "AdministratorService"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/services/administrator.service.ts" sourceLine="41" packageName="@vendure/core" />
+
+Contains methods relating to [Administrator](/reference/typescript-api/entities/administrator#administrator) entities.
+
+```ts title="Signature"
+class AdministratorService {
+    constructor(connection: TransactionalConnection, configService: ConfigService, listQueryBuilder: ListQueryBuilder, passwordCipher: PasswordCipher, userService: UserService, roleService: RoleService, customFieldRelationService: CustomFieldRelationService, eventBus: EventBus, requestContextService: RequestContextService)
+    findAll(ctx: RequestContext, options?: ListQueryOptions<Administrator>, relations?: RelationPaths<Administrator>) => Promise<PaginatedList<Administrator>>;
+    findOne(ctx: RequestContext, administratorId: ID, relations?: RelationPaths<Administrator>) => Promise<Administrator | undefined>;
+    findOneByUserId(ctx: RequestContext, userId: ID, relations?: RelationPaths<Administrator>) => Promise<Administrator | undefined>;
+    create(ctx: RequestContext, input: CreateAdministratorInput) => Promise<Administrator>;
+    update(ctx: RequestContext, input: UpdateAdministratorInput) => Promise<Administrator>;
+    assignRole(ctx: RequestContext, administratorId: ID, roleId: ID) => Promise<Administrator>;
+    softDelete(ctx: RequestContext, id: ID) => ;
+}
+```
+
+<div className="members-wrapper">
+
+### findAll
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: ListQueryOptions<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>>, relations?: RelationPaths<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>>) => Promise<<a href='/reference/typescript-api/common/paginated-list#paginatedlist'>PaginatedList</a><<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>>>`}   />
+
+Get a paginated list of Administrators.
+### findOne
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, administratorId: <a href='/reference/typescript-api/common/id#id'>ID</a>, relations?: RelationPaths<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>>) => Promise<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a> | undefined>`}   />
+
+Get an Administrator by id.
+### findOneByUserId
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>, relations?: RelationPaths<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>>) => Promise<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a> | undefined>`}   />
+
+Get an Administrator based on the User id.
+### create
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: CreateAdministratorInput) => Promise<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>>`}   />
+
+Create a new Administrator.
+### update
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: UpdateAdministratorInput) => Promise<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>>`}   />
+
+Update an existing Administrator.
+### assignRole
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, administratorId: <a href='/reference/typescript-api/common/id#id'>ID</a>, roleId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>>`}   />
+
+Assigns a Role to the Administrator's User entity.
+### softDelete
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a>) => `}   />
+
+Soft deletes an Administrator (sets the `deletedAt` field).
+
+
+</div>

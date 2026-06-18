@@ -1,0 +1,12 @@
+{
+    "extends": "../../tsconfig.json",
+    "compilerOptions": {
+        "target": "es2019",
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "esModuleInterop": true,
+        "lib": ["ESNext"],
+        "skipLibCheck": true
+    },
+    "include": ["vite.config.mts"]
+}

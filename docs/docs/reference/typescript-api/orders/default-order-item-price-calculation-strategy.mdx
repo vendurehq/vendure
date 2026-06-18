@@ -1,0 +1,28 @@
+---
+title: "DefaultOrderItemPriceCalculationStrategy"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/order/default-order-item-price-calculation-strategy.ts" sourceLine="14" packageName="@vendure/core" />
+
+The default [OrderItemPriceCalculationStrategy](/reference/typescript-api/orders/order-item-price-calculation-strategy#orderitempricecalculationstrategy), which simply passes through the price of
+the ProductVariant without performing any calculations
+
+```ts title="Signature"
+class DefaultOrderItemPriceCalculationStrategy implements OrderItemPriceCalculationStrategy {
+    calculateUnitPrice(ctx: RequestContext, productVariant: ProductVariant) => PriceCalculationResult | Promise<PriceCalculationResult>;
+}
+```
+* Implements: [`OrderItemPriceCalculationStrategy`](/reference/typescript-api/orders/order-item-price-calculation-strategy#orderitempricecalculationstrategy)
+
+
+
+<div className="members-wrapper">
+
+### calculateUnitPrice
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productVariant: <a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>) => <a href='/reference/typescript-api/common/price-calculation-result#pricecalculationresult'>PriceCalculationResult</a> | Promise<<a href='/reference/typescript-api/common/price-calculation-result#pricecalculationresult'>PriceCalculationResult</a>>`}   />
+
+
+
+
+</div>

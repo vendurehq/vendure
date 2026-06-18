@@ -1,0 +1,71 @@
+:host {
+    display: block;
+}
+
+.filter-button {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 0 var(--space-unit);
+    height: calc(var(--space-unit) * 3);
+    font-size: var(--font-size-xs);
+    border-radius: var(--border-radius-lg);
+    background-color: var(--color-button-small-bg);
+    color: var(--color-button-small-text);
+
+    > button {
+        border: none;
+        gap: 12px;
+        cursor: pointer;
+        background-color: transparent;
+        display: flex;
+        align-items: center;
+        height: calc(var(--space-unit) * 2);
+        border-radius: var(--border-radius-lg);
+        color: var(--color-button-small-text);
+    }
+
+    &.active {
+        background-color: var(--color-primary-700);
+        color: var(--color-primary-100);
+
+        > button {
+            color: var(--color-primary-100);
+        }
+    }
+
+    button.remove {
+    }
+}
+
+label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-unit);
+    margin-bottom: calc(var(--space-unit) * 0.5);
+}
+
+.filter-heading {
+    font-size: var(--font-size-xs);
+    text-transform: uppercase;
+    color: var(--color-weight-600);
+    margin: 0 calc(var(--space-unit) * 2);
+}
+
+.apply-wrapper {
+    display: flex;
+    justify-content: flex-end;
+    padding-inline-end: calc(var(--space-unit) * 2);
+}
+
+.filter-hotkey {
+    font-size: var(--font-size-xs);
+    color: var(--color-weight-500);
+    border: 1px solid var(--color-weight-200);
+    background-color: var(--color-weight-100);
+    border-radius: var(--border-radius);
+    padding: 0 3px;
+    text-transform: uppercase;
+    margin-inline-start: 3px;
+}

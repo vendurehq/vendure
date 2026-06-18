@@ -1,0 +1,18 @@
+<vdr-page-block>
+    <div class="test-wrapper">
+        <div class="">
+            <vdr-test-order-builder (orderLinesChange)="setTestOrderLines($event)"></vdr-test-order-builder>
+        </div>
+        <div class="">
+            <vdr-test-address-form (addressChange)="setTestAddress($event)"></vdr-test-address-form>
+            <vdr-shipping-eligibility-test-result
+                class="mt-1"
+                [currencyCode]="(activeChannel$ | async)?.currencyCode"
+                [okToRun]="allTestDataPresent()"
+                [testDataUpdated]="testDataUpdated"
+                [testResult]="testResult$ | async"
+                (runTest)="runTest()"
+            ></vdr-shipping-eligibility-test-result>
+        </div>
+    </div>
+</vdr-page-block>

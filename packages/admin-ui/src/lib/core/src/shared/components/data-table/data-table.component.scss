@@ -1,0 +1,44 @@
+
+:host {
+    display: block;
+    max-width: 100%;
+    overflow: auto;
+    position: relative;
+}
+
+.bulk-actions {
+    position: absolute;
+    left: 50px;
+    top: 30px;
+    z-index: 2;
+}
+
+table.table {
+    max-width: 100vw;
+    overflow-x: auto;
+}
+
+table.no-select {
+    user-select: none;
+}
+
+thead th {
+    &.expand {
+        width: 100%;
+    }
+}
+
+thead.items-selected tr th {
+    color: transparent;
+}
+
+.selection-col {
+    width: 24px;
+}
+
+.table-footer {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-top: 6px;
+}

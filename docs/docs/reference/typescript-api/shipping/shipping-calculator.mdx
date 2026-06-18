@@ -1,0 +1,109 @@
+---
+title: "ShippingCalculator"
+generated: true
+---
+## ShippingCalculator
+
+<GenerationInfo sourceFile="packages/core/src/config/shipping-method/shipping-calculator.ts" sourceLine="48" packageName="@vendure/core" />
+
+The ShippingCalculator is used by a [ShippingMethod](/reference/typescript-api/entities/shipping-method#shippingmethod) to calculate the price of shipping on a given [Order](/reference/typescript-api/entities/order#order).
+
+*Example*
+
+```ts
+const flatRateCalculator = new ShippingCalculator({
+  code: 'flat-rate-calculator',
+  description: [{ languageCode: LanguageCode.en, value: 'Default Flat-Rate Shipping Calculator' }],
+  args: {
+    rate: {
+      type: 'int',
+      ui: { component: 'currency-form-input' },
+    },
+    taxRate: {
+      type: 'int',
+      ui: { component: 'number-form-input', suffix: '%' },
+    },
+  },
+  calculate: (ctx, order, args) => {
+    return {
+      price: args.rate,
+      taxRate: args.taxRate,
+      priceIncludesTax: ctx.channel.pricesIncludeTax,
+    };
+  },
+});
+```
+
+```ts title="Signature"
+class ShippingCalculator<T extends ConfigArgs = ConfigArgs> extends ConfigurableOperationDef<T> {
+    constructor(config: ShippingCalculatorConfig<T>)
+}
+```
+* Extends: [`ConfigurableOperationDef`](/reference/typescript-api/configurable-operation-def/#configurableoperationdef)`<T>`
+
+
+
+<div className="members-wrapper">
+
+
+
+</div>
+## ShippingCalculationResult
+
+<GenerationInfo sourceFile="packages/core/src/config/shipping-method/shipping-calculator.ts" sourceLine="79" packageName="@vendure/core" />
+
+The return value of the [CalculateShippingFn](/reference/typescript-api/shipping/shipping-calculator#calculateshippingfn).
+
+```ts title="Signature"
+interface ShippingCalculationResult {
+    price: number;
+    priceIncludesTax: boolean;
+    taxRate: number;
+    metadata?: Record<string, any>;
+}
+```
+
+<div className="members-wrapper">
+
+### price
+
+<MemberInfo kind="property" type={`number`}   />
+
+The shipping price without any taxes.
+### priceIncludesTax
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+Whether or not the given price already includes taxes.
+### taxRate
+
+<MemberInfo kind="property" type={`number`}   />
+
+The tax rate applied to the shipping price.
+### metadata
+
+<MemberInfo kind="property" type={`Record<string, any>`}   />
+
+Arbitrary metadata may be returned from the calculation function. This can be used
+e.g. to return data on estimated delivery times or any other data which may be
+needed in the storefront application when listing eligible shipping methods.
+
+
+</div>
+## CalculateShippingFn
+
+<GenerationInfo sourceFile="packages/core/src/config/shipping-method/shipping-calculator.ts" sourceLine="119" packageName="@vendure/core" />
+
+A function which implements the specific shipping calculation logic. It takes an [Order](/reference/typescript-api/entities/order#order) and
+an arguments object and should return the shipping price as an integer in cents.
+
+Should return a [ShippingCalculationResult](/reference/typescript-api/shipping/shipping-calculator#shippingcalculationresult) object.
+
+```ts title="Signature"
+type CalculateShippingFn<T extends ConfigArgs> = (
+    ctx: RequestContext,
+    order: Order,
+    args: ConfigArgValues<T>,
+    method: ShippingMethod,
+) => CalculateShippingFnResult
+```

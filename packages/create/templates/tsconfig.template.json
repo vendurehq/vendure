@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
+    "strictPropertyInitialization": false,
+    "target": "es2019",
+    "strict": true,
+    "sourceMap": false,
+    "skipLibCheck": true,
+    "outDir": "./dist",
+    "baseUrl": "./"
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": [
+    "node_modules",
+    "migration.ts",
+    "src/plugins/**/ui/*",
+    "admin-ui",
+    "src/plugins/**/dashboard/*",
+    "src/gql/*",
+    "vite.*.*ts"
+  ],
+  "ts-node": {
+    "files": true
+  },
+  "references": [{
+    "path": "./tsconfig.dashboard.json"
+  }]
+}

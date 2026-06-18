@@ -1,0 +1,480 @@
+---
+title: "Extend the GraphQL API"
+metaTitle: "Extending the Vendure GraphQL API with Custom Queries and Mutations"
+metaDescription: "Add custom queries, mutations, and types to the Vendure Shop and Admin GraphQL APIs using schema extensions and resolvers in your plugins."
+---
+
+Extension to the GraphQL API consists of two parts:
+
+1. **Schema extensions**. These define new types, fields, queries and mutations.
+2. **Resolvers**. These provide the logic that backs up the schema extensions.
+
+The Shop API and Admin APIs can be extended independently:
+
+```ts title="src/plugins/top-products/top-products.plugin.ts"
+import { PluginCommonModule, VendurePlugin } from '@vendure/core';
+import gql from 'graphql-tag';
+import { TopSellersResolver } from './api/top-products.resolver';
+
+const schemaExtension = gql`
+  extend type Query {
+    topProducts: [Product!]!
+  }
+`
+
+@VendurePlugin({
+    imports: [PluginCommonModule],
+    // We pass our schema extension and any related resolvers // [!code highlight]
+    // to our plugin metadata   // [!code highlight]
+    shopApiExtensions: { // [!code highlight]
+        schema: schemaExtension, // [!code highlight]
+        resolvers: [TopProductsResolver], // [!code highlight]
+    }, // [!code highlight]
+    // Likewise, if you want to extend the Admin API, // [!code highlight]
+    // you would use `adminApiExtensions` in exactly the // [!code highlight]
+    // same way.   // [!code highlight]
+    // adminApiExtensions: { // [!code highlight]
+    //     schema: someSchemaExtension // [!code highlight]
+    //     resolvers: [SomeResolver], // [!code highlight]
+    // }, // [!code highlight]
+})
+export class TopProductsPlugin {
+}
+```
+
+There are a number of ways the GraphQL APIs can be modified by a plugin.
+
+## Adding a new Query
+
+Let's take a simple example where we want to be able to display a banner in our storefront.
+
+First let's define a new query in the schema:
+
+```ts title="src/plugins/banner/api/api-extensions.ts"
+import gql from 'graphql-tag';
+
+export const shopApiExtensions = gql`
+  extend type Query {
+    activeBanner(locationId: String!): String # [!code highlight]
+  }
+`;
+```
+
+This defines a new query called `activeBanner` which takes a `locationId` string argument and returns a string. 
+
+:::tip
+`!` = non-nullable
+
+In GraphQL, the `!` in `locationId: String!` indicates that the argument is required, and the lack of a `!` on the return type indicates that the return value can be `null`.
+:::
+
+We can now define the resolver for this query:
+
+```ts title="src/plugins/banner/api/banner-shop.resolver.ts"
+import { Args, Query, Resolver } from '@nestjs/graphql';
+import { Ctx, RequestContext } from '@vendure/core';
+import { BannerService } from '../services/banner.service.ts';
+
+@Resolver()
+class BannerShopResolver {
+    constructor(private bannerService: BannerService) {}
+
+    @Query() // [!code highlight]
+    activeBanner(@Ctx() ctx: RequestContext, @Args() args: { locationId: string; }) { // [!code highlight]
+        return this.bannerService.getBanner(ctx, args.locationId); // [!code highlight]
+    } // [!code highlight]
+}
+```
+
+The `BannerService` would implement the actual logic for fetching the banner text from the database.
+
+Finally, we need to add the resolver to the plugin metadata:
+
+```ts title="src/plugins/banner/banner.plugin.ts"
+import { PluginCommonModule, VendurePlugin } from '@vendure/core';
+import { BannerService } from './services/banner.service';
+import { BannerShopResolver } from './api/banner-shop.resolver';
+import { shopApiExtensions } from './api/api-extensions';
+
+@VendurePlugin({
+    imports: [PluginCommonModule],
+    shopApiExtensions: { // [!code highlight]
+        schema: shopApiExtensions, // [!code highlight]
+        resolvers: [BannerShopResolver], // [!code highlight]
+    }, // [!code highlight]
+    providers: [BannerService],
+})
+export class BannerPlugin {}
+```
+
+## Adding a new Mutation
+
+Let's continue the `BannerPlugin` example and now add a mutation which allows the administrator to set the banner text.
+
+First we define the mutation in the schema:
+
+```ts title="src/plugins/banner/api/api-extensions.ts"
+import gql from 'graphql-tag';
+
+export const adminApiExtensions = gql`
+  extend type Mutation {
+    setBannerText(locationId: String!, text: String!): String! # [!code highlight]
+  }
+`;
+```
+
+Here we are defining a new mutation called `setBannerText` which takes two arguments, `locationId` and `text`, both of which are required strings. The return type is a non-nullable string.
+
+Now let's define a resolver to handle that mutation:
+
+```ts title="src/plugins/banner/api/banner-admin.resolver.ts"
+import { Args, Mutation, Resolver } from '@nestjs/graphql';
+import { Allow, Ctx, RequestContext, Permission, Transaction } from '@vendure/core';
+import { BannerService } from '../services/banner.service.ts';
+
+@Resolver()
+class BannerAdminResolver {
+    constructor(private bannerService: BannerService) {}
+
+    @Allow(Permission.UpdateSettings) // [!code highlight]
+    @Transaction() // [!code highlight]
+    @Mutation() // [!code highlight]
+    setBannerText(@Ctx() ctx: RequestContext, @Args() args: { locationId: string; text: string; }) { // [!code highlight]
+        return this.bannerService.setBannerText(ctx, args.locationId, args.text); // [!code highlight]
+    } // [!code highlight]
+}
+```
+
+Note that we have used the `@Allow()` decorator to ensure that only users with the `UpdateSettings` permission can call this mutation. We have also wrapped the resolver in a transaction using `@Transaction()`, which is a good idea for any mutation which modifies the database.
+
+:::info
+For more information on the available decorators, see the [API Layer "decorators" guide](/developer-guide/the-api-layer/#api-decorators).
+:::
+
+Finally, we add the resolver to the plugin metadata:
+
+```ts title="src/plugins/banner/banner.plugin.ts"
+import { PluginCommonModule, VendurePlugin } from '@vendure/core';
+import { BannerService } from './services/banner.service';
+import { BannerShopResolver } from './api/banner-shop.resolver';
+import { BannerAdminResolver } from './api/banner-admin.resolver';
+import { shopApiExtensions, adminApiExtensions } from './api/api-extensions';
+
+@VendurePlugin({
+    imports: [PluginCommonModule],
+    shopApiExtensions: {
+        schema: shopApiExtensions,
+        resolvers: [BannerShopResolver],
+    },
+    adminApiExtensions: { // [!code highlight]
+        schema: adminApiExtensions, // [!code highlight]
+        resolvers: [BannerAdminResolver], // [!code highlight]
+    }, // [!code highlight]
+    providers: [BannerService],
+})
+export class BannerPlugin {}
+```
+
+
+## Defining a new type
+
+If you have defined a new database entity, it is likely that you'll want to expose this entity in your GraphQL API. To do so, you'll need to define a corresponding GraphQL type.
+
+Using the `ProductReview` entity from the [Define a database entity guide](/developer-guide/database-entity), let's see how we can expose it as a new type in the API.
+
+As a reminder, here is the `ProductReview` entity:
+
+```ts title="src/plugins/reviews/product-review.entity.ts"
+import { DeepPartial } from '@vendure/common/lib/shared-types';
+import { VendureEntity, Product, EntityId, ID } from '@vendure/core';
+import { Column, Entity, ManyToOne } from 'typeorm';
+
+@Entity()
+class ProductReview extends VendureEntity {
+    constructor(input?: DeepPartial<ProductReview>) {
+        super(input);
+    }
+
+    @ManyToOne(type => Product)
+    product: Product;
+    
+    @EntityId()
+    productId: ID;
+
+    @Column()
+    text: string;
+
+    @Column()
+    rating: number;
+}
+```
+Let's define a new GraphQL type which corresponds to this entity:
+
+```ts title="src/plugins/reviews/api/api-extensions.ts"
+import gql from 'graphql-tag';
+
+export const apiExtensions = gql`
+  type ProductReview implements Node { # [!code highlight]
+    id: ID! # [!code highlight]
+    createdAt: DateTime! # [!code highlight]
+    updatedAt: DateTime! # [!code highlight]
+    product: Product! # [!code highlight]
+    productId: ID! # [!code highlight]
+    text: String! # [!code highlight]
+    rating: Float! # [!code highlight]
+  } # [!code highlight]
+`;
+```
+
+:::info
+Assuming the entity is a standard `VendureEntity`, it is good practice to always include the `id`, `createdAt` and `updatedAt` fields in the GraphQL type.
+
+Additionally, we implement `Node` which is a built-in GraphQL interface.
+:::
+
+Now we can add this type to both the Admin and Shop APIs:
+
+```ts title="src/plugins/reviews/reviews.plugin.ts"
+import gql from 'graphql-tag';
+import { PluginCommonModule, VendurePlugin } from '@vendure/core';
+import { ReviewsResolver } from './api/reviews.resolver';
+import { apiExtensions } from './api/api-extensions';
+import { ProductReview } from './entities/product-review.entity';
+
+@VendurePlugin({
+    imports: [PluginCommonModule],
+    shopApiExtensions: {
+        schema: apiExtensions, // [!code highlight]
+    },
+    entities: [ProductReview],
+})
+export class ReviewsPlugin {}
+```
+
+## Add fields to existing types
+
+Let's say you want to add a new field to the `ProductVariant` type to allow the storefront to display some indication of how long a particular product variant would take to deliver, based on data from some external service. 
+
+First we extend the `ProductVariant` GraphQL type:
+
+```ts title="src/plugins/delivery-time/api/api-extensions.ts"
+import gql from 'graphql-tag';
+
+export const shopApiExtensions = gql`
+  type DeliveryEstimate {
+    from: Int!
+    to: Int!
+  }
+
+  extend type ProductVariant { # [!code highlight]
+    delivery: DeliveryEstimate! # [!code highlight]
+  } # [!code highlight]
+}`;
+```
+
+This schema extension says that the `delivery` field will be added to the `ProductVariant` type, and that it will be of type `DeliveryEstimate!`, i.e. a non-nullable
+instance of the `DeliveryEstimate` type.
+
+Next we need to define an "entity resolver" for this field. Unlike the resolvers we have seen above, this resolver will be handling fields on the `ProductVariant` type _only_. This is done by scoping the resolver class that type by passing the type name to the `@Resolver()` decorator:
+
+```ts title="src/plugins/delivery-time/product-variant-entity.resolver.ts"
+import { Parent, ResolveField, Resolver } from '@nestjs/graphql';
+import { Ctx, RequestContext, ProductVariant } from '@vendure/core';
+import { DeliveryEstimateService } from '../services/delivery-estimate.service';
+
+@Resolver('ProductVariant') // [!code highlight]
+export class ProductVariantEntityResolver {
+    constructor(private deliveryEstimateService: DeliveryEstimateService) { }
+
+    @ResolveField() // [!code highlight]
+    delivery(@Ctx() ctx: RequestContext, @Parent() variant: ProductVariant) { // [!code highlight]
+        return this.deliveryEstimateService.getEstimate(ctx, variant.id); // [!code highlight]
+    } // [!code highlight]
+}
+```
+
+Finally we need to pass these schema extensions and the resolver to our plugin metadata:
+
+```ts title="src/plugins/delivery-time/delivery-time.plugin.ts"
+import gql from 'graphql-tag';
+import { PluginCommonModule, VendurePlugin } from '@vendure/core';
+import { ProductVariantEntityResolver } from './api/product-variant-entity.resolver';
+import { shopApiExtensions } from './api/api-extensions';
+
+@VendurePlugin({
+    imports: [PluginCommonModule],
+    shopApiExtensions: {
+        schema: shopApiExtensions, // [!code highlight]
+        resolvers: [ProductVariantEntityResolver] // [!code highlight]
+    }
+})
+export class DeliveryTimePlugin {}
+```
+
+## Override built-in resolvers
+
+It is also possible to override an existing built-in resolver function with one of your own. To do so, you need to define a resolver with the same name as the query or mutation you wish to override. When that query or mutation is then executed, your code, rather than the default Vendure resolver, will handle it.
+
+```ts
+import { Args, Query, Mutation, Resolver } from '@nestjs/graphql';
+import { Ctx, RequestContext } from '@vendure/core'
+
+@Resolver()
+class OverrideExampleResolver {
+
+    @Query()
+    products(@Ctx() ctx: RequestContext, @Args() args: any) {
+        // when the `products` query is executed, this resolver function will
+        // now handle it.
+    }
+
+    @Transaction()
+    @Mutation()
+    addItemToOrder(@Ctx() ctx: RequestContext, @Args() args: any) {
+        // when the `addItemToOrder` mutation is executed, this resolver function will
+        // now handle it.
+    }
+
+}
+```
+
+The same can be done for resolving fields:
+
+```ts
+import { Parent, ResolveField, Resolver } from '@nestjs/graphql';
+import { Ctx, RequestContext, Product } from '@vendure/core';
+
+@Resolver('Product')
+export class FieldOverrideExampleResolver {
+
+    @ResolveField()
+    description(@Ctx() ctx: RequestContext, @Parent() product: Product) {
+        return this.wrapInFormatting(ctx, product.id);
+    }
+
+    private wrapInFormatting(ctx: RequestContext, id: ID): string {
+        // implementation omitted, but wraps the description
+        // text in some special formatting required by the storefront
+    }
+}
+```
+
+## Resolving union results
+
+When dealing with operations that return a GraphQL union type, there is an extra step needed.
+
+Union types are commonly returned from mutations in the Vendure APIs. For more detail on this see the section on [ErrorResults](/developer-guide/error-handling#expected-errors-errorresults). For example: 
+
+```graphql
+type MyCustomErrorResult implements ErrorResult {
+  errorCode: ErrorCode!
+  message: String!
+}
+
+union MyCustomMutationResult = Order | MyCustomErrorResult
+
+extend type Mutation {
+  myCustomMutation(orderId: ID!): MyCustomMutationResult!
+}
+```
+
+In this example, the resolver which handles the `myCustomMutation` operation will be returning either an `Order` object or a `MyCustomErrorResult` object. The problem here is that the GraphQL server has no way of knowing which one it is at run-time. Luckily Apollo Server (on which Vendure is built) has a means to solve this:
+
+> To fully resolve a union, Apollo Server needs to specify which of the union's types is being returned. To achieve this, you define a `__resolveType` function for the union in your resolver map.
+> 
+> The `__resolveType` function is responsible for determining an object's corresponding GraphQL type and returning the name of that type as a string.
+> 
+-- <cite>Source: [Apollo Server docs](https://www.apollographql.com/docs/apollo-server/schema/unions-interfaces/#resolving-a-union)</cite>
+
+In order to implement a `__resolveType` function as part of your plugin, you need to create a dedicated Resolver class with a single field resolver method which will look like this:
+
+```ts
+import { Parent, ResolveField, Resolver } from '@nestjs/graphql';
+import { Ctx, RequestContext, ProductVariant } from '@vendure/core';
+
+@Resolver('MyCustomMutationResult')
+export class MyCustomMutationResultResolver {
+  
+  @ResolveField()
+  __resolveType(value: any): string {
+    // If it has an "id" property we can assume it is an Order.  
+    return value.hasOwnProperty('id') ? 'Order' : 'MyCustomErrorResult';
+  }
+}
+```
+
+This resolver is then passed in to your plugin metadata like any other resolver:
+
+```ts
+@VendurePlugin({
+  imports: [PluginCommonModule],
+  shopApiExtensions: {
+    schema: apiExtensions,
+    resolvers: [/* ... */, MyCustomMutationResultResolver]
+  }
+})
+export class MyPlugin {}
+```
+
+Sticking to this example of `myCustomMutation`, you'll also want to use the [ErrorResultUnion](/reference/typescript-api/errors/error-result-union) in your `MyCustomMutationResolver` and corresponding service like so:
+
+```ts
+import { Args, Mutation, Resolver } from "@nestjs/graphql";
+import { Ctx, ErrorResultUnion, ID, Order, RequestContext, Transaction } from "@vendure/core";
+
+@Resolver()
+export class MyCustomMutationResolver {
+  constructor(private myCustomService: MyCustomService) {}
+
+  @Mutation()
+  @Transaction()
+  async myCustomMutation(
+    @Ctx() ctx: RequestContext,
+    @Args() args: { orderId: ID }
+  ): Promise<ErrorResultUnion<MyCustomMutationResult, Order>> {
+    return this.myCustomService.doMyCustomMutation(ctx, args.orderId);
+  }
+}
+```
+
+This is because Typescript entities do not correspond 1-to-1 with their GraphQL type counterparts, which results in an error when you're returning the `Order`-Object because it is not assignable to `MyCustomMutationResult`.
+
+## Defining custom scalars
+
+By default, Vendure bundles `DateTime` and a `JSON` custom scalars (from the [graphql-scalars library](https://github.com/Urigo/graphql-scalars)). From v1.7.0, you can also define your own custom scalars for use in your schema extensions:
+
+```ts
+import { GraphQLScalarType} from 'graphql';
+import { GraphQLEmailAddress } from 'graphql-scalars';
+
+// Scalars can be custom-built as like this one,
+// or imported from a pre-made scalar library like
+// the GraphQLEmailAddress example.
+const FooScalar = new GraphQLScalarType({
+  name: 'Foo',
+  description: 'A test scalar',
+  serialize(value) {
+    // ...
+  },
+  parseValue(value) {
+    // ...
+  },
+});
+
+@VendurePlugin({
+  imports: [PluginCommonModule],
+  shopApiExtensions: {
+    schema: gql`
+      scalar Foo
+      scalar EmailAddress
+    `,
+    scalars: { 
+      // The key must match the scalar name
+      // given in the schema  
+      Foo: FooScalar,
+      EmailAddress: GraphQLEmailAddress,
+    },
+  },
+})
+export class CustomScalarsPlugin {}
+```

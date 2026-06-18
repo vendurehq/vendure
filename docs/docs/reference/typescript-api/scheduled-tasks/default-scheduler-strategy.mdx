@@ -1,0 +1,71 @@
+---
+title: "DefaultSchedulerStrategy"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/plugin/default-scheduler-plugin/default-scheduler-strategy.ts" sourceLine="32" packageName="@vendure/core" since="3.3.0" />
+
+The default [SchedulerStrategy](/reference/typescript-api/scheduled-tasks/scheduler-strategy#schedulerstrategy) implementation that uses the database to
+execute scheduled tasks. This strategy is configured when you use the
+[DefaultSchedulerPlugin](/reference/typescript-api/scheduled-tasks/default-scheduler-plugin#defaultschedulerplugin).
+
+```ts title="Signature"
+class DefaultSchedulerStrategy implements SchedulerStrategy {
+    init(injector: Injector) => ;
+    destroy() => ;
+    registerTask(task: ScheduledTask) => void;
+    executeTask(task: ScheduledTask) => ;
+    getTasks() => Promise<TaskReport[]>;
+    getTask(id: string) => Promise<TaskReport | undefined>;
+    updateTask(input: UpdateScheduledTaskInput) => Promise<TaskReport>;
+    triggerTask(task: ScheduledTask) => Promise<void>;
+}
+```
+* Implements: [`SchedulerStrategy`](/reference/typescript-api/scheduled-tasks/scheduler-strategy#schedulerstrategy)
+
+
+
+<div className="members-wrapper">
+
+### init
+
+<MemberInfo kind="method" type={`(injector: <a href='/reference/typescript-api/common/injector#injector'>Injector</a>) => `}   />
+
+
+### destroy
+
+<MemberInfo kind="method" type={`() => `}   />
+
+
+### registerTask
+
+<MemberInfo kind="method" type={`(task: <a href='/reference/typescript-api/scheduled-tasks/scheduled-task#scheduledtask'>ScheduledTask</a>) => void`}   />
+
+
+### executeTask
+
+<MemberInfo kind="method" type={`(task: <a href='/reference/typescript-api/scheduled-tasks/scheduled-task#scheduledtask'>ScheduledTask</a>) => `}   />
+
+
+### getTasks
+
+<MemberInfo kind="method" type={`() => Promise<<a href='/reference/typescript-api/scheduled-tasks/scheduler-strategy#taskreport'>TaskReport</a>[]>`}   />
+
+
+### getTask
+
+<MemberInfo kind="method" type={`(id: string) => Promise<<a href='/reference/typescript-api/scheduled-tasks/scheduler-strategy#taskreport'>TaskReport</a> | undefined>`}   />
+
+
+### updateTask
+
+<MemberInfo kind="method" type={`(input: UpdateScheduledTaskInput) => Promise<<a href='/reference/typescript-api/scheduled-tasks/scheduler-strategy#taskreport'>TaskReport</a>>`}   />
+
+
+### triggerTask
+
+<MemberInfo kind="method" type={`(task: <a href='/reference/typescript-api/scheduled-tasks/scheduled-task#scheduledtask'>ScheduledTask</a>) => Promise<void>`}   />
+
+
+
+
+</div>

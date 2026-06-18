@@ -1,0 +1,68 @@
+---
+title: "User Management"
+metaTitle: "Users, Administrators, and Customers in Vendure"
+metaDescription: "Understand the Vendure user model: how the User entity unifies Administrators and Customers, guest checkout, and authentication strategies."
+---
+
+Vendure has two distinct types of users: **Administrators** who manage the store through the Admin API,
+and **Customers** who interact with the storefront through the Shop API. Both share a common identity
+foundation through the [`User`](/reference/typescript-api/entities/user/) entity.
+
+## The User entity
+
+The `User` entity is the core identity record. It holds the authentication credentials, verification
+status, and login history. A User does not directly represent either an administrator or a customer —
+instead, both the [`Administrator`](/reference/typescript-api/entities/administrator/) and
+[`Customer`](/reference/typescript-api/entities/customer/) entities hold a relation to a single User.
+
+This separation keeps identity concerns (authentication, verification) cleanly decoupled from
+domain-specific data (order history for customers, role assignments for administrators).
+
+## Administrators
+
+An Administrator represents someone who manages the store. Each Administrator relates to exactly one
+User and is assigned one or more [Roles](/core-concepts/roles/) that determine what operations they
+can perform.
+
+![Administrator authentication](../auth/admin.webp)
+
+Administrators interact exclusively with the Admin API. Their access is governed entirely by the
+[permissions](/core-concepts/permissions/) granted through their assigned roles.
+
+## Customers
+
+A Customer represents someone who shops in the storefront. A registered customer relates to a User
+entity, which provides their login credentials and identity.
+
+![Customer authentication](../auth/customer.webp)
+
+Customers interact with the Shop API. A registered customer receives the built-in "Customer" role,
+which grants the minimum permissions needed to manage their own account and view their order history.
+
+### Guest customers
+
+Vendure supports **guest checkout**, where a customer can place an order without creating an account.
+A guest customer has a Customer record with an email address but no associated User entity. This means
+they have no login credentials and no role assignments.
+
+Because guests have no permissions, they cannot view past orders or manage their account after the
+session ends. However, a guest can later register an account using the same email address. When they
+do, Vendure links the new User to the existing Customer record, preserving their order history.
+
+## Authentication strategies
+
+Vendure supports multiple ways to verify a user's identity. The built-in
+[`NativeAuthenticationStrategy`](/reference/typescript-api/auth/native-authentication-strategy/) uses
+a traditional email/password approach. Additional strategies can be configured to support external
+identity providers such as social logins or single sign-on (SSO) systems.
+
+Separate strategies can be configured for the Shop API and Admin API, allowing different authentication
+flows for customers and administrators. For example, customers might authenticate via Google login
+while administrators use a corporate SSO provider.
+
+## Further reading
+
+- [Roles](/core-concepts/roles/) — how roles control what administrators can do
+- [Permissions](/core-concepts/permissions/) — the atomic units of authorization
+- [Customers](/core-concepts/customers/) — customer-specific features like addresses and order history
+- [Auth](/core-concepts/auth/) — detailed authentication and authorization guide

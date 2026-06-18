@@ -1,0 +1,42 @@
+---
+title: "CreateTestEnvironment"
+generated: true
+---
+<GenerationInfo sourceFile="packages/testing/src/create-test-environment.ts" sourceLine="60" packageName="@vendure/testing" />
+
+Configures a [TestServer](/reference/typescript-api/testing/test-server#testserver) and a [SimpleGraphQLClient](/reference/typescript-api/testing/simple-graph-qlclient#simplegraphqlclient) for each of the GraphQL APIs
+for use in end-to-end tests. Returns a [TestEnvironment](/reference/typescript-api/testing/test-environment#testenvironment) object.
+
+*Example*
+
+```ts
+import { createTestEnvironment, testConfig } from '@vendure/testing';
+
+describe('some feature to test', () => {
+
+  const { server, adminClient, shopClient } = createTestEnvironment(testConfig);
+
+  beforeAll(async () => {
+    await server.init({
+        // ... server options
+    });
+    await adminClient.asSuperAdmin();
+  });
+
+  afterAll(async () => {
+      await server.destroy();
+  });
+
+  // ... end-to-end tests here
+});
+```
+
+```ts title="Signature"
+function createTestEnvironment(config: Required<VendureConfig>): TestEnvironment
+```
+Parameters
+
+### config
+
+<MemberInfo kind="parameter" type={`Required<<a href='/reference/typescript-api/configuration/vendure-config#vendureconfig'>VendureConfig</a>>`} />
+

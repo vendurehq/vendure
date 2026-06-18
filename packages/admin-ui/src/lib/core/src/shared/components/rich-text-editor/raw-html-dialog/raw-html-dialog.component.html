@@ -1,0 +1,12 @@
+<vdr-dynamic-form-input
+                      [def]="config"
+                      [control]="formControl"
+                  ></vdr-dynamic-form-input>
+<ng-template vdrDialogButtons>
+    <button type="button" class="btn btn-secondary" (click)="cancel()">
+       {{ 'common.cancel' | translate }}
+    </button>
+    <button type="submit" (click)="select()" class="btn btn-primary" [disabled]="formControl.invalid">
+        {{ 'common.update' | translate }}
+    </button>
+</ng-template>

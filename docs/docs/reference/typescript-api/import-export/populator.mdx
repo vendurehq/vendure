@@ -1,0 +1,33 @@
+---
+title: "Populator"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/data-import/providers/populator/populator.ts" sourceLine="46" packageName="@vendure/core" />
+
+Responsible for populating the database with [InitialData](/reference/typescript-api/import-export/initial-data#initialdata), i.e. non-product data such as countries, tax rates,
+shipping methods, payment methods & roles.
+
+```ts title="Signature"
+class Populator {
+    populateInitialData(data: InitialData, channel?: Channel) => ;
+    populateCollections(data: InitialData, channel?: Channel) => ;
+}
+```
+
+<div className="members-wrapper">
+
+### populateInitialData
+
+<MemberInfo kind="method" type={`(data: <a href='/reference/typescript-api/import-export/initial-data#initialdata'>InitialData</a>, channel?: <a href='/reference/typescript-api/entities/channel#channel'>Channel</a>) => `}   />
+
+Should be run *before* populating the products, so that there are TaxRates by which
+product prices can be set. If the `channel` argument is set, then any [ChannelAware](/reference/typescript-api/entities/interfaces#channelaware)entities will be assigned to that Channel.
+### populateCollections
+
+<MemberInfo kind="method" type={`(data: <a href='/reference/typescript-api/import-export/initial-data#initialdata'>InitialData</a>, channel?: <a href='/reference/typescript-api/entities/channel#channel'>Channel</a>) => `}   />
+
+Should be run *after* the products have been populated, otherwise the expected FacetValues will not
+yet exist.
+
+
+</div>

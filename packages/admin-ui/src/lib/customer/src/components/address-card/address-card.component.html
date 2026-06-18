@@ -1,0 +1,60 @@
+<div class="card" *ngIf="addressForm.value as address">
+    <div class="card-header">
+        <div class="address-title">
+            <span class="street-line" *ngIf="address.streetLine1">{{ address.streetLine1 }},</span>
+            {{ address.countryCode }}
+        </div>
+        <div class="default-controls">
+            <vdr-chip class="is-default p8" *ngIf="isDefaultShipping">
+                <clr-icon shape="truck"></clr-icon>
+                {{ 'customer.default-shipping-address' | translate }}
+            </vdr-chip>
+            <vdr-chip class="is-default p8" *ngIf="isDefaultBilling">
+                <clr-icon shape="credit-card"></clr-icon>
+                {{ 'customer.default-billing-address' | translate }}
+            </vdr-chip>
+        </div>
+    </div>
+    <div class="card-block">
+        <div class="card-text">
+            <vdr-formatted-address [address]="address"></vdr-formatted-address>
+        </div>
+    </div>
+    <div class="card-footer">
+        <div class="address-actions">
+            <vdr-entity-info [entity]="address"></vdr-entity-info>
+            <ng-container *ngIf="editable">
+                <button class="button-small" (click)="editAddress()">
+                    {{ 'common.edit' | translate }}
+                </button>
+                <vdr-dropdown>
+                    <button type="button" class="button-small" vdrDropdownTrigger>
+                        {{ 'common.more' | translate }}
+                        <clr-icon shape="ellipsis-vertical" size="12"></clr-icon>
+                    </button>
+                    <vdr-dropdown-menu>
+                        <button
+                            vdrDropdownItem
+                            [disabled]="isDefaultShipping"
+                            (click)="setAsDefaultShippingAddress()"
+                        >
+                            {{ 'customer.set-as-default-shipping-address' | translate }}
+                        </button>
+                        <button
+                            vdrDropdownItem
+                            [disabled]="isDefaultBilling"
+                            (click)="setAsDefaultBillingAddress()"
+                        >
+                            {{ 'customer.set-as-default-billing-address' | translate }}
+                        </button>
+                        <div class="dropdown-divider"></div>
+                        <button type="button" (click)="delete()" vdrDropdownItem>
+                            <clr-icon shape="trash" class="is-danger"></clr-icon>
+                            {{ 'common.delete' | translate }}
+                        </button>
+                    </vdr-dropdown-menu>
+                </vdr-dropdown>
+            </ng-container>
+        </div>
+    </div>
+</div>

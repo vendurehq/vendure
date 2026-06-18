@@ -1,0 +1,53 @@
+---
+title: "NativeAuthenticationStrategy"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/auth/native-authentication-strategy.ts" sourceLine="36" packageName="@vendure/core" />
+
+This strategy implements a username/password credential-based authentication, with the credentials
+being stored in the Vendure database. This is the default method of authentication, and it is advised
+to keep it configured unless there is a specific reason not to.
+
+```ts title="Signature"
+class NativeAuthenticationStrategy implements AuthenticationStrategy<NativeAuthenticationData> {
+    readonly name = NATIVE_AUTH_STRATEGY_NAME;
+    init(injector: Injector) => ;
+    defineInputType() => DocumentNode;
+    authenticate(ctx: RequestContext, data: NativeAuthenticationData) => Promise<User | false>;
+    verifyUserPassword(ctx: RequestContext, userId: ID, password: string) => Promise<boolean>;
+}
+```
+* Implements: [`AuthenticationStrategy`](/reference/typescript-api/auth/authentication-strategy#authenticationstrategy)`<NativeAuthenticationData>`
+
+
+
+<div className="members-wrapper">
+
+### name
+
+<MemberInfo kind="property" type={``}   />
+
+
+### init
+
+<MemberInfo kind="method" type={`(injector: <a href='/reference/typescript-api/common/injector#injector'>Injector</a>) => `}   />
+
+
+### defineInputType
+
+<MemberInfo kind="method" type={`() => DocumentNode`}   />
+
+
+### authenticate
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, data: NativeAuthenticationData) => Promise<<a href='/reference/typescript-api/entities/user#user'>User</a> | false>`}   />
+
+
+### verifyUserPassword
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>, password: string) => Promise<boolean>`}   />
+
+
+
+
+</div>

@@ -1,0 +1,42 @@
+:host, .vdr-card {
+    display: block;
+    --card-padding: calc(var(--space-unit) * 3);
+    container-type: inline-size;
+}
+
+.card-container {
+    @container (max-width: 400px) {
+        --card-padding: calc(var(--space-unit) * 2);
+    }
+    border: 1px solid var(--color-card-border);
+    background-color: var(--color-card-bg);
+    border-radius: var(--border-radius);
+    padding: var(--card-padding) 0;
+    box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.05);
+
+    &.padding-x {
+        padding-inline-start: var(--card-padding);
+        padding-inline-end: var(--card-padding);
+    }
+}
+
+.title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--card-padding);
+}
+.title {
+    font-size: var(--font-size-base);
+    padding: 0 var(--card-padding);
+}
+.padding-x .title {
+    padding: 0;
+}
+
+::ng-deep vdr-card + vdr-card {
+    margin-top: calc(var(--space-unit) * 2);
+}
+.vdr-card + .vdr-card {
+    margin-top: calc(var(--space-unit) * 2);
+}

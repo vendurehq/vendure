@@ -1,0 +1,27 @@
+<div class="split-view-wrapper" [class.expanded]="rightPanelOpen" [class.resizing]="resizing$ | async">
+    <div class="left-panel" [style.width]="leftPanelWidth$ | async">
+        <ng-container *ngTemplateOutlet="leftTemplate"></ng-container>
+    </div>
+    <div class="separator" [class.hidden]="!rightPanelOpen">
+        <div class="top"></div>
+        <div class="resize-handle" #resizeHandle>
+            <clr-icon shape="drag-handle"></clr-icon>
+        </div>
+        <div class="bottom"></div>
+    </div>
+    <div
+        class="right-panel"
+        [class.expanded]="rightPanelOpen"
+        [class.resizing]="resizing$ | async"
+        [style.width.px]="rightPanelOpen ? (rightPanelWidth$ | async) : 0"
+    >
+        <div class="close-row">
+            <div class="title" *ngIf="rightTemplate.splitViewTitle as title">{{ title }}</div>
+            <button type="button" class="button-small" (click)="close()">
+                <clr-icon shape="close"></clr-icon>
+            </button>
+        </div>
+
+        <ng-container *ngTemplateOutlet="rightTemplate.template"></ng-container>
+    </div>
+</div>

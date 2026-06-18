@@ -1,0 +1,5 @@
+<div [class.has-prefix]="!!prefix" [class.has-suffix]="!!suffix" class="input-wrapper">
+    <ng-content></ng-content>
+</div>
+<div class="affix prefix" *ngIf="prefix">{{ prefix }}</div>
+<div class="affix suffix" *ngIf="suffix">{{ suffix }}</div>

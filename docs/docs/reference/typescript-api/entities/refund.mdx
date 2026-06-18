@@ -1,0 +1,110 @@
+---
+title: "Refund"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/refund/refund.entity.ts" sourceLine="19" packageName="@vendure/core" />
+
+A refund the belongs to an order
+
+```ts title="Signature"
+class Refund extends VendureEntity implements HasCustomFields {
+    constructor(input?: DeepPartial<Refund>)
+    @Money() items: number;
+    @Money() shipping: number;
+    @Money() adjustment: number;
+    @Money() total: number;
+    @Column() method: string;
+    @Column({ nullable: true }) reason: string;
+    @Column('varchar') state: RefundState;
+    @Column({ nullable: true }) transactionId: string;
+    @OneToMany(type => RefundLine, line => line.refund)
+    @JoinTable()
+    lines: RefundLine[];
+    @Index()
+    @ManyToOne(type => Payment, payment => payment.refunds)
+    @JoinColumn()
+    payment: Payment;
+    @EntityId()
+    paymentId: ID;
+    @Column('simple-json') metadata: PaymentMetadata;
+    @Column(type => CustomRefundFields)
+    customFields: CustomRefundFields;
+}
+```
+* Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
+
+
+* Implements: HasCustomFields
+
+
+
+<div className="members-wrapper">
+
+### items
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### shipping
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### adjustment
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### total
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### method
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### reason
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### state
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/payment/refund-state#refundstate'>RefundState</a>`}   />
+
+
+### transactionId
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### lines
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/order-line-reference#refundline'>RefundLine</a>[]`}   />
+
+
+### payment
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/payment#payment'>Payment</a>`}   />
+
+
+### paymentId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
+
+
+### metadata
+
+<MemberInfo kind="property" type={`PaymentMetadata`}   />
+
+
+### customFields
+
+<MemberInfo kind="property" type={`CustomRefundFields`}   />
+
+
+
+
+</div>

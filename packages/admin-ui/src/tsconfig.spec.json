@@ -1,0 +1,17 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../out-tsc/spec",
+    "typeRoots": [
+      "../../../node_modules/@types"
+    ]
+  },
+  "files": [
+    "test.ts",
+    "lib/static/polyfills.ts"
+  ],
+  "include": [
+    "**/*.spec.ts",
+    "**/*.d.ts"
+  ]
+}

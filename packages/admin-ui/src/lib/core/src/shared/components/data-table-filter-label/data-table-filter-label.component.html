@@ -1,0 +1,72 @@
+<span><vdr-localized-text [text]="filterWithValue.filter.label" />:</span>
+<div>
+    <ng-container *ngIf="filterWithValue.isSelect()">
+        {{ filterWithValue.value?.join(', ') }}
+    </ng-container>
+    <ng-container *ngIf="filterWithValue.isId()">
+        <span *ngIf="filterWithValue.value?.operator === 'eq'">{{ 'common.operator-eq' | translate }}</span>
+        <span *ngIf="filterWithValue.value?.operator === 'notEq'">{{
+            'common.operator-not-eq' | translate
+        }}</span>
+        <span> "{{ filterWithValue.value?.term }}"</span>
+    </ng-container>
+    <ng-container *ngIf="filterWithValue.isText()">
+        <span *ngIf="filterWithValue.value?.operator === 'contains'">{{
+            'common.operator-contains' | translate
+        }}</span>
+        <span *ngIf="filterWithValue.value?.operator === 'eq'">{{ 'common.operator-eq' | translate }}</span>
+        <span *ngIf="filterWithValue.value?.operator === 'notContains'">{{
+            'common.operator-notContains' | translate
+        }}</span>
+        <span *ngIf="filterWithValue.value?.operator === 'notEq'">{{
+            'common.operator-not-eq' | translate
+        }}</span>
+        <span *ngIf="filterWithValue.value?.operator === 'regex'">{{
+            'common.operator-regex' | translate
+        }}</span>
+        <span> "{{ filterWithValue.value?.term }}"</span>
+    </ng-container>
+    <ng-container *ngIf="filterWithValue.isBoolean()">
+        <span *ngIf="filterWithValue?.value">{{ 'common.boolean-true' | translate }}</span>
+        <span *ngIf="!filterWithValue?.value">{{ 'common.boolean-false' | translate }}</span>
+    </ng-container>
+    <ng-container *ngIf="filterWithValue.isDateRange()">
+        <ng-container *ngIf="filterWithValue.value.mode === 'relative'">
+            <span *ngIf="filterWithValue.value.relativeUnit === 'day'">
+                {{ 'datetime.relative-past-days' | translate: { count: filterWithValue.value.relativeValue } }}
+            </span>
+            <span *ngIf="filterWithValue.value.relativeUnit === 'month'">
+                {{ 'datetime.relative-past-months' | translate: { count: filterWithValue.value.relativeValue } }}
+            </span>
+            <span *ngIf="filterWithValue.value.relativeUnit === 'year'">
+                {{ 'datetime.relative-past-years' | translate: { count: filterWithValue.value.relativeValue } }}
+            </span>
+        </ng-container>
+        <ng-container *ngIf="filterWithValue.value.mode === 'range'">
+            <span *ngIf="filterWithValue.value?.start && filterWithValue.value?.end">
+                {{ filterWithValue.value?.start | localeDate : 'shortDate' }} -
+                {{ filterWithValue.value?.end | localeDate : 'shortDate' }}
+            </span>
+            <span *ngIf="filterWithValue.value?.start && !filterWithValue.value?.end">
+                > {{ filterWithValue.value?.start | localeDate : 'shortDate' }}
+            </span>
+            <span *ngIf="filterWithValue.value?.end && !filterWithValue.value?.start">
+                < {{ filterWithValue.value?.end | localeDate : 'shortDate' }}
+            </span>
+        </ng-container>
+    </ng-container>
+    <ng-container *ngIf="filterWithValue.isNumber()">
+        <span *ngIf="filterWithValue.value?.operator === 'eq'"> = </span>
+        <span *ngIf="filterWithValue.value?.operator === 'gt'"> > </span>
+        <span *ngIf="filterWithValue.value?.operator === 'lt'"> < </span>
+        <span *ngIf="$any(filterWithValue.filter.type).inputType === 'currency'">{{
+            +filterWithValue.value?.amount | localeCurrency
+        }}</span>
+        <span *ngIf="$any(filterWithValue.filter.type).inputType !== 'currency'">{{
+            +filterWithValue.value?.amount
+        }}</span>
+    </ng-container>
+    <ng-container *ngIf="filterWithValue.isCustom()">
+        <span>{{ customFilterLabel$ | async }}</span>
+    </ng-container>
+</div>

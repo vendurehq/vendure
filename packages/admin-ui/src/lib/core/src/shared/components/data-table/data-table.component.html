@@ -1,0 +1,70 @@
+<ng-container *ngIf="!items || (items && items.length); else emptyPlaceholder">
+    <div class="bulk-actions">
+    <ng-content select="vdr-bulk-action-menu"></ng-content>
+    </div>
+    <table class="table" [class.no-select]="disableSelect">
+        <thead [class.items-selected]="selectionManager?.selection.length">
+            <tr>
+                <th *ngIf="isRowSelectedFn || selectionManager" class="align-middle">
+                    <input
+                        type="checkbox"
+                        clrCheckbox
+                        [checked]="allSelected ? allSelected : selectionManager?.areAllCurrentItemsSelected()"
+                        (change)="onToggleAllClick()"
+                    />
+                </th>
+                <th *ngFor="let header of columns?.toArray()" class="left align-middle" [class.expand]="header.expand">
+                    <ng-container *ngTemplateOutlet="header.template"></ng-container>
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr
+                *ngFor="
+                    let item of items
+                        | paginate
+                            : {
+                                  itemsPerPage: itemsPerPage,
+                                  currentPage: currentPage,
+                                  totalItems: totalItems
+                              };
+                    index as i;
+                    trackBy: trackByFn
+                "
+            >
+                <td *ngIf="isRowSelectedFn || selectionManager" class="align-middle selection-col">
+                    <input
+                        type="checkbox"
+                        clrCheckbox
+                        [checked]="isRowSelectedFn ? isRowSelectedFn(item) : selectionManager?.isSelected(item)"
+                        (click)="onRowClick(item, $event)"
+                    />
+                </td>
+                <ng-container
+                    *ngTemplateOutlet="rowTemplate; context: { item: item, index: i }"
+                ></ng-container>
+            </tr>
+        </tbody>
+    </table>
+    <div class="table-footer">
+        <vdr-items-per-page-controls
+            *ngIf="totalItems"
+            [itemsPerPage]="itemsPerPage"
+            (itemsPerPageChange)="itemsPerPageChange.emit($event)"
+        ></vdr-items-per-page-controls>
+        <div *ngIf="totalItems" class="p5">
+            {{ 'common.total-items' | translate: { currentStart, currentEnd, totalItems } }}
+        </div>
+
+        <vdr-pagination-controls
+            *ngIf="totalItems"
+            [currentPage]="currentPage"
+            [itemsPerPage]="itemsPerPage"
+            [totalItems]="totalItems"
+            (pageChange)="pageChange.emit($event)"
+        ></vdr-pagination-controls>
+    </div>
+</ng-container>
+<ng-template #emptyPlaceholder>
+    <vdr-empty-placeholder [emptyStateLabel]="emptyStateLabel"></vdr-empty-placeholder>
+</ng-template>

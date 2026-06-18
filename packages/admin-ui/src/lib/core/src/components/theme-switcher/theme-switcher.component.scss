@@ -1,0 +1,50 @@
+:host {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+button.theme-toggle {
+    position: relative;
+    padding-inline-start: 20px;
+    border: none;
+    background: transparent;
+    color: var(--color-text-200);
+    cursor: pointer;
+}
+
+.theme-icon {
+    position: absolute;
+    top: 0px;
+    left: 4px;
+    z-index: 0;
+    opacity: 0.2;
+    color: var(--color-text-300);
+    transition: opacity 0.3s, left 0.3s;
+
+    &.active {
+        z-index: 1;
+        left: -2px;
+        opacity: 1;
+    }
+
+    &.default.active {
+        color: #d6ae3f;
+    }
+
+    &.dark.active {
+        color: #ffdf3a;
+    }
+}
+
+:host-context([dir='rtl']) {
+    .theme-icon {
+        left: auto;
+        right: 6px;
+
+        &.active {
+            left: auto;
+            right: 0px;
+        }
+    }
+}

@@ -1,0 +1,61 @@
+---
+title: "TagService"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/services/tag.service.ts" sourceLine="25" packageName="@vendure/core" />
+
+Contains methods relating to [Tag](/reference/typescript-api/entities/tag#tag) entities.
+
+```ts title="Signature"
+class TagService {
+    constructor(connection: TransactionalConnection, listQueryBuilder: ListQueryBuilder)
+    findAll(ctx: RequestContext, options?: ListQueryOptions<Tag>) => Promise<PaginatedList<Tag>>;
+    findOne(ctx: RequestContext, tagId: ID) => Promise<Tag | undefined>;
+    create(ctx: RequestContext, input: CreateTagInput) => ;
+    update(ctx: RequestContext, input: UpdateTagInput) => ;
+    delete(ctx: RequestContext, id: ID) => Promise<DeletionResponse>;
+    valuesToTags(ctx: RequestContext, values: string[]) => Promise<Tag[]>;
+    getTagsForEntity(ctx: RequestContext, entity: Type<VendureEntity & Taggable>, id: ID) => Promise<Tag[]>;
+}
+```
+
+<div className="members-wrapper">
+
+### findAll
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: ListQueryOptions<<a href='/reference/typescript-api/entities/tag#tag'>Tag</a>>) => Promise<<a href='/reference/typescript-api/common/paginated-list#paginatedlist'>PaginatedList</a><<a href='/reference/typescript-api/entities/tag#tag'>Tag</a>>>`}   />
+
+
+### findOne
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, tagId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/tag#tag'>Tag</a> | undefined>`}   />
+
+
+### create
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: CreateTagInput) => `}   />
+
+
+### update
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: UpdateTagInput) => `}   />
+
+
+### delete
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<DeletionResponse>`}   />
+
+
+### valuesToTags
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, values: string[]) => Promise<<a href='/reference/typescript-api/entities/tag#tag'>Tag</a>[]>`}   />
+
+
+### getTagsForEntity
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: Type<<a href='/reference/typescript-api/entities/vendure-entity#vendureentity'>VendureEntity</a> &#38; <a href='/reference/typescript-api/entities/interfaces#taggable'>Taggable</a>>, id: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/tag#tag'>Tag</a>[]>`}   />
+
+
+
+
+</div>

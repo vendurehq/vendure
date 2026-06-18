@@ -1,0 +1,8 @@
+<vdr-page-header>
+    <vdr-page-title></vdr-page-title>
+    <vdr-page-header-description *ngIf="description">{{ description }}</vdr-page-header-description>
+    <vdr-page-header-tabs *ngIf="headerTabs.length > 1" [tabs]="headerTabs"></vdr-page-header-tabs>
+</vdr-page-header>
+<vdr-page-body>
+    <router-outlet />
+</vdr-page-body>

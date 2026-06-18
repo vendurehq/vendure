@@ -1,0 +1,38 @@
+---
+title: "DataTableCellComponent"
+generated: true
+---
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-table/types.ts" sourceLine="38" packageName="@vendure/dashboard" since="3.4.0" />
+
+This type is used to define re-usable components that can render a table cell in a
+DataTable.
+
+*Example*
+
+```ts
+import { DataTableCellComponent } from '@vendure/dashboard';
+
+type CustomerCellData = {
+    customer: {
+        id: string;
+        firstName: string;
+        lastName: string;
+    } | null;
+};
+
+export const CustomerCell: DataTableCellComponent<CustomerCellData> = ({ row }) => {
+    const value = row.original.customer;
+    if (!value) {
+        return null;
+    }
+    return (
+        <Button variant="ghost" render={<Link to={`/customers/${value.id}`} />}>
+            {value.firstName} {value.lastName}
+        </Button>
+    );
+};
+```
+
+```ts title="Signature"
+type DataTableCellComponent<T> = <Data extends T>(context: CellContext<Data, any>) => any
+```

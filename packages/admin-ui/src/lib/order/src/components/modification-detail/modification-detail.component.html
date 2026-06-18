@@ -1,0 +1,17 @@
+<vdr-labeled-data [label]="'common.ID' | translate">{{ modification.id }}</vdr-labeled-data>
+<vdr-labeled-data *ngIf="modification.note" [label]="'order.note' | translate">{{
+    modification.note
+}}</vdr-labeled-data>
+<vdr-labeled-data *ngFor="let surcharge of modification.surcharges" [label]="'order.surcharges' | translate">
+    {{ getSurcharge(surcharge.id)?.description }}
+    {{ getSurcharge(surcharge.id)?.priceWithTax | localeCurrency: order.currencyCode }}</vdr-labeled-data
+>
+<vdr-labeled-data *ngIf="getAddedItems().length" [label]="'order.added-items' | translate">
+    <vdr-simple-item-list [items]="getAddedItems()"></vdr-simple-item-list>
+</vdr-labeled-data>
+<vdr-labeled-data *ngIf="getRemovedItems().length" [label]="'order.removed-items' | translate">
+    <vdr-simple-item-list [items]="getRemovedItems()"></vdr-simple-item-list>
+</vdr-labeled-data>
+<vdr-labeled-data *ngIf="getModifiedItems().length" [label]="'order.modified-items' | translate">
+    <vdr-simple-item-list [items]="getModifiedItems()"></vdr-simple-item-list>
+</vdr-labeled-data>

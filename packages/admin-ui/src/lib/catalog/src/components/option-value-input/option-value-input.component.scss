@@ -1,0 +1,61 @@
+
+.input-wrapper {
+    background-color: var(--color-form-input-bg);
+    border-radius: 3px !important;
+    border: 1px solid var(--color-grey-300) !important;
+    cursor: text;
+
+    &.focus {
+        border-color: var(--color-primary-500) !important;
+        box-shadow: 0 0 1px 1px var(--color-primary-100);
+    }
+
+    .chips {
+        padding: 5px;
+    }
+
+    textarea {
+        border: none;
+        width: 100%;
+        height: 24px;
+        margin-top: 3px;
+        padding: 0 6px;
+        &:focus {
+            outline: none;
+            box-shadow: none;
+        }
+        &:disabled {
+            background-color: var(--color-component-bg-100);
+        }
+    }
+}
+
+vdr-chip {
+    ::ng-deep .wrapper {
+        margin: 0 3px;
+    }
+    &.locked {
+        opacity: 0.8;
+    }
+    &.selected {
+        ::ng-deep .wrapper {
+            border-color: var(--color-warning-500) !important;
+            box-shadow: 0 0 1px 1px var(--color-warning-400);
+            opacity: 0.6;
+        }
+    }
+    .option-name {
+        &.editable {
+            &:hover {
+                outline: 1px solid var(--color-component-bg-300);
+                outline-offset: 1px;
+                border-radius: 1px;
+            }
+        }
+    }
+    input {
+        padding: 0px !important;
+        margin-top: -2px;
+        margin-bottom: -2px;
+    }
+}

@@ -1,0 +1,17 @@
+<ng-select
+    [items]="languageCodes"
+    [addTag]="false"
+    [hideSelected]="true"
+    [searchFn]="searchLanguageCodes"
+    multiple="true"
+    appendTo="body"
+    [(ngModel)]="value"
+    (ngModelChange)="onChangeFn($event)"
+>
+    <ng-template ng-label-tmp let-item="item" let-clear="clear">
+        <span class="ng-value-icon left" (click)="clear.call(null, item)" aria-hidden="true"> × </span>
+        <span class="ng-value-label">{{ item | localeLanguageName }} ({{ item }})</span>
+    </ng-template>
+    <ng-template ng-option-tmp let-item="item">{{ item | localeLanguageName }} ({{ item }})</ng-template>
+</ng-select>
+

@@ -1,0 +1,8 @@
+<div
+    [attr.data-from]="from.node.name"
+    [attr.data-to]="to.node.name"
+    [ngStyle]="getStyle()"
+    [class.active]="active$ | async"
+    class="edge">
+    <clr-icon shape="arrow" flip="vertical" class="arrow"></clr-icon>
+</div>

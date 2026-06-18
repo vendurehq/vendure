@@ -1,0 +1,10 @@
+<div [dir]="direction$ | async" class="notification-wrapper" #wrapper [style.top.px]="offsetTop" [ngClass]="{
+            visible: isVisible,
+            info: type === 'info',
+            success: type === 'success',
+            error: type === 'error',
+            warning: type === 'warning'
+        }">
+    <clr-icon [attr.shape]="getIcon()" size="24"></clr-icon>
+    {{ stringifyMessage(message) | translate: translationVars }}
+</div>

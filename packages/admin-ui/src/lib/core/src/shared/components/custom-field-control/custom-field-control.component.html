@@ -1,0 +1,36 @@
+<div class="clr-form-control" *ngIf="compact">
+    <div class="flex">
+        <label for="basic" class="clr-control-label"
+            >{{ customField | customFieldLabel: (uiLanguage$ | async) }}
+            <vdr-help-tooltip
+                *ngIf="customField | customFieldDescription: (uiLanguage$ | async) as description"
+                [content]="description"
+            ></vdr-help-tooltip>
+        </label>
+    </div>
+    <div class="clr-control-container">
+        <div class="clr-input-wrapper">
+            <ng-container *ngTemplateOutlet="inputs"></ng-container>
+        </div>
+    </div>
+</div>
+<vdr-form-field
+    [label]="customField | customFieldLabel: (uiLanguage$ | async)"
+    [tooltip]="customField | customFieldDescription: (uiLanguage$ | async)"
+    [for]="customField.name"
+    *ngIf="!compact"
+>
+    <ng-container *ngTemplateOutlet="inputs"></ng-container>
+</vdr-form-field>
+
+<ng-template #inputs>
+    <ng-container [formGroup]="formGroup">
+        <vdr-dynamic-form-input
+            [formControlName]="customField.name"
+            [readonly]="readonly || customField.readonly"
+            [control]="formGroup.get(customField.name)"
+            [def]="getFieldDefinition()"
+        >
+        </vdr-dynamic-form-input>
+    </ng-container>
+</ng-template>

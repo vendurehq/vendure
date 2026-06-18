@@ -1,0 +1,50 @@
+---
+title: "ProcessContext"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/process-context/process-context.ts" sourceLine="31" packageName="@vendure/core" />
+
+The ProcessContext can be injected into your providers & modules in order to know whether it
+is being executed in the context of the main Vendure server or the worker.
+
+*Example*
+
+```ts
+import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
+import { ProcessContext } from '@vendure/core';
+
+@Injectable()
+export class MyService implements OnApplicationBootstrap {
+  constructor(private processContext: ProcessContext) {}
+
+  onApplicationBootstrap() {
+    if (this.processContext.isServer) {
+      // code which will only execute when running in
+      // the server process
+    }
+  }
+}
+```
+
+```ts title="Signature"
+class ProcessContext {
+    isServer: boolean
+    isWorker: boolean
+}
+```
+
+<div className="members-wrapper">
+
+### isServer
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+
+### isWorker
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+
+
+
+</div>

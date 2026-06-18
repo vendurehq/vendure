@@ -1,0 +1,61 @@
+---
+title: "CountryService"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/services/country.service.ts" sourceLine="33" packageName="@vendure/core" />
+
+Contains methods relating to [Country](/reference/typescript-api/entities/country#country) entities.
+
+```ts title="Signature"
+class CountryService {
+    constructor(connection: TransactionalConnection, listQueryBuilder: ListQueryBuilder, translatableSaver: TranslatableSaver, eventBus: EventBus, translator: TranslatorService)
+    findAll(ctx: RequestContext, options?: ListQueryOptions<Country>, relations: RelationPaths<Country> = []) => Promise<PaginatedList<Translated<Country>>>;
+    findOne(ctx: RequestContext, countryId: ID, relations: RelationPaths<Country> = []) => Promise<Translated<Country> | undefined>;
+    findAllAvailable(ctx: RequestContext) => Promise<Array<Translated<Country>>>;
+    findOneByCode(ctx: RequestContext, countryCode: string) => Promise<Translated<Country>>;
+    create(ctx: RequestContext, input: CreateCountryInput) => Promise<Translated<Country>>;
+    update(ctx: RequestContext, input: UpdateCountryInput) => Promise<Translated<Country>>;
+    delete(ctx: RequestContext, id: ID) => Promise<DeletionResponse>;
+}
+```
+
+<div className="members-wrapper">
+
+### findAll
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: ListQueryOptions<<a href='/reference/typescript-api/entities/country#country'>Country</a>>, relations: RelationPaths<<a href='/reference/typescript-api/entities/country#country'>Country</a>> = []) => Promise<<a href='/reference/typescript-api/common/paginated-list#paginatedlist'>PaginatedList</a><Translated<<a href='/reference/typescript-api/entities/country#country'>Country</a>>>>`}   />
+
+
+### findOne
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, countryId: <a href='/reference/typescript-api/common/id#id'>ID</a>, relations: RelationPaths<<a href='/reference/typescript-api/entities/country#country'>Country</a>> = []) => Promise<Translated<<a href='/reference/typescript-api/entities/country#country'>Country</a>> | undefined>`}   />
+
+
+### findAllAvailable
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/country#country'>Country</a>>>>`}   />
+
+Returns an array of enabled Countries, intended for use in a public-facing (ie. Shop) API.
+### findOneByCode
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, countryCode: string) => Promise<Translated<<a href='/reference/typescript-api/entities/country#country'>Country</a>>>`}   />
+
+Returns a Country based on its ISO country code.
+### create
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: CreateCountryInput) => Promise<Translated<<a href='/reference/typescript-api/entities/country#country'>Country</a>>>`}   />
+
+
+### update
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: UpdateCountryInput) => Promise<Translated<<a href='/reference/typescript-api/entities/country#country'>Country</a>>>`}   />
+
+
+### delete
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<DeletionResponse>`}   />
+
+
+
+
+</div>

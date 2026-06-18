@@ -1,0 +1,31 @@
+<div
+    class="form-group"
+    [class.no-label]="!label"
+    [class.clr-error]="formFieldControl?.formControlName?.invalid"
+>
+    <label *ngIf="label" [for]="for" class="">
+        {{ label }}
+    </label>
+    <div *ngIf="tooltip" class="tooltip-text">
+        {{ tooltip }}
+    </div>
+    <div
+        class="input-row"
+        [class.has-toggle]="readOnlyToggle"
+        [class.readonly]="isReadOnly"
+        [class.invalid]="formFieldControl?.touched && !formFieldControl?.valid"
+    >
+        <ng-content></ng-content>
+        <button
+            *ngIf="readOnlyToggle"
+            type="button"
+            [title]="'common.edit-field' | translate"
+            class="btn edit-button"
+            [class.enabled]="!isReadOnly"
+            (click)="setReadOnly(!isReadOnly)"
+        >
+            <clr-icon shape="edit"></clr-icon>
+        </button>
+    </div>
+    <div class="error-message" *ngIf="getErrorMessage()">{{ getErrorMessage() }}</div>
+</div>

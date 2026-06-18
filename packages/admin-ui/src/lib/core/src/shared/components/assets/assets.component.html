@@ -1,0 +1,95 @@
+<div *ngIf="!compact; else compactView" class="standard-view-container">
+    <div class="featured-asset">
+        <img
+            *ngIf="featuredAsset"
+            [src]="featuredAsset | assetPreview : 'small'"
+            (click)="previewAsset(featuredAsset)"
+        />
+        <div class="placeholder" *ngIf="!featuredAsset" (click)="selectAssets()">
+            <clr-icon shape="image" size="128"></clr-icon>
+            <div>{{ 'catalog.no-featured-asset' | translate }}</div>
+        </div>
+    </div>
+    <div class="all-assets-container">
+    <ng-container *ngTemplateOutlet="assetList"></ng-container>
+    <div *vdrIfPermissions="updatePermissions">
+        <button class="btn" (click)="selectAssets()">
+            <clr-icon shape="attachment"></clr-icon>
+            {{ 'asset.add-asset' | translate }}
+        </button>
+    </div>
+    </div>
+</div>
+
+<ng-template #compactView>
+    <div class="featured-asset compact">
+        <img
+            *ngIf="featuredAsset"
+            [src]="featuredAsset | assetPreview : 'thumb'"
+            (click)="previewAsset(featuredAsset)"
+        />
+
+        <div class="placeholder" *ngIf="!featuredAsset" (click)="selectAssets()">
+            <clr-icon shape="image" size="150"></clr-icon>
+        </div>
+    </div>
+    <ng-container *ngTemplateOutlet="assetList"></ng-container>
+    <button
+        *vdrIfPermissions="updatePermissions"
+        class="compact-select btn btn-icon btn-sm btn-block"
+        [title]="'asset.add-asset' | translate"
+        (click)="selectAssets()"
+    >
+        <clr-icon shape="attachment"></clr-icon>
+        {{ 'asset.add-asset' | translate }}
+    </button>
+</ng-template>
+
+<ng-template #assetList>
+    <div class="all-assets" [class.compact]="compact" cdkDropListGroup>
+        <div
+            *ngFor="let asset of assets; let index = index"
+            class="drop-list"
+            cdkDropList
+            cdkDropListOrientation="horizontal"
+            [cdkDropListData]="index"
+            [cdkDropListDisabled]="!(updatePermissions | hasPermission)"
+            (cdkDropListDropped)="dropListDropped($event)"
+        >
+            <vdr-dropdown cdkDrag>
+                <div
+                    class="asset-thumb"
+                    vdrDropdownTrigger
+                    [class.featured]="isFeatured(asset)"
+                    [title]=""
+                    tabindex="0"
+                >
+                    <img [src]="asset | assetPreview : 'tiny'" />
+                </div>
+                <vdr-dropdown-menu vdrPosition="bottom-right">
+                    <button type="button" vdrDropdownItem (click)="previewAsset(asset)">
+                        {{ 'asset.preview' | translate }}
+                    </button>
+                    <button
+                        type="button"
+                        [disabled]="isFeatured(asset) || !(updatePermissions | hasPermission)"
+                        vdrDropdownItem
+                        (click)="setAsFeatured(asset)"
+                    >
+                        {{ 'asset.set-as-featured-asset' | translate }}
+                    </button>
+                    <div class="dropdown-divider"></div>
+                    <button
+                        type="button"
+                        class="remove-asset"
+                        vdrDropdownItem
+                        [disabled]="!(updatePermissions | hasPermission)"
+                        (click)="removeAsset(asset)"
+                    >
+                        {{ 'asset.remove-asset' | translate }}
+                    </button>
+                </vdr-dropdown-menu>
+            </vdr-dropdown>
+        </div>
+    </div>
+</ng-template>

@@ -1,0 +1,26 @@
+type Query {
+    globalSettings: GlobalSettings!
+}
+
+type Mutation {
+    updateGlobalSettings(input: UpdateGlobalSettingsInput!): UpdateGlobalSettingsResult!
+}
+
+input UpdateGlobalSettingsInput {
+    availableLanguages: [LanguageCode!]
+    trackInventory: Boolean
+    outOfStockThreshold: Int
+}
+
+"""
+Returned when the default LanguageCode of a Channel is no longer found in the `availableLanguages`
+of the GlobalSettings
+"""
+type ChannelDefaultLanguageError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+    language: String!
+    channelCode: String!
+}
+
+union UpdateGlobalSettingsResult = GlobalSettings | ChannelDefaultLanguageError

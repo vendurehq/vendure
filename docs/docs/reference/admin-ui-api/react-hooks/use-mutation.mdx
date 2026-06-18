@@ -1,0 +1,57 @@
+---
+title: "UseMutation"
+generated: true
+---
+<GenerationInfo sourceFile="packages/admin-ui/src/lib/react/src/react-hooks/use-query.ts" sourceLine="181" packageName="@vendure/admin-ui" />
+
+A React hook which allows you to execute a GraphQL mutation.
+
+*Example*
+
+```ts
+import { useMutation } from '@vendure/admin-ui/react';
+import { gql } from 'graphql-tag';
+
+const UPDATE_PRODUCT = gql`
+  mutation UpdateProduct($input: UpdateProductInput!) {
+    updateProduct(input: $input) {
+    id
+    name
+  }
+}`;
+
+export const MyComponent = () => {
+    const [updateProduct, { data, loading, error }] = useMutation(UPDATE_PRODUCT);
+
+    const handleClick = () => {
+        updateProduct({
+            input: {
+                id: '1',
+                name: 'New name',
+            },
+        }).then(result => {
+            // do something with the result
+        });
+    };
+
+    if (loading) return <div>Loading...</div>;
+    if (error) return <div>Error! { error }</div>;
+
+    return (
+    <div>
+        <button onClick={handleClick}>Update product</button>
+        {data && <div>Product updated!</div>}
+    </div>
+    );
+};
+```
+
+```ts title="Signature"
+function useMutation<T, V extends Record<string, any> = Record<string, any>>(mutation: DocumentNode | TypedDocumentNode<T, V>): void
+```
+Parameters
+
+### mutation
+
+<MemberInfo kind="parameter" type={`DocumentNode | TypedDocumentNode<T, V>`} />
+

@@ -1,0 +1,32 @@
+<div
+    [ngClass]="displayType"
+    [class.has-custom-icon]="!!iconShape"
+    class="entry"
+    [class.last]="isLast === true"
+    [class.first]="isFirst === true"
+    [class.collapsed]="collapsed"
+>
+    <div class="timeline" (click)="expandClick.emit()" [title]="timelineTitle | translate">
+        <div class="custom-icon">
+            <clr-icon
+                *ngIf="iconShape && !collapsed"
+                [attr.shape]="getIconShape()"
+                [ngClass]="getIconClass()"
+                size="24"
+            ></clr-icon>
+        </div>
+    </div>
+    <div class="entry-body">
+        <div class="detail">
+            <div class="time">
+                {{ createdAt | localeDate: 'short' }}
+            </div>
+            <div class="name">
+                {{ name || '' }}
+            </div>
+        </div>
+        <div [class.featured-entry]="featured">
+            <ng-content></ng-content>
+        </div>
+    </div>
+</div>

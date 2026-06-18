@@ -1,0 +1,19 @@
+.tag-list {
+    list-style-type: none;
+
+    li {
+        display: flex;
+        align-items: center;
+        input {
+            max-width: 170px;
+        }
+    }
+
+    li.to-delete {
+        opacity: 0.7;
+        background-color: var(--color-component-bg-300);
+        input {
+            background-color: transparent !important;
+        }
+    }
+}

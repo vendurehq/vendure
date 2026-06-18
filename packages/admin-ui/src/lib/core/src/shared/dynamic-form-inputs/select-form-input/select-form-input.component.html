@@ -1,0 +1,6 @@
+<select [formControl]="formControl" [vdrDisabled]="readonly">
+    <option *ngIf="config.nullable" [ngValue]="null"></option>
+    <option *ngFor="let option of options;trackBy:trackByFn" [ngValue]="option.value">
+        {{ (option | customFieldLabel:(uiLanguage$ | async)) || option.label || option.value }}
+    </option>
+</select>

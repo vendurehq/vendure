@@ -1,0 +1,12 @@
+
+.default-role-label {
+    color: var(--color-grey-400);
+}
+
+.permissions-list {
+    max-width: 500px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+}

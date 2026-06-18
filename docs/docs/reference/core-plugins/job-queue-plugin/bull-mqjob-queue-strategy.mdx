@@ -1,0 +1,88 @@
+---
+title: "BullMQJobQueueStrategy"
+generated: true
+---
+<GenerationInfo sourceFile="packages/job-queue-plugin/src/bullmq/bullmq-job-queue-strategy.ts" sourceLine="53" packageName="@vendure/job-queue-plugin" />
+
+This JobQueueStrategy uses [BullMQ](https://docs.bullmq.io/) to implement a push-based job queue
+on top of Redis. It should not be used alone, but as part of the [BullMQJobQueuePlugin](/reference/core-plugins/job-queue-plugin/bull-mqjob-queue-plugin#bullmqjobqueueplugin).
+
+Note: To use this strategy, you need to manually install the `bullmq` package:
+
+```shell
+npm install bullmq@^5.4.2
+```
+
+```ts title="Signature"
+class BullMQJobQueueStrategy implements InspectableJobQueueStrategy {
+    init(injector: Injector) => Promise<void>;
+    destroy() => ;
+    add(job: Job<Data>) => Promise<Job<Data>>;
+    cancelJob(jobId: string) => Promise<Job | undefined>;
+    findMany(options?: JobListOptions) => Promise<PaginatedList<Job>>;
+    findManyById(ids: ID[]) => Promise<Job[]>;
+    findOne(id: ID) => Promise<Job | undefined>;
+    removeSettledJobs(queueNames?: string[], olderThan?: Date) => Promise<number>;
+    start(queueName: string, process: (job: Job<Data>) => Promise<any>) => Promise<void>;
+    stop(queueName: string, process: (job: Job<Data>) => Promise<any>) => Promise<void>;
+}
+```
+* Implements: InspectableJobQueueStrategy
+
+
+
+<div className="members-wrapper">
+
+### init
+
+<MemberInfo kind="method" type={`(injector: Injector) => Promise<void>`}   />
+
+
+### destroy
+
+<MemberInfo kind="method" type={`() => `}   />
+
+
+### add
+
+<MemberInfo kind="method" type={`(job: Job<Data>) => Promise<Job<Data>>`}   />
+
+
+### cancelJob
+
+<MemberInfo kind="method" type={`(jobId: string) => Promise<Job | undefined>`}   />
+
+
+### findMany
+
+<MemberInfo kind="method" type={`(options?: JobListOptions) => Promise<PaginatedList<Job>>`}   />
+
+
+### findManyById
+
+<MemberInfo kind="method" type={`(ids: ID[]) => Promise<Job[]>`}   />
+
+
+### findOne
+
+<MemberInfo kind="method" type={`(id: ID) => Promise<Job | undefined>`}   />
+
+
+### removeSettledJobs
+
+<MemberInfo kind="method" type={`(queueNames?: string[], olderThan?: Date) => Promise<number>`}   />
+
+
+### start
+
+<MemberInfo kind="method" type={`(queueName: string, process: (job: Job<Data>) => Promise<any>) => Promise<void>`}   />
+
+
+### stop
+
+<MemberInfo kind="method" type={`(queueName: string, process: (job: Job<Data>) => Promise<any>) => Promise<void>`}   />
+
+
+
+
+</div>

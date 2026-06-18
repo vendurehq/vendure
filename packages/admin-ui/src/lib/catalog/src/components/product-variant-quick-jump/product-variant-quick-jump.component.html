@@ -1,0 +1,15 @@
+<ng-select
+    *ngIf="(variants$ | async)?.length > 1"
+    [items]="variants$ | async"
+    appendTo="body"
+    bindValue="id"
+    [(ngModel)]="selectedVariantId"
+    [searchFn]="searchFn"
+    [clearable]="false"
+    [placeholder]="'catalog.quick-jump-placeholder' | translate"
+    (change)="onSelect($event)"
+>
+    <ng-template ng-option-tmp let-item="item" let-index="index" let-search="searchTerm">
+        {{ item.name }} ({{ item.sku }})
+    </ng-template>
+</ng-select>

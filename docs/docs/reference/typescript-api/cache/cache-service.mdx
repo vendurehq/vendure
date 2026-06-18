@@ -1,0 +1,66 @@
+---
+title: "CacheService"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/cache/cache.service.ts" sourceLine="21" packageName="@vendure/core" since="3.1.0" />
+
+The CacheService is used to cache data in order to optimize performance.
+
+Internally it makes use of the configured [CacheStrategy](/reference/typescript-api/cache/cache-strategy#cachestrategy) to persist
+the cache into a key-value store.
+
+```ts title="Signature"
+class CacheService {
+    protected cacheStrategy: CacheStrategy;
+    constructor(configService: ConfigService)
+    createCache(config: CacheConfig) => Cache;
+    get(key: string) => Promise<T | undefined>;
+    set(key: string, value: T, options?: SetCacheKeyOptions) => Promise<void>;
+    delete(key: string) => Promise<void>;
+    invalidateTags(tags: string[]) => Promise<void>;
+}
+```
+
+<div className="members-wrapper">
+
+### cacheStrategy
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/cache/cache-strategy#cachestrategy'>CacheStrategy</a>`}   />
+
+
+### createCache
+
+<MemberInfo kind="method" type={`(config: <a href='/reference/typescript-api/cache/cache-config#cacheconfig'>CacheConfig</a>) => <a href='/reference/typescript-api/cache/#cache'>Cache</a>`}   />
+
+Creates a new [Cache](/reference/typescript-api/cache/#cache) instance with the given configuration.
+
+The `Cache` instance provides a convenience wrapper around the `CacheService`
+methods.
+### get
+
+<MemberInfo kind="method" type={`(key: string) => Promise<T | undefined>`}   />
+
+Gets an item from the cache, or returns undefined if the key is not found, or the
+item has expired.
+### set
+
+<MemberInfo kind="method" type={`(key: string, value: T, options?: <a href='/reference/typescript-api/cache/cache-strategy#setcachekeyoptions'>SetCacheKeyOptions</a>) => Promise<void>`}   />
+
+Sets a key-value pair in the cache. The value must be serializable, so cannot contain
+things like functions, circular data structures, class instances etc.
+
+Optionally a "time to live" (ttl) can be specified, which means that the key will
+be considered stale after that many milliseconds.
+### delete
+
+<MemberInfo kind="method" type={`(key: string) => Promise<void>`}   />
+
+Deletes an item from the cache.
+### invalidateTags
+
+<MemberInfo kind="method" type={`(tags: string[]) => Promise<void>`}   />
+
+Deletes all items from the cache which contain at least one matching tag.
+
+
+</div>

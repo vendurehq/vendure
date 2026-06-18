@@ -1,0 +1,185 @@
+---
+title: "OrderTaxCalculationStrategy"
+generated: true
+---
+## OrderTaxCalculationStrategy
+
+<GenerationInfo sourceFile="packages/core/src/config/tax/order-tax-calculation-strategy.ts" sourceLine="44" packageName="@vendure/core" since="3.6.0" />
+
+Defines how order-level tax totals and the tax summary are calculated.
+
+The default implementation ([DefaultOrderTaxCalculationStrategy](/reference/typescript-api/tax/order-tax-calculation-strategy#defaultordertaxcalculationstrategy)) rounds
+tax at the individual line level and then sums. This is the standard Vendure behaviour.
+
+An alternative implementation ([OrderLevelTaxCalculationStrategy](/reference/typescript-api/tax/order-tax-calculation-strategy#orderleveltaxcalculationstrategy)) groups
+net subtotals by tax rate and rounds once per group, which eliminates per-line rounding
+accumulation errors. This approach is required by certain jurisdictions and ERP systems.
+
+:::info
+
+This is configured via the `taxOptions.orderTaxCalculationStrategy` property of
+your VendureConfig.
+
+:::
+
+```ts title="Signature"
+interface OrderTaxCalculationStrategy extends InjectableStrategy {
+    calculateOrderTotals(order: Order): OrderTotalsResult;
+    calculateTaxSummary(order: Order): OrderTaxSummary[];
+}
+```
+* Extends: [`InjectableStrategy`](/reference/typescript-api/common/injectable-strategy#injectablestrategy)
+
+
+
+<div className="members-wrapper">
+
+### calculateOrderTotals
+
+<MemberInfo kind="method" type={`(order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => <a href='/reference/typescript-api/tax/order-tax-calculation-strategy#ordertotalsresult'>OrderTotalsResult</a>`}   />
+
+Calculates the order totals (subTotal, subTotalWithTax, shipping, shippingWithTax)
+for the given Order. This is called frequently during promotion application, so
+it should be as cheap as possible - avoid building tax summary data here.
+
+The Order's `lines` and `surcharges` relations must be loaded.
+`shippingLines` may be empty/unloaded, in which case shipping is treated as zero.
+### calculateTaxSummary
+
+<MemberInfo kind="method" type={`(order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => OrderTaxSummary[]`}   />
+
+Calculates the full tax summary for the given Order. This is called once
+when the `taxSummary` getter is accessed on the Order entity.
+
+This method must be synchronous, as it is called from the `taxSummary` getter
+on the Order entity.
+
+The Order's `lines`, `surcharges`, and `shippingLines` relations must be loaded.
+
+
+</div>
+## DefaultOrderTaxCalculationStrategy
+
+<GenerationInfo sourceFile="packages/core/src/config/tax/default-order-tax-calculation-strategy.ts" sourceLine="20" packageName="@vendure/core" since="3.6.0" />
+
+The default [OrderTaxCalculationStrategy](/reference/typescript-api/tax/order-tax-calculation-strategy#ordertaxcalculationstrategy). Tax is rounded at the
+individual line level and then summed. This matches the standard Vendure behaviour
+prior to the introduction of this strategy.
+
+```ts title="Signature"
+class DefaultOrderTaxCalculationStrategy implements OrderTaxCalculationStrategy {
+    calculateOrderTotals(order: Order) => OrderTotalsResult;
+    calculateTaxSummary(order: Order) => OrderTaxSummary[];
+}
+```
+* Implements: [`OrderTaxCalculationStrategy`](/reference/typescript-api/tax/order-tax-calculation-strategy#ordertaxcalculationstrategy)
+
+
+
+<div className="members-wrapper">
+
+### calculateOrderTotals
+
+<MemberInfo kind="method" type={`(order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => <a href='/reference/typescript-api/tax/order-tax-calculation-strategy#ordertotalsresult'>OrderTotalsResult</a>`}   />
+
+
+### calculateTaxSummary
+
+<MemberInfo kind="method" type={`(order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => OrderTaxSummary[]`}   />
+
+
+
+
+</div>
+## OrderLevelTaxCalculationStrategy
+
+<GenerationInfo sourceFile="packages/core/src/config/tax/order-level-tax-calculation-strategy.ts" sourceLine="42" packageName="@vendure/core" since="3.6.0" />
+
+An [OrderTaxCalculationStrategy](/reference/typescript-api/tax/order-tax-calculation-strategy#ordertaxcalculationstrategy) that groups net subtotals by tax rate
+and rounds once per group. This eliminates per-line rounding accumulation errors
+present in the [DefaultOrderTaxCalculationStrategy](/reference/typescript-api/tax/order-tax-calculation-strategy#defaultordertaxcalculationstrategy).
+
+This approach is required by certain jurisdictions and ERP systems that expect
+tax to be calculated on the subtotal per tax rate rather than per line.
+
+Note that when using this strategy, the `taxTotal` in the tax summary may differ
+by ±1 minor unit from the sum of individual line-level `proratedLineTax` values.
+This is expected and is the intended behaviour.
+
+*Example*
+
+```ts
+import { OrderLevelTaxCalculationStrategy, VendureConfig } from '@vendure/core';
+
+export const config: VendureConfig = {
+  taxOptions: {
+    orderTaxCalculationStrategy: new OrderLevelTaxCalculationStrategy(),
+  },
+};
+```
+
+```ts title="Signature"
+class OrderLevelTaxCalculationStrategy implements OrderTaxCalculationStrategy {
+    calculateOrderTotals(order: Order) => OrderTotalsResult;
+    calculateTaxSummary(order: Order) => OrderTaxSummary[];
+}
+```
+* Implements: [`OrderTaxCalculationStrategy`](/reference/typescript-api/tax/order-tax-calculation-strategy#ordertaxcalculationstrategy)
+
+
+
+<div className="members-wrapper">
+
+### calculateOrderTotals
+
+<MemberInfo kind="method" type={`(order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => <a href='/reference/typescript-api/tax/order-tax-calculation-strategy#ordertotalsresult'>OrderTotalsResult</a>`}   />
+
+
+### calculateTaxSummary
+
+<MemberInfo kind="method" type={`(order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => OrderTaxSummary[]`}   />
+
+
+
+
+</div>
+## OrderTotalsResult
+
+<GenerationInfo sourceFile="packages/core/src/config/tax/order-tax-calculation-strategy.ts" sourceLine="14" packageName="@vendure/core" since="3.6.0" />
+
+The result of an [OrderTaxCalculationStrategy](/reference/typescript-api/tax/order-tax-calculation-strategy#ordertaxcalculationstrategy)'s `calculateOrderTotals` method.
+
+```ts title="Signature"
+interface OrderTotalsResult {
+    subTotal: number;
+    subTotalWithTax: number;
+    shipping: number;
+    shippingWithTax: number;
+}
+```
+
+<div className="members-wrapper">
+
+### subTotal
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### subTotalWithTax
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### shipping
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### shippingWithTax
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+
+
+</div>

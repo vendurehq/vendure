@@ -1,0 +1,16 @@
+<div *ngIf="calculatedPriceDiffersFromInputPrice()" class="price-strategy-detail">
+    <vdr-form-item
+        [label]="'catalog.calculated-price' | translate"
+        [tooltip]="'catalog.calculated-price-tooltip' | translate"
+        for="price"
+    >
+    </vdr-form-item>
+    <div class="form-grid mt-2">
+        <vdr-form-item [label]="'common.price' | translate">
+            {{ variant.price | localeCurrency : variant.currencyCode }}
+        </vdr-form-item>
+        <vdr-form-item [label]="'common.price-with-tax' | translate">
+            {{ variant.priceWithTax | localeCurrency : variant.currencyCode }}
+        </vdr-form-item>
+    </div>
+</div>

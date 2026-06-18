@@ -1,0 +1,98 @@
+<ng-template vdrDialogTitle>
+    <div class="title-row">
+        <span *ngIf="mode === 'product'">{{ 'common.select-products' | translate }}</span>
+        <span *ngIf="mode === 'variant'">{{ 'common.select-variants' | translate }}</span>
+    </div>
+</ng-template>
+<vdr-product-search-input
+    #productSearchInputComponent
+    [facetValueResults]="facetValues$ | async"
+    (searchTermChange)="setSearchTerm($event)"
+    (facetValueChange)="setFacetValueIds($event)"
+></vdr-product-search-input>
+<div class="flex-wrapper">
+    <div class="gallery">
+        <div
+            class="card"
+            *ngFor="let item of (items$ | async) || [] | paginate: paginationConfig; trackBy: trackByFn"
+            (click)="toggleSelection(item, $event)"
+            [class.selected]="isSelected(item)"
+        >
+            <div class="card-img">
+                <vdr-select-toggle
+                    [selected]="isSelected(item)"
+                    [disabled]="true"
+                    [hiddenWhenOff]="true"
+                ></vdr-select-toggle>
+                <img
+                    [src]="
+                        (mode === 'product'
+                            ? item.productAsset
+                            : item.productVariantAsset || item.productAsset
+                        ) | assetPreview: 'thumb'
+                    "
+                />
+            </div>
+            <div class="detail">
+                <span [title]="mode === 'product' ? item.productName : item.productVariantName">{{
+                    mode === 'product' ? item.productName : item.productVariantName
+                }}</span>
+                <div *ngIf="mode === 'product'">
+                    <small>
+                        <span class="mr-1">{{ 'common.slug' | translate }}:</span>
+                        <code>{{ item.slug }}</code>
+                    </small>
+                </div>
+                <div *ngIf="mode === 'variant'"><small>{{ item.sku }}</small></div>
+            </div>
+        </div>
+    </div>
+    <div class="selection">
+        <div class="m-2 flex center">
+            <div>
+                {{ 'common.items-selected-count' | translate: { count: selectionManager.selection.length } }}
+            </div>
+            <div class="flex-spacer"></div>
+            <button class="btn btn-sm btn-link" (click)="clearSelection()">
+                <cds-icon shape="times"></cds-icon> {{ 'common.clear-selection' | translate }}
+            </button>
+        </div>
+        <div class="selected-items">
+            <div *ngFor="let item of selectionManager.selection" class="flex item-row">
+                <div class="">{{ mode === 'product' ? item.productName : item.productVariantName }}</div>
+                <div class="flex-spacer"></div>
+                <div>
+                    <button class="icon-button" (click)="toggleSelection(item, $event)">
+                        <cds-icon shape="times"></cds-icon>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="paging-controls">
+    <vdr-items-per-page-controls
+        [itemsPerPage]="paginationConfig.itemsPerPage"
+        (itemsPerPageChange)="itemsPerPageChange($event)"
+    ></vdr-items-per-page-controls>
+
+    <vdr-pagination-controls
+        [currentPage]="paginationConfig.currentPage"
+        [itemsPerPage]="paginationConfig.itemsPerPage"
+        [totalItems]="paginationConfig.totalItems"
+        (pageChange)="pageChange($event)"
+    ></vdr-pagination-controls>
+</div>
+
+<ng-template vdrDialogButtons>
+    <button type="button" class="btn" (click)="cancel()">{{ 'common.cancel' | translate }}</button>
+    <button
+        type="submit"
+        (click)="select()"
+        class="btn btn-primary"
+        [disabled]="selectionManager.selection.length === 0"
+    >
+        {{ 'common.select-items-with-count' | translate: { count: selectionManager.selection.length } }}
+    </button>
+</ng-template>

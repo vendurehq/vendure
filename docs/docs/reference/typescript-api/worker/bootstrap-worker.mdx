@@ -1,0 +1,70 @@
+---
+title: "BootstrapWorker"
+generated: true
+---
+## bootstrapWorker
+
+<GenerationInfo sourceFile="packages/core/src/bootstrap.ts" sourceLine="256" packageName="@vendure/core" />
+
+Bootstraps a Vendure worker. Resolves to a [VendureWorker](/reference/typescript-api/worker/vendure-worker#vendureworker) object containing a reference to the underlying
+NestJs [standalone application](https://docs.nestjs.com/standalone-applications) as well as convenience
+methods for starting the job queue.
+
+Read more about the [Vendure Worker](/developer-guide/worker-job-queue/).
+
+*Example*
+
+```ts
+import { bootstrapWorker } from '@vendure/core';
+import { config } from './vendure-config';
+
+bootstrapWorker(config)
+  .then(worker => worker.startJobQueue())
+  .catch(err => {
+    console.log(err);
+    process.exit(1);
+  });
+```
+
+```ts title="Signature"
+function bootstrapWorker(userConfig: Partial<VendureConfig>, options?: BootstrapWorkerOptions): Promise<VendureWorker>
+```
+Parameters
+
+### userConfig
+
+<MemberInfo kind="parameter" type={`Partial<<a href='/reference/typescript-api/configuration/vendure-config#vendureconfig'>VendureConfig</a>>`} />
+
+### options
+
+<MemberInfo kind="parameter" type={`<a href='/reference/typescript-api/worker/bootstrap-worker#bootstrapworkeroptions'>BootstrapWorkerOptions</a>`} />
+
+## BootstrapWorkerOptions
+
+<GenerationInfo sourceFile="packages/core/src/bootstrap.ts" sourceLine="115" packageName="@vendure/core" since="2.2.0" />
+
+Additional options that can be used to configure the bootstrap process of the
+Vendure worker.
+
+```ts title="Signature"
+interface BootstrapWorkerOptions {
+    nestApplicationContextOptions?: NestApplicationContextOptions;
+    ignoreCompatibilityErrorsForPlugins?: Array<DynamicModule | Type<any>>;
+}
+```
+
+<div className="members-wrapper">
+
+### nestApplicationContextOptions
+
+<MemberInfo kind="property" type={`NestApplicationContextOptions`}   />
+
+These options get passed directly to the `NestFactory.createApplicationContext` method.
+### ignoreCompatibilityErrorsForPlugins
+
+<MemberInfo kind="property" type={`Array<DynamicModule | Type<any>>`} default={`[]`}  since="3.1.0"  />
+
+See the `ignoreCompatibilityErrorsForPlugins` option in [BootstrapOptions](/reference/typescript-api/common/bootstrap#bootstrapoptions).
+
+
+</div>

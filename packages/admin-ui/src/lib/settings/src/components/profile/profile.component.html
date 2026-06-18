@@ -1,0 +1,70 @@
+<vdr-page-block>
+    <vdr-action-bar>
+        <vdr-ab-left></vdr-ab-left>
+        <vdr-ab-right>
+            <vdr-action-bar-items locationId="profile"></vdr-action-bar-items>
+            <button
+                class="btn btn-primary"
+                (click)="save()"
+                [disabled]="detailForm.invalid || detailForm.pristine"
+            >
+                {{ 'common.update' | translate }}
+            </button>
+        </vdr-ab-right>
+    </vdr-action-bar>
+</vdr-page-block>
+
+<form class="form" [formGroup]="detailForm">
+    <vdr-page-detail-layout>
+        <vdr-page-detail-sidebar>
+            <vdr-card *ngIf="entity$ | async as entity">
+                <vdr-page-entity-info [entity]="entity" />
+            </vdr-card>
+        </vdr-page-detail-sidebar>
+        <vdr-page-block>
+            <vdr-card>
+                <div class="form-grid">
+                    <vdr-form-field [label]="'settings.email-address' | translate" for="emailAddress">
+                        <input id="emailAddress" type="text" formControlName="emailAddress" />
+                    </vdr-form-field>
+                    <vdr-form-field [label]="'settings.first-name' | translate" for="firstName">
+                        <input id="firstName" type="text" formControlName="firstName" />
+                    </vdr-form-field>
+                    <vdr-form-field [label]="'settings.last-name' | translate" for="lastName">
+                        <input id="lastName" type="text" formControlName="lastName" />
+                    </vdr-form-field>
+                    <vdr-form-field
+                        *ngIf="isNew$ | async"
+                        [label]="'settings.password' | translate"
+                        for="password"
+                    >
+                        <input id="password" type="password" formControlName="password" />
+                    </vdr-form-field>
+                    <vdr-form-field
+                        [label]="'settings.password' | translate"
+                        for="password"
+                        [readOnlyToggle]="true"
+                    >
+                        <input id="password" type="password" formControlName="password" />
+                    </vdr-form-field>
+                </div>
+            </vdr-card>
+            <vdr-card
+                formGroupName="customFields"
+                *ngIf="customFields.length"
+                [title]="'common.custom-fields' | translate"
+            >
+                <vdr-tabbed-custom-fields
+                    entityName="Administrator"
+                    [customFields]="customFields"
+                    [customFieldsFormGroup]="detailForm.get('customFields')"
+                ></vdr-tabbed-custom-fields>
+            </vdr-card>
+            <vdr-custom-detail-component-host
+                locationId="administrator-profile"
+                [entity$]="entity$"
+                [detailForm]="detailForm"
+            ></vdr-custom-detail-component-host>
+        </vdr-page-block>
+    </vdr-page-detail-layout>
+</form>

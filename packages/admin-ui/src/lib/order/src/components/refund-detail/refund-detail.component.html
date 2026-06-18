@@ -1,0 +1,9 @@
+<vdr-labeled-data [label]="'order.amount' | translate">
+    {{ refund.total | localeCurrency: currencyCode }}
+</vdr-labeled-data>
+<vdr-labeled-data *ngIf="refund.transactionId" [label]="'order.transaction-id' | translate">
+    {{ refund.transactionId }}
+</vdr-labeled-data>
+<vdr-labeled-data [label]="'order.payment-metadata' | translate">
+    <vdr-object-tree [value]="refund.metadata"></vdr-object-tree>
+</vdr-labeled-data>

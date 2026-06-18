@@ -1,0 +1,310 @@
+---
+title: "PaginatedListDataTable"
+generated: true
+---
+## PaginatedListDataTable
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/paginated-list-data-table.tsx" sourceLine="357" packageName="@vendure/dashboard" since="3.4.0" />
+
+A wrapper around the [DataTable](/reference/dashboard/list-views/data-table#datatable) component, which automatically configures functionality common to
+list queries that implement the `PaginatedList` interface, which is the common way of representing lists
+of data in Vendure.
+
+Given a GraphQL query document node, the component will automatically configure the required columns
+with sorting & filtering functionality.
+
+The automatic features can be further customized and enhanced using the many options available in the props.
+
+*Example*
+
+```tsx
+import { Money } from '@/vdb/components/data-display/money.js';
+import { PaginatedListDataTable } from '@/vdb/components/shared/paginated-list-data-table.js';
+import { Badge } from '@/vdb/components/ui/badge.js';
+import { Button } from '@/vdb/components/ui/button.js';
+import { Link } from '@tanstack/react-router';
+import { ColumnFiltersState, SortingState } from '@tanstack/react-table';
+import { useState } from 'react';
+import { customerOrderListDocument } from '../customers.graphql.js';
+
+interface CustomerOrderTableProps {
+    customerId: string;
+}
+
+export function CustomerOrderTable({ customerId }: Readonly<CustomerOrderTableProps>) {
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
+    const [sorting, setSorting] = useState<SortingState>([{ id: 'orderPlacedAt', desc: true }]);
+    const [filters, setFilters] = useState<ColumnFiltersState>([]);
+
+    return (
+        <PaginatedListDataTable
+            listQuery={customerOrderListDocument}
+            transformVariables={variables => {
+                return {
+                    ...variables,
+                    customerId,
+                };
+            }}
+            defaultVisibility={{
+                id: false,
+                createdAt: false,
+                updatedAt: false,
+                type: false,
+                currencyCode: false,
+                total: false,
+            }}
+            customizeColumns={{
+                total: {
+                    header: 'Total',
+                    cell: ({ cell, row }) => {
+                        const value = cell.getValue();
+                        const currencyCode = row.original.currencyCode;
+                        return <Money value={value} currency={currencyCode} />;
+                    },
+                },
+                totalWithTax: {
+                    header: 'Total with Tax',
+                    cell: ({ cell, row }) => {
+                        const value = cell.getValue();
+                        const currencyCode = row.original.currencyCode;
+                        return <Money value={value} currency={currencyCode} />;
+                    },
+                },
+                state: {
+                    header: 'State',
+                    cell: ({ cell }) => {
+                        const value = cell.getValue() as string;
+                        return <Badge variant="outline">{value}</Badge>;
+                    },
+                },
+                code: {
+                    header: 'Code',
+                    cell: ({ cell, row }) => {
+                        const value = cell.getValue() as string;
+                        const id = row.original.id;
+                        return (
+                            <Button variant="ghost" render={<Link to={`/orders/${id}`} />}>
+                                {value}
+                            </Button>
+                        );
+                    },
+                },
+            }}
+            page={page}
+            itemsPerPage={pageSize}
+            sorting={sorting}
+            columnFilters={filters}
+            onPageChange={(_, page, perPage) => {
+                setPage(page);
+                setPageSize(perPage);
+            }}
+            onSortChange={(_, sorting) => {
+                setSorting(sorting);
+            }}
+            onFilterChange={(_, filters) => {
+                setFilters(filters);
+            }}
+        />
+    );
+}
+```
+
+```ts title="Signature"
+function PaginatedListDataTable<T extends TypedDocumentNode<U, V>, U extends Record<string, any> = any, V extends ListQueryOptionsShape = any, AC extends AdditionalColumns<T> = AdditionalColumns<T>>(props: Readonly<PaginatedListDataTableProps<T, U, V, AC>>): void
+```
+Parameters
+
+### props
+
+<MemberInfo kind="parameter" type={`Readonly<<a href='/reference/dashboard/list-views/paginated-list-data-table#paginatedlistdatatableprops'>PaginatedListDataTableProps</a><T, U, V, AC>>`} />
+
+## PaginatedListDataTableProps
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/paginated-list-data-table.tsx" sourceLine="176" packageName="@vendure/dashboard" since="3.4.0" />
+
+Props to configure the [PaginatedListDataTable](/reference/dashboard/list-views/paginated-list-data-table#paginatedlistdatatable) component.
+
+```ts title="Signature"
+interface PaginatedListDataTableProps<T extends TypedDocumentNode<U, V>, U extends ListQueryShape, V extends ListQueryOptionsShape, AC extends AdditionalColumns<T>> {
+    listQuery: T;
+    deleteMutation?: TypedDocumentNode<any, any>;
+    transformQueryKey?: (queryKey: any[]) => any[];
+    transformVariables?: (variables: V) => V;
+    customizeColumns?: CustomizeColumnConfig<T>;
+    additionalColumns?: AC;
+    defaultColumnOrder?: (keyof ListQueryFields<T> | keyof AC | CustomFieldKeysOfItem<ListQueryFields<T>>)[];
+    defaultVisibility?: Partial<Record<AllItemFieldKeys<T>, boolean>>;
+    onSearchTermChange?: (searchTerm: string) => NonNullable<V['options']>['filter'];
+    page: number;
+    itemsPerPage: number;
+    sorting: SortingState;
+    columnFilters?: ColumnFiltersState;
+    onPageChange: (table: Table<any>, page: number, perPage: number) => void;
+    onSortChange: (table: Table<any>, sorting: SortingState) => void;
+    onFilterChange: (table: Table<any>, filters: ColumnFiltersState) => void;
+    onColumnVisibilityChange?: (table: Table<any>, columnVisibility: VisibilityState) => void;
+    facetedFilters?: FacetedFilterConfig<T>;
+    rowActions?: RowAction<PaginatedListItemFields<T>>[];
+    bulkActions?: BulkActionsInput;
+    disableViewOptions?: boolean;
+    transformData?: (data: PaginatedListItemFields<T>[]) => PaginatedListItemFields<T>[];
+    setTableOptions?: (table: TableOptions<any>) => TableOptions<any>;
+    registerRefresher?: PaginatedListRefresherRegisterFn;
+    onReorder?: (
+        oldIndex: number,
+        newIndex: number,
+        item: PaginatedListItemFields<T>,
+    ) => void | Promise<void>;
+    disableDragAndDrop?: boolean;
+    includeSelectionColumn?: boolean;
+}
+```
+
+<div className="members-wrapper">
+
+### listQuery
+
+<MemberInfo kind="property" type={`T`}   />
+
+
+### deleteMutation
+
+<MemberInfo kind="property" type={`TypedDocumentNode<any, any>`}   />
+
+
+### transformQueryKey
+
+<MemberInfo kind="property" type={`(queryKey: any[]) => any[]`}   />
+
+
+### transformVariables
+
+<MemberInfo kind="property" type={`(variables: V) => V`}   />
+
+
+### customizeColumns
+
+<MemberInfo kind="property" type={`CustomizeColumnConfig<T>`}   />
+
+
+### additionalColumns
+
+<MemberInfo kind="property" type={`AC`}   />
+
+
+### defaultColumnOrder
+
+<MemberInfo kind="property" type={`(keyof ListQueryFields<T> | keyof AC | CustomFieldKeysOfItem<ListQueryFields<T>>)[]`}   />
+
+
+### defaultVisibility
+
+<MemberInfo kind="property" type={`Partial<Record<AllItemFieldKeys<T>, boolean>>`}   />
+
+
+### onSearchTermChange
+
+<MemberInfo kind="property" type={`(searchTerm: string) => NonNullable<V['options']>['filter']`}   />
+
+Called whenever the debounced search term changes (including when it
+becomes empty). Return a partial filter to merge with the column /
+faceted filters. The returned filter is only applied when the term is
+non-empty — when the term is `''`, the returned value is discarded so
+that callers can write `{ field: { contains: searchTerm } }` without
+producing tautological `contains: ''` clauses. The callback itself is
+still invoked on every change so pages can use it as a state-sync hook.
+### page
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### itemsPerPage
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### sorting
+
+<MemberInfo kind="property" type={`SortingState`}   />
+
+
+### columnFilters
+
+<MemberInfo kind="property" type={`ColumnFiltersState`}   />
+
+
+### onPageChange
+
+<MemberInfo kind="property" type={`(table: Table<any>, page: number, perPage: number) => void`}   />
+
+
+### onSortChange
+
+<MemberInfo kind="property" type={`(table: Table<any>, sorting: SortingState) => void`}   />
+
+
+### onFilterChange
+
+<MemberInfo kind="property" type={`(table: Table<any>, filters: ColumnFiltersState) => void`}   />
+
+
+### onColumnVisibilityChange
+
+<MemberInfo kind="property" type={`(table: Table<any>, columnVisibility: VisibilityState) => void`}   />
+
+
+### facetedFilters
+
+<MemberInfo kind="property" type={`FacetedFilterConfig<T>`}   />
+
+
+### rowActions
+
+<MemberInfo kind="property" type={`RowAction<PaginatedListItemFields<T>>[]`}   />
+
+
+### bulkActions
+
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/list-views/bulk-actions#bulkactionsinput'>BulkActionsInput</a>`}   />
+
+
+### disableViewOptions
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+
+### transformData
+
+<MemberInfo kind="property" type={`(data: PaginatedListItemFields<T>[]) => PaginatedListItemFields<T>[]`}   />
+
+
+### setTableOptions
+
+<MemberInfo kind="property" type={`(table: TableOptions<any>) => TableOptions<any>`}   />
+
+
+### registerRefresher
+
+<MemberInfo kind="property" type={`PaginatedListRefresherRegisterFn`}   />
+
+
+### onReorder
+
+<MemberInfo kind="property" type={`(         oldIndex: number,         newIndex: number,         item: PaginatedListItemFields<T>,     ) => void | Promise<void>`}   />
+
+Callback when items are reordered via drag and drop.
+When provided, enables drag-and-drop functionality.
+### disableDragAndDrop
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+When true, drag and drop will be disabled. This will only have an effect if the onReorder prop is also set
+### includeSelectionColumn
+
+<MemberInfo kind="property" type={`boolean`} default={`true`}   />
+
+When false, the row selection checkbox column will not be included.
+
+
+</div>

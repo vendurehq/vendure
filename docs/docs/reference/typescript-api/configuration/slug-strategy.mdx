@@ -1,0 +1,42 @@
+---
+title: "SlugStrategy"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/entity/slug-strategy.ts" sourceLine="44" packageName="@vendure/core" since="3.5.0" />
+
+Defines the strategy for generating slugs from input strings.
+Slugs are URL-friendly versions of text that are commonly used for
+entity identifiers in URLs.
+
+*Example*
+
+```ts
+export class CustomSlugStrategy implements SlugStrategy {
+  generate(ctx: RequestContext, params: SlugGenerateParams): string {
+    return params.value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+}
+```
+
+```ts title="Signature"
+interface SlugStrategy extends InjectableStrategy {
+    generate(ctx: RequestContext, params: SlugGenerateParams): string | Promise<string>;
+}
+```
+* Extends: [`InjectableStrategy`](/reference/typescript-api/common/injectable-strategy#injectablestrategy)
+
+
+
+<div className="members-wrapper">
+
+### generate
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, params: SlugGenerateParams) => string | Promise<string>`}   />
+
+Generates a slug from the input string.
+
+
+</div>

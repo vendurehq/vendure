@@ -1,0 +1,77 @@
+<div class="gallery">
+    <div
+        class="card"
+        *ngFor="let asset of assets"
+        (click)="toggleSelection(asset, $event)"
+        [class.selected]="isSelected(asset)"
+    >
+        <div class="card-img">
+            <vdr-select-toggle
+                [selected]="isSelected(asset)"
+                [disabled]="true"
+                [hiddenWhenOff]="true"
+            ></vdr-select-toggle>
+            <img class="asset-thumb" [src]="asset | assetPreview : 'thumb'" />
+        </div>
+        <div class="detail">
+            <vdr-entity-info
+                [entity]="asset"
+                [small]="true"
+                (click)="entityInfoClick($event)"
+            ></vdr-entity-info>
+            <span [title]="asset.name">{{ asset.name }}</span>
+        </div>
+    </div>
+</div>
+<div class="info-bar">
+    <div class="card">
+        <div class="card-img">
+            <div class="placeholder" *ngIf="selectionManager.selection.length === 0">
+                <clr-icon shape="image" size="128"></clr-icon>
+                <div>{{ 'catalog.no-selection' | translate }}</div>
+            </div>
+            <img
+                class="preview"
+                *ngIf="selectionManager.selection.length >= 1"
+                [src]="lastSelected().preview + '?preset=medium'"
+            />
+        </div>
+        <div class="card-block details" *ngIf="selectionManager.selection.length >= 1">
+            <div class="name">{{ lastSelected().name }}</div>
+            <div>{{ 'asset.original-asset-size' | translate }}: {{ lastSelected().fileSize | filesize }}</div>
+
+            <ng-container *ngIf="selectionManager.selection.length === 1">
+                <vdr-chip *ngFor="let tag of lastSelected().tags" [colorFrom]="tag.value"
+                    ><clr-icon shape="tag" class="mr2"></clr-icon> {{ tag.value }}</vdr-chip
+                >
+            </ng-container>
+            <div *ngIf="selectionManager.selection.length === 1">
+                <a [routerLink]="['/catalog/assets/', lastSelected().id]" (click)="editAssetClick.emit()" class="button-ghost">
+                    <clr-icon shape="pencil"></clr-icon> {{ 'common.edit' | translate }}
+                    <clr-icon shape="arrow right"></clr-icon>
+                </a>
+            </div>
+            <div *ngIf="selectionManager.selection.length === 1">
+                <button (click)="previewAsset(lastSelected())" class="button-small mt-1">
+                    <clr-icon shape="eye"></clr-icon> {{ 'asset.preview' | translate }}
+                </button>
+            </div>
+            <div *ngIf="canDelete">
+                <button (click)="deleteAssets.emit(selectionManager.selection)" class="button-small mt-1">
+                    <clr-icon shape="trash" class="is-danger"></clr-icon>
+                    {{ 'common.delete' | translate }}
+                </button>
+            </div>
+            <div class="mt-1" *ngIf="selectionManager.selection.length === 1">
+                <vdr-asset-preview-links class="" [asset]="lastSelected()"></vdr-asset-preview-links>
+            </div>
+        </div>
+    </div>
+    <div class="card stack" [class.visible]="selectionManager.selection.length > 1"></div>
+    <div class="selection-count" [class.visible]="selectionManager.selection.length > 1">
+        {{ 'asset.assets-selected-count' | translate : { count: selectionManager.selection.length } }}
+        <ul>
+            <li *ngFor="let asset of selectionManager.selection">{{ asset.name }}</li>
+        </ul>
+    </div>
+</div>

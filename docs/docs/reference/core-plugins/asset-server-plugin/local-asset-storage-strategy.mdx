@@ -1,0 +1,64 @@
+---
+title: "LocalAssetStorageStrategy"
+generated: true
+---
+<GenerationInfo sourceFile="packages/asset-server-plugin/src/config/local-asset-storage-strategy.ts" sourceLine="14" packageName="@vendure/asset-server-plugin" />
+
+A persistence strategy which saves files to the local file system.
+
+```ts title="Signature"
+class LocalAssetStorageStrategy implements AssetStorageStrategy {
+    toAbsoluteUrl: ((reqest: Request, identifier: string) => string) | undefined;
+    constructor(uploadPath: string, toAbsoluteUrlFn?: (reqest: Request, identifier: string) => string)
+    writeFileFromStream(fileName: string, data: ReadStream, encoding?: BufferEncoding | null) => Promise<string>;
+    writeFileFromBuffer(fileName: string, data: Buffer) => Promise<string>;
+    fileExists(fileName: string) => Promise<boolean>;
+    readFileToBuffer(identifier: string) => Promise<Buffer>;
+    readFileToStream(identifier: string, encoding?: BufferEncoding | null) => Promise<Stream>;
+    deleteFile(identifier: string) => Promise<void>;
+}
+```
+* Implements: [`AssetStorageStrategy`](/reference/typescript-api/assets/asset-storage-strategy#assetstoragestrategy)
+
+
+
+<div className="members-wrapper">
+
+### toAbsoluteUrl
+
+<MemberInfo kind="property" type={`((reqest: Request, identifier: string) => string) | undefined`}   />
+
+
+### writeFileFromStream
+
+<MemberInfo kind="method" type={`(fileName: string, data: ReadStream, encoding?: BufferEncoding | null) => Promise<string>`}   />
+
+
+### writeFileFromBuffer
+
+<MemberInfo kind="method" type={`(fileName: string, data: Buffer) => Promise<string>`}   />
+
+
+### fileExists
+
+<MemberInfo kind="method" type={`(fileName: string) => Promise<boolean>`}   />
+
+
+### readFileToBuffer
+
+<MemberInfo kind="method" type={`(identifier: string) => Promise<Buffer>`}   />
+
+
+### readFileToStream
+
+<MemberInfo kind="method" type={`(identifier: string, encoding?: BufferEncoding | null) => Promise<Stream>`}   />
+
+
+### deleteFile
+
+<MemberInfo kind="method" type={`(identifier: string) => Promise<void>`}   />
+
+
+
+
+</div>

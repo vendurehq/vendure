@@ -1,0 +1,23 @@
+<ng-select
+    appendTo="body"
+    [addTag]="false"
+    [multiple]="multiple"
+    [ngModel]="value"
+    [clearable]="false"
+    [searchable]="false"
+    [disabled]="disabled"
+    [compareWith]="compareFn"
+    (focus)="focussed()"
+    (change)="valueChanged($event)"
+>
+    <ng-template ng-label-tmp let-item="item" let-clear="clear">
+        <span aria-hidden="true" class="ng-value-icon left" (click)="clear(item)"> × </span>
+        <vdr-channel-badge [channelCode]="item.code"></vdr-channel-badge>
+        <span class="channel-label">{{ item.code | channelCodeToLabel | translate }}</span>
+    </ng-template>
+    <ng-option *ngFor="let item of channels$ | async" [value]="item" [disabled]="channelIsDisabled(item.id)">
+        <vdr-channel-badge [channelCode]="item.code"></vdr-channel-badge>
+        {{ item.code | channelCodeToLabel | translate }}
+    </ng-option>
+</ng-select>
+

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Demo Google Sign-In</title>
+        <link
+            href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+            rel="stylesheet"
+            integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk"
+            crossorigin="anonymous"
+        />
+        <script src="https://apis.google.com/js/platform.js" async defer></script>
+        <meta
+            name="google-signin-client_id"
+            content="679803294668-lvdkgml50ldqv8pnhv9gonj35k2aruvt.apps.googleusercontent.com"
+        />
+    </head>
+    <body>
+        <div class="container">
+            <h1>Google Auth Demo</h1>
+            <div class="row">
+                <div class="col">
+                    <div class="g-signin2" data-onsuccess="onSignIn"></div>
+                </div>
+                <div class="col">
+                    <button id="sign-out" class="btn btn-secondary">Sign out</button>
+                </div>
+            </div>
+            <div class="mt-4 row">
+                <div class="card" style="width: 18rem;">
+                  <div class="card-header" id="header">
+                    Result
+                  </div>
+                    <div class="card-body" id="result"></div>
+                </div>
+            </div>
+        </div>
+        <script>
+            const signOutLink = document.querySelector('#sign-out');
+            const header = document.querySelector('#header');
+            const result = document.querySelector('#result');
+
+            signOutLink.addEventListener('click', signOut);
+
+            function signOut() {
+                var auth2 = gapi.auth2.getAuthInstance();
+                auth2.signOut().then(function () {
+                    console.log('User signed out.');
+                });
+            }
+
+            function onSignIn(googleUser) {
+                graphQlQuery(
+                    `
+                    mutation Authenticate($token: String!) {
+                        authenticate(input: {
+                          google: { token: $token }
+                        }) {
+                        user {
+                            id
+                            identifier
+                        }
+                      }
+                    }
+                `,
+                    {
+                        token: googleUser.getAuthResponse().id_token,
+                    },
+                )
+                    .then((res) => {
+                        console.log(res);
+                        return graphQlQuery(
+                            `{
+                        activeCustomer {
+                            id
+                            firstName
+                            lastName
+                            phoneNumber
+                            emailAddress
+                            user {
+                                id
+                                identifier
+                            }
+                        }
+                    }`,
+                            {},
+                        );
+                    })
+                    .then((res) => {
+                        header.innerText = 'Signed in!'
+                        result.innerHTML = `<pre>${JSON.stringify(res, null, 2)}</pre>`;
+                        console.log(res);
+                    });
+            }
+
+            let bearerToken;
+            // @ts-check
+            function graphQlQuery(query, variables) {
+                return fetch('http://localhost:3000/shop-api', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                        ...(bearerToken ? { Authorization: `Bearer ${bearerToken}` } : {}),
+                    },
+                    body: JSON.stringify({ query, variables }),
+                }).then((r) => {
+                    if (r.headers.has('vendure-auth-token')) {
+                        bearerToken = r.headers.get('vendure-auth-token');
+                    }
+                    return r.json()
+                });
+            }
+        </script>
+    </body>
+</html>

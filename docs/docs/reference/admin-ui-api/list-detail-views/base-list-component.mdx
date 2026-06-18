@@ -1,0 +1,145 @@
+---
+title: "BaseListComponent"
+generated: true
+---
+<GenerationInfo sourceFile="packages/admin-ui/src/lib/core/src/common/base-list.component.ts" sourceLine="43" packageName="@vendure/admin-ui" />
+
+This is a base class which implements the logic required to fetch and manipulate
+a list of data from a query which returns a PaginatedList type.
+
+It is normally used in combination with the [DataTable2Component](/reference/admin-ui-api/components/data-table2component#datatable2component).
+
+```ts title="Signature"
+class BaseListComponent<ResultType, ItemType, VariableType extends Record<string, any> = any> implements OnInit, OnDestroy {
+    searchTermControl = new FormControl('');
+    selectionManager = new SelectionManager<any>({
+        multiSelect: true,
+        itemsAreEqual: (a, b) => a.id === b.id,
+        additiveMode: true,
+    });
+    result$: Observable<ResultType>;
+    items$: Observable<ItemType[]>;
+    totalItems$: Observable<number>;
+    itemsPerPage$: Observable<number>;
+    currentPage$: Observable<number>;
+    protected destroy$ = new Subject<void>();
+    protected refresh$ = new BehaviorSubject<undefined>(undefined);
+    protected visibleCustomFieldColumnChange$ = new Subject<
+        Array<DataTableCustomFieldColumnComponent<any>>
+    >();
+    constructor(router: Router, route: ActivatedRoute)
+    setQueryFn(listQueryFn: ListQueryFn<ResultType>, mappingFn: MappingFn<ItemType, ResultType>, onPageChangeFn?: OnPageChangeFn<VariableType>, defaults?: { take: number; skip: number }) => ;
+    refreshListOnChanges(streams: Array<Observable<any>>) => ;
+    setPageNumber(page: number) => ;
+    setItemsPerPage(perPage: number) => ;
+    setVisibleColumns(columns: Array<DataTable2ColumnComponent<any>>) => ;
+    refresh() => ;
+    setQueryParam(hash: { [key: string]: any }, options?: { replaceUrl?: boolean; queryParamsHandling?: QueryParamsHandling }) => ;
+    setQueryParam(key: string, value: any, options?: { replaceUrl?: boolean; queryParamsHandling?: QueryParamsHandling }) => ;
+    setQueryParam(keyOrHash: string | { [key: string]: any }, valueOrOptions?: any, maybeOptions?: { replaceUrl?: boolean; queryParamsHandling?: QueryParamsHandling }) => ;
+}
+```
+* Implements: OnInit, OnDestroy
+
+
+
+<div className="members-wrapper">
+
+### searchTermControl
+
+<MemberInfo kind="property" type={``}   />
+
+
+### selectionManager
+
+<MemberInfo kind="property" type={``}   />
+
+
+### result$
+
+<MemberInfo kind="property" type={`Observable<ResultType>`}   />
+
+
+### items$
+
+<MemberInfo kind="property" type={`Observable<ItemType[]>`}   />
+
+
+### totalItems$
+
+<MemberInfo kind="property" type={`Observable<number>`}   />
+
+
+### itemsPerPage$
+
+<MemberInfo kind="property" type={`Observable<number>`}   />
+
+
+### currentPage$
+
+<MemberInfo kind="property" type={`Observable<number>`}   />
+
+
+### destroy$
+
+<MemberInfo kind="property" type={``}   />
+
+
+### refresh$
+
+<MemberInfo kind="property" type={``}   />
+
+
+### visibleCustomFieldColumnChange$
+
+<MemberInfo kind="property" type={``}   />
+
+
+### setQueryFn
+
+<MemberInfo kind="method" type={`(listQueryFn: ListQueryFn<ResultType>, mappingFn: MappingFn<ItemType, ResultType>, onPageChangeFn?: OnPageChangeFn<VariableType>, defaults?: { take: number; skip: number }) => `}   />
+
+Sets the fetch function for the list being implemented.
+### refreshListOnChanges
+
+<MemberInfo kind="method" type={`(streams: Array<Observable<any>>) => `}   />
+
+Accepts a list of Observables which will trigger a refresh of the list when any of them emit.
+### setPageNumber
+
+<MemberInfo kind="method" type={`(page: number) => `}   />
+
+Sets the current page number in the url.
+### setItemsPerPage
+
+<MemberInfo kind="method" type={`(perPage: number) => `}   />
+
+Sets the number of items per page in the url.
+### setVisibleColumns
+
+<MemberInfo kind="method" type={`(columns: Array<DataTable2ColumnComponent<any>>) => `}   />
+
+
+### refresh
+
+<MemberInfo kind="method" type={`() => `}   />
+
+Re-fetch the current page of results.
+### setQueryParam
+
+<MemberInfo kind="method" type={`(hash: { [key: string]: any }, options?: { replaceUrl?: boolean; queryParamsHandling?: QueryParamsHandling }) => `}   />
+
+
+### setQueryParam
+
+<MemberInfo kind="method" type={`(key: string, value: any, options?: { replaceUrl?: boolean; queryParamsHandling?: QueryParamsHandling }) => `}   />
+
+
+### setQueryParam
+
+<MemberInfo kind="method" type={`(keyOrHash: string | { [key: string]: any }, valueOrOptions?: any, maybeOptions?: { replaceUrl?: boolean; queryParamsHandling?: QueryParamsHandling }) => `}   />
+
+
+
+
+</div>

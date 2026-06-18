@@ -1,0 +1,39 @@
+---
+title: "CacheConfig"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/cache/cache.ts" sourceLine="14" packageName="@vendure/core" since="3.1.0" />
+
+Configuration for a new [Cache](/reference/typescript-api/cache/#cache) instance.
+
+```ts title="Signature"
+interface CacheConfig {
+    getKey: (id: string | number) => string;
+    options?: SetCacheKeyOptions;
+}
+```
+
+<div className="members-wrapper">
+
+### getKey
+
+<MemberInfo kind="property" type={`(id: string | number) => string`}   />
+
+A function which generates a cache key from the given id.
+This key will be used to store the value in the cache.
+
+By convention, the key should be namespaced to avoid conflicts.
+
+*Example*
+
+```ts
+getKey: id => `MyStrategy:getProductVariantIds:${id}`,
+```
+### options
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/cache/cache-strategy#setcachekeyoptions'>SetCacheKeyOptions</a>`}   />
+
+Options available when setting the value in the cache.
+
+
+</div>

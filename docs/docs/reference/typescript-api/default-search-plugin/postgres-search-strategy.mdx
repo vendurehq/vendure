@@ -1,0 +1,51 @@
+---
+title: "PostgresSearchStrategy"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/plugin/default-search-plugin/search-strategy/postgres-search-strategy.ts" sourceLine="28" packageName="@vendure/core" />
+
+A weighted fulltext search for PostgeSQL.
+
+```ts title="Signature"
+class PostgresSearchStrategy implements SearchStrategy {
+    init(injector: Injector) => ;
+    getFacetValueIds(ctx: RequestContext, input: SearchInput, enabledOnly: boolean) => Promise<Map<ID, number>>;
+    getCollectionIds(ctx: RequestContext, input: SearchInput, enabledOnly: boolean) => Promise<Map<ID, number>>;
+    getSearchResults(ctx: RequestContext, input: SearchInput, enabledOnly: boolean) => Promise<SearchResult[]>;
+    getTotalCount(ctx: RequestContext, input: SearchInput, enabledOnly: boolean) => Promise<number>;
+}
+```
+* Implements: [`SearchStrategy`](/reference/typescript-api/default-search-plugin/search-strategy#searchstrategy)
+
+
+
+<div className="members-wrapper">
+
+### init
+
+<MemberInfo kind="method" type={`(injector: <a href='/reference/typescript-api/common/injector#injector'>Injector</a>) => `}   />
+
+
+### getFacetValueIds
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: SearchInput, enabledOnly: boolean) => Promise<Map<<a href='/reference/typescript-api/common/id#id'>ID</a>, number>>`}   />
+
+
+### getCollectionIds
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: SearchInput, enabledOnly: boolean) => Promise<Map<<a href='/reference/typescript-api/common/id#id'>ID</a>, number>>`}   />
+
+
+### getSearchResults
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: SearchInput, enabledOnly: boolean) => Promise<SearchResult[]>`}   />
+
+
+### getTotalCount
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: SearchInput, enabledOnly: boolean) => Promise<number>`}   />
+
+
+
+
+</div>

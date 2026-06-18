@@ -1,0 +1,128 @@
+---
+title: "Alerts"
+generated: true
+---
+## AlertActionContext
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/alerts.ts" sourceLine="13" packageName="@vendure/dashboard" since="3.6.0" />
+
+The props passed to an alert action's `onClick` handler or `component`.
+
+```ts title="Signature"
+interface AlertActionContext<TResponse = any> {
+    data: TResponse;
+    dismiss: () => void;
+}
+```
+
+<div className="members-wrapper">
+
+### data
+
+<MemberInfo kind="property" type={`TResponse`}   />
+
+
+### dismiss
+
+<MemberInfo kind="property" type={`() => void`}   />
+
+
+
+
+</div>
+## DashboardAlertAction
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/alerts.ts" sourceLine="27" packageName="@vendure/dashboard" since="3.6.0" />
+
+Defines an alert action. Either provide an `onClick` handler (rendered as a default button
+with the given `label`), or a `component` for full control over rendering and hook access.
+
+```ts title="Signature"
+type DashboardAlertAction<TResponse = any> = | {
+          label: string;
+          onClick: (args: AlertActionContext<TResponse>) => void | Promise<any>;
+          component?: never;
+      }
+    | {
+          label?: string;
+          onClick?: never;
+          /**
+           * @description
+           * A React component to render as the action. This is useful when
+           * the action needs access to React hooks (e.g. `useNavigate` from TanStack Router).
+           *
+           * The component receives the alert `data` and a `dismiss` function as props.
+           *
+           * @since 3.6.0
+           */
+          component: ComponentType<AlertActionContext<TResponse>>;
+      }
+```
+## DashboardAlertDefinition
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/alerts.ts" sourceLine="56" packageName="@vendure/dashboard" since="3.3.0" />
+
+Allows you to define custom alerts that can be displayed in the dashboard.
+
+```ts title="Signature"
+interface DashboardAlertDefinition<TResponse = any> {
+    id: string;
+    title: string | ((data: TResponse) => string);
+    description?: string | ((data: TResponse) => string);
+    severity: AlertSeverity | ((data: TResponse) => AlertSeverity);
+    check: () => Promise<TResponse> | TResponse;
+    shouldShow: (data: TResponse) => boolean;
+    recheckInterval?: number;
+    actions?: Array<DashboardAlertAction<TResponse>>;
+}
+```
+
+<div className="members-wrapper">
+
+### id
+
+<MemberInfo kind="property" type={`string`}   />
+
+A unique identifier for the alert.
+### title
+
+<MemberInfo kind="property" type={`string | ((data: TResponse) => string)`}   />
+
+The title of the alert. Can be a string or a function that returns a string based on the response data.
+### description
+
+<MemberInfo kind="property" type={`string | ((data: TResponse) => string)`}   />
+
+The description of the alert. Can be a string or a function that returns a string based on the response data.
+### severity
+
+<MemberInfo kind="property" type={`AlertSeverity | ((data: TResponse) => AlertSeverity)`}   />
+
+The severity level of the alert.
+### check
+
+<MemberInfo kind="property" type={`() => Promise<TResponse> | TResponse`}   />
+
+A function that checks the condition and returns the response data.
+### shouldShow
+
+<MemberInfo kind="property" type={`(data: TResponse) => boolean`}   />
+
+A function that determines whether the alert should be rendered based on the response data.
+### recheckInterval
+
+<MemberInfo kind="property" type={`number`}   />
+
+The interval in milliseconds to recheck the condition.
+### actions
+
+<MemberInfo kind="property" type={`Array<<a href='/reference/dashboard/extensions-api/alerts#dashboardalertaction'>DashboardAlertAction</a><TResponse>>`}   />
+
+Optional actions that can be performed when the alert is shown.
+
+Each action is either a simple `onClick` handler (rendered as a default button
+with the given `label`), or a `component` for full control over rendering and
+access to React hooks.
+
+
+</div>

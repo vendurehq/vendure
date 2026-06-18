@@ -1,0 +1,21 @@
+.column-list {
+    display: flex;
+    align-items: center;
+}
+
+.drag-handle {
+    cursor: grab;
+    margin-top: -4px;
+}
+
+.cdk-drop-list-dragging .cdk-drag {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.cdk-drag-preview {
+    opacity: 0;
+}
+
+.reset-button {
+    border-top: 1px solid var(--color-weight-125);
+}

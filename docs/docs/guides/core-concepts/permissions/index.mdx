@@ -1,0 +1,70 @@
+---
+title: "Permissions"
+metaTitle: "Permissions and Authorization in Vendure"
+metaDescription: "How Vendure permissions work: CRUD permissions per entity, special permissions, built-in permission groups, deny-by-default authorization, and custom permissions for plugins."
+---
+
+Permissions are the **atomic units of authorization** in Vendure. Every API operation is guarded by
+one or more permissions, and an administrator can only perform an operation if their assigned
+[Roles](/core-concepts/roles/) include the required permission.
+
+## CRUD permissions
+
+Most entities in Vendure are protected by a standard set of four permissions following the
+**Create / Read / Update / Delete** pattern. For example, the Product entity is guarded by:
+
+- `CreateCatalog`
+- `ReadCatalog`
+- `UpdateCatalog`
+- `DeleteCatalog`
+
+These CRUD permissions are grouped by **domain** rather than by individual entity. The `Catalog`
+domain covers Products, ProductVariants, Collections, Facets, and Assets — so a role with
+`ReadCatalog` can read all of those entities.
+
+## Built-in permission domains
+
+Vendure ships with permissions organized into the following domains:
+
+- **Catalog** — Products, ProductVariants, Collections, Facets, FacetValues, Assets
+- **Customer** — Customers, CustomerGroups
+- **Order** — Orders, Fulfillments, Refunds, Payments
+- **Promotion** — Promotions, Coupons
+- **Settings** — Countries, Zones, TaxRates, TaxCategories, Channels, PaymentMethods, ShippingMethods, Sellers, StockLocations
+- **System** — Global settings, Jobs, Administrator accounts, Roles, Tag, Zone members
+
+Each domain has the full set of CRUD permissions, giving fine-grained control over what each
+role can access.
+
+## Special permissions
+
+In addition to the CRUD permissions, Vendure defines several special permissions:
+
+- **SuperAdmin** — bypasses all permission checks. Only the built-in SuperAdmin role carries this
+  permission and it cannot be assigned to custom roles.
+- **Owner** — allows a customer to access their own resources (e.g., their own orders and addresses)
+  without needing broader read permissions.
+- **Public** — marks operations that are accessible without any authentication, such as browsing
+  the product catalog in the Shop API.
+
+## Deny-by-default
+
+Vendure follows a **deny-by-default** authorization model. If an API operation does not have an
+explicit `@Allow()` decorator granting access via a specific permission, it is inaccessible. This
+ensures that new API operations are secure by default and permissions must be intentionally granted.
+
+## Custom permissions
+
+Plugins can define their own permissions using the `PermissionDefinition` class. This is useful
+when a plugin introduces new functionality that needs its own authorization controls — for example,
+a reporting plugin might define `ReadReports` and `ManageReports` permissions.
+
+Custom permissions appear alongside the built-in permissions when defining roles, allowing
+administrators to control access to plugin functionality in the same way they control access to
+core features.
+
+## Further reading
+
+- [Roles](/core-concepts/roles/) — how permissions are grouped into roles
+- [User Management](/core-concepts/user-management/) — the relationship between users and permissions
+- [Custom permissions guide](/developer-guide/custom-permissions/) — implementing custom permissions in plugins

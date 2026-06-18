@@ -1,0 +1,79 @@
+---
+title: "Taxes"
+metaTitle: "Tax Configuration and Calculation in Vendure"
+metaDescription: "Configure tax categories, rates, zones, and calculation strategies in Vendure. Covers price-inclusive vs exclusive tax, order line tax, and shipping tax."
+---
+
+E-commerce applications need to correctly handle taxes such as sales tax or value added tax (VAT). In Vendure, tax handling consists of:
+
+* **Tax categories** Each ProductVariant is assigned to a specific TaxCategory. In some tax systems, the tax rate differs depending on the type of good. For example, VAT in the UK has 3 rates, "standard" (most goods), "reduced" (e.g. child car seats) and "zero" (e.g. books).
+* **Tax rates** This is the tax rate applied to a specific tax category for a specific [Zone](/core-concepts/zones/). E.g., the tax rate for "standard" goods in the UK Zone is 20%.
+* **Channel tax settings** Each Channel can specify whether the prices of product variants are inclusive of tax or not, and also specify the default Zone to use for tax calculations.
+* **TaxZoneStrategy** Determines the active tax Zone used when calculating what TaxRate to apply. By default, it uses the default tax Zone from the Channel settings.
+* **TaxLineCalculationStrategy** This determines the taxes applied when adding an item to an Order. If you want to integrate a 3rd-party tax API or other async lookup, this is where it would be done.
+
+## API conventions
+
+In the GraphQL API, any type which has a taxable price will split that price into two fields: `price` and `priceWithTax`. This pattern also holds for other price fields, e.g.
+
+```graphql
+query {
+  activeOrder {
+    ...on Order {
+      lines {
+        linePrice
+        linePriceWithTax
+      }
+      subTotal
+      subTotalWithTax
+      shipping
+      shippingWithTax
+      total
+      totalWithTax
+    }
+  }
+}
+```
+
+In your storefront, you can therefore choose whether to display the prices with or without tax, according to the laws and conventions of the area in which your business operates.
+
+## Calculating tax on order lines
+
+When a customer adds an item to the Order, the following logic takes place:
+
+1. The price of the item, and whether that price is inclusive of tax, is determined according to the configured [OrderItemPriceCalculationStrategy](/reference/typescript-api/orders/order-item-price-calculation-strategy/).
+2. The active tax Zone is determined based on the configured [TaxZoneStrategy](/reference/typescript-api/tax/tax-zone-strategy/). By default, Vendure will use the default tax Zone from the Channel settings.
+  However, you often want to use the customer's address as the basis for determining the tax Zone. In this case, you should use the [AddressBasedTaxZoneStrategy](/reference/typescript-api/tax/address-based-tax-zone-strategy).
+3. The applicable TaxRate is fetched based on the ProductVariant's TaxCategory and the active tax Zone determined in step 1.
+4. The `TaxLineCalculationStrategy.calculate()` of the configured [TaxLineCalculationStrategy](/reference/typescript-api/tax/tax-line-calculation-strategy/) is called, which will return one or more [TaxLines](/reference/graphql-api/admin/object-types/#taxline).
+5. The final `priceWithTax` of the order line is calculated based on all the above.
+
+## Calculating tax on shipping
+
+The taxes on shipping is calculated by the [ShippingCalculator](/reference/typescript-api/shipping/shipping-calculator/) of the Order's selected [ShippingMethod](/reference/typescript-api/entities/shipping-method/).
+
+## Code Examples
+
+### Default tax configuration
+
+This example shows the default configuration for taxes (you don't need to specify this in your own config, as these are the defaults):
+
+```ts title="src/vendure-config.ts"
+import {
+    DefaultTaxLineCalculationStrategy,
+    DefaultTaxZoneStrategy,
+    DefaultOrderItemPriceCalculationStrategy,
+    VendureConfig
+} from '@vendure/core';
+
+export const config: VendureConfig = {
+  taxOptions: {
+    taxZoneStrategy: new DefaultTaxZoneStrategy(),
+    taxLineCalculationStrategy: new DefaultTaxLineCalculationStrategy(),
+  },
+  orderOptions: {
+    orderItemPriceCalculationStrategy: new DefaultOrderItemPriceCalculationStrategy()
+  }
+}
+```
+

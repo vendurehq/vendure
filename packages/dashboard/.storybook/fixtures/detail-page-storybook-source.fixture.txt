@@ -1,0 +1,461 @@
+<DetailPageStoryWrapper
+  pageId="product-detail"
+  queryDocument={{
+    definitions: [
+      {
+        directives: undefined,
+        kind: 'OperationDefinition',
+        name: {
+          kind: 'Name',
+          value: 'Product'
+        },
+        operation: 'query',
+        selectionSet: {
+          kind: 'SelectionSet',
+          selections: [
+            {
+              alias: undefined,
+              arguments: [
+                {
+                  kind: 'Argument',
+                  name: {
+                    kind: 'Name',
+                    value: 'id'
+                  },
+                  value: {
+                    kind: 'Variable',
+                    name: {
+                      kind: 'Name',
+                      value: 'id'
+                    }
+                  }
+                }
+              ],
+              directives: undefined,
+              kind: 'Field',
+              name: {
+                kind: 'Name',
+                value: 'product'
+              },
+              selectionSet: {
+                kind: 'SelectionSet',
+                selections: [
+                  {
+                    directives: undefined,
+                    kind: 'FragmentSpread',
+                    name: {
+                      kind: 'Name',
+                      value: 'ProductDetail'
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        variableDefinitions: [
+          {
+            defaultValue: undefined,
+            directives: undefined,
+            kind: 'VariableDefinition',
+            type: {
+              kind: 'NonNullType',
+              type: {
+                kind: 'NamedType',
+                name: {
+                  kind: 'Name',
+                  value: 'ID'
+                }
+              }
+            },
+            variable: {
+              kind: 'Variable',
+              name: {
+                kind: 'Name',
+                value: 'id'
+              }
+            }
+          }
+        ]
+      },
+      {
+        directives: undefined,
+        kind: 'FragmentDefinition',
+        name: {
+          kind: 'Name',
+          value: 'ProductDetail'
+        },
+        selectionSet: {
+          kind: 'SelectionSet',
+          selections: [
+            {
+              alias: undefined,
+              arguments: undefined,
+              directives: undefined,
+              kind: 'Field',
+              name: {
+                kind: 'Name',
+                value: 'id'
+              },
+              selectionSet: undefined
+            },
+            {
+              alias: undefined,
+              arguments: undefined,
+              directives: undefined,
+              kind: 'Field',
+              name: {
+                kind: 'Name',
+                value: 'createdAt'
+              },
+              selectionSet: undefined
+            },
+            {
+              alias: undefined,
+              arguments: undefined,
+              directives: undefined,
+              kind: 'Field',
+              name: {
+                kind: 'Name',
+                value: 'updatedAt'
+              },
+              selectionSet: undefined
+            },
+            {
+              alias: undefined,
+              arguments: undefined,
+              directives: undefined,
+              kind: 'Field',
+              name: {
+                kind: 'Name',
+                value: 'name'
+              },
+              selectionSet: undefined
+            },
+            {
+              alias: undefined,
+              arguments: undefined,
+              directives: undefined,
+              kind: 'Field',
+              name: {
+                kind: 'Name',
+                value: 'slug'
+              },
+              selectionSet: undefined
+            },
+            {
+              alias: undefined,
+              arguments: undefined,
+              directives: undefined,
+              kind: 'Field',
+              name: {
+                kind: 'Name',
+                value: 'description'
+              },
+              selectionSet: undefined
+            },
+            {
+              alias: undefined,
+              arguments: undefined,
+              directives: undefined,
+              kind: 'Field',
+              name: {
+                kind: 'Name',
+                value: 'enabled'
+              },
+              selectionSet: undefined
+            },
+            {
+              alias: undefined,
+              arguments: undefined,
+              directives: undefined,
+              kind: 'Field',
+              name: {
+                kind: 'Name',
+                value: 'featuredAsset'
+              },
+              selectionSet: {
+                kind: 'SelectionSet',
+                selections: [
+                  {
+                    alias: undefined,
+                    arguments: undefined,
+                    directives: undefined,
+                    kind: 'Field',
+                    name: {
+                      kind: 'Name',
+                      value: 'id'
+                    },
+                    selectionSet: undefined
+                  }
+                ]
+              }
+            },
+            {
+              alias: undefined,
+              arguments: undefined,
+              directives: undefined,
+              kind: 'Field',
+              name: {
+                kind: 'Name',
+                value: 'assets'
+              },
+              selectionSet: {
+                kind: 'SelectionSet',
+                selections: [
+                  {
+                    alias: undefined,
+                    arguments: undefined,
+                    directives: undefined,
+                    kind: 'Field',
+                    name: {
+                      kind: 'Name',
+                      value: 'id'
+                    },
+                    selectionSet: undefined
+                  }
+                ]
+              }
+            },
+            {
+              alias: undefined,
+              arguments: undefined,
+              directives: undefined,
+              kind: 'Field',
+              name: {
+                kind: 'Name',
+                value: 'facetValues'
+              },
+              selectionSet: {
+                kind: 'SelectionSet',
+                selections: [
+                  {
+                    alias: undefined,
+                    arguments: undefined,
+                    directives: undefined,
+                    kind: 'Field',
+                    name: {
+                      kind: 'Name',
+                      value: 'id'
+                    },
+                    selectionSet: undefined
+                  }
+                ]
+              }
+            },
+            {
+              alias: undefined,
+              arguments: undefined,
+              directives: undefined,
+              kind: 'Field',
+              name: {
+                kind: 'Name',
+                value: 'translations'
+              },
+              selectionSet: {
+                kind: 'SelectionSet',
+                selections: [
+                  {
+                    alias: undefined,
+                    arguments: undefined,
+                    directives: undefined,
+                    kind: 'Field',
+                    name: {
+                      kind: 'Name',
+                      value: 'id'
+                    },
+                    selectionSet: undefined
+                  },
+                  {
+                    alias: undefined,
+                    arguments: undefined,
+                    directives: undefined,
+                    kind: 'Field',
+                    name: {
+                      kind: 'Name',
+                      value: 'languageCode'
+                    },
+                    selectionSet: undefined
+                  },
+                  {
+                    alias: undefined,
+                    arguments: undefined,
+                    directives: undefined,
+                    kind: 'Field',
+                    name: {
+                      kind: 'Name',
+                      value: 'name'
+                    },
+                    selectionSet: undefined
+                  },
+                  {
+                    alias: undefined,
+                    arguments: undefined,
+                    directives: undefined,
+                    kind: 'Field',
+                    name: {
+                      kind: 'Name',
+                      value: 'slug'
+                    },
+                    selectionSet: undefined
+                  },
+                  {
+                    alias: undefined,
+                    arguments: undefined,
+                    directives: undefined,
+                    kind: 'Field',
+                    name: {
+                      kind: 'Name',
+                      value: 'description'
+                    },
+                    selectionSet: undefined
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        typeCondition: {
+          kind: 'NamedType',
+          name: {
+            kind: 'Name',
+            value: 'Product'
+          }
+        }
+      }
+    ],
+    kind: 'Document',
+    loc: undefined
+  }}
+  setValuesForUpdate={() => {}}
+  title={() => {}}
+  updateDocument={{
+    definitions: [
+      {
+        directives: undefined,
+        kind: 'OperationDefinition',
+        name: {
+          kind: 'Name',
+          value: 'UpdateProduct'
+        },
+        operation: 'mutation',
+        selectionSet: {
+          kind: 'SelectionSet',
+          selections: [
+            {
+              alias: undefined,
+              arguments: [
+                {
+                  kind: 'Argument',
+                  name: {
+                    kind: 'Name',
+                    value: 'input'
+                  },
+                  value: {
+                    kind: 'Variable',
+                    name: {
+                      kind: 'Name',
+                      value: 'input'
+                    }
+                  }
+                }
+              ],
+              directives: undefined,
+              kind: 'Field',
+              name: {
+                kind: 'Name',
+                value: 'updateProduct'
+              },
+              selectionSet: {
+                kind: 'SelectionSet',
+                selections: [
+                  {
+                    alias: undefined,
+                    arguments: undefined,
+                    directives: undefined,
+                    kind: 'Field',
+                    name: {
+                      kind: 'Name',
+                      value: 'id'
+                    },
+                    selectionSet: undefined
+                  },
+                  {
+                    alias: undefined,
+                    arguments: undefined,
+                    directives: undefined,
+                    kind: 'Field',
+                    name: {
+                      kind: 'Name',
+                      value: 'name'
+                    },
+                    selectionSet: undefined
+                  },
+                  {
+                    alias: undefined,
+                    arguments: undefined,
+                    directives: undefined,
+                    kind: 'Field',
+                    name: {
+                      kind: 'Name',
+                      value: 'slug'
+                    },
+                    selectionSet: undefined
+                  },
+                  {
+                    alias: undefined,
+                    arguments: undefined,
+                    directives: undefined,
+                    kind: 'Field',
+                    name: {
+                      kind: 'Name',
+                      value: 'description'
+                    },
+                    selectionSet: undefined
+                  },
+                  {
+                    alias: undefined,
+                    arguments: undefined,
+                    directives: undefined,
+                    kind: 'Field',
+                    name: {
+                      kind: 'Name',
+                      value: 'enabled'
+                    },
+                    selectionSet: undefined
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        variableDefinitions: [
+          {
+            defaultValue: undefined,
+            directives: undefined,
+            kind: 'VariableDefinition',
+            type: {
+              kind: 'NonNullType',
+              type: {
+                kind: 'NamedType',
+                name: {
+                  kind: 'Name',
+                  value: 'UpdateProductInput'
+                }
+              }
+            },
+            variable: {
+              kind: 'Variable',
+              name: {
+                kind: 'Name',
+                value: 'input'
+              }
+            }
+          }
+        ]
+      }
+    ],
+    kind: 'Document',
+    loc: undefined
+  }}
+/>

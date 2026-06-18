@@ -1,0 +1,68 @@
+---
+title: "Administrator"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/administrator/administrator.entity.ts" sourceLine="18" packageName="@vendure/core" />
+
+An administrative user who has access to the Admin UI and Admin API. The
+specific permissions of the Administrator are determined by the assigned
+[Role](/reference/typescript-api/entities/role#role)s.
+
+```ts title="Signature"
+class Administrator extends VendureEntity implements SoftDeletable, HasCustomFields {
+    constructor(input?: DeepPartial<Administrator>)
+    @Column({ type: Date, nullable: true })
+    deletedAt: Date | null;
+    @Column() firstName: string;
+    @Column() lastName: string;
+    @Column()
+    emailAddress: string;
+    @OneToOne(type => User)
+    @JoinColumn()
+    user: User;
+    @Column(type => CustomAdministratorFields)
+    customFields: CustomAdministratorFields;
+}
+```
+* Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
+
+
+* Implements: [`SoftDeletable`](/reference/typescript-api/entities/interfaces#softdeletable), HasCustomFields
+
+
+
+<div className="members-wrapper">
+
+### deletedAt
+
+<MemberInfo kind="property" type={`Date | null`}   />
+
+
+### firstName
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### lastName
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### emailAddress
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### user
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/user#user'>User</a>`}   />
+
+
+### customFields
+
+<MemberInfo kind="property" type={`CustomAdministratorFields`}   />
+
+
+
+
+</div>

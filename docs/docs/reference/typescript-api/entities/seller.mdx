@@ -1,0 +1,53 @@
+---
+title: "Seller"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/seller/seller.entity.ts" sourceLine="17" packageName="@vendure/core" />
+
+A Seller represents the person or organization who is selling the goods on a given [Channel](/reference/typescript-api/entities/channel#channel).
+By default, a single-channel Vendure installation will have a single default Seller.
+
+```ts title="Signature"
+class Seller extends VendureEntity implements SoftDeletable, HasCustomFields {
+    constructor(input?: DeepPartial<Seller>)
+    @Column({ type: Date, nullable: true })
+    deletedAt: Date | null;
+    @Column() name: string;
+    @Column(type => CustomSellerFields)
+    customFields: CustomSellerFields;
+    @OneToMany(type => Channel, channel => channel.seller)
+    channels: Channel[];
+}
+```
+* Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
+
+
+* Implements: [`SoftDeletable`](/reference/typescript-api/entities/interfaces#softdeletable), HasCustomFields
+
+
+
+<div className="members-wrapper">
+
+### deletedAt
+
+<MemberInfo kind="property" type={`Date | null`}   />
+
+
+### name
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### customFields
+
+<MemberInfo kind="property" type={`CustomSellerFields`}   />
+
+
+### channels
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>[]`}   />
+
+
+
+
+</div>

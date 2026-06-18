@@ -1,0 +1,15 @@
+::ng-deep .order-edits-preview-table .table-wrapper {
+  max-width: initial !important;
+}
+
+.payments-wrapper {
+  display: flex;
+  gap: calc(var(--space-unit) * 2);
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  gap: var(--clr-modal-footer-gap, 0.6rem);
+}

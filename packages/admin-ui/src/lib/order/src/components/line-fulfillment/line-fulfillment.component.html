@@ -1,0 +1,47 @@
+<vdr-dropdown class="search-settings-menu" *ngIf="fulfilledCount || orderState === 'PartiallyDelivered'">
+    <button type="button" class="icon-button" vdrDropdownTrigger>
+        <clr-icon *ngIf="fulfillmentStatus === 'full'" class="item-fulfilled" shape="check-circle"></clr-icon>
+        <clr-icon
+            *ngIf="fulfillmentStatus === 'partial'"
+            class="item-partially-fulfilled"
+            shape="check-circle"
+        ></clr-icon>
+        <clr-icon
+            *ngIf="fulfillmentStatus === 'none'"
+            class="item-not-fulfilled"
+            shape="exclamation-circle"
+        ></clr-icon>
+    </button>
+    <vdr-dropdown-menu vdrPosition="bottom-right">
+        <label class="dropdown-header" *ngIf="fulfillmentStatus === 'full'">
+            {{ 'order.line-fulfillment-all' | translate }}
+        </label>
+        <label class="dropdown-header" *ngIf="fulfillmentStatus === 'partial'">
+            {{
+                'order.line-fulfillment-partial' | translate: { total: line.quantity, count: fulfilledCount }
+            }}
+        </label>
+        <label class="dropdown-header" *ngIf="fulfillmentStatus === 'none'">
+            {{ 'order.line-fulfillment-none' | translate }}
+        </label>
+        <div class="fulfillment-detail" *ngFor="let item of fulfillments">
+            <div class="fulfillment-title">
+                {{ 'order.fulfillment' | translate }} #{{ item.fulfillment.id }} ({{
+                    'order.item-count' | translate: { count: item.count }
+                }})
+            </div>
+            <vdr-labeled-data [label]="'common.created-at' | translate">
+                {{ item.fulfillment.createdAt | localeDate: 'medium' }}
+            </vdr-labeled-data>
+            <vdr-labeled-data [label]="'order.fulfillment-method' | translate">
+                {{ item.fulfillment.method }}
+            </vdr-labeled-data>
+            <vdr-labeled-data
+                *ngIf="item.fulfillment.trackingCode"
+                [label]="'order.tracking-code' | translate"
+            >
+                {{ item.fulfillment.trackingCode }}
+            </vdr-labeled-data>
+        </div>
+    </vdr-dropdown-menu>
+</vdr-dropdown>

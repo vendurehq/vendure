@@ -1,0 +1,121 @@
+<div class="input-wrapper">
+    <input
+        readonly
+        [ngModel]="selected$ | async | localeDate : 'medium'"
+        class="selected-datetime"
+        (keydown.enter)="dropdownComponent.toggleOpen()"
+        (keydown.space)="dropdownComponent.toggleOpen()"
+        #datetimeInput
+    />
+    <button
+        class="clear-value-button"
+        [class.visible]="!disabled && !readonly && (selected$ | async)"
+        (click)="clearValue()"
+    >
+        <clr-icon shape="times"></clr-icon>
+    </button>
+</div>
+<vdr-dropdown #dropdownComponent>
+    <button class="calendar-button" vdrDropdownTrigger [disabled]="readonly || disabled">
+        <clr-icon shape="calendar"></clr-icon>
+    </button>
+    <vdr-dropdown-menu>
+        <div
+            class="datetime-picker"
+            *ngIf="current$ | async as currentView"
+            (keydown.escape)="closeDatepicker()"
+        >
+            <div class="controls">
+                <div class="selects">
+                    <div class="month-select">
+                        <select name="month" [ngModel]="currentView.month" (change)="setMonth($event)">
+                            <option [value]="1">{{ 'datetime.month-jan' | translate }}</option>
+                            <option [value]="2">{{ 'datetime.month-feb' | translate }}</option>
+                            <option [value]="3">{{ 'datetime.month-mar' | translate }}</option>
+                            <option [value]="4">{{ 'datetime.month-apr' | translate }}</option>
+                            <option [value]="5">{{ 'datetime.month-may' | translate }}</option>
+                            <option [value]="6">{{ 'datetime.month-jun' | translate }}</option>
+                            <option [value]="7">{{ 'datetime.month-jul' | translate }}</option>
+                            <option [value]="8">{{ 'datetime.month-aug' | translate }}</option>
+                            <option [value]="9">{{ 'datetime.month-sep' | translate }}</option>
+                            <option [value]="10">{{ 'datetime.month-oct' | translate }}</option>
+                            <option [value]="11">{{ 'datetime.month-nov' | translate }}</option>
+                            <option [value]="12">{{ 'datetime.month-dec' | translate }}</option>
+                        </select>
+                    </div>
+                    <div class="year-select">
+                        <select name="month" [ngModel]="currentView.year" (change)="setYear($event)">
+                            <option *ngFor="let year of years" [value]="year">{{ year }}</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="control-buttons">
+                    <button
+                        class="btn btn-link btn-sm"
+                        (click)="prevMonth()"
+                        [title]="'common.view-previous-month' | translate"
+                    >
+                        <clr-icon shape="caret" dir="left"></clr-icon>
+                    </button>
+                    <button
+                        class="btn btn-link btn-sm"
+                        (click)="selectToday()"
+                        [title]="'common.select-today' | translate"
+                    >
+                        <clr-icon shape="event"></clr-icon>
+                    </button>
+                    <button
+                        class="btn btn-link btn-sm"
+                        (click)="nextMonth()"
+                        [title]="'common.view-next-month' | translate"
+                    >
+                        <clr-icon shape="caret" dir="right"></clr-icon>
+                    </button>
+                </div>
+            </div>
+            <table
+                class="calendar-table"
+                #calendarTable
+                tabindex="0"
+                (keydown)="handleCalendarKeydown($event)"
+            >
+                <thead>
+                    <tr>
+                        <td *ngFor="let weekdayName of weekdays">
+                            {{ weekdayName | translate }}
+                        </td>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let week of calendarView$ | async">
+                        <td
+                            *ngFor="let day of week"
+                            class="day-cell"
+                            [class.selected]="day.selected"
+                            [class.today]="day.isToday"
+                            [class.viewing]="day.isViewing"
+                            [class.current-month]="day.inCurrentMonth"
+                            [class.disabled]="day.disabled"
+                            (keydown.enter)="selectDay(day)"
+                            (click)="selectDay(day)"
+                        >
+                            {{ day.dayOfMonth }}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="time-picker">
+                <span class="flex-spacer"> {{ 'datetime.time' | translate }}: </span>
+                <select name="hour" [ngModel]="selectedHours$ | async" (change)="setHour($event)">
+                    <option *ngFor="let hour of hours" [value]="hour">{{ hour | number : '2.0-0' }}</option>
+                </select>
+                <span>:</span>
+                <select name="hour" [ngModel]="selectedMinutes$ | async" (change)="setMinute($event)">
+                    <option *ngFor="let minute of minutes" [value]="minute">
+                        {{ minute | number : '2.0-0' }}
+                    </option>
+                </select>
+            </div>
+        </div>
+    </vdr-dropdown-menu>
+</vdr-dropdown>

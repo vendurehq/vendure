@@ -1,0 +1,31 @@
+<vdr-dropdown #addPresetDropdown>
+    <button
+        class="add-preset-button mt-1"
+        vdrDropdownTrigger
+        [class.visible]="filters.activeFilters.length > 0 && !selectedFilterPreset"
+        [disabled]="filters.activeFilters.length === 0 || !!selectedFilterPreset"
+    >
+        <clr-icon shape="floppy"/>
+        <div>{{ 'common.save-filter-preset' | translate }}</div>
+    </button>
+    <vdr-dropdown-menu
+        vdrPosition="bottom-left"
+        [cdkTrapFocus]="true"
+        [cdkTrapFocusAutoCapture]="true"
+    >
+        <form class="mx-1">
+            <div>
+                <input
+                    type="text"
+                    [placeholder]="'common.filter-preset-name' | translate"
+                    [formControl]="filterPresetName"
+                />
+            </div>
+            <div class="preset-create-row">
+                <button class="button mt-2" (click)="saveFilterPreset()">
+                    {{ 'common.create' | translate }}
+                </button>
+            </div>
+        </form>
+    </vdr-dropdown-menu>
+</vdr-dropdown>

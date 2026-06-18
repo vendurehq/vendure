@@ -1,0 +1,47 @@
+---
+title: "VendureEntityEvent"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/event-bus/vendure-entity-event.ts" sourceLine="12" packageName="@vendure/core" />
+
+The base class for all entity events used by the EventBus system.
+* For event type `'deleted'` the input will most likely be an `id: ID`
+
+```ts title="Signature"
+class VendureEntityEvent<Entity, Input = any> extends VendureEvent {
+    public readonly entity: Entity;
+    public readonly type: 'created' | 'updated' | 'deleted';
+    public readonly ctx: RequestContext;
+    public readonly input?: Input;
+    constructor(entity: Entity, type: 'created' | 'updated' | 'deleted', ctx: RequestContext, input?: Input)
+}
+```
+* Extends: [`VendureEvent`](/reference/typescript-api/events/vendure-event#vendureevent)
+
+
+
+<div className="members-wrapper">
+
+### entity
+
+<MemberInfo kind="property" type={`Entity`}   />
+
+
+### type
+
+<MemberInfo kind="property" type={`'created' | 'updated' | 'deleted'`}   />
+
+
+### ctx
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>`}   />
+
+
+### input
+
+<MemberInfo kind="property" type={`Input`}   />
+
+
+
+
+</div>

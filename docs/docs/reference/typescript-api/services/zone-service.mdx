@@ -1,0 +1,67 @@
+---
+title: "ZoneService"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/services/zone.service.ts" sourceLine="38" packageName="@vendure/core" />
+
+Contains methods relating to [Zone](/reference/typescript-api/entities/zone#zone) entities.
+
+```ts title="Signature"
+class ZoneService {
+    constructor(connection: TransactionalConnection, configService: ConfigService, eventBus: EventBus, translator: TranslatorService, listQueryBuilder: ListQueryBuilder, customFieldRelationService: CustomFieldRelationService)
+    findAll(ctx: RequestContext, options?: ListQueryOptions<Zone>) => Promise<PaginatedList<Zone>>;
+    findOne(ctx: RequestContext, zoneId: ID) => Promise<Zone | undefined>;
+    getAllWithMembers(ctx: RequestContext) => Promise<Zone[]>;
+    create(ctx: RequestContext, input: CreateZoneInput) => Promise<Zone>;
+    update(ctx: RequestContext, input: UpdateZoneInput) => Promise<Zone>;
+    delete(ctx: RequestContext, id: ID) => Promise<DeletionResponse>;
+    addMembersToZone(ctx: RequestContext, { memberIds, zoneId }: MutationAddMembersToZoneArgs) => Promise<Zone>;
+    removeMembersFromZone(ctx: RequestContext, { memberIds, zoneId }: MutationRemoveMembersFromZoneArgs) => Promise<Zone>;
+}
+```
+
+<div className="members-wrapper">
+
+### findAll
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: ListQueryOptions<<a href='/reference/typescript-api/entities/zone#zone'>Zone</a>>) => Promise<<a href='/reference/typescript-api/common/paginated-list#paginatedlist'>PaginatedList</a><<a href='/reference/typescript-api/entities/zone#zone'>Zone</a>>>`}   />
+
+
+### findOne
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, zoneId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/zone#zone'>Zone</a> | undefined>`}   />
+
+
+### getAllWithMembers
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<<a href='/reference/typescript-api/entities/zone#zone'>Zone</a>[]>`}   />
+
+
+### create
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: CreateZoneInput) => Promise<<a href='/reference/typescript-api/entities/zone#zone'>Zone</a>>`}   />
+
+
+### update
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: UpdateZoneInput) => Promise<<a href='/reference/typescript-api/entities/zone#zone'>Zone</a>>`}   />
+
+
+### delete
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<DeletionResponse>`}   />
+
+
+### addMembersToZone
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, { memberIds, zoneId }: MutationAddMembersToZoneArgs) => Promise<<a href='/reference/typescript-api/entities/zone#zone'>Zone</a>>`}   />
+
+
+### removeMembersFromZone
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, { memberIds, zoneId }: MutationRemoveMembersFromZoneArgs) => Promise<<a href='/reference/typescript-api/entities/zone#zone'>Zone</a>>`}   />
+
+
+
+
+</div>

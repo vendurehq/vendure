@@ -1,0 +1,18 @@
+mutation ($id: ID! $qty: Int!) {
+    addItemToOrder(productVariantId: $id quantity: $qty) {
+        ...on Order {
+            id
+            code
+            lines {
+                id
+                quantity
+                productVariant {
+                    id
+                }
+            }
+        }
+        ...on ErrorResult {
+            errorCode
+        }
+    }
+}

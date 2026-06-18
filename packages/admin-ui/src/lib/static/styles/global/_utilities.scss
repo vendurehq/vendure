@@ -1,0 +1,155 @@
+/////////////// layout ///////////////
+.block {
+    display: block !important;
+}
+
+.flex {
+    display: flex !important;
+}
+
+.flex.center {
+    align-items: center;
+    justify-content: center;
+}
+
+.flex.items-center {
+    align-items: center;
+}
+
+.flex.wrap {
+    flex-wrap: wrap;
+}
+
+.flex-spacer {
+    flex: 1;
+}
+
+.max-w-layout {
+    max-width: var(--layout-content-max-width);
+}
+
+.sm\:hidden {
+    @media screen and (max-width: $breakpoint-small) {
+        display: none !important;
+    }
+}
+
+.md\:hidden {
+    @media screen and (max-width: $breakpoint-medium) {
+        display: none !important;
+    }
+}
+
+.ml-auto {
+    margin-inline-start: auto;
+}
+.mr-auto {
+    margin-inline-end: auto;
+}
+.mx-auto {
+    margin-inline-start: auto;
+    margin-inline-end: auto;
+}
+
+$spacings: (1, 2, 3, 4, 5, auto);
+
+$sides: (
+    't': 'top',
+    'b': 'bottom',
+    'l': 'inline-start',
+    'r': 'inline-end',
+    '': (
+        'top',
+        'inline-start',
+        'bottom',
+        'inline-end',
+    ),
+    'x': (
+        'inline-start',
+        'inline-end',
+    ),
+    'y': (
+        'top',
+        'bottom',
+    ),
+);
+
+$breakpoints: (
+    '': '',
+    'sm': var(--breakpoint-sm),
+    'md': var(--breakpoint-md),
+    'lg': var(--breakpoint-lg),
+    'xl': var(--breakpoint-xl),
+);
+
+$breakpoint-glue: '\\:' !default;
+@each $breakName, $breakValue in $breakpoints {
+    @if $breakName != '' {
+        @media (min-width: $breakValue) {
+            @each $space in $spacings {
+                @each $prefix, $positions in $sides {
+                    .#{$breakName}\:p#{$prefix}-#{$space} {
+                        @each $pos in $positions {
+                            padding-#{$pos}: if(
+                                $space == auto,
+                                $space,
+                                calc(#{$space} * var(--space-unit))
+                            ) !important;
+                        }
+                    }
+                    .#{$breakName}\:m#{$prefix}-#{$space} {
+                        @each $pos in $positions {
+                            margin-#{$pos}: if(
+                                $space == auto,
+                                $space,
+                                calc(#{$space} * var(--space-unit))
+                            ) !important;
+                        }
+                    }
+                }
+            }
+        }
+    } @else {
+        @each $space in $spacings {
+            @each $prefix, $positions in $sides {
+                .p#{$prefix}-#{$space} {
+                    @each $pos in $positions {
+                        padding-#{$pos}: if(
+                            $space == auto,
+                            $space,
+                            calc(#{$space} * var(--space-unit))
+                        ) !important;
+                    }
+                }
+                .m#{$prefix}-#{$space} {
+                    @each $pos in $positions {
+                        margin-#{$pos}: if(
+                            $space == auto,
+                            $space,
+                            calc(#{$space} * var(--space-unit))
+                        ) !important;
+                    }
+                }
+            }
+        }
+    }
+}
+
+// colour classes
+$colors: ('weight', 'primary', 'secondary', 'success', 'warning', 'error');
+$scale: (100, 125, 150, 200, 300, 400, 500, 600, 700, 800, 900, 950, 975, 1000);
+$properties: (
+    'color': 'color',
+    'bg': 'background-color',
+    'border': 'border-color',
+);
+// create the classes
+@each $color in $colors {
+    @each $scale in $scale {
+        @each $property, $cssProperty in $properties {
+            .#{$property}-#{$color}-#{$scale} {
+                #{$cssProperty}: var(--color-#{$color}-#{$scale});
+            }
+        }
+    }
+}

@@ -1,0 +1,20 @@
+<ng-template vdrDialogTitle>
+    {{ 'customer.add-customers-to-group-with-name' | translate: {groupName: group.name} }}
+</ng-template>
+
+<vdr-customer-group-member-list
+    locationId="customer-group-members-picker-list"
+    [members]="customers$ | async"
+    [totalItems]="customersTotal$ | async"
+    [route]="route"
+    [selectedMemberIds]="selectedCustomerIds"
+    (fetchParamsChange)="fetchGroupMembers$.next($event)"
+    (selectionChange)="selectedCustomerIds = $event"
+/>
+
+<ng-template vdrDialogButtons>
+    <button type="button" class="btn" (click)="cancel()">{{ 'common.cancel' | translate }}</button>
+    <button type="submit" (click)="add()" [disabled]="!selectedCustomerIds.length" class="btn btn-primary">
+        {{ 'customer.add-customers-to-group-with-count' | translate: {count: selectedCustomerIds.length} }}
+    </button>
+</ng-template>

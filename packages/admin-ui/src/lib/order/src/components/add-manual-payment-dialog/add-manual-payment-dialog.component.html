@@ -1,0 +1,23 @@
+<ng-template vdrDialogTitle>{{ 'order.add-payment-to-order' | translate }}</ng-template>
+<form [formGroup]="form">
+    <vdr-form-field [label]="'order.payment-method' | translate" for="method">
+        <ng-select
+            [items]="paymentMethods$ | async"
+            bindLabel="code"
+            appendTo="body"
+            autofocus
+            bindValue="code"
+            [addTag]="true"
+            formControlName="method"
+        ></ng-select>
+    </vdr-form-field>
+    <vdr-form-field [label]="'order.transaction-id' | translate" for="transactionId">
+        <input id="transactionId" type="text" formControlName="transactionId" />
+    </vdr-form-field>
+</form>
+<ng-template vdrDialogButtons>
+    <button type="button" class="btn" (click)="cancel()">{{ 'common.cancel' | translate }}</button>
+    <button type="submit" (click)="submit()" class="btn btn-primary" [disabled]="form.invalid || form.pristine">
+        {{ 'order.add-payment' | translate }}  ({{ outstandingAmount | localeCurrency: currencyCode }})
+    </button>
+</ng-template>

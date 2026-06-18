@@ -1,0 +1,469 @@
+---
+title: 'Custom Strategies in Plugins'
+metaTitle: "Implementing Custom Strategies in Vendure Plugins"
+metaDescription: "Build extensible Vendure plugins using the strategy pattern with injectable lifecycle methods, dependency injection, and configurable options."
+---
+
+When building Vendure plugins, you often need to provide extensible, pluggable implementations for specific features. The **strategy pattern** is the perfect tool for this, allowing plugin users to customize behavior by providing their own implementations.
+
+This guide shows you how to implement custom strategies in your plugins, following Vendure's established patterns and best practices.
+
+## Overview
+
+A strategy in Vendure is a way to provide a pluggable implementation of a particular feature. Custom strategies in plugins allow users to:
+
+- Override default behavior with their own implementations
+- Inject dependencies and services through the `init()` lifecycle method
+- Clean up resources using the `destroy()` lifecycle method
+- Configure the strategy through the plugin's init options
+
+## Creating a Strategy Interface
+
+First, define the interface that your strategy must implement. All strategy interfaces should extend `InjectableStrategy` to support dependency injection and lifecycle methods.
+
+```ts title="src/strategies/my-custom-strategy.ts"
+import { InjectableStrategy, RequestContext } from '@vendure/core';
+
+export interface MyCustomStrategy extends InjectableStrategy {
+    /**
+     * Process some data and return a result
+     */
+    processData(ctx: RequestContext, data: any): Promise<string>;
+
+    /**
+     * Validate the input data
+     */
+    validateInput(data: any): boolean;
+}
+```
+
+## Implementing a Default Strategy
+
+Create a default implementation that users can extend or replace:
+
+```ts title="src/strategies/default-my-custom-strategy.ts"
+import { Injector, RequestContext, Logger } from '@vendure/core';
+import { MyCustomStrategy } from './my-custom-strategy';
+import { SomeOtherService } from '../services/some-other.service';
+import { loggerCtx } from '../constants';
+
+export class DefaultMyCustomStrategy implements MyCustomStrategy {
+    private someOtherService: SomeOtherService;
+
+    async init(injector: Injector): Promise<void> {
+        // Inject dependencies during the init phase
+        this.someOtherService = injector.get(SomeOtherService);
+
+        // Perform any setup logic
+        Logger.info('DefaultMyCustomStrategy initialized', loggerCtx);
+    }
+
+    async destroy(): Promise<void> {
+        // Clean up resources if needed
+        Logger.info('DefaultMyCustomStrategy destroyed', loggerCtx);
+    }
+
+    async processData(ctx: RequestContext, data: any): Promise<string> {
+        // Validate input first
+        if (!this.validateInput(data)) {
+            throw new Error('Invalid input data');
+        }
+
+        // Use injected service to process data
+        const result = await this.someOtherService.doSomething(ctx, data);
+        // ... do something with the result
+        return result;
+    }
+
+    validateInput(data: any): boolean {
+        return data != null && typeof data === 'object';
+    }
+}
+```
+
+## Adding Strategy to Plugin Options
+
+Define your plugin's initialization options to include the strategy:
+
+```ts title="src/types.ts"
+import { MyCustomStrategy } from './strategies/my-custom-strategy';
+
+export interface MyPluginInitOptions {
+    /**
+     * Custom strategy for processing data
+     * @default DefaultMyCustomStrategy
+     */
+    processingStrategy?: MyCustomStrategy;
+
+    /**
+     * Other plugin options
+     */
+    someOtherOption?: string;
+}
+```
+
+## Configuring the Plugin
+
+In your plugin definition, provide the default strategy and allow users to override it:
+
+```ts title="src/my-plugin.ts"
+import { PluginCommonModule, VendurePlugin, Injector } from '@vendure/core';
+import { OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
+
+import { MY_PLUGIN_OPTIONS } from './constants';
+import { MyPluginInitOptions } from './types';
+import { DefaultMyCustomStrategy } from './strategies/default-my-custom-strategy';
+import { MyPluginService } from './services/my-plugin.service';
+import { SomeOtherService } from './services/some-other.service';
+
+@VendurePlugin({
+    imports: [PluginCommonModule],
+    providers: [
+        MyPluginService,
+        SomeOtherService,
+        {
+            provide: MY_PLUGIN_OPTIONS,
+            useFactory: () => MyPlugin.options,
+        },
+    ],
+    configuration: config => {
+        // You can also configure core Vendure strategies here if needed
+        return config;
+    },
+    compatibility: '^3.0.0',
+})
+export class MyPlugin implements OnApplicationBootstrap, OnApplicationShutdown {
+    static options: MyPluginInitOptions;
+
+    constructor(private moduleRef: ModuleRef) {}
+
+    static init(options: MyPluginInitOptions) {
+        this.options = {
+            // Provide default strategy if none specified
+            processingStrategy: new DefaultMyCustomStrategy(),
+            ...options,
+        };
+        return MyPlugin;
+    }
+
+    async onApplicationBootstrap() {
+        await this.initStrategy();
+    }
+
+    async onApplicationShutdown() {
+        await this.destroyStrategy();
+    }
+
+    private async initStrategy() {
+        const strategy = MyPlugin.options.processingStrategy;
+        if (strategy && typeof strategy.init === 'function') {
+            const injector = new Injector(this.moduleRef);
+            await strategy.init(injector);
+        }
+    }
+
+    private async destroyStrategy() {
+        const strategy = MyPlugin.options.processingStrategy;
+        if (strategy && typeof strategy.destroy === 'function') {
+            await strategy.destroy();
+        }
+    }
+}
+```
+
+## Using the Strategy in Services
+
+Access the strategy through dependency injection in your services:
+
+```ts title="src/services/my-plugin.service.ts"
+import { Injectable, Inject } from '@nestjs/common';
+import { RequestContext } from '@vendure/core';
+
+import { MY_PLUGIN_OPTIONS } from '../constants';
+import { MyPluginInitOptions } from '../types';
+
+@Injectable()
+export class MyPluginService {
+    constructor(@Inject(MY_PLUGIN_OPTIONS) private options: MyPluginInitOptions) {}
+
+    async processUserData(ctx: RequestContext, userData: any): Promise<string> {
+        // Delegate to the configured strategy
+        return this.options.processingStrategy.processData(ctx, userData);
+    }
+
+    validateUserInput(data: any): boolean {
+        return this.options.processingStrategy.validateInput(data);
+    }
+}
+```
+
+## User Implementation Example
+
+Plugin users can now provide their own strategy implementations:
+
+```ts title="src/my-custom-implementation.ts"
+import { Injector, RequestContext, Logger } from '@vendure/core';
+import { MyCustomStrategy } from '@my-org/my-plugin';
+import { ExternalApiService } from './external-api.service';
+import { loggerCtx } from '../constants';
+
+export class CustomProcessingStrategy implements MyCustomStrategy {
+    private externalApi: ExternalApiService;
+
+    async init(injector: Injector): Promise<void> {
+        this.externalApi = injector.get(ExternalApiService);
+
+        // Initialize external API connection
+        await this.externalApi.connect();
+        Logger.info('Custom processing strategy initialized', loggerCtx);
+    }
+
+    async destroy(): Promise<void> {
+        // Clean up external connections
+        if (this.externalApi) {
+            await this.externalApi.disconnect();
+        }
+        Logger.info('Custom processing strategy destroyed', loggerCtx);
+    }
+
+    async processData(ctx: RequestContext, data: any): Promise<string> {
+        if (!this.validateInput(data)) {
+            throw new Error('Invalid data format');
+        }
+
+        // Use external API for processing
+        const result = await this.externalApi.processData(data);
+        return `Processed: ${result}`;
+    }
+
+    validateInput(data: any): boolean {
+        // Custom validation logic
+        return data && data.type === 'custom' && data.value;
+    }
+}
+```
+
+## Plugin Configuration by Users
+
+Users configure the plugin with their custom strategy:
+
+```ts title="vendure-config.ts"
+import { VendureConfig } from '@vendure/core';
+import { MyPlugin } from '@my-org/my-plugin';
+import { CustomProcessingStrategy } from './my-custom-implementation';
+
+export const config: VendureConfig = {
+    plugins: [
+        MyPlugin.init({
+            processingStrategy: new CustomProcessingStrategy(),
+            someOtherOption: 'custom-value',
+        }),
+    ],
+    // ... other config
+};
+```
+
+## Strategy with Options
+
+You can also create strategies that accept configuration options:
+
+```ts title="src/strategies/configurable-strategy.ts"
+import { Injector, RequestContext } from '@vendure/core';
+import { MyCustomStrategy } from './my-custom-strategy';
+
+export interface ConfigurableStrategyOptions {
+    timeout: number;
+    retries: number;
+    apiKey: string;
+}
+
+export class ConfigurableStrategy implements MyCustomStrategy {
+    constructor(private options: ConfigurableStrategyOptions) {}
+
+    async init(injector: Injector): Promise<void> {
+        // Use options during initialization
+        console.log(`Strategy configured with timeout: ${this.options.timeout}ms`);
+    }
+
+    async destroy(): Promise<void> {
+        // Cleanup logic
+    }
+
+    async processData(ctx: RequestContext, data: any): Promise<string> {
+        // Use configuration options
+        const timeout = this.options.timeout;
+        const retries = this.options.retries;
+
+        // Implementation using these options...
+        return 'processed with options';
+    }
+
+    validateInput(data: any): boolean {
+        return true;
+    }
+}
+```
+
+Usage:
+
+```ts title="vendure-config.ts"
+import { ConfigurableStrategy } from './strategies/configurable-strategy';
+
+// In plugin configuration
+MyPlugin.init({
+    processingStrategy: new ConfigurableStrategy({
+        timeout: 5000,
+        retries: 3,
+        apiKey: process.env.API_KEY,
+    }),
+});
+```
+
+## Multiple Strategies in One Plugin
+
+For complex plugins, you might need multiple strategies:
+
+```ts title="src/types.ts"
+export interface ComplexPluginOptions {
+    dataProcessingStrategy?: DataProcessingStrategy;
+    validationStrategy?: ValidationStrategy;
+    cacheStrategy?: CacheStrategy;
+}
+```
+
+```ts title="src/complex-plugin.ts"
+@VendurePlugin({
+    // ... plugin config
+})
+export class ComplexPlugin implements OnApplicationBootstrap, OnApplicationShutdown {
+    static options: ComplexPluginOptions;
+
+    static init(options: ComplexPluginOptions) {
+        this.options = {
+            dataProcessingStrategy: new DefaultDataProcessingStrategy(),
+            validationStrategy: new DefaultValidationStrategy(),
+            cacheStrategy: new DefaultCacheStrategy(),
+            ...options,
+        };
+        return ComplexPlugin;
+    }
+
+    async onApplicationBootstrap() {
+        await this.initAllStrategies();
+    }
+
+    async onApplicationShutdown() {
+        await this.destroyAllStrategies();
+    }
+
+    private async initAllStrategies() {
+        const injector = new Injector(this.moduleRef);
+        const strategies = [
+            ComplexPlugin.options.dataProcessingStrategy,
+            ComplexPlugin.options.validationStrategy,
+            ComplexPlugin.options.cacheStrategy,
+        ];
+
+        for (const strategy of strategies) {
+            if (strategy && typeof strategy.init === 'function') {
+                await strategy.init(injector);
+            }
+        }
+    }
+
+    private async destroyAllStrategies() {
+        const strategies = [
+            ComplexPlugin.options.dataProcessingStrategy,
+            ComplexPlugin.options.validationStrategy,
+            ComplexPlugin.options.cacheStrategy,
+        ];
+
+        for (const strategy of strategies) {
+            if (strategy && typeof strategy.destroy === 'function') {
+                await strategy.destroy();
+            }
+        }
+    }
+}
+```
+
+## Best Practices
+
+### 1. Always Extend InjectableStrategy
+
+```ts
+export interface MyStrategy extends InjectableStrategy {
+    // ... strategy methods
+}
+```
+
+### 2. Provide Sensible Defaults
+
+Always provide a default implementation so users can use your plugin out-of-the-box:
+
+```ts
+static init(options: MyPluginOptions) {
+    this.options = {
+        myStrategy: new DefaultMyStrategy(),
+        ...options,
+    };
+    return MyPlugin;
+}
+```
+
+### 3. Handle Lifecycle Properly
+
+Always implement proper init/destroy handling in your plugin:
+
+```ts
+async onApplicationBootstrap() {
+    await this.initStrategies();
+}
+
+async onApplicationShutdown() {
+    await this.destroyStrategies();
+}
+```
+
+### 4. Use TypeScript for Better DX
+
+Provide strong typing for better developer experience:
+
+```ts
+export interface MyStrategy extends InjectableStrategy {
+    processData<T>(ctx: RequestContext, data: T): Promise<ProcessedResult<T>>;
+}
+```
+
+### 5. Document Your Strategy Interface
+
+Provide comprehensive JSDoc comments:
+
+```ts
+export interface MyStrategy extends InjectableStrategy {
+    /**
+     * @description
+     * Processes the input data and returns a transformed result.
+     * This method is called for each data processing request.
+     *
+     * @param ctx - The current request context
+     * @param data - The input data to process
+     * @returns Promise resolving to the processed result
+     */
+    processData(ctx: RequestContext, data: any): Promise<string>;
+}
+```
+
+## Summary
+
+Custom strategies in plugins provide a powerful way to make your plugins extensible and configurable. By following the patterns outlined in this guide, you can:
+
+- Define clear strategy interfaces that extend `InjectableStrategy`
+- Provide default implementations that work out-of-the-box
+- Allow users to inject dependencies through the `init()` method
+- Properly manage strategy lifecycle with `init()` and `destroy()` methods
+- Enable users to provide their own implementations
+- Support configuration options for strategies
+
+This approach ensures your plugins are flexible, maintainable, and follow Vendure's established conventions.

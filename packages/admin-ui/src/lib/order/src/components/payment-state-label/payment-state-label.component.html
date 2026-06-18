@@ -1,0 +1,4 @@
+<vdr-chip [title]="'order.payment-state' | translate" [colorType]="chipColorType">
+    <clr-icon shape="check-circle" *ngIf="state === 'Settled'"></clr-icon>
+    {{ state | stateI18nToken | translate }}
+</vdr-chip>

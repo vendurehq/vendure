@@ -1,0 +1,34 @@
+<div class="input-wrapper" [class.focus]="isFocussed" (click)="textArea.focus()">
+    <div class="chips" *ngIf="0 < optionValues.length">
+        <vdr-chip
+            *ngFor="let option of optionValues; last as isLast; index as i"
+            [icon]="option.locked ? 'lock' : 'times'"
+            [class.selected]="isLast && lastSelected"
+            [class.locked]="option.locked"
+            [colorFrom]="groupName"
+            (iconClick)="removeOption(option)"
+        >
+            <span [hidden]="editingIndex !== i">
+                <input
+                    #editNameInput
+                    type="text"
+                    [ngModel]="option.name"
+                    (blur)="updateOption(i, $event)"
+                    (click)="$event.cancelBubble = true"
+                />
+            </span>
+            <span
+                class="option-name"
+                [class.editable]="!option.locked && !option.id"
+                (click)="editName(i, $event)" [hidden]="editingIndex === i">{{ option.name }}</span>
+        </vdr-chip>
+    </div>
+    <textarea
+        #textArea
+        (keyup)="handleKey($event)"
+        (focus)="isFocussed = true"
+        (blur)="handleBlur()"
+        [(ngModel)]="input"
+        [disabled]="disabled"
+    ></textarea>
+</div>

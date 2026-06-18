@@ -1,0 +1,65 @@
+---
+title: "ProductVariantSelectorComponent"
+generated: true
+---
+<GenerationInfo sourceFile="packages/admin-ui/src/lib/core/src/shared/components/product-variant-selector/product-variant-selector.component.ts" sourceLine="21" packageName="@vendure/admin-ui" />
+
+A component for selecting product variants via an autocomplete-style select input.
+
+*Example*
+
+```HTML
+<vdr-product-variant-selector
+  (productSelected)="selectResult($event)"></vdr-product-variant-selector>
+```
+
+```ts title="Signature"
+class ProductVariantSelectorComponent implements OnInit {
+    searchInput$ = new Subject<string>();
+    searchLoading = false;
+    searchResults$: Observable<ProductSelectorSearchQuery['search']['items']>;
+    @Output() productSelected = new EventEmitter<ProductSelectorSearchQuery['search']['items'][number]>();
+    constructor(dataService: DataService)
+    ngOnInit() => void;
+    selectResult(product?: ProductSelectorSearchQuery['search']['items'][number]) => ;
+}
+```
+* Implements: OnInit
+
+
+
+<div className="members-wrapper">
+
+### searchInput$
+
+<MemberInfo kind="property" type={``}   />
+
+
+### searchLoading
+
+<MemberInfo kind="property" type={``}   />
+
+
+### searchResults$
+
+<MemberInfo kind="property" type={`Observable<ProductSelectorSearchQuery['search']['items']>`}   />
+
+
+### productSelected
+
+<MemberInfo kind="property" type={``}   />
+
+
+### ngOnInit
+
+<MemberInfo kind="method" type={`() => void`}   />
+
+
+### selectResult
+
+<MemberInfo kind="method" type={`(product?: ProductSelectorSearchQuery['search']['items'][number]) => `}   />
+
+
+
+
+</div>

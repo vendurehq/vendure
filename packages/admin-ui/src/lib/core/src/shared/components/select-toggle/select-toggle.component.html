@@ -1,0 +1,26 @@
+<div
+    class="toggle"
+    [class.hide-when-off]="hiddenWhenOff"
+    [class.disabled]="disabled"
+    [class.small]="size === 'small'"
+    [attr.tabindex]="disabled ? null : 0"
+    [class.selected]="selected"
+    (keydown.enter)="selectedChange.emit(!selected)"
+    (keydown.space)="$event.preventDefault(); selectedChange.emit(!selected)"
+    (click)="selectedChange.emit(!selected)"
+>
+    <clr-icon
+        shape="check-circle"
+        [class.is-solid]="selected"
+        [attr.size]="size === 'small' ? 24 : 32"
+    ></clr-icon>
+</div>
+<div
+    class="toggle-label"
+    [class.selected]="selected"
+    [class.disabled]="disabled"
+    *ngIf="label"
+    (click)="selectedChange.emit(!selected)"
+>
+    {{ label }}
+</div>

@@ -1,0 +1,44 @@
+<ng-select
+    [addTag]="addTagFn"
+    [placeholder]="'catalog.search-asset-name-or-tag' | translate"
+    [items]="tags"
+    [searchFn]="filterTagResults"
+    [hideSelected]="true"
+    [multiple]="true"
+    [markFirst]="false"
+    (change)="onSelectChange($event)"
+    #selectComponent
+>
+    <ng-template ng-header-tmp>
+        <div
+            class="search-header"
+            *ngIf="selectComponent.searchTerm"
+            [class.selected]="isSearchHeaderSelected()"
+            (click)="selectComponent.selectTag()"
+        >
+            {{ 'catalog.search-for-term' | translate }}: {{ selectComponent.searchTerm }}
+        </div>
+    </ng-template>
+    <ng-template ng-label-tmp let-item="item" let-clear="clear">
+        <ng-container *ngIf="item.value">
+            <vdr-chip [colorFrom]="item.value" icon="close" (iconClick)="clear(item)"
+            >
+                <clr-icon shape="tag" class="mr2"></clr-icon>
+                {{ item.value }}</vdr-chip
+            >
+        </ng-container>
+        <ng-container *ngIf="!item.value">
+            <vdr-chip [icon]="'times'" (iconClick)="clear(item)">"{{ item.label || item }}"</vdr-chip>
+        </ng-container>
+    </ng-template>
+    <ng-template ng-option-tmp let-item="item" let-index="index" let-search="searchTerm">
+        <ng-container *ngIf="item.value">
+            <vdr-chip [colorFrom]="item.value"
+            >
+                <clr-icon shape="tag" class="mr2"></clr-icon>
+                {{ item.value }}</vdr-chip
+            >
+        </ng-container>
+    </ng-template>
+</ng-select>
+<ng-content></ng-content>

@@ -1,0 +1,52 @@
+---
+title: "PaymentOptions"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="914" packageName="@vendure/core" />
+
+Defines payment-related options in the [VendureConfig](/reference/typescript-api/configuration/vendure-config#vendureconfig).
+
+```ts title="Signature"
+interface PaymentOptions {
+    paymentMethodHandlers: PaymentMethodHandler[];
+    paymentMethodEligibilityCheckers?: PaymentMethodEligibilityChecker[];
+    customPaymentProcess?: Array<PaymentProcess<any>>;
+    process?: Array<PaymentProcess<any>>;
+    refundProcess?: Array<RefundProcess<any>>;
+}
+```
+
+<div className="members-wrapper">
+
+### paymentMethodHandlers
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/payment/payment-method-handler#paymentmethodhandler'>PaymentMethodHandler</a>[]`}   />
+
+Defines which [PaymentMethodHandler](/reference/typescript-api/payment/payment-method-handler#paymentmethodhandler)s are available when configuring
+[PaymentMethod](/reference/typescript-api/entities/payment-method#paymentmethod)s
+### paymentMethodEligibilityCheckers
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/payment/payment-method-eligibility-checker#paymentmethodeligibilitychecker'>PaymentMethodEligibilityChecker</a>[]`}   />
+
+Defines which [PaymentMethodEligibilityChecker](/reference/typescript-api/payment/payment-method-eligibility-checker#paymentmethodeligibilitychecker)s are available when configuring
+[PaymentMethod](/reference/typescript-api/entities/payment-method#paymentmethod)s
+### customPaymentProcess
+
+<MemberInfo kind="property" type={`Array<<a href='/reference/typescript-api/payment/payment-process#paymentprocess'>PaymentProcess</a><any>>`}   />
+
+
+### process
+
+<MemberInfo kind="property" type={`Array<<a href='/reference/typescript-api/payment/payment-process#paymentprocess'>PaymentProcess</a><any>>`} default={`<a href='/reference/typescript-api/payment/default-payment-process#defaultpaymentprocess'>defaultPaymentProcess</a>`}  since="2.0.0"  />
+
+Allows the definition of custom states and transition logic for the payment process state machine.
+Takes an array of objects implementing the [PaymentProcess](/reference/typescript-api/payment/payment-process#paymentprocess) interface.
+### refundProcess
+
+<MemberInfo kind="property" type={`Array<<a href='/reference/typescript-api/payment/refund-process#refundprocess'>RefundProcess</a><any>>`} default={`<a href='/reference/typescript-api/payment/default-refund-process#defaultrefundprocess'>defaultRefundProcess</a>`}   />
+
+Allows the definition of custom states and transition logic for the refund process state machine.
+Takes an array of objects implementing the [RefundProcess](/reference/typescript-api/payment/refund-process#refundprocess) interface.
+
+
+</div>

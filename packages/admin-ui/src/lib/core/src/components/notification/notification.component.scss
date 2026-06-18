@@ -1,0 +1,45 @@
+
+@keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 0.95; }
+}
+
+:host {
+    position: relative;
+    z-index: 1050;
+
+    > .notification-wrapper {
+        display: block;
+        position: fixed;
+        z-index: 1001;
+        top: 0;
+        right: 10px;
+        border-radius: 3px;
+        max-width: 98vw;
+        word-wrap: break-word;
+        padding: 10px;
+        background-color: var(--color-grey-500);
+        color: white;
+        transition: opacity 1s, top 0.3s;
+        opacity: 0;
+
+        &.success {
+            background-color: var(--color-success-800);
+        }
+        &.error {
+            background-color: var(--color-error-800);
+        }
+        &.warning {
+            background-color: var(--color-warning-800);
+        }
+        &.info {
+            background-color: var(--color-weight-500);
+        }
+
+        &.visible {
+            opacity: 0.95;
+            animation: fadeIn 0.3s 0.3s backwards;
+        }
+        white-space: pre-line;
+    }
+}

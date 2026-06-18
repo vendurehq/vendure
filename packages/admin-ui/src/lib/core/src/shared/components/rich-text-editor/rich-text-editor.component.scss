@@ -1,0 +1,21 @@
+@import 'variables';
+
+// Note: the custom styling for the Prosemirror editor is located
+// in /src/lib/static/styles/component/prosemirror.scss, because it is
+// shared also by the corresponding React component. Therefore it is not
+// scoped to this Angular component.
+
+:host {
+    display: block;
+    margin-bottom: 0.5rem;
+
+    &.readonly {
+        ::ng-deep .ProseMirror-menubar {
+            display: none;
+        }
+    }
+}
+
+.context-menu {
+    position: fixed;
+}

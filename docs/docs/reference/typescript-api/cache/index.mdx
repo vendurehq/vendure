@@ -1,0 +1,69 @@
+---
+title: "Cache"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/cache/cache.ts" sourceLine="72" packageName="@vendure/core" since="3.1.0" />
+
+A convenience wrapper around the [CacheService](/reference/typescript-api/cache/cache-service#cacheservice) methods which provides a simple
+API for caching and retrieving data.
+
+The advantage of using the `Cache` class rather than directly calling the `CacheService`
+methods is that it allows you to define a consistent way of generating cache keys and
+to set default cache options, and takes care of setting the value in cache if it does not
+already exist.
+
+In most cases, using the `Cache` class will result in simpler and more readable code.
+
+This class is normally created via the [CacheService](/reference/typescript-api/cache/cache-service#cacheservice).`createCache()` method.
+
+*Example*
+
+```ts
+const cache = cacheService.createCache({
+  getKey: id => `ProductVariantIds:${id}`,
+  options: {
+    ttl: 1000 * 60 * 60,
+    tags: ['products'],
+  },
+});
+
+// This will fetch the value from the cache if it exists, or
+// fetch it from the ProductService if not, and then cache
+// using the key 'ProductVariantIds.${id}'.
+const variantIds = await cache.get(id, async () => {
+  const variants await ProductService.getVariantsByProductId(ctx, id) ;
+  // The cached value must be serializable, so we just return the ids
+  return variants.map(v => v.id);
+});
+```
+
+```ts title="Signature"
+class Cache {
+    constructor(config: CacheConfig, cacheService: CacheService)
+    get(id: string | number, getValueFn: () => T | Promise<T>) => Promise<T>;
+    delete(id: string | number | Array<string | number>) => Promise<void>;
+    invalidateTags(tags: string[]) => Promise<void>;
+}
+```
+
+<div className="members-wrapper">
+
+### get
+
+<MemberInfo kind="method" type={`(id: string | number, getValueFn: () => T | Promise<T>) => Promise<T>`}   />
+
+Retrieves the value from the cache if it exists, otherwise calls the `getValueFn` function
+to get the value, sets it in the cache and returns it.
+### delete
+
+<MemberInfo kind="method" type={`(id: string | number | Array<string | number>) => Promise<void>`}   />
+
+Deletes one or more items from the cache.
+### invalidateTags
+
+<MemberInfo kind="method" type={`(tags: string[]) => Promise<void>`}   />
+
+Invalidates one or more tags in the cache.
+
+
+</div>

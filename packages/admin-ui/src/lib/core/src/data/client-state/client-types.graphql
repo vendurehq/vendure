@@ -1,0 +1,58 @@
+type Query {
+    networkStatus: NetworkStatus!
+    userStatus: UserStatus!
+    uiState: UiState!
+}
+
+type Mutation {
+    requestStarted: Int!
+    requestCompleted: Int!
+    setAsLoggedIn(input: UserStatusInput!): UserStatus!
+    setAsLoggedOut: UserStatus!
+    setUiLanguage(languageCode: LanguageCode!): LanguageCode!
+    setUiLocale(locale: String): String
+    setContentLanguage(languageCode: LanguageCode!): LanguageCode!
+    setUiTheme(theme: String!): String!
+    setActiveChannel(channelId: ID!): UserStatus!
+    setDisplayUiExtensionPoints(display: Boolean!): Boolean!
+    setMainNavExpanded(expanded: Boolean!): Boolean!
+    updateUserChannels(channels: [CurrentUserChannelInput!]!): UserStatus!
+}
+
+type NetworkStatus {
+    inFlightRequests: Int!
+}
+
+type UserStatus {
+    administratorId: ID
+    username: String!
+    isLoggedIn: Boolean!
+    loginTime: String!
+    permissions: [Permission!]!
+    activeChannelId: ID
+    channels: [CurrentUserChannel!]!
+}
+
+type UiState {
+    language: LanguageCode!
+    locale: String
+    contentLanguage: LanguageCode!
+    theme: String!
+    displayUiExtensionPoints: Boolean!
+    mainNavExpanded: Boolean!
+}
+
+input CurrentUserChannelInput {
+    id: ID!
+    token: String!
+    code: String!
+    permissions: [Permission!]!
+}
+
+input UserStatusInput {
+    administratorId: ID!
+    username: String!
+    loginTime: String!
+    activeChannelId: ID!
+    channels: [CurrentUserChannelInput!]!
+}

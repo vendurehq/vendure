@@ -1,0 +1,26 @@
+---
+title: "InitializerService"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/initializer.service.ts" sourceLine="26" packageName="@vendure/core" />
+
+Only used internally to run the various service init methods in the correct
+sequence on bootstrap.
+
+```ts title="Signature"
+class InitializerService {
+    constructor(connection: TransactionalConnection, zoneService: ZoneService, channelService: ChannelService, roleService: RoleService, administratorService: AdministratorService, shippingMethodService: ShippingMethodService, globalSettingsService: GlobalSettingsService, taxRateService: TaxRateService, sellerService: SellerService, eventBus: EventBus, stockLocationService: StockLocationService)
+    onModuleInit() => ;
+}
+```
+
+<div className="members-wrapper">
+
+### onModuleInit
+
+<MemberInfo kind="method" type={`() => `}   />
+
+
+
+
+</div>

@@ -1,0 +1,16 @@
+type TaxRate implements Node {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    name: String!
+    enabled: Boolean!
+    value: Float!
+    category: TaxCategory!
+    zone: Zone!
+    customerGroup: CustomerGroup
+}
+
+type TaxRateList implements PaginatedList {
+    items: [TaxRate!]!
+    totalItems: Int!
+}

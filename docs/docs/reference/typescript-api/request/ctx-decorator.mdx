@@ -1,0 +1,18 @@
+---
+title: "Ctx Decorator"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/api/decorators/request-context.decorator.ts" sourceLine="23" packageName="@vendure/core" />
+
+Resolver param decorator which extracts the [RequestContext](/reference/typescript-api/request/request-context#requestcontext) from the incoming
+request object.
+
+*Example*
+
+```ts
+ @Query()
+ getAdministrators(@Ctx() ctx: RequestContext) {
+     // ...
+ }
+```
+

@@ -1,0 +1,41 @@
+<ng-template vdrDialogTitle>
+    {{ title || 'common.duplicate-entity' | translate }}
+</ng-template>
+<div class="">
+    <ul>
+        <li *ngFor="let entity of entities">
+            {{ getEntityName(entity) }}
+        </li>
+    </ul>
+    <ng-container *ngIf="entityDuplicators$ | async as duplicators">
+        <select
+            name=""
+            id=""
+            *ngIf="1 < duplicators.length"
+            class="mt-4"
+            [ngModel]="selectedDuplicator"
+            (ngModelChange)="setSelectedDuplicator($event)"
+        >
+            <option *ngFor="let duplicator of duplicators" [ngValue]="duplicator">
+                {{ duplicator.description }} ({{ duplicator.code }})
+            </option>
+        </select>
+    </ng-container>
+    <ng-container *ngIf="selectedDuplicator as duplicator">
+        <vdr-configurable-input
+            *ngIf="duplicator.args.length > 0"
+            [hideDescription]="true"
+            [operation]="duplicatorInstance"
+            [operationDefinition]="duplicator"
+            [removable]="false"
+            [formControl]="formGroup"
+        ></vdr-configurable-input>
+    </ng-container>
+</div>
+
+<ng-template vdrDialogButtons>
+    <button type="button" class="btn" (click)="cancel()">{{ 'common.cancel' | translate }}</button>
+    <button type="submit" (click)="duplicate()" [disabled]="!selectedDuplicator" class="btn btn-primary">
+        {{ 'common.duplicate' | translate }}
+    </button>
+</ng-template>

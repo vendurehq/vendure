@@ -1,0 +1,66 @@
+---
+title: "FulfillmentProcess"
+generated: true
+---
+## defaultFulfillmentProcess
+
+<GenerationInfo sourceFile="packages/core/src/config/fulfillment/default-fulfillment-process.ts" sourceLine="45" packageName="@vendure/core" since="2.0.0" />
+
+The default [FulfillmentProcess](/reference/typescript-api/fulfillment/fulfillment-process#fulfillmentprocess). This process includes the following actions:
+
+- Executes the configured `FulfillmentHandler.onFulfillmentTransition()` before any state
+  transition.
+- On cancellation of a Fulfillment, creates the necessary [Cancellation](/reference/typescript-api/entities/stock-movement#cancellation) & [Allocation](/reference/typescript-api/entities/stock-movement#allocation)
+  stock movement records.
+- When a Fulfillment transitions from the `Created` to `Pending` state, the necessary
+  [Sale](/reference/typescript-api/entities/stock-movement#sale) stock movements are created.
+
+## FulfillmentProcess
+
+<GenerationInfo sourceFile="packages/core/src/config/fulfillment/fulfillment-process.ts" sourceLine="26" packageName="@vendure/core" since="2.0.0" />
+
+A FulfillmentProcess is used to define the way the fulfillment process works as in: what states a Fulfillment can be
+in, and how it may transition from one state to another. Using the `onTransitionStart()` hook, a
+FulfillmentProcess can perform checks before allowing a state transition to occur, and the `onTransitionEnd()`
+hook allows logic to be executed after a state change.
+
+For detailed description of the interface members, see the [StateMachineConfig](/reference/typescript-api/state-machine/state-machine-config#statemachineconfig) docs.
+
+```ts title="Signature"
+interface FulfillmentProcess<State extends keyof CustomFulfillmentStates | string> extends InjectableStrategy {
+    transitions?: Transitions<State, State | FulfillmentState> &
+        Partial<Transitions<FulfillmentState | State>>;
+    onTransitionStart?: OnTransitionStartFn<State | FulfillmentState, FulfillmentTransitionData>;
+    onTransitionEnd?: OnTransitionEndFn<State | FulfillmentState, FulfillmentTransitionData>;
+    onTransitionError?: OnTransitionErrorFn<State | FulfillmentState>;
+}
+```
+* Extends: [`InjectableStrategy`](/reference/typescript-api/common/injectable-strategy#injectablestrategy)
+
+
+
+<div className="members-wrapper">
+
+### transitions
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/state-machine/transitions#transitions'>Transitions</a><State, State | <a href='/reference/typescript-api/fulfillment/fulfillment-state#fulfillmentstate'>FulfillmentState</a>> &#38;         Partial<<a href='/reference/typescript-api/state-machine/transitions#transitions'>Transitions</a><<a href='/reference/typescript-api/fulfillment/fulfillment-state#fulfillmentstate'>FulfillmentState</a> | State>>`}   />
+
+
+### onTransitionStart
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/state-machine/state-machine-config#ontransitionstartfn'>OnTransitionStartFn</a><State | <a href='/reference/typescript-api/fulfillment/fulfillment-state#fulfillmentstate'>FulfillmentState</a>, <a href='/reference/typescript-api/fulfillment/fulfillment-transition-data#fulfillmenttransitiondata'>FulfillmentTransitionData</a>>`}   />
+
+
+### onTransitionEnd
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/state-machine/state-machine-config#ontransitionendfn'>OnTransitionEndFn</a><State | <a href='/reference/typescript-api/fulfillment/fulfillment-state#fulfillmentstate'>FulfillmentState</a>, <a href='/reference/typescript-api/fulfillment/fulfillment-transition-data#fulfillmenttransitiondata'>FulfillmentTransitionData</a>>`}   />
+
+
+### onTransitionError
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/state-machine/state-machine-config#ontransitionerrorfn'>OnTransitionErrorFn</a><State | <a href='/reference/typescript-api/fulfillment/fulfillment-state#fulfillmentstate'>FulfillmentState</a>>`}   />
+
+
+
+
+</div>

@@ -1,0 +1,22 @@
+
+:host {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+vdr-asset-gallery {
+    flex: 1;
+}
+
+.paging-controls {
+    padding-top: 6px;
+    border-top: 1px solid var(--color-component-border-100);
+    display: flex;
+    justify-content: space-between;
+}
+
+.search-input {
+    margin-top: 6px;
+    min-width: 300px;
+}

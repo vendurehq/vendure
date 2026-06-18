@@ -1,0 +1,26 @@
+@import "../order-table/order-table-mixin";
+
+.order-table {
+    @include order-table;
+
+    tr.modified td {
+        background-color: var(--color-warning-100);
+    }
+
+    .order-line-custom-field {
+        text-align: start;
+    }
+}
+.add-item-thumb {
+    max-width: 50px;
+}
+
+.no-modifications {
+    color: var(--color-grey-400);
+}
+
+.summary-controls {
+    border-top: 1px solid var(--color-weight-200);
+    margin-top: calc(var(--space-unit) * 2);
+    padding-top: calc(var(--space-unit) * 1);
+}

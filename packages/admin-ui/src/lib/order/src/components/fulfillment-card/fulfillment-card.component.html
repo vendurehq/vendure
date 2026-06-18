@@ -1,0 +1,45 @@
+<div class="card">
+    <div class="card-header fulfillment-header">
+        <div>{{ 'order.fulfillment' | translate }}</div>
+        <div class="fulfillment-state">
+            <vdr-fulfillment-state-label [state]="fulfillment?.state"></vdr-fulfillment-state-label>
+        </div>
+    </div>
+    <div class="card-block">
+        <vdr-fulfillment-detail
+            *ngIf="!!fulfillment"
+            [fulfillmentId]="fulfillment?.id"
+            [order]="order"
+        ></vdr-fulfillment-detail>
+    </div>
+    <div class="card-footer" *ngIf="fulfillment?.nextStates.length">
+        <ng-container *ngIf="nextSuggestedState() as suggestedState">
+            <button class="btn btn-sm btn-primary" (click)="transitionState.emit(suggestedState)">
+                {{ 'order.set-fulfillment-state' | translate: { state: (suggestedState | stateI18nToken | translate) } }}
+            </button>
+        </ng-container>
+        <vdr-dropdown>
+            <button class="icon-button" vdrDropdownTrigger>
+                <clr-icon shape="ellipsis-vertical"></clr-icon>
+            </button>
+            <vdr-dropdown-menu vdrPosition="bottom-right">
+                <ng-container *ngFor="let nextState of nextOtherStates()">
+                    <button
+                        type="button"
+                        vdrDropdownItem
+                        (click)="transitionState.emit(nextState)"
+                    >
+                        <ng-container *ngIf="nextState !== 'Cancelled'; else cancel">
+                            <clr-icon shape="step-forward-2"></clr-icon>
+                            {{ 'order.transition-to-state' | translate: { state: (nextState | stateI18nToken | translate) } }}
+                        </ng-container>
+                        <ng-template #cancel>
+                            <clr-icon shape="error-standard" class="is-error"></clr-icon>
+                            {{ 'order.cancel-fulfillment' | translate }}
+                        </ng-template>
+                    </button>
+                </ng-container>
+            </vdr-dropdown-menu>
+        </vdr-dropdown>
+    </div>
+</div>

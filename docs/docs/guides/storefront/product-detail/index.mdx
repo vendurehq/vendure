@@ -1,0 +1,293 @@
+---
+title: "Product Detail Page"
+metaTitle: "Building a Product Detail Page with the Vendure Shop API"
+metaDescription: "Fetch product data, display variants and images, format prices, and add items to the cart using the Vendure GraphQL Shop API."
+---
+
+The product detail page (often abbreviated to PDP) is the page that shows the details of a product and allows the user to add it to their cart.
+
+Typically, the PDP should include:
+
+- Product name
+- Product description
+- Available product variants
+- Images of the product and its variants
+- Price information
+- Stock information
+- Add to cart button
+
+## Fetching product data
+
+Let's create a query to fetch the required data. You should have either the product's `slug` or `id` available from the
+url. We'll use the `slug` in this example.
+
+<Tabs>
+<TabItem value="Query" label="Query" default>
+
+```graphql
+query GetProductDetail($slug: String!) {
+  product(slug: $slug) {
+    id
+    name
+    description
+    featuredAsset {
+      id
+      preview
+    }
+    assets {
+      id
+      preview
+    }
+    variants {
+      id
+      name
+      sku
+      stockLevel
+      currencyCode
+      price
+      priceWithTax
+      featuredAsset {
+        id
+        preview
+      }
+      assets {
+        id
+        preview
+      }
+    }
+  }
+}
+```
+
+</TabItem>
+<TabItem value="Variables" label="Variables">
+
+```json
+{
+  "slug": "laptop"
+}
+```
+
+</TabItem>
+<TabItem value="Response" label="Response" >
+
+```json
+{
+  "data": {
+    "product": {
+      "id": "1",
+      "name": "Laptop",
+      "description": "Now equipped with seventh-generation Intel Core processors, Laptop is snappier than ever. From daily tasks like launching apps and opening files to more advanced computing, you can power through your day thanks to faster SSDs and Turbo Boost processing up to 3.6GHz.",
+      "featuredAsset": {
+        "id": "1",
+        "preview": "https://demo.vendure.io/assets/preview/71/derick-david-409858-unsplash__preview.jpg"
+      },
+      "assets": [
+        {
+          "id": "1",
+          "preview": "https://demo.vendure.io/assets/preview/71/derick-david-409858-unsplash__preview.jpg"
+        }
+      ],
+      "variants": [
+        {
+          "id": "1",
+          "name": "Laptop 13 inch 8GB",
+          "sku": "L2201308",
+          "stockLevel": "IN_STOCK",
+          "currencyCode": "USD",
+          "price": 129900,
+          "priceWithTax": 155880,
+          "featuredAsset": null,
+          "assets": []
+        },
+        {
+          "id": "2",
+          "name": "Laptop 15 inch 8GB",
+          "sku": "L2201508",
+          "stockLevel": "IN_STOCK",
+          "currencyCode": "USD",
+          "price": 139900,
+          "priceWithTax": 167880,
+          "featuredAsset": null,
+          "assets": []
+        },
+        {
+          "id": "3",
+          "name": "Laptop 13 inch 16GB",
+          "sku": "L2201316",
+          "stockLevel": "IN_STOCK",
+          "currencyCode": "USD",
+          "price": 219900,
+          "priceWithTax": 263880,
+          "featuredAsset": null,
+          "assets": []
+        },
+        {
+          "id": "4",
+          "name": "Laptop 15 inch 16GB",
+          "sku": "L2201516",
+          "stockLevel": "IN_STOCK",
+          "currencyCode": "USD",
+          "price": 229900,
+          "priceWithTax": 275880,
+          "featuredAsset": null,
+          "assets": []
+        }
+      ]
+    }
+  }
+}
+```
+
+
+</TabItem>
+</Tabs>
+
+This single query provides all the data we need to display our PDP.
+
+## Formatting prices
+
+As explained in the [Money & Currency guide](/core-concepts/money/), the prices are returned as integers in the
+smallest unit of the currency (e.g. cents for USD). Therefore, when we display the price, we need to divide by 100 and
+format it according to the currency's formatting rules.
+
+In the demo at the end of this guide, we'll use the [`formatCurrency` function](/core-concepts/money/#displaying-monetary-values)
+which makes use of the browser's `Intl` API to format the price according to the user's locale.
+
+## Displaying images
+
+If we are using the [`AssetServerPlugin`](/reference/core-plugins/asset-server-plugin/) to serve our product images (as is the default), then we can take advantage
+of the dynamic image transformation abilities in order to display the product images in the correct size and in
+and optimized format such as WebP.
+
+This is done by appending a query string to the image URL. For example, if we want to use the `'large'` size preset (800 x 800)
+and convert the format to WebP, we'd use a url like this:
+
+```tsx
+<img src={product.featuredAsset.preview + '?preset=large&format=webp'} />
+```
+
+An even more sophisticated approach would be to make use of the HTML [`<picture>` element](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/picture) to provide multiple image sources
+so that the browser can select the optimal format. This can be wrapped in a component to make it easier to use. For example:
+
+```tsx title="src/components/VendureAsset.tsx"
+interface VendureAssetProps {
+    preview: string;
+    preset: 'tiny' | 'thumb' | 'small' | 'medium' | 'large';
+    alt: string;
+}
+
+export function VendureAsset({ preview, preset, alt }: VendureAssetProps) {
+    return (
+        <picture>
+            <source type="image/avif" srcSet={preview + `?preset=${preset}&format=avif`} />
+            <source type="image/webp" srcSet={preview + `?preset=${preset}&format=webp`} />
+            <img src={preview + `?preset=${preset}&format=jpg`} alt={alt} />
+        </picture>
+    );
+}
+```
+
+## Adding to the order
+
+To add a particular product variant to the order, we need to call the [`addItemToOrder`](/reference/graphql-api/shop/mutations/#additemtoorder) mutation.
+This mutation takes the `productVariantId` and the `quantity` as arguments.
+
+
+<Tabs>
+<TabItem value="Mutation" label="Mutation" default>
+
+```graphql
+mutation AddItemToOrder($variantId: ID!, $quantity: Int!) {
+  addItemToOrder(productVariantId: $variantId, quantity: $quantity) {
+    __typename
+    ...UpdatedOrder
+    ... on ErrorResult {
+      errorCode
+      message
+    }
+    ... on InsufficientStockError {
+      quantityAvailable
+      order {
+        ...UpdatedOrder
+      }
+    }
+  }
+}
+
+fragment UpdatedOrder on Order {
+  id
+  code
+  state
+  totalQuantity
+  totalWithTax
+  currencyCode
+  lines {
+    id
+    unitPriceWithTax
+    quantity
+    linePriceWithTax
+    productVariant {
+      id
+      name
+    }
+  }
+}
+```
+
+</TabItem>
+<TabItem value="Variables" label="Variables">
+
+```json
+{
+  "variantId": "4",
+  "quantity": 1
+}
+```
+
+</TabItem>
+<TabItem value="Response" label="Response" >
+
+```json
+{
+  "data": {
+    "addItemToOrder": {
+      "__typename": "Order",
+      "id": "5",
+      "code": "KE5FJPVV3Y3LX134",
+      "state": "AddingItems",
+      "totalQuantity": 1,
+      "totalWithTax": 275880,
+      "lines": [
+        {
+          "id": "14",
+          "unitPriceWithTax": 275880,
+          "quantity": 1,
+          "linePriceWithTax": 275880
+        }
+      ]
+    }
+  }
+}
+```
+
+</TabItem>
+</Tabs>
+
+There are some important things to note about this mutation:
+
+- Because the `addItemToOrder` mutation returns a union type, we need to use a [fragment](/getting-started/graphql-intro/#fragments) to specify the fields we want to return.
+In this case we have defined a fragment called `UpdatedOrder` which contains the fields we are interested in.
+- If any [expected errors](/developer-guide/error-handling/) occur, the mutation will return an `ErrorResult` object. We'll be able to
+see the `errorCode` and `message` fields in the response, so that we can display a meaningful error message to the user.
+- In the special case of the `InsufficientStockError`, in addition to the `errorCode` and `message` fields, we also get the `quantityAvailable` field
+which tells us how many of the requested quantity are available (and have been added to the order). This is useful information to display to the user.
+The `InsufficientStockError` object also embeds the updated `Order` object, which we can use to update the UI.
+- The `__typename` field can be used by the client to determine which type of object has been returned. Its value will equal the name
+of the returned type. This means that we can check whether `__typename === 'Order'` in order to determine whether the mutation was successful.
+
+## Live example
+
+Here's an example that brings together all of the above concepts:
+
+<Stackblitz id="vendure-docs-product-detail" />

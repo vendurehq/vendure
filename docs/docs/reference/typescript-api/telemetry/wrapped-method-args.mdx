@@ -1,0 +1,51 @@
+---
+title: "WrappedMethodArgs"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/system/instrumentation-strategy.ts" sourceLine="13" packageName="@vendure/core" since="3.3.0" />
+
+The arguments that are passed to the `wrapMethod` method of the
+[InstrumentationStrategy](/reference/typescript-api/telemetry/instrumentation-strategy#instrumentationstrategy) interface.
+
+```ts title="Signature"
+interface WrappedMethodArgs {
+    instance: any;
+    target: Type<any>;
+    methodName: string;
+    args: any[];
+    applyOriginalFunction: () => any | Promise<any>;
+}
+```
+
+<div className="members-wrapper">
+
+### instance
+
+<MemberInfo kind="property" type={`any`}   />
+
+The instance of the class which is being instrumented.
+### target
+
+<MemberInfo kind="property" type={`Type<any>`}   />
+
+The class which is being instrumented.
+### methodName
+
+<MemberInfo kind="property" type={`string`}   />
+
+The name of the method which is being instrumented.
+### args
+
+<MemberInfo kind="property" type={`any[]`}   />
+
+The arguments which are passed to the method.
+### applyOriginalFunction
+
+<MemberInfo kind="property" type={`() => any | Promise<any>`}   />
+
+A function which applies the original method and returns the result.
+This is used to call the original method after the instrumentation has
+been applied.
+
+
+</div>

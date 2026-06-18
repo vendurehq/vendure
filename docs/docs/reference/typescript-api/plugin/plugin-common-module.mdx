@@ -1,0 +1,23 @@
+---
+title: "PluginCommonModule"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/plugin/plugin-common.module.ts" sourceLine="30" packageName="@vendure/core" />
+
+This module provides the common services, configuration, and event bus capabilities
+required by a typical plugin. It should be imported into plugins to avoid having to
+repeat the same boilerplate for each individual plugin.
+
+The PluginCommonModule exports:
+
+* `EventBusModule`, allowing the injection of the [EventBus](/reference/typescript-api/events/event-bus#eventbus) service.
+* `ServiceModule` allowing the injection of any of the various entity services such as ProductService, OrderService etc.
+* `ConfigModule`, allowing the injection of the ConfigService.
+* `JobQueueModule`, allowing the injection of the [JobQueueService](/reference/typescript-api/job-queue/job-queue-service#jobqueueservice).
+* `HealthCheckModule`, allowing the injection of the [HealthCheckRegistryService](/reference/typescript-api/health-check/health-check-registry-service#healthcheckregistryservice).
+
+```ts title="Signature"
+class PluginCommonModule {
+
+}
+```

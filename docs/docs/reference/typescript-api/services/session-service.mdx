@@ -1,0 +1,101 @@
+---
+title: "SessionService"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/services/session.service.ts" sourceLine="34" packageName="@vendure/core" />
+
+Contains methods relating to [Session](/reference/typescript-api/entities/session#session) entities.
+
+```ts title="Signature"
+class SessionService implements EntitySubscriberInterface, OnModuleInit {
+    constructor(connection: TransactionalConnection, configService: ConfigService, orderService: OrderService, jobQueueService: JobQueueService, requestContextService: RequestContextService)
+    onModuleInit() => ;
+    createNewAuthenticatedSession(ctx: RequestContext, user: User, authenticationStrategyName: string, sessionToken?: string) => Promise<AuthenticatedSession>;
+    createAnonymousSession() => Promise<CachedSession>;
+    getSessionFromToken(sessionToken: string) => Promise<CachedSession | undefined>;
+    serializeSession(session: AuthenticatedSession | AnonymousSession) => CachedSession;
+    setActiveOrder(ctx: RequestContext, serializedSession: CachedSession, order: Order) => Promise<CachedSession>;
+    unsetActiveOrder(ctx: RequestContext, serializedSession: CachedSession) => Promise<CachedSession>;
+    setActiveChannel(serializedSession: CachedSession, channel: Channel) => Promise<CachedSession>;
+    deleteSessionsByUser(ctx: RequestContext, user: User) => Promise<void>;
+    deleteApiKeySession(ctx: RequestContext, apiKey: ApiKey) => Promise<void>;
+    deleteSessionsByActiveOrderId(ctx: RequestContext, activeOrderId: ID) => Promise<void>;
+    triggerCleanSessionsJob(batchSize: number) => ;
+    cleanExpiredSessions(ctx: RequestContext, batchSize: number) => ;
+}
+```
+* Implements: EntitySubscriberInterface, OnModuleInit
+
+
+
+<div className="members-wrapper">
+
+### onModuleInit
+
+<MemberInfo kind="method" type={`() => `}   />
+
+
+### createNewAuthenticatedSession
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, user: <a href='/reference/typescript-api/entities/user#user'>User</a>, authenticationStrategyName: string, sessionToken?: string) => Promise<<a href='/reference/typescript-api/entities/authenticated-session#authenticatedsession'>AuthenticatedSession</a>>`}   />
+
+Creates a new [AuthenticatedSession](/reference/typescript-api/entities/authenticated-session#authenticatedsession). To be used after successful authentication.
+### createAnonymousSession
+
+<MemberInfo kind="method" type={`() => Promise<<a href='/reference/typescript-api/auth/session-cache-strategy#cachedsession'>CachedSession</a>>`}   />
+
+Create an [AnonymousSession](/reference/typescript-api/entities/anonymous-session#anonymoussession) and caches it using the configured [SessionCacheStrategy](/reference/typescript-api/auth/session-cache-strategy#sessioncachestrategy),
+and returns the cached session object.
+### getSessionFromToken
+
+<MemberInfo kind="method" type={`(sessionToken: string) => Promise<<a href='/reference/typescript-api/auth/session-cache-strategy#cachedsession'>CachedSession</a> | undefined>`}   />
+
+Returns the cached session object matching the given session token.
+### serializeSession
+
+<MemberInfo kind="method" type={`(session: <a href='/reference/typescript-api/entities/authenticated-session#authenticatedsession'>AuthenticatedSession</a> | <a href='/reference/typescript-api/entities/anonymous-session#anonymoussession'>AnonymousSession</a>) => <a href='/reference/typescript-api/auth/session-cache-strategy#cachedsession'>CachedSession</a>`}   />
+
+Serializes a [Session](/reference/typescript-api/entities/session#session) instance into a simplified plain object suitable for caching.
+### setActiveOrder
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, serializedSession: <a href='/reference/typescript-api/auth/session-cache-strategy#cachedsession'>CachedSession</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => Promise<<a href='/reference/typescript-api/auth/session-cache-strategy#cachedsession'>CachedSession</a>>`}   />
+
+Sets the `activeOrder` on the given cached session object and updates the cache.
+### unsetActiveOrder
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, serializedSession: <a href='/reference/typescript-api/auth/session-cache-strategy#cachedsession'>CachedSession</a>) => Promise<<a href='/reference/typescript-api/auth/session-cache-strategy#cachedsession'>CachedSession</a>>`}   />
+
+Clears the `activeOrder` on the given cached session object and updates the cache.
+### setActiveChannel
+
+<MemberInfo kind="method" type={`(serializedSession: <a href='/reference/typescript-api/auth/session-cache-strategy#cachedsession'>CachedSession</a>, channel: <a href='/reference/typescript-api/entities/channel#channel'>Channel</a>) => Promise<<a href='/reference/typescript-api/auth/session-cache-strategy#cachedsession'>CachedSession</a>>`}   />
+
+Sets the `activeChannel` on the given cached session object and updates the cache.
+### deleteSessionsByUser
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, user: <a href='/reference/typescript-api/entities/user#user'>User</a>) => Promise<void>`}   />
+
+Deletes all existing sessions for the given user.
+### deleteApiKeySession
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, apiKey: <a href='/reference/typescript-api/entities/api-key#apikey'>ApiKey</a>) => Promise<void>`}   />
+
+Deletes session related to API-Key
+### deleteSessionsByActiveOrderId
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, activeOrderId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<void>`}   />
+
+Deletes all existing sessions with the given activeOrder.
+### triggerCleanSessionsJob
+
+<MemberInfo kind="method" type={`(batchSize: number) => `}   />
+
+Triggers the clean sessions job.
+### cleanExpiredSessions
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, batchSize: number) => `}   />
+
+Cleans expired sessions from the database & the session cache.
+
+
+</div>

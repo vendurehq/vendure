@@ -1,0 +1,39 @@
+@import 'variables';
+
+:host {
+    display: block;
+    align-items: center;
+    height: 2.5rem;
+}
+
+.active-channel {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: var(--font-size-xs);
+    color: var(--color-left-nav-text);
+    background-color: var(--color-channel-switcher-bg);
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    border-radius: var(--border-radius-lg);
+    padding: var(--space-unit) calc(var(--space-unit) * 2);
+    transition: background-color 0.1s, color 0.1s;
+
+    &:hover {
+        background-color: var(--color-channel-switcher-hover-bg);
+        color: var(--color-left-nav-text-hover);
+    }
+
+    clr-icon {
+        color: var(--color-left-nav-text);
+    }
+}
+
+.channel-label {
+    margin: 0 3px;
+    overflow: hidden;
+    flex: 1;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}

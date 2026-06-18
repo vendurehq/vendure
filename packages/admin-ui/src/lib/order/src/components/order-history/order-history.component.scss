@@ -1,0 +1,56 @@
+@import 'variables';
+
+:host {
+    display: block;
+}
+
+.entry-list {
+    margin-inline-start: calc(var(--space-unit) * 2);
+}
+
+.note-entry {
+    display: flex;
+    align-items: center;
+    .note {
+        flex: 1;
+    }
+
+    button {
+        margin: 0;
+    }
+}
+.visibility-select {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    .public {
+        color: var(--color-warning-700);
+    }
+    .private {
+        color: var(--color-success-700);
+    }
+}
+textarea.note {
+    flex: 1;
+    height: 36px;
+    border-radius: 3px;
+    margin-inline-end: 6px;
+}
+.note-text {
+    color: var(--color-grey-800);
+    white-space: pre-wrap;
+    max-width: 580px;
+}
+
+.cancelled-coupon-code {
+    text-decoration: line-through;
+}
+.note-visibility {
+    text-transform: lowercase;
+    &.public {
+        color: var(--color-warning-700);
+    }
+    &.private {
+        color: var(--color-success-700);
+    }
+}

@@ -1,0 +1,4 @@
+<div #editor class="code-editor html-editor" [class.invalid]="!isValid" [style.height]="height || '300px'"></div>
+<div class="error-message">
+    <span *ngIf="errorMessage">{{ errorMessage }}</span>
+</div>

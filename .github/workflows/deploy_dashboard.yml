@@ -1,0 +1,96 @@
+name: '🚀 Deploy Dashboard'
+
+on:
+    workflow_dispatch:
+    push:
+        branches: [master, minor]
+        paths:
+            - 'packages/dashboard/**'
+            - 'packages/core/**'
+            - 'packages/common/**'
+            - 'package.json'
+            - 'bun.lock'
+            - 'bunfig.toml'
+    pull_request:
+        types: [opened, synchronize, reopened]
+        paths:
+            - 'packages/dashboard/**'
+            - 'packages/core/**'
+            - 'packages/common/**'
+            - 'package.json'
+            - 'bun.lock'
+            - 'bunfig.toml'
+
+env:
+    NODE_OPTIONS: '--max_old_space_size=4096'
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            pull-requests: write
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+
+            - name: Setup environment
+              uses: ./.github/actions/setup
+
+            - name: Install Vercel CLI
+              run: npm i --ignore-scripts -g vercel@latest
+
+            - name: Link Vercel project
+              env:
+                  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+              run: vercel link --yes --scope vendure --project=admin-dashboard --token="$VERCEL_TOKEN"
+
+            - name: Pull Vercel environment variables
+              env:
+                  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+                  VERCEL_ENV: ${{ github.ref_name == 'master' && github.event_name == 'push' && 'production' || 'preview' }}
+              run: |
+                  vercel env pull --environment="$VERCEL_ENV" --yes --scope vendure --token="$VERCEL_TOKEN"
+                  cp .env.local packages/dashboard/.env.local
+
+            - name: Build common and core packages
+              run: bun run build:core-common
+
+            - name: Build Dashboard
+              run: bun run --filter @vendure/dashboard build:standalone
+
+            - name: Deploy to Vercel
+              id: deploy_vercel
+              uses: ./.github/actions/deploy-vercel
+              with:
+                  vercel-token: ${{ secrets.VERCEL_TOKEN }}
+                  vercel-project-name: admin-dashboard
+                  environment: ${{ github.ref_name == 'master' && github.event_name == 'push' && 'production' || 'preview' }}
+                  production: ${{ github.ref_name == 'master' && github.event_name == 'push' && 'true' || 'false' }}
+                  build-output-path: packages/dashboard/dist
+
+            - name: Print Vercel URL
+              run: echo "Dashboard URL ${{ steps.deploy_vercel.outputs.deployment-url }}"
+
+            - name: Find Comment
+              if: github.event_name == 'pull_request'
+              uses: peter-evans/find-comment@b30e6a3c0ed37e7c023ccd3f1db5c6c0b0c23aad # v4
+              id: fc
+              with:
+                  issue-number: ${{ github.event.pull_request.number }}
+                  comment-author: 'github-actions[bot]'
+                  body-includes: 'Dashboard Preview:'
+
+            - name: Comment preview URL on PR
+              if: github.event_name == 'pull_request'
+              uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5
+              with:
+                  comment-id: ${{ steps.fc.outputs.comment-id }}
+                  issue-number: ${{ github.event.pull_request.number }}
+                  body: |
+                      Dashboard Preview: ${{ steps.deploy_vercel.outputs.deployment-url }}
+                  edit-mode: replace

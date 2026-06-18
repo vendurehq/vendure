@@ -1,0 +1,80 @@
+enum StockMovementType {
+    ADJUSTMENT
+    ALLOCATION
+    RELEASE
+    SALE
+    CANCELLATION
+    RETURN
+}
+
+interface StockMovement {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    productVariant: ProductVariant!
+    type: StockMovementType!
+    quantity: Int!
+}
+
+type StockAdjustment implements Node & StockMovement {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    productVariant: ProductVariant!
+    type: StockMovementType!
+    quantity: Int!
+}
+
+type Allocation implements Node & StockMovement {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    productVariant: ProductVariant!
+    type: StockMovementType!
+    quantity: Int!
+    orderLine: OrderLine!
+}
+
+type Sale implements Node & StockMovement {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    productVariant: ProductVariant!
+    type: StockMovementType!
+    quantity: Int!
+}
+
+type Cancellation implements Node & StockMovement {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    productVariant: ProductVariant!
+    type: StockMovementType!
+    quantity: Int!
+    orderLine: OrderLine!
+}
+
+type Return implements Node & StockMovement {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    productVariant: ProductVariant!
+    type: StockMovementType!
+    quantity: Int!
+}
+
+type Release implements Node & StockMovement {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    productVariant: ProductVariant!
+    type: StockMovementType!
+    quantity: Int!
+}
+
+union StockMovementItem = StockAdjustment | Allocation | Sale | Cancellation | Return | Release
+
+type StockMovementList {
+    items: [StockMovementItem!]!
+    totalItems: Int!
+}

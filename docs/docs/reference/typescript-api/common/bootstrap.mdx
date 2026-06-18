@@ -1,0 +1,150 @@
+---
+title: "Bootstrap"
+generated: true
+---
+## bootstrap
+
+<GenerationInfo sourceFile="packages/core/src/bootstrap.ts" sourceLine="190" packageName="@vendure/core" />
+
+Bootstraps the Vendure server. This is the entry point to the application.
+
+*Example*
+
+```ts
+import { bootstrap } from '@vendure/core';
+import { config } from './vendure-config';
+
+bootstrap(config).catch(err => {
+  console.log(err);
+  process.exit(1);
+});
+```
+
+### Passing additional options
+
+Since v2.2.0, you can pass additional options to the NestJs application via the `options` parameter.
+For example, to integrate with the [Nest Devtools](https://docs.nestjs.com/devtools/overview), you need to
+pass the `snapshot` option:
+
+```ts
+import { bootstrap } from '@vendure/core';
+import { config } from './vendure-config';
+
+bootstrap(config, {
+  nestApplicationOptions: { // [!code highlight]
+    snapshot: true, // [!code highlight]
+  } // [!code highlight]
+}).catch(err => {
+  console.log(err);
+  process.exit(1);
+});
+```
+
+### Ignoring compatibility errors for plugins
+
+Since v3.1.0, you can ignore compatibility errors for specific plugins by passing the `ignoreCompatibilityErrorsForPlugins` option.
+
+This should be used with caution, only if you are sure that the plugin will still work as expected with the current version of Vendure.
+
+*Example*
+
+```ts
+import { bootstrap } from '@vendure/core';
+import { config } from './vendure-config';
+import { MyPlugin } from './plugins/my-plugin';
+
+bootstrap(config, {
+  // Let's say that `MyPlugin` is not yet compatible with the current version of Vendure
+  // but we know that it will still work as expected, and we are not able to publish
+  // a new version of the plugin right now.
+  ignoreCompatibilityErrorsForPlugins: [MyPlugin],
+});
+```
+
+```ts title="Signature"
+function bootstrap(userConfig: Partial<VendureConfig>, options?: BootstrapOptions): Promise<INestApplication>
+```
+Parameters
+
+### userConfig
+
+<MemberInfo kind="parameter" type={`Partial<<a href='/reference/typescript-api/configuration/vendure-config#vendureconfig'>VendureConfig</a>>`} />
+
+### options
+
+<MemberInfo kind="parameter" type={`<a href='/reference/typescript-api/common/bootstrap#bootstrapoptions'>BootstrapOptions</a>`} />
+
+## BootstrapOptions
+
+<GenerationInfo sourceFile="packages/core/src/bootstrap.ts" sourceLine="45" packageName="@vendure/core" since="2.2.0" />
+
+Additional options that can be used to configure the bootstrap process of the
+Vendure server.
+
+```ts title="Signature"
+interface BootstrapOptions {
+    nestApplicationOptions?: NestApplicationOptions;
+    ignoreCompatibilityErrorsForPlugins?: Array<DynamicModule | Type<any>>;
+    onBeforeAppListen?: (app: INestApplication) => void | Promise<void>;
+}
+```
+
+<div className="members-wrapper">
+
+### nestApplicationOptions
+
+<MemberInfo kind="property" type={`NestApplicationOptions`}   />
+
+These options get passed directly to the `NestFactory.create()` method.
+### ignoreCompatibilityErrorsForPlugins
+
+<MemberInfo kind="property" type={`Array<DynamicModule | Type<any>>`} default={`[]`}  since="3.1.0"  />
+
+By default, if a plugin specifies a compatibility range which does not include the current
+Vendure version, the bootstrap process will fail. This option allows you to ignore compatibility
+errors for specific plugins.
+
+This setting should be used with caution, only if you are sure that the plugin will still
+work as expected with the current version of Vendure.
+
+*Example*
+
+```ts
+import { bootstrap } from '@vendure/core';
+import { config } from './vendure-config';
+import { MyPlugin } from './plugins/my-plugin';
+
+bootstrap(config, {
+ ignoreCompatibilityErrorsForPlugins: [MyPlugin],
+});
+```
+### onBeforeAppListen
+
+<MemberInfo kind="property" type={`(app: INestApplication) => void | Promise<void>`} default={`undefined`}  since="3.6.0"  />
+
+A function which is called before the app starts listening. This can be used to perform any final configuration of the Nest application.
+E.g., to set up OpenAPI specification with Swagger.
+
+*Example*
+
+```ts
+import { bootstrap } from '@vendure/core';
+import { config } from './vendure-config';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+
+bootstrap(config, {
+ onBeforeAppListen: async (app) => {
+   const config = new DocumentBuilder()
+     .setTitle('Cats example')
+     .setDescription('The cats API description')
+     .setVersion('1.0')
+     .addTag('cats')
+     .build();
+   const documentFactory = () => SwaggerModule.createDocument(app, config);
+   SwaggerModule.setup('api', app, documentFactory);
+ }
+});
+```
+
+
+</div>

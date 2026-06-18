@@ -1,0 +1,37 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Facet resolver > createFacet 1`] = `
+{
+  "code": "speaker-type",
+  "id": "T_2",
+  "isPrivate": false,
+  "languageCode": "en",
+  "name": "Speaker Type",
+  "translations": [
+    {
+      "id": "T_2",
+      "languageCode": "en",
+      "name": "Speaker Type",
+    },
+  ],
+  "values": [
+    {
+      "code": "portable",
+      "facet": {
+        "id": "T_2",
+        "name": "Speaker Type",
+      },
+      "id": "T_7",
+      "languageCode": "en",
+      "name": "Portable",
+      "translations": [
+        {
+          "id": "T_7",
+          "languageCode": "en",
+          "name": "Portable",
+        },
+      ],
+    },
+  ],
+}
+`;

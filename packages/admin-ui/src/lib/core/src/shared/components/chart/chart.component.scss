@@ -1,0 +1,72 @@
+::ng-deep {
+    $ct-line-width: 2px !default;
+    $ct-area-opacity: 0.5 !default;
+    $ct-series-colors: (
+        var(--color-primary-300),
+        var(--color-accent-300),
+        var(--color-primary-800),
+        var(--color-accent-800),
+        #453d3f,
+        #59922b,
+        #0544d3,
+        #6b0392,
+        #e6805e,
+        #dda458,
+        #eacf7d,
+        #86797d,
+        #b2c326,
+        #6188e2,
+        #a748ca
+    ) !default;
+
+    @import 'chartist/dist/index.scss';
+
+    .ct-series-a .ct-slice-pie,
+    .ct-series-a .ct-area {
+        fill: url(#gradient);
+    }
+
+    .ct-point {
+        opacity: 0;
+        transition: opacity 0.1s;
+    }
+
+    .chartist-tooltip {
+        position: absolute;
+        border-radius: var(--border-radius);
+        border: 1px solid var(--color-weight-100);
+        padding: 4px;
+        opacity: 0;
+        transition: opacity 0.1s, top 0.1s, left 0.1s;
+        font-size: 12px;
+        background: var(--color-component-bg-100);
+        box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.05);
+        text-align: center;
+
+        &.tooltip-show {
+            opacity: 0.9;
+        }
+    }
+
+    .ct-tooltip-hover {
+        opacity: 1;
+    }
+
+    .tooltip-date {
+        color: var(--color-text-200);
+    }
+    .tooltip-value {
+        color: var(--color-primary-600);
+        font-size: 14px;
+        text-align: center;
+    }
+}
+
+:host {
+    display: block;
+    padding-bottom: 28px;
+}
+
+#chart {
+    position: relative;
+}

@@ -1,0 +1,48 @@
+
+:host {
+    display: flex;
+}
+
+.input-wrapper {
+    flex: 1;
+}
+
+.affix {
+    color: var(--color-grey-800);
+    display: flex;
+    align-items: center;
+    background-color: var(--color-component-bg-200);
+    color: var(--color-text-200);
+    border: 1px solid var(--color-weight-200);
+    top: 1px;
+    padding: 3px;
+    line-height: .58333rem;
+    transition: border 0.2s;
+}
+
+::ng-deep .has-prefix > {
+    input[type="text"], input[type="number"] {
+        border-top-left-radius: 0 !important;
+        border-bottom-left-radius: 0 !important;
+        width: 100%;
+    }
+}
+
+.prefix {
+    order: -1;
+    border-radius: 3px 0 0 3px;
+    border-inline-end: none;
+}
+
+::ng-deep .has-suffix > {
+    input[type="text"], input[type="number"] {
+        border-top-right-radius: 0 !important;
+        border-bottom-right-radius: 0 !important;
+        width: 100%;
+    }
+}
+
+.suffix {
+    border-radius: 0 3px 3px 0;
+    border-inline-start: none;
+}

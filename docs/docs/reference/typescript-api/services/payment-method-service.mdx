@@ -1,0 +1,95 @@
+---
+title: "PaymentMethodService"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/services/payment-method.service.ts" sourceLine="47" packageName="@vendure/core" />
+
+Contains methods relating to [PaymentMethod](/reference/typescript-api/entities/payment-method#paymentmethod) entities.
+
+```ts title="Signature"
+class PaymentMethodService {
+    constructor(connection: TransactionalConnection, configService: ConfigService, roleService: RoleService, listQueryBuilder: ListQueryBuilder, eventBus: EventBus, configArgService: ConfigArgService, channelService: ChannelService, customFieldRelationService: CustomFieldRelationService, translatableSaver: TranslatableSaver, translator: TranslatorService)
+    findAll(ctx: RequestContext, options?: ListQueryOptions<PaymentMethod>, relations: RelationPaths<PaymentMethod> = []) => Promise<PaginatedList<PaymentMethod>>;
+    findOne(ctx: RequestContext, paymentMethodId: ID, relations: RelationPaths<PaymentMethod> = []) => Promise<PaymentMethod | undefined>;
+    create(ctx: RequestContext, input: CreatePaymentMethodInput) => Promise<PaymentMethod>;
+    update(ctx: RequestContext, input: UpdatePaymentMethodInput) => Promise<PaymentMethod>;
+    delete(ctx: RequestContext, paymentMethodId: ID, force: boolean = false) => Promise<DeletionResponse>;
+    assignPaymentMethodsToChannel(ctx: RequestContext, input: AssignPaymentMethodsToChannelInput) => Promise<Array<Translated<PaymentMethod>>>;
+    removePaymentMethodsFromChannel(ctx: RequestContext, input: RemovePaymentMethodsFromChannelInput) => Promise<Array<Translated<PaymentMethod>>>;
+    getPaymentMethodEligibilityCheckers(ctx: RequestContext) => ConfigurableOperationDefinition[];
+    getPaymentMethodHandlers(ctx: RequestContext) => ConfigurableOperationDefinition[];
+    getEligiblePaymentMethods(ctx: RequestContext, order: Order) => Promise<PaymentMethodQuote[]>;
+    getMethodAndOperations(ctx: RequestContext, method: string) => Promise<{
+        paymentMethod: PaymentMethod;
+        handler: PaymentMethodHandler;
+        checker: PaymentMethodEligibilityChecker | null;
+    }>;
+    getActivePaymentMethods(ctx: RequestContext) => Promise<PaymentMethod[]>;
+}
+```
+
+<div className="members-wrapper">
+
+### findAll
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: ListQueryOptions<<a href='/reference/typescript-api/entities/payment-method#paymentmethod'>PaymentMethod</a>>, relations: RelationPaths<<a href='/reference/typescript-api/entities/payment-method#paymentmethod'>PaymentMethod</a>> = []) => Promise<<a href='/reference/typescript-api/common/paginated-list#paginatedlist'>PaginatedList</a><<a href='/reference/typescript-api/entities/payment-method#paymentmethod'>PaymentMethod</a>>>`}   />
+
+
+### findOne
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, paymentMethodId: <a href='/reference/typescript-api/common/id#id'>ID</a>, relations: RelationPaths<<a href='/reference/typescript-api/entities/payment-method#paymentmethod'>PaymentMethod</a>> = []) => Promise<<a href='/reference/typescript-api/entities/payment-method#paymentmethod'>PaymentMethod</a> | undefined>`}   />
+
+
+### create
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: CreatePaymentMethodInput) => Promise<<a href='/reference/typescript-api/entities/payment-method#paymentmethod'>PaymentMethod</a>>`}   />
+
+
+### update
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: UpdatePaymentMethodInput) => Promise<<a href='/reference/typescript-api/entities/payment-method#paymentmethod'>PaymentMethod</a>>`}   />
+
+
+### delete
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, paymentMethodId: <a href='/reference/typescript-api/common/id#id'>ID</a>, force: boolean = false) => Promise<DeletionResponse>`}   />
+
+
+### assignPaymentMethodsToChannel
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: AssignPaymentMethodsToChannelInput) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/payment-method#paymentmethod'>PaymentMethod</a>>>>`}   />
+
+
+### removePaymentMethodsFromChannel
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: RemovePaymentMethodsFromChannelInput) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/payment-method#paymentmethod'>PaymentMethod</a>>>>`}   />
+
+
+### getPaymentMethodEligibilityCheckers
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => ConfigurableOperationDefinition[]`}   />
+
+
+### getPaymentMethodHandlers
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => ConfigurableOperationDefinition[]`}   />
+
+
+### getEligiblePaymentMethods
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => Promise<PaymentMethodQuote[]>`}   />
+
+
+### getMethodAndOperations
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, method: string) => Promise<{         paymentMethod: <a href='/reference/typescript-api/entities/payment-method#paymentmethod'>PaymentMethod</a>;         handler: <a href='/reference/typescript-api/payment/payment-method-handler#paymentmethodhandler'>PaymentMethodHandler</a>;         checker: <a href='/reference/typescript-api/payment/payment-method-eligibility-checker#paymentmethodeligibilitychecker'>PaymentMethodEligibilityChecker</a> | null;     }>`}   />
+
+
+### getActivePaymentMethods
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<<a href='/reference/typescript-api/entities/payment-method#paymentmethod'>PaymentMethod</a>[]>`}   />
+
+
+
+
+</div>

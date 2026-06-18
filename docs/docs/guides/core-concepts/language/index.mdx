@@ -1,0 +1,71 @@
+---
+title: "Language & Translations"
+metaTitle: "Multi-Language Content and Translations in Vendure"
+metaDescription: "How Vendure handles multi-language content using the Translatable entity pattern, channel language settings, and API language resolution."
+---
+
+Vendure has built-in support for multi-language content, allowing you to serve a fully localized storefront
+without any third-party translation services. The approach is based on a **Translatable entity pattern**,
+where translatable fields are stored in a dedicated translations relation rather than directly on the entity.
+
+## The Translatable entity pattern
+
+Entities that support multiple languages implement the `Translatable` interface. Instead of storing fields
+like `name` or `description` directly, these entities hold a `translations` array. Each entry in that array
+is linked to a specific [`LanguageCode`](/reference/typescript-api/common/language-code/) and contains the
+localized values for that language.
+
+This means a single Product can carry an English name, a German name, and a French name all at the same time,
+each stored as a separate translation row in the database.
+
+## Which entities are translatable?
+
+The following core entities use the Translatable pattern:
+
+- [`Product`](/reference/typescript-api/entities/product/)
+- [`ProductVariant`](/reference/typescript-api/entities/product-variant/)
+- [`Collection`](/reference/typescript-api/entities/collection/)
+- [`Facet`](/reference/typescript-api/entities/facet/)
+- [`FacetValue`](/reference/typescript-api/entities/facet-value/)
+- [`PaymentMethod`](/reference/typescript-api/entities/payment-method/)
+- [`ShippingMethod`](/reference/typescript-api/entities/shipping-method/)
+- [`Country`](/reference/typescript-api/entities/country/)
+- [`Province`](/reference/typescript-api/entities/province/)
+- [`Zone`](/reference/typescript-api/entities/zone/)
+
+Plugins can also define their own translatable custom entities using the same pattern.
+
+## Channel language settings
+
+Each [Channel](/core-concepts/channels/) is configured with two language-related properties:
+
+- **`availableLanguageCodes`** — the set of languages that this channel supports.
+- **`defaultLanguageCode`** — the language used when no explicit language is requested.
+
+These settings determine which translations are expected to exist for entities within that channel, and
+which language the API falls back to when a requested translation is not available.
+
+## How the API resolves language
+
+When a client makes a GraphQL API request, Vendure determines the language to use via the `languageCode`
+query parameter. For example, appending `?languageCode=de` to the API URL will cause the response to
+return German translations where available.
+
+If no `languageCode` parameter is provided, the channel's `defaultLanguageCode` is used. If a translation
+for the requested language does not exist on a given entity, Vendure falls back to the default language
+translation.
+
+This resolution happens transparently — the API consumer always receives a flat object with the translated
+fields, rather than the underlying translations array.
+
+## Custom field translations
+
+The Translatable pattern extends to [custom fields](/developer-guide/custom-fields/) as well. When you
+define a custom field with the `localeString` type, Vendure stores translations for that field in the same
+way it handles built-in translatable fields. This allows plugins and custom extensions to be fully
+multi-language without additional effort.
+
+## Further reading
+
+- [Channels](/core-concepts/channels/) — how language settings relate to channel configuration
+- [Translations developer guide](/developer-guide/translations/) — implementing translations in custom entities and plugins

@@ -1,0 +1,352 @@
+---
+title: "Queries"
+generated: true
+---
+
+
+
+<a name="activechannel"></a>
+
+## activeChannel
+
+<GraphQLDoc
+  type="query"
+  typeName="activeChannel"
+  typeLinks={{
+    Channel: '/reference/graphql-api/shop/object-types#channel',
+  }}
+>
+{`"""The active Channel"""
+type Query {
+  activeChannel: Channel!
+}`}
+</GraphQLDoc>
+
+<a name="activecustomer"></a>
+
+## activeCustomer
+
+<GraphQLDoc
+  type="query"
+  typeName="activeCustomer"
+  typeLinks={{
+    Customer: '/reference/graphql-api/shop/object-types#customer',
+  }}
+>
+{`"""The active Customer"""
+type Query {
+  activeCustomer: Customer
+}`}
+</GraphQLDoc>
+
+<a name="activeorder"></a>
+
+## activeOrder
+
+<GraphQLDoc
+  type="query"
+  typeName="activeOrder"
+  typeLinks={{
+    Order: '/reference/graphql-api/shop/object-types#order',
+  }}
+>
+{`"""
+The active Order. Will be \`null\` until an Order is created via \`addItemToOrder\`. Once an Order reaches the
+state of \`PaymentAuthorized\` or \`PaymentSettled\`, then that Order is no longer considered "active" and this
+query will once again return \`null\`.
+"""
+type Query {
+  activeOrder: Order
+}`}
+</GraphQLDoc>
+
+<a name="activepaymentmethods"></a>
+
+## activePaymentMethods
+
+<GraphQLDoc
+  type="query"
+  typeName="activePaymentMethods"
+  typeLinks={{
+    PublicPaymentMethod: '/reference/graphql-api/shop/object-types#publicpaymentmethod',
+  }}
+>
+{`"""Get active payment methods"""
+type Query {
+  activePaymentMethods: [PublicPaymentMethod]!
+}`}
+</GraphQLDoc>
+
+<a name="activeshippingmethods"></a>
+
+## activeShippingMethods
+
+<GraphQLDoc
+  type="query"
+  typeName="activeShippingMethods"
+  typeLinks={{
+    PublicShippingMethod: '/reference/graphql-api/shop/object-types#publicshippingmethod',
+  }}
+>
+{`"""Get active shipping methods"""
+type Query {
+  activeShippingMethods: [PublicShippingMethod]!
+}`}
+</GraphQLDoc>
+
+<a name="availablecountries"></a>
+
+## availableCountries
+
+<GraphQLDoc
+  type="query"
+  typeName="availableCountries"
+  typeLinks={{
+    Country: '/reference/graphql-api/shop/object-types#country',
+  }}
+>
+{`"""An array of supported Countries"""
+type Query {
+  availableCountries: [Country!]!
+}`}
+</GraphQLDoc>
+
+<a name="collection"></a>
+
+## collection
+
+<GraphQLDoc
+  type="query"
+  typeName="collection"
+  typeLinks={{
+    Collection: '/reference/graphql-api/shop/object-types#collection',
+    ID: '/reference/graphql-api/shop/object-types#id',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""Returns a Collection either by its id or slug. If neither 'id' nor 'slug' is specified, an error will result."""
+type Query {
+  collection(id: ID, slug: String): Collection
+}`}
+</GraphQLDoc>
+
+<a name="collections"></a>
+
+## collections
+
+<GraphQLDoc
+  type="query"
+  typeName="collections"
+  typeLinks={{
+    CollectionList: '/reference/graphql-api/shop/object-types#collectionlist',
+    CollectionListOptions: '/reference/graphql-api/shop/input-types#collectionlistoptions',
+  }}
+>
+{`"""A list of Collections available to the shop"""
+type Query {
+  collections(options: CollectionListOptions): CollectionList!
+}`}
+</GraphQLDoc>
+
+<a name="eligiblepaymentmethods"></a>
+
+## eligiblePaymentMethods
+
+<GraphQLDoc
+  type="query"
+  typeName="eligiblePaymentMethods"
+  typeLinks={{
+    PaymentMethodQuote: '/reference/graphql-api/shop/object-types#paymentmethodquote',
+  }}
+>
+{`"""Returns a list of payment methods and their eligibility based on the current active Order"""
+type Query {
+  eligiblePaymentMethods: [PaymentMethodQuote!]!
+}`}
+</GraphQLDoc>
+
+<a name="eligibleshippingmethods"></a>
+
+## eligibleShippingMethods
+
+<GraphQLDoc
+  type="query"
+  typeName="eligibleShippingMethods"
+  typeLinks={{
+    ShippingMethodQuote: '/reference/graphql-api/shop/object-types#shippingmethodquote',
+  }}
+>
+{`"""Returns a list of eligible shipping methods based on the current active Order"""
+type Query {
+  eligibleShippingMethods: [ShippingMethodQuote!]!
+}`}
+</GraphQLDoc>
+
+<a name="facet"></a>
+
+## facet
+
+<GraphQLDoc
+  type="query"
+  typeName="facet"
+  typeLinks={{
+    Facet: '/reference/graphql-api/shop/object-types#facet',
+    ID: '/reference/graphql-api/shop/object-types#id',
+  }}
+>
+{`"""Returns a Facet by its id"""
+type Query {
+  facet(id: ID!): Facet
+}`}
+</GraphQLDoc>
+
+<a name="facets"></a>
+
+## facets
+
+<GraphQLDoc
+  type="query"
+  typeName="facets"
+  typeLinks={{
+    FacetList: '/reference/graphql-api/shop/object-types#facetlist',
+    FacetListOptions: '/reference/graphql-api/shop/input-types#facetlistoptions',
+  }}
+>
+{`"""A list of Facets available to the shop"""
+type Query {
+  facets(options: FacetListOptions): FacetList!
+}`}
+</GraphQLDoc>
+
+<a name="me"></a>
+
+## me
+
+<GraphQLDoc
+  type="query"
+  typeName="me"
+  typeLinks={{
+    CurrentUser: '/reference/graphql-api/shop/object-types#currentuser',
+  }}
+>
+{`"""Returns information about the current authenticated User"""
+type Query {
+  me: CurrentUser
+}`}
+</GraphQLDoc>
+
+<a name="nextorderstates"></a>
+
+## nextOrderStates
+
+<GraphQLDoc
+  type="query"
+  typeName="nextOrderStates"
+  typeLinks={{
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""Returns the possible next states that the activeOrder can transition to"""
+type Query {
+  nextOrderStates: [String!]!
+}`}
+</GraphQLDoc>
+
+<a name="order"></a>
+
+## order
+
+<GraphQLDoc
+  type="query"
+  typeName="order"
+  typeLinks={{
+    Order: '/reference/graphql-api/shop/object-types#order',
+    ID: '/reference/graphql-api/shop/object-types#id',
+  }}
+>
+{`"""
+Returns an Order based on the id. Note that in the Shop API, only orders belonging to the
+currently-authenticated User may be queried.
+"""
+type Query {
+  order(id: ID!): Order
+}`}
+</GraphQLDoc>
+
+<a name="orderbycode"></a>
+
+## orderByCode
+
+<GraphQLDoc
+  type="query"
+  typeName="orderByCode"
+  typeLinks={{
+    Order: '/reference/graphql-api/shop/object-types#order',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""
+Returns an Order based on the order \`code\`. For guest Orders (i.e. Orders placed by non-authenticated Customers)
+this query will only return the Order within 2 hours of the Order being placed. This allows an Order confirmation
+screen to be shown immediately after completion of a guest checkout, yet prevents security risks of allowing
+general anonymous access to Order data.
+"""
+type Query {
+  orderByCode(code: String!): Order
+}`}
+</GraphQLDoc>
+
+<a name="product"></a>
+
+## product
+
+<GraphQLDoc
+  type="query"
+  typeName="product"
+  typeLinks={{
+    Product: '/reference/graphql-api/shop/object-types#product',
+    ID: '/reference/graphql-api/shop/object-types#id',
+    String: '/reference/graphql-api/shop/object-types#string',
+  }}
+>
+{`"""Get a Product either by id or slug. If neither 'id' nor 'slug' is specified, an error will result."""
+type Query {
+  product(id: ID, slug: String): Product
+}`}
+</GraphQLDoc>
+
+<a name="products"></a>
+
+## products
+
+<GraphQLDoc
+  type="query"
+  typeName="products"
+  typeLinks={{
+    ProductList: '/reference/graphql-api/shop/object-types#productlist',
+    ProductListOptions: '/reference/graphql-api/shop/input-types#productlistoptions',
+  }}
+>
+{`"""Get a list of Products"""
+type Query {
+  products(options: ProductListOptions): ProductList!
+}`}
+</GraphQLDoc>
+
+<a name="search"></a>
+
+## search
+
+<GraphQLDoc
+  type="query"
+  typeName="search"
+  typeLinks={{
+    SearchResponse: '/reference/graphql-api/shop/object-types#searchresponse',
+    SearchInput: '/reference/graphql-api/shop/input-types#searchinput',
+  }}
+>
+{`"""Search Products based on the criteria set by the \`SearchInput\`"""
+type Query {
+  search(input: SearchInput!): SearchResponse!
+}`}
+</GraphQLDoc>

@@ -1,0 +1,33 @@
+query GetOrderList($options: OrderListOptions) {
+    orders(options: $options) {
+        totalItems
+        items {
+            id
+            state
+            currencyCode
+            totalQuantity
+            subTotalWithTax
+            totalWithTax
+            shippingWithTax
+            shippingLines {
+                shippingMethod {
+                    id
+                    name
+                }
+                priceWithTax
+            }
+            lines {
+                productVariant {
+                    id
+                    name
+                }
+                featuredAsset {
+                    id
+                    preview
+                }
+                linePriceWithTax
+                quantity
+            }
+        }
+    }
+}

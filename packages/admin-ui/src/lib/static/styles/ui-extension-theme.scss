@@ -1,0 +1,13 @@
+// This file is used to compile the theme.min.css file which can be used
+// by ui extensions to get the same styles as the main app.
+
+@import "global/sass-overrides";
+@import "global/clarity";
+@import "global/buttons";
+@import "global/forms";
+@import "global/overrides";
+@import "global/utilities";
+@import "fonts";
+@import "global/global";
+@import 'theme/default';
+@import 'theme/dark';

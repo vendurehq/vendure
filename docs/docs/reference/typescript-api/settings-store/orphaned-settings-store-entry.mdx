@@ -1,0 +1,43 @@
+---
+title: "OrphanedSettingsStoreEntry"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/settings-store/settings-store-types.ts" sourceLine="237" packageName="@vendure/core" since="3.4.0" />
+
+Represents an orphaned settings store entry that no longer has a corresponding
+field definition in the configuration.
+
+```ts title="Signature"
+interface OrphanedSettingsStoreEntry {
+    key: string;
+    scope: string;
+    updatedAt: Date;
+    valuePreview: string;
+}
+```
+
+<div className="members-wrapper">
+
+### key
+
+<MemberInfo kind="property" type={`string`}   />
+
+The orphaned key.
+### scope
+
+<MemberInfo kind="property" type={`string`}   />
+
+The scope of the orphaned entry.
+### updatedAt
+
+<MemberInfo kind="property" type={`Date`}   />
+
+When the entry was last updated.
+### valuePreview
+
+<MemberInfo kind="property" type={`string`}   />
+
+Preview of the stored value (truncated for large values).
+
+
+</div>

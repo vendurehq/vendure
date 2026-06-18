@@ -1,0 +1,9 @@
+type StockLevel implements Node {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    stockLocationId: ID!
+    stockOnHand: Int!
+    stockAllocated: Int!
+    stockLocation: StockLocation!
+}

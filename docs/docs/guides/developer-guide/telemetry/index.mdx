@@ -1,0 +1,123 @@
+---
+title: "Telemetry"
+sidebar_position: 38
+---
+
+Starting with Vendure v3.6.0, the framework collects anonymous usage telemetry to help the core team understand how Vendure is being used. This data helps prioritize development efforts and identify common deployment patterns.
+
+Telemetry collection is designed with privacy as a core principle. No personally identifiable information (PII) is ever collected, and the data is anonymized before transmission.
+
+## What Data is Collected
+
+The following data is collected once per server startup:
+
+### Installation ID
+
+A randomly generated UUID that identifies your Vendure installation. This ID is:
+
+- Generated using `crypto.randomUUID()` (not derived from any system information)
+- Stored primarily in the database (via the internal Settings Store), with a filesystem fallback at `.vendure/.installation-id` in your project root
+- Used only to deduplicate telemetry events
+
+### Version Information
+
+- Vendure version (e.g., `3.6.0`)
+- Node.js version (e.g., `20.10.0`)
+- Operating system platform and architecture (e.g., `linux x64`, `darwin arm64`, `win32 x64`)
+- `NODE_ENV` environment variable value (e.g., `production`, `development`)
+
+### Database Type
+
+The type of database being used:
+
+- `postgres`
+- `mysql`
+- `mariadb`
+- `sqlite`
+
+### Plugins
+
+- **Official Vendure plugins**: Package names are collected (e.g., `@vendure/email-plugin`, `@vendure/dashboard`)
+- **Third-party npm plugins**: Package names are collected if resolvable from `node_modules`
+- **Custom plugins**: Only a count is collected, **names are not collected**
+
+### Entity Metrics
+
+Record counts for core Vendure entities, reported as **ranges** rather than exact numbers:
+
+| Range | Description |
+|-------|-------------|
+| `0` | No records |
+| `1-100` | 1 to 100 records |
+| `101-1k` | 101 to 1,000 records |
+| `1k-10k` | 1,001 to 10,000 records |
+| `10k-100k` | 10,001 to 100,000 records |
+| `100k+` | More than 100,000 records |
+
+For custom entities, only the count of custom entity types is collected (not their names), plus an aggregate record count range.
+
+### Deployment Information
+
+- Whether the server is running in a container (Docker, Kubernetes)
+- Cloud provider detection (AWS, GCP, Azure, Vercel, Railway, Render, Fly, Heroku, DigitalOcean, Northflank)
+- Whether running in a serverless environment
+- Worker mode (integrated or separate)
+
+### Configuration
+
+Only **class names** of configured strategies are collected, not their configuration values:
+
+- Asset storage strategy class name (e.g., `LocalAssetStorageStrategy`, `S3AssetStorageStrategy`)
+- Job queue strategy class name
+- Entity ID strategy class name
+- Authentication strategy class names
+- Default language code
+- Total count of custom fields
+
+## What is NOT Collected
+
+The following data is explicitly **not** collected:
+
+- Hostnames, IP addresses, or domain names
+- Customer data, order data, or any business data
+- Custom plugin names (only a count)
+- API keys, secrets, or credentials
+- File paths or source code
+- Configuration values (only strategy class names)
+- Any personally identifiable information (PII)
+
+## How We Use This Data
+
+Telemetry data helps the Vendure team:
+
+- **Understand adoption patterns**: Which plugins are most commonly used, what database types are preferred
+- **Prioritize development**: Focus efforts on the most-used features and platforms
+- **Identify deployment trends**: Understand common infrastructure patterns to optimize performance
+- **Detect version distribution**: Plan deprecation timelines and migration paths
+
+## Disabling Telemetry
+
+Telemetry can be disabled by setting an environment variable:
+
+```bash
+VENDURE_DISABLE_TELEMETRY=true
+```
+
+Or:
+
+```bash
+VENDURE_DISABLE_TELEMETRY=1
+```
+
+:::note
+Telemetry is **automatically disabled** in CI environments. The following CI systems are detected:
+Travis CI, CircleCI, GitHub Actions, GitLab CI, Jenkins, Bitbucket Pipelines, Azure Pipelines, AppVeyor, Drone, Buildkite, TeamCity, AWS CodeBuild, Heroku CI, Netlify, and Vercel. Any environment setting the generic `CI` environment variable is also detected.
+:::
+
+## Technical Details
+
+- **Endpoint**: `https://telemetry.vendure.io/api/v1/collect`
+- **Timing**: Once per server startup after a 5-second delay, non-blocking (fire-and-forget)
+- **Timeout**: 5 seconds (telemetry collection never delays server startup)
+- **Failure handling**: All errors are silently ignored
+- **Worker processes**: Telemetry is only sent from the main server process, not from workers

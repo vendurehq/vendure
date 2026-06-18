@@ -1,0 +1,117 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Promotion resolver > adjustmentOperations 1`] = `
+[
+  {
+    "args": [
+      {
+        "name": "facetValueIds",
+        "type": "ID",
+        "ui": null,
+      },
+    ],
+    "code": "promo_action",
+    "description": "description for promo_action",
+  },
+]
+`;
+
+exports[`Promotion resolver > adjustmentOperations 2`] = `
+[
+  {
+    "args": [
+      {
+        "name": "arg",
+        "type": "int",
+        "ui": null,
+      },
+    ],
+    "code": "promo_condition",
+    "description": "description for promo_condition",
+  },
+  {
+    "args": [
+      {
+        "name": "arg",
+        "type": "int",
+        "ui": null,
+      },
+    ],
+    "code": "promo_condition2",
+    "description": "description for promo_condition2",
+  },
+]
+`;
+
+exports[`Promotion resolver > createPromotion 1`] = `
+{
+  "actions": [
+    {
+      "args": [
+        {
+          "name": "facetValueIds",
+          "value": "["T_1"]",
+        },
+      ],
+      "code": "promo_action",
+    },
+  ],
+  "conditions": [
+    {
+      "args": [
+        {
+          "name": "arg",
+          "value": "500",
+        },
+      ],
+      "code": "promo_condition",
+    },
+  ],
+  "couponCode": "TEST123",
+  "enabled": true,
+  "endsAt": "2019-12-01T00:00:00.000Z",
+  "name": "test promotion",
+  "startsAt": "2019-10-30T00:00:00.000Z",
+}
+`;
+
+exports[`Promotion resolver > updatePromotion 1`] = `
+{
+  "actions": [
+    {
+      "args": [
+        {
+          "name": "facetValueIds",
+          "value": "["T_1"]",
+        },
+      ],
+      "code": "promo_action",
+    },
+  ],
+  "conditions": [
+    {
+      "args": [
+        {
+          "name": "arg",
+          "value": "90",
+        },
+      ],
+      "code": "promo_condition",
+    },
+    {
+      "args": [
+        {
+          "name": "arg",
+          "value": "10",
+        },
+      ],
+      "code": "promo_condition2",
+    },
+  ],
+  "couponCode": "TEST1235",
+  "enabled": true,
+  "endsAt": "2019-06-01T22:00:00.000Z",
+  "name": "test promotion",
+  "startsAt": "2019-05-30T22:00:00.000Z",
+}
+`;

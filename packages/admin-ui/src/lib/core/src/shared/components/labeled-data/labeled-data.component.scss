@@ -1,0 +1,16 @@
+
+:host {
+    display: block;
+    margin-bottom: 6px;
+}
+.label-title {
+    font-size: 12px;
+    color: var(--color-text-300);
+    line-height: 12px;
+    margin-bottom: -4px;
+}
+.content {
+    display: inline-block;
+    line-height: var(--font-size-sm);
+    margin-top: 6px;
+}

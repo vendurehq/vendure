@@ -1,0 +1,8 @@
+{
+    product(id: "1") {
+        id
+        name
+        slug
+        description
+    }
+}

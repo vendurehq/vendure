@@ -1,0 +1,17 @@
+
+.item-fulfilled {
+    color: var(--color-success-700);
+}
+.item-partially-fulfilled {
+    color: var(--color-warning-700);
+}
+.item-not-fulfilled {
+    color: var(--color-error-700);
+}
+
+.fulfillment-detail {
+    margin: 6px 12px;
+    &:not(:last-of-type) {
+        border-bottom: 1px dashed var(--color-component-border-200);
+    }
+}

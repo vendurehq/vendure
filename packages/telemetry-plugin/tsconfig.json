@@ -1,0 +1,13 @@
+{
+    "extends": "../../tsconfig.json",
+    "compilerOptions": {
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "declaration": true,
+        "removeComments": false,
+        "strictPropertyInitialization": false,
+        "sourceMap": true,
+        "allowJs": true
+    },
+    "exclude": ["node_modules"]
+}

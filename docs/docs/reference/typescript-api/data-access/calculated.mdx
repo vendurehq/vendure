@@ -1,0 +1,57 @@
+---
+title: "Calculated"
+generated: true
+---
+## Calculated
+
+<GenerationInfo sourceFile="packages/core/src/common/calculated-decorator.ts" sourceLine="43" packageName="@vendure/core" />
+
+Used to define calculated entity getters. The decorator simply attaches an array of "calculated"
+property names to the entity's prototype. This array is then used by the [CalculatedPropertySubscriber](/reference/typescript-api/data-access/calculated-property-subscriber#calculatedpropertysubscriber)to transfer the getter function from the prototype to the entity instance.
+
+```ts title="Signature"
+function Calculated(queryInstruction?: CalculatedColumnQueryInstruction): MethodDecorator
+```
+Parameters
+
+### queryInstruction
+
+<MemberInfo kind="parameter" type={`<a href='/reference/typescript-api/data-access/calculated#calculatedcolumnqueryinstruction'>CalculatedColumnQueryInstruction</a>`} />
+
+## CalculatedColumnQueryInstruction
+
+<GenerationInfo sourceFile="packages/core/src/common/calculated-decorator.ts" sourceLine="17" packageName="@vendure/core" />
+
+Optional metadata used to tell the [ListQueryBuilder](/reference/typescript-api/data-access/list-query-builder#listquerybuilder) & [Relations](/reference/typescript-api/request/relations-decorator#relations) decorator how to deal with
+calculated columns when sorting, filtering and deriving required relations from GraphQL operations.
+
+```ts title="Signature"
+interface CalculatedColumnQueryInstruction {
+    relations?: string[];
+    query?: (qb: SelectQueryBuilder<any>) => void;
+    expression?: string;
+}
+```
+
+<div className="members-wrapper">
+
+### relations
+
+<MemberInfo kind="property" type={`string[]`}   />
+
+If the calculated property depends on one or more relations being present
+on the entity (e.g. an `Order` entity calculating the `totalQuantity` by adding
+up the quantities of each `OrderLine`), then those relations should be defined here.
+### query
+
+<MemberInfo kind="property" type={`(qb: SelectQueryBuilder<any>) => void`}   />
+
+
+### expression
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+
+
+</div>

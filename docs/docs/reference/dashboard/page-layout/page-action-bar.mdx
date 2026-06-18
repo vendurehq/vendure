@@ -1,0 +1,180 @@
+---
+title: "PageActionBar"
+generated: true
+---
+## PageActionBar
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/layout-engine/page-layout.tsx" sourceLine="403" packageName="@vendure/dashboard" since="3.3.0" />
+
+A component for displaying the main actions for a page. This should be used inside the [Page](/reference/dashboard/page-layout/page#page) component.
+
+You can add action bar items by including [ActionBarItem](/reference/dashboard/page-layout/page-action-bar#actionbaritem) components as direct children.
+For backwards compatibility, [PageActionBarLeft](/reference/dashboard/page-layout/page-action-bar#pageactionbarleft) and [PageActionBarRight](/reference/dashboard/page-layout/page-action-bar#pageactionbarright) are also supported.
+
+**Mobile behavior:** On mobile viewports, only the last inline [ActionBarItem](/reference/dashboard/page-layout/page-action-bar#actionbaritem) is
+shown (the primary action). Extension items and plain children are hidden to prevent
+overflow. The dropdown menu and entity info remain visible on all viewports.
+
+*Example*
+
+```tsx
+<PageActionBar>
+    <ActionBarItem itemId="save-button" requiresPermission={['UpdateProduct']}>
+        <Button type="submit">Update</Button>
+    </ActionBarItem>
+</PageActionBar>
+```
+
+```ts title="Signature"
+function PageActionBar(props: Readonly<{
+    children: React.ReactNode;
+    /**
+     * @description
+     * Optional dropdown menu items to display in the action bar's context menu.
+     */
+    dropdownMenuItems?: InlineDropdownItem[];
+}>): void
+```
+Parameters
+
+### props
+
+<MemberInfo kind="parameter" type={`Readonly<{     children: React.ReactNode;     /**      * @description      * Optional dropdown menu items to display in the action bar's context menu.      */     dropdownMenuItems?: InlineDropdownItem[]; }>`} />
+
+## ActionBarItemProps
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/layout-engine/action-bar-item-wrapper.tsx" sourceLine="103" packageName="@vendure/dashboard" since="3.5.2" />
+
+Props for the ActionBarItem component.
+
+```ts title="Signature"
+interface ActionBarItemProps {
+    children: React.ReactNode;
+    itemId: string;
+    requiresPermission?: string | string[];
+}
+```
+
+<div className="members-wrapper">
+
+### children
+
+<MemberInfo kind="property" type={`React.ReactNode`}   />
+
+The content of the action bar item, typically a Button component.
+### itemId
+
+<MemberInfo kind="property" type={`string`}   />
+
+A unique identifier for this action bar item. This ID is used by extensions
+to position their items relative to this one via `position.itemId`.
+
+Note: Extensions should use this exact `itemId` value in their `position.itemId`
+field to target this item.
+### requiresPermission
+
+<MemberInfo kind="property" type={`string | string[]`}   />
+
+If provided, the logged-in user must have one or more of the specified
+permissions in order for the item to render.
+
+
+</div>
+## ActionBarItem
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/layout-engine/action-bar-item-wrapper.tsx" sourceLine="153" packageName="@vendure/dashboard" since="3.5.2" />
+
+A component for wrapping action bar items with a unique ID. This should be used inside
+the [PageActionBarRight](/reference/dashboard/page-layout/page-action-bar#pageactionbarright) component. Each item is given an `itemId` which allows
+extensions to position their items relative to it using `position.itemId`.
+
+**Mobile behavior:** On mobile viewports, only the **last** inline `ActionBarItem` is
+visible (treated as the primary action, e.g. Save/Update/Create). All other inline items
+and extension items are hidden. Place your primary action as the last `ActionBarItem`
+child of [PageActionBar](/reference/dashboard/page-layout/page-action-bar#pageactionbar).
+
+In developer mode, hovering over the item will show a popover with the `pageId` and `itemId`,
+making it easy to discover the correct IDs for extension positioning.
+
+*Example*
+
+```tsx
+<PageActionBarRight>
+    <ActionBarItem itemId="save-button" requiresPermission={['UpdateProduct']}>
+        <Button type="submit">Save</Button>
+    </ActionBarItem>
+</PageActionBarRight>
+```
+
+```ts title="Signature"
+function ActionBarItem(props: Readonly<ActionBarItemProps>): void
+```
+Parameters
+
+### props
+
+<MemberInfo kind="parameter" type={`Readonly<<a href='/reference/dashboard/page-layout/page-action-bar#actionbaritemprops'>ActionBarItemProps</a>>`} />
+
+## PageActionBarLeft
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/layout-engine/page-layout.tsx" sourceLine="547" packageName="@vendure/dashboard" since="3.3.0" />
+
+The PageActionBarLeft component is not used and will be removed in a future version.
+
+```ts title="Signature"
+function PageActionBarLeft(props: Readonly<{ children: React.ReactNode }>): void
+```
+Parameters
+
+### props
+
+<MemberInfo kind="parameter" type={`Readonly<{ children: React.ReactNode }>`} />
+
+## PageActionBarRight
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/layout-engine/page-layout.tsx" sourceLine="787" packageName="@vendure/dashboard" since="3.3.0" />
+
+The PageActionBarRight component is used to display the right content of the action bar.
+
+*Example*
+
+```tsx
+// Old pattern (deprecated)
+<PageActionBar>
+    <PageActionBarRight>
+        <ActionBarItem itemId="save-button">
+            <Button type="submit">Update</Button>
+        </ActionBarItem>
+    </PageActionBarRight>
+</PageActionBar>
+
+// New pattern (recommended)
+<PageActionBar>
+    <ActionBarItem itemId="save-button" requiresPermission={['UpdateProduct']}>
+        <Button type="submit">Update</Button>
+    </ActionBarItem>
+</PageActionBar>
+```
+
+```ts title="Signature"
+function PageActionBarRight(props: Readonly<{
+    /**
+     * @description
+     * ActionBarItem components that will be rendered in the action bar.
+     * Each item should have a unique itemId for extension targeting.
+     */
+    children?: React.ReactNode;
+    /**
+     * @description
+     * Optional dropdown menu items. These are now extracted and rendered by PageActionBar.
+     * @deprecated Pass dropdownMenuItems directly to PageActionBar instead.
+     */
+    dropdownMenuItems?: InlineDropdownItem[];
+}>): void
+```
+Parameters
+
+### props
+
+<MemberInfo kind="parameter" type={`Readonly<{     /**      * @description      * <a href='/reference/dashboard/page-layout/page-action-bar#actionbaritem'>ActionBarItem</a> components that will be rendered in the action bar.      * Each item should have a unique itemId for extension targeting.      */     children?: React.ReactNode;     /**      * @description      * Optional dropdown menu items. These are now extracted and rendered by <a href='/reference/dashboard/page-layout/page-action-bar#pageactionbar'>PageActionBar</a>.      * @deprecated Pass dropdownMenuItems directly to <a href='/reference/dashboard/page-layout/page-action-bar#pageactionbar'>PageActionBar</a> instead.      */     dropdownMenuItems?: InlineDropdownItem[]; }>`} />
+

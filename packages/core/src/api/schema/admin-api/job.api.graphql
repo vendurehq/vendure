@@ -1,0 +1,63 @@
+type Query {
+    job(jobId: ID!): Job
+    jobs(options: JobListOptions): JobList!
+    jobsById(jobIds: [ID!]!): [Job!]!
+    jobQueues: [JobQueue!]!
+    jobBufferSize(bufferIds: [String!]): [JobBufferSize!]!
+}
+
+type Mutation {
+    "Remove all settled jobs in the given queues older than the given date. Returns the number of jobs deleted."
+    removeSettledJobs(queueNames: [String!], olderThan: DateTime): Int!
+    cancelJob(jobId: ID!): Job!
+    flushBufferedJobs(bufferIds: [String!]): Success!
+}
+
+type JobBufferSize {
+    bufferId: String!
+    size: Int!
+}
+
+"""
+@description
+The state of a Job in the JobQueue
+
+@docsCategory common
+"""
+enum JobState {
+    PENDING
+    RUNNING
+    COMPLETED
+    RETRYING
+    FAILED
+    CANCELLED
+}
+
+input JobListOptions
+
+type JobList implements PaginatedList {
+    items: [Job!]!
+    totalItems: Int!
+}
+
+type Job implements Node {
+    id: ID!
+    createdAt: DateTime!
+    startedAt: DateTime
+    settledAt: DateTime
+    queueName: String!
+    state: JobState!
+    progress: Float!
+    data: JSON
+    result: JSON
+    error: JSON
+    isSettled: Boolean!
+    duration: Int!
+    retries: Int!
+    attempts: Int!
+}
+
+type JobQueue {
+    name: String!
+    running: Boolean!
+}

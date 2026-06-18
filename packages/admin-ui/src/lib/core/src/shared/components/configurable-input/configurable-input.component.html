@@ -1,0 +1,29 @@
+<div class="card" *ngIf="operation">
+    <div class="card-block" *ngIf="hideDescription !== true">{{ interpolateDescription() }}</div>
+    <div class="card-block" *ngIf="operation.args?.length">
+        <form [formGroup]="form" *ngIf="operation" class="operation-inputs">
+            <div *ngFor="let arg of operation.args; trackBy: trackByName" class="arg-row">
+                <ng-container *ngIf="form.get(arg.name) && getArgDef(arg) as argDef">
+                    <label class="clr-control-label">{{ argDef.label || (arg.name | sentenceCase) }}</label>
+                    <vdr-help-tooltip
+                        class="mr3"
+                        *ngIf="argDef.description"
+                        [content]="argDef.description"
+                    ></vdr-help-tooltip>
+                    <vdr-dynamic-form-input
+                        [def]="getArgDef(arg)"
+                        [readonly]="readonly"
+                        [control]="form.get(arg.name)"
+                        [formControlName]="arg.name"
+                    ></vdr-dynamic-form-input>
+                </ng-container>
+            </div>
+        </form>
+    </div>
+    <div class="card-footer" *ngIf="!readonly && removable">
+        <button class="button-small warning" (click)="remove.emit(operation)">
+            <clr-icon shape="times"></clr-icon>
+            {{ 'common.remove' | translate }}
+        </button>
+    </div>
+</div>

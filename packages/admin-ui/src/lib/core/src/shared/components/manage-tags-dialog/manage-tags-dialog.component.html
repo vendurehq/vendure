@@ -1,0 +1,26 @@
+<ng-template vdrDialogTitle>
+    <span>{{ 'common.manage-tags' | translate }}</span>
+</ng-template>
+<p class="mt0 mb-4">{{ 'common.manage-tags-description' | translate }}</p>
+<ul class="tag-list" *ngFor="let tag of allTags$ | async">
+    <li class="mb-2 p-1" [class.to-delete]="markedAsDeleted(tag.id)">
+        <clr-icon shape="tag" class="is-solid mr2" [style.color]="tag.value | stringToColor"></clr-icon>
+        <input type="text" (input)="updateTagValue(tag.id, $event.target.value)" [value]="tag.value" />
+        <button class="icon-button" (click)="toggleDelete(tag.id)">
+            <clr-icon shape="trash" class="is-danger" [class.is-solid]="markedAsDeleted(tag.id)"></clr-icon>
+        </button>
+    </li>
+</ul>
+<ng-template vdrDialogButtons>
+    <button type="submit" (click)="resolveWith(false)" class="btn btn-secondary">
+        {{ 'common.cancel' | translate }}
+    </button>
+    <button
+        type="submit"
+        (click)="saveChanges()"
+        class="btn btn-primary"
+        [disabled]="!toUpdate.length && !toDelete.length"
+    >
+        {{ 'common.update' | translate }}
+    </button>
+</ng-template>

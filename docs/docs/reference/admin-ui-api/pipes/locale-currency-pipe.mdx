@@ -1,0 +1,44 @@
+---
+title: "LocaleCurrencyPipe"
+generated: true
+---
+<GenerationInfo sourceFile="packages/admin-ui/src/lib/core/src/shared/pipes/locale-currency.pipe.ts" sourceLine="20" packageName="@vendure/admin-ui" />
+
+Formats a Vendure monetary value (in cents) into the correct format for the configured currency and display
+locale.
+
+*Example*
+
+```HTML
+{{ variant.priceWithTax | localeCurrency }}
+```
+
+```ts title="Signature"
+class LocaleCurrencyPipe extends LocaleBasePipe implements PipeTransform {
+    readonly precisionFactor: number;
+    constructor(currencyService: CurrencyService, dataService?: DataService, changeDetectorRef?: ChangeDetectorRef)
+    transform(value: unknown, args: unknown[]) => string | unknown;
+}
+```
+* Extends: LocaleBasePipe
+
+
+* Implements: PipeTransform
+
+
+
+<div className="members-wrapper">
+
+### precisionFactor
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### transform
+
+<MemberInfo kind="method" type={`(value: unknown, args: unknown[]) => string | unknown`}   />
+
+
+
+
+</div>

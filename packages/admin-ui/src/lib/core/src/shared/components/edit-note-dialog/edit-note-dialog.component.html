@@ -1,0 +1,23 @@
+<ng-template vdrDialogTitle>
+    {{ 'common.edit-note' | translate }}
+</ng-template>
+
+<textarea [(ngModel)]="note" name="note" class="note"></textarea>
+<div class="visibility-select" *ngIf="displayPrivacyControls">
+    <clr-checkbox-wrapper>
+        <input type="checkbox" clrCheckbox [(ngModel)]="noteIsPrivate" />
+        <label>{{ 'order.note-is-private' | translate }}</label>
+    </clr-checkbox-wrapper>
+    <span *ngIf="noteIsPrivate" class="private">
+        {{ 'order.note-only-visible-to-administrators' | translate }}
+    </span>
+    <span *ngIf="!noteIsPrivate" class="public">
+        {{ 'order.note-visible-to-customer' | translate }}
+    </span>
+</div>
+<ng-template vdrDialogButtons>
+    <button type="button" class="btn" (click)="cancel()">{{ 'common.cancel' | translate }}</button>
+    <button type="submit" (click)="confirm()" class="btn btn-primary" [disabled]="note.length === 0">
+        {{ 'common.confirm' | translate }}
+    </button>
+</ng-template>

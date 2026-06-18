@@ -1,0 +1,178 @@
+---
+title: "Define custom permissions"
+metaTitle: "Defining Custom Permissions for Vendure Plugins"
+metaDescription: "Create fine-grained custom permissions in Vendure plugins using PermissionDefinition to control access to new mutations, queries, and features."
+---
+
+Vendure uses a fine-grained access control system based on roles & permissions. This is described in detail in the [Auth guide](/core-concepts/auth/). The built-in [`Permission` enum](/reference/typescript-api/common/permission/) includes a range of permissions to control create, read, update, and delete access to the built-in entities.
+
+When building plugins, you may need to define new permissions to control access to new functionality. This guide explains how to do so.
+
+## Defining a single permission
+
+For example, let's imagine you are creating a plugin which exposes a new mutation that can be used by remote services to sync your inventory. First of all we will define the new permission using the [`PermissionDefinition`](/reference/typescript-api/auth/permission-definition/) class:
+
+```ts title="src/plugins/inventory-sync/constants.ts"
+import { PermissionDefinition } from '@vendure/core';
+
+export const sync = new PermissionDefinition({
+    name: 'SyncInventory',
+    description: 'Allows syncing stock levels via Admin API'
+});
+```
+
+This permission can then be used in conjuction with the [@Allow() decorator](/reference/typescript-api/request/allow-decorator/) to limit access to the mutation:
+
+```ts title="src/plugins/inventory-sync/api/inventory-sync.resolver.ts"
+import { Mutation, Resolver } from '@nestjs/graphql';
+import { Allow } from '@vendure/core';
+import { sync } from '../constants';
+
+@Resolver()
+export class InventorySyncResolver {
+
+    @Allow(sync.Permission) // [!code highlight]
+    @Mutation()
+    syncInventory(/* ... */) {
+        // ...
+    }
+}
+```
+
+Finally, the `sync` PermissionDefinition must be passed into the VendureConfig so that Vendure knows about this new custom permission:
+
+```ts title="src/plugins/inventory-sync/inventory-sync.plugin.ts"
+import gql from 'graphql-tag';
+import { VendurePlugin } from '@vendure/core';
+
+import { InventorySyncResolver } from './api/inventory-sync.resolver'
+import { sync } from './constants';
+
+@VendurePlugin({
+    adminApiExtensions: {
+        schema: gql`
+            input InventoryDataInput {
+              # omitted for brevity
+            }
+        
+            extend type Mutation {
+              syncInventory(input: InventoryDataInput!): Boolean!
+            }
+        `,
+        resolvers: [InventorySyncResolver]
+    },
+    configuration: config => {
+        config.authOptions.customPermissions.push(sync); // [!code highlight]
+        return config;
+    },
+})
+export class InventorySyncPlugin {}
+```
+
+On starting the Vendure server, this custom permission will now be visible in the Role detail view of the Dashboard, and can be assigned to Roles.
+
+## Custom CRUD permissions
+
+Quite often your plugin will define a new entity on which you must perform create, read, update and delete (CRUD) operations. In this case, you can use the [CrudPermissionDefinition](/reference/typescript-api/auth/permission-definition/#crudpermissiondefinition) which simplifies the creation of the set of 4 CRUD permissions. 
+
+For example, let's imagine we are creating a plugin which adds a new entity called `ProductReview`. We can define the CRUD permissions like so:
+
+```ts title="src/plugins/product-review/constants.ts"
+import { CrudPermissionDefinition } from '@vendure/core';
+
+export const productReviewPermission = new CrudPermissionDefinition('ProductReview');
+```
+
+These permissions can then be used in our resolver:
+
+```ts title="src/plugins/product-review/api/product-review.resolver.ts"
+import { Mutation, Resolver } from '@nestjs/graphql';
+import { Allow, Transaction } from '@vendure/core';
+import { productReviewPermission } from '../constants';
+
+@Resolver()
+export class ProductReviewResolver {
+
+    @Allow(productReviewPermission.Read) // [!code highlight]
+    @Query()
+    productReviews(/* ... */) {
+        // ...
+    }
+    
+    @Allow(productReviewPermission.Create) // [!code highlight]
+    @Mutation()
+    @Transaction()
+    createProductReview(/* ... */) {
+        // ...
+    }
+    
+    @Allow(productReviewPermission.Update) // [!code highlight]
+    @Mutation()
+    @Transaction()
+    updateProductReview(/* ... */) {
+        // ...
+    }
+    
+    @Allow(productReviewPermission.Delete) // [!code highlight]
+    @Mutation()
+    @Transaction()
+    deleteProductReview(/* ... */) {
+        // ...
+    }
+}
+```
+
+Finally, the `productReview` CrudPermissionDefinition must be passed into the VendureConfig so that Vendure knows about this new custom permission:
+
+```ts title="src/plugins/product-review/product-review.plugin.ts"
+import gql from 'graphql-tag';
+import { VendurePlugin } from '@vendure/core';
+
+import { ProductReviewResolver } from './api/product-review.resolver'
+import { productReviewPermission } from './constants';
+
+@VendurePlugin({
+    adminApiExtensions: {
+        schema: gql`
+            # omitted for brevity
+        `,
+        resolvers: [ProductReviewResolver]
+    },
+    configuration: config => {
+        config.authOptions.customPermissions.push(productReviewPermission); // [!code highlight]
+        return config;
+    },
+})
+export class ProductReviewPlugin {}
+```
+
+## Custom permissions for custom fields
+
+Since Vendure v2.2.0, it is possible to define custom permissions for custom fields. This is useful when you want to 
+control access to specific custom fields on an entity. For example, imagine a "product reviews" plugin which adds a
+`rating` custom field to the `Product` entity. 
+
+You may want to restrict access to this custom field to only those roles which have permissions on the product review
+plugin.
+
+```ts title="src/plugins/product-review.plugin.ts"
+import { VendurePlugin } from '@vendure/core';
+import { productReviewPermission } from './constants';
+
+@VendurePlugin({
+    configuration: config => {
+        config.authOptions.customPermissions.push(productReviewPermission);
+        
+        config.customFields.Product.push({
+            name: 'rating',
+            type: 'int',
+            requiresPermission: [ // [!code highlight]
+                productReviewPermission.Read, // [!code highlight]
+                productReviewPermission.Update, // [!code highlight]
+            ], // [!code highlight]
+        });
+        return config;
+    },
+})
+export class ProductReviewPlugin {}
+```

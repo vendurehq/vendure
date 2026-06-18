@@ -1,0 +1,184 @@
+---
+title: "CollectionService"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/services/collection.service.ts" sourceLine="77" packageName="@vendure/core" />
+
+Contains methods relating to [Collection](/reference/typescript-api/entities/collection#collection) entities.
+
+```ts title="Signature"
+class CollectionService implements OnModuleInit {
+    constructor(connection: TransactionalConnection, channelService: ChannelService, assetService: AssetService, listQueryBuilder: ListQueryBuilder, translatableSaver: TranslatableSaver, eventBus: EventBus, jobQueueService: JobQueueService, configService: ConfigService, slugValidator: SlugValidator, configArgService: ConfigArgService, customFieldRelationService: CustomFieldRelationService, translator: TranslatorService, roleService: RoleService, requestContextService: RequestContextService)
+    findAll(ctx: RequestContext, options?: ListQueryOptions<Collection> & { topLevelOnly?: boolean }, relations?: RelationPaths<Collection>) => Promise<PaginatedList<Translated<Collection>>>;
+    findOne(ctx: RequestContext, collectionId: ID, relations?: RelationPaths<Collection>) => Promise<Translated<Collection> | undefined>;
+    findByIds(ctx: RequestContext, ids: ID[], relations?: RelationPaths<Collection>) => Promise<Array<Translated<Collection>>>;
+    findOneBySlug(ctx: RequestContext, slug: string, relations?: RelationPaths<Collection>) => Promise<Translated<Collection> | undefined>;
+    getAvailableFilters(ctx: RequestContext) => ConfigurableOperationDefinition[];
+    getParent(ctx: RequestContext, collectionId: ID) => Promise<Collection | undefined>;
+    getChildren(ctx: RequestContext, collectionId: ID) => Promise<Collection[]>;
+    getProductVariantCounts(ctx: RequestContext, collectionIds: ID[]) => Promise<Map<ID, number>>;
+    getBreadcrumbs(ctx: RequestContext, collection: Collection) => Promise<Array<{ name: string; id: ID; slug: string }>>;
+    getCollectionsByProductId(ctx: RequestContext, productId: ID, publicOnly: boolean) => Promise<Array<Translated<Collection>>>;
+    getDescendants(ctx: RequestContext, rootId: ID, maxDepth: number = Number.MAX_SAFE_INTEGER) => Promise<Array<Translated<Collection>>>;
+    getAncestors(collectionId: ID) => Promise<Collection[]>;
+    getAncestors(collectionId: ID, ctx: RequestContext) => Promise<Array<Translated<Collection>>>;
+    getAncestors(collectionId: ID, ctx?: RequestContext) => Promise<Array<Translated<Collection> | Collection>>;
+    previewCollectionVariants(ctx: RequestContext, input: PreviewCollectionVariantsInput, options?: ListQueryOptions<ProductVariant>, relations?: RelationPaths<Collection>) => Promise<PaginatedList<ProductVariant>>;
+    create(ctx: RequestContext, input: CreateCollectionInput) => Promise<Translated<Collection>>;
+    update(ctx: RequestContext, input: UpdateCollectionInput) => Promise<Translated<Collection>>;
+    delete(ctx: RequestContext, id: ID) => Promise<DeletionResponse>;
+    move(ctx: RequestContext, input: MoveCollectionInput) => Promise<Translated<Collection>>;
+    setApplyAllFiltersOnProductUpdates(applyAllFiltersOnProductUpdates: boolean) => ;
+    triggerApplyFiltersJob(ctx: RequestContext, options?: { collectionIds?: ID[]; applyToChangedVariantsOnly?: boolean }) => ;
+    getCollectionProductVariantIds(collection: Collection, ctx?: RequestContext) => Promise<ID[]>;
+    assignCollectionsToChannel(ctx: RequestContext, input: AssignCollectionsToChannelInput) => Promise<Array<Translated<Collection>>>;
+    removeCollectionsFromChannel(ctx: RequestContext, input: RemoveCollectionsFromChannelInput) => Promise<Array<Translated<Collection>>>;
+}
+```
+* Implements: OnModuleInit
+
+
+
+<div className="members-wrapper">
+
+### findAll
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: ListQueryOptions<<a href='/reference/typescript-api/entities/collection#collection'>Collection</a>> &#38; { topLevelOnly?: boolean }, relations?: RelationPaths<<a href='/reference/typescript-api/entities/collection#collection'>Collection</a>>) => Promise<<a href='/reference/typescript-api/common/paginated-list#paginatedlist'>PaginatedList</a><Translated<<a href='/reference/typescript-api/entities/collection#collection'>Collection</a>>>>`}   />
+
+
+### findOne
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, collectionId: <a href='/reference/typescript-api/common/id#id'>ID</a>, relations?: RelationPaths<<a href='/reference/typescript-api/entities/collection#collection'>Collection</a>>) => Promise<Translated<<a href='/reference/typescript-api/entities/collection#collection'>Collection</a>> | undefined>`}   />
+
+
+### findByIds
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, ids: <a href='/reference/typescript-api/common/id#id'>ID</a>[], relations?: RelationPaths<<a href='/reference/typescript-api/entities/collection#collection'>Collection</a>>) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/collection#collection'>Collection</a>>>>`}   />
+
+
+### findOneBySlug
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, slug: string, relations?: RelationPaths<<a href='/reference/typescript-api/entities/collection#collection'>Collection</a>>) => Promise<Translated<<a href='/reference/typescript-api/entities/collection#collection'>Collection</a>> | undefined>`}   />
+
+
+### getAvailableFilters
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => ConfigurableOperationDefinition[]`}   />
+
+Returns all configured CollectionFilters, as specified by the [CatalogOptions](/reference/typescript-api/products-stock/catalog-options#catalogoptions).
+### getParent
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, collectionId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/collection#collection'>Collection</a> | undefined>`}   />
+
+
+### getChildren
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, collectionId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/collection#collection'>Collection</a>[]>`}   />
+
+Returns all child Collections of the Collection with the given id.
+### getProductVariantCounts
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, collectionIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[]) => Promise<Map<<a href='/reference/typescript-api/common/id#id'>ID</a>, number>>`}   />
+
+Returns a Map of collection IDs to their product variant counts.
+This performs a single bulk query to get counts for all provided collection IDs,
+avoiding N+1 query issues when resolving productVariantCount on multiple collections.
+### getBreadcrumbs
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, collection: <a href='/reference/typescript-api/entities/collection#collection'>Collection</a>) => Promise<Array<{ name: string; id: <a href='/reference/typescript-api/common/id#id'>ID</a>; slug: string }>>`}   />
+
+Returns an array of name/id pairs representing all ancestor Collections up
+to the Root Collection.
+### getCollectionsByProductId
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productId: <a href='/reference/typescript-api/common/id#id'>ID</a>, publicOnly: boolean) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/collection#collection'>Collection</a>>>>`}   />
+
+Returns all Collections which are associated with the given Product ID.
+### getDescendants
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, rootId: <a href='/reference/typescript-api/common/id#id'>ID</a>, maxDepth: number = Number.MAX_SAFE_INTEGER) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/collection#collection'>Collection</a>>>>`}   />
+
+Returns the descendants of a Collection as a flat array. The depth of the traversal can be limited
+with the maxDepth argument. So to get only the immediate children, set maxDepth = 1.
+### getAncestors
+
+<MemberInfo kind="method" type={`(collectionId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/collection#collection'>Collection</a>[]>`}   />
+
+Gets the ancestors of a given collection. Note that since ProductCategories are implemented as an adjacency list, this method
+will produce more queries the deeper the collection is in the tree.
+### getAncestors
+
+<MemberInfo kind="method" type={`(collectionId: <a href='/reference/typescript-api/common/id#id'>ID</a>, ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/collection#collection'>Collection</a>>>>`}   />
+
+
+### getAncestors
+
+<MemberInfo kind="method" type={`(collectionId: <a href='/reference/typescript-api/common/id#id'>ID</a>, ctx?: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/collection#collection'>Collection</a>> | <a href='/reference/typescript-api/entities/collection#collection'>Collection</a>>>`}   />
+
+
+### previewCollectionVariants
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: PreviewCollectionVariantsInput, options?: ListQueryOptions<<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>>, relations?: RelationPaths<<a href='/reference/typescript-api/entities/collection#collection'>Collection</a>>) => Promise<<a href='/reference/typescript-api/common/paginated-list#paginatedlist'>PaginatedList</a><<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>>>`}   />
+
+
+### create
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: CreateCollectionInput) => Promise<Translated<<a href='/reference/typescript-api/entities/collection#collection'>Collection</a>>>`}   />
+
+
+### update
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: UpdateCollectionInput) => Promise<Translated<<a href='/reference/typescript-api/entities/collection#collection'>Collection</a>>>`}   />
+
+
+### delete
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<DeletionResponse>`}   />
+
+
+### move
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: MoveCollectionInput) => Promise<Translated<<a href='/reference/typescript-api/entities/collection#collection'>Collection</a>>>`}   />
+
+Moves a Collection by specifying the parent Collection ID, and an index representing the order amongst
+its siblings.
+### setApplyAllFiltersOnProductUpdates
+
+<MemberInfo kind="method" type={`(applyAllFiltersOnProductUpdates: boolean) => `}  since="3.1.3"  />
+
+By default, whenever product data is updated (as determined by subscribing to the
+[ProductEvent](/reference/typescript-api/events/event-types#productevent) and [ProductVariantEvent](/reference/typescript-api/events/event-types#productvariantevent) events), the CollectionFilters are re-applied
+to all Collections.
+
+In certain scenarios, such as when a large number of products are updated at once due to
+bulk data import, this can be inefficient. In such cases, you can disable this behaviour
+for the duration of the import process by calling this method with `false`, and then
+re-enable it by calling with `true`.
+
+Afterward, you can call the `triggerApplyFiltersJob` method to manually re-apply the filters.
+### triggerApplyFiltersJob
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: { collectionIds?: <a href='/reference/typescript-api/common/id#id'>ID</a>[]; applyToChangedVariantsOnly?: boolean }) => `}  since="3.1.3"  />
+
+Triggers the creation of an `apply-collection-filters` job which will cause the contents
+of the specified collections to be re-evaluated against their filters.
+
+If no `collectionIds` option is passed, then all collections will be re-evaluated.
+### getCollectionProductVariantIds
+
+<MemberInfo kind="method" type={`(collection: <a href='/reference/typescript-api/entities/collection#collection'>Collection</a>, ctx?: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<<a href='/reference/typescript-api/common/id#id'>ID</a>[]>`}   />
+
+
+### assignCollectionsToChannel
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: AssignCollectionsToChannelInput) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/collection#collection'>Collection</a>>>>`}   />
+
+Assigns Collections to the specified Channel
+### removeCollectionsFromChannel
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: RemoveCollectionsFromChannelInput) => Promise<Array<Translated<<a href='/reference/typescript-api/entities/collection#collection'>Collection</a>>>>`}   />
+
+Remove Collections from the specified Channel
+
+
+</div>

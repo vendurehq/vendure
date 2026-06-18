@@ -1,0 +1,41 @@
+---
+title: "StockAllocationStrategy"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/order/stock-allocation-strategy.ts" sourceLine="20" packageName="@vendure/core" />
+
+This strategy is responsible for deciding at which stage in the order process
+stock will be allocated.
+
+:::info
+
+This is configured via the `orderOptions.stockAllocationStrategy` property of
+your VendureConfig.
+
+:::
+
+```ts title="Signature"
+interface StockAllocationStrategy extends InjectableStrategy {
+    shouldAllocateStock(
+        ctx: RequestContext,
+        fromState: OrderState,
+        toState: OrderState,
+        order: Order,
+    ): boolean | Promise<boolean>;
+}
+```
+* Extends: [`InjectableStrategy`](/reference/typescript-api/common/injectable-strategy#injectablestrategy)
+
+
+
+<div className="members-wrapper">
+
+### shouldAllocateStock
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, fromState: <a href='/reference/typescript-api/orders/order-process#orderstate'>OrderState</a>, toState: <a href='/reference/typescript-api/orders/order-process#orderstate'>OrderState</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => boolean | Promise<boolean>`}   />
+
+This method is called whenever an Order transitions from one state to another.
+If it resolves to `true`, then stock will be allocated for this order.
+
+
+</div>

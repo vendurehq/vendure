@@ -1,0 +1,31 @@
+---
+title: "PaginatedList"
+generated: true
+---
+<GenerationInfo sourceFile="packages/common/src/shared-types.ts" sourceLine="67" packageName="@vendure/common" />
+
+A type describing the shape of a paginated list response. In Vendure, almost all list queries
+(`products`, `collections`, `orders`, `customers` etc) return an object of this type.
+
+```ts title="Signature"
+type PaginatedList<T> = {
+    items: T[];
+    totalItems: number;
+}
+```
+
+<div className="members-wrapper">
+
+### items
+
+<MemberInfo kind="property" type={`T[]`}   />
+
+
+### totalItems
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+
+
+</div>

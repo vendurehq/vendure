@@ -1,0 +1,19 @@
+<div
+    class="wrapper"
+    [class.with-background]="!invert && colorFrom"
+    [style.backgroundColor]="!invert && (colorFrom | stringToColor)"
+    [style.color]="invert && (colorFrom | stringToColor)"
+    [style.borderColor]="invert && (colorFrom | stringToColor)"
+    [ngClass]="colorType"
+>
+    <div class="chip-label"><ng-content></ng-content></div>
+    <div class="chip-icon" *ngIf="icon">
+        <button (click)="iconClick.emit($event)">
+            <clr-icon
+                [attr.shape]="icon"
+                [style.color]="invert && (colorFrom | stringToColor)"
+                [class.is-inverse]="!invert && colorFrom"
+            ></clr-icon>
+        </button>
+    </div>
+</div>

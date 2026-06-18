@@ -1,0 +1,29 @@
+<vdr-dropdown>
+    <button class="trigger user-menu-btn" vdrDropdownTrigger>
+        <div class="user-circle">
+            <clr-icon shape="user" size="16"></clr-icon>
+        </div>
+        <span class="user-name">{{ userName }}</span>
+        <clr-icon class="md:hidden" shape="caret down"></clr-icon>
+    </button>
+    <vdr-dropdown-menu vdrPosition="bottom-right">
+        <a [routerLink]="['/settings', 'profile']" vdrDropdownItem tabindex="0">
+            <clr-icon shape="user" class="is-solid"></clr-icon> {{ 'settings.profile' | translate }}
+        </a>
+        <ng-container *ngIf="1 < availableLanguages.length">
+            <button
+                type="button"
+                vdrDropdownItem
+                (click)="selectUiLanguage.emit()"
+                [title]="'common.select-display-language' | translate"
+            >
+                <clr-icon shape="language"></clr-icon> {{ uiLanguageAndLocale?.[0] | localeLanguageName }}
+            </button>
+        </ng-container>
+        <vdr-theme-switcher vdrDropdownItem tabindex="0"></vdr-theme-switcher>
+        <div class="dropdown-divider"></div>
+        <button type="button" vdrDropdownItem (click)="logOut.emit()">
+            <clr-icon shape="logout"></clr-icon> {{ 'common.log-out' | translate }}
+        </button>
+    </vdr-dropdown-menu>
+</vdr-dropdown>

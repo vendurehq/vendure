@@ -1,0 +1,45 @@
+
+:host {
+    position: relative;
+    display: block;
+}
+
+.frame {
+    position: absolute;
+    top: 0;
+}
+
+.dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid white;
+    position: absolute;
+    visibility: hidden;
+    transition: opacity 0.3s;
+    box-shadow: 0px 0px 4px 4px rgba(0, 0, 0, 0.42);
+    &.visible {
+        visibility: visible;
+        opacity: 0.7;
+    }
+    &.editable {
+        cursor: move;
+        visibility: visible;
+        opacity: 1;
+        animation: pulse;
+        animation-duration: 0.5s;
+        animation-iteration-count: 4;
+    }
+}
+
+@keyframes pulse {
+    0% {
+        border-color: white;
+    }
+    50% {
+        border-color: var(--color-warning-500);
+    }
+    100% {
+        border-color: white
+    }
+}

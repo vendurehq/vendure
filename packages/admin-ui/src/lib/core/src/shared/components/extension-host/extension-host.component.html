@@ -1,0 +1,20 @@
+<ng-template [ngIf]="openInIframe" [ngIfElse]="launchExtension">
+    <iframe [src]="extensionUrl" #extensionFrame></iframe>
+</ng-template>
+<ng-template #launchExtension>
+    <div class="launch-button" [class.launched]="extensionWindowIsOpen">
+        <div>
+            <button
+                class="btn btn-lg btn-primary"
+                [disabled]="extensionWindowIsOpen"
+                (click)="launchExtensionWindow()"
+            >
+                <clr-icon shape="pop-out"></clr-icon>
+                {{ 'common.launch-extension' | translate }}
+            </button>
+            <h3 class="window-hint" [class.visible]="extensionWindowIsOpen">
+                {{ 'common.extension-running-in-separate-window' | translate }}
+            </h3>
+        </div>
+    </div>
+</ng-template>

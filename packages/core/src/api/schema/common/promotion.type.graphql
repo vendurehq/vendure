@@ -1,0 +1,31 @@
+type Promotion implements Node {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    startsAt: DateTime
+    endsAt: DateTime
+    couponCode: String
+    perCustomerUsageLimit: Int
+    usageLimit: Int
+    name: String!
+    description: String!
+    enabled: Boolean!
+    conditions: [ConfigurableOperation!]!
+    actions: [ConfigurableOperation!]!
+    translations: [PromotionTranslation!]!
+}
+
+type PromotionTranslation {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    languageCode: LanguageCode!
+    name: String!
+    description: String!
+}
+
+
+type PromotionList implements PaginatedList {
+    items: [Promotion!]!
+    totalItems: Int!
+}

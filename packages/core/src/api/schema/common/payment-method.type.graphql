@@ -1,0 +1,21 @@
+type PaymentMethod implements Node {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    name: String!
+    code: String!
+    description: String!
+    enabled: Boolean!
+    checker: ConfigurableOperation
+    handler: ConfigurableOperation!
+    translations: [PaymentMethodTranslation!]!
+}
+
+type PaymentMethodTranslation {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    languageCode: LanguageCode!
+    name: String!
+    description: String!
+}

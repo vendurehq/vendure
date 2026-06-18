@@ -1,0 +1,61 @@
+---
+title: "Search"
+metaTitle: "Pluggable Search Architecture in Vendure"
+metaDescription: "Learn how Vendure's search system works: denormalized search indexes, the DefaultSearchPlugin, ElasticsearchPlugin, and facet-based filtering."
+---
+
+Vendure provides a pluggable search architecture that decouples the search experience from the underlying storage mechanism. Rather than querying the relational product tables directly, Vendure maintains a **denormalized search index** that is optimized for fast, full-text catalog queries with filtering and facet aggregations.
+
+## The search index
+
+The search index is a flattened representation of your catalog. Each entry combines data that would normally be spread across multiple entities — product name, description, variant SKU, price range, facet values, collection memberships, and channel assignments — into a single searchable record.
+
+This denormalization is what makes search fast: instead of joining multiple tables at query time, the search system reads from a pre-computed index that already contains everything needed to render search results.
+
+## Keeping the index in sync
+
+The search index is updated in the background whenever catalog data changes. When you create, update, or delete a product, variant, facet value assignment, or collection, a [job](/core-concepts/job-queue/) is dispatched to re-index the affected records. This means there is a brief delay between a catalog change and its appearance in search results, but it ensures that indexing never blocks the main request.
+
+You can also trigger a full re-index manually via the Admin API when needed — for example, after a bulk data import.
+
+## Search plugins
+
+Vendure ships with two search plugin options:
+
+### DefaultSearchPlugin
+
+The [`DefaultSearchPlugin`](/reference/typescript-api/default-search-plugin/) uses SQL queries against a dedicated search index table in your existing database. It requires no additional infrastructure and is a good starting point for small-to-medium catalogs.
+
+It supports full-text search, filtering by facet values, collection membership, and price range, and returns facet value aggregation counts so your storefront can display filter options with result counts.
+
+### ElasticsearchPlugin
+
+The [`@vendure-community/elasticsearch-plugin`](https://github.com/vendurehq/community-plugins) stores the search index in an Elasticsearch cluster. It is designed for production workloads with large catalogs where you need more advanced full-text search capabilities, better performance at scale, or features like fuzzy matching and relevance tuning.
+
+Because both plugins implement the same GraphQL schema, switching from the DefaultSearchPlugin to the ElasticsearchPlugin requires no changes to your storefront queries.
+
+## The `search` query
+
+The Shop API exposes a `search` query that accepts a [`SearchInput`](/reference/graphql-api/shop/input-types/#searchinput) and returns a [`SearchResponse`](/reference/graphql-api/shop/object-types/#searchresponse). The key parts of this query are:
+
+- **term** — A free-text search string matched against product names, descriptions, and SKUs.
+- **facetValueFilters** — Narrow results to items tagged with specific [facet values](/core-concepts/facets-filters/). Filters within the same facet are combined with OR; filters across different facets are combined with AND.
+- **collectionSlug / collectionId** — Restrict results to a specific [collection](/core-concepts/collections/).
+- **price range** — Filter by minimum and/or maximum price.
+- **Facet value aggregations** — The response includes counts of how many results match each facet value, enabling your storefront to render dynamic filter menus.
+
+## Search and channels
+
+The search index is [channel-aware](/core-concepts/channels/). Each search index entry is scoped to a specific channel, so a search query made against the "UK" channel will only return products assigned to that channel, with prices in the channel's currency. This is handled transparently — the active channel is determined from the request context, and the search plugin filters accordingly.
+
+## Custom search implementations
+
+Because search is entirely plugin-based, you can replace the built-in plugins with a completely custom implementation backed by any search technology — Algolia, Typesense, Meilisearch, or any other service. As long as your plugin implements the expected GraphQL resolvers, the storefront experience remains the same.
+
+When building a custom search plugin, you are responsible for maintaining the search index (subscribing to catalog change events and updating your external index) and implementing the `search` resolver that returns results in the expected shape.
+
+## Related topics
+
+- [Facets & Filters](/core-concepts/facets-filters/) — Structured metadata used for filtering and aggregation
+- [Collections](/core-concepts/collections/) — Grouping products into browsable categories
+- [Job Queue](/core-concepts/job-queue/) — Background processing that powers search index updates

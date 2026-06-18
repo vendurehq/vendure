@@ -1,0 +1,86 @@
+---
+title: "DetailPage"
+generated: true
+---
+## DetailPage
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/detail-page.tsx" sourceLine="134" packageName="@vendure/dashboard" since="3.3.0" />
+
+Auto-generates a detail page with a form based on the provided query and mutation documents.
+
+For more control over the layout, you would use the more low-level [Page](/reference/dashboard/page-layout/page#page) component.
+
+```ts title="Signature"
+function DetailPage<T extends TypedDocumentNode<any, any>, C extends TypedDocumentNode<any, any>, U extends TypedDocumentNode<any, any>>(props: DetailPageProps<T, C, U>): void
+```
+Parameters
+
+### props
+
+<MemberInfo kind="parameter" type={`<a href='/reference/dashboard/detail-views/detail-page#detailpageprops'>DetailPageProps</a><T, C, U>`} />
+
+## DetailPageProps
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/detail-page.tsx" sourceLine="38" packageName="@vendure/dashboard" since="3.3.0" />
+
+Props to configure the [DetailPage](/reference/dashboard/detail-views/detail-page#detailpage) component.
+
+```ts title="Signature"
+interface DetailPageProps<T extends TypedDocumentNode<any, any>, C extends TypedDocumentNode<any, any>, U extends TypedDocumentNode<any, any>, EntityField extends keyof ResultOf<T> = DetailEntityPath<T>> {
+    entityName?: string;
+    pageId: string;
+    route: AnyRoute;
+    title: (entity: ResultOf<T>[EntityField]) => string;
+    queryDocument: T;
+    createDocument?: C;
+    updateDocument: U;
+    setValuesForUpdate: (entity: ResultOf<T>[EntityField]) => VariablesOf<U>['input'];
+}
+```
+
+<div className="members-wrapper">
+
+### entityName
+
+<MemberInfo kind="property" type={`string`}   />
+
+The name of the entity.
+If not provided, it will be inferred from the query document.
+### pageId
+
+<MemberInfo kind="property" type={`string`}   />
+
+A unique identifier for the page.
+### route
+
+<MemberInfo kind="property" type={`AnyRoute`}   />
+
+The Tanstack Router route used to navigate to this page.
+### title
+
+<MemberInfo kind="property" type={`(entity: ResultOf<T>[EntityField]) => string`}   />
+
+The title of the page.
+### queryDocument
+
+<MemberInfo kind="property" type={`T`}   />
+
+The query document used to fetch the entity.
+### createDocument
+
+<MemberInfo kind="property" type={`C`}   />
+
+The mutation document used to create the entity.
+### updateDocument
+
+<MemberInfo kind="property" type={`U`}   />
+
+The mutation document used to update the entity.
+### setValuesForUpdate
+
+<MemberInfo kind="property" type={`(entity: ResultOf<T>[EntityField]) => VariablesOf<U>['input']`}   />
+
+A function that sets the values for the update input type based on the entity.
+
+
+</div>

@@ -1,0 +1,51 @@
+---
+title: "AddressBasedTaxZoneStrategy"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/tax/address-based-tax-zone-strategy.ts" sourceLine="39" packageName="@vendure/core" since="3.1.0" />
+
+Address based [TaxZoneStrategy](/reference/typescript-api/tax/tax-zone-strategy#taxzonestrategy) which tries to find the applicable [Zone](/reference/typescript-api/entities/zone#zone) based on the
+country of the shipping address of the Order.
+This is useful for shops that do cross-border B2C orders and use the One-Stop-Shop (OSS) VAT scheme.
+
+Returns the default [Channel](/reference/typescript-api/entities/channel#channel)'s default tax zone if no applicable zone is found.
+
+:::info
+
+This is configured via `taxOptions.taxZoneStrategy = new AddressBasedTaxZoneStrategy()` in
+your VendureConfig.
+
+:::
+
+*Example*
+
+```ts
+import { VendureConfig, AddressBasedTaxZoneStrategy } from '@vendure/core';
+
+export const config: VendureConfig = {
+  // other options...
+  taxOptions: {
+    taxZoneStrategy: new AddressBasedTaxZoneStrategy(), // [!code highlight]
+  },
+};
+```
+
+```ts title="Signature"
+class AddressBasedTaxZoneStrategy implements TaxZoneStrategy {
+    determineTaxZone(ctx: RequestContext, zones: Zone[], channel: Channel, order?: Order) => Zone;
+}
+```
+* Implements: [`TaxZoneStrategy`](/reference/typescript-api/tax/tax-zone-strategy#taxzonestrategy)
+
+
+
+<div className="members-wrapper">
+
+### determineTaxZone
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, zones: <a href='/reference/typescript-api/entities/zone#zone'>Zone</a>[], channel: <a href='/reference/typescript-api/entities/channel#channel'>Channel</a>, order?: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => <a href='/reference/typescript-api/entities/zone#zone'>Zone</a>`}   />
+
+
+
+
+</div>

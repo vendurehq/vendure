@@ -1,0 +1,133 @@
+<div
+    cdkDropList
+    class="tree-node"
+    #dropList
+    [cdkDropListData]="collectionTree"
+    [cdkDropListDisabled]="!(hasUpdatePermission$ | async)"
+    (cdkDropListDropped)="drop($event)"
+>
+    <div
+        class="collection"
+        [class.private]="collection.isPrivate"
+        *ngFor="let collection of collectionTree.children; index as i; trackBy: trackByFn"
+        cdkDrag
+        [cdkDragData]="collection"
+    >
+        <div
+            class="collection-detail"
+            [ngClass]="'depth-' + depth"
+            [class.active]="collection.id === activeCollectionId"
+        >
+            <div>
+                <input
+                    type="checkbox"
+                    clrCheckbox
+                    [checked]="selectionManager.isSelected(collection)"
+                    (click)="selectionManager.toggleSelection(collection, $event)"
+                />
+            </div>
+            <div class="name">
+                <button
+                    class="icon-button folder-button"
+                    [disabled]="expandAll"
+                    *ngIf="collection.children?.length; else folderSpacer"
+                    (click)="toggleExpanded(collection)"
+                >
+                    <clr-icon shape="folder" *ngIf="!collection.expanded && !expandAll"></clr-icon>
+                    <clr-icon shape="folder-open" *ngIf="collection.expanded || expandAll"></clr-icon>
+                </button>
+                <ng-template #folderSpacer>
+                    <div class="folder-button-spacer"></div>
+                </ng-template>
+                {{ collection.name }}
+            </div>
+            <div class="flex-spacer"></div>
+            <vdr-chip *ngIf="collection.isPrivate">{{ 'catalog.private' | translate }}</vdr-chip>
+            <a
+                class="btn btn-link btn-sm"
+                [routerLink]="['./', { contents: collection.id }]"
+                queryParamsHandling="preserve"
+            >
+                <clr-icon shape="view-list"></clr-icon>
+                {{ 'catalog.view-contents' | translate }}
+            </a>
+            <a class="btn btn-link btn-sm" [routerLink]="['/catalog/collections/', collection.id]">
+                <clr-icon shape="edit"></clr-icon>
+                {{ 'common.edit' | translate }}
+            </a>
+            <div class="drag-handle" cdkDragHandle *vdrIfPermissions="['UpdateCatalog', 'UpdateCollection']">
+                <clr-icon shape="drag-handle" size="24"></clr-icon>
+            </div>
+            <vdr-dropdown>
+                <button class="icon-button" vdrDropdownTrigger (click)="getMoveListItems(collection)">
+                    <clr-icon shape="ellipsis-vertical"></clr-icon>
+                </button>
+                <vdr-dropdown-menu vdrPosition="bottom-right">
+                    <a
+                        class="dropdown-item"
+                        [routerLink]="['./', 'create', { parentId: collection.id }]"
+                        *vdrIfPermissions="['CreateCatalog', 'CreateCollection']"
+                    >
+                        <clr-icon shape="plus"></clr-icon>
+                        {{ 'catalog.create-new-collection' | translate }}
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <button
+                        type="button"
+                        vdrDropdownItem
+                        [disabled]="i === 0 || !(hasUpdatePermission$ | async)"
+                        (click)="moveUp(collection, i)"
+                    >
+                        <clr-icon shape="caret up"></clr-icon>
+                        {{ 'catalog.move-up' | translate }}
+                    </button>
+                    <button
+                        type="button"
+                        vdrDropdownItem
+                        [disabled]="
+                            i === collectionTree.children.length - 1 || !(hasUpdatePermission$ | async)
+                        "
+                        (click)="moveDown(collection, i)"
+                    >
+                        <clr-icon shape="caret down"></clr-icon>
+                        {{ 'catalog.move-down' | translate }}
+                    </button>
+                    <h4 class="dropdown-header">{{ 'catalog.move-to' | translate }}</h4>
+                    <button
+                        type="button"
+                        vdrDropdownItem
+                        *ngFor="let item of moveListItems"
+                        (click)="move(collection, item.id)"
+                        [disabled]="!(hasUpdatePermission$ | async)"
+                    >
+                        <div class="move-to-item">
+                            <div class="move-icon">
+                                <clr-icon shape="child-arrow"></clr-icon>
+                            </div>
+                            <div class="path">
+                                {{ item.path }}
+                            </div>
+                        </div>
+                    </button>
+                    <div class="dropdown-divider"></div>
+                    <button
+                        class="button"
+                        vdrDropdownItem
+                        (click)="delete(collection.id)"
+                        [disabled]="!(hasDeletePermission$ | async)"
+                    >
+                        <clr-icon shape="trash" class="is-danger"></clr-icon>
+                        {{ 'common.delete' | translate }}
+                    </button>
+                </vdr-dropdown-menu>
+            </vdr-dropdown>
+        </div>
+        <vdr-collection-tree-node
+            *ngIf="collection.expanded || expandAll"
+            [expandAll]="expandAll"
+            [collectionTree]="collection"
+            [activeCollectionId]="activeCollectionId"
+            [selectionManager]="selectionManager"
+        ></vdr-collection-tree-node>
+    </div>
+</div>

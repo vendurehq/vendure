@@ -1,0 +1,52 @@
+---
+title: "HistoryEntryComponent"
+generated: true
+---
+<GenerationInfo sourceFile="packages/admin-ui/src/lib/core/src/providers/custom-history-entry-component/history-entry-component-types.ts" sourceLine="16" packageName="@vendure/admin-ui" since="1.9.0" />
+
+This interface should be implemented by components intended to display a history entry in the
+Order or Customer history timeline. If the component needs access to the Order or Customer object itself,
+you should implement [OrderHistoryEntryComponent](/reference/admin-ui-api/custom-history-entry-components/order-history-entry-component#orderhistoryentrycomponent) or [CustomerHistoryEntryComponent](/reference/admin-ui-api/custom-history-entry-components/customer-history-entry-component#customerhistoryentrycomponent) respectively.
+
+```ts title="Signature"
+interface HistoryEntryComponent {
+    entry: TimelineHistoryEntry;
+    getDisplayType: (entry: TimelineHistoryEntry) => TimelineDisplayType;
+    isFeatured: (entry: TimelineHistoryEntry) => boolean;
+    getName?: (entry: TimelineHistoryEntry) => string | undefined;
+    getIconShape?: (entry: TimelineHistoryEntry) => string | string[] | undefined;
+}
+```
+
+<div className="members-wrapper">
+
+### entry
+
+<MemberInfo kind="property" type={`TimelineHistoryEntry`}   />
+
+The HistoryEntry data.
+### getDisplayType
+
+<MemberInfo kind="property" type={`(entry: TimelineHistoryEntry) => TimelineDisplayType`}   />
+
+Defines whether this entry is highlighted with a "success", "error" etc. color.
+### isFeatured
+
+<MemberInfo kind="property" type={`(entry: TimelineHistoryEntry) => boolean`}   />
+
+Featured entries are always expanded. Non-featured entries start of collapsed and can be clicked
+to expand.
+### getName
+
+<MemberInfo kind="property" type={`(entry: TimelineHistoryEntry) => string | undefined`}   />
+
+Returns the name of the person who did this action. For example, it could be the Customer's name
+or "Administrator".
+### getIconShape
+
+<MemberInfo kind="property" type={`(entry: TimelineHistoryEntry) => string | string[] | undefined`}   />
+
+Optional Clarity icon shape to display with the entry. Examples: `'note'`, `['success-standard', 'is-solid']`
+
+
+</div>

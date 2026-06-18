@@ -1,0 +1,16 @@
+---
+title: "FulfillmentState"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/helpers/fulfillment-state-machine/fulfillment-state.ts" sourceLine="29" packageName="@vendure/core" />
+
+These are the default states of the fulfillment process. By default, they will be extended
+by the [defaultFulfillmentProcess](/reference/typescript-api/fulfillment/fulfillment-process#defaultfulfillmentprocess) to also include `Shipped` and `Delivered`.
+
+```ts title="Signature"
+type FulfillmentState = | 'Created'
+    | 'Pending'
+    | 'Cancelled'
+    | keyof CustomFulfillmentStates
+    | keyof FulfillmentStates
+```

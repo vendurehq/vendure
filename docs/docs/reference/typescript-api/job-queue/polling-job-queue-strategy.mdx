@@ -1,0 +1,102 @@
+---
+title: "PollingJobQueueStrategy"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/job-queue/polling-job-queue-strategy.ts" sourceLine="263" packageName="@vendure/core" />
+
+This class allows easier implementation of [JobQueueStrategy](/reference/typescript-api/job-queue/job-queue-strategy#jobqueuestrategy) in a polling style.
+Instead of providing [JobQueueStrategy](/reference/typescript-api/job-queue/job-queue-strategy#jobqueuestrategy) `start()` you should provide a `next` method.
+
+This class should be extended by any strategy which does not support a push-based system
+to notify on new jobs. It is used by the [SqlJobQueueStrategy](/reference/typescript-api/job-queue/sql-job-queue-strategy#sqljobqueuestrategy) and [InMemoryJobQueueStrategy](/reference/typescript-api/job-queue/in-memory-job-queue-strategy#inmemoryjobqueuestrategy).
+
+```ts title="Signature"
+class PollingJobQueueStrategy extends InjectableJobQueueStrategy {
+    public concurrency: number | ((queueName: string) => number);
+    public pollInterval: number | ((queueName: string) => number);
+    public setRetries: (queueName: string, job: Job) => number;
+    public backOffStrategy?: BackoffStrategy;
+    public gracefulShutdownTimeout: number;
+    protected activeQueues = new QueueNameProcessStorage<ActiveQueue<any>>();
+    constructor(config?: PollingJobQueueStrategyConfig)
+    constructor(concurrency?: number, pollInterval?: number)
+    constructor(concurrencyOrConfig?: number | PollingJobQueueStrategyConfig, maybePollInterval?: number)
+    start(queueName: string, process: (job: Job<Data>) => Promise<any>) => ;
+    stop(queueName: string, process: (job: Job<Data>) => Promise<any>) => ;
+    cancelJob(jobId: ID) => Promise<Job | undefined>;
+    next(queueName: string) => Promise<Job | undefined>;
+    update(job: Job) => Promise<void>;
+    findOne(id: ID) => Promise<Job | undefined>;
+}
+```
+* Extends: InjectableJobQueueStrategy
+
+
+
+<div className="members-wrapper">
+
+### concurrency
+
+<MemberInfo kind="property" type={`number | ((queueName: string) => number)`}   />
+
+
+### pollInterval
+
+<MemberInfo kind="property" type={`number | ((queueName: string) => number)`}   />
+
+
+### setRetries
+
+<MemberInfo kind="property" type={`(queueName: string, job: <a href='/reference/typescript-api/job-queue/job#job'>Job</a>) => number`}   />
+
+
+### backOffStrategy
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/job-queue/types#backoffstrategy'>BackoffStrategy</a>`}   />
+
+
+### gracefulShutdownTimeout
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### activeQueues
+
+<MemberInfo kind="property" type={``}   />
+
+
+### start
+
+<MemberInfo kind="method" type={`(queueName: string, process: (job: <a href='/reference/typescript-api/job-queue/job#job'>Job</a><Data>) => Promise<any>) => `}   />
+
+
+### stop
+
+<MemberInfo kind="method" type={`(queueName: string, process: (job: <a href='/reference/typescript-api/job-queue/job#job'>Job</a><Data>) => Promise<any>) => `}   />
+
+
+### cancelJob
+
+<MemberInfo kind="method" type={`(jobId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/job-queue/job#job'>Job</a> | undefined>`}   />
+
+
+### next
+
+<MemberInfo kind="method" type={`(queueName: string) => Promise<<a href='/reference/typescript-api/job-queue/job#job'>Job</a> | undefined>`}   />
+
+Should return the next job in the given queue. The implementation is
+responsible for returning the correct job according to the time of
+creation.
+### update
+
+<MemberInfo kind="method" type={`(job: <a href='/reference/typescript-api/job-queue/job#job'>Job</a>) => Promise<void>`}   />
+
+Update the job details in the store.
+### findOne
+
+<MemberInfo kind="method" type={`(id: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/job-queue/job#job'>Job</a> | undefined>`}   />
+
+Returns a job by its id.
+
+
+</div>

@@ -1,0 +1,67 @@
+---
+title: "CustomerGroupService"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/services/customer-group.service.ts" sourceLine="38" packageName="@vendure/core" />
+
+Contains methods relating to [CustomerGroup](/reference/typescript-api/entities/customer-group#customergroup) entities.
+
+```ts title="Signature"
+class CustomerGroupService {
+    constructor(connection: TransactionalConnection, listQueryBuilder: ListQueryBuilder, historyService: HistoryService, eventBus: EventBus, customFieldRelationService: CustomFieldRelationService)
+    findAll(ctx: RequestContext, options?: CustomerGroupListOptions, relations: RelationPaths<CustomerGroup> = []) => Promise<PaginatedList<CustomerGroup>>;
+    findOne(ctx: RequestContext, customerGroupId: ID, relations: RelationPaths<CustomerGroup> = []) => Promise<CustomerGroup | undefined>;
+    getGroupCustomers(ctx: RequestContext, customerGroupId: ID, options?: CustomerListOptions) => Promise<PaginatedList<Customer>>;
+    create(ctx: RequestContext, input: CreateCustomerGroupInput) => Promise<CustomerGroup>;
+    update(ctx: RequestContext, input: UpdateCustomerGroupInput) => Promise<CustomerGroup>;
+    delete(ctx: RequestContext, id: ID) => Promise<DeletionResponse>;
+    addCustomersToGroup(ctx: RequestContext, input: MutationAddCustomersToGroupArgs) => Promise<CustomerGroup>;
+    removeCustomersFromGroup(ctx: RequestContext, input: MutationRemoveCustomersFromGroupArgs) => Promise<CustomerGroup>;
+}
+```
+
+<div className="members-wrapper">
+
+### findAll
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: CustomerGroupListOptions, relations: RelationPaths<<a href='/reference/typescript-api/entities/customer-group#customergroup'>CustomerGroup</a>> = []) => Promise<<a href='/reference/typescript-api/common/paginated-list#paginatedlist'>PaginatedList</a><<a href='/reference/typescript-api/entities/customer-group#customergroup'>CustomerGroup</a>>>`}   />
+
+
+### findOne
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, customerGroupId: <a href='/reference/typescript-api/common/id#id'>ID</a>, relations: RelationPaths<<a href='/reference/typescript-api/entities/customer-group#customergroup'>CustomerGroup</a>> = []) => Promise<<a href='/reference/typescript-api/entities/customer-group#customergroup'>CustomerGroup</a> | undefined>`}   />
+
+
+### getGroupCustomers
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, customerGroupId: <a href='/reference/typescript-api/common/id#id'>ID</a>, options?: CustomerListOptions) => Promise<<a href='/reference/typescript-api/common/paginated-list#paginatedlist'>PaginatedList</a><<a href='/reference/typescript-api/entities/customer#customer'>Customer</a>>>`}   />
+
+Returns a [PaginatedList](/reference/typescript-api/common/paginated-list#paginatedlist) of all the Customers in the group.
+### create
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: CreateCustomerGroupInput) => Promise<<a href='/reference/typescript-api/entities/customer-group#customergroup'>CustomerGroup</a>>`}   />
+
+
+### update
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: UpdateCustomerGroupInput) => Promise<<a href='/reference/typescript-api/entities/customer-group#customergroup'>CustomerGroup</a>>`}   />
+
+
+### delete
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<DeletionResponse>`}   />
+
+
+### addCustomersToGroup
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: MutationAddCustomersToGroupArgs) => Promise<<a href='/reference/typescript-api/entities/customer-group#customergroup'>CustomerGroup</a>>`}   />
+
+
+### removeCustomersFromGroup
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: MutationRemoveCustomersFromGroupArgs) => Promise<<a href='/reference/typescript-api/entities/customer-group#customergroup'>CustomerGroup</a>>`}   />
+
+
+
+
+</div>

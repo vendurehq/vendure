@@ -1,0 +1,23 @@
+<table class="table">
+    <tbody>
+        <tr *ngFor="let section of gridData">
+            <td class="permission-group left">
+                <div><strong>{{ section.label | translate }}</strong></div>
+                <small>{{ section.description | translate }}</small><br>
+                <button *ngIf="1 < section.permissions.length && !readonly" class="button-small" (click)="toggleAll(section.permissions)">
+                    {{ 'common.toggle-all' | translate }}
+                </button>
+            </td>
+            <td *ngFor="let permission of section.permissions" [attr.colspan]="section.permissions.length === 1 ? 4 : 1">
+                <vdr-select-toggle
+                    size="small"
+                    [title]="permission.description"
+                    [label]="permission.name"
+                    [disabled]="readonly"
+                    [selected]="activePermissions?.includes(permission.name)"
+                    (selectedChange)="setPermission(permission.name, $event)"
+                ></vdr-select-toggle>
+            </td>
+        </tr>
+    </tbody>
+</table>

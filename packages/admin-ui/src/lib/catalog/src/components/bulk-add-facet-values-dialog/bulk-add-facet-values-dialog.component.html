@@ -1,0 +1,50 @@
+<ng-template vdrDialogTitle>
+    {{ 'catalog.edit-facet-values' | translate }}
+</ng-template>
+
+<div class="flex">
+    <div class="flex center">
+        <div class="mr2">
+            {{ 'catalog.add-facet-value' | translate }}
+        </div>
+        <vdr-facet-value-selector
+            (selectedValuesChange)="selectedValues = $event"
+        ></vdr-facet-value-selector>
+    </div>
+</div>
+
+<table class="table" *ngIf="state !== 'loading'; else placeholder">
+    <tbody>
+        <tr *ngFor="let item of items">
+            <td class="left align-middle">
+                <div>{{ item.name }}</div>
+                <div *ngIf="item.sku" class="sku">{{ item.sku }}</div>
+            </td>
+            <td class="left">
+                <vdr-facet-value-chip
+                    *ngFor="let facetValue of item.facetValues"
+                    [facetValue]="facetValue"
+                    (remove)="removeFacetValue(item, facetValue.id)"
+                ></vdr-facet-value-chip>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<ng-template #placeholder>
+    <div class="loading">
+    <clr-spinner></clr-spinner>
+    </div>
+</ng-template>
+
+<ng-template vdrDialogButtons>
+    <button type="button" class="btn" (click)="cancel()">{{ 'common.cancel' | translate }}</button>
+    <button
+        type="submit"
+        (click)="addFacetValues()"
+        [disabled]="selectedValues.length === 0 && facetValuesRemoved === false"
+        class="btn btn-primary"
+    >
+        {{ 'common.update' | translate }}
+    </button>
+</ng-template>

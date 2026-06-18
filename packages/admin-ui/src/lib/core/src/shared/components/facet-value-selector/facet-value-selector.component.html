@@ -1,0 +1,30 @@
+<ng-select
+    [items]="searchResults$ | async"
+    [addTag]="false"
+    [hideSelected]="true"
+    [loading]="searchLoading"
+    [typeahead]="searchInput$"
+    multiple="true"
+    appendTo="body"
+    bindLabel="id"
+    [disabled]="disabled || readonly"
+    [ngModel]="value"
+    (change)="onChange($event)"
+>
+    <ng-template ng-label-tmp let-item="item" let-clear="clear">
+        <vdr-facet-value-chip
+            *ngIf="item; else facetNotFound"
+            [facetValue]="item"
+            [removable]="!readonly"
+            (remove)="clear(item)"
+        ></vdr-facet-value-chip>
+        <ng-template #facetNotFound>
+            <vdr-chip colorType="error" icon="times" (iconClick)="clear(item)">{{
+                'catalog.facet-value-not-available' | translate: { id: item.id }
+            }}</vdr-chip>
+        </ng-template>
+    </ng-template>
+    <ng-template ng-option-tmp let-item="item">
+        <vdr-facet-value-chip [facetValue]="item" [removable]="false"></vdr-facet-value-chip>
+    </ng-template>
+</ng-select>

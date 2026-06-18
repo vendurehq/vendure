@@ -1,0 +1,12 @@
+type CurrentUser {
+    id: ID!
+    identifier: String!
+    channels: [CurrentUserChannel!]!
+}
+
+type CurrentUserChannel {
+    id: ID!
+    token: String!
+    code: String!
+    permissions: [Permission!]!
+}

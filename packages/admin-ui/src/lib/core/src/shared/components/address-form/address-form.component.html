@@ -1,0 +1,51 @@
+<form [formGroup]="formGroup">
+    <vdr-card>
+        <vdr-form-field [label]="'customer.full-name' | translate">
+            <input formControlName="fullName" type="text" />
+        </vdr-form-field>
+        <vdr-form-field [label]="'customer.company' | translate">
+            <input formControlName="company" type="text" />
+        </vdr-form-field>
+
+        <vdr-form-field [label]="'customer.street-line-1' | translate">
+            <input formControlName="streetLine1" type="text" />
+        </vdr-form-field>
+
+        <vdr-form-field [label]="'customer.street-line-2' | translate">
+            <input formControlName="streetLine2" type="text" />
+        </vdr-form-field>
+
+        <vdr-form-field [label]="'customer.city' | translate">
+            <input formControlName="city" type="text" />
+        </vdr-form-field>
+
+        <vdr-form-field [label]="'customer.province' | translate">
+            <input formControlName="province" type="text" />
+        </vdr-form-field>
+
+        <vdr-form-field [label]="'customer.postal-code' | translate">
+            <input formControlName="postalCode" type="text" />
+        </vdr-form-field>
+
+        <vdr-form-field [label]="'customer.country' | translate">
+            <select name="countryCode" formControlName="countryCode">
+                <option *ngFor="let country of availableCountries" [value]="country.code">
+                    {{ country.name }}
+                </option>
+            </select>
+        </vdr-form-field>
+        <vdr-form-field [label]="'customer.phone-number' | translate">
+            <input formControlName="phoneNumber" type="text" />
+        </vdr-form-field>
+        <section
+            formGroupName="customFields"
+            *ngIf="formGroup.get('customFields') as customFieldsGroup"
+        >
+            <vdr-tabbed-custom-fields
+                entityName="Address"
+                [customFields]="customFields"
+                [customFieldsFormGroup]="customFieldsGroup"
+            ></vdr-tabbed-custom-fields>
+        </section>
+    </vdr-card>
+</form>

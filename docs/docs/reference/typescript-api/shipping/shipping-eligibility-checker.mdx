@@ -1,0 +1,50 @@
+---
+title: "ShippingEligibilityChecker"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/shipping-method/shipping-eligibility-checker.ts" sourceLine="50" packageName="@vendure/core" />
+
+The ShippingEligibilityChecker class is used to check whether an order qualifies for a
+given [ShippingMethod](/reference/typescript-api/entities/shipping-method#shippingmethod).
+
+*Example*
+
+```ts
+const minOrderTotalEligibilityChecker = new ShippingEligibilityChecker({
+    code: 'min-order-total-eligibility-checker',
+    description: [{ languageCode: LanguageCode.en, value: 'Checks that the order total is above some minimum value' }],
+    args: {
+        orderMinimum: { type: 'int', ui: { component: 'currency-form-input' } },
+    },
+    check: (ctx, order, args) => {
+        return order.totalWithTax >= args.orderMinimum;
+    },
+});
+```
+
+```ts title="Signature"
+class ShippingEligibilityChecker<T extends ConfigArgs = ConfigArgs> extends ConfigurableOperationDef<T> {
+    constructor(config: ShippingEligibilityCheckerConfig<T>)
+    init(injector: Injector) => ;
+    toJSON() => ;
+}
+```
+* Extends: [`ConfigurableOperationDef`](/reference/typescript-api/configurable-operation-def/#configurableoperationdef)`<T>`
+
+
+
+<div className="members-wrapper">
+
+### init
+
+<MemberInfo kind="method" type={`(injector: <a href='/reference/typescript-api/common/injector#injector'>Injector</a>) => `}   />
+
+
+### toJSON
+
+<MemberInfo kind="method" type={`() => `}   />
+
+
+
+
+</div>

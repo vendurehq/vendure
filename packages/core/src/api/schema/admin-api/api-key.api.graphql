@@ -1,0 +1,76 @@
+type Query {
+    apiKey(id: ID!): ApiKey
+    apiKeys(options: ApiKeyListOptions): ApiKeyList!
+}
+
+type Mutation {
+    """
+    Generates a new API-Key and attaches it to an Administrator.
+    Returns the generated API-Key.
+    API-Keys cannot be viewed again after creation.
+    """
+    createApiKey(input: CreateApiKeyInput!): CreateApiKeyResult!
+    "Updates an API-Key"
+    updateApiKey(input: UpdateApiKeyInput!): ApiKey!
+    "Deletes API-Keys"
+    deleteApiKeys(ids: [ID!]!): [DeletionResponse!]!
+    """
+    Replaces the old with a new API-Key.
+    This is a convenience method to invalidate an API-Key without
+    deleting the underlying roles and permissions.
+    """
+    rotateApiKey(id: ID!): RotateApiKeyResult!
+}
+
+input CreateApiKeyTranslationInput {
+    languageCode: LanguageCode!
+
+    "A descriptive name so you can remind yourself where the API-Key gets used"
+    name: String!
+}
+
+input UpdateApiKeyTranslationInput {
+    id: ID
+    languageCode: LanguageCode!
+
+    "A descriptive name so you can remind yourself where the API-Key gets used"
+    name: String
+}
+
+"""
+There is no User ID because you can only create API-Keys for yourself,
+which gets determined by the User who does the request.
+"""
+input CreateApiKeyInput {
+    """
+    Which roles to attach to this ApiKey.
+    You may only grant roles which you, yourself have.
+    """
+    roleIds: [ID!]!
+
+    translations: [CreateApiKeyTranslationInput!]!
+}
+
+type CreateApiKeyResult {
+    "The generated API-Key. API-Keys cannot be viewed again after creation!"
+    apiKey: String!
+    "ID of the created ApiKey-Entity"
+    entityId: ID!
+}
+
+input UpdateApiKeyInput {
+    "ID of the ApiKey"
+    id: ID!
+    """
+    Which roles to attach to this ApiKey.
+    You may only grant roles which you, yourself have.
+    """
+    roleIds: [ID!]
+
+    translations: [UpdateApiKeyTranslationInput!]
+}
+
+type RotateApiKeyResult {
+    "The generated API-Key. API-Keys cannot be viewed again after creation!"
+    apiKey: String!
+}

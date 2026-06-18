@@ -1,0 +1,34 @@
+---
+title: "OrderTestingService"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/services/order-testing.service.ts" sourceLine="35" packageName="@vendure/core" />
+
+This service is responsible for creating temporary mock Orders against which tests can be run, such as
+testing a ShippingMethod or Promotion.
+
+```ts title="Signature"
+class OrderTestingService {
+    constructor(connection: TransactionalConnection, orderCalculator: OrderCalculator, shippingCalculator: ShippingCalculator, configArgService: ConfigArgService, configService: ConfigService, productPriceApplicator: ProductPriceApplicator, translator: TranslatorService)
+    testShippingMethod(ctx: RequestContext, input: TestShippingMethodInput) => Promise<TestShippingMethodResult>;
+    testEligibleShippingMethods(ctx: RequestContext, input: TestEligibleShippingMethodsInput) => Promise<ShippingMethodQuote[]>;
+}
+```
+
+<div className="members-wrapper">
+
+### testShippingMethod
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: TestShippingMethodInput) => Promise<TestShippingMethodResult>`}   />
+
+Runs a given ShippingMethod configuration against a mock Order to test for eligibility and resulting
+price.
+### testEligibleShippingMethods
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: TestEligibleShippingMethodsInput) => Promise<ShippingMethodQuote[]>`}   />
+
+Tests all available ShippingMethods against a mock Order and return those which are eligible. This
+is intended to simulate a call to the `eligibleShippingMethods` query of the Shop API.
+
+
+</div>

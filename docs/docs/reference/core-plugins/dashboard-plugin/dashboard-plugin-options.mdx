@@ -1,0 +1,38 @@
+---
+title: "DashboardPluginOptions"
+generated: true
+---
+<GenerationInfo sourceFile="packages/dashboard/plugin/dashboard.plugin.ts" sourceLine="29" packageName="@vendure/dashboard" />
+
+Configuration options for the [DashboardPlugin](/reference/core-plugins/dashboard-plugin/#dashboardplugin).
+
+```ts title="Signature"
+interface DashboardPluginOptions {
+    route: string;
+    appDir: string;
+    viteDevServerPort?: number;
+}
+```
+
+<div className="members-wrapper">
+
+### route
+
+<MemberInfo kind="property" type={`string`} default={`'dashboard'`}   />
+
+The route to the Dashboard UI.
+### appDir
+
+<MemberInfo kind="property" type={`string`}   />
+
+The path to the dashboard UI app dist directory.
+### viteDevServerPort
+
+<MemberInfo kind="property" type={`number`} default={`5173`}   />
+
+The port on which to check for a running Vite dev server.
+If a Vite dev server is detected on this port, requests will be proxied to it
+instead of serving static files from appDir.
+
+
+</div>

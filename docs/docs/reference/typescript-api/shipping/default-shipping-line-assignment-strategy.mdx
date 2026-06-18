@@ -1,0 +1,28 @@
+---
+title: "DefaultShippingLineAssignmentStrategy"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/shipping-method/default-shipping-line-assignment-strategy.ts" sourceLine="16" packageName="@vendure/core" since="2.0.0" />
+
+This is the default [ShippingLineAssignmentStrategy](/reference/typescript-api/shipping/shipping-line-assignment-strategy#shippinglineassignmentstrategy) which simply assigns all OrderLines to the
+ShippingLine, and is suitable for the most common scenario of a single shipping method per Order.
+
+```ts title="Signature"
+class DefaultShippingLineAssignmentStrategy implements ShippingLineAssignmentStrategy {
+    assignShippingLineToOrderLines(ctx: RequestContext, shippingLine: ShippingLine, order: Order) => OrderLine[] | Promise<OrderLine[]>;
+}
+```
+* Implements: [`ShippingLineAssignmentStrategy`](/reference/typescript-api/shipping/shipping-line-assignment-strategy#shippinglineassignmentstrategy)
+
+
+
+<div className="members-wrapper">
+
+### assignShippingLineToOrderLines
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, shippingLine: <a href='/reference/typescript-api/entities/shipping-line#shippingline'>ShippingLine</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => <a href='/reference/typescript-api/entities/order-line#orderline'>OrderLine</a>[] | Promise<<a href='/reference/typescript-api/entities/order-line#orderline'>OrderLine</a>[]>`}   />
+
+
+
+
+</div>

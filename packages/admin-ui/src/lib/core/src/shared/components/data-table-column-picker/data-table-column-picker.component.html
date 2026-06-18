@@ -1,0 +1,42 @@
+<vdr-dropdown [manualToggle]="true">
+    <button class="button-small" vdrDropdownTrigger [title]="'common.select-table-columns' | translate">
+        <clr-icon shape="view-columns"></clr-icon>
+    </button>
+    <vdr-dropdown-menu vdrPosition="bottom-left">
+        <div cdkDropList (cdkDropListDropped)="drop($event)">
+            <div
+                *ngFor="let column of columns; index as i"
+                class="mx-2 column-list"
+                cdkDrag
+                cdkDragLockAxis="y"
+                [cdkDragData]="column"
+            >
+                <div cdkDragHandle class="drag-handle" [cdkDragHandleDisabled]="column.orderable === false">
+                    <clr-icon shape="drag-handle"></clr-icon>
+                </div>
+                <label class="flex">
+                    <clr-checkbox-container>
+                        <clr-checkbox-wrapper>
+                            <input
+                                type="checkbox"
+                                clrCheckbox
+                                [disabled]="column.optional === false"
+                                [indeterminate]="column.optional === false"
+                                [checked]="column.visible"
+                                (change)="toggleColumn(column)"
+                                class="mr-1"
+                            />
+                            <label>{{ column.heading | translate }}</label>
+                        </clr-checkbox-wrapper>
+                    </clr-checkbox-container>
+                </label>
+            </div>
+        </div>
+        <div class="mt-1 pt-1 mx-1 flex center reset-button">
+            <button class="button-small" (click)="reset()">
+                <span>{{ 'common.reset-columns' | translate }}</span>
+                <clr-icon shape="history"></clr-icon>
+            </button>
+        </div>
+    </vdr-dropdown-menu>
+</vdr-dropdown>

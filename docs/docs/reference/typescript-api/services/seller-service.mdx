@@ -1,0 +1,55 @@
+---
+title: "SellerService"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/services/seller.service.ts" sourceLine="26" packageName="@vendure/core" />
+
+Contains methods relating to [Seller](/reference/typescript-api/entities/seller#seller) entities.
+
+```ts title="Signature"
+class SellerService {
+    constructor(connection: TransactionalConnection, listQueryBuilder: ListQueryBuilder, eventBus: EventBus, customFieldRelationService: CustomFieldRelationService)
+    initSellers() => ;
+    findAll(ctx: RequestContext, options?: ListQueryOptions<Seller>) => Promise<PaginatedList<Seller>>;
+    findOne(ctx: RequestContext, sellerId: ID) => Promise<Seller | undefined>;
+    create(ctx: RequestContext, input: CreateSellerInput) => ;
+    update(ctx: RequestContext, input: UpdateSellerInput) => ;
+    delete(ctx: RequestContext, id: ID) => Promise<DeletionResponse>;
+}
+```
+
+<div className="members-wrapper">
+
+### initSellers
+
+<MemberInfo kind="method" type={`() => `}   />
+
+
+### findAll
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: ListQueryOptions<<a href='/reference/typescript-api/entities/seller#seller'>Seller</a>>) => Promise<<a href='/reference/typescript-api/common/paginated-list#paginatedlist'>PaginatedList</a><<a href='/reference/typescript-api/entities/seller#seller'>Seller</a>>>`}   />
+
+
+### findOne
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, sellerId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/seller#seller'>Seller</a> | undefined>`}   />
+
+
+### create
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: CreateSellerInput) => `}   />
+
+
+### update
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: UpdateSellerInput) => `}   />
+
+
+### delete
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<DeletionResponse>`}   />
+
+
+
+
+</div>

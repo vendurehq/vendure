@@ -1,0 +1,94 @@
+@import 'variables';
+
+:host {
+    background-color: var(--clr-nav-background-color);
+}
+
+nav.main-nav {
+    height: 100%;
+    border-right-color: var(--clr-sidenav-border-color);
+}
+
+.main-nav .nav-group {
+    margin-bottom: calc(var(--space-unit) * 2);
+    padding: calc(var(--space-unit) * 2) 0;
+    overflow: hidden;
+    transition: padding 0.2s ease-in-out, margin-bottom 0.2s ease-in-out;
+    &.collapsible.collapsed {
+        padding: 3px 0;
+        margin-bottom: calc(var(--space-unit) * 1);
+    }
+
+    &.active:not(.collapsible.collapsed) {
+        background-color: var(--color-weight-125);
+    }
+    .nav-list {
+        margin: 0;
+        transition: max-height 0.2s ease-in-out, opacity 0.2s ease-in-out;
+    }
+    .section-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        padding-inline-end: calc(var(--space-unit) * 4);
+    }
+    .nav-group-header {
+        display: block;
+        margin: 0 0 var(--space-unit);
+        font-size: var(--font-size-xs);
+        letter-spacing: 0.05em;
+        color: var(--color-weight-700);
+        text-transform: uppercase;
+    }
+    .nav-link {
+        display: flex;
+        align-items: center;
+        line-height: 100%;
+        border-inline-end: 2px solid transparent;
+
+        padding: var(--space-unit) 0;
+        transition: border 0.1s, color 0.1s;
+
+        a:link,
+        a:visited {
+            color: var(--color-weight-700);
+            font-size: var(--font-size-sm);
+            line-height: 14px;
+        }
+        &:hover {
+            color: var(--color-left-nav-text-hover);
+            border-right-color: var(--color-weight-300);
+        }
+
+        &.active,
+        &.active a:link,
+        &.active a:visited {
+            color: var(--color-text-active);
+            border-right-color: var(--color-primary-500);
+            clr-icon {
+                color: var(--color-primary-500);
+            }
+        }
+    }
+}
+
+.nav-list clr-icon {
+    flex-shrink: 0;
+    margin-inline-end: var(--space-unit);
+}
+
+.nav-group {
+    hyphens: auto;
+}
+
+.nav-group,
+.nav-link {
+    position: relative;
+}
+.nav-group vdr-status-badge {
+    left: 27px;
+    top: 6px;
+}
+.nav-group .section-header vdr-status-badge {
+    left: 20px;
+}

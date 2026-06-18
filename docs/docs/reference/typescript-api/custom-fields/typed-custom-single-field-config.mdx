@@ -1,0 +1,19 @@
+---
+title: "TypedCustomSingleFieldConfig"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/custom-field/custom-field-types.ts" sourceLine="101" packageName="@vendure/core" />
+
+Configures a custom field on an entity in the [CustomFields](/reference/typescript-api/custom-fields/#customfields) config object.
+
+```ts title="Signature"
+type TypedCustomSingleFieldConfig<T extends CustomFieldType, C extends CustomField> = BaseTypedCustomFieldConfig<T, C> & {
+    list?: false;
+    defaultValue?: DefaultValueType<T>;
+    validate?: (
+        value: DefaultValueType<T>,
+        injector: Injector,
+        ctx: RequestContext,
+    ) => string | LocalizedString[] | void | Promise<string | LocalizedString[] | void>;
+}
+```

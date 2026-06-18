@@ -1,0 +1,11 @@
+type Query {
+    "Generate slug for entity"
+    slugForEntity(input: SlugForEntityInput!): String!
+}
+
+input SlugForEntityInput {
+    entityName: String!
+    fieldName: String!
+    inputValue: String!
+    entityId: ID
+}

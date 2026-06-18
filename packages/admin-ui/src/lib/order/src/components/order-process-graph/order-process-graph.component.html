@@ -1,0 +1,12 @@
+<ng-container *ngFor="let state of nodes; let i = index">
+    <vdr-order-process-node
+        [node]="state"
+        [index]="i"
+        [active]="(activeState$ | async) === state.name"
+        (mouseenter)="onMouseOver(state.name)"
+        (mouseleave)="onMouseOut()"
+    ></vdr-order-process-node>
+</ng-container>
+<ng-container *ngFor="let edge of edges">
+    <vdr-order-process-edge [from]="edge.from" [to]="edge.to" [index]="edge.index"></vdr-order-process-edge>
+</ng-container>

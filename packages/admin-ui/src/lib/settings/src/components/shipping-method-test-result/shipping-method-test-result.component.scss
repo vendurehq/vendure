@@ -1,0 +1,36 @@
+:host {
+    display: block;
+}
+.test-result {
+    &.success .card-block {
+        background-color: var(--color-success-100);
+    }
+    &.error .card-block {
+        background-color: var(--color-error-100);
+    }
+    &.unknown .card-block {
+        background-color: var(--color-component-bg-100);
+    }
+}
+.result-details {
+    transition: opacity 0.2s;
+    &.stale {
+        opacity: 0.5;
+    }
+}
+
+.eligible-icon {
+    display: inline-block;
+    .success {
+        color: var(--color-success-500);
+    }
+    .error {
+        color: var(--color-error-500);
+    }
+}
+.price-row {
+    display: flex;
+    & > *:not(:first-child) {
+        margin-inline-start: 24px;
+    }
+}

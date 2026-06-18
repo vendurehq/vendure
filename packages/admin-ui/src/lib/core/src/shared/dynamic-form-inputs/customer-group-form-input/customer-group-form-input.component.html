@@ -1,0 +1,19 @@
+<ng-select
+    [items]="customerGroups$ | async"
+    appendTo="body"
+    [addTag]="false"
+    [multiple]="false"
+    bindValue="id"
+    [compareWith]="compareWith"
+    [clearable]="true"
+    [searchable]="false"
+    [ngModel]="formControl.value"
+    (change)="selectGroup($event)"
+>
+    <ng-template ng-label-tmp let-item="item" let-clear="clear">
+        <vdr-chip [colorFrom]="item.id">{{ item.name }}</vdr-chip>
+    </ng-template>
+    <ng-template ng-option-tmp let-item="item">
+        <vdr-chip [colorFrom]="item.id">{{ item.name }}</vdr-chip>
+    </ng-template>
+</ng-select>

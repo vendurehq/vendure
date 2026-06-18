@@ -1,0 +1,10 @@
+type Query {
+    search(input: SearchInput!): SearchResponse!
+    pendingSearchIndexUpdates: Int!
+}
+
+type Mutation {
+    reindex: Job!
+    runPendingSearchIndexUpdates: Success!
+}
+

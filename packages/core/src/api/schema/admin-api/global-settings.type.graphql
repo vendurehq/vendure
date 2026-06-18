@@ -1,0 +1,28 @@
+type GlobalSettings {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    availableLanguages: [LanguageCode!]!
+    trackInventory: Boolean!
+    outOfStockThreshold: Int!
+    serverConfig: ServerConfig!
+}
+
+type OrderProcessState {
+    name: String!
+    to: [String!]!
+}
+
+type PermissionDefinition {
+    name: String!
+    description: String!
+    assignable: Boolean!
+}
+
+# Programatically extended by the addGraphQLCustomFields function
+type ServerConfig {
+    orderProcess: [OrderProcessState!]!
+    permittedAssetTypes: [String!]!
+    permissions: [PermissionDefinition!]!
+    moneyStrategyPrecision: Int!
+}

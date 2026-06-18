@@ -1,0 +1,5 @@
+name,slug,description,assets,facets,optionGroups,optionValues,sku         ,price ,taxCategory,stockOnHand,trackInventory,variantAssets,variantFacets
+Foo ,foo ,           ,      ,      ,Foo|Bar     ,fiz|fiz     ,foo-fiz-fiz ,420.69,standard   ,100        ,TRUE          ,             ,
+    ,    ,           ,      ,      ,            ,fiz|buz     ,foo-fiz-buz ,420.69,standard   ,100        ,TRUE          ,             ,
+    ,    ,           ,      ,      ,            ,fizz|fiz    ,foo-fizz-fiz,420.69,standard   ,100        ,TRUE          ,             ,
+    ,    ,           ,      ,      ,            ,fizz|buz    ,foo-fizz-buz,420.69,standard   ,100        ,TRUE          ,             ,

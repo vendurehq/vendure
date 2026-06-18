@@ -1,0 +1,23 @@
+<vdr-relation-card
+    (select)="selectAsset()"
+    (remove)="remove()"
+    placeholderIcon="image"
+    [entity]="asset$ | async"
+    [selectLabel]="'asset.select-asset' | translate"
+    [removable]="!config.list"
+    [readonly]="readonly"
+>
+    <ng-template vdrRelationCardPreview let-asset="entity">
+        <img
+            class="preview"
+            [title]="'asset.preview' | translate"
+            [src]="asset | assetPreview: 'tiny'"
+            (click)="previewAsset(asset)"
+        />
+    </ng-template>
+    <ng-template vdrRelationCardDetail let-asset="entity">
+        <div class="name" [title]="asset.name">
+            {{ asset.name }}
+        </div>
+    </ng-template>
+</vdr-relation-card>

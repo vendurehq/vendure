@@ -1,0 +1,24 @@
+---
+title: "UsePaginatedList"
+generated: true
+---
+<GenerationInfo sourceFile="packages/dashboard/src/lib/hooks/use-paginated-list.ts" sourceLine="22" packageName="@vendure/dashboard" since="3.4.0" />
+
+Returns the context for the paginated list data table. Must be used within a PaginatedListDataTable.
+
+*Example*
+
+```ts
+const { refetchPaginatedList } = usePaginatedList();
+
+const mutation = useMutation({
+    mutationFn: api.mutate(updateFacetValueDocument),
+    onSuccess: () => {
+        refetchPaginatedList();
+    },
+});
+```
+
+```ts title="Signature"
+function usePaginatedList(): void
+```

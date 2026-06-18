@@ -1,0 +1,96 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Product resolver > product mutation > createProduct creates a new Product 1`] = `
+{
+  "assets": [],
+  "channels": [
+    {
+      "code": "__default_channel__",
+      "id": "T_1",
+    },
+  ],
+  "description": "A baked potato",
+  "enabled": true,
+  "facetValues": [],
+  "featuredAsset": null,
+  "id": "T_22",
+  "languageCode": "en",
+  "name": "en Baked Potato",
+  "optionGroups": [],
+  "slug": "en-baked-potato",
+  "variants": [],
+}
+`;
+
+exports[`Product resolver > product query > returns expected properties 1`] = `
+{
+  "assets": [
+    {
+      "fileSize": 1680,
+      "id": "T_2",
+      "mimeType": "image/jpeg",
+      "name": "alexandru-acea-686569-unsplash.jpg",
+      "preview": "test-url/test-assets/alexandru-acea-686569-unsplash__preview.jpg",
+      "source": "test-url/test-assets/alexandru-acea-686569-unsplash.jpg",
+      "type": "IMAGE",
+    },
+  ],
+  "channels": [
+    {
+      "code": "__default_channel__",
+      "id": "T_1",
+    },
+  ],
+  "description": "Discover a truly immersive viewing experience with this monitor curved more deeply than any other. Wrapping around your field of vision the 1,800 R screencreates a wider field of view, enhances depth perception, and minimises peripheral distractions to draw you deeper in to your content.",
+  "enabled": true,
+  "facetValues": [
+    {
+      "code": "electronics",
+      "facet": {
+        "id": "T_1",
+        "name": "category",
+      },
+      "id": "T_1",
+      "name": "electronics",
+    },
+    {
+      "code": "computers",
+      "facet": {
+        "id": "T_1",
+        "name": "category",
+      },
+      "id": "T_2",
+      "name": "computers",
+    },
+  ],
+  "featuredAsset": {
+    "fileSize": 1680,
+    "id": "T_2",
+    "mimeType": "image/jpeg",
+    "name": "alexandru-acea-686569-unsplash.jpg",
+    "preview": "test-url/test-assets/alexandru-acea-686569-unsplash__preview.jpg",
+    "source": "test-url/test-assets/alexandru-acea-686569-unsplash.jpg",
+    "type": "IMAGE",
+  },
+  "id": "T_2",
+  "languageCode": "en",
+  "name": "Curvy Monitor",
+  "optionGroups": [
+    {
+      "code": "curvy-monitor-monitor-size",
+      "id": "T_3",
+      "languageCode": "en",
+      "name": "monitor size",
+    },
+  ],
+  "slug": "curvy-monitor",
+  "translations": [
+    {
+      "description": "Discover a truly immersive viewing experience with this monitor curved more deeply than any other. Wrapping around your field of vision the 1,800 R screencreates a wider field of view, enhances depth perception, and minimises peripheral distractions to draw you deeper in to your content.",
+      "languageCode": "en",
+      "name": "Curvy Monitor",
+      "slug": "curvy-monitor",
+    },
+  ],
+}
+`;

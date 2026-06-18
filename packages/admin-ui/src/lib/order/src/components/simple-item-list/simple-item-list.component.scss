@@ -1,0 +1,18 @@
+.items-list {
+    font-size: 12px;
+
+    ul {
+        margin-top: 6px;
+        list-style-type: none;
+        margin-inline-start: 2px;
+        li {
+            line-height: 14px;
+            text-overflow: ellipsis;
+            overflow: hidden;
+        }
+    }
+    .quantity {
+        min-width: 16px;
+        display: inline-block;
+    }
+}

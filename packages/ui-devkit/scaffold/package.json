@@ -1,0 +1,11 @@
+{
+  "name": "vendure-admin-ui",
+  "dependencies": {},
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build --configuration production"
+  }
+}

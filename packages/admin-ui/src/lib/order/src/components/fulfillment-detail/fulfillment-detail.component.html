@@ -1,0 +1,21 @@
+<vdr-labeled-data [label]="'common.created-at' | translate">
+    {{ fulfillment?.createdAt | localeDate: 'medium' }}
+</vdr-labeled-data>
+<vdr-labeled-data [label]="'order.fulfillment-method' | translate">
+    {{ fulfillment?.method }}
+</vdr-labeled-data>
+<vdr-labeled-data *ngIf="fulfillment?.trackingCode" [label]="'order.tracking-code' | translate">
+    {{ fulfillment?.trackingCode }}
+</vdr-labeled-data>
+<vdr-labeled-data [label]="'order.contents' | translate">
+    <vdr-simple-item-list [items]="items"></vdr-simple-item-list>
+</vdr-labeled-data>
+<ng-container *ngFor="let customField of customFieldConfig">
+    <vdr-custom-field-control
+        *ngIf="customFieldFormGroup.get(customField.name)"
+        [readonly]="true"
+        [compact]="true"
+        [customField]="customField"
+        [customFieldsFormGroup]="customFieldFormGroup"
+    ></vdr-custom-field-control>
+</ng-container>

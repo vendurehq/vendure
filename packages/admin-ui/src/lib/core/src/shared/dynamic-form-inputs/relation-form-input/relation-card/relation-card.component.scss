@@ -1,0 +1,23 @@
+:host {
+    display: block;
+    min-width: 300px;
+}
+
+.placeholder {
+    color: var(--color-grey-300);
+}
+
+.not-set {
+    color: var(--color-grey-300);
+}
+
+.detail {
+    flex: 1;
+    overflow: hidden;
+}
+
+.name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

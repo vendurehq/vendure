@@ -1,0 +1,12 @@
+:host {
+    display: block;
+}
+.language-option {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    justify-content: space-between;
+}
+.code {
+    color: var(--color-grey-400);
+}

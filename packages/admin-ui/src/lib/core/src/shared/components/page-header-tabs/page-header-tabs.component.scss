@@ -1,0 +1,28 @@
+:host {
+    display: block;
+    margin-top: calc(var(--space-unit) * 2);
+}
+
+.tab-bar {
+    display: flex;
+
+    & a:hover {
+        color: var(--color-text-active);
+        border-bottom-color: var(--color-text-active);
+    }
+}
+
+a.tab {
+    padding: calc(var(--space-unit) * 1) calc(var(--space-unit) * 2);
+    border-bottom: 1px solid var(--color-weight-300);
+    margin-bottom: -1px;
+    color: var(--color-weight-700);
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    line-height: 24px;
+
+    &.active {
+        color: var(--color-text-active);
+        border-bottom-color: var(--color-text-active);
+    }
+}

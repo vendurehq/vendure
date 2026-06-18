@@ -1,0 +1,207 @@
+<ng-template vdrDialogTitle>{{ 'order.refund-and-cancel-order' | translate }}</ng-template>
+
+<div class="refund-wrapper">
+    <vdr-data-table-2 id="refund-order" [items]="order.lines">
+        <!-- Here we define all the available columns -->
+        <vdr-dt2-column id="id" [heading]="'common.id' | translate" [hiddenByDefault]="true">
+            <ng-template let-line="item">
+                {{ line.id }}
+            </ng-template>
+        </vdr-dt2-column>
+        <vdr-dt2-column id="created-at" [heading]="'common.created-at' | translate" [hiddenByDefault]="true">
+            <ng-template let-line="item">
+                {{ line.createdAt | localeDate : 'short' }}
+            </ng-template>
+        </vdr-dt2-column>
+        <vdr-dt2-column id="updated-at" [heading]="'common.updated-at' | translate" [hiddenByDefault]="true">
+            <ng-template let-line="item">
+                {{ line.updatedAt | localeDate : 'short' }}
+            </ng-template>
+        </vdr-dt2-column>
+        <vdr-dt2-column [heading]="'common.image' | translate" id="image">
+            <ng-template let-line="item">
+                <div class="image-placeholder">
+                    <img
+                        *ngIf="line.featuredAsset as asset; else imagePlaceholder"
+                        [src]="asset | assetPreview : 'tiny'"
+                    />
+                    <ng-template #imagePlaceholder>
+                        <div class="placeholder">
+                            <clr-icon shape="image" size="48"></clr-icon>
+                        </div>
+                    </ng-template>
+                </div>
+            </ng-template>
+        </vdr-dt2-column>
+        <vdr-dt2-column id="product-name" [heading]="'order.product-name' | translate" [optional]="false">
+            <ng-template let-line="item">
+                {{ line.productVariant.name }}
+            </ng-template>
+        </vdr-dt2-column>
+        <vdr-dt2-column id="product-sku" [heading]="'order.product-sku' | translate">
+            <ng-template let-line="item">
+                {{ line.productVariant.sku }}
+            </ng-template>
+        </vdr-dt2-column>
+        <vdr-dt2-column id="unit-price" [heading]="'order.unit-price' | translate" [hiddenByDefault]="true">
+            <ng-template let-line="item">
+                {{ line.unitPriceWithTax | localeCurrency : order.currencyCode }}
+            </ng-template>
+        </vdr-dt2-column>
+        <vdr-dt2-column id="prorated-unit-price" [heading]="'order.prorated-unit-price' | translate">
+            <ng-template let-line="item">
+                {{ line.proratedUnitPriceWithTax | localeCurrency : order.currencyCode }}
+                <ng-container *ngIf="line.discounts as discounts">
+                    <vdr-dropdown *ngIf="discounts.length">
+                        <div class="promotions-label" vdrDropdownTrigger>
+                            <button class="icon-button"><clr-icon shape="info"></clr-icon></button>
+                        </div>
+                        <vdr-dropdown-menu>
+                            <div class="line-promotion" *ngFor="let discount of discounts">
+                                {{ discount.description }}
+                                <div class="promotion-amount">
+                                    {{
+                                        discount.amount / 100 / line.quantity
+                                            | number : '1.0-2'
+                                            | currency : order.currencyCode
+                                    }}
+                                </div>
+                            </div>
+                        </vdr-dropdown-menu>
+                    </vdr-dropdown>
+                </ng-container>
+            </ng-template>
+        </vdr-dt2-column>
+        <vdr-dt2-column id="quantity" [heading]="'order.quantity' | translate">
+            <ng-template let-line="item">
+                {{ line.quantity }}
+                <vdr-line-refunds [line]="line" [payments]="order.payments"></vdr-line-refunds>
+            </ng-template>
+        </vdr-dt2-column>
+        <vdr-dt2-column id="refund-quantity" [heading]="'order.refund' | translate" [optional]="false">
+            <ng-template let-line="item">
+                <input
+                    *ngIf="lineCanBeRefundedOrCancelled(line)"
+                    [ngModel]="lineQuantities[line.id].quantity"
+                    type="number"
+                    [max]="line.quantity"
+                    min="0"
+                    (ngModelChange)="onRefundQuantityChange(line.id, $event)"
+                />
+            </ng-template>
+        </vdr-dt2-column>
+        <vdr-dt2-column id="cancel" [heading]="'order.return-to-stock' | translate" [optional]="false">
+            <ng-template let-line="item">
+                <div class="cancel-checkbox-wrapper">
+                    <label class="flex center">
+                        <input
+                            type="checkbox"
+                            *ngIf="lineCanBeRefundedOrCancelled(line)"
+                            clrCheckbox
+                            [disabled]="0 === lineQuantities[line.id].quantity"
+                            [(ngModel)]="lineQuantities[line.id].cancel"
+                        />
+                        <span class="ml-1">{{ 'order.return-to-stock' | translate }}</span></label
+                    >
+                </div>
+            </ng-template>
+        </vdr-dt2-column>
+    </vdr-data-table-2>
+
+    <div class="refund-details mt-4">
+        <div>
+            <vdr-card>
+                <label class="flex mb-2" *ngFor="let shippingLine of order.shippingLines">
+                    <input type="checkbox" clrCheckbox (change)="toggleShippingRefund(shippingLine.id)" />
+                    <div class="ml-1">
+                        {{ 'order.refund-shipping' | translate }}
+                        <span>{{ shippingLine.shippingMethod.name }}:</span>
+                        <span class="ml-1"
+                            >{{ shippingLine.discountedPriceWithTax | localeCurrency : order.currencyCode }}
+                        </span>
+                    </div></label
+                >
+                <vdr-form-field [label]="'order.refund-cancellation-reason' | translate" class="mb-2">
+                    <ng-select
+                        [items]="reasons"
+                        bindLabel="name"
+                        autofocus
+                        [placeholder]="'order.refund-cancellation-reason-required' | translate"
+                        bindValue="id"
+                        [addTag]="true"
+                        [(ngModel)]="reason"
+                    ></ng-select>
+                </vdr-form-field>
+                <vdr-form-field
+                    [label]="'order.refund-total' | translate"
+                    [readOnlyToggle]="true"
+                    (readOnlyToggleChange)="manuallySetRefundTotal = !$event"
+                >
+                    <vdr-currency-input
+                        [readonly]="!manuallySetRefundTotal"
+                        [currencyCode]="order.currencyCode"
+                        [(ngModel)]="refundTotal"
+                        (ngModelChange)="updateRefundTotal()"
+                    ></vdr-currency-input>
+                </vdr-form-field>
+            </vdr-card>
+        </div>
+        <div class="">
+            <vdr-payment-for-refund-selector
+                [refundablePayments]="refundablePayments"
+                (paymentSelected)="onPaymentSelected($event.payment, $event.selected)"
+                [order]="order"
+            ></vdr-payment-for-refund-selector>
+        </div>
+    </div>
+</div>
+
+<ng-template vdrDialogButtons>
+    <div>
+        <div class="errors">
+            <clr-alert
+                *ngIf="refundTotal < 0 || totalRefundableAmount < refundTotal"
+                [clrAlertType]="'danger'"
+                [clrAlertClosable]="false"
+            >
+                <clr-alert-item>
+                    {{
+                        'order.refund-total-error'
+                            | translate
+                                : {
+                                      min: 0 | currency : order.currencyCode,
+                                      max: totalRefundableAmount | localeCurrency : order.currencyCode
+                                  }
+                    }}
+                </clr-alert-item>
+            </clr-alert>
+            <clr-alert
+                *ngIf="amountToRefundTotal < refundTotal || refundTotal < amountToRefundTotal"
+                [clrAlertType]="'danger'"
+                [clrAlertClosable]="false"
+            >
+                <clr-alert-item>
+                    {{ 'order.refund-total-warning' | translate }}
+                </clr-alert-item>
+            </clr-alert>
+            <clr-alert
+                *ngIf="amountToRefundTotal && !reason"
+                [clrAlertType]="'danger'"
+                [clrAlertClosable]="false"
+            >
+                <clr-alert-item>
+                    {{ 'order.refund-cancellation-reason-required' | translate }}
+                </clr-alert-item>
+            </clr-alert>
+        </div>
+        <div class="modal-buttons">
+            <button type="button" class="btn" (click)="cancel()">{{ 'common.cancel' | translate }}</button>
+            <button type="submit" (click)="select()" [disabled]="!canSubmit()" class="btn btn-primary">
+                {{
+                    'order.refund-with-amount'
+                        | translate : { amount: amountToRefundTotal | localeCurrency : order.currencyCode }
+                }}
+            </button>
+        </div>
+    </div>
+</ng-template>

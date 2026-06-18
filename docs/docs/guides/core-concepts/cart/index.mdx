@@ -1,0 +1,62 @@
+---
+title: "Cart"
+metaTitle: "Cart and Active Order Concepts in Vendure"
+metaDescription: "Understand how Vendure handles the shopping cart as an Order in the AddingItems state, the active order pattern, order lines, and the transition to checkout."
+---
+
+Vendure does not have a separate "Cart" entity. Instead, a cart is simply an [`Order`](/reference/typescript-api/entities/order/) in the **AddingItems** state. This unified model means that the same entity, the same database table, and the same state machine govern an order from the moment a customer adds their first item all the way through to fulfillment.
+
+## The active order
+
+Every customer session (whether authenticated or guest) can have at most one **active order** — the order in the `AddingItems` state. This is the order that the Shop API's cart-related mutations operate on.
+
+When a customer calls mutations like `addItemToOrder`, `adjustOrderLine`, or `removeOrderLine`, Vendure automatically finds (or creates) the active order for the current session. There is no need to pass an order ID; the active order is resolved from the session context.
+
+:::info
+The active order resolution logic is handled by the [`ActiveOrderStrategy`](/reference/typescript-api/orders/active-order-strategy/). The default strategy uses the session to track the active order, but this can be customized for scenarios like named wishlists or saved carts.
+:::
+
+## Order lines
+
+Each item in the cart is represented by an [`OrderLine`](/reference/typescript-api/entities/order-line/). An OrderLine links a specific [`ProductVariant`](/reference/typescript-api/entities/product-variant/) to the order, along with:
+
+- **quantity** — How many units of this variant are in the cart.
+- **unitPrice / unitPriceWithTax** — The per-unit price as determined by the [pricing pipeline](/core-concepts/pricing/).
+- **linePrice / linePriceWithTax** — The total for this line (unit price multiplied by quantity, with adjustments applied).
+- **adjustments** — Any discounts from [promotions](/core-concepts/promotions/) that apply to this line.
+
+If a customer adds the same variant twice, Vendure increments the quantity on the existing OrderLine rather than creating a duplicate.
+
+## Order Interceptors
+
+Order Interceptors allow custom validation or side-effects to be executed when items are added to or modified in the cart. For example, you could use an interceptor to enforce a maximum quantity per product, validate that items are still in stock, or check business rules before allowing the cart to be modified.
+
+Interceptors are registered at the server level and run during cart-modifying operations, giving you a clean hook to inject custom logic without overriding the built-in mutations.
+
+## Guest vs. authenticated carts
+
+- **Guest carts** are tied to an anonymous session. If the session expires, the cart is no longer accessible.
+- **Authenticated carts** are associated with a [`Customer`](/reference/typescript-api/entities/customer/) account. The customer can log out and return later to find their cart intact.
+
+When a guest customer logs in, Vendure can merge their anonymous cart with any existing cart on their account, ensuring no items are lost during the transition.
+
+## Custom fields on orders
+
+Since the cart is an Order entity, you can use [custom fields](/developer-guide/custom-fields/) to store additional data during the cart phase. For example, gift message text, delivery instructions, or a purchase order number can all be captured as custom fields on the order while the customer is still shopping.
+
+## Transition to checkout
+
+Once the customer is ready to check out, the order transitions from `AddingItems` through the order state machine. The typical flow is:
+
+1. **AddingItems** — The cart state. Items can be freely added, removed, or adjusted.
+2. **ArrangingPayment** — The customer has provided shipping details and is ready to pay. Cart modifications are no longer allowed.
+3. **PaymentSettled** / **PaymentAuthorized** — Payment has been processed.
+4. And so on through the [order lifecycle](/core-concepts/orders/).
+
+The transition from `AddingItems` to `ArrangingPayment` enforces validation — the order must have at least one item, a shipping method must be set, and any other custom validation defined by order process plugins must pass.
+
+## Related topics
+
+- [Orders](/core-concepts/orders/) — The full order lifecycle and state machine
+- [Pricing](/core-concepts/pricing/) — How line item prices are calculated
+- [Promotions](/core-concepts/promotions/) — Discounts and coupon codes applied to the cart

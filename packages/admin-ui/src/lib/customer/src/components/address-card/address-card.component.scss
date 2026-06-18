@@ -1,0 +1,26 @@
+
+:host {
+    display: block;
+    max-width: 360px;
+}
+
+clr-input-container {
+    margin-bottom: 12px;
+}
+
+.defaul-controls {
+    display: flex;
+}
+
+.is-default {
+    margin: 0;
+    color: var(--color-success-500);
+}
+.address-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-unit);
+    vdr-entity-info {
+        margin-top: 1px;
+    }
+}

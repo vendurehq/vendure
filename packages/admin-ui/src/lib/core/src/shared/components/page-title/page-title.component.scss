@@ -1,0 +1,29 @@
+@import "variables";
+
+:host {
+    display: block;
+}
+
+.page-title {
+    display: flex;
+    gap: calc(var(--space-unit) * 2);
+    margin-bottom: calc(var(--space-unit) * 2);
+    h1 {
+        margin-top: 0;
+        color: var(--color-weight-900);
+        font-size: var(--cds-global-typography-headline-font-size);
+        font-weight: 600;
+        line-height: 48px;
+        @media screen and (max-width: $breakpoint-small) {
+            font-size: var(--font-size-xl);
+        }
+        @media screen and (max-width: $breakpoint-medium) {
+            font-size: 24px
+        }
+    }
+}
+
+.title-actions {
+    display: flex;
+    align-items: center;
+}

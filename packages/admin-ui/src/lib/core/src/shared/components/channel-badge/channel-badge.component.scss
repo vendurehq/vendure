@@ -1,0 +1,11 @@
+@import "variables";
+
+:host {
+    display: inline-block;
+}
+
+clr-icon {
+    @media screen and (max-width: $breakpoint-medium) {
+        margin-inline-end: 0;
+    }
+}

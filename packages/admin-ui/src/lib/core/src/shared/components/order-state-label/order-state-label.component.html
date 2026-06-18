@@ -1,0 +1,7 @@
+<vdr-chip [ngClass]="state" [colorType]="chipColorType">
+    <clr-icon shape="success-standard" *ngIf="state === 'Delivered'" size="12"></clr-icon>
+    <clr-icon shape="success-standard" *ngIf="state === 'PartiallyDelivered'" size="12"></clr-icon>
+    <clr-icon shape="ban" *ngIf="state === 'Cancelled'" size="12"></clr-icon>
+    {{ state | stateI18nToken | translate }}
+    <ng-content></ng-content>
+</vdr-chip>

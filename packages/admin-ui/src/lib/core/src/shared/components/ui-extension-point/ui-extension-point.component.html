@@ -1,0 +1,14 @@
+<div [class.highlight]="isDevMode && (display$ | async)" class="wrapper" [style.display]="display">
+    <vdr-dropdown *ngIf="isDevMode && (display$ | async)" #dropdownComponent>
+        <button class="extension-point-info-trigger"
+                [style.top.px]="topPx ?? 0"
+                [style.left.px]="leftPx ?? 0"
+                vdrDropdownTrigger>
+            <clr-icon shape="plugin" class="" size="12"></clr-icon>
+        </button>
+        <vdr-dropdown-menu>
+            <div #editor contenteditable="false" class="highlighted"></div>
+        </vdr-dropdown-menu>
+    </vdr-dropdown>
+    <ng-content></ng-content>
+</div>

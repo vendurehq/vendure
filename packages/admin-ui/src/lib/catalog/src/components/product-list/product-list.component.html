@@ -1,0 +1,121 @@
+<vdr-page-block>
+    <vdr-action-bar>
+        <vdr-ab-left>
+            <vdr-language-selector
+                [availableLanguageCodes]="availableLanguages$ | async"
+                [currentLanguageCode]="contentLanguage$ | async"
+                (languageCodeChange)="setLanguage($event)"
+            ></vdr-language-selector>
+        </vdr-ab-left>
+        <vdr-ab-right>
+            <vdr-action-bar-items [locationId]="pageLocationId"></vdr-action-bar-items>
+            <a
+                class="btn btn-primary mr-1"
+                [routerLink]="['./create']"
+                *vdrIfPermissions="['CreateCatalog', 'CreateProduct']"
+            >
+                <clr-icon shape="plus"></clr-icon>
+                {{ 'catalog.create-new-product' | translate }}
+            </a>
+            <vdr-action-bar-dropdown-menu [alwaysShow]="true" [locationId]="pageLocationId">
+                <button type="button" vdrDropdownItem (click)="rebuildSearchIndex()">
+                    <clr-icon shape="refresh" class=""></clr-icon>
+                    {{ 'catalog.rebuild-search-index' | translate }}
+                </button>
+            </vdr-action-bar-dropdown-menu>
+        </vdr-ab-right>
+    </vdr-action-bar>
+</vdr-page-block>
+<vdr-data-table-2
+    class="mt-2"
+    [id]="dataTableListId"
+    [items]="items$ | async"
+    [itemsPerPage]="itemsPerPage$ | async"
+    [totalItems]="totalItems$ | async"
+    [currentPage]="currentPage$ | async"
+    [filters]="filters"
+    (pageChange)="setPageNumber($event)"
+    (itemsPerPageChange)="setItemsPerPage($event)"
+    (visibleColumnsChange)="setVisibleColumns($event)"
+>
+    <vdr-bulk-action-menu
+        [locationId]="dataTableListId"
+        [hostComponent]="this"
+        [selectionManager]="selectionManager"
+    ></vdr-bulk-action-menu>
+    <vdr-dt2-search
+        [searchTermControl]="searchTermControl"
+        [searchTermPlaceholder]="'settings.search-by-product-name-or-sku' | translate"
+    />
+    <vdr-dt2-column [heading]="'common.id' | translate" id="id" [hiddenByDefault]="true" [sort]="sorts.get('id')">
+        <ng-template let-product="item">
+            {{ product.id }}
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column
+        [heading]="'common.created-at' | translate" id="created-at"
+        [hiddenByDefault]="true"
+        [sort]="sorts.get('createdAt')"
+    >
+        <ng-template let-product="item">
+            {{ product.createdAt | localeDate : 'short' }}
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column
+        [heading]="'common.updated-at' | translate" id="updated-at"
+        [hiddenByDefault]="true"
+        [sort]="sorts.get('updatedAt')"
+    >
+        <ng-template let-product="item">
+            {{ product.updatedAt | localeDate : 'short' }}
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column [heading]="'common.image' | translate" id="image">
+        <ng-template let-product="item">
+            <div class="image-placeholder">
+                <img
+                    *ngIf="product.featuredAsset as asset; else imagePlaceholder"
+                    [src]="asset | assetPreview : 'tiny'"
+                />
+                <ng-template #imagePlaceholder>
+                    <div class="placeholder">
+                        <clr-icon shape="image" size="48"></clr-icon>
+                    </div>
+                </ng-template>
+            </div>
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column [heading]="'catalog.name' | translate" id="name" [optional]="false" [sort]="sorts.get('name')">
+        <ng-template let-product="item">
+            <a class="button-ghost" [routerLink]="['./', product.id]"
+                ><span>{{ product.name }}</span
+                ><clr-icon shape="arrow right"
+            /></a>
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column [heading]="'common.slug' | translate" id="slug" [sort]="sorts.get('slug')">
+        <ng-template let-product="item">
+            {{ product.slug }}
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column [heading]="'common.enabled' | translate" id="enabled">
+        <ng-template let-product="item">
+            <vdr-chip *ngIf="product.enabled" colorType="success">{{
+                'common.enabled' | translate
+            }}</vdr-chip>
+            <vdr-chip *ngIf="!product.enabled" colorType="warning">{{
+                'common.disabled' | translate
+            }}</vdr-chip>
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column [heading]="'catalog.number-of-variants' | translate" id="number-of-variants">
+        <ng-template let-product="item">
+            {{ 'catalog.variant-count' | translate : { count: product.variantList?.totalItems } }}
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-custom-field-column
+        *ngFor="let customField of customFields"
+        [customField]="customField"
+        [sorts]="sorts"
+    />
+</vdr-data-table-2>

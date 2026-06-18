@@ -1,0 +1,15 @@
+---
+title: "PaymentState"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/helpers/payment-state-machine/payment-state.ts" sourceLine="27" packageName="@vendure/core" />
+
+These are the default states of the payment process.
+
+```ts title="Signature"
+type PaymentState = | 'Created'
+    | 'Error'
+    | 'Cancelled'
+    | keyof CustomPaymentStates
+    | keyof PaymentStates
+```

@@ -1,0 +1,108 @@
+name: Docs CI
+
+on:
+    push:
+        branches:
+            - master
+            - minor
+            - major
+        paths:
+            - 'docs/**'
+            - '!docs/manifest.json'
+            - 'lerna.json'
+    pull_request:
+        branches:
+            - master
+            - minor
+            - major
+        paths:
+            - 'docs/**'
+            - '!docs/manifest.json'
+            - 'lerna.json'
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    validate:
+        name: Validate MDX
+        permissions:
+            contents: read
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: docs
+        steps:
+            - name: Checkout
+              uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+
+            - name: Setup Bun
+              uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+
+            - name: Install dependencies
+              run: bun install
+
+            - name: Validate MDX files
+              run: bun run test:mdx
+
+    generate-manifest:
+        name: Generate & commit manifest
+        # Skip fork PRs — can't push back to fork branches
+        if: ${{ github.event_name == 'push' || !github.event.pull_request.head.repo.fork }}
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        steps:
+            - name: Generate CI Bot Token
+              id: app-token
+              uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
+              with:
+                  app-id: ${{ secrets.CI_BOT_APP_ID }}
+                  private-key: ${{ secrets.CI_BOT_APP_PRIVATE_KEY }}
+                  # Least privilege: token is only used to commit & push the regenerated manifest.
+                  permission-contents: write
+
+            - name: Checkout
+              uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+              with:
+                  token: ${{ steps.app-token.outputs.token }}
+                  ref: ${{ github.head_ref || github.ref }}
+                  fetch-depth: 0
+
+            - name: Setup Bun
+              uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+
+            - name: Install docs dependencies
+              working-directory: docs
+              run: bun install
+
+            - name: Generate manifest
+              run: bun run docs/scripts/compile-manifest.ts
+
+            - name: Check for changes
+              id: diff
+              run: |
+                  git add docs/manifest.json
+                  if git diff --cached --quiet; then
+                    echo "changed=false" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "changed=true" >> "$GITHUB_OUTPUT"
+                  fi
+
+            - name: Get CI Bot user info
+              if: steps.diff.outputs.changed == 'true'
+              id: get-user
+              env:
+                  GH_TOKEN: ${{ steps.app-token.outputs.token }}
+              run: |
+                  user_id=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}%5Bbot%5D" --jq .id)
+                  echo "user-id=$user_id" >> "$GITHUB_OUTPUT"
+
+            - name: Commit and push manifest
+              if: steps.diff.outputs.changed == 'true'
+              run: |
+                  git config user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
+                  git config user.email "${{ steps.get-user.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
+                  git commit -m "docs: Regenerate manifest.json"
+                  git push

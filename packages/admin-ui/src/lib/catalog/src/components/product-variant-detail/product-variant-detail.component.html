@@ -1,0 +1,347 @@
+<vdr-page-block>
+    <vdr-action-bar>
+        <vdr-ab-left [grow]="true">
+            <div class="flex center">
+                <ng-container *ngIf="availableLanguages$ | async as availableLanguages">
+                    <vdr-language-selector
+                        *ngIf="availableLanguages.length > 1"
+                        class="mr-2"
+                        [disabled]="isNew$ | async"
+                        [availableLanguageCodes]="availableLanguages"
+                        [currentLanguageCode]="languageCode$ | async"
+                        (languageCodeChange)="setLanguage($event)"
+                    ></vdr-language-selector>
+                </ng-container>
+                <vdr-product-variant-quick-jump [productId]="entity?.product.id" />
+            </div>
+        </vdr-ab-left>
+
+        <vdr-ab-right>
+            <vdr-action-bar-items locationId="product-variant-detail"></vdr-action-bar-items>
+            <button
+                *vdrIfPermissions="['UpdateCatalog', 'UpdateProduct']"
+                class="btn btn-primary"
+                (click)="save()"
+                [disabled]="
+                    (detailForm.invalid ||
+                        stockLevelsForm.invalid ||
+                        pricesForm.invalid ||
+                        (detailForm.pristine && stockLevelsForm.pristine && pricesForm.pristine)) &&
+                    !assetsChanged()
+                "
+            >
+                {{ 'common.update' | translate }}
+            </button>
+            <vdr-action-bar-dropdown-menu locationId="product-variant-detail"></vdr-action-bar-dropdown-menu>
+        </vdr-ab-right>
+    </vdr-action-bar>
+</vdr-page-block>
+<form class="form" [formGroup]="detailForm" *ngIf="entity$ | async as variant">
+    <vdr-page-detail-layout>
+        <vdr-page-detail-sidebar
+            ><vdr-card>
+                <vdr-form-field [label]="'catalog.visibility' | translate" for="visibility">
+                    <clr-toggle-wrapper *vdrIfPermissions="['UpdateCatalog', 'UpdateProduct']">
+                        <input
+                            type="checkbox"
+                            clrToggle
+                            name="enabled"
+                            [formControl]="detailForm.get(['enabled'])"
+                        />
+                        <label>{{ 'common.enabled' | translate }}</label>
+                    </clr-toggle-wrapper>
+                </vdr-form-field>
+            </vdr-card>
+            <vdr-card *ngIf="variant.options.length" [title]="'catalog.product-options' | translate">
+                <div class="options">
+                    <vdr-chip
+                        *ngFor="let option of variant.options | sort : 'groupId'"
+                        [colorFrom]="optionGroupCode(option.groupId)"
+                        [invert]="true"
+                    >
+                        <span>{{ optionGroupCode(option.groupId) }}:</span>
+                        {{ optionName(option) }}
+                    </vdr-chip>
+                </div>
+                <div>
+                    <a
+                        [routerLink]="['../../', 'options']"
+                        class="button-small mt-2"
+                        *vdrIfPermissions="updatePermissions"
+                    >
+                        <clr-icon shape="pencil"></clr-icon>
+                        {{ 'catalog.edit-options' | translate }}
+                    </a>
+                </div>
+            </vdr-card>
+            <vdr-card [title]="'catalog.facets' | translate">
+                <div class="facets">
+                    <vdr-facet-value-chip
+                        *ngFor="let facetValue of facetValues$ | async"
+                        [facetValue]="facetValue"
+                        [removable]="updatePermissions | hasPermission"
+                        (remove)="removeFacetValue(facetValue.id)"
+                    ></vdr-facet-value-chip>
+                </div>
+                <div>
+                    <button
+                        class="button-small mt-2"
+                        *vdrIfPermissions="updatePermissions"
+                        (click)="selectFacetValue()"
+                    >
+                        <clr-icon shape="plus"></clr-icon>
+                        {{ 'catalog.add-facets' | translate }}
+                    </button>
+                </div>
+            </vdr-card>
+
+            <vdr-card>
+                <vdr-page-entity-info *ngIf="entity$ | async as entity" [entity]="entity" />
+            </vdr-card>
+        </vdr-page-detail-sidebar>
+
+        <vdr-page-block>
+            <button type="submit" hidden x-data="prevents enter key from triggering other buttons"></button>
+            <vdr-card>
+                <div class="form-grid">
+                    <vdr-form-field [label]="'common.name' | translate" for="name">
+                        <input
+                            id="name"
+                            type="text"
+                            formControlName="name"
+                            [readonly]="!(['UpdateCatalog', 'UpdateProduct'] | hasPermission)"
+                        />
+                    </vdr-form-field>
+                    <vdr-form-field [label]="'catalog.sku' | translate" for="sku">
+                        <input
+                            id="sku"
+                            type="text"
+                            formControlName="sku"
+                            [readonly]="!(updatePermissions | hasPermission)"
+                        />
+                    </vdr-form-field>
+                </div>
+            </vdr-card>
+            <vdr-card [title]="'common.custom-fields' | translate" *ngIf="customFields.length">
+                <vdr-tabbed-custom-fields
+                    entityName="ProductVariant"
+                    [customFields]="customFields"
+                    [customFieldsFormGroup]="detailForm.get('customFields')"
+                    [readonly]="!(updatePermissions | hasPermission)"
+                />
+            </vdr-card>
+            <vdr-custom-detail-component-host
+                locationId="product-variant-detail"
+                [entity$]="entity$"
+                [detailForm]="detailForm"
+            />
+            <vdr-card [title]="'catalog.assets' | translate">
+                <vdr-assets
+                    [assets]="assetChanges.assets || variant.assets"
+                    [featuredAsset]="assetChanges.featuredAsset || variant.featuredAsset"
+                    [updatePermissions]="updatePermissions"
+                    (change)="assetChanges = $event"
+                />
+            </vdr-card>
+            <vdr-card [title]="'catalog.price-and-tax' | translate">
+                <div class="form-grid">
+                    <vdr-form-field [label]="'catalog.tax-category' | translate" for="taxCategory">
+                        <select name="taxCategory" formControlName="taxCategoryId">
+                            <option
+                                *ngFor="let taxCategory of taxCategories$ | async"
+                                [value]="taxCategory.id"
+                            >
+                                {{ taxCategory.name }}
+                            </option>
+                        </select>
+                    </vdr-form-field>
+                </div>
+                <div class="form-grid prices" *ngFor="let price of pricesForm.controls" [formGroup]="price">
+                    <vdr-form-field
+                        [label]="
+                            ('catalog.price' | translate) +
+                            (1 < pricesForm.length ? ' (' + price.value.currencyCode + ')' : '')
+                        "
+                        [tooltip]="
+                            1 < pricesForm.length && price.value.currencyCode === channelDefaultCurrencyCode
+                                ? ('catalog.default-currency' | translate)
+                                : undefined
+                        "
+                        for="price"
+                    >
+                        <div class="price-wrapper" [class.pending-deletion]="price.value.delete === true">
+                            <vdr-currency-input
+                                name="price"
+                                [currencyCode]="price.value.currencyCode"
+                                [readonly]="
+                                    !(updatePermissions | hasPermission) || price.value.delete === true
+                                "
+                                formControlName="price"
+                            />
+                            <div *ngIf="1 < pricesForm.controls.length">
+                                <button
+                                    class="button-small delete-button"
+                                    [disabled]="price.value.currencyCode === channelDefaultCurrencyCode"
+                                    (click)="toggleDeletePrice(price.get('delete'))"
+                                >
+                                    <clr-icon shape="trash"></clr-icon>
+                                </button>
+                            </div>
+                        </div>
+                    </vdr-form-field>
+                    <vdr-variant-price-detail
+                        [price]="price.value.price"
+                        [currencyCode]="price.value.currencyCode"
+                        [priceIncludesTax]="channelPriceIncludesTax$ | async"
+                        [taxCategoryId]="detailForm.get('taxCategoryId')!.value"
+                    />
+
+                    <div class="form-grid-span" *ngIf="customPriceFields.length">
+                        <div class="title-row">
+                            <span class="title">{{ 'common.custom-fields' | translate }}</span>
+                        </div>
+                        <vdr-tabbed-custom-fields
+                            entityName="ProductVariantPrice"
+                            [customFields]="customPriceFields"
+                            [customFieldsFormGroup]="price.get(['customFields'])"
+                            [readonly]="!(updatePermissions | hasPermission)"
+                        />
+                    </div>
+                </div>
+
+                <vdr-variant-price-strategy-detail
+                    [channelPriceIncludesTax]="channelPriceIncludesTax$ | async"
+                    [channelDefaultCurrencyCode]="channelDefaultCurrencyCode"
+                    [variant]="variant"
+                />
+
+                <ng-container *ngIf="unusedCurrencyCodes$ | async as unusedCurrencyCodes">
+                    <div *ngIf="unusedCurrencyCodes.length">
+                        <vdr-dropdown>
+                            <button class="button mt-2" vdrDropdownTrigger>
+                                <clr-icon shape="plus"></clr-icon>
+                                {{ 'catalog.add-price-in-another-currency' | translate }}
+                                <clr-icon shape="ellipsis-vertical"></clr-icon>
+                            </button>
+                            <vdr-dropdown-menu>
+                                <button
+                                    vdrDropdownItem
+                                    *ngFor="let currencyCode of unusedCurrencyCodes"
+                                    (click)="addPriceInCurrency(currencyCode)"
+                                >
+                                    {{ currencyCode | localeCurrencyName }}
+                                </button>
+                            </vdr-dropdown-menu>
+                        </vdr-dropdown>
+                    </div>
+                </ng-container>
+            </vdr-card>
+            <vdr-card [title]="'catalog.stock-levels' | translate">
+                <div class="form-grid">
+                    <vdr-form-field
+                        for="track-inventory"
+                        [label]="'catalog.track-inventory' | translate"
+                        [tooltip]="'catalog.track-inventory-tooltip' | translate"
+                    >
+                        <select
+                            name="track-inventory"
+                            formControlName="trackInventory"
+                            [disabled]="!(updatePermissions | hasPermission)"
+                        >
+                            <option [value]="GlobalFlag.TRUE">
+                                {{ 'catalog.track-inventory-true' | translate }}
+                            </option>
+                            <option [value]="GlobalFlag.FALSE">
+                                {{ 'catalog.track-inventory-false' | translate }}
+                            </option>
+                            <option [value]="GlobalFlag.INHERIT">
+                                {{ 'catalog.track-inventory-inherit' | translate }}
+                            </option>
+                        </select>
+                    </vdr-form-field>
+
+                    <vdr-form-item
+                        [label]="'catalog.out-of-stock-threshold' | translate"
+                        [tooltip]="'catalog.out-of-stock-threshold-tooltip' | translate"
+                    >
+                        <input
+                            type="number"
+                            formControlName="outOfStockThreshold"
+                            [readonly]="!(updatePermissions | hasPermission)"
+                            [vdrDisabled]="
+                                detailForm.get('useGlobalOutOfStockThreshold')?.value !== false ||
+                                inventoryIsNotTracked(detailForm)
+                            "
+                        />
+                        <clr-toggle-wrapper>
+                            <input
+                                type="checkbox"
+                                clrToggle
+                                name="useGlobalOutOfStockThreshold"
+                                formControlName="useGlobalOutOfStockThreshold"
+                                [vdrDisabled]="
+                                    !(updatePermissions | hasPermission) || inventoryIsNotTracked(detailForm)
+                                "
+                            />
+                            <label
+                                >{{ 'catalog.use-global-value' | translate }} ({{
+                                    globalOutOfStockThreshold
+                                }})</label
+                            >
+                        </clr-toggle-wrapper>
+                    </vdr-form-item>
+                </div>
+                <div
+                    class="form-grid stock-levels"
+                    *ngFor="let stockLevel of stockLevelsForm.controls"
+                    [formGroup]="stockLevel"
+                >
+                    <vdr-form-field
+                        [label]="
+                            stockLevel.get('stockLocationName')?.value +
+                            ': ' +
+                            ('catalog.stock-on-hand' | translate)
+                        "
+                        [for]="'stockOnHand_' + stockLevel.get('stockLocationId')?.value"
+                    >
+                        <input
+                            [id]="'stockOnHand_' + stockLevel.get('stockLocationId')?.value"
+                            type="number"
+                            formControlName="stockOnHand"
+                            [readonly]="!(updatePermissions | hasPermission)"
+                        />
+                    </vdr-form-field>
+                    <vdr-form-item
+                        [label]="
+                            stockLevel.get('stockLocationName')?.value +
+                            ': ' +
+                            ('catalog.stock-allocated' | translate)
+                        "
+                    >
+                        {{ stockLevel.get('stockAllocated')?.value }}
+                    </vdr-form-item>
+                </div>
+                <ng-container *ngIf="unusedStockLocation$ | async as unusedStockLocations">
+                    <div *ngIf="unusedStockLocations.length">
+                        <vdr-dropdown>
+                            <button class="button mt-2" vdrDropdownTrigger>
+                                <clr-icon shape="plus"></clr-icon>
+                                {{ 'catalog.add-stock-location' | translate }}
+                                <clr-icon shape="ellipsis-vertical"></clr-icon>
+                            </button>
+                            <vdr-dropdown-menu>
+                                <button
+                                    vdrDropdownItem
+                                    *ngFor="let stockLocation of unusedStockLocations"
+                                    (click)="addStockLocation(stockLocation)"
+                                >
+                                    <clr-icon shape="map-marker"></clr-icon> {{ stockLocation.name }}
+                                </button>
+                            </vdr-dropdown-menu>
+                        </vdr-dropdown>
+                    </div>
+                </ng-container>
+            </vdr-card>
+        </vdr-page-block>
+    </vdr-page-detail-layout>
+</form>

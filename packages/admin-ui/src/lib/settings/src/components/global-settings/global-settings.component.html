@@ -1,0 +1,80 @@
+<vdr-page-block>
+    <vdr-action-bar>
+        <vdr-ab-right>
+            <vdr-action-bar-items locationId="global-setting-detail" />
+            <button
+                class="btn btn-primary"
+                (click)="save()"
+                *vdrIfPermissions="updatePermission"
+                [disabled]="detailForm.invalid || detailForm.pristine"
+            >
+                {{ 'common.update' | translate }}
+            </button>
+            <vdr-action-bar-dropdown-menu locationId="global-setting-detail" />
+        </vdr-ab-right>
+    </vdr-action-bar>
+</vdr-page-block>
+
+<form class="form" [formGroup]="detailForm">
+    <vdr-page-block>
+        <vdr-card>
+            <div class="form-grid">
+                <vdr-form-field
+                    [label]="'common.available-languages' | translate"
+                    for="availableLanguages"
+                    [tooltip]="'settings.global-available-languages-tooltip' | translate"
+                >
+                    <vdr-language-code-selector
+                        formControlName="availableLanguages"
+                        [languageCodes]="languageCodes"
+                    ></vdr-language-code-selector>
+                </vdr-form-field>
+                <vdr-form-field
+                    [label]="'settings.global-out-of-stock-threshold' | translate"
+                    for="outOfStockThreshold"
+                    [tooltip]="'settings.global-out-of-stock-threshold-tooltip' | translate"
+                >
+                    <input
+                        id="outOfStockThreshold"
+                        type="number"
+                        formControlName="outOfStockThreshold"
+                        [readonly]="!(updatePermission | hasPermission)"
+                    />
+                </vdr-form-field>
+                <vdr-form-field
+                    [label]="'settings.track-inventory-default' | translate"
+                    for="enabled"
+                    [tooltip]="'catalog.track-inventory-tooltip' | translate"
+                >
+                    <clr-toggle-wrapper>
+                        <input
+                            type="checkbox"
+                            clrToggle
+                            name="enabled"
+                            formControlName="trackInventory"
+                            [vdrDisabled]="!(updatePermission | hasPermission)"
+                        />
+                    </clr-toggle-wrapper>
+                </vdr-form-field>
+            </div>
+        </vdr-card>
+        <vdr-card
+            formGroupName="customFields"
+            *ngIf="customFields.length"
+            [title]="'common.custom-fields' | translate"
+        >
+            <vdr-tabbed-custom-fields
+                entityName="GlobalSettings"
+                [customFields]="customFields"
+                [customFieldsFormGroup]="detailForm.get('customFields')"
+                [readonly]="!(updatePermission | hasPermission)"
+            ></vdr-tabbed-custom-fields>
+        </vdr-card>
+
+        <vdr-custom-detail-component-host
+            locationId="global-settings-detail"
+            [entity$]="entity$"
+            [detailForm]="detailForm"
+        ></vdr-custom-detail-component-host>
+    </vdr-page-block>
+</form>

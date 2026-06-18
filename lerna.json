@@ -1,0 +1,11 @@
+{
+    "packages": ["packages/*"],
+    "version": "3.6.4",
+    "npmClient": "npm",
+    "command": {
+        "version": {
+            "push": false
+        }
+    },
+    "$schema": "node_modules/lerna/schemas/lerna-schema.json"
+}

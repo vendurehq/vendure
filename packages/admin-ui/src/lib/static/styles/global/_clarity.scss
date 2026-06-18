@@ -1,0 +1,140 @@
+
+// Clarity Internal Dependencies
+@import '@clr/ui/src/utils/normalize'; // TODO: upgrade to latest normalize, once updated clr-ui can import core as is.
+
+@import '@clr/ui/src/utils/mixins';
+@import '@clr/ui/src/utils/variables/variables';
+@import '@clr/ui/src/utils/variables/properties';
+
+// Layout/Grid
+@import '@clr/ui/src/layout/grid/grid';
+
+@import '@clr/ui/src/typography/typography';
+
+// Component variables
+@import '@clr/ui/src/utils/variables.clarity';
+
+//Reboot
+@import '@clr/ui/src/utils/reboot.clarity'; // depends on variables.clarity, mixins.clarity, color.clarity, helpers.clarity
+@import '@clr/ui/src/utils/a11y';
+
+//Icons & Images
+@import '@clr/ui/src/image/icons.clarity'; // depends on variables.clarity
+@import '@clr/ui/src/image/images.clarity'; // depends on variables.clarity, mixins.clarity, icons.clarity
+
+//Popover
+@import '@clr/ui/src/popover/common/popover.clarity';
+
+// Smart Popover
+//@import './popover/popover-popover.clarity';
+
+//Buttons
+//@import '@clr/ui/src/button/buttons.clarity'; // depends on variables.clarity, mixins.clarity, color.clarity
+//@import '@clr/ui/src/button/button-group/button-group.clarity'; // depends on variables.clarity, mixins.clarity
+//@import '@clr/ui/src/utils/close.clarity'; //depends on variables.clarity, mixins.clarity
+
+//Alerts
+//depends on variables.clarity, mixins.clarity, color.clarity, icons.clarity, buttons.clarity
+//@import '@clr/ui/src/emphasis/alert/alert.clarity';
+
+//Cards
+//depends on variables.clarity, mixins.clarity, color.clarity, helpers.clarity, list-group.clarity, buttons.clarity
+@import '@clr/ui/src/layout/card.clarity';
+
+//Dropdowns
+//depends on variables.clarity, mixins.clarity, color.clarity, helpers.clarity, layers.clarity
+@import '@clr/ui/src/popover/dropdown/dropdown.clarity';
+
+//Badges
+// depends on variables.clarity, mixins.clarity, color.clarity, helpers.clarity, typography.clarity
+//@import '@clr/ui/src/emphasis/badges.clarity';
+
+//Labels
+// depends on variables.clarity, mixins.clarity, color.clarity, helpers.clarity, typography.clarity, badges.clarity
+@import '@clr/ui/src/emphasis/labels.clarity';
+
+//Login
+//depends on variables.clarity, mixins.clarity, helpers.clarity, color.clarity, icons.clarity
+@import '@clr/ui/src/layout/login.clarity';
+
+//Layout
+//depends on variables.clarity, mixins.clarity, helpers.clarity, color.clarity, layers.clarity
+@import '@clr/ui/src/layout/main-container/layout.clarity';
+
+//Modal
+//depends on variables.clarity, mixins.clarity, helpers.clarity, color.clarity, layers.clarity
+@import '@clr/ui/src/modal/modal.clarity';
+
+//Nav
+@import '@clr/ui/src/layout/nav/header.clarity'; // depends on variables.clarity, mixins.clarity, helpers.clarity, color.clarity, layers.clarity
+@import '@clr/ui/src/layout/nav/links.clarity'; // depends on variables.clarity, mixins.clarity, helpers.clarity, color.clarity
+@import '@clr/ui/src/layout/nav/nav.clarity'; // depends on variables.clarity, mixins.clarity, helpers.clarity, color.clarity, layers.clarity
+@import '@clr/ui/src/layout/nav/subnav.clarity'; // depends on variables.clarity, mixins.clarity, helpers.clarity, color.clarity, layers.clarity
+@import '@clr/ui/src/layout/vertical-nav/vertical-nav.clarity'; // depends on variables.clarity, mixins.clarity, helpers.clarity, color.clarity
+@import '@clr/ui/src/layout/nav/responsive-nav.clarity'; // depends on variables.clarity, mixins.clarity, helpers.clarity, color.clarity, layers.clarity
+
+//Progress Bars
+//depends on variables.clarity, helpers.clarity, color.clarity, cards.clarity
+@import '@clr/ui/src/progress/progress-bars/progress-bars.clarity';
+
+//Spinners
+//depends on variables.clarity, mixins.clarity, color.clarity, helpers.clarity, icons.clarity
+@import '@clr/ui/src/progress/spinner/spinner.clarity';
+
+//Tables
+//depends on variables.clarity, mixins.clarity, helpers.clarity, typography.clarity
+@import '@clr/ui/src/data/tables.clarity';
+
+//Tooltips
+// depends on variables.clarity, mixins.clarity, color.clarity, helpers.clarity, layers.clarity
+@import '@clr/ui/src/popover/tooltip/tooltips.clarity';
+
+//Forms
+@import '@clr/ui/src/forms/styles/mixins.forms';
+@import '@clr/ui/src/forms/styles/properties.forms';
+@import '@clr/ui/src/forms/styles/containers.clarity';
+@import '@clr/ui/src/forms/styles/form.clarity';
+@import '@clr/ui/src/forms/styles/checkbox.clarity';
+@import '@clr/ui/src/forms/styles/file.clarity';
+@import '@clr/ui/src/forms/styles/input.clarity';
+@import '@clr/ui/src/forms/styles/input-group.clarity';
+@import '@clr/ui/src/forms/styles/radio.clarity';
+@import '@clr/ui/src/forms/styles/select.clarity';
+@import '@clr/ui/src/forms/styles/textarea.clarity';
+@import '@clr/ui/src/forms/styles/toggles.clarity'; // depends on variables.clarity, mixins.clarity, color.clarity, helpers.clarity
+@import '@clr/ui/src/forms/styles/range.clarity';
+@import '@clr/ui/src/forms/styles/datalist.clarity';
+@import '@clr/ui/src/forms/datepicker/datepicker.clarity';
+@import '@clr/ui/src/forms/combobox/combobox.clarity';
+
+//Stack View
+//depends on variables.clarity, mixins.clarity, color.clarity, helpers.clarity, forms.clarity
+@import '@clr/ui/src/data/stack-view/stack-view.clarity';
+
+//Tree View
+//depends on variables.clarity, mixins.clarity, helpers.clarity, forms.clarity
+@import '@clr/ui/src/data/tree-view/tree-view.clarity';
+
+//Datagrid
+//depends on variables.clarity, mixins.clarity, helpers.clarity, layers, icons.clarity, tables.clarity, forms.clarity
+@import '@clr/ui/src/data/datagrid/datagrid.clarity';
+
+//Animations
+// no dependencies on other clarity scss
+@import '@clr/ui/src/utils/animations/animations.clarity';
+
+//Tabs
+@import '@clr/ui/src/layout/tabs/tabs.clarity'; // no dependencies on other clarity scss
+
+//Wizards
+// depends on variables.clarity, mixins.clarity, helpers.clarity, color.clarity, layers.clarity
+//@import '@clr/ui/src/wizard/wizard.clarity';
+
+// Signposts
+//@import '@clr/ui/src/popover/signpost/signposts.clarity';
+
+// Stepper
+@import '@clr/ui/src/accordion/accordion.clarity';
+
+// Timeline
+//@import '@clr/ui/src/timeline/timeline.clarity';

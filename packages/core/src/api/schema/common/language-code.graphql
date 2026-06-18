@@ -1,0 +1,325 @@
+"""
+@description
+Languages in the form of a ISO 639-1 language code with optional
+region or script modifier (e.g. de_AT). The selection available is based
+on the [Unicode CLDR summary list](https://unicode-org.github.io/cldr-staging/charts/37/summary/root.html)
+and includes the major spoken languages of the world and any widely-used variants.
+
+@docsCategory common
+"""
+enum LanguageCode {
+    "Afrikaans"
+    af
+    "Akan"
+    ak
+    "Albanian"
+    sq
+    "Amharic"
+    am
+    "Arabic"
+    ar
+    "Armenian"
+    hy
+    "Assamese"
+    as
+    "Azerbaijani"
+    az
+    "Bambara"
+    bm
+    "Bangla"
+    bn
+    "Basque"
+    eu
+    "Belarusian"
+    be
+    "Bosnian"
+    bs
+    "Breton"
+    br
+    "Bulgarian"
+    bg
+    "Burmese"
+    my
+    "Catalan"
+    ca
+    "Chechen"
+    ce
+    "Chinese"
+    zh
+    "Simplified Chinese"
+    zh_Hans
+    "Traditional Chinese"
+    zh_Hant
+    "Church Slavic"
+    cu
+    "Cornish"
+    kw
+    "Corsican"
+    co
+    "Croatian"
+    hr
+    "Czech"
+    cs
+    "Danish"
+    da
+    "Dutch"
+    nl
+    "Flemish"
+    nl_BE
+    "Dzongkha"
+    dz
+    "English"
+    en
+    "Australian English"
+    en_AU
+    "Canadian English"
+    en_CA
+    "British English"
+    en_GB
+    "American English"
+    en_US
+    "Esperanto"
+    eo
+    "Estonian"
+    et
+    "Ewe"
+    ee
+    "Faroese"
+    fo
+    "Finnish"
+    fi
+    "French"
+    fr
+    "Canadian French"
+    fr_CA
+    "Swiss French"
+    fr_CH
+    "Fulah"
+    ff
+    "Galician"
+    gl
+    "Ganda"
+    lg
+    "Georgian"
+    ka
+    "German"
+    de
+    "Austrian German"
+    de_AT
+    "Swiss High German"
+    de_CH
+    "Greek"
+    el
+    "Gujarati"
+    gu
+    "Haitian Creole"
+    ht
+    "Hausa"
+    ha
+    "Hebrew"
+    he
+    "Hindi"
+    hi
+    "Hungarian"
+    hu
+    "Icelandic"
+    is
+    "Igbo"
+    ig
+    "Indonesian"
+    id
+    "Interlingua"
+    ia
+    "Irish"
+    ga
+    "Italian"
+    it
+    "Japanese"
+    ja
+    "Javanese"
+    jv
+    "Kalaallisut"
+    kl
+    "Kannada"
+    kn
+    "Kashmiri"
+    ks
+    "Kazakh"
+    kk
+    "Khmer"
+    km
+    "Kikuyu"
+    ki
+    "Kinyarwanda"
+    rw
+    "Korean"
+    ko
+    "Kurdish"
+    ku
+    "Kyrgyz"
+    ky
+    "Lao"
+    lo
+    "Latin"
+    la
+    "Latvian"
+    lv
+    "Lingala"
+    ln
+    "Lithuanian"
+    lt
+    "Luba-Katanga"
+    lu
+    "Luxembourgish"
+    lb
+    "Macedonian"
+    mk
+    "Malagasy"
+    mg
+    "Malay"
+    ms
+    "Malayalam"
+    ml
+    "Maltese"
+    mt
+    "Manx"
+    gv
+    "Maori"
+    mi
+    "Marathi"
+    mr
+    "Mongolian"
+    mn
+    "Nepali"
+    ne
+    "North Ndebele"
+    nd
+    "Northern Sami"
+    se
+    "Norwegian Bokmål"
+    nb
+    "Norwegian Nynorsk"
+    nn
+    "Nyanja"
+    ny
+    "Odia"
+    or
+    "Oromo"
+    om
+    "Ossetic"
+    os
+    "Pashto"
+    ps
+    "Persian"
+    fa
+    "Dari"
+    fa_AF
+    "Polish"
+    pl
+    "Portuguese"
+    pt
+    "Brazilian Portuguese"
+    pt_BR
+    "European Portuguese"
+    pt_PT
+    "Punjabi"
+    pa
+    "Quechua"
+    qu
+    "Romanian"
+    ro
+    "Moldavian"
+    ro_MD
+    "Romansh"
+    rm
+    "Rundi"
+    rn
+    "Russian"
+    ru
+    "Samoan"
+    sm
+    "Sango"
+    sg
+    "Sanskrit"
+    sa
+    "Scottish Gaelic"
+    gd
+    "Serbian"
+    sr
+    "Shona"
+    sn
+    "Sichuan Yi"
+    ii
+    "Sindhi"
+    sd
+    "Sinhala"
+    si
+    "Slovak"
+    sk
+    "Slovenian"
+    sl
+    "Somali"
+    so
+    "Southern Sotho"
+    st
+    "Spanish"
+    es
+    "European Spanish"
+    es_ES
+    "Mexican Spanish"
+    es_MX
+    "Sundanese"
+    su
+    "Swahili"
+    sw
+    "Congo Swahili"
+    sw_CD
+    "Swedish"
+    sv
+    "Tajik"
+    tg
+    "Tamil"
+    ta
+    "Tatar"
+    tt
+    "Telugu"
+    te
+    "Thai"
+    th
+    "Tibetan"
+    bo
+    "Tigrinya"
+    ti
+    "Tongan"
+    to
+    "Turkish"
+    tr
+    "Turkmen"
+    tk
+    "Ukrainian"
+    uk
+    "Urdu"
+    ur
+    "Uyghur"
+    ug
+    "Uzbek"
+    uz
+    "Vietnamese"
+    vi
+    "Volapük"
+    vo
+    "Welsh"
+    cy
+    "Western Frisian"
+    fy
+    "Wolof"
+    wo
+    "Xhosa"
+    xh
+    "Yiddish"
+    yi
+    "Yoruba"
+    yo
+    "Zulu"
+    zu
+}

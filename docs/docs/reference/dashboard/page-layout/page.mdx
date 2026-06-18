@@ -1,0 +1,95 @@
+---
+title: "Page"
+generated: true
+---
+## Page
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/layout-engine/page-layout.tsx" sourceLine="98" packageName="@vendure/dashboard" since="3.3.0" />
+
+This component should be used to wrap _all_ pages in the dashboard. It provides
+a consistent layout as well as a context for the slot-based PageBlock system.
+
+The typical hierarchy of a page is as follows:
+- `Page`
+ - [PageTitle](/reference/dashboard/page-layout/page-title#pagetitle)
+ - [PageActionBar](/reference/dashboard/page-layout/page-action-bar#pageactionbar)
+ - [PageLayout](/reference/dashboard/page-layout/#pagelayout)
+
+*Example*
+
+```tsx
+import { Page, PageTitle, PageActionBar, PageLayout, PageBlock, Button } from '@vendure/dashboard';
+
+const pageId = 'my-page';
+
+export function MyPage() {
+ return (
+   <Page pageId={pageId} form={form} submitHandler={submitHandler} entity={entity}>
+     <PageTitle>My Page</PageTitle>
+     <PageActionBar>
+       <PageActionBarRight>
+         <Button>Save</Button>
+       </PageActionBarRight>
+     </PageActionBar>
+     <PageLayout>
+       <PageBlock column="main" blockId="my-block">
+         <div>My Block</div>
+       </PageBlock>
+     </PageLayout>
+   </Page>
+ )
+}
+```
+
+```ts title="Signature"
+function Page(props: Readonly<PageProps>): void
+```
+Parameters
+
+### props
+
+<MemberInfo kind="parameter" type={`Readonly<<a href='/reference/dashboard/page-layout/page#pageprops'>PageProps</a>>`} />
+
+## PageProps
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/layout-engine/page-layout.tsx" sourceLine="45" packageName="@vendure/dashboard" since="3.3.0" />
+
+The props used to configure the [Page](/reference/dashboard/page-layout/page#page) component.
+
+```ts title="Signature"
+interface PageProps extends ComponentProps<'div'> {
+    pageId?: string;
+    entity?: any;
+    form?: UseFormReturn<any>;
+    submitHandler?: any;
+}
+```
+* Extends: `ComponentProps<'div'>`
+
+
+
+<div className="members-wrapper">
+
+### pageId
+
+<MemberInfo kind="property" type={`string`}   />
+
+A string identifier for the page, e.g. "product-list", "review-detail", etc.
+### entity
+
+<MemberInfo kind="property" type={`any`}   />
+
+
+### form
+
+<MemberInfo kind="property" type={`UseFormReturn<any>`}   />
+
+
+### submitHandler
+
+<MemberInfo kind="property" type={`any`}   />
+
+
+
+
+</div>

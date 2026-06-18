@@ -1,0 +1,174 @@
+---
+title: "BullMQPluginOptions"
+generated: true
+---
+## BullMQPluginOptions
+
+<GenerationInfo sourceFile="packages/job-queue-plugin/src/bullmq/types.ts" sourceLine="20" packageName="@vendure/job-queue-plugin" since="1.2.0" />
+
+Configuration options for the [BullMQJobQueuePlugin](/reference/core-plugins/job-queue-plugin/bull-mqjob-queue-plugin#bullmqjobqueueplugin).
+
+```ts title="Signature"
+interface BullMQPluginOptions {
+    connection?: ConnectionOptions;
+    queueOptions?: Omit<QueueOptions, 'connection'>;
+    workerOptions?: Omit<WorkerOptions, 'connection'>;
+    concurrency?: number | ((queueName: string) => number);
+    setRetries?: (queueName: string, job: Job) => number;
+    setBackoff?: (queueName: string, job: Job) => BackoffOptions | undefined;
+    setJobOptions?: (queueName: string, job: Job) => BullJobsOptions;
+}
+```
+
+<div className="members-wrapper">
+
+### connection
+
+<MemberInfo kind="property" type={`ConnectionOptions`}   />
+
+Connection options which will be passed directly to BullMQ when
+creating a new Queue, Worker and Scheduler instance.
+
+If omitted, it will attempt to connect to Redis at `127.0.0.1:6379`.
+### queueOptions
+
+<MemberInfo kind="property" type={`Omit<QueueOptions, 'connection'>`}   />
+
+Additional options used when instantiating the BullMQ
+Queue instance.
+See the [BullMQ QueueOptions docs](https://github.com/taskforcesh/bullmq/blob/master/docs/gitbook/api/bullmq.queueoptions.md)
+### workerOptions
+
+<MemberInfo kind="property" type={`Omit<WorkerOptions, 'connection'>`}   />
+
+Additional options used when instantiating the BullMQ
+Worker instance.
+See the [BullMQ WorkerOptions docs](https://github.com/taskforcesh/bullmq/blob/master/docs/gitbook/api/bullmq.workeroptions.md)
+### concurrency
+
+<MemberInfo kind="property" type={`number | ((queueName: string) => number)`} default={`3`}   />
+
+How many jobs from a given queue to process concurrently.
+
+Can be set to a function which receives the queue name and returns
+the concurrency limit. This is useful for limiting concurrency on
+queues which have resource-intensive jobs.
+
+**Important implementation note:** When using a function, workers are grouped
+by the _concurrency value_, not by queue name. Because all Vendure job types
+are stored in a single BullMQ queue (`QUEUE_NAME`), any worker can process
+any job type. This means:
+
+- Multiple Vendure queues returning the same concurrency value will share a worker
+- Jobs from different Vendure queues may be processed by the same worker
+- The concurrency limit applies to the total jobs processed by that worker,
+  not strictly per Vendure queue
+
+For strict per-queue concurrency isolation, consider:
+- Creating separate BullMQ queues per Vendure queue (requires custom implementation)
+- Using [BullMQ Pro Groups](https://docs.bullmq.io/bullmq-pro/groups)
+
+*Example*
+
+```ts
+BullMQJobQueuePlugin.init({
+  concurrency: (queueName) => {
+    if (queueName === 'apply-collection-filters') {
+      return 1;
+    }
+    return 5;
+  }
+})
+```
+### setRetries
+
+<MemberInfo kind="property" type={`(queueName: string, job: Job) => number`}  since="1.3.0"  />
+
+When a job is added to the JobQueue using `JobQueue.add()`, the calling
+code may specify the number of retries in case of failure. This option allows
+you to override that number and specify your own number of retries based on
+the job being added.
+
+*Example*
+
+```ts
+setRetries: (queueName, job) => {
+  if (queueName === 'send-email') {
+    // Override the default number of retries
+    // for the 'send-email' job because we have
+    // a very unreliable email service.
+    return 10;
+  }
+  return job.retries;
+}
+ ```
+### setBackoff
+
+<MemberInfo kind="property" type={`(queueName: string, job: Job) => <a href='/reference/core-plugins/job-queue-plugin/bull-mqplugin-options#backoffoptions'>BackoffOptions</a> | undefined`} default={`'exponential', 1000`}  since="1.3.0"  />
+
+This allows you to specify the backoff settings when a failed job gets retried.
+In other words, this determines how much time should pass before attempting to
+process the failed job again. If the function returns `undefined`, the default
+value of exponential/1000ms will be used.
+
+*Example*
+
+```ts
+setBackoff: (queueName, job) => {
+  return {
+    type: 'exponential', // or 'fixed'
+    delay: 10000 // first retry after 10s, second retry after 20s, 40s,...
+  };
+}
+```
+### setJobOptions
+
+<MemberInfo kind="property" type={`(queueName: string, job: Job) => BullJobsOptions`}  since="3.2.0"  />
+
+This allows you to specify additional options for a job when it is added to the queue.
+The object returned is the BullMQ [JobsOptions](https://api.docs.bullmq.io/types/v5.JobsOptions.html)
+type, which includes control over settings such as `delay`, `attempts`, `priority` and much more.
+
+This function is called every time a job is added to the queue, so you can return different options
+based on the job being added.
+
+*Example*
+
+```ts
+// Here we want to assign a higher priority to jobs in the 'critical' queue
+setJobOptions: (queueName, job) => {
+  const priority = queueName === 'critical' ? 1 : 5;
+  return { priority };
+}
+```
+
+
+</div>
+## BackoffOptions
+
+<GenerationInfo sourceFile="packages/job-queue-plugin/src/bullmq/types.ts" sourceLine="158" packageName="@vendure/job-queue-plugin" since="1.3.0" />
+
+Configuration for the backoff function when retrying failed jobs.
+
+```ts title="Signature"
+interface BackoffOptions {
+    type: 'exponential' | 'fixed';
+    delay: number;
+}
+```
+
+<div className="members-wrapper">
+
+### type
+
+<MemberInfo kind="property" type={`'exponential' | 'fixed'`}   />
+
+
+### delay
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+
+
+</div>

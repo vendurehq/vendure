@@ -1,0 +1,4 @@
+type HistoryEntry implements Node {
+    isPublic: Boolean!
+    administrator: Administrator
+}

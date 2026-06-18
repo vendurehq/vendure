@@ -1,0 +1,423 @@
+---
+title: "Checkout Flow"
+metaTitle: "Storefront Checkout Flow with the Vendure Shop API"
+metaDescription: "Walk through each checkout step in Vendure: setting customer details, shipping address, shipping method, payment, and order confirmation via GraphQL mutations."
+---
+
+Once the customer has added the desired products to the active order, it's time to check out.
+
+This guide assumes that you are using the [default OrderProcess](/core-concepts/orders/#the-order-process), so
+if you have defined a custom process, some of these steps may be slightly different.
+
+:::note
+In this guide, we will assume that an `ActiveOrder` fragment has been defined, as detailed in the
+[Managing the Active Order guide](/storefront/active-order/#define-an-order-fragment), but for the purposes of
+checking out the fragment should also include `customer` `shippingAddress` and `billingAddress` fields.
+:::
+
+## Add a customer
+
+Every order must be associated with a customer. If the customer is not logged in, then the [`setCustomerForOrder`](/reference/graphql-api/shop/mutations/#setcustomerfororder) mutation must be called. This will create a new Customer record if the provided email address does not already exist in the database.
+
+:::note
+If the customer is already logged in, then this step is skipped.
+:::
+
+<Tabs>
+<TabItem value="Mutation" label="Mutation" default>
+
+```graphql
+mutation SetCustomerForOrder($input: CreateCustomerInput!) {
+  setCustomerForOrder(input: $input) {
+    ...ActiveOrder
+    ...on ErrorResult {
+      errorCode
+      message
+    }
+  }
+}
+```
+
+</TabItem>
+<TabItem value="Variables" label="Variables">
+
+```json
+{
+  "input": {
+    "title": "Mr.",
+    "firstName": "Bob",
+    "lastName": "Dobalina",
+    "phoneNumber": "1234556",
+    "emailAddress": "b.dobalina@email.com",
+  }
+}
+```
+
+</TabItem>
+</Tabs>
+
+## Set the shipping address
+
+The [`setOrderShippingAddress`](/reference/graphql-api/shop/mutations/#setordershippingaddress) mutation must be called to set the shipping address for the order.
+
+
+<Tabs>
+<TabItem value="Mutation" label="Mutation" default>
+
+```graphql
+mutation SetOrderShippingAddress($input: CreateAddressInput!) {
+  setOrderShippingAddress(input: $input) {
+    ...ActiveOrder
+    ...on ErrorResult {
+      errorCode
+      message
+    }
+  }
+}
+```
+
+</TabItem>
+<TabItem value="Variables" label="Variables">
+
+```json
+{
+  "input": {
+    "fullName": "John Doe",
+    "company": "ABC Inc.",
+    "streetLine1": "123 Main St",
+    "streetLine2": "Apt 4B",
+    "city": "New York",
+    "province": "NY",
+    "postalCode": "10001",
+    "countryCode": "US",
+    "phoneNumber": "123-456-7890",
+    "defaultShippingAddress": true,
+    "defaultBillingAddress": false
+  }
+}
+```
+
+</TabItem>
+</Tabs>
+
+If the customer is logged in, you can check their existing addresses and pre-populate an address form if an existing address is found.
+
+
+<Tabs>
+<TabItem value="Query" label="Query" default>
+
+```graphql
+query GetCustomerAddresses {
+  activeCustomer {
+    id
+    addresses {
+      id
+      fullName
+      company
+      streetLine1
+      streetLine2
+      city
+      province
+      postalCode
+      country {
+        code
+        name
+      }
+      phoneNumber
+      defaultShippingAddress
+      defaultBillingAddress
+    }
+  }
+}
+```
+
+</TabItem>
+<TabItem value="Result" label="Result">
+
+```json
+{
+  "data": {
+    "activeCustomer": {
+      "id": "123456",
+      "addresses": [
+        {
+          "id": "123",
+          "fullName": "John Doe",
+          "company": "",
+          "streetLine1": "123 Main St",
+          "streetLine2": "Apt 4B",
+          "city": "New York",
+          "province": "NY",
+          "postalCode": "10001",
+          "country": {
+            "code": "US",
+            "name": "United States"
+          },
+          "phoneNumber": "123-456-7890",
+          "defaultShippingAddress": true,
+          "defaultBillingAddress": false
+        },
+        {
+          "id": "124",
+          "fullName": "John Doe",
+          "company": "",
+          "streetLine1": "456 Elm St",
+          "streetLine2": "",
+          "city": "Los Angeles",
+          "province": "CA",
+          "postalCode": "90001",
+          "country": {
+            "code": "US",
+            "name": "United States"
+          },
+          "phoneNumber": "987-654-3210",
+          "defaultShippingAddress": false,
+          "defaultBillingAddress": true
+        }
+      ]
+    }
+  }
+}
+```
+
+</TabItem>
+</Tabs>
+
+## Set the shipping method
+
+Now that we know the shipping address, we can check which shipping methods are available with the [`eligibleShippingMethods`](/reference/graphql-api/shop/queries/#eligibleshippingmethods) query.
+
+<Tabs>
+<TabItem value="Query" label="Query" default>
+
+```graphql
+query GetShippingMethods {
+  eligibleShippingMethods {
+    id
+    price
+    description
+  }
+}
+```
+
+</TabItem>
+<TabItem value="Result" label="Result">
+
+```json
+{
+  "data": {
+    "eligibleShippingMethods": [
+      {
+        "id": "1",
+        "price": 545,
+        "description": "Standard Shipping"
+      },
+      {
+        "id": "2",
+        "price": 1250,
+        "description": "Expedited Shipping"
+      },
+      {
+        "id": "3",
+        "price": 1695,
+        "description": "Overnight Shipping"
+      }
+    ]
+  }
+}
+```
+
+</TabItem>
+</Tabs>
+
+The results can then be displayed to the customer so they can choose the desired shipping method. If there is only a single
+result, then it can be automatically selected.
+
+The desired shipping method's id is then passed to the [`setOrderShippingMethod`](/reference/graphql-api/shop/mutations/#setordershippingmethod) mutation.
+
+```graphql
+mutation SetShippingMethod($id: [ID!]!) {
+    setOrderShippingMethod(shippingMethodId: $id) {
+        ...ActiveOrder
+        ...on ErrorResult {
+            errorCode
+            message
+        }
+    }
+}
+```
+
+## Add payment
+
+The [`eligiblePaymentMethods`](/reference/graphql-api/shop/queries/#eligiblepaymentmethods) query can be used to get a list of available payment methods.
+This list can then be displayed to the customer, so they can choose the desired payment method.
+
+
+<Tabs>
+<TabItem value="Query" label="Query" default>
+
+```graphql
+query GetPaymentMethods {
+  eligiblePaymentMethods {
+    id
+    name
+    code
+    isEligible
+  }
+}
+```
+
+</TabItem>
+<TabItem value="Result" label="Result">
+
+```json
+{
+  "data": {
+    "eligiblePaymentMethods": [
+      {
+        "id": "1",
+        "name": "Stripe",
+        "code": "stripe",
+        "isEligible": true
+      },
+      {
+        "id": "2",
+        "name": "Apple Pay",
+        "code": "apple-pay",
+        "isEligible": true
+      }
+      {
+        "id": "3",
+        "name": "Pay on delivery",
+        "code": "pay-on-delivery",
+        "isEligible": false
+      }
+    ]
+  }
+}
+```
+
+</TabItem>
+</Tabs>
+
+Next, we need to transition the order to the `ArrangingPayment` state. This state ensures that no other changes can be made to the order
+while the payment is being arranged. The [`transitionOrderToState`](/reference/graphql-api/shop/mutations/#transitionordertostate) mutation is used to transition the order to the `ArrangingPayment` state.
+
+<Tabs>
+<TabItem value="Query" label="Query" default>
+
+```graphql
+mutation TransitionToState($state: String!) {
+  transitionOrderToState(state: $state) {
+    ...ActiveOrder
+    ...on OrderStateTransitionError {
+      errorCode
+      message
+      transitionError
+      fromState
+      toState
+    }
+  }
+}
+```
+
+</TabItem>
+<TabItem value="Variables" label="Variables">
+
+```json
+{
+  "state": "ArrangingPayment"
+}
+```
+
+</TabItem>
+</Tabs>
+
+At this point, your storefront will use an integration with the payment provider to collect the customer's payment details, and then
+the exact sequence of API calls will depend on the payment integration.
+
+The [`addPaymentToOrder`](/reference/graphql-api/shop/mutations/#addpaymenttoorder) mutation is the general-purpose mutation for adding a payment to an order.
+It accepts a `method` argument which must corresponde to the `code` of the selected payment method, and a `metadata` argument which is a JSON object containing any additional information required by that particular integration.
+
+For example, the demo data populated in a new Vendure installation includes a "Standard Payment" method, which uses the [`dummyPaymentHandler`](/reference/typescript-api/payment/dummy-payment-handler) to simulate a payment provider. Here's how you would add a payment using this method:
+
+
+<Tabs>
+<TabItem value="Mutation" label="Mutation" default>
+
+```graphql
+mutation AddPaymentToOrder($input: PaymentInput!) {
+  addPaymentToOrder(input: $input) {
+    ...ActiveOrder
+    ...on ErrorResult {
+      errorCode
+      message
+    }
+  }
+}
+```
+
+</TabItem>
+<TabItem value="Variables" label="Variables">
+
+```json
+{
+  "method": "standard-payment",
+  "metadata": {
+    "shouldDecline": false,
+    "shouldError": false,
+    "shouldErrorOnSettle": false,
+  }
+}
+```
+
+</TabItem>
+</Tabs>
+
+Other payment integrations have specific setup instructions you must follow:
+
+### Stripe
+
+The following community plugins provide payment integrations:
+
+- [`@vendure-community/stripe-plugin`](https://github.com/vendurehq/community-plugins)
+- [`@vendure-community/braintree-plugin`](https://github.com/vendurehq/community-plugins)
+- [`@vendure-community/mollie-plugin`](https://github.com/vendurehq/community-plugins)
+
+### Other payment providers
+
+For more information on how to integrate with a payment provider, see the [Payment](/core-concepts/payment/) guide.
+
+## Display confirmation
+
+Once the checkout has completed, the order will no longer be considered "active" (see the [`OrderPlacedStrategy`](/reference/typescript-api/orders/order-placed-strategy/)) and so the [`activeOrder`](/reference/graphql-api/shop/queries/#activeorder) query will return `null`. Instead, the [`orderByCode`](/reference/graphql-api/shop/queries/#orderbycode) query can be used to retrieve the order by its code to display a confirmation page.
+
+<Tabs>
+<TabItem value="Query" label="Query" default>
+
+```graphql
+query GetOrderByCode($code: String!) {
+  orderByCode(code: $code) {
+    ...Order
+  }
+}
+```
+
+</TabItem>
+<TabItem value="Variables" label="Variables">
+
+```json
+{
+  "code": "PJGY46GCB1EDU9YH"
+}
+```
+
+</TabItem>
+</Tabs>
+
+:::info
+By default Vendure will only allow access to the order by code for the first 2 hours after the order is placed if the customer is not logged in.
+This is to prevent a malicious user from guessing order codes and viewing other customers' orders. This can be configured via the [`OrderByCodeAccessStrategy`](/reference/typescript-api/orders/order-by-code-access-strategy/).
+:::
+
+

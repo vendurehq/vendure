@@ -1,0 +1,39 @@
+<div class="card" *ngIf="customFieldsConfig.length">
+    <div class="card-header">
+        {{ 'common.custom-fields' | translate }}
+    </div>
+    <div class="card-block">
+        <div class="card-text custom-field-form" [class.editable]="editable">
+            <vdr-tabbed-custom-fields
+                entityName="Order"
+                [customFields]="customFieldsConfig"
+                [customFieldsFormGroup]="customFieldForm"
+                [readonly]="!editable"
+                [compact]="true"
+            ></vdr-tabbed-custom-fields>
+        </div>
+    </div>
+    <div class="card-footer">
+        <button class="btn btn-sm btn-secondary" (click)="editable = true" *ngIf="!editable">
+            <clr-icon shape="pencil"></clr-icon>
+            {{ 'common.edit' | translate }}
+        </button>
+        <button
+            class="btn btn-sm btn-primary"
+            (click)="onUpdateClick()"
+            *ngIf="editable"
+            [disabled]="customFieldForm.pristine || customFieldForm.invalid"
+        >
+            <clr-icon shape="check"></clr-icon>
+            {{ 'common.update' | translate }}
+        </button>
+        <button
+            class="btn btn-sm btn-secondary"
+            (click)="onCancelClick()"
+            *ngIf="editable"
+        >
+            <clr-icon shape="times"></clr-icon>
+            {{ 'common.cancel' | translate }}
+        </button>
+    </div>
+</div>

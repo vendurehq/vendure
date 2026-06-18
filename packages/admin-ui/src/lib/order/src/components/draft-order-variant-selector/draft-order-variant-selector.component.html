@@ -1,0 +1,49 @@
+<div class="card">
+    <div class="card-block">
+        <h4 class="card-title">{{ 'order.add-item-to-order' | translate }}</h4>
+        <vdr-product-variant-selector
+            (productSelected)="selectedVariantId$.next($event.productVariantId)"
+        ></vdr-product-variant-selector>
+    </div>
+    <div class="card-block" *ngIf="selectedVariant$ | async as selectedVariant">
+        <div class="variant-details">
+            <img class="mr-2" [src]="selectedVariant.featuredAsset || selectedVariant.product.featuredAsset | assetPreview: 32">
+            <div class="details">
+                <div>{{ selectedVariant?.name }}</div>
+                <div class="small">{{ selectedVariant?.sku }}</div>
+            </div>
+            <div class="details ml-4">
+                <div class="small">
+                    {{ 'catalog.stock-on-hand' | translate }}: {{ selectedVariant.stockOnHand }}
+                </div>
+                <div class="small">
+                    {{ 'catalog.stock-allocated' | translate }}: {{ selectedVariant.stockAllocated }}
+                </div>
+            </div>
+            <div class="flex-spacer"></div>
+            <div class="details">
+                <div>{{ selectedVariant?.priceWithTax | localeCurrency: currencyCode }}</div>
+                <div class="small" [title]="'order.net-price' | translate">
+                    {{ selectedVariant?.price | localeCurrency: currencyCode }}
+                </div>
+            </div>
+            <div>
+                <input [disabled]="!selectedVariant" type="number" min="0" [(ngModel)]="quantity" />
+            </div>
+            <button
+                [disabled]="!selectedVariant"
+                class="btn btn-small btn-primary"
+                (click)="addItemClick(selectedVariant)"
+            >
+                {{ 'order.add-item-to-order' | translate }}
+            </button>
+        </div>
+        <ng-container *ngIf="orderLineCustomFields.length">
+            <vdr-tabbed-custom-fields
+                entityName="Order"
+                [customFields]="orderLineCustomFields"
+                [customFieldsFormGroup]="customFieldsFormGroup"
+            ></vdr-tabbed-custom-fields>
+        </ng-container>
+    </div>
+</div>

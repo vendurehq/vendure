@@ -1,0 +1,32 @@
+---
+title: "EmailEventListener"
+generated: true
+---
+<GenerationInfo sourceFile="packages/email-plugin/src/event-listener.ts" sourceLine="13" packageName="@vendure/email-plugin" />
+
+An EmailEventListener is used to listen for events and set up a [EmailEventHandler](/reference/core-plugins/email-plugin/email-event-handler#emaileventhandler) which
+defines how an email will be generated from this event.
+
+```ts title="Signature"
+class EmailEventListener<T extends string> {
+    public type: T;
+    constructor(type: T)
+    on(event: Type<Event>) => EmailEventHandler<T, Event>;
+}
+```
+
+<div className="members-wrapper">
+
+### type
+
+<MemberInfo kind="property" type={`T`}   />
+
+
+### on
+
+<MemberInfo kind="method" type={`(event: Type<Event>) => <a href='/reference/core-plugins/email-plugin/email-event-handler#emaileventhandler'>EmailEventHandler</a><T, Event>`}   />
+
+Defines the event to listen for.
+
+
+</div>

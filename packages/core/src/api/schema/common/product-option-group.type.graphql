@@ -1,0 +1,40 @@
+type ProductOptionGroup implements Node {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    languageCode: LanguageCode!
+    code: String!
+    name: String!
+    options: [ProductOption!]!
+    "The number of products that use this option group"
+    productCount: Int!
+    translations: [ProductOptionGroupTranslation!]!
+}
+
+type ProductOptionGroupTranslation {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    languageCode: LanguageCode!
+    name: String!
+}
+
+type ProductOption implements Node {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    languageCode: LanguageCode!
+    code: String!
+    name: String!
+    groupId: ID!
+    group: ProductOptionGroup!
+    translations: [ProductOptionTranslation!]!
+}
+
+type ProductOptionTranslation {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    languageCode: LanguageCode!
+    name: String!
+}

@@ -1,0 +1,60 @@
+{
+    "name": "@vendure/testing",
+    "version": "3.6.4",
+    "description": "End-to-end testing tools for Vendure projects",
+    "keywords": [
+        "vendure",
+        "testing",
+        "e2e"
+    ],
+    "author": "Michael Bromley <michael@michaelbromley.co.uk>",
+    "homepage": "https://www.vendure.io/",
+    "license": "GPL-3.0-or-later",
+    "directories": {
+        "lib": "lib"
+    },
+    "files": [
+        "lib"
+    ],
+    "publishConfig": {
+        "access": "public"
+    },
+    "main": "lib/index.js",
+    "types": "lib/index.d.ts",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/vendurehq/vendure"
+    },
+    "funding": "https://github.com/sponsors/michaelbromley",
+    "scripts": {
+        "build": "tsc -p ./tsconfig.build.json",
+        "watch": "tsc -p ./tsconfig.build.json -w",
+        "lint": "eslint --fix .",
+        "ci": "npm run build",
+        "test": "vitest --config vitest.config.mts --run"
+    },
+    "bugs": {
+        "url": "https://github.com/vendurehq/vendure/issues"
+    },
+    "dependencies": {
+        "@graphql-typed-document-node/core": "^3.2.0",
+        "@vendure/common": "3.6.4",
+        "faker": "^4.1.0",
+        "form-data": "^4.0.0",
+        "graphql": "^16.11.0",
+        "graphql-tag": "^2.12.6",
+        "node-fetch": "^2.7.0",
+        "sql.js": "1.14.1"
+    },
+    "devDependencies": {
+        "@types/faker": "^5.5.9",
+        "@types/mysql": "^2.15.26",
+        "@types/node-fetch": "^2.6.4",
+        "@types/pg": "^8.11.2",
+        "@vendure/core": "3.6.4",
+        "mysql2": "^3.15.0",
+        "pg": "^8.11.3",
+        "rimraf": "^5.0.5",
+        "typescript": "5.8.2"
+    }
+}

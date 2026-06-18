@@ -1,0 +1,117 @@
+"Returned when attempting an operation that relies on the NativeAuthStrategy, if that strategy is not configured."
+type NativeAuthStrategyError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+}
+
+"Returned if the user authentication credentials are not valid"
+type InvalidCredentialsError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+    authenticationError: String!
+}
+
+"Returned if there is an error in transitioning the Order state"
+type OrderStateTransitionError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+    transitionError: String!
+    fromState: String!
+    toState: String!
+}
+
+"Returned when attempting to create a Customer with an email address already registered to an existing User."
+type EmailAddressConflictError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+}
+
+"Returned when attempting to set the Customer on a guest checkout when the configured GuestCheckoutStrategy does not allow it."
+type GuestCheckoutError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+    errorDetail: String!
+}
+
+"Returned when the maximum order size limit has been reached."
+type OrderLimitError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+    maxItems: Int!
+}
+
+"Returned when attempting to set a negative OrderLine quantity."
+type NegativeQuantityError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+}
+
+"Returned when attempting to add more items to the Order than are available"
+type InsufficientStockError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+    quantityAvailable: Int!
+    order: Order!
+}
+
+"Returned if the provided coupon code is invalid"
+type CouponCodeInvalidError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+    couponCode: String!
+}
+
+"Returned if the provided coupon code is invalid"
+type CouponCodeExpiredError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+    couponCode: String!
+}
+
+"Returned if the provided coupon code is invalid"
+type CouponCodeLimitError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+    couponCode: String!
+    limit: Int!
+}
+
+"Returned when attempting to modify the contents of an Order that is not in the `AddingItems` state."
+type OrderModificationError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+}
+
+"Returned when attempting to set a ShippingMethod for which the Order is not eligible"
+type IneligibleShippingMethodError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+}
+
+"""
+Returned when invoking a mutation which depends on there being an active Order on the
+current session.
+"""
+type NoActiveOrderError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+}
+
+"""
+Returned when an order operation is rejected by an OrderInterceptor method.
+"""
+type OrderInterceptorError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+    interceptorError: String!
+}
+
+"""
+Union type of all possible errors that can occur when adding or removing items from an Order.
+"""
+union UpdateOrderItemErrorResult =
+      OrderModificationError
+    | OrderLimitError
+    | NegativeQuantityError
+    | InsufficientStockError
+    | OrderInterceptorError

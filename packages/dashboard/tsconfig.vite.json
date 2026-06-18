@@ -1,0 +1,20 @@
+{
+  "extends": [
+    "./tsconfig.json"
+  ],
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "nodenext",
+    "resolveJsonModule": false,
+    "skipLibCheck": true,
+    "plugins": [],
+    "declaration": true,
+    "outDir": "./dist/vite"
+  },
+  "include": [
+    "vite/**/*"
+  ],
+  "exclude": [
+    "vite/tests/**/*"
+  ]
+}

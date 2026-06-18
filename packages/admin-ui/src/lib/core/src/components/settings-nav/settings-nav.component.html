@@ -1,0 +1,57 @@
+<nav>
+    <section class="settings-nav-content">
+        <ng-container *ngFor="let section of settingsMenuConfig$ | async">
+            <vdr-ui-extension-point
+                [locationId]="section.id"
+                api="navMenu"
+                [topPx]="-6"
+                [leftPx]="8"
+                display="block"
+            >
+                <vdr-dropdown>
+                    <button class="setting-link" vdrDropdownTrigger>
+                        <div>
+                            <ng-container
+                                *ngIf="navBuilderService.sectionBadges[section.id] | async as sectionBadge"
+                            >
+                                <vdr-status-badge
+                                    *ngIf="sectionBadge !== 'none'"
+                                    [type]="sectionBadge"
+                                ></vdr-status-badge>
+                            </ng-container>
+                            <clr-icon
+                                *ngIf="section.icon"
+                                [attr.shape]="section.icon || 'block'"
+                                size="20"
+                            ></clr-icon>
+                            <label class="md:hidden" [for]="section.id">{{ section.label | translate }}</label>
+                        </div>
+                        <clr-icon class="md:hidden" shape="caret right"></clr-icon>
+                    </button>
+                    <vdr-dropdown-menu vdrPosition="top-right">
+                        <ng-container *ngFor="let item of section.items">
+                            <div *ngIf="shouldDisplayLink(item)" class="menu-link">
+                                <a
+                                    vdrDropdownItem
+                                    [attr.data-item-id]="section.id"
+                                    [routerLink]="getRouterLink(item)"
+                                    routerLinkActive="active"
+                                    (click)="item.onClick && item.onClick($event)"
+                                >
+                                    <ng-container *ngIf="item.statusBadge | async as itemBadge">
+                                        <vdr-status-badge
+                                            *ngIf="itemBadge.type !== 'none'"
+                                            [type]="itemBadge.type"
+                                        ></vdr-status-badge>
+                                    </ng-container>
+                                    <clr-icon [attr.shape]="item.icon || 'block'" size="20"></clr-icon>
+                                    <div class="">{{ item.label | translate }}</div>
+                                </a>
+                            </div>
+                        </ng-container>
+                    </vdr-dropdown-menu>
+                </vdr-dropdown>
+            </vdr-ui-extension-point>
+        </ng-container>
+    </section>
+</nav>

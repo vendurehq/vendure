@@ -1,0 +1,18 @@
+
+.preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 150px;
+    height: 150px;
+    img {
+        max-width: 100%;
+        display: none;
+        &.visible {
+            display: block;
+        }
+    }
+    .placeholder {
+        color: var(--color-grey-300);
+    }
+}

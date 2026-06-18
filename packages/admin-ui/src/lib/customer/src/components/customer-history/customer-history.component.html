@@ -1,0 +1,179 @@
+<div class="entry-list">
+    <vdr-timeline-entry iconShape="note" displayType="muted" [featured]="true" *vdrIfPermissions="'UpdateCustomer'"
+                        [isFirst]="true">
+        <div class="note-entry">
+            <textarea [(ngModel)]="note" name="note" class="note"></textarea>
+            <button class="btn btn-secondary" [disabled]="!note" (click)="addNoteToCustomer()">
+                {{ 'order.add-note' | translate }}
+            </button>
+        </div>
+    </vdr-timeline-entry>
+    <ng-container *ngFor="let entry of history">
+        <vdr-customer-history-entry-host
+            *ngIf="hasCustomComponent(entry.type); else defaultComponents"
+            [customer]="customer"
+            [entry]="entry"
+            [expanded]="expanded"
+            (expandClick)="expanded = !expanded"
+        ></vdr-customer-history-entry-host>
+        <ng-template #defaultComponents>
+            <vdr-timeline-entry
+                [displayType]="getDisplayType(entry)"
+                [iconShape]="getTimelineIcon(entry)"
+                [createdAt]="entry.createdAt"
+                [name]="getName(entry)"
+                [featured]="isFeatured(entry)"
+            >
+                <ng-container [ngSwitch]="entry.type">
+                    <ng-container *ngSwitchCase="type.CUSTOMER_REGISTERED">
+                        <div class="title">
+                            {{ 'customer.history-customer-registered' | translate }}
+                        </div>
+                        <ng-container *ngIf="entry.data.strategy === 'native'; else namedStrategy">
+                            {{ 'customer.history-using-native-auth-strategy' | translate }}
+                        </ng-container>
+                        <ng-template #namedStrategy>
+                            {{
+                                'customer.history-using-external-auth-strategy'
+                                    | translate: { strategy: entry.data.strategy }
+                            }}
+                        </ng-template>
+                    </ng-container>
+                    <ng-container *ngSwitchCase="type.CUSTOMER_VERIFIED">
+                        <div class="title">
+                            {{ 'customer.history-customer-verified' | translate }}
+                        </div>
+                        <ng-container *ngIf="entry.data.strategy === 'native'; else namedStrategy">
+                            {{ 'customer.history-using-native-auth-strategy' | translate }}
+                        </ng-container>
+                        <ng-template #namedStrategy>
+                            {{
+                                'customer.history-using-external-auth-strategy'
+                                    | translate: { strategy: entry.data.strategy }
+                            }}
+                        </ng-template>
+                    </ng-container>
+                    <ng-container *ngSwitchCase="type.CUSTOMER_DETAIL_UPDATED">
+                        <div class="flex">
+                            {{ 'customer.history-customer-detail-updated' | translate }}
+                            <vdr-history-entry-detail>
+                                <vdr-object-tree [value]="entry.data.input"></vdr-object-tree>
+                            </vdr-history-entry-detail>
+                        </div>
+                    </ng-container>
+                    <ng-container *ngSwitchCase="type.CUSTOMER_ADDED_TO_GROUP">
+                        {{
+                            'customer.history-customer-added-to-group'
+                                | translate: { groupName: entry.data.groupName }
+                        }}
+                    </ng-container>
+                    <ng-container *ngSwitchCase="type.CUSTOMER_REMOVED_FROM_GROUP">
+                        {{
+                            'customer.history-customer-removed-from-group'
+                                | translate: { groupName: entry.data.groupName }
+                        }}
+                    </ng-container>
+                    <ng-container *ngSwitchCase="type.CUSTOMER_ADDRESS_CREATED">
+                        {{ 'customer.history-customer-address-created' | translate }}
+                        <div class="flex">
+                            <div class="address-string">{{ entry.data.address }}</div>
+                        </div>
+                    </ng-container>
+                    <ng-container *ngSwitchCase="type.CUSTOMER_ADDRESS_UPDATED">
+                        {{ 'customer.history-customer-address-updated' | translate }}
+                        <div class="flex">
+                            <div class="address-string">{{ entry.data.address }}</div>
+                            <vdr-history-entry-detail>
+                                <vdr-object-tree [value]="entry.data.input"></vdr-object-tree>
+                            </vdr-history-entry-detail>
+                        </div>
+                    </ng-container>
+                    <ng-container *ngSwitchCase="type.CUSTOMER_ADDRESS_DELETED">
+                        {{ 'customer.history-customer-address-deleted' | translate }}
+                        <div class="address-string">{{ entry.data.address }}</div>
+                    </ng-container>
+                    <ng-container *ngSwitchCase="type.CUSTOMER_PASSWORD_UPDATED">
+                        {{ 'customer.history-customer-password-updated' | translate }}
+                    </ng-container>
+                    <ng-container *ngSwitchCase="type.CUSTOMER_PASSWORD_RESET_REQUESTED">
+                        {{ 'customer.history-customer-password-reset-requested' | translate }}
+                    </ng-container>
+                    <ng-container *ngSwitchCase="type.CUSTOMER_PASSWORD_RESET_VERIFIED">
+                        {{ 'customer.history-customer-password-reset-verified' | translate }}
+                    </ng-container>
+                    <ng-container *ngSwitchCase="type.CUSTOMER_EMAIL_UPDATE_REQUESTED">
+                        <div class="flex">
+                            {{ 'customer.history-customer-email-update-requested' | translate }}
+                            <vdr-history-entry-detail>
+                                <vdr-labeled-data [label]="'customer.old-email-address' | translate">{{
+                                        entry.data.oldEmailAddress
+                                    }}
+                                </vdr-labeled-data>
+                                <vdr-labeled-data [label]="'customer.new-email-address' | translate">{{
+                                        entry.data.newEmailAddress
+                                    }}
+                                </vdr-labeled-data>
+                            </vdr-history-entry-detail>
+                        </div>
+                    </ng-container>
+                    <ng-container *ngSwitchCase="type.CUSTOMER_EMAIL_UPDATE_VERIFIED">
+                        <div class="flex">
+                            {{ 'customer.history-customer-email-update-verified' | translate }}
+                            <vdr-history-entry-detail>
+                                <vdr-labeled-data [label]="'customer.old-email-address' | translate">{{
+                                        entry.data.oldEmailAddress
+                                    }}
+                                </vdr-labeled-data>
+                                <vdr-labeled-data [label]="'customer.new-email-address' | translate">{{
+                                        entry.data.newEmailAddress
+                                    }}
+                                </vdr-labeled-data>
+                            </vdr-history-entry-detail>
+                        </div>
+                    </ng-container>
+                    <ng-container *ngSwitchCase="type.CUSTOMER_NOTE">
+                        <div class="flex">
+                            <div class="note-text">
+                                {{ entry.data.note }}
+                            </div>
+                            <div class="flex-spacer"></div>
+                            <vdr-dropdown>
+                                <button class="button-small ml-1" vdrDropdownTrigger>
+                                    <clr-icon shape="ellipsis-vertical" size="12"></clr-icon>
+                                </button>
+                                <vdr-dropdown-menu vdrPosition="bottom-right">
+                                    <button
+                                        vdrDropdownItem
+                                        (click)="updateNote.emit(entry)"
+                                        [disabled]="!('UpdateCustomer' | hasPermission)"
+                                    >
+                                        <clr-icon shape="edit"></clr-icon>
+                                        {{ 'common.edit' | translate }}
+                                    </button>
+                                    <div class="dropdown-divider"></div>
+                                    <button
+                                        vdrDropdownItem
+                                        (click)="deleteNote.emit(entry)"
+                                        [disabled]="!('UpdateCustomer' | hasPermission)"
+                                    >
+                                        <clr-icon shape="trash" class="is-danger"></clr-icon>
+                                        {{ 'common.delete' | translate }}
+                                    </button>
+                                </vdr-dropdown-menu>
+                            </vdr-dropdown>
+                        </div>
+                    </ng-container>
+                    <ng-container *ngSwitchDefault>
+                        <div class="title">
+                            {{ entry.type | translate }}
+                        </div>
+                        <vdr-history-entry-detail *ngIf="entry.data">
+                            <vdr-object-tree [value]="entry.data"></vdr-object-tree>
+                        </vdr-history-entry-detail>
+                    </ng-container>
+                </ng-container>
+            </vdr-timeline-entry>
+        </ng-template>
+    </ng-container>
+    <vdr-timeline-entry [isLast]="true"></vdr-timeline-entry>
+</div>

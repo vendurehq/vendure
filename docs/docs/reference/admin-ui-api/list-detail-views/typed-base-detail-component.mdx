@@ -1,0 +1,41 @@
+---
+title: "TypedBaseDetailComponent"
+generated: true
+---
+<GenerationInfo sourceFile="packages/admin-ui/src/lib/core/src/common/base-detail.component.ts" sourceLine="186" packageName="@vendure/admin-ui" />
+
+A version of the [BaseDetailComponent](/reference/admin-ui-api/list-detail-views/base-detail-component#basedetailcomponent) which is designed to be used with a
+[TypedDocumentNode](https://the-guild.dev/graphql/codegen/plugins/typescript/typed-document-node).
+
+```ts title="Signature"
+class TypedBaseDetailComponent<T extends TypedDocumentNode<any, any>, Field extends keyof ResultOf<T>> extends BaseDetailComponent<NonNullable<ResultOf<T>[Field]>> {
+    protected result$: Observable<ResultOf<T>>;
+    protected entity: ResultOf<T>[Field];
+    constructor()
+    init() => ;
+}
+```
+* Extends: [`BaseDetailComponent`](/reference/admin-ui-api/list-detail-views/base-detail-component#basedetailcomponent)`<NonNullable<ResultOf<T>[Field]>>`
+
+
+
+<div className="members-wrapper">
+
+### result$
+
+<MemberInfo kind="property" type={`Observable<ResultOf<T>>`}   />
+
+
+### entity
+
+<MemberInfo kind="property" type={`ResultOf<T>[Field]`}   />
+
+
+### init
+
+<MemberInfo kind="method" type={`() => `}   />
+
+
+
+
+</div>

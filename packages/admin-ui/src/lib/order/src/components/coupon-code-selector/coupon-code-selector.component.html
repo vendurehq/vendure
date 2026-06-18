@@ -1,0 +1,22 @@
+<ng-select
+    [items]="availableCouponCodes$ | async"
+    appendTo="body"
+    bindLabel="code"
+    bindValue="code"
+    [addTag]="false"
+    [multiple]="true"
+    [hideSelected]="true"
+    [minTermLength]="2"
+    typeToSearchText=""
+    [typeahead]="couponCodeInput$"
+    [formControl]="control"
+    (add)="addCouponCode.emit($event.code)"
+    (remove)="remove($event.code)"
+>
+    <ng-template ng-option-tmp let-item="item">
+        <div class="flex items-center">
+            <vdr-chip class="mr-1">{{ item.code }}</vdr-chip>
+            <span>{{ item.promotionName }}</span>
+        </div>
+    </ng-template>
+</ng-select>

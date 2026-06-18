@@ -1,0 +1,56 @@
+---
+title: "TaxRateService"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/services/tax-rate.service.ts" sourceLine="37" packageName="@vendure/core" />
+
+Contains methods relating to [TaxRate](/reference/typescript-api/entities/tax-rate#taxrate) entities.
+
+```ts title="Signature"
+class TaxRateService {
+    constructor(connection: TransactionalConnection, eventBus: EventBus, listQueryBuilder: ListQueryBuilder, configService: ConfigService, customFieldRelationService: CustomFieldRelationService)
+    findAll(ctx: RequestContext, options?: ListQueryOptions<TaxRate>, relations?: RelationPaths<TaxRate>) => Promise<PaginatedList<TaxRate>>;
+    findOne(ctx: RequestContext, taxRateId: ID, relations?: RelationPaths<TaxRate>) => Promise<TaxRate | undefined>;
+    create(ctx: RequestContext, input: CreateTaxRateInput) => Promise<TaxRate>;
+    update(ctx: RequestContext, input: UpdateTaxRateInput) => Promise<TaxRate>;
+    delete(ctx: RequestContext, id: ID) => Promise<DeletionResponse>;
+    getApplicableTaxRate(ctx: RequestContext, zone: Zone | ID, taxCategory: TaxCategory | ID) => Promise<TaxRate>;
+}
+```
+
+<div className="members-wrapper">
+
+### findAll
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, options?: ListQueryOptions<<a href='/reference/typescript-api/entities/tax-rate#taxrate'>TaxRate</a>>, relations?: RelationPaths<<a href='/reference/typescript-api/entities/tax-rate#taxrate'>TaxRate</a>>) => Promise<<a href='/reference/typescript-api/common/paginated-list#paginatedlist'>PaginatedList</a><<a href='/reference/typescript-api/entities/tax-rate#taxrate'>TaxRate</a>>>`}   />
+
+
+### findOne
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, taxRateId: <a href='/reference/typescript-api/common/id#id'>ID</a>, relations?: RelationPaths<<a href='/reference/typescript-api/entities/tax-rate#taxrate'>TaxRate</a>>) => Promise<<a href='/reference/typescript-api/entities/tax-rate#taxrate'>TaxRate</a> | undefined>`}   />
+
+
+### create
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: CreateTaxRateInput) => Promise<<a href='/reference/typescript-api/entities/tax-rate#taxrate'>TaxRate</a>>`}   />
+
+
+### update
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: UpdateTaxRateInput) => Promise<<a href='/reference/typescript-api/entities/tax-rate#taxrate'>TaxRate</a>>`}   />
+
+
+### delete
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, id: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<DeletionResponse>`}   />
+
+
+### getApplicableTaxRate
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, zone: <a href='/reference/typescript-api/entities/zone#zone'>Zone</a> | <a href='/reference/typescript-api/common/id#id'>ID</a>, taxCategory: <a href='/reference/typescript-api/entities/tax-category#taxcategory'>TaxCategory</a> | <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/tax-rate#taxrate'>TaxRate</a>>`}   />
+
+Returns the applicable TaxRate based on the specified Zone and TaxCategory. Used when calculating Order
+prices.
+
+
+</div>

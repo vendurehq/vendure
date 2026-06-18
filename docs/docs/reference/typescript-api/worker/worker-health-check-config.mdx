@@ -1,0 +1,36 @@
+---
+title: "WorkerHealthCheckConfig"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/worker/worker-health.service.ts" sourceLine="14" packageName="@vendure/core" since="1.2.0" />
+
+Specifies the configuration for the Worker's HTTP health check endpoint.
+
+```ts title="Signature"
+interface WorkerHealthCheckConfig {
+    port: number;
+    hostname?: string;
+    route?: string;
+}
+```
+
+<div className="members-wrapper">
+
+### port
+
+<MemberInfo kind="property" type={`number`}   />
+
+The port on which the worker will listen
+### hostname
+
+<MemberInfo kind="property" type={`string`} default={`'localhost'`}   />
+
+The hostname
+### route
+
+<MemberInfo kind="property" type={`string`} default={`'/health'`}   />
+
+The route at which the health check is available.
+
+
+</div>

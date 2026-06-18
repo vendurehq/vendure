@@ -1,0 +1,20 @@
+<ng-container *ngIf="1 < availableLanguageCodes?.length">
+    <vdr-dropdown>
+        <button type="button" class="btn btn-sm" vdrDropdownTrigger [disabled]="disabled">
+            <clr-icon shape="world"></clr-icon>
+            {{ currentLanguageCode | localeLanguageName }}
+            <clr-icon shape="ellipsis-vertical"></clr-icon>
+        </button>
+        <vdr-dropdown-menu vdrPosition="bottom-right">
+            <button
+                type="button"
+                class="language-option"
+                *ngFor="let code of availableLanguageCodes"
+                (click)="languageCodeChange.emit(code)"
+                vdrDropdownItem
+            >
+                <span>{{ code | localeLanguageName }}</span><span class="code">{{ code | uppercase }}</span>
+            </button>
+        </vdr-dropdown-menu>
+    </vdr-dropdown>
+</ng-container>

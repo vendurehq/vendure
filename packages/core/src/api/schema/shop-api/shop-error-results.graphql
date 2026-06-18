@@ -1,0 +1,114 @@
+"Returned when attempting to add a Payment to an Order that is not in the `ArrangingPayment` state."
+type OrderPaymentStateError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+}
+
+"Returned when attempting to add a Payment using a PaymentMethod for which the Order is not eligible."
+type IneligiblePaymentMethodError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+    eligibilityCheckerMessage: String
+}
+
+"Returned when a Payment fails due to an error."
+type PaymentFailedError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+    paymentErrorMessage: String!
+}
+
+"Returned when a Payment is declined by the payment provider."
+type PaymentDeclinedError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+    paymentErrorMessage: String!
+}
+
+"Returned when attempting to set the Customer for an Order when already logged in."
+type AlreadyLoggedInError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+}
+
+"Returned when attempting to register or verify a customer account without a password, when one is required."
+type MissingPasswordError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+}
+
+"Returned when attempting to register or verify a customer account where the given password fails password validation."
+type PasswordValidationError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+    validationErrorMessage: String!
+}
+
+"Returned when attempting to verify a customer account with a password, when a password has already been set."
+type PasswordAlreadySetError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+}
+
+"""
+Returned if the verification token (used to verify a Customer's email address) is either
+invalid or does not match any expected tokens.
+"""
+type VerificationTokenInvalidError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+}
+
+"""
+Returned if the verification token (used to verify a Customer's email address) is valid, but has
+expired according to the `verificationTokenDuration` setting in the AuthOptions.
+"""
+type VerificationTokenExpiredError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+}
+
+"""
+Returned if the token used to change a Customer's email address is either
+invalid or does not match any expected tokens.
+"""
+type IdentifierChangeTokenInvalidError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+}
+
+"""
+Returned if the token used to change a Customer's email address is valid, but has
+expired according to the `verificationTokenDuration` setting in the AuthOptions.
+"""
+type IdentifierChangeTokenExpiredError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+}
+
+"""
+Returned if the token used to reset a Customer's password is either
+invalid or does not match any expected tokens.
+"""
+type PasswordResetTokenInvalidError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+}
+
+"""
+Returned if the token used to reset a Customer's password is valid, but has
+expired according to the `verificationTokenDuration` setting in the AuthOptions.
+"""
+type PasswordResetTokenExpiredError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+}
+
+"""
+Returned if `authOptions.requireVerification` is set to `true` (which is the default)
+and an unverified user attempts to authenticate.
+"""
+type NotVerifiedError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+}

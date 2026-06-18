@@ -1,0 +1,125 @@
+---
+title: "Product"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/product/product.entity.ts" sourceLine="26" packageName="@vendure/core" />
+
+A Product contains one or more [ProductVariant](/reference/typescript-api/entities/product-variant#productvariant)s and serves as a container for those variants,
+providing an overall name, description etc.
+
+```ts title="Signature"
+class Product extends VendureEntity implements Translatable, HasCustomFields, ChannelAware, SoftDeletable {
+    constructor(input?: DeepPartial<Product>)
+    @Column({ type: Date, nullable: true })
+    deletedAt: Date | null;
+    name: LocaleString;
+    slug: LocaleString;
+    description: LocaleString;
+    @Column({ default: true })
+    enabled: boolean;
+    @Index()
+    @ManyToOne(type => Asset, asset => asset.featuredInProducts, { onDelete: 'SET NULL' })
+    featuredAsset: Asset;
+    @EntityId({ nullable: true })
+    featuredAssetId: ID;
+    @OneToMany(type => ProductAsset, productAsset => productAsset.product)
+    assets: ProductAsset[];
+    @OneToMany(type => ProductTranslation, translation => translation.base, { eager: true })
+    translations: Array<Translation<Product>>;
+    @OneToMany(type => ProductVariant, variant => variant.product)
+    variants: ProductVariant[];
+    @ManyToMany(type => ProductOptionGroup, optionGroup => optionGroup.products)
+    @JoinTable()
+    optionGroups: ProductOptionGroup[];
+    @ManyToMany(type => FacetValue, facetValue => facetValue.products)
+    @JoinTable()
+    facetValues: FacetValue[];
+    @ManyToMany(type => Channel, channel => channel.products)
+    @JoinTable()
+    channels: Channel[];
+    @Column(type => CustomProductFields)
+    customFields: CustomProductFields;
+}
+```
+* Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
+
+
+* Implements: [`Translatable`](/reference/typescript-api/entities/interfaces#translatable), HasCustomFields, [`ChannelAware`](/reference/typescript-api/entities/interfaces#channelaware), [`SoftDeletable`](/reference/typescript-api/entities/interfaces#softdeletable)
+
+
+
+<div className="members-wrapper">
+
+### deletedAt
+
+<MemberInfo kind="property" type={`Date | null`}   />
+
+
+### name
+
+<MemberInfo kind="property" type={`LocaleString`}   />
+
+
+### slug
+
+<MemberInfo kind="property" type={`LocaleString`}   />
+
+
+### description
+
+<MemberInfo kind="property" type={`LocaleString`}   />
+
+
+### enabled
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+
+### featuredAsset
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/asset#asset'>Asset</a>`}   />
+
+
+### featuredAssetId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
+
+
+### assets
+
+<MemberInfo kind="property" type={`ProductAsset[]`}   />
+
+
+### translations
+
+<MemberInfo kind="property" type={`Array<Translation<<a href='/reference/typescript-api/entities/product#product'>Product</a>>>`}   />
+
+
+### variants
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>[]`}   />
+
+
+### optionGroups
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/product-option-group#productoptiongroup'>ProductOptionGroup</a>[]`}   />
+
+
+### facetValues
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/facet-value#facetvalue'>FacetValue</a>[]`}   />
+
+
+### channels
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>[]`}   />
+
+
+### customFields
+
+<MemberInfo kind="property" type={`CustomProductFields`}   />
+
+
+
+
+</div>

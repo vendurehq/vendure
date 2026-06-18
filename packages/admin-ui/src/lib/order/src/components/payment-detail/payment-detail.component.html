@@ -1,0 +1,15 @@
+<vdr-labeled-data [label]="'order.payment-method' | translate">
+    {{ payment.method }}
+</vdr-labeled-data>
+<vdr-labeled-data [label]="'order.amount' | translate">
+    {{ payment.amount | localeCurrency: currencyCode }}
+</vdr-labeled-data>
+<vdr-labeled-data *ngIf="payment.errorMessage" [label]="'order.error-message' | translate">
+    {{ payment.errorMessage }}
+</vdr-labeled-data>
+<vdr-labeled-data *ngIf="payment.transactionId" [label]="'order.transaction-id' | translate">
+    {{ payment.transactionId }}
+</vdr-labeled-data>
+<vdr-labeled-data [label]="'order.payment-metadata' | translate">
+    <vdr-object-tree [value]="payment.metadata"></vdr-object-tree>
+</vdr-labeled-data>

@@ -1,0 +1,248 @@
+<vdr-page-block>
+    <vdr-action-bar>
+        <vdr-ab-left> </vdr-ab-left>
+
+        <vdr-ab-right>
+            <vdr-action-bar-items locationId="customer-detail"></vdr-action-bar-items>
+            <button
+                class="btn btn-primary"
+                *ngIf="isNew$ | async; else updateButton"
+                (click)="create()"
+                [disabled]="!(addressDefaultsUpdated || (detailForm.valid && detailForm.dirty))"
+            >
+                {{ 'common.create' | translate }}
+            </button>
+            <ng-template #updateButton>
+                <button
+                    *vdrIfPermissions="'UpdateCustomer'"
+                    class="btn btn-primary"
+                    (click)="save()"
+                    [disabled]="!(addressDefaultsUpdated || (detailForm.valid && detailForm.dirty))"
+                >
+                    {{ 'common.update' | translate }}
+                </button>
+            </ng-template>
+            <vdr-action-bar-dropdown-menu locationId="customer-detail" />
+        </vdr-ab-right>
+    </vdr-action-bar>
+</vdr-page-block>
+<vdr-page-detail-layout>
+    <vdr-page-detail-sidebar>
+        <vdr-card *ngIf="entity$ | async as customer">
+            <vdr-customer-status-label [customer]="customer"></vdr-customer-status-label>
+            <vdr-labeled-data
+                class="last-login"
+                *ngIf="customer.user?.lastLogin as lastLogin"
+                [label]="'customer.last-login' | translate"
+            >
+                <time [dateTime]="lastLogin">{{ lastLogin | timeAgo }}</time>
+            </vdr-labeled-data>
+        </vdr-card>
+        <vdr-card
+            [title]="'customer.customer-groups' | translate"
+            *ngIf="(entity$ | async)?.groups as groups"
+        >
+            <div *ngIf="groups.length; else noGroups">
+                <vdr-chip
+                    *ngFor="let group of groups"
+                    [colorFrom]="group.id"
+                    icon="times"
+                    (iconClick)="removeFromGroup(group)"
+                    >{{ group.name }}</vdr-chip
+                >
+            </div>
+            <ng-template #noGroups>
+                <span class="color-weight-400">
+                    {{ 'customer.not-a-member-of-any-groups' | translate }}
+                </span>
+            </ng-template>
+            <div>
+                <button
+                    class="button-small mt-1"
+                    (click)="addToGroup()"
+                    *vdrIfPermissions="'UpdateCustomerGroup'"
+                >
+                    <clr-icon shape="plus"></clr-icon>
+                    {{ 'customer.add-customer-to-group' | translate }}
+                </button>
+            </div>
+        </vdr-card>
+        <vdr-card>
+            <vdr-page-entity-info *ngIf="entity$ | async as entity" [entity]="entity" />
+        </vdr-card>
+    </vdr-page-detail-sidebar>
+    <vdr-page-block>
+        <form class="form" [formGroup]="detailForm.get('customer')">
+            <vdr-card>
+                <div class="form-grid">
+                    <vdr-form-field
+                        [label]="'customer.title' | translate"
+                        for="title"
+                        [readOnlyToggle]="!(isNew$ | async)"
+                    >
+                        <input id="title" type="text" formControlName="title" />
+                    </vdr-form-field>
+                    <div><!-- spacer --></div>
+                    <vdr-form-field
+                        [label]="'customer.first-name' | translate"
+                        for="firstName"
+                        [readOnlyToggle]="!(isNew$ | async)"
+                    >
+                        <input id="firstName" type="text" formControlName="firstName" />
+                    </vdr-form-field>
+                    <vdr-form-field
+                        [label]="'customer.last-name' | translate"
+                        for="lastName"
+                        [readOnlyToggle]="!(isNew$ | async)"
+                    >
+                        <input id="lastName" type="text" formControlName="lastName" />
+                    </vdr-form-field>
+                    <vdr-form-field
+                        [label]="'customer.email-address' | translate"
+                        for="emailAddress"
+                        [readOnlyToggle]="!(isNew$ | async)"
+                    >
+                        <input id="emailAddress" type="text" formControlName="emailAddress" />
+                    </vdr-form-field>
+                    <vdr-form-field
+                        [label]="'customer.phone-number' | translate"
+                        for="phoneNumber"
+                        [readOnlyToggle]="!(isNew$ | async)"
+                    >
+                        <input id="phoneNumber" type="text" formControlName="phoneNumber" />
+                    </vdr-form-field>
+                    <vdr-form-field
+                        [label]="'customer.password' | translate"
+                        for="password"
+                        *ngIf="isNew$ | async"
+                    >
+                        <input id="password" type="password" formControlName="password" />
+                    </vdr-form-field>
+                </div>
+            </vdr-card>
+            <vdr-card
+                formGroupName="customFields"
+                *ngIf="customFields.length"
+                [title]="'common.custom-fields' | translate"
+            >
+                <vdr-tabbed-custom-fields
+                    entityName="Customer"
+                    [customFields]="customFields"
+                    [customFieldsFormGroup]="detailForm.get('customer.customFields')"
+                ></vdr-tabbed-custom-fields>
+            </vdr-card>
+        </form>
+        <vdr-custom-detail-component-host
+            locationId="customer-detail"
+            [entity$]="entity$"
+            [detailForm]="detailForm"
+        ></vdr-custom-detail-component-host>
+        <ng-container *ngIf="!(isNew$ | async)">
+            <vdr-card [title]="'customer.addresses' | translate">
+                <div class="form-grid">
+                    <vdr-address-card
+                        *ngFor="let addressForm of getAddressFormControls()"
+                        [class.to-delete]="addressesToDeleteIds.has(addressForm.value.id)"
+                        [availableCountries]="availableCountries$ | async"
+                        [isDefaultBilling]="defaultBillingAddressId === addressForm.value.id"
+                        [isDefaultShipping]="defaultShippingAddressId === addressForm.value.id"
+                        [addressForm]="addressForm"
+                        [customFields]="addressCustomFields"
+                        [editable]="
+                            (['UpdateCustomer'] | hasPermission) &&
+                            !addressesToDeleteIds.has(addressForm.value.id)
+                        "
+                        (setAsDefaultBilling)="setDefaultBillingAddressId($event)"
+                        (setAsDefaultShipping)="setDefaultShippingAddressId($event)"
+                        (deleteAddress)="toggleDeleteAddress($event)"
+                    ></vdr-address-card>
+                </div>
+                <button
+                    class="btn btn-secondary mt-2"
+                    (click)="addAddress()"
+                    *vdrIfPermissions="'UpdateCustomer'"
+                >
+                    <clr-icon shape="plus"></clr-icon>
+                    {{ 'customer.create-new-address' | translate }}
+                </button>
+            </vdr-card>
+            <vdr-card [title]="'customer.orders' | translate" [paddingX]="false">
+                <vdr-data-table-2
+                    id="customer-order-list"
+                    [items]="orders$ | async"
+                    [itemsPerPage]="ordersPerPage"
+                    [totalItems]="ordersCount$ | async"
+                    [currentPage]="currentOrdersPage"
+                    [emptyStateLabel]="'customer.no-orders-placed' | translate"
+                    (itemsPerPageChange)="setOrderItemsPerPage($event)"
+                    (pageChange)="setOrderCurrentPage($event)"
+                >
+                    <vdr-dt2-column [heading]="'common.id' | translate" id="id" [hiddenByDefault]="true">
+                        <ng-template let-order="item">
+                            {{ order.id }}
+                        </ng-template>
+                    </vdr-dt2-column>
+                    <vdr-dt2-column
+                        [heading]="'common.created-at' | translate"
+                        id="created-at"
+                        [hiddenByDefault]="true"
+                    >
+                        <ng-template let-order="item">
+                            {{ order.createdAt | localeDate : 'short' }}
+                        </ng-template>
+                    </vdr-dt2-column>
+                    <vdr-dt2-column [heading]="'common.code' | translate" id="code" [optional]="false">
+                        <ng-template let-order="item">
+                            <a class="button-ghost" [routerLink]="['/orders', order.id]"
+                                ><span>{{ order.code }}</span>
+                                <clr-icon shape="arrow right"></clr-icon>
+                            </a>
+                        </ng-template>
+                    </vdr-dt2-column>
+                    <vdr-dt2-column
+                        [heading]="'order.order-type' | translate"
+                        id="order-type"
+                        [hiddenByDefault]="true"
+                    >
+                        <ng-template let-order="item">
+                            <vdr-chip>{{ order.type }}</vdr-chip>
+                        </ng-template>
+                    </vdr-dt2-column>
+                    <vdr-dt2-column [heading]="'order.state' | translate" id="state">
+                        <ng-template let-order="item">
+                            <vdr-order-state-label [state]="order.state"></vdr-order-state-label>
+                        </ng-template>
+                    </vdr-dt2-column>
+                    <vdr-dt2-column [heading]="'order.total' | translate" id="total">
+                        <ng-template let-order="item">
+                            {{ order.totalWithTax | localeCurrency : order.currencyCode }}
+                        </ng-template>
+                    </vdr-dt2-column>
+                    <vdr-dt2-column [heading]="'common.updated-at' | translate" id="updated-at">
+                        <ng-template let-order="item">
+                            {{ order.updatedAt | timeAgo }}
+                        </ng-template>
+                    </vdr-dt2-column>
+                    <vdr-dt2-column [heading]="'order.placed-at' | translate" id="placed-at">
+                        <ng-template let-order="item">
+                            {{ order.orderPlacedAt | localeDate : 'short' }}
+                        </ng-template>
+                    </vdr-dt2-column>
+                    <vdr-dt2-custom-field-column
+                        *ngFor="let customField of customFields"
+                        [customField]="customField"
+                    />
+                </vdr-data-table-2>
+            </vdr-card>
+            <vdr-card [title]="'customer.customer-history' | translate">
+                <vdr-customer-history
+                    [customer]="entity$ | async"
+                    [history]="history$ | async"
+                    (addNote)="addNoteToCustomer($event)"
+                    (updateNote)="updateNote($event)"
+                    (deleteNote)="deleteNote($event)"
+                ></vdr-customer-history>
+            </vdr-card>
+        </ng-container>
+    </vdr-page-block>
+</vdr-page-detail-layout>

@@ -1,0 +1,31 @@
+type Query {
+  sellers(options: SellerListOptions): SellerList!
+  seller(id: ID!): Seller
+}
+
+type Mutation {
+  "Create a new Seller"
+  createSeller(input: CreateSellerInput!): Seller!
+  "Update an existing Seller"
+  updateSeller(input: UpdateSellerInput!): Seller!
+  "Delete a Seller"
+  deleteSeller(id: ID!): DeletionResponse!
+  "Delete multiple Sellers"
+  deleteSellers(ids: [ID!]!): [DeletionResponse!]!
+}
+
+type SellerList implements PaginatedList {
+    items: [Seller!]!
+    totalItems: Int!
+}
+
+input SellerListOptions
+
+input CreateSellerInput {
+    name: String!
+}
+
+input UpdateSellerInput {
+    id: ID!
+    name: String
+}

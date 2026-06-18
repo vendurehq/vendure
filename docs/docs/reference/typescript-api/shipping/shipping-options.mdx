@@ -1,0 +1,58 @@
+---
+title: "ShippingOptions"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="841" packageName="@vendure/core" />
+
+
+
+```ts title="Signature"
+interface ShippingOptions {
+    shippingEligibilityCheckers?: Array<ShippingEligibilityChecker<any>>;
+    shippingCalculators?: Array<ShippingCalculator<any>>;
+    shippingLineAssignmentStrategy?: ShippingLineAssignmentStrategy;
+    customFulfillmentProcess?: Array<FulfillmentProcess<any>>;
+    process?: Array<FulfillmentProcess<any>>;
+    fulfillmentHandlers?: Array<FulfillmentHandler<any>>;
+}
+```
+
+<div className="members-wrapper">
+
+### shippingEligibilityCheckers
+
+<MemberInfo kind="property" type={`Array<<a href='/reference/typescript-api/shipping/shipping-eligibility-checker#shippingeligibilitychecker'>ShippingEligibilityChecker</a><any>>`}   />
+
+An array of available ShippingEligibilityCheckers for use in configuring ShippingMethods
+### shippingCalculators
+
+<MemberInfo kind="property" type={`Array<<a href='/reference/typescript-api/shipping/shipping-calculator#shippingcalculator'>ShippingCalculator</a><any>>`}   />
+
+An array of available ShippingCalculators for use in configuring ShippingMethods
+### shippingLineAssignmentStrategy
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/shipping/shipping-line-assignment-strategy#shippinglineassignmentstrategy'>ShippingLineAssignmentStrategy</a>`}  since="2.0.0"  />
+
+This strategy is used to assign a given [ShippingLine](/reference/typescript-api/entities/shipping-line#shippingline) to one or more [OrderLine](/reference/typescript-api/entities/order-line#orderline)s of the Order.
+This allows you to set multiple shipping methods for a single order, each assigned a different subset of
+OrderLines.
+### customFulfillmentProcess
+
+<MemberInfo kind="property" type={`Array<<a href='/reference/typescript-api/fulfillment/fulfillment-process#fulfillmentprocess'>FulfillmentProcess</a><any>>`}   />
+
+Allows the definition of custom states and transition logic for the fulfillment process state machine.
+Takes an array of objects implementing the [FulfillmentProcess](/reference/typescript-api/fulfillment/fulfillment-process#fulfillmentprocess) interface.
+### process
+
+<MemberInfo kind="property" type={`Array<<a href='/reference/typescript-api/fulfillment/fulfillment-process#fulfillmentprocess'>FulfillmentProcess</a><any>>`} default={`<a href='/reference/typescript-api/fulfillment/fulfillment-process#defaultfulfillmentprocess'>defaultFulfillmentProcess</a>`}  since="2.0.0"  />
+
+Allows the definition of custom states and transition logic for the fulfillment process state machine.
+Takes an array of objects implementing the [FulfillmentProcess](/reference/typescript-api/fulfillment/fulfillment-process#fulfillmentprocess) interface.
+### fulfillmentHandlers
+
+<MemberInfo kind="property" type={`Array<<a href='/reference/typescript-api/fulfillment/fulfillment-handler#fulfillmenthandler'>FulfillmentHandler</a><any>>`}   />
+
+An array of available FulfillmentHandlers.
+
+
+</div>

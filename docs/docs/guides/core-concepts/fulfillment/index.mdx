@@ -1,0 +1,60 @@
+---
+title: "Fulfillment"
+metaTitle: "Fulfillments and Delivery Tracking in Vendure"
+metaDescription: "Learn how Vendure models fulfillments for physical and digital goods, the fulfillment state machine, partial fulfillment, and pluggable FulfillmentHandlers."
+---
+
+A [`Fulfillment`](/reference/typescript-api/entities/fulfillment/) represents the delivery of items from an order to the customer. Once an order has been paid for, one or more fulfillments are created to track the shipment (or digital delivery) of the purchased items.
+
+## Physical vs. digital fulfillment
+
+Fulfillments are not limited to physical shipments. The same model works for any type of delivery:
+
+- **Physical goods** — A fulfillment represents a package with a tracking code, shipped via a carrier like UPS or FedEx.
+- **Digital goods** — A fulfillment might represent a download link, a license key, or access credentials sent to the customer.
+
+The flexibility comes from the **FulfillmentHandler**, which defines what actually happens when a fulfillment is created. The handler for physical goods might call a carrier's API to generate a shipping label, while a handler for digital goods might generate a download token.
+
+## Fulfillment state machine
+
+Each fulfillment progresses through a state machine with the following default states:
+
+- **Pending** — The fulfillment has been created but not yet shipped or delivered.
+- **Shipped** — The items are in transit (for physical goods) or have been dispatched (for digital goods).
+- **Delivered** — The items have arrived at their destination.
+- **Cancelled** — The fulfillment was cancelled before delivery.
+
+Like the [order state machine](/core-concepts/orders/), the fulfillment state machine can be extended with custom states and transitions to match your operational workflow — for example, adding a "Packed" state between Pending and Shipped, or a "ReturnInitiated" state after Delivered.
+
+## Partial fulfillment
+
+A single order can have **multiple fulfillments**. This is necessary when:
+
+- Items ship from different warehouses or locations.
+- Some items are available immediately while others are backordered.
+- Physical and digital items are delivered through different mechanisms.
+
+Each fulfillment tracks which [`OrderLines`](/reference/typescript-api/entities/order-line/) (and quantities) it covers. An order is only considered fully fulfilled when every line has been accounted for across all its fulfillments.
+
+## FulfillmentHandlers
+
+A [`FulfillmentHandler`](/reference/typescript-api/fulfillment/fulfillment-handler/) is a pluggable component that defines the logic for creating a fulfillment. When an administrator creates a fulfillment in the Admin UI or via the Admin API, they select a handler and provide any required arguments (such as a tracking code).
+
+The handler's `onFulfillmentTransition` hook can also execute logic when the fulfillment changes state — for example, sending a shipping notification email when the state transitions to "Shipped", or triggering a webhook to an external logistics system.
+
+Vendure includes a basic `manualFulfillmentHandler` out of the box, which simply records a tracking code and method. For production use, you would typically implement custom handlers that integrate with your shipping carriers or digital delivery systems.
+
+## Fulfillment and order state
+
+The creation and progression of fulfillments is tightly linked to the [order state machine](/core-concepts/orders/). When all items in an order have been assigned to fulfillments that have reached the "Shipped" state, the order itself can transition to "Shipped". Likewise, when all fulfillments reach "Delivered", the order transitions to "Delivered".
+
+If only some items have been fulfilled, the order remains in a partially-fulfilled state until the remaining items are accounted for. This relationship between fulfillment states and order states is managed automatically by Vendure.
+
+## Integration with shipping
+
+Fulfillments are related to but distinct from [shipping methods](/core-concepts/shipping/). A shipping method determines _how_ an order will be delivered and at what cost (calculated during checkout). A fulfillment is the actual record of delivery _after_ the order has been placed. The selected shipping method influences which fulfillment handler is available, but the two are separate concepts.
+
+## Related topics
+
+- [Orders](/core-concepts/orders/) — The order lifecycle and how fulfillments fit in
+- [Shipping](/core-concepts/shipping/) — Shipping methods, eligibility, and cost calculation

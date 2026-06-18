@@ -1,0 +1,74 @@
+---
+title: "FormFieldWrapper"
+generated: true
+---
+## FormFieldWrapper
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/form-field-wrapper.tsx" sourceLine="75" packageName="@vendure/dashboard" since="3.4.0" />
+
+This is a wrapper that can be used in all forms to wrap the actual form control, and provide a label, description and error message.
+
+Use this instead of raw Controller + Field primitives, as it also supports
+overridden form components.
+
+*Example*
+
+```tsx
+<PageBlock column="main" blockId="main-form">
+    <DetailFormGrid>
+        <FormFieldWrapper
+            control={form.control}
+            name="description"
+            label={<Trans>Description</Trans>}
+            render={({ field }) => <Input {...field} />}
+        />
+        <FormFieldWrapper
+            control={form.control}
+            name="code"
+            label={<Trans>Code</Trans>}
+            render={({ field }) => <Input {...field} />}
+        />
+    </DetailFormGrid>
+</PageBlock>
+```
+
+If you are dealing with translatable fields, use the [TranslatableFormFieldWrapper](/reference/dashboard/form-components/translatable-form-field-wrapper#translatableformfieldwrapper) component instead.
+
+```ts title="Signature"
+function FormFieldWrapper<TFieldValues extends FieldValues = FieldValues, TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>>(props: FormFieldWrapperProps<TFieldValues, TName>): void
+```
+Parameters
+
+### props
+
+<MemberInfo kind="parameter" type={`<a href='/reference/dashboard/form-components/form-field-wrapper#formfieldwrapperprops'>FormFieldWrapperProps</a><TFieldValues, TName>`} />
+
+## FormFieldWrapperProps
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/form-field-wrapper.tsx" sourceLine="16" packageName="@vendure/dashboard" since="3.4.0" />
+
+The props for the FormFieldWrapper component.
+
+```ts title="Signature"
+type FormFieldWrapperProps<TFieldValues extends FieldValues = FieldValues, TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>> = ControllerProps<TFieldValues, TName> & {
+    /**
+     * @description
+     * The label for the form field.
+     */
+    label?: React.ReactNode;
+    /**
+     * @description
+     * The description for the form field.
+     */
+    description?: React.ReactNode;
+    /**
+     * @description
+     * Whether to inject `id` and `aria-invalid` props onto the rendered form control.
+     * If false, the rendered element is used as-is without prop injection.
+     * This is useful for components like `<Select/>` that manage their own trigger element.
+     *
+     * @default true
+     */
+    renderFormControl?: boolean;
+}
+```

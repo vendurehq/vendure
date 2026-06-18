@@ -1,0 +1,41 @@
+---
+title: "TaxOptions"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="954" packageName="@vendure/core" />
+
+
+
+```ts title="Signature"
+interface TaxOptions {
+    taxZoneStrategy?: TaxZoneStrategy;
+    taxLineCalculationStrategy?: TaxLineCalculationStrategy;
+    orderTaxCalculationStrategy?: OrderTaxCalculationStrategy;
+}
+```
+
+<div className="members-wrapper">
+
+### taxZoneStrategy
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/tax/tax-zone-strategy#taxzonestrategy'>TaxZoneStrategy</a>`} default={`<a href='/reference/typescript-api/tax/default-tax-zone-strategy#defaulttaxzonestrategy'>DefaultTaxZoneStrategy</a>`}   />
+
+Defines the strategy used to determine the applicable Zone used in tax calculations.
+### taxLineCalculationStrategy
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/tax/tax-line-calculation-strategy#taxlinecalculationstrategy'>TaxLineCalculationStrategy</a>`} default={`<a href='/reference/typescript-api/tax/default-tax-line-calculation-strategy#defaulttaxlinecalculationstrategy'>DefaultTaxLineCalculationStrategy</a>`}   />
+
+Defines the strategy used to calculate the TaxLines added to OrderItems.
+### orderTaxCalculationStrategy
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/tax/order-tax-calculation-strategy#ordertaxcalculationstrategy'>OrderTaxCalculationStrategy</a>`} default={`<a href='/reference/typescript-api/tax/order-tax-calculation-strategy#defaultordertaxcalculationstrategy'>DefaultOrderTaxCalculationStrategy</a>`}  since="3.6.0"  />
+
+Defines how order-level tax totals and the tax summary are calculated.
+
+The default strategy rounds tax at the individual line level and then sums
+(per-line rounding). The [OrderLevelTaxCalculationStrategy](/reference/typescript-api/tax/order-tax-calculation-strategy#orderleveltaxcalculationstrategy) alternative
+groups net subtotals by tax rate and rounds once per group (per-total rounding),
+which is required by certain jurisdictions and ERP systems.
+
+
+</div>

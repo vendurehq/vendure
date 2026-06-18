@@ -1,0 +1,42 @@
+type Query {
+    zones(options: ZoneListOptions): ZoneList!
+    zone(id: ID!): Zone
+}
+
+type ZoneList implements PaginatedList {
+    items: [Zone!]!
+    totalItems: Int!
+}
+
+input ZoneListOptions
+
+
+type Mutation {
+    "Create a new Zone"
+    createZone(input: CreateZoneInput!): Zone!
+
+    "Update an existing Zone"
+    updateZone(input: UpdateZoneInput!): Zone!
+
+    "Delete a Zone"
+    deleteZone(id: ID!): DeletionResponse!
+
+    "Delete a Zone"
+    deleteZones(ids: [ID!]!): [DeletionResponse!]!
+
+    "Add members to a Zone"
+    addMembersToZone(zoneId: ID!, memberIds: [ID!]!): Zone!
+
+    "Remove members from a Zone"
+    removeMembersFromZone(zoneId: ID!, memberIds: [ID!]!): Zone!
+}
+
+input CreateZoneInput {
+    name: String!
+    memberIds: [ID!]
+}
+
+input UpdateZoneInput {
+    id: ID!
+    name: String
+}

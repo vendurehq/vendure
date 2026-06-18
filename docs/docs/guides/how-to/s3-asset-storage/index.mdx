@@ -1,0 +1,565 @@
+---
+title: "Integrating S3-Compatible Asset Storage"
+metaTitle: "S3-Compatible Asset Storage for Vendure"
+metaDescription: "Configure Vendure's AssetServerPlugin for S3-compatible storage with AWS S3, DigitalOcean Spaces, CloudFlare R2, MinIO, Supabase, and Hetzner."
+---
+
+This guide demonstrates how to integrate S3-compatible asset storage into your Vendure application using multiple cloud storage platforms. You'll learn to configure a single, platform-agnostic storage solution that works seamlessly with AWS S3, DigitalOcean Spaces, MinIO, CloudFlare R2, and Supabase Storage.
+
+## Working Example Repository
+
+:::info
+This guide is based on the [s3-file-storage](https://github.com/vendurehq/examples/tree/publish/examples/s3-file-storage) example.
+Refer to the complete working code for full implementation details.
+:::
+
+## Prerequisites
+
+- Node.js 20+ with npm package manager
+- An existing Vendure project created with the [Vendure create command](/getting-started/installation/)
+- An account with one of the supported S3-compatible storage providers
+
+## S3-Compatible Storage Provider Setup
+
+Configure your chosen storage provider by following the setup instructions for your preferred platform:
+
+<Tabs>
+<TabItem value="aws-s3" label="AWS S3">
+
+### Setting up AWS S3
+
+1. **Create an S3 Bucket**
+   - Navigate to [AWS S3 Console](https://console.aws.amazon.com/s3/)
+   - Click "Create bucket"
+   - Enter a unique bucket name (e.g., `my-vendure-assets`)
+   - Choose your preferred AWS region
+   - Configure permissions as needed for public asset access
+
+2. **Create IAM User with S3 Permissions**
+   - Go to [AWS IAM Console](https://console.aws.amazon.com/iam/)
+   - Navigate to "Users" and click "Create user"
+   - Enter username and proceeed to `Set Permissions`
+   - Select the `Attach existing policies directly` option
+   - Attach the `AmazonS3FullAccess` policy (or create a custom policy with minimal permissions)
+
+3. **Generate Access Keys**
+   - After creating the user, click on the user name
+   - Go to "Security credentials" tab
+   - Click "Create access key" and select "Application running on AWS service"
+   - Copy the Access Key ID and Secret Access Key (Download the CSV file if needed)
+
+4. **Environment Variables**
+
+   ```bash
+   # AWS S3 Configuration
+   S3_BUCKET=my-vendure-assets
+   S3_ACCESS_KEY_ID=AKIA...
+   S3_SECRET_ACCESS_KEY=wJalrXUtn...
+   S3_REGION=us-east-1
+   # Leave S3_ENDPOINT empty for AWS S3
+   # Leave S3_FORCE_PATH_STYLE empty for AWS S3
+   ```
+
+   ![AWS S3 Setup](https://cdn.vendure.io/learn/s3-guides/aws-bucket-iam.gif)
+
+</TabItem>
+<TabItem value="supabase" label="Supabase Storage">
+
+### Setting up Supabase S3 Storage
+
+1. **Create Supabase Project**
+   - Sign up at [Supabase](https://supabase.com/)
+   - Click "New project" and fill in project details
+   - Wait for project initialization to complete
+
+2. **Navigate to Storage**
+   - Go to "Storage" section in your project dashboard
+   - Click "Create a new bucket"
+   - Enter bucket name: `assets` (or your preferred name)
+   - Configure bucket to be public if you need direct asset access
+   - Click "Create bucket"
+
+3. **Generate Service Role Key**
+   - Navigate to "Settings" → "API"
+   - Copy your **Project URL** and **Project Reference ID**
+   - Copy the **service_role** key (keep this secure)
+   - The service_role key provides full access to your project
+
+4. **Environment Variables**
+
+   ```bash
+   # Supabase Storage Configuration
+   S3_BUCKET=assets
+   S3_ACCESS_KEY_ID=your-supabase-access-key-id
+   S3_SECRET_ACCESS_KEY=your-service-role-key
+   S3_REGION=us-east-1
+   S3_ENDPOINT=https://your-project-ref.supabase.co/storage/v1/s3
+   S3_FORCE_PATH_STYLE=true
+   ```
+
+   :::info
+   Replace `your-project-ref` with your actual Supabase project reference ID found in your project settings.
+   :::
+
+   ![Supabase Storage Setup](https://cdn.vendure.io/learn/s3-guides/Supabase-create-bucket.gif)
+
+</TabItem>
+<TabItem value="digitalocean" label="DigitalOcean Spaces">
+
+### Setting up DigitalOcean Spaces
+
+1. **Create a DigitalOcean Account**
+   - Sign up at [DigitalOcean](https://www.digitalocean.com/)
+   - Navigate to the Spaces section in your dashboard
+
+2. **Create a Space**
+   - Click "Create a Space"
+   - Choose your datacenter region (e.g., `fra1` for Frankfurt)
+   - Enter a unique Space name (e.g., `my-vendure-assets`)
+   - Choose File Listing permissions based on your needs
+   - Optionally enable CDN to improve global asset delivery
+
+3. **Generate Spaces Access Keys**
+   - Go to [API Tokens page](https://cloud.digitalocean.com/account/api/tokens)
+   - Click "Generate New Key" in the Spaces Keys section
+   - Enter a name for your key
+   - Copy the generated Key and Secret
+
+4. **Configure CORS Policy (Optional)**
+   For browser-based uploads, configure CORS in your Space settings:
+
+   ```json
+   [
+     {
+       "allowed_origins": ["https://yourdomain.com"],
+       "allowed_methods": ["GET", "POST", "PUT"],
+       "allowed_headers": ["*"],
+       "max_age": 3000
+     }
+   ]
+   ```
+
+5. **Environment Variables**
+
+   ```bash
+   # DigitalOcean Spaces Configuration
+   S3_BUCKET=my-vendure-assets
+   S3_ACCESS_KEY_ID=DO00...
+   S3_SECRET_ACCESS_KEY=wJalrXUtn...
+   S3_REGION=fra1
+   S3_ENDPOINT=https://fra1.digitaloceanspaces.com
+   S3_FORCE_PATH_STYLE=false
+   ```
+
+   :::tip
+   Use the regional endpoint (e.g., `https://fra1.digitaloceanspaces.com`) not the CDN endpoint. The AWS SDK constructs URLs automatically.
+   :::
+
+   ![DigitalOcean Spaces Setup](https://cdn.vendure.io/learn/s3-guides/digital-ocean-create-bucket.gif)
+
+</TabItem>
+<TabItem value="cloudflare-r2" label="CloudFlare R2">
+
+### Setting up CloudFlare R2
+
+1. **Create CloudFlare Account**
+   - Sign up at [CloudFlare](https://www.cloudflare.com/)
+   - Complete account verification process
+
+2. **Enable R2 Object Storage**
+   - Navigate to R2 Object Storage in your dashboard
+   - You may need to provide payment information (R2 has generous free tier)
+   - Accept the R2 terms of service
+
+3. **Create R2 Bucket**
+   - Click "Create bucket"
+   - Enter a globally unique bucket name: `vendure-assets`
+   - Select "Automatic" for location optimization
+   - Choose "Standard" storage class for most use cases
+   - Click "Create bucket" to finalize
+
+4. **Generate API Tokens**
+   - Go to "Manage R2 API tokens" section
+   - Click "Create API token"
+   - Configure token name: "Vendure R2 Token"
+   - Under Permissions, select "Object Read & Write"
+   - Optionally restrict to specific buckets under "Account resources"
+   - Click "Create API token"
+
+5. **Retrieve Credentials**
+   - Copy the **Access Key ID** and **Secret Access Key**
+   - Copy the **jurisdiction-specific endpoint** for S3 clients
+   - Note your **account ID** from the URL or dashboard
+
+6. **Environment Variables**
+
+   ```bash
+   # CloudFlare R2 Configuration
+   S3_BUCKET=vendure-assets
+   S3_ACCESS_KEY_ID=your-r2-access-key
+   S3_SECRET_ACCESS_KEY=your-r2-secret-key
+   S3_REGION=auto
+   S3_ENDPOINT=https://your-account-id.r2.cloudflarestorage.com
+   S3_FORCE_PATH_STYLE=true
+   ```
+
+   :::warning
+   Replace `your-account-id` with your actual CloudFlare account ID. If using a custom domain, update `S3_FILE_URL` to point to your custom domain with `https://`.
+   :::
+
+   ![CloudFlare R2 Setup](https://cdn.vendure.io/learn/s3-guides/cloudflareR2-bucket.gif)
+
+</TabItem>
+<TabItem value="hetzner" label="Hetzner Object Storage">
+
+### Setting up Hetzner Object Storage
+
+1. **Create Hetzner Cloud Account**
+   - Sign up at [Hetzner Cloud](https://www.hetzner.com/cloud)
+   - Complete account verification and billing setup
+   - Navigate to the Hetzner Cloud Console
+
+2. **Access Object Storage Service**
+   - In the Hetzner Cloud Console, navigate to **"Object Storage"** in the left sidebar
+   - If Object Storage is not visible, you may need to request access (service availability varies by region)
+   - Accept the Object Storage terms of service when prompted
+
+3. **Create Storage Bucket**
+   - Click **"Create Bucket"** in the Object Storage section
+   - Enter a globally unique bucket name (e.g., `vendure-assets-yourname`)
+   - Select your preferred location (e.g., `fsn1` for Falkenstein, Germany)
+   - Choose bucket visibility:
+     - **Private**: Requires authentication for all access
+     - **Public**: Allows public read access for assets
+   - Click **"Create"** to create the bucket
+
+4. **Generate S3 API Credentials**
+   - In the Object Storage section, navigate to **"API Credentials"** or **"Access Keys"**
+   - Click **"Generate new credentials"** or **"Create access key"**
+   - Provide a name for the credentials (e.g., "Vendure API Key")
+   - Copy the generated **Access Key** and **Secret Key**
+   - ⚠️ **Important**: Save the Secret Key immediately as it cannot be viewed again
+
+5. **Environment Variables**
+
+   ```bash
+   # Hetzner Object Storage Configuration
+   S3_BUCKET=vendure-assets-yourname
+   S3_ACCESS_KEY_ID=your-hetzner-access-key
+   S3_SECRET_ACCESS_KEY=your-hetzner-secret-key
+   S3_REGION=fsn1
+   S3_ENDPOINT=https://fsn1.your-objectstorage.com
+   S3_FORCE_PATH_STYLE=true
+   ```
+
+   :::note
+   Replace `fsn1` with your chosen location (e.g., `nbg1` for Nuremberg). The endpoint URL will match your bucket's location. Ensure the region and endpoint location match.
+   :::
+
+   ![Hetzner Object Storage Setup](https://cdn.vendure.io/learn/s3-guides/hetzner-create-storage.gif)
+
+</TabItem>
+<TabItem value="minio" label="MinIO">
+
+### Setting up MinIO (Self-Hosted)
+
+1. **Install MinIO Server**
+
+   **Option A: Using Docker (Recommended)**
+   ```bash
+   # Create a docker-compose.yml file
+   docker compose up -d minio
+   ```
+
+   **Option B: Direct Installation**
+   - Download MinIO from [MinIO Downloads](https://min.io/download)
+   - Follow installation instructions for your operating system
+   - Start MinIO server with: `minio server /data --console-address ":9001"`
+
+2. **Access MinIO Console**
+   - Open [http://localhost:9001](http://localhost:9001) in your browser
+   - Default credentials: `minioadmin` / `minioadmin`
+   - Change these credentials in production environments
+
+3. **Create Access Keys**
+
+   The MinIO web console in development setups typically only shows bucket management. For access key creation, use the MinIO CLI:
+
+   **Install MinIO Client (if not already installed):**
+   ```bash
+   # macOS
+   brew install minio/stable/mc
+
+   # Linux
+   curl https://dl.min.io/client/mc/release/linux-amd64/mc \
+     --create-dirs -o $HOME/minio-binaries/mc
+   chmod +x $HOME/minio-binaries/mc
+   export PATH=$PATH:$HOME/minio-binaries/
+
+   # Windows
+   # Download mc.exe from https://dl.min.io/client/mc/release/windows-amd64/mc.exe
+   ```
+
+   **Configure and create access keys:**
+   ```bash
+   # Set up MinIO client alias (replace with your MinIO server details)
+   mc alias set local http://localhost:9000 minioadmin minioadmin
+
+   # Create a service account (access key pair)
+   mc admin user svcacct add local minioadmin
+
+   # This will output something like:
+   # Access Key: AKIAIOSFODNN7EXAMPLE
+   # Secret Key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+   ```
+
+   ⚠️ **Important**: Save both keys immediately as the Secret Key won't be shown again
+
+4. **Create Storage Bucket**
+   - In the MinIO console, you should see a "Buckets" section showing available buckets
+   - Click **"Create Bucket"** (usually a + icon or button)
+   - Enter bucket name: `vendure-assets`
+   - Click "Create" to create the bucket
+
+   **Alternative using CLI:**
+   ```bash
+   # Create bucket using MinIO client
+   mc mb local/vendure-assets
+   ```
+
+5. **Configure Public Access Policy**
+
+   For public asset access, set the bucket policy using the MinIO CLI (console UI may not have policy editor):
+
+   ```bash
+   # Create a policy file for public read access
+   cat > public-read-policy.json << EOF
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Principal": "*",
+         "Action": "s3:GetObject",
+         "Resource": "arn:aws:s3:::vendure-assets/*"
+       }
+     ]
+   }
+   EOF
+
+   # Apply the policy to the bucket
+   mc anonymous set download local/vendure-assets
+
+   # Or apply the JSON policy directly
+   mc admin policy create local public-read public-read-policy.json
+   ```
+
+   **Alternative simple approach:**
+   ```bash
+   # Make bucket publicly readable (simpler method)
+   mc anonymous set download local/vendure-assets
+   ```
+
+6. **Environment Variables**
+
+   ```bash
+   # MinIO Configuration
+   S3_BUCKET=vendure-assets
+   S3_ACCESS_KEY_ID=minio-access-key
+   S3_SECRET_ACCESS_KEY=minio-secret-key
+   S3_REGION=us-east-1
+   S3_ENDPOINT=http://localhost:9000
+   S3_FORCE_PATH_STYLE=true
+   ```
+
+</TabItem>
+</Tabs>
+
+## Vendure Configuration
+
+Configure your Vendure application to use S3-compatible asset storage by modifying your `vendure-config.ts`:
+
+```ts title="src/vendure-config.ts"
+import { VendureConfig } from '@vendure/core';
+import { // [!code highlight]
+  AssetServerPlugin, // [!code highlight]
+  configureS3AssetStorage // [!code highlight]
+} from '@vendure/asset-server-plugin'; // [!code highlight]
+import 'dotenv/config';
+import path from 'path';
+
+const IS_DEV = process.env.APP_ENV === 'dev';
+
+export const config: VendureConfig = {
+  // ... other configuration options
+
+  plugins: [
+    AssetServerPlugin.init({ // [!code highlight]
+      route: 'assets', // [!code highlight]
+      assetUploadDir: path.join(__dirname, '../static/assets'), // [!code highlight]
+      assetUrlPrefix: IS_DEV ? undefined : 'https://www.my-shop.com/assets/', // [!code highlight]
+ // [!code highlight]
+      // S3-Compatible Storage Configuration // [!code highlight]
+      // Dynamically switches between local storage and S3 based on environment // [!code highlight]
+      storageStrategyFactory: process.env.S3_BUCKET // [!code highlight]
+        ? configureS3AssetStorage({ // [!code highlight]
+            bucket: process.env.S3_BUCKET, // [!code highlight]
+            credentials: { // [!code highlight]
+              accessKeyId: process.env.S3_ACCESS_KEY_ID!, // [!code highlight]
+              secretAccessKey: process.env.S3_SECRET_ACCESS_KEY!, // [!code highlight]
+            }, // [!code highlight]
+            nativeS3Configuration: { // [!code highlight]
+              // Platform-specific endpoint configuration // [!code highlight]
+              endpoint: process.env.S3_ENDPOINT, // [!code highlight]
+              region: process.env.S3_REGION, // [!code highlight]
+              forcePathStyle: process.env.S3_FORCE_PATH_STYLE === 'true', // [!code highlight]
+              signatureVersion: 'v4', // [!code highlight]
+            }, // [!code highlight]
+          }) // [!code highlight]
+        : undefined, // Fallback to local storage when S3 not configured // [!code highlight]
+    }), // [!code highlight]
+
+    // ... other plugins
+  ],
+};
+```
+
+:::note
+**IMPORTANT**: The configuration uses a conditional approach - when `S3_BUCKET` is set, it activates S3 storage; otherwise, it falls back to local file storage. This enables seamless development-to-production transitions.
+:::
+
+## Environment Configuration
+
+Create a `.env` file in your project root with your chosen storage provider configuration:
+
+```bash title=".env"
+# Basic Vendure Configuration
+APP_ENV=dev
+SUPERADMIN_USERNAME=superadmin
+SUPERADMIN_PASSWORD=superadmin
+COOKIE_SECRET=your-cookie-secret-32-characters-min
+
+# S3-Compatible Storage Configuration
+S3_BUCKET=your-bucket-name
+S3_ACCESS_KEY_ID=your-access-key-id
+S3_SECRET_ACCESS_KEY=your-secret-access-key
+S3_REGION=your-region
+S3_ENDPOINT=your-endpoint-url
+S3_FORCE_PATH_STYLE=true-or-false
+```
+
+:::cli
+Preconfigured environment examples for each storage provider are available in the [s3-file-storage example repository](https://github.com/vendurehq/examples/tree/publish/examples/s3-file-storage).
+:::
+
+## Testing Your Configuration
+
+Verify your S3 storage configuration works correctly:
+
+1. **Start your Vendure server**:
+   ```bash
+   npm run dev:server
+   ```
+
+2. **Access the Dashboard**:
+   - Open [http://localhost:3000/dashboard](http://localhost:3000/dashboard)
+   - Log in with your superadmin credentials
+
+3. **Test asset upload**:
+   - Navigate to "Catalog" → "Assets"
+   - Click "Upload assets"
+   - Select a test image and upload
+   - Verify the image appears in the asset gallery
+
+4. **Verify storage backend**:
+   - Check your S3 bucket/storage service for the uploaded file
+   - Confirm the asset URL is accessible
+
+
+## Advanced Configuration
+
+### Custom Asset URL Prefix
+
+For production deployments with CDN or custom domains:
+
+```ts title="src/vendure-config.ts"
+AssetServerPlugin.init({
+  route: 'assets',
+  assetUrlPrefix: 'https://cdn.yourdomain.com/assets/', // [!code highlight]
+  storageStrategyFactory: process.env.S3_BUCKET
+    ? configureS3AssetStorage({
+        // ... S3 configuration
+      })
+    : undefined,
+});
+```
+
+### Environment-Specific Configuration
+
+Use different buckets for different environments:
+
+```bash
+# Development
+S3_BUCKET=vendure-dev-assets
+
+# Staging
+S3_BUCKET=vendure-staging-assets
+
+# Production
+S3_BUCKET=vendure-prod-assets
+```
+
+### Migration Between Platforms
+
+Switching between storage providers requires updating only the environment variables:
+
+```bash
+# From AWS S3 to CloudFlare R2
+# Change these variables:
+S3_ENDPOINT=https://account-id.r2.cloudflarestorage.com
+S3_FORCE_PATH_STYLE=true
+# Keep the same bucket name and credentials structure
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **"Access Denied" Errors**:
+   - Verify your access key has proper permissions
+   - Check bucket policies allow the required operations
+   - Ensure credentials are correctly set in environment variables
+
+2. **"Bucket Not Found" Errors**:
+   - Verify bucket name matches exactly (case-sensitive)
+   - Check that `S3_REGION` matches your bucket's region
+   - For MinIO/R2, ensure `S3_FORCE_PATH_STYLE=true`
+
+3. **Assets Not Loading**:
+   - Verify bucket has public read access (if needed)
+   - Check CORS configuration for browser-based access
+   - Ensure `assetUrlPrefix` matches your actual domain
+
+4. **Connection Timeout Issues**:
+   - Verify `S3_ENDPOINT` URL is correct and accessible
+   - Check firewall settings for outbound connections
+   - For self-hosted MinIO, ensure server is running and accessible
+
+
+## Conclusion
+
+You now have a robust, platform-agnostic S3-compatible asset storage solution integrated with your Vendure application. This configuration provides:
+
+- **Seamless switching** between storage providers via environment variables
+- **Development-to-production** workflow with local storage fallback
+- **Built-in compatibility** with major S3-compatible services
+- **Production-ready** configuration patterns
+
+The unified approach eliminates the need for custom storage plugins while maintaining flexibility across different cloud storage platforms. Your assets will be reliably stored and served regardless of which S3-compatible provider you choose.
+
+## Next Steps
+
+- Set up CDN integration for improved global asset delivery
+- Implement backup strategies for critical assets
+- Configure monitoring and alerting for storage operations
+- Consider implementing asset optimization and transformation workflows

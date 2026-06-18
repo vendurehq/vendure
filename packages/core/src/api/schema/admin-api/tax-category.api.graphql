@@ -1,0 +1,36 @@
+type Query {
+    taxCategories(options: TaxCategoryListOptions): TaxCategoryList!
+    taxCategory(id: ID!): TaxCategory
+}
+
+type TaxCategoryList implements PaginatedList {
+    items: [TaxCategory!]!
+    totalItems: Int!
+}
+
+input TaxCategoryListOptions
+
+type Mutation {
+    "Create a new TaxCategory"
+    createTaxCategory(input: CreateTaxCategoryInput!): TaxCategory!
+
+    "Update an existing TaxCategory"
+    updateTaxCategory(input: UpdateTaxCategoryInput!): TaxCategory!
+
+    "Deletes a TaxCategory"
+    deleteTaxCategory(id: ID!): DeletionResponse!
+
+    "Deletes multiple TaxCategories"
+    deleteTaxCategories(ids: [ID!]!): [DeletionResponse!]!
+}
+
+input CreateTaxCategoryInput {
+    name: String!
+    isDefault: Boolean
+}
+
+input UpdateTaxCategoryInput {
+    id: ID!
+    name: String
+    isDefault: Boolean
+}

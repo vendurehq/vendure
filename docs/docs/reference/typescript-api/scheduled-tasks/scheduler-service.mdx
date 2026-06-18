@@ -1,0 +1,52 @@
+---
+title: "SchedulerService"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/scheduler/scheduler.service.ts" sourceLine="34" packageName="@vendure/core" since="3.3.0" />
+
+The service that is responsible for setting up and querying the scheduled tasks.
+
+```ts title="Signature"
+class SchedulerService implements OnApplicationBootstrap, OnApplicationShutdown {
+    constructor(configService: ConfigService, processContext: ProcessContext)
+    onApplicationBootstrap() => ;
+    onApplicationShutdown(signal?: string) => ;
+    getTaskList() => Promise<TaskInfo[]>;
+    updateTask(input: UpdateScheduledTaskInput) => Promise<TaskInfo>;
+    runTask(taskId: string) => Promise<Success>;
+}
+```
+* Implements: OnApplicationBootstrap, OnApplicationShutdown
+
+
+
+<div className="members-wrapper">
+
+### onApplicationBootstrap
+
+<MemberInfo kind="method" type={`() => `}   />
+
+
+### onApplicationShutdown
+
+<MemberInfo kind="method" type={`(signal?: string) => `}   />
+
+
+### getTaskList
+
+<MemberInfo kind="method" type={`() => Promise<TaskInfo[]>`}   />
+
+Returns a list of all the scheduled tasks and their current status.
+### updateTask
+
+<MemberInfo kind="method" type={`(input: UpdateScheduledTaskInput) => Promise<TaskInfo>`}   />
+
+
+### runTask
+
+<MemberInfo kind="method" type={`(taskId: string) => Promise<Success>`}   />
+
+
+
+
+</div>

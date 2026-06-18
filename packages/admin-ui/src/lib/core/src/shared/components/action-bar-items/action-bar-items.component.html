@@ -1,0 +1,18 @@
+<vdr-ui-extension-point [locationId]="locationId" api="actionBar" [leftPx]="-24">
+    <ng-container *ngFor="let item of items$ | async">
+        <ng-container *ngIf="buttonStates[item.id] | async as buttonState">
+            <button
+                *vdrIfPermissions="item.requiresPermission"
+                [routerLink]="getRouterLink(item)"
+                [class.hidden]="buttonState.visible === false"
+                [disabled]="buttonState.disabled || (item.disabled ? (item.disabled | async) : false)"
+                (click)="handleClick($event, item)"
+                [ngClass]="getButtonStyles(item)"
+                class="mr-2"
+            >
+                <clr-icon *ngIf="item.icon" [attr.shape]="item.icon"></clr-icon>
+                {{ item.label | translate }}
+            </button>
+        </ng-container>
+    </ng-container>
+</vdr-ui-extension-point>

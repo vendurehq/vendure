@@ -1,0 +1,28 @@
+<table class="table"
+>
+    <tr *ngFor="let review of pendingReviews$ | async">
+        <td class="center">
+            {{ review.createdAt | date:'mediumDate' }}
+        </td>
+        <td class="center">
+            <div class="product-info">
+                <span class="product-name">{{ review.product.name }}</span>
+            </div>
+        </td>
+        <td class="center">
+            <a class="button-ghost" [routerLink]="['/extensions', 'product-reviews', review.id]">
+            {{ review.summary }}
+                <clr-icon shape="arrow right"></clr-icon>
+            </a>
+        </td>
+        <td class="center">{{ review.authorName }}</td>
+        <td class="center">
+
+            <star-rating [rating]="review.rating"></star-rating>
+        </td>
+        <td class="center">
+            <review-state-label [state]="review.state"></review-state-label>
+        </td>
+    </tr>
+</table>
+

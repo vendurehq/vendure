@@ -1,0 +1,109 @@
+<vdr-page-block>
+    <vdr-action-bar>
+        <vdr-ab-left> </vdr-ab-left>
+        <vdr-ab-right>
+            <vdr-action-bar-items locationId="customer-group-list"></vdr-action-bar-items>
+            <a class="btn btn-primary" *vdrIfPermissions="'CreateCustomerGroup'" [routerLink]="['./', 'create']">
+                <clr-icon shape="plus"></clr-icon>
+                {{ 'customer.create-new-customer-group' | translate }}
+            </a>
+            <vdr-action-bar-dropdown-menu locationId="customer-group-list" />
+        </vdr-ab-right>
+    </vdr-action-bar>
+</vdr-page-block>
+<vdr-split-view [rightPanelOpen]="activeGroup$ | async" (closeClicked)="closeMembers()">
+    <ng-template vdrSplitViewLeft>
+        <vdr-data-table-2
+            class="mt-2"
+            [id]="dataTableListId"
+            [items]="items$ | async"
+            [itemsPerPage]="itemsPerPage$ | async"
+            [totalItems]="totalItems$ | async"
+            [currentPage]="currentPage$ | async"
+            [filters]="filters"
+            [activeIndex]="activeIndex$ | async"
+            (pageChange)="setPageNumber($event)"
+            (itemsPerPageChange)="setItemsPerPage($event)"
+            (visibleColumnsChange)="setVisibleColumns($event)"
+        >
+            <vdr-bulk-action-menu
+                locationId="customer-group-list"
+                [hostComponent]="this"
+                [selectionManager]="selectionManager"
+            ></vdr-bulk-action-menu>
+            <vdr-dt2-search
+                [searchTermControl]="searchTermControl"
+                [searchTermPlaceholder]="'common.search-by-name' | translate"
+            ></vdr-dt2-search>
+            <vdr-dt2-column [heading]="'common.id' | translate" id="id" [hiddenByDefault]="true">
+                <ng-template let-customerGroup="item">
+                    {{ customerGroup.id }}
+                </ng-template>
+            </vdr-dt2-column>
+            <vdr-dt2-column
+                [heading]="'common.created-at' | translate" id="created-at"
+                [hiddenByDefault]="true"
+                [sort]="sorts.get('createdAt')"
+            >
+                <ng-template let-customerGroup="item">
+                    {{ customerGroup.createdAt | localeDate : 'short' }}
+                </ng-template>
+            </vdr-dt2-column>
+            <vdr-dt2-column
+                [heading]="'common.updated-at' | translate" id="updated-at"
+                [hiddenByDefault]="true"
+                [sort]="sorts.get('updatedAt')"
+            >
+                <ng-template let-customerGroup="item">
+                    {{ customerGroup.updatedAt | localeDate : 'short' }}
+                </ng-template>
+            </vdr-dt2-column>
+            <vdr-dt2-column
+                [heading]="'common.name' | translate" id="name"
+                [optional]="false"
+                [sort]="sorts.get('name')"
+            >
+                <ng-template let-customerGroup="item">
+                    <a class="button-ghost" [routerLink]="['./', customerGroup.id]"
+                        ><span>{{ customerGroup.name }}</span>
+                        <clr-icon shape="arrow right"></clr-icon>
+                    </a>
+                </ng-template>
+            </vdr-dt2-column>
+            <vdr-dt2-custom-field-column *ngFor="let field of customFields" [customField]="field" [sorts]="sorts" />
+            <vdr-dt2-column
+                [heading]="'common.view-contents' | translate" id="view-contents"
+                [optional]="false"
+            >
+                <ng-template let-customerGroup="item">
+                    <a
+                        class="button-small bg-weight-150"
+                        [routerLink]="['./', { contents: customerGroup.id }]"
+                        queryParamsHandling="preserve"
+                    >
+                        <span>{{ 'customer.view-group-members' | translate }}</span>
+                        <clr-icon shape="file-group"></clr-icon>
+                    </a>
+                </ng-template>
+            </vdr-dt2-column>
+        </vdr-data-table-2>
+    </ng-template>
+    <ng-template vdrSplitViewRight [splitViewTitle]="(activeGroup$ | async)?.name">
+        <ng-container *ngIf="activeGroup$ | async as activeGroup">
+            <button class="button-ghost ml-4" (click)="addToGroup(activeGroup)">
+                <clr-icon shape="plus"></clr-icon>
+                <span>{{
+                    'customer.add-customers-to-group' | translate : { groupName: activeGroup.name }
+                }}</span>
+            </button>
+            <vdr-customer-group-member-list
+                locationId="customer-group-members-list"
+                [members]="members$ | async"
+                [route]="route"
+                [totalItems]="membersTotal$ | async"
+                [activeGroup]="activeGroup$ | async"
+                (fetchParamsChange)="fetchGroupMembers$.next($event)"
+            />
+        </ng-container>
+    </ng-template>
+</vdr-split-view>

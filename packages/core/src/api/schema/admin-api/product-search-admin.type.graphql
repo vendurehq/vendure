@@ -1,0 +1,5 @@
+type SearchResult {
+    enabled: Boolean!
+    "An array of ids of the Channels in which this result appears"
+    channelIds: [ID!]!
+}

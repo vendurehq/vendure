@@ -1,0 +1,11 @@
+<vdr-chip *ngIf="customer.user?.id">
+    <ng-container *ngIf="customer.user?.verified">
+        <clr-icon shape="check-circle" class="verified-user-icon"></clr-icon>
+        {{ 'customer.verified' | translate }}
+    </ng-container>
+    <ng-container *ngIf="!customer.user?.verified">
+        <clr-icon shape="check-circle" class="registered-user-icon"></clr-icon>
+        {{ 'customer.registered' | translate }}
+    </ng-container>
+</vdr-chip>
+<vdr-chip *ngIf="!customer.user?.id">{{ 'customer.guest' | translate }}</vdr-chip>

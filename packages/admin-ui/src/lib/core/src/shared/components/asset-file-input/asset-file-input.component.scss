@@ -1,0 +1,44 @@
+
+.file-input {
+    display: none;
+}
+
+.drop-zone {
+    position: fixed;
+    background-color: var(--color-primary-500);
+    border: 3px dashed var(--color-component-border-300);
+    opacity: 0;
+    visibility: hidden;
+    z-index: 1000;
+    transition: opacity 0.2s, background-color 0.2s, visibility 0s 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &.visible {
+        opacity: 0.3;
+        visibility: visible;
+        transition: opacity 0.2s, background-color 0.2s, border 0.2s, visibility 0s;
+    }
+
+    .drop-label {
+        background-color: rgba(255, 255, 255, 0.8);
+        border-radius: 3px;
+        padding: 24px;
+        font-size: 32px;
+        pointer-events: none;
+        opacity: 0.5;
+        transition: opacity 0.2s;
+    }
+
+    &.dragging-over {
+        border-color: white;
+        background-color: var(--color-primary-500);
+        opacity: 0.7;
+        transition: background-color 0.2s, border 0.2s;
+        .drop-label {
+            opacity: 1;
+        }
+    }
+
+}

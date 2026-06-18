@@ -1,0 +1,58 @@
+---
+title: "TaxCategory"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/tax-category/tax-category.entity.ts" sourceLine="16" packageName="@vendure/core" />
+
+A TaxCategory defines what type of taxes to apply to a [ProductVariant](/reference/typescript-api/entities/product-variant#productvariant).
+
+```ts title="Signature"
+class TaxCategory extends VendureEntity implements HasCustomFields {
+    constructor(input?: DeepPartial<TaxCategory>)
+    @Column() name: string;
+    @Column({ default: false }) isDefault: boolean;
+    @Column(type => CustomTaxCategoryFields)
+    customFields: CustomTaxCategoryFields;
+    @OneToMany(type => ProductVariant, productVariant => productVariant.taxCategory)
+    productVariants: ProductVariant[];
+    @OneToMany(type => TaxRate, taxRate => taxRate.category)
+    taxRates: TaxRate[];
+}
+```
+* Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
+
+
+* Implements: HasCustomFields
+
+
+
+<div className="members-wrapper">
+
+### name
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### isDefault
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+
+### customFields
+
+<MemberInfo kind="property" type={`CustomTaxCategoryFields`}   />
+
+
+### productVariants
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>[]`}   />
+
+
+### taxRates
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/tax-rate#taxrate'>TaxRate</a>[]`}   />
+
+
+
+
+</div>

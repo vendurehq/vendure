@@ -1,0 +1,47 @@
+---
+title: "DefaultActiveOrderStrategy"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/order/default-active-order-strategy.ts" sourceLine="18" packageName="@vendure/core" since="1.9.0" />
+
+The default [ActiveOrderStrategy](/reference/typescript-api/orders/active-order-strategy#activeorderstrategy), which uses the current [Session](/reference/typescript-api/entities/session#session) to determine
+the active Order, and requires no additional input in the Shop API since it is based on the
+session which is part of the RequestContext.
+
+```ts title="Signature"
+class DefaultActiveOrderStrategy implements ActiveOrderStrategy {
+    name: 'default-active-order-strategy';
+    init(injector: Injector) => ;
+    createActiveOrder(ctx: RequestContext) => ;
+    determineActiveOrder(ctx: RequestContext) => ;
+}
+```
+* Implements: [`ActiveOrderStrategy`](/reference/typescript-api/orders/active-order-strategy#activeorderstrategy)
+
+
+
+<div className="members-wrapper">
+
+### name
+
+<MemberInfo kind="property" type={`'default-active-order-strategy'`}   />
+
+
+### init
+
+<MemberInfo kind="method" type={`(injector: <a href='/reference/typescript-api/common/injector#injector'>Injector</a>) => `}   />
+
+
+### createActiveOrder
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => `}   />
+
+
+### determineActiveOrder
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => `}   />
+
+
+
+
+</div>

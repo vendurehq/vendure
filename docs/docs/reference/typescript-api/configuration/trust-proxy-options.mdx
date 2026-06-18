@@ -1,0 +1,14 @@
+---
+title: "TrustProxyOptions"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="248" packageName="@vendure/core" since="3.4.0" />
+
+Configures Express trust proxy settings when running behind a reverse proxy (usually the case with most hosting services).
+Setting `trustProxy` allows you to retrieve the original IP address from the `X-Forwarded-For` header.
+
+See the [express documentation](https://expressjs.com/en/guide/behind-proxies.html) for more details.
+
+```ts title="Signature"
+type TrustProxyOptions = boolean | number | string | string[] | ((ip: string) => boolean)
+```

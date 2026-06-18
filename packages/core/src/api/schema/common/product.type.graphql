@@ -1,0 +1,70 @@
+type Product implements Node {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    languageCode: LanguageCode!
+    name: String!
+    slug: String!
+    description: String!
+    enabled: Boolean!
+    featuredAsset: Asset
+    assets: [Asset!]!
+    "Returns all ProductVariants"
+    variants: [ProductVariant!]!
+    "Returns a paginated, sortable, filterable list of ProductVariants"
+    variantList(options: ProductVariantListOptions): ProductVariantList!
+    optionGroups: [ProductOptionGroup!]!
+    facetValues: [FacetValue!]!
+    translations: [ProductTranslation!]!
+    collections: [Collection!]!
+}
+
+type ProductTranslation {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    languageCode: LanguageCode!
+    name: String!
+    slug: String!
+    description: String!
+}
+
+type ProductList implements PaginatedList {
+    items: [Product!]!
+    totalItems: Int!
+}
+
+type ProductVariantList implements PaginatedList {
+    items: [ProductVariant!]!
+    totalItems: Int!
+}
+
+type ProductVariant implements Node {
+    id: ID!
+    product: Product!
+    productId: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    languageCode: LanguageCode!
+    sku: String!
+    name: String!
+    featuredAsset: Asset
+    assets: [Asset!]!
+    price: Money!
+    currencyCode: CurrencyCode!
+    priceWithTax: Money!
+    stockLevel: String!
+    taxRateApplied: TaxRate!
+    taxCategory: TaxCategory!
+    options: [ProductOption!]!
+    facetValues: [FacetValue!]!
+    translations: [ProductVariantTranslation!]!
+}
+
+type ProductVariantTranslation {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    languageCode: LanguageCode!
+    name: String!
+}

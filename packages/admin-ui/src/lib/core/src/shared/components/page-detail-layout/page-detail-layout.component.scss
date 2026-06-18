@@ -1,0 +1,17 @@
+@import "variables";
+
+
+:host, .vdr-page-detail-layout {
+    display: grid;
+    grid-template-columns: 3fr 1fr;
+}
+
+@media screen and (max-width: $breakpoint-medium) {
+    :host {
+        grid-template-columns: 1fr;
+    }
+}
+
+.sidebar {
+    padding: var(--space-unit);
+}

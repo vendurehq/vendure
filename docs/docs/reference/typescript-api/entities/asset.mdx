@@ -1,0 +1,132 @@
+---
+title: "Asset"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/asset/asset.entity.ts" sourceLine="25" packageName="@vendure/core" />
+
+An Asset represents a file such as an image which can be associated with certain other entities
+such as Products.
+
+```ts title="Signature"
+class Asset extends VendureEntity implements Taggable, ChannelAware, HasCustomFields, Translatable {
+    constructor(input?: DeepPartial<Asset>)
+    name: LocaleString;
+    @Column('varchar') type: AssetType;
+    @Column() mimeType: string;
+    @Column({ default: 0 }) width: number;
+    @Column({ default: 0 }) height: number;
+    @Column() fileSize: number;
+    @Column() source: string;
+    @Column() preview: string;
+    @Column('simple-json', { nullable: true })
+    focalPoint?: { x: number; y: number };
+    @ManyToMany(type => Tag)
+    @JoinTable()
+    tags: Tag[];
+    @ManyToMany(type => Channel)
+    @JoinTable()
+    channels: Channel[];
+    @OneToMany(type => Collection, collection => collection.featuredAsset)
+    featuredInCollections?: Collection[];
+    @OneToMany(type => ProductVariant, productVariant => productVariant.featuredAsset)
+    featuredInVariants?: ProductVariant[];
+    @OneToMany(type => Product, product => product.featuredAsset)
+    featuredInProducts?: Product[];
+    @Column(type => CustomAssetFields)
+    customFields: CustomAssetFields;
+    @OneToMany(type => AssetTranslation, translation => translation.base, { eager: true })
+    translations: Array<Translation<Asset>>;
+}
+```
+* Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
+
+
+* Implements: [`Taggable`](/reference/typescript-api/entities/interfaces#taggable), [`ChannelAware`](/reference/typescript-api/entities/interfaces#channelaware), HasCustomFields, [`Translatable`](/reference/typescript-api/entities/interfaces#translatable)
+
+
+
+<div className="members-wrapper">
+
+### name
+
+<MemberInfo kind="property" type={`LocaleString`}   />
+
+
+### type
+
+<MemberInfo kind="property" type={`AssetType`}   />
+
+
+### mimeType
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### width
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### height
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### fileSize
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### source
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### preview
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### focalPoint
+
+<MemberInfo kind="property" type={`{ x: number; y: number }`}   />
+
+
+### tags
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/tag#tag'>Tag</a>[]`}   />
+
+
+### channels
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>[]`}   />
+
+
+### featuredInCollections
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/collection#collection'>Collection</a>[]`}   />
+
+
+### featuredInVariants
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>[]`}   />
+
+
+### featuredInProducts
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/product#product'>Product</a>[]`}   />
+
+
+### customFields
+
+<MemberInfo kind="property" type={`CustomAssetFields`}   />
+
+
+### translations
+
+<MemberInfo kind="property" type={`Array<Translation<<a href='/reference/typescript-api/entities/asset#asset'>Asset</a>>>`}   />
+
+
+
+
+</div>

@@ -1,0 +1,28 @@
+<vdr-chart [entries]="metrics$ | async" />
+<div class="flex" *ngIf="metricType$ | async as activeMetricType">
+    <button
+        class="button-small"
+        (click)="metricType$.next(MetricType.OrderTotal)"
+        [class.active]="activeMetricType === MetricType.OrderTotal"
+    >
+        {{ 'dashboard.metric-order-total-value' | translate }}
+    </button>
+    <button
+        class="ml-1 button-small"
+        (click)="metricType$.next(MetricType.OrderCount)"
+        [class.active]="activeMetricType === MetricType.OrderCount"
+    >
+        {{ 'dashboard.metric-number-of-orders' | translate }}
+    </button>
+    <button
+        class="ml-1 button-small"
+        (click)="metricType$.next(MetricType.AverageOrderValue)"
+        [class.active]="activeMetricType === MetricType.AverageOrderValue"
+    >
+        {{ 'dashboard.metric-average-order-value' | translate }}
+    </button>
+    <div class="flex-spacer"></div>
+    <button class="button-small" (click)="refresh()">
+        <clr-icon shape="refresh"></clr-icon>
+    </button>
+</div>

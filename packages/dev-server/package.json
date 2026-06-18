@@ -1,0 +1,40 @@
+{
+    "name": "dev-server",
+    "version": "3.6.4",
+    "main": "index.js",
+    "license": "GPL-3.0-or-later",
+    "private": true,
+    "scripts": {
+        "populate": "node -r ts-node/register -r dotenv/config populate-dev-server.ts",
+        "dev:server": "node -r ts-node/register -r dotenv/config -r tsconfig-paths/register index.ts",
+        "dev:server:instrumented": "IS_INSTRUMENTED=true node -r ts-node/register -r dotenv/config -r tsconfig-paths/register -r ./instrumentation.ts index.ts",
+        "dev:worker": "node -r ts-node/register -r dotenv/config -r tsconfig-paths/register index-worker.ts",
+        "dev:worker:instrumented": "IS_INSTRUMENTED=true node -r ts-node/register -r dotenv/config -r tsconfig-paths/register -r ./instrumentation.ts index-worker.ts",
+        "dev": "concurrently npm:dev:server npm:dev:worker",
+        "dev:instrumented": "concurrently npm:dev:server:instrumented npm:dev:worker:instrumented",
+        "dashboard:dev": "vite dev",
+        "load-test:1k": "node -r ts-node/register load-testing/run-load-test.ts 1000",
+        "load-test:10k": "node -r ts-node/register load-testing/run-load-test.ts 10000",
+        "load-test:100k": "node -r ts-node/register load-testing/run-load-test.ts 100000"
+    },
+    "dependencies": {
+        "@nestjs/axios": "^4.0.0",
+        "@vendure/admin-ui-plugin": "3.6.4",
+        "@vendure/asset-server-plugin": "3.6.4",
+        "@vendure/common": "3.6.4",
+        "@vendure/core": "3.6.4",
+        "@vendure/email-plugin": "3.6.4",
+        "typescript": "5.8.2"
+    },
+    "devDependencies": {
+        "@vendure/testing": "3.6.4",
+        "@vendure/ui-devkit": "3.6.4",
+        "commander": "^12.0.0",
+        "concurrently": "^9.2.0",
+        "csv-stringify": "^6.4.6",
+        "dayjs": "^1.11.10",
+        "jsdom": "^26.0.0",
+        "progress": "^2.0.3",
+        "tsconfig-paths": "^4.2.0"
+    }
+}

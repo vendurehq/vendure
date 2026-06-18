@@ -1,0 +1,22 @@
+type Query {
+    me: CurrentUser
+}
+
+type Mutation {
+    """
+    Authenticates the user using the native authentication strategy. This mutation is an alias for authenticate({ native: { ... }})
+
+    The `rememberMe` option applies when using cookie-based sessions, and if `true` it will set the maxAge of the session cookie
+    to 1 year.
+    """
+    login(username: String!, password: String!, rememberMe: Boolean): NativeAuthenticationResult!
+    "Authenticates the user using a named authentication strategy"
+    authenticate(input: AuthenticationInput!, rememberMe: Boolean): AuthenticationResult!
+    logout: Success!
+}
+
+# Populated at run-time
+input AuthenticationInput
+
+union NativeAuthenticationResult = CurrentUser | InvalidCredentialsError | NativeAuthStrategyError
+union AuthenticationResult = CurrentUser | InvalidCredentialsError

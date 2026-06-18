@@ -1,0 +1,128 @@
+---
+title: "TaxRate"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/tax-rate/tax-rate.entity.ts" sourceLine="26" packageName="@vendure/core" />
+
+A TaxRate defines the rate of tax to apply to a [ProductVariant](/reference/typescript-api/entities/product-variant#productvariant) based on three factors:
+
+1. the ProductVariant's [TaxCategory](/reference/typescript-api/entities/tax-category#taxcategory)
+2. the applicable [Zone](/reference/typescript-api/entities/zone#zone) ("applicable" being defined by the configured [TaxZoneStrategy](/reference/typescript-api/tax/tax-zone-strategy#taxzonestrategy))
+3. the [CustomerGroup](/reference/typescript-api/entities/customer-group#customergroup) of the current Customer
+
+```ts title="Signature"
+class TaxRate extends VendureEntity implements HasCustomFields {
+    constructor(input?: DeepPartial<TaxRate>)
+    @Column() name: string;
+    @Column() enabled: boolean;
+    @Column({ type: 'decimal', precision: 5, scale: 2, transformer: new DecimalTransformer() }) value: number;
+    @Index()
+    @ManyToOne(type => TaxCategory, taxCategory => taxCategory.taxRates)
+    category: TaxCategory;
+    @EntityId({ nullable: true })
+    categoryId: ID;
+    @Index()
+    @ManyToOne(type => Zone, zone => zone.taxRates)
+    zone: Zone;
+    @EntityId({ nullable: true })
+    zoneId: ID;
+    @Index()
+    @ManyToOne(type => CustomerGroup, customerGroup => customerGroup.taxRates, { nullable: true })
+    customerGroup?: CustomerGroup;
+    @Column(type => CustomTaxRateFields)
+    customFields: CustomTaxRateFields;
+    taxComponentOf(grossPrice: number) => number;
+    netPriceOf(grossPrice: number) => number;
+    taxPayableOn(netPrice: number) => number;
+    grossPriceOf(netPrice: number) => number;
+    apply(price: number) => TaxLine;
+    test(zone: Zone | ID, taxCategory: TaxCategory | ID) => boolean;
+}
+```
+* Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
+
+
+* Implements: HasCustomFields
+
+
+
+<div className="members-wrapper">
+
+### name
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### enabled
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+
+### value
+
+<MemberInfo kind="property" type={`number`}   />
+
+
+### category
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/tax-category#taxcategory'>TaxCategory</a>`}   />
+
+
+### categoryId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
+
+
+### zone
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/zone#zone'>Zone</a>`}   />
+
+
+### zoneId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
+
+
+### customerGroup
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/customer-group#customergroup'>CustomerGroup</a>`}   />
+
+
+### customFields
+
+<MemberInfo kind="property" type={`CustomTaxRateFields`}   />
+
+
+### taxComponentOf
+
+<MemberInfo kind="method" type={`(grossPrice: number) => number`}   />
+
+
+### netPriceOf
+
+<MemberInfo kind="method" type={`(grossPrice: number) => number`}   />
+
+
+### taxPayableOn
+
+<MemberInfo kind="method" type={`(netPrice: number) => number`}   />
+
+
+### grossPriceOf
+
+<MemberInfo kind="method" type={`(netPrice: number) => number`}   />
+
+
+### apply
+
+<MemberInfo kind="method" type={`(price: number) => TaxLine`}   />
+
+
+### test
+
+<MemberInfo kind="method" type={`(zone: <a href='/reference/typescript-api/entities/zone#zone'>Zone</a> | <a href='/reference/typescript-api/common/id#id'>ID</a>, taxCategory: <a href='/reference/typescript-api/entities/tax-category#taxcategory'>TaxCategory</a> | <a href='/reference/typescript-api/common/id#id'>ID</a>) => boolean`}   />
+
+
+
+
+</div>

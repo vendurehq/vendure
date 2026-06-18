@@ -1,0 +1,75 @@
+<!-- optional if you want some buttons at the top -->
+<vdr-page-block>
+    <vdr-action-bar>
+        <vdr-ab-left></vdr-ab-left>
+        <vdr-ab-right>
+            <a class="btn btn-primary" *vdrIfPermissions="['CreateProductBundle']" [routerLink]="['./', 'create']">
+                <clr-icon shape="plus"></clr-icon>
+                Create a Product Bundle
+            </a>
+        </vdr-ab-right>
+    </vdr-action-bar>
+</vdr-page-block>
+
+<!-- The data table -->
+<vdr-data-table-2
+    id="product-bundle-list"
+    [items]="items$ | async"
+    [itemsPerPage]="itemsPerPage$ | async"
+    [totalItems]="totalItems$ | async"
+    [currentPage]="currentPage$ | async"
+
+    (pageChange)="setPageNumber($event)"
+    (itemsPerPageChange)="setItemsPerPage($event)"
+>
+    <!-- optional if you want to support bulk actions -->
+    <vdr-bulk-action-menu
+        locationId="product-bundle-list"
+        [hostComponent]="this"
+        [selectionManager]="selectionManager"
+    />
+
+    <!-- Adds a search bar -->
+    <vdr-dt2-search
+        [searchTermControl]="searchTermControl"
+        searchTermPlaceholder="Filter by title"
+    />
+
+    <!-- Here we define all the available columns -->
+    <vdr-dt2-column id="id" [heading]="'common.id' | translate" [hiddenByDefault]="true">
+        <ng-template let-item="item">
+            {{ item.id }}
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column
+        id="created-at"
+        [heading]="'common.created-at' | translate"
+        [hiddenByDefault]="true"
+        [sort]="sorts.get('createdAt')"
+    >
+        <ng-template let-item="item">
+            {{ item.createdAt | localeDate : 'short' }}
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column
+        id="updated-at"
+        [heading]="'common.updated-at' | translate"
+        [hiddenByDefault]="true"
+        [sort]="sorts.get('updatedAt')"
+    >
+        <ng-template let-item="item">
+            {{ item.updatedAt | localeDate : 'short' }}
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column id="name" heading="Name" [optional]="false" [sort]="sorts.get('name')">
+        <ng-template let-item="item">
+            <a class="button-ghost" [routerLink]="['./', item.id]"
+            ><span>{{ item.name }}</span>
+                <clr-icon shape="arrow right"></clr-icon>
+            </a>
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column id="description" heading="Description" [sort]="sorts.get('description')">
+        <ng-template let-item="item">{{ item.description }}</ng-template>
+    </vdr-dt2-column>
+</vdr-data-table-2>

@@ -1,0 +1,13 @@
+@import '../../core/src/shared/components/card/card.component';
+@import '../../core/src/shared/components/form-field/form-field.component';
+@import '../../core/src/shared/components/action-bar/action-bar.component.scss';
+@import '../../core/src/shared/components/page-detail-layout/page-detail-layout.component';
+
+.form-group .input-row.invalid {
+    input:not([type='checkbox']):not([type='radio']),
+    select,
+    textarea {
+        color: var(--color-error-700);
+        border-color: var(--color-error-300);
+    }
+}

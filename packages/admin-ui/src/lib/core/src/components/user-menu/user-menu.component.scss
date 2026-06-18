@@ -1,0 +1,70 @@
+@import 'variables';
+
+:host {
+    display: flex;
+    align-items: center;
+    height: 2.5rem;
+    width: 100%;
+    @media screen and (max-width: $breakpoint-medium) {
+        margin: 0;
+    }
+    width: 100%;
+    padding: var(--space-unit);
+    padding-inline-start: 0;
+    vdr-dropdown {
+        width: 100%;
+    }
+}
+
+.user-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: none;
+    font-size: var(--font-size-sm);
+    width: 100%;
+    line-height: 100%;
+    height: 40px;
+    color: var(--color-text-100);
+    background-color: var(--color-page-header-item-bg);
+    border-radius: var(--border-radius-lg);
+
+    cursor: pointer;
+    &:hover {
+        color: var(--color-text-200);
+    }
+    @media screen and (min-width: $breakpoint-medium) {
+        padding: calc(var(--space-unit) * 1.5) calc(var(--space-unit) * 2) calc(var(--space-unit) * 1.5)
+            calc(var(--space-unit) * 1.5);
+    }
+}
+
+.user-circle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 100%;
+    background-color: var(--color-primary-600);
+    // gradient bg from white to transparent
+    background-image: linear-gradient(135deg, var(--color-primary-500) 0%, var(--color-primary-700) 100%);
+    width: 24px;
+    height: 24px;
+    margin-inline-end: 6px;
+    @media screen and (max-width: $breakpoint-medium) {
+        margin-inline-end: 0;
+    }
+
+    clr-icon {
+        color: var(--color-text-inverse);
+    }
+}
+
+.user-name {
+    margin-inline-end: var(--space-unit);
+    overflow: hidden;
+    max-width: 100px;
+    text-overflow: ellipsis;
+    @media screen and (max-width: $breakpoint-medium) {
+        display: none;
+    }
+}

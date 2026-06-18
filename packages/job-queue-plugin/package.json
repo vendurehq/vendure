@@ -1,0 +1,47 @@
+{
+    "name": "@vendure/job-queue-plugin",
+    "version": "3.6.4",
+    "license": "GPL-3.0-or-later",
+    "main": "package/index.js",
+    "types": "package/index.d.ts",
+    "files": [
+        "package/**/*"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/vendurehq/vendure"
+    },
+    "private": false,
+    "scripts": {
+        "watch": "tsc -p ./tsconfig.build.json --watch",
+        "build": "rimraf package && tsc -p ./tsconfig.build.json",
+        "lint": "eslint --fix .",
+        "e2e-wip": "node e2e/check-connection.js || jest --config ../../e2e-common/jest-config.js --runInBand --package=job-queue-plugin",
+        "ci": "npm run build"
+    },
+    "homepage": "https://www.vendure.io/",
+    "funding": "https://github.com/sponsors/michaelbromley",
+    "publishConfig": {
+        "access": "public"
+    },
+    "devDependencies": {
+        "@vendure/common": "3.6.4",
+        "@vendure/core": "3.6.4",
+        "bullmq": "^5.67.1",
+        "ioredis": "5.9.3",
+        "rimraf": "^5.0.5",
+        "typescript": "5.8.2"
+    },
+    "peerDependencies": {
+        "bullmq": "^5.4.2",
+        "ioredis": "^5.3.2"
+    },
+    "peerDependenciesMeta": {
+        "bullmq": {
+            "optional": true
+        },
+        "ioredis": {
+            "optional": true
+        }
+    }
+}

@@ -1,0 +1,143 @@
+<vdr-order-data-table id="order-detail-list" [items]="order.lines" [order]="order">
+    <vdr-dt2-column id="id" [heading]="'common.id' | translate" [hiddenByDefault]="true">
+        <ng-template let-line="item">
+            {{ line.id }}
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column
+            id="created-at"
+            [heading]="'common.created-at' | translate"
+            [hiddenByDefault]="true"
+    >
+        <ng-template let-line="item">
+            {{ line.createdAt | localeDate : 'short' }}
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column
+            id="updated-at"
+            [heading]="'common.updated-at' | translate"
+            [hiddenByDefault]="true"
+    >
+        <ng-template let-line="item">
+            {{ line.updatedAt | localeDate : 'short' }}
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column [heading]="'common.image' | translate" id="image">
+        <ng-template let-line="item">
+            <div class="image-placeholder">
+                <img
+                    *ngIf="line.featuredAsset as asset; else imagePlaceholder"
+                    [src]="asset | assetPreview : 'tiny'"
+                />
+                <ng-template #imagePlaceholder>
+                    <div class="placeholder">
+                        <clr-icon shape="image" size="48"></clr-icon>
+                    </div>
+                </ng-template>
+            </div>
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column [heading]="'order.product-name' | translate" id="product-name">
+        <ng-template let-line="item">
+            <a class="button-ghost" [routerLink]="['/catalog/products', line.productVariant.product.id]"
+            ><span>{{ line.productVariant.product.name }}</span>
+                <clr-icon shape="arrow right"></clr-icon>
+            </a>
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column [heading]="'order.product-variant' | translate" id="product-variant">
+        <ng-template let-line="item">
+            <a class="button-ghost" [routerLink]="['/catalog/products', line.productVariant.product.id, 'variants', line.productVariant.id]"
+            ><span>{{ line.productVariant.name }}</span>
+                <clr-icon shape="arrow right"></clr-icon>
+            </a>
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column [heading]="'order.product-sku' | translate" id="product-sku">
+        <ng-template let-line="item">
+            {{ line.productVariant.sku }}
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column [heading]="'order.unit-price' | translate" id="unit-price">
+        <ng-template let-line="item">
+            <div class="unit-price">
+                {{ line.unitPriceWithTax | localeCurrency : order.currencyCode }}
+                <div class="net-price" [title]="'order.net-price' | translate">
+                    {{ line.unitPrice | localeCurrency : order.currencyCode }}
+                </div>
+            </div>
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-column [heading]="'order.quantity' | translate" id="quantity" [optional]="false">
+        <ng-template let-line="item">
+            <ng-container *ngIf="!isDraft; else draft">
+                <div class="flex">
+                    <div
+                        *ngIf="line.orderPlacedQuantity && line.quantity !== line.orderPlacedQuantity"
+                        class="order-placed-quantity"
+                        [title]="'order.original-quantity-at-checkout' | translate"
+                    >
+                        {{ line.orderPlacedQuantity }}
+                    </div>
+                    <div>{{ line.quantity }}</div>
+                </div>
+            </ng-container>
+            <ng-template #draft>
+                <div class="flex">
+                    <input
+                        class="draft-qty"
+                        type="number"
+                        min="0"
+                        #qtyInput
+                        [value]="line.quantity"
+                        (blur)="draftInputBlur(line, qtyInput.valueAsNumber)"
+                    />
+                    <button class="icon-button" (click)="remove.emit({ lineId: line.id })">
+                        <clr-icon shape="trash"></clr-icon>
+                    </button>
+                </div>
+            </ng-template>
+            <vdr-line-refunds [line]="line" [payments]="order.payments"></vdr-line-refunds>
+            <vdr-line-fulfillment
+                [line]="line"
+                [orderState]="order.state"
+                [allOrderFulfillments]="order.fulfillments"
+            ></vdr-line-fulfillment>
+        </ng-template>
+    </vdr-dt2-column>
+    <vdr-dt2-custom-field-column
+        *ngFor="let customField of orderLineCustomFields"
+        [customField]="customField"
+    />
+    <vdr-order-total-column [heading]="'order.total' | translate" id="total" [optional]="false">
+        <ng-template let-line="item">
+            <div class="unit-price">
+                {{ line.linePriceWithTax | localeCurrency : order.currencyCode }}
+                <div class="net-price" [title]="'order.net-price' | translate">
+                    {{ line.linePrice | localeCurrency : order.currencyCode }}
+                </div>
+            </div>
+
+            <ng-container *ngIf="getLineDiscounts(line) as discounts">
+                <vdr-dropdown *ngIf="discounts.length">
+                    <div class="promotions-label" vdrDropdownTrigger>
+                        {{ 'order.promotions-applied' | translate }}
+                    </div>
+                    <vdr-dropdown-menu>
+                        <div class="line-promotion" *ngFor="let discount of discounts">
+                            <a class="promotion-name" [routerLink]="getPromotionLink(discount)">{{
+                                discount.description
+                            }}</a>
+                            <div class="promotion-amount">
+                                {{ discount.amountWithTax | localeCurrency : order.currencyCode }}
+                                <div class="net-price" [title]="'order.net-price' | translate">
+                                    {{ discount.amount | localeCurrency : order.currencyCode }}
+                                </div>
+                            </div>
+                        </div>
+                    </vdr-dropdown-menu>
+                </vdr-dropdown>
+            </ng-container>
+        </ng-template>
+    </vdr-order-total-column>
+</vdr-order-data-table>
