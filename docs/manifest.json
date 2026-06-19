@@ -3904,6 +3904,12 @@
                   "lastModified": "2026-04-20T16:08:16+02:00"
                 },
                 {
+                  "title": "Custom Providers",
+                  "slug": "custom-providers",
+                  "file": "docs/reference/dashboard/extensions-api/custom-providers.mdx",
+                  "lastModified": "2026-06-19T10:17:39Z"
+                },
+                {
                   "title": "DataTables",
                   "slug": "data-tables",
                   "file": "docs/reference/dashboard/extensions-api/data-tables.mdx",
@@ -3913,7 +3919,7 @@
                   "title": "DefineDashboardExtension",
                   "slug": "define-dashboard-extension",
                   "file": "docs/reference/dashboard/extensions-api/define-dashboard-extension.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-06-19T10:17:39Z"
                 },
                 {
                   "title": "DetailForms",
