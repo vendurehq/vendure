@@ -14,7 +14,8 @@
     "build:storefront": "npm run build -w storefront",
     "start": "concurrently -n server,storefront -c blue,magenta \"npm run start -w server\" \"npm run start -w storefront\"",
     "start:server": "npm run start -w server",
-    "start:storefront": "npm run start -w storefront"
+    "start:storefront": "npm run start -w storefront"{{#if hasLint}},
+    "lint": "{{ lintScript }}"{{/if}}
   },
   "devDependencies": {
     "concurrently": "^9.0.0"

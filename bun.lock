@@ -472,6 +472,21 @@
         "typescript": "5.8.2",
       },
     },
+    "packages/eslint-plugin": {
+      "name": "@vendure/eslint-plugin",
+      "version": "3.6.4",
+      "devDependencies": {
+        "@types/eslint": "^9.6.1",
+        "@typescript-eslint/parser": "^5.54.1",
+        "eslint": "^8.57.1",
+        "rimraf": "^5.0.5",
+        "typescript": "5.8.2",
+        "vitest": "^3.2.4",
+      },
+      "peerDependencies": {
+        "eslint": ">=8.57.0",
+      },
+    },
     "packages/graphiql-plugin": {
       "name": "@vendure/graphiql-plugin",
       "version": "3.6.3",
@@ -2637,6 +2652,8 @@
     "@vendure/dashboard": ["@vendure/dashboard@workspace:packages/dashboard"],
 
     "@vendure/email-plugin": ["@vendure/email-plugin@workspace:packages/email-plugin"],
+
+    "@vendure/eslint-plugin": ["@vendure/eslint-plugin@workspace:packages/eslint-plugin"],
 
     "@vendure/graphiql-plugin": ["@vendure/graphiql-plugin@workspace:packages/graphiql-plugin"],
 

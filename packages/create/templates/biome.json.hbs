@@ -1,0 +1,25 @@
+{
+  "files": {
+    "includes": [
+      {{#if isMonorepo}}"apps/server/src/**/*.ts"{{else}}"src/**/*.ts"{{/if}},
+      "!**/*.spec.ts"
+    ]
+  },
+  "linter": {
+    "enabled": true
+  },
+  "plugins": [
+    {
+      "path": "./.vendure/biome/no-process-env-in-plugin.grit",
+      "includes": [{{#if isMonorepo}}"apps/server/src/plugins/**/*.ts"{{else}}"src/plugins/**/*.ts"{{/if}}]
+    },
+    {
+      "path": "./.vendure/biome/no-synchronize-true.grit",
+      "includes": [{{#if isMonorepo}}"apps/server/src/**/*.ts"{{else}}"src/**/*.ts"{{/if}}]
+    },
+    {
+      "path": "./.vendure/biome/no-raw-request-context-in-job-data.grit",
+      "includes": [{{#if isMonorepo}}"apps/server/src/plugins/**/*.ts"{{else}}"src/plugins/**/*.ts"{{/if}}]
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 export type DbType = 'mysql' | 'mariadb' | 'postgres' | 'sqlite';
+export type LintTool = 'eslint' | 'biome' | 'none';
 
 export interface FileSources {
     indexSource: string;
@@ -11,6 +12,12 @@ export interface FileSources {
     dockerComposeSource: string;
     tsconfigDashboardSource: string;
     viteConfigSource: string;
+    agentsSource: string;
+    eslintConfigSource: string;
+    biomeConfigSource: string;
+    biomeNoProcessEnvInPluginSource: string;
+    biomeNoSynchronizeTrueSource: string;
+    biomeNoRawRequestContextInJobDataSource: string;
 }
 
 export interface UserResponses extends FileSources {
@@ -19,6 +26,7 @@ export interface UserResponses extends FileSources {
     superadminIdentifier: string;
     superadminPassword: string;
     includeStorefront: boolean;
+    lintTool: LintTool;
 }
 
 export type PackageManager = 'npm';

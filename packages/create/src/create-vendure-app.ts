@@ -39,6 +39,7 @@ import {
     downloadAndExtractStorefront,
     findAvailablePort,
     getDependencies,
+    getLintDependencies,
     installPackages,
     isSafeToCreateProjectIn,
     resolvePackageRootDir,
@@ -46,7 +47,7 @@ import {
     startPostgresDatabase,
 } from './helpers';
 import { log, setLogLevel } from './logger';
-import { CliLogLevel, PackageManager } from './types';
+import { CliLogLevel, LintTool, PackageManager } from './types';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJson = require('../package.json');
@@ -80,6 +81,11 @@ program
     )
     .option('--ci', 'Runs without prompts for use in CI scenarios', false)
     .option('--with-storefront', 'Include Next.js storefront (only used with --ci)', false)
+    .option(
+        '--lint <tool>',
+        "Code quality setup, either 'eslint', 'biome', or 'none'",
+        /^(eslint|biome|none)$/i,
+    )
     .parse(process.argv);
 
 const options = program.opts();
@@ -89,6 +95,7 @@ void createVendureApp(
     options.verbose ? 'verbose' : options.logLevel || 'info',
     options.ci,
     options.withStorefront,
+    options.lint?.toLowerCase() as LintTool | undefined,
 ).catch(err => {
     log(err);
     process.exit(1);
@@ -100,6 +107,7 @@ export async function createVendureApp(
     logLevel: CliLogLevel,
     isCi: boolean = false,
     withStorefront: boolean = false,
+    lintToolOption?: LintTool,
 ) {
     setLogLevel(logLevel);
     if (!runPreChecks(name)) {
@@ -166,14 +174,21 @@ export async function createVendureApp(
         dockerComposeSource,
         tsconfigDashboardSource,
         viteConfigSource,
+        agentsSource,
+        eslintConfigSource,
+        biomeConfigSource,
+        biomeNoProcessEnvInPluginSource,
+        biomeNoSynchronizeTrueSource,
+        biomeNoRawRequestContextInJobDataSource,
         populateProducts,
         includeStorefront,
+        lintTool,
     } =
         mode === 'ci'
-            ? await getCiConfiguration(root, packageManager, port, withStorefront)
+            ? await getCiConfiguration(root, packageManager, port, withStorefront, lintToolOption ?? 'eslint')
             : mode === 'manual'
-              ? await getManualConfiguration(root, packageManager, port)
-              : await getQuickStartConfiguration(root, packageManager, port);
+              ? await getManualConfiguration(root, packageManager, port, lintToolOption)
+              : await getQuickStartConfiguration(root, packageManager, port, lintToolOption);
     // Determine the server root directory (either root or apps/server for monorepo)
     const serverRoot = includeStorefront ? path.join(root, 'apps', 'server') : root;
     const storefrontRoot = path.join(root, 'apps', 'storefront');
@@ -217,7 +232,11 @@ export async function createVendureApp(
 
         // Generate root package.json from template
         const rootPackageTemplate = await fs.readFile(templatePath('root-package.json.hbs'), 'utf-8');
-        const rootPackageContent = Handlebars.compile(rootPackageTemplate)({ name: appName });
+        const rootPackageContent = Handlebars.compile(rootPackageTemplate)({
+            name: appName,
+            hasLint: lintTool !== 'none',
+            lintScript: getLintScript(lintTool),
+        });
         fs.writeFileSync(path.join(root, 'package.json'), rootPackageContent + os.EOL);
 
         // Generate root README from template
@@ -228,6 +247,8 @@ export async function createVendureApp(
             storefrontPort,
             superadminIdentifier: SUPER_ADMIN_USER_IDENTIFIER,
             superadminPassword: SUPER_ADMIN_USER_PASSWORD,
+            hasLint: lintTool !== 'none',
+            lintScript: getLintScript(lintTool),
         });
         fs.writeFileSync(path.join(root, 'README.md'), rootReadmeContent);
 
@@ -251,7 +272,7 @@ export async function createVendureApp(
             name: appName,
             version: DEFAULT_PROJECT_VERSION,
             private: true,
-            scripts: getServerPackageScripts(),
+            scripts: getServerPackageScripts(lintTool),
         };
         fs.writeFileSync(
             path.join(root, 'package.json'),
@@ -298,6 +319,10 @@ export async function createVendureApp(
 
     // Install dependencies
     const { dependencies, devDependencies } = getDependencies(dbType, `@${packageJson.version as string}`);
+    const lintDependencies = getLintDependencies(lintTool, `@${packageJson.version as string}`);
+    const serverDevDependencies = includeStorefront
+        ? devDependencies
+        : [...devDependencies, ...lintDependencies];
 
     // Install server dependencies
     await installDependenciesWithSpinner({
@@ -309,15 +334,27 @@ export async function createVendureApp(
         failureMessage: 'Failed to install dependencies. Please try again.',
     });
 
-    if (devDependencies.length) {
+    if (serverDevDependencies.length) {
         await installDependenciesWithSpinner({
-            dependencies: devDependencies,
+            dependencies: serverDevDependencies,
             isDevDependencies: true,
             logLevel,
             cwd: serverRoot,
-            spinnerMessage: `Installing ${devDependencies[0]} + ${devDependencies.length - 1} more dev dependencies`,
-            successMessage: `Successfully installed ${devDependencies.length} dev dependencies`,
+            spinnerMessage: `Installing ${serverDevDependencies[0]} + ${serverDevDependencies.length - 1} more dev dependencies`,
+            successMessage: `Successfully installed ${serverDevDependencies.length} dev dependencies`,
             failureMessage: 'Failed to install dev dependencies. Please try again.',
+        });
+    }
+
+    if (includeStorefront && lintDependencies.length) {
+        await installDependenciesWithSpinner({
+            dependencies: lintDependencies,
+            isDevDependencies: true,
+            logLevel,
+            cwd: root,
+            spinnerMessage: `Installing ${lintDependencies[0]} + ${lintDependencies.length - 1} more lint dependencies`,
+            successMessage: `Successfully installed ${lintDependencies.length} lint dependencies`,
+            failureMessage: 'Failed to install lint dependencies. Please try again.',
         });
     }
 
@@ -371,6 +408,18 @@ export async function createVendureApp(
                 fs.writeFile(path.join(serverRoot, 'tsconfig.dashboard.json'), tsconfigDashboardSource),
             )
             .then(() => fs.writeFile(path.join(serverRoot, 'vite.config.mts'), viteConfigSource))
+            .then(() =>
+                writeProjectGuidanceFiles({
+                    root,
+                    lintTool,
+                    agentsSource,
+                    eslintConfigSource,
+                    biomeConfigSource,
+                    biomeNoProcessEnvInPluginSource,
+                    biomeNoSynchronizeTrueSource,
+                    biomeNoRawRequestContextInJobDataSource,
+                }),
+            )
             .then(() => createDirectoryStructure(serverRoot))
             .then(() => copyEmailTemplates(serverRoot));
     } catch (e: any) {
@@ -574,8 +623,8 @@ export async function createVendureApp(
 /**
  * Returns the standard npm scripts for the server package.json.
  */
-function getServerPackageScripts(): Record<string, string> {
-    return {
+function getServerPackageScripts(lintTool: LintTool = 'none'): Record<string, string> {
+    const scripts: Record<string, string> = {
         'dev:server': 'vendure dev server',
         'dev:worker': 'vendure dev worker',
         'dev:dashboard': 'vendure dev dashboard',
@@ -588,6 +637,21 @@ function getServerPackageScripts(): Record<string, string> {
         'start:worker': 'node ./dist/index-worker.js',
         start: 'vendure start all',
     };
+    if (lintTool !== 'none') {
+        scripts.lint = getLintScript(lintTool);
+    }
+    return scripts;
+}
+
+function getLintScript(lintTool: LintTool): string {
+    switch (lintTool) {
+        case 'eslint':
+            return 'eslint .';
+        case 'biome':
+            return 'biome check .';
+        case 'none':
+            return '';
+    }
 }
 
 interface InstallDependenciesOptions {
@@ -762,4 +826,55 @@ async function copyEmailTemplates(root: string) {
         log(err);
         process.exit(0);
     }
+}
+
+interface ProjectGuidanceFilesOptions {
+    root: string;
+    lintTool: LintTool;
+    agentsSource: string;
+    eslintConfigSource: string;
+    biomeConfigSource: string;
+    biomeNoProcessEnvInPluginSource: string;
+    biomeNoSynchronizeTrueSource: string;
+    biomeNoRawRequestContextInJobDataSource: string;
+}
+
+async function writeProjectGuidanceFiles(guidanceFiles: ProjectGuidanceFilesOptions) {
+    const {
+        root,
+        lintTool,
+        agentsSource,
+        eslintConfigSource,
+        biomeConfigSource,
+        biomeNoProcessEnvInPluginSource,
+        biomeNoSynchronizeTrueSource,
+        biomeNoRawRequestContextInJobDataSource,
+    } = guidanceFiles;
+
+    await writeFileIfMissing(path.join(root, 'AGENTS.md'), agentsSource);
+    if (lintTool === 'eslint') {
+        await writeFileIfMissing(path.join(root, 'eslint.config.mjs'), eslintConfigSource);
+    }
+    if (lintTool === 'biome') {
+        await writeFileIfMissing(path.join(root, 'biome.json'), biomeConfigSource);
+        await writeFileIfMissing(
+            path.join(root, '.vendure', 'biome', 'no-process-env-in-plugin.grit'),
+            biomeNoProcessEnvInPluginSource,
+        );
+        await writeFileIfMissing(
+            path.join(root, '.vendure', 'biome', 'no-synchronize-true.grit'),
+            biomeNoSynchronizeTrueSource,
+        );
+        await writeFileIfMissing(
+            path.join(root, '.vendure', 'biome', 'no-raw-request-context-in-job-data.grit'),
+            biomeNoRawRequestContextInJobDataSource,
+        );
+    }
+}
+
+async function writeFileIfMissing(filePath: string, contents: string) {
+    if (await fs.pathExists(filePath)) {
+        return;
+    }
+    await fs.outputFile(filePath, contents);
 }

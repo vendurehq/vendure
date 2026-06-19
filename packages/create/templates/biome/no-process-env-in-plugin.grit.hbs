@@ -1,0 +1,6 @@
+`process.env.$name` as $env where {
+    register_diagnostic(
+        span = $env,
+        message = "Do not read process.env inside Vendure plugin code. Read environment variables in vendure-config.ts and pass values through plugin init options."
+    )
+}

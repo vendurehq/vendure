@@ -1,0 +1,6 @@
+`$queue.add(ctx)` as $call where {
+    register_diagnostic(
+        span = $call,
+        message = "Do not pass a raw RequestContext to JobQueue.add(). Use ctx.serialize() or pass only the required serializable fields."
+    )
+}

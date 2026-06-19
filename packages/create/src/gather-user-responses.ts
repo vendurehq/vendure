@@ -6,7 +6,7 @@ import Handlebars from 'handlebars';
 import path from 'path';
 
 import { checkCancel, isDockerAvailable } from './helpers';
-import { DbType, FileSources, PackageManager, UserResponses } from './types';
+import { DbType, FileSources, LintTool, PackageManager, UserResponses } from './types';
 
 interface PromptAnswers {
     dbType: DbType;
@@ -21,6 +21,7 @@ interface PromptAnswers {
     superadminPassword: string | symbol;
     populateProducts: boolean | symbol;
     includeStorefront: boolean | symbol;
+    lintTool: LintTool;
 }
 
 /* eslint-disable no-console */
@@ -29,6 +30,7 @@ export async function getQuickStartConfiguration(
     root: string,
     packageManager: PackageManager,
     port: number,
+    lintTool?: LintTool,
 ): Promise<UserResponses> {
     // First we want to detect whether Docker is running
     const { result: dockerStatus } = await isDockerAvailable();
@@ -77,6 +79,7 @@ export async function getQuickStartConfiguration(
         initialValue: false,
     });
     checkCancel(includeStorefront);
+    const selectedLintTool = await getLintToolSelection(lintTool);
 
     const quickStartAnswers: PromptAnswers = {
         dbType: usePostgres ? 'postgres' : 'sqlite',
@@ -90,6 +93,7 @@ export async function getQuickStartConfiguration(
         superadminIdentifier: SUPER_ADMIN_USER_IDENTIFIER,
         superadminPassword: SUPER_ADMIN_USER_PASSWORD,
         includeStorefront,
+        lintTool: selectedLintTool,
     };
 
     const responses = {
@@ -99,6 +103,7 @@ export async function getQuickStartConfiguration(
         superadminIdentifier: quickStartAnswers.superadminIdentifier as string,
         superadminPassword: quickStartAnswers.superadminPassword as string,
         includeStorefront: includeStorefront as boolean,
+        lintTool: selectedLintTool,
     };
 
     return responses;
@@ -111,6 +116,7 @@ export async function getManualConfiguration(
     root: string,
     packageManager: PackageManager,
     port: number,
+    lintTool?: LintTool,
 ): Promise<UserResponses> {
     const dbType = (await select({
         message: 'Which database are you using?',
@@ -213,6 +219,7 @@ export async function getManualConfiguration(
         initialValue: false,
     });
     checkCancel(includeStorefront);
+    const selectedLintTool = await getLintToolSelection(lintTool);
 
     const answers: PromptAnswers = {
         dbType,
@@ -227,6 +234,7 @@ export async function getManualConfiguration(
         superadminPassword,
         populateProducts,
         includeStorefront,
+        lintTool: selectedLintTool,
     };
 
     return {
@@ -236,6 +244,7 @@ export async function getManualConfiguration(
         superadminIdentifier: answers.superadminIdentifier as string,
         superadminPassword: answers.superadminPassword as string,
         includeStorefront: includeStorefront as boolean,
+        lintTool: selectedLintTool,
     };
 }
 
@@ -247,6 +256,7 @@ export async function getCiConfiguration(
     packageManager: PackageManager,
     port: number,
     includeStorefront: boolean = false,
+    lintTool: LintTool = 'eslint',
 ): Promise<UserResponses> {
     const ciAnswers = {
         dbType: 'sqlite' as const,
@@ -259,6 +269,7 @@ export async function getCiConfiguration(
         superadminIdentifier: SUPER_ADMIN_USER_IDENTIFIER,
         superadminPassword: SUPER_ADMIN_USER_PASSWORD,
         includeStorefront,
+        lintTool,
     };
 
     return {
@@ -268,7 +279,33 @@ export async function getCiConfiguration(
         superadminIdentifier: ciAnswers.superadminIdentifier,
         superadminPassword: ciAnswers.superadminPassword,
         includeStorefront,
+        lintTool,
     };
+}
+
+async function getLintToolSelection(providedLintTool?: LintTool): Promise<LintTool> {
+    if (providedLintTool) {
+        return providedLintTool;
+    }
+    const lintTool = (await select({
+        message: 'Which code quality setup would you like?',
+        options: [
+            {
+                label: 'ESLint',
+                value: 'eslint',
+                hint: 'Full Vendure rule set for plugin development',
+            },
+            {
+                label: 'Biome',
+                value: 'biome',
+                hint: 'Lightweight Biome setup with Vendure GritQL rules',
+            },
+            { label: 'None', value: 'none' },
+        ],
+        initialValue: 'eslint' as LintTool,
+    })) as LintTool;
+    checkCancel(lintTool);
+    return lintTool;
 }
 
 /**
@@ -300,6 +337,10 @@ async function generateSources(
         cookieSecret: randomBytes(16).toString('base64url'),
         port,
         isMonorepo: answers.includeStorefront,
+        lintTool: answers.lintTool,
+        hasLint: answers.lintTool !== 'none',
+        usesEslint: answers.lintTool === 'eslint',
+        usesBiome: answers.lintTool === 'biome',
     };
 
     async function createSourceFile(filename: string, noEscape = false): Promise<string> {
@@ -318,6 +359,14 @@ async function generateSources(
         dockerComposeSource: await createSourceFile('docker-compose.hbs'),
         tsconfigDashboardSource: await createSourceFile('tsconfig.dashboard.hbs'),
         viteConfigSource: await createSourceFile('vite.config.hbs'),
+        agentsSource: await createSourceFile('agents.hbs'),
+        eslintConfigSource: await createSourceFile('eslint.config.hbs'),
+        biomeConfigSource: await createSourceFile('biome.json.hbs'),
+        biomeNoProcessEnvInPluginSource: await createSourceFile('biome/no-process-env-in-plugin.grit.hbs'),
+        biomeNoSynchronizeTrueSource: await createSourceFile('biome/no-synchronize-true.grit.hbs'),
+        biomeNoRawRequestContextInJobDataSource: await createSourceFile(
+            'biome/no-raw-request-context-in-job-data.grit.hbs',
+        ),
     };
 }
 

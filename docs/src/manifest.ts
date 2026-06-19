@@ -212,6 +212,11 @@ const manifestInput: DocsPackageManifestInput = {
                     file: file('docs/guides/developer-guide/cli/index.mdx'),
                 },
                 {
+                    title: 'AI-assisted Development',
+                    slug: 'ai-assisted-development',
+                    file: file('docs/guides/developer-guide/ai-assisted-development/index.mdx'),
+                },
+                {
                     title: 'Configuration',
                     slug: 'configuration',
                     file: file('docs/guides/developer-guide/configuration/index.mdx'),

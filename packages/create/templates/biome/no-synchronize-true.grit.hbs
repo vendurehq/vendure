@@ -1,0 +1,6 @@
+`synchronize: true` as $sync where {
+    register_diagnostic(
+        span = $sync,
+        message = "Do not use dbConnectionOptions.synchronize: true. Generate and run migrations instead."
+    )
+}

@@ -1,0 +1,38 @@
+{
+    "name": "@vendure/eslint-plugin",
+    "version": "3.6.4",
+    "description": "Vendure-specific ESLint rules",
+    "license": "GPL-3.0-or-later",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist/**/*",
+        "README.md"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/vendurehq/vendure"
+    },
+    "scripts": {
+        "watch": "tsc -p ./tsconfig.build.json --watch",
+        "build": "rimraf dist && tsc -p ./tsconfig.build.json",
+        "lint": "eslint --fix .",
+        "test": "vitest --run"
+    },
+    "homepage": "https://www.vendure.io",
+    "funding": "https://github.com/sponsors/michaelbromley",
+    "publishConfig": {
+        "access": "public"
+    },
+    "peerDependencies": {
+        "eslint": ">=8.57.0"
+    },
+    "devDependencies": {
+        "@types/eslint": "^9.6.1",
+        "@typescript-eslint/parser": "^5.54.1",
+        "eslint": "^8.57.1",
+        "rimraf": "^5.0.5",
+        "typescript": "5.8.2",
+        "vitest": "^3.2.4"
+    }
+}
