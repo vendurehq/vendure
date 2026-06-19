@@ -218,13 +218,13 @@
           "title": "CLI",
           "slug": "cli",
           "file": "docs/guides/developer-guide/cli/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-06-19T12:15:01+02:00"
         },
         {
           "title": "AI-assisted Development",
           "slug": "ai-assisted-development",
           "file": "docs/guides/developer-guide/ai-assisted-development/index.mdx",
-          "lastModified": "2026-06-19T00:00:00+02:00"
+          "lastModified": "2026-06-19T12:15:01+02:00"
         },
         {
           "title": "Configuration",
@@ -260,7 +260,7 @@
           "title": "Plugins",
           "slug": "plugins",
           "file": "docs/guides/developer-guide/plugins/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-06-19T12:15:01+02:00"
         },
         {
           "title": "Security",
