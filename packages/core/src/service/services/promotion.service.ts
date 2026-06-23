@@ -398,16 +398,23 @@ export class PromotionService {
 
     /**
      * Returns a base query builder for counting promotion usages on placed orders.
-     * Excludes cancelled orders, active (un-placed) orders, and seller-type orders.
+     * Excludes cancelled orders, draft orders, active (un-placed) orders, and
+     * seller-type orders.
      */
     private placedOrdersWithPromotionQb(ctx: RequestContext) {
-        return this.connection
-            .getRepository(ctx, Order)
-            .createQueryBuilder('order')
-            .innerJoin('order.promotions', 'promotion')
-            .andWhere('order.state != :state', { state: 'Cancelled' as OrderState })
-            .andWhere('order.active = :active', { active: false })
-            .andWhere('order.type != :type', { type: OrderType.Seller });
+        return (
+            this.connection
+                .getRepository(ctx, Order)
+                .createQueryBuilder('order')
+                .innerJoin('order.promotions', 'promotion')
+                .andWhere('order.state != :state', { state: 'Cancelled' as OrderState })
+                // Draft orders also have active=false, so they must be excluded explicitly,
+                // otherwise a draft would count its own promotions as a consumed usage and
+                // toggle them on/off on each recalculation (#4753).
+                .andWhere('order.state != :draftState', { draftState: 'Draft' as OrderState })
+                .andWhere('order.active = :active', { active: false })
+                .andWhere('order.type != :type', { type: OrderType.Seller })
+        );
     }
 
     private async getUsageCountsBatch(
