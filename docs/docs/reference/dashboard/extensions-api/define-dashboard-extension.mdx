@@ -4,7 +4,7 @@ generated: true
 ---
 ## defineDashboardExtension
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/define-dashboard-extension.ts" sourceLine="89" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/define-dashboard-extension.ts" sourceLine="90" packageName="@vendure/dashboard" since="3.3.0" />
 
 The main entry point for extensions to the React-based dashboard. Every dashboard extension
 must contain a call to this function, usually in the entry point file that is referenced by
@@ -44,7 +44,7 @@ Parameters
 
 ## DashboardExtension
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/extension-api-types.ts" sourceLine="37" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/extension-api-types.ts" sourceLine="38" packageName="@vendure/dashboard" since="3.3.0" />
 
 This is the main interface for defining _all_ extensions to the dashboard.
 
@@ -72,6 +72,7 @@ interface DashboardExtension {
     login?: DashboardLoginExtensions;
     historyEntries?: DashboardHistoryEntryComponent[];
     toolbarItems?: DashboardToolbarItemDefinition[];
+    customProviders?: DashboardCustomProviderDefinition[];
 }
 ```
 
@@ -169,6 +170,11 @@ in the Order or Customer history lists.
 Allows you to define custom toolbar items in the app shell header bar.
 Toolbar items appear alongside the breadcrumbs, dev mode indicator,
 and alerts icon.
+### customProviders
+
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/custom-providers#dashboardcustomproviderdefinition'>DashboardCustomProviderDefinition</a>[]`}  since="3.7.0"  />
+
+Allows you to add custom providers in different locations.
 
 
 </div>
