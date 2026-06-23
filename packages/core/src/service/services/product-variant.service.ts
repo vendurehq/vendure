@@ -811,8 +811,9 @@ export class ProductVariantService {
      */
     /**
      * Ensures a `stockOnHand: 0` StockLevel exists for each given variant at every StockLocation of
-     * the given channel. Idempotent and batched: it pre-fetches existing levels and only saves the
-     * missing ones (one SELECT + one bulk insert), so existing stock is never touched.
+     * the given channel. Idempotent, batched and concurrency-safe: it issues a single bulk insert
+     * with `orIgnore()`, so rows that already exist (unique productVariantId + stockLocationId) are
+     * skipped at the DB level and never overwritten — even under concurrent assignment/create requests.
      */
     private async ensureStockLevelsForChannel(
         ctx: RequestContext,
@@ -831,24 +832,21 @@ export class ProductVariantService {
         if (stockLocations.length === 0) {
             return;
         }
-        const locationIds = stockLocations.map(location => location.id);
-        const existing = await this.connection.getRepository(ctx, StockLevel).find({
-            where: { productVariantId: In(variantIds), stockLocationId: In(locationIds) },
-        });
-        const existingKeys = new Set(existing.map(sl => `${sl.productVariantId}:${sl.stockLocationId}`));
-        const toCreate: StockLevel[] = [];
-        for (const productVariantId of variantIds) {
-            for (const stockLocationId of locationIds) {
-                if (!existingKeys.has(`${productVariantId}:${stockLocationId}`)) {
-                    toCreate.push(
-                        new StockLevel({ productVariantId, stockLocationId, stockOnHand: 0, stockAllocated: 0 }),
-                    );
-                }
-            }
-        }
-        if (toCreate.length) {
-            await this.connection.getRepository(ctx, StockLevel).save(toCreate);
-        }
+        const newStockLevels = variantIds.flatMap(productVariantId =>
+            stockLocations.map(stockLocation => ({
+                productVariantId,
+                stockLocationId: stockLocation.id,
+                stockOnHand: 0,
+                stockAllocated: 0,
+            })),
+        );
+        await this.connection
+            .getRepository(ctx, StockLevel)
+            .createQueryBuilder()
+            .insert()
+            .values(newStockLevels)
+            .orIgnore()
+            .execute();
     }
 
     async assignProductVariantsToChannel(
