@@ -33,6 +33,7 @@ import {
     OrderLine,
     ProductOptionGroup,
     ProductVariantPrice,
+    StockLevel,
     StockLocation,
     TaxCategory,
 } from '../../entity';
@@ -473,6 +474,9 @@ export class ProductVariantService {
                 defaultChannel.defaultCurrencyCode,
             );
         }
+        // Seed a StockLevel for the current channel's stock locations (idempotent), so a variant
+        // created directly within a non-default channel is immediately editable in the Dashboard.
+        await this.ensureStockLevelsForChannel(ctx, [createdVariant.id], ctx.channelId);
         return createdVariant.id;
     }
 
@@ -805,6 +809,48 @@ export class ProductVariantService {
      * Assigns the specified ProductVariants to the specified Channel. In doing so, it will create a new
      * {@link ProductVariantPrice} and also assign the associated Product and any Assets to the Channel too.
      */
+    /**
+     * Ensures a `stockOnHand: 0` StockLevel exists for each given variant at every StockLocation of
+     * the given channel. Idempotent and batched: it pre-fetches existing levels and only saves the
+     * missing ones (one SELECT + one bulk insert), so existing stock is never touched.
+     */
+    private async ensureStockLevelsForChannel(
+        ctx: RequestContext,
+        variantIds: ID[],
+        channelId: ID,
+    ): Promise<void> {
+        if (variantIds.length === 0) {
+            return;
+        }
+        const stockLocations = await this.connection
+            .getRepository(ctx, StockLocation)
+            .createQueryBuilder('stockLocation')
+            .innerJoin('stockLocation.channels', 'channel')
+            .where('channel.id = :channelId', { channelId })
+            .getMany();
+        if (stockLocations.length === 0) {
+            return;
+        }
+        const locationIds = stockLocations.map(location => location.id);
+        const existing = await this.connection.getRepository(ctx, StockLevel).find({
+            where: { productVariantId: In(variantIds), stockLocationId: In(locationIds) },
+        });
+        const existingKeys = new Set(existing.map(sl => `${sl.productVariantId}:${sl.stockLocationId}`));
+        const toCreate: StockLevel[] = [];
+        for (const productVariantId of variantIds) {
+            for (const stockLocationId of locationIds) {
+                if (!existingKeys.has(`${productVariantId}:${stockLocationId}`)) {
+                    toCreate.push(
+                        new StockLevel({ productVariantId, stockLocationId, stockOnHand: 0, stockAllocated: 0 }),
+                    );
+                }
+            }
+        }
+        if (toCreate.length) {
+            await this.connection.getRepository(ctx, StockLevel).save(toCreate);
+        }
+    }
+
     async assignProductVariantsToChannel(
         ctx: RequestContext,
         input: AssignProductVariantsToChannelInput,
@@ -825,16 +871,7 @@ export class ProductVariantService {
         });
         const priceFactor = input.priceFactor != null ? input.priceFactor : 1;
         const targetChannel = await this.connection.getEntityOrThrow(ctx, Channel, input.channelId);
-        // The stock locations that belong to the target channel. A StockLevel is seeded for each
-        // of them (per variant) below, so that per-channel inventory works immediately: otherwise
-        // the channel-filtered `stockLevels` field resolves to `[]` in the newly-assigned channel,
-        // which in the Dashboard produces an invalid variant form / permanently-disabled Update.
-        const targetChannelStockLocations = await this.connection
-            .getRepository(ctx, StockLocation)
-            .createQueryBuilder('stockLocation')
-            .innerJoin('stockLocation.channels', 'channel')
-            .where('channel.id = :channelId', { channelId: input.channelId })
-            .getMany();
+        const assignedVariantIds: ID[] = [];
         for (const variant of variants) {
             if (variant.deletedAt) {
                 continue;
@@ -852,12 +889,13 @@ export class ProductVariantService {
             );
             const assetIds = variant.assets?.map(a => a.assetId) || [];
             await this.assetService.assignToChannel(ctx, { channelId: input.channelId, assetIds });
-            // `getStockLevel` is idempotent: it creates a `stockOnHand: 0` StockLevel when missing
-            // and is a no-op when one already exists.
-            for (const stockLocation of targetChannelStockLocations) {
-                await this.stockLevelService.getStockLevel(ctx, variant.id, stockLocation.id);
-            }
+            assignedVariantIds.push(variant.id);
         }
+        // Seed a StockLevel for each of the target channel's stock locations so that per-channel
+        // inventory is usable immediately (otherwise the channel-filtered `stockLevels` field
+        // resolves to `[]` in the newly-assigned channel — which the Dashboard renders as an
+        // invalid variant form with a permanently-disabled "Update" button).
+        await this.ensureStockLevelsForChannel(ctx, assignedVariantIds, input.channelId);
         const result = await this.findByIds(
             ctx,
             variants.map(v => v.id),
