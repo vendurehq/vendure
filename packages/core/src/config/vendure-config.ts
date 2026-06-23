@@ -18,6 +18,7 @@ import { AssetNamingStrategy } from './asset-naming-strategy/asset-naming-strate
 import { AssetPreviewStrategy } from './asset-preview-strategy/asset-preview-strategy';
 import { AssetStorageStrategy } from './asset-storage-strategy/asset-storage-strategy';
 import { AuthenticationStrategy } from './auth/authentication-strategy';
+import { CustomerChannelAssignmentStrategy } from './auth/customer-channel-assignment-strategy';
 import { EntityAccessControlStrategy } from './auth/entity-access-control-strategy';
 import { PasswordHashingStrategy } from './auth/password-hashing-strategy';
 import { PasswordValidationStrategy } from './auth/password-validation-strategy';
@@ -553,6 +554,19 @@ export interface AuthOptions {
      * @experimental
      */
     entityAccessControlStrategy?: EntityAccessControlStrategy;
+    /**
+     * @description
+     * Controls whether the AuthGuard silently auto-assigns an authenticated Customer to the active
+     * Channel, via the strategy's `canAssignCustomerToChannel()` method. Enforced by the AuthGuard,
+     * and never for the default Channel or under `disableAuth`; the Shop API account-creation flows
+     * (registration, verification, external auth, guest checkout) are not affected.
+     *
+     * The default strategy always assigns.
+     *
+     * @default DefaultCustomerChannelAssignmentStrategy
+     * @since 3.7.0
+     */
+    customerChannelAssignmentStrategy?: CustomerChannelAssignmentStrategy;
 }
 
 /**
