@@ -187,21 +187,34 @@ function DraftOrderPage() {
                     const defaultBillingAddress = addresses.find(
                         address => address.defaultBillingAddress,
                     );
-                    if (defaultShippingAddress) {
-                        setShippingAddressForDraftOrder({
-                            orderId: order.id,
-                            input: mapToAddressInput(defaultShippingAddress),
-                        });
-                    } else if (entity?.shippingAddress) {
-                        unsetShippingAddressForDraftOrder({ orderId: order.id });
-                    }
-                    if (defaultBillingAddress) {
-                        setBillingAddressForDraftOrder({
-                            orderId: order.id,
-                            input: mapToAddressInput(defaultBillingAddress),
-                        });
-                    } else if (entity?.billingAddress) {
-                        unsetBillingAddressForDraftOrder({ orderId: order.id });
+                    // Sequence the address mutations: they all mutate the same
+                    // version-tracked Order, so firing them concurrently makes
+                    // the second read a stale version and fail with an
+                    // optimistic-lock error ("Record has changed since last
+                    // read"). Await each in turn, then refresh once at the end.
+                    try {
+                        if (defaultShippingAddress) {
+                            await api.mutate(setShippingAddressForDraftOrderDocument)({
+                                orderId: order.id,
+                                input: mapToAddressInput(defaultShippingAddress),
+                            });
+                        } else if (entity?.shippingAddress) {
+                            await api.mutate(unsetShippingAddressForDraftOrderDocument)({
+                                orderId: order.id,
+                            });
+                        }
+                        if (defaultBillingAddress) {
+                            await api.mutate(setBillingAddressForDraftOrderDocument)({
+                                orderId: order.id,
+                                input: mapToAddressInput(defaultBillingAddress),
+                            });
+                        } else if (entity?.billingAddress) {
+                            await api.mutate(unsetBillingAddressForDraftOrderDocument)({
+                                orderId: order.id,
+                            });
+                        }
+                    } catch (e) {
+                        toast.error(t`Failed to set address for order: ${e instanceof Error ? e.message : String(e)}`);
                     }
                     refreshEntity();
                     break;
