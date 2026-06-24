@@ -150,13 +150,14 @@ Use these IDs in `toolbarItems[].position.itemId`.
 
 | Section   | `id`        |
 | --------- | ----------- |
-| Insights  | `insights`  |
 | Catalog   | `catalog`   |
 | Sales     | `sales`     |
 | Customers | `customers` |
 | Marketing | `marketing` |
 | Settings  | `settings`  |
 | System    | `system`    |
+
+The Insights entry has the ID `insights`, but it is a top-level navigation item, not an appendable section. Do not use it as `routes[].navMenuItem.sectionId`.
 
 Common navigation item IDs include `products`, `product-variants`, `option-groups`, `facets`, `collections`, `assets`, `orders`, `customers`, `customer-groups`, `promotions`, `sellers`, `channels`, `stock-locations`, `administrators`, `roles`, `shipping-methods`, `payment-methods`, `tax-categories`, `tax-rates`, `countries`, `zones`, `global-settings`, `job-queue`, `scheduled-tasks`, `settings-store`, and `api-keys`.
 

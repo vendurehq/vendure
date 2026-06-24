@@ -35,15 +35,16 @@ defineDashboardExtension({
 
 ### Available Section IDs
 
-The dashboard comes with several built-in sections:
+The dashboard comes with several built-in sections that can receive route `navMenuItem` entries:
 
-- **`insights`** - The Insights page
 - **`catalog`** - For product-related functionality
 - **`sales`** - For order management
 - **`customers`** - For customer management
 - **`marketing`** - For promotions and marketing tools
 - **`settings`** - For configuration and admin settings
 - **`system`** - For system tools such as the job queue and scheduled tasks
+
+The Insights entry has the ID `insights`, but it is a top-level navigation item, not a section with child items. Do not use `insights` as a route `navMenuItem.sectionId`.
 
 ### Finding Section IDs & Ordering
 
@@ -67,7 +68,7 @@ defineDashboardExtension({
             title: 'Content',
             icon: FileTextIcon,
             placement: 'top', // Platform area
-            order: 350, // After Customers (400), before Marketing (500)
+            order: 350, // After Sales (300), before Customers (400)
         },
         {
             id: 'integrations',
@@ -145,11 +146,11 @@ Order values are scoped within each placement area. This means:
 - You can use the same order value in both top and bottom without conflict
   :::
 
-### Default Section Orders
+### Default Top-Level Orders
 
 **Top Placement (Platform):**
 
-- Dashboard: 100
+- Insights: 100
 - Catalog: 200
 - Sales: 300
 - Customers: 400
