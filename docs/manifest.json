@@ -549,7 +549,7 @@
               "title": "Customizing Detail Pages",
               "slug": "customizing-detail-pages",
               "file": "docs/guides/extending-the-dashboard/customizing-pages/customizing-detail-pages.mdx",
-              "lastModified": "2026-06-24T10:09:42+02:00"
+              "lastModified": "2026-06-24T13:35:21+02:00"
             },
             {
               "title": "Customizing Login Page",
@@ -594,7 +594,7 @@
               "lastModified": "2026-02-12T16:47:03+01:00"
             }
           ],
-          "lastModified": "2026-06-24T10:09:42+02:00"
+          "lastModified": "2026-06-24T13:35:21+02:00"
         },
         {
           "title": "Form Input Components",
@@ -605,7 +605,7 @@
               "title": "Form Component Examples",
               "slug": "form-component-examples",
               "file": "docs/guides/extending-the-dashboard/custom-form-components/form-component-examples.mdx",
-              "lastModified": "2026-03-23T10:11:25+01:00"
+              "lastModified": "2026-06-24T13:35:21+02:00"
             },
             {
               "title": "Relation Selectors",
@@ -614,7 +614,7 @@
               "lastModified": "2026-04-13T10:27:51+02:00"
             }
           ],
-          "lastModified": "2026-04-30T08:23:16+02:00"
+          "lastModified": "2026-06-24T13:35:21+02:00"
         },
         {
           "title": "Navigation",
@@ -3883,19 +3883,19 @@
                   "title": "DefineDashboardExtension",
                   "slug": "define-dashboard-extension",
                   "file": "docs/reference/dashboard/extensions-api/define-dashboard-extension.mdx",
-                  "lastModified": "2026-06-24T10:09:42+02:00"
+                  "lastModified": "2026-06-24T13:35:21+02:00"
                 },
                 {
                   "title": "DetailForms",
                   "slug": "detail-forms",
                   "file": "docs/reference/dashboard/extensions-api/detail-forms.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-06-24T13:35:21+02:00"
                 },
                 {
                   "title": "FormComponents",
                   "slug": "form-components",
                   "file": "docs/reference/dashboard/extensions-api/form-components.mdx",
-                  "lastModified": "2026-04-30T17:21:55+02:00"
+                  "lastModified": "2026-06-24T13:35:21+02:00"
                 },
                 {
                   "title": "HistoryEntries",
