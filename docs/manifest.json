@@ -597,18 +597,18 @@
           "lastModified": "2026-06-24T13:35:21+02:00"
         },
         {
-          "title": "Form Input Components",
+          "title": "Customizing Forms",
           "slug": "custom-form-components",
           "file": "docs/guides/extending-the-dashboard/custom-form-components/index.mdx",
           "children": [
             {
-              "title": "Form Component Examples",
+              "title": "Input Component Examples",
               "slug": "form-component-examples",
               "file": "docs/guides/extending-the-dashboard/custom-form-components/form-component-examples.mdx",
               "lastModified": "2026-06-24T13:35:21+02:00"
             },
             {
-              "title": "Relation Selectors",
+              "title": "Relation Selector Components",
               "slug": "relation-selectors",
               "file": "docs/guides/extending-the-dashboard/custom-form-components/relation-selectors.mdx",
               "lastModified": "2026-04-13T10:27:51+02:00"

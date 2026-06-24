@@ -548,19 +548,19 @@ const manifestInput: DocsPackageManifestInput = {
                     ],
                 },
                 {
-                    title: 'Form Input Components',
+                    title: 'Customizing Forms',
                     slug: 'custom-form-components',
                     file: file('docs/guides/extending-the-dashboard/custom-form-components/index.mdx'),
                     children: [
                         {
-                            title: 'Form Component Examples',
+                            title: 'Input Component Examples',
                             slug: 'form-component-examples',
                             file: file(
                                 'docs/guides/extending-the-dashboard/custom-form-components/form-component-examples.mdx',
                             ),
                         },
                         {
-                            title: 'Relation Selectors',
+                            title: 'Relation Selector Components',
                             slug: 'relation-selectors',
                             file: file(
                                 'docs/guides/extending-the-dashboard/custom-form-components/relation-selectors.mdx',
