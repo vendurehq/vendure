@@ -2970,7 +2970,7 @@
                   "title": "ProductVariantService",
                   "slug": "product-variant-service",
                   "file": "docs/reference/typescript-api/services/product-variant-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-06-24T15:49:46Z"
                 },
                 {
                   "title": "PromotionService",
@@ -3522,7 +3522,7 @@
                   "title": "Email Plugin Types",
                   "slug": "email-plugin-types",
                   "file": "docs/reference/core-plugins/email-plugin/email-plugin-types.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-06-24T15:49:46Z"
                 },
                 {
                   "title": "Email Utils",
@@ -3558,7 +3558,7 @@
                   "title": "EmailPluginOptions",
                   "slug": "email-plugin-options",
                   "file": "docs/reference/core-plugins/email-plugin/email-plugin-options.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-06-24T15:49:46Z"
                 },
                 {
                   "title": "EmailSender",
@@ -3582,7 +3582,7 @@
                   "title": "Transport Options",
                   "slug": "transport-options",
                   "file": "docs/reference/core-plugins/email-plugin/transport-options.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-06-24T15:49:46Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
