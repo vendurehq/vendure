@@ -759,31 +759,31 @@
           "title": "Deploy to Northflank",
           "slug": "deploy-to-northflank",
           "file": "docs/guides/deployment/deploy-to-northflank/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-06-19T16:37:02+02:00"
         },
         {
           "title": "Deploy to Digital Ocean App Platform",
           "slug": "deploy-to-digital-ocean-app-platform",
           "file": "docs/guides/deployment/deploy-to-digital-ocean-app-platform/index.mdx",
-          "lastModified": "2026-05-26T10:57:06+02:00"
+          "lastModified": "2026-06-19T16:37:02+02:00"
         },
         {
           "title": "Deploy to Railway",
           "slug": "deploy-to-railway",
           "file": "docs/guides/deployment/deploy-to-railway/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-06-19T16:37:02+02:00"
         },
         {
           "title": "Deploy to Render",
           "slug": "deploy-to-render",
           "file": "docs/guides/deployment/deploy-to-render/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-06-19T16:37:02+02:00"
         },
         {
           "title": "Deploy to Google Cloud Run",
           "slug": "deploy-to-google-cloud-run",
           "file": "docs/guides/deployment/deploy-to-google-cloud-run/index.mdx",
-          "lastModified": "2026-05-26T10:57:06+02:00"
+          "lastModified": "2026-06-19T16:37:02+02:00"
         }
       ],
       "lastModified": "2026-05-26T10:57:06+02:00"

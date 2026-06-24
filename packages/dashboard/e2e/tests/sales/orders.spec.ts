@@ -100,6 +100,46 @@ test.describe('Orders', () => {
         await lp.expectRowCountGreaterThan(0);
     });
 
+    // #4830 — toggling the State column must not crash the order list.
+    // The list query only fetches visible columns; re-enabling State refetches,
+    // but `placeholderData: keepPreviousData` first renders the previous rows
+    // (which no longer carry `state`) into the State column. Pre-fix this threw
+    // `Cannot read properties of undefined (reading 'toLowerCase')` in
+    // OrderStateCell and tripped the router error boundary.
+    test('should not crash when toggling the State column off and on', async ({ page }) => {
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await createPaidOrder(client);
+
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+        await lp.expectRowCountGreaterThan(0);
+
+        const stateHeader = lp.dataTable.locator('thead th').filter({ hasText: 'State' });
+        const stateToggle = page.getByRole('menuitemcheckbox', { name: /^state$/i });
+        await expect(stateHeader).toBeVisible();
+
+        // Hide State → the list refetches without the `state` field.
+        await lp.openColumnSettings();
+        await stateToggle.click();
+        await page.keyboard.press('Escape');
+        await expect(stateHeader).toBeHidden();
+
+        // Re-enable State → triggers the stale-placeholder render that used to crash.
+        await lp.openColumnSettings();
+        await stateToggle.click();
+        await page.keyboard.press('Escape');
+
+        // No crash: a crashed boundary unmounts the table, so the header + rows
+        // staying visible after the refetch is the real signal. The error-text
+        // assertion is belt-and-suspenders.
+        await expect(stateHeader).toBeVisible();
+        await lp.expectRowCountGreaterThan(0);
+        await expect(lp.getRows().first()).toBeVisible();
+        await expect(page.getByText(/An error occurred:/i)).toHaveCount(0);
+    });
+
     test('should create and delete a draft order', async ({ page }) => {
         // Create a new draft
         const lp = listPage(page);
