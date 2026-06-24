@@ -72,22 +72,22 @@ describe('CustomerChannelAssignmentService', () => {
     }
 
     describe('non-default channel', () => {
-        it('joins a non-member when the strategy allows assignment', async () => {
+        it('assigns a non-member when the strategy allows assignment', async () => {
             mockCustomer({ isMember: false, exists: true });
 
-            await service.resolve(createCtx(NON_DEFAULT_CODE));
+            await service.tryAssignToActiveChannel(createCtx(NON_DEFAULT_CODE));
 
-            expect(canAssignCustomerToChannel).toHaveBeenCalled();
+            expect(canAssignCustomerToChannel).toHaveBeenCalledWith(expect.anything(), customer, CHANNEL_ID);
             expect(assignToChannels).toHaveBeenCalledWith(expect.anything(), Customer, customer.id, [
                 CHANNEL_ID,
             ]);
         });
 
-        it('allows a non-member without joining when assignment is suppressed', async () => {
+        it('allows a non-member without assigning when assignment is suppressed', async () => {
             mockCustomer({ isMember: false, exists: true });
             canAssignCustomerToChannel.mockReturnValue(false);
 
-            await service.resolve(createCtx(NON_DEFAULT_CODE));
+            await service.tryAssignToActiveChannel(createCtx(NON_DEFAULT_CODE));
 
             expect(assignToChannels).not.toHaveBeenCalled();
         });
@@ -95,7 +95,7 @@ describe('CustomerChannelAssignmentService', () => {
         it('short-circuits an existing member without consulting the strategy', async () => {
             mockCustomer({ isMember: true, exists: true });
 
-            await service.resolve(createCtx(NON_DEFAULT_CODE));
+            await service.tryAssignToActiveChannel(createCtx(NON_DEFAULT_CODE));
 
             expect(canAssignCustomerToChannel).not.toHaveBeenCalled();
             expect(assignToChannels).not.toHaveBeenCalled();
@@ -104,7 +104,7 @@ describe('CustomerChannelAssignmentService', () => {
         it('skips an authenticated user that has no Customer record', async () => {
             mockCustomer({ isMember: false, exists: false });
 
-            await service.resolve(createCtx(NON_DEFAULT_CODE));
+            await service.tryAssignToActiveChannel(createCtx(NON_DEFAULT_CODE));
 
             expect(canAssignCustomerToChannel).not.toHaveBeenCalled();
             expect(assignToChannels).not.toHaveBeenCalled();
@@ -115,7 +115,7 @@ describe('CustomerChannelAssignmentService', () => {
         it('assigns on the default channel without consulting the strategy', async () => {
             mockCustomer({ isMember: false, exists: true });
 
-            await service.resolve(createCtx(DEFAULT_CHANNEL_CODE));
+            await service.tryAssignToActiveChannel(createCtx(DEFAULT_CHANNEL_CODE));
 
             expect(assignToChannels).toHaveBeenCalledWith(expect.anything(), Customer, customer.id, [
                 CHANNEL_ID,
@@ -127,7 +127,7 @@ describe('CustomerChannelAssignmentService', () => {
             mockCustomer({ isMember: false, exists: true });
             (configService.authOptions as any).disableAuth = true;
 
-            await service.resolve(createCtx(NON_DEFAULT_CODE));
+            await service.tryAssignToActiveChannel(createCtx(NON_DEFAULT_CODE));
 
             expect(assignToChannels).toHaveBeenCalled();
             expect(canAssignCustomerToChannel).not.toHaveBeenCalled();
@@ -136,32 +136,34 @@ describe('CustomerChannelAssignmentService', () => {
         it('skips assignment on the default channel when the user has no Customer record', async () => {
             mockCustomer({ isMember: false, exists: false });
 
-            await service.resolve(createCtx(DEFAULT_CHANNEL_CODE));
+            await service.tryAssignToActiveChannel(createCtx(DEFAULT_CHANNEL_CODE));
 
             expect(assignToChannels).not.toHaveBeenCalled();
         });
     });
 
-    describe('auto-join write', () => {
+    describe('assign write', () => {
         it('swallows a duplicate-key error from a concurrent assign (issue #834)', async () => {
             mockCustomer({ isMember: false, exists: true });
             assignToChannels.mockRejectedValue({ code: '23505' });
 
-            await expect(service.resolve(createCtx(NON_DEFAULT_CODE))).resolves.toBeUndefined();
+            await expect(
+                service.tryAssignToActiveChannel(createCtx(NON_DEFAULT_CODE)),
+            ).resolves.toBeUndefined();
         });
 
         it('rethrows a non-duplicate error from the assign', async () => {
             mockCustomer({ isMember: false, exists: true });
             assignToChannels.mockRejectedValue({ code: 'SOME_OTHER_ERROR' });
 
-            await expect(service.resolve(createCtx(NON_DEFAULT_CODE))).rejects.toEqual({
+            await expect(service.tryAssignToActiveChannel(createCtx(NON_DEFAULT_CODE))).rejects.toEqual({
                 code: 'SOME_OTHER_ERROR',
             });
         });
     });
 
     it('does nothing when there is no authenticated user', async () => {
-        await service.resolve(createCtx(NON_DEFAULT_CODE, false));
+        await service.tryAssignToActiveChannel(createCtx(NON_DEFAULT_CODE, false));
 
         expect(findOneByUserId).not.toHaveBeenCalled();
     });

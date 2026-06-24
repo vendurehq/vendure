@@ -88,7 +88,7 @@ export class AuthGuard implements CanActivate {
 
     private async setActiveChannel(
         requestContext: RequestContext,
-        session: CachedSession | undefined,
+        session?: CachedSession,
     ): Promise<boolean> {
         if (!session) {
             return false;
@@ -101,7 +101,7 @@ export class AuthGuard implements CanActivate {
             return false;
         }
         if (requestContext.activeUserId) {
-            await this.customerChannelAssignmentService.resolve(requestContext);
+            await this.customerChannelAssignmentService.tryAssignToActiveChannel(requestContext);
         }
         await this.sessionService.setActiveChannel(session, requestContext.channel);
         return true;

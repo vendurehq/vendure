@@ -10,11 +10,9 @@ import { CustomerService } from '../../services/customer.service';
 
 /**
  * @description
- * Decides whether a signed-in Customer is silently added to the Channel their request points at, so
- * the {@link AuthGuard} doesn't have to carry that logic itself. Someone who already belongs is left
- * untouched; otherwise the configured {@link CustomerChannelAssignmentStrategy} says whether to
- * quietly add them. The default Channel and disableAuth dev mode skip the strategy and always
- * auto-join.
+ * Handles the assignment of a signed-in Customer to the active Channel.
+ *
+ * @docsCategory services
  */
 @Injectable()
 export class CustomerChannelAssignmentService {
@@ -26,22 +24,21 @@ export class CustomerChannelAssignmentService {
 
     /**
      * @description
-     * Auto-joins the active Customer to the active Channel where appropriate. Does not block the
+     * Assigns the active Customer to the active Channel where appropriate. Does not block the
      * request: a Customer the strategy declines to assign may still operate on the Channel for the
      * current session, just without a persisted membership.
      */
-    async resolve(ctx: RequestContext): Promise<void> {
+    async tryAssignToActiveChannel(ctx: RequestContext): Promise<void> {
         const userId = ctx.activeUserId;
         if (!userId) {
             return;
         }
         const { disableAuth, customerChannelAssignmentStrategy } = this.configService.authOptions;
 
-        // The default Channel and disableAuth dev mode always auto-join and never consult the strategy.
-        const isUngated = disableAuth || ctx.channel.code === DEFAULT_CHANNEL_CODE;
+        // The default Channel and disableAuth dev mode always assign and never consult the strategy.
+        const isGated = !disableAuth && ctx.channel.code !== DEFAULT_CHANNEL_CODE;
 
-        // On a non-default Channel an existing member is already where they belong, so there's nothing to do.
-        if (!isUngated) {
+        if (isGated) {
             const member = await this.customerService.findOneByUserId(ctx, userId, true);
             if (member) {
                 return;
@@ -55,7 +52,7 @@ export class CustomerChannelAssignmentService {
         }
 
         const canAssign =
-            isUngated ||
+            !isGated ||
             (await customerChannelAssignmentStrategy.canAssignCustomerToChannel(
                 ctx,
                 customer,

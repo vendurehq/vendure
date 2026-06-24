@@ -556,11 +556,8 @@ export interface AuthOptions {
     entityAccessControlStrategy?: EntityAccessControlStrategy;
     /**
      * @description
-     * Controls whether the AuthGuard silently auto-assigns an authenticated Customer to the active
-     * Channel, via the strategy's `canAssignCustomerToChannel()` method. Enforced by the AuthGuard,
-     * and never for the default Channel or under `disableAuth`; the Shop API account-creation flows
-     * (registration, verification, external auth, guest checkout) are not affected.
-     *
+     * Determines whether an authenticated Customer is auto-assigned to the active Channel.
+     * This is skipped for the default channel, `disableAuth`, and registration/checkout flows.
      * The default strategy always assigns.
      *
      * @default DefaultCustomerChannelAssignmentStrategy

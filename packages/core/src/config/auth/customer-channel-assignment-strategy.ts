@@ -6,27 +6,16 @@ import { Customer } from '../../entity/customer/customer.entity';
 
 /**
  * @description
- * Controls whether the AuthGuard silently makes an authenticated {@link Customer} a member of the
- * Channel their request is pointed at.
+ * Determines if an authenticated Customer should be automatically assigned to the current Channel.
+ * Use this to keep customer bases strictly separated in multi-channel or B2B setups.
  *
- * Vendure adds any authenticated Customer to whatever Channel they land on. That is
- * fine for a single storefront, but not for multi-channel setups where membership should stay
- * deliberate: a B2B Channel you only join by invitation, or storefronts that must not share
- * customers. Implement this strategy to decide, per request, whether that auto-join happens.
- *
- * It is consulted only by the AuthGuard, and only for a non-member on a non-default Channel. It
- * never runs for the default Channel, under `disableAuth`, or during account creation (registration,
- * verification, external auth, guest checkout), which always join the Channel they run on.
- *
- * Note this governs *membership*, not access: returning `false` does not reject the request. The
- * Customer can still use the Channel for the current session; they simply aren't recorded as a
- * member.
- *
- * The {@link DefaultCustomerChannelAssignmentStrategy} always returns `true`.
+ * NOTE: This controls channel membership, not API access. Returning `false`
+ * won't block the request, it just stops the customer from bein assigned to this channel.
+ * (This is skipped on the default channel and during registration/checkout).
  *
  * @example
  * ```ts
- * // Membership is granted by an admin, never auto-joined.
+ * // Membership is granted by an admin, never auto-assigned.
  * class InviteOnlyChannelStrategy implements CustomerChannelAssignmentStrategy {
  *     canAssignCustomerToChannel() {
  *         return false;
@@ -49,11 +38,13 @@ import { Customer } from '../../entity/customer/customer.entity';
 export interface CustomerChannelAssignmentStrategy extends InjectableStrategy {
     /**
      * @description
-     * Return `true` to make the Customer a member of the active Channel, or `false` to let them use
-     * it for this session without persisting membership.
+     * Return `true` to assign the Customer to the current Channel,
+     * or `false` to let them use it for this session without assigning.
      *
-     * Called by the AuthGuard when a non-member's request activates a non-default Channel that isn't
-     * already the session's active channel: on login, or whenever the active channel changes.
+     * The AuthGuard consults this when an authenticated Customer's request targets a different
+     * Channel than the one currently active on their session — on the first request after signing
+     * in, or later when a request switches Channel. It is only consulted on a non-default Channel
+     * where the Customer is not already a member.
      */
     canAssignCustomerToChannel(
         ctx: RequestContext,
