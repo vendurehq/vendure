@@ -233,7 +233,7 @@ msgstr "Продавцы"
 msgid "Options"
 msgstr "Опции"
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:32
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:35
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
 msgstr "{fulfilled, plural, one {Успешно отменена {fulfilled} задача} few {Успешно отменены {fulfilled} задачи} many {Успешно отменено {fulfilled} задач} other {Успешно отменено {fulfilled} задач}}"
 
@@ -1272,7 +1272,7 @@ msgstr "Адрес удалён"
 msgid "Only roles assigned to your account are available."
 msgstr "Доступны только роли, назначенные вашей учётной записи."
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:62
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:65
 msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
 msgstr "{cancellableCount, plural, one {Отменить {cancellableCount} задачу} few {Отменить {cancellableCount} задачи} many {Отменить {cancellableCount} задач} other {Отменить {cancellableCount} задачи}}"
 
@@ -1381,7 +1381,7 @@ msgstr "Новый способ оплаты"
 msgid "Successfully updated promotion"
 msgstr "Акция успешно обновлена"
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:40
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:43
 msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to cancel {rejected} jobs}}"
 msgstr "{rejected, plural, one {Не удалось отменить {rejected} задачу} few {Не удалось отменить {rejected} задачи} many {Не удалось отменить {rejected} задач} other {Не удалось отменить {rejected} задач}}"
 
@@ -5472,7 +5472,7 @@ msgstr "Валюта по умолчанию"
 msgid "No payment or refund is required for these changes."
 msgstr "Для этих изменений не требуется платёж или возврат."
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:69
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:72
 msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
 msgstr "{cancellableCount, plural, one {Вы уверены, что хотите отменить {cancellableCount} задачу? Это действие нельзя отменить.} few {Вы уверены, что хотите отменить {cancellableCount} задачи? Это действие нельзя отменить.} many {Вы уверены, что хотите отменить {cancellableCount} задач? Это действие нельзя отменить.} other {Вы уверены, что хотите отменить {cancellableCount} задачи? Это действие нельзя отменить.}}"
 

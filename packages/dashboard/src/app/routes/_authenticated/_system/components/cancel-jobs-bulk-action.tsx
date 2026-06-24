@@ -27,6 +27,9 @@ export const CancelJobsBulkAction: BulkActionComponent<any> = ({ selection, tabl
             return { fulfilled, rejected };
         },
         onSuccess: ({ fulfilled, rejected }) => {
+            // `plural` from @lingui/core/macro is used (not useLingui's `t`) because this is a
+            // non-JSX message: it compiles to an i18n._() call against the same global instance
+            // the I18nProvider activates. Do NOT nest t`...` inside the arms — that breaks extraction.
             if (fulfilled > 0) {
                 toast.success(
                     plural(fulfilled, {

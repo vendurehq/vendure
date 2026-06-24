@@ -233,7 +233,7 @@ msgstr "البائعون"
 msgid "Options"
 msgstr "الخيارات"
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:32
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:35
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
 msgstr "{fulfilled, plural, one {تم إلغاء مهمة واحدة بنجاح} two {تم إلغاء مهمتين بنجاح} few {تم إلغاء {fulfilled} مهام بنجاح} many {تم إلغاء {fulfilled} مهمة بنجاح} other {تم إلغاء {fulfilled} مهمة بنجاح}}"
 
@@ -1272,7 +1272,7 @@ msgstr "تم حذف العنوان"
 msgid "Only roles assigned to your account are available."
 msgstr "الأدوار المعيّنة لحسابك فقط هي المتاحة."
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:62
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:65
 msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
 msgstr ""
 
@@ -1381,7 +1381,7 @@ msgstr "طريقة دفع جديدة"
 msgid "Successfully updated promotion"
 msgstr "تم تحديث العرض الترويجي بنجاح"
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:40
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:43
 msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to cancel {rejected} jobs}}"
 msgstr "{rejected, plural, one {فشل إلغاء مهمة واحدة} two {فشل إلغاء مهمتين} few {فشل إلغاء {rejected} مهام} many {فشل إلغاء {rejected} مهمة} other {فشل إلغاء {rejected} مهمة}}"
 
@@ -5472,7 +5472,7 @@ msgstr "العملة الافتراضية"
 msgid "No payment or refund is required for these changes."
 msgstr "لا يلزم دفع أو استرداد لهذه التغييرات."
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:69
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:72
 msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
 msgstr ""
 

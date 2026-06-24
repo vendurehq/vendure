@@ -233,7 +233,7 @@ msgstr "Säljare"
 msgid "Options"
 msgstr "Alternativ"
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:32
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:35
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
 msgstr "{fulfilled, plural, one {{fulfilled} jobb har avbrutits} other {{fulfilled} jobb har avbrutits}}"
 
@@ -1272,7 +1272,7 @@ msgstr "Adress borttagen"
 msgid "Only roles assigned to your account are available."
 msgstr "Endast roller som är tilldelade ditt konto är tillgängliga."
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:62
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:65
 msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
 msgstr ""
 
@@ -1381,7 +1381,7 @@ msgstr "Ny betalningsmetod"
 msgid "Successfully updated promotion"
 msgstr "Kampanj uppdaterad"
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:40
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:43
 msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to cancel {rejected} jobs}}"
 msgstr "{rejected, plural, one {Det gick inte att avbryta {rejected} jobb} other {Det gick inte att avbryta {rejected} jobb}}"
 
@@ -5472,7 +5472,7 @@ msgstr "Standardvaluta"
 msgid "No payment or refund is required for these changes."
 msgstr "Ingen betalning eller återbetalning krävs för dessa ändringar."
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:69
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:72
 msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
 msgstr ""
 

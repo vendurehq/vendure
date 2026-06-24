@@ -233,7 +233,7 @@ msgstr "Продавачи"
 msgid "Options"
 msgstr "Опции"
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:32
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:35
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
 msgstr "{fulfilled, plural, one {Успешно е отменена {fulfilled} задача} other {Успешно са отменени {fulfilled} задачи}}"
 
@@ -1278,7 +1278,7 @@ msgstr "Адресът е изтрит"
 msgid "Only roles assigned to your account are available."
 msgstr "Налични са само ролите, присвоени на вашия акаунт."
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:62
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:65
 msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
 msgstr ""
 
@@ -1387,7 +1387,7 @@ msgstr "Нов начин на плащане"
 msgid "Successfully updated promotion"
 msgstr "Успешно актуализирана промоция"
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:40
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:43
 msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to cancel {rejected} jobs}}"
 msgstr "{rejected, plural, one {Неуспешно отменяне на {rejected} задача} other {Неуспешно отменяне на {rejected} задачи}}"
 
@@ -5504,7 +5504,7 @@ msgstr "Валута по подразбиране"
 msgid "No payment or refund is required for these changes."
 msgstr "Не се изисква плащане или възстановяване на средства за тези промени."
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:69
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:72
 msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
 msgstr ""
 

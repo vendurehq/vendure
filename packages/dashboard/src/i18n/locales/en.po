@@ -233,7 +233,7 @@ msgstr "Sellers"
 msgid "Options"
 msgstr "Options"
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:32
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:35
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
 msgstr "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
 
@@ -1272,7 +1272,7 @@ msgstr "Address deleted"
 msgid "Only roles assigned to your account are available."
 msgstr "Only roles assigned to your account are available."
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:62
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:65
 msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
 msgstr "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
 
@@ -1381,7 +1381,7 @@ msgstr "New payment method"
 msgid "Successfully updated promotion"
 msgstr "Successfully updated promotion"
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:40
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:43
 msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to cancel {rejected} jobs}}"
 msgstr "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to cancel {rejected} jobs}}"
 
@@ -5472,7 +5472,7 @@ msgstr "Default currency"
 msgid "No payment or refund is required for these changes."
 msgstr "No payment or refund is required for these changes."
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:69
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:72
 msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
 msgstr "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
 

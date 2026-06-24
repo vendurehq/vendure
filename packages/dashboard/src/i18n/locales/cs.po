@@ -233,7 +233,7 @@ msgstr "Prodejci"
 msgid "Options"
 msgstr "Možnosti"
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:32
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:35
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
 msgstr "{fulfilled, plural, one {Úspěšně zrušena {fulfilled} úloha} few {Úspěšně zrušeny {fulfilled} úlohy} other {Úspěšně zrušeno {fulfilled} úloh}}"
 
@@ -1272,7 +1272,7 @@ msgstr "Adresa smazána"
 msgid "Only roles assigned to your account are available."
 msgstr "K dispozici jsou pouze role přiřazené k vašemu účtu."
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:62
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:65
 msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
 msgstr "{cancellableCount, plural, one {Zrušit {cancellableCount} úlohu} few {Zrušit {cancellableCount} úlohy} other {Zrušit {cancellableCount} úloh}}"
 
@@ -1381,7 +1381,7 @@ msgstr "Nový způsob platby"
 msgid "Successfully updated promotion"
 msgstr "Akce úspěšně aktualizována"
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:40
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:43
 msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to cancel {rejected} jobs}}"
 msgstr "{rejected, plural, one {Nepodařilo se zrušit {rejected} úlohu} few {Nepodařilo se zrušit {rejected} úlohy} other {Nepodařilo se zrušit {rejected} úloh}}"
 
@@ -5472,7 +5472,7 @@ msgstr "Výchozí měna"
 msgid "No payment or refund is required for these changes."
 msgstr "Pro tyto změny není vyžadována žádná platba ani refund."
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:69
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:72
 msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
 msgstr "{cancellableCount, plural, one {Opravdu chcete zrušit {cancellableCount} úlohu? Tuto akci nelze vrátit zpět.} few {Opravdu chcete zrušit {cancellableCount} úlohy? Tuto akci nelze vrátit zpět.} other {Opravdu chcete zrušit {cancellableCount} úloh? Tuto akci nelze vrátit zpět.}}"
 

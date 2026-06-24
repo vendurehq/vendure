@@ -217,9 +217,9 @@ msgstr "Vânzători"
 msgid "Options"
 msgstr "Opțiuni"
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:32
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:35
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
-msgstr "{fulfilled, plural, one {{fulfilled} sarcină anulată cu succes} few {{fulfilled} sarcini anulate cu succes} other {{fulfilled} de sarcini anulate cu succes}}"
+msgstr "{fulfilled, plural, one {{fulfilled} job anulat cu succes} few {{fulfilled} joburi anulate cu succes} other {{fulfilled} de joburi anulate cu succes}}"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:152
 msgid "Seller"
@@ -1232,7 +1232,7 @@ msgstr "Adresă ștearsă"
 msgid "Only roles assigned to your account are available."
 msgstr "Sunt disponibile doar rolurile atribuite contului tău."
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:62
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:65
 msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
 msgstr ""
 
@@ -1333,9 +1333,9 @@ msgstr "Metodă de plată nouă"
 msgid "Successfully updated promotion"
 msgstr "Promoția a fost actualizată cu succes"
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:40
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:43
 msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to cancel {rejected} jobs}}"
-msgstr "{rejected, plural, one {Nu s-a putut anula {rejected} sarcină} few {Nu s-au putut anula {rejected} sarcini} other {Nu s-au putut anula {rejected} de sarcini}}"
+msgstr "{rejected, plural, one {Nu s-a putut anula {rejected} job} few {Nu s-au putut anula {rejected} joburi} other {Nu s-au putut anula {rejected} de joburi}}"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:111
 #: src/lib/components/shared/channel-selector.tsx:47
@@ -5276,7 +5276,7 @@ msgstr "Monedă implicită"
 msgid "No payment or refund is required for these changes."
 msgstr "Nu este necesară plată sau rambursare pentru aceste modificări."
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:69
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:72
 msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
 msgstr ""
 

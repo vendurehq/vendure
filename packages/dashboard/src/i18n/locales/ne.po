@@ -233,7 +233,7 @@ msgstr "विक्रेताहरू"
 msgid "Options"
 msgstr "विकल्पहरू"
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:32
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:35
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
 msgstr "{fulfilled, plural, one {{fulfilled} कार्य सफलतापूर्वक रद्द गरियो} other {{fulfilled} कार्यहरू सफलतापूर्वक रद्द गरियो}}"
 
@@ -1272,7 +1272,7 @@ msgstr "ठेगाना मेटियो"
 msgid "Only roles assigned to your account are available."
 msgstr "तपाईंको खातामा तोकिएका भूमिकाहरू मात्र उपलब्ध छन्।"
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:62
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:65
 msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
 msgstr ""
 
@@ -1381,7 +1381,7 @@ msgstr "नयाँ भुक्तानी विधि"
 msgid "Successfully updated promotion"
 msgstr "प्रमोशन सफलतापूर्वक अपडेट गरियो"
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:40
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:43
 msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to cancel {rejected} jobs}}"
 msgstr "{rejected, plural, one {{rejected} कार्य रद्द गर्न असफल भयो} other {{rejected} कार्यहरू रद्द गर्न असफल भयो}}"
 
@@ -5472,7 +5472,7 @@ msgstr "पूर्वनिर्धारित मुद्रा"
 msgid "No payment or refund is required for these changes."
 msgstr "यी परिवर्तनहरूको लागि कुनै भुक्तानी वा रिफन्ड आवश्यक छैन।"
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:69
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:72
 msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
 msgstr ""
 

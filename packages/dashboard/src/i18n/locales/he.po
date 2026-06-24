@@ -233,7 +233,7 @@ msgstr "מוכרים"
 msgid "Options"
 msgstr "אפשרויות"
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:32
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:35
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
 msgstr "{fulfilled, plural, one {{fulfilled} משימה בוטלה בהצלחה} other {{fulfilled} משימות בוטלו בהצלחה}}"
 
@@ -1272,7 +1272,7 @@ msgstr "הכתובת נמחקה"
 msgid "Only roles assigned to your account are available."
 msgstr "רק תפקידים שהוקצו לחשבונך זמינים."
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:62
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:65
 msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
 msgstr ""
 
@@ -1381,7 +1381,7 @@ msgstr "אמצעי תשלום חדש"
 msgid "Successfully updated promotion"
 msgstr "המבצע עודכן בהצלחה"
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:40
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:43
 msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to cancel {rejected} jobs}}"
 msgstr "{rejected, plural, one {ביטול {rejected} משימה נכשל} other {ביטול {rejected} משימות נכשל}}"
 
@@ -5472,7 +5472,7 @@ msgstr "מטבע ברירת מחדל"
 msgid "No payment or refund is required for these changes."
 msgstr "לא נדרש תשלום או החזר עבור שינויים אלה."
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:69
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:72
 msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
 msgstr ""
 

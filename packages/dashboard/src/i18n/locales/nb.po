@@ -233,7 +233,7 @@ msgstr "Selgere"
 msgid "Options"
 msgstr "Alternativer"
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:32
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:35
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
 msgstr "{fulfilled, plural, one {{fulfilled} jobb ble avbrutt} other {{fulfilled} jobber ble avbrutt}}"
 
@@ -1272,7 +1272,7 @@ msgstr "Adresse slettet"
 msgid "Only roles assigned to your account are available."
 msgstr "Bare roller tilordnet din konto er tilgjengelige."
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:62
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:65
 msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
 msgstr ""
 
@@ -1381,7 +1381,7 @@ msgstr "Ny betalingsmetode"
 msgid "Successfully updated promotion"
 msgstr "Kampanje oppdatert"
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:40
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:43
 msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to cancel {rejected} jobs}}"
 msgstr "{rejected, plural, one {Kunne ikke avbryte {rejected} jobb} other {Kunne ikke avbryte {rejected} jobber}}"
 
@@ -5472,7 +5472,7 @@ msgstr "Standardvaluta"
 msgid "No payment or refund is required for these changes."
 msgstr "Ingen betaling eller refusjon er nødvendig for disse endringene."
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:69
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:72
 msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
 msgstr ""
 
