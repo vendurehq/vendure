@@ -3,7 +3,7 @@ import { BulkActionComponent } from '@/vdb/framework/extension-api/types/data-ta
 import { api } from '@/vdb/graphql/api.js';
 import { usePaginatedList } from '@/vdb/hooks/use-paginated-list.js';
 import { plural } from '@lingui/core/macro';
-import { Plural, useLingui } from '@lingui/react/macro';
+import { Plural } from '@lingui/react/macro';
 import { useMutation } from '@tanstack/react-query';
 import { Ban } from 'lucide-react';
 import { toast } from 'sonner';
@@ -11,7 +11,6 @@ import { cancelJobDocument } from '../job-queue.graphql.js';
 
 export const CancelJobsBulkAction: BulkActionComponent<any> = ({ selection, table }) => {
     const { refetchPaginatedList } = usePaginatedList();
-    const { t } = useLingui();
 
     const cancellableJobs = selection.filter(job => job.state === 'RUNNING' || job.state === 'PENDING');
     const cancellableCount = cancellableJobs.length;
@@ -31,16 +30,16 @@ export const CancelJobsBulkAction: BulkActionComponent<any> = ({ selection, tabl
             if (fulfilled > 0) {
                 toast.success(
                     plural(fulfilled, {
-                        one: t`Successfully cancelled ${fulfilled} job`,
-                        other: t`Successfully cancelled ${fulfilled} jobs`,
+                        one: `Successfully cancelled ${fulfilled} job`,
+                        other: `Successfully cancelled ${fulfilled} jobs`,
                     }),
                 );
             }
             if (rejected > 0) {
                 toast.error(
                     plural(rejected, {
-                        one: t`Failed to cancel ${rejected} job`,
-                        other: t`Failed to cancel ${rejected} jobs`,
+                        one: `Failed to cancel ${rejected} job`,
+                        other: `Failed to cancel ${rejected} jobs`,
                     }),
                 );
             }
