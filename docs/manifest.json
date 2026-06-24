@@ -1008,7 +1008,7 @@
                   "title": "CustomerChannelAssignmentStrategy",
                   "slug": "customer-channel-assignment-strategy",
                   "file": "docs/reference/typescript-api/auth/customer-channel-assignment-strategy.mdx",
-                  "lastModified": "2026-06-24T09:25:30Z"
+                  "lastModified": "2026-06-24T09:29:11Z"
                 },
                 {
                   "title": "DefaultPasswordValidationStrategy",
