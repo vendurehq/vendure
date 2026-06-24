@@ -579,7 +579,7 @@
               "title": "Extension Targets",
               "slug": "extension-targets",
               "file": "docs/guides/extending-the-dashboard/customizing-pages/extension-targets.mdx",
-              "lastModified": "2026-06-24T10:09:42+02:00"
+              "lastModified": "2026-06-24T13:18:28+02:00"
             },
             {
               "title": "Insights Widgets",
@@ -620,7 +620,7 @@
           "title": "Navigation",
           "slug": "navigation",
           "file": "docs/guides/extending-the-dashboard/navigation/index.mdx",
-          "lastModified": "2026-06-24T10:09:42+02:00"
+          "lastModified": "2026-06-24T13:18:28+02:00"
         },
         {
           "title": "Alerts",
