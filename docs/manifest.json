@@ -500,7 +500,7 @@
           "title": "Extending Overview",
           "slug": "extending-overview",
           "file": "docs/guides/extending-the-dashboard/extending-overview/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-06-24T10:09:42+02:00"
         },
         {
           "title": "Public API & Imports",
@@ -543,13 +543,13 @@
               "title": "Customizing List Pages",
               "slug": "customizing-list-pages",
               "file": "docs/guides/extending-the-dashboard/customizing-pages/customizing-list-pages.mdx",
-              "lastModified": "2026-02-12T16:47:03+01:00"
+              "lastModified": "2026-06-24T10:09:42+02:00"
             },
             {
               "title": "Customizing Detail Pages",
               "slug": "customizing-detail-pages",
               "file": "docs/guides/extending-the-dashboard/customizing-pages/customizing-detail-pages.mdx",
-              "lastModified": "2026-03-23T10:11:25+01:00"
+              "lastModified": "2026-06-24T10:09:42+02:00"
             },
             {
               "title": "Customizing Login Page",
@@ -567,7 +567,19 @@
               "title": "Action Bar Items",
               "slug": "action-bar-items",
               "file": "docs/guides/extending-the-dashboard/customizing-pages/action-bar-items.mdx",
-              "lastModified": "2026-03-23T10:11:25+01:00"
+              "lastModified": "2026-06-24T10:09:42+02:00"
+            },
+            {
+              "title": "Toolbar Items",
+              "slug": "toolbar-items",
+              "file": "docs/guides/extending-the-dashboard/customizing-pages/toolbar-items.mdx",
+              "lastModified": "2026-06-24T10:09:42+02:00"
+            },
+            {
+              "title": "Extension Targets",
+              "slug": "extension-targets",
+              "file": "docs/guides/extending-the-dashboard/customizing-pages/extension-targets.mdx",
+              "lastModified": "2026-06-24T10:09:42+02:00"
             },
             {
               "title": "Insights Widgets",
@@ -582,7 +594,7 @@
               "lastModified": "2026-02-12T16:47:03+01:00"
             }
           ],
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-06-24T10:09:42+02:00"
         },
         {
           "title": "Custom Form Elements",
@@ -608,7 +620,7 @@
           "title": "Navigation",
           "slug": "navigation",
           "file": "docs/guides/extending-the-dashboard/navigation/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-06-24T10:09:42+02:00"
         },
         {
           "title": "Alerts",
@@ -3827,7 +3839,7 @@
                   "title": "DetailPage",
                   "slug": "detail-page",
                   "file": "docs/reference/dashboard/detail-views/detail-page.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-06-24T10:09:42+02:00"
                 },
                 {
                   "title": "UseDetailPage",
@@ -3865,13 +3877,13 @@
                   "title": "DataTables",
                   "slug": "data-tables",
                   "file": "docs/reference/dashboard/extensions-api/data-tables.mdx",
-                  "lastModified": "2026-03-23T10:11:25+01:00"
+                  "lastModified": "2026-06-24T10:09:42+02:00"
                 },
                 {
                   "title": "DefineDashboardExtension",
                   "slug": "define-dashboard-extension",
                   "file": "docs/reference/dashboard/extensions-api/define-dashboard-extension.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-06-24T10:09:42+02:00"
                 },
                 {
                   "title": "DetailForms",
@@ -3913,13 +3925,13 @@
                   "title": "Routes",
                   "slug": "routes",
                   "file": "docs/reference/dashboard/extensions-api/routes.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-06-24T10:09:42+02:00"
                 },
                 {
                   "title": "Toolbar",
                   "slug": "toolbar",
                   "file": "docs/reference/dashboard/extensions-api/toolbar.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-06-24T10:09:42+02:00"
                 },
                 {
                   "title": "Widgets",
@@ -4117,13 +4129,13 @@
                   "title": "Bulk Actions",
                   "slug": "bulk-actions",
                   "file": "docs/reference/dashboard/list-views/bulk-actions.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-06-24T10:09:42+02:00"
                 },
                 {
                   "title": "DataTable",
                   "slug": "data-table",
                   "file": "docs/reference/dashboard/list-views/data-table.mdx",
-                  "lastModified": "2026-05-08T12:27:16+02:00"
+                  "lastModified": "2026-06-24T10:09:42+02:00"
                 },
                 {
                   "title": "DataTableCellComponent",
@@ -4135,7 +4147,7 @@
                   "title": "ListPage",
                   "slug": "list-page",
                   "file": "docs/reference/dashboard/list-views/list-page.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-06-24T10:09:42+02:00"
                 },
                 {
                   "title": "PaginatedListDataTable",
