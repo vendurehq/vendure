@@ -902,6 +902,10 @@ export class ProductVariantService {
             .createQueryBuilder()
             .insert()
             .values(newStockLevels)
+            // Fix for MySQL and MariaDB < 10.5: updateEntity(false) prevents TypeORM from using the
+            // RETURNING clause after the INSERT IGNORE, where an ignored-duplicate row reports
+            // insertId 0 and the re-select would otherwise throw. The seeded ids are never used here.
+            .updateEntity(false)
             .orIgnore()
             .execute();
     }
