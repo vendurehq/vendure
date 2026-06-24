@@ -53,10 +53,9 @@ interface CustomerChannelAssignmentStrategy extends InjectableStrategy {
 Return `true` to assign the Customer to the current Channel,
 or `false` to let them use it for this session without assigning.
 
-The AuthGuard consults this when an authenticated Customer's request targets a different
-Channel than the one currently active on their session — on the first request after signing
-in, or later when a request switches Channel. It is only consulted on a non-default Channel
-where the Customer is not already a member.
+Triggered when an authenticated Customer's request targets a different
+Channel than the one currently active on their session. This doesn't run on the default Channel
+or if the Customer is already a member of the Channel.
 
 
 </div>
