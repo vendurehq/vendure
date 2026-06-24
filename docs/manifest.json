@@ -218,7 +218,7 @@
           "title": "CLI",
           "slug": "cli",
           "file": "docs/guides/developer-guide/cli/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-06-24T18:31:38+02:00"
         },
         {
           "title": "Configuration",
@@ -500,7 +500,7 @@
           "title": "Extending Overview",
           "slug": "extending-overview",
           "file": "docs/guides/extending-the-dashboard/extending-overview/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-06-24T13:43:54+02:00"
         },
         {
           "title": "Public API & Imports",
@@ -532,7 +532,7 @@
               "lastModified": "2026-02-12T16:47:03+01:00"
             }
           ],
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-06-12T10:15:51+02:00"
         },
         {
           "title": "Customizing Pages",
@@ -543,13 +543,13 @@
               "title": "Customizing List Pages",
               "slug": "customizing-list-pages",
               "file": "docs/guides/extending-the-dashboard/customizing-pages/customizing-list-pages.mdx",
-              "lastModified": "2026-02-12T16:47:03+01:00"
+              "lastModified": "2026-06-24T13:43:54+02:00"
             },
             {
               "title": "Customizing Detail Pages",
               "slug": "customizing-detail-pages",
               "file": "docs/guides/extending-the-dashboard/customizing-pages/customizing-detail-pages.mdx",
-              "lastModified": "2026-03-23T10:11:25+01:00"
+              "lastModified": "2026-06-24T13:43:54+02:00"
             },
             {
               "title": "Customizing Login Page",
@@ -567,7 +567,19 @@
               "title": "Action Bar Items",
               "slug": "action-bar-items",
               "file": "docs/guides/extending-the-dashboard/customizing-pages/action-bar-items.mdx",
-              "lastModified": "2026-03-23T10:11:25+01:00"
+              "lastModified": "2026-06-24T13:43:54+02:00"
+            },
+            {
+              "title": "Toolbar Items",
+              "slug": "toolbar-items",
+              "file": "docs/guides/extending-the-dashboard/customizing-pages/toolbar-items.mdx",
+              "lastModified": "2026-06-24T13:43:54+02:00"
+            },
+            {
+              "title": "Extension Targets",
+              "slug": "extension-targets",
+              "file": "docs/guides/extending-the-dashboard/customizing-pages/extension-targets.mdx",
+              "lastModified": "2026-06-24T13:43:54+02:00"
             },
             {
               "title": "Insights Widgets",
@@ -582,33 +594,33 @@
               "lastModified": "2026-02-12T16:47:03+01:00"
             }
           ],
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-06-24T13:43:54+02:00"
         },
         {
-          "title": "Custom Form Elements",
+          "title": "Customizing Forms",
           "slug": "custom-form-components",
           "file": "docs/guides/extending-the-dashboard/custom-form-components/index.mdx",
           "children": [
             {
-              "title": "Form Component Examples",
+              "title": "Input Component Examples",
               "slug": "form-component-examples",
               "file": "docs/guides/extending-the-dashboard/custom-form-components/form-component-examples.mdx",
-              "lastModified": "2026-03-23T10:11:25+01:00"
+              "lastModified": "2026-06-24T13:43:54+02:00"
             },
             {
-              "title": "Relation Selectors",
+              "title": "Relation Selector Components",
               "slug": "relation-selectors",
               "file": "docs/guides/extending-the-dashboard/custom-form-components/relation-selectors.mdx",
-              "lastModified": "2026-04-13T10:27:51+02:00"
+              "lastModified": "2026-06-24T13:43:54+02:00"
             }
           ],
-          "lastModified": "2026-04-30T08:23:16+02:00"
+          "lastModified": "2026-06-24T13:43:54+02:00"
         },
         {
           "title": "Navigation",
           "slug": "navigation",
           "file": "docs/guides/extending-the-dashboard/navigation/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-06-24T13:43:54+02:00"
         },
         {
           "title": "Alerts",
@@ -651,6 +663,12 @@
           "slug": "migration",
           "file": "docs/guides/extending-the-dashboard/migration/index.mdx",
           "lastModified": "2026-03-23T10:11:25+01:00"
+        },
+        {
+          "title": "Custom Providers",
+          "slug": "custom-providers",
+          "file": "docs/guides/extending-the-dashboard/custom-providers/index.mdx",
+          "lastModified": "2026-06-16T13:09:22+02:00"
         }
       ]
     },
@@ -759,31 +777,31 @@
           "title": "Deploy to Northflank",
           "slug": "deploy-to-northflank",
           "file": "docs/guides/deployment/deploy-to-northflank/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-06-19T16:37:02+02:00"
         },
         {
           "title": "Deploy to Digital Ocean App Platform",
           "slug": "deploy-to-digital-ocean-app-platform",
           "file": "docs/guides/deployment/deploy-to-digital-ocean-app-platform/index.mdx",
-          "lastModified": "2026-05-26T10:57:06+02:00"
+          "lastModified": "2026-06-19T16:37:02+02:00"
         },
         {
           "title": "Deploy to Railway",
           "slug": "deploy-to-railway",
           "file": "docs/guides/deployment/deploy-to-railway/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-06-19T16:37:02+02:00"
         },
         {
           "title": "Deploy to Render",
           "slug": "deploy-to-render",
           "file": "docs/guides/deployment/deploy-to-render/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-06-19T16:37:02+02:00"
         },
         {
           "title": "Deploy to Google Cloud Run",
           "slug": "deploy-to-google-cloud-run",
           "file": "docs/guides/deployment/deploy-to-google-cloud-run/index.mdx",
-          "lastModified": "2026-05-26T10:57:06+02:00"
+          "lastModified": "2026-06-19T16:37:02+02:00"
         }
       ],
       "lastModified": "2026-05-26T10:57:06+02:00"
@@ -940,7 +958,7 @@
                   "title": "AssetOptions",
                   "slug": "asset-options",
                   "file": "docs/reference/typescript-api/assets/asset-options.mdx",
-                  "lastModified": "2026-03-11T12:31:39+01:00"
+                  "lastModified": "2026-06-24T09:45:17Z"
                 },
                 {
                   "title": "AssetPreviewStrategy",
@@ -984,7 +1002,7 @@
                   "title": "AuthOptions",
                   "slug": "auth-options",
                   "file": "docs/reference/typescript-api/auth/auth-options.mdx",
-                  "lastModified": "2026-03-31T16:05:42+02:00"
+                  "lastModified": "2026-06-24T09:45:17Z"
                 },
                 {
                   "title": "BcryptPasswordHashingStrategy",
@@ -996,7 +1014,13 @@
                   "title": "CookieOptions",
                   "slug": "cookie-options",
                   "file": "docs/reference/typescript-api/auth/cookie-options.mdx",
-                  "lastModified": "2026-03-11T12:31:39+01:00"
+                  "lastModified": "2026-06-24T09:45:17Z"
+                },
+                {
+                  "title": "CustomerChannelAssignmentStrategy",
+                  "slug": "customer-channel-assignment-strategy",
+                  "file": "docs/reference/typescript-api/auth/customer-channel-assignment-strategy.mdx",
+                  "lastModified": "2026-06-24T09:45:17Z"
                 },
                 {
                   "title": "DefaultPasswordValidationStrategy",
@@ -1074,7 +1098,7 @@
                   "title": "SuperadminCredentials",
                   "slug": "superadmin-credentials",
                   "file": "docs/reference/typescript-api/auth/superadmin-credentials.mdx",
-                  "lastModified": "2026-03-11T12:31:39+01:00"
+                  "lastModified": "2026-06-24T09:45:17Z"
                 },
                 {
                   "title": "VerificationTokenStrategy",
@@ -1336,7 +1360,7 @@
                   "title": "ApiOptions",
                   "slug": "api-options",
                   "file": "docs/reference/typescript-api/configuration/api-options.mdx",
-                  "lastModified": "2026-03-11T12:31:39+01:00"
+                  "lastModified": "2026-06-24T09:45:17Z"
                 },
                 {
                   "title": "CollectionFilter",
@@ -1348,7 +1372,7 @@
                   "title": "DefaultConfig",
                   "slug": "default-config",
                   "file": "docs/reference/typescript-api/configuration/default-config.mdx",
-                  "lastModified": "2026-03-11T12:31:39+01:00"
+                  "lastModified": "2026-06-24T09:45:17Z"
                 },
                 {
                   "title": "DefaultSlugStrategy",
@@ -1378,7 +1402,7 @@
                   "title": "EntityOptions",
                   "slug": "entity-options",
                   "file": "docs/reference/typescript-api/configuration/entity-options.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-06-24T09:45:17Z"
                 },
                 {
                   "title": "MergeConfig",
@@ -1402,7 +1426,7 @@
                   "title": "RuntimeVendureConfig",
                   "slug": "runtime-vendure-config",
                   "file": "docs/reference/typescript-api/configuration/runtime-vendure-config.mdx",
-                  "lastModified": "2026-03-11T12:31:39+01:00"
+                  "lastModified": "2026-06-24T09:45:17Z"
                 },
                 {
                   "title": "SettingsStoreFields",
@@ -1420,19 +1444,19 @@
                   "title": "SystemOptions",
                   "slug": "system-options",
                   "file": "docs/reference/typescript-api/configuration/system-options.mdx",
-                  "lastModified": "2026-03-11T12:31:39+01:00"
+                  "lastModified": "2026-06-24T09:45:17Z"
                 },
                 {
                   "title": "TrustProxyOptions",
                   "slug": "trust-proxy-options",
                   "file": "docs/reference/typescript-api/configuration/trust-proxy-options.mdx",
-                  "lastModified": "2026-03-11T12:31:39+01:00"
+                  "lastModified": "2026-06-24T09:45:17Z"
                 },
                 {
                   "title": "VendureConfig",
                   "slug": "vendure-config",
                   "file": "docs/reference/typescript-api/configuration/vendure-config.mdx",
-                  "lastModified": "2026-03-11T12:31:39+01:00"
+                  "lastModified": "2026-06-24T09:45:17Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -2104,7 +2128,7 @@
                   "title": "ImportExportOptions",
                   "slug": "import-export-options",
                   "file": "docs/reference/typescript-api/import-export/import-export-options.mdx",
-                  "lastModified": "2026-03-11T12:31:39+01:00"
+                  "lastModified": "2026-06-24T09:45:17Z"
                 },
                 {
                   "title": "ImportParser",
@@ -2184,7 +2208,7 @@
                   "title": "JobQueueOptions",
                   "slug": "job-queue-options",
                   "file": "docs/reference/typescript-api/job-queue/job-queue-options.mdx",
-                  "lastModified": "2026-03-11T12:31:39+01:00"
+                  "lastModified": "2026-06-24T09:45:17Z"
                 },
                 {
                   "title": "JobQueueService",
@@ -2438,7 +2462,7 @@
                   "title": "OrderOptions",
                   "slug": "order-options",
                   "file": "docs/reference/typescript-api/orders/order-options.mdx",
-                  "lastModified": "2026-03-11T12:31:39+01:00"
+                  "lastModified": "2026-06-24T09:45:17Z"
                 },
                 {
                   "title": "OrderPlacedStrategy",
@@ -2518,7 +2542,7 @@
                   "title": "PaymentOptions",
                   "slug": "payment-options",
                   "file": "docs/reference/typescript-api/payment/payment-options.mdx",
-                  "lastModified": "2026-03-11T12:31:39+01:00"
+                  "lastModified": "2026-06-24T09:45:17Z"
                 },
                 {
                   "title": "PaymentProcess",
@@ -2612,7 +2636,7 @@
                   "title": "CatalogOptions",
                   "slug": "catalog-options",
                   "file": "docs/reference/typescript-api/products-stock/catalog-options.mdx",
-                  "lastModified": "2026-03-11T12:31:39+01:00"
+                  "lastModified": "2026-06-24T09:45:17Z"
                 },
                 {
                   "title": "DefaultProductVariantPriceCalculationStrategy",
@@ -2686,7 +2710,7 @@
                   "title": "PromotionOptions",
                   "slug": "promotion-options",
                   "file": "docs/reference/typescript-api/promotions/promotion-options.mdx",
-                  "lastModified": "2026-03-11T12:31:39+01:00"
+                  "lastModified": "2026-06-24T09:45:17Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -2780,7 +2804,7 @@
                   "title": "SchedulerOptions",
                   "slug": "scheduler-options",
                   "file": "docs/reference/typescript-api/scheduled-tasks/scheduler-options.mdx",
-                  "lastModified": "2026-03-11T12:31:39+01:00"
+                  "lastModified": "2026-06-24T09:45:17Z"
                 },
                 {
                   "title": "SchedulerService",
@@ -2889,6 +2913,12 @@
                   "lastModified": "2026-04-20T16:08:16+02:00"
                 },
                 {
+                  "title": "CustomerChannelAssignmentService",
+                  "slug": "customer-channel-assignment-service",
+                  "file": "docs/reference/typescript-api/services/customer-channel-assignment-service.mdx",
+                  "lastModified": "2026-06-24T09:45:17Z"
+                },
+                {
                   "title": "CustomerGroupService",
                   "slug": "customer-group-service",
                   "file": "docs/reference/typescript-api/services/customer-group-service.mdx",
@@ -2988,7 +3018,7 @@
                   "title": "ProductVariantService",
                   "slug": "product-variant-service",
                   "file": "docs/reference/typescript-api/services/product-variant-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-06-24T18:05:35+02:00"
                 },
                 {
                   "title": "PromotionService",
@@ -3196,7 +3226,7 @@
                   "title": "ShippingOptions",
                   "slug": "shipping-options",
                   "file": "docs/reference/typescript-api/shipping/shipping-options.mdx",
-                  "lastModified": "2026-03-11T12:31:39+01:00"
+                  "lastModified": "2026-06-24T09:45:17Z"
                 },
                 {
                   "title": "ShouldRunCheckFn",
@@ -3272,7 +3302,7 @@
                   "title": "TaxOptions",
                   "slug": "tax-options",
                   "file": "docs/reference/typescript-api/tax/tax-options.mdx",
-                  "lastModified": "2026-03-11T12:31:39+01:00"
+                  "lastModified": "2026-06-24T09:45:17Z"
                 },
                 {
                   "title": "TaxZoneStrategy",
@@ -3526,10 +3556,10 @@
                   "title": "DashboardPluginOptions",
                   "slug": "dashboard-plugin-options",
                   "file": "docs/reference/core-plugins/dashboard-plugin/dashboard-plugin-options.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-06-24T09:45:17Z"
                 }
               ],
-              "lastModified": "2026-04-20T16:08:16+02:00"
+              "lastModified": "2026-06-24T09:45:17Z"
             },
             {
               "title": "EmailPlugin",
@@ -3540,7 +3570,7 @@
                   "title": "Email Plugin Types",
                   "slug": "email-plugin-types",
                   "file": "docs/reference/core-plugins/email-plugin/email-plugin-types.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-06-24T18:05:35+02:00"
                 },
                 {
                   "title": "Email Utils",
@@ -3576,7 +3606,7 @@
                   "title": "EmailPluginOptions",
                   "slug": "email-plugin-options",
                   "file": "docs/reference/core-plugins/email-plugin/email-plugin-options.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-06-24T18:05:35+02:00"
                 },
                 {
                   "title": "EmailSender",
@@ -3600,7 +3630,7 @@
                   "title": "Transport Options",
                   "slug": "transport-options",
                   "file": "docs/reference/core-plugins/email-plugin/transport-options.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-06-24T18:05:35+02:00"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -3857,7 +3887,7 @@
                   "title": "DetailPage",
                   "slug": "detail-page",
                   "file": "docs/reference/dashboard/detail-views/detail-page.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-06-24T13:43:54+02:00"
                 },
                 {
                   "title": "UseDetailPage",
@@ -3892,28 +3922,34 @@
                   "lastModified": "2026-04-20T16:08:16+02:00"
                 },
                 {
+                  "title": "Custom Providers",
+                  "slug": "custom-providers",
+                  "file": "docs/reference/dashboard/extensions-api/custom-providers.mdx",
+                  "lastModified": "2026-06-24T09:45:17Z"
+                },
+                {
                   "title": "DataTables",
                   "slug": "data-tables",
                   "file": "docs/reference/dashboard/extensions-api/data-tables.mdx",
-                  "lastModified": "2026-03-23T10:11:25+01:00"
+                  "lastModified": "2026-06-24T13:43:54+02:00"
                 },
                 {
                   "title": "DefineDashboardExtension",
                   "slug": "define-dashboard-extension",
                   "file": "docs/reference/dashboard/extensions-api/define-dashboard-extension.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-06-24T16:28:55+02:00"
                 },
                 {
                   "title": "DetailForms",
                   "slug": "detail-forms",
                   "file": "docs/reference/dashboard/extensions-api/detail-forms.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-06-24T13:43:54+02:00"
                 },
                 {
                   "title": "FormComponents",
                   "slug": "form-components",
                   "file": "docs/reference/dashboard/extensions-api/form-components.mdx",
-                  "lastModified": "2026-04-30T17:21:55+02:00"
+                  "lastModified": "2026-06-24T13:43:54+02:00"
                 },
                 {
                   "title": "HistoryEntries",
@@ -3943,13 +3979,13 @@
                   "title": "Routes",
                   "slug": "routes",
                   "file": "docs/reference/dashboard/extensions-api/routes.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-06-24T13:43:54+02:00"
                 },
                 {
                   "title": "Toolbar",
                   "slug": "toolbar",
                   "file": "docs/reference/dashboard/extensions-api/toolbar.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-06-24T13:43:54+02:00"
                 },
                 {
                   "title": "Widgets",
@@ -4127,7 +4163,7 @@
                   "title": "UseUiLanguageLoader",
                   "slug": "use-ui-language-loader",
                   "file": "docs/reference/dashboard/hooks/use-ui-language-loader.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-06-24T09:45:17Z"
                 },
                 {
                   "title": "UseWidgetFilters",
@@ -4147,13 +4183,13 @@
                   "title": "Bulk Actions",
                   "slug": "bulk-actions",
                   "file": "docs/reference/dashboard/list-views/bulk-actions.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-06-24T13:43:54+02:00"
                 },
                 {
                   "title": "DataTable",
                   "slug": "data-table",
                   "file": "docs/reference/dashboard/list-views/data-table.mdx",
-                  "lastModified": "2026-05-08T12:27:16+02:00"
+                  "lastModified": "2026-06-24T13:43:54+02:00"
                 },
                 {
                   "title": "DataTableCellComponent",
@@ -4165,7 +4201,7 @@
                   "title": "ListPage",
                   "slug": "list-page",
                   "file": "docs/reference/dashboard/list-views/list-page.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-06-24T13:43:54+02:00"
                 },
                 {
                   "title": "PaginatedListDataTable",
@@ -4191,19 +4227,19 @@
                   "title": "PageActionBar",
                   "slug": "page-action-bar",
                   "file": "docs/reference/dashboard/page-layout/page-action-bar.mdx",
-                  "lastModified": "2026-05-08T12:27:16+02:00"
+                  "lastModified": "2026-06-12T10:15:51+02:00"
                 },
                 {
                   "title": "PageBlock",
                   "slug": "page-block",
                   "file": "docs/reference/dashboard/page-layout/page-block.mdx",
-                  "lastModified": "2026-05-08T12:27:16+02:00"
+                  "lastModified": "2026-06-12T10:15:51+02:00"
                 },
                 {
                   "title": "PageTitle",
                   "slug": "page-title",
                   "file": "docs/reference/dashboard/page-layout/page-title.mdx",
-                  "lastModified": "2026-05-08T12:27:16+02:00"
+                  "lastModified": "2026-06-12T10:15:51+02:00"
                 },
                 {
                   "title": "UsePageBlock",
@@ -4212,7 +4248,7 @@
                   "lastModified": "2026-01-28T14:49:21+01:00"
                 }
               ],
-              "lastModified": "2026-05-08T12:27:16+02:00"
+              "lastModified": "2026-06-12T10:15:51+02:00"
             },
             {
               "title": "Vite Plugin",

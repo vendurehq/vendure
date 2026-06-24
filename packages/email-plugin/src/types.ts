@@ -3,6 +3,7 @@ import { Omit } from '@vendure/common/lib/omit';
 import { Injector, RequestContext, SerializedRequestContext, VendureEvent } from '@vendure/core';
 import { Attachment } from 'nodemailer/lib/mailer';
 import SESTransport from 'nodemailer/lib/ses-transport';
+import SMTPPool from 'nodemailer/lib/smtp-pool';
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
 
 import { EmailGenerator } from './generator/email-generator';
@@ -193,6 +194,43 @@ export interface SMTPTransportOptions extends SMTPTransport.Options {
      * @default false
      */
     logging?: boolean;
+    /**
+     * @description
+     * Set to true to use a pooled connection (defaults to false) instead of creating a new connection for
+     * every email. Nodemailer pooled-SMTP option, forwarded directly to `nodemailer.createTransport()`.
+     *
+     * @default false
+     */
+    pool?: boolean;
+    /**
+     * @description
+     * The maximum number of simultaneous connections to make against the SMTP server.
+     * Only applies when `pool` is `true`.
+     *
+     * @default 5
+     */
+    maxConnections?: SMTPPool.Options['maxConnections'];
+    /**
+     * @description
+     * Limits the number of messages sent over a single connection. After `maxMessages` is reached the
+     * connection is dropped and a new one is created. Only applies when `pool` is `true`.
+     *
+     * @default 100
+     */
+    maxMessages?: SMTPPool.Options['maxMessages'];
+    /**
+     * @description
+     * Defines the time measuring period in milliseconds for rate limiting. Only applies when `pool` is `true`.
+     *
+     * @default 1000
+     */
+    rateDelta?: SMTPPool.Options['rateDelta'];
+    /**
+     * @description
+     * Limits the number of messages sent in the `rateDelta` window. Once reached, sending is paused until
+     * the end of the period. Only applies when `pool` is `true`.
+     */
+    rateLimit?: SMTPPool.Options['rateLimit'];
 }
 
 /**

@@ -1,3 +1,4 @@
+import { DashboardCustomProviderDefinition } from '@/vdb/framework/extension-api/custom-providers.js';
 import {
     BulkAction,
     DashboardActionBarItem,
@@ -32,4 +33,5 @@ export interface GlobalRegistryContents {
     historyEntries: Map<string, DashboardHistoryEntryComponent['component']>;
     navMenuModifiers: Array<(config: NavMenuConfig) => NavMenuConfig>;
     dashboardToolbarItemRegistry: Map<string, DashboardToolbarItemDefinition>;
+    dashboardCustomProvidersRegistry: Map<string, DashboardCustomProviderDefinition>;
 }

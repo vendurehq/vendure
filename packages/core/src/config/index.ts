@@ -8,6 +8,8 @@ export * from './asset-preview-strategy/asset-preview-strategy';
 export * from './asset-storage-strategy/asset-storage-strategy';
 export * from './auth/authentication-strategy';
 export * from './auth/bcrypt-password-hashing-strategy';
+export * from './auth/customer-channel-assignment-strategy';
+export * from './auth/default-customer-channel-assignment-strategy';
 export * from './auth/default-entity-access-control-strategy';
 export * from './auth/default-password-validation-strategy';
 export * from './auth/default-verification-token-strategy';

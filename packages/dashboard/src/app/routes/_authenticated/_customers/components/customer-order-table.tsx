@@ -55,7 +55,10 @@ export function CustomerOrderTable({ customerId }: Readonly<CustomerOrderTablePr
                 state: {
                     header: 'State',
                     cell: ({ cell }) => {
-                        const value = cell.getValue() as string;
+                        const value = cell.getValue() as string | undefined;
+                        if (!value) {
+                            return null;
+                        }
                         return <Badge variant={stateTypeToBadgeVariant(getTypeForState(value))}>{value}</Badge>;
                     },
                 },

@@ -36,7 +36,7 @@ export interface DashboardRouteDefinition {
     /**
      * @description
      * Optional loader function to fetch data before the route renders.
-     * The value is a Tanstack Router
+     * The value is a TanStack Router
      * [loader function](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#route-loaders)
      */
     loader?: RouteOptions<any>['loader'];
@@ -44,7 +44,7 @@ export interface DashboardRouteDefinition {
     /**
      * @description
      * Optional search parameter validation function.
-     * The value is a Tanstack Router
+     * The value is a TanStack Router
      * [validateSearch function](https://tanstack.com/router/latest/docs/framework/react/guide/search-params#search-param-validation)
      */
     validateSearch?: RouteOptions<any>['validateSearch'];
