@@ -18,22 +18,9 @@ The Vendure CLI comes installed with a new Vendure project by default from v2.2.
 
 To manually install the CLI, run:
 
-<Tabs groupId="package-manager">
-<TabItem value="npm" label="npm" default>
-
 ```bash
 npm install -D @vendure/cli
 ```
-
-</TabItem>
-<TabItem value="yarn" label="yarn">
-
-```bash
-yarn add -D @vendure/cli
-```
-
-</TabItem>
-</Tabs>
 
 ## Interactive vs Non-Interactive Mode
 
@@ -50,22 +37,9 @@ The `add` command is used to add new entities, resolvers, services, plugins, and
 
 From your project's **root directory**, run:
 
-<Tabs groupId="package-manager">
-<TabItem value="npm" label="npm" default>
-
 ```bash
 npx vendure add
 ```
-
-</TabItem>
-<TabItem value="yarn" label="yarn">
-
-```bash
-yarn vendure add
-```
-
-</TabItem>
-</Tabs>
 
 ![Add command](./add-command.webp)
 
@@ -77,9 +51,6 @@ analyze your project source code to deeply understand and correctly update your 
 ### Non-Interactive Mode
 
 For automation or when you know exactly what you need to add, you can use the non-interactive mode with specific arguments and options:
-
-<Tabs groupId="package-manager">
-<TabItem value="npm" label="npm" default>
 
 ```bash
 # Create a new plugin
@@ -112,44 +83,6 @@ npx vendure add -d MyPlugin
 # Use custom config file
 npx vendure add -p MyPlugin --config ./custom-vendure.config.ts
 ```
-
-</TabItem>
-<TabItem value="yarn" label="yarn">
-
-```bash
-# Create a new plugin
-yarn vendure add -p MyPlugin
-
-# Add an entity to a plugin
-yarn vendure add -e MyEntity --selected-plugin MyPlugin
-
-# Add an entity with features
-yarn vendure add -e MyEntity --selected-plugin MyPlugin --custom-fields --translatable
-
-# Add a service to a plugin
-yarn vendure add -s MyService --selected-plugin MyPlugin
-
-# Add a service with specific type
-yarn vendure add -s MyService --selected-plugin MyPlugin --type entity
-
-# Add job queue support to a plugin
-yarn vendure add -j MyPlugin --name my-job --selected-service MyService
-
-# Add GraphQL codegen to a plugin
-yarn vendure add -c MyPlugin
-
-# Add API extension to a plugin
-yarn vendure add -a MyPlugin --queryName getCustomData --mutationName updateCustomData
-
-# Add Dashboard extensions to a plugin
-yarn vendure add -d MyPlugin
-
-# Use custom config file
-yarn vendure add -p MyPlugin --config ./custom-vendure.config.ts
-```
-
-</TabItem>
-</Tabs>
 
 #### Add Command Options
 
@@ -199,31 +132,15 @@ The `migrate` command is used to generate and manage [database migrations](/deve
 
 From your project's **root directory**, run:
 
-<Tabs groupId="package-manager">
-<TabItem value="npm" label="npm" default>
-
 ```bash
 npx vendure migrate
 ```
-
-</TabItem>
-<TabItem value="yarn" label="yarn">
-
-```bash
-yarn vendure migrate
-```
-
-</TabItem>
-</Tabs>
 
 ![Migrate command](./migrate-command.webp)
 
 ### Non-Interactive Mode
 
 For migration operations, use specific arguments and options:
-
-<Tabs groupId="package-manager">
-<TabItem value="npm" label="npm" default>
 
 ```bash
 # Generate a new migration
@@ -238,26 +155,6 @@ npx vendure migrate --revert
 # Generate migration with custom output directory
 npx vendure migrate -g my-migration -o ./custom/migrations
 ```
-
-</TabItem>
-<TabItem value="yarn" label="yarn">
-
-```bash
-# Generate a new migration
-yarn vendure migrate -g my-migration-name
-
-# Run pending migrations
-yarn vendure migrate -r
-
-# Revert the last migration
-yarn vendure migrate --revert
-
-# Generate migration with custom output directory
-yarn vendure migrate -g my-migration -o ./custom/migrations
-```
-
-</TabItem>
-</Tabs>
 
 #### Migrate Command Options
 
@@ -283,22 +180,9 @@ This is useful when integrating with GraphQL tooling such as your [IDE's GraphQL
 
 From your project's **root directory**, run:
 
-<Tabs groupId="package-manager">
-<TabItem value="npm" label="npm" default>
-
 ```bash
 npx vendure schema
 ```
-
-</TabItem>
-<TabItem value="yarn" label="yarn">
-
-```bash
-yarn vendure schema
-```
-
-</TabItem>
-</Tabs>
 
 ![Schema command](./schema-command.webp)
 
@@ -306,32 +190,15 @@ yarn vendure schema
 
 To automate or quickly generate a schema in one command
 
-<Tabs groupId="package-manager">
-<TabItem value="npm" label="npm" default>
-
 ```bash
 # Create a schema file in SDL format for the Admin API
 npx vendure schema --api admin
 
 # Create a JSON format schema of the Shop API
-npx vendure migrate --api shop --format json
+npx vendure schema --api shop --format json
 ```
 
-</TabItem>
-<TabItem value="yarn" label="yarn">
-
-```bash
-# Create a schema file in SDL format for the Admin API
-yarn vendure schema --api admin
-
-# Create a JSON format schema of the Shop API
-yarn vendure migrate --api shop --format json
-```
-
-</TabItem>
-</Tabs>
-
-#### Migrate Command Options
+#### Schema Command Options
 
 | Flag | Long Form             | Description                                     | Example                                                        |
 | ---- | --------------------- | ----------------------------------------------- | -------------------------------------------------------------- |
@@ -352,22 +219,9 @@ a new machine, or as a guard rail in CI.
 
 Unlike the other commands, `doctor` is **non-interactive only** - it runs all applicable checks and prints a report:
 
-<Tabs groupId="package-manager">
-<TabItem value="npm" label="npm" default>
-
 ```bash
 npx vendure doctor
 ```
-
-</TabItem>
-<TabItem value="yarn" label="yarn">
-
-```bash
-yarn vendure doctor
-```
-
-</TabItem>
-</Tabs>
 
 ### What gets checked
 
@@ -409,24 +263,10 @@ Each check reports one of four statuses: `pass`, `warn`, `fail`, or `skip`.
 
 Use `--check` to run only a subset of checks. The flag is variadic, so list the check names after it:
 
-<Tabs groupId="package-manager">
-<TabItem value="npm" label="npm" default>
-
 ```bash
 # Run only the dependencies and config checks
 npx vendure doctor --check dependencies config
 ```
-
-</TabItem>
-<TabItem value="yarn" label="yarn">
-
-```bash
-# Run only the dependencies and config checks
-yarn vendure doctor --check dependencies config
-```
-
-</TabItem>
-</Tabs>
 
 Valid check names are: `project`, `dependencies`, `config`, `schema`, `database`.
 
@@ -434,22 +274,9 @@ Valid check names are: `project`, `dependencies`, `config`, `schema`, `database`
 
 When preparing for a production deployment, run the production profile to surface unsafe settings:
 
-<Tabs groupId="package-manager">
-<TabItem value="npm" label="npm" default>
-
 ```bash
 npx vendure doctor --profile production
 ```
-
-</TabItem>
-<TabItem value="yarn" label="yarn">
-
-```bash
-yarn vendure doctor --profile production
-```
-
-</TabItem>
-</Tabs>
 
 This adds a **Production** check that warns about settings such as `disableAuth`, default superadmin
 credentials, a missing cookie secret, enabled introspection/playground/debug, overly broad CORS,
@@ -461,24 +288,10 @@ For CI pipelines, combine `--strict` with `--format json`. The `--strict` flag t
 failures, and the command exits with a non-zero code when the overall result is a failure - so a
 warning will fail your build:
 
-<Tabs groupId="package-manager">
-<TabItem value="npm" label="npm" default>
-
 ```bash
 # Fail the build on any warning or failure, and emit machine-readable output
 npx vendure doctor --strict --format json
 ```
-
-</TabItem>
-<TabItem value="yarn" label="yarn">
-
-```bash
-# Fail the build on any warning or failure, and emit machine-readable output
-yarn vendure doctor --strict --format json
-```
-
-</TabItem>
-</Tabs>
 
 #### Doctor Command Options
 
