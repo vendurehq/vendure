@@ -2,7 +2,9 @@ import { DashboardFormComponent } from '@/vdb/framework/form-engine/form-engine-
 
 /**
  * @description
- * Allows you to define custom form components for custom fields in the dashboard.
+ * Allows you to define a custom input component for custom fields and configurable operation arguments
+ * in the dashboard. Register the component here, then reference its `id` from the field or argument
+ * `ui.component` config.
  *
  * @docsCategory extensions-api
  * @docsPage FormComponents
@@ -24,8 +26,8 @@ export interface DashboardCustomFormComponent {
 
 /**
  * @description
- * Interface for registering custom field components in the dashboard.
- * For input and display components, use the co-located approach with detailForms.
+ * Interface for registering custom input components which can be selected by custom fields and
+ * configurable operation arguments via their `ui.component` config.
  *
  * @docsCategory extensions-api
  * @docsPage FormComponents
@@ -34,8 +36,7 @@ export interface DashboardCustomFormComponent {
 export interface DashboardCustomFormComponents {
     /**
      * @description
-     * Custom form components for custom fields. These are used when rendering
-     * custom fields in forms.
+     * Custom input components for custom fields and configurable operation arguments.
      */
     customFields?: DashboardCustomFormComponent[];
 }

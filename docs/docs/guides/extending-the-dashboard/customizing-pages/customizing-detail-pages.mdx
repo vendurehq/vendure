@@ -1,13 +1,13 @@
 ---
 title: 'Customizing Detail Pages'
 metaTitle: 'Customizing Detail Pages in the Vendure Dashboard'
-metaDescription: 'Replace default form inputs, extend GraphQL detail queries, and interact with the detail page form using DashboardDetailFormExtensionDefinition.'
+metaDescription: 'Replace native detail-page inputs, extend GraphQL detail queries, and interact with the detail page form using DashboardDetailFormExtensionDefinition.'
 ---
 
 Using the [DashboardDetailFormExtensionDefinition](/reference/dashboard/extensions-api/detail-forms#dashboarddetailformextensiondefinition) you can
 customize any existing detail page in the Dashboard.
 
-Use this API when the existing detail page is mostly right and you only need to add data, replace a field input, or support custom page blocks. You usually do not need to recreate the whole detail route.
+Use this API when the existing detail page is mostly right and you only need to add data, replace a native field input, or support custom page blocks. You usually do not need to recreate the whole detail route.
 
 ## Targeting a detail form
 
@@ -32,15 +32,15 @@ defineDashboardExtension({
 
 Use [Dev Mode](/extending-the-dashboard/extending-overview/#dev-mode) or the [Extension Targets reference](/extending-the-dashboard/customizing-pages/extension-targets/) to find the `pageId`, `blockId`, and field name.
 
-## Custom form inputs
+## Replacing Native Form Inputs
 
 :::warning[Custom Fields]
-This feature replaces inputs for **built-in entity fields** only (like `name`, `description`, `slug`).
+This feature replaces inputs for **native entity fields** only, like `name`, `description`, `slug`, or `emailAddress`.
 
-To customize the form input for a **custom field** you defined in your plugin, use the [Custom Field Components](/guides/extending-the-dashboard/custom-form-components/#custom-field-components) instead.
+To customize the form input for a **custom field** you defined in your plugin, use [Custom Field Components](/extending-the-dashboard/custom-form-components/#custom-field-components) instead.
 :::
 
-You can replace any of the default form inputs with your own components using the `inputs` property.
+You can replace native detail-page inputs with your own components using the `inputs` property.
 
 Let's say you want to replace the default HTML description editor with a markdown editor component:
 
@@ -65,7 +65,7 @@ defineDashboardExtension({
 });
 ```
 
-To learn how to build custom form components, see the [Custom Form Elements guide](/extending-the-dashboard/custom-form-components/).
+To learn how to build reusable input components, see the [Form Input Components guide](/extending-the-dashboard/custom-form-components/).
 
 ## Extending the detail query
 
@@ -238,4 +238,4 @@ export function MyPageBlock() {
 
 Use a [page block](/extending-the-dashboard/customizing-pages/page-blocks) when the data or UI does not belong inside the generated form grid. Page blocks can access the same `context.entity` and `context.form` values, can be placed in the main or side column, and can replace existing blocks when needed.
 
-Use `detailForms.inputs` only when you want to replace the input for a specific built-in field. For custom fields, use [custom field components](/extending-the-dashboard/custom-form-components/#custom-field-components).
+Use `detailForms.inputs` only when you want to replace the input for a specific native field. For custom fields, use [custom field components](/extending-the-dashboard/custom-form-components/#custom-field-components).

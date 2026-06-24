@@ -548,7 +548,7 @@ const manifestInput: DocsPackageManifestInput = {
                     ],
                 },
                 {
-                    title: 'Custom Form Elements',
+                    title: 'Form Input Components',
                     slug: 'custom-form-components',
                     file: file('docs/guides/extending-the-dashboard/custom-form-components/index.mdx'),
                     children: [

@@ -25,7 +25,7 @@ import {
  * - Navigation (nav sections and routes)
  * - Layout (action bar items and page blocks)
  * - Widgets for the Insights page
- * - Form components
+ * - Form input components for custom fields, configurable operation arguments, and native detail-page fields
  * - Data tables
  * - Detail forms
  * - Login page customisation
@@ -97,7 +97,7 @@ export interface DashboardExtension {
     widgets?: DashboardWidgetDefinition[];
     /**
      * @description
-     * Unified registration for custom form custom field components.
+     * Registers custom input component IDs for custom fields and configurable operation arguments.
      */
     customFormComponents?: DashboardCustomFormComponents;
     /**
@@ -107,7 +107,7 @@ export interface DashboardExtension {
     dataTables?: DashboardDataTableExtensionDefinition[];
     /**
      * @description
-     * Allows you to customize the detail form for any page in the dashboard.
+     * Allows you to customize detail pages, including native field input overrides.
      */
     detailForms?: DashboardDetailFormExtensionDefinition[];
     /**

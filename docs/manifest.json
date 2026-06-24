@@ -597,7 +597,7 @@
           "lastModified": "2026-06-24T10:09:42+02:00"
         },
         {
-          "title": "Custom Form Elements",
+          "title": "Form Input Components",
           "slug": "custom-form-components",
           "file": "docs/guides/extending-the-dashboard/custom-form-components/index.mdx",
           "children": [
