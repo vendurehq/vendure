@@ -340,6 +340,156 @@ yarn vendure migrate --api shop --format json
 | `-n` | `--file-name <name>`  | The name of the generated file                  | `vendure schema --api admin --file-name introspection.graphql` |
 | `-f` | `--format <sdl,json>` | The output format (defaults to SDL)             | `vendure schema --api admin --format json`                     |
 
+## The Doctor Command
+
+:::info
+The `doctor` command was added in Vendure v3.7
+:::
+
+The `doctor` command runs a series of diagnostic checks against your Vendure project and produces an
+actionable report. It is useful for debugging a misbehaving project, verifying an upgrade, onboarding
+a new machine, or as a guard rail in CI.
+
+Unlike the other commands, `doctor` is **non-interactive only** - it runs all applicable checks and prints a report:
+
+<Tabs groupId="package-manager">
+<TabItem value="npm" label="npm" default>
+
+```bash
+npx vendure doctor
+```
+
+</TabItem>
+<TabItem value="yarn" label="yarn">
+
+```bash
+yarn vendure doctor
+```
+
+</TabItem>
+</Tabs>
+
+### What gets checked
+
+By default, the following checks run in order:
+
+| Check            | What it verifies                                                                                                                                                |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Project**      | Vendure project structure, config file discovery, package manager detection, lockfile consistency, and monorepo support.                                       |
+| **Dependencies** | `@vendure/*` packages are on matching versions, no duplicate singleton dependencies (`graphql`, `typeorm`, `@nestjs/core`, `@nestjs/common`, `@apollo/server`), and that a database driver is installed. |
+| **Config**       | Your config loads and validates via `preBootstrapConfig()` (custom fields, entities), and that plugin compatibility ranges are satisfied.                       |
+| **Schema**       | The Admin API and Shop API GraphQL schemas build successfully, so all plugin extensions and custom field types compile.                                         |
+| **Database**     | Database connectivity, using safe read-only overrides. Warns if `synchronize: true` is set.                                                                     |
+
+The **Production** check is not run by default - enable it with `--profile production` (see below).
+
+:::info
+The checks are **dependency-ordered**. If the **Project** check fails, all later checks are skipped.
+If the **Config** check fails, the **Schema**, **Database**, and **Production** checks are skipped, since
+they all depend on a successfully loaded config.
+:::
+
+### Example output
+
+```text
+Vendure Doctor
+
+Project         pass  Vendure config found at src/vendure-config.ts
+Dependencies    pass  All dependency checks passed
+Config          pass  Vendure config loaded and validated successfully
+Schema          pass  Admin and Shop schemas generated successfully
+Database        pass  Successfully connected to postgres database
+
+Result: passed
+```
+
+Each check reports one of four statuses: `pass`, `warn`, `fail`, or `skip`.
+
+### Running specific checks
+
+Use `--check` to run only a subset of checks. The flag is variadic, so list the check names after it:
+
+<Tabs groupId="package-manager">
+<TabItem value="npm" label="npm" default>
+
+```bash
+# Run only the dependencies and config checks
+npx vendure doctor --check dependencies config
+```
+
+</TabItem>
+<TabItem value="yarn" label="yarn">
+
+```bash
+# Run only the dependencies and config checks
+yarn vendure doctor --check dependencies config
+```
+
+</TabItem>
+</Tabs>
+
+Valid check names are: `project`, `dependencies`, `config`, `schema`, `database`.
+
+### Production profile
+
+When preparing for a production deployment, run the production profile to surface unsafe settings:
+
+<Tabs groupId="package-manager">
+<TabItem value="npm" label="npm" default>
+
+```bash
+npx vendure doctor --profile production
+```
+
+</TabItem>
+<TabItem value="yarn" label="yarn">
+
+```bash
+yarn vendure doctor --profile production
+```
+
+</TabItem>
+</Tabs>
+
+This adds a **Production** check that warns about settings such as `disableAuth`, default superadmin
+credentials, a missing cookie secret, enabled introspection/playground/debug, overly broad CORS,
+in-memory job queue/cache/session strategies, and missing asset storage.
+
+### Using in CI
+
+For CI pipelines, combine `--strict` with `--format json`. The `--strict` flag treats warnings as
+failures, and the command exits with a non-zero code when the overall result is a failure - so a
+warning will fail your build:
+
+<Tabs groupId="package-manager">
+<TabItem value="npm" label="npm" default>
+
+```bash
+# Fail the build on any warning or failure, and emit machine-readable output
+npx vendure doctor --strict --format json
+```
+
+</TabItem>
+<TabItem value="yarn" label="yarn">
+
+```bash
+# Fail the build on any warning or failure, and emit machine-readable output
+yarn vendure doctor --strict --format json
+```
+
+</TabItem>
+</Tabs>
+
+#### Doctor Command Options
+
+| Long Form           | Description                                                                            | Example                                       |
+| ------------------- | ------------------------------------------------------------------------------------- | --------------------------------------------- |
+| `--config <path>`   | Specify the path to a custom Vendure config file                                       | `vendure doctor --config ./src/my-config.ts`  |
+| `--check <names...>` | Run specific checks only (`project`, `dependencies`, `config`, `schema`, `database`)  | `vendure doctor --check config schema`        |
+| `--profile <name>`  | Run profile-specific checks (`production`)                                              | `vendure doctor --profile production`         |
+| `--format <type>`   | Output format: `text` (default) or `json`                                              | `vendure doctor --format json`                |
+| `--strict`          | Treat warnings as failures (useful for CI)                                             | `vendure doctor --strict`                     |
+
 ## Working in Monorepos
 
 The Vendure CLI automatically supports monorepo structures where packages have their own `tsconfig.json` files that extend a shared base configuration.
@@ -414,4 +564,5 @@ npx vendure --help
 npx vendure add --help
 npx vendure migrate --help
 npx vendure schema --help
+npx vendure doctor --help
 ```
