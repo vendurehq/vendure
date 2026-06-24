@@ -1,6 +1,7 @@
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
 import { TranslatableFormFieldWrapper } from '@/vdb/components/shared/translatable-form-field.js';
 import { Button } from '@/vdb/components/ui/button.js';
+import { toast } from '@/vdb/components/ui/sonner.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
 import { DefaultInputForType } from '@/vdb/framework/form-engine/default-input-for-type.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
@@ -8,7 +9,6 @@ import type { TypedDocumentNode } from '@graphql-typed-document-node/core';
 import { Trans } from '@lingui/react/macro';
 import { AnyRoute, useNavigate } from '@tanstack/react-router';
 import { ResultOf, VariablesOf } from 'gql.tada';
-import { toast } from '@/vdb/components/ui/sonner.js';
 import { ControllerRenderProps, FieldPath, FieldValues } from 'react-hook-form';
 import {
     FieldInfo,
@@ -54,7 +54,7 @@ export interface DetailPageProps<
     pageId: string;
     /**
      * @description
-     * The Tanstack Router route used to navigate to this page.
+     * The TanStack Router route used to navigate to this page.
      */
     route: AnyRoute;
     /**
@@ -112,12 +112,7 @@ function FieldInputRenderer<
     TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
 >({ fieldInfo, field }: DetailPageFieldProps<TFieldValues, TName>) {
     const type = graphqlTypeMap[fieldInfo.type] ?? 'string';
-    return (
-        <DefaultInputForType
-            {...field}
-            fieldDef={{ type, name: fieldInfo.name } as any}
-        />
-    );
+    return <DefaultInputForType {...field} fieldDef={{ type, name: fieldInfo.name } as any} />;
 }
 
 /**
@@ -153,6 +148,7 @@ export function DetailPage<
     const entityName = passedEntityName ?? inferredEntityName;
 
     const { form, submitHandler, entity, isPending, resetForm } = useDetailPage<any, any, any>({
+        pageId,
         queryDocument,
         updateDocument,
         createDocument,

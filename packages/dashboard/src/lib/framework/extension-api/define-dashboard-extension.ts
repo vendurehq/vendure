@@ -73,10 +73,18 @@ export function executeDashboardExtensionCallbacks() {
  * @example
  * ```tsx
  * defineDashboardExtension({
- *  navSections: [],
- *  routes: [],
- *  pageBlocks: [],
- *  actionBarItems: [],
+ *     navSections: [],
+ *     routes: [],
+ *     pageBlocks: [],
+ *     actionBarItems: [],
+ *     alerts: [],
+ *     widgets: [],
+ *     customFormComponents: {},
+ *     dataTables: [],
+ *     detailForms: [],
+ *     login: {},
+ *     historyEntries: [],
+ *     toolbarItems: [],
  * });
  * ```
  *

@@ -29,6 +29,9 @@ import {
  * - Data tables
  * - Detail forms
  * - Login page customisation
+ * - Alerts
+ * - History entries
+ * - Toolbar items
  *
  * @docsCategory extensions-api
  * @docsPage defineDashboardExtension
@@ -89,8 +92,7 @@ export interface DashboardExtension {
     alerts?: DashboardAlertDefinition[];
     /**
      * @description
-     * Allows you to define custom routes for the dashboard, which will render the
-     * given components and optionally also add a nav menu item.
+     * Allows you to define custom widgets for the Insights page.
      */
     widgets?: DashboardWidgetDefinition[];
     /**
@@ -122,7 +124,7 @@ export interface DashboardExtension {
     /**
      * @description
      * Allows you to define custom toolbar items in the app shell header bar.
-     * Toolbar items appear alongside the breadcrumbs, dev mode indicator,
+     * Toolbar items appear alongside the breadcrumbs, Dev Mode indicator,
      * and alerts icon.
      *
      * @since 3.5.3

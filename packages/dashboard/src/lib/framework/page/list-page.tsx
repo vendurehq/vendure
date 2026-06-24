@@ -48,7 +48,7 @@ export interface ListPageProps<
     pageId?: string;
     /**
      @description
-     * The Tanstack Router `Route` object, which will be defined in the component file.
+     * The TanStack Router `Route` object, which will be defined in the component file.
      */
     route: AnyRoute | (() => AnyRoute);
     /**
@@ -324,7 +324,7 @@ export interface ListPageProps<
     transformData?: (data: any[]) => any[];
     /**
      * @description
-     * Allows you to directly manipulate the Tanstack Table `TableOptions` object before the
+     * Allows you to directly manipulate the TanStack Table `TableOptions` object before the
      * table is created. And advanced option that is not often required.
      */
     setTableOptions?: (table: TableOptions<any>) => TableOptions<any>;
@@ -514,7 +514,9 @@ export function ListPage<
 
     const pagination = {
         page: routeSearch.page ? Number.parseInt(routeSearch.page) : 1,
-        itemsPerPage: routeSearch.perPage ? Number.parseInt(routeSearch.perPage) : (tableSettings?.pageSize ?? 10),
+        itemsPerPage: routeSearch.perPage
+            ? Number.parseInt(routeSearch.perPage)
+            : (tableSettings?.pageSize ?? 10),
     };
 
     const columnVisibility = pageId

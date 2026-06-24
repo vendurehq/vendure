@@ -518,6 +518,20 @@ const manifestInput: DocsPackageManifestInput = {
                             ),
                         },
                         {
+                            title: 'Toolbar Items',
+                            slug: 'toolbar-items',
+                            file: file(
+                                'docs/guides/extending-the-dashboard/customizing-pages/toolbar-items.mdx',
+                            ),
+                        },
+                        {
+                            title: 'Extension Targets',
+                            slug: 'extension-targets',
+                            file: file(
+                                'docs/guides/extending-the-dashboard/customizing-pages/extension-targets.mdx',
+                            ),
+                        },
+                        {
                             title: 'Insights Widgets',
                             slug: 'insights-widgets',
                             file: file(
