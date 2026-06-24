@@ -235,7 +235,7 @@ msgstr "Opciones"
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:32
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
-msgstr ""
+msgstr "{fulfilled, plural, one {{fulfilled} tarea cancelada correctamente} other {{fulfilled} tareas canceladas correctamente}}"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:152
 msgid "Seller"
@@ -1383,7 +1383,7 @@ msgstr "Promoción actualizada exitosamente"
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:40
 msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to cancel {rejected} jobs}}"
-msgstr ""
+msgstr "{rejected, plural, one {No se pudo cancelar {rejected} tarea} other {No se pudieron cancelar {rejected} tareas}}"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:111
 #: src/lib/components/shared/channel-selector.tsx:47

@@ -235,7 +235,7 @@ msgstr "الخيارات"
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:32
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
-msgstr ""
+msgstr "{fulfilled, plural, one {تم إلغاء مهمة واحدة بنجاح} two {تم إلغاء مهمتين بنجاح} few {تم إلغاء {fulfilled} مهام بنجاح} many {تم إلغاء {fulfilled} مهمة بنجاح} other {تم إلغاء {fulfilled} مهمة بنجاح}}"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:152
 msgid "Seller"
@@ -1383,7 +1383,7 @@ msgstr "تم تحديث العرض الترويجي بنجاح"
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:40
 msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to cancel {rejected} jobs}}"
-msgstr ""
+msgstr "{rejected, plural, one {فشل إلغاء مهمة واحدة} two {فشل إلغاء مهمتين} few {فشل إلغاء {rejected} مهام} many {فشل إلغاء {rejected} مهمة} other {فشل إلغاء {rejected} مهمة}}"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:111
 #: src/lib/components/shared/channel-selector.tsx:47

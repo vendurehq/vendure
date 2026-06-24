@@ -235,7 +235,7 @@ msgstr "選項"
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:32
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
-msgstr ""
+msgstr "{fulfilled, plural, other {已成功取消 {fulfilled} 個任務}}"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:152
 msgid "Seller"
@@ -1383,7 +1383,7 @@ msgstr "已成功更新促銷"
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:40
 msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to cancel {rejected} jobs}}"
-msgstr ""
+msgstr "{rejected, plural, other {取消 {rejected} 個任務失敗}}"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:111
 #: src/lib/components/shared/channel-selector.tsx:47

@@ -235,7 +235,7 @@ msgstr "Opties"
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:32
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
-msgstr ""
+msgstr "{fulfilled, plural, one {{fulfilled} taak succesvol geannuleerd} other {{fulfilled} taken succesvol geannuleerd}}"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:152
 msgid "Seller"
@@ -1387,7 +1387,7 @@ msgstr "Promotie succesvol bijgewerkt"
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:40
 msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to cancel {rejected} jobs}}"
-msgstr ""
+msgstr "{rejected, plural, one {{rejected} taak kon niet worden geannuleerd} other {{rejected} taken konden niet worden geannuleerd}}"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:111
 #: src/lib/components/shared/channel-selector.tsx:47
