@@ -1,19 +1,20 @@
-import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
 import { useNavigate, useRouter, useRouterState } from '@tanstack/react-router';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 export interface RedirectToListOnNotFoundOptions {
     /**
      * @description
-     * Whether the underlying query is still in flight. The redirect is only
-     * evaluated once the query has settled, so we don't bounce during the
-     * initial load or a background refetch.
+     * Whether the underlying query is currently fetching. Pass the query's
+     * `isFetching` flag (true on the initial load _and_ on background refetches).
+     * The redirect is only evaluated once the query has settled, so we don't
+     * bounce during the initial load or while a channel-switch refetch is in
+     * flight.
      */
-    isLoading: boolean;
+    isFetching: boolean;
     /**
      * @description
-     * When `true`, the hook is a no-op. Used to skip the check when creating
-     * a new entity, where the absence of an entity is expected.
+     * When `true`, the hook is a no-op. Pass `skip: true` when the absence of an
+     * entity is expected, e.g. when creating a new entity.
      */
     skip?: boolean;
 }
@@ -29,26 +30,31 @@ export interface RedirectToListOnNotFoundOptions {
  * broken, empty detail view. When the entity _does_ exist in the target channel,
  * `entity` stays populated and no redirect occurs.
  *
- * The list path is derived as the first path segment (e.g. `/products/42` and
- * `/products/42/variants` both resolve to `/products`), falling back to the
- * dashboard root if that route does not exist.
+ * The list route is assumed to live at the first path segment (e.g. `/products`),
+ * so `/products/42` and `/products/42/variants` both resolve to `/products`. If
+ * that route does not exist, it falls back to the dashboard root.
  */
 export function useRedirectToListOnNotFound(
     entity: unknown,
-    { isLoading, skip }: RedirectToListOnNotFoundOptions,
+    { isFetching, skip }: RedirectToListOnNotFoundOptions,
 ): void {
     const navigate = useNavigate();
     const router = useRouter();
     const pathname = useRouterState({ select: s => s.location.pathname });
+    // The pathname is read when computing the redirect target, but it must not
+    // trigger the effect: the redirect should fire on a not-found transition,
+    // not on every navigation. A ref keeps the latest value without a dep.
+    const pathnameRef = useRef(pathname);
+    pathnameRef.current = pathname;
 
     useEffect(() => {
-        if (skip || isLoading || entity) {
+        if (skip || isFetching || entity) {
             return;
         }
-        const segments = pathname.split('/').filter(Boolean);
+        const segments = pathnameRef.current.split('/').filter(Boolean);
         // Only redirect from a detail or sub-page (e.g. /products/42 or
-        // /products/42/variants), never from a list page itself.
-        if (segments.length <= 1 || segments[1] === NEW_ENTITY_PATH) {
+        // /products/42/variants), never from a list page (single segment).
+        if (segments.length <= 1) {
             return;
         }
         const listPath = `/${segments[0]}`;
@@ -56,5 +62,5 @@ export function useRedirectToListOnNotFound(
         // `to` is typed against the generated route tree, so a computed path
         // needs the cast.
         void navigate({ to: target as any });
-    }, [entity, isLoading, skip, pathname, navigate, router]);
+    }, [entity, isFetching, skip, navigate, router]);
 }

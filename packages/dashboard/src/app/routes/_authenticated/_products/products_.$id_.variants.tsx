@@ -180,7 +180,7 @@ function ManageProductVariants() {
 
     // This page fetches its own data rather than using `useDetailPage`, so it
     // opts into the not-found redirect explicitly (e.g. after a channel switch).
-    useRedirectToListOnNotFound(productData?.product, { isLoading: isFetching });
+    useRedirectToListOnNotFound(productData?.product, { isFetching });
 
     const updateVariantMutation = useMutation({
         mutationFn: api.mutate(updateProductVariantDocument),

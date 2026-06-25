@@ -281,7 +281,7 @@ export function useDetailPage<
 
     // Redirect to the list if the entity is no longer found in the active
     // channel (e.g. after a channel switch).
-    useRedirectToListOnNotFound(entity, { isLoading: detailQuery.isFetching, skip: isNew });
+    useRedirectToListOnNotFound(entity, { isFetching: detailQuery.isFetching, skip: isNew });
 
     const resetForm = () => {
         form.reset(form.getValues());
