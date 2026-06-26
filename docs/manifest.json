@@ -169,7 +169,7 @@
           "title": "Auth",
           "slug": "auth",
           "file": "docs/guides/core-concepts/auth/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-06-26T10:15:15+02:00"
         },
         {
           "title": "Channels",
@@ -446,7 +446,7 @@
           "title": "GitHub OAuth Authentication",
           "slug": "github-oauth-authentication",
           "file": "docs/guides/how-to/github-oauth-authentication/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-06-26T10:15:15+02:00"
         },
         {
           "title": "Google OAuth Authentication",
