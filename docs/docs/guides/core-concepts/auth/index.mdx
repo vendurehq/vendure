@@ -194,7 +194,7 @@ export class GoogleAuthenticationStrategy implements AuthenticationStrategy<Goog
 }
 ```
 
-:::warning Security: only set `verified: true` for provider-verified emails
+:::warning[Security: only set `verified: true` for provider-verified emails]
 The `verified` flag passed to `createCustomerAndUser` does more than mark the account as verified — it also controls **account linking**. If a `User` already exists with the same email address, Vendure links the new external authentication method to that existing account **only when `verified: true`**.
 
 An `AuthenticationStrategy` must therefore set `verified: true` **only** when the external provider has proven that the authenticating user owns the email address — for example, Google's `email_verified` claim (as used above). Setting `verified: true` for an email the provider has not verified would allow an attacker to register a victim's email at the provider and have their external login bound to the victim's existing Vendure account — an account takeover.
