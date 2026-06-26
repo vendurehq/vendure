@@ -12,6 +12,7 @@ This project was generated with `@vendure/create`.
 - Start only the storefront: `npm run dev:storefront`
 - Backend custom code belongs in `apps/server/src/plugins`
 - Backend runtime configuration is in `apps/server/src/vendure-config.ts`
+- Backend static assets and email templates live in `apps/server/static`
 {{else}}
 ## Project Layout
 
@@ -34,20 +35,8 @@ This project was generated with `@vendure/create`.
 
 - Start development: `npm run dev`
 - Build: `npm run build`
-{{#if hasLint}}
-- Lint: `npm run lint`
-{{/if}}
 
 ## Quality Checks
 
-{{#if usesEslint}}
-- This project uses ESLint with Vendure-specific rules for plugin development.
-- Run `npm run lint` after changing plugin code or Vendure configuration.
-{{else}}
-{{#if usesBiome}}
-- This project uses Biome with a lightweight set of Vendure GritQL rules.
-- Run `npm run lint` after changing plugin code or Vendure configuration.
-{{else}}
-- No lint tool was configured during project creation.
-{{/if}}
-{{/if}}
+- Run `npm run build` after changing backend code.
+- Run targeted tests for the package or feature you changed.

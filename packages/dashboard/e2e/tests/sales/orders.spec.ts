@@ -25,6 +25,66 @@ test.describe('Orders', () => {
         await lp.expectLoaded();
     });
 
+    // #4748 — enum columns (e.g. Order.type / OrderType) must be offered in the
+    // "Add filter" menu, render a working enum filter input (not an empty dialog),
+    // and actually filter server-side (core maps every enum column to StringOperators,
+    // so `eq` is valid — this is the same path a custom-entity enum field uses).
+    test('should allow filtering the orders list by the enum "type" column', async ({ page }) => {
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await createPaidOrder(client); // a Regular-type order so the list is non-empty
+
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+        await lp.expectRowCountGreaterThan(0);
+
+        await lp.openAddFilterMenu();
+
+        // On master the enum column is not filterable, so it never appears here.
+        const typeFilterItem = page.getByRole('menuitem', { name: /^type$/i });
+        await expect(typeFilterItem).toBeVisible();
+        await typeFilterItem.click();
+
+        // The dialog renders the enum filter pre-populated with the first OrderType
+        // value — not the empty dialog you got from enabling the filter alone.
+        const dialog = page.getByRole('dialog');
+        await expect(dialog).toBeVisible();
+        await expect(dialog.getByText('Regular')).toBeVisible();
+
+        // Applying must send `type: { eq: "Regular" }` as a server-side filter — proving
+        // the enum filter is wired through, not silently dropped on the client.
+        const filteredRequest = page.waitForRequest(
+            req =>
+                req.url().includes('/admin-api') &&
+                req.method() === 'POST' &&
+                (req.postData() ?? '').replace(/\s/g, '').includes('"type":{"eq":"Regular"}'),
+        );
+        await dialog.getByRole('button', { name: /Apply filter/i }).click();
+        await expect(dialog).toBeHidden();
+        await filteredRequest;
+        // The Regular order survives the matching filter, and an active filter badge appears.
+        await lp.expectRowCountGreaterThan(0);
+        const filterBadge = page.getByRole('button').filter({ hasText: 'type' }).filter({ hasText: 'Regular' });
+        await expect(filterBadge).toBeVisible();
+        await expect(page.getByText(/An error occurred:/i)).toHaveCount(0);
+
+        // Negative case: switch the filter to an OrderType no order has (Seller/Aggregate
+        // only exist in multi-vendor setups). If the filter is genuinely applied
+        // server-side the list empties; if it were accepted-and-ignored the Regular order
+        // would wrongly remain. This is what the old `rowCount > 0` assertion couldn't catch.
+        await filterBadge.click();
+        const editDialog = page.getByRole('dialog');
+        await expect(editDialog).toBeVisible();
+        // Second combobox is the value select (the first is the operator select).
+        await editDialog.getByRole('combobox').nth(1).click();
+        await page.getByRole('option', { name: 'Aggregate', exact: true }).click();
+        await editDialog.getByRole('button', { name: /Apply filter/i }).click();
+        await expect(editDialog).toBeHidden();
+        await expect(lp.dataTable.getByText('No results')).toBeVisible();
+        await expect(page.getByText(/An error occurred:/i)).toHaveCount(0);
+    });
+
     test('should show "Draft order" button', async ({ page }) => {
         const lp = listPage(page);
         await lp.goto();
@@ -98,6 +158,46 @@ test.describe('Orders', () => {
         await lp.goto();
         await lp.expectLoaded();
         await lp.expectRowCountGreaterThan(0);
+    });
+
+    // #4830 — toggling the State column must not crash the order list.
+    // The list query only fetches visible columns; re-enabling State refetches,
+    // but `placeholderData: keepPreviousData` first renders the previous rows
+    // (which no longer carry `state`) into the State column. Pre-fix this threw
+    // `Cannot read properties of undefined (reading 'toLowerCase')` in
+    // OrderStateCell and tripped the router error boundary.
+    test('should not crash when toggling the State column off and on', async ({ page }) => {
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await createPaidOrder(client);
+
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+        await lp.expectRowCountGreaterThan(0);
+
+        const stateHeader = lp.dataTable.locator('thead th').filter({ hasText: 'State' });
+        const stateToggle = page.getByRole('menuitemcheckbox', { name: /^state$/i });
+        await expect(stateHeader).toBeVisible();
+
+        // Hide State → the list refetches without the `state` field.
+        await lp.openColumnSettings();
+        await stateToggle.click();
+        await page.keyboard.press('Escape');
+        await expect(stateHeader).toBeHidden();
+
+        // Re-enable State → triggers the stale-placeholder render that used to crash.
+        await lp.openColumnSettings();
+        await stateToggle.click();
+        await page.keyboard.press('Escape');
+
+        // No crash: a crashed boundary unmounts the table, so the header + rows
+        // staying visible after the refetch is the real signal. The error-text
+        // assertion is belt-and-suspenders.
+        await expect(stateHeader).toBeVisible();
+        await lp.expectRowCountGreaterThan(0);
+        await expect(lp.getRows().first()).toBeVisible();
+        await expect(page.getByText(/An error occurred:/i)).toHaveCount(0);
     });
 
     test('should create and delete a draft order', async ({ page }) => {

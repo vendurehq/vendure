@@ -31,6 +31,9 @@ export const CustomerCell: DataTableCellComponent<CustomerCellData> = ({ row }) 
 export const OrderStateCell: DataTableCellComponent<{ state: string }> = ({ row }) => {
     const { getTranslatedOrderState } = useDynamicTranslations();
     const value = row.original.state;
+    if (!value) {
+        return null;
+    }
     return <Badge variant={stateTypeToBadgeVariant(getTypeForState(value))}>{getTranslatedOrderState(value)}</Badge>;
 };
 

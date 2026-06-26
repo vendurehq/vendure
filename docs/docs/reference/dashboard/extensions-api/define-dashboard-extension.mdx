@@ -4,7 +4,7 @@ generated: true
 ---
 ## defineDashboardExtension
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/define-dashboard-extension.ts" sourceLine="90" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/define-dashboard-extension.ts" sourceLine="98" packageName="@vendure/dashboard" since="3.3.0" />
 
 The main entry point for extensions to the React-based dashboard. Every dashboard extension
 must contain a call to this function, usually in the entry point file that is referenced by
@@ -15,7 +15,7 @@ Every type of customisation of the dashboard can be defined here, including:
 - Navigation (nav sections and routes)
 - Layout (action bar items and page blocks)
 - Widgets
-- Form components (custom form components, input components, and display components)
+- Form input components for custom fields, configurable operation arguments, and native detail-page fields
 - Data tables
 - Detail forms
 - Login
@@ -26,10 +26,18 @@ Every type of customisation of the dashboard can be defined here, including:
 
 ```tsx
 defineDashboardExtension({
- navSections: [],
- routes: [],
- pageBlocks: [],
- actionBarItems: [],
+    navSections: [],
+    routes: [],
+    pageBlocks: [],
+    actionBarItems: [],
+    alerts: [],
+    widgets: [],
+    customFormComponents: {},
+    dataTables: [],
+    detailForms: [],
+    login: {},
+    historyEntries: [],
+    toolbarItems: [],
 });
 ```
 
@@ -44,7 +52,7 @@ Parameters
 
 ## DashboardExtension
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/extension-api-types.ts" sourceLine="38" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/extension-api-types.ts" sourceLine="41" packageName="@vendure/dashboard" since="3.3.0" />
 
 This is the main interface for defining _all_ extensions to the dashboard.
 
@@ -53,10 +61,13 @@ Every type of customisation of the dashboard can be defined here, including:
 - Navigation (nav sections and routes)
 - Layout (action bar items and page blocks)
 - Widgets for the Insights page
-- Form components
+- Form input components for custom fields, configurable operation arguments, and native detail-page fields
 - Data tables
 - Detail forms
 - Login page customisation
+- Alerts
+- History entries
+- Toolbar items
 
 ```ts title="Signature"
 interface DashboardExtension {
@@ -135,13 +146,12 @@ Allows you to define custom alerts that can be displayed in the dashboard.
 
 <MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/widgets#dashboardwidgetdefinition'>DashboardWidgetDefinition</a>[]`}   />
 
-Allows you to define custom routes for the dashboard, which will render the
-given components and optionally also add a nav menu item.
+Allows you to define custom widgets for the Insights page.
 ### customFormComponents
 
 <MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/form-components#dashboardcustomformcomponents'>DashboardCustomFormComponents</a>`}   />
 
-Unified registration for custom form custom field components.
+Registers custom input component IDs for custom fields and configurable operation arguments.
 ### dataTables
 
 <MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/data-tables#dashboarddatatableextensiondefinition'>DashboardDataTableExtensionDefinition</a>[]`}   />
@@ -151,7 +161,7 @@ Allows you to customize aspects of existing data tables in the dashboard.
 
 <MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/detail-forms#dashboarddetailformextensiondefinition'>DashboardDetailFormExtensionDefinition</a>[]`}   />
 
-Allows you to customize the detail form for any page in the dashboard.
+Allows you to customize detail pages, including native field input overrides.
 ### login
 
 <MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/login#dashboardloginextensions'>DashboardLoginExtensions</a>`}   />
@@ -168,7 +178,7 @@ in the Order or Customer history lists.
 <MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/toolbar#dashboardtoolbaritemdefinition'>DashboardToolbarItemDefinition</a>[]`}  since="3.5.3"  />
 
 Allows you to define custom toolbar items in the app shell header bar.
-Toolbar items appear alongside the breadcrumbs, dev mode indicator,
+Toolbar items appear alongside the breadcrumbs, Dev Mode indicator,
 and alerts icon.
 ### customProviders
 

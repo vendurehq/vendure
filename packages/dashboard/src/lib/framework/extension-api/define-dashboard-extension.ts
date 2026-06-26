@@ -64,7 +64,7 @@ export function executeDashboardExtensionCallbacks() {
  * - Navigation (nav sections and routes)
  * - Layout (action bar items and page blocks)
  * - Widgets
- * - Form components (custom form components, input components, and display components)
+ * - Form input components for custom fields, configurable operation arguments, and native detail-page fields
  * - Data tables
  * - Detail forms
  * - Login
@@ -74,10 +74,18 @@ export function executeDashboardExtensionCallbacks() {
  * @example
  * ```tsx
  * defineDashboardExtension({
- *  navSections: [],
- *  routes: [],
- *  pageBlocks: [],
- *  actionBarItems: [],
+ *     navSections: [],
+ *     routes: [],
+ *     pageBlocks: [],
+ *     actionBarItems: [],
+ *     alerts: [],
+ *     widgets: [],
+ *     customFormComponents: {},
+ *     dataTables: [],
+ *     detailForms: [],
+ *     login: {},
+ *     historyEntries: [],
+ *     toolbarItems: [],
  * });
  * ```
  *
@@ -101,7 +109,7 @@ export function defineDashboardExtension(extension: DashboardExtension) {
         // Register widget extensions
         registerWidgetExtensions(extension.widgets);
 
-        // Register form component extensions (custom form components, input components, and display components)
+        // Register form component extensions for custom fields and configurable operation arguments
         registerFormComponentExtensions(extension.customFormComponents);
 
         // Register data table extensions

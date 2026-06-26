@@ -1,7 +1,7 @@
 import { Socket, createServer, type Server } from 'node:net';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { findAvailablePort, getLintDependencies, isServerPortInUse } from './helpers';
+import { findAvailablePort, isServerPortInUse } from './helpers';
 import { log } from './logger';
 
 // Replace the project's logger with a spy so we can assert on warning calls
@@ -84,10 +84,12 @@ describe('isServerPortInUse', () => {
         // Simulate a firewall that drops SYN packets: connect() neither resolves
         // nor emits ECONNREFUSED. Without a setTimeout guard the promise would
         // hang for the OS-level connect timeout (~75s macOS, ~127s Linux).
-        const connectSpy = vi.spyOn(Socket.prototype, 'connect').mockImplementation(function (this: Socket) {
-            // Intentionally never emit anything — let the socket's own timeout fire.
-            return this;
-        });
+        const connectSpy = vi
+            .spyOn(Socket.prototype, 'connect')
+            .mockImplementation(function (this: Socket) {
+                // Intentionally never emit anything — let the socket's own timeout fire.
+                return this;
+            });
 
         await expect(isServerPortInUse(12345)).rejects.toThrow(/Timed out/);
         expect(connectSpy).toHaveBeenCalledOnce();
@@ -100,14 +102,16 @@ describe('isServerPortInUse', () => {
         // failures (e.g. EACCES on privileged ports, EHOSTUNREACH on DNS
         // misconfiguration) without needing elevated privileges or DNS
         // tricks at test time.
-        const connectSpy = vi.spyOn(Socket.prototype, 'connect').mockImplementation(function (this: Socket) {
-            queueMicrotask(() => {
-                const err = new Error('Host unreachable') as NodeJS.ErrnoException;
-                err.code = 'EHOSTUNREACH';
-                this.emit('error', err);
+        const connectSpy = vi
+            .spyOn(Socket.prototype, 'connect')
+            .mockImplementation(function (this: Socket) {
+                queueMicrotask(() => {
+                    const err = new Error('Host unreachable') as NodeJS.ErrnoException;
+                    err.code = 'EHOSTUNREACH';
+                    this.emit('error', err);
+                });
+                return this;
             });
-            return this;
-        });
 
         await expect(isServerPortInUse(12345)).rejects.toMatchObject({ code: 'EHOSTUNREACH' });
         expect(connectSpy).toHaveBeenCalledOnce();
@@ -153,25 +157,5 @@ describe('findAvailablePort', () => {
         });
 
         await expect(findAvailablePort(3000, 1)).rejects.toThrow(/Could not probe port/);
-    });
-});
-
-describe('getLintDependencies', () => {
-    it('returns ESLint dependencies including the versioned Vendure plugin', () => {
-        expect(getLintDependencies('eslint', '@3.6.4')).toEqual([
-            'eslint',
-            '@eslint/js',
-            'typescript-eslint',
-            'globals',
-            '@vendure/eslint-plugin@3.6.4',
-        ]);
-    });
-
-    it('returns Biome dependencies', () => {
-        expect(getLintDependencies('biome')).toEqual(['@biomejs/biome']);
-    });
-
-    it('returns no dependencies when linting is disabled', () => {
-        expect(getLintDependencies('none')).toEqual([]);
     });
 });

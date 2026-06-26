@@ -1,35 +1,17 @@
 ---
 title: 'AI-assisted development'
 metaTitle: 'AI-assisted Vendure development'
-metaDescription: 'Use AGENTS.md, Vendure CLI scaffolding, and Vendure lint rules to guide AI coding agents in a Vendure project.'
+metaDescription: 'Use AGENTS.md and Vendure CLI scaffolding to guide AI coding agents in a Vendure project.'
 ---
 
-AI coding agents work best when the project gives them concrete local instructions and fast feedback.
-New Vendure projects created with `@vendure/create` include an `AGENTS.md` file and can be generated with
-Vendure-specific lint rules for common plugin mistakes.
+AI coding agents work best when the project gives them concrete local instructions and a predictable way to add
+Vendure code. New Vendure projects created with `@vendure/create` include an `AGENTS.md` file for this purpose.
 
 ## Project instructions
 
 The generated `AGENTS.md` file summarizes the project layout, common commands, and Vendure-specific guidance.
 Agents should read this file before making changes. It explains where plugin code belongs, where runtime
 configuration lives, and which commands should be run after code changes.
-
-## Code-quality setup
-
-During project creation, `@vendure/create` asks which code-quality setup to use:
-
-- **ESLint**: the recommended option, with the full Vendure rule set.
-- **Biome**: a lightweight setup using Biome GritQL rules for the syntactic subset.
-- **None**: no lint tooling is generated.
-
-Run the configured checks with:
-
-```bash
-npm run lint
-```
-
-Choose ESLint for the full Vendure rule set. Choose Biome if your team already standardizes on Biome and wants
-the lighter rule subset.
 
 ## Non-interactive scaffolding
 
@@ -92,17 +74,3 @@ async onModuleInit() {
 
 Do not pass a raw `RequestContext` as job data. Use `ctx.serialize()` or pass only the fields needed to recreate
 the context in the worker.
-
-## Vendure lint rules
-
-| Rule | Tooling | Why it exists |
-| --- | --- | --- |
-| `vendure/no-process-env-in-plugin` | ESLint, Biome | Keep plugins configurable through `Plugin.init()` options. |
-| `vendure/no-synchronize-true` | ESLint, Biome | Prevent accidental schema synchronization against real data. |
-| `vendure/require-plugin-compatibility` | ESLint | Make plugin version compatibility explicit. |
-| `vendure/no-static-plugin-options-outside-plugin` | ESLint | Ensure services inject plugin options rather than reading static plugin state. |
-| `vendure/use-transactional-connection-with-ctx` | ESLint | Preserve request-scoped transactions when a `RequestContext` is available. |
-| `vendure/require-job-queue-lifecycle-registration` | ESLint | Ensure queues are registered once during application startup. |
-| `vendure/no-raw-request-context-in-job-data` | ESLint, Biome | Keep job data serializable. |
-
-If a rule reports an intentional advanced pattern, prefer a narrow inline suppression with a short explanation.

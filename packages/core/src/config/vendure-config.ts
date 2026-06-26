@@ -18,6 +18,7 @@ import { AssetNamingStrategy } from './asset-naming-strategy/asset-naming-strate
 import { AssetPreviewStrategy } from './asset-preview-strategy/asset-preview-strategy';
 import { AssetStorageStrategy } from './asset-storage-strategy/asset-storage-strategy';
 import { AuthenticationStrategy } from './auth/authentication-strategy';
+import { CustomerChannelAssignmentStrategy } from './auth/customer-channel-assignment-strategy';
 import { EntityAccessControlStrategy } from './auth/entity-access-control-strategy';
 import { PasswordHashingStrategy } from './auth/password-hashing-strategy';
 import { PasswordValidationStrategy } from './auth/password-validation-strategy';
@@ -553,6 +554,16 @@ export interface AuthOptions {
      * @experimental
      */
     entityAccessControlStrategy?: EntityAccessControlStrategy;
+    /**
+     * @description
+     * Determines whether an authenticated Customer is auto-assigned to the active Channel.
+     * This is skipped for the default channel, `disableAuth`, and registration/checkout flows.
+     * The default strategy always assigns.
+     *
+     * @default DefaultCustomerChannelAssignmentStrategy
+     * @since 3.7.0
+     */
+    customerChannelAssignmentStrategy?: CustomerChannelAssignmentStrategy;
 }
 
 /**

@@ -3,7 +3,7 @@ import { DocumentNode } from 'graphql';
 
 /**
  * @description
- * Allows you to define custom input components for specific fields in detail forms.
+ * Allows you to replace the rendered input for specific native fields in detail forms.
  * The pageId is already defined in the detail form extension, so only the blockId and field are needed.
  *
  * @docsCategory extensions-api
@@ -18,7 +18,7 @@ export interface DashboardDetailFormInputComponent {
     blockId: string;
     /**
      * @description
-     * The name of the field where this input component should be used.
+     * The name of the native field where this input component should be used.
      */
     field: string;
     /**
@@ -32,7 +32,7 @@ export interface DashboardDetailFormInputComponent {
 /**
  * @description
  * Allows you to extend existing detail forms (e.g. on the product detail or customer detail pages)
- * with custom GraphQL queries, input components, and display components.
+ * with custom GraphQL queries and native field input overrides.
  *
  * @since 3.4.0
  * @docsPage DetailForms
@@ -47,12 +47,12 @@ export interface DashboardDetailFormExtensionDefinition {
     /**
      * @description
      * Extends the GraphQL query used to fetch data for the detail page, allowing you to add additional
-     * fields that can be used by custom input or display components.
+     * fields that can be used by page blocks or custom input components.
      */
     extendDetailDocument?: string | DocumentNode | (() => DocumentNode | string);
     /**
      * @description
-     * Custom input components for specific fields in the detail form.
+     * Input components which replace specific native fields in the detail form.
      */
     inputs?: DashboardDetailFormInputComponent[];
 }

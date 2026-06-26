@@ -104,7 +104,7 @@ msgstr "Başlık 5"
 msgid "Failed to add payment"
 msgstr "Ödeme eklenemedi"
 
-#: src/lib/framework/layout-engine/page-layout.tsx:730
+#: src/lib/framework/layout-engine/page-layout.tsx:746
 msgid "Updated"
 msgstr "Güncellendi"
 
@@ -137,7 +137,7 @@ msgstr "Dilleri Yönet"
 msgid "Duplicating... ({0}/{1})"
 msgstr "Çoğaltılıyor... ({0}/{1})"
 
-#: src/lib/components/data-table/use-generated-columns.tsx:387
+#: src/lib/components/data-table/use-generated-columns.tsx:389
 msgid "Deleted successfully"
 msgstr "Başarıyla silindi"
 
@@ -164,7 +164,7 @@ msgstr "Tür"
 #. placeholder {0}: entityName.toLowerCase()
 #. placeholder {0}: group.name
 #: src/app/routes/_authenticated/_products/components/product-option-select.tsx:57
-#: src/lib/components/data-input/default-relation-input.tsx:616
+#: src/lib/components/data-input/default-relation-input.tsx:676
 msgid "Select {0}"
 msgstr "{0} seç"
 
@@ -208,8 +208,8 @@ msgid "Auto refresh: {0}"
 msgstr "Otomatik yenileme: {0}"
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:34
-msgid "Successfully cancelled {fulfilled} job"
-msgstr ""
+#~ msgid "Successfully cancelled {fulfilled} job"
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_system/healthchecks.tsx:43
 #~ msgid "Health checks"
@@ -229,9 +229,13 @@ msgstr "{deleted} {entityName} silindi"
 msgid "Sellers"
 msgstr "Satıcılar"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:243
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:269
 msgid "Options"
 msgstr "Seçenekler"
+
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:35
+msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
+msgstr "{fulfilled, plural, one {{fulfilled} görev başarıyla iptal edildi} other {{fulfilled} görev başarıyla iptal edildi}}"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:152
 msgid "Seller"
@@ -298,7 +302,7 @@ msgstr "Yönetici oluşturulamadı"
 msgid "No"
 msgstr "Hayır"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:128
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:147
 msgid "Successfully updated product variant"
 msgstr "Ürün varyantı başarıyla güncellendi"
 
@@ -348,6 +352,7 @@ msgstr "Stok konumu başarıyla oluşturuldu"
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:185
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:112
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:204
+#: src/lib/components/shared/asset/asset-preview.tsx:127
 msgid "Unknown error"
 msgstr "Bilinmeyen hata"
 
@@ -447,11 +452,9 @@ msgstr "Adres başarıyla silindi"
 msgid "Tax rate"
 msgstr "Vergi oranı"
 
-#. placeholder {0}: import { DataTableBulkActionItem } from '@/vdb/components/data-table/data-table-bulk-action-item.js'; import { BulkActionComponent } from '@/vdb/framework/extension-api/types/data-table.js'; import { api } from '@/vdb/graphql/api.js'; import { usePaginatedList } from '@/vdb/hooks/use-paginated-list.js'; import { plural } from '@lingui/core/macro'; import { Plural, useLingui } from '@lingui/react/macro'; import { useMutation } from '@tanstack/react-query'; import { Ban } from 'lucide-react'; import { toast } from 'sonner'; import { cancelJobDocument } from '../job-queue.graphql.js'; export const CancelJobsBulkAction: BulkActionComponent<any> = ({ selection, table }) => { const { refetchPaginatedList } = usePaginatedList(); const { t } = useLingui(); const cancellableJobs = selection.filter(job => job.state === 'RUNNING' || job.state === 'PENDING'); const cancellableCount = cancellableJobs.length; const { mutate, isPending } = useMutation({ mutationFn: async () => { const results = await Promise.allSettled( cancellableJobs.map(job => api.mutate(cancelJobDocument, { jobId: job.id })), ); const fulfilled = results.filter(r => r.status === 'fulfilled').length; const rejected = results.filter(r => r.status === 'rejected').length; return { fulfilled, rejected }; }, onSuccess: ({ fulfilled, rejected }) => { if (fulfilled > 0) { toast.success( plural(fulfilled, { one: t`Successfully cancelled ${fulfilled} job`, other: t`Successfully cancelled ${fulfilled} jobs`, }), ); } if (rejected > 0) { toast.error( plural(rejected, { one: t`Failed to cancel ${rejected} job`, other: t`Failed to cancel ${rejected} jobs`, }), ); } refetchPaginatedList(); table.resetRowSelection(); }, }); if (cancellableCount === 0) { return null; } return ( <DataTableBulkActionItem requiresPermission={['DeleteSettings', 'DeleteSystem']} onClick={() => mutate()} disabled={isPending} label={ <Plural value={cancellableCount} one={`Cancel ${cancellableCount} job`} other={`Cancel ${cancellableCount} jobs`} /> } confirmationText={ <Plural value={cancellableCount} one={`Are you sure you want to cancel ${cancellableCount} job? This action cannot be undone.`} other={`Are you sure you want to cancel ${cancellableCount} jobs? This action cannot be undone.`} /> } icon={Ban} className="text-destructive" /> ); }; 
-#. placeholder {1}: import { DataTableBulkActionItem } from '@/vdb/components/data-table/data-table-bulk-action-item.js'; import { BulkActionComponent } from '@/vdb/framework/extension-api/types/data-table.js'; import { api } from '@/vdb/graphql/api.js'; import { usePaginatedList } from '@/vdb/hooks/use-paginated-list.js'; import { plural } from '@lingui/core/macro'; import { Plural, useLingui } from '@lingui/react/macro'; import { useMutation } from '@tanstack/react-query'; import { Ban } from 'lucide-react'; import { toast } from 'sonner'; import { cancelJobDocument } from '../job-queue.graphql.js'; export const CancelJobsBulkAction: BulkActionComponent<any> = ({ selection, table }) => { const { refetchPaginatedList } = usePaginatedList(); const { t } = useLingui(); const cancellableJobs = selection.filter(job => job.state === 'RUNNING' || job.state === 'PENDING'); const cancellableCount = cancellableJobs.length; const { mutate, isPending } = useMutation({ mutationFn: async () => { const results = await Promise.allSettled( cancellableJobs.map(job => api.mutate(cancelJobDocument, { jobId: job.id })), ); const fulfilled = results.filter(r => r.status === 'fulfilled').length; const rejected = results.filter(r => r.status === 'rejected').length; return { fulfilled, rejected }; }, onSuccess: ({ fulfilled, rejected }) => { if (fulfilled > 0) { toast.success( plural(fulfilled, { one: t`Successfully cancelled ${fulfilled} job`, other: t`Successfully cancelled ${fulfilled} jobs`, }), ); } if (rejected > 0) { toast.error( plural(rejected, { one: t`Failed to cancel ${rejected} job`, other: t`Failed to cancel ${rejected} jobs`, }), ); } refetchPaginatedList(); table.resetRowSelection(); }, }); if (cancellableCount === 0) { return null; } return ( <DataTableBulkActionItem requiresPermission={['DeleteSettings', 'DeleteSystem']} onClick={() => mutate()} disabled={isPending} label={ <Plural value={cancellableCount} one={`Cancel ${cancellableCount} job`} other={`Cancel ${cancellableCount} jobs`} /> } confirmationText={ <Plural value={cancellableCount} one={`Are you sure you want to cancel ${cancellableCount} job? This action cannot be undone.`} other={`Are you sure you want to cancel ${cancellableCount} jobs? This action cannot be undone.`} /> } icon={Ban} className="text-destructive" /> ); }; 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:33
-msgid "{fulfilled, plural, one {{0}} other {{1}}}"
-msgstr ""
+#~ msgid "{fulfilled, plural, one {{0}} other {{1}}}"
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/draft-order-status.tsx:34
 msgid "Order draft isn't ready to be completed"
@@ -486,7 +489,7 @@ msgstr "özel"
 msgid "Successfully created product option"
 msgstr "Ürün seçeneği başarıyla oluşturuldu"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:475
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:501
 msgid "Parent product"
 msgstr "Üst ürün"
 
@@ -571,7 +574,7 @@ msgstr "Seçenek değeri ekle"
 msgid "Global Settings"
 msgstr "Genel Ayarlar"
 
-#: src/lib/components/data-table/human-readable-operator.tsx:30
+#: src/lib/components/data-table/human-readable-operator.tsx:32
 msgid "is after"
 msgstr "sonrasında"
 
@@ -715,8 +718,8 @@ msgstr "Kısa tarih"
 msgid "Available currencies"
 msgstr "Mevcut para birimleri"
 
-#. placeholder {0}: selectedItems.length
-#: src/lib/components/data-input/product-multi-selector-input.tsx:373
+#. placeholder {0}: selectedIds.size
+#: src/lib/components/data-input/product-multi-selector-input.tsx:473
 msgid "Select {0} Items"
 msgstr "{0} Öğe Seç"
 
@@ -830,7 +833,7 @@ msgstr "Sonrasına sütun ekle"
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:241
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:193
 #: src/lib/components/data-table/data-table-bulk-actions.tsx:82
-#: src/lib/components/data-table/use-generated-columns.tsx:251
+#: src/lib/components/data-table/use-generated-columns.tsx:253
 msgid "Actions"
 msgstr "İşlemler"
 
@@ -893,6 +896,7 @@ msgid "Shipping address set for order"
 msgstr "Sipariş için kargo adresi ayarlandı"
 
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:173
+#: src/lib/components/shared/asset/asset-preview.tsx:153
 msgid "Focal Point"
 msgstr "Odak Noktası"
 
@@ -949,8 +953,8 @@ msgstr "Bölge güncellenemedi"
 msgid "Password"
 msgstr "Şifre"
 
-#: src/lib/components/data-table/use-generated-columns.tsx:389
-#: src/lib/components/data-table/use-generated-columns.tsx:395
+#: src/lib/components/data-table/use-generated-columns.tsx:391
+#: src/lib/components/data-table/use-generated-columns.tsx:397
 msgid "Failed to delete"
 msgstr "Silinemedi"
 
@@ -1003,7 +1007,7 @@ msgstr "Sipariş öğeleri iptal edilemedi"
 msgid "Transaction ID"
 msgstr "İşlem ID"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:450
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:476
 msgid "Allocated"
 msgstr "Tahsis edildi"
 
@@ -1030,7 +1034,7 @@ msgstr "Koleksiyon başarıyla oluşturuldu"
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:88
 #: src/app/routes/_authenticated/_orders/components/shipping-method-selector.tsx:49
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:298
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:324
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:298
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:290
 #: src/lib/components/layout/language-dialog.tsx:136
@@ -1135,8 +1139,8 @@ msgstr ""
 msgid "Regenerate slug from source field"
 msgstr "Kaynak alandan slug'ı yeniden oluştur"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:361
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:377
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:387
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:403
 msgid "Inherit from global settings"
 msgstr "Genel ayarlardan miras al"
 
@@ -1201,7 +1205,7 @@ msgstr "İş sonucunu görüntüle"
 msgid "Test your shipping methods by simulating a new order."
 msgstr "Yeni bir sipariş simüle ederek kargo yöntemlerinizi test edin."
 
-#: src/lib/components/data-input/product-multi-selector-input.tsx:337
+#: src/lib/components/data-input/product-multi-selector-input.tsx:433
 msgid "No items selected"
 msgstr "Öğe seçilmedi"
 
@@ -1233,7 +1237,7 @@ msgstr "Ek ücret"
 msgid "Payment Methods"
 msgstr "Ödeme Yöntemleri"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:351
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:377
 msgid "Stock"
 msgstr "Stok"
 
@@ -1241,7 +1245,7 @@ msgstr "Stok"
 msgid "No customers found"
 msgstr "Müşteri bulunamadı"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:410
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:436
 msgid "Use global out-of-stock threshold"
 msgstr "Genel stok tükenmesi eşiğini kullan"
 
@@ -1270,11 +1274,11 @@ msgstr "Adres silindi"
 msgid "Only roles assigned to your account are available."
 msgstr "Yalnızca hesabınıza atanmış roller kullanılabilir."
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:63
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:65
 msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
 msgstr ""
 
-#: src/lib/components/data-input/product-multi-selector-input.tsx:399
+#: src/lib/components/data-input/product-multi-selector-input.tsx:499
 #: src/lib/components/shared/configurable-operation-multi-selector.tsx:265
 #: src/lib/components/shared/configurable-operation-selector.tsx:140
 msgid "{buttonText}"
@@ -1284,9 +1288,17 @@ msgstr "{buttonText}"
 msgid "Item added to order"
 msgstr "Ürün siparişe eklendi"
 
+#: src/lib/components/shared/asset/asset-preview.tsx:146
+msgid "Edit focal point"
+msgstr "Odak noktasını düzenle"
+
 #: src/lib/components/shared/seller-selector.tsx:92
 #~ msgid "No sellers found"
 #~ msgstr "Satıcı bulunamadı"
+
+#: src/lib/components/shared/asset/asset-preview-dialog.tsx:34
+msgid "Asset"
+msgstr "Varlık"
 
 #: src/app/routes/_authenticated/_products/components/shared-option-group-warning.tsx:13
 msgid "{productCount, plural, one {This option group is used by one other product. Changes will affect it too.} other {This option group is shared across # products. Changes will affect all of them.}}"
@@ -1357,7 +1369,7 @@ msgstr "Sipariş geçiş yaptı"
 #~ msgid "This product has existing variants but no option groups defined. You need to add option groups before creating new variants."
 #~ msgstr "Bu ürünün mevcut varyantları var ancak seçenek grubu tanımlanmamış. Yeni varyantlar oluşturmadan önce seçenek grupları eklemeniz gerekir."
 
-#: src/lib/components/data-table/human-readable-operator.tsx:28
+#: src/lib/components/data-table/human-readable-operator.tsx:30
 msgid "is before"
 msgstr "öncesinde"
 
@@ -1378,6 +1390,10 @@ msgstr "Yeni ödeme yöntemi"
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:104
 msgid "Successfully updated promotion"
 msgstr "Promosyon başarıyla güncellendi"
+
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:43
+msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to cancel {rejected} jobs}}"
+msgstr "{rejected, plural, one {{rejected} görev iptal edilemedi} other {{rejected} görev iptal edilemedi}}"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:111
 #: src/lib/components/shared/channel-selector.tsx:47
@@ -1405,7 +1421,7 @@ msgstr "Kanallar"
 msgid "View converted to global successfully"
 msgstr "Görünüm başarıyla genele dönüştürüldü"
 
-#: src/lib/components/data-table/human-readable-operator.tsx:28
+#: src/lib/components/data-table/human-readable-operator.tsx:30
 msgid "before"
 msgstr "önce"
 
@@ -1442,8 +1458,8 @@ msgstr "Varsayılan fatura adresi olarak kullan"
 #: src/app/common/delete-bulk-action.tsx:139
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:41
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:357
-#: src/lib/components/data-table/use-generated-columns.tsx:405
-#: src/lib/components/data-table/use-generated-columns.tsx:435
+#: src/lib/components/data-table/use-generated-columns.tsx:407
+#: src/lib/components/data-table/use-generated-columns.tsx:437
 #: src/lib/components/data-table/views-sheet.tsx:270
 #: src/lib/components/data-table/views-sheet.tsx:296
 msgid "Delete"
@@ -1527,7 +1543,7 @@ msgstr "Adres başarıyla güncellendi"
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
 #: src/lib/components/shared/asset/asset-gallery.tsx:747
-#: src/lib/framework/layout-engine/page-layout.tsx:717
+#: src/lib/framework/layout-engine/page-layout.tsx:733
 msgid "Created"
 msgstr "Oluşturuldu"
 
@@ -1549,7 +1565,7 @@ msgstr ""
 msgid "Customer details updated"
 msgstr "Müşteri bilgileri güncellendi"
 
-#: src/lib/components/data-table/human-readable-operator.tsx:38
+#: src/lib/components/data-table/human-readable-operator.tsx:40
 msgid "not in"
 msgstr "içinde değil"
 
@@ -1577,9 +1593,9 @@ msgstr "Son sayfaya git"
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:273
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:493
 #: src/app/routes/_authenticated/_system/settings-store.tsx:140
-#: src/lib/components/data-input/product-multi-selector-input.tsx:370
+#: src/lib/components/data-input/product-multi-selector-input.tsx:470
 #: src/lib/components/data-table/data-table-bulk-action-item.tsx:122
-#: src/lib/components/data-table/use-generated-columns.tsx:421
+#: src/lib/components/data-table/use-generated-columns.tsx:423
 #: src/lib/components/data-table/views-sheet.tsx:217
 #: src/lib/components/data-table/views-sheet.tsx:293
 #: src/lib/components/layout/manage-languages-dialog.tsx:379
@@ -1598,7 +1614,7 @@ msgstr "İptal"
 msgid "Failed to update order custom fields: {0}"
 msgstr ""
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:127
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:146
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:160
 msgid "Successfully created product variant"
 msgstr "Ürün varyantı başarıyla oluşturuldu"
@@ -1680,7 +1696,7 @@ msgstr "Vergi Kategorileri"
 msgid "Private collections are not visible in the shop"
 msgstr "Özel koleksiyonlar mağazada görünmez"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:236
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:262
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:229
 msgid "When enabled, a product is available in the shop"
 msgstr "Etkinleştirildiğinde ürün mağazada satışa sunulur"
@@ -1710,7 +1726,7 @@ msgstr "Yeni promosyon"
 msgid "Default Shipping Address"
 msgstr "Varsayılan Kargo Adresi"
 
-#: src/lib/components/data-table/human-readable-operator.tsx:63
+#: src/lib/components/data-table/human-readable-operator.tsx:65
 msgid "{operator}"
 msgstr "{operator}"
 
@@ -1768,7 +1784,7 @@ msgstr "İade başarıyla tamamlandı"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:160
 #: src/app/routes/_authenticated/_orders/components/order-line-custom-fields-form.tsx:51
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:138
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:226
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:279
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:219
 #: src/app/routes/_authenticated/_profile/profile.tsx:92
@@ -1780,7 +1796,7 @@ msgstr "İade başarıyla tamamlandı"
 #: src/app/routes/_authenticated/_tax-categories/tax-categories_.$id.tsx:96
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:93
 #: src/app/routes/_authenticated/_zones/zones_.$id.tsx:83
-#: src/lib/framework/page/detail-page.tsx:189
+#: src/lib/framework/page/detail-page.tsx:185
 msgid "Update"
 msgstr "Güncelle"
 
@@ -1957,7 +1973,7 @@ msgstr "{total} öğeden {shown} gösteriliyor • {selected} seçili"
 msgid "Test Shipping Method"
 msgstr "Kargo Yöntemini Test Et"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:465
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:491
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:333
 msgid "Facet Values"
 msgstr "Özellik Değerleri"
@@ -2425,7 +2441,7 @@ msgstr "Seçenek gruplarını ara..."
 msgid "Modify order"
 msgstr "Siparişi değiştir"
 
-#: src/lib/components/data-input/product-multi-selector-input.tsx:322
+#: src/lib/components/data-input/product-multi-selector-input.tsx:418
 msgid "Selected Items"
 msgstr "Seçili Öğeler"
 
@@ -2477,7 +2493,8 @@ msgstr "Sütunu sil"
 msgid "Assign existing"
 msgstr "Mevcut olanı ata"
 
-#: src/lib/components/data-table/human-readable-operator.tsx:34
+#: src/lib/components/data-table/filters/data-table-enum-filter.tsx:19
+#: src/lib/components/data-table/human-readable-operator.tsx:36
 msgid "is null"
 msgstr "boş"
 
@@ -2501,7 +2518,7 @@ msgstr "Kaynak, başlık ve boyutlarla yeni bir görsel ekleyin"
 msgid "Failed to create facet value"
 msgstr "Özellik değeri oluşturulamadı"
 
-#: src/lib/components/data-table/human-readable-operator.tsx:24
+#: src/lib/components/data-table/human-readable-operator.tsx:26
 msgid "="
 msgstr "="
 
@@ -2598,7 +2615,7 @@ msgstr "Kargoyu yeniden hesapla"
 #: src/app/routes/_authenticated/_assets/assets.tsx:17
 #: src/app/routes/_authenticated/_assets/assets.tsx:40
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:225
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:482
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:508
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:366
 msgid "Assets"
 msgstr "Varlıklar"
@@ -2662,7 +2679,7 @@ msgstr "{0} satır ayarlanıyor"
 msgid "Add facet values"
 msgstr "Özellik değerleri ekle"
 
-#: src/lib/components/data-table/human-readable-operator.tsx:30
+#: src/lib/components/data-table/human-readable-operator.tsx:32
 msgid "after"
 msgstr "sonra"
 
@@ -2750,7 +2767,7 @@ msgstr "Müşteri başına kullanım sınırı"
 msgid "Billing address changed"
 msgstr "Fatura adresi değiştirildi"
 
-#: src/lib/components/data-input/select-with-options.tsx:101
+#: src/lib/components/data-input/select-with-options.tsx:107
 msgid "Select an option"
 msgstr "Bir seçenek seçin"
 
@@ -2779,7 +2796,7 @@ msgstr "Genel Görünümü Sil"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:160
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:138
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:226
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:219
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
@@ -2811,6 +2828,10 @@ msgstr "{0} ile {1} arası"
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:111
 msgid "Failed to create customer"
 msgstr "Müşteri oluşturulamadı"
+
+#: src/lib/components/shared/asset/asset-preview.tsx:123
+msgid "Focal point updated"
+msgstr "Odak noktası güncellendi"
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:298
 msgid "Option values"
@@ -2880,7 +2901,7 @@ msgstr "Geçersiz kıl"
 msgid "Transaction ID is required"
 msgstr "İşlem ID gereklidir"
 
-#: src/lib/components/data-table/human-readable-operator.tsx:60
+#: src/lib/components/data-table/human-readable-operator.tsx:62
 msgid "matches regex"
 msgstr "regex ile eşleşir"
 
@@ -2902,7 +2923,7 @@ msgstr "Geri"
 msgid "View renamed successfully"
 msgstr "Görünüm başarıyla yeniden adlandırıldı"
 
-#: src/lib/components/data-table/data-table-filter-dialog.tsx:89
+#: src/lib/components/data-table/data-table-filter-dialog.tsx:94
 msgid "Apply filter"
 msgstr "Filtre uygula"
 
@@ -2955,6 +2976,10 @@ msgstr "Adres güncellendi"
 msgid "Refund processed successfully"
 msgstr "İade başarıyla işlendi"
 
+#: src/lib/components/data-table/filters/data-table-enum-filter.tsx:72
+msgid "Select value"
+msgstr ""
+
 #. placeholder {0}: action.label
 #. placeholder {0}: entityType === 'products' ? 'Product' : 'Variant'
 #. placeholder {0}: entry.type.replace(/_/g, ' ').toLowerCase()
@@ -2965,8 +2990,8 @@ msgstr "İade başarıyla işlendi"
 #: src/app/routes/_authenticated/_orders/components/state-transition-control.tsx:77
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:192
 #: src/app/routes/_authenticated/_tax-categories/tax-categories.tsx:44
-#: src/lib/components/data-input/product-multi-selector-input.tsx:281
-#: src/lib/components/data-input/product-multi-selector-input.tsx:284
+#: src/lib/components/data-input/product-multi-selector-input.tsx:377
+#: src/lib/components/data-input/product-multi-selector-input.tsx:380
 #: src/lib/components/data-input/relation-selector.tsx:404
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:439
 msgid "{0}"
@@ -2998,8 +3023,8 @@ msgstr "Genel dil yapılandırılmamış"
 msgid "Removing {0} item(s)"
 msgstr "{0} öğe kaldırılıyor"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:362
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:380
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:388
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:406
 msgid "Track"
 msgstr "İzle"
 
@@ -3054,6 +3079,10 @@ msgstr "Varsayılan vergi kategorisi"
 msgid "Slug is set"
 msgstr "Slug ayarlandı"
 
+#: src/lib/components/shared/asset/asset-preview.tsx:126
+msgid "Failed to update focal point"
+msgstr "Odak noktası güncellenemedi"
+
 #: src/app/routes/_authenticated/_zones/zones_.$id.tsx:61
 msgid "Successfully updated zone"
 msgstr "Bölge başarıyla güncellendi"
@@ -3074,7 +3103,7 @@ msgstr "Kanal varsayılanları"
 msgid "Failed to create tax category"
 msgstr "Vergi kategorisi oluşturulamadı"
 
-#: src/lib/components/data-table/data-table-filter-dialog.tsx:55
+#: src/lib/components/data-table/data-table-filter-dialog.tsx:58
 msgid "Set filter criteria for the {columnId} column"
 msgstr "{columnId} sütunu için filtre kriterlerini belirleyin"
 
@@ -3097,7 +3126,7 @@ msgstr "İş Kuyruğu"
 msgid "Please confirm you have saved the API key before closing."
 msgstr "Kapatmadan önce API anahtarını kaydettiğinizi lütfen onaylayın."
 
-#: src/lib/components/data-table/use-generated-columns.tsx:411
+#: src/lib/components/data-table/use-generated-columns.tsx:413
 msgid "Confirm deletion"
 msgstr "Silmeyi onayla"
 
@@ -3129,7 +3158,7 @@ msgstr "başlangıç"
 msgid "Failed to rotate API key"
 msgstr "API anahtarı döndürülemedi"
 
-#: src/lib/components/data-table/human-readable-operator.tsx:36
+#: src/lib/components/data-table/human-readable-operator.tsx:38
 msgid "in"
 msgstr "içinde"
 
@@ -3139,10 +3168,10 @@ msgid "Search roles..."
 msgstr "Rolleri ara..."
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:35
-msgid "Successfully cancelled {fulfilled} jobs"
-msgstr ""
+#~ msgid "Successfully cancelled {fulfilled} jobs"
+#~ msgstr ""
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:69
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:71
 #: src/app/routes/_authenticated/_product-variants/product-variants.tsx:19
 #: src/app/routes/_authenticated/_product-variants/product-variants.tsx:28
 msgid "Product Variants"
@@ -3195,7 +3224,7 @@ msgstr "Satıcı başarıyla oluşturuldu"
 msgid "Successfully updated shipping method"
 msgstr "Kargo yöntemi başarıyla güncellendi"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:137
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:156
 msgid "Failed to update product variant"
 msgstr "Ürün varyantı güncellenemedi"
 
@@ -3315,7 +3344,7 @@ msgstr "Evet"
 msgid "Slug"
 msgstr "Slug"
 
-#: src/lib/components/shared/asset/asset-focal-point-editor.tsx:97
+#: src/lib/components/shared/asset/asset-focal-point-editor.tsx:98
 msgid "Set Focal Point"
 msgstr "Odak Noktasını Ayarla"
 
@@ -3348,11 +3377,12 @@ msgstr "Kargo yöntemi değiştirildi"
 msgid "Tax description"
 msgstr "Vergi açıklaması"
 
-#: src/lib/components/data-table/human-readable-operator.tsx:53
+#: src/lib/components/data-table/human-readable-operator.tsx:55
 msgid "is less than or equal to"
 msgstr "küçük eşittir"
 
-#: src/lib/components/data-table/human-readable-operator.tsx:26
+#: src/lib/components/data-table/filters/data-table-enum-filter.tsx:18
+#: src/lib/components/data-table/human-readable-operator.tsx:28
 msgid "is not equal to"
 msgstr "eşit değildir"
 
@@ -3494,7 +3524,7 @@ msgstr "Pazarlama"
 msgid "Draft order deleted"
 msgstr "Taslak sipariş silindi"
 
-#: src/lib/components/data-table/human-readable-operator.tsx:40
+#: src/lib/components/data-table/human-readable-operator.tsx:42
 msgid "greater than"
 msgstr "büyüktür"
 
@@ -3559,17 +3589,16 @@ msgstr "Fatura adresi yok"
 msgid "Facet"
 msgstr "Özellik"
 
-#. placeholder {0}: import { DataTableBulkActionItem } from '@/vdb/components/data-table/data-table-bulk-action-item.js'; import { BulkActionComponent } from '@/vdb/framework/extension-api/types/data-table.js'; import { api } from '@/vdb/graphql/api.js'; import { usePaginatedList } from '@/vdb/hooks/use-paginated-list.js'; import { plural } from '@lingui/core/macro'; import { Plural, useLingui } from '@lingui/react/macro'; import { useMutation } from '@tanstack/react-query'; import { Ban } from 'lucide-react'; import { toast } from 'sonner'; import { cancelJobDocument } from '../job-queue.graphql.js'; export const CancelJobsBulkAction: BulkActionComponent<any> = ({ selection, table }) => { const { refetchPaginatedList } = usePaginatedList(); const { t } = useLingui(); const cancellableJobs = selection.filter(job => job.state === 'RUNNING' || job.state === 'PENDING'); const cancellableCount = cancellableJobs.length; const { mutate, isPending } = useMutation({ mutationFn: async () => { const results = await Promise.allSettled( cancellableJobs.map(job => api.mutate(cancelJobDocument, { jobId: job.id })), ); const fulfilled = results.filter(r => r.status === 'fulfilled').length; const rejected = results.filter(r => r.status === 'rejected').length; return { fulfilled, rejected }; }, onSuccess: ({ fulfilled, rejected }) => { if (fulfilled > 0) { toast.success( plural(fulfilled, { one: t`Successfully cancelled ${fulfilled} job`, other: t`Successfully cancelled ${fulfilled} jobs`, }), ); } if (rejected > 0) { toast.error( plural(rejected, { one: t`Failed to cancel ${rejected} job`, other: t`Failed to cancel ${rejected} jobs`, }), ); } refetchPaginatedList(); table.resetRowSelection(); }, }); if (cancellableCount === 0) { return null; } return ( <DataTableBulkActionItem requiresPermission={['DeleteSettings', 'DeleteSystem']} onClick={() => mutate()} disabled={isPending} label={ <Plural value={cancellableCount} one={`Cancel ${cancellableCount} job`} other={`Cancel ${cancellableCount} jobs`} /> } confirmationText={ <Plural value={cancellableCount} one={`Are you sure you want to cancel ${cancellableCount} job? This action cannot be undone.`} other={`Are you sure you want to cancel ${cancellableCount} jobs? This action cannot be undone.`} /> } icon={Ban} className="text-destructive" /> ); }; 
-#. placeholder {1}: import { DataTableBulkActionItem } from '@/vdb/components/data-table/data-table-bulk-action-item.js'; import { BulkActionComponent } from '@/vdb/framework/extension-api/types/data-table.js'; import { api } from '@/vdb/graphql/api.js'; import { usePaginatedList } from '@/vdb/hooks/use-paginated-list.js'; import { plural } from '@lingui/core/macro'; import { Plural, useLingui } from '@lingui/react/macro'; import { useMutation } from '@tanstack/react-query'; import { Ban } from 'lucide-react'; import { toast } from 'sonner'; import { cancelJobDocument } from '../job-queue.graphql.js'; export const CancelJobsBulkAction: BulkActionComponent<any> = ({ selection, table }) => { const { refetchPaginatedList } = usePaginatedList(); const { t } = useLingui(); const cancellableJobs = selection.filter(job => job.state === 'RUNNING' || job.state === 'PENDING'); const cancellableCount = cancellableJobs.length; const { mutate, isPending } = useMutation({ mutationFn: async () => { const results = await Promise.allSettled( cancellableJobs.map(job => api.mutate(cancelJobDocument, { jobId: job.id })), ); const fulfilled = results.filter(r => r.status === 'fulfilled').length; const rejected = results.filter(r => r.status === 'rejected').length; return { fulfilled, rejected }; }, onSuccess: ({ fulfilled, rejected }) => { if (fulfilled > 0) { toast.success( plural(fulfilled, { one: t`Successfully cancelled ${fulfilled} job`, other: t`Successfully cancelled ${fulfilled} jobs`, }), ); } if (rejected > 0) { toast.error( plural(rejected, { one: t`Failed to cancel ${rejected} job`, other: t`Failed to cancel ${rejected} jobs`, }), ); } refetchPaginatedList(); table.resetRowSelection(); }, }); if (cancellableCount === 0) { return null; } return ( <DataTableBulkActionItem requiresPermission={['DeleteSettings', 'DeleteSystem']} onClick={() => mutate()} disabled={isPending} label={ <Plural value={cancellableCount} one={`Cancel ${cancellableCount} job`} other={`Cancel ${cancellableCount} jobs`} /> } confirmationText={ <Plural value={cancellableCount} one={`Are you sure you want to cancel ${cancellableCount} job? This action cannot be undone.`} other={`Are you sure you want to cancel ${cancellableCount} jobs? This action cannot be undone.`} /> } icon={Ban} className="text-destructive" /> ); }; 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:41
-msgid "{rejected, plural, one {{0}} other {{1}}}"
-msgstr ""
+#~ msgid "{rejected, plural, one {{0}} other {{1}}}"
+#~ msgstr ""
 
 #: src/lib/components/shared/assigned-channels.tsx:58
 msgid "Cannot remove from active channel"
 msgstr "Etkin kanaldan kaldırılamaz"
 
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:179
+#: src/lib/components/shared/asset/asset-preview.tsx:162
 msgid "Not set"
 msgstr "Ayarlanmadı"
 
@@ -3609,7 +3638,7 @@ msgstr "Teslimat durumu başarıyla güncellendi"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:71
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:211
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:38
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:64
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:66
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:66
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:56
 #: src/app/routes/_authenticated/_products/products.tsx:24
@@ -3732,7 +3761,7 @@ msgstr "{0} koleksiyon {2}'ye taşınıyor"
 msgid "Test"
 msgstr "Test"
 
-#: src/lib/components/data-table/human-readable-operator.tsx:32
+#: src/lib/components/data-table/human-readable-operator.tsx:34
 msgid "between"
 msgstr "arasında"
 
@@ -3759,7 +3788,7 @@ msgstr "Not başarıyla güncellendi"
 msgid "Failed to settle refund"
 msgstr "İade tamamlanamadı"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:435
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:461
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:311
 msgid "Stock level"
 msgstr "Stok seviyesi"
@@ -3844,7 +3873,7 @@ msgstr "Bu hafta"
 msgid "Add a manual payment of {0}"
 msgstr "{0} tutarında manuel ödeme ekle"
 
-#: src/lib/components/data-table/human-readable-operator.tsx:36
+#: src/lib/components/data-table/human-readable-operator.tsx:38
 msgid "is in"
 msgstr "içinde"
 
@@ -3885,7 +3914,8 @@ msgstr "Açık"
 msgid "Reset"
 msgstr "Sıfırla"
 
-#: src/lib/components/data-table/human-readable-operator.tsx:24
+#: src/lib/components/data-table/filters/data-table-enum-filter.tsx:17
+#: src/lib/components/data-table/human-readable-operator.tsx:26
 msgid "is equal to"
 msgstr "eşittir"
 
@@ -3899,7 +3929,7 @@ msgstr "eşittir"
 msgid "Password updated"
 msgstr "Şifre güncellendi"
 
-#: src/lib/components/data-table/human-readable-operator.tsx:58
+#: src/lib/components/data-table/human-readable-operator.tsx:60
 msgid "does not contain"
 msgstr "içermez"
 
@@ -4044,7 +4074,7 @@ msgstr "Gönderildi"
 #~ msgid "Monitored Resources"
 #~ msgstr "İzlenen Kaynaklar"
 
-#: src/lib/framework/layout-engine/page-layout.tsx:689
+#: src/lib/framework/layout-engine/page-layout.tsx:705
 msgid "Entity Information"
 msgstr "Varlık Bilgisi"
 
@@ -4163,7 +4193,7 @@ msgstr "Ortalama Sipariş Değeri"
 msgid "Failed to create zone"
 msgstr "Bölge oluşturulamadı"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:356
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:382
 msgid "Stock levels"
 msgstr "Stok seviyeleri"
 
@@ -4256,6 +4286,10 @@ msgstr ""
 msgid "Failed to convert view to global"
 msgstr "Görünüm genele dönüştürülemedi"
 
+#: src/lib/components/data-table/filters/data-table-enum-filter.tsx:53
+msgid "Select operator"
+msgstr ""
+
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts:38
 msgid "Product Variants"
@@ -4321,7 +4355,7 @@ msgstr "Profil güncellenemedi"
 msgid "Removed coupon codes"
 msgstr "Kupon kodları kaldırıldı"
 
-#: src/lib/components/data-table/data-table-filter-dialog.tsx:78
+#: src/lib/components/data-table/data-table-filter-dialog.tsx:83
 msgid "Clear filter"
 msgstr "Filtreyi temizle"
 
@@ -4410,6 +4444,10 @@ msgstr "Özellik değeri güncellenemedi"
 msgid "Order fulfilled"
 msgstr "Sipariş teslim edildi"
 
+#: src/lib/components/data-input/product-multi-selector-input.tsx:437
+msgid "Loading selected items..."
+msgstr ""
+
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:210
 msgid "Failed to set billing address for order: {0}"
@@ -4481,12 +4519,13 @@ msgstr "Özel Alanlar"
 msgid "New Shipping Method"
 msgstr "Yeni Kargo Yöntemi"
 
-#: src/lib/components/data-table/human-readable-operator.tsx:45
+#: src/lib/components/data-table/human-readable-operator.tsx:47
 msgid "is greater than or equal to"
 msgstr "büyük eşittir"
 
 #: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:77
 #: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:88
+#: src/lib/components/shared/entity-assets.tsx:151
 msgid "Preview"
 msgstr "Önizleme"
 
@@ -4598,7 +4637,7 @@ msgstr "Seçiliyle..."
 msgid "Failed to create stock location"
 msgstr "Stok konumu oluşturulamadı"
 
-#: src/lib/components/data-table/human-readable-operator.tsx:51
+#: src/lib/components/data-table/human-readable-operator.tsx:53
 msgid "less than or equal"
 msgstr "küçük eşittir"
 
@@ -4613,8 +4652,8 @@ msgstr "{customerGroupName} için müşteri grubu üyeleri"
 msgid "State"
 msgstr "İl"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:363
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:383
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:389
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:409
 msgid "Do not track"
 msgstr "İzleme"
 
@@ -4643,7 +4682,7 @@ msgstr "İl / Bölge"
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:92
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:147
 #: src/app/routes/_authenticated/_payment-methods/payment-methods.tsx:42
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:235
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:261
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:228
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:153
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:115
@@ -4668,7 +4707,7 @@ msgstr "Üyeleri düzenle"
 msgid "Stock on hand"
 msgstr "Eldeki stok"
 
-#: src/lib/components/data-table/data-table-filter-dialog.tsx:52
+#: src/lib/components/data-table/data-table-filter-dialog.tsx:55
 msgid "Filter by {columnId}"
 msgstr "{columnId} ile filtrele"
 
@@ -4718,7 +4757,7 @@ msgstr "Son siparişleriniz"
 msgid "Scheduled Tasks"
 msgstr "Zamanlanmış Görevler"
 
-#: src/lib/components/data-table/use-generated-columns.tsx:414
+#: src/lib/components/data-table/use-generated-columns.tsx:416
 msgid "Are you sure you want to delete this item? This action cannot be undone."
 msgstr "Bu öğeyi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz."
 
@@ -4766,7 +4805,7 @@ msgstr "Tanımlayıcı"
 msgid "Failed to update collection"
 msgstr "Koleksiyon güncellenemedi"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:278
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:304
 msgid "Price and tax"
 msgstr "Fiyat ve vergi"
 
@@ -4774,7 +4813,7 @@ msgstr "Fiyat ve vergi"
 msgid "Order not found"
 msgstr "Sipariş bulunamadı"
 
-#: src/lib/components/data-table/human-readable-operator.tsx:26
+#: src/lib/components/data-table/human-readable-operator.tsx:28
 msgid "!="
 msgstr "!="
 
@@ -4813,7 +4852,7 @@ msgstr "Etiket ekle..."
 #~ msgstr "Ürün seçenek grubu oluşturulamadı"
 
 #. placeholder {0}: selectedIds.length
-#: src/lib/components/data-input/product-multi-selector-input.tsx:404
+#: src/lib/components/data-input/product-multi-selector-input.tsx:504
 msgid "{0} items selected"
 msgstr "{0} öğe seçildi"
 
@@ -4836,8 +4875,8 @@ msgid "Contents"
 msgstr "İçerik"
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:43
-msgid "Failed to cancel {rejected} jobs"
-msgstr ""
+#~ msgid "Failed to cancel {rejected} jobs"
+#~ msgstr ""
 
 #: src/lib/components/data-table/views-sheet.tsx:110
 msgid "Failed to convert global view to personal view"
@@ -4862,7 +4901,7 @@ msgstr "Ödeme ekle ({0})"
 msgid "System"
 msgstr "Sistem"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:264
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:290
 msgid "Variant name"
 msgstr "Varyant adı"
 
@@ -4951,7 +4990,7 @@ msgstr "Koleksiyon konumu güncellendi"
 msgid "Add \"{newOptionInput}\""
 msgstr "「{newOptionInput}」ekle"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:218
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:244
 msgid "New product variant"
 msgstr "Yeni ürün varyantı"
 
@@ -4982,6 +5021,11 @@ msgstr "Teslim ediliyor..."
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:147
 msgid "Add option group to product"
 msgstr "Ürüne seçenek grubu ekle"
+
+#. placeholder {0}: asset.name
+#: src/lib/components/shared/asset/asset-preview-dialog.tsx:37
+msgid "Preview of {0}"
+msgstr "{0} önizlemesi"
 
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:56
 msgid "Successfully updated seller"
@@ -5162,7 +5206,7 @@ msgid "Customer not found"
 msgstr "Müşteri bulunamadı"
 
 #. placeholder {0}: entityName.toLowerCase()
-#: src/lib/components/data-input/default-relation-input.tsx:603
+#: src/lib/components/data-input/default-relation-input.tsx:663
 msgid "Select {0}s"
 msgstr "{0} seç"
 
@@ -5181,7 +5225,7 @@ msgstr "İade işlenemedi"
 msgid "First name"
 msgstr "Ad"
 
-#: src/lib/components/data-table/human-readable-operator.tsx:56
+#: src/lib/components/data-table/human-readable-operator.tsx:58
 msgid "contains"
 msgstr "içerir"
 
@@ -5189,7 +5233,7 @@ msgstr "içerir"
 msgid "No option groups found"
 msgstr "Seçenek grubu bulunamadı"
 
-#: src/lib/components/data-input/product-multi-selector-input.tsx:91
+#: src/lib/components/data-input/product-multi-selector-input.tsx:162
 msgid "No items found"
 msgstr "Öğe bulunamadı"
 
@@ -5220,7 +5264,7 @@ msgstr "Miktar"
 msgid "Add filter"
 msgstr "Filtre ekle"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:283
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:309
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:127
 msgid "Tax category"
 msgstr "Vergi kategorisi"
@@ -5235,7 +5279,7 @@ msgstr "Profil"
 msgid "Test data has been updated. Click \"Run Test\" to see updated results."
 msgstr "Test verileri güncellendi. Güncellenmiş sonuçları görmek için \"Testi Çalıştır\"a tıklayın."
 
-#: src/lib/components/data-table/human-readable-operator.tsx:38
+#: src/lib/components/data-table/human-readable-operator.tsx:40
 msgid "is not in"
 msgstr "içinde değil"
 
@@ -5288,8 +5332,8 @@ msgid "Page {page} of {totalPages}"
 msgstr "{totalPages} sayfanın {page}. sayfası"
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:42
-msgid "Failed to cancel {rejected} job"
-msgstr ""
+#~ msgid "Failed to cancel {rejected} job"
+#~ msgstr ""
 
 #: src/lib/components/date-range-picker.tsx:79
 msgctxt "date-range"
@@ -5309,7 +5353,7 @@ msgstr "Öğeyi kaldır"
 msgid "Video"
 msgstr "Video"
 
-#: src/lib/components/data-table/human-readable-operator.tsx:48
+#: src/lib/components/data-table/human-readable-operator.tsx:50
 msgid "less than"
 msgstr "küçüktür"
 
@@ -5341,7 +5385,7 @@ msgstr "İade et ve siparişi iptal et"
 msgid "Email update verified"
 msgstr "E-posta güncelleme doğrulandı"
 
-#: src/lib/components/data-table/human-readable-operator.tsx:32
+#: src/lib/components/data-table/human-readable-operator.tsx:34
 msgid "is between"
 msgstr "arasında"
 
@@ -5457,7 +5501,7 @@ msgstr "Varsayılan para birimi"
 msgid "No payment or refund is required for these changes."
 msgstr "Bu değişiklikler için ödeme veya iade gerekmez."
 
-#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:70
+#: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:72
 msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
 msgstr ""
 
@@ -5518,7 +5562,7 @@ msgstr "Koleksiyon içeriğini önizlemek için filtre ekleyin."
 msgid "Subtotal"
 msgstr "Ara toplam"
 
-#: src/lib/components/data-table/human-readable-operator.tsx:48
+#: src/lib/components/data-table/human-readable-operator.tsx:50
 msgid "is less than"
 msgstr "küçüktür"
 
@@ -5547,7 +5591,7 @@ msgstr "İş verilerini görüntüle"
 msgid "Move to the top level"
 msgstr "Üst düzeye taşı"
 
-#: src/lib/components/data-input/product-multi-selector-input.tsx:329
+#: src/lib/components/data-input/product-multi-selector-input.tsx:425
 msgid "Clear"
 msgstr "Temizle"
 
@@ -5626,12 +5670,12 @@ msgstr "Varyantları Yönet"
 msgid "Stock allocated"
 msgstr "Stok tahsis edildi"
 
-#: src/lib/components/data-table/human-readable-operator.tsx:43
+#: src/lib/components/data-table/human-readable-operator.tsx:45
 msgid "greater than or equal"
 msgstr "büyük eşittir"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:394
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:412
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:420
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:438
 msgid "Sets the stock level at which this variant is considered to be out of stock. Using a negative value enables backorder support."
 msgstr "Bu varyantın stokta olmadığı kabul edilen stok seviyesini ayarlar. Negatif değer kullanmak sipariş öncesi desteğini etkinleştirir."
 
@@ -5692,7 +5736,7 @@ msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:82
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:96
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:271
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:297
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:292
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:198
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:287
@@ -5725,7 +5769,7 @@ msgstr "Mevcut:"
 msgid "Created at"
 msgstr "Oluşturulma tarihi"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:137
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:156
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:165
 msgid "Failed to create product variant"
 msgstr "Ürün varyantı oluşturulamadı"
@@ -5800,7 +5844,7 @@ msgstr "Etkin filtreler"
 msgid "Clear all"
 msgstr "Tümünü temizle"
 
-#: src/lib/components/data-table/human-readable-operator.tsx:40
+#: src/lib/components/data-table/human-readable-operator.tsx:42
 msgid "is greater than"
 msgstr "büyüktür"
 
@@ -5815,7 +5859,7 @@ msgstr "Siparişe ödeme ekle"
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:122
 #: src/app/routes/_authenticated/_option-groups/components/option-group-products-block.tsx:59
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:245
-#: src/lib/components/data-input/product-multi-selector-input.tsx:83
+#: src/lib/components/data-input/product-multi-selector-input.tsx:154
 #: src/lib/components/data-input/relation-selector.tsx:427
 #: src/lib/components/shared/country-selector.tsx:86
 #: src/lib/components/shared/customer-group-selector.tsx:56
@@ -5844,7 +5888,7 @@ msgstr "İade edilecek ödemeleri seçin"
 msgid "Failed to delete {failed} {entityName}"
 msgstr "{failed} {entityName} silinemedi"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:392
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:418
 msgid "Out-of-stock threshold"
 msgstr "Stok tükenmesi eşiği"
 

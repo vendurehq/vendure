@@ -54,7 +54,8 @@
     "stockonhand-cannot-be-negative": "stockOnHand cannot be a negative value",
     "superadmin-must-have-superadmin-role": "Cannot remove the SuperAdmin role from the sole SuperAdmin",
     "target-customer-not-assigned-to-order-channels": "The target Customer is not assigned to the same Channels as the Order. Missing channels IDs: { missingChannelIds }",
-    "unauthorized": "The credentials did not match. Please check and try again"
+    "unauthorized": "The credentials did not match. Please check and try again",
+    "unverified-external-email-conflict": "Cannot link an unverified external authentication method to an existing account with the same email address"
   },
   "errorResult": {
     "ALREADY_LOGGED_IN_ERROR": "Cannot set a Customer for the Order when already logged in",
