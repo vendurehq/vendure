@@ -1056,7 +1056,7 @@
                   "title": "ExternalAuthenticationService",
                   "slug": "external-authentication-service",
                   "file": "docs/reference/typescript-api/auth/external-authentication-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-06-26T08:24:45Z"
                 },
                 {
                   "title": "InMemorySessionCacheStrategy",
@@ -1922,7 +1922,7 @@
                   "title": "Error Types",
                   "slug": "error-types",
                   "file": "docs/reference/typescript-api/errors/error-types.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-06-26T08:24:45Z"
                 },
                 {
                   "title": "ErrorHandlerStrategy",
