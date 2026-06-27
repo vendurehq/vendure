@@ -25,4 +25,11 @@ describe('jsonStringValueTransformer', () => {
         expect(jsonStringValueTransformer.serialize('3', def)).toBe('3');
         expect(jsonStringValueTransformer.serialize(3, def)).toBe('3');
     });
+
+    it('preserves JSON array serialization for list ID values', () => {
+        const def = fieldDef({ type: 'ID', list: true });
+
+        expect(jsonStringValueTransformer.serialize(['3', '4'], def)).toBe('["3","4"]');
+        expect(jsonStringValueTransformer.serialize('["3","4"]', def)).toBe('["3","4"]');
+    });
 });

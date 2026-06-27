@@ -93,6 +93,9 @@ export const jsonStringValueTransformer: ValueTransformer = {
             case 'string':
                 return typeof value === 'string' ? value : JSON.stringify(value);
             case 'ID':
+                if (fieldDef.list) {
+                    return typeof value === 'string' ? value : JSON.stringify(value);
+                }
                 return typeof value === 'string' ? value : String(value);
             default:
                 // For complex values (arrays, objects), serialize as JSON
