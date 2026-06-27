@@ -1,4 +1,4 @@
-import { ConfigurableFieldDef } from '@/vdb/framework/form-engine/form-engine-types.js';
+import type { ConfigurableFieldDef } from '@/vdb/framework/form-engine/form-engine-types.js';
 
 export type ValueMode = 'native' | 'json-string';
 
@@ -40,9 +40,10 @@ export const jsonStringValueTransformer: ValueTransformer = {
             return value;
         }
 
-        // For scalar string fields, return the raw value without JSON parsing.
+        // For scalar string-like fields, return the raw value without JSON parsing.
         // This prevents issues like "0" being parsed as number 0, or "-0" becoming -0 which is "0" in the input.
-        if (fieldDef.type === 'string' && !fieldDef.list) {
+        // GraphQL ID values are opaque identifiers, so numeric-looking IDs must stay as strings too.
+        if ((fieldDef.type === 'string' || fieldDef.type === 'ID') && !fieldDef.list) {
             return value;
         }
 
@@ -91,6 +92,8 @@ export const jsonStringValueTransformer: ValueTransformer = {
                     : (Number.parseFloat(value) || 0).toString();
             case 'string':
                 return typeof value === 'string' ? value : JSON.stringify(value);
+            case 'ID':
+                return typeof value === 'string' ? value : String(value);
             default:
                 // For complex values (arrays, objects), serialize as JSON
                 return typeof value === 'string' ? value : JSON.stringify(value);
