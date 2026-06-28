@@ -124,12 +124,14 @@ describe('hasFacetValues', () => {
 
     describe('checker invocation', () => {
         it('passes the ctx and facet ID list to hasFacetValues', async () => {
+            mockHasFacetValues.mockClear();
             const order = orderWith([line('v1', 1)]);
             const args = buildArgs(1, ['f1', 'f2']);
             mockHasFacetValues.mockResolvedValue(true);
 
             await check(order, args);
 
+            expect(mockHasFacetValues).toHaveBeenCalledTimes(1);
             expect(mockHasFacetValues).toHaveBeenCalledWith(order.lines[0], ['f1', 'f2'], ctx);
         });
     });
