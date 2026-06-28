@@ -18,7 +18,7 @@ import { containsProducts } from './contains-products-condition';
  * Test cases are derived by:
  *  - equivalence partitioning over the match count vs minimum
  *  - boundary-value analysis at `matches = minimum ± 1`
- *  - edge cases for multiple eligible lines and overlapping ID sets
+ *  - edge cases for multiple eligible lines
  */
 
 function buildArgs(minimum: number, productVariantIds: ID[]): ConfigArg[] {
