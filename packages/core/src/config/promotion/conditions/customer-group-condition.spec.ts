@@ -6,9 +6,6 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { Customer } from '../../../entity/customer/customer.entity';
 import { CustomerGroup } from '../../../entity/customer-group/customer-group.entity';
 import { Order } from '../../../entity/order/order.entity';
-import { EventBus } from '../../../event-bus/event-bus';
-import { CacheService } from '../../../cache/cache.service';
-import { CustomerService } from '../../../service/services/customer.service';
 import { createRequestContext } from '../../../testing/order-test-utils';
 
 import { customerGroup } from './customer-group-condition';
@@ -27,14 +24,11 @@ import { customerGroup } from './customer-group-condition';
  *    member of other groups only / member of multiple groups)
  */
 
-const mockGetCustomerGroups = vi.fn<
-    Parameters<CustomerService['getCustomerGroups']>,
-    ReturnType<CustomerService['getCustomerGroups']>
->();
+const mockGetCustomerGroups = vi.fn();
 
 const mockCustomerService = {
     getCustomerGroups: mockGetCustomerGroups,
-} as unknown as CustomerService;
+} as any;
 
 // Pass-through cache: always invokes the fallback so group lookups hit
 // the mock CustomerService directly, keeping tests deterministic.
@@ -44,17 +38,18 @@ const mockCacheService = {
         delete: async () => {},
         invalidateTags: async () => {},
     }),
-} as unknown as CacheService;
+} as any;
 
 const mockEventBus = {
     ofType: () => of(),
-} as unknown as EventBus;
+} as any;
 
 const mockInjector = {
     get: (token: unknown) => {
-        if (token === CustomerService) return mockCustomerService;
-        if (token === CacheService) return mockCacheService;
-        if (token === EventBus) return mockEventBus;
+        const name = (token as { name?: string })?.name;
+        if (name === 'CustomerService') return mockCustomerService;
+        if (name === 'CacheService') return mockCacheService;
+        if (name === 'EventBus') return mockEventBus;
     },
 };
 
