@@ -202,6 +202,8 @@ describe('buyXGetYFreeCondition', () => {
             // lineA: net 100, gross 100 (no tax).  lineB: net 90, gross 135 (50% tax).
             // By unitPrice (net):       B (90)  < A (100)  -> cheapest is B
             // By unitPriceWithTax (gross): A (100) < B (135) -> cheapest is A
+            // listPriceIncludesTax is left at its default false so listPrice is the net price,
+            // making unitPriceWithTax = listPrice * (1 + taxRate) as shown above.
             const lineA = line({ lineId: 'a', variantId: 'y1', quantity: 5, listPrice: 100 });
             const lineB = line({ lineId: 'b', variantId: 'y2', quantity: 5, listPrice: 90, taxRate: 50 });
             const order = orderWith([line({ lineId: 'x', variantId: 'x1', quantity: 2 }), lineA, lineB]);
