@@ -2,6 +2,8 @@
 title: "EntityDuplicator"
 generated: true
 ---
+## EntityDuplicator
+
 <GenerationInfo sourceFile="packages/core/src/config/entity/entity-duplicator.ts" sourceLine="158" packageName="@vendure/core" since="2.2.0" />
 
 An EntityDuplicator is used to define the logic for duplicating entities when the `duplicateEntity` mutation is called.
@@ -107,11 +109,6 @@ class EntityDuplicator<T extends ConfigArgs = ConfigArgs> extends ConfigurableOp
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(config: <a href='/reference/typescript-api/configuration/entity-duplicator#entityduplicatorconfig'>EntityDuplicatorConfig</a><T>) => EntityDuplicator`}   />
-
-
 ### duplicate
 
 <MemberInfo kind="method" type={`(input: {         ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>;         entityName: string;         id: <a href='/reference/typescript-api/common/id#id'>ID</a>;         args: ConfigArg[];     }) => Promise<<a href='/reference/typescript-api/entities/vendure-entity#vendureentity'>VendureEntity</a>>`}   />
@@ -120,6 +117,8 @@ class EntityDuplicator<T extends ConfigArgs = ConfigArgs> extends ConfigurableOp
 
 
 </div>
+## DuplicateEntityFn
+
 <GenerationInfo sourceFile="packages/core/src/config/entity/entity-duplicator.ts" sourceLine="21" packageName="@vendure/core" since="2.2.0" />
 
 A function which performs the duplication of an entity.
@@ -132,6 +131,8 @@ type DuplicateEntityFn<T extends ConfigArgs> = (input: {
     args: ConfigArgValues<T>;
 }) => Promise<VendureEntity>
 ```
+## EntityDuplicatorConfig
+
 <GenerationInfo sourceFile="packages/core/src/config/entity/entity-duplicator.ts" sourceLine="36" packageName="@vendure/core" since="2.2.0" />
 
 Configuration for creating a new EntityDuplicator.

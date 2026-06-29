@@ -2482,7 +2482,7 @@ msgstr "포함하지 않음"
 
 #: src/lib/components/data-table/human-readable-operator.tsx:34
 msgid "is null"
-msgstr "NULL"
+msgstr "NULL임"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:105
 msgid "Item added to order"

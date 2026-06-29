@@ -27,7 +27,8 @@ export default defineConfig({
         'tr',
         'ja',
         'bg',
-        'nl'
+        'nl',
+        'ro'
     ],
     orderBy: 'messageId',
     catalogs: [

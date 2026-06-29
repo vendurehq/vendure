@@ -300,6 +300,9 @@ async function generateSources(
         cookieSecret: randomBytes(16).toString('base64url'),
         port,
         isMonorepo: answers.includeStorefront,
+        packageManager,
+        isBun: packageManager === 'bun',
+        needsCorepack: packageManager === 'pnpm' || packageManager === 'yarn',
     };
 
     async function createSourceFile(filename: string, noEscape = false): Promise<string> {

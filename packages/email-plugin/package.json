@@ -1,6 +1,6 @@
 {
     "name": "@vendure/email-plugin",
-    "version": "3.6.2",
+    "version": "3.6.4",
     "license": "GPL-3.0-or-later",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
@@ -17,7 +17,7 @@
         "watch": "tsc -p ./tsconfig.build.json --watch",
         "build": "rimraf lib && tsc -p ./tsconfig.build.json",
         "lint": "eslint --fix .",
-        "test": "vitest --config vitest.config.mts --run"
+        "test": "vitest --config vitest.config.mts --run --typecheck"
     },
     "homepage": "https://www.vendure.io/",
     "funding": "https://github.com/sponsors/michaelbromley",
@@ -38,8 +38,8 @@
         "@types/express": "^5.0.1",
         "@types/fs-extra": "^11.0.4",
         "@types/mjml": "^4.7.4",
-        "@vendure/common": "3.6.2",
-        "@vendure/core": "3.6.2",
+        "@vendure/common": "3.6.4",
+        "@vendure/core": "3.6.4",
         "rimraf": "^5.0.5",
         "typescript": "5.8.2"
     }

@@ -5,10 +5,12 @@ import { FieldInfo, getOperationVariablesFields } from '../document-introspectio
 
 import {
     convertEmptyStringsToNull,
+    isFieldNullable,
     removeEmptyIdFields,
     stripNullNullableFields,
     transformRelationFields,
 } from './utils.js';
+import { ConfigurableFieldDef } from "./form-engine-types.js";
 
 const createProductDocument = graphql(`
     mutation CreateProduct($input: CreateProductInput!) {
@@ -183,6 +185,245 @@ describe('transformRelationFields', () => {
         const result = transformRelationFields(fields, entity);
 
         expect(result.customFields).toEqual({ featuredProductsIds: ['1'], notes: 'Some notes' });
+    });
+
+    it('should handle customFields nested inside input (draft order case)', () => {
+        const fields: FieldInfo[] = [
+            {
+                name: 'orderId',
+                type: 'ID',
+                nullable: false,
+                list: false,
+                isPaginatedList: false,
+                isScalar: true,
+            },
+            {
+                name: 'input',
+                type: 'UpdateOrderInput',
+                nullable: false,
+                list: false,
+                isPaginatedList: false,
+                isScalar: false,
+                typeInfo: [
+                    {
+                        name: 'id',
+                        type: 'ID',
+                        nullable: false,
+                        list: false,
+                        isPaginatedList: false,
+                        isScalar: true,
+                    },
+                    {
+                        name: 'customFields',
+                        type: 'CustomFields',
+                        nullable: true,
+                        list: false,
+                        isPaginatedList: false,
+                        isScalar: false,
+                        typeInfo: [
+                            {
+                                name: 'featuredProductId',
+                                type: 'ID',
+                                nullable: true,
+                                list: false,
+                                isPaginatedList: false,
+                                isScalar: true,
+                            },
+                        ],
+                    },
+                ],
+            },
+        ];
+        const entity = {
+            orderId: 'order-1',
+            input: {
+                id: 'order-1',
+                customFields: {
+                    featuredProduct: { id: '3', name: 'Product 3' },
+                },
+            },
+        };
+        const result = transformRelationFields(fields, entity);
+
+        expect(result.input.customFields).toEqual({ featuredProductId: '3' });
+        expect(result.input.customFields).not.toHaveProperty('featuredProduct');
+        expect(result.orderId).toBe('order-1');
+    });
+
+    it('should handle nested list relation customFields inside input', () => {
+        const fields: FieldInfo[] = [
+            {
+                name: 'input',
+                type: 'UpdateOrderInput',
+                nullable: false,
+                list: false,
+                isPaginatedList: false,
+                isScalar: false,
+                typeInfo: [
+                    {
+                        name: 'customFields',
+                        type: 'CustomFields',
+                        nullable: true,
+                        list: false,
+                        isPaginatedList: false,
+                        isScalar: false,
+                        typeInfo: [
+                            {
+                                name: 'featuredProductsIds',
+                                type: 'ID',
+                                nullable: true,
+                                list: true,
+                                isPaginatedList: false,
+                                isScalar: true,
+                            },
+                        ],
+                    },
+                ],
+            },
+        ];
+        const entity = {
+            input: {
+                customFields: {
+                    featuredProducts: [
+                        { id: '1', name: 'Product 1' },
+                        { id: '2', name: 'Product 2' },
+                    ],
+                },
+            },
+        };
+        const result = transformRelationFields(fields, entity);
+
+        expect(result.input.customFields).toEqual({ featuredProductsIds: ['1', '2'] });
+        expect(result.input.customFields).not.toHaveProperty('featuredProducts');
+    });
+
+    it('should not mutate the original entity when processing nested customFields', () => {
+        const fields: FieldInfo[] = [
+            {
+                name: 'input',
+                type: 'UpdateOrderInput',
+                nullable: false,
+                list: false,
+                isPaginatedList: false,
+                isScalar: false,
+                typeInfo: [
+                    {
+                        name: 'customFields',
+                        type: 'CustomFields',
+                        nullable: true,
+                        list: false,
+                        isPaginatedList: false,
+                        isScalar: false,
+                        typeInfo: [
+                            {
+                                name: 'featuredProductId',
+                                type: 'ID',
+                                nullable: true,
+                                list: false,
+                                isPaginatedList: false,
+                                isScalar: true,
+                            },
+                        ],
+                    },
+                ],
+            },
+        ];
+        const entity = {
+            input: {
+                customFields: {
+                    featuredProduct: { id: '1', name: 'Product 1' },
+                },
+            },
+        };
+        const result = transformRelationFields(fields, entity);
+
+        expect(entity.input.customFields.featuredProduct).toEqual({ id: '1', name: 'Product 1' });
+        expect(result).not.toBe(entity);
+        expect(result.input).not.toBe(entity.input);
+    });
+
+    it('should handle array fields containing customFields (e.g. translations)', () => {
+        const fields: FieldInfo[] = [
+            {
+                name: 'lines',
+                type: 'OrderLineInput',
+                nullable: false,
+                list: true,
+                isPaginatedList: false,
+                isScalar: false,
+                typeInfo: [
+                    {
+                        name: 'customFields',
+                        type: 'CustomFields',
+                        nullable: true,
+                        list: false,
+                        isPaginatedList: false,
+                        isScalar: false,
+                        typeInfo: [
+                            {
+                                name: 'featuredProductId',
+                                type: 'ID',
+                                nullable: true,
+                                list: false,
+                                isPaginatedList: false,
+                                isScalar: true,
+                            },
+                        ],
+                    },
+                ],
+            },
+        ];
+        const entity = {
+            lines: [
+                { customFields: { featuredProduct: { id: '1', name: 'Product 1' } } },
+                { customFields: { featuredProduct: { id: '2', name: 'Product 2' } } },
+            ],
+        };
+        const result = transformRelationFields(fields, entity);
+
+        expect(result.lines[0].customFields).toEqual({ featuredProductId: '1' });
+        expect(result.lines[0].customFields).not.toHaveProperty('featuredProduct');
+        expect(result.lines[1].customFields).toEqual({ featuredProductId: '2' });
+        expect(result.lines[1].customFields).not.toHaveProperty('featuredProduct');
+    });
+
+    it('should not mutate original array items when processing array fields', () => {
+        const fields: FieldInfo[] = [
+            {
+                name: 'lines',
+                type: 'OrderLineInput',
+                nullable: false,
+                list: true,
+                isPaginatedList: false,
+                isScalar: false,
+                typeInfo: [
+                    {
+                        name: 'customFields',
+                        type: 'CustomFields',
+                        nullable: true,
+                        list: false,
+                        isPaginatedList: false,
+                        isScalar: false,
+                        typeInfo: [
+                            {
+                                name: 'featuredProductId',
+                                type: 'ID',
+                                nullable: true,
+                                list: false,
+                                isPaginatedList: false,
+                                isScalar: true,
+                            },
+                        ],
+                    },
+                ],
+            },
+        ];
+        const entity = {
+            lines: [{ customFields: { featuredProduct: { id: '1', name: 'Product 1' } } }],
+        };
+        transformRelationFields(fields, entity);
+
+        expect(entity.lines[0].customFields.featuredProduct).toEqual({ id: '1', name: 'Product 1' });
     });
 });
 
@@ -433,5 +674,53 @@ describe('stripNullNullableFields', () => {
         const result = stripNullNullableFields(values, fields);
         expect(values.threshold).toBeNull();
         expect(result).toEqual({});
+    });
+});
+
+describe('isFieldNullable', () => {
+    it('should return true for nullable custom fields', () => {
+        expect(
+            isFieldNullable({
+                name: 'featureType',
+                type: 'string',
+                nullable: true,
+                readonly: false,
+                list: false,
+            } as ConfigurableFieldDef),
+        ).toBe(true);
+    });
+
+    it('should return false for non-nullable custom fields', () => {
+        expect(
+            isFieldNullable({
+                name: 'priority',
+                type: 'string',
+                nullable: false,
+                readonly: false,
+                list: false,
+            } as ConfigurableFieldDef),
+        ).toBe(false);
+    });
+
+    it('should return true for nullable struct sub-fields', () => {
+        expect(
+            isFieldNullable({
+                name: 'kind',
+                type: 'string',
+                nullable: true,
+                options: [{ value: 'a' }],
+            } as ConfigurableFieldDef),
+        ).toBe(true);
+    });
+
+    it('should return false for configurable operation args', () => {
+        expect(
+            isFieldNullable({
+                name: 'arg',
+                type: 'string',
+                list: false,
+                ui: { options: [{ value: 'a' }] },
+            } as ConfigurableFieldDef),
+        ).toBe(false);
     });
 });

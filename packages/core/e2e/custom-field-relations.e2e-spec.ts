@@ -1409,6 +1409,24 @@ describe('Custom field relations', () => {
                 expect(asset.customFields.multi.length).toEqual(2);
             });
 
+            it('updating primitive and relation custom fields on Asset in the same mutation persists both', async () => {
+                const { updateAsset } = await adminClient.query(gql`
+                    mutation {
+                        updateAsset(
+                            input: {
+                                id: "T_1"
+                                customFields: { primitive: "updated-on-asset", singleId: "T_2" }
+                            }
+                        ) {
+                            id
+                            ${customFieldsSelection}
+                        }
+                    }
+                `);
+                expect(updateAsset.customFields.single).toEqual({ id: 'T_2' });
+                expect(updateAsset.customFields.primitive).toBe('updated-on-asset');
+            });
+
             // https://github.com/vendurehq/vendure/issues/1636
             it('calling TransactionalConnection.findOneInChannel() returns custom field relations', async () => {
                 TestPlugin1636_1664.testResolverSpy.mockReset();

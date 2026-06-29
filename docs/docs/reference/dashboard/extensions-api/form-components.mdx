@@ -2,9 +2,13 @@
 title: "FormComponents"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/form-components.ts" sourceLine="11" packageName="@vendure/dashboard" since="3.4.0" />
+## DashboardCustomFormComponent
 
-Allows you to define custom form components for custom fields in the dashboard.
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/form-components.ts" sourceLine="13" packageName="@vendure/dashboard" since="3.4.0" />
+
+Allows you to define a custom input component for custom fields and configurable operation arguments
+in the dashboard. Register the component here, then reference its `id` from the field or argument
+`ui.component` config.
 
 ```ts title="Signature"
 interface DashboardCustomFormComponent {
@@ -29,10 +33,12 @@ The React component that will be rendered as the custom form input.
 
 
 </div>
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/form-components.ts" sourceLine="34" packageName="@vendure/dashboard" since="3.4.0" />
+## DashboardCustomFormComponents
 
-Interface for registering custom field components in the dashboard.
-For input and display components, use the co-located approach with detailForms.
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/form-components.ts" sourceLine="36" packageName="@vendure/dashboard" since="3.4.0" />
+
+Interface for registering custom input components which can be selected by custom fields and
+configurable operation arguments via their `ui.component` config.
 
 ```ts title="Signature"
 interface DashboardCustomFormComponents {
@@ -46,11 +52,12 @@ interface DashboardCustomFormComponents {
 
 <MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/form-components#dashboardcustomformcomponent'>DashboardCustomFormComponent</a>[]`}   />
 
-Custom form components for custom fields. These are used when rendering
-custom fields in forms.
+Custom input components for custom fields and configurable operation arguments.
 
 
 </div>
+## DashboardFormComponentProps
+
 <GenerationInfo sourceFile="packages/dashboard/src/lib/framework/form-engine/form-engine-types.ts" sourceLine="92" packageName="@vendure/dashboard" since="3.4.0" />
 
 Props that get passed to all form input components. They are based on the
@@ -90,6 +97,8 @@ type DashboardFormComponentProps<TFieldValues extends FieldValues = FieldValues,
     fieldDef?: ConfigurableFieldDef;
 }
 ```
+## DashboardFormComponentMetadata
+
 <GenerationInfo sourceFile="packages/dashboard/src/lib/framework/form-engine/form-engine-types.ts" sourceLine="122" packageName="@vendure/dashboard" since="3.4.0" />
 
 Metadata which can be defined on a [DashboardFormComponent](/reference/dashboard/extensions-api/form-components#dashboardformcomponent) which
@@ -130,11 +139,14 @@ handle both lists and single values.
 
 <MemberInfo kind="property" type={`boolean`}   />
 
-TODO: not currently implemented
+When true, the dashboard will render this form component so it spans
+the full width of the detail form grid.
 
 
 </div>
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/form-engine/form-engine-types.ts" sourceLine="165" packageName="@vendure/dashboard" since="3.4.0" />
+## DashboardFormComponent
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/form-engine/form-engine-types.ts" sourceLine="166" packageName="@vendure/dashboard" since="3.4.0" />
 
 This is the common type for all custom form components registered for:
 

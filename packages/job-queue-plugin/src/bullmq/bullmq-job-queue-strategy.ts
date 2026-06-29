@@ -35,7 +35,7 @@ import { JobListIndexService } from './job-list-index.service';
 import { RedisHealthIndicator } from './redis-health-indicator';
 import { getJobsByType } from './scripts/get-jobs-by-type';
 import { BullMQPluginOptions, CustomScriptDefinition } from './types';
-import { getPrefix } from './utils';
+import { flattenJobFilter, getPrefix } from './utils';
 
 /**
  * @description
@@ -204,7 +204,10 @@ export class BullMQJobQueueStrategy implements InspectableJobQueueStrategy {
         const skip = options?.skip ?? 0;
         const take = options?.take ?? 10;
         let jobTypes: JobType[] = ALL_JOB_TYPES;
-        const stateFilter = options?.filter?.state;
+
+        const flatFilter = flattenJobFilter(options?.filter);
+
+        const stateFilter = flatFilter.state;
         if (stateFilter?.eq) {
             switch (stateFilter.eq) {
                 case 'PENDING':
@@ -227,7 +230,35 @@ export class BullMQJobQueueStrategy implements InspectableJobQueueStrategy {
                     break;
             }
         }
-        const settledFilter = options?.filter?.isSettled;
+        if (stateFilter?.in?.length) {
+            const stateJobTypes: JobType[] = [];
+            for (const state of stateFilter.in) {
+                switch (state) {
+                    case 'PENDING':
+                        stateJobTypes.push('wait', 'waiting-children', 'prioritized');
+                        break;
+                    case 'RUNNING':
+                        stateJobTypes.push('active');
+                        break;
+                    case 'COMPLETED':
+                        stateJobTypes.push('completed');
+                        break;
+                    case 'RETRYING':
+                        stateJobTypes.push('repeat');
+                        break;
+                    case 'FAILED':
+                        stateJobTypes.push('failed');
+                        break;
+                    case 'CANCELLED':
+                        stateJobTypes.push('failed');
+                        break;
+                }
+            }
+            if (stateJobTypes.length) {
+                jobTypes = [...new Set(stateJobTypes)];
+            }
+        }
+        const settledFilter = flatFilter.isSettled;
         if (settledFilter?.eq != null) {
             jobTypes =
                 settledFilter.eq === true
@@ -238,11 +269,14 @@ export class BullMQJobQueueStrategy implements InspectableJobQueueStrategy {
         let items: Bull.Job[] = [];
         let totalItems = 0;
 
+        const queueNameFilter = flatFilter.queueName;
+        const queueName = queueNameFilter?.eq ?? queueNameFilter?.in?.[0] ?? '';
+
         try {
             const [total, jobIds] = await this.callCustomScript(getJobsByType, [
                 skip,
                 take,
-                options?.filter?.queueName?.eq ?? '',
+                queueName,
                 ...jobTypes,
             ]);
             items = (

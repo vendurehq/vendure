@@ -2,6 +2,8 @@
 title: "ScheduledTask"
 generated: true
 ---
+## ScheduledTask
+
 <GenerationInfo sourceFile="packages/core/src/scheduler/scheduled-task.ts" sourceLine="120" packageName="@vendure/core" since="3.3.0" />
 
 Use this class to define a scheduled task that will be executed at a given cron schedule.
@@ -31,11 +33,6 @@ class ScheduledTask<C extends Record<string, any> = Record<string, any>> {
 ```
 
 <div className="members-wrapper">
-
-### constructor
-
-<MemberInfo kind="method" type={`(config: <a href='/reference/typescript-api/scheduled-tasks/scheduled-task#scheduledtaskconfig'>ScheduledTaskConfig</a><C>) => ScheduledTask`}   />
-
 
 ### id
 
@@ -78,6 +75,8 @@ task.configure({ schedule: cron => cron.every(5).minutes() });
 
 
 </div>
+## ScheduledTaskExecutionArgs
+
 <GenerationInfo sourceFile="packages/core/src/scheduler/scheduled-task.ts" sourceLine="16" packageName="@vendure/core" since="3.3.0" />
 
 The arguments passed to the execute method of a scheduled task.
@@ -110,6 +109,8 @@ The parameters for the scheduled task.
 
 
 </div>
+## ScheduledTaskConfig
+
 <GenerationInfo sourceFile="packages/core/src/scheduler/scheduled-task.ts" sourceLine="42" packageName="@vendure/core" since="3.3.0" />
 
 The configuration for a scheduled task.

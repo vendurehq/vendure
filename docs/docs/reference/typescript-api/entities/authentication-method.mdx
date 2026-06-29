@@ -2,6 +2,8 @@
 title: "AuthenticationMethod"
 generated: true
 ---
+## AuthenticationMethod
+
 <GenerationInfo sourceFile="packages/core/src/entity/authentication-method/authentication-method.entity.ts" sourceLine="14" packageName="@vendure/core" />
 
 An AuthenticationMethod represents the means by which a [User](/reference/typescript-api/entities/user#user) is authenticated. There are three kinds:
@@ -28,6 +30,8 @@ class AuthenticationMethod extends VendureEntity {
 
 
 </div>
+## ExternalAuthenticationMethod
+
 <GenerationInfo sourceFile="packages/core/src/entity/authentication-method/external-authentication-method.entity.ts" sourceLine="14" packageName="@vendure/core" />
 
 This method is used when an external authentication service is used to authenticate Vendure Users.
@@ -50,11 +54,6 @@ class ExternalAuthenticationMethod extends AuthenticationMethod {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(input: DeepPartial<<a href='/reference/typescript-api/entities/authentication-method#externalauthenticationmethod'>ExternalAuthenticationMethod</a>>) => ExternalAuthenticationMethod`}   />
-
-
 ### strategy
 
 <MemberInfo kind="property" type={`string`}   />
@@ -73,6 +72,8 @@ class ExternalAuthenticationMethod extends AuthenticationMethod {
 
 
 </div>
+## NativeAuthenticationMethod
+
 <GenerationInfo sourceFile="packages/core/src/entity/authentication-method/native-authentication-method.entity.ts" sourceLine="14" packageName="@vendure/core" />
 
 This is the default, built-in authentication method which uses a identifier (typically username or email address)
@@ -99,11 +100,6 @@ class NativeAuthenticationMethod extends AuthenticationMethod {
 
 
 <div className="members-wrapper">
-
-### constructor
-
-<MemberInfo kind="method" type={`(input?: DeepPartial<<a href='/reference/typescript-api/entities/authentication-method#nativeauthenticationmethod'>NativeAuthenticationMethod</a>>) => NativeAuthenticationMethod`}   />
-
 
 ### identifier
 

@@ -146,7 +146,7 @@ async function getPluginTranslations(pluginInfo: PluginInfo[]): Promise<PluginTr
     const dashboardPaths = getDashboardPaths(pluginInfo);
     const pluginTranslations: PluginTranslation[] = [];
     for (const dashboardPath of dashboardPaths) {
-        const poPatterns = path.join(dashboardPath, '**/*.po');
+        const poPatterns = path.join(dashboardPath, '**/*.po').replace(/\\/g, '/');
         const translations = await glob(poPatterns, {
             ignore: [
                 // Skip nested node_modules (transitive deps) but not .pnpm or .bun directories.

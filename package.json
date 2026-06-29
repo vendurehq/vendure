@@ -18,10 +18,10 @@
     "format": "prettier --write --html-whitespace-sensitivity ignore",
     "docs:generate-typescript-docs": "ts-node scripts/docs/generate-typescript-docs.ts",
     "docs:generate-graphql-docs": "ts-node scripts/docs/generate-graphql-docs.ts --api=shop && ts-node scripts/docs/generate-graphql-docs.ts --api=admin",
-    "docs:build": "npm run docs:generate-typescript-docs && npm run docs:generate-graphql-docs",
-    "codegen": "tsc -p scripts/codegen/plugins && ts-node scripts/codegen/generate-graphql-types.ts && npm run codegen:gql-tada",
+    "docs:build": "bun run docs:generate-typescript-docs && bun run docs:generate-graphql-docs",
+    "codegen": "tsc -p scripts/codegen/plugins && ts-node scripts/codegen/generate-graphql-types.ts && bun run codegen:gql-tada",
     "codegen:gql-tada": "ts-node scripts/codegen/generate-gql-tada-types.ts",
-    "version": "npm i && npm run check-imports && npm run check-angular-versions && npm run build && npm run check-core-type-defs && npm run generate-changelog && git add CHANGELOG* && git add */version.ts",
+    "version": "bun install && bun run check-imports && bun run check-angular-versions && bun run build && bun run check-core-type-defs && bun run generate-changelog && git add CHANGELOG* && git add */version.ts && git add bun.lock",
     "test": "lerna run test --stream --no-bail",
     "e2e": "lerna run e2e --stream --no-bail",
     "build": "lerna run build",
@@ -46,13 +46,13 @@
     "@graphql-tools/schema": "^10.0.25",
     "@swc/core": "^1.4.6",
     "@types/node": "^20.11.19",
-    "@vendure-io/docs-generator": "^0.1.0",
+    "@vendure-io/docs-generator": "^0.1.1",
     "concurrently": "^9.2.0",
     "conventional-changelog-core": "^7.0.0",
     "cross-env": "^7.0.3",
     "find": "^0.3.0",
     "gql.tada": "^1.8.10",
-    "graphql": "~16.11.0",
+    "graphql": "^16.11.0",
     "husky": "^4.3.0",
     "lerna": "^9.0.3",
     "lint-staged": "^10.5.4",
@@ -76,18 +76,17 @@
     "@swc/core-darwin-arm64": "1.7.19",
     "@swc/core-linux-x64-gnu": "1.4.7"
   },
-  "resolutions": {
-    "@apollo/server": "^5.0.0"
+  "//overrides": "Force a single graphql version across the monorepo install. Without this, transitive deps (e.g. @types/graphql-upload) keep a nested graphql@16.11.0 alongside the hoisted copy, which breaks TS type portability (TS2742) when building @vendure/core. Mirrors the ^16.11.0 dependency ranges. Relates to #4701.",
+  "overrides": {
+    "graphql": "^16.11.0"
   },
-  "workspaces": {
-    "packages": [
-      "packages/*"
-    ],
-    "nohoist": [
-      "**/@types/jasmine",
-      "**/@types/jasminewd2"
-    ]
-  },
+  "trustedDependencies": [
+    "husky",
+    "better-sqlite3"
+  ],
+  "workspaces": [
+    "packages/*"
+  ],
   "commitlint": {
     "extends": [
       "@commitlint/config-conventional"

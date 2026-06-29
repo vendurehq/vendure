@@ -277,7 +277,7 @@ export class EntityHydrator {
                         visit(item, parts.slice());
                     }
                 }
-            } else if (target === null) {
+            } else if (target == null) {
                 result.push(target);
             } else {
                 if (parts.length === 0) {

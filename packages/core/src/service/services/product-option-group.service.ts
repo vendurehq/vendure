@@ -173,6 +173,10 @@ export class ProductOptionGroupService {
         ctx: RequestContext,
         input: UpdateProductOptionGroupInput,
     ): Promise<Translated<ProductOptionGroup>> {
+        // Ensure the entity belongs to the active channel before updating.
+        await this.connection.getEntityOrThrow(ctx, ProductOptionGroup, input.id, {
+            channelId: ctx.channelId,
+        });
         const group = await this.translatableSaver.update({
             ctx,
             input,

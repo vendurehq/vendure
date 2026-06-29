@@ -1,6 +1,15 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { ErrorCode } from '@vendure/common/lib/generated-types';
-import { CustomOrderProcess, defaultOrderProcess, mergeConfig, TransactionalConnection } from '@vendure/core';
+import { ErrorCode, HistoryEntryType } from '@vendure/common/lib/generated-types';
+import {
+    CustomOrderProcess,
+    defaultOrderProcess,
+    HistoryService,
+    mergeConfig,
+    Order,
+    OrderService,
+    RequestContextService,
+    TransactionalConnection,
+} from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -82,6 +91,20 @@ describe('Order process', () => {
         },
     };
 
+    // #4686 — toggleable failure used by the rollback test below. Defaults to
+    // null so the existing tests in this suite are unaffected; the rollback
+    // test enables it for the duration of its run.
+    let failOnTransitionEndForState: string | null = null;
+    const ROLLBACK_FAILURE_MESSAGE = 'simulated onTransitionEnd failure';
+    const failingOrderProcess: CustomOrderProcess<never> = {
+        transitions: {},
+        onTransitionEnd(fromState, toState) {
+            if (failOnTransitionEndForState === toState) {
+                throw new Error(ROLLBACK_FAILURE_MESSAGE);
+            }
+        },
+    };
+
     // Create guards for different fragment types
     type TestOrderFragmentType = FragmentOfShop<typeof testOrderFragment>;
     type UpdatedOrderFragmentType = FragmentOfShop<typeof updatedOrderFragment>;
@@ -101,7 +124,14 @@ describe('Order process', () => {
 
     const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
-            orderOptions: { process: [defaultOrderProcess, customOrderProcess, customOrderProcess2] as any },
+            orderOptions: {
+                process: [
+                    defaultOrderProcess,
+                    customOrderProcess,
+                    customOrderProcess2,
+                    failingOrderProcess,
+                ] as any,
+            },
             paymentOptions: {
                 paymentMethodHandlers: [testSuccessfulPaymentMethod],
             },
@@ -432,6 +462,95 @@ describe('Order process', () => {
                 id: order.id,
             });
             expect(result.order?.state).toBe('PaymentSettled');
+        });
+    });
+
+    // #4686 — When OrderService.transitionToState is called from a context
+    // without an outer @Transaction() (worker job, scheduled task, plugin
+    // mutation, event-bus subscriber) and an onTransitionEnd hook throws, the
+    // order must be rolled back atomically. Without the withTransaction wrap
+    // inside transitionToState, save 1 commits the new state, finalize() throws,
+    // save 2 never runs, and the order is left in a corrupted half-committed
+    // state.
+    describe('onTransitionEnd rollback (#4686)', () => {
+        afterAll(() => {
+            failOnTransitionEndForState = null;
+        });
+
+        it('rolls back atomically when called from a non-transactional context', async () => {
+            await shopClient.asAnonymousUser();
+            const { addItemToOrder } = await shopClient.query(addItemToOrderDocument, {
+                productVariantId: 'T_1',
+                quantity: 1,
+            });
+            testOrderGuard.assertSuccess(addItemToOrder);
+            // Customer email must include `@company.com` so the existing
+            // customOrderProcess.onTransitionStart guard for ValidatingCustomer
+            // passes — otherwise the transition is rejected by the state
+            // machine before onTransitionEnd ever runs and the test couldn't
+            // exercise the rollback path.
+            await shopClient.query(setCustomerDocument, {
+                input: {
+                    firstName: 'Rollback',
+                    lastName: 'Test',
+                    emailAddress: 'rollback@company.com',
+                },
+            });
+
+            // GraphQL IDs are prefixed (e.g. "T_1") via the configured
+            // EntityIdStrategy; strip the prefix to get the raw DB id used
+            // by services and TypeORM.
+            const orderId = +String(addItemToOrder.id).replace(/^\D+/g, '');
+            const orderService = server.app.get(OrderService);
+            const historyService = server.app.get(HistoryService);
+            const ctxBuilder = server.app.get(RequestContextService);
+            const connection = server.app.get(TransactionalConnection);
+
+            const orderBefore = await connection.rawConnection
+                .getRepository(Order)
+                .findOneOrFail({ where: { id: orderId } });
+            expect(orderBefore.state).toBe('AddingItems');
+            expect(orderBefore.active).toBe(true);
+            expect(orderBefore.orderPlacedAt).toBeNull();
+
+            // A fresh, non-transactional ctx — equivalent to a worker job or
+            // plugin mutation that omits @Transaction().
+            const ctx = await ctxBuilder.create({ apiType: 'admin' });
+
+            // ValidatingCustomer is the only target reachable from AddingItems
+            // under the customOrderProcess merge ('replace' strategy collapses
+            // the default targets to just this one).
+            failOnTransitionEndForState = 'ValidatingCustomer';
+
+            let thrown: Error | undefined;
+            try {
+                await orderService.transitionToState(ctx, orderId, 'ValidatingCustomer');
+            } catch (e) {
+                thrown = e as Error;
+            }
+            expect(thrown).toBeDefined();
+            expect(thrown!.message).toContain(ROLLBACK_FAILURE_MESSAGE);
+
+            // Re-read from the database. Assert literal values so the
+            // post-condition checks cannot go vacuously true if the
+            // pre-condition silently breaks.
+            const orderAfter = await connection.rawConnection
+                .getRepository(Order)
+                .findOneOrFail({ where: { id: orderId } });
+
+            expect(orderAfter.state).toBe('AddingItems');
+            expect(orderAfter.active).toBe(true);
+            expect(orderAfter.orderPlacedAt).toBeNull();
+
+            // No ORDER_STATE_TRANSITION history entry should exist for the
+            // failed transition.
+            const history = await historyService.getHistoryForOrder(ctx, orderId, false);
+            const failedTransitionEntry = history.items.find(
+                entry =>
+                    entry.type === HistoryEntryType.ORDER_STATE_TRANSITION &&
+                    (entry.data as any)?.to === 'ValidatingCustomer',
+            );
+            expect(failedTransitionEntry).toBeUndefined();
         });
     });
 });

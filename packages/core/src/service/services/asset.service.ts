@@ -337,7 +337,6 @@ export class AssetService {
             input.focalPoint.y = to3dp(input.focalPoint.y);
         }
         patchEntity(asset, omit(input, ['tags', 'name', 'translations']));
-        await this.customFieldRelationService.updateRelations(ctx, Asset, input, asset);
         if (input.tags) {
             asset.tags = await this.tagService.valuesToTags(ctx, input.tags);
         }
@@ -347,8 +346,11 @@ export class AssetService {
         if (input.name != null && !translationsInput.some(t => t.languageCode === ctx.languageCode)) {
             translationsInput.push({ languageCode: ctx.languageCode, name: input.name });
         }
-        // Save asset first to ensure it exists for translation foreign key
+        // Save asset first to ensure it exists for translation foreign key, and so that
+        // updateRelations() sees the freshly-patched scalar custom fields when it reloads
+        // the entity from the DB.
         const savedAsset = await this.connection.getRepository(ctx, Asset).save(asset);
+        await this.customFieldRelationService.updateRelations(ctx, Asset, input, asset);
         if (translationsInput.length > 0) {
             await this.translatableSaver.update({
                 ctx,

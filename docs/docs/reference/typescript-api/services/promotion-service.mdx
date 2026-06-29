@@ -20,11 +20,12 @@ class PromotionService {
     softDeletePromotion(ctx: RequestContext, promotionId: ID) => Promise<DeletionResponse>;
     assignPromotionsToChannel(ctx: RequestContext, input: AssignPromotionsToChannelInput) => Promise<Promotion[]>;
     removePromotionsFromChannel(ctx: RequestContext, input: RemovePromotionsFromChannelInput) => ;
-    validateCouponCode(ctx: RequestContext, couponCode: string, customerId?: ID) => Promise<JustErrorResults<ApplyCouponCodeResult> | Promotion>;
+    validateCouponCode(ctx: RequestContext, couponCode: string, customerId?: ID, excludeOrderId?: ID) => Promise<JustErrorResults<ApplyCouponCodeResult> | Promotion>;
     getActivePromotionsInChannel(ctx: RequestContext) => ;
     getActivePromotionsOnOrder(ctx: RequestContext, orderId: ID) => Promise<Promotion[]>;
     runPromotionSideEffects(ctx: RequestContext, order: Order, promotionsPre: Promotion[]) => ;
     addPromotionsToOrder(ctx: RequestContext, order: Order) => Promise<Order>;
+    getExhaustedPromotionIds(ctx: RequestContext, promotions: Promotion[], customerId?: ID) => Promise<Set<string>>;
 }
 ```
 
@@ -38,11 +39,6 @@ class PromotionService {
 ### availableActions
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/promotions/promotion-action#promotionaction'>PromotionAction</a>[]`}   />
-
-
-### constructor
-
-<MemberInfo kind="method" type={`(connection: <a href='/reference/typescript-api/data-access/transactional-connection#transactionalconnection'>TransactionalConnection</a>, configService: ConfigService, channelService: <a href='/reference/typescript-api/services/channel-service#channelservice'>ChannelService</a>, listQueryBuilder: <a href='/reference/typescript-api/data-access/list-query-builder#listquerybuilder'>ListQueryBuilder</a>, configArgService: ConfigArgService, customFieldRelationService: CustomFieldRelationService, eventBus: <a href='/reference/typescript-api/events/event-bus#eventbus'>EventBus</a>, translatableSaver: <a href='/reference/typescript-api/service-helpers/translatable-saver#translatablesaver'>TranslatableSaver</a>, translator: <a href='/reference/typescript-api/service-helpers/translator-service#translatorservice'>TranslatorService</a>) => PromotionService`}   />
 
 
 ### findAll
@@ -92,7 +88,7 @@ class PromotionService {
 
 ### validateCouponCode
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, couponCode: string, customerId?: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<JustErrorResults<ApplyCouponCodeResult> | <a href='/reference/typescript-api/entities/promotion#promotion'>Promotion</a>>`}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, couponCode: string, customerId?: <a href='/reference/typescript-api/common/id#id'>ID</a>, excludeOrderId?: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<JustErrorResults<ApplyCouponCodeResult> | <a href='/reference/typescript-api/entities/promotion#promotion'>Promotion</a>>`}   />
 
 Checks the validity of a coupon code, by checking that it is associated with an existing,
 enabled and non-expired Promotion. Additionally, if there is a usage limit on the coupon code,
@@ -117,6 +113,13 @@ this method will enforce that limit against the specified Customer.
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => Promise<<a href='/reference/typescript-api/entities/order#order'>Order</a>>`}   />
 
 Used internally to associate a Promotion with an Order, once an Order has been placed.
+### getExhaustedPromotionIds
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, promotions: <a href='/reference/typescript-api/entities/promotion#promotion'>Promotion</a>[], customerId?: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<Set<string>>`}   />
+
+Returns a Set of Promotion IDs (as strings) that have exceeded their `usageLimit` or
+`perCustomerUsageLimit`. Only checks promotions without a coupon code
+(coupon-based promotions are validated separately in `validateCouponCode()`).
 
 
 </div>

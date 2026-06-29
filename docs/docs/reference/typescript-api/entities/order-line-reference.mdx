@@ -2,6 +2,8 @@
 title: "OrderLineReference"
 generated: true
 ---
+## FulfillmentLine
+
 <GenerationInfo sourceFile="packages/core/src/entity/order-line-reference/fulfillment-line.entity.ts" sourceLine="16" packageName="@vendure/core" />
 
 This entity represents a line from an [Order](/reference/typescript-api/entities/order#order) which has been fulfilled by a [Fulfillment](/reference/typescript-api/entities/fulfillment#fulfillment).
@@ -22,11 +24,6 @@ class FulfillmentLine extends OrderLineReference {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(input?: DeepPartial<<a href='/reference/typescript-api/entities/order-line-reference#fulfillmentline'>FulfillmentLine</a>>) => FulfillmentLine`}   />
-
-
 ### fulfillment
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/fulfillment#fulfillment'>Fulfillment</a>`}   />
@@ -40,6 +37,8 @@ class FulfillmentLine extends OrderLineReference {
 
 
 </div>
+## OrderLineReference
+
 <GenerationInfo sourceFile="packages/core/src/entity/order-line-reference/order-line-reference.entity.ts" sourceLine="15" packageName="@vendure/core" />
 
 This is an abstract base class for entities which reference an [OrderLine](/reference/typescript-api/entities/order-line#orderline).
@@ -79,6 +78,8 @@ class OrderLineReference extends VendureEntity {
 
 
 </div>
+## OrderModificationLine
+
 <GenerationInfo sourceFile="packages/core/src/entity/order-line-reference/order-modification-line.entity.ts" sourceLine="16" packageName="@vendure/core" />
 
 This entity represents a line from an [Order](/reference/typescript-api/entities/order#order) which has been modified by an [OrderModification](/reference/typescript-api/entities/order-modification#ordermodification).
@@ -99,11 +100,6 @@ class OrderModificationLine extends OrderLineReference {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(input?: DeepPartial<<a href='/reference/typescript-api/entities/order-line-reference#ordermodificationline'>OrderModificationLine</a>>) => OrderModificationLine`}   />
-
-
 ### modification
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/order-modification#ordermodification'>OrderModification</a>`}   />
@@ -117,6 +113,8 @@ class OrderModificationLine extends OrderLineReference {
 
 
 </div>
+## RefundLine
+
 <GenerationInfo sourceFile="packages/core/src/entity/order-line-reference/refund-line.entity.ts" sourceLine="16" packageName="@vendure/core" />
 
 This entity represents a line from an [Order](/reference/typescript-api/entities/order#order) which has been refunded by a [Refund](/reference/typescript-api/entities/refund#refund).
@@ -136,11 +134,6 @@ class RefundLine extends OrderLineReference {
 
 
 <div className="members-wrapper">
-
-### constructor
-
-<MemberInfo kind="method" type={`(input?: DeepPartial<<a href='/reference/typescript-api/entities/order-line-reference#refundline'>RefundLine</a>>) => RefundLine`}   />
-
 
 ### refund
 

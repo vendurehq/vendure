@@ -19,13 +19,17 @@ export function getUiConfig(
 ): Omit<ResolvedUiConfig, 'version'> {
     const { authOptions, apiOptions } = config;
 
+    const serverTokenMethod = authOptions.tokenMethod;
+    const serverUsesBearer =
+        serverTokenMethod === 'bearer' ||
+        (Array.isArray(serverTokenMethod) && serverTokenMethod.includes('bearer'));
+
     // Merge API configuration with defaults
     const api = {
         adminApiPath: pluginOptions.api?.adminApiPath ?? apiOptions.adminApiPath ?? ADMIN_API_PATH,
         host: pluginOptions.api?.host ?? 'auto',
         port: pluginOptions.api?.port ?? 'auto',
-        tokenMethod:
-            pluginOptions.api?.tokenMethod ?? (authOptions.tokenMethod === 'bearer' ? 'bearer' : 'cookie'),
+        tokenMethod: pluginOptions.api?.tokenMethod ?? (serverUsesBearer ? 'bearer' : 'cookie'),
         authTokenHeaderKey:
             pluginOptions.api?.authTokenHeaderKey ??
             authOptions.authTokenHeaderKey ??

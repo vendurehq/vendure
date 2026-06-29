@@ -245,6 +245,7 @@ export class PromotionService {
         ctx: RequestContext,
         couponCode: string,
         customerId?: ID,
+        excludeOrderId?: ID,
     ): Promise<JustErrorResults<ApplyCouponCodeResult> | Promotion> {
         const promotion = await this.connection.getRepository(ctx, Promotion).findOne({
             where: {
@@ -266,13 +267,18 @@ export class PromotionService {
             return new CouponCodeExpiredError({ couponCode });
         }
         if (customerId && promotion.perCustomerUsageLimit != null) {
-            const usageCount = await this.countPromotionUsagesForCustomer(ctx, promotion.id, customerId);
+            const usageCount = await this.countPromotionUsagesForCustomer(
+                ctx,
+                promotion.id,
+                customerId,
+                excludeOrderId,
+            );
             if (promotion.perCustomerUsageLimit <= usageCount) {
                 return new CouponCodeLimitError({ couponCode, limit: promotion.perCustomerUsageLimit });
             }
         }
         if (promotion.usageLimit !== null) {
-            const usageCount = await this.countPromotionUsages(ctx, promotion.id);
+            const usageCount = await this.countPromotionUsages(ctx, promotion.id, excludeOrderId);
             if (promotion.usageLimit <= usageCount) {
                 return new CouponCodeLimitError({ couponCode, limit: promotion.usageLimit });
             }
@@ -338,35 +344,171 @@ export class PromotionService {
         return this.connection.getRepository(ctx, Order).save(order);
     }
 
+    /**
+     * @description
+     * Returns a Set of Promotion IDs (as strings) that have exceeded their `usageLimit` or
+     * `perCustomerUsageLimit`. Only checks promotions without a coupon code
+     * (coupon-based promotions are validated separately in `validateCouponCode()`).
+     */
+    async getExhaustedPromotionIds(
+        ctx: RequestContext,
+        promotions: Promotion[],
+        customerId?: ID,
+    ): Promise<Set<string>> {
+        const exhaustedIds = new Set<string>();
+
+        const withUsageLimit = promotions.filter(p => !p.couponCode && p.usageLimit != null);
+
+        if (withUsageLimit.length) {
+            const usageCounts = await this.getUsageCountsBatch(
+                ctx,
+                withUsageLimit.map(p => p.id),
+            );
+            for (const promotion of withUsageLimit) {
+                const count = usageCounts.get(promotion.id.toString()) ?? 0;
+                if (promotion.usageLimit <= count) {
+                    exhaustedIds.add(promotion.id.toString());
+                }
+            }
+        }
+
+        // perCustomerUsageLimit can only be checked if we know the customer.
+        // For guest checkouts without a customer, we skip this check
+        // (matching the existing behavior in validateCouponCode).
+        // Skip promotions already exhausted by the global usageLimit check above.
+        const withPerCustomerLimit = promotions.filter(
+            p => !p.couponCode && p.perCustomerUsageLimit != null && !exhaustedIds.has(p.id.toString()),
+        );
+        if (customerId && withPerCustomerLimit.length) {
+            const perCustomerCounts = await this.getUsageCountsBatch(
+                ctx,
+                withPerCustomerLimit.map(p => p.id),
+                customerId,
+            );
+            for (const promotion of withPerCustomerLimit) {
+                const count = perCustomerCounts.get(promotion.id.toString()) ?? 0;
+                if (promotion.perCustomerUsageLimit <= count) {
+                    exhaustedIds.add(promotion.id.toString());
+                }
+            }
+        }
+
+        return exhaustedIds;
+    }
+
+    /**
+     * Returns a base query builder for counting promotion usages on placed orders.
+     * Excludes cancelled orders, draft orders, active (un-placed) orders, and
+     * seller-type orders.
+     */
+    private placedOrdersWithPromotionQb(ctx: RequestContext) {
+        return (
+            this.connection
+                .getRepository(ctx, Order)
+                .createQueryBuilder('order')
+                .innerJoin('order.promotions', 'promotion')
+                .andWhere('order.state != :state', { state: 'Cancelled' as OrderState })
+                // Draft orders also have active=false, so they must be excluded explicitly,
+                // otherwise a draft would count its own promotions as a consumed usage and
+                // toggle them on/off on each recalculation (#4753).
+                .andWhere('order.state != :draftState', { draftState: 'Draft' as OrderState })
+                .andWhere('order.active = :active', { active: false })
+                .andWhere('order.type != :type', { type: OrderType.Seller })
+        );
+    }
+
+    private async getUsageCountsBatch(
+        ctx: RequestContext,
+        promotionIds: ID[],
+        customerId?: ID,
+    ): Promise<Map<string, number>> {
+        if (!promotionIds.length) {
+            return new Map();
+        }
+        const qb = this.placedOrdersWithPromotionQb(ctx)
+            .select('promotion.id', 'promotionId')
+            .addSelect('COUNT(DISTINCT order.id)', 'usageCount')
+            .andWhere('promotion.id IN (:...promotionIds)', { promotionIds })
+            .groupBy('promotion.id');
+        if (customerId) {
+            qb.andWhere('order.customer = :customerId', { customerId });
+        }
+        const results = await qb.getRawMany<{ promotionId: string; usageCount: string }>();
+        return new Map(results.map(r => [r.promotionId.toString(), Number(r.usageCount)]));
+    }
+
+    /**
+     * Counts the number of times a promotion has been used by the given
+     * customer, including orders currently in the `ArrangingPayment` state
+     * (excluding the given order). Mirrors `countPromotionUsages` so that
+     * `perCustomerUsageLimit` is enforced under the same TOCTOU-safe
+     * semantics as `usageLimit`.
+     */
     private async countPromotionUsagesForCustomer(
         ctx: RequestContext,
         promotionId: ID,
         customerId: ID,
+        excludeOrderId?: ID,
     ): Promise<number> {
-        const qb = this.connection
+        const completedQb = this.placedOrdersWithPromotionQb(ctx)
+            .andWhere('promotion.id = :promotionId', { promotionId })
+            .andWhere('order.customer = :customerId', { customerId });
+
+        const pendingPaymentQb = this.connection
             .getRepository(ctx, Order)
             .createQueryBuilder('order')
-            .leftJoin('order.promotions', 'promotion')
+            .innerJoin('order.promotions', 'promotion')
             .where('promotion.id = :promotionId', { promotionId })
-            .andWhere('order.customer = :customerId', { customerId })
-            .andWhere('order.state != :state', { state: 'Cancelled' as OrderState })
-            .andWhere('order.active = :active', { active: false })
-            .andWhere('order.type != :type', { type: OrderType.Seller });
+            .andWhere('order.state = :state', { state: 'ArrangingPayment' as OrderState })
+            .andWhere('order.type != :type', { type: OrderType.Seller })
+            .andWhere('order.customer = :customerId', { customerId });
 
-        return qb.getCount();
+        if (excludeOrderId) {
+            completedQb.andWhere('order.id != :excludeOrderId', { excludeOrderId });
+            pendingPaymentQb.andWhere('order.id != :excludeOrderId', { excludeOrderId });
+        }
+
+        const [completedCount, pendingCount] = await Promise.all([
+            completedQb.getCount(),
+            pendingPaymentQb.getCount(),
+        ]);
+        return completedCount + pendingCount;
     }
 
-    private async countPromotionUsages(ctx: RequestContext, promotionId: ID): Promise<number> {
-        const qb = this.connection
+    /**
+     * Counts the number of times a promotion has been used, including orders
+     * currently in the ArrangingPayment state (excluding the given order).
+     * The ArrangingPayment count prevents concurrent checkouts from bypassing
+     * the usage limit via a TOCTOU race condition.
+     * See https://github.com/vendurehq/vendure/pull/4660
+     */
+    private async countPromotionUsages(
+        ctx: RequestContext,
+        promotionId: ID,
+        excludeOrderId?: ID,
+    ): Promise<number> {
+        const completedQb = this.placedOrdersWithPromotionQb(ctx).andWhere('promotion.id = :promotionId', {
+            promotionId,
+        });
+
+        const pendingPaymentQb = this.connection
             .getRepository(ctx, Order)
             .createQueryBuilder('order')
-            .leftJoin('order.promotions', 'promotion')
+            .innerJoin('order.promotions', 'promotion')
             .where('promotion.id = :promotionId', { promotionId })
-            .andWhere('order.state != :state', { state: 'Cancelled' as OrderState })
-            .andWhere('order.active = :active', { active: false })
+            .andWhere('order.state = :state', { state: 'ArrangingPayment' as OrderState })
             .andWhere('order.type != :type', { type: OrderType.Seller });
 
-        return qb.getCount();
+        if (excludeOrderId) {
+            completedQb.andWhere('order.id != :excludeOrderId', { excludeOrderId });
+            pendingPaymentQb.andWhere('order.id != :excludeOrderId', { excludeOrderId });
+        }
+
+        const [completedCount, pendingCount] = await Promise.all([
+            completedQb.getCount(),
+            pendingPaymentQb.getCount(),
+        ]);
+        return completedCount + pendingCount;
     }
 
     private calculatePriorityScore(input: CreatePromotionInput | UpdatePromotionInput): number {

@@ -32,6 +32,7 @@ import { getCustomerListDocument } from './graphql/shared-definitions';
 import {
     activeOrderCustomerDocument,
     addItemToOrderDocument,
+    getActiveOrderCustomerUserDocument,
     setCustomerDocument,
 } from './graphql/shop-definitions';
 
@@ -70,11 +71,9 @@ class TestGuestCheckoutStrategy implements GuestCheckoutStrategy {
                 },
             });
             if (existing) {
-                const newCustomer = await this.connection
-                    .getRepository(ctx, Customer)
-                    .save(new Customer(input));
+                const newCustomer = new Customer(input);
                 await this.channelService.assignToCurrentChannel(newCustomer, ctx);
-                return newCustomer;
+                return this.connection.getRepository(ctx, Customer).save(newCustomer);
             }
         }
         const errorOnExistingUser = !TestGuestCheckoutStrategy.allowGuestCheckoutForRegisteredCustomers;
@@ -83,7 +82,7 @@ class TestGuestCheckoutStrategy implements GuestCheckoutStrategy {
     }
 }
 
-describe('Order taxes', () => {
+describe('GuestCheckoutStrategy', () => {
     const { server, adminClient, shopClient } = createTestEnvironment({
         ...testConfig(),
         orderOptions: {
@@ -212,6 +211,29 @@ describe('Order taxes', () => {
         orderResultGuard.assertSuccess(setCustomerForOrder);
         expect(setCustomerForOrder.customer?.emailAddress).toBe(customers[0].emailAddress);
         expect(setCustomerForOrder.customer?.id).not.toBe(customers[0].id);
+    });
+
+    // https://github.com/vendurehq/vendure/issues/4026
+    it('guest customer with same email as registered customer should not show as verified', async () => {
+        TestGuestCheckoutStrategy.createNewCustomerOnEmailAddressConflict = true;
+
+        await shopClient.asAnonymousUser();
+        await addItemToOrder(shopClient);
+
+        const { setCustomerForOrder } = await shopClient.query(setCustomerDocument, {
+            input: {
+                emailAddress: customers[0].emailAddress,
+                firstName: 'Guest',
+                lastName: 'Shared Email',
+            },
+        });
+
+        orderResultGuard.assertSuccess(setCustomerForOrder);
+        expect(setCustomerForOrder.customer?.id).not.toBe(customers[0].id);
+
+        const { activeOrder } = await shopClient.query(getActiveOrderCustomerUserDocument);
+        expect(activeOrder?.customer?.id).toBe(setCustomerForOrder.customer?.id);
+        expect(activeOrder?.customer?.user).toBeNull();
     });
 
     it('when already logged in', async () => {

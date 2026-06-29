@@ -40,13 +40,13 @@ import {
 import { omit } from '@vendure/common/lib/omit';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { summate } from '@vendure/common/lib/shared-utils';
-import { In, IsNull } from 'typeorm';
+import { EntityManager, In, IsNull, LockNotSupportedOnGivenDriverError } from 'typeorm';
 import { FindOptionsUtils } from 'typeorm/find-options/FindOptionsUtils';
 
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
 import { RequestContextCacheService } from '../../cache/request-context-cache.service';
-import { CacheKey } from '../../common/constants';
+import { CacheKey, TRANSACTION_MANAGER_KEY } from '../../common/constants';
 import { ErrorResultUnion, isGraphQlErrorResult, JustErrorResults } from '../../common/error/error-result';
 import { EntityNotFoundError, InternalServerError, UserInputError } from '../../common/error/errors';
 import {
@@ -231,12 +231,22 @@ export class OrderService {
             'shippingLines',
             'surcharges',
         ];
-        if (
-            relations &&
-            effectiveRelations.includes('lines.productVariant') &&
-            !effectiveRelations.includes('lines.productVariant.taxCategory')
-        ) {
-            effectiveRelations.push('lines.productVariant.taxCategory');
+        // Any caller requesting `lines.productVariant` (directly or via a sub-relation
+        // path) implies the variant will be loaded into the split lines query and
+        // translated below. TypeORM doesn't honour transitive `eager: true` relations
+        // (like `ProductVariant.translations`) when an explicit `relations` array is
+        // passed to `setFindOptions`, so we inject `taxCategory` and `translations`
+        // ourselves to keep `applyChannelPriceAndTax` + `translator.translate` correct.
+        const wantsLineVariant = effectiveRelations.some(
+            r => r === 'lines.productVariant' || r.startsWith('lines.productVariant.'),
+        );
+        if (relations && wantsLineVariant) {
+            if (!effectiveRelations.includes('lines.productVariant.taxCategory')) {
+                effectiveRelations.push('lines.productVariant.taxCategory');
+            }
+            if (!effectiveRelations.includes('lines.productVariant.translations')) {
+                effectiveRelations.push('lines.productVariant.translations');
+            }
         }
 
         // Split relations into two groups for different loading strategies:
@@ -277,7 +287,7 @@ export class OrderService {
                 order.lines = lines;
             }
 
-            if (effectiveRelations.includes('lines.productVariant')) {
+            if (wantsLineVariant) {
                 for (const line of order.lines) {
                     line.productVariant = this.translator.translate(
                         await this.productVariantService.applyChannelPriceAndTax(
@@ -327,15 +337,9 @@ export class OrderService {
         options?: ListQueryOptions<Order>,
         relations?: RelationPaths<Order>,
     ): Promise<PaginatedList<Order>> {
-        const effectiveRelations = (relations ?? ['lines', 'customer', 'channels', 'shippingLines']).filter(
-            r =>
-                // Don't join productVariant because it messes with the
-                // price calculation in certain edge-case field resolver scenarios
-                !r.includes('productVariant'),
-        );
         return this.listQueryBuilder
             .build(Order, options, {
-                relations: effectiveRelations,
+                relations: relations ?? ['lines', 'customer', 'channels', 'shippingLines'],
                 channelId: ctx.channelId,
                 ctx,
             })
@@ -1275,22 +1279,32 @@ export class OrderService {
         orderId: ID,
         state: OrderState,
     ): Promise<Order | OrderStateTransitionError> {
-        const order = await this.getOrderOrThrow(ctx, orderId);
-        order.payments = await this.getOrderPayments(ctx, orderId);
-        const fromState = order.state;
-        let finalize: () => Promise<any>;
-        try {
-            const result = await this.orderStateMachine.transition(ctx, order, state);
-            finalize = result.finalize;
-        } catch (e: any) {
-            const transitionError = ctx.translate(e.message, { fromState, toState: state });
-            return new OrderStateTransitionError({ transitionError, fromState, toState: state });
-        }
-        await this.connection.getRepository(ctx, Order).save(order, { reload: false });
-        await this.eventBus.publish(new OrderStateTransitionEvent(fromState, state, ctx, order));
-        await finalize();
-        await this.connection.getRepository(ctx, Order).save(order, { reload: false });
-        return order;
+        // Wrapped in withTransaction so that the in-memory state mutation, the
+        // first save, the onTransitionEnd hooks (which themselves perform DB
+        // writes — stock allocations, history entries, OrderPlacedStrategy
+        // mutations) and the second save all commit or roll back together.
+        // Without this, a throwing onTransitionEnd would leave the order in a
+        // half-committed state (state=new, active=true, orderPlacedAt=null).
+        // Joins any existing transaction in ctx, so callers that already have
+        // @Transaction() are unaffected. See #4686.
+        return this.connection.withTransaction(ctx, async txCtx => {
+            const order = await this.getOrderOrThrow(txCtx, orderId);
+            order.payments = await this.getOrderPayments(txCtx, orderId);
+            const fromState = order.state;
+            let finalize: () => Promise<any>;
+            try {
+                const result = await this.orderStateMachine.transition(txCtx, order, state);
+                finalize = result.finalize;
+            } catch (e: any) {
+                const transitionError = txCtx.translate(e.message, { fromState, toState: state });
+                return new OrderStateTransitionError({ transitionError, fromState, toState: state });
+            }
+            await this.connection.getRepository(txCtx, Order).save(order, { reload: false });
+            await this.eventBus.publish(new OrderStateTransitionEvent(fromState, state, txCtx, order));
+            await finalize();
+            await this.connection.getRepository(txCtx, Order).save(order, { reload: false });
+            return order;
+        });
     }
 
     /**
@@ -1320,26 +1334,30 @@ export class OrderService {
         state: RefundState,
         transactionId?: string,
     ): Promise<Refund | RefundStateTransitionError> {
-        const refund = await this.connection.getEntityOrThrow(ctx, Refund, refundId, {
-            relations: ['payment', 'payment.order'],
+        // Wrapped in withTransaction so the state save and onTransitionEnd hooks
+        // are atomic — see the equivalent comment on transitionToState. #4686.
+        return this.connection.withTransaction(ctx, async txCtx => {
+            const refund = await this.connection.getEntityOrThrow(txCtx, Refund, refundId, {
+                relations: ['payment', 'payment.order'],
+            });
+            if (transactionId && refund.transactionId !== transactionId) {
+                refund.transactionId = transactionId;
+            }
+            const fromState = refund.state;
+            const toState = state;
+            const { finalize } = await this.refundStateMachine.transition(
+                txCtx,
+                refund.payment.order,
+                refund,
+                toState,
+            );
+            await this.connection.getRepository(txCtx, Refund).save(refund);
+            await finalize();
+            await this.eventBus.publish(
+                new RefundStateTransitionEvent(fromState, toState, txCtx, refund, refund.payment.order),
+            );
+            return refund;
         });
-        if (transactionId && refund.transactionId !== transactionId) {
-            refund.transactionId = transactionId;
-        }
-        const fromState = refund.state;
-        const toState = state;
-        const { finalize } = await this.refundStateMachine.transition(
-            ctx,
-            refund.payment.order,
-            refund,
-            toState,
-        );
-        await this.connection.getRepository(ctx, Refund).save(refund);
-        await finalize();
-        await this.eventBus.publish(
-            new RefundStateTransitionEvent(fromState, toState, ctx, refund, refund.payment.order),
-        );
-        return refund;
     }
 
     /**
@@ -1405,15 +1423,47 @@ export class OrderService {
         orderId: ID,
         input: PaymentInput,
     ): Promise<ErrorResultUnion<AddPaymentToOrderResult, Order>> {
+        this.assertInTransaction(ctx, 'OrderService.addPaymentToOrder');
         const order = await this.getOrderOrThrow(ctx, orderId);
         if (!this.canAddPaymentToOrder(order)) {
             return new OrderPaymentStateError();
         }
-        order.payments = await this.getOrderPayments(ctx, order.id);
-        const amountToPay = order.totalWithTax - totalCoveredByPayments(order);
+        const totalWithTaxBeforeRevalidation = order.totalWithTax;
+        const couponsRemoved = await this.revalidateCouponCodesForOrder(ctx, order);
+        // Re-fetch order if coupons were removed, so totals reflect recalculated prices
+        const freshOrder = couponsRemoved ? await this.getOrderOrThrow(ctx, orderId) : order;
+        if (couponsRemoved && totalWithTaxBeforeRevalidation < freshOrder.totalWithTax) {
+            // A coupon was stripped during revalidation AND that strip
+            // increased what the customer would be charged (e.g. a
+            // usage-limited coupon's slot was claimed by a concurrent
+            // checkout). Do not proceed to charge the customer at the new
+            // amount — surface a typed error so the storefront can refresh
+            // the order and re-confirm. The coupon strip itself is committed
+            // alongside this error so subsequent addPaymentToOrder attempts
+            // see the recalculated totals.
+            //
+            // Strips that do not change the total (e.g. a coupon whose
+            // promotion was already deleted and no longer affecting pricing,
+            // or a coupon stacked on top of another that already maxed out
+            // the discount) fall through silently — there is no surprise
+            // charge to surface, and rejecting in those cases would create
+            // unnecessary friction.
+            //
+            // PaymentFailedError is reused here to avoid a breaking change
+            // to the AddPaymentToOrderResult union on the master branch.
+            // A dedicated CouponRemovedDuringCheckoutError is planned as a
+            // follow-up on the minor branch — see
+            // https://github.com/vendurehq/vendure/pull/4660.
+            return new PaymentFailedError({
+                paymentErrorMessage:
+                    'Order total changed during checkout because a coupon is no longer available. Please refresh your order and retry.',
+            });
+        }
+        freshOrder.payments = await this.getOrderPayments(ctx, freshOrder.id);
+        const amountToPay = freshOrder.totalWithTax - totalCoveredByPayments(freshOrder);
         const payment = await this.paymentService.createPayment(
             ctx,
-            order,
+            freshOrder,
             amountToPay,
             input.method,
             input.metadata,
@@ -1427,7 +1477,7 @@ export class OrderService {
             .getRepository(ctx, Order)
             .createQueryBuilder()
             .relation('payments')
-            .of(order)
+            .of(freshOrder)
             .add(payment);
 
         if (payment.state === 'Error') {
@@ -1437,11 +1487,136 @@ export class OrderService {
             return new PaymentDeclinedError({ paymentErrorMessage: payment.errorMessage || '' });
         }
 
-        return assertFound(this.findOne(ctx, order.id));
+        return assertFound(this.findOne(ctx, freshOrder.id));
     }
 
     /**
-     * @description
+     * Re-validates all coupon codes on the order with a pessimistic lock on
+     * the Promotion rows. This serializes concurrent payment attempts so that
+     * only one order can "claim" a usage-limited coupon at a time.
+     * If a coupon is no longer valid (e.g. usage limit reached), it is removed
+     * from the order and the order totals are recalculated.
+     * Returns true if any coupons were removed, false otherwise.
+     *
+     * Note on selection semantics: the lock guarantees the bug case ("everyone
+     * wins" — N orders all keeping a `usageLimit: 1` coupon) is impossible.
+     * The exact resolution under contention depends on the database's
+     * transaction-isolation default:
+     *
+     *   - Postgres (READ COMMITTED): each non-locking SELECT sees the
+     *     latest committed data. The first lock holder observes N-1 other
+     *     orders associated with the promotion (because `countPromotionUsages`
+     *     joins through `order.promotions` and counts `ArrangingPayment`
+     *     orders) and fails validation, so its coupon is stripped. Each
+     *     subsequent lock holder sees one fewer associated order, and the
+     *     final lock holder sees zero and succeeds. Net: exactly one winner,
+     *     specifically whichever order acquires the lock last ("last-wins").
+     *
+     *   - MySQL/MariaDB (REPEATABLE READ): the consistent-read snapshot is
+     *     established by the very first non-locking SELECT in the resolver's
+     *     transaction (the order lookup at the top of `addPaymentToOrder`),
+     *     before this lock is acquired. Every subsequent non-locking SELECT
+     *     in the same transaction reads from that fixed snapshot, so each
+     *     concurrent transaction's count query still sees the *other* orders
+     *     as holding the coupon. Result: every contender sees `count >= 1`
+     *     and strips, yielding zero winners. This is over-protective rather
+     *     than buggy — the over-application invariant still holds — but it
+     *     is a worse outcome than Postgres's last-wins. Closing this gap
+     *     properly requires either bypassing the snapshot for the count
+     *     query (`SELECT ... FOR UPDATE`) or restructuring so the lock
+     *     query is the very first read in the transaction; both come with
+     *     trade-offs (gap locks, broader scope) and are deferred.
+     *
+     * Do not "fix" the resolution into first-wins without re-deriving the
+     * count semantics from scratch.
+     *
+     * See https://github.com/vendurehq/vendure/pull/4660
+     */
+    private async revalidateCouponCodesForOrder(ctx: RequestContext, order: Order): Promise<boolean> {
+        let removedAny = false;
+        for (const couponCode of [...order.couponCodes]) {
+            // Resolve the promotion in the current channel before locking so
+            // that the lock query can target the promotion's primary key. PK
+            // lookups always hit an index, take a single-row lock on every
+            // supported DB, and avoid the gap-locking behaviour MySQL/MariaDB
+            // would otherwise exhibit when filtering by `couponCode` (which
+            // has no dedicated index).
+            const promotion = await this.connection.getRepository(ctx, Promotion).findOne({
+                where: {
+                    couponCode,
+                    enabled: true,
+                    deletedAt: IsNull(),
+                    channels: { id: ctx.channelId },
+                },
+            });
+            if (promotion) {
+                // Acquire a pessimistic write lock on the promotion row to
+                // serialize concurrent payment attempts. The lock is held
+                // until the resolver's @Transaction() commits. On SQLite the
+                // lock is not supported; SQLite serializes writes at the
+                // engine level instead.
+                try {
+                    await this.connection
+                        .getRepository(ctx, Promotion)
+                        .createQueryBuilder('promotion')
+                        .setLock('pessimistic_write')
+                        .where('promotion.id = :id', { id: promotion.id })
+                        .getOne();
+                } catch (e) {
+                    if (!(e instanceof LockNotSupportedOnGivenDriverError)) {
+                        throw e;
+                    }
+                    // Lock not supported (e.g. SQLite) — continue without it
+                }
+            }
+            const validationResult = await this.promotionService.validateCouponCode(
+                ctx,
+                couponCode,
+                order.customer?.id,
+                order.id,
+            );
+            if (isGraphQlErrorResult(validationResult)) {
+                order.couponCodes = order.couponCodes.filter(c => c !== couponCode);
+                removedAny = true;
+            }
+        }
+        if (removedAny) {
+            await this.applyPriceAdjustments(ctx, order);
+        }
+        return removedAny;
+    }
+
+    /**
+     * Throws if the given RequestContext is not associated with an active
+     * database transaction. Used to guard methods whose correctness depends
+     * on a wrapping transaction — both for atomicity (so a partial failure
+     * rolls back rather than leaving the order in a half-updated state) and
+     * to ensure the pessimistic lock acquired by `revalidateCouponCodesForOrder`
+     * is held for the duration of the payment work, not silently released
+     * by an autocommit one-statement transaction.
+     *
+     * Resolvers reach these methods through the `@Transaction()` decorator,
+     * which is the supported entry path. Callers from outside the resolver
+     * layer (background jobs, plugin services, lifecycle hooks) must wrap
+     * the call themselves via `TransactionalConnection.startTransaction()`
+     * or the equivalent helper.
+     */
+    private assertInTransaction(ctx: RequestContext, methodName: string): void {
+        const entityManager = (ctx as unknown as Record<symbol, EntityManager | undefined>)[
+            TRANSACTION_MANAGER_KEY
+        ];
+        const queryRunner = entityManager?.queryRunner;
+        if (!queryRunner || queryRunner.isReleased) {
+            throw new InternalServerError(
+                `${methodName} must be called within a transaction. ` +
+                    'Wrap the call with the @Transaction() resolver decorator, or — when ' +
+                    'invoking from outside a resolver — start a transaction via ' +
+                    'TransactionalConnection.startTransaction() before calling.',
+            );
+        }
+    }
+
+    /**
      * We can add a Payment to the order if:
      * 1. the Order is in the `ArrangingPayment` state or
      * 2. the Order's current state can transition to `PaymentAuthorized` and `PaymentSettled`
@@ -1474,14 +1649,20 @@ export class OrderService {
         ctx: RequestContext,
         input: ManualPaymentInput,
     ): Promise<ErrorResultUnion<AddManualPaymentToOrderResult, Order>> {
+        this.assertInTransaction(ctx, 'OrderService.addManualPaymentToOrder');
         const order = await this.getOrderOrThrow(ctx, input.orderId);
         if (order.state !== 'ArrangingAdditionalPayment' && order.state !== 'ArrangingPayment') {
             return new ManualPaymentStateError();
         }
-        const existingPayments = await this.getOrderPayments(ctx, order.id);
-        order.payments = existingPayments;
-        const amount = order.totalWithTax - totalCoveredByPayments(order);
-        const modifications = await this.getOrderModifications(ctx, order.id);
+        const manualCouponsRemoved = await this.revalidateCouponCodesForOrder(ctx, order);
+        // Re-fetch order so totals reflect any recalculated prices
+        const freshManualOrder = manualCouponsRemoved
+            ? await this.getOrderOrThrow(ctx, input.orderId)
+            : order;
+        const existingPayments = await this.getOrderPayments(ctx, freshManualOrder.id);
+        freshManualOrder.payments = existingPayments;
+        const amount = freshManualOrder.totalWithTax - totalCoveredByPayments(freshManualOrder);
+        const modifications = await this.getOrderModifications(ctx, freshManualOrder.id);
         const unsettledModifications = modifications.filter(m => !m.isSettled);
         if (0 < unsettledModifications.length) {
             const outstandingModificationsTotal = summate(unsettledModifications, 'priceChange');
@@ -1492,18 +1673,18 @@ export class OrderService {
             }
         }
 
-        const payment = await this.paymentService.createManualPayment(ctx, order, amount, input);
+        const payment = await this.paymentService.createManualPayment(ctx, freshManualOrder, amount, input);
         await this.connection
             .getRepository(ctx, Order)
             .createQueryBuilder('order')
             .relation('payments')
-            .of(order)
+            .of(freshManualOrder)
             .add(payment);
         for (const modification of unsettledModifications) {
             modification.payment = payment;
             await this.connection.getRepository(ctx, OrderModification).save(modification);
         }
-        return assertFound(this.findOne(ctx, order.id));
+        return assertFound(this.findOne(ctx, freshManualOrder.id));
     }
 
     /**
@@ -1783,24 +1964,28 @@ export class OrderService {
      * Settles a Refund by transitioning it to the `Settled` state.
      */
     async settleRefund(ctx: RequestContext, input: SettleRefundInput): Promise<Refund> {
-        const refund = await this.connection.getEntityOrThrow(ctx, Refund, input.id, {
-            relations: ['payment', 'payment.order'],
+        // Wrapped in withTransaction so the state save and onTransitionEnd hooks
+        // are atomic — see the equivalent comment on transitionToState. #4686.
+        return this.connection.withTransaction(ctx, async txCtx => {
+            const refund = await this.connection.getEntityOrThrow(txCtx, Refund, input.id, {
+                relations: ['payment', 'payment.order'],
+            });
+            refund.transactionId = input.transactionId;
+            const fromState = refund.state;
+            const toState = 'Settled';
+            const { finalize } = await this.refundStateMachine.transition(
+                txCtx,
+                refund.payment.order,
+                refund,
+                toState,
+            );
+            await this.connection.getRepository(txCtx, Refund).save(refund);
+            await finalize();
+            await this.eventBus.publish(
+                new RefundStateTransitionEvent(fromState, toState, txCtx, refund, refund.payment.order),
+            );
+            return refund;
         });
-        refund.transactionId = input.transactionId;
-        const fromState = refund.state;
-        const toState = 'Settled';
-        const { finalize } = await this.refundStateMachine.transition(
-            ctx,
-            refund.payment.order,
-            refund,
-            toState,
-        );
-        await this.connection.getRepository(ctx, Refund).save(refund);
-        await finalize();
-        await this.eventBus.publish(
-            new RefundStateTransitionEvent(fromState, toState, ctx, refund, refund.payment.order),
-        );
-        return refund;
     }
 
     /**
@@ -2124,8 +2309,19 @@ export class OrderService {
         updatedOrderLines?: OrderLine[],
         relations?: RelationPaths<Order>,
     ): Promise<Order> {
-        const promotions = await this.promotionService.getActivePromotionsInChannel(ctx);
+        const allPromotions = await this.promotionService.getActivePromotionsInChannel(ctx);
         const activePromotionsPre = await this.promotionService.getActivePromotionsOnOrder(ctx, order.id);
+
+        // Filter out auto-applied promotions that have exceeded their usage limits.
+        // Coupon-based promotions are already validated in validateCouponCode().
+        // Safe to cache per-request: the active promotion list (allPromotions) is stable
+        // within a single request, so the exhausted set won't change mid-request.
+        const customerId = order.customerId;
+        const cacheKey = CacheKey.ExhaustedPromotions(ctx.channelId, customerId);
+        const exhaustedIds = await this.requestCache.get(ctx, cacheKey, () =>
+            this.promotionService.getExhaustedPromotionIds(ctx, allPromotions, customerId),
+        );
+        const promotions = allPromotions.filter(p => !exhaustedIds.has(p.id.toString()));
 
         // When changing the Order's currencyCode (on account of passing
         // a different currencyCode into the RequestContext), we need to make sure

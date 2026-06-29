@@ -7,9 +7,9 @@ generated: true
 Contains methods relating to [Session](/reference/typescript-api/entities/session#session) entities.
 
 ```ts title="Signature"
-class SessionService implements EntitySubscriberInterface, OnApplicationBootstrap {
+class SessionService implements EntitySubscriberInterface, OnModuleInit {
     constructor(connection: TransactionalConnection, configService: ConfigService, orderService: OrderService, jobQueueService: JobQueueService, requestContextService: RequestContextService)
-    onApplicationBootstrap() => ;
+    onModuleInit() => ;
     createNewAuthenticatedSession(ctx: RequestContext, user: User, authenticationStrategyName: string, sessionToken?: string) => Promise<AuthenticatedSession>;
     createAnonymousSession() => Promise<CachedSession>;
     getSessionFromToken(sessionToken: string) => Promise<CachedSession | undefined>;
@@ -24,18 +24,13 @@ class SessionService implements EntitySubscriberInterface, OnApplicationBootstra
     cleanExpiredSessions(ctx: RequestContext, batchSize: number) => ;
 }
 ```
-* Implements: EntitySubscriberInterface, OnApplicationBootstrap
+* Implements: EntitySubscriberInterface, OnModuleInit
 
 
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(connection: <a href='/reference/typescript-api/data-access/transactional-connection#transactionalconnection'>TransactionalConnection</a>, configService: ConfigService, orderService: <a href='/reference/typescript-api/services/order-service#orderservice'>OrderService</a>, jobQueueService: <a href='/reference/typescript-api/job-queue/job-queue-service#jobqueueservice'>JobQueueService</a>, requestContextService: <a href='/reference/typescript-api/request/request-context-service#requestcontextservice'>RequestContextService</a>) => SessionService`}   />
-
-
-### onApplicationBootstrap
+### onModuleInit
 
 <MemberInfo kind="method" type={`() => `}   />
 

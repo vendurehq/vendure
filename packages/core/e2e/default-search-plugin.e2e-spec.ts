@@ -2,6 +2,7 @@
 import {
     CurrencyCode,
     GlobalFlag,
+    JobState,
     LanguageCode,
     LogicalOperator,
     SortOrder,
@@ -45,6 +46,7 @@ import {
     deleteAssetDocument,
     deleteProductDocument,
     deleteProductVariantDocument,
+    getRunningJobsDocument,
     removeProductFromChannelDocument,
     removeProductVariantFromChannelDocument,
     updateAssetDocument,
@@ -1332,6 +1334,72 @@ describe('Default search plugin', () => {
                 expect(result.search.items.map(pick(['productVariantName']))).toEqual([
                     { productVariantName: 'Strawberry Cheesecake Pie' },
                 ]);
+            });
+        });
+
+        // https://github.com/vendurehq/vendure/issues/4805
+        describe('duplicate index writes', () => {
+            async function getFailedJobsCount(): Promise<number> {
+                const { jobs } = await adminClient.query(getRunningJobsDocument, {
+                    options: { filter: { state: { eq: JobState.FAILED } } },
+                });
+                return jobs.totalItems;
+            }
+
+            it('indexes a second Product with no variants without failing the update job', async () => {
+                const failedJobsBefore = await getFailedJobsCount();
+                await adminClient.query(createProductDocument, {
+                    input: {
+                        translations: [
+                            {
+                                languageCode: LanguageCode.en,
+                                name: 'Bread pudding',
+                                slug: 'bread-pudding',
+                                description: 'A variant-less product',
+                            },
+                        ],
+                    },
+                });
+                await adminClient.query(createProductDocument, {
+                    input: {
+                        translations: [
+                            {
+                                languageCode: LanguageCode.en,
+                                name: 'Rice pudding',
+                                slug: 'rice-pudding',
+                                description: 'Another variant-less product',
+                            },
+                        ],
+                    },
+                });
+                await awaitRunningJobs(adminClient);
+
+                const failedJobsAfter = await getFailedJobsCount();
+                const result = await testProductsAdmin({ groupByProduct: true, term: 'pudding' });
+                expect(failedJobsAfter - failedJobsBefore).toBe(0);
+                expect(result.search.items.map(i => i.productName)).toContain('Rice pudding');
+            });
+
+            it('reindex converges to identical results when run twice', async () => {
+                const byVariantId = (
+                    items: Array<{ productVariantId: string; productId: string }>,
+                ): Array<{ productVariantId: string; productId: string }> =>
+                    [...items].sort(
+                        (a, b) =>
+                            a.productVariantId.localeCompare(b.productVariantId) ||
+                            a.productId.localeCompare(b.productId),
+                    );
+
+                await adminClient.query(reindexDocument);
+                await awaitRunningJobs(adminClient);
+                const firstResult = await testProductsAdmin({ groupByProduct: false, take: 100 });
+
+                await adminClient.query(reindexDocument);
+                await awaitRunningJobs(adminClient);
+                const secondResult = await testProductsAdmin({ groupByProduct: false, take: 100 });
+
+                expect(secondResult.search.totalItems).toBe(firstResult.search.totalItems);
+                expect(byVariantId(secondResult.search.items)).toEqual(byVariantId(firstResult.search.items));
             });
         });
 

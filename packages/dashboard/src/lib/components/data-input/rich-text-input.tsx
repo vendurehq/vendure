@@ -28,3 +28,7 @@ export function RichTextInput({
 
     return <RichTextEditor value={value} onChange={onChange} disabled={readOnly} placeholder={strippedPlaceholder} />;
 }
+
+RichTextInput.metadata = {
+    isFullWidth: true,
+};

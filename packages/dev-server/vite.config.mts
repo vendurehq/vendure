@@ -10,7 +10,7 @@ export default defineConfig({
             vendureConfigPath: pathToFileURL('./dev-config.ts'),
             api: {
                 host: 'http://localhost',
-                port: 3000,
+                port: Number(process.env.API_PORT) || 3000,
             },
             gqlOutputPath: path.resolve(__dirname, './graphql/'),
         }),

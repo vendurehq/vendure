@@ -22,17 +22,13 @@ function CustomerListPage() {
             pageId="customer-list"
             listQuery={customerListDocument}
             onSearchTermChange={searchTerm => {
-                return {
-                    lastName: {
-                        contains: searchTerm,
-                    },
-                    emailAddress: {
-                        contains: searchTerm,
-                    },
-                    phoneNumber: {
-                        contains: searchTerm,
-                    },
-                };
+                return searchTerm
+                    ? {
+                          lastName: { contains: searchTerm },
+                          emailAddress: { contains: searchTerm },
+                          phoneNumber: { contains: searchTerm },
+                      }
+                    : {};
             }}
             transformVariables={variables => {
                 return {

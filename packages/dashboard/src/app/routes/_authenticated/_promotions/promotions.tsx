@@ -27,6 +27,7 @@ function PromotionListPage() {
             listQuery={promotionListDocument}
             route={Route}
             title={<Trans>Promotions</Trans>}
+            defaultSort={[{ id: 'createdAt', desc: true }]}
             defaultVisibility={{
                 name: true,
                 couponCode: true,
@@ -35,10 +36,12 @@ function PromotionListPage() {
                 endsAt: true,
             }}
             onSearchTermChange={searchTerm => {
-                return {
-                    name: { contains: searchTerm },
-                    couponCode: { contains: searchTerm },
-                };
+                return searchTerm
+                    ? {
+                          name: { contains: searchTerm },
+                          couponCode: { contains: searchTerm },
+                      }
+                    : {};
             }}
             transformVariables={variables => {
                 return {

@@ -53,6 +53,13 @@ html[dir="rtl"] * {
 @utility col-main {
     grid-column: span 3 / span 3;
 }
+@utility scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
 @utility col-side {
     grid-column: span 2 / span 2;
 }

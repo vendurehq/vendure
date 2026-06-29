@@ -2,6 +2,8 @@
 title: "Promotion Condition"
 generated: true
 ---
+## PromotionCondition
+
 <GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-condition.ts" sourceLine="66" packageName="@vendure/core" />
 
 PromotionConditions are used to create [Promotion](/reference/typescript-api/entities/promotion#promotion)s. The purpose of a PromotionCondition
@@ -34,11 +36,6 @@ more information.
 <MemberInfo kind="property" type={`C`}   />
 
 
-### constructor
-
-<MemberInfo kind="method" type={`(config: <a href='/reference/typescript-api/promotions/promotion-condition#promotionconditionconfig'>PromotionConditionConfig</a><T, C, R>) => PromotionCondition`}   />
-
-
 ### check
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>, args: ConfigArg[], promotion: <a href='/reference/typescript-api/entities/promotion#promotion'>Promotion</a>) => Promise<R>`}   />
@@ -48,6 +45,8 @@ a Promotion should apply to an Order. See [CheckPromotionConditionFn](/reference
 
 
 </div>
+## PromotionConditionConfig
+
 <GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-condition.ts" sourceLine="46" packageName="@vendure/core" />
 
 This object is used to configure a PromotionCondition.
@@ -83,6 +82,8 @@ interface PromotionConditionConfig<T extends ConfigArgs, C extends string, R ext
 
 
 </div>
+## CheckPromotionConditionFn
+
 <GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-condition.ts" sourceLine="31" packageName="@vendure/core" />
 
 A function which checks whether or not a given [Order](/reference/typescript-api/entities/order#order) satisfies the [PromotionCondition](/reference/typescript-api/promotions/promotion-condition#promotioncondition).

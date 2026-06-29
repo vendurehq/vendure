@@ -188,6 +188,16 @@ export interface PaginatedListDataTableProps<
     additionalColumns?: AC;
     defaultColumnOrder?: (keyof ListQueryFields<T> | keyof AC | CustomFieldKeysOfItem<ListQueryFields<T>>)[];
     defaultVisibility?: Partial<Record<AllItemFieldKeys<T>, boolean>>;
+    /**
+     * @description
+     * Called whenever the debounced search term changes (including when it
+     * becomes empty). Return a partial filter to merge with the column /
+     * faceted filters. The returned filter is only applied when the term is
+     * non-empty — when the term is `''`, the returned value is discarded so
+     * that callers can write `{ field: { contains: searchTerm } }` without
+     * producing tautological `contains: ''` clauses. The callback itself is
+     * still invoked on every change so pages can use it as a state-sync hook.
+     */
     onSearchTermChange?: (searchTerm: string) => NonNullable<V['options']>['filter'];
     page: number;
     itemsPerPage: number;
@@ -456,7 +466,15 @@ export function PaginatedListDataTable<
 
     const { data, isFetching } = useQuery({
         queryFn: () => {
-            const searchFilter = onSearchTermChange ? onSearchTermChange(debouncedSearchTerm) : {};
+            // Always invoke onSearchTermChange so callers can use it as a
+            // state-sync hook (e.g. collections.tsx gates drag-and-drop on the
+            // current search term). Discard its filter contribution when the
+            // term is empty — otherwise pages built around
+            // `contains: searchTerm` produce `contains: ''` clauses that match
+            // everything, and combined with `filterOperator: 'OR'` they
+            // silently disable all column filters.
+            const rawSearchFilter = onSearchTermChange ? onSearchTermChange(debouncedSearchTerm) : {};
+            const searchFilter = debouncedSearchTerm ? rawSearchFilter : {};
             const mergedFilter = { ...filter, ...searchFilter };
             const variables = {
                 options: {

@@ -642,6 +642,20 @@ export const activeOrderCustomerDocument = graphql(`
     }
 `);
 
+export const getActiveOrderCustomerUserDocument = graphql(`
+    query GetActiveOrderCustomerUser {
+        activeOrder {
+            customer {
+                id
+                user {
+                    id
+                    verified
+                }
+            }
+        }
+    }
+`);
+
 export const setCustomerDocument = graphql(
     `
         mutation SetCustomerForOrder($input: CreateCustomerInput!) {

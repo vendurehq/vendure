@@ -2,6 +2,8 @@
 title: "DataService"
 generated: true
 ---
+## DataService
+
 <GenerationInfo sourceFile="packages/admin-ui/src/lib/core/src/data/providers/data.service.ts" sourceLine="34" packageName="@vendure/admin-ui" />
 
 Used to interact with the Admin API via GraphQL queries. Internally this service uses the
@@ -61,6 +63,8 @@ const result$ = this.dataService.mutate(gql`
 
 
 </div>
+## QueryResult
+
 <GenerationInfo sourceFile="packages/admin-ui/src/lib/core/src/data/query-result.ts" sourceLine="31" packageName="@vendure/admin-ui" />
 
 This class wraps the Apollo Angular QueryRef object and exposes some getters
@@ -81,11 +85,6 @@ class QueryResult<T, V extends Record<string, any> = Record<string, any>> {
 ```
 
 <div className="members-wrapper">
-
-### constructor
-
-<MemberInfo kind="method" type={`(queryRef: QueryRef<T, V>, apollo: Apollo, customFieldMap: Map<string, <a href='/reference/typescript-api/custom-fields/custom-field-config#customfieldconfig'>CustomFieldConfig</a>[]>) => QueryResult`}   />
-
 
 ### refetchOnChannelChange
 

@@ -178,14 +178,22 @@ export function ChannelProvider({ children }: Readonly<{ children: React.ReactNo
     const setSelectedChannel = React.useCallback(
         (channelId: string) => {
             const channel = channels.find(c => c.id === channelId);
-            if (channel) {
-                setChannelTokenInLocalStorage(channel.token);
-                setSelectedChannelId(channelId);
-                setActiveChannelId(channelId);
+            if (!channel) {
+                return;
+            }
+            const previousToken = getChannelTokenFromLocalStorage();
+            setChannelTokenInLocalStorage(channel.token);
+            setSelectedChannelId(channelId);
+            setActiveChannelId(channelId);
+            // Only invalidate queries if the channel token actually changed.
+            // A no-op selection (e.g. clicking the already-active channel)
+            // would otherwise cause every visible query to flash through
+            // a fetching state for no reason.
+            if (previousToken !== channel.token) {
                 queryClient.invalidateQueries();
             }
         },
-        [queryClient, channels],
+        [queryClient, channels, setActiveChannelId],
     );
 
     // If no selected channel is set but we have an active channel, use that

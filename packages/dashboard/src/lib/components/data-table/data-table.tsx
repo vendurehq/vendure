@@ -56,6 +56,15 @@ import { DataTableFilterBadgeEditable } from './data-table-filter-badge-editable
 import { useDragAndDrop } from '@/vdb/hooks/use-drag-and-drop.js';
 import { toast } from '@/vdb/components/ui/sonner.js';
 
+// Layout constants used to reserve space and render skeletons during the
+// initial fetch. Row height matches the `h-12` class used on every TableCell
+// in this file (3rem). Header height matches the default `<TableHead>`
+// styling from `@vendure-io/ui` (h-10 = 2.5rem). Skeleton rows are capped
+// at `MAX_SKELETON_ROWS` so a large pageSize doesn't bloat the DOM.
+const ROW_HEIGHT_REM = 3;
+const HEADER_HEIGHT_REM = 2.5;
+const MAX_SKELETON_ROWS = 10;
+
 interface DraggableRowProps<TData> {
     row: Row<TData>;
     isDragDisabled: boolean;
@@ -229,16 +238,18 @@ export function DataTable<TData>({
         },
     });
 
+    // Track the last-applied `defaultColumnVisibility` content so we only reset state
+    // when the prop's actual content changes (e.g. the user reset the table settings),
+    // not on every re-render where the parent passes a new reference to the same value.
+    const lastAppliedDefaultRef = useRef<string | undefined>(
+        defaultColumnVisibility ? JSON.stringify(defaultColumnVisibility) : undefined,
+    );
     useEffect(() => {
-        // If the defaultColumnVisibility changes externally (e.g. the user reset the table settings),
-        // we want to reset the column visibility to the default.
-        if (
-            defaultColumnVisibility &&
-            JSON.stringify(defaultColumnVisibility) !== JSON.stringify(columnVisibility)
-        ) {
-            setColumnVisibility(defaultColumnVisibility);
-        }
-        // We intentionally do not include `columnVisibility` in the dependency array
+        if (!defaultColumnVisibility) return;
+        const serialized = JSON.stringify(defaultColumnVisibility);
+        if (lastAppliedDefaultRef.current === serialized) return;
+        lastAppliedDefaultRef.current = serialized;
+        setColumnVisibility(defaultColumnVisibility);
     }, [defaultColumnVisibility]);
 
     // Add drag handle column if drag and drop is enabled
@@ -444,7 +455,24 @@ export function DataTable<TData>({
                     <DataTableBulkActions bulkActions={bulkActions ?? []} table={table} />
                 </div>
 
-                <div className="rounded-md border my-2 relative bg-card">
+                <div
+                    className="rounded-md border my-2 relative bg-card"
+                    // While the initial fetch is in flight (no data yet) reserve
+                    // vertical space for the skeleton rows so the table footer /
+                    // pagination controls don't jump up. Once we have any data —
+                    // even one row — let the table size to its content so small
+                    // result sets don't render with a huge empty container.
+                    style={
+                        isLoading && !localData?.length
+                            ? {
+                                  minHeight: `calc(${Math.min(
+                                      pagination.pageSize,
+                                      MAX_SKELETON_ROWS,
+                                  )} * ${ROW_HEIGHT_REM}rem + ${HEADER_HEIGHT_REM}rem)`,
+                              }
+                            : undefined
+                    }
+                >
                     <DndContext
                         sensors={sensors}
                         collisionDetection={closestCenter}
@@ -473,7 +501,9 @@ export function DataTable<TData>({
                             <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
                                 <TableBody>
                                     {isLoading && !localData?.length ? (
-                                        Array.from({ length: Math.min(pagination.pageSize, 100) }).map((_, index) => (
+                                        Array.from({
+                                            length: Math.min(pagination.pageSize, MAX_SKELETON_ROWS),
+                                        }).map((_, index) => (
                                             <TableRow
                                                 key={`skeleton-${index}`}
                                                 className="animate-in fade-in duration-100"

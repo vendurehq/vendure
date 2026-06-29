@@ -1,4 +1,4 @@
-import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ID } from '@vendure/common/lib/shared-types';
 import crypto from 'crypto';
 import ms, { type StringValue } from 'ms';
@@ -33,7 +33,7 @@ import { OrderService } from './order.service';
  */
 @Injectable()
 @Instrument()
-export class SessionService implements EntitySubscriberInterface, OnApplicationBootstrap {
+export class SessionService implements EntitySubscriberInterface, OnModuleInit {
     private sessionCacheStrategy: SessionCacheStrategy;
     private cleanSessionsJobQueue: JobQueue<{ batchSize: number }>;
     private readonly sessionDurationInMs: number;
@@ -57,7 +57,7 @@ export class SessionService implements EntitySubscriberInterface, OnApplicationB
         this.connection.rawConnection.subscribers.push(this);
     }
 
-    async onApplicationBootstrap() {
+    async onModuleInit() {
         this.cleanSessionsJobQueue = await this.jobQueueService.createQueue({
             name: 'clean-sessions',
             process: async job => {

@@ -2,6 +2,8 @@
 title: "AssetService"
 generated: true
 ---
+## AssetService
+
 <GenerationInfo sourceFile="packages/core/src/service/services/asset.service.ts" sourceLine="93" packageName="@vendure/core" />
 
 Contains methods relating to [Asset](/reference/typescript-api/entities/asset#asset) entities.
@@ -26,11 +28,6 @@ class AssetService {
 ```
 
 <div className="members-wrapper">
-
-### constructor
-
-<MemberInfo kind="method" type={`(connection: <a href='/reference/typescript-api/data-access/transactional-connection#transactionalconnection'>TransactionalConnection</a>, configService: ConfigService, listQueryBuilder: <a href='/reference/typescript-api/data-access/list-query-builder#listquerybuilder'>ListQueryBuilder</a>, eventBus: <a href='/reference/typescript-api/events/event-bus#eventbus'>EventBus</a>, tagService: <a href='/reference/typescript-api/services/tag-service#tagservice'>TagService</a>, channelService: <a href='/reference/typescript-api/services/channel-service#channelservice'>ChannelService</a>, roleService: <a href='/reference/typescript-api/services/role-service#roleservice'>RoleService</a>, customFieldRelationService: CustomFieldRelationService, translatableSaver: <a href='/reference/typescript-api/service-helpers/translatable-saver#translatablesaver'>TranslatableSaver</a>, translator: <a href='/reference/typescript-api/service-helpers/translator-service#translatorservice'>TranslatorService</a>) => AssetService`}   />
-
 
 ### findOne
 
@@ -106,6 +103,8 @@ Create an Asset from a file stream, for example to create an Asset during data i
 
 
 </div>
+## EntityWithAssets
+
 <GenerationInfo sourceFile="packages/core/src/service/services/asset.service.ts" sourceLine="69" packageName="@vendure/core" />
 
 Certain entities (Product, ProductVariant, Collection) use this interface
@@ -136,6 +135,8 @@ interface EntityWithAssets extends VendureEntity {
 
 
 </div>
+## EntityAssetInput
+
 <GenerationInfo sourceFile="packages/core/src/service/services/asset.service.ts" sourceLine="81" packageName="@vendure/core" />
 
 Used when updating entities which implement [EntityWithAssets](/reference/typescript-api/services/asset-service#entitywithassets).

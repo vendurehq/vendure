@@ -2,6 +2,8 @@
 title: "S3AssetStorageStrategy"
 generated: true
 ---
+## S3AssetStorageStrategy
+
 <GenerationInfo sourceFile="packages/asset-server-plugin/src/config/s3-asset-storage-strategy.ts" sourceLine="155" packageName="@vendure/asset-server-plugin" />
 
 An [AssetStorageStrategy](/reference/typescript-api/assets/asset-storage-strategy#assetstoragestrategy) which uses [Amazon S3](https://aws.amazon.com/s3/) object storage service.
@@ -38,11 +40,6 @@ class S3AssetStorageStrategy implements AssetStorageStrategy {
 
 
 <div className="members-wrapper">
-
-### constructor
-
-<MemberInfo kind="method" type={`(s3Config: <a href='/reference/core-plugins/asset-server-plugin/s3asset-storage-strategy#s3config'>S3Config</a>, toAbsoluteUrl: (request: Request, identifier: string) => string) => S3AssetStorageStrategy`}   />
-
 
 ### init
 
@@ -87,6 +84,8 @@ class S3AssetStorageStrategy implements AssetStorageStrategy {
 
 
 </div>
+## S3Config
+
 <GenerationInfo sourceFile="packages/asset-server-plugin/src/config/s3-asset-storage-strategy.ts" sourceLine="19" packageName="@vendure/asset-server-plugin" />
 
 Configuration for connecting to AWS S3.
@@ -132,6 +131,8 @@ Using type `any` in order to avoid the need to include `aws-sdk` dependency in g
 
 
 </div>
+## configureS3AssetStorage
+
 <GenerationInfo sourceFile="packages/asset-server-plugin/src/config/s3-asset-storage-strategy.ts" sourceLine="119" packageName="@vendure/asset-server-plugin" />
 
 Returns a configured instance of the [S3AssetStorageStrategy](/reference/core-plugins/asset-server-plugin/s3asset-storage-strategy#s3assetstoragestrategy) which can then be passed to the [AssetServerOptions](/reference/core-plugins/asset-server-plugin/asset-server-options#assetserveroptions)`storageStrategyFactory` property.

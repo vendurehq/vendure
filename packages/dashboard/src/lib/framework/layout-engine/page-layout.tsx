@@ -3,10 +3,13 @@ import { NavigationConfirmation } from '@/vdb/components/shared/navigation-confi
 import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/vdb/components/ui/card.js';
 import { Form } from '@/vdb/components/ui/form.js';
+import { Skeleton } from '@/vdb/components/ui/skeleton.js';
 import { useCustomFieldConfig } from '@/vdb/hooks/use-custom-field-config.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { useIsMobile } from '@/vdb/hooks/use-mobile.js';
 import { usePage } from '@/vdb/hooks/use-page.js';
+import { usePermissions } from '@/vdb/hooks/use-permissions.js';
+import { useIsServerConfigLoaded } from '@/vdb/hooks/use-server-config.js';
 import { cn } from '@/vdb/lib/utils.js';
 import { useCopyToClipboard } from '@uidotdev/usehooks';
 import { CheckIcon, CopyIcon, EllipsisVerticalIcon, InfoIcon } from 'lucide-react';
@@ -202,6 +205,16 @@ function isPageBlock(child: unknown): child is React.ReactElement<PageBlockProps
     return hasColumn || hasBlockId;
 }
 
+// Single source of truth for which column a block belongs to. `FullWidthPageBlock` is
+// identified by type since it doesn't declare a `column` prop; everything else is keyed
+// off the `column` prop. Keep all bucketing in `PageLayout` going through this.
+function getBlockColumn(child: React.ReactElement<PageBlockProps>): 'main' | 'side' | 'full' {
+    if (isOfType(child, FullWidthPageBlock)) {
+        return 'full';
+    }
+    return child.props.column;
+}
+
 /**
  * @description *
  * This component governs the layout of the contents of a {@link Page} component.
@@ -218,6 +231,7 @@ export function PageLayout({ children, className }: Readonly<PageLayoutProps>) {
     // Separate blocks into categories
     const childArray: React.ReactElement<PageBlockProps>[] = [];
     const extensionBlocks = getDashboardPageBlocks(page.pageId ?? '');
+    const { hasPermissions } = usePermissions();
     React.Children.forEach(children, child => {
         if (isPageBlock(child)) {
             childArray.push(child);
@@ -250,18 +264,31 @@ export function PageLayout({ children, className }: Readonly<PageLayoutProps>) {
                 return orderPriority[a.location.position.order] - orderPriority[b.location.position.order];
             });
 
+            type ExtensionBlockEntry = (typeof arrangedExtensionBlocks)[number];
+
+            // using `hasPermissions` over `PermissionGuard` as this would defeat the `isPageBlock` typeguard
+            const willBlockRender = (
+                block: ExtensionBlockEntry,
+            ): block is ExtensionBlockEntry & {
+                component: NonNullable<ExtensionBlockEntry['component']>;
+            } => {
+                if (!block.component) return false;
+                if (typeof block.shouldRender === 'function' && !block.shouldRender(page)) {
+                    return false;
+                }
+                const required = block.requiresPermission ?? [];
+                return hasPermissions(Array.isArray(required) ? required : [required]);
+            };
+
+            // A `replace`-ordered block only counts as a replacement when it would actually render —
+            // otherwise the original child must be kept as a fallback.
             const replacementBlockExists = arrangedExtensionBlocks.some(
-                block => block.location.position.order === 'replace',
+                block => block.location.position.order === 'replace' && willBlockRender(block),
             );
 
             let childBlockInserted = false;
             if (matchingExtensionBlocks.length > 0) {
                 for (const extensionBlock of arrangedExtensionBlocks) {
-                    let extensionBlockShouldRender = true;
-                    if (typeof extensionBlock?.shouldRender === 'function') {
-                        extensionBlockShouldRender = extensionBlock.shouldRender(page);
-                    }
-
                     // Insert child block before the first non-"before" block
                     if (
                         !childBlockInserted &&
@@ -272,24 +299,21 @@ export function PageLayout({ children, className }: Readonly<PageLayoutProps>) {
                         childBlockInserted = true;
                     }
 
+                    if (!willBlockRender(extensionBlock)) continue;
+
                     const isFullWidth = extensionBlock.location.column === 'full';
                     const BlockComponent = isFullWidth ? FullWidthPageBlock : PageBlock;
 
-                    const ExtensionBlock =
-                        extensionBlock.component && extensionBlockShouldRender ? (
-                            <BlockComponent
-                                key={extensionBlock.id}
-                                column={extensionBlock.location.column}
-                                blockId={extensionBlock.id}
-                                title={extensionBlock.title}
-                            >
-                                {<extensionBlock.component context={page} />}
-                            </BlockComponent>
-                        ) : undefined;
-
-                    if (extensionBlockShouldRender && ExtensionBlock) {
-                        finalChildArray.push(ExtensionBlock);
-                    }
+                    finalChildArray.push(
+                        <BlockComponent
+                            key={extensionBlock.id}
+                            column={extensionBlock.location.column}
+                            blockId={extensionBlock.id}
+                            title={extensionBlock.title}
+                        >
+                            <extensionBlock.component context={page} />
+                        </BlockComponent>,
+                    );
                 }
 
                 // If all blocks were "before", insert child block at the end
@@ -303,10 +327,14 @@ export function PageLayout({ children, className }: Readonly<PageLayoutProps>) {
     }
 
     const fullWidthBlocks = finalChildArray.filter(
-        child => isPageBlock(child) && isOfType(child, FullWidthPageBlock),
+        child => isPageBlock(child) && getBlockColumn(child) === 'full',
     );
-    const mainBlocks = finalChildArray.filter(child => isPageBlock(child) && child.props.column === 'main');
-    const sideBlocks = finalChildArray.filter(child => isPageBlock(child) && child.props.column === 'side');
+    const mainBlocks = finalChildArray.filter(
+        child => isPageBlock(child) && getBlockColumn(child) === 'main',
+    );
+    const sideBlocks = finalChildArray.filter(
+        child => isPageBlock(child) && getBlockColumn(child) === 'side',
+    );
 
     return (
         <div className={cn('w-full space-y-4', className, '@container/layout')}>
@@ -535,6 +563,17 @@ type MergedActionBarItem =
     | { type: 'inline'; element: React.ReactElement<ActionBarItemProps> }
     | { type: 'extension'; item: DashboardActionBarItem };
 
+type PositionedExtensionActionBarItem = {
+    type: 'extension';
+    item: DashboardActionBarItem & { position: ActionBarItemPosition };
+};
+
+function isPositionedExtensionActionBarItem(
+    item: MergedActionBarItem,
+): item is PositionedExtensionActionBarItem {
+    return item.type === 'extension' && !!item.item.position;
+}
+
 /**
  * Merges inline ActionBarItem children with extension items, applying position-based ordering.
  * Uses the same priority sorting as page blocks: before=1, replace=2, after=3.
@@ -545,42 +584,86 @@ function mergeAndSortActionBarItems(
 ): MergedActionBarItem[] {
     const result: MergedActionBarItem[] = [];
 
-    // First, add extension items WITHOUT a position (they go first, preserving current behavior)
-    const unpositionedExtensions = extensionItems.filter(ext => !ext.position);
-    for (const ext of unpositionedExtensions) {
-        result.push({ type: 'extension', item: ext });
+    // Treat inline ActionBarItem children and extension items as the same kind of sortable node.
+    // This lets position.itemId target either an inline ActionBarItem.itemId or another extension item's id.
+    const inlineItems: MergedActionBarItem[] = inlineElements.map(element => ({ type: 'inline', element }));
+    const extensionActionItems: MergedActionBarItem[] = extensionItems.map(item => ({
+        type: 'extension',
+        item,
+    }));
+    const getItemId = (item: MergedActionBarItem): string | undefined =>
+        item.type === 'inline' ? item.element.props.itemId : item.item.id;
+
+    // Sort by order priority: before=1, replace=2, after=3
+    const orderPriority: Record<ActionBarItemPosition['order'], number> = {
+        before: 1,
+        replace: 2,
+        after: 3,
+    };
+
+    // First, use extension items WITHOUT a position as root items (they still go first,
+    // preserving the previous behavior). Inline items are also root items.
+    const rootItems = [
+        ...extensionActionItems.filter(item => !isPositionedExtensionActionBarItem(item)),
+        ...inlineItems,
+    ];
+
+    // Group positioned extension items by their target id. The target id may refer to either
+    // an inline ActionBarItem.itemId or a DashboardActionBarItem.id.
+    const extensionsByTargetId = new Map<string, PositionedExtensionActionBarItem[]>();
+
+    for (const item of extensionActionItems.filter(isPositionedExtensionActionBarItem)) {
+        const targetItems = extensionsByTargetId.get(item.item.position.itemId) ?? [];
+        extensionsByTargetId.set(item.item.position.itemId, [...targetItems, item]);
     }
 
-    // Process each inline element and find extension items targeting it
-    for (const inlineElement of inlineElements) {
-        const itemId = inlineElement.props.itemId;
-        const matchingExtensions = extensionItems.filter(ext => ext.position?.itemId === itemId);
+    const renderedExtensionItems = new Set<DashboardActionBarItem>();
 
-        // Sort by order priority: before=1, replace=2, after=3
-        const sortedExtensions = matchingExtensions.sort((a, b) => {
-            const orderPriority: Record<ActionBarItemPosition['order'], number> = {
-                before: 1,
-                replace: 2,
-                after: 3,
-            };
-            return orderPriority[a.position!.order] - orderPriority[b.position!.order];
-        });
-
-        const hasReplacement = sortedExtensions.some(ext => ext.position?.order === 'replace');
-
-        let inlineInserted = false;
-        for (const ext of sortedExtensions) {
-            // Insert inline element before the first non-"before" extension (if not replaced)
-            if (!inlineInserted && !hasReplacement && ext.position?.order !== 'before') {
-                result.push({ type: 'inline', element: inlineElement });
-                inlineInserted = true;
+    function renderItem(item: MergedActionBarItem) {
+        // Prevent duplicate rendering if multiple paths reference the same extension item.
+        if (item.type === 'extension') {
+            if (renderedExtensionItems.has(item.item)) {
+                return;
             }
-            result.push({ type: 'extension', item: ext });
+            renderedExtensionItems.add(item.item);
         }
 
-        // If all extensions were "before" or there were no extensions, add inline at the end
-        if (!inlineInserted && !hasReplacement) {
-            result.push({ type: 'inline', element: inlineElement });
+        const itemId = getItemId(item);
+        const extensions = itemId
+            ? [...(extensionsByTargetId.get(itemId) ?? [])].sort((a, b) => {
+                  return orderPriority[a.item.position.order] - orderPriority[b.item.position.order];
+              })
+            : [];
+        const hasReplacement = extensions.some(ext => ext.item.position.order === 'replace');
+
+        // Render positioned items in before / replace / after order around their target.
+        for (const extension of extensions.filter(ext => ext.item.position.order === 'before')) {
+            renderItem(extension);
+        }
+
+        if (hasReplacement) {
+            for (const extension of extensions.filter(ext => ext.item.position.order === 'replace')) {
+                renderItem(extension);
+            }
+        } else {
+            result.push(item);
+        }
+
+        for (const extension of extensions.filter(ext => ext.item.position.order === 'after')) {
+            renderItem(extension);
+        }
+    }
+
+    for (const item of rootItems) {
+        renderItem(item);
+    }
+
+    // A positioned extension can be unreachable from the root walk if its target id is
+    // missing, or if positioned extensions only reference each other in a cycle. Render
+    // any remaining extension items so they do not silently disappear.
+    for (const item of extensionActionItems) {
+        if (item.type === 'extension' && !renderedExtensionItems.has(item.item)) {
+            renderItem(item);
         }
     }
 
@@ -836,9 +919,7 @@ export function PageBlock({
     return (
         <PageBlockContext.Provider value={contextValue}>
             <LocationWrapper>
-                <Card
-                    className={cn('@container  w-full', className, 'animate-in fade-in duration-300')}
-                >
+                <Card className={cn('@container  w-full', className, 'animate-in fade-in duration-300')}>
                     {title || description ? (
                         <CardHeader>
                             {title && <CardTitle>{title}</CardTitle>}
@@ -868,7 +949,7 @@ export function FullWidthPageBlock({
     className,
     blockId,
 }: Readonly<Pick<PageBlockProps, 'children' | 'className' | 'blockId'>>) {
-    const contextValue = useMemo(() => ({ blockId, column: 'main' as const }), [blockId]);
+    const contextValue = useMemo(() => ({ blockId, column: 'full' as const }), [blockId]);
     return (
         <PageBlockContext.Provider value={contextValue}>
             <LocationWrapper>
@@ -903,6 +984,24 @@ export function CustomFieldsPageBlock({
     control: Control<any, any>;
 }>) {
     const customFieldConfig = useCustomFieldConfig(entityType);
+    const isServerConfigLoaded = useIsServerConfigLoaded();
+
+    // Until the server config has resolved we don't know whether this entity
+    // has custom fields or not. Render a skeleton placeholder block so the
+    // page layout doesn't visibly jump once the config arrives. Once loaded
+    // and we're confident there are no custom fields, render nothing.
+    if (!isServerConfigLoaded) {
+        return (
+            <PageBlock column={column} blockId="custom-fields">
+                <div className="space-y-4" aria-hidden="true">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-9 w-full" />
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-9 w-full" />
+                </div>
+            </PageBlock>
+        );
+    }
     if (!customFieldConfig || customFieldConfig.length === 0) {
         return null;
     }

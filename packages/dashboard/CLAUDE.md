@@ -34,6 +34,15 @@ Only semantic design tokens from `@vendure-io/design-tokens` are allowed. Use Ta
 - **Data fetching**: `api.query(document)` / `api.mutate(document)` for GraphQL. Use `useExtendedDetailQuery` / `useExtendedListQuery` for pages with extension support.
 - **i18n**: Use `useLocalFormat()` hook for date/currency formatting — not `date-fns` functions directly.
 
+## React Query Defaults
+
+`app-providers.tsx` configures the global `QueryClient` with two non-default options that affect every `useQuery` call in the dashboard:
+
+- `placeholderData: keepPreviousData` — keeps the last successful data on screen while a query refetches after a `queryKey` change. Eliminates blank-frame flicker on pagination, sorting, filtering, and debounced search inputs. **Opt out per-query** (`placeholderData: undefined`) when the queryKey carries identity (e.g. `['customerGroup', id]`) and showing the previous identity's data would be misleading.
+- `refetchOnWindowFocus: false` — suppresses background refetches on tab focus. Polling hooks should set their own `refetchInterval` and ignore the default.
+
+Don't flip these back unless you've thought through the flicker implications.
+
 ## Testing
 
 Unit tests cover Vite plugin hooks. Run from `packages/dashboard/`.

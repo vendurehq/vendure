@@ -1,6 +1,7 @@
 export * from './api-key-strategy/api-key-strategy';
 export * from './api-key-strategy/random-bytes-api-key-strategy';
 export * from './asset-import-strategy/asset-import-strategy';
+export * from './asset-import-strategy/default-asset-import-strategy';
 export * from './asset-naming-strategy/asset-naming-strategy';
 export * from './asset-naming-strategy/default-asset-naming-strategy';
 export * from './asset-preview-strategy/asset-preview-strategy';

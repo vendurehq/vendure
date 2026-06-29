@@ -36,7 +36,7 @@ export function RefreshButton({
 
     return (
         <Tooltip>
-            <TooltipTrigger render={<Button variant="outline" size="icon-sm" onClick={handleClick} disabled={delayedLoading} />}>
+            <TooltipTrigger render={<Button variant="outline" size="icon-sm" onClick={handleClick} disabled={delayedLoading} data-testid="dt-refresh-button" />}>
                     <RefreshCw className={delayedLoading ? 'animate-rotate' : ''} />
             </TooltipTrigger>
             <TooltipContent>

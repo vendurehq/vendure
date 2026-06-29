@@ -1,8 +1,89 @@
+## <small>3.6.4 (2026-06-01)</small>
+
+
+#### Fixes
+
+* **core** Block SSRF in DefaultAssetImportStrategy (#4721) ([196fd7b](https://github.com/vendurehq/vendure/commit/196fd7b)), closes [#4721](https://github.com/vendurehq/vendure/issues/4721)
+* **core** Do not release inherited QueryRunner in TransactionWrapper (#4717) ([fc9a61d](https://github.com/vendurehq/vendure/commit/fc9a61d)), closes [#4717](https://github.com/vendurehq/vendure/issues/4717)
+* **core** Load ProductVariant translations in OrderService.findOne (#4738) ([47fbe9d](https://github.com/vendurehq/vendure/commit/47fbe9d)), closes [#4738](https://github.com/vendurehq/vendure/issues/4738)
+* **core** Prevent double-decoding of ID args in updatePromotion (#4740) ([96741bf](https://github.com/vendurehq/vendure/commit/96741bf)), closes [#4740](https://github.com/vendurehq/vendure/issues/4740)
+* **core** Skip v3.6 asset translation migration on empty DB (#4733) ([5f83222](https://github.com/vendurehq/vendure/commit/5f83222)), closes [#4733](https://github.com/vendurehq/vendure/issues/4733)
+* **core** Widen graphql version range to ^16.11.0 (#4716) ([0b8902e](https://github.com/vendurehq/vendure/commit/0b8902e)), closes [#4716](https://github.com/vendurehq/vendure/issues/4716)
+* **create** Add vite as direct dev dependency in scaffolded projects (#4710) ([ad8292e](https://github.com/vendurehq/vendure/commit/ad8292e)), closes [#4710](https://github.com/vendurehq/vendure/issues/4710)
+* **dashboard** Allow selecting nullable select items (#4801) ([fe183bd](https://github.com/vendurehq/vendure/commit/fe183bd)), closes [#4801](https://github.com/vendurehq/vendure/issues/4801)
+* **dashboard** Apply addCustomFields to profile page route loader (#4734) ([1bf5442](https://github.com/vendurehq/vendure/commit/1bf5442)), closes [#4734](https://github.com/vendurehq/vendure/issues/4734)
+* **dashboard** Apply column filters on list pages using OR filter operator (#4746) ([c2b48fc](https://github.com/vendurehq/vendure/commit/c2b48fc)), closes [#4746](https://github.com/vendurehq/vendure/issues/4746)
+* **dashboard** Correctly initialize boolean configurable args (#4794) ([3398142](https://github.com/vendurehq/vendure/commit/3398142)), closes [#4794](https://github.com/vendurehq/vendure/issues/4794)
+* **dashboard** Fix input in bulk facet value modal (#4750) ([0217494](https://github.com/vendurehq/vendure/commit/0217494)), closes [#4750](https://github.com/vendurehq/vendure/issues/4750)
+* **dashboard** Fix relational custom field not saving on draft order (#4407) ([a58e11c](https://github.com/vendurehq/vendure/commit/a58e11c)), closes [#4407](https://github.com/vendurehq/vendure/issues/4407)
+* **dashboard** Fix tiptap toolbar not reacting to state changes (#4705) ([e373b37](https://github.com/vendurehq/vendure/commit/e373b37)), closes [#4705](https://github.com/vendurehq/vendure/issues/4705)
+* **dashboard** Forward onFocus and onKeyDown in AffixedInput (#4759) ([7b05f36](https://github.com/vendurehq/vendure/commit/7b05f36)), closes [#4759](https://github.com/vendurehq/vendure/issues/4759)
+* **dashboard** Make AlertsProvider react to extensions registered after mount (#4747) ([c5f8f66](https://github.com/vendurehq/vendure/commit/c5f8f66)), closes [#4747](https://github.com/vendurehq/vendure/issues/4747)
+* **dashboard** Multi-field administrator search and empty seller subtitle ([c0888dd](https://github.com/vendurehq/vendure/commit/c0888dd)), closes [#4778](https://github.com/vendurehq/vendure/issues/4778)
+* **dashboard** Normalize .po glob patterns on Windows (#4751) ([db9f237](https://github.com/vendurehq/vendure/commit/db9f237)), closes [#4751](https://github.com/vendurehq/vendure/issues/4751)
+* **dashboard** Preserve column visibility and fix Dialog title context (#4739) ([78acd02](https://github.com/vendurehq/vendure/commit/78acd02)), closes [#4739](https://github.com/vendurehq/vendure/issues/4739)
+* **dashboard** Prevent struct custom field overflow (#4781) ([d232e25](https://github.com/vendurehq/vendure/commit/d232e25)), closes [#4781](https://github.com/vendurehq/vendure/issues/4781)
+* **dashboard** Reduce layout shift and flicker from remote data (#4707) ([b25153e](https://github.com/vendurehq/vendure/commit/b25153e)), closes [#4707](https://github.com/vendurehq/vendure/issues/4707)
+* **dashboard** Remove non permitted customfield from mutation before submit (#4431) ([5f31e0b](https://github.com/vendurehq/vendure/commit/5f31e0b)), closes [#4431](https://github.com/vendurehq/vendure/issues/4431)
+* **dashboard** Resolve logout stuck in verifying state on failure (#4757) ([d5e4c30](https://github.com/vendurehq/vendure/commit/d5e4c30)), closes [#4757](https://github.com/vendurehq/vendure/issues/4757)
+* **dashboard** Skip rate limit for static assets and add long-lived cache (#4709) ([563e6b3](https://github.com/vendurehq/vendure/commit/563e6b3)), closes [#4709](https://github.com/vendurehq/vendure/issues/4709)
+* **dashboard** Stop logging "Uncompiled message detected" warnings (#4745) ([84d8663](https://github.com/vendurehq/vendure/commit/84d8663)), closes [#4745](https://github.com/vendurehq/vendure/issues/4745)
+* **dashboard** Filter + master toggle on variant generation table (#4752) ([6087385](https://github.com/vendurehq/vendure/commit/6087385)), closes [#4752](https://github.com/vendurehq/vendure/issues/4752)
+
+#### Perf
+
+* **core** Fix findByCustomerId causing n+1 on productVariant relations (#4653) ([b4af4fc](https://github.com/vendurehq/vendure/commit/b4af4fc)), closes [#4653](https://github.com/vendurehq/vendure/issues/4653)
+* **dashboard** Reduce heavy relation query (#4743) ([c66babf](https://github.com/vendurehq/vendure/commit/c66babf)), closes [#4743](https://github.com/vendurehq/vendure/issues/4743)
+
+Note: This release reverts a change to the `graphql` dependency of all Vendure Core packages that was introduced in v3.6.3,
+which caused compatibility issues in certain repos. If you had to work around this in the last version, you should be able
+to remove the workaround now. See [#4716](https://github.com/vendurehq/vendure/issues/4716).
+
+## <small>3.6.3 (2026-05-05)</small>
+
+
+#### Fixes
+
+* **admin-ui** Handle tokenMethod array form when generating ui-config (#4656) (#4663) ([a8ea074](https://github.com/vendurehq/vendure/commit/a8ea074)), closes [#4656](https://github.com/vendurehq/vendure/issues/4656) [#4663](https://github.com/vendurehq/vendure/issues/4663)
+* **core** Avoid OOM in product-to-channel assign/remove via query relation strategy (#4669) ([801d9c0](https://github.com/vendurehq/vendure/commit/801d9c0)), closes [#4669](https://github.com/vendurehq/vendure/issues/4669)
+* **core** Create job queues in onModuleInit instead of onApplicationBootstrap (#4680) ([bc72b22](https://github.com/vendurehq/vendure/commit/bc72b22)), closes [#4680](https://github.com/vendurehq/vendure/issues/4680)
+* **core** Enforce usage limits for auto-applied promotions (#4405) ([3ec7ee3](https://github.com/vendurehq/vendure/commit/3ec7ee3)), closes [#4405](https://github.com/vendurehq/vendure/issues/4405)
+* **core** Fix Asset update when custom field relations defined (#4696) ([db6d327](https://github.com/vendurehq/vendure/commit/db6d327)), closes [#4696](https://github.com/vendurehq/vendure/issues/4696)
+* **core** Handle undefined relation in entity hydrator (#4672) ([20876e1](https://github.com/vendurehq/vendure/commit/20876e1)), closes [#4672](https://github.com/vendurehq/vendure/issues/4672)
+* **core** Make state-machine transitions atomic on hook failure (#4689) ([0153518](https://github.com/vendurehq/vendure/commit/0153518)), closes [#4689](https://github.com/vendurehq/vendure/issues/4689)
+* **core** Prevent coupon usage limit bypass via concurrent checkout race condition (#4660) ([b276364](https://github.com/vendurehq/vendure/commit/b276364)), closes [#4660](https://github.com/vendurehq/vendure/issues/4660)
+* **core** Prevent duplicate execution of fast scheduled tasks (#4681) ([8f9a98e](https://github.com/vendurehq/vendure/commit/8f9a98e)), closes [#4681](https://github.com/vendurehq/vendure/issues/4681)
+* **core** Resolve customer user via relation instead of email lookup (#4468) ([aeb692b](https://github.com/vendurehq/vendure/commit/aeb692b)), closes [#4468](https://github.com/vendurehq/vendure/issues/4468)
+* **dashboard** Add dynamic y axis width to chart widget (#4516) ([8b4446b](https://github.com/vendurehq/vendure/commit/8b4446b)), closes [#4516](https://github.com/vendurehq/vendure/issues/4516)
+* **dashboard** Add error messages to update draft order mutations (#4381) ([7eeacd7](https://github.com/vendurehq/vendure/commit/7eeacd7)), closes [#4381](https://github.com/vendurehq/vendure/issues/4381)
+* **dashboard** Add missing include nested fragments in order modification preview (#4640) ([5047ef8](https://github.com/vendurehq/vendure/commit/5047ef8)), closes [#4640](https://github.com/vendurehq/vendure/issues/4640)
+* **dashboard** Add missing Italian translations (#4645) ([8bd2a1f](https://github.com/vendurehq/vendure/commit/8bd2a1f)), closes [#4645](https://github.com/vendurehq/vendure/issues/4645)
+* **dashboard** Check required permissions when rendering custom page (#4679) ([600c0df](https://github.com/vendurehq/vendure/commit/600c0df)), closes [#4679](https://github.com/vendurehq/vendure/issues/4679)
+* **dashboard** correct mistranslated Swedish strings in sv.po (#4684) ([ebef82e](https://github.com/vendurehq/vendure/commit/ebef82e)), closes [#4684](https://github.com/vendurehq/vendure/issues/4684)
+* **dashboard** Drop direct @base-ui/react imports (#4697) ([3f253d3](https://github.com/vendurehq/vendure/commit/3f253d3)), closes [#4697](https://github.com/vendurehq/vendure/issues/4697)
+* **dashboard** Ensure fulfillment arg default value is a string (#4658) ([3ffaf88](https://github.com/vendurehq/vendure/commit/3ffaf88)), closes [#4658](https://github.com/vendurehq/vendure/issues/4658)
+* **dashboard** Fall back to original block on denied replace extension (#4694) ([31bc0ff](https://github.com/vendurehq/vendure/commit/31bc0ff)), closes [#4694](https://github.com/vendurehq/vendure/issues/4694)
+* **dashboard** Fix saving asset when custom fields are defined (#4695) ([a5576b2](https://github.com/vendurehq/vendure/commit/a5576b2)), closes [#4695](https://github.com/vendurehq/vendure/issues/4695)
+* **dashboard** Handle empty customFields selection (#4652) ([c2574d1](https://github.com/vendurehq/vendure/commit/c2574d1)), closes [#4652](https://github.com/vendurehq/vendure/issues/4652)
+* **dashboard** Implement `isFullWidth` metadata prop (#4638) ([7682dee](https://github.com/vendurehq/vendure/commit/7682dee)), closes [#4638](https://github.com/vendurehq/vendure/issues/4638)
+* **dashboard** Inline route literal for tanstack router-generator (#4666) ([78c5d9c](https://github.com/vendurehq/vendure/commit/78c5d9c)), closes [#4666](https://github.com/vendurehq/vendure/issues/4666)
+* **dashboard** Repair wrong-language msgstrs across hr/nb/tr/it/ja/ko/he/ro and harden i18n:apply (#4685) ([59612c1](https://github.com/vendurehq/vendure/commit/59612c1)), closes [#4685](https://github.com/vendurehq/vendure/issues/4685)
+* **dashboard** Set default sort on promotions list (#4688) ([a07e967](https://github.com/vendurehq/vendure/commit/a07e967)), closes [#4688](https://github.com/vendurehq/vendure/issues/4688)
+* **dashboard** Support action bar positioning relative to extensions (#4676) ([2672fe2](https://github.com/vendurehq/vendure/commit/2672fe2)), closes [#4676](https://github.com/vendurehq/vendure/issues/4676)
+* **job-queue-plugin** Fix filtering in BullMQJobQueuePlugin (#4523) ([86d2a52](https://github.com/vendurehq/vendure/commit/86d2a52)), closes [#4523](https://github.com/vendurehq/vendure/issues/4523)
+
+#### Features
+
+* **dashboard** Add bulk cancel action and human-readable duration t… (#4361) ([a3f5a92](https://github.com/vendurehq/vendure/commit/a3f5a92)), closes [#4361](https://github.com/vendurehq/vendure/issues/4361)
+* **dashboard** Add Romanian translations (#4598) ([88467a2](https://github.com/vendurehq/vendure/commit/88467a2)), closes [#4598](https://github.com/vendurehq/vendure/issues/4598)
+
 ## <small>3.6.2 (2026-04-13)</small>
 
 
 #### Fixes
 
+* **core** Fix SQL injection via languageCode query parameter (3ff0bc1)
+* **core** Sanitize search term for Postgres tsquery syntax (32c947d)
 * **core** Fix free shipping tax calculation (#4624) ([3e4fa43](https://github.com/vendurehq/vendure/commit/3e4fa43)), closes [#4624](https://github.com/vendurehq/vendure/issues/4624)
 
 ## <small>3.6.1 (2026-04-09)</small>

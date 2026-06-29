@@ -6,19 +6,34 @@ order: 3
 ---
 
 [Docker](https://docs.docker.com/) is a technology which allows you to run your Vendure application inside a [container](https://docs.docker.com/get-started/#what-is-a-container).
-The default installation with `@vendure/create` includes a sample Dockerfile:
+The default installation with `@vendure/create` includes a sample Dockerfile. For production, a multi-stage Dockerfile keeps build-time dependencies out of the final image:
 
 ```dockerfile title="Dockerfile"
-FROM node:22
+FROM node:22-bookworm-slim AS builder
 
 WORKDIR /usr/src/app
 
-COPY package.json ./
-COPY package-lock.json ./ 
-RUN npm install --production
+COPY package*.json ./
+RUN npm ci
 COPY . .
 RUN npm run build
+RUN npm run build:dashboard
+RUN npm prune --omit=dev
+
+FROM node:22-bookworm-slim AS runtime
+
+WORKDIR /usr/src/app
+ENV NODE_ENV=production
+
+COPY --from=builder /usr/src/app/package*.json ./
+COPY --from=builder /usr/src/app/node_modules ./node_modules
+COPY --from=builder /usr/src/app/dist ./dist
+COPY --from=builder /usr/src/app/static ./static
+
+CMD ["npm", "run", "start:server"]
 ```
+
+New projects created with `@vendure/create` include the `build:dashboard` script. If your project does not use the Dashboard, remove the `RUN npm run build:dashboard` line.
 
 This Dockerfile can then be built into an "image" using:
 
@@ -33,7 +48,7 @@ This same image can be used to run both the Vendure server and the worker:
 docker run -dp 3000:3000 --name vendure-server vendure npm run start:server
 
 # Run the worker
-docker run -dp 3000:3000 --name vendure-worker vendure npm run start:worker
+docker run -d --name vendure-worker vendure npm run start:worker
 ```
 
 Here is a breakdown of the command used above:
@@ -43,6 +58,8 @@ Here is a breakdown of the command used above:
 - `--name vendure-server` - we give the container a human-readable name.
 - `vendure` - we are referencing the tag we set up during the build.
 - `npm run start:server` - this last part is the actual command that should be run inside the container.
+
+The worker command does not publish port 3000 because the worker does not serve the Vendure API. If you enable the worker health check server, publish that health check port instead.
 
 ## Docker Compose
 
@@ -59,42 +76,51 @@ services:
     ports:
       - 3000:3000
     command: ["npm", "run", "start:server"]
-    volumes:
-      - /usr/src/app
+    depends_on:
+      - database
     environment:
       DB_HOST: database
       DB_PORT: 5432
       DB_NAME: vendure
       DB_USERNAME: postgres
       DB_PASSWORD: password
+      COOKIE_SECRET: change-me
+      SUPERADMIN_USERNAME: superadmin
+      SUPERADMIN_PASSWORD: change-me
   worker:
     build:
       context: .
       dockerfile: Dockerfile
     command: ["npm", "run", "start:worker"]
-    volumes:
-      - /usr/src/app
+    depends_on:
+      - database
     environment:
       DB_HOST: database
       DB_PORT: 5432
       DB_NAME: vendure
       DB_USERNAME: postgres
       DB_PASSWORD: password
+      COOKIE_SECRET: change-me
+      SUPERADMIN_USERNAME: superadmin
+      SUPERADMIN_PASSWORD: change-me
   database:
     image: postgres
     volumes:
-      - /var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     ports:
       - 5432:5432
     environment:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: vendure
+
+volumes:
+  postgres_data:
 ```
 
 ## Kubernetes
 
 [Kubernetes](https://kubernetes.io/) is used to manage multiple containerized applications. 
-This deployment starts the shop container we created above as both worker and server.
+This deployment starts the Vendure image we created above as both worker and server.
 
 ```yaml
 apiVersion: apps/v1
@@ -119,7 +145,7 @@ spec:
           args:
             - "dist/index.js"
           env:
-          # your env config here
+            # your env config here
           ports:
             - containerPort: 3000
 
@@ -131,9 +157,7 @@ spec:
           args:
             - "dist/index-worker.js"
           env:
-          # your env config here
-          ports:
-            - containerPort: 3000
+            # your env config here
 ```
 
 ## Health/Readiness Checks

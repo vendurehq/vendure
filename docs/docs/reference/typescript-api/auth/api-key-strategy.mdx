@@ -2,6 +2,8 @@
 title: "ApiKeyStrategy"
 generated: true
 ---
+## ApiKeyStrategy
+
 <GenerationInfo sourceFile="packages/core/src/config/api-key-strategy/api-key-strategy.ts" sourceLine="54" packageName="@vendure/core" since="3.6.0" />
 
 Defines a custom strategy for how API-Keys get handled.
@@ -122,6 +124,8 @@ If passed as a number should represent milliseconds and if passed as a string de
 
 
 </div>
+## BaseApiKeyStrategy
+
 <GenerationInfo sourceFile="packages/core/src/config/api-key-strategy/api-key-strategy.ts" sourceLine="175" packageName="@vendure/core" />
 
 Intended to be extended by consumers of the [ApiKeyStrategy](/reference/typescript-api/auth/api-key-strategy#apikeystrategy) if they do not
@@ -183,6 +187,8 @@ class BaseApiKeyStrategy implements ApiKeyStrategy {
 
 
 </div>
+## RandomBytesApiKeyStrategy
+
 <GenerationInfo sourceFile="packages/core/src/config/api-key-strategy/random-bytes-api-key-strategy.ts" sourceLine="80" packageName="@vendure/core" since="3.6.0" />
 
 A generation strategy that uses `node:crypto` to generate random hex strings for API-Keys via `randomBytes`.
@@ -224,11 +230,6 @@ class RandomBytesApiKeyStrategy extends BaseApiKeyStrategy {
 ### hashingStrategy
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/auth/password-hashing-strategy#passwordhashingstrategy'>PasswordHashingStrategy</a>`}   />
-
-
-### constructor
-
-<MemberInfo kind="method" type={`(input?: RandomBytesApiKeyStrategyOptions) => RandomBytesApiKeyStrategy`}   />
 
 
 ### generateSecret

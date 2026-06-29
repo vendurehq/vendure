@@ -2,6 +2,8 @@
 title: "UiDevkitClient"
 generated: true
 ---
+## setTargetOrigin
+
 <GenerationInfo sourceFile="packages/ui-devkit/src/client/devkit-client-api.ts" sourceLine="24" packageName="@vendure/ui-devkit" />
 
 Set the [window.postMessage API](https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage)
@@ -17,6 +19,8 @@ Parameters
 ### value
 
 <MemberInfo kind="parameter" type={`string`} />
+
+## getActivatedRoute
 
 <GenerationInfo sourceFile="packages/ui-devkit/src/client/devkit-client-api.ts" sourceLine="43" packageName="@vendure/ui-devkit" />
 
@@ -35,6 +39,8 @@ const slug = route.params.slug;
 ```ts title="Signature"
 function getActivatedRoute(): Promise<ActiveRouteData>
 ```
+## graphQlQuery
+
 <GenerationInfo sourceFile="packages/ui-devkit/src/client/devkit-client-api.ts" sourceLine="70" packageName="@vendure/ui-devkit" />
 
 Perform a GraphQL query and returns either an Observable or a Promise of the result.
@@ -76,6 +82,8 @@ Parameters
 
 <MemberInfo kind="parameter" type={`WatchQueryFetchPolicy`} />
 
+## graphQlMutation
+
 <GenerationInfo sourceFile="packages/ui-devkit/src/client/devkit-client-api.ts" sourceLine="112" packageName="@vendure/ui-devkit" />
 
 Perform a GraphQL mutation and returns either an Observable or a Promise of the result.
@@ -112,6 +120,8 @@ Parameters
 ### variables
 
 <MemberInfo kind="parameter" type={`{ [key: string]: any }`} />
+
+## notify
 
 <GenerationInfo sourceFile="packages/ui-devkit/src/client/devkit-client-api.ts" sourceLine="147" packageName="@vendure/ui-devkit" />
 

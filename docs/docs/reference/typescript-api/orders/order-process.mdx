@@ -2,6 +2,8 @@
 title: "OrderProcess"
 generated: true
 ---
+## OrderProcess
+
 <GenerationInfo sourceFile="packages/core/src/config/order/order-process.ts" sourceLine="35" packageName="@vendure/core" />
 
 An OrderProcess is used to define the way the order process works as in: what states an Order can be
@@ -55,6 +57,8 @@ interface OrderProcess<State extends keyof CustomOrderStates | string> extends I
 
 
 </div>
+## DefaultOrderProcessOptions
+
 <GenerationInfo sourceFile="packages/core/src/config/order/default-order-process.ts" sourceLine="50" packageName="@vendure/core" since="2.0.0" />
 
 Options which can be passed to the [configureDefaultOrderProcess](/reference/typescript-api/orders/order-process#configuredefaultorderprocess) function
@@ -142,6 +146,8 @@ the Order are part of a Fulfillment which itself is in the `Shipped` state.
 
 
 </div>
+## configureDefaultOrderProcess
+
 <GenerationInfo sourceFile="packages/core/src/config/order/default-order-process.ts" sourceLine="163" packageName="@vendure/core" since="2.0.0" />
 
 Used to configure a customized instance of the default [OrderProcess](/reference/typescript-api/orders/order-process#orderprocess) that ships with Vendure.
@@ -175,11 +181,15 @@ Parameters
 
 <MemberInfo kind="parameter" type={`<a href='/reference/typescript-api/orders/order-process#defaultorderprocessoptions'>DefaultOrderProcessOptions</a>`} />
 
+## defaultOrderProcess
+
 <GenerationInfo sourceFile="packages/core/src/config/order/default-order-process.ts" sourceLine="475" packageName="@vendure/core" since="2.0.0" />
 
 This is the built-in [OrderProcess](/reference/typescript-api/orders/order-process#orderprocess) that ships with Vendure. A customized version of this process
 can be created using the [configureDefaultOrderProcess](/reference/typescript-api/orders/order-process#configuredefaultorderprocess) function, which allows you to pass in an object
 to enable/disable certain checks.
+
+## OrderStates
 
 <GenerationInfo sourceFile="packages/core/src/service/helpers/order-state-machine/order-state.ts" sourceLine="21" packageName="@vendure/core" since="2.0.0" />
 
@@ -190,6 +200,8 @@ interface OrderStates {
 
 }
 ```
+## OrderState
+
 <GenerationInfo sourceFile="packages/core/src/service/helpers/order-state-machine/order-state.ts" sourceLine="42" packageName="@vendure/core" />
 
 These are the default states of the Order process. They can be augmented and
@@ -214,6 +226,8 @@ type OrderState = | 'Created'
     | keyof CustomOrderStates
     | keyof OrderStates
 ```
+## OrderTransitionData
+
 <GenerationInfo sourceFile="packages/core/src/service/helpers/order-state-machine/order-state.ts" sourceLine="57" packageName="@vendure/core" />
 
 This is the object passed to the [OrderProcess](/reference/typescript-api/orders/order-process#orderprocess) state transition hooks.

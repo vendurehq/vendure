@@ -1,6 +1,10 @@
 import { Toaster } from '@/vdb/components/ui/sonner.js';
+import { Spinner } from '@/vdb/components/ui/spinner.js';
 import { registerDefaults } from '@/vdb/framework/defaults.js';
-import { setCustomFieldsMap } from '@/vdb/framework/document-introspection/add-custom-fields.js';
+import {
+    clearCustomFieldsMap,
+    setCustomFieldsMap,
+} from '@/vdb/framework/document-introspection/add-custom-fields.js';
 import { executeDashboardExtensionCallbacks } from '@/vdb/framework/extension-api/define-dashboard-extension.js';
 import { useDashboardExtensions } from '@/vdb/framework/extension-api/use-dashboard-extensions.js';
 import { useExtendedRouter } from '@/vdb/framework/page/use-extended-router.js';
@@ -34,6 +38,20 @@ const routerOptions: RouterOptions<AnyRoute, any> = {
     defaultPreload: 'intent' as const,
     scrollRestoration: true,
     basepath: processedBaseUrl,
+    // Wait a short moment before showing the pending UI on navigation, so
+    // fast transitions (cached / preloaded routes) don't flash a spinner.
+    // After 200ms the route hasn't resolved → show a non-jumpy fallback.
+    defaultPendingMs: 200,
+    defaultPendingMinMs: 300,
+    defaultPendingComponent: () => (
+        <div
+            className="flex items-center justify-center w-full text-muted-foreground"
+            style={{ minHeight: '60vh' }}
+            aria-busy="true"
+        >
+            <Spinner />
+        </div>
+    ),
     context: {
         /* eslint-disable @typescript-eslint/no-non-null-assertion */
         auth: undefined!, // This will be set after we wrap the app in an AuthProvider
@@ -73,25 +91,47 @@ function InnerApp() {
 
     useEffect(() => {
         if (!serverConfig) {
+            // serverConfig clears on logout. Reset the global map and the
+            // local flag so a subsequent login as a different administrator
+            // re-derives queries against fresh custom-field config rather
+            // than reusing the previous user's map.
+            clearCustomFieldsMap();
+            setHasSetCustomFieldsMap(false);
             return;
         }
         setCustomFieldsMap(serverConfig.entityCustomFields);
         setHasSetCustomFieldsMap(true);
-    }, [serverConfig?.entityCustomFields.length]);
+    }, [serverConfig]);
 
     useEffect(() => {
         setDocumentDirection(isRTL ? 'rtl' : 'ltr');
     }, [isRTL]);
 
+    const isReady = hasSetCustomFieldsMap || auth.status === 'unauthenticated';
     return (
         <>
             <DirectionProvider direction={isRTL ? 'rtl' : 'ltr'}>
-                {(hasSetCustomFieldsMap || auth.status === 'unauthenticated') && (
+                {isReady ? (
                     <RouterProvider router={router} context={{ auth, queryClient }} />
+                ) : (
+                    <BootSplash />
                 )}
                 {settings.devMode ? <ReactQueryDevtools /> : null}
             </DirectionProvider>
         </>
+    );
+}
+
+/**
+ * Lightweight full-screen splash shown while auth + server config are still
+ * resolving on cold load. Without this we render an empty document, which
+ * makes the dashboard feel laggy on first paint.
+ */
+function BootSplash() {
+    return (
+        <div className="fixed inset-0 flex items-center justify-center bg-background">
+            <Spinner className="text-muted-foreground" />
+        </div>
     );
 }
 
@@ -112,14 +152,17 @@ function App() {
         }
     }, [extensionsLoaded]);
 
+    if (!i18nLoaded || !extensionsLoaded) {
+        // Show a minimal full-screen splash so the user sees that the app is
+        // loading rather than a white screen while i18n catalogs and dashboard
+        // extensions resolve.
+        return <BootSplash />;
+    }
     return (
-        i18nLoaded &&
-        extensionsLoaded && (
-            <AppProviders>
-                <InnerApp />
-                {createPortal(<Toaster />, document.body)}
-            </AppProviders>
-        )
+        <AppProviders>
+            <InnerApp />
+            {createPortal(<Toaster />, document.body)}
+        </AppProviders>
     );
 }
 

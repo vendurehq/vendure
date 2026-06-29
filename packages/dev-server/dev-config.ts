@@ -1,8 +1,8 @@
 /* eslint-disable no-console */
+import { OnApplicationBootstrap } from '@nestjs/common';
 import { AdminUiPlugin } from '@vendure/admin-ui-plugin';
 import { AssetServerPlugin } from '@vendure/asset-server-plugin';
 import { ADMIN_API_PATH, API_PORT, SHOP_API_PATH } from '@vendure/common/lib/shared-constants';
-import { OnApplicationBootstrap } from '@nestjs/common';
 import {
     DefaultJobQueuePlugin,
     DefaultLogger,
@@ -25,7 +25,7 @@ import 'dotenv/config';
 import path from 'path';
 import { DataSourceOptions } from 'typeorm';
 import { NavModifierPlugin } from './test-plugins/nav-modifier-plugin/nav-modifier-plugin';
-import { FieldTestPlugin } from './test-plugins/field-test/field-test-plugin';
+// import { FieldTestPlugin } from './test-plugins/field-test/field-test-plugin';
 import { ReviewsPlugin } from './test-plugins/reviews/reviews-plugin';
 
 const IS_INSTRUMENTED = process.env.IS_INSTRUMENTED === 'true';
@@ -64,7 +64,7 @@ class ReadonlySettingsTestPlugin implements OnApplicationBootstrap {
  */
 export const devConfig: VendureConfig = {
     apiOptions: {
-        port: API_PORT,
+        port: Number(process.env.API_PORT) || API_PORT,
         adminApiPath: ADMIN_API_PATH,
         adminApiPlayground: {
             settings: {
@@ -121,7 +121,7 @@ export const devConfig: VendureConfig = {
         // }),
         ReadonlySettingsTestPlugin,
         ReviewsPlugin,
-        FieldTestPlugin,
+        // FieldTestPlugin,
         NavModifierPlugin,
         GraphiqlPlugin.init(),
         AssetServerPlugin.init({

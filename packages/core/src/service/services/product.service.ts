@@ -331,6 +331,8 @@ export class ProductService {
         const productsWithVariants = await this.connection.getRepository(ctx, Product).find({
             where: { id: In(input.productIds) },
             relations: ['variants', 'assets', 'optionGroups', 'optionGroups.options'],
+            relationLoadStrategy: 'query',
+            loadEagerRelations: false,
         });
         const productIds = unique(productsWithVariants.map(p => p.id));
         await Promise.all(
@@ -379,6 +381,8 @@ export class ProductService {
         const productsWithVariants = await this.connection.getRepository(ctx, Product).find({
             where: { id: In(input.productIds) },
             relations: ['variants', 'optionGroups', 'optionGroups.options'],
+            relationLoadStrategy: 'query',
+            loadEagerRelations: false,
         });
         await this.productVariantService.removeProductVariantsFromChannel(ctx, {
             productVariantIds: ([] as ID[]).concat(

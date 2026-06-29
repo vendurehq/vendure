@@ -44,6 +44,14 @@ export interface I18nRequest extends Request {
 @Injectable()
 export class I18nService implements OnModuleInit {
     /**
+     * The set of language codes we have translation resources for. Used as the i18next
+     * `supportedLngs` allow-list. Without this, `i18next-http-middleware` appends every
+     * distinct request language code to `options.preload` forever, which is then re-walked
+     * (via `Intl.getCanonicalLocales`) on every request — degrading performance over time.
+     */
+    private readonly supportedLanguages = new Set<string>();
+
+    /**
      * @internal
      * @param configService
      */
@@ -53,13 +61,17 @@ export class I18nService implements OnModuleInit {
      * @internal
      */
     onModuleInit() {
+        for (const langKey of this.getBundledLanguageCodes()) {
+            this.supportedLanguages.add(langKey);
+        }
         return i18next
             .use(i18nextMiddleware.LanguageDetector)
             .use(Backend as any)
             .use(ICU)
             .init({
                 nsSeparator: false,
-                preload: ['en', 'de', 'ru', 'uk', 'fr'],
+                preload: Array.from(this.supportedLanguages),
+                supportedLngs: Array.from(this.supportedLanguages),
                 fallbackLng: 'en',
                 detection: {
                     lookupQuerystring: 'languageCode',
@@ -69,6 +81,48 @@ export class I18nService implements OnModuleInit {
                     jsonIndent: 2,
                 },
             });
+    }
+
+    /**
+     * Reads the language codes for which we ship message files, derived from the filenames
+     * in the `messages` directory (e.g. `en.json` -> `en`, `pt_BR.json` -> `pt_BR`). Falls
+     * back to a static list if the directory cannot be read.
+     */
+    private getBundledLanguageCodes(): string[] {
+        const fallback = ['en', 'de', 'es', 'fr', 'pt_BR', 'pt_PT', 'ru', 'uk'];
+        try {
+            const messagesDir = path.join(__dirname, 'messages');
+            const codes = fs
+                .readdirSync(messagesDir)
+                .filter(file => file.endsWith('.json'))
+                .map(file => path.basename(file, '.json'));
+            return codes.length ? codes : fallback;
+        } catch (e: any) {
+            Logger.warn(
+                `Could not read i18n messages directory, falling back to default language list: ${e.message as string}`,
+                'I18nService',
+            );
+            return fallback;
+        }
+    }
+
+    /**
+     * Registers a language code as supported, extending the i18next `supportedLngs` allow-list
+     * at runtime. Needed because plugins may add translations for new languages after init via
+     * {@link addTranslation}. `supportedLngs` is cached inside i18next's `languageUtils` at init
+     * time, so both the cached copy and `options` must be updated for the change to take effect.
+     */
+    private registerSupportedLanguage(langKey: string): void {
+        if (this.supportedLanguages.has(langKey)) {
+            return;
+        }
+        this.supportedLanguages.add(langKey);
+        const supportedLngs = [...this.supportedLanguages, 'cimode'];
+        i18next.options.supportedLngs = supportedLngs;
+        const languageUtils = (i18next as any).services?.languageUtils;
+        if (languageUtils) {
+            languageUtils.supportedLngs = supportedLngs;
+        }
     }
 
     /**
@@ -105,6 +159,7 @@ export class I18nService implements OnModuleInit {
      * @param resources key-value translations
      */
     addTranslation(langKey: string, resources: VendureTranslationResources | any): void {
+        this.registerSupportedLanguage(langKey);
         i18next.addResourceBundle(langKey, 'translation', resources, true, true);
     }
 

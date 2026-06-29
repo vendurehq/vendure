@@ -67,7 +67,7 @@ const config: VendureConfig = {
 
 ## Development
 
-Run `npx vite` to start Vite in dev mode.
+Run `bunx vite` to start Vite in dev mode.
 
 ### Note on internal `@/vdb` imports
 
@@ -109,7 +109,7 @@ when developing dashboard extensions.
 
 ## Testing
 
-Run `npm run test` to run unit tests once, or `npx vitest` to run them in watch mode.
+Run `bun run test` to run unit tests once, or `bunx vitest` to run them in watch mode.
 
 For E2E (Playwright) tests, see [e2e/README.md](./e2e/README.md).
 

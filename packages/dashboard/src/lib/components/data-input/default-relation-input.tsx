@@ -240,9 +240,7 @@ const createEntityConfigs = (i18n: any) => ({
                         slug
                         isPrivate
                         position
-                        productVariants {
-                            totalItems
-                        }
+                        productVariantCount
                         featuredAsset {
                             id
                             preview
@@ -255,7 +253,7 @@ const createEntityConfigs = (i18n: any) => ({
         label: (item: any) => (
             <EntityLabel
                 title={item.name}
-                subtitle={`${item.slug} • ${item.productVariants?.totalItems || 0} products`}
+                subtitle={`${item.slug} • ${item.productVariantCount || 0} products`}
                 imageUrl={item.featuredAsset?.preview}
                 placeholderLetter="C"
                 statusIndicator={<StatusBadge condition={item.isPrivate} text="Private" />}
@@ -549,6 +547,66 @@ const createEntityConfigs = (i18n: any) => ({
                 />
             );
         },
+    }),
+
+    Administrator: createRelationSelectorConfig({
+        idKey: 'id',
+        labelKey: 'lastName',
+        placeholder: i18n`Search administrator...`,
+        // Match the search term against any of the name/email fields independently
+        buildSearchFilter: (term: string) => ({
+            _or: [
+                { firstName: { contains: term } },
+                { lastName: { contains: term } },
+                { emailAddress: { contains: term } },
+            ],
+        }),
+        listQuery: graphql(`
+            query GetAdministratorsForRelationSelector($options: AdministratorListOptions) {
+                administrators(options: $options) {
+                    items {
+                        id
+                        firstName
+                        lastName
+                        emailAddress
+                    }
+                    totalItems
+                }
+            }
+        `),
+        label: (item: any) => (
+            <EntityLabel
+                title={`${item.firstName} ${item.lastName}`}
+                subtitle={item.emailAddress}
+                placeholderLetter={item.firstName?.[0]?.toUpperCase() || 'A'}
+                rounded
+                tooltipText={`${item.firstName} ${item.lastName} (${item.emailAddress})`}
+            />
+        ),
+    }),
+
+    Seller: createRelationSelectorConfig({
+        ...createBaseEntityConfig('Seller', i18n),
+        listQuery: graphql(`
+            query GetSellersForRelationSelector($options: SellerListOptions) {
+                sellers(options: $options) {
+                    items {
+                        id
+                        name
+                    }
+                    totalItems
+                }
+            }
+        `),
+        label: (item: any) => (
+            <EntityLabel
+                title={item.name}
+                subtitle={''}
+                placeholderLetter={item.name?.[0]?.toUpperCase() || 'S'}
+                rounded
+                tooltipText={item.name}
+            />
+        ),
     }),
 });
 

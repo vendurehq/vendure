@@ -2,6 +2,8 @@
 title: "Event Types"
 generated: true
 ---
+## AccountRegistrationEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/account-registration-event.ts" sourceLine="13" packageName="@vendure/core" />
 
 This event is fired when a new user registers an account, either as a stand-alone signup or after
@@ -18,14 +20,11 @@ class AccountRegistrationEvent extends VendureEvent {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, user: <a href='/reference/typescript-api/entities/user#user'>User</a>) => AccountRegistrationEvent`}   />
-
-
 
 
 </div>
+## AccountVerifiedEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/account-verified-event.ts" sourceLine="13" packageName="@vendure/core" />
 
 This event is fired when a users email address successfully gets verified after
@@ -42,14 +41,11 @@ class AccountVerifiedEvent extends VendureEvent {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, customer: <a href='/reference/typescript-api/entities/customer#customer'>Customer</a>) => AccountVerifiedEvent`}   />
-
-
 
 
 </div>
+## AdministratorEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/administrator-event.ts" sourceLine="18" packageName="@vendure/core" since="1.4" />
 
 This event is fired whenever a [Administrator](/reference/typescript-api/entities/administrator#administrator) is added, updated or deleted.
@@ -65,14 +61,11 @@ class AdministratorEvent extends VendureEntityEvent<Administrator, Administrator
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: <a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>, type: 'created' | 'updated' | 'deleted', input?: AdministratorInputTypes) => AdministratorEvent`}   />
-
-
 
 
 </div>
+## ApiKeyEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/api-key-event.ts" sourceLine="18" packageName="@vendure/core" since="3.6.0" />
 
 This event is fired whenever a [ApiKey](/reference/typescript-api/entities/api-key#apikey) is added, updated or deleted.
@@ -88,14 +81,11 @@ class ApiKeyEvent extends VendureEntityEvent<ApiKey, ApiKeyInputTypes> {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: <a href='/reference/typescript-api/entities/api-key#apikey'>ApiKey</a>, type: 'created' | 'updated' | 'deleted', input?: ApiKeyInputTypes) => ApiKeyEvent`}   />
-
-
 
 
 </div>
+## AssetChannelEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/asset-channel-event.ts" sourceLine="15" packageName="@vendure/core" />
 
 This event is fired whenever an [Asset](/reference/typescript-api/entities/asset#asset) is assigned or removed
@@ -112,14 +102,11 @@ class AssetChannelEvent extends VendureEvent {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, asset: <a href='/reference/typescript-api/entities/asset#asset'>Asset</a>, channelId: <a href='/reference/typescript-api/common/id#id'>ID</a>, type: 'assigned' | 'removed') => AssetChannelEvent`}   />
-
-
 
 
 </div>
+## AssetEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/asset-event.ts" sourceLine="18" packageName="@vendure/core" since="1.4" />
 
 This event is fired whenever a [Asset](/reference/typescript-api/entities/asset#asset) is added, updated or deleted.
@@ -136,11 +123,6 @@ class AssetEvent extends VendureEntityEvent<Asset, AssetInputTypes> {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: <a href='/reference/typescript-api/entities/asset#asset'>Asset</a>, type: 'created' | 'updated' | 'deleted', input?: AssetInputTypes) => AssetEvent`}   />
-
-
 ### asset
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/asset#asset'>Asset</a>`}  since="1.4"  />
@@ -149,6 +131,8 @@ class AssetEvent extends VendureEntityEvent<Asset, AssetInputTypes> {
 
 
 </div>
+## AttemptedLoginEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/attempted-login-event.ts" sourceLine="14" packageName="@vendure/core" />
 
 This event is fired when an attempt is made to log in via the shop or admin API `login` mutation.
@@ -166,14 +150,11 @@ class AttemptedLoginEvent extends VendureEvent {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, strategy: string, identifier?: string) => AttemptedLoginEvent`}   />
-
-
 
 
 </div>
+## BootstrappedEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/bootstrapped-event.ts" sourceLine="16" packageName="@vendure/core" since="3.5.6" />
 
 This event is fired when vendure finished bootstrapping.
@@ -194,14 +175,11 @@ class BootstrappedEvent extends VendureEvent {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`() => BootstrappedEvent`}   />
-
-
 
 
 </div>
+## ChangeChannelEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/change-channel-event.ts" sourceLine="17" packageName="@vendure/core" since="1.4" />
 
 This event is fired whenever an [ChannelAware](/reference/typescript-api/entities/interfaces#channelaware) entity is assigned or removed
@@ -218,14 +196,11 @@ class ChangeChannelEvent<T extends ChannelAware & VendureEntity> extends Vendure
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: T, channelIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[], type: 'assigned' | 'removed', entityType?: Type<T>) => ChangeChannelEvent`}   />
-
-
 
 
 </div>
+## ChannelEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/channel-event.ts" sourceLine="18" packageName="@vendure/core" since="1.4" />
 
 This event is fired whenever a [Channel](/reference/typescript-api/entities/channel#channel) is added, updated or deleted.
@@ -241,14 +216,11 @@ class ChannelEvent extends VendureEntityEvent<Channel, ChannelInputTypes> {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: <a href='/reference/typescript-api/entities/channel#channel'>Channel</a>, type: 'created' | 'updated' | 'deleted', input?: ChannelInputTypes) => ChannelEvent`}   />
-
-
 
 
 </div>
+## CollectionEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/collection-event.ts" sourceLine="18" packageName="@vendure/core" since="1.4" />
 
 This event is fired whenever a [Collection](/reference/typescript-api/entities/collection#collection) is added, updated or deleted.
@@ -264,14 +236,11 @@ class CollectionEvent extends VendureEntityEvent<Collection, CollectionInputType
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: <a href='/reference/typescript-api/entities/collection#collection'>Collection</a>, type: 'created' | 'updated' | 'deleted', input?: CollectionInputTypes) => CollectionEvent`}   />
-
-
 
 
 </div>
+## CollectionModificationEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/collection-modification-event.ts" sourceLine="18" packageName="@vendure/core" />
 
 This event is fired whenever a Collection is modified in some way. The `productVariantIds`
@@ -291,14 +260,11 @@ class CollectionModificationEvent extends VendureEvent {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, collection: <a href='/reference/typescript-api/entities/collection#collection'>Collection</a>, productVariantIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[]) => CollectionModificationEvent`}   />
-
-
 
 
 </div>
+## CountryEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/country-event.ts" sourceLine="18" packageName="@vendure/core" since="1.4" />
 
 This event is fired whenever a [Country](/reference/typescript-api/entities/country#country) is added, updated or deleted.
@@ -314,14 +280,11 @@ class CountryEvent extends VendureEntityEvent<Country, CountryInputTypes> {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: <a href='/reference/typescript-api/entities/country#country'>Country</a>, type: 'created' | 'updated' | 'deleted', input?: CountryInputTypes) => CountryEvent`}   />
-
-
 
 
 </div>
+## CouponCodeEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/coupon-code-event.ts" sourceLine="15" packageName="@vendure/core" since="1.4" />
 
 This event is fired whenever an coupon code of an active [Promotion](/reference/typescript-api/entities/promotion#promotion)
@@ -338,14 +301,11 @@ class CouponCodeEvent extends VendureEvent {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, couponCode: string, orderId: <a href='/reference/typescript-api/common/id#id'>ID</a>, type: 'assigned' | 'removed') => CouponCodeEvent`}   />
-
-
 
 
 </div>
+## CustomerAddressEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/customer-address-event.ts" sourceLine="22" packageName="@vendure/core" since="1.4" />
 
 This event is fired whenever a [Address](/reference/typescript-api/entities/address#address) is added, updated
@@ -363,11 +323,6 @@ class CustomerAddressEvent extends VendureEntityEvent<Address, CustomerAddressIn
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: <a href='/reference/typescript-api/entities/address#address'>Address</a>, type: 'created' | 'updated' | 'deleted', input?: CustomerAddressInputTypes) => CustomerAddressEvent`}   />
-
-
 ### address
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/address#address'>Address</a>`}   />
@@ -376,6 +331,8 @@ class CustomerAddressEvent extends VendureEntityEvent<Address, CustomerAddressIn
 
 
 </div>
+## CustomerEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/customer-event.ts" sourceLine="22" packageName="@vendure/core" />
 
 This event is fired whenever a [Customer](/reference/typescript-api/entities/customer#customer) is added, updated
@@ -393,11 +350,6 @@ class CustomerEvent extends VendureEntityEvent<Customer, CustomerInputTypes> {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: <a href='/reference/typescript-api/entities/customer#customer'>Customer</a>, type: 'created' | 'updated' | 'deleted', input?: CustomerInputTypes) => CustomerEvent`}   />
-
-
 ### customer
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/customer#customer'>Customer</a>`}  since="1.4"  />
@@ -406,6 +358,8 @@ class CustomerEvent extends VendureEntityEvent<Customer, CustomerInputTypes> {
 
 
 </div>
+## CustomerGroupChangeEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/customer-group-change-event.ts" sourceLine="15" packageName="@vendure/core" since="1.4" />
 
 This event is fired whenever one or more [Customer](/reference/typescript-api/entities/customer#customer) is assigned to or removed from a
@@ -422,14 +376,11 @@ class CustomerGroupChangeEvent extends VendureEvent {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, customers: <a href='/reference/typescript-api/entities/customer#customer'>Customer</a>[], customGroup: <a href='/reference/typescript-api/entities/customer-group#customergroup'>CustomerGroup</a>, type: 'assigned' | 'removed') => CustomerGroupChangeEvent`}   />
-
-
 
 
 </div>
+## CustomerGroupEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/customer-group-event.ts" sourceLine="18" packageName="@vendure/core" since="1.4" />
 
 This event is fired whenever a [CustomerGroup](/reference/typescript-api/entities/customer-group#customergroup) is added, updated or deleted.
@@ -445,14 +396,11 @@ class CustomerGroupEvent extends VendureEntityEvent<CustomerGroup, CustomerGroup
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: <a href='/reference/typescript-api/entities/customer-group#customergroup'>CustomerGroup</a>, type: 'created' | 'updated' | 'deleted', input?: CustomerGroupInputTypes) => CustomerGroupEvent`}   />
-
-
 
 
 </div>
+## FacetEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/facet-event.ts" sourceLine="18" packageName="@vendure/core" since="1.4" />
 
 This event is fired whenever a [Facet](/reference/typescript-api/entities/facet#facet) is added, updated or deleted.
@@ -468,14 +416,11 @@ class FacetEvent extends VendureEntityEvent<Facet, FacetInputTypes> {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: <a href='/reference/typescript-api/entities/facet#facet'>Facet</a>, type: 'created' | 'updated' | 'deleted', input?: FacetInputTypes) => FacetEvent`}   />
-
-
 
 
 </div>
+## FacetValueEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/facet-value-event.ts" sourceLine="26" packageName="@vendure/core" since="1.4" />
 
 This event is fired whenever a [FacetValue](/reference/typescript-api/entities/facet-value#facetvalue) is added, updated or deleted.
@@ -491,14 +436,11 @@ class FacetValueEvent extends VendureEntityEvent<FacetValue, FacetValueInputType
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: <a href='/reference/typescript-api/entities/facet-value#facetvalue'>FacetValue</a>, type: 'created' | 'updated' | 'deleted', input?: FacetValueInputTypes) => FacetValueEvent`}   />
-
-
 
 
 </div>
+## FulfillmentEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/fulfillment-event.ts" sourceLine="27" packageName="@vendure/core" since="1.4" />
 
 This event is fired whenever a [Fulfillment](/reference/typescript-api/entities/fulfillment#fulfillment) is added. The type is always `created`.
@@ -514,14 +456,11 @@ class FulfillmentEvent extends VendureEntityEvent<Fulfillment, CreateFulfillment
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: <a href='/reference/typescript-api/entities/fulfillment#fulfillment'>Fulfillment</a>, input?: CreateFulfillmentInput) => FulfillmentEvent`}   />
-
-
 
 
 </div>
+## FulfillmentStateTransitionEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/fulfillment-state-transition-event.ts" sourceLine="13" packageName="@vendure/core" />
 
 This event is fired whenever an [Fulfillment](/reference/typescript-api/entities/fulfillment#fulfillment) transitions from one [FulfillmentState](/reference/typescript-api/fulfillment/fulfillment-state#fulfillmentstate) to another.
@@ -537,14 +476,11 @@ class FulfillmentStateTransitionEvent extends VendureEvent {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(fromState: <a href='/reference/typescript-api/fulfillment/fulfillment-state#fulfillmentstate'>FulfillmentState</a>, toState: <a href='/reference/typescript-api/fulfillment/fulfillment-state#fulfillmentstate'>FulfillmentState</a>, ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, fulfillment: <a href='/reference/typescript-api/entities/fulfillment#fulfillment'>Fulfillment</a>) => FulfillmentStateTransitionEvent`}   />
-
-
 
 
 </div>
+## GlobalSettingsEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/global-settings-event.ts" sourceLine="16" packageName="@vendure/core" since="1.4" />
 
 This event is fired whenever a [GlobalSettings](/reference/typescript-api/entities/global-settings#globalsettings) is added. The type is always `updated`, because it's
@@ -561,14 +497,11 @@ class GlobalSettingsEvent extends VendureEntityEvent<GlobalSettings, UpdateGloba
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: <a href='/reference/typescript-api/entities/global-settings#globalsettings'>GlobalSettings</a>, input?: UpdateGlobalSettingsInput) => GlobalSettingsEvent`}   />
-
-
 
 
 </div>
+## HistoryEntryEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/history-entry-event.ts" sourceLine="23" packageName="@vendure/core" since="1.4" />
 
 This event is fired whenever one [HistoryEntry](/reference/typescript-api/entities/history-entry#historyentry) is added, updated or deleted.
@@ -590,14 +523,11 @@ class HistoryEntryEvent extends VendureEntityEvent<HistoryEntry, HistoryInput> {
 <MemberInfo kind="property" type={`'order' | 'customer' | string`}   />
 
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: <a href='/reference/typescript-api/entities/history-entry#historyentry'>HistoryEntry</a>, type: 'created' | 'updated' | 'deleted', historyType: 'order' | 'customer' | string, input?: HistoryInput) => HistoryEntryEvent`}   />
-
-
 
 
 </div>
+## IdentifierChangeEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/identifier-change-event.ts" sourceLine="13" packageName="@vendure/core" />
 
 This event is fired when a registered user successfully changes the identifier (ie email address)
@@ -614,14 +544,11 @@ class IdentifierChangeEvent extends VendureEvent {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, user: <a href='/reference/typescript-api/entities/user#user'>User</a>, oldIdentifier: string) => IdentifierChangeEvent`}   />
-
-
 
 
 </div>
+## IdentifierChangeRequestEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/identifier-change-request-event.ts" sourceLine="13" packageName="@vendure/core" />
 
 This event is fired when a registered user requests to update the identifier (ie email address)
@@ -638,14 +565,11 @@ class IdentifierChangeRequestEvent extends VendureEvent {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, user: <a href='/reference/typescript-api/entities/user#user'>User</a>) => IdentifierChangeRequestEvent`}   />
-
-
 
 
 </div>
+## InitializerEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/initializer-event.ts" sourceLine="11" packageName="@vendure/core" since="1.7.0" />
 
 This event is fired when vendure finished initializing its services inside the [InitializerService](/reference/typescript-api/services/initializer-service#initializerservice)
@@ -661,14 +585,11 @@ class InitializerEvent extends VendureEvent {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`() => InitializerEvent`}   />
-
-
 
 
 </div>
+## LoginEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/login-event.ts" sourceLine="12" packageName="@vendure/core" />
 
 This event is fired when a user successfully logs in via the shop or admin API `login` mutation.
@@ -684,14 +605,11 @@ class LoginEvent extends VendureEvent {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, user: <a href='/reference/typescript-api/entities/user#user'>User</a>) => LoginEvent`}   />
-
-
 
 
 </div>
+## LogoutEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/logout-event.ts" sourceLine="12" packageName="@vendure/core" />
 
 This event is fired when a user logs out via the shop or admin API `logout` mutation.
@@ -707,14 +625,11 @@ class LogoutEvent extends VendureEvent {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => LogoutEvent`}   />
-
-
 
 
 </div>
+## OrderEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/order-event.ts" sourceLine="17" packageName="@vendure/core" />
 
 This event is fired whenever an [Order](/reference/typescript-api/entities/order#order) is added, updated
@@ -732,11 +647,6 @@ class OrderEvent extends VendureEntityEvent<Order, OrderInputTypes> {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>, type: 'created' | 'updated' | 'deleted', input?: OrderInputTypes) => OrderEvent`}   />
-
-
 ### order
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/order#order'>Order</a>`}  since="3.4.0"  />
@@ -745,6 +655,8 @@ class OrderEvent extends VendureEntityEvent<Order, OrderInputTypes> {
 
 
 </div>
+## OrderLineEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/order-line-event.ts" sourceLine="13" packageName="@vendure/core" />
 
 This event is fired whenever an [OrderLine](/reference/typescript-api/entities/order-line#orderline) is added, updated
@@ -761,14 +673,11 @@ class OrderLineEvent extends VendureEvent {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>, orderLine: <a href='/reference/typescript-api/entities/order-line#orderline'>OrderLine</a>, type: 'created' | 'updated' | 'deleted' | 'cancelled') => OrderLineEvent`}   />
-
-
 
 
 </div>
+## OrderPlacedEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/order-placed-event.ts" sourceLine="17" packageName="@vendure/core" />
 
 This event is fired whenever an [Order](/reference/typescript-api/entities/order#order) is set as "placed", which by default is
@@ -788,14 +697,11 @@ class OrderPlacedEvent extends VendureEvent {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(fromState: <a href='/reference/typescript-api/orders/order-process#orderstate'>OrderState</a>, toState: <a href='/reference/typescript-api/orders/order-process#orderstate'>OrderState</a>, ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => OrderPlacedEvent`}   />
-
-
 
 
 </div>
+## OrderStateTransitionEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/order-state-transition-event.ts" sourceLine="13" packageName="@vendure/core" />
 
 This event is fired whenever an [Order](/reference/typescript-api/entities/order#order) transitions from one [OrderState](/reference/typescript-api/orders/order-process#orderstate) to another.
@@ -811,14 +717,11 @@ class OrderStateTransitionEvent extends VendureEvent {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(fromState: <a href='/reference/typescript-api/orders/order-process#orderstate'>OrderState</a>, toState: <a href='/reference/typescript-api/orders/order-process#orderstate'>OrderState</a>, ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => OrderStateTransitionEvent`}   />
-
-
 
 
 </div>
+## PasswordResetEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/password-reset-event.ts" sourceLine="12" packageName="@vendure/core" />
 
 This event is fired when a Customer requests a password reset email.
@@ -834,14 +737,11 @@ class PasswordResetEvent extends VendureEvent {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, user: <a href='/reference/typescript-api/entities/user#user'>User</a>) => PasswordResetEvent`}   />
-
-
 
 
 </div>
+## PasswordResetVerifiedEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/password-reset-verified-event.ts" sourceLine="13" packageName="@vendure/core" since="1.4" />
 
 This event is fired when a password reset is executed with a verified token.
@@ -857,14 +757,11 @@ class PasswordResetVerifiedEvent extends VendureEvent {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, user: <a href='/reference/typescript-api/entities/user#user'>User</a>) => PasswordResetVerifiedEvent`}   />
-
-
 
 
 </div>
+## PaymentMethodEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/payment-method-event.ts" sourceLine="18" packageName="@vendure/core" />
 
 This event is fired whenever a [PaymentMethod](/reference/typescript-api/entities/payment-method#paymentmethod) is added, updated
@@ -881,14 +778,11 @@ class PaymentMethodEvent extends VendureEntityEvent<PaymentMethod, PaymentMethod
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: <a href='/reference/typescript-api/entities/payment-method#paymentmethod'>PaymentMethod</a>, type: 'created' | 'updated' | 'deleted', input?: PaymentMethodInputTypes) => PaymentMethodEvent`}   />
-
-
 
 
 </div>
+## PaymentStateTransitionEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/payment-state-transition-event.ts" sourceLine="15" packageName="@vendure/core" />
 
 This event is fired whenever a [Payment](/reference/typescript-api/entities/payment#payment) transitions from one [PaymentState](/reference/typescript-api/payment/payment-state#paymentstate) to another, e.g.
@@ -905,14 +799,11 @@ class PaymentStateTransitionEvent extends VendureEvent {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(fromState: <a href='/reference/typescript-api/payment/payment-state#paymentstate'>PaymentState</a>, toState: <a href='/reference/typescript-api/payment/payment-state#paymentstate'>PaymentState</a>, ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, payment: <a href='/reference/typescript-api/entities/payment#payment'>Payment</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => PaymentStateTransitionEvent`}   />
-
-
 
 
 </div>
+## ProductChannelEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/product-channel-event.ts" sourceLine="15" packageName="@vendure/core" />
 
 This event is fired whenever a [Product](/reference/typescript-api/entities/product#product) is added, updated
@@ -929,14 +820,11 @@ class ProductChannelEvent extends VendureEvent {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, product: <a href='/reference/typescript-api/entities/product#product'>Product</a>, channelId: <a href='/reference/typescript-api/common/id#id'>ID</a>, type: 'assigned' | 'removed') => ProductChannelEvent`}   />
-
-
 
 
 </div>
+## ProductEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/product-event.ts" sourceLine="18" packageName="@vendure/core" />
 
 This event is fired whenever a [Product](/reference/typescript-api/entities/product#product) is added, updated
@@ -954,11 +842,6 @@ class ProductEvent extends VendureEntityEvent<Product, ProductInputTypes> {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: <a href='/reference/typescript-api/entities/product#product'>Product</a>, type: 'created' | 'updated' | 'deleted', input?: ProductInputTypes) => ProductEvent`}   />
-
-
 ### product
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/product#product'>Product</a>`}  since="1.4"  />
@@ -967,6 +850,8 @@ class ProductEvent extends VendureEntityEvent<Product, ProductInputTypes> {
 
 
 </div>
+## ProductOptionEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/product-option-event.ts" sourceLine="26" packageName="@vendure/core" since="1.4" />
 
 This event is fired whenever a [ProductOption](/reference/typescript-api/entities/product-option#productoption) is added or updated.
@@ -982,14 +867,11 @@ class ProductOptionEvent extends VendureEntityEvent<ProductOption, ProductOption
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: <a href='/reference/typescript-api/entities/product-option#productoption'>ProductOption</a>, type: 'created' | 'updated' | 'deleted', input?: ProductOptionInputTypes) => ProductOptionEvent`}   />
-
-
 
 
 </div>
+## ProductOptionGroupChangeEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/product-option-group-change-event.ts" sourceLine="15" packageName="@vendure/core" since="1.4" />
 
 This event is fired whenever a [ProductOptionGroup](/reference/typescript-api/entities/product-option-group#productoptiongroup) is assigned or removed from a [Product](/reference/typescript-api/entities/product#product).
@@ -1005,14 +887,11 @@ class ProductOptionGroupChangeEvent extends VendureEvent {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, product: <a href='/reference/typescript-api/entities/product#product'>Product</a>, optionGroupId: <a href='/reference/typescript-api/common/id#id'>ID</a>, type: 'assigned' | 'removed') => ProductOptionGroupChangeEvent`}   />
-
-
 
 
 </div>
+## ProductOptionGroupEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/product-option-group-event.ts" sourceLine="24" packageName="@vendure/core" since="1.4" />
 
 This event is fired whenever a [ProductOptionGroup](/reference/typescript-api/entities/product-option-group#productoptiongroup) is added or updated.
@@ -1031,14 +910,11 @@ class ProductOptionGroupEvent extends VendureEntityEvent<
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: <a href='/reference/typescript-api/entities/product-option-group#productoptiongroup'>ProductOptionGroup</a>, type: 'created' | 'updated' | 'deleted', input?: ProductOptionGroupInputTypes) => ProductOptionGroupEvent`}   />
-
-
 
 
 </div>
+## ProductVariantChannelEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/product-variant-channel-event.ts" sourceLine="14" packageName="@vendure/core" />
 
 This event is fired whenever a [ProductVariant](/reference/typescript-api/entities/product-variant#productvariant) is assigned or removed from a [Channel](/reference/typescript-api/entities/channel#channel).
@@ -1054,14 +930,11 @@ class ProductVariantChannelEvent extends VendureEvent {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, productVariant: <a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>, channelId: <a href='/reference/typescript-api/common/id#id'>ID</a>, type: 'assigned' | 'removed') => ProductVariantChannelEvent`}   />
-
-
 
 
 </div>
+## ProductVariantEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/product-variant-event.ts" sourceLine="18" packageName="@vendure/core" />
 
 This event is fired whenever a [ProductVariant](/reference/typescript-api/entities/product-variant#productvariant) is added, updated
@@ -1079,11 +952,6 @@ class ProductVariantEvent extends VendureEntityEvent<ProductVariant[], ProductVa
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: <a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>[], type: 'created' | 'updated' | 'deleted', input?: ProductVariantInputTypes) => ProductVariantEvent`}   />
-
-
 ### variants
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/product-variant#productvariant'>ProductVariant</a>[]`}  since="1.4"  />
@@ -1092,6 +960,8 @@ class ProductVariantEvent extends VendureEntityEvent<ProductVariant[], ProductVa
 
 
 </div>
+## ProductVariantPriceEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/product-variant-price-event.ts" sourceLine="17" packageName="@vendure/core" since="2.2.0" />
 
 This event is fired whenever a [ProductVariantPrice](/reference/typescript-api/entities/product-variant-price#productvariantprice) is added, updated or deleted.
@@ -1110,14 +980,11 @@ class ProductVariantPriceEvent extends VendureEntityEvent<
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: <a href='/reference/typescript-api/entities/product-variant-price#productvariantprice'>ProductVariantPrice</a>[], type: 'created' | 'updated' | 'deleted', input?: ProductVariantInputTypes) => ProductVariantPriceEvent`}   />
-
-
 
 
 </div>
+## PromotionEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/promotion-event.ts" sourceLine="18" packageName="@vendure/core" />
 
 This event is fired whenever a [Promotion](/reference/typescript-api/entities/promotion#promotion) is added, updated
@@ -1134,14 +1001,11 @@ class PromotionEvent extends VendureEntityEvent<Promotion, PromotionInputTypes> 
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: <a href='/reference/typescript-api/entities/promotion#promotion'>Promotion</a>, type: 'created' | 'updated' | 'deleted', input?: PromotionInputTypes) => PromotionEvent`}   />
-
-
 
 
 </div>
+## ProvinceEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/province-event.ts" sourceLine="18" packageName="@vendure/core" since="2.0" />
 
 This event is fired whenever a [Province](/reference/typescript-api/entities/province#province) is added, updated or deleted.
@@ -1157,14 +1021,11 @@ class ProvinceEvent extends VendureEntityEvent<Province, ProvinceInputTypes> {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: <a href='/reference/typescript-api/entities/province#province'>Province</a>, type: 'created' | 'updated' | 'deleted', input?: ProvinceInputTypes) => ProvinceEvent`}   />
-
-
 
 
 </div>
+## RefundEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/refund-event.ts" sourceLine="12" packageName="@vendure/core" />
 
 This event is fired whenever a [Refund](/reference/typescript-api/entities/refund#refund) is created
@@ -1180,14 +1041,11 @@ class RefundEvent extends VendureEvent {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>, refund: <a href='/reference/typescript-api/entities/refund#refund'>Refund</a>, type: 'created') => RefundEvent`}   />
-
-
 
 
 </div>
+## RefundStateTransitionEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/refund-state-transition-event.ts" sourceLine="14" packageName="@vendure/core" />
 
 This event is fired whenever a [Refund](/reference/typescript-api/entities/refund#refund) transitions from one [RefundState](/reference/typescript-api/payment/refund-state#refundstate) to another.
@@ -1203,14 +1061,11 @@ class RefundStateTransitionEvent extends VendureEvent {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(fromState: <a href='/reference/typescript-api/payment/refund-state#refundstate'>RefundState</a>, toState: <a href='/reference/typescript-api/payment/refund-state#refundstate'>RefundState</a>, ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, refund: <a href='/reference/typescript-api/entities/refund#refund'>Refund</a>, order: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => RefundStateTransitionEvent`}   />
-
-
 
 
 </div>
+## RoleChangeEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/role-change-event.ts" sourceLine="16" packageName="@vendure/core" since="1.4" />
 
 This event is fired whenever one [Role](/reference/typescript-api/entities/role#role) is assigned or removed from a user.
@@ -1227,14 +1082,11 @@ class RoleChangeEvent extends VendureEvent {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, admin: <a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>, roleIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[], type: 'assigned' | 'removed') => RoleChangeEvent`}   />
-
-
 
 
 </div>
+## RoleEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/role-event.ts" sourceLine="18" packageName="@vendure/core" since="1.4" />
 
 This event is fired whenever one [Role](/reference/typescript-api/entities/role#role) is added, updated or deleted.
@@ -1250,14 +1102,11 @@ class RoleEvent extends VendureEntityEvent<Role, RoleInputTypes> {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: <a href='/reference/typescript-api/entities/role#role'>Role</a>, type: 'created' | 'updated' | 'deleted', input?: RoleInputTypes) => RoleEvent`}   />
-
-
 
 
 </div>
+## SearchEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/search-event.ts" sourceLine="18" packageName="@vendure/core" since="1.6.0" />
 
 This event is fired whenever a search query is executed.
@@ -1273,14 +1122,11 @@ class SearchEvent extends VendureEvent {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: ExtendedSearchInput) => SearchEvent`}   />
-
-
 
 
 </div>
+## SellerEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/seller-event.ts" sourceLine="19" packageName="@vendure/core" since="2.0.1" />
 
 This event is fired whenever one [Seller](/reference/typescript-api/entities/seller#seller) is added, updated or deleted.
@@ -1296,14 +1142,11 @@ class SellerEvent extends VendureEntityEvent<Seller, SellerInputTypes> {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: <a href='/reference/typescript-api/entities/seller#seller'>Seller</a>, type: 'created' | 'updated' | 'deleted', input?: SellerInputTypes) => SellerEvent`}   />
-
-
 
 
 </div>
+## ShippingMethodEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/shipping-method-event.ts" sourceLine="18" packageName="@vendure/core" />
 
 This event is fired whenever a [ShippingMethod](/reference/typescript-api/entities/shipping-method#shippingmethod) is added, updated
@@ -1320,14 +1163,11 @@ class ShippingMethodEvent extends VendureEntityEvent<ShippingMethod, ShippingMet
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: <a href='/reference/typescript-api/entities/shipping-method#shippingmethod'>ShippingMethod</a>, type: 'created' | 'updated' | 'deleted', input?: ShippingMethodInputTypes) => ShippingMethodEvent`}   />
-
-
 
 
 </div>
+## StockLocationEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/stock-location-event.ts" sourceLine="18" packageName="@vendure/core" />
 
 This event is fired whenever a [StockLocation](/reference/typescript-api/entities/stock-location#stocklocation) is added, updated
@@ -1344,14 +1184,11 @@ class StockLocationEvent extends VendureEntityEvent<StockLocation, StockLocation
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: <a href='/reference/typescript-api/entities/stock-location#stocklocation'>StockLocation</a>, type: 'created' | 'updated' | 'deleted', input?: StockLocationInputTypes) => StockLocationEvent`}   />
-
-
 
 
 </div>
+## StockMovementEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/stock-movement-event.ts" sourceLine="16" packageName="@vendure/core" since="1.1.0" />
 
 This event is fired whenever a [StockMovement](/reference/typescript-api/entities/stock-movement#stockmovement) entity is created, which occurs when the saleable
@@ -1374,14 +1211,11 @@ class StockMovementEvent extends VendureEvent {
 <MemberInfo kind="property" type={`StockMovementType`}   />
 
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, stockMovements: <a href='/reference/typescript-api/entities/stock-movement#stockmovement'>StockMovement</a>[]) => StockMovementEvent`}   />
-
-
 
 
 </div>
+## TaxCategoryEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/tax-category-event.ts" sourceLine="18" packageName="@vendure/core" />
 
 This event is fired whenever a [TaxCategory](/reference/typescript-api/entities/tax-category#taxcategory) is added, updated
@@ -1398,14 +1232,11 @@ class TaxCategoryEvent extends VendureEntityEvent<TaxCategory, TaxCategoryInputT
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: <a href='/reference/typescript-api/entities/tax-category#taxcategory'>TaxCategory</a>, type: 'created' | 'updated' | 'deleted', input?: TaxCategoryInputTypes) => TaxCategoryEvent`}   />
-
-
 
 
 </div>
+## TaxRateEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/tax-rate-event.ts" sourceLine="18" packageName="@vendure/core" />
 
 This event is fired whenever a [TaxRate](/reference/typescript-api/entities/tax-rate#taxrate) is added, updated
@@ -1422,14 +1253,11 @@ class TaxRateEvent extends VendureEntityEvent<TaxRate, TaxRateInputTypes> {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: <a href='/reference/typescript-api/entities/tax-rate#taxrate'>TaxRate</a>, type: 'created' | 'updated' | 'deleted', input?: TaxRateInputTypes) => TaxRateEvent`}   />
-
-
 
 
 </div>
+## TaxRateModificationEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/tax-rate-modification-event.ts" sourceLine="13" packageName="@vendure/core" />
 
 This event is fired whenever a TaxRate is changed
@@ -1445,14 +1273,11 @@ class TaxRateModificationEvent extends VendureEvent {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, taxRate: <a href='/reference/typescript-api/entities/tax-rate#taxrate'>TaxRate</a>) => TaxRateModificationEvent`}   />
-
-
 
 
 </div>
+## ZoneEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/zone-event.ts" sourceLine="18" packageName="@vendure/core" />
 
 This event is fired whenever a [Zone](/reference/typescript-api/entities/zone#zone) is added, updated
@@ -1469,14 +1294,11 @@ class ZoneEvent extends VendureEntityEvent<Zone, ZoneInputTypes> {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: <a href='/reference/typescript-api/entities/zone#zone'>Zone</a>, type: 'created' | 'updated' | 'deleted', input?: ZoneInputTypes) => ZoneEvent`}   />
-
-
 
 
 </div>
+## ZoneMembersEvent
+
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/zone-members-event.ts" sourceLine="15" packageName="@vendure/core" />
 
 This event is fired whenever a [Zone](/reference/typescript-api/entities/zone#zone) gets [Country](/reference/typescript-api/entities/country#country) members assigned or removed
@@ -1492,11 +1314,6 @@ class ZoneMembersEvent extends VendureEvent {
 
 
 <div className="members-wrapper">
-
-### constructor
-
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, entity: <a href='/reference/typescript-api/entities/zone#zone'>Zone</a>, type: 'assigned' | 'removed', memberIds: <a href='/reference/typescript-api/common/id#id'>ID</a>[]) => ZoneMembersEvent`}   />
-
 
 
 

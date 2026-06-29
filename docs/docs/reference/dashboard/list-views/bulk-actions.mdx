@@ -2,6 +2,8 @@
 title: "Bulk Actions"
 generated: true
 ---
+## DataTableBulkActionItemProps
+
 <GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-table/data-table-bulk-action-item.tsx" sourceLine="26" packageName="@vendure/dashboard" since="3.4.0" />
 
 
@@ -64,6 +66,8 @@ interface DataTableBulkActionItemProps {
 
 
 </div>
+## DataTableBulkActionItem
+
 <GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-table/data-table-bulk-action-item.tsx" sourceLine="68" packageName="@vendure/dashboard" since="3.4.0" />
 
 A component that should be used to implement any bulk actions for list pages & data tables.
@@ -101,6 +105,8 @@ Parameters
 
 <MemberInfo kind="parameter" type={`Readonly<<a href='/reference/dashboard/list-views/bulk-actions#datatablebulkactionitemprops'>DataTableBulkActionItemProps</a>>`} />
 
+## BulkAction
+
 <GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/data-table.ts" sourceLine="109" packageName="@vendure/dashboard" since="3.4.0" />
 
 A bulk action is a component that will be rendered in the bulk actions dropdown.
@@ -108,9 +114,9 @@ A bulk action is a component that will be rendered in the bulk actions dropdown.
 The component receives the following props:
 
 - `selection`: The selected row or rows
-- `table`: A reference to the Tanstack table instance powering the list
+- `table`: A reference to the TanStack Table instance powering the list
 
-The `table` object has
+The `table` object can be used to clear row selection after the action completes.
 
 *Example*
 
@@ -190,6 +196,8 @@ The React component that will be rendered as the bulk action item.
 
 
 </div>
+## BulkActionGroup
+
 <GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/data-table.ts" sourceLine="132" packageName="@vendure/dashboard" since="3.4.0" />
 
 A group of bulk actions that are visually separated in the dropdown menu.
@@ -217,6 +225,8 @@ The bulk actions in this group.
 
 
 </div>
+## BulkActionsInput
+
 <GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/data-table.ts" sourceLine="179" packageName="@vendure/dashboard" since="3.4.0" />
 
 Bulk actions input supports three formats:

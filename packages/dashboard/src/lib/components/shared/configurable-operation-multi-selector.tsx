@@ -14,6 +14,7 @@ import { ConfigurableOperationInput as ConfigurableOperationInputType } from '@v
 import { Plus } from 'lucide-react';
 import { useCallback, useEffect, useRef } from 'react';
 import { ConfigurableOperationInput } from './configurable-operation-input.js';
+import { getInitialConfigArgValue } from './configurable-operation-utils.js';
 
 /**
  * Props interface for ConfigurableOperationMultiSelector component
@@ -178,7 +179,7 @@ export function ConfigurableOperationMultiSelector({
                 code: operation.code,
                 arguments: operationDef.args.map(arg => ({
                     name: arg.name,
-                    value: arg.defaultValue != null ? arg.defaultValue.toString() : arg.list ? '[]' : '',
+                    value: getInitialConfigArgValue(arg),
                 })),
             },
         ]);

@@ -12,7 +12,7 @@ export type DataTableDisplayComponent = DataDisplayComponent<CellContext<any, an
  * The pageId is already defined in the data table extension, so only the column name is needed.
  *
  * @docsCategory extensions-api
- * @docsPage DataTable
+ * @docsPage DataTables
  * @since 3.4.0
  */
 export interface DashboardDataTableDisplayComponent {
@@ -24,7 +24,7 @@ export interface DashboardDataTableDisplayComponent {
     /**
      * @description
      * The React component that will be rendered as the display.
-     * It should accept `value` and other standard display props.
+     * It receives the TanStack Table `CellContext`, including `value`, `cell`, `row`, and `table`.
      */
     component: DataTableDisplayComponent;
 }
@@ -45,9 +45,9 @@ export type BulkActionComponent<Item extends { id: string } & Record<string, any
  * The component receives the following props:
  *
  * - `selection`: The selected row or rows
- * - `table`: A reference to the Tanstack table instance powering the list
+ * - `table`: A reference to the TanStack Table instance powering the list
  *
- * The `table` object has
+ * The `table` object can be used to clear row selection after the action completes.
  *
  * @example
  * ```tsx

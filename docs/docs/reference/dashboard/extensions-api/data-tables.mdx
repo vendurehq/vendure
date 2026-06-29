@@ -2,6 +2,38 @@
 title: "DataTables"
 generated: true
 ---
+## DashboardDataTableDisplayComponent
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/data-table.ts" sourceLine="18" packageName="@vendure/dashboard" since="3.4.0" />
+
+Allows you to define custom display components for specific columns in data tables.
+The pageId is already defined in the data table extension, so only the column name is needed.
+
+```ts title="Signature"
+interface DashboardDataTableDisplayComponent {
+    column: string;
+    component: DataTableDisplayComponent;
+}
+```
+
+<div className="members-wrapper">
+
+### column
+
+<MemberInfo kind="property" type={`string`}   />
+
+The name of the column where this display component should be used.
+### component
+
+<MemberInfo kind="property" type={`DataTableDisplayComponent`}   />
+
+The React component that will be rendered as the display.
+It receives the TanStack Table `CellContext`, including `value`, `cell`, `row`, and `table`.
+
+
+</div>
+## DashboardDataTableExtensionDefinition
+
 <GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/data-table.ts" sourceLine="189" packageName="@vendure/dashboard" since="3.4.0" />
 
 This allows you to customize aspects of existing data tables in the dashboard.
@@ -42,7 +74,7 @@ An array of additional bulk actions that will be available on the data table.
 Allows you to extend the list document for the data table.
 ### displayComponents
 
-<MemberInfo kind="property" type={`<a href='/reference/dashboard/list-views/data-table#dashboarddatatabledisplaycomponent'>DashboardDataTableDisplayComponent</a>[]`}   />
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/data-tables#dashboarddatatabledisplaycomponent'>DashboardDataTableDisplayComponent</a>[]`}   />
 
 Custom display components for specific columns in the data table.
 

@@ -93,9 +93,19 @@ git push origin master
 > [!IMPORTANT]
 > The following instructions are for those who want to develop the Vendure core framework or plugins (e.g. if you intend to make a pull request). For instructions on how to build a project _using_ Vendure, please see the [Getting Started guide](https://docs.vendure.io/guides/getting-started/installation/).
 
+### Prerequisites
+
+- Node.js `^20.19.0 || >=22.12.0`
+- [Bun](https://bun.sh/) — the canonical package manager for this repo. Install via `curl -fsSL https://bun.sh/install | bash` or one of the [other supported methods](https://bun.sh/docs/installation).
+
+We use Bun (not npm) for installing dependencies because it provides two security features that defend against supply-chain attacks: a configurable minimum-release-age check on dependencies and an explicit `trustedDependencies` allow-list for packages whose lifecycle scripts we permit to run. See [#4674](https://github.com/vendurehq/vendure/issues/4674) for the rationale.
+
+> [!WARNING]
+> Always use `bun install` inside this repo. Running `npm install` will produce a `node_modules` that drifts from `bun.lock`, breaking CI parity. Vendure consumers (people installing `@vendure/core` and friends in their own projects) are unaffected — they can use whatever package manager they like.
+
 ### 1. Install top-level dependencies
 
-`npm install`
+`bun install`
 
 The root directory has a `package.json` which contains build-related dependencies for tasks including:
 
@@ -105,7 +115,7 @@ The root directory has a `package.json` which contains build-related dependencie
 
 ### 2. Build all packages
 
-`npm run build`
+`bun run build`
 
 Packages must be built (i.e. TypeScript compiled, Admin UI app built, certain assets copied etc.) before being used.
 
@@ -136,7 +146,7 @@ The first step is to populate the dev server with some test data:
 
 ```bash
 cd packages/dev-server
-npm run populate
+bun run populate
 ```
 
 By default, if you do not specify the `DB` environment variable, it will use **MySQL/MariaDB**.
@@ -154,20 +164,20 @@ docker-compose up -d postgres_16
     ```env
     DB=postgres
     ```
-3. Now run the npm populate script.
+3. Now run the populate script.
 
 > [!TIP]
 > You can also set the environment variable directly in the CLI:
 >
 > ```bash
-> DB=postgres npm run populate
+> DB=postgres bun run populate
 > ```
 
 ### 5. Run the dev server
 
 ```bash
 cd packages/dev-server
-npm run dev
+bun run dev
 ```
 
 This will start the development server, and you should see output in your terminal indicating that the **Vendure development server** has successfully started.
@@ -193,7 +203,7 @@ If you are making changes to the Admin UI, you need to start the Admin UI indepe
 
 ```
 cd packages/admin-ui
-npm run dev
+bun run dev
 ```
 
 This will run a separate process of admin-ui on "http://localhost:4200", you can login with the default credentials:
@@ -216,14 +226,14 @@ This same workflow can be used for other packages as well.
 
 ```bash
 cd packages/email-plugin
-npm run watch
+bun run watch
 ```
 
 **Terminal 2** - Run the development server:
 
 ```bash
 cd packages/dev-server
-npm run dev
+bun run dev
 ```
 
 > [!NOTE]
@@ -235,13 +245,13 @@ npm run dev
 in the root of the project:
 
 ```shell
-npm run watch:core-common
+bun run watch:core-common
 ```
 
 #### Development Workflow Summary
 
-1. Start your package watcher (npm run watch)
-2. Start the dev-server (npm run dev)
+1. Start your package watcher (bun run watch)
+2. Start the dev-server (bun run dev)
 3. Make code changes
 4. Wait for compilation to complete
 5. Restart dev-server to see changes
@@ -401,7 +411,7 @@ Commit messages are linted on commit, so you'll know if your message is not quit
 
 [graphql-code-generator](https://github.com/dotansimha/graphql-code-generator) is used to automatically create TypeScript interfaces for all GraphQL server operations and Admin UI queries. These generated interfaces are used in both the Admin UI and the server.
 
-Running `npm run codegen` will generate the following files:
+Running `bun run codegen` will generate the following files:
 
 - [`packages/common/src/generated-types.ts`](./packages/common/src/generated-types.ts): Types, Inputs & resolver args relating to the Admin API
 - [`packages/common/src/generated-shop-types.ts`](./packages/common/src/generated-shop-types.ts): Types, Inputs & resolver args relating to the Shop API
@@ -413,15 +423,15 @@ Running `npm run codegen` will generate the following files:
 
 #### Server Unit Tests
 
-The core and several other packages have unit tests which can be run all together by running `npm run test` from the root directory, or individually by running it from the package directory.
+The core and several other packages have unit tests which can be run all together by running `bun run test` from the root directory, or individually by running it from the package directory.
 
 Unit tests are co-located with the files which they test, and have the suffix `.spec.ts`.
 
-If you're getting `Error: Bindings not found.`, please run `npm rebuild @swc/core`.
+If you're getting `Error: Bindings not found.`, please run `bun install --force`.
 
 #### End-to-end Tests
 
-Certain packages have e2e tests, which are located at `/packages/<n>/e2e/`. All e2e tests can be run by running `npm run e2e` from the root directory, or individually by running it from the package directory.
+Certain packages have e2e tests, which are located at `/packages/<n>/e2e/`. All e2e tests can be run by running `bun run e2e` from the root directory, or individually by running it from the package directory.
 
 e2e tests use the `@vendure/testing` package. For details of how the setup works, see the [Testing docs](https://docs.vendure.io/guides/developer-guide/testing/).
 
@@ -433,7 +443,7 @@ All packages in this repo are released at every version change (using [Lerna's f
 
 To make a release:
 
-#### 1. `npm run publish-release`
+#### 1. `bun run publish-release`
 
 It will run `lerna version` which will prompt for which version to update to. Although we are using [conventional commits](https://www.conventionalcommits.org), the version is not automatically being calculated from the commit messages. Therefore, the next version should be manually selected.
 
@@ -443,12 +453,33 @@ Finally, the command will create changelog entries for this release and create a
 
 #### 2. `git push origin master --follow-tags`
 
-The reason we do not rely on Lerna to push the release to Git is that this repo has a lengthy pre-push hook which runs all tests and builds the Admin UI. This long wait then invalidates the npm OTP and the publish will fail. So the solution is to publish first and then push.
+Push the version commit and the new tag to `master`. (Lerna is run with `--no-push` so that pushing is a deliberate, separate step — the repo has a lengthy pre-push hook that runs the full test suite and builds the Admin UI.)
+
+Publishing itself happens in CI, not locally: it is triggered by creating the GitHub release in the next step, using OIDC trusted publishing (no npm token or local OTP is involved).
 
 #### 3. Create a GitHub release
 
-Finally, a GitHub release should be created based on the tag generated by Lerna. This will trigger the "Publish to npmjs" workflow
-which will publish & sign each package.
+Create a GitHub release based on the tag generated by Lerna. This triggers the "Publish to NPM" workflow, which builds and **stages** each package via `npm stage publish`. Packages are signed with provenance attestations, which [trusted publishing generates automatically](https://docs.npmjs.com/trusted-publishers/).
+
+> [!IMPORTANT]
+> Staged packages are **not yet live** on npm. They sit in npm's [staging area](https://www.npmjs.com/settings/~/staged-packages) awaiting manual approval. This is a deliberate supply-chain safeguard: a release only goes public after a maintainer approves it with 2FA, so a compromised CI run cannot publish to the `latest` tag on its own. See [#4772](https://github.com/vendurehq/vendure/issues/4772) for the rationale.
+
+#### 4. Approve the staged packages
+
+Once the workflow has finished staging every package, approve them so they go live on the registry:
+
+```bash
+./scripts/npm-stage-approve-all.sh <version>   # e.g. 3.7.0
+```
+
+This finds every staged `@vendure/*` package at the given version and approves them all behind a single 2FA prompt — the first approval triggers the one-time password, and the rest ride npm's ~5-minute OTP skip window. **Until this step completes, the new versions are not installable.**
+
+Requirements: npm `>= 11.15.0` and an authenticated npm session (check with `npm whoami`).
+
+> [!WARNING]
+> If a staged package is wrong, reject it with `npm stage reject <id>`. This is **permanent** — the version slot is consumed and cannot be reused, so you must bump to the next patch version rather than re-staging the same one.
+
+Note that releases are therefore no longer fire-and-forget: coordinate any announcements to happen _after_ the approval step, since the packages are not installable until then.
 
 ## Specific Contributions
 
@@ -459,7 +490,7 @@ For our [documentation](https://docs.vendure.io/), we use [Docusaurus](https://d
 After [setting up your development environment](#setting-up-the-dev-environment), navigate to the docs directory and start the docusaurus server:
 ```bash
 cd docs
-npm run start
+bun run start
 ```
 
 this will output a URL where you can preview your changes.
@@ -474,7 +505,7 @@ docs/docs
 ```
 
 > [!NOTE]
-> Files in the [reference](https://docs.vendure.io/reference/) directory are auto-generated. To edit reference documentation, modify the [JSDoc](https://jsdoc.app/about-getting-started) comments in the source code and run `npm run docs:build` from the project root directory.
+> Files in the [reference](https://docs.vendure.io/reference/) directory are auto-generated. To edit reference documentation, modify the [JSDoc](https://jsdoc.app/about-getting-started) comments in the source code and run `bun run docs:build` from the project root directory.
 
 ### Contributing to the Admin UI translations
 

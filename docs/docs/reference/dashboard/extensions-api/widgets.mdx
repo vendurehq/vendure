@@ -16,6 +16,7 @@ type DashboardWidgetDefinition = {
     defaultSize: { w: number; h: number; x?: number; y?: number };
     minSize?: { w: number; h: number };
     maxSize?: { w: number; h: number };
+    requiresPermissions?: string[];
 }
 ```
 
@@ -51,6 +52,14 @@ The minimum size constraints for the widget.
 <MemberInfo kind="property" type={`{ w: number; h: number }`}   />
 
 The maximum size constraints for the widget.
+### requiresPermissions
+
+<MemberInfo kind="property" type={`string[]`}   />
+
+If set, the widget will only be displayed if the current user has
+at least one of the specified permissions in the active channel.
+
+If not set, the widget will be visible to all users.
 
 
 </div>

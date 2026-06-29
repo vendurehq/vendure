@@ -51,6 +51,8 @@
     "product-variant-option-ids-not-compatible": "ProductVariant optionIds must include one optionId from each of the groups: {groupNames}",
     "product-variant-options-combination-already-exists": "A ProductVariant with the selected options already exists: {variantName}",
     "promotion-channels-can-only-be-changed-from-default-channel": "Promotions channels may only be changed from the Default Channel",
+    "regex-filter-pattern-too-long": "The regex filter pattern exceeds the maximum allowed length of { max } characters",
+    "regex-filter-pattern-unsafe": "The regex filter pattern is not allowed as it may cause excessive resource consumption",
     "stockonhand-cannot-be-negative": "stockOnHand cannot be a negative value",
     "superadmin-must-have-superadmin-role": "Cannot remove the SuperAdmin role from the sole SuperAdmin",
     "target-customer-not-assigned-to-order-channels": "The target Customer is not assigned to the same Channels as the Order. Missing channels IDs: { missingChannelIds }",
