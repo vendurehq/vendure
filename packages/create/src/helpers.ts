@@ -15,6 +15,7 @@ import * as tar from 'tar';
 
 import {
     CONCURRENTLY_VERSION,
+    DEFAULT_PROJECT_VERSION,
     STOREFRONT_BRANCH,
     STOREFRONT_REPO,
     TYPESCRIPT_VERSION,
@@ -377,18 +378,41 @@ export function getMonorepoRootPackageJson(
 }
 
 /**
+ * Returns the root package.json for the single-project (non-monorepo) layout.
+ */
+export function getSingleProjectPackageJson(
+    name: string,
+    pmInfo: PackageManagerInfo,
+    dbType: DbType,
+): Record<string, unknown> {
+    const pkg: Record<string, unknown> = {
+        name,
+        version: DEFAULT_PROJECT_VERSION,
+        private: true,
+        scripts: getServerPackageScripts(pmInfo),
+    };
+    if (pmInfo.name === 'pnpm') {
+        pkg.pnpm = { onlyBuiltDependencies: getPnpmOnlyBuiltDependencies(dbType) };
+    }
+    return pkg;
+}
+
+/**
  * Native dependencies whose install/build scripts pnpm v10 blocks by default. Listed
  * under `pnpm.onlyBuiltDependencies` so their build scripts run — otherwise e.g.
  * better-sqlite3's native binding is never compiled and the server crashes on startup.
- * `sharp` (asset-server-plugin) and `esbuild` (vite) are always present; SQLite adds
- * `better-sqlite3`.
+ * `bcrypt` (core), `sharp` (asset-server-plugin) and `esbuild` (vite) are always present;
+ * SQLite adds `better-sqlite3`.
+ *
+ * This list is derived from the scaffold's transitive native deps; re-check it against
+ * `getDependencies()` whenever Vendure's direct native-dep surface changes.
  */
 export function getPnpmOnlyBuiltDependencies(dbType: DbType): string[] {
-    const deps = ['esbuild', 'sharp'];
+    const deps = ['bcrypt', 'esbuild', 'sharp'];
     if (dbType === 'sqlite') {
         deps.push('better-sqlite3');
     }
-    return deps.sort();
+    return deps.sort((a, b) => a.localeCompare(b));
 }
 
 /**

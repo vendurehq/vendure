@@ -10,6 +10,7 @@ import {
     getPackageManagerInfo,
     getPnpmOnlyBuiltDependencies,
     getServerPackageScripts,
+    getSingleProjectPackageJson,
     registerTemplateHelpers,
 } from './helpers';
 import { PackageManager } from './types';
@@ -221,14 +222,36 @@ describe('getMonorepoRootPackageJson', () => {
     // #4891 — pnpm v10 blocks dependency build scripts unless allowed at the workspace root.
     it('adds pnpm.onlyBuiltDependencies only for pnpm, driver-aware', () => {
         expect(getMonorepoRootPackageJson('x', getPackageManagerInfo('pnpm'), 'sqlite').pnpm).toEqual({
-            onlyBuiltDependencies: ['better-sqlite3', 'esbuild', 'sharp'],
+            onlyBuiltDependencies: ['bcrypt', 'better-sqlite3', 'esbuild', 'sharp'],
         });
         expect(getMonorepoRootPackageJson('x', getPackageManagerInfo('pnpm'), 'postgres').pnpm).toEqual({
-            onlyBuiltDependencies: ['esbuild', 'sharp'],
+            onlyBuiltDependencies: ['bcrypt', 'esbuild', 'sharp'],
         });
         // Non-pnpm managers run build scripts by default, so the field must be absent.
         expect(getMonorepoRootPackageJson('x', getPackageManagerInfo('npm'), 'sqlite').pnpm).toBeUndefined();
         expect(getMonorepoRootPackageJson('x', getPackageManagerInfo('bun'), 'sqlite').pnpm).toBeUndefined();
+    });
+});
+
+describe('getSingleProjectPackageJson', () => {
+    it('writes manager-specific scripts and stays private', () => {
+        const pkg = getSingleProjectPackageJson('my-shop', getPackageManagerInfo('npm'), 'postgres');
+        expect(pkg.name).toBe('my-shop');
+        expect(pkg.private).toBe(true);
+        expect((pkg.scripts as Record<string, string>).dev).toBe('concurrently --kill-others npm:dev:*');
+    });
+
+    // #4891 — the single-project root package.json is where pnpm reads onlyBuiltDependencies.
+    it('adds pnpm.onlyBuiltDependencies only for pnpm, driver-aware', () => {
+        expect(getSingleProjectPackageJson('x', getPackageManagerInfo('pnpm'), 'sqlite').pnpm).toEqual({
+            onlyBuiltDependencies: ['bcrypt', 'better-sqlite3', 'esbuild', 'sharp'],
+        });
+        expect(getSingleProjectPackageJson('x', getPackageManagerInfo('pnpm'), 'postgres').pnpm).toEqual({
+            onlyBuiltDependencies: ['bcrypt', 'esbuild', 'sharp'],
+        });
+        // Non-pnpm managers run build scripts by default, so the field must be absent.
+        expect(getSingleProjectPackageJson('x', getPackageManagerInfo('npm'), 'sqlite').pnpm).toBeUndefined();
+        expect(getSingleProjectPackageJson('x', getPackageManagerInfo('bun'), 'sqlite').pnpm).toBeUndefined();
     });
 });
 
@@ -237,12 +260,17 @@ describe('getMonorepoRootPackageJson', () => {
 describe('getPnpmOnlyBuiltDependencies', () => {
     it('always includes the native deps a Vendure scaffold installs', () => {
         for (const dbType of ['postgres', 'mysql', 'mariadb'] as const) {
-            expect(getPnpmOnlyBuiltDependencies(dbType)).toEqual(['esbuild', 'sharp']);
+            expect(getPnpmOnlyBuiltDependencies(dbType)).toEqual(['bcrypt', 'esbuild', 'sharp']);
         }
     });
 
     it('adds better-sqlite3 for the SQLite driver', () => {
-        expect(getPnpmOnlyBuiltDependencies('sqlite')).toEqual(['better-sqlite3', 'esbuild', 'sharp']);
+        expect(getPnpmOnlyBuiltDependencies('sqlite')).toEqual([
+            'bcrypt',
+            'better-sqlite3',
+            'esbuild',
+            'sharp',
+        ]);
     });
 });
 

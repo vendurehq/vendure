@@ -42,8 +42,8 @@ import {
     getDependencies,
     getMonorepoRootPackageJson,
     getPackageManagerInfo,
-    getPnpmOnlyBuiltDependencies,
     getServerPackageScripts,
+    getSingleProjectPackageJson,
     installPackages,
     isSafeToCreateProjectIn,
     registerTemplateHelpers,
@@ -267,19 +267,9 @@ export async function createVendureApp(
         );
     } else {
         // Single project structure (original behavior)
-        const packageJsonContents = {
-            name: appName,
-            version: DEFAULT_PROJECT_VERSION,
-            private: true,
-            scripts: getServerPackageScripts(pmInfo),
-            // pnpm v10 blocks dependency build scripts unless explicitly allowed here.
-            ...(pmInfo.name === 'pnpm'
-                ? { pnpm: { onlyBuiltDependencies: getPnpmOnlyBuiltDependencies(dbType) } }
-                : {}),
-        };
         fs.writeFileSync(
             path.join(root, 'package.json'),
-            JSON.stringify(packageJsonContents, null, 2) + os.EOL,
+            JSON.stringify(getSingleProjectPackageJson(appName, pmInfo, dbType), null, 2) + os.EOL,
         );
         fs.ensureDirSync(path.join(root, 'src'));
     }
