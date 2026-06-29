@@ -343,6 +343,7 @@ export function getServerPackageScripts(pmInfo: PackageManagerInfo): Record<stri
 export function getMonorepoRootPackageJson(
     name: string,
     pmInfo: PackageManagerInfo,
+    dbType: DbType,
 ): Record<string, unknown> {
     const ws = (workspace: string, script: string) => pmInfo.workspaceScript(workspace, script);
     const pkg: Record<string, unknown> = {
@@ -367,7 +368,27 @@ export function getMonorepoRootPackageJson(
     if (pmInfo.usesPackageJsonWorkspaces) {
         pkg.workspaces = ['apps/*'];
     }
+    // pnpm reads `onlyBuiltDependencies` from the workspace root, where it governs every
+    // package in the workspace (the deps themselves live in apps/server).
+    if (pmInfo.name === 'pnpm') {
+        pkg.pnpm = { onlyBuiltDependencies: getPnpmOnlyBuiltDependencies(dbType) };
+    }
     return pkg;
+}
+
+/**
+ * Native dependencies whose install/build scripts pnpm v10 blocks by default. Listed
+ * under `pnpm.onlyBuiltDependencies` so their build scripts run — otherwise e.g.
+ * better-sqlite3's native binding is never compiled and the server crashes on startup.
+ * `sharp` (asset-server-plugin) and `esbuild` (vite) are always present; SQLite adds
+ * `better-sqlite3`.
+ */
+export function getPnpmOnlyBuiltDependencies(dbType: DbType): string[] {
+    const deps = ['esbuild', 'sharp'];
+    if (dbType === 'sqlite') {
+        deps.push('better-sqlite3');
+    }
+    return deps.sort();
 }
 
 /**

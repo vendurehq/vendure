@@ -42,6 +42,7 @@ import {
     getDependencies,
     getMonorepoRootPackageJson,
     getPackageManagerInfo,
+    getPnpmOnlyBuiltDependencies,
     getServerPackageScripts,
     installPackages,
     isSafeToCreateProjectIn,
@@ -229,7 +230,7 @@ export async function createVendureApp(
         // Generate root package.json with package-manager-aware workspace scripts
         fs.writeFileSync(
             path.join(root, 'package.json'),
-            JSON.stringify(getMonorepoRootPackageJson(appName, pmInfo), null, 2) + os.EOL,
+            JSON.stringify(getMonorepoRootPackageJson(appName, pmInfo, dbType), null, 2) + os.EOL,
         );
 
         // pnpm does not read the package.json `workspaces` field; it requires a
@@ -271,6 +272,10 @@ export async function createVendureApp(
             version: DEFAULT_PROJECT_VERSION,
             private: true,
             scripts: getServerPackageScripts(pmInfo),
+            // pnpm v10 blocks dependency build scripts unless explicitly allowed here.
+            ...(pmInfo.name === 'pnpm'
+                ? { pnpm: { onlyBuiltDependencies: getPnpmOnlyBuiltDependencies(dbType) } }
+                : {}),
         };
         fs.writeFileSync(
             path.join(root, 'package.json'),

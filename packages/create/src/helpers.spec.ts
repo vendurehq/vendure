@@ -8,6 +8,7 @@ import {
     getInstallCommand,
     getMonorepoRootPackageJson,
     getPackageManagerInfo,
+    getPnpmOnlyBuiltDependencies,
     getServerPackageScripts,
     registerTemplateHelpers,
 } from './helpers';
@@ -192,23 +193,56 @@ describe('getServerPackageScripts', () => {
 
 describe('getMonorepoRootPackageJson', () => {
     it('writes workspace scripts in each manager’s syntax', () => {
-        const npm = getMonorepoRootPackageJson('my-shop', getPackageManagerInfo('npm'));
+        const npm = getMonorepoRootPackageJson('my-shop', getPackageManagerInfo('npm'), 'sqlite');
         expect((npm.scripts as Record<string, string>)['dev:server']).toBe('npm run dev -w server');
 
-        const pnpm = getMonorepoRootPackageJson('my-shop', getPackageManagerInfo('pnpm'));
+        const pnpm = getMonorepoRootPackageJson('my-shop', getPackageManagerInfo('pnpm'), 'sqlite');
         expect((pnpm.scripts as Record<string, string>)['dev:server']).toBe('pnpm --filter server dev');
 
-        const bun = getMonorepoRootPackageJson('my-shop', getPackageManagerInfo('bun'));
+        const bun = getMonorepoRootPackageJson('my-shop', getPackageManagerInfo('bun'), 'sqlite');
         expect((bun.scripts as Record<string, string>)['build:storefront']).toBe(
             'bun run --filter storefront build',
         );
     });
 
     it('only declares the package.json workspaces field for managers that read it', () => {
-        expect(getMonorepoRootPackageJson('x', getPackageManagerInfo('npm')).workspaces).toEqual(['apps/*']);
-        expect(getMonorepoRootPackageJson('x', getPackageManagerInfo('bun')).workspaces).toEqual(['apps/*']);
+        expect(getMonorepoRootPackageJson('x', getPackageManagerInfo('npm'), 'sqlite').workspaces).toEqual([
+            'apps/*',
+        ]);
+        expect(getMonorepoRootPackageJson('x', getPackageManagerInfo('bun'), 'sqlite').workspaces).toEqual([
+            'apps/*',
+        ]);
         // pnpm uses pnpm-workspace.yaml instead, so the field must be absent.
-        expect(getMonorepoRootPackageJson('x', getPackageManagerInfo('pnpm')).workspaces).toBeUndefined();
+        expect(
+            getMonorepoRootPackageJson('x', getPackageManagerInfo('pnpm'), 'sqlite').workspaces,
+        ).toBeUndefined();
+    });
+
+    // #4891 — pnpm v10 blocks dependency build scripts unless allowed at the workspace root.
+    it('adds pnpm.onlyBuiltDependencies only for pnpm, driver-aware', () => {
+        expect(getMonorepoRootPackageJson('x', getPackageManagerInfo('pnpm'), 'sqlite').pnpm).toEqual({
+            onlyBuiltDependencies: ['better-sqlite3', 'esbuild', 'sharp'],
+        });
+        expect(getMonorepoRootPackageJson('x', getPackageManagerInfo('pnpm'), 'postgres').pnpm).toEqual({
+            onlyBuiltDependencies: ['esbuild', 'sharp'],
+        });
+        // Non-pnpm managers run build scripts by default, so the field must be absent.
+        expect(getMonorepoRootPackageJson('x', getPackageManagerInfo('npm'), 'sqlite').pnpm).toBeUndefined();
+        expect(getMonorepoRootPackageJson('x', getPackageManagerInfo('bun'), 'sqlite').pnpm).toBeUndefined();
+    });
+});
+
+// #4891 — pnpm v10 does not run dependency build scripts unless they are listed in
+// pnpm.onlyBuiltDependencies, so better-sqlite3's native binding never compiles.
+describe('getPnpmOnlyBuiltDependencies', () => {
+    it('always includes the native deps a Vendure scaffold installs', () => {
+        for (const dbType of ['postgres', 'mysql', 'mariadb'] as const) {
+            expect(getPnpmOnlyBuiltDependencies(dbType)).toEqual(['esbuild', 'sharp']);
+        }
+    });
+
+    it('adds better-sqlite3 for the SQLite driver', () => {
+        expect(getPnpmOnlyBuiltDependencies('sqlite')).toEqual(['better-sqlite3', 'esbuild', 'sharp']);
     });
 });
 
