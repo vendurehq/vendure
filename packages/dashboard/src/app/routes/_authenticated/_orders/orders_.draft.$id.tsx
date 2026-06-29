@@ -198,7 +198,7 @@ function DraftOrderPage() {
                                 orderId: order.id,
                                 input: mapToAddressInput(defaultShippingAddress),
                             });
-                        } else if (entity?.shippingAddress) {
+                        } else if (entity?.shippingAddress?.streetLine1) {
                             await api.mutate(unsetShippingAddressForDraftOrderDocument)({
                                 orderId: order.id,
                             });
@@ -208,7 +208,7 @@ function DraftOrderPage() {
                                 orderId: order.id,
                                 input: mapToAddressInput(defaultBillingAddress),
                             });
-                        } else if (entity?.billingAddress) {
+                        } else if (entity?.billingAddress?.streetLine1) {
                             await api.mutate(unsetBillingAddressForDraftOrderDocument)({
                                 orderId: order.id,
                             });
