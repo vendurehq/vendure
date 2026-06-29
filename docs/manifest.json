@@ -2898,7 +2898,7 @@
                   "title": "AssetService",
                   "slug": "asset-service",
                   "file": "docs/reference/typescript-api/services/asset-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-06-29T22:40:46+02:00"
                 },
                 {
                   "title": "AuthService",
@@ -3402,7 +3402,7 @@
                   "title": "SimpleGraphQLClient",
                   "slug": "simple-graph-qlclient",
                   "file": "docs/reference/typescript-api/testing/simple-graph-qlclient.mdx",
-                  "lastModified": "2026-05-22T16:47:46+02:00"
+                  "lastModified": "2026-06-29T23:14:39+02:00"
                 },
                 {
                   "title": "TestConfig",
@@ -3837,7 +3837,7 @@
                   "title": "AssetPickerDialog",
                   "slug": "asset-picker-dialog",
                   "file": "docs/reference/dashboard/components/asset-picker-dialog.mdx",
-                  "lastModified": "2026-06-29T09:53:14+02:00"
+                  "lastModified": "2026-06-26T15:49:47+02:00"
                 },
                 {
                   "title": "ChannelChip",

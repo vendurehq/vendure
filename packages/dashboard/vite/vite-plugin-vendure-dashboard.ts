@@ -8,6 +8,10 @@ import { PluginOption } from 'vite';
 
 import { PathAdapter } from './types.js';
 import { PackageScannerConfig } from './utils/compiler.js';
+import {
+    buildTanstackRouterPluginConfig,
+    TanstackRouterPluginOptions,
+} from './utils/tanstack-router-config.js';
 import { adminApiSchemaPlugin } from './vite-plugin-admin-api-schema.js';
 import { bundleEntryPlugin } from './vite-plugin-bundle-entry.js';
 import { configLoaderPlugin } from './vite-plugin-config-loader.js';
@@ -89,6 +93,31 @@ export type VitePluginVendureDashboardOptions = {
      */
     gqlOutputPath?: string;
     tempCompilationDir?: string;
+    /**
+     * @description
+     * Options passed to the underlying TanStack Router Vite plugin (`tanstackRouter()`). These are
+     * merged on top of the Dashboard's own defaults, letting you override most aspects of the router
+     * plugin's configuration. The `routesDirectory`, `generatedRouteTree` and `routeFileIgnorePattern`
+     * settings are managed by the Dashboard and cannot be overridden (attempts are ignored with a warning).
+     *
+     * A common use case is setting `tmpDir` when your deployment's default temp directory is on a
+     * different device than the checked-out code (e.g. `node_modules` on a separate volume), which
+     * otherwise causes the build to fail with `EXDEV: cross-device link not permitted` during
+     * route-tree generation.
+     *
+     * @example
+     * ```ts
+     * vendureDashboardPlugin({
+     *   vendureConfigPath: './vendure-config.ts',
+     *   tanstackRouterPluginOptions: {
+     *     tmpDir: path.join(packageRoot, '.tanstack-tmp'),
+     *   },
+     * })
+     * ```
+     *
+     * @since 3.7.0
+     */
+    tanstackRouterPluginOptions?: TanstackRouterPluginOptions;
     /**
      * @description
      * Allows you to customize the location of node_modules & glob patterns used to scan for potential
@@ -211,12 +240,9 @@ export function vendureDashboardPlugin(options: VitePluginVendureDashboardOption
         {
             key: 'tanstackRouter',
             plugin: () =>
-                tanstackRouter({
-                    autoCodeSplitting: true,
-                    routeFileIgnorePattern: '.graphql.ts|components|hooks|utils',
-                    routesDirectory: path.join(packageRoot, 'src/app/routes'),
-                    generatedRouteTree: path.join(packageRoot, 'src/app/routeTree.gen.ts'),
-                }),
+                tanstackRouter(
+                    buildTanstackRouterPluginConfig(packageRoot, options.tanstackRouterPluginOptions),
+                ),
         },
         {
             // Custom plugin that transforms Lingui macros using Babel instead of SWC.

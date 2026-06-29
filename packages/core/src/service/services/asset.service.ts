@@ -630,6 +630,48 @@ export class AssetService {
         return !permissions.includes(false);
     }
 
+    /**
+     * Validates an upload against the permitted MIME types using three independently spoofable
+     * signals (see GHSA-88rq-mq4v-frmm): the declared Content-Type, the file extension, and the
+     * actual content (magic bytes). Returns a {@link MimeTypeError} if any signal identifies a
+     * non-permitted type, or `undefined` if the file is permitted.
+     */
+    private getPermittedMimeTypeError(
+        filename: string,
+        declaredMimeType: string,
+        contentMimeType: string | undefined,
+    ): MimeTypeError | undefined {
+        // 1. The declared Content-Type must be permitted (cheap, header-only check).
+        if (!this.validateMimeType(declaredMimeType)) {
+            return new MimeTypeError({ fileName: filename, mimeType: declaredMimeType });
+        }
+        // 2. The file extension must be permitted: the stored file keeps it, and it is what
+        // determines whether a downstream web server might execute the file (e.g. `.php`).
+        // `mime.lookup` returns `false` for unrecognised extensions, handled by the content check.
+        const extensionMimeType = mime.lookup(filename) || undefined;
+        if (extensionMimeType && !this.validateMimeType(extensionMimeType)) {
+            return new MimeTypeError({ fileName: filename, mimeType: extensionMimeType });
+        }
+        // 3. The actual content must not identify a non-permitted type. Text-based formats have no
+        // binary signature: plain text yields `undefined`, while XML-based formats such as SVG
+        // yield a generic `application/xml`/`text/xml` which is consistent with a permitted `*+xml`
+        // extension and so is not a mismatch.
+        if (contentMimeType && !this.validateMimeType(contentMimeType)) {
+            const contentIsGenericXml =
+                contentMimeType === 'application/xml' || contentMimeType === 'text/xml';
+            const extensionIsXmlBased = !!extensionMimeType && extensionMimeType.endsWith('+xml');
+            if (!(contentIsGenericXml && extensionIsXmlBased)) {
+                return new MimeTypeError({ fileName: filename, mimeType: contentMimeType });
+            }
+        }
+        // A file recognised neither by content nor by a permitted extension cannot be verified as
+        // a permitted type (e.g. a script with an unrecognised extension such as `.phtml`).
+        if (!contentMimeType && !extensionMimeType) {
+            return new MimeTypeError({ fileName: filename, mimeType: 'application/octet-stream' });
+        }
+        return undefined;
+    }
+
     private async createAssetInternal(
         ctx: RequestContext,
         stream: Stream,
@@ -639,44 +681,19 @@ export class AssetService {
         translations?: Array<{ languageCode: LanguageCode; name?: string | null; customFields?: any }>,
     ): Promise<Asset | MimeTypeError> {
         const { assetOptions } = this.configService;
-        // The MIME type validation below is layered because the client-supplied `mimetype`
-        // (taken from the upload's Content-Type header) is trivially spoofable. See
-        // GHSA-88rq-mq4v-frmm. We accept a file only if it can be positively identified as a
-        // permitted type, and reject it if any signal identifies it as a non-permitted type.
+        // Inspect the leading bytes of the uploaded content (magic bytes) so the real content
+        // type can be validated, not just the spoofable declared Content-Type and extension. The
+        // stream is peeked rather than fully buffered so the file can still be written as a stream.
+        const { head, complete } = await peekStreamHead(stream as Readable, CONTENT_DETECTION_SAMPLE_BYTES);
+        const contentMimeType = await detectMimeTypeFromContents(head);
+        const mimeTypeError = this.getPermittedMimeTypeError(filename, mimetype, contentMimeType);
+        if (mimeTypeError) {
+            return mimeTypeError;
+        }
 
-        // 1. The declared Content-Type must be permitted (cheap, header-only check).
-        if (!this.validateMimeType(mimetype)) {
-            return new MimeTypeError({ fileName: filename, mimeType: mimetype });
-        }
-        // 2. The file extension must be permitted. The stored file keeps its original
-        // extension, which is what determines whether a downstream web server might execute
-        // it (e.g. `.php`), so a permitted Content-Type must not smuggle in a dangerous
-        // extension. `mime.lookup` returns `false` for unrecognised extensions; those are
-        // handled by the content check below.
-        const extensionMimeType = mime.lookup(filename) || undefined;
-        if (extensionMimeType && !this.validateMimeType(extensionMimeType)) {
-            return new MimeTypeError({ fileName: filename, mimeType: extensionMimeType });
-        }
         const { assetPreviewStrategy, assetStorageStrategy } = assetOptions;
         const sourceFileName = await this.getSourceFileName(ctx, filename);
         const previewFileName = await this.getPreviewFileName(ctx, sourceFileName);
-
-        // 3. Inspect the leading bytes of the uploaded content (magic bytes) before persisting
-        // it. If the content is recognised but not permitted, the declared type/extension were
-        // misleading. If the content is unrecognised (e.g. plain text, SVG) it returns
-        // undefined; in that case the file must have been positively identified by its
-        // permitted extension above, otherwise it cannot be verified as a permitted type and
-        // is rejected (e.g. a script with an unrecognised extension such as `.phtml`). The
-        // stream is peeked rather than fully buffered so the file can still be written as a
-        // stream.
-        const { head, complete } = await peekStreamHead(stream as Readable, CONTENT_DETECTION_SAMPLE_BYTES);
-        const contentMimeType = await detectMimeTypeFromContents(head);
-        if (contentMimeType && !this.validateMimeType(contentMimeType)) {
-            return new MimeTypeError({ fileName: filename, mimeType: contentMimeType });
-        }
-        if (!contentMimeType && !extensionMimeType) {
-            return new MimeTypeError({ fileName: filename, mimeType: 'application/octet-stream' });
-        }
 
         // If the stream was fully consumed during the peek (a small file), `head` holds the
         // whole content and the stream cannot be replayed; write the buffer directly.

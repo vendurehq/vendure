@@ -221,6 +221,9 @@ export class SimpleGraphQLClient {
      * corresponding Upload fields appear in the variables for the mutation.
      * @param mapVariables - Function that must return the variables for the
      * mutation, with `null` as the value for each `Upload` field.
+     * @param contentTypeOverrides - Optional overrides for the `Content-Type` of individual file
+     * parts, keyed by their index in `filePaths`. Used to simulate a client spoofing the
+     * Content-Type header independently of the actual file contents (e.g. via a proxy tool).
      *
      * @example
      * ```ts
@@ -249,11 +252,6 @@ export class SimpleGraphQLClient {
         mutation: DocumentNode;
         filePaths: string[];
         mapVariables: (filePaths: string[]) => any;
-        /**
-         * Overrides the `Content-Type` of individual file parts, keyed by their index in
-         * `filePaths`. Used to simulate a client spoofing the Content-Type header
-         * independently of the actual file contents (e.g. via a proxy tool).
-         */
         contentTypeOverrides?: { [index: number]: string };
     }): Promise<any> {
         const { mutation, filePaths, mapVariables, contentTypeOverrides } = options;

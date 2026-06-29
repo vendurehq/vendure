@@ -611,4 +611,30 @@ describe('Asset resolver', () => {
             expect(product.assets.length).toEqual(0);
         });
     });
+
+    // Placed last because creating an asset advances the auto-increment id, which the
+    // hardcoded-id assertions in the tests above rely on.
+    describe('MIME type content validation (GHSA-88rq-mq4v-frmm)', () => {
+        // An SVG that begins with an XML prolog is reported by `file-type` as the generic
+        // `application/xml`, which must not cause the permitted `image/svg+xml` upload to be
+        // rejected as a content/extension mismatch.
+        it('accepts an SVG whose contents are detected as generic XML', async () => {
+            const filesToUpload = [path.join(__dirname, 'fixtures/assets/test.svg')];
+            const { createAssets } = await adminClient.fileUploadMutation({
+                mutation: createAssetsDocument,
+                filePaths: filesToUpload,
+                mapVariables: filePaths => ({
+                    input: filePaths.map(p => ({ file: null })),
+                }),
+            });
+
+            expect(createAssets.length).toBe(1);
+            // An Asset (with name/source), not a MimeTypeError, confirms the SVG was accepted.
+            expect(createAssets[0]).toMatchObject({
+                name: 'test.svg',
+                source: expect.stringContaining('test.svg'),
+            });
+            expect(createAssets[0]).not.toHaveProperty('message');
+        });
+    });
 });
