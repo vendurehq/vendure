@@ -663,17 +663,26 @@ export class AssetService {
 
         // 3. Inspect the leading bytes of the uploaded content (magic bytes) before persisting
         // it. If the content is recognised but not permitted, the declared type/extension were
-        // misleading. If the content is unrecognised (e.g. plain text, SVG) it returns
-        // undefined; in that case the file must have been positively identified by its
-        // permitted extension above, otherwise it cannot be verified as a permitted type and
-        // is rejected (e.g. a script with an unrecognised extension such as `.phtml`). The
+        // misleading. Text-based formats have no binary signature: plain text returns
+        // `undefined`, while XML-based formats such as SVG are reported by their generic
+        // `application/xml`/`text/xml` signature rather than their specific image type. The
         // stream is peeked rather than fully buffered so the file can still be written as a
         // stream.
         const { head, complete } = await peekStreamHead(stream as Readable, CONTENT_DETECTION_SAMPLE_BYTES);
         const contentMimeType = await detectMimeTypeFromContents(head);
         if (contentMimeType && !this.validateMimeType(contentMimeType)) {
-            return new MimeTypeError({ fileName: filename, mimeType: contentMimeType });
+            // A generic XML signature is consistent with a permitted XML-based extension (e.g.
+            // `image/svg+xml`), so it is not a content/extension mismatch. Anything else that is
+            // recognised-but-not-permitted is a genuine mismatch and is rejected.
+            const contentIsGenericXml =
+                contentMimeType === 'application/xml' || contentMimeType === 'text/xml';
+            const extensionIsXmlBased = !!extensionMimeType && extensionMimeType.endsWith('+xml');
+            if (!(contentIsGenericXml && extensionIsXmlBased)) {
+                return new MimeTypeError({ fileName: filename, mimeType: contentMimeType });
+            }
         }
+        // A file recognised neither by content nor by a permitted extension cannot be verified
+        // as a permitted type (e.g. a script with an unrecognised extension such as `.phtml`).
         if (!contentMimeType && !extensionMimeType) {
             return new MimeTypeError({ fileName: filename, mimeType: 'application/octet-stream' });
         }
