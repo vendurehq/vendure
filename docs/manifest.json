@@ -2844,7 +2844,7 @@
                   "title": "AssetService",
                   "slug": "asset-service",
                   "file": "docs/reference/typescript-api/services/asset-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-06-29T20:32:40Z"
                 },
                 {
                   "title": "AuthService",
@@ -3342,7 +3342,7 @@
                   "title": "SimpleGraphQLClient",
                   "slug": "simple-graph-qlclient",
                   "file": "docs/reference/typescript-api/testing/simple-graph-qlclient.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-06-29T20:32:40Z"
                 },
                 {
                   "title": "TestConfig",
