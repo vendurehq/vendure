@@ -198,7 +198,7 @@ msgstr "Quando abilitato, i prezzi inseriti nel catalogo prodotti includeranno l
 #~ msgid "Create variants for your product"
 #~ msgstr "Crea varianti per il tuo prodotto"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:291
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:331
 msgid "Draft order completed"
 msgstr "Bozza ordine completata"
 
@@ -286,7 +286,7 @@ msgstr "Seleziona ruoli"
 msgid "Successfully created role"
 msgstr "Ruolo creato con successo"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:454
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:459
 msgid "Are you sure you want to delete this variant?"
 msgstr "Sei sicuro di voler eliminare questa variante?"
 
@@ -350,7 +350,7 @@ msgstr "Ubicazione magazzino creata con successo"
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:120
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:166
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:185
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:112
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:113
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:204
 #: src/lib/components/shared/asset/asset-preview.tsx:127
 msgid "Unknown error"
@@ -542,7 +542,7 @@ msgstr "Gestisci le viste salvate globali visibili a tutti gli utenti"
 msgid "Search payment methods..."
 msgstr "Cerca metodi di pagamento..."
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:217
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:257
 msgid "Shipping address unset for order"
 msgstr "Indirizzo di spedizione rimosso per l'ordine"
 
@@ -565,7 +565,7 @@ msgstr "Errore caricamento cronologia cliente: {0}"
 msgid "Successfully removed {selectionLength} {entityType} from channel"
 msgstr "{selectionLength} {entityType} rimossi dal canale con successo"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:158
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:159
 msgid "Add option value"
 msgstr "Aggiungi valore opzione"
 
@@ -666,7 +666,7 @@ msgstr "Aggiungi prodotti e completa l'indirizzo di spedizione per eseguire il t
 msgid "Toggle header row"
 msgstr "Attiva/Disattiva riga intestazione"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:65
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:52
 msgid "Select address"
 msgstr "Seleziona indirizzo"
 
@@ -688,7 +688,7 @@ msgid "Metadata"
 msgstr "Metadati"
 
 #. placeholder {0}: error.message
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:251
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:291
 msgid "Failed to set shipping method for order: {0}"
 msgstr ""
 
@@ -743,7 +743,7 @@ msgstr "Conferma navigazione"
 msgid "Link target"
 msgstr "Destinazione link"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:365
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:405
 msgid "Complete draft"
 msgstr "Completa bozza"
 
@@ -760,7 +760,7 @@ msgstr "Completa bozza"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:170
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:158
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:286
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:348
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:353
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:165
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:89
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:148
@@ -794,7 +794,7 @@ msgstr "Inserisci l'ID transazione per questo completamento rimborso"
 msgid "Your API Key"
 msgstr "La tua chiave API"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:349
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:389
 msgid "Are you sure you want to delete this draft order?"
 msgstr "Sei sicuro di voler eliminare questa bozza di ordine?"
 
@@ -845,7 +845,7 @@ msgstr "Sconti"
 msgid "Enter refund note"
 msgstr "Inserisci nota rimborso"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:151
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:153
 msgid "Order line removed"
 msgstr "Riga ordine rimossa"
 
@@ -863,7 +863,7 @@ msgid "Confirm"
 msgstr "Conferma"
 
 #. placeholder {0}: error.message
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:303
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:343
 msgid "Failed to complete draft order: {0}"
 msgstr ""
 
@@ -881,7 +881,7 @@ msgstr "Impossibile creare prodotto"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:276
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:233
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:457
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:497
 #: src/lib/components/shared/role-code-label.tsx:8
 msgid "Customer"
 msgstr "Cliente"
@@ -891,7 +891,7 @@ msgstr "Cliente"
 msgid "Error loading order history: {0}"
 msgstr "Errore caricamento cronologia ordine: {0}"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:195
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:235
 msgid "Shipping address set for order"
 msgstr "Indirizzo di spedizione impostato per l'ordine"
 
@@ -938,7 +938,7 @@ msgstr "Questi sono i valori attributo per l'attributo <0>{facetName}</0>."
 msgid "Successfully added payment to order"
 msgstr "Pagamento aggiunto all'ordine con successo"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:206
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:246
 msgid "Billing address set for order"
 msgstr "Indirizzo di fatturazione impostato per l'ordine"
 
@@ -1016,7 +1016,7 @@ msgstr "Allocato"
 #~ msgstr "Aggiungi un altro gruppo di opzioni"
 
 #. placeholder {0}: error.message
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:270
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:310
 msgid "Failed to set coupon code for order: {0}"
 msgstr ""
 
@@ -1041,7 +1041,7 @@ msgstr "Collezione creata con successo"
 msgid "Price"
 msgstr "Prezzo"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:343
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:383
 #: src/app/routes/_authenticated/_orders/orders.tsx:115
 msgid "Draft order"
 msgstr "Bozza ordine"
@@ -1084,7 +1084,7 @@ msgstr "Quando abilitata, una promozione è disponibile nel negozio"
 msgid "When tracked, product variant stock levels will be automatically adjusted when sold. This setting can be overridden by individual product variants."
 msgstr "Quando tracciato, i livelli di scorta delle varianti prodotto saranno automaticamente adeguati quando venduti. Questa impostazione può essere sostituita dalle singole varianti prodotto."
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:242
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:282
 msgid "Shipping method set for order"
 msgstr "Metodo di spedizione impostato per l'ordine"
 
@@ -1130,7 +1130,7 @@ msgid "Email address"
 msgstr "Indirizzo email"
 
 #. placeholder {0}: error.message
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:281
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:321
 msgid "Failed to remove coupon code from order: {0}"
 msgstr ""
 
@@ -1284,7 +1284,7 @@ msgstr ""
 msgid "{buttonText}"
 msgstr "{buttonText}"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:111
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:113
 msgid "Item added to order"
 msgstr "Articolo aggiunto all'ordine"
 
@@ -1331,7 +1331,7 @@ msgstr "Nessuna variante corrisponde al filtro corrente."
 msgid "Addresses"
 msgstr "Indirizzi"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:143
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:144
 msgid "Add a new option value to the {groupName} option group"
 msgstr "Aggiungi un nuovo valore di opzione al gruppo di opzioni {groupName}"
 
@@ -1373,7 +1373,7 @@ msgstr "Ordine transitato"
 msgid "is before"
 msgstr "è prima"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:348
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:388
 msgid "Delete draft order"
 msgstr "Elimina bozza ordine"
 
@@ -1426,7 +1426,7 @@ msgid "before"
 msgstr "prima"
 
 #. placeholder {0}: error.message
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:188
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:228
 msgid "Failed to set customer for order: {0}"
 msgstr ""
 
@@ -1457,7 +1457,7 @@ msgstr "Usa come indirizzo di fatturazione predefinito"
 
 #: src/app/common/delete-bulk-action.tsx:139
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:41
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:357
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:362
 #: src/lib/components/data-table/use-generated-columns.tsx:407
 #: src/lib/components/data-table/use-generated-columns.tsx:437
 #: src/lib/components/data-table/views-sheet.tsx:270
@@ -1547,7 +1547,7 @@ msgstr "Indirizzo aggiornato con successo"
 msgid "Created"
 msgstr "Creato"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:76
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:63
 msgid "Loading addresses..."
 msgstr "Caricamento indirizzi..."
 
@@ -1557,7 +1557,7 @@ msgid "Select a target collection to move {0} to."
 msgstr "Seleziona una collezione di destinazione in cui spostare {0}."
 
 #. placeholder {0}: error.message
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:232
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:272
 msgid "Failed to unset billing address for order: {0}"
 msgstr ""
 
@@ -1591,7 +1591,7 @@ msgstr "Vai all'ultima pagina"
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:358
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:71
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:273
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:493
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:498
 #: src/app/routes/_authenticated/_system/settings-store.tsx:140
 #: src/lib/components/data-input/product-multi-selector-input.tsx:470
 #: src/lib/components/data-table/data-table-bulk-action-item.tsx:122
@@ -1610,7 +1610,7 @@ msgid "Cancel"
 msgstr "Annulla"
 
 #. placeholder {0}: error.message
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:95
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:97
 msgid "Failed to update order custom fields: {0}"
 msgstr ""
 
@@ -1645,7 +1645,7 @@ msgstr "Nuova categoria fiscale"
 msgid "Partial refund completed"
 msgstr "Rimborso parziale completato"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:452
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:492
 msgid "Set custom fields"
 msgstr "Imposta campi personalizzati"
 
@@ -1655,7 +1655,7 @@ msgstr "Imposta campi personalizzati"
 msgid "Collections"
 msgstr "Collezioni"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:453
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:458
 msgid "Delete variant"
 msgstr "Elimina variante"
 
@@ -1673,7 +1673,7 @@ msgstr "Motivo:"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:291
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:248
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:470
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:510
 msgid "Shipping address"
 msgstr "Indirizzo di spedizione"
 
@@ -1829,7 +1829,7 @@ msgstr "Metodo di pagamento"
 msgid "Edit"
 msgstr "Modifica"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:183
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:188
 msgid "Variant updated successfully"
 msgstr "Variante aggiornata con successo"
 
@@ -1846,7 +1846,7 @@ msgstr "Nota aggiunta"
 msgid "Select quantities to fulfill and configure the fulfillment handler"
 msgstr "Seleziona le quantità da evadere e configura il gestore evasione"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:228
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:268
 msgid "Billing address unset for order"
 msgstr "Indirizzo di fatturazione rimosso dall'ordine"
 
@@ -2361,7 +2361,7 @@ msgid "Registered"
 msgstr "Registrato"
 
 #. placeholder {0}: error.message
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:199
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:239
 msgid "Failed to set shipping address for order: {0}"
 msgstr ""
 
@@ -2449,7 +2449,7 @@ msgstr "Articoli selezionati"
 msgid "Values"
 msgstr "Valori"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:170
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:172
 msgid "Customer set for order"
 msgstr "Cliente impostato per l'ordine"
 
@@ -2626,7 +2626,7 @@ msgstr "Questa azione rimuoverà tutti i gruppi di opzioni da questo prodotto e 
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:299
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:277
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:502
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:532
 msgid "Billing address"
 msgstr "Indirizzo di fatturazione"
 
@@ -2733,7 +2733,7 @@ msgstr "Creazione in corso..."
 msgid "Are you sure you want to delete this global view? This action cannot be undone and will affect all users."
 msgstr "Sei sicuro di voler eliminare questa vista globale? Questa azione non può essere annullata e influenzerà tutti gli utenti."
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:486
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:491
 msgid "Force remove option group"
 msgstr "Forza rimozione gruppo di opzioni"
 
@@ -2833,7 +2833,7 @@ msgstr "Impossibile creare cliente"
 msgid "Focal point updated"
 msgstr "Punto focale aggiornato"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:298
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:303
 msgid "Option values"
 msgstr "Valori opzione"
 
@@ -3062,7 +3062,7 @@ msgstr "Attiva/Disattiva colonna intestazione"
 msgid "New Promotion"
 msgstr "Nuova promozione"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:151
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:152
 msgid "Option value name"
 msgstr "Nome valore opzione"
 
@@ -3289,7 +3289,7 @@ msgstr "Spedizione"
 msgid "useWidgetDimensions must be used within a DashboardBaseWidget"
 msgstr "useWidgetDimensions deve essere utilizzato all'interno di un DashboardBaseWidget"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:488
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:493
 msgid "This option group is in use by existing variants. Force removing it may affect those variants. Are you sure?"
 msgstr "Questo gruppo di opzioni è utilizzato da varianti esistenti. La rimozione forzata potrebbe influire su tali varianti. Sei sicuro?"
 
@@ -3331,7 +3331,7 @@ msgstr "Impossibile aggiornare il metodo di spedizione"
 msgid "Shipping Methods"
 msgstr "Metodi di spedizione"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:71
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:58
 msgid "Select an address"
 msgstr "Seleziona un indirizzo"
 
@@ -3499,7 +3499,7 @@ msgstr "Aggiungi riga dopo"
 msgid "Tax total"
 msgstr "Totale IVA"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:374
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:414
 msgid "Draft order status"
 msgstr "Stato della bozza dell'ordine"
 
@@ -3520,7 +3520,7 @@ msgstr "Valore attributo creato con successo"
 msgid "Marketing"
 msgstr "Marketing"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:311
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:351
 msgid "Draft order deleted"
 msgstr "Bozza ordine eliminata"
 
@@ -3602,7 +3602,7 @@ msgstr "Non è possibile rimuovere dal canale attivo"
 msgid "Not set"
 msgstr "Non impostato"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:504
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:509
 msgid "Force remove"
 msgstr "Rimozione forzata"
 
@@ -3639,7 +3639,7 @@ msgstr "Stato evasione aggiornato con successo"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:211
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:38
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:66
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:66
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:67
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:56
 #: src/app/routes/_authenticated/_products/products.tsx:24
 #: src/app/routes/_authenticated/_products/products.tsx:47
@@ -3813,7 +3813,7 @@ msgstr "Torna alla ricerca"
 msgid "View duplicated successfully"
 msgstr "Vista duplicata con successo"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:315
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:320
 msgid "Remove option group"
 msgstr "Rimuovi gruppo di opzioni"
 
@@ -3838,7 +3838,7 @@ msgid "Countries"
 msgstr "Paesi"
 
 #. placeholder {0}: error.message
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:160
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:162
 msgid "Failed to remove order line: {0}"
 msgstr ""
 
@@ -3987,7 +3987,7 @@ msgstr "+ {0} altri"
 msgid "Option Groups"
 msgstr "Gruppi di opzioni"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:431
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:471
 msgid "Custom fields"
 msgstr "Campi personalizzati"
 
@@ -4104,7 +4104,7 @@ msgstr "Super amministratore"
 #~ msgstr "Alcune risorse non sono disponibili"
 
 #. placeholder {0}: error.message
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:141
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:143
 msgid "Failed to update order line: {0}"
 msgstr ""
 
@@ -4278,7 +4278,7 @@ msgid "Customer information updated"
 msgstr "Informazioni cliente aggiornate"
 
 #. placeholder {0}: error.message
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:318
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:358
 msgid "Failed to delete draft order: {0}"
 msgstr ""
 
@@ -4343,7 +4343,7 @@ msgstr "Nascondi password"
 msgid "New seller"
 msgstr "Nuovo venditore"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:153
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:154
 msgid "e.g., Red, Large, Cotton"
 msgstr "es. Rosso, Grande, Cotone"
 
@@ -4421,7 +4421,7 @@ msgstr "O"
 msgid "Manage tags"
 msgstr "Gestisci tag"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:277
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:317
 msgid "Coupon code removed from order"
 msgstr "Codice coupon rimosso dall'ordine"
 
@@ -4449,7 +4449,7 @@ msgid "Loading selected items..."
 msgstr ""
 
 #. placeholder {0}: error.message
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:210
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:250
 msgid "Failed to set billing address for order: {0}"
 msgstr ""
 
@@ -4507,7 +4507,7 @@ msgstr "Le condizioni di controllo idoneità di questo metodo di spedizione non 
 msgid "Add coupon code"
 msgstr "Aggiungi codice coupon"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:261
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:301
 msgid "Coupon code set for order"
 msgstr "Codice coupon impostato per l'ordine"
 
@@ -4645,6 +4645,11 @@ msgstr "minore o uguale a"
 msgid "Customer group members for {customerGroupName}"
 msgstr "Membri del gruppo clienti {customerGroupName}"
 
+#. placeholder {0}: e instanceof Error ? e.message : String(e)
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:217
+msgid "Failed to set address for order: {0}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:118
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:217
 #: src/app/routes/_authenticated/_orders/orders.tsx:101
@@ -4731,7 +4736,7 @@ msgstr "Anteprima modifiche"
 msgid "Failed to remove {entityType} from channel"
 msgstr "Impossibile rimuovere {entityType} dal canale"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:191
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:196
 msgid "Variant deleted successfully"
 msgstr "Variante eliminata con successo"
 
@@ -4761,7 +4766,7 @@ msgstr "Attività programmate"
 msgid "Are you sure you want to delete this item? This action cannot be undone."
 msgstr "Sei sicuro di voler eliminare questo articolo? Questa azione non può essere annullata."
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:342
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:347
 msgid "Variants"
 msgstr "Varianti"
 
@@ -4905,7 +4910,7 @@ msgstr "Sistema"
 msgid "Variant name"
 msgstr "Nome variante"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:543
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:579
 msgid "Remove"
 msgstr "Rimuovi"
 
@@ -5145,7 +5150,7 @@ msgstr "IVA escl.:"
 #~ msgid "Add Stock to Location"
 #~ msgstr "Aggiungi scorta all'ubicazione"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:105
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:106
 msgid "Successfully added option value"
 msgstr "Valore opzione aggiunto con successo"
 
@@ -5153,8 +5158,8 @@ msgstr "Valore opzione aggiunto con successo"
 msgid "Collection moved to new parent"
 msgstr "Collezione spostata al nuovo genitore"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:206
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:215
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:211
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:220
 msgid "Option group removed"
 msgstr "Gruppo opzioni rimosso"
 
@@ -5283,7 +5288,7 @@ msgstr "I dati del test sono stati aggiornati. Fai clic su \"Esegui test\" per v
 msgid "is not in"
 msgstr "non è in"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:132
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:134
 msgid "Order line updated"
 msgstr "Riga ordine aggiornata"
 
@@ -5314,7 +5319,7 @@ msgstr "{entityType} rimosso dal canale con successo"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:81
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:17
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:24
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:278
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:283
 msgid "Option Groups"
 msgstr "Gruppi opzioni"
 
@@ -5357,7 +5362,7 @@ msgstr "Video"
 msgid "less than"
 msgstr "minore di"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:121
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:123
 msgid "The variant could not be added. Ensure the parent product is enabled."
 msgstr "Impossibile aggiungere la variante. Assicurati che il prodotto principale sia abilitato."
 
@@ -5419,7 +5424,7 @@ msgstr "Lingue globali"
 msgid "New administrator"
 msgstr "Nuovo amministratore"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:355
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:395
 msgid "Delete draft"
 msgstr "Elimina bozza"
 
@@ -5479,7 +5484,7 @@ msgstr "Ordine venditore"
 msgid "New facet"
 msgstr "Nuovo attributo"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:316
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:321
 msgid "Are you sure you want to remove this option group from the product?"
 msgstr "Sei sicuro di voler rimuovere questo gruppo di opzioni dal prodotto?"
 
@@ -5570,7 +5575,7 @@ msgstr "è minore di"
 msgid "Refund ID"
 msgstr "ID rimborso"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:91
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:93
 msgid "Order custom fields updated"
 msgstr "Campi personalizzati ordine aggiornati"
 
@@ -5662,7 +5667,7 @@ msgstr "Nuovo venditore"
 msgid "Edit image"
 msgstr "Modifica immagine"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:68
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:69
 msgid "Manage Variants"
 msgstr "Gestisci varianti"
 
@@ -5721,16 +5726,16 @@ msgstr "Cliente aggiunto al gruppo"
 msgid "Seller orders"
 msgstr "Ordini venditore"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:111
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:112
 msgid "Failed to add option value"
 msgstr "Impossibile aggiungere valore opzione"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:140
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:141
 msgid "Add option value to {groupName}"
 msgstr "Aggiungi valore opzione a {groupName}"
 
 #. placeholder {0}: error.message
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:221
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:261
 msgid "Failed to unset shipping address for order: {0}"
 msgstr ""
 
@@ -5740,7 +5745,7 @@ msgstr ""
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:292
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:198
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:287
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:351
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:356
 msgid "SKU"
 msgstr "SKU"
 
@@ -5748,7 +5753,7 @@ msgstr "SKU"
 msgid "{totalQuantity} item(s) refunded"
 msgstr "{totalQuantity} articolo/i rimborsato/i"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:282
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:287
 msgid "No option groups defined yet. Add option groups to create different variants of your product (e.g., Size, Color, Material)"
 msgstr "Nessun gruppo di opzioni ancora definito. Aggiungi gruppi di opzioni per creare diverse varianti del tuo prodotto (es. Taglia, Colore, Materiale)"
 
@@ -5872,7 +5877,7 @@ msgstr "Caricamento..."
 msgid "The token is used to specify the channel when making API requests."
 msgstr "Il token viene utilizzato per specificare il canale quando si effettuano richieste API."
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:80
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:67
 msgid "No addresses found"
 msgstr "Nessun indirizzo trovato"
 
@@ -5919,7 +5924,7 @@ msgstr "Il metodo di pagamento è obbligatorio"
 msgid "Failed to add customer to group"
 msgstr "Impossibile aggiungere cliente al gruppo"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:275
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:280
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:279
 msgid "Manage variants"
 msgstr "Gestisci varianti"
@@ -5945,7 +5950,7 @@ msgstr "Cerca venditori..."
 msgid "Successfully created promotion"
 msgstr "Promozione creata con successo"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:292
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:297
 msgid "Option"
 msgstr "Opzione"
 

@@ -190,7 +190,7 @@ msgstr "Bajarishlar yo'q"
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
 msgstr "Bu yoqilganda, mahsulot katalogidagi narxlar standart soliq hududi solig'iga kiritiladi."
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:291
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:331
 msgid "Draft order completed"
 msgstr "Qoralama buyurtma yakunlandi"
 
@@ -266,7 +266,7 @@ msgstr "Rollarni tanlang"
 msgid "Successfully created role"
 msgstr "Rol yaratildi"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:454
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:459
 msgid "Are you sure you want to delete this variant?"
 msgstr "Ushbu variant o'chirilsinmi?"
 
@@ -326,7 +326,7 @@ msgstr "Zaxira joylashuvi yaratildi"
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:120
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:166
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:185
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:112
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:113
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:204
 #: src/lib/components/shared/asset/asset-preview.tsx:127
 msgid "Unknown error"
@@ -514,7 +514,7 @@ msgstr "Barcha foydalanuvchilarga ko'rinadigan global saqlangan ko'rinishlarni b
 msgid "Search payment methods..."
 msgstr "To'lov usullarini qidirish..."
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:217
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:257
 msgid "Shipping address unset for order"
 msgstr "Buyurtma uchun yetkazib berish manzili o'rnatilmagan"
 
@@ -537,7 +537,7 @@ msgstr "Mijoz tarixini yuklashda xato: {0}"
 msgid "Successfully removed {selectionLength} {entityType} from channel"
 msgstr "{selectionLength} ta {entityType} kanaldan olib tashlandi"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:158
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:159
 msgid "Add option value"
 msgstr "Optsiya qiymatini qo'shish"
 
@@ -638,7 +638,7 @@ msgstr "Sinov uchun mahsulot qo'shing va yetkazib berish manzilini to'ldiring."
 msgid "Toggle header row"
 msgstr "Sarlavha qatorini almashtirish"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:65
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:52
 msgid "Select address"
 msgstr "Manzilni tanlang"
 
@@ -660,7 +660,7 @@ msgid "Metadata"
 msgstr "Metama'lumotlar"
 
 #. placeholder {0}: error.message
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:251
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:291
 msgid "Failed to set shipping method for order: {0}"
 msgstr "Yetkazib berish usulini o'rnatib bo'lmadi: {0}"
 
@@ -690,8 +690,8 @@ msgstr "Qisqa sana"
 msgid "Available currencies"
 msgstr "Mavjud valyutalar"
 
-#. placeholder {0}: selectedItems.length
-#: src/lib/components/data-input/product-multi-selector-input.tsx:373
+#. placeholder {0}: selectedIds.size
+#: src/lib/components/data-input/product-multi-selector-input.tsx:473
 msgid "Select {0} Items"
 msgstr "{0} ta element tanlang"
 
@@ -715,7 +715,7 @@ msgstr "Navigatsiyani tasdiqlash"
 msgid "Link target"
 msgstr "Havola maqsadi"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:365
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:405
 msgid "Complete draft"
 msgstr "Qoralamani yakunlash"
 
@@ -732,7 +732,7 @@ msgstr "Qoralamani yakunlash"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:170
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:158
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:286
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:348
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:353
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:165
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:89
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:148
@@ -766,7 +766,7 @@ msgstr "Ushbu pul qaytarish uchun tranzaksiya ID raqamini kiriting"
 msgid "Your API Key"
 msgstr "Sizning API kalitingiz"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:349
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:389
 msgid "Are you sure you want to delete this draft order?"
 msgstr "Ushbu qoralama buyurtma o'chirilsinmi?"
 
@@ -817,7 +817,7 @@ msgstr "Chegirmalar"
 msgid "Enter refund note"
 msgstr "Pul qaytarish izohini kiriting"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:151
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:153
 msgid "Order line removed"
 msgstr "Buyurtma qatori olib tashlandi"
 
@@ -835,7 +835,7 @@ msgid "Confirm"
 msgstr "Tasdiqlash"
 
 #. placeholder {0}: error.message
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:303
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:343
 msgid "Failed to complete draft order: {0}"
 msgstr "Qoralama buyurtmani yakunlab bo'lmadi: {0}"
 
@@ -853,7 +853,7 @@ msgstr "Mahsulotni yaratib bo'lmadi"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:276
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:233
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:457
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:497
 #: src/lib/components/shared/role-code-label.tsx:8
 msgid "Customer"
 msgstr "Mijoz"
@@ -863,7 +863,7 @@ msgstr "Mijoz"
 msgid "Error loading order history: {0}"
 msgstr "Buyurtma tarixini yuklashda xatolik: {0}"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:195
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:235
 msgid "Shipping address set for order"
 msgstr "Buyurtma uchun yetkazib berish manzili o'rnatildi"
 
@@ -910,7 +910,7 @@ msgstr "Bular <0>{facetName}</0> faseti qiymatlari."
 msgid "Successfully added payment to order"
 msgstr "Buyurtmaga to'lov qo'shildi"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:206
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:246
 msgid "Billing address set for order"
 msgstr "Buyurtma uchun hisob-kitob manzili o'rnatildi"
 
@@ -984,7 +984,7 @@ msgid "Allocated"
 msgstr "Ajratilgan"
 
 #. placeholder {0}: error.message
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:270
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:310
 msgid "Failed to set coupon code for order: {0}"
 msgstr "Buyurtma uchun kupon kodini o'rnatib bo'lmadi: {0}"
 
@@ -1009,7 +1009,7 @@ msgstr "To'plam yaratildi"
 msgid "Price"
 msgstr "Narx"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:343
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:383
 #: src/app/routes/_authenticated/_orders/orders.tsx:115
 msgid "Draft order"
 msgstr "Qoralama buyurtma"
@@ -1052,7 +1052,7 @@ msgstr "Yoqilganda, aksiya do'konda mavjud bo'ladi"
 msgid "When tracked, product variant stock levels will be automatically adjusted when sold. This setting can be overridden by individual product variants."
 msgstr "Kuzatilganda, mahsulot varianti zaxira darajalari sotuvda avtomatik o'zgaradi. Bu sozlamani alohida mahsulot variantlari bekor qilishi mumkin."
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:242
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:282
 msgid "Shipping method set for order"
 msgstr "Buyurtma uchun yetkazib berish usuli o'rnatildi"
 
@@ -1098,7 +1098,7 @@ msgid "Email address"
 msgstr "Elektron pochta manzili"
 
 #. placeholder {0}: error.message
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:281
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:321
 msgid "Failed to remove coupon code from order: {0}"
 msgstr "Buyurtmadan kupon kodini olib tashlab bo'lmadi: {0}"
 
@@ -1169,7 +1169,7 @@ msgstr "Ish natijasini ko'rish"
 msgid "Test your shipping methods by simulating a new order."
 msgstr "Yangi buyurtmani simulyatsiya qilib yetkazib berish usullarini sinab ko'ring."
 
-#: src/lib/components/data-input/product-multi-selector-input.tsx:337
+#: src/lib/components/data-input/product-multi-selector-input.tsx:433
 msgid "No items selected"
 msgstr "Hech qanday element tanlanmagan"
 
@@ -1238,13 +1238,13 @@ msgstr "Faqat hisobingizga biriktirilgan rollar mavjud."
 msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
 msgstr "{cancellableCount, plural, one {{cancellableCount} ta ishni bekor qilish} other {{cancellableCount} ta ishni bekor qilish}}"
 
-#: src/lib/components/data-input/product-multi-selector-input.tsx:399
+#: src/lib/components/data-input/product-multi-selector-input.tsx:499
 #: src/lib/components/shared/configurable-operation-multi-selector.tsx:265
 #: src/lib/components/shared/configurable-operation-selector.tsx:140
 msgid "{buttonText}"
 msgstr "{buttonText}"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:111
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:113
 msgid "Item added to order"
 msgstr "Element buyurtmaga qo'shildi"
 
@@ -1287,7 +1287,7 @@ msgstr "Joriy filtrga mos variant yo'q."
 msgid "Addresses"
 msgstr "Manzillar"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:143
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:144
 msgid "Add a new option value to the {groupName} option group"
 msgstr "{groupName} guruhiga yangi optsiya qiymatini qo'shish"
 
@@ -1325,7 +1325,7 @@ msgstr "Buyurtma o'tkazildi"
 msgid "is before"
 msgstr "oldin"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:348
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:388
 msgid "Delete draft order"
 msgstr "Qoralama buyurtmani o'chirish"
 
@@ -1378,7 +1378,7 @@ msgid "before"
 msgstr "oldin"
 
 #. placeholder {0}: error.message
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:188
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:228
 msgid "Failed to set customer for order: {0}"
 msgstr "Buyurtmaga mijozni o'rnatib bo'lmadi: {0}"
 
@@ -1409,7 +1409,7 @@ msgstr "Standart hisob-kitob manzili sifatida ishlatish"
 
 #: src/app/common/delete-bulk-action.tsx:139
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:41
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:357
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:362
 #: src/lib/components/data-table/use-generated-columns.tsx:407
 #: src/lib/components/data-table/use-generated-columns.tsx:437
 #: src/lib/components/data-table/views-sheet.tsx:270
@@ -1494,7 +1494,7 @@ msgstr "Manzil yangilandi"
 msgid "Created"
 msgstr "Yaratilgan"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:76
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:63
 msgid "Loading addresses..."
 msgstr "Manzillar yuklanmoqda..."
 
@@ -1504,7 +1504,7 @@ msgid "Select a target collection to move {0} to."
 msgstr "{0}ni ko'chirish uchun maqsadli to'plamni tanlang."
 
 #. placeholder {0}: error.message
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:232
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:272
 msgid "Failed to unset billing address for order: {0}"
 msgstr "Buyurtma hisob-kitob manzilini bekor qilib bo'lmadi: {0}"
 
@@ -1538,9 +1538,9 @@ msgstr "Oxirgi sahifaga o'tish"
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:358
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:71
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:273
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:493
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:498
 #: src/app/routes/_authenticated/_system/settings-store.tsx:140
-#: src/lib/components/data-input/product-multi-selector-input.tsx:370
+#: src/lib/components/data-input/product-multi-selector-input.tsx:470
 #: src/lib/components/data-table/data-table-bulk-action-item.tsx:122
 #: src/lib/components/data-table/use-generated-columns.tsx:423
 #: src/lib/components/data-table/views-sheet.tsx:217
@@ -1557,7 +1557,7 @@ msgid "Cancel"
 msgstr "Bekor qilish"
 
 #. placeholder {0}: error.message
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:95
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:97
 msgid "Failed to update order custom fields: {0}"
 msgstr "Buyurtmaning maxsus maydonlarini yangilab bo'lmadi: {0}"
 
@@ -1584,7 +1584,7 @@ msgstr "Yangi soliq toifasi"
 msgid "Partial refund completed"
 msgstr "Qisman pul qaytarish bajarildi"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:452
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:492
 msgid "Set custom fields"
 msgstr "Maxsus maydonlarni o'rnatish"
 
@@ -1594,7 +1594,7 @@ msgstr "Maxsus maydonlarni o'rnatish"
 msgid "Collections"
 msgstr "To'plamlar"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:453
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:458
 msgid "Delete variant"
 msgstr "Variantni o'chirish"
 
@@ -1612,7 +1612,7 @@ msgstr "Sabab:"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:291
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:248
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:470
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:510
 msgid "Shipping address"
 msgstr "Yetkazib berish manzili"
 
@@ -1762,7 +1762,7 @@ msgstr "To'lov usuli"
 msgid "Edit"
 msgstr "Tahrirlash"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:183
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:188
 msgid "Variant updated successfully"
 msgstr "Variant muvaffaqiyatli yangilandi"
 
@@ -1779,7 +1779,7 @@ msgstr "Eslatma qo'shildi"
 msgid "Select quantities to fulfill and configure the fulfillment handler"
 msgstr "Bajarish uchun miqdorlarni tanlang va bajarish ishlovchisini sozlang"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:228
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:268
 msgid "Billing address unset for order"
 msgstr "Buyurtma hisob-kitob manzili bekor qilindi"
 
@@ -2294,7 +2294,7 @@ msgid "Registered"
 msgstr "Ro'yxatdan o'tgan"
 
 #. placeholder {0}: error.message
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:199
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:239
 msgid "Failed to set shipping address for order: {0}"
 msgstr "Buyurtma uchun yetkazib berish manzilini o'rnatib bo'lmadi: {0}"
 
@@ -2374,7 +2374,7 @@ msgstr "Optsiya guruhlarini qidirish..."
 msgid "Modify order"
 msgstr "Buyurtmani o'zgartirish"
 
-#: src/lib/components/data-input/product-multi-selector-input.tsx:322
+#: src/lib/components/data-input/product-multi-selector-input.tsx:418
 msgid "Selected Items"
 msgstr "Tanlangan elementlar"
 
@@ -2382,7 +2382,7 @@ msgstr "Tanlangan elementlar"
 msgid "Values"
 msgstr "Qiymatlar"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:170
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:172
 msgid "Customer set for order"
 msgstr "Buyurtma uchun mijoz o'rnatildi"
 
@@ -2547,7 +2547,7 @@ msgstr "Bu mahsulotdagi barcha optsiya guruhlarini olib tashlaydi va variant soz
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:299
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:277
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:502
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:532
 msgid "Billing address"
 msgstr "Hisob-faktura manzili"
 
@@ -2649,7 +2649,7 @@ msgstr "Yaratilmoqda..."
 msgid "Are you sure you want to delete this global view? This action cannot be undone and will affect all users."
 msgstr "Ushbu global koʻrinishni oʻchirasizmi? Bu amalni bekor qilib boʻlmaydi va barcha foydalanuvchilarga taʼsir qiladi."
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:486
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:491
 msgid "Force remove option group"
 msgstr "Optsiya guruhini majburan olib tashlash"
 
@@ -2749,7 +2749,7 @@ msgstr "Mijozni yaratib boʻlmadi"
 msgid "Focal point updated"
 msgstr ""
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:298
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:303
 msgid "Option values"
 msgstr "Optsiya qiymatlari"
 
@@ -2898,8 +2898,8 @@ msgstr ""
 #: src/app/routes/_authenticated/_orders/components/state-transition-control.tsx:77
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:192
 #: src/app/routes/_authenticated/_tax-categories/tax-categories.tsx:44
-#: src/lib/components/data-input/product-multi-selector-input.tsx:281
-#: src/lib/components/data-input/product-multi-selector-input.tsx:284
+#: src/lib/components/data-input/product-multi-selector-input.tsx:377
+#: src/lib/components/data-input/product-multi-selector-input.tsx:380
 #: src/lib/components/data-input/relation-selector.tsx:404
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:439
 msgid "{0}"
@@ -2970,7 +2970,7 @@ msgstr "Sarlavha ustunini almashtirish"
 msgid "New Promotion"
 msgstr "Yangi aksiya"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:151
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:152
 msgid "Option value name"
 msgstr "Optsiya qiymati nomi"
 
@@ -3197,7 +3197,7 @@ msgstr "Yetkazib berish"
 msgid "useWidgetDimensions must be used within a DashboardBaseWidget"
 msgstr "useWidgetDimensions DashboardBaseWidget ichida ishlatilishi kerak"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:488
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:493
 msgid "This option group is in use by existing variants. Force removing it may affect those variants. Are you sure?"
 msgstr "Bu optsiya guruhi mavjud variantlarda ishlatilmoqda. Majburiy olib tashlash ularga ta'sir qilishi mumkin. Ishonchingiz komilmi?"
 
@@ -3239,7 +3239,7 @@ msgstr "Yetkazib berish usulini yangilab bo'lmadi"
 msgid "Shipping Methods"
 msgstr "Yetkazib berish usullari"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:71
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:58
 msgid "Select an address"
 msgstr "Manzilni tanlang"
 
@@ -3392,7 +3392,7 @@ msgstr "Keyin qator qo'shish"
 msgid "Tax total"
 msgstr "Jami soliq"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:374
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:414
 msgid "Draft order status"
 msgstr "Qoralama buyurtma holati"
 
@@ -3409,7 +3409,7 @@ msgstr "Faset qiymati yaratildi"
 msgid "Marketing"
 msgstr "Marketing"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:311
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:351
 msgid "Draft order deleted"
 msgstr "Qoralama buyurtma o'chirildi"
 
@@ -3491,7 +3491,7 @@ msgstr "Faol kanaldan olib tashlab bo'lmaydi"
 msgid "Not set"
 msgstr "Belgilanmagan"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:504
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:509
 msgid "Force remove"
 msgstr "Majburiy olib tashlash"
 
@@ -3528,7 +3528,7 @@ msgstr "Bajarish holati yangilandi"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:211
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:38
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:66
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:66
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:67
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:56
 #: src/app/routes/_authenticated/_products/products.tsx:24
 #: src/app/routes/_authenticated/_products/products.tsx:47
@@ -3698,7 +3698,7 @@ msgstr "Qidiruvga qaytish"
 msgid "View duplicated successfully"
 msgstr "Ko'rinish nusxalandi"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:315
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:320
 msgid "Remove option group"
 msgstr "Optsiya guruhini olib tashlash"
 
@@ -3723,7 +3723,7 @@ msgid "Countries"
 msgstr "Mamlakatlar"
 
 #. placeholder {0}: error.message
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:160
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:162
 msgid "Failed to remove order line: {0}"
 msgstr "Buyurtma qatorini olib tashlab bo'lmadi: {0}"
 
@@ -3859,7 +3859,7 @@ msgstr "+ yana {0} ta"
 msgid "Option Groups"
 msgstr "Optsiya guruhlari"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:431
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:471
 msgid "Custom fields"
 msgstr "Maxsus maydonlar"
 
@@ -3968,7 +3968,7 @@ msgid "Super Admin"
 msgstr "Super Admin"
 
 #. placeholder {0}: error.message
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:141
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:143
 msgid "Failed to update order line: {0}"
 msgstr "Buyurtma qatorini yangilab bo'lmadi: {0}"
 
@@ -4138,7 +4138,7 @@ msgid "Customer information updated"
 msgstr "Mijoz ma'lumotlari yangilandi"
 
 #. placeholder {0}: error.message
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:318
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:358
 msgid "Failed to delete draft order: {0}"
 msgstr "Qoralama buyurtmani o'chirib bo'lmadi: {0}"
 
@@ -4199,7 +4199,7 @@ msgstr "Parolni yashirish"
 msgid "New seller"
 msgstr "Yangi sotuvchi"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:153
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:154
 msgid "e.g., Red, Large, Cotton"
 msgstr "masalan, Qizil, Katta, Paxta"
 
@@ -4269,7 +4269,7 @@ msgstr "YOKI"
 msgid "Manage tags"
 msgstr "Teglarni boshqarish"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:277
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:317
 msgid "Coupon code removed from order"
 msgstr "Buyurtmadan kupon kodi olib tashlandi"
 
@@ -4288,8 +4288,12 @@ msgstr "Faset qiymatini yangilab bo'lmadi"
 msgid "Order fulfilled"
 msgstr "Buyurtma bajarildi"
 
+#: src/lib/components/data-input/product-multi-selector-input.tsx:437
+msgid "Loading selected items..."
+msgstr ""
+
 #. placeholder {0}: error.message
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:210
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:250
 msgid "Failed to set billing address for order: {0}"
 msgstr "Buyurtma uchun hisob-kitob manzilini o'rnatib bo'lmadi: {0}"
 
@@ -4347,7 +4351,7 @@ msgstr "Bu yetkazib berish usulining muvofiqlik shartlari joriy buyurtma va manz
 msgid "Add coupon code"
 msgstr "Kupon kodini qo'shish"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:261
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:301
 msgid "Coupon code set for order"
 msgstr "Buyurtma uchun kupon kodi o'rnatildi"
 
@@ -4485,6 +4489,11 @@ msgstr "kichik yoki teng"
 msgid "Customer group members for {customerGroupName}"
 msgstr "{customerGroupName} uchun mijozlar guruhi a'zolari"
 
+#. placeholder {0}: e instanceof Error ? e.message : String(e)
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:217
+msgid "Failed to set address for order: {0}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:118
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:217
 #: src/app/routes/_authenticated/_orders/orders.tsx:101
@@ -4571,7 +4580,7 @@ msgstr "O'zgartirishlarni oldindan ko'rish"
 msgid "Failed to remove {entityType} from channel"
 msgstr "{entityType} kanaldan olib tashlab bo'lmadi"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:191
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:196
 msgid "Variant deleted successfully"
 msgstr "Variant o'chirildi"
 
@@ -4601,7 +4610,7 @@ msgstr "Rejalashtirilgan vazifalar"
 msgid "Are you sure you want to delete this item? This action cannot be undone."
 msgstr "Bu elementni o'chirmoqchimisiz? Bu amalni bekor qilib bo'lmaydi."
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:342
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:347
 msgid "Variants"
 msgstr "Variantlar"
 
@@ -4684,7 +4693,7 @@ msgid "Add tags..."
 msgstr "Teglar qo'shish..."
 
 #. placeholder {0}: selectedIds.length
-#: src/lib/components/data-input/product-multi-selector-input.tsx:404
+#: src/lib/components/data-input/product-multi-selector-input.tsx:504
 msgid "{0} items selected"
 msgstr "{0} ta element tanlandi"
 
@@ -4733,7 +4742,7 @@ msgstr "Tizim"
 msgid "Variant name"
 msgstr "Variant nomi"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:543
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:579
 msgid "Remove"
 msgstr "Olib tashlash"
 
@@ -4953,7 +4962,7 @@ msgstr "Har 10 soniyada"
 msgid "ex. tax:"
 msgstr "soliqsiz:"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:105
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:106
 msgid "Successfully added option value"
 msgstr "Optsiya qiymati muvaffaqiyatli qo'shildi"
 
@@ -4961,8 +4970,8 @@ msgstr "Optsiya qiymati muvaffaqiyatli qo'shildi"
 msgid "Collection moved to new parent"
 msgstr "To'plam yangi ota-elementga ko'chirildi"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:206
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:215
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:211
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:220
 msgid "Option group removed"
 msgstr "Optsiya guruhi olib tashlandi"
 
@@ -5041,7 +5050,7 @@ msgstr "o'z ichiga oladi"
 msgid "No option groups found"
 msgstr "Optsiya guruhi topilmadi"
 
-#: src/lib/components/data-input/product-multi-selector-input.tsx:91
+#: src/lib/components/data-input/product-multi-selector-input.tsx:162
 msgid "No items found"
 msgstr "Element topilmadi"
 
@@ -5091,7 +5100,7 @@ msgstr "Test ma'lumotlari yangilandi. Yangilangan natijalarni ko'rish uchun \"Te
 msgid "is not in"
 msgstr "ichida emas"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:132
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:134
 msgid "Order line updated"
 msgstr "Buyurtma satri yangilandi"
 
@@ -5122,7 +5131,7 @@ msgstr "{entityType} kanaldan muvaffaqiyatli olib tashlandi"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:81
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:17
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:24
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:278
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:283
 msgid "Option Groups"
 msgstr "Optsiya guruhlari"
 
@@ -5165,7 +5174,7 @@ msgstr "Video"
 msgid "less than"
 msgstr "dan kichik"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:121
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:123
 msgid "The variant could not be added. Ensure the parent product is enabled."
 msgstr "Variantni qo'shib bo'lmadi. Ota-mahsulot yoqilganiga ishonch hosil qiling."
 
@@ -5223,7 +5232,7 @@ msgstr "Global tillar"
 msgid "New administrator"
 msgstr "Yangi administrator"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:355
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:395
 msgid "Delete draft"
 msgstr "Qoralamani o'chirish"
 
@@ -5279,7 +5288,7 @@ msgstr "Sotuvchi buyurtmasi"
 msgid "New facet"
 msgstr "Yangi faset"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:316
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:321
 msgid "Are you sure you want to remove this option group from the product?"
 msgstr "Ushbu optsiya guruhini mahsulotdan olib tashlamoqchimisiz?"
 
@@ -5366,7 +5375,7 @@ msgstr "dan kichik"
 msgid "Refund ID"
 msgstr "Pul qaytarish ID"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:91
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:93
 msgid "Order custom fields updated"
 msgstr "Buyurtmaning maxsus maydonlari yangilandi"
 
@@ -5387,7 +5396,7 @@ msgstr "Vazifa ma'lumotlarini ko'rish"
 msgid "Move to the top level"
 msgstr "Eng yuqori darajaga ko'chirish"
 
-#: src/lib/components/data-input/product-multi-selector-input.tsx:329
+#: src/lib/components/data-input/product-multi-selector-input.tsx:425
 msgid "Clear"
 msgstr "Tozalash"
 
@@ -5458,7 +5467,7 @@ msgstr "Yangi sotuvchi"
 msgid "Edit image"
 msgstr "Rasmni tahrirlash"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:68
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:69
 msgid "Manage Variants"
 msgstr "Variantlarni boshqarish"
 
@@ -5509,16 +5518,16 @@ msgstr "Mijoz guruhga qo'shildi"
 msgid "Seller orders"
 msgstr "Sotuvchi buyurtmalari"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:111
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:112
 msgid "Failed to add option value"
 msgstr "Optsiya qiymatini qo'shish amalga oshmadi"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:140
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:141
 msgid "Add option value to {groupName}"
 msgstr "{groupName} ga optsiya qiymatini qo'shish"
 
 #. placeholder {0}: error.message
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:221
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:261
 msgid "Failed to unset shipping address for order: {0}"
 msgstr "Buyurtma uchun yetkazib berish manzilini bekor qilish amalga oshmadi: {0}"
 
@@ -5528,7 +5537,7 @@ msgstr "Buyurtma uchun yetkazib berish manzilini bekor qilish amalga oshmadi: {0
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:292
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:198
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:287
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:351
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:356
 msgid "SKU"
 msgstr "SKU"
 
@@ -5536,7 +5545,7 @@ msgstr "SKU"
 msgid "{totalQuantity} item(s) refunded"
 msgstr "{totalQuantity} ta mahsulot uchun pul qaytarildi"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:282
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:287
 msgid "No option groups defined yet. Add option groups to create different variants of your product (e.g., Size, Color, Material)"
 msgstr "Hali optsiya guruhi belgilanmagan. Mahsulotingizning turli variantlarini yaratish uchun optsiya guruhlarini qo'shing (masalan, O'lcham, Rang, Material)"
 
@@ -5647,7 +5656,7 @@ msgstr "Buyurtmaga to'lov qo'shish"
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:122
 #: src/app/routes/_authenticated/_option-groups/components/option-group-products-block.tsx:59
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:245
-#: src/lib/components/data-input/product-multi-selector-input.tsx:83
+#: src/lib/components/data-input/product-multi-selector-input.tsx:154
 #: src/lib/components/data-input/relation-selector.tsx:427
 #: src/lib/components/shared/country-selector.tsx:86
 #: src/lib/components/shared/customer-group-selector.tsx:56
@@ -5660,7 +5669,7 @@ msgstr "Yuklanmoqda..."
 msgid "The token is used to specify the channel when making API requests."
 msgstr "Token API so'rovlarini yuborishda kanalni belgilash uchun ishlatiladi."
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:80
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:67
 msgid "No addresses found"
 msgstr "Manzillar topilmadi"
 
@@ -5703,7 +5712,7 @@ msgstr "To'lov usuli talab qilinadi"
 msgid "Failed to add customer to group"
 msgstr "Mijozni guruhga qo'shish amalga oshmadi"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:275
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:280
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:279
 msgid "Manage variants"
 msgstr "Variantlarni boshqarish"
@@ -5729,7 +5738,7 @@ msgstr "Sotuvchilarni qidirish..."
 msgid "Successfully created promotion"
 msgstr "Aksiya muvaffaqiyatli yaratildi"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:292
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:297
 msgid "Option"
 msgstr "Optsiya"
 
