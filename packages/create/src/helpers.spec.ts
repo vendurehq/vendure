@@ -390,11 +390,11 @@ describe('getMonorepoRootPackageJson', () => {
 });
 
 describe('getSingleProjectPackageJson', () => {
-    it('writes manager-specific scripts and stays private', () => {
+    it('writes the unified vendure CLI scripts and stays private', () => {
         const pkg = getSingleProjectPackageJson('my-shop', getPackageManagerInfo('npm'), 'postgres');
         expect(pkg.name).toBe('my-shop');
         expect(pkg.private).toBe(true);
-        expect((pkg.scripts as Record<string, string>).dev).toBe('concurrently --kill-others npm:dev:*');
+        expect((pkg.scripts as Record<string, string>).dev).toBe('vendure dev all');
     });
 
     // #4891 — the single-project root package.json is where pnpm reads onlyBuiltDependencies.
