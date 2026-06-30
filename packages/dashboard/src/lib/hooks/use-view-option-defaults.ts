@@ -13,7 +13,7 @@ import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
  * 2. Extension API defaults registered via `viewOptionDefaults`
  * 3. Code defaults supplied by the data table component
  */
-export function useViewOptionDefaults<T extends string>(
+export function useViewOptionDefaults<T extends string | number | symbol>(
     defaultColumnVisibility: Partial<Record<T, boolean>> | undefined,
     defaultColumnOrder: T[] | undefined,
 ) {
@@ -24,14 +24,17 @@ export function useViewOptionDefaults<T extends string>(
     const viewOptionDefaults = pageId ? getViewOptionDefaults(pageId, pageBlock?.blockId) : {};
     const extensionColumnOrder = viewOptionDefaults?.columnOrder ?? [];
     return {
+        // Visibility is a per-column map, so the layers are spread-merged (last wins).
         defaultColumnVisibility: {
             ...(defaultColumnVisibility ?? {}),
             ...(viewOptionDefaults?.columnVisibility ?? {}),
             ...(userTableSettings?.columnVisibility ?? {}),
         },
+        // Order is positional and can't be spread-merged: a saved user order wins outright,
+        // else extension order leads, followed by code-default columns not already placed.
         defaultColumnOrder: userTableSettings?.columnOrder ?? [
             ...extensionColumnOrder,
-            ...(defaultColumnOrder?.filter(colId => !extensionColumnOrder.includes(colId)) ?? []),
+            ...(defaultColumnOrder?.filter(colId => !extensionColumnOrder.includes(String(colId))) ?? []),
         ],
     };
 }
