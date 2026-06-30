@@ -22,6 +22,7 @@ class SimpleGraphQLClient {
         mutation: DocumentNode;
         filePaths: string[];
         mapVariables: (filePaths: string[]) => any;
+        contentTypeOverrides?: { [index: number]: string };
     }) => Promise<any>;
 }
 ```
@@ -77,7 +78,7 @@ Logs in as the SuperAdmin user.
 Logs out so that the client is then treated as an anonymous user.
 ### fileUploadMutation
 
-<MemberInfo kind="method" type={`(options: {         mutation: DocumentNode;         filePaths: string[];         mapVariables: (filePaths: string[]) => any;     }) => Promise<any>`}   />
+<MemberInfo kind="method" type={`(options: {         mutation: DocumentNode;         filePaths: string[];         mapVariables: (filePaths: string[]) => any;         contentTypeOverrides?: { [index: number]: string };     }) => Promise<any>`}   />
 
 Perform a file upload mutation.
 
