@@ -15,7 +15,7 @@ import { gqlTadaPlugin } from './vite-plugin-gql-tada.js';
 import { hmrPlugin } from './vite-plugin-hmr.js';
 import { linguiBabelPlugin } from './vite-plugin-lingui-babel.js';
 import { dashboardTailwindSourcePlugin } from './vite-plugin-tailwind-source.js';
-import { DashboardThemeOptions, themeVariablesPlugin } from './vite-plugin-theme.js';
+import { themeVariablesPlugin, ThemeVariablesPluginOptions } from './vite-plugin-theme.js';
 import { transformIndexHtmlPlugin } from './vite-plugin-transform-index.js';
 import { translationsPlugin } from './vite-plugin-translations.js';
 import { uiConfigPlugin, UiConfigPluginOptions } from './vite-plugin-ui-config.js';
@@ -138,24 +138,8 @@ export type VitePluginVendureDashboardOptions = {
         translations?: boolean;
         hmr?: boolean;
     };
-    /**
-     * @description
-     * Customizes the dashboard's appearance. Override design-token colours for
-     * the `light` and `dark` themes, and/or layer in additional stylesheets via
-     * `additionalStylesheets`.
-     *
-     * @example
-     * ```ts
-     * vendureDashboardPlugin({
-     *     theme: {
-     *         light: { brand: '#1a1a1a' },
-     *         additionalStylesheets: [resolve(__dirname, 'src/dashboard.css')],
-     *     },
-     * })
-     * ```
-     */
-    theme?: DashboardThemeOptions;
-} & UiConfigPluginOptions;
+} & UiConfigPluginOptions &
+    ThemeVariablesPluginOptions;
 
 /**
  * @description
@@ -230,11 +214,7 @@ export function vendureDashboardPlugin(options: VitePluginVendureDashboardOption
         },
         {
             key: 'themeVariables',
-            plugin: () =>
-                themeVariablesPlugin({
-                    theme: options.theme,
-                    additionalStylesheets: options.theme?.additionalStylesheets,
-                }),
+            plugin: () => themeVariablesPlugin({ theme: options.theme }),
         },
         {
             key: 'tailwindSource',

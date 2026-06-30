@@ -29,15 +29,6 @@ html[dir="rtl"] * {
  */
 @import 'virtual:admin-theme-inline';
 
-/*
- * Replaced at build time by the themeVariablesPlugin with the @import
- * statements for any stylesheets passed via the `theme.additionalStylesheets`
- * option. Placed here so user styles participate in Tailwind's build pipeline.
- * When no stylesheets are configured, this placeholder is removed.
- */
-/* stylelint-disable-next-line no-invalid-position-at-import-rule */
-@import 'virtual:vendure-user-styles';
-
 @layer base {
     * {
         @apply border-border outline-ring/50;
