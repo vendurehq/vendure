@@ -3943,7 +3943,7 @@
                   "title": "DataTables",
                   "slug": "data-tables",
                   "file": "docs/reference/dashboard/extensions-api/data-tables.mdx",
-                  "lastModified": "2026-06-24T13:43:54+02:00"
+                  "lastModified": "2026-06-30T14:10:17Z"
                 },
                 {
                   "title": "DefineDashboardExtension",
@@ -4219,7 +4219,7 @@
                   "title": "PaginatedListDataTable",
                   "slug": "paginated-list-data-table",
                   "file": "docs/reference/dashboard/list-views/paginated-list-data-table.mdx",
-                  "lastModified": "2026-05-22T14:56:03+02:00"
+                  "lastModified": "2026-06-30T14:10:17Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
