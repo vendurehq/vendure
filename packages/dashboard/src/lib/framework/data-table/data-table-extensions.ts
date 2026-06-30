@@ -53,8 +53,8 @@ export function getViewOptionDefaults(
  *
  * - `columnVisibility`: shallow-merged. For a given column, the value supplied
  *   by the **last** plugin to register wins.
- * - `columnOrder`: appended in registration order. Earlier-registered entries
- *   appear first; duplicates are not removed at registration time.
+ * - `columnOrder`: appended in registration order and de-duplicated, so a
+ *   column keeps the position given by the **first** plugin to register it.
  */
 export function addViewOptionDefaults(
     pageId: string,
@@ -65,7 +65,9 @@ export function addViewOptionDefaults(
     const key = createKey(pageId, blockId);
     const existingDefaults = defaultsRegistry.get(key) || {};
     defaultsRegistry.set(key, {
-        columnOrder: [...(existingDefaults?.columnOrder ?? []), ...(viewOptionDefaults.columnOrder ?? [])],
+        columnOrder: [
+            ...new Set([...(existingDefaults?.columnOrder ?? []), ...(viewOptionDefaults.columnOrder ?? [])]),
+        ],
         columnVisibility: {
             ...(existingDefaults?.columnVisibility ?? {}),
             ...(viewOptionDefaults.columnVisibility ?? {}),
