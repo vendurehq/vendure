@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 import { brand, darkTheme, fontFamily, lightTheme, radii, shadows } from '@vendure-io/design-tokens';
 import { Plugin } from 'vite';
 
@@ -6,6 +8,46 @@ type ThemeColors = Record<string, string | undefined>;
 export interface ThemeVariables {
     light?: ThemeColors;
     dark?: ThemeColors;
+}
+
+/**
+ * @description
+ * Appearance options for the dashboard. Extends {@link ThemeVariables} (the
+ * `light`/`dark` colour-token overrides) with the ability to layer in
+ * additional stylesheets.
+ *
+ * @docsCategory vite-plugin
+ * @docsPage vendureDashboardPlugin
+ * @since 3.5.1
+ */
+export interface DashboardThemeOptions extends ThemeVariables {
+    /**
+     * @description
+     * One or more paths to additional CSS files that should be imported into
+     * the dashboard's main stylesheet. Each path is injected as an `@import`
+     * statement at a dedicated insertion point among the stylesheet's other
+     * imports, so the file participates in Tailwind's build pipeline — you can
+     * use `@source`, `@theme`, `@apply`, `@utility`, custom variants, etc.
+     * inside it.
+     *
+     * Paths may be absolute or relative to the current working directory;
+     * relative paths are resolved against `process.cwd()`. Backslashes are
+     * normalized to forward slashes so the resulting `@import` statement is
+     * valid on Windows.
+     *
+     * To override design tokens (e.g. brand colors), prefer the `light`/`dark`
+     * theme options — `additionalStylesheets` is for layering custom CSS rules.
+     *
+     * @example
+     * ```ts
+     * vendureDashboardPlugin({
+     *     theme: {
+     *         additionalStylesheets: [path.resolve(__dirname, 'src/dashboard.css')],
+     *     },
+     * })
+     * ```
+     */
+    additionalStylesheets?: string | string[];
 }
 
 /**
@@ -41,9 +83,22 @@ const defaultVariables: ThemeVariables = {
     dark: { ...darkTheme, ...dashboardDarkExtensions },
 };
 
+/**
+ * Internal options for {@link themeVariablesPlugin}. Kept flat — the public
+ * surface nests `additionalStylesheets` under the `theme` option (see
+ * {@link DashboardThemeOptions}); the dashboard plugin maps the nested field
+ * onto this flat shape.
+ */
 export type ThemeVariablesPluginOptions = {
     theme?: ThemeVariables;
+    additionalStylesheets?: string | string[];
 };
+
+function normalizeStylesheetPaths(input: string | string[] | undefined): string[] {
+    if (!input) return [];
+    const list = Array.isArray(input) ? input : [input];
+    return list.map(p => path.resolve(p).replace(/\\/g, '/'));
+}
 
 /**
  * Generates the `@theme inline` block from design-token JS exports,
@@ -81,8 +136,7 @@ function generateThemeInlineBlock(): string {
 }
 
 export function themeVariablesPlugin(options: ThemeVariablesPluginOptions): Plugin {
-    const virtualModuleId = 'virtual:admin-theme';
-    const resolvedVirtualModuleId = `\0${virtualModuleId}`;
+    const additionalStylesheets = normalizeStylesheetPaths(options.additionalStylesheets);
 
     return {
         name: 'vendure:admin-theme',
@@ -97,6 +151,22 @@ export function themeVariablesPlugin(options: ThemeVariablesPluginOptions): Plug
 
             let result = code;
             let modified = false;
+
+            // Replace the `virtual:vendure-user-styles` placeholder with the
+            // user-supplied stylesheets as @import statements. The placeholder
+            // marks a deliberate insertion point among the @import statements in
+            // styles.css, so the CSS stays valid (imports must precede rules) and
+            // the imported files contribute @source, @theme, @apply, etc. to the
+            // dashboard build. When no stylesheets are configured, the placeholder
+            // is simply removed.
+            if (
+                result.includes('@import "virtual:vendure-user-styles";') ||
+                result.includes("@import 'virtual:vendure-user-styles';")
+            ) {
+                const userImports = additionalStylesheets.map(p => `@import '${p}';`).join('\n');
+                result = result.replace(/@import ['"]virtual:vendure-user-styles['"];?/, userImports);
+                modified = true;
+            }
 
             // Replace @import 'virtual:admin-theme' with :root / .dark CSS custom properties
             if (
