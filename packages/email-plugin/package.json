@@ -25,19 +25,19 @@
         "access": "public"
     },
     "dependencies": {
-        "@types/nodemailer": "^6.4.22",
         "dateformat": "^3.0.3",
         "express": "^5.1.0",
         "fs-extra": "^11.2.0",
-        "handlebars": "^4.7.8",
-        "mjml": "^4.14.1",
-        "nodemailer": "^6.9.4"
+        "handlebars": "^4.7.9",
+        "mjml": "^5.3.0",
+        "nodemailer": "^9.0.1"
     },
     "devDependencies": {
         "@types/dateformat": "^3.0.1",
         "@types/express": "^5.0.1",
         "@types/fs-extra": "^11.0.4",
-        "@types/mjml": "^4.7.4",
+        "@types/mjml": "^5.0.0",
+        "@types/nodemailer": "^8.0.1",
         "@vendure/common": "3.6.4",
         "@vendure/core": "3.6.4",
         "rimraf": "^5.0.5",
