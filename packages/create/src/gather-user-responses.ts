@@ -321,6 +321,7 @@ async function generateSources(
         dockerComposeSource: await createSourceFile('docker-compose.hbs'),
         tsconfigDashboardSource: await createSourceFile('tsconfig.dashboard.hbs'),
         viteConfigSource: await createSourceFile('vite.config.hbs'),
+        agentsSource: await createSourceFile('agents.hbs'),
     };
 }
 

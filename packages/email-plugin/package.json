@@ -25,7 +25,7 @@
         "access": "public"
     },
     "dependencies": {
-        "@types/nodemailer": "^6.4.9",
+        "@types/nodemailer": "^6.4.22",
         "dateformat": "^3.0.3",
         "express": "^5.1.0",
         "fs-extra": "^11.2.0",

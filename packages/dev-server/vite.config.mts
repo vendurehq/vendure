@@ -5,6 +5,9 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
     base: '/dashboard/',
+    build: {
+        outDir: './dist/dashboard',
+    },
     plugins: [
         vendureDashboardPlugin({
             vendureConfigPath: pathToFileURL('./dev-config.ts'),

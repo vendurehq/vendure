@@ -26,6 +26,7 @@ import { CustomFieldRelationService } from '../helpers/custom-field-relation/cus
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
 import { PasswordCipher } from '../helpers/password-cipher/password-cipher';
 import { RequestContextService } from '../helpers/request-context/request-context.service';
+import { checkSuperadminCredentials } from '../helpers/utils/check-superadmin-credentials';
 import { getChannelPermissions } from '../helpers/utils/get-user-channels-permissions';
 import { patchEntity } from '../helpers/utils/patch-entity';
 
@@ -321,6 +322,8 @@ export class AdministratorService {
      */
     private async ensureSuperAdminExists() {
         const { superadminCredentials } = this.configService.authOptions;
+
+        checkSuperadminCredentials(superadminCredentials);
 
         const superAdminUser = await this.connection.rawConnection.getRepository(User).findOne({
             where: {

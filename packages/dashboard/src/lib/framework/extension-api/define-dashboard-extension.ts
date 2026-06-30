@@ -1,6 +1,7 @@
 import { getNavMenuConfig, setNavMenuConfig } from '../nav-menu/nav-menu-extensions.js';
 import { globalRegistry } from '../registry/global-registry.js';
 
+import { registerDashboardCustomProviders } from './custom-providers.js';
 import { DashboardExtension } from './extension-api-types.js';
 import {
     registerAlertExtensions,
@@ -125,6 +126,9 @@ export function defineDashboardExtension(extension: DashboardExtension) {
 
         // Register custom history entry components
         registerHistoryEntryComponents(extension.historyEntries);
+
+        // Register dashboard custom providers
+        registerDashboardCustomProviders(extension.customProviders);
 
         // Register toolbar extensions
         registerToolbarExtensions(extension.toolbarItems);

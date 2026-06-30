@@ -1,19 +1,18 @@
-import { HealthIndicatorFunction } from '@nestjs/terminus';
-import { HealthCheckStrategy, Injector } from '@vendure/core';
+import { HealthCheckStrategy, HealthIndicatorFunction, Injector } from '@vendure/core';
 
 import { RedisHealthIndicator } from './redis-health-indicator';
-
-let indicator: RedisHealthIndicator;
 
 /**
  * @deprecated Use infrastructure-level health checks instead of application-level health checks.
  * This class will be removed in v4.0.0.
  */
 export class RedisHealthCheckStrategy implements HealthCheckStrategy {
+    private indicator!: RedisHealthIndicator;
+
     init(injector: Injector) {
-        indicator = injector.get(RedisHealthIndicator);
+        this.indicator = injector.get(RedisHealthIndicator);
     }
     getHealthIndicator(): HealthIndicatorFunction {
-        return () => indicator.isHealthy('redis (job queue)');
+        return () => this.indicator.isHealthy('redis (job queue)');
     }
 }

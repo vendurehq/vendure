@@ -39,19 +39,22 @@
         "@clack/prompts": "^0.7.0",
         "@vendure/common": "3.6.4",
         "change-case": "^4.1.2",
+        "chokidar": "^3.6.0",
         "commander": "^11.0.0",
+        "cross-spawn": "^7.0.6",
         "dotenv": "^16.4.5",
         "fs-extra": "^11.2.0",
         "picocolors": "^1.0.0",
         "strip-json-comments": "^5.0.3",
         "ts-morph": "^21.0.1",
         "ts-node": "^10.9.2",
-        "tsconfig-paths": "^4.2.0"
+        "tsconfig-paths": "^4.2.0",
+        "typescript": "5.8.2",
+        "vite": "^7.3.1"
     },
     "devDependencies": {
         "@vendure/core": "3.6.4",
         "@vendure/testing": "3.6.4",
-        "cross-env": "^7.0.3",
-        "typescript": "5.8.2"
+        "cross-env": "^7.0.3"
     }
 }

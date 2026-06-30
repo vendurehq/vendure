@@ -29,11 +29,9 @@
         "@aws-sdk/lib-storage": "^3.529.1",
         "@types/express": "^5.0.1",
         "@types/fs-extra": "^11.0.4",
-        "@types/node-fetch": "^2.6.11",
         "@vendure/common": "3.6.4",
         "@vendure/core": "3.6.4",
         "express": "^5.1.0",
-        "node-fetch": "^2.7.0",
         "rimraf": "^5.0.5",
         "typescript": "5.8.2"
     },

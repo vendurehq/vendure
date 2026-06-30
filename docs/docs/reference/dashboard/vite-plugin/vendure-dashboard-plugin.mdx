@@ -4,7 +4,7 @@ generated: true
 ---
 ## vendureDashboardPlugin
 
-<GenerationInfo sourceFile="packages/dashboard/vite/vite-plugin-vendure-dashboard.ts" sourceLine="168" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/vite/vite-plugin-vendure-dashboard.ts" sourceLine="225" packageName="@vendure/dashboard" since="3.4.0" />
 
 This is the Vite plugin which powers the Vendure Dashboard, including:
 
@@ -23,7 +23,7 @@ Parameters
 
 ## VitePluginVendureDashboardOptions
 
-<GenerationInfo sourceFile="packages/dashboard/vite/vite-plugin-vendure-dashboard.ts" sourceLine="32" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/vite/vite-plugin-vendure-dashboard.ts" sourceLine="38" packageName="@vendure/dashboard" since="3.4.0" />
 
 Options for the [vendureDashboardPlugin](/reference/dashboard/vite-plugin/vendure-dashboard-plugin#venduredashboardplugin) Vite plugin.
 
@@ -88,6 +88,31 @@ type VitePluginVendureDashboardOptions = {
     tempCompilationDir?: string;
     /**
      * @description
+     * Options passed to the underlying TanStack Router Vite plugin (`tanstackRouter()`). These are
+     * merged on top of the Dashboard's own defaults, letting you override most aspects of the router
+     * plugin's configuration. The `routesDirectory`, `generatedRouteTree` and `routeFileIgnorePattern`
+     * settings are managed by the Dashboard and cannot be overridden (attempts are ignored with a warning).
+     *
+     * A common use case is setting `tmpDir` when your deployment's default temp directory is on a
+     * different device than the checked-out code (e.g. `node_modules` on a separate volume), which
+     * otherwise causes the build to fail with `EXDEV: cross-device link not permitted` during
+     * route-tree generation.
+     *
+     * @example
+     * ```ts
+     * vendureDashboardPlugin({
+     *   vendureConfigPath: './vendure-config.ts',
+     *   tanstackRouterPluginOptions: {
+     *     tmpDir: path.join(packageRoot, '.tanstack-tmp'),
+     *   },
+     * })
+     * ```
+     *
+     * @since 3.7.0
+     */
+    tanstackRouterPluginOptions?: TanstackRouterPluginOptions;
+    /**
+     * @description
      * Allows you to customize the location of node_modules & glob patterns used to scan for potential
      * Vendure plugins installed as npm packages. If not provided, the compiler will attempt to guess
      * the location based on the location of the `@vendure/core` package.
@@ -129,6 +154,7 @@ type VitePluginVendureDashboardOptions = {
         tailwindcss?: boolean;
         configLoader?: boolean;
         viteConfig?: boolean;
+        bundleEntry?: boolean;
         adminApiSchema?: boolean;
         dashboardMetadata?: boolean;
         uiConfig?: boolean;
@@ -137,6 +163,31 @@ type VitePluginVendureDashboardOptions = {
         translations?: boolean;
         hmr?: boolean;
     };
+    /**
+     * @description
+     * **EXPERIMENTAL** — Opt into the pre-bundled dashboard architecture.
+     *
+     * When `true`, the dashboard is loaded from a pre-built ESM bundle
+     * (`@vendure/dashboard/dist/publishable/`) shipped inside the npm package,
+     * instead of being compiled from TypeScript source by your Vite dev server.
+     * This dramatically reduces the number of HTTP requests during `vite dev`
+     * (~3000 raw module fetches → ~40 bundled chunks) which avoids the
+     * Chromium renderer crash reported in issue #4715.
+     *
+     * Trade-offs while this is experimental:
+     * - Some dashboard internals are now opaque to your `vite dev` (no per-file HMR
+     *   for the dashboard itself; extension HMR still works)
+     * - Reports of behavioural regressions are very welcome — this flag exists so
+     *   the bundled mode can be tested in real-world projects alongside the stable
+     *   source-shipping mode.
+     *
+     * This flag will be removed (and the bundled mode will become the default)
+     * once it has been validated across enough real-world setups.
+     *
+     * @default false
+     * @since 3.7.0
+     */
+    useExperimentalBundle?: boolean;
 } & UiConfigPluginOptions &
     ThemeVariablesPluginOptions
 ```

@@ -352,6 +352,7 @@ msgstr "محل انبار با موفقیت ایجاد شد"
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:185
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:113
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:204
+#: src/lib/components/shared/asset/asset-preview.tsx:127
 msgid "Unknown error"
 msgstr "خطای ناشناخته"
 
@@ -895,6 +896,7 @@ msgid "Shipping address set for order"
 msgstr "آدرس حمل و نقل برای سفارش تنظیم شد"
 
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:173
+#: src/lib/components/shared/asset/asset-preview.tsx:153
 msgid "Focal Point"
 msgstr "نقطه کانونی"
 
@@ -1286,9 +1288,17 @@ msgstr "{buttonText}"
 msgid "Item added to order"
 msgstr "مورد به سفارش اضافه شد"
 
+#: src/lib/components/shared/asset/asset-preview.tsx:146
+msgid "Edit focal point"
+msgstr "ویرایش نقطه کانونی"
+
 #: src/lib/components/shared/seller-selector.tsx:92
 #~ msgid "No sellers found"
 #~ msgstr "هیچ فروشنده‌ای یافت نشد"
+
+#: src/lib/components/shared/asset/asset-preview-dialog.tsx:34
+msgid "Asset"
+msgstr "فایل"
 
 #: src/app/routes/_authenticated/_products/components/shared-option-group-warning.tsx:13
 msgid "{productCount, plural, one {This option group is used by one other product. Changes will affect it too.} other {This option group is shared across # products. Changes will affect all of them.}}"
@@ -2819,6 +2829,10 @@ msgstr "از {0} به {1}"
 msgid "Failed to create customer"
 msgstr "ایجاد مشتری ناموفق بود"
 
+#: src/lib/components/shared/asset/asset-preview.tsx:123
+msgid "Focal point updated"
+msgstr "نقطه کانونی به‌روزرسانی شد"
+
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:303
 msgid "Option values"
 msgstr "مقادیر گزینه"
@@ -3064,6 +3078,10 @@ msgstr "دسته‌بندی مالیاتی پیش‌فرض است"
 #: src/lib/components/data-input/slug-input.tsx:238
 msgid "Slug is set"
 msgstr "نامک تنظیم شده است"
+
+#: src/lib/components/shared/asset/asset-preview.tsx:126
+msgid "Failed to update focal point"
+msgstr "به‌روزرسانی نقطه کانونی ناموفق بود"
 
 #: src/app/routes/_authenticated/_zones/zones_.$id.tsx:61
 msgid "Successfully updated zone"
@@ -3326,7 +3344,7 @@ msgstr "بله"
 msgid "Slug"
 msgstr "نامک"
 
-#: src/lib/components/shared/asset/asset-focal-point-editor.tsx:97
+#: src/lib/components/shared/asset/asset-focal-point-editor.tsx:98
 msgid "Set Focal Point"
 msgstr "تنظیم نقطه کانونی"
 
@@ -3580,6 +3598,7 @@ msgid "Cannot remove from active channel"
 msgstr "نمی‌توان از کانال فعال حذف کرد"
 
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:179
+#: src/lib/components/shared/asset/asset-preview.tsx:162
 msgid "Not set"
 msgstr "تنظیم نشده"
 
@@ -4506,6 +4525,7 @@ msgstr "بزرگتر یا مساوی است با"
 
 #: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:77
 #: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:88
+#: src/lib/components/shared/entity-assets.tsx:151
 msgid "Preview"
 msgstr "پیش‌نمایش"
 
@@ -5006,6 +5026,11 @@ msgstr "در حال تحویل..."
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:147
 msgid "Add option group to product"
 msgstr "افزودن گروه گزینه به محصول"
+
+#. placeholder {0}: asset.name
+#: src/lib/components/shared/asset/asset-preview-dialog.tsx:37
+msgid "Preview of {0}"
+msgstr "پیش‌نمایش {0}"
 
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:56
 msgid "Successfully updated seller"

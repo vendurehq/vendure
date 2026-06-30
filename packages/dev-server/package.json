@@ -6,13 +6,20 @@
     "private": true,
     "scripts": {
         "populate": "node -r ts-node/register -r dotenv/config populate-dev-server.ts",
-        "dev:server": "node -r ts-node/register -r dotenv/config -r tsconfig-paths/register index.ts",
+        "dev:server": "node ../cli/dist/cli.js dev server --server-entry ./index.ts",
         "dev:server:instrumented": "IS_INSTRUMENTED=true node -r ts-node/register -r dotenv/config -r tsconfig-paths/register -r ./instrumentation.ts index.ts",
-        "dev:worker": "node -r ts-node/register -r dotenv/config -r tsconfig-paths/register index-worker.ts",
+        "dev:worker": "node ../cli/dist/cli.js dev worker --worker-entry ./index-worker.ts",
         "dev:worker:instrumented": "IS_INSTRUMENTED=true node -r ts-node/register -r dotenv/config -r tsconfig-paths/register -r ./instrumentation.ts index-worker.ts",
-        "dev": "concurrently npm:dev:server npm:dev:worker",
+        "dev": "node ../cli/dist/cli.js dev all --server-entry ./index.ts --worker-entry ./index-worker.ts",
         "dev:instrumented": "concurrently npm:dev:server:instrumented npm:dev:worker:instrumented",
-        "dashboard:dev": "vite dev",
+        "dashboard:dev": "node ../cli/dist/cli.js dev dashboard",
+        "build": "node ../cli/dist/cli.js build all",
+        "build:server": "node ../cli/dist/cli.js build server",
+        "build:worker": "node ../cli/dist/cli.js build worker",
+        "build:dashboard": "node ../cli/dist/cli.js build dashboard",
+        "start": "node ../cli/dist/cli.js start all",
+        "start:server": "node ../cli/dist/cli.js start server",
+        "start:worker": "node ../cli/dist/cli.js start worker",
         "load-test:1k": "node -r ts-node/register load-testing/run-load-test.ts 1000",
         "load-test:10k": "node -r ts-node/register load-testing/run-load-test.ts 10000",
         "load-test:100k": "node -r ts-node/register load-testing/run-load-test.ts 100000"
@@ -23,10 +30,11 @@
         "@vendure/asset-server-plugin": "3.6.4",
         "@vendure/common": "3.6.4",
         "@vendure/core": "3.6.4",
-        "@vendure/email-plugin": "3.6.4",
-        "typescript": "5.8.2"
+        "@vendure/email-plugin": "3.6.4"
     },
     "devDependencies": {
+        "@typescript/native-preview": "7.0.0-dev.20260515.1",
+        "@vendure/cli": "3.6.4",
         "@vendure/testing": "3.6.4",
         "@vendure/ui-devkit": "3.6.4",
         "commander": "^12.0.0",
@@ -35,6 +43,7 @@
         "dayjs": "^1.11.10",
         "jsdom": "^26.0.0",
         "progress": "^2.0.3",
-        "tsconfig-paths": "^4.2.0"
+        "tsconfig-paths": "^4.2.0",
+        "typescript": "5.8.2"
     }
 }

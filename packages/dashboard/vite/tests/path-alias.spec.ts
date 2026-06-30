@@ -1,4 +1,4 @@
-import { rm } from 'node:fs/promises';
+import { access, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -90,4 +90,33 @@ describe('compile() invokes PathAdapter for both phases', () => {
             expect(phases).toContain('loading');
         },
     );
+});
+
+describe('concurrent compilation', () => {
+    it('should serialize writes to the same output path', { timeout: 60_000 }, async () => {
+        const tempDir = join(tempRoot, 'concurrent');
+        await rm(tempDir, { recursive: true, force: true });
+
+        const options: Parameters<typeof compile>[0] = {
+            outputPath: tempDir,
+            vendureConfigPath: join(__dirname, 'fixtures-path-alias', 'vendure-config.ts'),
+            logger: process.env.LOG ? debugLogger : noopLogger,
+            pathAdapter: {
+                transformTsConfigPathMappings: ({ phase, patterns }) => {
+                    if (phase === 'loading') {
+                        return patterns.map(pattern => {
+                            return pattern.replace(/\/fixtures-path-alias/, '').replace(/.ts$/, '.js');
+                        });
+                    }
+                    return patterns;
+                },
+            },
+        };
+
+        const [firstResult, secondResult] = await Promise.all([compile(options), compile(options)]);
+
+        expect(firstResult.pluginInfo).toHaveLength(3);
+        expect(secondResult.pluginInfo).toHaveLength(3);
+        await expect(access(join(tempDir, 'package.json'))).resolves.toBeUndefined();
+    });
 });

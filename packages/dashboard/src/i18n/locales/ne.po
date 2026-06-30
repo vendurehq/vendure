@@ -352,6 +352,7 @@ msgstr "स्टक स्थान सफलतापूर्वक सिर
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:185
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:113
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:204
+#: src/lib/components/shared/asset/asset-preview.tsx:127
 msgid "Unknown error"
 msgstr "अज्ञात त्रुटि"
 
@@ -895,6 +896,7 @@ msgid "Shipping address set for order"
 msgstr "अर्डरको लागि ढुवानी ठेगाना सेट गरियो"
 
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:173
+#: src/lib/components/shared/asset/asset-preview.tsx:153
 msgid "Focal Point"
 msgstr "फोकल पोइन्ट"
 
@@ -1286,9 +1288,17 @@ msgstr "{buttonText}"
 msgid "Item added to order"
 msgstr "अर्डरमा वस्तु थपियो"
 
+#: src/lib/components/shared/asset/asset-preview.tsx:146
+msgid "Edit focal point"
+msgstr "फोकल पोइन्ट सम्पादन गर्नुहोस्"
+
 #: src/lib/components/shared/seller-selector.tsx:92
 #~ msgid "No sellers found"
 #~ msgstr "कुनै विक्रेताहरू फेला परेन"
+
+#: src/lib/components/shared/asset/asset-preview-dialog.tsx:34
+msgid "Asset"
+msgstr "सम्पत्ति"
 
 #: src/app/routes/_authenticated/_products/components/shared-option-group-warning.tsx:13
 msgid "{productCount, plural, one {This option group is used by one other product. Changes will affect it too.} other {This option group is shared across # products. Changes will affect all of them.}}"
@@ -2819,6 +2829,10 @@ msgstr "{0} बाट {1} सम्म"
 msgid "Failed to create customer"
 msgstr "ग्राहक सिर्जना गर्न असफल"
 
+#: src/lib/components/shared/asset/asset-preview.tsx:123
+msgid "Focal point updated"
+msgstr "फोकल पोइन्ट अद्यावधिक गरियो"
+
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:303
 msgid "Option values"
 msgstr "विकल्प मानहरू"
@@ -3064,6 +3078,10 @@ msgstr "पूर्वनिर्धारित कर वर्ग हो"
 #: src/lib/components/data-input/slug-input.tsx:238
 msgid "Slug is set"
 msgstr "स्लग सेट गरिएको छ"
+
+#: src/lib/components/shared/asset/asset-preview.tsx:126
+msgid "Failed to update focal point"
+msgstr "फोकल पोइन्ट अद्यावधिक गर्न असफल भयो"
 
 #: src/app/routes/_authenticated/_zones/zones_.$id.tsx:61
 msgid "Successfully updated zone"
@@ -3326,7 +3344,7 @@ msgstr "हो"
 msgid "Slug"
 msgstr "स्लग"
 
-#: src/lib/components/shared/asset/asset-focal-point-editor.tsx:97
+#: src/lib/components/shared/asset/asset-focal-point-editor.tsx:98
 msgid "Set Focal Point"
 msgstr "फोकल पोइन्ट सेट गर्नुहोस्"
 
@@ -3580,6 +3598,7 @@ msgid "Cannot remove from active channel"
 msgstr "सक्रिय च्यानलबाट हटाउन सकिँदैन"
 
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:179
+#: src/lib/components/shared/asset/asset-preview.tsx:162
 msgid "Not set"
 msgstr "सेट गरिएको छैन"
 
@@ -4506,6 +4525,7 @@ msgstr "बराबर वा बढी छ"
 
 #: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:77
 #: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:88
+#: src/lib/components/shared/entity-assets.tsx:151
 msgid "Preview"
 msgstr "पूर्वावलोकन"
 
@@ -5006,6 +5026,11 @@ msgstr "पूरा गर्दै..."
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:147
 msgid "Add option group to product"
 msgstr "उत्पादनमा विकल्प समूह थप्नुहोस्"
+
+#. placeholder {0}: asset.name
+#: src/lib/components/shared/asset/asset-preview-dialog.tsx:37
+msgid "Preview of {0}"
+msgstr "{0} को पूर्वावलोकन"
 
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:56
 msgid "Successfully updated seller"

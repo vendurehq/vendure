@@ -11,6 +11,7 @@ export interface FileSources {
     dockerComposeSource: string;
     tsconfigDashboardSource: string;
     viteConfigSource: string;
+    agentsSource: string;
 }
 
 export interface UserResponses extends FileSources {
