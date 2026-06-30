@@ -4,7 +4,7 @@ generated: true
 ---
 ## vendureDashboardPlugin
 
-<GenerationInfo sourceFile="packages/dashboard/vite/vite-plugin-vendure-dashboard.ts" sourceLine="225" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/vite/vite-plugin-vendure-dashboard.ts" sourceLine="241" packageName="@vendure/dashboard" since="3.4.0" />
 
 This is the Vite plugin which powers the Vendure Dashboard, including:
 
@@ -188,8 +188,24 @@ type VitePluginVendureDashboardOptions = {
      * @since 3.7.0
      */
     useExperimentalBundle?: boolean;
-} & UiConfigPluginOptions &
-    ThemeVariablesPluginOptions
+    /**
+     * @description
+     * Customizes the dashboard's appearance. Override design-token colours for
+     * the `light` and `dark` themes, and/or layer in additional stylesheets via
+     * `additionalStylesheets`.
+     *
+     * @example
+     * ```ts
+     * vendureDashboardPlugin({
+     *     theme: {
+     *         light: { brand: '#1a1a1a' },
+     *         additionalStylesheets: [resolve(__dirname, 'src/dashboard.css')],
+     *     },
+     * })
+     * ```
+     */
+    theme?: DashboardThemeOptions;
+} & UiConfigPluginOptions
 ```
 ## PathAdapter
 
@@ -269,6 +285,56 @@ the base `tsconfig.json` lives), so that a config file at
 
 Defaults to the directory containing the `vendureConfigPath` file,
 which places the compiled config at the output root.
+
+
+</div>
+## DashboardThemeOptions
+
+<GenerationInfo sourceFile="packages/dashboard/vite/vite-plugin-theme.ts" sourceLine="23" packageName="@vendure/dashboard" since="3.5.1" />
+
+Appearance options for the dashboard. Extends `ThemeVariables` (the
+`light`/`dark` colour-token overrides) with the ability to layer in
+additional stylesheets.
+
+```ts title="Signature"
+interface DashboardThemeOptions extends ThemeVariables {
+    additionalStylesheets?: string | string[];
+}
+```
+* Extends: ThemeVariables
+
+
+
+<div className="members-wrapper">
+
+### additionalStylesheets
+
+<MemberInfo kind="property" type={`string | string[]`}   />
+
+One or more paths to additional CSS files that should be imported into
+the dashboard's main stylesheet. Each path is injected as an `@import`
+statement at a dedicated insertion point among the stylesheet's other
+imports, so the file participates in Tailwind's build pipeline — you can
+use `@source`, `@theme`, `@apply`, `@utility`, custom variants, etc.
+inside it.
+
+Paths may be absolute or relative to the current working directory;
+relative paths are resolved against `process.cwd()`. Backslashes are
+normalized to forward slashes so the resulting `@import` statement is
+valid on Windows.
+
+To override design tokens (e.g. brand colors), prefer the `light`/`dark`
+theme options — `additionalStylesheets` is for layering custom CSS rules.
+
+*Example*
+
+```ts
+vendureDashboardPlugin({
+    theme: {
+        additionalStylesheets: [path.resolve(__dirname, 'src/dashboard.css')],
+    },
+})
+```
 
 
 </div>
