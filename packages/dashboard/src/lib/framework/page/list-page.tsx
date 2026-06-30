@@ -519,10 +519,8 @@ export function ListPage<
             : (tableSettings?.pageSize ?? 10),
     };
 
-    const columnVisibility = pageId
-        ? (tableSettings?.columnVisibility ?? defaultVisibility)
-        : defaultVisibility;
-    const columnOrder = pageId ? (tableSettings?.columnOrder ?? defaultColumnOrder) : defaultColumnOrder;
+    // Column visibility/order user-settings merging is owned by useViewOptionDefaults inside
+    // PaginatedListDataTable, so only raw code defaults are passed down here.
     const columnFilters = pageId ? tableSettings?.columnFilters : routeSearch.filters;
 
     const sorting: SortingState = (routeSearch.sort ?? '')
@@ -569,8 +567,8 @@ export function ListPage<
         transformVariables,
         customizeColumns: customizeColumns as any,
         additionalColumns: additionalColumns as any,
-        defaultColumnOrder: columnOrder as any,
-        defaultVisibility: columnVisibility as any,
+        defaultColumnOrder: defaultColumnOrder as any,
+        defaultVisibility: defaultVisibility as any,
         onSearchTermChange,
         page: pagination.page,
         itemsPerPage: pagination.itemsPerPage,

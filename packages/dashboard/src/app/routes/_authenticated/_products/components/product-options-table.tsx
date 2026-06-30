@@ -42,9 +42,7 @@ export function ProductOptionsTable({
     linkSearch,
 }: Readonly<ProductOptionsTableProps>) {
     const { pageId } = usePage();
-
-    const { setTableSettings, settings } = useUserSettings();
-    const tableSettings = pageId ? settings.tableSettings?.[pageId] : undefined;
+    const { setTableSettings } = useUserSettings();
 
     const [sorting, setSorting] = useState<SortingState>([]);
     const [page, setPage] = useState(1);
@@ -101,11 +99,10 @@ export function ProductOptionsTable({
                         },
                     };
                 }}
-                defaultVisibility={tableSettings?.columnVisibility ?? {
+                defaultVisibility={{
                     name: true,
                     code: true,
                 }}
-                defaultColumnOrder={tableSettings?.columnOrder}
                 customizeColumns={{
                     name: {
                         cell: ({ row }) => (

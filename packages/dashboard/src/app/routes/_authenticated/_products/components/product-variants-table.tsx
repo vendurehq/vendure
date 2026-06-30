@@ -30,10 +30,7 @@ export function ProductVariantsTable({
     fromProductDetailPage,
 }: ProductVariantsTableProps) {
     const { pageId } = usePage();
-
-    const { setTableSettings, settings } = useUserSettings();
-    const tableSettings = pageId ? settings.tableSettings?.[pageId] : undefined;
-
+    const { setTableSettings } = useUserSettings();
     const { formatCurrencyName } = useLocalFormat();
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
@@ -48,7 +45,7 @@ export function ProductVariantsTable({
                 ...variables,
                 productId,
             })}
-            defaultVisibility={tableSettings?.columnVisibility ?? {
+            defaultVisibility={{
                 featuredAsset: true,
                 name: true,
                 enabled: true,
@@ -56,7 +53,6 @@ export function ProductVariantsTable({
                 priceWithTax: true,
                 stockLevels: true,
             }}
-            defaultColumnOrder={tableSettings?.columnOrder}
             bulkActions={[
                 [
                     {
