@@ -38,7 +38,12 @@ const processedBaseUrl = (() => {
     try {
         const moduleUrl = typeof import.meta?.url === 'string' ? import.meta.url : '';
         if (moduleUrl) {
-            const entryRe = /^(.*?)\/(?:src\/app\/main|dist\/bundle\/main)\.[a-z]+/;
+            // Anchor on the marker directory, not the entry filename: in bundle
+            // mode Vite code-splits this logic into a hashed chunk served from
+            // `dist/bundle/chunks/main-<hash>.js`, so `import.meta.url` points at
+            // the chunk, not `dist/bundle/main.js`. Matching the directory keeps
+            // the base derivable wherever the code lands.
+            const entryRe = /^(.*?)\/(?:src\/app|dist\/bundle)\//;
             const m = entryRe.exec(new URL(moduleUrl).pathname);
             if (m) derived = m[1] || '/';
         }
