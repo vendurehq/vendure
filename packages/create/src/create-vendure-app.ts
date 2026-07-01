@@ -338,19 +338,22 @@ export async function createVendureApp(
     }
 
     if (includeStorefront) {
-        // Install storefront dependencies
-        const storefrontInstalled = await installDependenciesWithSpinner({
+        // Install the whole workspace from the root so that root-level devDependencies
+        // (concurrently, used by the `dev`/`start` scripts) are reified alongside each
+        // app's deps. A child-scoped install only reifies that app's subtree and leaves
+        // the root's own deps out.
+        const workspaceInstalled = await installDependenciesWithSpinner({
             dependencies: [],
             packageManager,
             logLevel,
-            cwd: storefrontRoot,
-            spinnerMessage: 'Installing storefront dependencies...',
-            successMessage: 'Installed storefront dependencies',
-            failureMessage: 'Failed to install storefront dependencies',
+            cwd: root,
+            spinnerMessage: 'Installing workspace dependencies...',
+            successMessage: 'Installed workspace dependencies',
+            failureMessage: 'Failed to install workspace dependencies',
             warnOnFailure: true,
         });
-        if (!storefrontInstalled) {
-            log(`You may need to run ${pmInfo.install} in the storefront directory manually.`, {
+        if (!workspaceInstalled) {
+            log(`You may need to run ${pmInfo.install} in the project root manually.`, {
                 level: 'info',
             });
         }
