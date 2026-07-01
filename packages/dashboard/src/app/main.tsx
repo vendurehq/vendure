@@ -16,46 +16,21 @@ import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 
+import { DirectionProvider } from '@/vdb/components/ui/direction.js';
 import { useDisplayLocale } from '@/vdb/hooks/use-display-locale.js';
 import { useUiLanguageLoader } from '@/vdb/hooks/use-ui-language-loader.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
-import { DirectionProvider } from '@/vdb/components/ui/direction.js';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { AppProviders, queryClient } from './app-providers.js';
 import { setDocumentDirection } from './common/set-document-direction.js';
+import { deriveBaseUrl } from './derive-base-url.js';
 import { routeTree } from './routeTree.gen.js';
 import './styles.css';
 
-const processedBaseUrl = (() => {
-    // Derive the base from this module's own URL when possible. This works
-    // in BOTH source-shipping mode (`<base>/src/app/main.tsx`) AND the
-    // experimental bundle mode (`<base>/dist/bundle/main.js` — see
-    // issue #4719). Using `import.meta.url` is stable regardless of what
-    // sub-route the page was first loaded on, which is important: previous
-    // attempts to read `document.baseURI` broke deep-link navigation because
-    // it reflects the CURRENT page URL, not the dashboard root.
-    let derived: string | undefined;
-    try {
-        const moduleUrl = typeof import.meta?.url === 'string' ? import.meta.url : '';
-        if (moduleUrl) {
-            // Anchor on the marker directory, not the entry filename: in bundle
-            // mode Vite code-splits this logic into a hashed chunk served from
-            // `dist/bundle/chunks/main-<hash>.js`, so `import.meta.url` points at
-            // the chunk, not `dist/bundle/main.js`. Matching the directory keeps
-            // the base derivable wherever the code lands.
-            const entryRe = /^(.*?)\/(?:src\/app|dist\/bundle)\//;
-            const m = entryRe.exec(new URL(moduleUrl).pathname);
-            if (m) derived = m[1] || '/';
-        }
-    } catch {
-        // Ignore — fall back to import.meta.env.BASE_URL below.
-    }
-    const baseUrl = derived ?? import.meta.env.BASE_URL;
-    if (!baseUrl || baseUrl === '/') return undefined;
-    // Ensure leading slash, remove trailing slash
-    const normalized = baseUrl.startsWith('/') ? baseUrl : '/' + baseUrl;
-    return normalized.endsWith('/') ? normalized.slice(0, -1) : normalized;
-})();
+const processedBaseUrl = deriveBaseUrl(
+    typeof import.meta?.url === 'string' ? import.meta.url : '',
+    import.meta.env.BASE_URL,
+);
 
 const routerOptions: RouterOptions<AnyRoute, any> = {
     defaultPreload: 'intent' as const,
