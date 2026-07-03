@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/vdb/components/ui/button.js';
@@ -41,6 +41,14 @@ export function DeleteStockLocationsDialog({
     const [transferTarget, setTransferTarget] = useState<string>('');
     const count = selection.length;
 
+    // The dialog stays mounted, so a choice from a previous delete would otherwise persist. Reset
+    // it each time the dialog opens, so a stale target (possibly one now being deleted) can't be sent.
+    useEffect(() => {
+        if (open) {
+            setTransferTarget('');
+        }
+    }, [open]);
+
     const selectedIds = new Set(selection.map(s => s.id));
 
     // Load stock locations so the admin can pick where to move remaining stock. The locations
@@ -53,6 +61,12 @@ export function DeleteStockLocationsDialog({
         enabled: open,
     });
     const availableTargets = (data?.stockLocations.items ?? []).filter(l => !selectedIds.has(l.id));
+
+    // Base UI's <Select> needs an `items` map (value → label) to render the selected value's label.
+    const selectItems: Record<string, string> = {
+        ...Object.fromEntries(availableTargets.map(l => [l.id, t`Transfer to ${l.name}`])),
+        [DISCARD]: t`Discard remaining stock`,
+    };
 
     const { mutate, isPending } = useMutation({
         mutationFn: api.mutate(deleteStockLocationsDocument),
@@ -75,11 +89,15 @@ export function DeleteStockLocationsDialog({
                         : t`Failed to delete ${failed.length} stock locations`,
                 );
             }
-            // Drop the cached target list so a deleted location can't be offered as a transfer
-            // target the next time the dialog opens.
-            queryClient.invalidateQueries({ queryKey: [TRANSFER_TARGETS_QUERY_KEY] });
-            onSuccess?.();
-            onOpenChange(false);
+            // Only run cleanup when something was actually deleted. If every item failed (e.g. the
+            // last remaining location), keep the dialog open and leave the list untouched.
+            if (0 < deleted) {
+                // Drop the cached target list so a deleted location can't be offered as a transfer
+                // target the next time the dialog opens.
+                queryClient.invalidateQueries({ queryKey: [TRANSFER_TARGETS_QUERY_KEY] });
+                onSuccess?.();
+                onOpenChange(false);
+            }
         },
         onError: () => {
             toast.error(t`Failed to delete ${count} stock locations`);
@@ -116,7 +134,16 @@ export function DeleteStockLocationsDialog({
                         <label className="text-sm font-medium">
                             <Trans>Remaining stock</Trans>
                         </label>
-                        <Select value={transferTarget} onValueChange={setTransferTarget} disabled={isLoading}>
+                        <Select
+                            items={selectItems}
+                            value={transferTarget}
+                            onValueChange={value => {
+                                if (value != null) {
+                                    setTransferTarget(value);
+                                }
+                            }}
+                            disabled={isLoading}
+                        >
                             <SelectTrigger>
                                 <SelectValue
                                     placeholder={

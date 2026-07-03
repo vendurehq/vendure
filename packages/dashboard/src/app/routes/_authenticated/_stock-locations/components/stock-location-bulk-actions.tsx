@@ -28,6 +28,9 @@ export const DeleteStockLocationsBulkAction: BulkActionComponent<any> = ({ selec
                 label={<Trans>Delete</Trans>}
                 icon={TrashIcon}
                 className="text-destructive"
+                // Keep the dropdown open so opening the dialog in the same tick doesn't race with
+                // the menu unmounting (which would prevent the dialog from mounting).
+                closeOnClick={false}
             />
             <DeleteStockLocationsDialog
                 open={dialogOpen}
