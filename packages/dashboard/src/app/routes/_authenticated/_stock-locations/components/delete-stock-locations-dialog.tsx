@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -13,12 +13,15 @@ import {
 } from '@/vdb/components/ui/dialog.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/vdb/components/ui/select.js';
 import { api } from '@/vdb/graphql/api.js';
+import { ResultOf } from '@/vdb/graphql/graphql.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 
 import { deleteStockLocationsDocument, stockLocationListQuery } from '../stock-locations.graphql.js';
 
 // Sentinel value for the "discard remaining stock" option, distinct from any real location id.
 const DISCARD = '__discard__';
+
+const TRANSFER_TARGETS_QUERY_KEY = 'stockLocationTransferTargets';
 
 interface DeleteStockLocationsDialogProps {
     open: boolean;
@@ -34,15 +37,18 @@ export function DeleteStockLocationsDialog({
     onSuccess,
 }: Readonly<DeleteStockLocationsDialogProps>) {
     const { t } = useLingui();
+    const queryClient = useQueryClient();
     const [transferTarget, setTransferTarget] = useState<string>('');
     const count = selection.length;
 
     const selectedIds = new Set(selection.map(s => s.id));
 
-    // Load all stock locations so the admin can pick where to move remaining stock. The
-    // locations being deleted are excluded as they cannot be their own transfer target.
-    const { data } = useQuery({
-        queryKey: ['stockLocationTransferTargets'],
+    // Load stock locations so the admin can pick where to move remaining stock. The locations
+    // being deleted are excluded as they cannot be their own transfer target.
+    // ponytail: caps the picker at 100 locations; switch to a searchable/paginated picker if
+    // installs regularly exceed that.
+    const { data, isLoading } = useQuery({
+        queryKey: [TRANSFER_TARGETS_QUERY_KEY],
         queryFn: () => api.query(stockLocationListQuery, { options: { take: 100 } }),
         enabled: open,
     });
@@ -50,8 +56,8 @@ export function DeleteStockLocationsDialog({
 
     const { mutate, isPending } = useMutation({
         mutationFn: api.mutate(deleteStockLocationsDocument),
-        onSuccess: (result: any) => {
-            const results = result.deleteStockLocations as Array<{ result: string; message?: string }>;
+        onSuccess: (result: ResultOf<typeof deleteStockLocationsDocument>) => {
+            const results = result.deleteStockLocations;
             const failed = results.filter(r => r.result !== 'DELETED');
             const deleted = results.length - failed.length;
 
@@ -69,6 +75,9 @@ export function DeleteStockLocationsDialog({
                         : t`Failed to delete ${failed.length} stock locations`,
                 );
             }
+            // Drop the cached target list so a deleted location can't be offered as a transfer
+            // target the next time the dialog opens.
+            queryClient.invalidateQueries({ queryKey: [TRANSFER_TARGETS_QUERY_KEY] });
             onSuccess?.();
             onOpenChange(false);
         },
@@ -97,7 +106,8 @@ export function DeleteStockLocationsDialog({
                     <DialogDescription>
                         <Trans>
                             Choose what to do with any stock remaining in the {count} stock location(s) you
-                            are deleting.
+                            are deleting. All selected locations transfer their remaining stock into the
+                            single location you choose, or discard it.
                         </Trans>
                     </DialogDescription>
                 </DialogHeader>
@@ -106,9 +116,15 @@ export function DeleteStockLocationsDialog({
                         <label className="text-sm font-medium">
                             <Trans>Remaining stock</Trans>
                         </label>
-                        <Select value={transferTarget} onValueChange={setTransferTarget}>
+                        <Select value={transferTarget} onValueChange={setTransferTarget} disabled={isLoading}>
                             <SelectTrigger>
-                                <SelectValue placeholder={t`Select what to do with remaining stock`} />
+                                <SelectValue
+                                    placeholder={
+                                        isLoading
+                                            ? t`Loading locations…`
+                                            : t`Select what to do with remaining stock`
+                                    }
+                                />
                             </SelectTrigger>
                             <SelectContent>
                                 {availableTargets.map(location => (
