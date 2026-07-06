@@ -23,6 +23,8 @@ const DISCARD = '__discard__';
 
 const TRANSFER_TARGETS_QUERY_KEY = 'stockLocationTransferTargets';
 
+type StockLocationListItem = ResultOf<typeof stockLocationListQuery>['stockLocations']['items'][number];
+
 interface DeleteStockLocationsDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -51,16 +53,27 @@ export function DeleteStockLocationsDialog({
 
     const selectedIds = new Set(selection.map(s => s.id));
 
-    // Load stock locations so the admin can pick where to move remaining stock. The locations
-    // being deleted are excluded as they cannot be their own transfer target.
-    // ponytail: caps the picker at 100 locations; switch to a searchable/paginated picker if
-    // installs regularly exceed that.
-    const { data, isLoading } = useQuery({
+    // Load every stock location so the admin can pick where to move remaining stock. Paginate
+    // through all pages rather than capping, so no valid transfer target is silently hidden.
+    // The locations being deleted are excluded as they cannot be their own transfer target.
+    const { data: allLocations, isLoading } = useQuery({
         queryKey: [TRANSFER_TARGETS_QUERY_KEY],
-        queryFn: () => api.query(stockLocationListQuery, { options: { take: 100 } }),
+        queryFn: async () => {
+            const pageSize = 100;
+            const collected: StockLocationListItem[] = [];
+            let totalItems = 0;
+            do {
+                const result = await api.query(stockLocationListQuery, {
+                    options: { skip: collected.length, take: pageSize },
+                });
+                collected.push(...result.stockLocations.items);
+                totalItems = result.stockLocations.totalItems;
+            } while (collected.length < totalItems);
+            return collected;
+        },
         enabled: open,
     });
-    const availableTargets = (data?.stockLocations.items ?? []).filter(l => !selectedIds.has(l.id));
+    const availableTargets = (allLocations ?? []).filter(l => !selectedIds.has(l.id));
 
     // Base UI's <Select> needs an `items` map (value → label) to render the selected value's label.
     const selectItems: Record<string, string> = {
