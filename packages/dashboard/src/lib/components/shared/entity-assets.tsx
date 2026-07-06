@@ -23,6 +23,7 @@ import {
     useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { Trans } from '@lingui/react/macro';
 import { EllipsisIcon, ImageIcon, PaperclipIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { AssetPickerDialog } from './asset/asset-picker-dialog.js';
@@ -63,6 +64,7 @@ function FeaturedAsset({
 }: FeaturedAssetProps) {
     return (
         <div
+            data-testid="entity-assets-featured"
             className={`flex items-center justify-center ${compact ? 'h-40' : 'h-64'} border border-dashed rounded-md`}
         >
             {featuredAsset ? (
@@ -137,15 +139,17 @@ function SortableAsset({
             {updatePermissions && (
                 <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <DropdownMenu>
-                        <DropdownMenuTrigger render={<Button
-                                variant="secondary"
-                                size="icon"
-                                className="h-6 w-6 rounded-full"
-                            />}>
-                                <EllipsisIcon className="h-4 w-4" />
+                        <DropdownMenuTrigger
+                            render={
+                                <Button variant="secondary" size="icon" className="h-6 w-6 rounded-full" />
+                            }
+                        >
+                            <EllipsisIcon className="h-4 w-4" />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => onPreview(asset)}>Preview</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onPreview(asset)}>
+                                <Trans>Preview</Trans>
+                            </DropdownMenuItem>
                             <DropdownMenuItem disabled={isFeatured} onClick={() => onSetAsFeatured(asset)}>
                                 Set as featured asset
                             </DropdownMenuItem>
@@ -351,6 +355,25 @@ export function EntityAssets({
                     assets={assets}
                     onOpenChange={() => setPreviewAsset(null)}
                     open={!!previewAsset}
+                    onAssetUpdated={updated => {
+                        // Sync local state so a re-opened preview or cropped thumbnail
+                        // reflects the new value without waiting for a parent refetch.
+                        setAssets(prev =>
+                            prev.map(a =>
+                                a.id === updated.id ? { ...a, focalPoint: updated.focalPoint } : a,
+                            ),
+                        );
+                        setFeaturedAsset(prev =>
+                            prev && prev.id === updated.id
+                                ? { ...prev, focalPoint: updated.focalPoint }
+                                : prev,
+                        );
+                        setPreviewAsset(prev =>
+                            prev && prev.id === updated.id
+                                ? { ...prev, focalPoint: updated.focalPoint }
+                                : prev,
+                        );
+                    }}
                 />
             )}
         </>

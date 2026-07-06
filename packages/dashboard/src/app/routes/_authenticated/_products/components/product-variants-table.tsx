@@ -15,6 +15,8 @@ import {
     RemoveProductVariantsFromChannelBulkAction,
 } from '../../_product-variants/components/product-variant-bulk-actions.js';
 import { productVariantListDocument } from '../products.graphql.js';
+import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
+import { usePage } from '@/vdb/hooks/use-page.js';
 
 interface ProductVariantsTableProps {
     productId: string;
@@ -27,6 +29,8 @@ export function ProductVariantsTable({
     registerRefresher,
     fromProductDetailPage,
 }: ProductVariantsTableProps) {
+    const { pageId } = usePage();
+    const { setTableSettings } = useUserSettings();
     const { formatCurrencyName } = useLocalFormat();
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
@@ -117,6 +121,11 @@ export function ProductVariantsTable({
             }}
             onFilterChange={(_, filters) => {
                 setFilters(filters);
+            }}
+            onColumnVisibilityChange={(_, columnVisibility) => {
+                if (pageId) {
+                    setTableSettings(pageId, 'columnVisibility', columnVisibility);
+                }
             }}
         />
     );

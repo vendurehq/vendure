@@ -445,6 +445,20 @@ export function isNullableField(input: ConfigurableFieldDef): boolean {
 }
 
 /**
+ * Determines if a custom field or struct sub-field allows null values.
+ * Configurable operation args are never treated as nullable.
+ */
+export function isFieldNullable(input: ConfigurableFieldDef | StructField): boolean {
+    if (isCustomFieldConfig(input as ConfigurableFieldDef)) {
+        return (input as ConfigurableFieldDef & { nullable?: boolean }).nullable !== false;
+    }
+    if ('nullable' in input && input.nullable) {
+        return true;
+    }
+    return false;
+}
+
+/**
  * Handles nested form submission to prevent event bubbling in nested forms.
  * This is useful when you have a form inside a dialog that's within another form.
  *

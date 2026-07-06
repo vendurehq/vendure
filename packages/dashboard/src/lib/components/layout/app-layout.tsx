@@ -8,6 +8,7 @@ import {
     DashboardToolbarItemDefinition,
     ToolbarItemPosition,
 } from '@/vdb/framework/extension-api/types/toolbar.js';
+import { CustomProviders } from '@/vdb/framework/extension-api/custom-providers.js';
 import { getToolbarItemRegistry } from '@/vdb/framework/toolbar/toolbar-extensions.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 import { Outlet } from '@tanstack/react-router';
@@ -150,7 +151,9 @@ export function AppLayout() {
                             </div>
                         </div>
                     </header>
-                    <Outlet />
+                    <CustomProviders location={'layout'}>
+                        <Outlet />
+                    </CustomProviders>
                 </div>
             </SidebarInset>
         </SidebarProvider>

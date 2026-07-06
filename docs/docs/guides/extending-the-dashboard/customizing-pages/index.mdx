@@ -1,7 +1,7 @@
 ---
 title: 'Customizing Pages'
-metaTitle: "Customizing Existing Dashboard Pages in Vendure"
-metaDescription: "An overview of the ways to customize existing Vendure Dashboard pages: action bar buttons, page blocks, list page extensions, and detail page extensions."
+metaTitle: 'Customizing Existing Dashboard Pages in Vendure'
+metaDescription: 'An overview of the ways to customize existing Vendure Dashboard pages: action bar buttons, page blocks, list page extensions, and detail page extensions.'
 ---
 
 Existing pages in the Dashboard can be customized in many ways:
@@ -10,3 +10,33 @@ Existing pages in the Dashboard can be customized in many ways:
 - [Page blocks](/extending-the-dashboard/customizing-pages/page-blocks) can be added at any position, and existing page blocks can be replaced or removed.
 - [Extend list pages](/extending-the-dashboard/customizing-pages/customizing-list-pages) with custom components, data and bulk actions
 - [Extend detail pages](/extending-the-dashboard/customizing-pages/customizing-detail-pages) with custom components and data
+- [Toolbar items](/extending-the-dashboard/customizing-pages/toolbar-items) can be added to the global header bar
+- [History entries](/extending-the-dashboard/customizing-pages/history-entries) can render custom Order and Customer timeline events
+
+Most customizations should be implemented with these extension APIs rather than by copying or replacing a built-in route. Replacing a route is still possible by registering your own route, but it should normally be the last option because it means you take responsibility for keeping that whole page aligned with future Dashboard behavior.
+
+## Choose the Right Extension Point
+
+| I want to...                                              | Use this                                                                                                                                                |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Add a button to an existing page header                   | [Action bar items](/extending-the-dashboard/customizing-pages/action-bar-items)                                                                         |
+| Add secondary page actions in the three-dot menu          | [Action bar dropdown items](/extending-the-dashboard/customizing-pages/action-bar-items/#dropdown-menu)                                                 |
+| Add a panel to a detail page or replace an existing panel | [Page blocks](/extending-the-dashboard/customizing-pages/page-blocks)                                                                                   |
+| Hide a built-in panel conditionally                       | [Page block `shouldRender`](/extending-the-dashboard/customizing-pages/page-blocks/#block-visibility) with `order: 'replace'`                           |
+| Change how a table column renders                         | [Data table display components](/extending-the-dashboard/customizing-pages/customizing-list-pages/#custom-table-cell-components)                        |
+| Fetch extra fields for an existing list table             | [Data table `extendListDocument`](/extending-the-dashboard/customizing-pages/customizing-list-pages/#extending-the-list-query)                          |
+| Add bulk actions to a list table                          | [Data table bulk actions](/extending-the-dashboard/customizing-pages/customizing-list-pages/#bulk-actions)                                              |
+| Replace a native input on a detail form                   | [Native detail-page input overrides](/extending-the-dashboard/customizing-pages/customizing-detail-pages/#replacing-native-form-inputs)                 |
+| Fetch extra fields for an existing detail page            | [Detail form `extendDetailDocument`](/extending-the-dashboard/customizing-pages/customizing-detail-pages/#extending-the-detail-query)                   |
+| Add a custom input for a plugin-defined custom field      | [Custom field components](/extending-the-dashboard/custom-form-components/#custom-field-components)                                                     |
+| Add a global icon button near alerts                      | [Toolbar items](/extending-the-dashboard/customizing-pages/toolbar-items)                                                                               |
+| Move, remove, or rename navigation entries                | [Navigation modification](/extending-the-dashboard/navigation/#modifying-existing-navigation)                                                           |
+| Find the IDs needed by extension APIs                     | [Extension targets](/extending-the-dashboard/customizing-pages/extension-targets) and [Dev Mode](/extending-the-dashboard/extending-overview/#dev-mode) |
+
+## Customization Flow
+
+1. Turn on [Dev Mode](/extending-the-dashboard/extending-overview/#dev-mode) and find the relevant IDs.
+2. Prefer the smallest extension point that matches the job, such as a page block, action bar item, data table extension, or detail form extension.
+3. If you need extra data, extend the page's GraphQL document rather than creating a parallel request when the data belongs to the page.
+4. Use components and utilities from `@vendure/dashboard` so the extension stays aligned with Dashboard styling and dependency versions.
+5. Only create a new route when you are adding a new workflow or intentionally replacing the whole page experience.

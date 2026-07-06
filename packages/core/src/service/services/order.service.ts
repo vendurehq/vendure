@@ -64,6 +64,7 @@ import {
     SettlePaymentError,
 } from '../../common/error/generated-graphql-admin-errors';
 import {
+    CouponRemovedDuringCheckoutError,
     InsufficientStockError,
     NegativeQuantityError,
     OrderInterceptorError,
@@ -117,6 +118,7 @@ import { RefundState } from '../helpers/refund-state-machine/refund-state';
 import { RefundStateMachine } from '../helpers/refund-state-machine/refund-state-machine';
 import { ShippingCalculator } from '../helpers/shipping-calculator/shipping-calculator';
 import { TranslatorService } from '../helpers/translator/translator.service';
+import { couponCodesMatch } from '../helpers/utils/coupon-codes-match';
 import { isForeignKeyViolationError } from '../helpers/utils/db-errors';
 import { getOrdersFromLines, totalCoveredByPayments } from '../helpers/utils/order-utils';
 import { patchEntity } from '../helpers/utils/patch-entity';
@@ -337,15 +339,9 @@ export class OrderService {
         options?: ListQueryOptions<Order>,
         relations?: RelationPaths<Order>,
     ): Promise<PaginatedList<Order>> {
-        const effectiveRelations = (relations ?? ['lines', 'customer', 'channels', 'shippingLines']).filter(
-            r =>
-                // Don't join productVariant because it messes with the
-                // price calculation in certain edge-case field resolver scenarios
-                !r.includes('productVariant'),
-        );
         return this.listQueryBuilder
             .build(Order, options, {
-                relations: effectiveRelations,
+                relations: relations ?? ['lines', 'customer', 'channels', 'shippingLines'],
                 channelId: ctx.channelId,
                 ctx,
             })
@@ -1059,7 +1055,7 @@ export class OrderService {
         couponCode: string,
     ): Promise<ErrorResultUnion<ApplyCouponCodeResult, Order>> {
         const order = await this.getOrderOrThrow(ctx, orderId);
-        if (order.couponCodes.includes(couponCode)) {
+        if (order.couponCodes.some(cc => couponCodesMatch(cc, couponCode))) {
             return order;
         }
         const validationResult = await this.promotionService.validateCouponCode(
@@ -1070,14 +1066,17 @@ export class OrderService {
         if (isGraphQlErrorResult(validationResult)) {
             return validationResult;
         }
-        order.couponCodes.push(couponCode);
+        // Store the canonical coupon code from the promotion rather than the
+        // user-typed casing, so that subsequent lookups are consistent.
+        const canonicalCode = validationResult.couponCode;
+        order.couponCodes.push(canonicalCode);
         await this.historyService.createHistoryEntryForOrder({
             ctx,
             orderId: order.id,
             type: HistoryEntryType.ORDER_COUPON_APPLIED,
-            data: { couponCode, promotionId: validationResult.id },
+            data: { couponCode: canonicalCode, promotionId: validationResult.id },
         });
-        await this.eventBus.publish(new CouponCodeEvent(ctx, couponCode, orderId, 'assigned'));
+        await this.eventBus.publish(new CouponCodeEvent(ctx, canonicalCode, orderId, 'assigned'));
         return this.applyPriceAdjustments(ctx, order);
     }
 
@@ -1087,15 +1086,16 @@ export class OrderService {
      */
     async removeCouponCode(ctx: RequestContext, orderId: ID, couponCode: string) {
         const order = await this.getOrderOrThrow(ctx, orderId);
-        if (order.couponCodes.includes(couponCode)) {
-            order.couponCodes = order.couponCodes.filter(cc => cc !== couponCode);
+        const matchedCode = order.couponCodes.find(cc => couponCodesMatch(cc, couponCode));
+        if (matchedCode) {
+            order.couponCodes = order.couponCodes.filter(cc => !couponCodesMatch(cc, matchedCode));
             await this.historyService.createHistoryEntryForOrder({
                 ctx,
                 orderId: order.id,
                 type: HistoryEntryType.ORDER_COUPON_REMOVED,
-                data: { couponCode },
+                data: { couponCode: matchedCode },
             });
-            await this.eventBus.publish(new CouponCodeEvent(ctx, couponCode, orderId, 'removed'));
+            await this.eventBus.publish(new CouponCodeEvent(ctx, matchedCode, orderId, 'removed'));
             return this.applyPriceAdjustments(ctx, order);
         } else {
             return order;
@@ -1435,18 +1435,21 @@ export class OrderService {
             return new OrderPaymentStateError();
         }
         const totalWithTaxBeforeRevalidation = order.totalWithTax;
-        const couponsRemoved = await this.revalidateCouponCodesForOrder(ctx, order);
+        const removedCouponCodes = await this.revalidateCouponCodesForOrder(ctx, order);
         // Re-fetch order if coupons were removed, so totals reflect recalculated prices
-        const freshOrder = couponsRemoved ? await this.getOrderOrThrow(ctx, orderId) : order;
-        if (couponsRemoved && totalWithTaxBeforeRevalidation < freshOrder.totalWithTax) {
+        const freshOrder = removedCouponCodes.length ? await this.getOrderOrThrow(ctx, orderId) : order;
+        if (removedCouponCodes.length && totalWithTaxBeforeRevalidation < freshOrder.totalWithTax) {
             // A coupon was stripped during revalidation AND that strip
-            // increased what the customer would be charged (e.g. a
-            // usage-limited coupon's slot was claimed by a concurrent
-            // checkout). Do not proceed to charge the customer at the new
-            // amount — surface a typed error so the storefront can refresh
-            // the order and re-confirm. The coupon strip itself is committed
-            // alongside this error so subsequent addPaymentToOrder attempts
-            // see the recalculated totals.
+            // increased what the customer would be charged. The most common
+            // trigger is a usage-limited coupon's slot being claimed by a
+            // concurrent checkout, but the same protection applies if a
+            // coupon is stripped because the order no longer meets the
+            // promotion's eligibility conditions, or because the promotion
+            // was disabled mid-checkout. Do not proceed to charge the
+            // customer at the new amount — surface a typed error so the
+            // storefront can refresh the order and re-confirm. The coupon
+            // strip itself is committed alongside this error so subsequent
+            // addPaymentToOrder attempts see the recalculated totals.
             //
             // Strips that do not change the total (e.g. a coupon whose
             // promotion was already deleted and no longer affecting pricing,
@@ -1454,15 +1457,11 @@ export class OrderService {
             // the discount) fall through silently — there is no surprise
             // charge to surface, and rejecting in those cases would create
             // unnecessary friction.
-            //
-            // PaymentFailedError is reused here to avoid a breaking change
-            // to the AddPaymentToOrderResult union on the master branch.
-            // A dedicated CouponRemovedDuringCheckoutError is planned as a
-            // follow-up on the minor branch — see
-            // https://github.com/vendurehq/vendure/pull/4660.
-            return new PaymentFailedError({
-                paymentErrorMessage:
-                    'Order total changed during checkout because a coupon is no longer available. Please refresh your order and retry.',
+            return new CouponRemovedDuringCheckoutError({
+                removedCouponCodes,
+                previousTotalWithTax: totalWithTaxBeforeRevalidation,
+                newTotalWithTax: freshOrder.totalWithTax,
+                currencyCode: freshOrder.currencyCode,
             });
         }
         freshOrder.payments = await this.getOrderPayments(ctx, freshOrder.id);
@@ -1502,7 +1501,7 @@ export class OrderService {
      * only one order can "claim" a usage-limited coupon at a time.
      * If a coupon is no longer valid (e.g. usage limit reached), it is removed
      * from the order and the order totals are recalculated.
-     * Returns true if any coupons were removed, false otherwise.
+     * Returns the list of coupon codes that were removed (empty array if none).
      *
      * Note on selection semantics: the lock guarantees the bug case ("everyone
      * wins" — N orders all keeping a `usageLimit: 1` coupon) is impossible.
@@ -1538,8 +1537,8 @@ export class OrderService {
      *
      * See https://github.com/vendurehq/vendure/pull/4660
      */
-    private async revalidateCouponCodesForOrder(ctx: RequestContext, order: Order): Promise<boolean> {
-        let removedAny = false;
+    private async revalidateCouponCodesForOrder(ctx: RequestContext, order: Order): Promise<string[]> {
+        const removedCodes: string[] = [];
         for (const couponCode of [...order.couponCodes]) {
             // Resolve the promotion in the current channel before locking so
             // that the lock query can target the promotion's primary key. PK
@@ -1583,13 +1582,13 @@ export class OrderService {
             );
             if (isGraphQlErrorResult(validationResult)) {
                 order.couponCodes = order.couponCodes.filter(c => c !== couponCode);
-                removedAny = true;
+                removedCodes.push(couponCode);
             }
         }
-        if (removedAny) {
+        if (removedCodes.length > 0) {
             await this.applyPriceAdjustments(ctx, order);
         }
-        return removedAny;
+        return removedCodes;
     }
 
     /**
@@ -1660,9 +1659,9 @@ export class OrderService {
         if (order.state !== 'ArrangingAdditionalPayment' && order.state !== 'ArrangingPayment') {
             return new ManualPaymentStateError();
         }
-        const manualCouponsRemoved = await this.revalidateCouponCodesForOrder(ctx, order);
+        const manualRemovedCouponCodes = await this.revalidateCouponCodesForOrder(ctx, order);
         // Re-fetch order so totals reflect any recalculated prices
-        const freshManualOrder = manualCouponsRemoved
+        const freshManualOrder = manualRemovedCouponCodes.length
             ? await this.getOrderOrThrow(ctx, input.orderId)
             : order;
         const existingPayments = await this.getOrderPayments(ctx, freshManualOrder.id);

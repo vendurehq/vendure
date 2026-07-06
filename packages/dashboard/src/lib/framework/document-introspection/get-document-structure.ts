@@ -598,6 +598,14 @@ export function isEnumType(type: string): boolean {
     return schemaInfo.enums[type] != null;
 }
 
+/**
+ * @description
+ * Returns the values of a GraphQL enum type, or undefined if the type is not an enum.
+ */
+export function getEnumValues(type: string): string[] | undefined {
+    return schemaInfo.enums[type];
+}
+
 function getObjectFieldInfo(typeName: string, fieldName: string): FieldInfo | undefined {
     const fieldInfo = schemaInfo.types[typeName]?.[fieldName];
     if (!fieldInfo) {

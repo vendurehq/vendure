@@ -1,0 +1,66 @@
+---
+title: 'Custom Providers'
+metaTitle: 'Vendure Dashboard Custom Providers — Wrap the App & Layout'
+metaDescription: 'Learn how to register custom React providers in Vendure Dashboard extensions, where they render (app vs layout) and how ordering works.'
+---
+
+Custom Providers let your extension **wrap parts of the Dashboard UI in your own React provider components**.
+This is useful when you need to inject cross-cutting concerns like custom context, feature flags, error boundaries,
+telemetry, or theming that should apply to dashboard pages.
+
+## What is a "Custom Provider"?
+
+A custom provider is a React component that receives `children` and returns a wrapped subtree:
+
+```tsx
+export function MyProvider({ children }: { children: ReactNode }) {
+    return children;
+}
+```
+
+You register it via `defineDashboardExtension()`:
+
+```tsx
+import { defineDashboardExtension } from '@vendure/dashboard';
+
+function MyProvider({ children }: { children: ReactNode }) {
+    return children;
+}
+
+export default defineDashboardExtension({
+    customProviders: [
+        {
+            id: 'my-provider',
+            component: MyProvider,
+            location: 'app',
+            order: 0,
+        },
+    ],
+});
+```
+
+## Where providers render: `location`
+
+Each provider can target one of two places:
+
+- **`location: 'app'`**: wraps the whole application (the highest level available to extensions).
+- **`location: 'layout'`**: wraps the main content area of the authenticated layout (the `<Outlet />` subtree). The sidebar and header are outside this wrapper.
+
+If `location` is omitted, it defaults to `'app'`.
+
+## Provider ordering: `order`
+
+Providers at the same `location` are sorted by `order` (ascending).
+
+- Lower `order` values are rendered **outermost / earlier**.
+- Higher `order` values are rendered **innermost / later**.
+
+If `order` is omitted, it defaults to `0`.
+
+## Common use cases
+
+- Providing a custom React context your extension components can consume
+- Adding an `ErrorBoundary` around parts of the dashboard
+- Wiring up feature flags or experimentation frameworks
+- Adding analytics/telemetry providers
+- Providing localization or formatting helpers specific to your organization

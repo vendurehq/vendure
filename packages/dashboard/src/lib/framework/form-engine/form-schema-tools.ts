@@ -1,9 +1,11 @@
 import {
     FieldInfo,
+    getEnumValues,
     isEnumType,
     isScalarType,
 } from '@/vdb/framework/document-introspection/get-document-structure.js';
 import {
+    ConfigurableFieldDef,
     CustomFieldConfig,
     DateTimeCustomFieldConfig,
     FloatCustomFieldConfig,
@@ -12,6 +14,7 @@ import {
     StructCustomFieldConfig,
     StructField,
 } from '@/vdb/framework/form-engine/form-engine-types.js';
+import { isStringFieldWithOptions, isStructCustomFieldConfig } from '@/vdb/framework/form-engine/utils.js';
 import { z, ZodRawShape, ZodType, ZodTypeAny } from '@/vdb/lib/zod.js';
 
 function mapGraphQLCustomFieldToConfig(field: StructField) {
@@ -335,7 +338,11 @@ export function createFormSchemaFromFields(
     return z.object(schemaConfig);
 }
 
-export function getDefaultValuesFromFields(fields: FieldInfo[], defaultLanguageCode?: string) {
+export function getDefaultValuesFromFields(
+    fields: FieldInfo[],
+    defaultLanguageCode?: string,
+    customFieldConfigs?: CustomFieldConfig[],
+) {
     const defaultValues: Record<string, any> = {};
     for (const field of fields) {
         if (field.typeInfo) {
@@ -349,7 +356,71 @@ export function getDefaultValuesFromFields(fields: FieldInfo[], defaultLanguageC
             defaultValues[field.name] = getDefaultValueFromField(field, defaultLanguageCode);
         }
     }
-    return defaultValues;
+    return applyNullableSelectCustomFieldDefaults(defaultValues, customFieldConfigs);
+}
+
+/**
+ * Nullable string fields with options should default to `null`, not `''`.
+ */
+export function applyNullableSelectCustomFieldDefaults<T extends Record<string, any>>(
+    values: T,
+    customFieldConfigs?: CustomFieldConfig[],
+): T {
+    if (!customFieldConfigs?.length || values.customFields == null) return values;
+
+    return {
+        ...values,
+        customFields: applyNullableSelectDefaultsToCustomFieldsObject(
+            values.customFields,
+            customFieldConfigs,
+        ),
+    };
+}
+
+function applyNullableSelectDefaultsToCustomFieldsObject(
+    customFieldsDefaults: Record<string, any>,
+    configs: CustomFieldConfig[],
+): Record<string, any> {
+    const result = { ...customFieldsDefaults };
+    for (const config of configs) {
+        const fieldDef = config as ConfigurableFieldDef;
+        if (isStructCustomFieldConfig(fieldDef)) {
+            const structValue = result[fieldDef.name];
+            if (structValue && typeof structValue === 'object' && !Array.isArray(structValue)) {
+                result[fieldDef.name] = applyNullableSelectDefaultsToStructFields(
+                    structValue,
+                    fieldDef.fields,
+                );
+            }
+        } else if (
+            config.type === 'string' &&
+            isStringFieldWithOptions(config as ConfigurableFieldDef) &&
+            config.nullable !== false &&
+            (result[config.name] === '' || result[config.name] === undefined)
+        ) {
+            result[config.name] = null;
+        }
+    }
+    return result;
+}
+
+function applyNullableSelectDefaultsToStructFields(
+    structDefaults: Record<string, any>,
+    fields: StructField[],
+): Record<string, any> {
+    const result = { ...structDefaults };
+    for (const field of fields) {
+        const subFieldConfig = mapGraphQLCustomFieldToConfig(field);
+        if (
+            subFieldConfig.type === 'string' &&
+            isStringFieldWithOptions(subFieldConfig as ConfigurableFieldDef) &&
+            subFieldConfig.nullable !== false &&
+            (result[field.name] === '' || result[field.name] === undefined)
+        ) {
+            result[field.name] = null;
+        }
+    }
+    return result;
 }
 
 export function getDefaultValueFromField(field: FieldInfo, defaultLanguageCode?: string) {
@@ -367,6 +438,11 @@ export function getDefaultValueFromField(field: FieldInfo, defaultLanguageCode?:
             case 'Boolean':
                 return false;
             default:
+                // A nullable enum may be left unset; default to null rather than {}
+                // so the select renders empty instead of an invalid object value.
+                if (isEnumType(field.type)) {
+                    return null;
+                }
                 // Object-typed fields (e.g. customFields without typeInfo) should default
                 // to {} to match the Zod schema which expects an object.
                 // JSON scalar is used for customFields when the field structure isn't
@@ -394,6 +470,11 @@ export function getDefaultValueFromField(field: FieldInfo, defaultLanguageCode?:
         case 'JSON':
             return {};
         default:
+            // A non-nullable enum must hold a valid member; default to the first one
+            // rather than an empty string, which is not a valid enum value.
+            if (isEnumType(field.type)) {
+                return getEnumValues(field.type)?.[0] ?? '';
+            }
             return '';
     }
 }

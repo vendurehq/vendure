@@ -1,11 +1,49 @@
 ---
 title: 'Customizing List Pages'
-metaTitle: "Customizing List Pages in the Vendure Dashboard"
-metaDescription: "Add custom table cell components, bulk actions, and extended list queries to existing Vendure Dashboard data tables."
+metaTitle: 'Customizing List Pages in the Vendure Dashboard'
+metaDescription: 'Add custom table cell components, bulk actions, and extended list queries to existing Vendure Dashboard data tables.'
 ---
 
 Using the [DashboardDataTableExtensionDefinition](/reference/dashboard/extensions-api/data-tables#dashboarddatatableextensiondefinition) you can
 customize any existing data table in the Dashboard.
+
+Use this API when you want to change a table that already exists in the Dashboard. You usually do not need to recreate the whole route just to add columns, fetch extra fields, change cell rendering, or add bulk actions.
+
+## Targeting a table
+
+A data table extension is targeted by `pageId` and, optionally, `blockId`:
+
+```tsx
+defineDashboardExtension({
+    dataTables: [
+        {
+            pageId: 'product-list',
+            // blockId defaults to "list-table", which is used by standard list pages.
+        },
+    ],
+});
+```
+
+Most list pages use `blockId: 'list-table'`, so you can omit it. Detail pages and embedded tables can use a different block ID. For example, the product detail page has a product variants table with `blockId: 'product-variants-table'`:
+
+```tsx
+defineDashboardExtension({
+    dataTables: [
+        {
+            pageId: 'product-detail',
+            blockId: 'product-variants-table',
+            displayComponents: [
+                {
+                    column: 'sku',
+                    component: ({ value }) => <code>{value}</code>,
+                },
+            ],
+        },
+    ],
+});
+```
+
+Use [Dev Mode](/extending-the-dashboard/extending-overview/#dev-mode) or the [Extension Targets reference](/extending-the-dashboard/customizing-pages/extension-targets/) to find the `pageId` and `blockId`.
 
 ## Custom table cell components
 
@@ -15,26 +53,34 @@ You can define your own custom components to render specific table cells:
 import { defineDashboardExtension } from '@vendure/dashboard';
 
 defineDashboardExtension({
-  dataTables: [{
-      pageId: 'product-list',
-      displayComponents: [
-          {
-              column: 'slug',
-              // The component will be passed the cell's `value`,
-              // as well as all the other objects in the Tanstack Table
-              // `CellContext` object.
-              component: ({ value, cell, row, table }) => {
-                  return (
-                      <a href={`https://storefront.com/products/${value}`} target="_blank">
-                          {value}
-                      </a>
-                  );
-              },
-          },
-      ],
-  }]
+    dataTables: [
+        {
+            pageId: 'product-list',
+            displayComponents: [
+                {
+                    column: 'slug',
+                    // The component will be passed the cell's `value`,
+                    // as well as all the other objects in the TanStack Table
+                    // `CellContext` object.
+                    component: ({ value, cell, row, table }) => {
+                        return (
+                            <a
+                                href={`https://storefront.com/products/${value}`}
+                                target="_blank"
+                                rel="noreferrer"
+                            >
+                                {value}
+                            </a>
+                        );
+                    },
+                },
+            ],
+        },
+    ],
 });
 ```
+
+The component receives the TanStack Table `CellContext`, including `value`, `cell`, `row`, and `table`. Use `row.original` when the cell renderer needs another field from the same row.
 
 ## Bulk actions
 
@@ -42,54 +88,124 @@ You can define bulk actions on the selected table items. The bulk action compone
 [DataTableBulkActionItem](/reference/dashboard/list-views/bulk-actions#datatablebulkactionitem).
 
 ```tsx title="index.tsx"
-import { defineDashboardExtension, DataTableBulkActionItem } from '@vendure/dashboard';
+import {
+    DataTableBulkActionItem,
+    defineDashboardExtension,
+    toast,
+    usePaginatedList,
+} from '@vendure/dashboard';
 import { InfoIcon } from 'lucide-react';
 
+function ProductSelectionBulkAction({ selection, table }) {
+    const { refetchPaginatedList } = usePaginatedList();
+
+    return (
+        <DataTableBulkActionItem
+            onClick={async () => {
+                toast.message(`There are ${selection.length} selected items`);
+                table.resetRowSelection();
+                refetchPaginatedList();
+            }}
+            label="My Custom Action"
+            icon={InfoIcon}
+        />
+    );
+}
+
 defineDashboardExtension({
-  dataTables: [{
-      pageId: 'product-list',
-      bulkActions: [
-          {
-              component: props => (
-                  <DataTableBulkActionItem
-                      onClick={() => {
-                          console.log('Selection:', props.selection);
-                          toast.message(`There are ${props.selection.length} selected items`);
-                      }}
-                      label="My Custom Action"
-                      icon={InfoIcon}
-                  />
-              ),
-          },
-      ],
-  }]
+    dataTables: [
+        {
+            pageId: 'product-list',
+            bulkActions: [
+                {
+                    order: 100,
+                    component: ProductSelectionBulkAction,
+                },
+            ],
+        },
+    ],
 });
 ```
+
+Bulk action components receive:
+
+- `selection`: the selected row data
+- `table`: the TanStack Table instance, useful for clearing selection after the action
+
+If your action mutates data, call `refetchPaginatedList()` after the mutation so the table refreshes.
 
 ## Extending the list query
 
-The GraphQL queries used by list views can be extended using the `extendListDocument` property, and passing 
+The GraphQL queries used by list views can be extended using the `extendListDocument` property, and passing
 the additional fields you want to fetch:
 
 ```tsx title="index.tsx"
-import { defineDashboardExtension, DataTableBulkActionItem } from '@vendure/dashboard';
-import { InfoIcon } from 'lucide-react';
+import { Badge, defineDashboardExtension } from '@vendure/dashboard';
 
 defineDashboardExtension({
-  dataTables: [{
-      pageId: 'product-list',
-      extendListDocument: `
-          query {
-              products {
-                  items {
-                      optionGroups {
-                          id
-                          name
-                      }
-                  }
-              }
-          }
-      `,
-  }]
+    dataTables: [
+        {
+            pageId: 'product-list',
+            extendListDocument: `
+                query {
+                    products {
+                        items {
+                            optionGroups {
+                                id
+                                name
+                            }
+                        }
+                    }
+                }
+            `,
+            displayComponents: [
+                {
+                    column: 'optionGroups',
+                    component: ({ value }) => {
+                        const groups = value ?? [];
+                        return (
+                            <div className="flex flex-wrap gap-1">
+                                {groups.map(group => (
+                                    <Badge key={group.id} variant="secondary">
+                                        {group.name}
+                                    </Badge>
+                                ))}
+                            </div>
+                        );
+                    },
+                },
+            ],
+        },
+    ],
 });
 ```
+
+The extension query must extend the same top-level field as the table's original query. For example, the product list table uses the `products` field, so the extension document must also select `products`.
+
+The Dashboard merges extension documents into the built-in list query, then still optimizes the query to fetch only visible columns and declared dependencies. If you extend the query with a field that should always be available to a custom renderer for another column, add that field as a dependency when you control the table definition. For existing tables, the most direct approach is to render the extended field as its own column with `displayComponents`, as shown above.
+
+## Common recipes
+
+### Add data to a built-in list without replacing the route
+
+Use `extendListDocument` to fetch the field and `displayComponents` to render it. This keeps the built-in pagination, filtering, sorting, saved views, permissions, and future page improvements.
+
+### Add actions to a nested table
+
+Target the nested table's `blockId`:
+
+```tsx
+defineDashboardExtension({
+    dataTables: [
+        {
+            pageId: 'product-detail',
+            blockId: 'product-variants-table',
+            bulkActions: [{ component: MyVariantBulkAction }],
+        },
+    ],
+});
+```
+
+### Replace a built-in list page completely
+
+Only do this when the built-in page structure itself is wrong for your workflow. In that case, create your own route and navigation item. For column rendering, extra data, bulk actions, and adjacent content, prefer `dataTables`, `pageBlocks`, and `actionBarItems`.

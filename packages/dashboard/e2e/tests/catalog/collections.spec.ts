@@ -293,3 +293,76 @@ test.describe('Issue #4389: Collection form dirty state with filters', () => {
         await expect(dp.formItem('Name').getByRole('textbox')).toHaveValue('E2E Filter Test Saved');
     });
 });
+
+// #3548 — Collection facet filter boolean args
+test.describe('Issue #3548: Collection facet filter boolean args', () => {
+    let collectionId: string;
+
+    const detailPage = (page: Page) =>
+        new BaseDetailPage(page, {
+            newPath: '/collections/new',
+            pathPrefix: '/collections/',
+            newTitle: 'New collection',
+        });
+
+    test.afterEach(async ({ page }) => {
+        if (!collectionId) return;
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await client.gql(
+            `
+            mutation ($id: ID!) { deleteCollection(id: $id) { result } }
+        `,
+            { id: collectionId },
+        );
+        collectionId = '';
+    });
+
+    test('should initialize containsAny through the UI when adding a facet-value-filter', async ({
+        page,
+    }) => {
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const { facetValues } = await client.gql(`
+            query { facetValues(options: { take: 1 }) { items { name } } }
+        `);
+        const facetValueName = facetValues.items[0].name as string;
+
+        const dp = detailPage(page);
+        await dp.gotoNew();
+        await dp.expectNewPageLoaded();
+
+        await dp.fillInput('Name', 'E2E Boolean Arg Filter');
+        await expect(dp.formItem('Slug').getByRole('textbox')).not.toHaveValue('', { timeout: 5_000 });
+
+        await page.getByRole('button', { name: /Add collection filter/i }).click();
+        await page.getByRole('menuitem', { name: /Filter by facet values/i }).click();
+        await page.getByRole('button', { name: /Add facet values/i }).click();
+        await page.getByPlaceholder('Search facet values...').fill(facetValueName);
+        await page.getByRole('option', { name: facetValueName, exact: true }).click();
+
+        await expect(
+            page.locator('[data-slot="field"]').filter({ hasText: 'Contains any' }).getByRole('switch'),
+        ).not.toBeChecked();
+        await expect(dp.createButton).toBeEnabled({ timeout: 5_000 });
+        await dp.clickCreate();
+        await dp.expectNavigatedToExisting();
+        collectionId = new URL(page.url()).pathname.split('/').pop() ?? '';
+
+        const { collection } = await client.gql(
+            `
+            query ($id: ID!) {
+                collection(id: $id) {
+                    filters {
+                        code
+                        args { name value }
+                    }
+                }
+            }
+        `,
+            { id: collectionId },
+        );
+        const facetFilter = collection.filters.find((filter: any) => filter.code === 'facet-value-filter');
+        expect(facetFilter?.args).toEqual(expect.arrayContaining([{ name: 'containsAny', value: 'false' }]));
+    });
+});

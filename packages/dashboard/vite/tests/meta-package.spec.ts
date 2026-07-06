@@ -4,6 +4,7 @@ import tsconfigPaths from 'tsconfig-paths';
 import { describe, expect, it } from 'vitest';
 
 import { compile } from '../utils/compiler.js';
+import { filterActivePluginInfo } from '../utils/get-active-plugin-info.js';
 import { debugLogger, noopLogger } from '../utils/logger.js';
 
 // #4542 — scanner should follow transitive dependencies of imported packages
@@ -94,6 +95,40 @@ describe('detecting plugins via meta-package transitive dependencies', () => {
 
             // All 3 child plugins should still be discovered
             expect(result.pluginInfo).toHaveLength(3);
+        },
+    );
+
+    // #4706 — discovery walks transitive deps and finds all three child plugins,
+    // but `MetaPlugin.init()` only returns ChildPluginA and ChildPluginB to the
+    // runtime config. The consumer filter should drop ChildPluginC.
+    it(
+        'filterActivePluginInfo drops plugins discovered but not in runtime config',
+        { timeout: 60_000 },
+        async () => {
+            const tempDir = join(__dirname, './__temp/meta-package-active-filter');
+            await rm(tempDir, { recursive: true, force: true });
+
+            tsconfigPaths.register({
+                baseUrl: fakeNodeModules,
+                paths: {
+                    'meta-plugin': [join(fakeNodeModules, 'meta-plugin')],
+                },
+            });
+
+            const result = await compile({
+                outputPath: tempDir,
+                vendureConfigPath: join(__dirname, 'fixtures-meta-package', 'vendure-config.ts'),
+                logger,
+                pluginPackageScanner: {
+                    nodeModulesRoot: fakeNodeModules,
+                },
+            });
+
+            expect(result.pluginInfo).toHaveLength(3);
+            const activeNames = filterActivePluginInfo(result.pluginInfo, result.vendureConfig)
+                .map(p => p.name)
+                .sort();
+            expect(activeNames).toEqual(['ChildPluginA', 'ChildPluginB']);
         },
     );
 });

@@ -1,4 +1,5 @@
 import { ConfigurableOperationInput as ConfigurableOperationInputComponent } from '@/vdb/components/shared/configurable-operation-input.js';
+import { getInitialConfigArgValue } from '@/vdb/components/shared/configurable-operation-utils.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import {
     Dialog,
@@ -54,7 +55,7 @@ export function DuplicateEntityDialog({
                 arguments:
                     matchingDuplicator.args?.map(arg => ({
                         name: arg.name,
-                        value: arg.defaultValue != null ? arg.defaultValue.toString() : '',
+                        value: getInitialConfigArgValue(arg),
                     })) || [],
             });
         }

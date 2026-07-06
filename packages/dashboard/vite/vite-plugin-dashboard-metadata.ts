@@ -1,8 +1,9 @@
-import path from 'path';
 import { pathToFileURL } from 'node:url';
+import path from 'path';
 import { Plugin } from 'vite';
 
 import { CompileResult } from './utils/compiler.js';
+import { filterActivePluginInfo } from './utils/get-active-plugin-info.js';
 import { ConfigLoaderApi, getConfigLoaderApi } from './vite-plugin-config-loader.js';
 
 const virtualModuleId = 'virtual:dashboard-extensions';
@@ -37,10 +38,11 @@ export function dashboardMetadataPlugin(): Plugin {
                     this.debug(`Loaded Vendure config in ${Date.now() - configStart}ms`);
                 }
 
-                const { pluginInfo } = loadVendureConfigResult;
+                const { pluginInfo, vendureConfig } = loadVendureConfigResult;
+                const activePluginInfo = filterActivePluginInfo(pluginInfo, vendureConfig);
                 const resolveStart = Date.now();
                 const pluginsWithExtensions =
-                    pluginInfo
+                    activePluginInfo
                         ?.map(({ dashboardEntryPath, pluginPath, sourcePluginPath }) => {
                             if (!dashboardEntryPath) {
                                 return null;
@@ -64,7 +66,7 @@ export function dashboardMetadataPlugin(): Plugin {
                     export async function runDashboardExtensions() {
                         ${pluginsWithExtensions
                             .map(extension => {
-                                return `await import(\`${pathToFileURL(extension)}\`);`;
+                                return `await import(\`${pathToFileURL(extension).toString()}\`);`;
                             })
                             .join('\n')}
                 }`;
