@@ -1,16 +1,20 @@
 ---
-title: 'Custom Form Elements'
-metaTitle: "Custom Form Elements for the Vendure Dashboard"
-metaDescription: "Create custom field components, detail form inputs, and configurable operation components for the Vendure Dashboard using the DashboardFormComponent API."
+title: 'Customizing Forms'
+metaTitle: 'Customizing Forms in the Vendure Dashboard'
+metaDescription: 'Choose the right API for replacing native detail-page inputs or rendering custom fields with your own Vendure Dashboard input components.'
 ---
 
-The dashboard allows you to create custom form elements that provide complete control over how data is rendered and how users
-interact with forms. This includes:
+The Dashboard has two different APIs for customizing form inputs. Choose based on what kind of field you are changing:
 
-- **[Custom Field Components](#custom-field-components)** — Globally-registered components that can be used to render **custom fields** and **configurable operation arguments**
-- **[Detail Form Components](#detail-form-components)** — Form input components that target specific fields of detail pages
+| I want to...                                                                 | Use this API                                                              | How it is selected                                                                   |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Replace the rendered input for a native entity field, such as `Product.slug` | [`detailForms[].inputs`](#replacing-native-detail-page-fields)            | Target a specific `pageId`, `blockId`, and `field`                                   |
+| Use my own input for a plugin-defined custom field                           | [`customFormComponents.customFields`](#custom-field-components)           | Register a component ID, then reference it from the custom field's `ui.component`    |
+| Use my own input for a configurable operation argument                       | [`customFormComponents.customFields`](#configurable-operation-components) | Register a component ID, then reference it from the argument config's `ui.component` |
 
-## Anatomy of a Form Component
+Both APIs use the same [DashboardFormComponent type](/reference/dashboard/extensions-api/form-components#dashboardformcomponent), but they are registered differently. Use `detailForms[].inputs` only when you are replacing a native field on a specific detail page. Use `customFormComponents.customFields` when the field itself is defined in your plugin configuration.
+
+## Shared Component API
 
 All form components must implement the [DashboardFormComponent type](/reference/dashboard/extensions-api/form-components#dashboardformcomponent).
 
@@ -40,7 +44,15 @@ MyCustomInput.metadata = {
 Here's an example custom form component that has been annotated to explain the typical parts you will be working with:
 
 ```tsx title="src/plugins/my-plugin/dashboard/components/color-picker.tsx"
-import { Button, Card, CardContent, cn, DashboardFormComponent, Input, useFormContext } from '@vendure/dashboard';
+import {
+    Button,
+    Card,
+    CardContent,
+    cn,
+    DashboardFormComponent,
+    Input,
+    useFormContext,
+} from '@vendure/dashboard';
 import { useState } from 'react';
 
 // By typing your component as DashboardFormComponent, the props will be correctly typed
@@ -104,6 +116,8 @@ Here's how this component will look when rendered in your form:
 ![Color picker component](./color-picker.webp)
 
 ## Custom Field Components
+
+Use this path for fields defined in your Vendure custom field configuration. Custom field components are registered globally with an ID, then selected from the custom field's `ui.component` property. They are not targeted by `pageId`, `blockId`, or field location.
 
 Let's configure a [custom field](/developer-guide/custom-fields/) which uses the `ColorPickerComponent` as its form component.
 
@@ -178,9 +192,11 @@ const customShippingCalculator = new ShippingCalculator({
 });
 ```
 
-## Detail Form Components
+## Replacing Native Detail-Page Fields
 
-Detail form components allow you to replace specific input fields in existing dashboard forms with custom implementations. They are targeted to specific pages, blocks, and fields.
+Use this path when you want to replace the rendered input for a native field on an existing detail page, such as `Product.description`, `Product.slug`, or `Customer.emailAddress`. These overrides are targeted to a specific page, block, and field.
+
+For plugin-defined custom fields, use [custom field components](#custom-field-components) instead.
 
 Let's say we want to use a plain text editor for the product description field rather than the default
 html-based editor.
@@ -214,8 +230,10 @@ defineDashboardExtension({
     detailForms: [
         {
             pageId: 'product-detail', // [!code highlight]
-            inputs: [ // [!code highlight]
-                { // [!code highlight]
+            inputs: [
+                // [!code highlight]
+                {
+                    // [!code highlight]
                     blockId: 'main-form', // [!code highlight]
                     field: 'description', // [!code highlight]
                     component: MarkdownEditorComponent, // [!code highlight]
@@ -228,27 +246,27 @@ defineDashboardExtension({
 
 ### Targeting Input Components
 
-Input components are targeted using three properties:
+Native detail-page input overrides are targeted in two levels:
 
-- **pageId**: The ID of the page (e.g., 'product-detail', 'customer-detail')
-- **blockId**: The ID of the form block (e.g., 'product-form', 'customer-info')
-- **field**: The name of the field to replace (e.g., 'price', 'email')
+- **`pageId`**: The ID of the page, defined on the surrounding `detailForms[]` entry.
+- **`blockId`**: The ID of the form block, defined on each `inputs[]` item.
+- **`field`**: The native field name to replace, defined on each `inputs[]` item.
 
 ```tsx
-inputs: [
-    {
-        pageId: 'product-variant-detail',
-        blockId: 'main-form',
-        field: 'price',
-        component: PriceInputComponent,
-    },
-    {
-        pageId: 'customer-detail',
-        blockId: 'main-form',
-        field: 'emailAddress',
-        component: EmailInputComponent,
-    },
-];
+defineDashboardExtension({
+    detailForms: [
+        {
+            pageId: 'customer-detail',
+            inputs: [
+                {
+                    blockId: 'main-form',
+                    field: 'emailAddress',
+                    component: EmailInputComponent,
+                },
+            ],
+        },
+    ],
+});
 ```
 
 You can discover the required IDs by turning on dev mode:
@@ -278,7 +296,13 @@ if the input does not match the pattern.
 import { DashboardFormComponent, Input, Alert, AlertDescription, useFormContext } from '@vendure/dashboard';
 import { CheckCircle2 } from 'lucide-react';
 
-export const ValidatedInputComponent: DashboardFormComponent = ({ value, onChange, name }) => {
+export const ValidatedInputComponent: DashboardFormComponent = ({
+    value,
+    onChange,
+    onBlur,
+    disabled,
+    name,
+}) => {
     const { getFieldState } = useFormContext();
     const fieldState = getFieldState(name);
 
@@ -295,9 +319,10 @@ export const ValidatedInputComponent: DashboardFormComponent = ({ value, onChang
     return (
         <div className="space-y-2">
             <Input
-                value={field.value || ''}
-                onChange={e => field.onChange(e.target.value)}
-                onBlur={field.onBlur}
+                value={value || ''}
+                onChange={e => onChange(e.target.value)}
+                onBlur={onBlur}
+                disabled={disabled}
                 className={fieldState.error ? 'border-destructive' : ''}
             />
 
@@ -315,26 +340,26 @@ export const ValidatedInputComponent: DashboardFormComponent = ({ value, onChang
             )}
         </div>
     );
-}
+};
 ```
 
 :::tip[Best Practices]
 
 1. **Always use Shadcn UI components** from the `@vendure/dashboard` package for consistent styling
-2. **Handle React Hook Form events properly** - call `onChange` and `onBlur` appropriately for custom field components
-3. **Display validation errors** from `fieldState.error` when they exist (custom field components)
+2. **Handle React Hook Form events properly** - call `onChange` and `onBlur` appropriately
+3. **Display validation errors** from `fieldState.error` when they exist
 4. **Use dashboard design tokens** - leverage `text-destructive`, `text-muted-foreground`, etc.
 5. **Provide clear visual feedback** for user interactions
 6. **Handle disabled states** by using the `disabled` prop
-7. **Target components precisely** using pageId, blockId, and field for input components
-:::
+7. **Target native field overrides precisely** using `pageId`, `blockId`, and `field`
 
+:::
 
 :::important Design System Consistency
 Always import UI components from the `@vendure/dashboard` package rather than creating custom inputs or buttons. This ensures your components follow the dashboard's design system and remain consistent with future updates.
 :::
 
-The unified custom form elements system gives you complete flexibility in how data is presented and edited in the dashboard, while maintaining seamless integration with React Hook Form and the dashboard's design system.
+Together, custom field components and native detail-page field overrides give you complete control over how data is presented and edited in the Dashboard, while maintaining integration with React Hook Form and the Dashboard design system.
 
 ## Nested Forms and Event Handling
 
@@ -373,7 +398,7 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-export const NestedFormDialogComponent: DashboardFormComponent = (props) => {
+export const NestedFormDialogComponent: DashboardFormComponent = props => {
     const form = useForm<FormData>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -392,9 +417,7 @@ export const NestedFormDialogComponent: DashboardFormComponent = (props) => {
 
     return (
         <Dialog>
-            <DialogTrigger render={<Button variant="outline" />}>
-                Open Form
-            </DialogTrigger>
+            <DialogTrigger render={<Button variant="outline" />}>Open Form</DialogTrigger>
             <DialogContent>
                 <Form {...form}>
                     {/* Use handleNestedFormSubmit to prevent event bubbling */}
@@ -412,6 +435,7 @@ export const NestedFormDialogComponent: DashboardFormComponent = (props) => {
 ### What handleNestedFormSubmit Does
 
 The utility function:
+
 1. Prevents the submit event from propagating to parent forms (`e.stopPropagation()`)
 2. Prevents the browser's default form submission behavior (`e.preventDefault()`)
 3. Properly triggers react-hook-form's handleSubmit with your custom handler
@@ -420,11 +444,12 @@ The utility function:
 ### When to Use It
 
 Use `handleNestedFormSubmit` whenever you have:
+
 - A dialog with a form inside a detail page
 - A custom component with its own form that's nested within another form
 - Any scenario where form submission events should not bubble up to parent forms
 
-## Relation Selectors
+## Relation Selector Components
 
 The dashboard includes powerful relation selector components for selecting related entities with built-in search and pagination:
 
@@ -471,7 +496,7 @@ Features include:
 
 ## Further Reading
 
-For detailed information about specific types of custom form elements, see these dedicated guides:
+For detailed examples of reusable input components, see these dedicated guides:
 
-- **[Form component examples](/extending-the-dashboard/custom-form-components/form-component-examples)** - Detailed examples of how to use the APIs available for custom form components.
-- **[Relation selectors](/extending-the-dashboard/custom-form-components/relation-selectors)** - Build powerful entity selection components with search, pagination, and multi-select capabilities for custom fields and form inputs
+- **[Input component examples](/extending-the-dashboard/custom-form-components/form-component-examples)** - Detailed examples of how to use the APIs available for custom form components.
+- **[Relation selector components](/extending-the-dashboard/custom-form-components/relation-selectors)** - Build powerful entity selection components with search, pagination, and multi-select capabilities for custom fields and form inputs

@@ -209,3 +209,91 @@ jobs:
                 name: dashboard-test-screenshots-${{ matrix.os }}-${{ matrix.node-version }}
                 path: /tmp/dashboard-test-*.png
                 retention-days: 28
+
+    # Job 3: Verify `@vendure/create` works end-to-end when invoked via bun and pnpm.
+    # The package manager is detected from npm_config_user_agent (which bunx / pnpm dlx
+    # set), so the install step and generated project must use that manager rather than
+    # hard-coding npm (#4390).
+    test_package_managers:
+        needs: build_and_publish
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+        strategy:
+            matrix:
+                include:
+                    - pm: bun
+                      scaffold: bunx @vendure/create@ci test-app --ci --log-level info
+                    - pm: pnpm
+                      scaffold: pnpm dlx @vendure/create@ci test-app --ci --log-level info
+            fail-fast: false
+        steps:
+            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+            - name: Use Node.js 22.x
+              uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+              with:
+                  node-version: 22.x
+            - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+              with:
+                  bun-version: '1.3.10'
+            - name: Enable pnpm via corepack
+              run: |
+                  corepack enable
+                  corepack prepare pnpm@9.15.9 --activate
+                  pnpm --version
+            - name: Download Verdaccio storage
+              uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+              with:
+                  name: verdaccio-storage
+                  path: ~/verdaccio-download
+            - name: Setup Verdaccio with pre-built packages
+              run: |
+                  npm install -g verdaccio
+                  npm install -g wait-on
+                  mkdir -p $HOME/.config/verdaccio
+                  cp -v ./.github/workflows/verdaccio/config.yaml $HOME/.config/verdaccio/config.yaml
+                  cd $HOME/.config/verdaccio
+                  tar -xzf ~/verdaccio-download/verdaccio-storage.tar.gz
+                  nohup verdaccio --config $HOME/.config/verdaccio/config.yaml &
+                  wait-on http://localhost:4873
+                  # Register a Verdaccio user and capture an auth token.
+                  TOKEN_RES=$(curl -XPUT \
+                    -H "Content-type: application/json" \
+                    -d '{ "name": "test", "password": "test" }' \
+                    'http://localhost:4873/-/user/org.couchdb.user:test')
+                  TOKEN=$(echo "$TOKEN_RES" | jq -r '.token')
+                  # npm + pnpm read ~/.npmrc; bun is pointed at Verdaccio via the
+                  # npm_config_registry env var on the install step (see below).
+                  npm set registry=http://localhost:4873
+                  npm set //localhost:4873/:_authToken $TOKEN
+            - name: Install via @vendure/create using ${{ matrix.pm }}
+              # bun ignores the home-directory ~/.npmrc (oven-sh/bun#22971) and does not walk
+              # up to a parent .npmrc/bunfig, but it DOES honour the npm_config_registry env
+              # var — and so does the scaffolded project's nested install (it inherits the
+              # env). This is the one mechanism that reaches both bunx and the nested install.
+              env:
+                  CI: true
+                  npm_config_registry: http://localhost:4873/
+              run: |
+                  mkdir -p $HOME/install
+                  cd $HOME/install
+                  npm dist-tag ls @vendure/create
+                  # No --use-npm: the manager is detected from the invoking bunx / pnpm dlx.
+                  ${{ matrix.scaffold }}
+            - name: Assert the generated project used ${{ matrix.pm }}
+              run: |
+                  cd $HOME/install/test-app
+                  case "${{ matrix.pm }}" in
+                    bun) test -f bun.lock || { echo "Expected bun.lock to exist"; ls -la; exit 1; } ;;
+                    pnpm) test -f pnpm-lock.yaml || { echo "Expected pnpm-lock.yaml to exist"; ls -la; exit 1; } ;;
+                  esac
+                  echo "Lockfile for ${{ matrix.pm }} present ✓"
+            - name: Server smoke tests
+              run: |
+                  cd $HOME/install/test-app
+                  ${{ matrix.pm }} run dev &
+                  node $GITHUB_WORKSPACE/.github/workflows/scripts/smoke-tests
+            - name: Kill dev server after smoke tests
+              if: always()
+              run: |
+                  lsof -ti:3000,5173 | xargs kill 2>/dev/null || true

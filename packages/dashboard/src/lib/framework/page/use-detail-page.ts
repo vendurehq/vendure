@@ -17,6 +17,7 @@ import { NEW_ENTITY_PATH } from '../../constants.js';
 import { api } from '../../graphql/api.js';
 import { useCustomFieldConfig } from '../../hooks/use-custom-field-config.js';
 import { useExtendedDetailQuery } from '../../hooks/use-extended-detail-query.js';
+import { useRedirectToListOnNotFound } from '../../hooks/use-redirect-to-list-on-not-found.js';
 import { addCustomFields } from '../document-introspection/add-custom-fields.js';
 import {
     getEntityName,
@@ -277,6 +278,10 @@ export function useDetailPage<
     const entity = (detailQuery?.data as any)?.[entityQueryField] as
         | DetailPageEntity<T, EntityField>
         | undefined;
+
+    // Redirect to the list if the entity is no longer found in the active
+    // channel (e.g. after a channel switch).
+    useRedirectToListOnNotFound(entity, { isFetching: detailQuery.isFetching, skip: isNew });
 
     const resetForm = () => {
         form.reset(form.getValues());

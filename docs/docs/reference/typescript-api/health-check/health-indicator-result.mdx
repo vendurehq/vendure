@@ -1,0 +1,13 @@
+---
+title: "HealthIndicatorResult"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/health-check/terminus-compat.ts" sourceLine="37" packageName="@vendure/core" />
+
+The result returned by a [HealthIndicatorFunction](/reference/typescript-api/health-check/health-indicator-function#healthindicatorfunction). Keyed by the
+indicator name, with a `status` of `'up'` or `'down'` and optional
+additional diagnostic data.
+
+```ts title="Signature"
+type HealthIndicatorResult<Key extends string = string, Status extends HealthIndicatorStatus = HealthIndicatorStatus, OptionalData extends Record<string, any> = Record<string, any>> = Record<Key, { status: Status } & OptionalData>
+```

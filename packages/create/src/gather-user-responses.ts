@@ -300,6 +300,9 @@ async function generateSources(
         cookieSecret: randomBytes(16).toString('base64url'),
         port,
         isMonorepo: answers.includeStorefront,
+        packageManager,
+        isBun: packageManager === 'bun',
+        needsCorepack: packageManager === 'pnpm' || packageManager === 'yarn',
     };
 
     async function createSourceFile(filename: string, noEscape = false): Promise<string> {
@@ -318,6 +321,7 @@ async function generateSources(
         dockerComposeSource: await createSourceFile('docker-compose.hbs'),
         tsconfigDashboardSource: await createSourceFile('tsconfig.dashboard.hbs'),
         viteConfigSource: await createSourceFile('vite.config.hbs'),
+        agentsSource: await createSourceFile('agents.hbs'),
     };
 }
 

@@ -1,6 +1,6 @@
+import { ConfigurableOperationDefFragment } from '@/vdb/graphql/fragments.js';
 import { describe, expect, it } from 'vitest';
 
-import { ConfigurableOperationDefFragment } from '@/vdb/graphql/fragments.js';
 import { getInitialConfigArgValue } from './configurable-operation-utils.js';
 
 type ConfigArgDef = ConfigurableOperationDefFragment['args'][number];

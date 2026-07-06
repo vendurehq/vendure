@@ -245,6 +245,12 @@ mutation {
         ...on IneligiblePaymentMethodError {
             eligibilityCheckerMessage
         }
+        ...on CouponRemovedDuringCheckoutError {
+            removedCouponCodes
+            previousTotalWithTax
+            newTotalWithTax
+            currencyCode
+        }
     }
 }
 
