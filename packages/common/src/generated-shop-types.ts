@@ -29,6 +29,7 @@ export type AddItemInput = {
 };
 
 export type AddPaymentToOrderResult =
+    | CouponRemovedDuringCheckoutError
     | IneligiblePaymentMethodError
     | NoActiveOrderError
     | Order
@@ -402,6 +403,26 @@ export type CouponCodeLimitError = ErrorResult & {
     errorCode: ErrorCode;
     limit: Scalars['Int']['output'];
     message: Scalars['String']['output'];
+};
+
+/**
+ * Returned by `addPaymentToOrder` when one or more coupon codes were removed
+ * from the Order during payment-time revalidation and the removal would have
+ * increased the amount the customer is charged. Refusing the payment in this
+ * case prevents silently charging the customer more than they agreed to. The
+ * most common trigger is a usage-limited coupon's slot being claimed by a
+ * concurrent checkout, but the same protection applies when a coupon is
+ * stripped because the order no longer meets the promotion's eligibility
+ * conditions or because the promotion was disabled mid-checkout.
+ */
+export type CouponRemovedDuringCheckoutError = ErrorResult & {
+    __typename?: 'CouponRemovedDuringCheckoutError';
+    currencyCode: CurrencyCode;
+    errorCode: ErrorCode;
+    message: Scalars['String']['output'];
+    newTotalWithTax: Scalars['Money']['output'];
+    previousTotalWithTax: Scalars['Money']['output'];
+    removedCouponCodes: Array<Scalars['String']['output']>;
 };
 
 /**
@@ -970,6 +991,7 @@ export enum ErrorCode {
     COUPON_CODE_EXPIRED_ERROR = 'COUPON_CODE_EXPIRED_ERROR',
     COUPON_CODE_INVALID_ERROR = 'COUPON_CODE_INVALID_ERROR',
     COUPON_CODE_LIMIT_ERROR = 'COUPON_CODE_LIMIT_ERROR',
+    COUPON_REMOVED_DURING_CHECKOUT_ERROR = 'COUPON_REMOVED_DURING_CHECKOUT_ERROR',
     EMAIL_ADDRESS_CONFLICT_ERROR = 'EMAIL_ADDRESS_CONFLICT_ERROR',
     GUEST_CHECKOUT_ERROR = 'GUEST_CHECKOUT_ERROR',
     IDENTIFIER_CHANGE_TOKEN_EXPIRED_ERROR = 'IDENTIFIER_CHANGE_TOKEN_EXPIRED_ERROR',

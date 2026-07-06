@@ -1,5 +1,5 @@
 ---
-name: Radix to Base UI Migration
+name: radix-to-base-ui-migration
 description: Migrates Vendure Dashboard extensions from Radix UI patterns to Base UI patterns (@vendure-io/ui).
 ---
 

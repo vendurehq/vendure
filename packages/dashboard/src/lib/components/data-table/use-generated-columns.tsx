@@ -4,6 +4,7 @@ import {
     FieldInfo,
     getOperationVariablesFields,
     getTypeFieldInfo,
+    isEnumType,
 } from '@/vdb/framework/document-introspection/get-document-structure.js';
 import {
     generateDisplayComponentKey,
@@ -131,7 +132,8 @@ export function useGeneratedColumns<T extends TypedDocumentNode<any, any>>({
             }
 
             const { header, meta, cell: customCell, ...customConfigRest } = customConfig;
-            const enableColumnFilter = fieldInfo.isScalar && !facetedFilters?.[fieldInfo.name];
+            const enableColumnFilter =
+                (fieldInfo.isScalar || isEnumType(fieldInfo.type)) && !facetedFilters?.[fieldInfo.name];
             const displayComponentId =
                 pageId && pageBlock?.blockId
                     ? generateDisplayComponentKey(pageId, pageBlock.blockId, fieldInfo.name)

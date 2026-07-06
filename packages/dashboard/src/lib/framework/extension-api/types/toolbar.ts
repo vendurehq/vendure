@@ -7,7 +7,7 @@ import type React from 'react';
  * before, after, or completely replace that item.
  *
  * Built-in toolbar items have the following IDs:
- * - `'dev-mode-indicator'` - The dev mode badge (only visible when dev mode is enabled)
+ * - `'dev-mode-indicator'` - The Dev Mode badge (only visible when Dev Mode is enabled)
  * - `'alerts'` - The alerts bell icon
  *
  * @docsCategory extensions-api
@@ -20,7 +20,7 @@ export type ToolbarItemPosition = { itemId: string; order: 'before' | 'after' | 
  * @description
  * Allows you to define custom toolbar items in the app shell header bar. Toolbar items
  * appear in the horizontal bar at the top of the dashboard, alongside the breadcrumbs,
- * dev mode indicator, and alerts icon.
+ * Dev Mode indicator, and alerts icon.
  *
  * Items can be positioned relative to existing items (including built-in ones like
  * `'alerts'` and `'dev-mode-indicator'`) using the `position` property. Items without
@@ -56,7 +56,7 @@ export interface DashboardToolbarItemDefinition {
      * A unique identifier for this toolbar item. This ID is used by other extensions
      * to position their items relative to this one via `position.itemId`.
      *
-     * It is also displayed in the dev mode popover for easy discovery.
+     * It is also displayed in the Dev Mode popover for easy discovery.
      */
     id: string;
     /**
@@ -77,7 +77,7 @@ export interface DashboardToolbarItemDefinition {
      * added by another extension).
      *
      * Built-in item IDs:
-     * - `'dev-mode-indicator'` - The dev mode badge
+     * - `'dev-mode-indicator'` - The Dev Mode badge
      * - `'alerts'` - The alerts bell icon
      *
      * - `'before'`: Place this item before the target item

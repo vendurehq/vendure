@@ -91,8 +91,9 @@ class PromotionService {
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, couponCode: string, customerId?: <a href='/reference/typescript-api/common/id#id'>ID</a>, excludeOrderId?: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<JustErrorResults<ApplyCouponCodeResult> | <a href='/reference/typescript-api/entities/promotion#promotion'>Promotion</a>>`}   />
 
 Checks the validity of a coupon code, by checking that it is associated with an existing,
-enabled and non-expired Promotion. Additionally, if there is a usage limit on the coupon code,
-this method will enforce that limit against the specified Customer.
+enabled and non-expired Promotion. The comparison is case-insensitive, so e.g. "SUMMER20"
+and "summer20" are treated as the same code. Additionally, if there is a usage limit on the
+coupon code, this method will enforce that limit against the specified Customer.
 ### getActivePromotionsInChannel
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => `}   />

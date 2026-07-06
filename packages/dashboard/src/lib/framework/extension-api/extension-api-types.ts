@@ -1,6 +1,7 @@
 // Import types for the main interface
 import { NavMenuConfig } from '../nav-menu/nav-menu-extensions.js';
 
+import { DashboardCustomProviderDefinition } from './custom-providers.js';
 import {
     DashboardActionBarItem,
     DashboardAlertDefinition,
@@ -25,10 +26,13 @@ import {
  * - Navigation (nav sections and routes)
  * - Layout (action bar items and page blocks)
  * - Widgets for the Insights page
- * - Form components
+ * - Form input components for custom fields, configurable operation arguments, and native detail-page fields
  * - Data tables
  * - Detail forms
  * - Login page customisation
+ * - Alerts
+ * - History entries
+ * - Toolbar items
  *
  * @docsCategory extensions-api
  * @docsPage defineDashboardExtension
@@ -89,13 +93,12 @@ export interface DashboardExtension {
     alerts?: DashboardAlertDefinition[];
     /**
      * @description
-     * Allows you to define custom routes for the dashboard, which will render the
-     * given components and optionally also add a nav menu item.
+     * Allows you to define custom widgets for the Insights page.
      */
     widgets?: DashboardWidgetDefinition[];
     /**
      * @description
-     * Unified registration for custom form custom field components.
+     * Registers custom input component IDs for custom fields and configurable operation arguments.
      */
     customFormComponents?: DashboardCustomFormComponents;
     /**
@@ -105,7 +108,7 @@ export interface DashboardExtension {
     dataTables?: DashboardDataTableExtensionDefinition[];
     /**
      * @description
-     * Allows you to customize the detail form for any page in the dashboard.
+     * Allows you to customize detail pages, including native field input overrides.
      */
     detailForms?: DashboardDetailFormExtensionDefinition[];
     /**
@@ -122,10 +125,18 @@ export interface DashboardExtension {
     /**
      * @description
      * Allows you to define custom toolbar items in the app shell header bar.
-     * Toolbar items appear alongside the breadcrumbs, dev mode indicator,
+     * Toolbar items appear alongside the breadcrumbs, Dev Mode indicator,
      * and alerts icon.
      *
      * @since 3.5.3
      */
     toolbarItems?: DashboardToolbarItemDefinition[];
+
+    /**
+     * @description
+     * Allows you to add custom providers in different locations.
+     *
+     * @since 3.7.0
+     */
+    customProviders?: DashboardCustomProviderDefinition[];
 }

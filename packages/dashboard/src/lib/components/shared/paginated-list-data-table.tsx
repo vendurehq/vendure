@@ -17,6 +17,7 @@ import React from 'react';
 import { getColumnVisibility, getStandardizedDefaultColumnOrder } from '../data-table/data-table-utils.js';
 import { useGeneratedColumns } from '../data-table/use-generated-columns.js';
 import { PaginatedListContext } from './paginated-list-context.js';
+import { useViewOptionDefaults } from '@/vdb/hooks/use-view-option-defaults.js';
 
 // Type that identifies a paginated list structure (has items array and totalItems)
 type IsPaginatedList<T> = T extends { items: any[]; totalItems: number } ? true : false;
@@ -366,8 +367,8 @@ export function PaginatedListDataTable<
     transformVariables,
     customizeColumns,
     additionalColumns,
-    defaultVisibility,
-    defaultColumnOrder,
+    defaultVisibility: _defaultVisibility,
+    defaultColumnOrder: _defaultColumnOrder,
     onSearchTermChange,
     page,
     itemsPerPage,
@@ -414,6 +415,9 @@ export function PaginatedListDataTable<
     const fields = useListQueryFields(extendedListQuery);
     const paginatedListObjectPath = getObjectPathToPaginatedList(extendedListQuery);
 
+    // Merge code-defined default view options with any view options configured via the Plugin Extension API
+    const { defaultColumnVisibility, defaultColumnOrder } = useViewOptionDefaults(_defaultVisibility, _defaultColumnOrder);
+
     const { columns, customFieldColumnNames } = useGeneratedColumns({
         fields,
         customizeColumns,
@@ -424,7 +428,7 @@ export function PaginatedListDataTable<
         defaultColumnOrder: getStandardizedDefaultColumnOrder(defaultColumnOrder),
         includeSelectionColumn,
     });
-    const columnVisibility = getColumnVisibility(columns, defaultVisibility, customFieldColumnNames);
+    const columnVisibility = getColumnVisibility(columns, defaultColumnVisibility, customFieldColumnNames);
     // Get the actual visible columns and only fetch those
     const visibleColumns = columns
         // Filter out invisible columns, but _always_ select "id"

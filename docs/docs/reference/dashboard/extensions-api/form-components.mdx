@@ -4,9 +4,11 @@ generated: true
 ---
 ## DashboardCustomFormComponent
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/form-components.ts" sourceLine="11" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/form-components.ts" sourceLine="13" packageName="@vendure/dashboard" since="3.4.0" />
 
-Allows you to define custom form components for custom fields in the dashboard.
+Allows you to define a custom input component for custom fields and configurable operation arguments
+in the dashboard. Register the component here, then reference its `id` from the field or argument
+`ui.component` config.
 
 ```ts title="Signature"
 interface DashboardCustomFormComponent {
@@ -33,10 +35,10 @@ The React component that will be rendered as the custom form input.
 </div>
 ## DashboardCustomFormComponents
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/form-components.ts" sourceLine="34" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/form-components.ts" sourceLine="36" packageName="@vendure/dashboard" since="3.4.0" />
 
-Interface for registering custom field components in the dashboard.
-For input and display components, use the co-located approach with detailForms.
+Interface for registering custom input components which can be selected by custom fields and
+configurable operation arguments via their `ui.component` config.
 
 ```ts title="Signature"
 interface DashboardCustomFormComponents {
@@ -50,8 +52,7 @@ interface DashboardCustomFormComponents {
 
 <MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/form-components#dashboardcustomformcomponent'>DashboardCustomFormComponent</a>[]`}   />
 
-Custom form components for custom fields. These are used when rendering
-custom fields in forms.
+Custom input components for custom fields and configurable operation arguments.
 
 
 </div>

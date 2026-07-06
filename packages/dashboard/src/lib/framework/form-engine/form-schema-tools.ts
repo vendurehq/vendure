@@ -1,5 +1,6 @@
 import {
     FieldInfo,
+    getEnumValues,
     isEnumType,
     isScalarType,
 } from '@/vdb/framework/document-introspection/get-document-structure.js';
@@ -437,6 +438,11 @@ export function getDefaultValueFromField(field: FieldInfo, defaultLanguageCode?:
             case 'Boolean':
                 return false;
             default:
+                // A nullable enum may be left unset; default to null rather than {}
+                // so the select renders empty instead of an invalid object value.
+                if (isEnumType(field.type)) {
+                    return null;
+                }
                 // Object-typed fields (e.g. customFields without typeInfo) should default
                 // to {} to match the Zod schema which expects an object.
                 // JSON scalar is used for customFields when the field structure isn't
@@ -464,6 +470,11 @@ export function getDefaultValueFromField(field: FieldInfo, defaultLanguageCode?:
         case 'JSON':
             return {};
         default:
+            // A non-nullable enum must hold a valid member; default to the first one
+            // rather than an empty string, which is not a valid enum value.
+            if (isEnumType(field.type)) {
+                return getEnumValues(field.type)?.[0] ?? '';
+            }
             return '';
     }
 }

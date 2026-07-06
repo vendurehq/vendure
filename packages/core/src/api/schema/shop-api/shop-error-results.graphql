@@ -25,6 +25,25 @@ type PaymentDeclinedError implements ErrorResult {
     paymentErrorMessage: String!
 }
 
+"""
+Returned by `addPaymentToOrder` when one or more coupon codes were removed
+from the Order during payment-time revalidation and the removal would have
+increased the amount the customer is charged. Refusing the payment in this
+case prevents silently charging the customer more than they agreed to. The
+most common trigger is a usage-limited coupon's slot being claimed by a
+concurrent checkout, but the same protection applies when a coupon is
+stripped because the order no longer meets the promotion's eligibility
+conditions or because the promotion was disabled mid-checkout.
+"""
+type CouponRemovedDuringCheckoutError implements ErrorResult {
+    errorCode: ErrorCode!
+    message: String!
+    removedCouponCodes: [String!]!
+    previousTotalWithTax: Money!
+    newTotalWithTax: Money!
+    currencyCode: CurrencyCode!
+}
+
 "Returned when attempting to set the Customer for an Order when already logged in."
 type AlreadyLoggedInError implements ErrorResult {
     errorCode: ErrorCode!
