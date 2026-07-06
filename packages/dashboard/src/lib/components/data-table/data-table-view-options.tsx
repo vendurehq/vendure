@@ -23,11 +23,13 @@ import { usePage } from '@/vdb/hooks/use-page.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 import { Trans } from '@lingui/react/macro';
 
+import { pinnedLeadingColumns } from './data-table-utils.js';
+
 interface DataTableViewOptionsProps<TData> {
     table: Table<TData>;
 }
 
-function SortableItem({ id, children }: { id: string; children: React.ReactNode }) {
+function SortableItem({ id, children, disableSort }: { id: string; children: React.ReactNode; disableSort?: boolean }) {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
 
     const style = {
@@ -37,9 +39,13 @@ function SortableItem({ id, children }: { id: string; children: React.ReactNode 
 
     return (
         <div ref={setNodeRef} style={style} className="flex items-center gap-.5">
-            <div {...attributes} {...listeners} className="cursor-grab">
-                <GripVertical className="h-4 w-4 text-muted-foreground" />
-            </div>
+            {!disableSort ? (
+                <div {...attributes} {...listeners} className="cursor-grab">
+                    <GripVertical className="h-4 w-4 text-muted-foreground" />
+                </div>
+            ) : (
+                <div className="w-4" />
+            )}
             {children}
         </div>
     );
@@ -101,7 +107,11 @@ export function DataTableViewOptions<TData>({ table }: DataTableViewOptionsProps
                                 strategy={verticalListSortingStrategy}
                             >
                                 {columns.map(column => (
-                                    <SortableItem key={column.id} id={column.id}>
+                                    <SortableItem
+                                        key={column.id}
+                                        id={column.id}
+                                        disableSort={pinnedLeadingColumns.includes(column.id)}
+                                    >
                                         <DropdownMenuCheckboxItem
                                             className="capitalize"
                                             checked={column.getIsVisible()}

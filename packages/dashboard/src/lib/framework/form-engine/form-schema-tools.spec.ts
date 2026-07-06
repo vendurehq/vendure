@@ -624,6 +624,22 @@ describe('form-schema-tools', () => {
             expect(defaults.customFields).toEqual({});
         });
 
+        // #4748 — enum fields must default to a valid value, not {} (nullable) or '' (non-nullable),
+        // both of which leave the select unset / fail validation.
+        it('non-nullable enum field defaults to its first enum value', () => {
+            const fields: FieldInfo[] = [
+                createMockField('type', 'OrderType', false, false, undefined, false),
+            ];
+            const defaults = getDefaultValuesFromFields(fields, 'en');
+            expect(defaults.type).toBe('Regular');
+        });
+
+        it('nullable enum field defaults to null, not an empty object', () => {
+            const fields: FieldInfo[] = [createMockField('type', 'OrderType', true, false, undefined, false)];
+            const defaults = getDefaultValuesFromFields(fields, 'en');
+            expect(defaults.type).toBeNull();
+        });
+
         it.each([
             ['Int', null],
             ['Float', null],

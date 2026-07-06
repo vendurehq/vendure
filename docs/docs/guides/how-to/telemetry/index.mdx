@@ -133,9 +133,10 @@ OTEL_LOGS_EXPORTER=otlp
 
 ### Create a preload script
 
-The Open Telemetry libraries for Node.js instrument underlying libraries such as NestJS, GraphQL,
-Redis, database drivers, etc. to collect telemetry data. In order to do this, they need to be
-preloaded before any of the Vendure application code. This is done by means of a preload script.
+The Open Telemetry libraries for Node.js instrument underlying libraries such as HTTP, Express,
+NestJS, GraphQL, the PostgreSQL & MySQL2 database drivers, and ioredis to collect telemetry data.
+In order to do this, they need to be preloaded before any of the Vendure application code. This
+is done by means of a preload script.
 
 Create a file called `preload.ts` in the src dir of your project with the following contents:
 
@@ -188,6 +189,85 @@ You can do this by adding the following script to your `package.json`:
     },
 }
 ```
+
+### Customising instrumentation
+
+By default, `getSdkConfiguration` returns a curated set of OpenTelemetry instrumentations that
+covers the libraries Vendure itself uses (HTTP, Express, NestJS, GraphQL, PostgreSQL, MySQL2,
+ioredis). If you need to capture spans from other libraries used in your own plugins — for
+example `kafkajs`, `mongoose`, `winston`, `undici` — you have two options.
+
+**Option 1: install the full auto-instrumentations bundle.**
+
+This restores the behaviour of `@vendure/telemetry-plugin` prior to v3.7, attaching spans
+to any supported library it detects at runtime:
+
+```bash
+npm install @opentelemetry/auto-instrumentations-node
+```
+
+```ts title="src/preload.ts"
+import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
+// ... other imports as above
+
+const config = getSdkConfiguration({
+    config: {
+        spanProcessors: [new BatchSpanProcessor(traceExporter)],
+        logRecordProcessors: [new BatchLogRecordProcessor(logExporter)],
+        instrumentations: [getNodeAutoInstrumentations()], // [!code highlight]
+    },
+});
+```
+
+**Option 2: pick the specific instrumentation packages you need.**
+
+Install just the ones you want and pass them alongside the Vendure-default set:
+
+```bash
+npm install @opentelemetry/instrumentation-http \
+            @opentelemetry/instrumentation-express \
+            @opentelemetry/instrumentation-nestjs-core \
+            @opentelemetry/instrumentation-graphql \
+            @opentelemetry/instrumentation-pg \
+            @opentelemetry/instrumentation-mysql2 \
+            @opentelemetry/instrumentation-ioredis \
+            @opentelemetry/instrumentation-kafkajs
+```
+
+```ts title="src/preload.ts"
+import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
+import { GraphQLInstrumentation } from '@opentelemetry/instrumentation-graphql';
+import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
+import { IORedisInstrumentation } from '@opentelemetry/instrumentation-ioredis';
+import { KafkaJsInstrumentation } from '@opentelemetry/instrumentation-kafkajs';
+import { MySQL2Instrumentation } from '@opentelemetry/instrumentation-mysql2';
+import { NestInstrumentation } from '@opentelemetry/instrumentation-nestjs-core';
+import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
+// ... other imports as above
+
+const config = getSdkConfiguration({
+    config: {
+        spanProcessors: [new BatchSpanProcessor(traceExporter)],
+        logRecordProcessors: [new BatchLogRecordProcessor(logExporter)],
+        instrumentations: [ // [!code highlight]
+            new HttpInstrumentation(), // [!code highlight]
+            new ExpressInstrumentation(), // [!code highlight]
+            new NestInstrumentation(), // [!code highlight]
+            new GraphQLInstrumentation(), // [!code highlight]
+            new PgInstrumentation(), // [!code highlight]
+            new MySQL2Instrumentation(), // [!code highlight]
+            new IORedisInstrumentation(), // [!code highlight]
+            new KafkaJsInstrumentation(), // [!code highlight]
+        ],
+    },
+});
+```
+
+:::info
+Passing `instrumentations` in your config **replaces** the curated default — it does not merge
+with it. If you want to keep the Vendure-default tracing, you need to include those entries in
+your own array as shown above.
+:::
 
 ## Viewing Logs
 

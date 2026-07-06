@@ -230,6 +230,31 @@ describe('Stock location', () => {
             expect(stockLocations.items[0].name).toBe('Channel location');
         });
 
+        it('assigning a product to the channel seeds a StockLevel for the channel location (#4860)', async () => {
+            // Re-assign the product now that the channel has its own stock location: the assignment
+            // should create a `stockOnHand: 0` StockLevel for that location, so per-channel inventory
+            // is usable immediately (without manually setting any stock).
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            await adminClient.query(assignProductToChannelDocument, {
+                input: {
+                    channelId: secondChannelId,
+                    productIds: ['T_1'],
+                },
+            });
+
+            adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
+            const { productVariant } = await adminClient.query(testGetStockLevelsForVariantDocument, {
+                id: 'T_1',
+            });
+
+            expect(productVariant?.stockLevels.length).toBe(1);
+            expect(productVariant?.stockLevels[0]).toEqual({
+                stockOnHand: 0,
+                stockAllocated: 0,
+                stockLocationId: channelStockLocationId,
+            });
+        });
+
         it('assign stock to location in channel', async () => {
             adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
             const { updateProductVariants } = await adminClient.query(testSetStockLevelInLocationDocument, {

@@ -1,3 +1,4 @@
+import type { AssetStorageStrategy } from '@vendure/core';
 import { mergeConfig } from '@vendure/core';
 import {
     createTestEnvironment,
@@ -7,6 +8,7 @@ import {
 } from '@vendure/testing';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { Readable, Stream, Writable } from 'node:stream';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { VENDURE_PORT } from './constants.js';
@@ -16,6 +18,44 @@ import { initialData } from './fixtures/initial-data.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 registerInitializer('sqljs', new SqljsInitializer(path.join(__dirname, '__data__')));
+
+/**
+ * Storage strategy for the dashboard e2e suite. Emits a parseable absolute URL
+ * so `VendureImage`'s `new URL(asset.preview)` doesn't throw on test assets,
+ * without needing AssetServerPlugin. Reimplemented rather than subclassing
+ * `TestingAssetStorageStrategy` because that class is not part of the public API.
+ */
+class E2eAssetStorageStrategy implements AssetStorageStrategy {
+    toAbsoluteUrl(_req: unknown, identifier: string) {
+        return `http://test-asset.local/${identifier}`;
+    }
+    writeFileFromBuffer(fileName: string) {
+        return Promise.resolve(`test-assets/${fileName}`);
+    }
+    writeFileFromStream(fileName: string, data: Stream) {
+        return new Promise<string>((resolve, reject) => {
+            const w = new Writable({ write: (_c, _e, cb) => cb() });
+            data.on('error', reject);
+            data.pipe(w);
+            w.on('finish', () => resolve(`test-assets/${fileName}`));
+            w.on('error', reject);
+        });
+    }
+    readFileToBuffer() {
+        return Promise.resolve(Buffer.alloc(0));
+    }
+    readFileToStream() {
+        const s = new Readable();
+        s.push(null);
+        return Promise.resolve(s);
+    }
+    fileExists() {
+        return Promise.resolve(false);
+    }
+    deleteFile() {
+        return Promise.resolve();
+    }
+}
 
 /**
  * Compiles a TypeScript fixture with SWC so that NestJS parameter decorators
@@ -54,6 +94,15 @@ export default async function globalSetup() {
         },
         paymentOptions: {
             paymentMethodHandlers: e2ePaymentMethodHandlers,
+        },
+        // Default test strategy emits a non-parseable URL that crashes VendureImage.
+        assetOptions: {
+            assetStorageStrategy: new E2eAssetStorageStrategy(),
+        },
+        // Give seeded products (e.g. "Laptop") a real featured asset, so asset-dependent
+        // tests can use them directly instead of uploading at runtime.
+        importExportOptions: {
+            importAssetsDir: path.join(__dirname, '../../core/e2e/fixtures/assets'),
         },
         plugins: [CustomHistoryEntryPlugin],
         customFields: e2eCustomFields,

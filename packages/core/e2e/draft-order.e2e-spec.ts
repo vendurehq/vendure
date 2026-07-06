@@ -3,6 +3,7 @@ import { LanguageCode } from '@vendure/common/lib/generated-types';
 import {
     DefaultOrderPlacedStrategy,
     mergeConfig,
+    minimumOrderAmount,
     Order,
     orderPercentageDiscount,
     OrderState,
@@ -27,6 +28,7 @@ import {
     addManualPaymentDocument,
     adminTransitionToStateDocument,
     createPromotionDocument,
+    deletePromotionDocument,
     getCustomerListDocument,
 } from './graphql/shared-definitions';
 import { getActiveCustomerOrdersDocument } from './graphql/shop-definitions';
@@ -417,6 +419,94 @@ describe('Draft Orders resolver', () => {
         expect(TestOrderPlacedStrategy.spy.mock.calls.length).toBe(1);
         expect(TestOrderPlacedStrategy.spy.mock.calls[0][0].code).toBe(draftOrder.code);
     });
+
+    // https://github.com/vendurehq/vendure/issues/4753
+    // An auto-applied promotion with a perCustomerUsageLimit must not toggle on/off
+    // as a draft order is recalculated. Draft orders are not "placed" and must not
+    // count towards a promotion's usage limit.
+    describe('perCustomerUsageLimit on draft orders', () => {
+        const promotionName = 'Auto free order (per-customer limit)';
+        let promotionId: string;
+        let perCustomerDraftOrderId: string;
+        let orderLineId: string;
+
+        beforeAll(async () => {
+            const { createPromotion } = await adminClient.query(createPromotionDocument, {
+                input: {
+                    enabled: true,
+                    conditions: [
+                        {
+                            code: minimumOrderAmount.code,
+                            arguments: [
+                                { name: 'amount', value: '100' },
+                                { name: 'taxInclusive', value: 'true' },
+                            ],
+                        },
+                    ],
+                    perCustomerUsageLimit: 1,
+                    actions: [
+                        {
+                            code: orderPercentageDiscount.code,
+                            arguments: [{ name: 'discount', value: '100' }],
+                        },
+                    ],
+                    translations: [{ languageCode: LanguageCode.en, name: promotionName }],
+                },
+            });
+            if (!createPromotion || !('id' in createPromotion)) {
+                throw new Error(`Failed to create promotion: ${JSON.stringify(createPromotion)}`);
+            }
+            promotionId = createPromotion.id;
+        });
+
+        afterAll(async () => {
+            await adminClient.query(deletePromotionDocument, { id: promotionId });
+        });
+
+        async function appliedDiscountDescriptions(): Promise<string[]> {
+            const { order } = await adminClient.query(getDraftOrderDiscountsDocument, {
+                id: perCustomerDraftOrderId,
+            });
+            return (order?.discounts ?? []).map(d => d.description);
+        }
+
+        it('promotion stays applied across repeated draft order updates', async () => {
+            const { createDraftOrder } = await adminClient.query(createDraftOrderDocument);
+            perCustomerDraftOrderId = createDraftOrder.id;
+
+            // perCustomerUsageLimit is only enforced once the customer is known
+            const { setCustomerForDraftOrder } = await adminClient.query(setCustomerForDraftOrderDocument, {
+                orderId: perCustomerDraftOrderId,
+                customerId: customers[0].id,
+            });
+            orderGuard.assertSuccess(setCustomerForDraftOrder);
+
+            // First eligible item -> promotion applied
+            const { addItemToDraftOrder: add1 } = await adminClient.query(addItemToDraftOrderDocument, {
+                orderId: perCustomerDraftOrderId,
+                input: { productVariantId: 'T_5', quantity: 1 },
+            });
+            orderGuard.assertSuccess(add1);
+            orderLineId = add1.lines[0].id;
+            expect(await appliedDiscountDescriptions()).toEqual([promotionName]);
+
+            // Second update (recalculation) must NOT toggle the promotion off
+            const { addItemToDraftOrder: add2 } = await adminClient.query(addItemToDraftOrderDocument, {
+                orderId: perCustomerDraftOrderId,
+                input: { productVariantId: 'T_5', quantity: 1 },
+            });
+            orderGuard.assertSuccess(add2);
+            expect(await appliedDiscountDescriptions()).toEqual([promotionName]);
+
+            // Third update (recalculation) must still keep the promotion applied
+            const { adjustDraftOrderLine } = await adminClient.query(adjustDraftOrderLineDocument, {
+                orderId: perCustomerDraftOrderId,
+                input: { orderLineId, quantity: 4 },
+            });
+            orderGuard.assertSuccess(adjustDraftOrderLine);
+            expect(await appliedDiscountDescriptions()).toEqual([promotionName]);
+        });
+    });
 });
 
 // Local fragment without countryCode to match original test expectations
@@ -513,6 +603,19 @@ const draftOrderWithLinesFragment = graphql(
     `,
     [draftOrderShippingAddressFragment, paymentFragment],
 );
+
+const getDraftOrderDiscountsDocument = graphql(`
+    query GetDraftOrderDiscounts($id: ID!) {
+        order(id: $id) {
+            id
+            totalWithTax
+            discounts {
+                description
+                amountWithTax
+            }
+        }
+    }
+`);
 
 const createDraftOrderDocument = graphql(
     `

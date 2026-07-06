@@ -4,7 +4,7 @@ generated: true
 ---
 ## AssetPickerDialog
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/asset/asset-picker-dialog.tsx" sourceLine="61" packageName="@vendure/dashboard" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/asset/asset-picker-dialog.tsx" sourceLine="73" packageName="@vendure/dashboard" />
 
 A dialog which allows the creation and selection of assets.
 
@@ -19,7 +19,7 @@ Parameters
 
 ## AssetPickerDialogProps
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/asset/asset-picker-dialog.tsx" sourceLine="20" packageName="@vendure/dashboard" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/asset/asset-picker-dialog.tsx" sourceLine="24" packageName="@vendure/dashboard" />
 
 Props for the [AssetPickerDialog](/reference/dashboard/components/asset-picker-dialog#assetpickerdialog) component.
 
@@ -31,6 +31,7 @@ interface AssetPickerDialogProps {
     multiSelect?: boolean;
     initialSelectedAssets?: Asset[];
     title?: string;
+    pageId?: string;
 }
 ```
 
@@ -66,6 +67,14 @@ The initial assets that should be selected.
 <MemberInfo kind="property" type={`string`}   />
 
 The title of the dialog.
+### pageId
+
+<MemberInfo kind="property" type={`string`}   />
+
+An optional page ID for the dialog. When provided, this is exposed via the
+internal `PageContext` so that extensions can register
+[DashboardActionBarItem](/reference/dashboard/extensions-api/action-bar#dashboardactionbaritem)s targeted at this specific dialog. Any
+registered action bar items will be rendered in the dialog footer.
 
 
 </div>

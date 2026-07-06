@@ -7,11 +7,13 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/vdb/components/ui/dialog.js';
+import { getEnumValues } from '@/vdb/framework/document-introspection/get-document-structure.js';
 import { Trans } from '@lingui/react/macro';
 import { Column } from '@tanstack/react-table';
 import { useEffect, useState } from 'react';
 import { DataTableBooleanFilter } from './filters/data-table-boolean-filter.js';
 import { DataTableDateTimeFilter } from './filters/data-table-datetime-filter.js';
+import { DataTableEnumFilter } from './filters/data-table-enum-filter.js';
 import { DataTableIdFilter } from './filters/data-table-id-filter.js';
 import { DataTableNumberFilter } from './filters/data-table-number-filter.js';
 import { DataTableStringFilter } from './filters/data-table-string-filter.js';
@@ -31,6 +33,7 @@ export function DataTableFilterDialog({ column, onEnter }: Readonly<DataTableFil
     }, [columnFilter]);
 
     const columnDataType = (column.columnDef.meta as any)?.fieldInfo?.type as ColumnDataType;
+    const enumValues = getEnumValues(columnDataType);
     const columnId = column.id;
     const isEmpty = !filter || Object.keys(filter).length === 0;
     const setFilterOnColumn = () => {
@@ -67,6 +70,8 @@ export function DataTableFilterDialog({ column, onEnter }: Readonly<DataTableFil
                 <DataTableIdFilter value={filter} onChange={e => setFilter(e)} />
             ) : columnDataType === 'Money' ? (
                 <DataTableNumberFilter value={filter} onChange={e => setFilter(e)} mode="money" />
+            ) : enumValues ? (
+                <DataTableEnumFilter value={filter} options={enumValues} onChange={e => setFilter(e)} />
             ) : null}
             <DialogFooter className="sm:justify-end">
                 {columnFilter && (

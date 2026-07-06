@@ -1,5 +1,6 @@
 import { loadI18nMessages } from '@/vdb/lib/load-i18n-messages.js';
 import { useLingui } from '@lingui/react/macro';
+import { useCallback } from 'react';
 
 let currentlyLoading: string | null = null;
 
@@ -15,16 +16,22 @@ let currentlyLoading: string | null = null;
 export function useUiLanguageLoader() {
     const { i18n } = useLingui();
 
-    async function loadAndActivateLocale(locale: string) {
-        if (currentlyLoading === locale) {
-            return;
-        }
-        currentlyLoading = locale;
-        const messages = await loadI18nMessages(locale);
-        i18n.load(locale, messages);
-        i18n.activate(locale);
-        currentlyLoading = null;
-    }
+    const loadAndActivateLocale = useCallback(
+        async (locale: string) => {
+            if (currentlyLoading === locale || i18n.locale === locale) {
+                return;
+            }
+            currentlyLoading = locale;
+            try {
+                const messages = await loadI18nMessages(locale);
+                i18n.load(locale, messages);
+                i18n.activate(locale);
+            } finally {
+                currentlyLoading = null;
+            }
+        },
+        [i18n],
+    );
 
     return { loadAndActivateLocale };
 }

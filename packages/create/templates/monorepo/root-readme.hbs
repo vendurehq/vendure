@@ -4,7 +4,7 @@ A full-stack e-commerce application built with [Vendure](https://www.vendure.io/
 
 ## Project Structure
 
-This is a monorepo using npm workspaces:
+This is a monorepo using {{packageManager}} workspaces:
 
 ```
 {{ name }}/
@@ -21,17 +21,17 @@ This is a monorepo using npm workspaces:
 Start both the server and storefront in development mode:
 
 ```bash
-npm run dev
+{{pmRunScript "dev"}}
 ```
 
 Or run them individually:
 
 ```bash
 # Start only the server
-npm run dev:server
+{{pmRunScript "dev:server"}}
 
 # Start only the storefront
-npm run dev:storefront
+{{pmRunScript "dev:storefront"}}
 ```
 
 ### Access Points
@@ -53,13 +53,13 @@ Use these credentials to log in to the Vendure Dashboard:
 Build all packages:
 
 ```bash
-npm run build
+{{pmRunScript "build"}}
 ```
 
 Start the production server:
 
 ```bash
-npm run start
+{{pmRunScript "start"}}
 ```
 
 ## Learn More

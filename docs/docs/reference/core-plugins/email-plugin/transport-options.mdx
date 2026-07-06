@@ -4,7 +4,7 @@ generated: true
 ---
 ## EmailTransportOptions
 
-<GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="171" packageName="@vendure/email-plugin" />
+<GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="172" packageName="@vendure/email-plugin" />
 
 A union of all the possible transport options for sending emails.
 
@@ -18,7 +18,7 @@ type EmailTransportOptions = | SMTPTransportOptions
 ```
 ## SMTPTransportOptions
 
-<GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="186" packageName="@vendure/email-plugin" />
+<GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="187" packageName="@vendure/email-plugin" />
 
 The SMTP transport options of [Nodemailer](https://nodemailer.com/smtp/)
 
@@ -26,6 +26,11 @@ The SMTP transport options of [Nodemailer](https://nodemailer.com/smtp/)
 interface SMTPTransportOptions extends SMTPTransport.Options {
     type: 'smtp';
     logging?: boolean;
+    pool?: boolean;
+    maxConnections?: SMTPPool.Options['maxConnections'];
+    maxMessages?: SMTPPool.Options['maxMessages'];
+    rateDelta?: SMTPPool.Options['rateDelta'];
+    rateLimit?: SMTPPool.Options['rateLimit'];
 }
 ```
 * Extends: SMTPTransport.Options
@@ -45,12 +50,41 @@ interface SMTPTransportOptions extends SMTPTransport.Options {
 
 If true, uses the configured [VendureLogger](/reference/typescript-api/logger/vendure-logger#vendurelogger) to log messages from Nodemailer as it interacts with
 the SMTP server.
+### pool
+
+<MemberInfo kind="property" type={`boolean`} default={`false`}   />
+
+Set to true to use a pooled connection (defaults to false) instead of creating a new connection for
+every email. Nodemailer pooled-SMTP option, forwarded directly to `nodemailer.createTransport()`.
+### maxConnections
+
+<MemberInfo kind="property" type={`SMTPPool.Options['maxConnections']`} default={`5`}   />
+
+The maximum number of simultaneous connections to make against the SMTP server.
+Only applies when `pool` is `true`.
+### maxMessages
+
+<MemberInfo kind="property" type={`SMTPPool.Options['maxMessages']`} default={`100`}   />
+
+Limits the number of messages sent over a single connection. After `maxMessages` is reached the
+connection is dropped and a new one is created. Only applies when `pool` is `true`.
+### rateDelta
+
+<MemberInfo kind="property" type={`SMTPPool.Options['rateDelta']`} default={`1000`}   />
+
+Defines the time measuring period in milliseconds for rate limiting. Only applies when `pool` is `true`.
+### rateLimit
+
+<MemberInfo kind="property" type={`SMTPPool.Options['rateLimit']`}   />
+
+Limits the number of messages sent in the `rateDelta` window. Once reached, sending is paused until
+the end of the period. Only applies when `pool` is `true`.
 
 
 </div>
 ## SESTransportOptions
 
-<GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="235" packageName="@vendure/email-plugin" />
+<GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="273" packageName="@vendure/email-plugin" />
 
 The SES transport options of [Nodemailer](https://nodemailer.com/transports/ses//)
 
@@ -107,7 +141,7 @@ interface SESTransportOptions extends SESTransport.Options {
 </div>
 ## SendmailTransportOptions
 
-<GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="246" packageName="@vendure/email-plugin" />
+<GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="284" packageName="@vendure/email-plugin" />
 
 Uses the local Sendmail program to send the email.
 
@@ -141,7 +175,7 @@ interface SendmailTransportOptions {
 </div>
 ## FileTransportOptions
 
-<GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="261" packageName="@vendure/email-plugin" />
+<GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="299" packageName="@vendure/email-plugin" />
 
 Outputs the email as an HTML file for development purposes.
 
@@ -175,7 +209,7 @@ interface FileTransportOptions {
 </div>
 ## NoopTransportOptions
 
-<GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="277" packageName="@vendure/email-plugin" />
+<GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="315" packageName="@vendure/email-plugin" />
 
 Does nothing with the generated email. Intended for use in testing where we don't care about the email transport,
 or when using a custom [EmailSender](/reference/core-plugins/email-plugin/email-sender#emailsender) which does not require transport options.
@@ -198,7 +232,7 @@ interface NoopTransportOptions {
 </div>
 ## TestingTransportOptions
 
-<GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="306" packageName="@vendure/email-plugin" />
+<GenerationInfo sourceFile="packages/email-plugin/src/types.ts" sourceLine="344" packageName="@vendure/email-plugin" />
 
 Forwards the raw GeneratedEmailContext object to a provided callback, for use in testing.
 
