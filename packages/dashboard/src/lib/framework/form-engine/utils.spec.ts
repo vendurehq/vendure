@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { FieldInfo, getOperationVariablesFields } from '../document-introspection/get-document-structure.js';
 
+import { ConfigurableFieldDef } from './form-engine-types.js';
 import {
     convertEmptyStringsToNull,
     isFieldNullable,
@@ -10,7 +11,6 @@ import {
     stripNullNullableFields,
     transformRelationFields,
 } from './utils.js';
-import { ConfigurableFieldDef } from "./form-engine-types.js";
 
 const createProductDocument = graphql(`
     mutation CreateProduct($input: CreateProductInput!) {

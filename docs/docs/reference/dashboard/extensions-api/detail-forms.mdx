@@ -6,7 +6,7 @@ generated: true
 
 <GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/detail-forms.ts" sourceLine="13" packageName="@vendure/dashboard" since="3.4.0" />
 
-Allows you to define custom input components for specific fields in detail forms.
+Allows you to replace the rendered input for specific native fields in detail forms.
 The pageId is already defined in the detail form extension, so only the blockId and field are needed.
 
 ```ts title="Signature"
@@ -28,7 +28,7 @@ The ID of the block where this input component should be used.
 
 <MemberInfo kind="property" type={`string`}   />
 
-The name of the field where this input component should be used.
+The name of the native field where this input component should be used.
 ### component
 
 <MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/form-components#dashboardformcomponent'>DashboardFormComponent</a>`}   />
@@ -43,7 +43,7 @@ It should accept `value`, `onChange`, and other standard input props.
 <GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/detail-forms.ts" sourceLine="41" packageName="@vendure/dashboard" since="3.4.0" />
 
 Allows you to extend existing detail forms (e.g. on the product detail or customer detail pages)
-with custom GraphQL queries, input components, and display components.
+with custom GraphQL queries and native field input overrides.
 
 ```ts title="Signature"
 interface DashboardDetailFormExtensionDefinition {
@@ -65,12 +65,12 @@ The ID of the page where the detail form is located, e.g. `'product-detail'`, `'
 <MemberInfo kind="property" type={`string | DocumentNode | (() => DocumentNode | string)`}   />
 
 Extends the GraphQL query used to fetch data for the detail page, allowing you to add additional
-fields that can be used by custom input or display components.
+fields that can be used by page blocks or custom input components.
 ### inputs
 
 <MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/detail-forms#dashboarddetailforminputcomponent'>DashboardDetailFormInputComponent</a>[]`}   />
 
-Custom input components for specific fields in the detail form.
+Input components which replace specific native fields in the detail form.
 
 
 </div>

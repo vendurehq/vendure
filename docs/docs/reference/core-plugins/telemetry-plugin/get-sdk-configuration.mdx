@@ -4,11 +4,33 @@ generated: true
 ---
 ## getSdkConfiguration
 
-<GenerationInfo sourceFile="packages/telemetry-plugin/src/instrumentation.ts" sourceLine="89" packageName="@vendure/telemetry-plugin" />
+<GenerationInfo sourceFile="packages/telemetry-plugin/src/instrumentation.ts" sourceLine="140" packageName="@vendure/telemetry-plugin" />
 
 Creates a configuration object for the OpenTelemetry Node SDK. This is used to set up a custom
 preload script which must be run before the main Vendure server is loaded by means of the
 Node.js `--require` flag.
+
+The default `instrumentations` array covers the libraries Vendure itself uses: HTTP, Express,
+NestJS, GraphQL, the PostgreSQL and MySQL2 database drivers, ioredis, plus Node.js runtime
+metrics (event-loop lag, GC pause, heap, CPU). SQLite (`better-sqlite3`) has no OpenTelemetry
+instrumentation available upstream and is therefore not covered. To capture spans from other
+libraries used in your own plugins (for example `kafkajs`, `mongoose`, `winston`), install the
+specific `@opentelemetry/instrumentation-*` package you need and extend the defaults via
+`getDefaultInstrumentations()`:
+
+```ts
+import { getDefaultInstrumentations, getSdkConfiguration } from '@vendure/telemetry-plugin/preload';
+import { KafkaJsInstrumentation } from '@opentelemetry/instrumentation-kafkajs';
+
+const config = getSdkConfiguration({
+    config: {
+        instrumentations: [...getDefaultInstrumentations(), new KafkaJsInstrumentation()],
+    },
+});
+```
+
+Passing your own `instrumentations` via `config.instrumentations` replaces the curated default
+entirely.
 
 *Example*
 
@@ -56,9 +78,20 @@ Parameters
 
 <MemberInfo kind="parameter" type={`<a href='/reference/core-plugins/telemetry-plugin/get-sdk-configuration#sdkconfigurationoptions'>SdkConfigurationOptions</a>`} />
 
+## getDefaultInstrumentations
+
+<GenerationInfo sourceFile="packages/telemetry-plugin/src/instrumentation.ts" sourceLine="36" packageName="@vendure/telemetry-plugin" />
+
+Returns a fresh array of the OpenTelemetry instrumentations Vendure enables by default. Callers
+can spread this into their own `instrumentations` array to add extra integrations without
+losing the curated set.
+
+```ts title="Signature"
+function getDefaultInstrumentations(): NonNullable<NodeSDKConfiguration['instrumentations']>
+```
 ## SdkConfigurationOptions
 
-<GenerationInfo sourceFile="packages/telemetry-plugin/src/instrumentation.ts" sourceLine="27" packageName="@vendure/telemetry-plugin" />
+<GenerationInfo sourceFile="packages/telemetry-plugin/src/instrumentation.ts" sourceLine="56" packageName="@vendure/telemetry-plugin" />
 
 Options for configuring the OpenTelemetry Node SDK.
 

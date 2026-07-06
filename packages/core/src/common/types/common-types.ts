@@ -186,14 +186,15 @@ export type MiddlewareHandler = Type<any> | Function;
  *
  * ## Increasing the maximum request body size limit
  *
- * Internally, Vendure relies on the body-parser middleware to parse incoming JSON data. By default, the maximum
- * body size is set to 100kb. Attempting to send a request with more than 100kb of JSON data will result in a
- * `PayloadTooLargeError`. To increase this limit, we can manually configure the body-parser middleware:
+ * Internally, Vendure relies on Express's built-in JSON parser (`express.json()`, which itself wraps
+ * the body-parser library) to parse incoming JSON data. By default, the maximum body size is set to
+ * 100kb. Attempting to send a request with more than 100kb of JSON data will result in a
+ * `PayloadTooLargeError`. To increase this limit, we can manually configure the middleware:
  *
  * @example
  * ```ts
  * import { VendureConfig } from '\@vendure/core';
- * import { json } from 'body-parser';
+ * import { json } from 'express';
  *
  * export const config: VendureConfig = {
  *   // ...
@@ -227,7 +228,7 @@ export interface Middleware {
      * @description
      * When set to `true`, this will cause the middleware to be applied before the Vendure server (and underlying Express server) starts listening
      * for connections. In practical terms this means that the middleware will be at the very start of the middleware stack, before even the
-     * `body-parser` middleware which is automatically applied by NestJS. This can be useful in certain cases such as when you need to access the
+     * JSON body-parsing middleware which is automatically applied by Express. This can be useful in certain cases such as when you need to access the
      * raw unparsed request for a specific route.
      *
      * @since 1.1.0

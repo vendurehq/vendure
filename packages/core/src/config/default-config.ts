@@ -19,6 +19,7 @@ import { DefaultAssetNamingStrategy } from './asset-naming-strategy/default-asse
 import { NoAssetPreviewStrategy } from './asset-preview-strategy/no-asset-preview-strategy';
 import { NoAssetStorageStrategy } from './asset-storage-strategy/no-asset-storage-strategy';
 import { BcryptPasswordHashingStrategy } from './auth/bcrypt-password-hashing-strategy';
+import { DefaultCustomerChannelAssignmentStrategy } from './auth/default-customer-channel-assignment-strategy';
 import { DefaultEntityAccessControlStrategy } from './auth/default-entity-access-control-strategy';
 import { DefaultPasswordValidationStrategy } from './auth/default-password-validation-strategy';
 import { DefaultVerificationTokenStrategy } from './auth/default-verification-token-strategy';
@@ -40,6 +41,7 @@ import { DefaultActiveOrderStrategy } from './order/default-active-order-strateg
 import { DefaultChangedPriceHandlingStrategy } from './order/default-changed-price-handling-strategy';
 import { DefaultGuestCheckoutStrategy } from './order/default-guest-checkout-strategy';
 import { DefaultOrderItemPriceCalculationStrategy } from './order/default-order-item-price-calculation-strategy';
+import { DefaultOrderLineDiscountDistributionStrategy } from './order/default-order-line-discount-distribution-strategy';
 import { DefaultOrderPlacedStrategy } from './order/default-order-placed-strategy';
 import { defaultOrderProcess } from './order/default-order-process';
 import { DefaultOrderSellerStrategy } from './order/default-order-seller-strategy';
@@ -125,6 +127,7 @@ export const defaultConfig: RuntimeVendureConfig = {
         passwordValidationStrategy: new DefaultPasswordValidationStrategy({ minLength: 4, maxLength: 72 }),
         verificationTokenStrategy: new DefaultVerificationTokenStrategy(),
         entityAccessControlStrategy: new DefaultEntityAccessControlStrategy(),
+        customerChannelAssignmentStrategy: new DefaultCustomerChannelAssignmentStrategy(),
     },
     catalogOptions: {
         collectionFilters: defaultCollectionFilters,
@@ -180,6 +183,7 @@ export const defaultConfig: RuntimeVendureConfig = {
         orderCodeStrategy: new DefaultOrderCodeStrategy(),
         orderByCodeAccessStrategy: new DefaultOrderByCodeAccessStrategy('2h'),
         changedPriceHandlingStrategy: new DefaultChangedPriceHandlingStrategy(),
+        orderLineDiscountDistributionStrategy: new DefaultOrderLineDiscountDistributionStrategy(),
         orderPlacedStrategy: new DefaultOrderPlacedStrategy(),
         activeOrderStrategy: new DefaultActiveOrderStrategy(),
         orderSellerStrategy: new DefaultOrderSellerStrategy(),

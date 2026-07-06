@@ -231,6 +231,7 @@ export * from './framework/document-introspection/get-document-structure.js';
 export * from './framework/document-introspection/hooks.js';
 export * from './framework/document-introspection/include-only-selected-list-fields.js';
 export * from './framework/document-introspection/testing-utils.js';
+export * from './framework/extension-api/custom-providers.js';
 export * from './framework/extension-api/define-dashboard-extension.js';
 export * from './framework/extension-api/display-component-extensions.js';
 export * from './framework/extension-api/extension-api-types.js';

@@ -212,6 +212,11 @@ const manifestInput: DocsPackageManifestInput = {
                     file: file('docs/guides/developer-guide/cli/index.mdx'),
                 },
                 {
+                    title: 'AI-assisted Development',
+                    slug: 'ai-assisted-development',
+                    file: file('docs/guides/developer-guide/ai-assisted-development/index.mdx'),
+                },
+                {
                     title: 'Configuration',
                     slug: 'configuration',
                     file: file('docs/guides/developer-guide/configuration/index.mdx'),
@@ -518,6 +523,20 @@ const manifestInput: DocsPackageManifestInput = {
                             ),
                         },
                         {
+                            title: 'Toolbar Items',
+                            slug: 'toolbar-items',
+                            file: file(
+                                'docs/guides/extending-the-dashboard/customizing-pages/toolbar-items.mdx',
+                            ),
+                        },
+                        {
+                            title: 'Extension Targets',
+                            slug: 'extension-targets',
+                            file: file(
+                                'docs/guides/extending-the-dashboard/customizing-pages/extension-targets.mdx',
+                            ),
+                        },
+                        {
                             title: 'Insights Widgets',
                             slug: 'insights-widgets',
                             file: file(
@@ -534,19 +553,19 @@ const manifestInput: DocsPackageManifestInput = {
                     ],
                 },
                 {
-                    title: 'Custom Form Elements',
+                    title: 'Customizing Forms',
                     slug: 'custom-form-components',
                     file: file('docs/guides/extending-the-dashboard/custom-form-components/index.mdx'),
                     children: [
                         {
-                            title: 'Form Component Examples',
+                            title: 'Input Component Examples',
                             slug: 'form-component-examples',
                             file: file(
                                 'docs/guides/extending-the-dashboard/custom-form-components/form-component-examples.mdx',
                             ),
                         },
                         {
-                            title: 'Relation Selectors',
+                            title: 'Relation Selector Components',
                             slug: 'relation-selectors',
                             file: file(
                                 'docs/guides/extending-the-dashboard/custom-form-components/relation-selectors.mdx',
@@ -593,6 +612,11 @@ const manifestInput: DocsPackageManifestInput = {
                     title: 'Migration',
                     slug: 'migration',
                     file: file('docs/guides/extending-the-dashboard/migration/index.mdx'),
+                },
+                {
+                    title: 'Custom Providers',
+                    slug: 'custom-providers',
+                    file: file('docs/guides/extending-the-dashboard/custom-providers/index.mdx'),
                 },
             ],
         },

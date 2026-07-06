@@ -2,27 +2,14 @@ import { Button } from '@/vdb/components/ui/button.js';
 import { Card } from '@/vdb/components/ui/card.js';
 import { Popover, PopoverContent, PopoverTrigger } from '@/vdb/components/ui/popover.js';
 import { api } from '@/vdb/graphql/api.js';
-import { graphql, ResultOf } from '@/vdb/graphql/graphql.js';
+import { ResultOf } from '@/vdb/graphql/graphql.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { cn } from '@/vdb/lib/utils.js';
 import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { addressFragment } from '../../_customers/customers.graphql.js';
-
-const getCustomerAddressesDocument = graphql(
-    `
-        query GetCustomerAddresses($customerId: ID!) {
-            customer(id: $customerId) {
-                id
-                addresses {
-                    ...Address
-                }
-            }
-        }
-    `,
-    [addressFragment],
-);
+import { getCustomerAddressesDocument } from '../orders.graphql.js';
 
 type CustomerAddressesQuery = ResultOf<typeof getCustomerAddressesDocument>;
 

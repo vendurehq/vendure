@@ -30,6 +30,7 @@ import { Page, PageBlock, PageLayout, PageTitle } from '@/vdb/framework/layout-e
 import { api } from '@/vdb/graphql/api.js';
 import { ResultOf } from '@/vdb/graphql/graphql.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
+import { useRedirectToListOnNotFound } from '@/vdb/hooks/use-redirect-to-list-on-not-found.js';
 import { z, zodResolver } from '@/vdb/lib/zod.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -172,10 +173,14 @@ function ManageProductVariants() {
         Record<string, Record<string, string>>
     >({});
 
-    const { data: productData, refetch } = useQuery({
+    const { data: productData, refetch, isFetching } = useQuery({
         queryFn: () => api.query(productDetailWithVariantsDocument, { id }),
         queryKey: getQueryKey(id),
     });
+
+    // This page fetches its own data rather than using `useDetailPage`, so it
+    // opts into the not-found redirect explicitly (e.g. after a channel switch).
+    useRedirectToListOnNotFound(productData?.product, { isFetching });
 
     const updateVariantMutation = useMutation({
         mutationFn: api.mutate(updateProductVariantDocument),
