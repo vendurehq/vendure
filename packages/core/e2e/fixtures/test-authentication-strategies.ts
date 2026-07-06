@@ -136,6 +136,44 @@ export class TestSSOStrategyShop implements AuthenticationStrategy<{ email: stri
     }
 }
 
+/**
+ * Simulates an external provider which forwards an email address that has NOT been verified as
+ * belonging to the authenticating user (e.g. a custom OAuth provider that omits `email_verified`).
+ * Used to assert that such an identity cannot be linked to a pre-existing account.
+ */
+export class TestUnverifiedEmailStrategy implements AuthenticationStrategy<{ email: string }> {
+    readonly name = 'test_unverified_strategy';
+    private externalAuthenticationService: ExternalAuthenticationService;
+
+    init(injector: Injector) {
+        this.externalAuthenticationService = injector.get(ExternalAuthenticationService);
+    }
+
+    defineInputType(): DocumentNode {
+        return gql`
+            input TestUnverifiedInput {
+                email: String!
+            }
+        `;
+    }
+
+    async authenticate(ctx: RequestContext, data: { email: string }): Promise<User | false | string> {
+        const { email } = data;
+        const user = await this.externalAuthenticationService.findUser(ctx, this.name, email);
+        if (user) {
+            return user;
+        }
+        return this.externalAuthenticationService.createCustomerAndUser(ctx, {
+            strategy: this.name,
+            externalIdentifier: email,
+            emailAddress: email,
+            firstName: 'Unverified',
+            lastName: 'Customer',
+            verified: false,
+        });
+    }
+}
+
 export class TestAuthenticationStrategy2 implements AuthenticationStrategy<{ token: string; email: string }> {
     readonly name = 'test_strategy2';
     private externalAuthenticationService: ExternalAuthenticationService;

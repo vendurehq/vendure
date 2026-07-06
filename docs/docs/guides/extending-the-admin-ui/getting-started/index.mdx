@@ -28,42 +28,16 @@ UI extensions fall into two categories:
 
 First, install the [`@vendure/ui-devkit` package](https://www.npmjs.com/package/@vendure/ui-devkit) as a dev dependency:
 
-<Tabs>
-<TabItem value="npm" label="npm" default>
-
 ```bash
 npm install --save-dev @vendure/ui-devkit
 ```
 
-</TabItem>
-<TabItem value="yarn" label="yarn">
-
-```bash
-yarn add --dev @vendure/ui-devkit
-```
-
-</TabItem>
-</Tabs>
-
 :::info
 If you plan to use React components in your UI extensions, you should also install the `@types/react` package:
-
-<Tabs>
-<TabItem value="npm" label="npm" default>
 
 ```bash
 npm install --save-dev @types/react
 ```
-
-</TabItem>
-<TabItem value="yarn" label="yarn">
-
-```bash
-yarn add --dev @types/react
-```
-
-</TabItem>
-</Tabs>
 
 :::
 
@@ -324,22 +298,9 @@ compileUiExtensions({
 
 This can then be run from the command line:
 
-<Tabs>
-<TabItem value="npm" label="npm" default>
-
 ```bash
 npx ts-node src/compile-admin-ui.ts
 ```
-
-</TabItem>
-<TabItem value="yarn" label="yarn">
-
-```bash
-yarn ts-node src/compile-admin-ui.ts
-```
-
-</TabItem>
-</Tabs>
 
 Once complete, the production-ready app bundle will be output to `admin-ui/dist/browser`. This method is suitable for a production setup, so that the Admin UI can be compiled ahead-of-time as part of your deployment process. This ensures that your Vendure server starts up as quickly as possible. In this case, you can pass the path of the compiled app to the AdminUiPlugin:
 
@@ -378,22 +339,9 @@ Vendure's output dist folder, include the following commands in your package.jso
 "build:admin" will remove the admin-ui folder and run the compileUiExtensions function to generate the admin-ui Angular app.
 Make sure to install `copyfiles` before running the "copy" command:
 
-<Tabs>
-<TabItem value="npm" label="npm" default>
-
 ```bash
 npm install copyfiles
 ```
-
-</TabItem>
-<TabItem value="yarn" label="yarn">
-
-```bash
-yarn add copyfiles
-```
-
-</TabItem>
-</Tabs>
 
 :::
 

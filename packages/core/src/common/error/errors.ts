@@ -72,6 +72,28 @@ export class ForbiddenError extends I18nError {
 
 /**
  * @description
+ * This error should be thrown when an external authentication attempt presents an email
+ * address which already belongs to an existing account, but the external provider has not
+ * verified that the authenticating user owns that email address. Linking in this situation
+ * would allow account takeover, so it is refused.
+ *
+ * @docsCategory errors
+ * @docsPage Error Types
+ * @since 3.7.0
+ */
+export class UnverifiedExternalEmailError extends I18nError {
+    constructor() {
+        super(
+            'error.unverified-external-email-conflict',
+            {},
+            'UNVERIFIED_EXTERNAL_EMAIL',
+            LogLevel.Warn,
+        );
+    }
+}
+
+/**
+ * @description
  * This error should be thrown when a {@link Channel} cannot be found based on the provided
  * channel token.
  *

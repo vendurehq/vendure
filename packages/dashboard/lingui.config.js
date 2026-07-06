@@ -28,7 +28,8 @@ export default defineConfig({
         'ja',
         'bg',
         'nl',
-        'ro'
+        'ro',
+        'uz'
     ],
     orderBy: 'messageId',
     catalogs: [

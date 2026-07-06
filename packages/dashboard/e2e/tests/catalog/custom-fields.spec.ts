@@ -108,7 +108,10 @@ test.describe('Custom Fields', () => {
 
         await dp.fillInput('Product name', 'Nullable Feature Type Product');
         await expect(dp.formItem('Slug').getByRole('textbox')).not.toHaveValue('', { timeout: 5_000 });
-        await expect(dp.formItem('Feature Type').getByRole('combobox')).toHaveAttribute('data-placeholder', '');
+        await expect(dp.formItem('Feature Type').getByRole('combobox')).toHaveAttribute(
+            'data-placeholder',
+            '',
+        );
         await expect(dp.createButton).toBeEnabled({ timeout: 10_000 });
 
         await dp.clickCreate();

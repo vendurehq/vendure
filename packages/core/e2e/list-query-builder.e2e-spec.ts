@@ -365,6 +365,41 @@ describe('ListQueryBuilder', () => {
 
                 expect(getItemLabels(testEntities.items)).toEqual(['B', 'D', 'E']);
             });
+
+            // https://github.com/vendurehq/vendure/security/advisories/GHSA-jgm3-qmp2-c4p7
+            it(
+                'rejects a catastrophic-backtracking pattern (ReDoS)',
+                assertThrowsWithMessage(
+                    () =>
+                        adminClient.query(GET_LIST, {
+                            options: {
+                                filter: {
+                                    description: {
+                                        regex: '(a+)+$',
+                                    },
+                                },
+                            },
+                        }),
+                    'The regex filter pattern is not allowed as it may cause excessive resource consumption',
+                ),
+            );
+
+            it(
+                'rejects an over-length pattern',
+                assertThrowsWithMessage(
+                    () =>
+                        adminClient.query(GET_LIST, {
+                            options: {
+                                filter: {
+                                    description: {
+                                        regex: 'a'.repeat(101),
+                                    },
+                                },
+                            },
+                        }),
+                    'exceeds the maximum allowed length',
+                ),
+            );
         });
     });
 

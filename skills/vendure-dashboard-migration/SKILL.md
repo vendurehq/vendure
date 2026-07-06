@@ -1,5 +1,5 @@
 ---
-name: Migrating to Vendure Dashboard
+name: vendure-dashboard-migration
 description: Migrates Vendure Admin UI extensions (legacy Angular-based) to the new React Dashboard.
 ---
 

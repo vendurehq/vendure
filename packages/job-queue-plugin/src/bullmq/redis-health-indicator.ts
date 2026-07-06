@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { HealthCheckError, HealthIndicator, HealthIndicatorResult } from '@nestjs/terminus';
-import { Logger } from '@vendure/core';
+import { HealthCheckError, HealthIndicator, HealthIndicatorResult, Logger } from '@vendure/core';
 import { RedisConnection } from 'bullmq';
 
 import { BULLMQ_PLUGIN_OPTIONS, loggerCtx } from './constants';

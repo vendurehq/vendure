@@ -14,25 +14,23 @@ import { defaultLocale, dynamicActivate } from '@/vdb/providers/i18n-provider.js
 import { AnyRoute, createRouter, RouterOptions, RouterProvider } from '@tanstack/react-router';
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import ReactDOM from 'react-dom/client';
+import { createRoot } from 'react-dom/client';
 
+import { DirectionProvider } from '@/vdb/components/ui/direction.js';
 import { useDisplayLocale } from '@/vdb/hooks/use-display-locale.js';
 import { useUiLanguageLoader } from '@/vdb/hooks/use-ui-language-loader.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
-import { DirectionProvider } from '@/vdb/components/ui/direction.js';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { AppProviders, queryClient } from './app-providers.js';
 import { setDocumentDirection } from './common/set-document-direction.js';
+import { deriveBaseUrl } from './derive-base-url.js';
 import { routeTree } from './routeTree.gen.js';
 import './styles.css';
 
-const processedBaseUrl = (() => {
-    const baseUrl = import.meta.env.BASE_URL;
-    if (!baseUrl || baseUrl === '/') return undefined;
-    // Ensure leading slash, remove trailing slash
-    const normalized = baseUrl.startsWith('/') ? baseUrl : '/' + baseUrl;
-    return normalized.endsWith('/') ? normalized.slice(0, -1) : normalized;
-})();
+const processedBaseUrl = deriveBaseUrl(
+    typeof import.meta?.url === 'string' ? import.meta.url : '',
+    import.meta.env.BASE_URL,
+);
 
 const routerOptions: RouterOptions<AnyRoute, any> = {
     defaultPreload: 'intent' as const,
@@ -169,7 +167,7 @@ function App() {
 const rootElement = document.getElementById('app')!;
 
 if (!rootElement.innerHTML) {
-    const root = ReactDOM.createRoot(rootElement);
+    const root = createRoot(rootElement);
     root.render(
         <React.StrictMode>
             <App />

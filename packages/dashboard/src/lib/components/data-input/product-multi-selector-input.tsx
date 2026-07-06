@@ -18,7 +18,7 @@ import { Trans } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from '@uidotdev/usehooks';
 import { Plus, X } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 // GraphQL queries
 const searchProductsDocument = graphql(`
@@ -68,6 +68,77 @@ type SearchItem = {
     productVariantAsset?: { id: string; preview: string } | null;
     sku: string;
 };
+
+// Fetch the currently-selected items by ID so the dialog can show all of them,
+// even those not present in the (capped) search results. See #4832.
+const productsByIdsDocument = graphql(`
+    query ProductsByIds($ids: [String!]!, $take: Int!) {
+        products(options: { take: $take, filter: { id: { in: $ids } } }) {
+            items {
+                id
+                name
+                slug
+                featuredAsset {
+                    id
+                    preview
+                }
+            }
+        }
+    }
+`);
+
+const variantsByIdsDocument = graphql(`
+    query ProductVariantsByIds($ids: [String!]!, $take: Int!) {
+        productVariants(options: { take: $take, filter: { id: { in: $ids } } }) {
+            items {
+                id
+                name
+                sku
+                featuredAsset {
+                    id
+                    preview
+                }
+            }
+        }
+    }
+`);
+
+// The admin list-query limit (adminListQueryLimit) is 1000; passing more throws.
+const MAX_SELECTION_FETCH = 1000;
+
+/** Maps `products` results to the SearchItem shape used by the selector UI. */
+export function mapProductsToSearchItems(
+    items: Array<{ id: string; name: string; slug: string; featuredAsset?: { id: string; preview: string } | null }>,
+): SearchItem[] {
+    return items.map(item => ({
+        enabled: true,
+        productId: item.id,
+        productName: item.name,
+        slug: item.slug,
+        productAsset: item.featuredAsset ?? null,
+        productVariantId: '',
+        productVariantName: '',
+        productVariantAsset: null,
+        sku: '',
+    }));
+}
+
+/** Maps `productVariants` results to the SearchItem shape used by the selector UI. */
+export function mapVariantsToSearchItems(
+    items: Array<{ id: string; name: string; sku: string; featuredAsset?: { id: string; preview: string } | null }>,
+): SearchItem[] {
+    return items.map(item => ({
+        enabled: true,
+        productId: '',
+        productName: '',
+        slug: '',
+        productAsset: null,
+        productVariantId: item.id,
+        productVariantName: item.name,
+        productVariantAsset: item.featuredAsset ?? null,
+        sku: item.sku,
+    }));
+}
 
 interface ProductMultiSelectorProps {
     mode: 'product' | 'variant';
@@ -199,6 +270,26 @@ export function ProductMultiSelectorDialog({
 
     const items = searchData?.search.items || [];
 
+    // Fetch the full set of selected items by ID when the dialog opens, so the
+    // selection panel shows all of them — not just those that happen to appear
+    // in the (capped) search results. See #4832.
+    const { data: selectedItemsData, isFetching: isFetchingSelected } = useQuery({
+        queryKey: ['productMultiSelectorSelected', mode, initialSelectionIds],
+        queryFn: async () => {
+            const take = Math.min(initialSelectionIds.length, MAX_SELECTION_FETCH);
+            if (mode === 'product') {
+                const result = await api.query(productsByIdsDocument, { ids: initialSelectionIds, take });
+                return mapProductsToSearchItems(result.products.items);
+            }
+            const result = await api.query(variantsByIdsDocument, { ids: initialSelectionIds, take });
+            return mapVariantsToSearchItems(result.productVariants.items);
+        },
+        enabled: open && initialSelectionIds.length > 0,
+        // The query key carries the selection identity; never show a previous
+        // selection's data as placeholder (the global default is keepPreviousData).
+        placeholderData: undefined,
+    });
+
     // Get the appropriate ID for an item based on mode
     const getItemId = useCallback(
         (item: SearchItem): string => {
@@ -251,27 +342,32 @@ export function ProductMultiSelectorDialog({
         onOpenChange(false);
     }, [selectedIds, onSelectionChange, onOpenChange]);
 
-    // Initialize selected items when dialog opens
+    // Tracks whether we've already hydrated the selection from the by-ID fetch
+    // for the current open, so a late response can't clobber the user's edits.
+    const hydratedRef = useRef(false);
+
+    // Seed selection state from the saved IDs each time the dialog opens, and
+    // clear any stale item objects / search term left from a previous session.
     useEffect(() => {
         if (open) {
             setSelectedIds(new Set(initialSelectionIds));
-            // We'll update the selectedItems once we have search results that match the IDs
+            setSelectedItems([]);
+            setSearchTerm('');
+            hydratedRef.current = false;
         }
     }, [open, initialSelectionIds]);
 
-    // Update selectedItems when we have search results that match our selected IDs
+    // Hydrate the panel + selection from the by-ID fetch exactly once per open.
+    // selectedIds is reconciled down to the resolved items so the count always
+    // matches the panel: saved IDs that no longer resolve (deleted, or in another
+    // channel) are dropped rather than counted but left unshown and unremovable.
     useEffect(() => {
-        if (items.length > 0 && selectedIds.size > 0) {
-            const newSelectedItems = items.filter(item => selectedIds.has(getItemId(item)));
-            if (newSelectedItems.length > 0) {
-                setSelectedItems(prevItems => {
-                    const existingIds = new Set(prevItems.map(getItemId));
-                    const uniqueNewItems = newSelectedItems.filter(item => !existingIds.has(getItemId(item)));
-                    return [...prevItems, ...uniqueNewItems];
-                });
-            }
+        if (open && !hydratedRef.current && selectedItemsData) {
+            hydratedRef.current = true;
+            setSelectedItems(selectedItemsData);
+            setSelectedIds(new Set(selectedItemsData.map(getItemId)));
         }
-    }, [items, selectedIds, getItemId]);
+    }, [open, selectedItemsData, getItemId]);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -321,10 +417,10 @@ export function ProductMultiSelectorDialog({
                                 <div className="text-sm font-medium">
                                     <Trans>Selected Items</Trans>
                                     <Badge variant="secondary" className="ml-2">
-                                        {selectedItems.length}
+                                        {selectedIds.size}
                                     </Badge>
                                 </div>
-                                {selectedItems.length > 0 && (
+                                {selectedIds.size > 0 && (
                                     <Button variant="outline" size="sm" onClick={clearSelection}>
                                         <Trans>Clear</Trans>
                                     </Button>
@@ -332,9 +428,13 @@ export function ProductMultiSelectorDialog({
                             </div>
 
                             <div className="space-y-2">
-                                {selectedItems.length === 0 ? (
+                                {selectedIds.size === 0 ? (
                                     <div className="text-center text-muted-foreground text-sm">
                                         <Trans>No items selected</Trans>
+                                    </div>
+                                ) : selectedItems.length === 0 && isFetchingSelected ? (
+                                    <div className="text-center text-muted-foreground text-sm">
+                                        <Trans>Loading selected items...</Trans>
                                     </div>
                                 ) : (
                                     selectedItems.map(item => (
@@ -370,7 +470,7 @@ export function ProductMultiSelectorDialog({
                         <Trans>Cancel</Trans>
                     </Button>
                     <Button onClick={handleSelect}>
-                        <Trans>Select {selectedItems.length} Items</Trans>
+                        <Trans>Select {selectedIds.size} Items</Trans>
                     </Button>
                 </DialogFooter>
             </DialogContent>

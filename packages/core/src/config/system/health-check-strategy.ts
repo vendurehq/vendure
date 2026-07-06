@@ -1,5 +1,4 @@
-import { HealthIndicatorFunction } from '@nestjs/terminus';
-
+import { HealthIndicatorFunction } from '../../health-check/terminus-compat';
 import { InjectableStrategy } from '../../common/types/injectable-strategy';
 
 /**
@@ -7,9 +6,6 @@ import { InjectableStrategy } from '../../common/types/injectable-strategy';
  * This strategy defines health checks which are included as part of the
  * `/health` endpoint. They should only be used to monitor _critical_ systems
  * on which proper functioning of the Vendure server depends.
- *
- * For more information on the underlying mechanism, see the
- * [NestJS Terminus module docs](https://docs.nestjs.com/recipes/terminus).
  *
  * Custom strategies should be added to the `systemOptions.healthChecks` array.
  * By default, Vendure includes the `TypeORMHealthCheckStrategy`, so if you set the value of the `healthChecks`
@@ -50,8 +46,8 @@ import { InjectableStrategy } from '../../common/types/injectable-strategy';
 export interface HealthCheckStrategy extends InjectableStrategy {
     /**
      * @description
-     * Should return a `HealthIndicatorFunction`, as defined by the
-     * [NestJS Terminus module](https://docs.nestjs.com/recipes/terminus).
+     * Should return a {@link HealthIndicatorFunction} which performs the check
+     * and resolves to a status payload.
      */
     getHealthIndicator(): HealthIndicatorFunction;
 }

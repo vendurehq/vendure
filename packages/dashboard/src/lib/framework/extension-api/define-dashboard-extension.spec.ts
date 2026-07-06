@@ -1,3 +1,5 @@
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -12,6 +14,7 @@ import {
 } from '../nav-menu/nav-menu-extensions.js';
 import { globalRegistry } from '../registry/global-registry.js';
 
+import { getDashboardCustomProvidersRegistry, renderProviders } from './custom-providers.js';
 import {
     defineDashboardExtension,
     executeDashboardExtensionCallbacks,
@@ -27,6 +30,11 @@ function resetNavState() {
 
 function resetWidgetRegistry() {
     globalRegistry.set('dashboardWidgetRegistry', () => new Map<string, DashboardWidgetDefinition>());
+}
+
+function resetCustomProvidersRegistry() {
+    globalRegistry.set('dashboardCustomProvidersRegistry', () => new Map());
+    (globalRegistry as any).registry.set('registerDashboardExtensionCallbacks', new Set<() => void>());
 }
 
 describe('defineDashboardExtension - navSections', () => {
@@ -295,5 +303,74 @@ describe('DashboardWidgetDefinition - requiresPermissions', () => {
         const widget = registry.get('empty-perm-widget');
         expect(widget).toBeDefined();
         expect(widget?.requiresPermissions).toEqual([]);
+    });
+});
+
+describe('Dashboard custom providers', () => {
+    beforeEach(() => {
+        resetCustomProvidersRegistry();
+    });
+
+    it('renders providers recursively in nesting order', () => {
+        const ProviderA = ({ children }: { children: React.ReactNode }) =>
+            createElement('section', { 'data-provider': 'a' }, children);
+        const ProviderB = ({ children }: { children: React.ReactNode }) =>
+            createElement('section', { 'data-provider': 'b' }, children);
+
+        const result = renderProviders(
+            [
+                { id: 'provider-a', component: ProviderA, location: 'app' },
+                { id: 'provider-b', component: ProviderB, location: 'app' },
+            ],
+            createElement('div', { id: 'content' }, 'content'),
+        );
+
+        const html = renderToStaticMarkup(createElement('div', null, result));
+        expect(html).toContain('<section data-provider="a"><section data-provider="b">');
+        expect(html).toContain('<div id="content">content</div>');
+    });
+
+    it('registers providers sorted by order (ascending)', () => {
+        const callOrder: string[] = [];
+
+        const ProviderFirst = ({ children }: { children: React.ReactNode }) => {
+            callOrder.push('first');
+            return createElement('section', { 'data-provider': 'first' }, children);
+        };
+        const ProviderSecond = ({ children }: { children: React.ReactNode }) => {
+            callOrder.push('second');
+            return createElement('section', { 'data-provider': 'second' }, children);
+        };
+
+        defineDashboardExtension({
+            customProviders: [
+                { id: 'second', component: ProviderSecond, order: 20, location: 'app' },
+                { id: 'first', component: ProviderFirst, order: 10, location: 'app' },
+            ],
+        });
+        executeDashboardExtensionCallbacks();
+
+        const providers = Array.from(getDashboardCustomProvidersRegistry().values()).sort(
+            (a, b) => (a.order || 0) - (b.order || 0),
+        );
+        const tree = renderProviders(providers, createElement('div', null, 'leaf'));
+        renderToStaticMarkup(createElement('div', null, tree));
+
+        expect(callOrder).toEqual(['first', 'second']);
+    });
+
+    it('throws when duplicate custom provider ids are registered', () => {
+        const Provider = ({ children }: { children: React.ReactNode }) => children;
+
+        defineDashboardExtension({
+            customProviders: [{ id: 'duplicate-provider', component: Provider }],
+        });
+        defineDashboardExtension({
+            customProviders: [{ id: 'duplicate-provider', component: Provider }],
+        });
+
+        expect(() => executeDashboardExtensionCallbacks()).toThrow(
+            'Duplicate dashboard custom provider ids detected: "duplicate-provider". Provider ids must be globally unique.',
+        );
     });
 });
