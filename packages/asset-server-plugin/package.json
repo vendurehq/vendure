@@ -29,6 +29,7 @@
         "@aws-sdk/lib-storage": "^3.529.1",
         "@types/express": "^5.0.1",
         "@types/fs-extra": "^11.0.4",
+        "@types/mime-types": "^3.0.1",
         "@vendure/common": "3.7.0",
         "@vendure/core": "3.7.0",
         "express": "^5.1.0",
@@ -38,6 +39,7 @@
     "dependencies": {
         "file-type": "^19.0.0",
         "fs-extra": "^11.2.0",
+        "mime-types": "^3.0.2",
         "sharp": "~0.34.5"
     }
 }
