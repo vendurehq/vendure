@@ -302,6 +302,29 @@ describe('Import resolver', () => {
     // https://github.com/vendure-ecommerce/vendure/issues/4673
     it('imports facets and variantFacets when re-importing into a new channel', async () => {
         const SECOND_CHANNEL_TOKEN = 'second_channel_token';
+        const byName = (e: { name: string }) => e.name;
+        const idsByName = (facetValues: Array<{ id: string; name: string }>) =>
+            [...facetValues].sort((a, b) => a.name.localeCompare(b.name)).map(fv => fv.id);
+
+        // Capture the facet/facetValue ids that already exist globally in the default
+        // channel (created by the earlier 'imports products' test) so we can assert the
+        // re-import REUSES them rather than creating duplicates in the new channel.
+        const defaultResult = await adminClient.query(getProductsDocument1, { options: {} });
+        const defaultSmock = defaultResult.products.items.find(
+            (p: any) => p.name === 'Artists Smock',
+        );
+        const defaultPaper = defaultResult.products.items.find(
+            (p: any) => p.name === 'Perfect Paper Stretcher',
+        );
+        if (!defaultSmock || !defaultPaper) {
+            throw new Error(
+                'Expected products to exist in the default channel from the earlier import',
+            );
+        }
+        const defaultSmockFacetValueIds = idsByName(defaultSmock.facetValues);
+        const defaultPaperVariantFacetValueIds = idsByName(
+            defaultPaper.variants[0].facetValues,
+        );
 
         // Create a new channel
         await adminClient.query(createChannelDocument, {
@@ -316,48 +339,81 @@ describe('Import resolver', () => {
             },
         });
 
-        // Switch to the new channel
-        adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
+        try {
+            // Switch to the new channel
+            adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
 
-        // Import the same CSV into the new channel
-        const csvFile = path.join(__dirname, 'fixtures', 'product-import.csv');
-        const result = await adminClient.fileUploadMutation({
-            mutation: importProductsDocument1,
-            filePaths: [csvFile],
-            mapVariables: () => ({ csvFile: null }),
-        });
+            // Import the same CSV into the new channel
+            const csvFile = path.join(__dirname, 'fixtures', 'product-import.csv');
+            const result = await adminClient.fileUploadMutation({
+                mutation: importProductsDocument1,
+                filePaths: [csvFile],
+                mapVariables: () => ({ csvFile: null }),
+            });
 
-        expect(result.importProducts.errors).toEqual([
-            'Invalid Record Length: header length is 20, got 1 on line 8',
-        ]);
-        expect(result.importProducts.imported).toBe(4);
+            expect(result.importProducts.errors).toEqual([
+                'Invalid Record Length: header length is 20, got 1 on line 8',
+            ]);
+            expect(result.importProducts.imported).toBe(4);
+            expect(result.importProducts.processed).toBe(4);
 
-        // Query products in the new channel
-        const productResult = await adminClient.query(getProductsDocument1, {
-            options: {},
-        });
+            // Query products in the new channel
+            const productResult = await adminClient.query(getProductsDocument1, {
+                options: {},
+            });
 
-        expect(productResult.products.totalItems).toBe(4);
+            expect(productResult.products.totalItems).toBe(4);
 
-        const paperStretcher = productResult.products.items.find(
-            (p: any) => p.name === 'Perfect Paper Stretcher',
-        );
-        const smock = productResult.products.items.find((p: any) => p.name === 'Artists Smock');
+            const paperStretcher = productResult.products.items.find(
+                (p: any) => p.name === 'Perfect Paper Stretcher',
+            );
+            const smock = productResult.products.items.find(
+                (p: any) => p.name === 'Artists Smock',
+            );
 
-        if (!paperStretcher || !smock) {
-            throw new Error('Expected products to be found in second channel');
+            if (!paperStretcher || !smock) {
+                throw new Error('Expected products to be found in second channel');
+            }
+
+            // Verify product-level facets are present in the new channel
+            expect(smock.facetValues.map(byName).sort()).toEqual(['Denim', 'clothes']);
+
+            // Verify variant-level facets are present in the new channel
+            expect(paperStretcher.variants[0].facetValues.map(byName).sort()).toEqual([
+                'Accessory',
+                'KB',
+            ]);
+
+            // Assert the facets/facetValues are the SAME entities as the default channel
+            // (reused and assigned to this channel), not freshly-created duplicates.
+            // This is the actual invariant of #4673 — name equality alone would still pass
+            // if the importer wrongly created new facets in the second channel.
+            expect(idsByName(smock.facetValues)).toEqual(defaultSmockFacetValueIds);
+            expect(idsByName(paperStretcher.variants[0].facetValues)).toEqual(
+                defaultPaperVariantFacetValueIds,
+            );
+        } finally {
+            // Switch back to default channel even if an assertion above fails, so we don't
+            // leave the shared client pointed at the second channel for later tests.
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
         }
 
-        const byName = (e: { name: string }) => e.name;
-
-        // Verify product-level facets are present in the new channel
-        expect(smock.facetValues.map(byName).sort()).toEqual(['Denim', 'clothes']);
-
-        // Verify variant-level facets are present in the new channel
-        expect(paperStretcher.variants[0].facetValues.map(byName).sort()).toEqual(['Accessory', 'KB']);
-
-        // Switch back to default channel
-        adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+        // The default channel must be unharmed by the re-import (entities shared, not moved).
+        const defaultAfter = await adminClient.query(getProductsDocument1, { options: {} });
+        const smockAfter = defaultAfter.products.items.find(
+            (p: any) => p.name === 'Artists Smock',
+        );
+        const paperAfter = defaultAfter.products.items.find(
+            (p: any) => p.name === 'Perfect Paper Stretcher',
+        );
+        if (!smockAfter || !paperAfter) {
+            throw new Error('Expected products to still exist in the default channel after re-import');
+        }
+        expect(smockAfter.facetValues.map(byName).sort()).toEqual(['Denim', 'clothes']);
+        expect(paperAfter.variants[0].facetValues.map(byName).sort()).toEqual([
+            'Accessory',
+            'KB',
+        ]);
     }, 30000);
 
     describe('asset urls', () => {
