@@ -238,5 +238,16 @@ describe('buyXGetYFreeCondition', () => {
 
             expect(await check(ctx, order, args)).toEqual({ freeItemsPerLine: {} });
         });
+
+        // amountX = 0 makes floor(matches / 0) = Infinity, which bypassed the `!quantity` guard.
+        it('returns false when amountX is 0 (no division-by-zero bypass)', async () => {
+            const order = orderWith([
+                line({ lineId: 'l1', variantId: 'x1', quantity: 2 }),
+                line({ lineId: 'l2', variantId: 'y1', quantity: 5 }),
+            ]);
+            const args = buildArgs({ amountX: 0, variantIdsX: ['x1'], amountY: 1, variantIdsY: ['y1'] });
+
+            expect(await check(ctx, order, args)).toBe(false);
+        });
     });
 });
