@@ -103,9 +103,32 @@ class ForbiddenError extends I18nError {
 
 
 </div>
+## UnverifiedExternalEmailError
+
+<GenerationInfo sourceFile="packages/core/src/common/error/errors.ts" sourceLine="84" packageName="@vendure/core" since="3.7.0" />
+
+This error should be thrown when an external authentication attempt presents an email
+address which already belongs to an existing account, but the external provider has not
+verified that the authenticating user owns that email address. Linking in this situation
+would allow account takeover, so it is refused.
+
+```ts title="Signature"
+class UnverifiedExternalEmailError extends I18nError {
+    constructor()
+}
+```
+* Extends: [`I18nError`](/reference/typescript-api/errors/i18n-error#i18nerror)
+
+
+
+<div className="members-wrapper">
+
+
+
+</div>
 ## ChannelNotFoundError
 
-<GenerationInfo sourceFile="packages/core/src/common/error/errors.ts" sourceLine="81" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/common/error/errors.ts" sourceLine="103" packageName="@vendure/core" />
 
 This error should be thrown when a [Channel](/reference/typescript-api/entities/channel#channel) cannot be found based on the provided
 channel token.
@@ -126,7 +149,7 @@ class ChannelNotFoundError extends I18nError {
 </div>
 ## EntityNotFoundError
 
-<GenerationInfo sourceFile="packages/core/src/common/error/errors.ts" sourceLine="95" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/common/error/errors.ts" sourceLine="117" packageName="@vendure/core" />
 
 This error should be thrown when an entity cannot be found in the database, i.e. no entity of
 the given entityName (Product, User etc.) exists with the provided id.

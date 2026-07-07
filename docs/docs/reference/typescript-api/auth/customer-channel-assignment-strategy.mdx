@@ -1,0 +1,87 @@
+---
+title: "CustomerChannelAssignmentStrategy"
+generated: true
+---
+## CustomerChannelAssignmentStrategy
+
+<GenerationInfo sourceFile="packages/core/src/config/auth/customer-channel-assignment-strategy.ts" sourceLine="38" packageName="@vendure/core" since="3.7.0" />
+
+Determines if an authenticated Customer should be automatically assigned to the current Channel.
+Use this to keep customer bases strictly separated in multi-channel or B2B setups.
+
+NOTE: This controls channel membership, not API access. Returning `false`
+won't block the request, it just stops the customer from bein assigned to this channel.
+(This is skipped on the default channel and during registration/checkout).
+
+*Example*
+
+```ts
+// Membership is granted by an admin, never auto-assigned.
+class InviteOnlyChannelStrategy implements CustomerChannelAssignmentStrategy {
+    canAssignCustomerToChannel() {
+        return false;
+    }
+}
+```
+
+:::info
+
+This is configured via the `authOptions.customerChannelAssignmentStrategy` property of your
+VendureConfig.
+
+:::
+
+```ts title="Signature"
+interface CustomerChannelAssignmentStrategy extends InjectableStrategy {
+    canAssignCustomerToChannel(
+        ctx: RequestContext,
+        customer: Customer,
+        channelId: ID,
+    ): boolean | Promise<boolean>;
+}
+```
+* Extends: [`InjectableStrategy`](/reference/typescript-api/common/injectable-strategy#injectablestrategy)
+
+
+
+<div className="members-wrapper">
+
+### canAssignCustomerToChannel
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, customer: <a href='/reference/typescript-api/entities/customer#customer'>Customer</a>, channelId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => boolean | Promise<boolean>`}   />
+
+Return `true` to assign the Customer to the current Channel,
+or `false` to let them use it for this session without assigning.
+
+Triggered when an authenticated Customer's request targets a different
+Channel than the one currently active on their session. This doesn't run on the default Channel
+or if the Customer is already a member of the Channel.
+
+
+</div>
+## DefaultCustomerChannelAssignmentStrategy
+
+<GenerationInfo sourceFile="packages/core/src/config/auth/default-customer-channel-assignment-strategy.ts" sourceLine="12" packageName="@vendure/core" since="3.7.0" />
+
+The default [CustomerChannelAssignmentStrategy](/reference/typescript-api/auth/customer-channel-assignment-strategy#customerchannelassignmentstrategy): a Customer is auto-assigned to whichever
+Channel they authenticate against.
+
+```ts title="Signature"
+class DefaultCustomerChannelAssignmentStrategy implements CustomerChannelAssignmentStrategy {
+    canAssignCustomerToChannel() => boolean;
+}
+```
+* Implements: [`CustomerChannelAssignmentStrategy`](/reference/typescript-api/auth/customer-channel-assignment-strategy#customerchannelassignmentstrategy)
+
+
+
+<div className="members-wrapper">
+
+### canAssignCustomerToChannel
+
+<MemberInfo kind="method" type={`() => boolean`}   />
+
+
+
+
+</div>

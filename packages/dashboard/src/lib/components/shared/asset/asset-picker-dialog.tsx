@@ -1,3 +1,4 @@
+import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import {
     Dialog,
@@ -7,13 +8,16 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/vdb/components/ui/dialog.js';
+import { getDashboardActionBarItems } from '@/vdb/framework/layout-engine/layout-extensions.js';
+import { PageContext } from '@/vdb/framework/layout-engine/page-provider.js';
 import { useState } from 'react';
+
 import { Asset, AssetGallery } from './asset-gallery.js';
 
 /**
  * @description
  * Props for the {@link AssetPickerDialog} component.
- * 
+ *
  * @docsCategory components
  * @docsPage AssetPickerDialog
  */
@@ -48,12 +52,20 @@ interface AssetPickerDialogProps {
      * The title of the dialog.
      */
     title?: string;
+    /**
+     * @description
+     * An optional page ID for the dialog. When provided, this is exposed via the
+     * internal `PageContext` so that extensions can register
+     * {@link DashboardActionBarItem}s targeted at this specific dialog. Any
+     * registered action bar items will be rendered in the dialog footer.
+     */
+    pageId?: string;
 }
 
 /**
  * @description
  * A dialog which allows the creation and selection of assets.
- * 
+ *
  * @docsCategory components
  * @docsPage AssetPickerDialog
  * @docsWeight 0
@@ -65,8 +77,13 @@ export function AssetPickerDialog({
     multiSelect = false,
     initialSelectedAssets = [],
     title = 'Select Assets',
+    pageId,
 }: AssetPickerDialogProps) {
     const [selectedAssets, setSelectedAssets] = useState<Asset[]>(initialSelectedAssets);
+    const pageContextValue = { pageId };
+    const extensionActionBarItems = pageId
+        ? getDashboardActionBarItems(pageId).filter(item => item.type !== 'dropdown')
+        : [];
 
     const handleAssetSelect = (assets: Asset[]) => {
         setSelectedAssets(assets);
@@ -79,35 +96,45 @@ export function AssetPickerDialog({
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[800px] lg:max-w-[1000px] h-[85vh] p-0 flex flex-col">
-                <DialogHeader className="px-6 pt-6">
-                    <DialogTitle>{multiSelect ? title : title.replace('Assets', 'Asset')}</DialogTitle>
-                    <DialogDescription className="sr-only">
-                        {multiSelect ? 'Browse and select one or more assets' : 'Browse and select an asset'}
-                    </DialogDescription>
-                </DialogHeader>
+            <PageContext.Provider value={pageContextValue}>
+                <DialogContent className="sm:max-w-[800px] lg:max-w-[1000px] h-[85vh] p-0 flex flex-col">
+                    <DialogHeader className="px-6 pt-6">
+                        <DialogTitle>{multiSelect ? title : title.replace('Assets', 'Asset')}</DialogTitle>
+                        <DialogDescription className="sr-only">
+                            {multiSelect ? 'Browse and select one or more assets' : 'Browse and select an asset'}
+                        </DialogDescription>
+                    </DialogHeader>
 
-                <div className="flex-1 overflow-y-auto px-6 pt-1">
-                    <AssetGallery
-                        onSelect={handleAssetSelect}
-                        multiSelect="manual"
-                        initialSelectedAssets={initialSelectedAssets}
-                        fixedHeight={false}
-                        displayBulkActions={false}
-                    />
-                </div>
+                    <div className="flex-1 overflow-y-auto px-6 pt-1">
+                        <AssetGallery
+                            onSelect={handleAssetSelect}
+                            multiSelect="manual"
+                            initialSelectedAssets={initialSelectedAssets}
+                            fixedHeight={false}
+                            displayBulkActions={false}
+                        />
+                    </div>
 
-                <DialogFooter className="px-6 pb-6 pt-4 border-t">
-                    <Button variant="outline" onClick={onClose}>
-                        Cancel
-                    </Button>
-                    <Button onClick={handleConfirm} disabled={selectedAssets.length === 0}>
-                        {selectedAssets.length > 0 && multiSelect
-                            ? `Select ${selectedAssets.length} Asset${selectedAssets.length > 1 ? 's' : ''}`
-                            : 'Select Asset'}
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
+                    <DialogFooter className="px-6 pb-6 pt-4 border-t">
+                        {extensionActionBarItems.map((item, index) => (
+                            <PermissionGuard
+                                key={item.id ?? `${item.pageId}-${index}`}
+                                requires={item.requiresPermission ?? []}
+                            >
+                                <item.component context={pageContextValue} />
+                            </PermissionGuard>
+                        ))}
+                        <Button variant="outline" onClick={onClose}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleConfirm} disabled={selectedAssets.length === 0}>
+                            {selectedAssets.length > 0 && multiSelect
+                                ? `Select ${selectedAssets.length} Asset${selectedAssets.length > 1 ? 's' : ''}`
+                                : 'Select Asset'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </PageContext.Provider>
         </Dialog>
     );
 }

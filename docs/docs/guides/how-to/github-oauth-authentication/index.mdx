@@ -100,7 +100,26 @@ export class GitHubAuthenticationStrategy implements AuthenticationStrategy<GitH
       throw new Error('Unable to retrieve user information from GitHub');
     }
 
-    // Step 3: Check if this GitHub user already has a Vendure account
+    // Step 3: Fetch the user's email addresses to determine the primary, verified email.
+    // This requires the `user:email` OAuth scope. GitHub does NOT guarantee that a user's
+    // email is verified, so we must read the `verified` flag rather than assume it.
+    const emailsResponse = await fetch('https://api.github.com/user/emails', {
+      headers: {
+        'Authorization': `Bearer ${tokenData.access_token}`,
+        'Accept': 'application/vnd.github.v3+json',
+      },
+    });
+    const emails = (await emailsResponse.json()) as Array<{
+      email: string;
+      primary: boolean;
+      verified: boolean;
+    }>;
+    const primaryEmail = Array.isArray(emails) ? emails.find(e => e.primary) : undefined;
+    if (!primaryEmail) {
+      throw new Error('Unable to retrieve a primary email address from GitHub');
+    }
+
+    // Step 4: Check if this GitHub user already has a Vendure account
     const existingCustomer = await this.externalAuthenticationService.findCustomerUser(
       ctx,
       this.name,
@@ -112,12 +131,16 @@ export class GitHubAuthenticationStrategy implements AuthenticationStrategy<GitH
       return existingCustomer;
     }
 
-    // Step 4: Create a new customer account for first-time GitHub users
+    // Step 5: Create a new customer account for first-time GitHub users.
+    // We pass `verified: primaryEmail.verified` so that this external identity is only
+    // linked to a pre-existing account (one with the same email) when GitHub has actually
+    // verified that the user owns the email. Passing `verified: true` unconditionally here
+    // would risk account takeover — see the security note in the Authentication guide.
     const newCustomer = await this.externalAuthenticationService.createCustomerAndUser(ctx, {
       strategy: this.name,
       externalIdentifier: user.login, // Store GitHub username
-      verified: true, // GitHub accounts are pre-verified
-      emailAddress: `${user.login}-github@vendure.io`, // Unique email to avoid conflicts
+      verified: primaryEmail.verified,
+      emailAddress: primaryEmail.email,
       firstName: user.name?.split(' ')[0] || user.login,
       lastName: user.name?.split(' ').slice(1).join(' ') || '',
     });
@@ -129,7 +152,7 @@ export class GitHubAuthenticationStrategy implements AuthenticationStrategy<GitH
 
 The strategy uses Vendure's [ExternalAuthenticationService](/reference/typescript-api/auth/external-authentication-service/) to handle customer creation.
 
-It generates a unique email address for each GitHub user to avoid conflicts, and stores the GitHub username as the external identifier for future logins.
+It uses the GitHub account's primary email address and only marks the account as `verified` when GitHub reports that email as verified, and stores the GitHub username as the external identifier for future logins.
 
 ## Registering the Strategy
 
@@ -217,7 +240,8 @@ export function createGitHubSignInUrl(): string {
   // Store state for CSRF protection
   sessionStorage.setItem('github_oauth_state', state);
 
-  return `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=read:user&state=${state}`;
+  // `user:email` is required so the backend can read the primary email and its verified status.
+  return `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=read:user%20user:email&state=${state}`;
 }
 ```
 
@@ -320,7 +344,7 @@ mutation AuthenticateWithGitHub {
   "data": {
     "authenticate": {
       "id": "1",
-      "identifier": "github-user-github@vendure.io",
+      "identifier": "github-user@example.com",
       "channels": [
         {
           "code": "__default_channel__",
@@ -340,8 +364,8 @@ mutation AuthenticateWithGitHub {
 
 GitHub-authenticated customers are managed like any other Vendure [Customer](/reference/typescript-api/entities/customer/):
 
-- **Email**: Generated as `{username}-github@vendure.io` to avoid conflicts
-- **Verification**: Automatically verified (GitHub handles email verification)
+- **Email**: The GitHub account's primary email address
+- **Verification**: Derived from GitHub's `verified` flag on the primary email — only verified emails mark the account as verified
 - **External ID**: GitHub username stored for future authentication
 - **Profile**: Name extracted from GitHub profile when available
 

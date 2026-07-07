@@ -12,6 +12,7 @@ import type { Plugin } from 'vite';
 
 import { PluginInfo } from './types.js';
 import { CompileResult } from './utils/compiler.js';
+import { filterActivePluginInfo } from './utils/get-active-plugin-info.js';
 import { getDashboardPaths } from './utils/get-dashboard-paths.js';
 import { ConfigLoaderApi, getConfigLoaderApi } from './vite-plugin-config-loader.js';
 
@@ -80,8 +81,9 @@ export function translationsPlugin(options: TranslationsPluginOptions): Plugin {
                     loadVendureConfigResult = await configLoaderApi.getVendureConfig();
                 }
 
-                const { pluginInfo } = loadVendureConfigResult;
-                cachedPluginTranslations = await getPluginTranslations(pluginInfo);
+                const { pluginInfo, vendureConfig } = loadVendureConfigResult;
+                const activePluginInfo = filterActivePluginInfo(pluginInfo, vendureConfig);
+                cachedPluginTranslations = await getPluginTranslations(activePluginInfo);
                 cachedLinguiConfig = getConfig({
                     configPath: path.join(options.packageRoot, 'lingui.config.js'),
                 });
@@ -115,11 +117,12 @@ export function translationsPlugin(options: TranslationsPluginOptions): Plugin {
                 if (!loadVendureConfigResult) {
                     loadVendureConfigResult = await configLoaderApi.getVendureConfig();
                 }
-                const { pluginInfo } = loadVendureConfigResult;
+                const { pluginInfo, vendureConfig } = loadVendureConfigResult;
+                const activePluginInfo = filterActivePluginInfo(pluginInfo, vendureConfig);
 
                 // Reuse cached data from load hook when available
                 const pluginTranslations =
-                    cachedPluginTranslations ?? (await getPluginTranslations(pluginInfo));
+                    cachedPluginTranslations ?? (await getPluginTranslations(activePluginInfo));
                 const pluginTranslationFiles = pluginTranslations.flatMap(p => p.translations);
                 this.info(`Found ${pluginTranslationFiles.length} translation files from plugins`);
                 this.debug(pluginTranslationFiles.join('\n'));

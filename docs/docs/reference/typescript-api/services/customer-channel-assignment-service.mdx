@@ -1,0 +1,27 @@
+---
+title: "CustomerChannelAssignmentService"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/service/helpers/customer-channel-assignment/customer-channel-assignment.service.ts" sourceLine="17" packageName="@vendure/core" />
+
+Handles the assignment of a signed-in Customer to the active Channel.
+
+```ts title="Signature"
+class CustomerChannelAssignmentService {
+    constructor(configService: ConfigService, customerService: CustomerService, channelService: ChannelService)
+    tryAssignToActiveChannel(ctx: RequestContext) => Promise<void>;
+}
+```
+
+<div className="members-wrapper">
+
+### tryAssignToActiveChannel
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<void>`}   />
+
+Assigns the active Customer to the active Channel where appropriate. Does not block the
+request: a Customer the strategy declines to assign may still operate on the Channel for the
+current session, just without a persisted membership.
+
+
+</div>
