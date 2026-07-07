@@ -598,6 +598,57 @@ describe('Promotions applied to Orders', () => {
             await deletePromotion(promotion.id);
         });
 
+        // #4889 — minimum of 0 must not create an unconditional discount
+        it('containsProducts does not apply when minimum is 0', async () => {
+            const item5000 = getVariantBySlug('item-5000')!;
+            const promotion = await createPromotion({
+                enabled: true,
+                name: 'Contains products, minimum 0',
+                conditions: [{
+                    code: containsProducts.code,
+                    arguments: [
+                        { name: 'minimum', value: '0' },
+                        { name: 'productVariantIds', value: JSON.stringify([item5000.id]) },
+                    ],
+                }],
+                actions: [freeOrderAction],
+            });
+            // add an item that is NOT in productVariantIds
+            const { addItemToOrder } = await shopClient.query(addItemToOrderDocument, {
+                productVariantId: getVariantBySlug('item-1000').id,
+                quantity: 1,
+            });
+            orderResultGuard.assertSuccess(addItemToOrder);
+            expect(addItemToOrder.discounts.length).toBe(0);
+            await deletePromotion(promotion.id);
+        });
+
+        // #4889 — same guard for the facet-based condition
+        it('atLeastNWithFacets does not apply when minimum is 0', async () => {
+            const { facets } = await adminClient.query(getFacetListDocument);
+            const saleFacetValue = facets.items[0].values[0];
+            const promotion = await createPromotion({
+                enabled: true,
+                name: 'Facets, minimum 0',
+                conditions: [{
+                    code: hasFacetValues.code,
+                    arguments: [
+                        { name: 'minimum', value: '0' },
+                        { name: 'facets', value: `["${saleFacetValue.id}"]` },
+                    ],
+                }],
+                actions: [freeOrderAction],
+            });
+            // add an item WITHOUT the Sale facet
+            const { addItemToOrder } = await shopClient.query(addItemToOrderDocument, {
+                productVariantId: getVariantBySlug('item-1000').id,
+                quantity: 1,
+            });
+            orderResultGuard.assertSuccess(addItemToOrder);
+            expect(addItemToOrder.discounts.length).toBe(0);
+            await deletePromotion(promotion.id);
+        });
+
         it('customerGroup', async () => {
             const { createCustomerGroup } = await adminClient.query(createCustomerGroupDocument, {
                 input: { name: 'Test Group', customerIds: ['T_1'] },
