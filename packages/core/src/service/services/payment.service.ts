@@ -19,11 +19,11 @@ import { Logger } from '../../config/logger/vendure-logger';
 import { PaymentMethodHandler } from '../../config/payment/payment-method-handler';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Fulfillment } from '../../entity/fulfillment/fulfillment.entity';
-import { RefundLine } from '../../entity/order-line-reference/refund-line.entity';
-import { OrderLine } from '../../entity/order-line/order-line.entity';
 import { Order } from '../../entity/order/order.entity';
-import { PaymentMethod } from '../../entity/payment-method/payment-method.entity';
+import { OrderLine } from '../../entity/order-line/order-line.entity';
+import { RefundLine } from '../../entity/order-line-reference/refund-line.entity';
 import { Payment } from '../../entity/payment/payment.entity';
+import { PaymentMethod } from '../../entity/payment-method/payment-method.entity';
 import { Refund } from '../../entity/refund/refund.entity';
 import { EventBus } from '../../event-bus/event-bus';
 import { PaymentStateTransitionEvent } from '../../event-bus/events/payment-state-transition-event';
@@ -286,7 +286,12 @@ export class PaymentService {
                     state: initialState,
                 }),
             );
-            const { finalize } = await this.paymentStateMachine.transition(txCtx, order, payment, endState);
+            const { finalize } = await this.paymentStateMachine.transition(
+                txCtx,
+                order,
+                payment,
+                endState,
+            );
             await this.connection.getRepository(txCtx, Payment).save(payment, { reload: false });
             await this.connection
                 .getRepository(txCtx, Order)
