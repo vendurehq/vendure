@@ -1,6 +1,6 @@
 import { CurrencyCode, DeletionResult, ErrorCode, LanguageCode } from '@vendure/common/lib/generated-types';
 import { pick } from '@vendure/common/lib/pick';
-import { type PromotionAction, PromotionCondition, PromotionOrderAction } from '@vendure/core';
+import { ConfigService, type PromotionAction, PromotionCondition, PromotionOrderAction } from '@vendure/core';
 import {
     createErrorResultGuard,
     createTestEnvironment,
@@ -8,7 +8,7 @@ import {
     type ErrorResultGuard,
 } from '@vendure/testing';
 import path from 'node:path';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { channelFragment, promotionFragment } from './graphql/fragments-admin';
 import type { FragmentOf, ResultOf } from './graphql/graphql-admin';
 
@@ -208,6 +208,43 @@ describe('Promotion resolver', () => {
         promotionGuard.assertSuccess(updatePromotion);
 
         expect(pick(updatePromotion, snapshotProps)).toMatchSnapshot();
+    });
+
+    // #4700 — updatePromotion should not double-decode ID args in actions
+    it('updatePromotion with ID list args in actions', async () => {
+        const configService = server.app.get(ConfigService);
+        const decodeIdSpy = vi.spyOn(configService.entityIdStrategy, 'decodeId');
+
+        const { updatePromotion } = await adminClient.query(updatePromotionDocument, {
+            input: {
+                id: promotion.id,
+                actions: [
+                    {
+                        code: promoAction.code,
+                        arguments: [{ name: 'facetValueIds', value: '["T_1"]' }],
+                    },
+                ],
+            },
+        });
+        promotionGuard.assertSuccess(updatePromotion);
+
+        // Verify the action args were correctly round-tripped (decoded and re-encoded)
+        const action = updatePromotion.actions.find(a => a.code === promoAction.code);
+        expect(action).toBeDefined();
+        const facetValueIdsArg = action!.args.find(a => a.name === 'facetValueIds');
+        expect(facetValueIdsArg).toBeDefined();
+        expect(facetValueIdsArg!.value).toBe('["T_1"]');
+
+        // Verify decodeId was never called with a raw numeric string,
+        // which would indicate double-decoding of ID args
+        for (const call of decodeIdSpy.mock.calls) {
+            const id = call[0];
+            if (typeof id === 'string') {
+                expect(id).toMatch(/^T_/);
+            }
+        }
+
+        decodeIdSpy.mockRestore();
     });
 
     it('updatePromotion return error result with empty conditions and no couponCode', async () => {

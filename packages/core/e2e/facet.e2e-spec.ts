@@ -780,6 +780,71 @@ describe('Facet resolver', () => {
             expect(updateFacet.code).toBe('test-3');
         });
     });
+
+    describe('cross-channel update protection', () => {
+        const CHANNEL_A_TOKEN = 'facet-cross-channel-a';
+        const CHANNEL_B_TOKEN = 'facet-cross-channel-b';
+        let facetId: string;
+        let valueId: string;
+
+        beforeAll(async () => {
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            for (const [code, token] of [
+                ['facet-cross-a', CHANNEL_A_TOKEN],
+                ['facet-cross-b', CHANNEL_B_TOKEN],
+            ]) {
+                await adminClient.query(createChannelDocument, {
+                    input: {
+                        code,
+                        token,
+                        defaultLanguageCode: LanguageCode.en,
+                        currencyCode: CurrencyCode.USD,
+                        pricesIncludeTax: true,
+                        defaultShippingZoneId: 'T_1',
+                        defaultTaxZoneId: 'T_1',
+                    },
+                });
+            }
+            adminClient.setChannelToken(CHANNEL_A_TOKEN);
+            const { createFacet } = await adminClient.query(createFacetDocument, {
+                input: {
+                    isPrivate: false,
+                    code: 'cross-channel-facet',
+                    translations: [{ languageCode: LanguageCode.en, name: 'Cross Channel Facet' }],
+                    values: [
+                        {
+                            code: 'cross-channel-value',
+                            translations: [{ languageCode: LanguageCode.en, name: 'Original Value' }],
+                        },
+                    ],
+                },
+            });
+            facetId = createFacet.id;
+            valueId = createFacet.values[0].id;
+        });
+
+        afterAll(() => {
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+        });
+
+        it('cannot update a FacetValue belonging to another channel', async () => {
+            // channel-b does not contain this value, so the update must be rejected.
+            adminClient.setChannelToken(CHANNEL_B_TOKEN);
+            await expect(
+                adminClient.query(updateFacetValueDocument, {
+                    input: {
+                        id: valueId,
+                        translations: [{ languageCode: LanguageCode.en, name: 'Updated Value' }],
+                    },
+                }),
+            ).rejects.toThrow(/No FacetValue with the id .* could be found/);
+
+            adminClient.setChannelToken(CHANNEL_A_TOKEN);
+            const { facet } = await adminClient.query(getFacetWithValuesDocument, { id: facetId });
+            const value = facet?.values.find(v => v.id === valueId);
+            expect(value?.name).toBe('Original Value');
+        });
+    });
 });
 
 /**

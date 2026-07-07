@@ -5,6 +5,8 @@ import {
 } from '@/vdb/graphql/fragments.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
 
+import { addressFragment } from '../_customers/customers.graphql.js';
+
 export const orderListDocument = graphql(`
     query GetOrders($options: OrderListOptions) {
         orders(options: $options) {
@@ -408,12 +410,29 @@ export const setCustomerForDraftOrderDocument = graphql(
                 __typename
                 ... on Order {
                     id
+                    customer {
+                        id
+                    }
                 }
                 ...ErrorResult
             }
         }
     `,
     [errorResultFragment],
+);
+
+export const getCustomerAddressesDocument = graphql(
+    `
+        query GetCustomerAddresses($customerId: ID!) {
+            customer(id: $customerId) {
+                id
+                addresses {
+                    ...Address
+                }
+            }
+        }
+    `,
+    [addressFragment],
 );
 
 export const setShippingAddressForDraftOrderDocument = graphql(`

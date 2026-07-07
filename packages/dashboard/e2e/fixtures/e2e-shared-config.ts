@@ -53,6 +53,13 @@ export const e2eCustomFields: CustomFields = {
             label: [{ languageCode: LanguageCode.en, value: 'Priority' }],
             options: [{ value: 'low' }, { value: 'medium' }, { value: 'high' }],
         },
+        {
+            name: 'featureType',
+            type: 'string',
+            nullable: true,
+            label: [{ languageCode: LanguageCode.en, value: 'Feature Type' }],
+            options: [{ value: 'standard' }, { value: 'premium' }],
+        },
         // ── SEO tab ──
         {
             name: 'seoTitle',

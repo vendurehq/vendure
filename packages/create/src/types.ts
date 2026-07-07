@@ -11,6 +11,7 @@ export interface FileSources {
     dockerComposeSource: string;
     tsconfigDashboardSource: string;
     viteConfigSource: string;
+    agentsSource: string;
 }
 
 export interface UserResponses extends FileSources {
@@ -21,6 +22,6 @@ export interface UserResponses extends FileSources {
     includeStorefront: boolean;
 }
 
-export type PackageManager = 'npm';
+export type PackageManager = 'npm' | 'yarn' | 'pnpm' | 'bun';
 
 export type CliLogLevel = 'silent' | 'info' | 'verbose';

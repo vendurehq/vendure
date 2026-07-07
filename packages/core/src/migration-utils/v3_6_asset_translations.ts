@@ -49,7 +49,19 @@ export async function migrateAssetTranslationData(queryRunner: QueryRunner): Pro
 
     const esc = (name: string) => queryRunner.connection.driver.escape(name);
 
-    // 1. Get the default language code from the default channel
+    // 1. If there is no asset data to migrate, skip entirely. This covers the
+    // fresh-install case where migrations run against an empty database before
+    // the default channel has been populated.
+    const assetCounts: Array<{ count: string | number }> = await queryRunner.query(
+        `SELECT COUNT(*) AS ${esc('count')} FROM ${esc('asset')} WHERE ${esc('name')} IS NOT NULL`,
+    );
+    const assetCount = Number(assetCounts[0].count);
+    if (assetCount === 0) {
+        console.log('No asset rows with a name to migrate. Skipping asset translation data migration.');
+        return;
+    }
+
+    // 2. Get the default language code from the default channel
     const rows: Array<{ defaultLanguageCode: string }> = await queryRunner.query(
         `SELECT ${esc('defaultLanguageCode')} FROM ${esc('channel')} WHERE ${esc('code')} = '__default_channel__'`,
     );
@@ -60,7 +72,7 @@ export async function migrateAssetTranslationData(queryRunner: QueryRunner): Pro
     }
     const defaultLanguageCode = rows[0].defaultLanguageCode;
 
-    // 2. Copy asset names into the asset_translation table
+    // 3. Copy asset names into the asset_translation table
     await queryRunner.query(
         `INSERT INTO ${esc('asset_translation')} (${esc('createdAt')}, ${esc('updatedAt')}, ${esc('languageCode')}, ${esc('name')}, ${esc('baseId')})
          SELECT a.${esc('createdAt')}, a.${esc('updatedAt')}, '${defaultLanguageCode}', a.${esc('name')}, a.${esc('id')}

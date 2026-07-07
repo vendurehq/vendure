@@ -6,7 +6,11 @@ import { useForm } from 'react-hook-form';
 import { useChannel } from '../../hooks/use-channel.js';
 import { useServerConfig } from '../../hooks/use-server-config.js';
 import { getOperationVariablesFields } from '../document-introspection/get-document-structure.js';
-import { createFormSchemaFromFields, getDefaultValuesFromFields } from './form-schema-tools.js';
+import {
+    applyNullableSelectCustomFieldDefaults,
+    createFormSchemaFromFields,
+    getDefaultValuesFromFields,
+} from './form-schema-tools.js';
 import {
     convertEmptyStringsToNull,
     removeEmptyIdFields,
@@ -133,8 +137,8 @@ export function useGeneratedForm<
         [updateFields, customFieldConfig],
     );
     const defaultValues = useMemo(
-        () => getDefaultValuesFromFields(updateFields, activeChannel?.defaultLanguageCode),
-        [updateFields, activeChannel?.defaultLanguageCode],
+        () => getDefaultValuesFromFields(updateFields, activeChannel?.defaultLanguageCode, customFieldConfig),
+        [updateFields, activeChannel?.defaultLanguageCode, customFieldConfig],
     );
     const processedEntity = useMemo(
         () => ensureTranslationsForAllLanguages(entity, availableLanguages, defaultValues),
@@ -147,13 +151,12 @@ export function useGeneratedForm<
         [defaultValues, availableLanguages],
     );
 
-    const values = useMemo(
-        () =>
-            processedEntity
-                ? transformRelationFields(updateFields, setValuesRef.current(processedEntity))
-                : processedDefaultValues,
-        [processedEntity, processedDefaultValues, updateFields],
-    );
+    const values = useMemo(() => {
+        const raw = processedEntity
+            ? transformRelationFields(updateFields, setValuesRef.current(processedEntity))
+            : processedDefaultValues;
+        return applyNullableSelectCustomFieldDefaults(raw, customFieldConfig);
+    }, [processedEntity, processedDefaultValues, updateFields, customFieldConfig]);
 
     const form = useForm({
         resolver: async (values, context, options) => {

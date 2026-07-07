@@ -150,7 +150,10 @@ export function AssignFacetValuesDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-hidden flex flex-col">
+            <DialogContent
+                className="sm:max-w-[800px] max-h-[80vh] overflow-hidden flex flex-col"
+                onKeyDown={event => event.stopPropagation()}
+            >
                 <DialogHeader>
                     <DialogTitle>
                         <Trans>Edit facet values</Trans>

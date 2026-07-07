@@ -238,16 +238,18 @@ export function DataTable<TData>({
         },
     });
 
+    // Track the last-applied `defaultColumnVisibility` content so we only reset state
+    // when the prop's actual content changes (e.g. the user reset the table settings),
+    // not on every re-render where the parent passes a new reference to the same value.
+    const lastAppliedDefaultRef = useRef<string | undefined>(
+        defaultColumnVisibility ? JSON.stringify(defaultColumnVisibility) : undefined,
+    );
     useEffect(() => {
-        // If the defaultColumnVisibility changes externally (e.g. the user reset the table settings),
-        // we want to reset the column visibility to the default.
-        if (
-            defaultColumnVisibility &&
-            JSON.stringify(defaultColumnVisibility) !== JSON.stringify(columnVisibility)
-        ) {
-            setColumnVisibility(defaultColumnVisibility);
-        }
-        // We intentionally do not include `columnVisibility` in the dependency array
+        if (!defaultColumnVisibility) return;
+        const serialized = JSON.stringify(defaultColumnVisibility);
+        if (lastAppliedDefaultRef.current === serialized) return;
+        lastAppliedDefaultRef.current = serialized;
+        setColumnVisibility(defaultColumnVisibility);
     }, [defaultColumnVisibility]);
 
     // Add drag handle column if drag and drop is enabled

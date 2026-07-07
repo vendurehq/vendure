@@ -44,6 +44,59 @@ components internally use this same structure, so when using those top-level com
 in `Page` etc.
 :::
 
+## Block Columns
+
+The `PageLayout` arranges its `PageBlock` children into columns based on each block's `column` prop:
+
+- **`main`**: the wider main content area
+- **`side`**: the narrower sidebar
+- **`full`**: spans the full width of the layout, above the main/side columns
+
+```tsx title="src/plugins/example/dashboard/test-page.tsx"
+import { Page, PageBlock, PageLayout, PageTitle } from '@vendure/dashboard';
+
+export function TestPage() {
+    return (
+        <Page pageId="test-page">
+            <PageTitle>Test Page</PageTitle>
+            <PageLayout>
+                <PageBlock column="full" blockId="full-stuff">
+                    This block spans the full width
+                </PageBlock>
+                <PageBlock column="main" blockId="main-stuff">
+                    This will display in the main area
+                </PageBlock>
+                <PageBlock column="side" blockId="side-stuff">
+                    This will display in the side area
+                </PageBlock>
+            </PageLayout>
+        </Page>
+    );
+}
+```
+
+:::info
+Full-width blocks are always rendered **above** the `main`/`side` columns, regardless of their
+order among the `PageLayout` children. This makes `column="full"` well-suited to wide content such
+as data tables on list pages.
+:::
+
+### Full-width without a card
+
+A `PageBlock` wraps its content in a bordered card. If you want a full-width block with **no** card
+chrome — for example, a block that supplies its own container such as a `DataTable` — use the
+[FullWidthPageBlock](/reference/dashboard/page-layout/page-block) component instead:
+
+```tsx
+import { FullWidthPageBlock, Page, PageLayout, PageTitle } from '@vendure/dashboard';
+
+<PageLayout>
+    <FullWidthPageBlock blockId="list-table">
+        <DataTable /* ... */ />
+    </FullWidthPageBlock>
+</PageLayout>
+```
+
 ## Page Routes & Navigation
 
 Once you have defined a page component, you'll need to make it accessible to users with:

@@ -76,6 +76,47 @@ test.describe('Custom Fields', () => {
         await expect(dp.formItem('Additional Info').getByRole('textbox')).toBeVisible();
         // string with options → combobox
         await expect(dp.formItem('Priority').getByRole('combobox')).toBeVisible();
+        await expect(dp.formItem('Feature Type').getByRole('combobox')).toBeVisible();
+    });
+
+    // ─── Nullable option select ──────────────────────────────────────────
+
+    // #4801 — allow selecting and clearing nullable select items
+    test('should allow selecting and clearing a nullable option select', async ({ page }) => {
+        await goToFirstProduct(page);
+        const dp = detailPage(page);
+        const featureTypeCombobox = dp.formItem('Feature Type').getByRole('combobox');
+
+        // Base UI Select shows placeholder state via data-placeholder on the trigger,
+        // not as visible text in the combobox accessible name.
+        await expect(featureTypeCombobox).toHaveAttribute('data-placeholder', '');
+
+        await dp.selectOption('Feature Type', 'premium');
+        await expect(featureTypeCombobox).toContainText('premium');
+
+        await featureTypeCombobox.click();
+        await page.getByRole('listbox').getByRole('option').first().click();
+        await expect(featureTypeCombobox).toHaveAttribute('data-placeholder', '');
+        await expect(featureTypeCombobox).not.toContainText('premium');
+    });
+
+    // #4801 — create product without setting a nullable option select
+    test('should create a product without setting a nullable option select', async ({ page }) => {
+        const dp = detailPage(page);
+        await dp.gotoNew();
+        await dp.expectNewPageLoaded();
+
+        await dp.fillInput('Product name', 'Nullable Feature Type Product');
+        await expect(dp.formItem('Slug').getByRole('textbox')).not.toHaveValue('', { timeout: 5_000 });
+        await expect(dp.formItem('Feature Type').getByRole('combobox')).toHaveAttribute(
+            'data-placeholder',
+            '',
+        );
+        await expect(dp.createButton).toBeEnabled({ timeout: 10_000 });
+
+        await dp.clickCreate();
+        await dp.expectSuccessToast(/Successfully created product/);
+        await dp.expectNavigatedToExisting();
     });
 
     // ─── Tab grouping ────────────────────────────────────────────────────

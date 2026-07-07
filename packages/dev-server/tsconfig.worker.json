@@ -1,0 +1,4 @@
+{
+    "extends": "./tsconfig.build.json",
+    "include": ["./index-worker.ts", "./dev-config.ts", "./instrumentation.ts"]
+}

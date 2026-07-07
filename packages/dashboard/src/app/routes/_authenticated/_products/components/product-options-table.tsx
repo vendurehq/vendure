@@ -4,10 +4,12 @@ import { Button } from '@/vdb/components/ui/button.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
 import { Trans } from '@lingui/react/macro';
 import { Link } from '@tanstack/react-router';
-import { ColumnFiltersState, SortingState, VisibilityState } from '@tanstack/react-table';
+import { ColumnFiltersState, SortingState } from '@tanstack/react-table';
 import { PlusIcon } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { deleteProductOptionDocument } from '../product-option-groups.graphql.js';
+import { usePage } from '@/vdb/hooks/use-page.js';
+import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 
 export const productOptionListDocument = graphql(`
     query ProductOptionList($options: ProductOptionListOptions, $groupId: ID) {
@@ -39,14 +41,13 @@ export function ProductOptionsTable({
     newOptionHref,
     linkSearch,
 }: Readonly<ProductOptionsTableProps>) {
+    const { pageId } = usePage();
+    const { setTableSettings } = useUserSettings();
+
     const [sorting, setSorting] = useState<SortingState>([]);
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [filters, setFilters] = useState<ColumnFiltersState>([]);
-    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
-        name: true,
-        code: true,
-    });
     const refreshRef = useRef<() => void>(() => {});
 
     return (
@@ -65,7 +66,11 @@ export function ProductOptionsTable({
                 onSortChange={(_, sorting) => {
                     setSorting(sorting);
                 }}
-                onColumnVisibilityChange={(_, value) => setColumnVisibility(value)}
+                onColumnVisibilityChange={(_, columnVisibility) => {
+                    if (pageId) {
+                        setTableSettings(pageId, 'columnVisibility', columnVisibility);
+                    }
+                }}
                 onFilterChange={(_, filters) => {
                     setFilters(filters);
                 }}
@@ -94,7 +99,10 @@ export function ProductOptionsTable({
                         },
                     };
                 }}
-                defaultVisibility={columnVisibility}
+                defaultVisibility={{
+                    name: true,
+                    code: true,
+                }}
                 customizeColumns={{
                     name: {
                         cell: ({ row }) => (

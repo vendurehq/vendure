@@ -185,11 +185,22 @@ export function getRefundedQuantity(order: Order, lineId: string): number {
 }
 
 /**
+ * The quantity of a line that is eligible for refund/cancellation. Uses the greater of
+ * `orderPlacedQuantity` and the current `quantity` so that lines added or increased while
+ * the order was in the `Modifying` state (which keep `orderPlacedQuantity` at their
+ * placement value, 0 for new lines) can still be refunded. Mirrors core's effective-quantity
+ * pattern (see OrderLine price/discount distribution).
+ */
+export function getRefundableQuantity(line: Order['lines'][number]): number {
+    return Math.max(line.orderPlacedQuantity, line.quantity);
+}
+
+/**
  * Checks if an order line can still be refunded (has unrefunded quantity).
  */
 export function lineCanBeRefunded(order: Order, line: Order['lines'][number]): boolean {
     const refundedCount = getRefundedQuantity(order, line.id);
-    return refundedCount < line.orderPlacedQuantity;
+    return refundedCount < getRefundableQuantity(line);
 }
 
 /**
@@ -197,7 +208,7 @@ export function lineCanBeRefunded(order: Order, line: Order['lines'][number]): b
  */
 export function getMaxRefundableQuantity(order: Order, line: Order['lines'][number]): number {
     const refundedCount = getRefundedQuantity(order, line.id);
-    return Math.max(0, line.orderPlacedQuantity - refundedCount);
+    return Math.max(0, getRefundableQuantity(line) - refundedCount);
 }
 
 /**

@@ -559,6 +559,8 @@ export class CollectionService implements OnModuleInit {
     }
 
     async update(ctx: RequestContext, input: UpdateCollectionInput): Promise<Translated<Collection>> {
+        // Ensure the entity belongs to the active channel before updating.
+        await this.connection.getEntityOrThrow(ctx, Collection, input.id, { channelId: ctx.channelId });
         await this.slugValidator.validateSlugs(ctx, input, CollectionTranslation);
         const collection = await this.translatableSaver.update({
             ctx,

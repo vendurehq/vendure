@@ -3,6 +3,7 @@ import { AssetStorageStrategy, ConfigService, Logger, ProcessContext } from '@ve
 import { createHash } from 'crypto';
 import express, { NextFunction, Request, Response } from 'express';
 import fs from 'fs-extra';
+import mime from 'mime-types';
 import path from 'path';
 
 import { getValidFormat } from './common';
@@ -292,21 +293,6 @@ export class AssetServer {
      * Attempt to get the mime type from the file name.
      */
     private getMimeType(fileName: string): string | undefined {
-        const ext = path.extname(fileName);
-        switch (ext) {
-            case '.jpg':
-            case '.jpeg':
-                return 'image/jpeg';
-            case '.png':
-                return 'image/png';
-            case '.gif':
-                return 'image/gif';
-            case '.svg':
-                return 'image/svg+xml';
-            case '.tiff':
-                return 'image/tiff';
-            case '.webp':
-                return 'image/webp';
-        }
+        return mime.lookup(fileName) || undefined;
     }
 }

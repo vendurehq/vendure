@@ -2,7 +2,7 @@
 
 import { omit } from '@vendure/common/lib/omit';
 import { CurrencyCode, LanguageCode } from '@vendure/common/lib/generated-types';
-import { User } from '@vendure/core';
+import { DefaultAssetImportStrategy, User } from '@vendure/core';
 import { createTestEnvironment, E2E_DEFAULT_CHANNEL_TOKEN } from '@vendure/testing';
 import * as fs from 'node:fs';
 import http from 'node:http';
@@ -16,8 +16,17 @@ import { graphql } from './graphql/graphql-admin';
 import { createChannelDocument } from './graphql/shared-definitions';
 
 describe('Import resolver', () => {
+    const baseConfig = testConfig();
     const { server, adminClient } = createTestEnvironment({
-        ...testConfig(),
+        ...baseConfig,
+        importExportOptions: {
+            ...baseConfig.importExportOptions,
+            // The "asset urls" suite below spins up a local static server on
+            // localhost:3456 and imports from it. The default strategy blocks
+            // loopback/private IPs to mitigate SSRF (see assert-public-url.ts),
+            // so the test needs the documented escape hatch enabled.
+            assetImportStrategy: new DefaultAssetImportStrategy({ allowPrivateNetworks: true }),
+        },
         customFields: {
             Product: [
                 { type: 'string', name: 'pageType' },

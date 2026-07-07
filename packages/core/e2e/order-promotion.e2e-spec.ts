@@ -186,15 +186,55 @@ describe('Promotions applied to Orders', () => {
             expect(applyCouponCode.errorCode).toBe(ErrorCode.COUPON_CODE_EXPIRED_ERROR);
         });
 
-        it('coupon code application is case-sensitive', async () => {
+        it('coupon code application is case-insensitive', async () => {
             const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, {
                 couponCode: TEST_COUPON_CODE.toLowerCase(),
             });
-            orderResultGuard.assertErrorResult(applyCouponCode);
-            expect(applyCouponCode.message).toBe(
-                `Coupon code "${TEST_COUPON_CODE.toLowerCase()}" is not valid`,
-            );
-            expect(applyCouponCode.errorCode).toBe(ErrorCode.COUPON_CODE_INVALID_ERROR);
+            orderResultGuard.assertSuccess(applyCouponCode);
+            // The canonical coupon code from the promotion should be stored
+            expect(applyCouponCode.couponCodes).toEqual([TEST_COUPON_CODE]);
+            expect(applyCouponCode.discounts.length).toBe(1);
+            expect(applyCouponCode.discounts[0].description).toBe('Free with test coupon');
+            expect(applyCouponCode.totalWithTax).toBe(0);
+        });
+
+        it('removes a coupon code with different casing than it was applied', async () => {
+            // Re-apply with lowercase
+            const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, {
+                couponCode: TEST_COUPON_CODE.toLowerCase(),
+            });
+            orderResultGuard.assertSuccess(applyCouponCode);
+            expect(applyCouponCode.couponCodes).toEqual([TEST_COUPON_CODE]);
+
+            // #4364 — remove using different casing than how it was applied
+            const { removeCouponCode } = await shopClient.query(removeCouponCodeDocument, {
+                couponCode: TEST_COUPON_CODE.toLowerCase(),
+            });
+            expect(removeCouponCode!.couponCodes).toEqual([]);
+            expect(removeCouponCode!.discounts.length).toBe(0);
+        });
+
+        // #4364 — applying the same coupon code with different casings should not create duplicates
+        it('de-duplicates coupon codes case-insensitively', async () => {
+            // Apply with uppercase (canonical form)
+            const { applyCouponCode: first } = await shopClient.query(applyCouponCodeDocument, {
+                couponCode: TEST_COUPON_CODE,
+            });
+            orderResultGuard.assertSuccess(first);
+            expect(first.couponCodes).toEqual([TEST_COUPON_CODE]);
+
+            // Apply again with lowercase — should not duplicate
+            const { applyCouponCode: second } = await shopClient.query(applyCouponCodeDocument, {
+                couponCode: TEST_COUPON_CODE.toLowerCase(),
+            });
+            orderResultGuard.assertSuccess(second);
+            expect(second.couponCodes).toEqual([TEST_COUPON_CODE]);
+            expect(second.couponCodes.length).toBe(1);
+
+            // Clean up
+            await shopClient.query(removeCouponCodeDocument, {
+                couponCode: TEST_COUPON_CODE,
+            });
         });
 
         it('applies a valid coupon code', async () => {
@@ -219,6 +259,36 @@ describe('Promotions applied to Orders', () => {
                         to: 'AddingItems',
                     },
                 },
+                // From "coupon code application is case-insensitive" test
+                {
+                    type: HistoryEntryType.ORDER_COUPON_APPLIED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                        promotionId: 'T_3',
+                    },
+                },
+                // From "removes a coupon code with different casing" test
+                {
+                    type: HistoryEntryType.ORDER_COUPON_REMOVED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                    },
+                },
+                // From "de-duplicates coupon codes case-insensitively" test
+                {
+                    type: HistoryEntryType.ORDER_COUPON_APPLIED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                        promotionId: 'T_3',
+                    },
+                },
+                {
+                    type: HistoryEntryType.ORDER_COUPON_REMOVED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                    },
+                },
+                // From "applies a valid coupon code" test
                 {
                     type: HistoryEntryType.ORDER_COUPON_APPLIED,
                     data: {
@@ -264,6 +334,7 @@ describe('Promotions applied to Orders', () => {
                         to: 'AddingItems',
                     },
                 },
+                // From "coupon code application is case-insensitive" test
                 {
                     type: HistoryEntryType.ORDER_COUPON_APPLIED,
                     data: {
@@ -271,6 +342,36 @@ describe('Promotions applied to Orders', () => {
                         promotionId: 'T_3',
                     },
                 },
+                // From "removes a coupon code with different casing" test
+                {
+                    type: HistoryEntryType.ORDER_COUPON_REMOVED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                    },
+                },
+                // From "de-duplicates coupon codes case-insensitively" test
+                {
+                    type: HistoryEntryType.ORDER_COUPON_APPLIED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                        promotionId: 'T_3',
+                    },
+                },
+                {
+                    type: HistoryEntryType.ORDER_COUPON_REMOVED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                    },
+                },
+                // From "applies a valid coupon code" test
+                {
+                    type: HistoryEntryType.ORDER_COUPON_APPLIED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                        promotionId: 'T_3',
+                    },
+                },
+                // From "removes a coupon code" test
                 {
                     type: HistoryEntryType.ORDER_COUPON_REMOVED,
                     data: {
@@ -285,12 +386,40 @@ describe('Promotions applied to Orders', () => {
                 couponCode: 'NOT_THERE',
             });
 
+            // History should be unchanged from previous test — no new entry
+            // for the failed removal of 'NOT_THERE'
             expect(removeCouponCode!.history.items.map(i => omit(i, ['id']))).toEqual([
                 {
                     type: HistoryEntryType.ORDER_STATE_TRANSITION,
                     data: {
                         from: 'Created',
                         to: 'AddingItems',
+                    },
+                },
+                {
+                    type: HistoryEntryType.ORDER_COUPON_APPLIED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                        promotionId: 'T_3',
+                    },
+                },
+                {
+                    type: HistoryEntryType.ORDER_COUPON_REMOVED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                    },
+                },
+                {
+                    type: HistoryEntryType.ORDER_COUPON_APPLIED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
+                        promotionId: 'T_3',
+                    },
+                },
+                {
+                    type: HistoryEntryType.ORDER_COUPON_REMOVED,
+                    data: {
+                        couponCode: TEST_COUPON_CODE,
                     },
                 },
                 {
@@ -466,6 +595,57 @@ describe('Promotions applied to Orders', () => {
             expect(adjustOrderLine.discounts[0].description).toBe('Free if buying 3 or more offer products');
             expect(adjustOrderLine.discounts[0].amountWithTax).toBe(-13200);
 
+            await deletePromotion(promotion.id);
+        });
+
+        // #4889 — minimum of 0 must not create an unconditional discount
+        it('containsProducts does not apply when minimum is 0', async () => {
+            const item5000 = getVariantBySlug('item-5000')!;
+            const promotion = await createPromotion({
+                enabled: true,
+                name: 'Contains products, minimum 0',
+                conditions: [{
+                    code: containsProducts.code,
+                    arguments: [
+                        { name: 'minimum', value: '0' },
+                        { name: 'productVariantIds', value: JSON.stringify([item5000.id]) },
+                    ],
+                }],
+                actions: [freeOrderAction],
+            });
+            // add an item that is NOT in productVariantIds
+            const { addItemToOrder } = await shopClient.query(addItemToOrderDocument, {
+                productVariantId: getVariantBySlug('item-1000').id,
+                quantity: 1,
+            });
+            orderResultGuard.assertSuccess(addItemToOrder);
+            expect(addItemToOrder.discounts.length).toBe(0);
+            await deletePromotion(promotion.id);
+        });
+
+        // #4889 — same guard for the facet-based condition
+        it('atLeastNWithFacets does not apply when minimum is 0', async () => {
+            const { facets } = await adminClient.query(getFacetListDocument);
+            const saleFacetValue = facets.items[0].values[0];
+            const promotion = await createPromotion({
+                enabled: true,
+                name: 'Facets, minimum 0',
+                conditions: [{
+                    code: hasFacetValues.code,
+                    arguments: [
+                        { name: 'minimum', value: '0' },
+                        { name: 'facets', value: `["${saleFacetValue.id}"]` },
+                    ],
+                }],
+                actions: [freeOrderAction],
+            });
+            // add an item WITHOUT the Sale facet
+            const { addItemToOrder } = await shopClient.query(addItemToOrderDocument, {
+                productVariantId: getVariantBySlug('item-1000').id,
+                quantity: 1,
+            });
+            orderResultGuard.assertSuccess(addItemToOrder);
+            expect(addItemToOrder.discounts.length).toBe(0);
             await deletePromotion(promotion.id);
         });
 
@@ -1733,23 +1913,42 @@ describe('Promotions applied to Orders', () => {
                         await proceedToArrangingPayment(client);
                     }
 
+                    // Capture the pre-payment total from one client. All clients have
+                    // identical setup (same item, same coupon, same shipping method),
+                    // so this is the value `previousTotalWithTax` should equal in any
+                    // CouponRemovedDuringCheckoutError returned below. With freeOrderAction
+                    // applied, this is shipping cost only — the discount zeros the
+                    // line subtotal but does not zero shipping.
+                    const { activeOrder: preOrder } = await clients[0].query(getActiveOrderDocument);
+                    const expectedPreviousTotal = preOrder!.totalWithTax;
+                    const expectedCurrencyCode = preOrder!.currencyCode;
+
                     // Fire concurrent addPaymentToOrder from all clients simultaneously.
                     // The pessimistic lock serializes these so only one order can "claim"
                     // the coupon at a time. Contenders that have their coupon stripped
-                    // by revalidation receive a PaymentFailedError instead of being
-                    // silently charged the new (higher) total — see the explanatory
-                    // comment in OrderService.addPaymentToOrder.
+                    // by revalidation receive a CouponRemovedDuringCheckoutError instead
+                    // of being silently charged the new (higher) total — see the
+                    // explanatory comment in OrderService.addPaymentToOrder.
                     const results = await Promise.all(
                         clients.map(client => addPaymentToOrder(client, testSuccessfulPaymentMethod)),
                     );
 
-                    const orderResults = results.filter((r: any) => Array.isArray(r.couponCodes)) as Array<{
-                        couponCodes: string[];
-                        totalWithTax: number;
-                    }>;
-                    const errorResults = results.filter((r: any) => r.errorCode !== undefined) as Array<{
+                    // Discriminate by __typename rather than duck-typing on field shape:
+                    // a future schema change that, say, adds errorCode-shaped fields to
+                    // Order would silently break a duck-typed filter.
+                    const orderResults = results.filter(
+                        (r: any) => r.__typename === 'Order',
+                    ) as Array<{ couponCodes: string[]; totalWithTax: number }>;
+                    const errorResults = results.filter(
+                        (r: any) => r.__typename === 'CouponRemovedDuringCheckoutError',
+                    ) as Array<{
+                        __typename: 'CouponRemovedDuringCheckoutError';
                         errorCode: string;
-                        paymentErrorMessage?: string;
+                        message: string;
+                        removedCouponCodes: string[];
+                        previousTotalWithTax: number;
+                        newTotalWithTax: number;
+                        currencyCode: string;
                     }>;
 
                     // Sanity: every result should be classifiable as one or the other.
@@ -1778,16 +1977,38 @@ describe('Promotions applied to Orders', () => {
                     expect(orderResults.length).toBe(expectedWinners);
                     expect(errorResults.length).toBe(CONCURRENT_ATTEMPTS - expectedWinners);
 
-                    // Every stripped contender returns PaymentFailedError with a
-                    // coupon-related message rather than a silently-overcharged Order.
+                    // Capture the post-strip total from one of the error clients' active
+                    // orders so we can assert newTotalWithTax exactly. The stripped order
+                    // has been recalculated server-side, so its current totalWithTax is
+                    // by definition what `newTotalWithTax` should report.
+                    let expectedNewTotal: number | undefined;
+                    if (errorResults.length > 0) {
+                        const errorClientIdx = results.findIndex(
+                            (r: any) => r.__typename === 'CouponRemovedDuringCheckoutError',
+                        );
+                        const { activeOrder: postOrder } = await clients[errorClientIdx].query(
+                            getActiveOrderDocument,
+                        );
+                        expectedNewTotal = postOrder!.totalWithTax;
+                        // The strip must have increased the total — otherwise the error
+                        // should never have been returned.
+                        expect(expectedNewTotal).toBeGreaterThan(expectedPreviousTotal);
+                    }
+
+                    // Every stripped contender returns CouponRemovedDuringCheckoutError
+                    // with exact pre/post totals and only the race coupon listed (no
+                    // unrelated codes leaked into removedCouponCodes).
                     for (const err of errorResults) {
-                        expect(err.errorCode).toBe('PAYMENT_FAILED_ERROR');
-                        expect(err.paymentErrorMessage).toMatch(/coupon/i);
+                        expect(err.errorCode).toBe('COUPON_REMOVED_DURING_CHECKOUT_ERROR');
+                        expect(err.removedCouponCodes).toEqual([RACE_COUPON_CODE]);
+                        expect(err.previousTotalWithTax).toBe(expectedPreviousTotal);
+                        expect(err.newTotalWithTax).toBe(expectedNewTotal);
+                        expect(err.currencyCode).toBe(expectedCurrencyCode);
                     }
 
                     // Where there's a winner, it kept the coupon and settled.
                     if (expectedWinners === 1) {
-                        expect(orderResults[0].couponCodes).toContain(RACE_COUPON_CODE);
+                        expect(orderResults[0].couponCodes).toEqual([RACE_COUPON_CODE]);
                     }
                 },
             );
