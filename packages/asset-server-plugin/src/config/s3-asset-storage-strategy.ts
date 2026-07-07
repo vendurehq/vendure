@@ -251,6 +251,7 @@ export class S3AssetStorageStrategy implements AssetStorageStrategy {
                 Bucket: this.s3Config.bucket,
                 Key: fileName,
                 Body: data,
+                // Extension-driven; safe under the default upload validation which rejects disallowed types.
                 ContentType: mime.lookup(fileName) || 'application/octet-stream',
             },
         });
