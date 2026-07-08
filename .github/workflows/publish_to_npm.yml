@@ -66,6 +66,10 @@ jobs:
       id-token: write
     strategy:
       fail-fast: false
+      # Both nightly jobs publish new versions of the same packages. npm rejects
+      # a publish with E409 while it is still processing a previous publish of
+      # the same package, so the jobs must not run concurrently.
+      max-parallel: 1
       matrix:
         type: ${{ fromJson(needs.setup.outputs.matrix) }}
 
@@ -168,15 +172,19 @@ jobs:
         run: |
           bunx lerna exec --no-private -- 'publish_dir=$(node -p "require(\"./package.json\").publishConfig?.directory || \".\"") && cd "$publish_dir" && npm stage publish --access public'
 
+      # --no-bail: a failure in one package must not skip publishing the rest —
+      # downstream consumers expect ALL packages to exist at a given nightly
+      # version. The retry loop handles transient registry errors (e.g. E409
+      # while npm is still processing an earlier publish of the same package).
       - name: Publish to NPM (master-nightly)
         if: matrix.type == 'master-nightly' && steps.commit_check.outputs.should_publish == 'true'
         run: |
-          bunx lerna exec --no-private -- 'publish_dir=$(node -p "require(\"./package.json\").publishConfig?.directory || \".\"") && cd "$publish_dir" && npm publish --access public --tag master'
+          bunx lerna exec --no-private --no-bail -- 'publish_dir=$(node -p "require(\"./package.json\").publishConfig?.directory || \".\"") && cd "$publish_dir" && for i in 1 2 3; do npm publish --access public --tag master && break; if [ "$i" = 3 ]; then exit 1; fi; echo "npm publish failed, retrying in 30s..."; sleep 30; done'
 
       - name: Publish to NPM (minor-nightly)
         if: matrix.type == 'minor-nightly' && steps.commit_check.outputs.should_publish == 'true'
         run: |
-          bunx lerna exec --no-private -- 'publish_dir=$(node -p "require(\"./package.json\").publishConfig?.directory || \".\"") && cd "$publish_dir" && npm publish --access public --tag minor'
+          bunx lerna exec --no-private --no-bail -- 'publish_dir=$(node -p "require(\"./package.json\").publishConfig?.directory || \".\"") && cd "$publish_dir" && for i in 1 2 3; do npm publish --access public --tag minor && break; if [ "$i" = 3 ]; then exit 1; fi; echo "npm publish failed, retrying in 30s..."; sleep 30; done'
 
       - name: Skip publish (no new commits)
         if: matrix.type != 'release' && steps.commit_check.outputs.should_publish == 'false'
