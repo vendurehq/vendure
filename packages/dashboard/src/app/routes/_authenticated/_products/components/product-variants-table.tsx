@@ -17,6 +17,7 @@ import {
 import { productVariantListDocument } from '../products.graphql.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 import { usePage } from '@/vdb/hooks/use-page.js';
+import { useLingui } from '@lingui/react/macro';
 
 interface ProductVariantsTableProps {
     productId: string;
@@ -32,6 +33,7 @@ export function ProductVariantsTable({
     const { pageId } = usePage();
     const { setTableSettings } = useUserSettings();
     const { formatCurrencyName } = useLocalFormat();
+    const { t } = useLingui();
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [sorting, setSorting] = useState<SortingState>([]);
@@ -76,7 +78,7 @@ export function ProductVariantsTable({
             ]}
             customizeColumns={{
                 name: {
-                    header: 'Variant name',
+                    header: t`Variant name`,
                     cell: ({ row: { original } }) => (
                         <DetailPageButton
                             href={`../../product-variants/${original.id}`}

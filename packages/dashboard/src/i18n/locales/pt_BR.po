@@ -18,7 +18,7 @@ msgstr ""
 msgid "Full Name"
 msgstr "Nome completo"
 
-#: src/lib/components/data-input/relation-selector.tsx:408
+#: src/lib/components/data-input/relation-selector.tsx:409
 msgid "Select items"
 msgstr "Selecionar itens"
 
@@ -90,7 +90,7 @@ msgstr "Editar valor JSON"
 msgid "Using external authentication strategy: {strategy}"
 msgstr "Usando estratégia de autenticação externa: {strategy}"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:225
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:230
 msgid "Select a reason..."
 msgstr "Selecione um motivo..."
 
@@ -153,7 +153,7 @@ msgstr "{selectionLength} arquivos excluídos"
 msgid "Successfully updated tax rate"
 msgstr "Alíquota fiscal atualizada com sucesso"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:237
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:242
 msgid "Enter custom reason..."
 msgstr "Digite um motivo personalizado..."
 
@@ -167,6 +167,11 @@ msgstr "Tipo"
 #: src/lib/components/data-input/default-relation-input.tsx:676
 msgid "Select {0}"
 msgstr "Selecionar {0}"
+
+#. placeholder {0}: selectedItems.length
+#: src/lib/components/data-input/relation-selector.tsx:408
+msgid "Add more ({0} selected)"
+msgstr ""
 
 #: src/app/routes/_authenticated/_facets/facets.tsx:67
 msgid "View values"
@@ -219,6 +224,10 @@ msgstr "Atualização automática: {0}"
 msgid "Deleted {deleted} {entityName}"
 msgstr "{deleted} {entityName} excluído(s)"
 
+#: src/lib/components/shared/asset/asset-properties.tsx:32
+msgid "File Size"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/healthchecks.tsx:13
 #~ msgid "Healthchecks"
 #~ msgstr "Verificações de saúde"
@@ -241,7 +250,7 @@ msgstr "{fulfilled, plural, one {{fulfilled} tarefa cancelada com sucesso} other
 msgid "Seller"
 msgstr "Vendedor"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:131
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:136
 msgid "SKU:"
 msgstr "SKU:"
 
@@ -396,7 +405,7 @@ msgstr "Nova função"
 msgid "Failed to delete assets: {message}"
 msgstr "Falha ao excluir arquivos: {message}"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:105
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:109
 msgid "Return to stock"
 msgstr "Devolver ao estoque"
 
@@ -809,6 +818,7 @@ msgid "Found {0} eligible shipping method{1}"
 msgstr "Encontrado(s) {0} método(s) de envio elegível(eis)"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx:746
+#: src/lib/components/shared/asset/asset-properties.tsx:39
 msgid "Dimensions"
 msgstr "Dimensoes"
 
@@ -817,7 +827,7 @@ msgid "Show password"
 msgstr "Mostrar senha"
 
 #. placeholder {0}: formatCurrency(refund.totalRefundableAmount, order.currencyCode)
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:282
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:287
 msgid "(max: {0})"
 msgstr "(máx: {0})"
 
@@ -1261,7 +1271,7 @@ msgstr "Estado de pagamento atualizado com sucesso"
 msgid "Create new"
 msgstr "Criar novo"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:249
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:254
 msgid "Refund total"
 msgstr "Total do reembolso"
 
@@ -1496,7 +1506,7 @@ msgstr "Países"
 msgid "Failed to rename view"
 msgstr "Falha ao renomear visão"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:306
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:311
 msgid "Available"
 msgstr "Disponível"
 
@@ -1518,6 +1528,10 @@ msgstr "Grupos de clientes"
 #: src/lib/framework/defaults.ts:98
 msgid "Customers"
 msgstr "Clientes"
+
+#: src/app/routes/_authenticated/_shipping-methods/components/shipping-calculator-selector.tsx:37
+msgid "Select Shipping Calculator"
+msgstr ""
 
 #: src/lib/components/layout/language-dialog.tsx:103
 msgid "Sample Formatting"
@@ -1588,7 +1602,7 @@ msgstr "Ir para a última página"
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:168
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:311
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx:352
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:358
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:363
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:71
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:273
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:498
@@ -1655,6 +1669,10 @@ msgstr "Definir campos personalizados"
 msgid "Collections"
 msgstr "Coleções"
 
+#: src/app/routes/_authenticated/_shipping-methods/components/shipping-eligibility-checker-selector.tsx:37
+msgid "Select Shipping Eligibility Checker"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:458
 msgid "Delete variant"
 msgstr "Excluir variante"
@@ -1713,6 +1731,7 @@ msgstr "Grupos de clientes"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:123
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:58
+#: src/lib/components/data-display/boolean.tsx:22
 #: src/lib/components/layout/nav-user.tsx:155
 msgid "Disabled"
 msgstr "Desabilitado"
@@ -1865,7 +1884,7 @@ msgstr "Duplicar"
 msgid "No results"
 msgstr "Nenhum resultado"
 
-#: src/lib/components/data-table/data-table-view-options.tsx:89
+#: src/lib/components/data-table/data-table-view-options.tsx:95
 msgid "Column settings"
 msgstr "Configurações de coluna"
 
@@ -1951,7 +1970,7 @@ msgstr "Falha ao estender documento de consulta"
 msgid "Failed to update note"
 msgstr "Falha ao atualizar nota"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:201
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:206
 msgid "Refund shipping"
 msgstr "Reembolsar frete"
 
@@ -2356,6 +2375,10 @@ msgstr "Define os idiomas disponíveis para todos os canais. Canais individuais 
 msgid "Collections moved successfully"
 msgstr "Coleções movidas com sucesso"
 
+#: src/lib/components/data-input/relation-selector.tsx:411
+msgid "Change selection"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/components/customer-status-badge.tsx:23
 msgid "Registered"
 msgstr "Registrado"
@@ -2670,6 +2693,10 @@ msgstr "Somente rascunhos de pedidos podem ser concluídos"
 msgid "Failed to update product"
 msgstr "Falha ao atualizar produto"
 
+#: src/app/routes/_authenticated/_collections/components/collection-filters-selector.tsx:26
+msgid "Add collection filter"
+msgstr ""
+
 #. placeholder {0}: adjustedLines.length
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx:152
 msgid "Adjusting {0} lines"
@@ -2693,7 +2720,7 @@ msgstr "Canal"
 #~ msgstr "Verificações de saúde"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:170
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:317
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:322
 msgid "Amount"
 msgstr "Valor"
 
@@ -2708,7 +2735,7 @@ msgid "New customer"
 msgstr "Novo cliente"
 
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:33
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:90
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:94
 msgid "Image"
 msgstr "Imagem"
 
@@ -2893,7 +2920,7 @@ msgstr "Fallback: {value}"
 msgid "Order history"
 msgstr "Histórico de pedidos"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:263
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:268
 msgid "Override"
 msgstr "Substituir"
 
@@ -2992,7 +3019,6 @@ msgstr ""
 #: src/app/routes/_authenticated/_tax-categories/tax-categories.tsx:44
 #: src/lib/components/data-input/product-multi-selector-input.tsx:377
 #: src/lib/components/data-input/product-multi-selector-input.tsx:380
-#: src/lib/components/data-input/relation-selector.tsx:404
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:439
 msgid "{0}"
 msgstr "{0}"
@@ -3005,7 +3031,7 @@ msgstr "Nova zona"
 msgid "Failed to update collection position"
 msgstr "Falha ao atualizar posição da coleção"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:102
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:106
 msgid "Refund"
 msgstr "Reembolso"
 
@@ -3146,6 +3172,10 @@ msgstr "Métricas de pedidos"
 msgid "Select display language"
 msgstr "Selecionar idioma de exibição"
 
+#: src/app/routes/_authenticated/_payment-methods/components/payment-handler-selector.tsx:37
+msgid "Select Payment Handler"
+msgstr ""
+
 #: src/app/routes/_authenticated/_profile/profile.tsx:128
 msgid "Authentication methods"
 msgstr "Métodos de autenticação"
@@ -3181,7 +3211,7 @@ msgstr "Variantes de produto"
 msgid "Manage Global Views"
 msgstr "Gerenciar visões globais"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:365
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:370
 msgid "Processing..."
 msgstr "Processando..."
 
@@ -3196,7 +3226,7 @@ msgstr "Selecionar período"
 
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:87
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:44
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:93
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:97
 msgid "Product"
 msgstr "Produto"
 
@@ -3275,12 +3305,12 @@ msgstr "Total de pedidos"
 msgid "No eligible shipping methods found for this order."
 msgstr "Nenhum método de envio elegível encontrado para este pedido."
 
-#: src/app/routes/_authenticated/_products/components/product-options-table.tsx:118
+#: src/app/routes/_authenticated/_products/components/product-options-table.tsx:126
 msgid "Add product option"
 msgstr "Adicionar opção de produto"
 
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:66
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:189
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:194
 #: src/app/routes/_authenticated/_orders/orders.tsx:85
 msgid "Shipping"
 msgstr "Envio"
@@ -3394,6 +3424,10 @@ msgstr "não é igual a"
 #~ msgid "e.g. Size"
 #~ msgstr "ex. Tamanho"
 
+#: src/app/routes/_authenticated/_payment-methods/components/payment-eligibility-checker-selector.tsx:38
+msgid "No checkers found"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:142
 msgid "Settle payment"
 msgstr "Liquidar pagamento"
@@ -3424,7 +3458,7 @@ msgstr "Novo local de estoque"
 msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
 msgstr "{successfulRefundCount} pagamento(s) reembolsado(s) antes da falha. Verifique o histórico do pedido para detalhes."
 
-#: src/lib/components/data-input/relation-selector.tsx:411
+#: src/lib/components/data-input/relation-selector.tsx:412
 msgid "Select item"
 msgstr "Selecionar item"
 
@@ -3664,7 +3698,7 @@ msgid "Add option group"
 msgstr "Adicionar grupo de opções"
 
 #. placeholder {0}: formatCurrency(refund.amountToRefundTotal, order.currencyCode)
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:367
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:372
 msgid "Refund {0}"
 msgstr "Reembolsar {0}"
 
@@ -3910,7 +3944,7 @@ msgctxt "theme"
 msgid "Light"
 msgstr "Claro"
 
-#: src/lib/components/data-table/data-table-view-options.tsx:120
+#: src/lib/components/data-table/data-table-view-options.tsx:130
 msgid "Reset"
 msgstr "Redefinir"
 
@@ -3918,6 +3952,10 @@ msgstr "Redefinir"
 #: src/lib/components/data-table/human-readable-operator.tsx:26
 msgid "is equal to"
 msgstr "é igual a"
+
+#: src/lib/components/shared/asset/asset-properties.tsx:17
+msgid "Source File"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:249
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:408
@@ -4087,7 +4125,7 @@ msgstr "Total do pedido"
 msgid "Visible to admins only"
 msgstr "Visível apenas para administradores"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:99
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:103
 msgid "Qty"
 msgstr "Qtd"
 
@@ -4206,7 +4244,7 @@ msgid "{title}"
 msgstr "{title}"
 
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:244
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:83
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:87
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:178
 msgid "Order lines"
 msgstr "Linhas de pedido"
@@ -4229,7 +4267,7 @@ msgstr "Um reembolso de {formattedDiff} é necessário. Selecione os valores de 
 
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:100
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:57
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:96
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:100
 msgid "Unit price"
 msgstr "Preço unitário"
 
@@ -4285,6 +4323,10 @@ msgstr ""
 #: src/lib/components/data-table/views-sheet.tsx:120
 msgid "Failed to convert view to global"
 msgstr "Falha ao converter visão em global"
+
+#: src/app/routes/_authenticated/_payment-methods/components/payment-eligibility-checker-selector.tsx:37
+msgid "Select Payment Eligibility Checker"
+msgstr ""
 
 #: src/lib/components/data-table/filters/data-table-enum-filter.tsx:53
 msgid "Select operator"
@@ -4696,6 +4738,7 @@ msgstr "Estado / Província"
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:55
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:57
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:57
+#: src/lib/components/data-display/boolean.tsx:22
 #: src/lib/components/layout/nav-user.tsx:152
 msgid "Enabled"
 msgstr "Habilitado"
@@ -4798,13 +4841,17 @@ msgstr "Bem-vindo ao Vendure"
 msgid "Shipping Methods"
 msgstr "Métodos de envio"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:144
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:149
 msgid "({maxRefundable} refundable)"
 msgstr "({maxRefundable} reembolsável)"
 
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:73
 msgid "Identifier"
 msgstr "Identificador"
+
+#: src/app/routes/_authenticated/_shipping-methods/components/fulfillment-handler-selector.tsx:51
+msgid "Select a fulfillment handler"
+msgstr ""
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:118
 msgid "Failed to update collection"
@@ -4907,6 +4954,7 @@ msgid "System"
 msgstr "Sistema"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:290
+#: src/app/routes/_authenticated/_products/components/product-variants-table.tsx:81
 msgid "Variant name"
 msgstr "Nome da variante"
 
@@ -4941,7 +4989,7 @@ msgstr "Taxas de impostos"
 msgid "Failed to load global settings"
 msgstr "Falha ao carregar configurações globais"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:75
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:79
 msgid "Select items to refund and optionally return to stock"
 msgstr "Selecione itens para reembolso e opcionalmente devolva ao estoque"
 
@@ -5230,6 +5278,10 @@ msgstr "Falha ao processar reembolso"
 msgid "First name"
 msgstr "Nome"
 
+#: src/lib/components/shared/product-variant-selector.tsx:83
+msgid "Add item to order"
+msgstr ""
+
 #: src/lib/components/data-table/human-readable-operator.tsx:58
 msgid "contains"
 msgstr "contém"
@@ -5301,7 +5353,7 @@ msgid "Duplicate value \"{trimmed}\" already exists"
 msgstr "O valor duplicado \"{trimmed}\" já existe"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:233
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:217
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:222
 msgid "Reason"
 msgstr "Motivo"
 
@@ -5382,7 +5434,7 @@ msgstr "Idioma"
 msgid "New Collection"
 msgstr "Nova coleção"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:72
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:76
 msgid "Refund and cancel order"
 msgstr "Reembolsar e cancelar pedido"
 
@@ -5710,6 +5762,7 @@ msgstr "Carregando coleções..."
 msgid "Successfully updated facet value"
 msgstr "Valor de faceta atualizado com sucesso"
 
+#: src/lib/components/shared/entity-assets.tsx:290
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:135
 msgid "Add asset"
 msgstr "Adicionar arquivo"
@@ -5778,6 +5831,10 @@ msgstr "Criado em"
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:165
 msgid "Failed to create product variant"
 msgstr "Falha ao criar variante de produto"
+
+#: src/lib/components/data-input/relation-selector.tsx:417
+msgid "Search..."
+msgstr ""
 
 #. placeholder {0}: formatLanguageName(contentLanguage)
 #: src/lib/components/layout/channel-switcher.tsx:130
@@ -5885,7 +5942,7 @@ msgstr "Nenhum endereço encontrado"
 msgid "Fulfillment ID"
 msgstr "ID de atendimento"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:290
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:295
 msgid "Select payments to refund"
 msgstr "Selecione pagamentos para reembolso"
 

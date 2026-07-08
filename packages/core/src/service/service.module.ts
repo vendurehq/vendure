@@ -60,6 +60,7 @@ import { ProductOptionService } from './services/product-option.service';
 import { ProductVariantService } from './services/product-variant.service';
 import { ProductService } from './services/product.service';
 import { PromotionService } from './services/promotion.service';
+import { ProvinceService } from './services/province.service';
 import { RoleService } from './services/role.service';
 import { SearchService } from './services/search.service';
 import { SellerService } from './services/seller.service';
@@ -99,6 +100,7 @@ const services = [
     ProductService,
     ProductVariantService,
     PromotionService,
+    ProvinceService,
     RoleService,
     SearchService,
     SellerService,

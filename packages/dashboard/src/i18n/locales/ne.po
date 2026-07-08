@@ -18,7 +18,7 @@ msgstr ""
 msgid "Full Name"
 msgstr "पूरा नाम"
 
-#: src/lib/components/data-input/relation-selector.tsx:408
+#: src/lib/components/data-input/relation-selector.tsx:409
 msgid "Select items"
 msgstr "वस्तुहरू चयन गर्नुहोस्"
 
@@ -90,7 +90,7 @@ msgstr "JSON मान सम्पादन गर्नुहोस्"
 msgid "Using external authentication strategy: {strategy}"
 msgstr "बाह्य प्रमाणीकरण रणनीति प्रयोग गर्दै: {strategy}"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:225
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:230
 msgid "Select a reason..."
 msgstr "कारण छान्नुहोस्..."
 
@@ -153,7 +153,7 @@ msgstr "{selectionLength} सम्पत्तिहरू मेटियो"
 msgid "Successfully updated tax rate"
 msgstr "कर दर सफलतापूर्वक अपडेट गरियो"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:237
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:242
 msgid "Enter custom reason..."
 msgstr "अनुकूलित कारण लेख्नुहोस्..."
 
@@ -167,6 +167,11 @@ msgstr "प्रकार"
 #: src/lib/components/data-input/default-relation-input.tsx:676
 msgid "Select {0}"
 msgstr "{0} चयन गर्नुहोस्"
+
+#. placeholder {0}: selectedItems.length
+#: src/lib/components/data-input/relation-selector.tsx:408
+msgid "Add more ({0} selected)"
+msgstr ""
 
 #: src/app/routes/_authenticated/_facets/facets.tsx:67
 msgid "View values"
@@ -219,6 +224,10 @@ msgstr "स्वत: रिफ्रेस: {0}"
 msgid "Deleted {deleted} {entityName}"
 msgstr "{deleted} {entityName} मेटियो"
 
+#: src/lib/components/shared/asset/asset-properties.tsx:32
+msgid "File Size"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/healthchecks.tsx:13
 #~ msgid "Healthchecks"
 #~ msgstr "स्वास्थ्य जाँच"
@@ -241,7 +250,7 @@ msgstr "{fulfilled, plural, one {{fulfilled} कार्य सफलताप�
 msgid "Seller"
 msgstr "विक्रेता"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:131
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:136
 msgid "SKU:"
 msgstr "SKU:"
 
@@ -396,7 +405,7 @@ msgstr "नयाँ भूमिका"
 msgid "Failed to delete assets: {message}"
 msgstr "सम्पत्तिहरू मेट्न असफल: {message}"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:105
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:109
 msgid "Return to stock"
 msgstr "स्टकमा फिर्ता"
 
@@ -809,6 +818,7 @@ msgid "Found {0} eligible shipping method{1}"
 msgstr "{0} योग्य ढुवानी विधि फेला पर्यो"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx:746
+#: src/lib/components/shared/asset/asset-properties.tsx:39
 msgid "Dimensions"
 msgstr "आयाम"
 
@@ -817,7 +827,7 @@ msgid "Show password"
 msgstr "पासवर्ड देखाउनुहोस्"
 
 #. placeholder {0}: formatCurrency(refund.totalRefundableAmount, order.currencyCode)
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:282
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:287
 msgid "(max: {0})"
 msgstr "(अधिकतम: {0})"
 
@@ -1261,7 +1271,7 @@ msgstr "भुक्तानी स्थिति सफलतापूर्�
 msgid "Create new"
 msgstr "नयाँ सिर्जना गर्नुहोस्"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:249
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:254
 msgid "Refund total"
 msgstr "फिर्ता कुल"
 
@@ -1496,7 +1506,7 @@ msgstr "देशहरू"
 msgid "Failed to rename view"
 msgstr "दृश्य पुन: नामकरण गर्न असफल"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:306
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:311
 msgid "Available"
 msgstr "उपलब्ध"
 
@@ -1518,6 +1528,10 @@ msgstr "ग्राहक समूहहरू"
 #: src/lib/framework/defaults.ts:98
 msgid "Customers"
 msgstr "ग्राहकहरू"
+
+#: src/app/routes/_authenticated/_shipping-methods/components/shipping-calculator-selector.tsx:37
+msgid "Select Shipping Calculator"
+msgstr ""
 
 #: src/lib/components/layout/language-dialog.tsx:103
 msgid "Sample Formatting"
@@ -1588,7 +1602,7 @@ msgstr "अन्तिम पृष्ठमा जानुहोस्"
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:168
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:311
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx:352
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:358
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:363
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:71
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:273
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:498
@@ -1655,6 +1669,10 @@ msgstr "कस्टम फिल्डहरू सेट गर्नुहो
 msgid "Collections"
 msgstr "संग्रहहरू"
 
+#: src/app/routes/_authenticated/_shipping-methods/components/shipping-eligibility-checker-selector.tsx:37
+msgid "Select Shipping Eligibility Checker"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:458
 msgid "Delete variant"
 msgstr "भेरियन्ट मेटाउनुहोस्"
@@ -1713,6 +1731,7 @@ msgstr "ग्राहक समूहहरू"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:123
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:58
+#: src/lib/components/data-display/boolean.tsx:22
 #: src/lib/components/layout/nav-user.tsx:155
 msgid "Disabled"
 msgstr "असक्षम"
@@ -1865,7 +1884,7 @@ msgstr "नक्कल गर्नुहोस्"
 msgid "No results"
 msgstr "कुनै परिणामहरू छैनन्"
 
-#: src/lib/components/data-table/data-table-view-options.tsx:89
+#: src/lib/components/data-table/data-table-view-options.tsx:95
 msgid "Column settings"
 msgstr "स्तम्भ सेटिङहरू"
 
@@ -1951,7 +1970,7 @@ msgstr "क्वेरी कागजात विस्तार गर्न
 msgid "Failed to update note"
 msgstr "टिप्पणी अपडेट गर्न असफल"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:201
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:206
 msgid "Refund shipping"
 msgstr "ढुवानी फिर्ता"
 
@@ -2356,6 +2375,10 @@ msgstr "सबै च्यानलहरूको लागि उपलब्
 msgid "Collections moved successfully"
 msgstr "संग्रहहरू सफलतापूर्वक सारिएको"
 
+#: src/lib/components/data-input/relation-selector.tsx:411
+msgid "Change selection"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/components/customer-status-badge.tsx:23
 msgid "Registered"
 msgstr "दर्ता गरिएको"
@@ -2670,6 +2693,10 @@ msgstr "ड्राफ्ट अर्डरहरू मात्र पूर
 msgid "Failed to update product"
 msgstr "उत्पादन अपडेट गर्न असफल"
 
+#: src/app/routes/_authenticated/_collections/components/collection-filters-selector.tsx:26
+msgid "Add collection filter"
+msgstr ""
+
 #. placeholder {0}: adjustedLines.length
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx:152
 msgid "Adjusting {0} lines"
@@ -2693,7 +2720,7 @@ msgstr "च्यानल"
 #~ msgstr "स्वास्थ्य जाँच"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:170
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:317
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:322
 msgid "Amount"
 msgstr "रकम"
 
@@ -2708,7 +2735,7 @@ msgid "New customer"
 msgstr "नयाँ ग्राहक"
 
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:33
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:90
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:94
 msgid "Image"
 msgstr "छवि"
 
@@ -2893,7 +2920,7 @@ msgstr "फलब्याक: {value}"
 msgid "Order history"
 msgstr "अर्डर इतिहास"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:263
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:268
 msgid "Override"
 msgstr "ओभरराइड"
 
@@ -2992,7 +3019,6 @@ msgstr ""
 #: src/app/routes/_authenticated/_tax-categories/tax-categories.tsx:44
 #: src/lib/components/data-input/product-multi-selector-input.tsx:377
 #: src/lib/components/data-input/product-multi-selector-input.tsx:380
-#: src/lib/components/data-input/relation-selector.tsx:404
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:439
 msgid "{0}"
 msgstr "{0}"
@@ -3005,7 +3031,7 @@ msgstr "नयाँ क्षेत्र"
 msgid "Failed to update collection position"
 msgstr "संग्रह स्थिति अपडेट गर्न असफल"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:102
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:106
 msgid "Refund"
 msgstr "फिर्ता"
 
@@ -3146,6 +3172,10 @@ msgstr "अर्डर मेट्रिक्स"
 msgid "Select display language"
 msgstr "प्रदर्शन भाषा चयन गर्नुहोस्"
 
+#: src/app/routes/_authenticated/_payment-methods/components/payment-handler-selector.tsx:37
+msgid "Select Payment Handler"
+msgstr ""
+
 #: src/app/routes/_authenticated/_profile/profile.tsx:128
 msgid "Authentication methods"
 msgstr "प्रमाणीकरण विधिहरू"
@@ -3181,7 +3211,7 @@ msgstr "उत्पादन भेरियन्टहरू"
 msgid "Manage Global Views"
 msgstr "ग्लोबल दृश्यहरू व्यवस्थापन गर्नुहोस्"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:365
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:370
 msgid "Processing..."
 msgstr "प्रशोधन गर्दै..."
 
@@ -3196,7 +3226,7 @@ msgstr "मिति दायरा चयन गर्नुहोस्"
 
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:87
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:44
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:93
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:97
 msgid "Product"
 msgstr "उत्पादन"
 
@@ -3275,12 +3305,12 @@ msgstr "कुल अर्डरहरू"
 msgid "No eligible shipping methods found for this order."
 msgstr "यो अर्डरको लागि कुनै योग्य ढुवानी विधिहरू फेला परेन।"
 
-#: src/app/routes/_authenticated/_products/components/product-options-table.tsx:118
+#: src/app/routes/_authenticated/_products/components/product-options-table.tsx:126
 msgid "Add product option"
 msgstr "उत्पादन विकल्प थप्नुहोस्"
 
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:66
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:189
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:194
 #: src/app/routes/_authenticated/_orders/orders.tsx:85
 msgid "Shipping"
 msgstr "ढुवानी"
@@ -3394,6 +3424,10 @@ msgstr "बराबर छैन"
 #~ msgid "e.g. Size"
 #~ msgstr "जस्तै साइज"
 
+#: src/app/routes/_authenticated/_payment-methods/components/payment-eligibility-checker-selector.tsx:38
+msgid "No checkers found"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:142
 msgid "Settle payment"
 msgstr "भुक्तानी सम्पन्न गर्नुहोस्"
@@ -3424,7 +3458,7 @@ msgstr "नयाँ स्टक स्थान"
 msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
 msgstr "असफलता अघि {successfulRefundCount} भुक्तानी(हरू) फिर्ता गरियो। विवरणको लागि अर्डर इतिहास जाँच गर्नुहोस्।"
 
-#: src/lib/components/data-input/relation-selector.tsx:411
+#: src/lib/components/data-input/relation-selector.tsx:412
 msgid "Select item"
 msgstr "वस्तु चयन गर्नुहोस्"
 
@@ -3664,7 +3698,7 @@ msgid "Add option group"
 msgstr "विकल्प समूह थप्नुहोस्"
 
 #. placeholder {0}: formatCurrency(refund.amountToRefundTotal, order.currencyCode)
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:367
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:372
 msgid "Refund {0}"
 msgstr "{0} फिर्ता"
 
@@ -3910,7 +3944,7 @@ msgctxt "theme"
 msgid "Light"
 msgstr "उज्यालो"
 
-#: src/lib/components/data-table/data-table-view-options.tsx:120
+#: src/lib/components/data-table/data-table-view-options.tsx:130
 msgid "Reset"
 msgstr "रिसेट गर्नुहोस्"
 
@@ -3918,6 +3952,10 @@ msgstr "रिसेट गर्नुहोस्"
 #: src/lib/components/data-table/human-readable-operator.tsx:26
 msgid "is equal to"
 msgstr "बराबर छ"
+
+#: src/lib/components/shared/asset/asset-properties.tsx:17
+msgid "Source File"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:249
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:408
@@ -4087,7 +4125,7 @@ msgstr "कुल अर्डर"
 msgid "Visible to admins only"
 msgstr "प्रशासकहरूलाई मात्र देखिने"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:99
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:103
 msgid "Qty"
 msgstr "मात्रा"
 
@@ -4206,7 +4244,7 @@ msgid "{title}"
 msgstr "{title}"
 
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:244
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:83
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:87
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:178
 msgid "Order lines"
 msgstr "अर्डर लाइनहरू"
@@ -4229,7 +4267,7 @@ msgstr "{formattedDiff} को फिर्ता आवश्यक छ। भ�
 
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:100
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:57
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:96
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:100
 msgid "Unit price"
 msgstr "एकाइ मूल्य"
 
@@ -4285,6 +4323,10 @@ msgstr ""
 #: src/lib/components/data-table/views-sheet.tsx:120
 msgid "Failed to convert view to global"
 msgstr "दृश्यलाई ग्लोबलमा रूपान्तरण गर्न असफल"
+
+#: src/app/routes/_authenticated/_payment-methods/components/payment-eligibility-checker-selector.tsx:37
+msgid "Select Payment Eligibility Checker"
+msgstr ""
 
 #: src/lib/components/data-table/filters/data-table-enum-filter.tsx:53
 msgid "Select operator"
@@ -4696,6 +4738,7 @@ msgstr "राज्य / प्रान्त"
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:55
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:57
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:57
+#: src/lib/components/data-display/boolean.tsx:22
 #: src/lib/components/layout/nav-user.tsx:152
 msgid "Enabled"
 msgstr "सक्षम"
@@ -4798,13 +4841,17 @@ msgstr "Vendure मा स्वागत छ"
 msgid "Shipping Methods"
 msgstr "ढुवानी विधिहरू"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:144
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:149
 msgid "({maxRefundable} refundable)"
 msgstr "({maxRefundable} फिर्ता गर्न मिल्ने)"
 
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:73
 msgid "Identifier"
 msgstr "पहिचानकर्ता"
+
+#: src/app/routes/_authenticated/_shipping-methods/components/fulfillment-handler-selector.tsx:51
+msgid "Select a fulfillment handler"
+msgstr ""
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:118
 msgid "Failed to update collection"
@@ -4907,6 +4954,7 @@ msgid "System"
 msgstr "प्रणाली"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:290
+#: src/app/routes/_authenticated/_products/components/product-variants-table.tsx:81
 msgid "Variant name"
 msgstr "भिन्नता नाम"
 
@@ -4941,7 +4989,7 @@ msgstr "कर दरहरू"
 msgid "Failed to load global settings"
 msgstr "ग्लोबल सेटिङहरू लोड गर्न असफल"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:75
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:79
 msgid "Select items to refund and optionally return to stock"
 msgstr "फिर्ताको लागि वस्तुहरू छान्नुहोस् र वैकल्पिक रूपमा स्टकमा फिर्ता गर्नुहोस्"
 
@@ -5230,6 +5278,10 @@ msgstr "फिर्ता प्रक्रिया गर्न असफल
 msgid "First name"
 msgstr "पहिलो नाम"
 
+#: src/lib/components/shared/product-variant-selector.tsx:83
+msgid "Add item to order"
+msgstr ""
+
 #: src/lib/components/data-table/human-readable-operator.tsx:58
 msgid "contains"
 msgstr "समावेश गर्दछ"
@@ -5301,7 +5353,7 @@ msgid "Duplicate value \"{trimmed}\" already exists"
 msgstr "नक्कल मान \"{trimmed}\" पहिले नै अवस्थित छ"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:233
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:217
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:222
 msgid "Reason"
 msgstr "कारण"
 
@@ -5382,7 +5434,7 @@ msgstr "भाषा"
 msgid "New Collection"
 msgstr "नयाँ संग्रह"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:72
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:76
 msgid "Refund and cancel order"
 msgstr "फिर्ता र अर्डर रद्द गर्नुहोस्"
 
@@ -5710,6 +5762,7 @@ msgstr "संग्रहहरू लोड गर्दै..."
 msgid "Successfully updated facet value"
 msgstr "विशेषता मान सफलतापूर्वक अपडेट गरियो"
 
+#: src/lib/components/shared/entity-assets.tsx:290
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:135
 msgid "Add asset"
 msgstr "सम्पत्ति थप्नुहोस्"
@@ -5778,6 +5831,10 @@ msgstr "सिर्जना मिति"
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:165
 msgid "Failed to create product variant"
 msgstr "उत्पादन भेरियन्ट सिर्जना गर्न असफल"
+
+#: src/lib/components/data-input/relation-selector.tsx:417
+msgid "Search..."
+msgstr ""
 
 #. placeholder {0}: formatLanguageName(contentLanguage)
 #: src/lib/components/layout/channel-switcher.tsx:130
@@ -5885,7 +5942,7 @@ msgstr "कुनै ठेगानाहरू फेला परेन"
 msgid "Fulfillment ID"
 msgstr "पूर्ति ID"
 
-#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:290
+#: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:295
 msgid "Select payments to refund"
 msgstr "फिर्ताको लागि भुक्तानीहरू छान्नुहोस्"
 
