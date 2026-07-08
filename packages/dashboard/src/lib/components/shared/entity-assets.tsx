@@ -29,7 +29,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { AssetPickerDialog } from './asset/asset-picker-dialog.js';
 import { AssetPreviewDialog } from './asset/asset-preview-dialog.js';
 import { VendureImage } from './vendure-image.js';
-import { Trans } from '@lingui/react/macro';
 
 type Asset = AssetFragment;
 
