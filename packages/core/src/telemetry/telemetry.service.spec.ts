@@ -73,6 +73,13 @@ describe('TelemetryService', () => {
             collect: vi.fn().mockReturnValue({
                 nodeVersion: 'v20.0.0',
                 platform: 'linux x64',
+                runtime: {
+                    runtimeType: 'node',
+                    packageManager: 'npm',
+                    tsNode: false,
+                    cpuCount: 8,
+                    totalMemoryGb: 16,
+                },
             }),
         };
 
@@ -317,6 +324,123 @@ describe('TelemetryService', () => {
                 expect(body.config.paymentMethodCount).toBe('1-100');
                 expect(body.config.shippingMethodCount).toBe('1-100');
             });
+
+            it('sets schemaVersion to 2', async () => {
+                service.onApplicationBootstrap();
+                await flushPromises();
+
+                const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+                expect(body.schemaVersion).toBe(2);
+            });
+
+            it('tags the initial send with sendReason "startup"', async () => {
+                service.onApplicationBootstrap();
+                await flushPromises();
+
+                const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+                expect(body.sendReason).toBe('startup');
+            });
+
+            it('includes a non-negative integer uptimeSeconds', async () => {
+                service.onApplicationBootstrap();
+                await flushPromises();
+
+                const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+                expect(Number.isInteger(body.uptimeSeconds)).toBe(true);
+                expect(body.uptimeSeconds).toBeGreaterThanOrEqual(0);
+            });
+
+            it('passes the runtime section through from the system info collector', async () => {
+                service.onApplicationBootstrap();
+                await flushPromises();
+
+                const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+                expect(body.runtime).toEqual({
+                    runtimeType: 'node',
+                    packageManager: 'npm',
+                    tsNode: false,
+                    cpuCount: 8,
+                    totalMemoryGb: 16,
+                });
+            });
+
+            it('passes the i18n currency count to the features collector', async () => {
+                mockDatabaseCollector.collect = vi.fn().mockResolvedValue({
+                    databaseType: 'postgres',
+                    metrics: {
+                        entities: {},
+                        custom: { entityCount: 0 },
+                        i18n: { languages: 2, currencies: 3 },
+                    },
+                });
+
+                service.onApplicationBootstrap();
+                await flushPromises();
+
+                expect(mockFeaturesCollector.collect).toHaveBeenCalledWith(expect.any(Object), 3);
+            });
+        });
+
+        describe('heartbeat', () => {
+            const HEARTBEAT_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
+            it('sends a second event tagged "heartbeat" after 24 hours', async () => {
+                service.onApplicationBootstrap();
+                await flushPromises();
+                expect(mockFetch).toHaveBeenCalledTimes(1);
+
+                await vi.advanceTimersByTimeAsync(HEARTBEAT_INTERVAL_MS);
+
+                expect(mockFetch).toHaveBeenCalledTimes(2);
+                const startupBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+                const heartbeatBody = JSON.parse(mockFetch.mock.calls[1][1].body);
+                expect(startupBody.sendReason).toBe('startup');
+                expect(heartbeatBody.sendReason).toBe('heartbeat');
+            });
+
+            it('keeps sending heartbeats on each subsequent interval', async () => {
+                service.onApplicationBootstrap();
+                await flushPromises();
+
+                await vi.advanceTimersByTimeAsync(HEARTBEAT_INTERVAL_MS);
+                await vi.advanceTimersByTimeAsync(HEARTBEAT_INTERVAL_MS);
+
+                expect(mockFetch).toHaveBeenCalledTimes(3);
+            });
+
+            it('unref()s the heartbeat interval so it never keeps the process alive', async () => {
+                const unref = vi.fn();
+                const setIntervalSpy = vi.spyOn(globalThis, 'setInterval').mockReturnValue({ unref } as any);
+
+                service.onApplicationBootstrap();
+                await flushPromises();
+
+                expect(setIntervalSpy).toHaveBeenCalledWith(expect.any(Function), HEARTBEAT_INTERVAL_MS);
+                expect(unref).toHaveBeenCalled();
+
+                setIntervalSpy.mockRestore();
+            });
+
+            it('clears the heartbeat interval on shutdown', async () => {
+                service.onApplicationBootstrap();
+                await flushPromises();
+                mockFetch.mockClear();
+
+                service.onApplicationShutdown();
+                await vi.advanceTimersByTimeAsync(HEARTBEAT_INTERVAL_MS * 3);
+
+                expect(mockFetch).not.toHaveBeenCalled();
+            });
+
+            it('does not schedule a heartbeat when disabled at bootstrap', async () => {
+                process.env.VENDURE_DISABLE_TELEMETRY = 'true';
+
+                service.onApplicationBootstrap();
+                await flushPromises();
+                await vi.advanceTimersByTimeAsync(HEARTBEAT_INTERVAL_MS);
+
+                expect(mockFetch).not.toHaveBeenCalled();
+            });
         });
 
         describe('timeout handling', () => {
@@ -521,8 +645,11 @@ describe('TelemetryService', () => {
 });
 
 async function flushPromises() {
-    // Advance timers to trigger the 5-second telemetry delay
+    // Advance timers to trigger the 5-second startup telemetry delay.
     await vi.advanceTimersByTimeAsync(5000);
-    // Flush microtasks
-    await vi.runAllTimersAsync();
+    // Flush any microtasks queued by the async send chain. We deliberately do
+    // NOT use runAllTimersAsync() here: after the startup send fires, a repeating
+    // 24h heartbeat interval is scheduled, and runAllTimersAsync() would spin on
+    // it forever.
+    await vi.advanceTimersByTimeAsync(0);
 }

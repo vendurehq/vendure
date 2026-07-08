@@ -11,10 +11,13 @@ import { InstallationIdCollector } from './collectors/installation-id.collector'
 import { PluginCollector } from './collectors/plugin.collector';
 import { SystemInfoCollector } from './collectors/system-info.collector';
 import { isTelemetryDisabled } from './helpers/is-telemetry-disabled.helper';
-import { TelemetryPayload } from './telemetry.types';
+import { SendReason, TelemetryPayload } from './telemetry.types';
 
 const TELEMETRY_ENDPOINT = 'https://telemetry.vendure.io/api/v1/collect';
 const TELEMETRY_TIMEOUT_MS = 5000;
+const TELEMETRY_SCHEMA_VERSION = 2;
+const STARTUP_DELAY_MS = 5000;
+const HEARTBEAT_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 /**
  * @description
@@ -41,6 +44,7 @@ const TELEMETRY_TIMEOUT_MS = 5000;
 @Injectable()
 export class TelemetryService implements OnApplicationBootstrap, OnApplicationShutdown {
     private delayTimeout: ReturnType<typeof setTimeout> | undefined;
+    private heartbeatInterval: ReturnType<typeof setInterval> | undefined;
 
     constructor(
         private readonly processContext: ProcessContext,
@@ -69,10 +73,11 @@ export class TelemetryService implements OnApplicationBootstrap, OnApplicationSh
         // before we check worker mode
         this.delayTimeout = setTimeout(() => {
             this.delayTimeout = undefined;
-            this.sendTelemetry().catch(() => {
+            this.sendTelemetry('startup').catch(() => {
                 // Silently ignore all errors
             });
-        }, 5000);
+            this.startHeartbeat();
+        }, STARTUP_DELAY_MS);
     }
 
     onApplicationShutdown() {
@@ -80,20 +85,41 @@ export class TelemetryService implements OnApplicationBootstrap, OnApplicationSh
             clearTimeout(this.delayTimeout);
             this.delayTimeout = undefined;
         }
+        if (this.heartbeatInterval) {
+            clearInterval(this.heartbeatInterval);
+            this.heartbeatInterval = undefined;
+        }
     }
 
     /**
-     * Collects and sends telemetry data.
+     * Schedules the repeating daily heartbeat send. The interval is unref'ed so
+     * it never keeps the process alive, and is cleared on shutdown.
      */
-    private async sendTelemetry(): Promise<void> {
-        const payload = await this.collectPayload();
+    private startHeartbeat(): void {
+        this.heartbeatInterval = setInterval(() => {
+            this.sendTelemetry('heartbeat').catch(() => {
+                // Silently ignore all errors
+            });
+        }, HEARTBEAT_INTERVAL_MS);
+        this.heartbeatInterval.unref?.();
+    }
+
+    /**
+     * Collects and sends telemetry data. Guards are re-checked on every send so
+     * they apply to both the startup send and each heartbeat.
+     */
+    private async sendTelemetry(sendReason: SendReason): Promise<void> {
+        if (this.processContext.isWorker || isTelemetryDisabled()) {
+            return;
+        }
+        const payload = await this.collectPayload(sendReason);
         await this.send(payload);
     }
 
     /**
      * Collects all telemetry data from the various collectors.
      */
-    private async collectPayload(): Promise<TelemetryPayload> {
+    private async collectPayload(sendReason: SendReason): Promise<TelemetryPayload> {
         const installationId = await this.installationIdCollector.collect();
         const databaseInfo = await this.databaseCollector.collect();
 
@@ -112,12 +138,14 @@ export class TelemetryService implements OnApplicationBootstrap, OnApplicationSh
             shippingMethodCount: entities.ShippingMethod ?? collectedConfig.shippingMethodCount,
         };
 
-        // FeaturesCollector derives flags from already-collected config
-        // to avoid duplicating custom-field/scheduler iteration logic
-        const features = await this.featuresCollector.collect(config);
+        // FeaturesCollector derives flags from already-collected config and the
+        // already-collected i18n currency count to avoid duplicating iteration
+        // or querying logic
+        const features = await this.featuresCollector.collect(config, databaseInfo.metrics?.i18n?.currencies);
 
         return {
             // Required fields
+            schemaVersion: TELEMETRY_SCHEMA_VERSION,
             installationId,
             timestamp: new Date().toISOString(),
             vendureVersion: VENDURE_VERSION,
@@ -125,8 +153,11 @@ export class TelemetryService implements OnApplicationBootstrap, OnApplicationSh
             databaseType: databaseInfo.databaseType,
 
             // Optional fields
+            sendReason,
+            uptimeSeconds: Math.floor(process.uptime()),
             environment: process.env.NODE_ENV,
             platform: systemInfo.platform,
+            runtime: systemInfo.runtime,
             plugins,
             metrics: databaseInfo.metrics,
             deployment,
