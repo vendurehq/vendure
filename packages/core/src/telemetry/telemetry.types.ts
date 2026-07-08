@@ -65,12 +65,17 @@ export interface TelemetryEntityMetrics {
     /** Order lifecycle breakdown (range-bucketed counts) */
     orders?: TelemetryOrderMetrics;
     /** Internationalization breadth derived from the Channel table */
-    i18n?: {
-        /** Distinct language codes across all channels */
-        languages?: number;
-        /** Distinct currency codes across all channels */
-        currencies?: number;
-    };
+    i18n?: TelemetryI18nMetrics;
+}
+
+/**
+ * Internationalization breadth derived from the Channel table.
+ */
+export interface TelemetryI18nMetrics {
+    /** Distinct language codes across all channels */
+    languages?: number;
+    /** Distinct currency codes across all channels */
+    currencies?: number;
 }
 
 /**

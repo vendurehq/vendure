@@ -383,6 +383,19 @@ describe('TelemetryService', () => {
 
         describe('heartbeat', () => {
             const HEARTBEAT_INTERVAL_MS = 24 * 60 * 60 * 1000;
+            const HEARTBEAT_MAX_JITTER_MS = 60 * 60 * 1000;
+
+            beforeEach(() => {
+                // Deterministic scheduling by default (no jitter); individual
+                // tests override Math.random where they need to.
+                vi.spyOn(Math, 'random').mockReturnValue(0);
+            });
+
+            afterEach(() => {
+                // Detach the Math.random / setTimeout spies so later tests in this
+                // file see the real implementations.
+                vi.restoreAllMocks();
+            });
 
             it('sends a second event tagged "heartbeat" after 24 hours', async () => {
                 service.onApplicationBootstrap();
@@ -398,7 +411,24 @@ describe('TelemetryService', () => {
                 expect(heartbeatBody.sendReason).toBe('heartbeat');
             });
 
-            it('keeps sending heartbeats on each subsequent interval', async () => {
+            it('adds random jitter (0-3600s) to the heartbeat delay', async () => {
+                // 0.5 → half the max jitter window on top of the 24h base delay
+                vi.spyOn(Math, 'random').mockReturnValue(0.5);
+                const expectedDelay = HEARTBEAT_INTERVAL_MS + HEARTBEAT_MAX_JITTER_MS / 2;
+
+                service.onApplicationBootstrap();
+                await flushPromises();
+                expect(mockFetch).toHaveBeenCalledTimes(1);
+
+                // Advancing only the base interval is not enough — the jitter delays it
+                await vi.advanceTimersByTimeAsync(HEARTBEAT_INTERVAL_MS);
+                expect(mockFetch).toHaveBeenCalledTimes(1);
+
+                await vi.advanceTimersByTimeAsync(expectedDelay - HEARTBEAT_INTERVAL_MS);
+                expect(mockFetch).toHaveBeenCalledTimes(2);
+            });
+
+            it('keeps sending heartbeats, rescheduling itself each time', async () => {
                 service.onApplicationBootstrap();
                 await flushPromises();
 
@@ -408,20 +438,24 @@ describe('TelemetryService', () => {
                 expect(mockFetch).toHaveBeenCalledTimes(3);
             });
 
-            it('unref()s the heartbeat interval so it never keeps the process alive', async () => {
+            it('unref()s the heartbeat timer so it never keeps the process alive', () => {
                 const unref = vi.fn();
-                const setIntervalSpy = vi.spyOn(globalThis, 'setInterval').mockReturnValue({ unref } as any);
+                const scheduled: Array<{ fn: () => void; delay: number }> = [];
+                vi.spyOn(globalThis, 'setTimeout').mockImplementation(((fn: () => void, delay?: number) => {
+                    scheduled.push({ fn, delay: delay ?? 0 });
+                    return { unref } as any;
+                }) as any);
 
                 service.onApplicationBootstrap();
-                await flushPromises();
+                // Fire the startup-delay callback, which schedules the heartbeat.
+                scheduled[0].fn();
 
-                expect(setIntervalSpy).toHaveBeenCalledWith(expect.any(Function), HEARTBEAT_INTERVAL_MS);
+                const heartbeat = scheduled.find(s => s.delay === HEARTBEAT_INTERVAL_MS);
+                expect(heartbeat).toBeDefined();
                 expect(unref).toHaveBeenCalled();
-
-                setIntervalSpy.mockRestore();
             });
 
-            it('clears the heartbeat interval on shutdown', async () => {
+            it('clears the heartbeat timer on shutdown', async () => {
                 service.onApplicationBootstrap();
                 await flushPromises();
                 mockFetch.mockClear();

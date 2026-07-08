@@ -294,6 +294,27 @@ describe('DatabaseCollector', () => {
             });
         });
 
+        it('drops order-type keys that are not known OrderType enum values', async () => {
+            getRawMany.mockResolvedValue([
+                { type: 'Regular', count: '10' },
+                // A rogue value a plugin or manual data fix could have written
+                { type: 'super-secret-internal-type', count: '99' },
+                { type: '', count: '5' },
+            ]);
+
+            const result = await collector.collect();
+
+            expect(result.metrics.orders?.byType).toEqual({ Regular: '1-100' });
+        });
+
+        it('leaves byType undefined when only unknown types are present', async () => {
+            getRawMany.mockResolvedValue([{ type: 'not-a-real-type', count: '42' }]);
+
+            const result = await collector.collect();
+
+            expect(result.metrics.orders?.byType).toBeUndefined();
+        });
+
         it('leaves a single field undefined when its query fails, keeping the others', async () => {
             counts = { placed: 10, active: new Error('boom'), draft: 2, placedLast30d: 5 };
 

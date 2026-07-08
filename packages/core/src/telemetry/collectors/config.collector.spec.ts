@@ -802,6 +802,29 @@ describe('ConfigCollector', () => {
                 }
             });
 
+            it('detects a customized strategy set via the deprecated root-level entityIdStrategy', () => {
+                // entityOptions.entityIdStrategy is unset; the project configured the
+                // deprecated root-level entityIdStrategy instead. The fallback should
+                // still surface it as customized against the default.
+                mockConfigService.entityOptions = { moneyStrategy: undefined } as any;
+                (mockConfigService as any).entityIdStrategy = {
+                    constructor: { name: 'CustomEntityIdStrategy' },
+                };
+
+                expect(collector.collect().customizedStrategies).toContain('entityOptions.entityIdStrategy');
+            });
+
+            it('does not flag entityIdStrategy when the root-level fallback matches the default', () => {
+                mockConfigService.entityOptions = {} as any;
+                (mockConfigService as any).entityIdStrategy = {
+                    constructor: { name: 'AutoIncrementIdStrategy' },
+                };
+
+                expect(collector.collect().customizedStrategies).not.toContain(
+                    'entityOptions.entityIdStrategy',
+                );
+            });
+
             it('returns an empty array when no strategies are customized', () => {
                 // The base mock uses default-equivalent strategies for the fields it defines
                 mockConfigService.assetOptions = {

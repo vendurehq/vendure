@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { OrderType } from '@vendure/common/lib/generated-types';
 import { IsNull, MoreThanOrEqual, Not, type Repository } from 'typeorm';
 
 import { ConfigService } from '../../config/config.service';
@@ -11,10 +12,15 @@ import {
     RangeBucket,
     SupportedDatabaseType,
     TelemetryEntityMetrics,
+    TelemetryI18nMetrics,
     TelemetryOrderMetrics,
 } from '../telemetry.types';
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+// The daily heartbeat runs the entity-count sweep against a live production DB.
+// Counting in bounded chunks (rather than one large Promise.all over ~50
+// entities) avoids saturating the connection pool.
+const ENTITY_COUNT_CHUNK_SIZE = 10;
 
 export interface DatabaseInfo {
     databaseType: SupportedDatabaseType;
@@ -41,13 +47,13 @@ export class DatabaseCollector {
             metrics = { entities: {}, custom: { entityCount: 0 } };
         }
 
-        // Order and i18n metrics are collected independently so that a failure
-        // here never affects the already-collected entity metrics.
-        const orders = await this.collectOrderMetrics();
+        // Order and i18n metrics are collected independently (and concurrently)
+        // so that a failure in either never affects the already-collected entity
+        // metrics.
+        const [orders, i18n] = await Promise.all([this.collectOrderMetrics(), this.collectI18nMetrics()]);
         if (orders) {
             metrics.orders = orders;
         }
-        const i18n = await this.collectI18nMetrics();
         if (i18n) {
             metrics.i18n = i18n;
         }
@@ -60,7 +66,8 @@ export class DatabaseCollector {
 
     /**
      * Collects order lifecycle metrics. Each field is resolved independently;
-     * any query failure leaves that field undefined and never throws.
+     * any query failure leaves that field undefined and never throws. Returns
+     * undefined when no field could be resolved.
      */
     private async collectOrderMetrics(): Promise<TelemetryOrderMetrics | undefined> {
         try {
@@ -69,29 +76,26 @@ export class DatabaseCollector {
                 return undefined;
             }
             const repo = rawConnection.getRepository(Order);
-            const orders: TelemetryOrderMetrics = {};
-
-            const placed = await this.safeBucket(() =>
-                repo.count({ where: { orderPlacedAt: Not(IsNull()) } }),
-            );
-            if (placed) orders.placed = placed;
-
-            const active = await this.safeBucket(() => repo.count({ where: { active: true } }));
-            if (active) orders.active = active;
-
-            const draft = await this.safeBucket(() => repo.count({ where: { state: 'Draft' as any } }));
-            if (draft) orders.draft = draft;
-
             const since = new Date(Date.now() - THIRTY_DAYS_MS);
-            const placedLast30d = await this.safeBucket(() =>
-                repo.count({ where: { orderPlacedAt: MoreThanOrEqual(since) } }),
-            );
-            if (placedLast30d) orders.placedLast30d = placedLast30d;
 
-            const byType = await this.collectOrdersByType(repo);
+            // A handful of small, indexed queries — run them in parallel (unlike
+            // the larger entity-count sweep).
+            const [placed, active, draft, placedLast30d, byType] = await Promise.all([
+                this.safeBucket(() => repo.count({ where: { orderPlacedAt: Not(IsNull()) } })),
+                this.safeBucket(() => repo.count({ where: { active: true } })),
+                this.safeBucket(() => repo.count({ where: { state: 'Draft' as any } })),
+                this.safeBucket(() => repo.count({ where: { orderPlacedAt: MoreThanOrEqual(since) } })),
+                this.collectOrdersByType(repo),
+            ]);
+
+            const orders: TelemetryOrderMetrics = {};
+            if (placed) orders.placed = placed;
+            if (active) orders.active = active;
+            if (draft) orders.draft = draft;
+            if (placedLast30d) orders.placedLast30d = placedLast30d;
             if (byType) orders.byType = byType;
 
-            return orders;
+            return Object.keys(orders).length > 0 ? orders : undefined;
         } catch {
             return undefined;
         }
@@ -107,11 +111,16 @@ export class DatabaseCollector {
                 .addSelect('COUNT(*)', 'count')
                 .groupBy('o.type')
                 .getRawMany<{ type: string; count: string | number }>();
+            // Order.type is a plain varchar column, so allowlist against the
+            // known OrderType enum values — never emit arbitrary strings that a
+            // plugin or manual data fix might have written into the column.
+            const allowedTypes = new Set<string>(Object.values(OrderType));
             const result: Record<string, RangeBucket> = {};
             for (const row of rows) {
+                const type = String(row.type);
                 const count = Number(row.count);
-                if (row.type && count > 0) {
-                    result[String(row.type)] = toRangeBucket(count);
+                if (allowedTypes.has(type) && count > 0) {
+                    result[type] = toRangeBucket(count);
                 }
             }
             return Object.keys(result).length > 0 ? result : undefined;
@@ -125,7 +134,7 @@ export class DatabaseCollector {
      * of distinct language and currency codes across all channels (union of the
      * default code and the available* simple-array columns).
      */
-    private async collectI18nMetrics(): Promise<TelemetryEntityMetrics['i18n'] | undefined> {
+    private async collectI18nMetrics(): Promise<TelemetryI18nMetrics | undefined> {
         try {
             const rawConnection = this.connection.rawConnection;
             if (!rawConnection?.isInitialized) {
@@ -188,7 +197,7 @@ export class DatabaseCollector {
         }
 
         const coreEntityEntries = Object.entries(coreEntitiesMap);
-        const counts = await Promise.all(coreEntityEntries.map(([, entity]) => this.safeCount(entity)));
+        const counts = await this.countInChunks(coreEntityEntries.map(([, entity]) => entity));
 
         const entities: Partial<Record<string, RangeBucket>> = {};
         coreEntityEntries.forEach(([name], index) => {
@@ -201,7 +210,7 @@ export class DatabaseCollector {
         // Only count custom entity records if there are custom entities
         let totalCustomRecords: number | undefined;
         if (customEntityCount > 0) {
-            const customCounts = await Promise.all(customEntities.map(entity => this.safeCount(entity)));
+            const customCounts = await this.countInChunks(customEntities);
             totalCustomRecords = customCounts.reduce((sum, count) => sum + count, 0);
         }
 
@@ -212,6 +221,20 @@ export class DatabaseCollector {
                 ...(totalCustomRecords !== undefined && { totalRecords: toRangeBucket(totalCustomRecords) }),
             },
         };
+    }
+
+    /**
+     * Counts a list of entities in bounded chunks to avoid saturating the
+     * connection pool during the daily heartbeat sweep.
+     */
+    // eslint-disable-next-line @typescript-eslint/ban-types
+    private async countInChunks(entities: Function[]): Promise<number[]> {
+        const counts: number[] = [];
+        for (let i = 0; i < entities.length; i += ENTITY_COUNT_CHUNK_SIZE) {
+            const chunk = entities.slice(i, i + ENTITY_COUNT_CHUNK_SIZE);
+            counts.push(...(await Promise.all(chunk.map(entity => this.safeCount(entity)))));
+        }
+        return counts;
     }
 
     // eslint-disable-next-line @typescript-eslint/ban-types

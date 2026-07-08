@@ -18,18 +18,35 @@ const TELEMETRY_TIMEOUT_MS = 5000;
 const TELEMETRY_SCHEMA_VERSION = 2;
 const STARTUP_DELAY_MS = 5000;
 const HEARTBEAT_INTERVAL_MS = 24 * 60 * 60 * 1000;
+// Up to one hour of random jitter is added to each heartbeat delay so that a
+// fleet of servers restarted together does not fire their daily heartbeats at
+// the same instant (which would spike load on the telemetry endpoint).
+const HEARTBEAT_MAX_JITTER_MS = 60 * 60 * 1000;
 
 /**
  * @description
- * The TelemetryService collects anonymous usage data on Vendure application startup
- * and sends it to the Vendure telemetry endpoint. This data helps the Vendure team
+ * The TelemetryService collects anonymous usage data from Vendure applications and
+ * sends it to the Vendure telemetry endpoint. This data helps the Vendure team
  * understand how the framework is being used and prioritize development efforts.
+ *
+ * **Timing:**
+ * An initial event is sent shortly after startup, and a further "heartbeat" event
+ * is then sent roughly every 24 hours for as long as the server is running.
+ *
+ * **What is collected:**
+ * Version and runtime information (Vendure/Node versions, platform, JS runtime,
+ * package manager, CPU/memory shape), database type, plugin package names (custom
+ * plugin names are never collected), range-bucketed entity counts including order
+ * lifecycle and internationalization breadth, deployment/cloud detection, and a
+ * configuration summary reduced to booleans, enums and strategy/customization
+ * indicators. See the Telemetry guide for the full, authoritative list.
  *
  * **Privacy guarantees:**
  * - Installation ID is a random UUID, not derived from any system information
  * - Custom plugin names are NOT collected (only count)
  * - Entity counts use ranges, not exact numbers
- * - No PII (no hostnames, IPs, user data) is collected
+ * - No PII (no hostnames, IPs, user data), secrets, credentials or file paths are collected
+ * - Custom strategy class names are never sent (only the config paths that were customized)
  * - All failures are silently ignored
  *
  * **Opt-out:**
@@ -44,7 +61,7 @@ const HEARTBEAT_INTERVAL_MS = 24 * 60 * 60 * 1000;
 @Injectable()
 export class TelemetryService implements OnApplicationBootstrap, OnApplicationShutdown {
     private delayTimeout: ReturnType<typeof setTimeout> | undefined;
-    private heartbeatInterval: ReturnType<typeof setInterval> | undefined;
+    private heartbeatTimeout: ReturnType<typeof setTimeout> | undefined;
 
     constructor(
         private readonly processContext: ProcessContext,
@@ -76,7 +93,7 @@ export class TelemetryService implements OnApplicationBootstrap, OnApplicationSh
             this.sendTelemetry('startup').catch(() => {
                 // Silently ignore all errors
             });
-            this.startHeartbeat();
+            this.scheduleHeartbeat();
         }, STARTUP_DELAY_MS);
     }
 
@@ -85,23 +102,28 @@ export class TelemetryService implements OnApplicationBootstrap, OnApplicationSh
             clearTimeout(this.delayTimeout);
             this.delayTimeout = undefined;
         }
-        if (this.heartbeatInterval) {
-            clearInterval(this.heartbeatInterval);
-            this.heartbeatInterval = undefined;
+        if (this.heartbeatTimeout) {
+            clearTimeout(this.heartbeatTimeout);
+            this.heartbeatTimeout = undefined;
         }
     }
 
     /**
-     * Schedules the repeating daily heartbeat send. The interval is unref'ed so
-     * it never keeps the process alive, and is cleared on shutdown.
+     * Schedules the next heartbeat send roughly 24 hours out, with random jitter
+     * so that co-restarted servers desynchronize. The timer reschedules itself
+     * after firing, is unref'ed so it never keeps the process alive, and is
+     * cleared on shutdown.
      */
-    private startHeartbeat(): void {
-        this.heartbeatInterval = setInterval(() => {
+    private scheduleHeartbeat(): void {
+        const delay = HEARTBEAT_INTERVAL_MS + Math.floor(Math.random() * HEARTBEAT_MAX_JITTER_MS);
+        this.heartbeatTimeout = setTimeout(() => {
+            this.heartbeatTimeout = undefined;
             this.sendTelemetry('heartbeat').catch(() => {
                 // Silently ignore all errors
             });
-        }, HEARTBEAT_INTERVAL_MS);
-        this.heartbeatInterval.unref?.();
+            this.scheduleHeartbeat();
+        }, delay);
+        this.heartbeatTimeout.unref?.();
     }
 
     /**

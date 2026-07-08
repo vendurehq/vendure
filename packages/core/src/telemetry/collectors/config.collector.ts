@@ -227,10 +227,20 @@ export class ConfigCollector {
             for (const [optionsKey, fields] of Object.entries(SINGLE_STRATEGY_PATHS)) {
                 const liveOptions = (this.configService as any)[optionsKey];
                 const defaultOptions = (defaultConfig as any)[optionsKey];
+                const isEntityIdStrategy = optionsKey === 'entityOptions';
                 for (const field of fields) {
                     try {
-                        const liveStrategy = liveOptions?.[field];
-                        const defaultStrategy = defaultOptions?.[field];
+                        // entityOptions.entityIdStrategy has a deprecated root-level
+                        // fallback (mirrors getEntityIdStrategy); resolve both live
+                        // and default the same way so a project using the deprecated
+                        // field is still detected as customized.
+                        const useRootFallback = isEntityIdStrategy && field === 'entityIdStrategy';
+                        const liveStrategy = useRootFallback
+                            ? (liveOptions?.[field] ?? (this.configService as any).entityIdStrategy)
+                            : liveOptions?.[field];
+                        const defaultStrategy = useRootFallback
+                            ? (defaultOptions?.[field] ?? (defaultConfig as any).entityIdStrategy)
+                            : defaultOptions?.[field];
                         if (liveStrategy == null || defaultStrategy == null) {
                             continue;
                         }

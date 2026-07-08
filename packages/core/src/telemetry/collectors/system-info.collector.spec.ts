@@ -68,6 +68,26 @@ describe('SystemInfoCollector', () => {
             expect(collector.collect().runtime.runtimeType).toBe('node');
         });
 
+        it('reports runtimeType "bun" when process.versions.bun is present', () => {
+            const versions = process.versions as Record<string, string>;
+            versions.bun = '1.1.0';
+            try {
+                expect(collector.collect().runtime.runtimeType).toBe('bun');
+            } finally {
+                delete versions.bun;
+            }
+        });
+
+        it('reports runtimeType "deno" when process.versions.deno is present', () => {
+            const versions = process.versions as Record<string, string>;
+            versions.deno = '1.40.0';
+            try {
+                expect(collector.collect().runtime.runtimeType).toBe('deno');
+            } finally {
+                delete versions.deno;
+            }
+        });
+
         it.each([
             ['npm/10.0.0 node/v20.0.0 linux x64', 'npm'],
             ['pnpm/9.1.0 npm/? node/v20.0.0 linux x64', 'pnpm'],
@@ -90,6 +110,16 @@ describe('SystemInfoCollector', () => {
 
         it('reports tsNode false when the ts-node register instance is absent', () => {
             expect(collector.collect().runtime.tsNode).toBe(false);
+        });
+
+        it('reports tsNode true when the ts-node register instance is present', () => {
+            const key = Symbol.for('ts-node.register.instance');
+            (process as any)[key] = {};
+            try {
+                expect(collector.collect().runtime.tsNode).toBe(true);
+            } finally {
+                delete (process as any)[key];
+            }
         });
 
         it('reports cpuCount from os.cpus()', () => {
