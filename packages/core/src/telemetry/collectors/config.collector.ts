@@ -110,7 +110,10 @@ export class ConfigCollector {
     private getApiPlaygroundEnabled(): boolean | undefined {
         try {
             const api = this.configService.apiOptions;
-            return !!(api.adminApiPlayground || api.shopApiPlayground);
+            // adminApiPlayground/shopApiPlayground are deprecated, but reading them
+            // is intentional: telemetry on how many installations still enable the
+            // built-in playground is what tells us when it is safe to remove.
+            return !!(api.adminApiPlayground || api.shopApiPlayground); // NOSONAR
         } catch {
             return undefined;
         }
@@ -233,13 +236,14 @@ export class ConfigCollector {
                         // entityOptions.entityIdStrategy has a deprecated root-level
                         // fallback (mirrors getEntityIdStrategy); resolve both live
                         // and default the same way so a project using the deprecated
-                        // field is still detected as customized.
+                        // field is still detected as customized. Reading the
+                        // deprecated root-level field is intentional here.
                         const useRootFallback = isEntityIdStrategy && field === 'entityIdStrategy';
                         const liveStrategy = useRootFallback
-                            ? (liveOptions?.[field] ?? (this.configService as any).entityIdStrategy)
+                            ? (liveOptions?.[field] ?? (this.configService as any).entityIdStrategy) // NOSONAR
                             : liveOptions?.[field];
                         const defaultStrategy = useRootFallback
-                            ? (defaultOptions?.[field] ?? (defaultConfig as any).entityIdStrategy)
+                            ? (defaultOptions?.[field] ?? (defaultConfig as any).entityIdStrategy) // NOSONAR
                             : defaultOptions?.[field];
                         if (liveStrategy == null || defaultStrategy == null) {
                             continue;
