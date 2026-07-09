@@ -11,6 +11,7 @@ on:
             - '!docs/manifest.json'
             - 'lerna.json'
     pull_request:
+        types: [opened, synchronize, reopened, ready_for_review]
         branches:
             - master
             - minor
@@ -27,6 +28,8 @@ concurrency:
 jobs:
     validate:
         name: Validate MDX
+        # Skip draft PRs
+        if: ${{ github.event_name == 'push' || !github.event.pull_request.draft }}
         permissions:
             contents: read
         runs-on: ubuntu-latest
@@ -48,8 +51,8 @@ jobs:
 
     generate-manifest:
         name: Generate & commit manifest
-        # Skip fork PRs — can't push back to fork branches
-        if: ${{ github.event_name == 'push' || !github.event.pull_request.head.repo.fork }}
+        # Skip fork PRs (can't push back to fork branches) and draft PRs
+        if: ${{ github.event_name == 'push' || (!github.event.pull_request.head.repo.fork && !github.event.pull_request.draft) }}
         runs-on: ubuntu-latest
         permissions:
             contents: write
