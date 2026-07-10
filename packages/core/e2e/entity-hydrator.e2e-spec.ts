@@ -393,10 +393,15 @@ describe('Entity hydration', () => {
         });
 
         // Before the fix, the second line's variant (the same shared instance) was
-        // skipped, so its product's facetValues were never populated.
+        // skipped, so its product's facetValues were never populated. T_1's product has
+        // exactly 2 facetValues, and both lines must see the same set (they share one
+        // variant instance), not a partial or wrong-product result.
         expect(order!.lines.length).toBe(2);
-        expect(order!.lines[0].productVariant.product.facetValues.length).toBeGreaterThan(0);
-        expect(order!.lines[1].productVariant.product.facetValues.length).toBeGreaterThan(0);
+        const line0FacetIds = order!.lines[0].productVariant.product.facetValues.map(fv => fv.id);
+        const line1FacetIds = order!.lines[1].productVariant.product.facetValues.map(fv => fv.id);
+        expect(line0FacetIds.length).toBe(2);
+        expect(line1FacetIds.length).toBe(2);
+        expect(line1FacetIds).toEqual(line0FacetIds);
         expect(order!.lines[1].productVariant.product.facetValues[0].facet).toBeDefined();
     });
 
