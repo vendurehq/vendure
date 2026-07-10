@@ -1005,11 +1005,12 @@ export async function downloadAndExtractStorefront(targetDir: string): Promise<v
     const tempTarPath = path.join(targetDir, '..', 'storefront-temp.tar.gz');
 
     try {
-        // Fetch the tarball from GitHub
+        // Fetch the tarball from GitHub. A token (e.g. in CI) raises the rate limit.
         const response = await fetch(tarballUrl, {
             headers: {
                 Accept: 'application/vnd.github+json',
                 'User-Agent': 'vendure-create',
+                ...(process.env.GITHUB_TOKEN ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {}),
             },
         });
 

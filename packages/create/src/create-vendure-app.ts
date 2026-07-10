@@ -85,6 +85,12 @@ program
     .option('--use-npm', 'Force npm, overriding auto-detection of the package manager that invoked the CLI')
     .option('--ci', 'Runs without prompts for use in CI scenarios', false)
     .option('--with-storefront', 'Include Next.js storefront (only used with --ci)', false)
+    .option(
+        '--db <database>',
+        "Database to use with --ci: 'sqlite' or 'postgres' (postgres is started via Docker)",
+        /^(sqlite|postgres)$/i,
+        'sqlite',
+    )
     .parse(process.argv);
 
 const options = program.opts();
@@ -94,6 +100,7 @@ void createVendureApp(
     options.verbose ? 'verbose' : options.logLevel || 'info',
     options.ci,
     options.withStorefront,
+    options.db,
 ).catch(err => {
     log(err);
     process.exit(1);
@@ -105,6 +112,7 @@ export async function createVendureApp(
     logLevel: CliLogLevel,
     isCi: boolean = false,
     withStorefront: boolean = false,
+    ciDbType: 'sqlite' | 'postgres' = 'sqlite',
 ) {
     setLogLevel(logLevel);
     if (!runPreChecks(name)) {
@@ -181,7 +189,7 @@ export async function createVendureApp(
         includeStorefront,
     } =
         mode === 'ci'
-            ? await getCiConfiguration(root, packageManager, port, withStorefront)
+            ? await getCiConfiguration(root, packageManager, port, withStorefront, ciDbType)
             : mode === 'manual'
               ? await getManualConfiguration(root, packageManager, port)
               : await getQuickStartConfiguration(root, packageManager, port);
@@ -417,7 +425,9 @@ export async function createVendureApp(
     }
     scaffoldSpinner.stop(`Generated app scaffold`);
 
-    if (mode === 'quick' && dbType === 'postgres') {
+    // Manual mode is excluded: there the user supplies their own database connection,
+    // so no Docker container is started on their behalf.
+    if ((mode === 'quick' || mode === 'ci') && dbType === 'postgres') {
         cleanUpDockerResources(name);
         const dbStarted = await startPostgresDatabase(serverRoot, appName);
         if (!dbStarted) {

@@ -247,14 +247,19 @@ export async function getCiConfiguration(
     packageManager: PackageManager,
     port: number,
     includeStorefront: boolean = false,
+    dbType: 'sqlite' | 'postgres' = 'sqlite',
 ): Promise<UserResponses> {
+    // The postgres answers mirror the Quick Start flow, which starts the database
+    // in a Docker container mapped to host port 6543 (see docker-compose.hbs).
+    const usePostgres = dbType === 'postgres';
     const ciAnswers = {
-        dbType: 'sqlite' as const,
-        dbHost: '',
-        dbPort: '',
+        dbType,
+        dbHost: usePostgres ? 'localhost' : '',
+        dbPort: usePostgres ? '6543' : '',
         dbName: 'vendure',
-        dbUserName: '',
-        dbPassword: '',
+        dbUserName: usePostgres ? 'vendure' : '',
+        dbPassword: usePostgres ? randomBytes(16).toString('base64url') : '',
+        dbSchema: usePostgres ? 'public' : '',
         populateProducts: true,
         superadminIdentifier: SUPER_ADMIN_USER_IDENTIFIER,
         superadminPassword: SUPER_ADMIN_USER_PASSWORD,
