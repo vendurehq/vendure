@@ -5,6 +5,7 @@ import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+    checkNodeVersion,
     detectPackageManager,
     findAvailablePort,
     getInstallCommand,
@@ -561,5 +562,23 @@ describe('docker-compose template', () => {
             name: 'My Shop',
         });
         expect(out).toContain('name: myshop');
+    });
+});
+
+// #4932 — native deps (e.g. better-sqlite3) stop publishing prebuilt binaries for EOL
+// Node versions, so users on them hit cryptic install failures without this heads-up.
+describe('checkNodeVersion', () => {
+    afterEach(() => {
+        vi.mocked(log).mockClear();
+    });
+
+    it('warns when running on an EOL Node version', () => {
+        checkNodeVersion('>=20.0.0', 'v20.20.2');
+        expect(log).toHaveBeenCalledWith(expect.stringContaining('end-of-life'));
+    });
+
+    it('does not warn on a maintained Node version', () => {
+        checkNodeVersion('>=20.0.0', 'v22.15.0');
+        expect(log).not.toHaveBeenCalled();
     });
 });

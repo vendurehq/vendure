@@ -17,6 +17,7 @@ import * as tar from 'tar';
 import {
     CONCURRENTLY_VERSION,
     DEFAULT_PROJECT_VERSION,
+    OLDEST_NON_EOL_NODE_MAJOR,
     PG_READY_MAX_ATTEMPTS,
     PG_READY_POLL_INTERVAL_MS,
     SOCKET_TIMEOUT_MS,
@@ -106,16 +107,26 @@ export function scaffoldAlreadyExists(root: string, name: string): boolean {
     return scaffoldFiles.every(scaffoldFile => files.includes(scaffoldFile));
 }
 
-export function checkNodeVersion(requiredVersion: string) {
-    if (!semver.satisfies(process.version, requiredVersion)) {
+export function checkNodeVersion(requiredVersion: string, currentVersion: string = process.version) {
+    if (!semver.satisfies(currentVersion, requiredVersion)) {
         log(
             pc.red(
-                `You are running Node ${process.version}.` +
+                `You are running Node ${currentVersion}.` +
                     `Vendure requires Node ${requiredVersion} or higher.` +
                     'Please update your version of Node.',
             ),
         );
         process.exit(1);
+    }
+    if (semver.major(currentVersion) < OLDEST_NON_EOL_NODE_MAJOR) {
+        log(
+            pc.yellow(
+                `You are running Node ${currentVersion}, which has reached end-of-life. ` +
+                    'Native dependencies may no longer provide prebuilt binaries for it, ' +
+                    'which can cause installation failures. Consider upgrading to the ' +
+                    'current LTS release: https://nodejs.org/en/download',
+            ),
+        );
     }
 }
 
