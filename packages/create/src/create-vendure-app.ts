@@ -100,7 +100,9 @@ void createVendureApp(
     options.verbose ? 'verbose' : options.logLevel || 'info',
     options.ci,
     options.withStorefront,
-    options.db,
+    // The --db regex validates case-insensitively, but the comparisons downstream
+    // are against the lowercase literals.
+    options.db?.toLowerCase(),
 ).catch(err => {
     log(err);
     process.exit(1);

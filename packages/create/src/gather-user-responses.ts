@@ -256,7 +256,7 @@ export async function getCiConfiguration(
         dbType,
         dbHost: usePostgres ? 'localhost' : '',
         dbPort: usePostgres ? '6543' : '',
-        dbName: 'vendure',
+        dbName: usePostgres ? 'vendure' : '',
         dbUserName: usePostgres ? 'vendure' : '',
         dbPassword: usePostgres ? randomBytes(16).toString('base64url') : '',
         dbSchema: usePostgres ? 'public' : '',
