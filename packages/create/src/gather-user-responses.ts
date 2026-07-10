@@ -287,14 +287,7 @@ async function generateSources(
 ): Promise<FileSources> {
     const assetPath = (fileName: string) => path.join(__dirname, '../assets', fileName);
 
-    /**
-     * Helper to escape single quotes only. Used when generating the config file since e.g. passwords
-     * might use special chars (`< > ' "` etc) which Handlebars would be default convert to HTML entities.
-     * Instead, we disable escaping and use this custom helper to escape only the single quote character.
-     */
-    Handlebars.registerHelper('escapeSingle', (aString: unknown) => {
-        return typeof aString === 'string' ? aString.replace(/'/g, "\\'") : aString;
-    });
+    registerEscapeSingleHelper();
 
     const templateContext = {
         ...answers,
@@ -341,4 +334,16 @@ function defaultDBPort(dbType: DbType): number {
         default:
             return 3306;
     }
+}
+
+/**
+ * Registers the Handlebars helper used for values rendered inside single-quoted string
+ * literals (e.g. passwords in the generated config). Handlebars' default escaping would
+ * convert special chars (`< > ' "` etc.) to HTML entities, so templates render these
+ * values raw and this helper escapes backslashes and single quotes instead.
+ */
+export function registerEscapeSingleHelper(): void {
+    Handlebars.registerHelper('escapeSingle', (aString: unknown) => {
+        return typeof aString === 'string' ? aString.replace(/\\/g, '\\\\').replace(/'/g, "\\'") : aString;
+    });
 }
