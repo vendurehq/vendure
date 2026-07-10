@@ -428,7 +428,9 @@ export async function createVendureApp(
     // Manual mode is excluded: there the user supplies their own database connection,
     // so no Docker container is started on their behalf.
     if ((mode === 'quick' || mode === 'ci') && dbType === 'postgres') {
-        cleanUpDockerResources(name);
+        // appName (the resolved directory basename) is what the docker-compose labels are
+        // keyed off — the raw CLI argument may be a nested path like `apps/my-shop`.
+        cleanUpDockerResources(appName);
         const dbStarted = await startPostgresDatabase(serverRoot, appName);
         if (!dbStarted) {
             outro(
