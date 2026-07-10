@@ -354,12 +354,25 @@ jobs:
                   TOKEN=$(echo "$TOKEN_RES" | jq -r '.token')
                   npm set registry=http://localhost:4873
                   npm set //localhost:4873/:_authToken $TOKEN
+            # The install directory deliberately contains a space: file URLs percent-encode
+            # it (%20), which used to leak into filesystem paths in the dashboard's vite
+            # plugins and break `npm run dev` (#4931).
             - name: Quick Start with Postgres (single project)
               timeout-minutes: 15
               run: |
-                  mkdir -p $HOME/install
-                  cd $HOME/install
+                  mkdir -p "$HOME/install dir"
+                  cd "$HOME/install dir"
                   npx @vendure/create@ci shop-pg --ci --db postgres --use-npm --log-level info
+            - name: Dev server smoke test from a path containing a space
+              timeout-minutes: 15
+              run: |
+                  cd "$HOME/install dir/shop-pg"
+                  npm run dev &
+                  wait-on http://localhost:3000/health --timeout 120000
+                  # The dashboard Vite server failed to start when the project path
+                  # percent-encoded (#4931), so it becoming reachable is the regression check.
+                  wait-on http://localhost:5173/dashboard --timeout 180000
+                  lsof -ti:3000,5173 | xargs kill 2>/dev/null || true
             - name: Stop containers so the next project can bind port 6543
               run: docker ps -q | xargs -r docker stop
             - name: Quick Start with Postgres (monorepo, first)
@@ -367,7 +380,7 @@ jobs:
               env:
                   GITHUB_TOKEN: ${{ github.token }}
               run: |
-                  cd $HOME/install
+                  cd "$HOME/install dir"
                   npx @vendure/create@ci shop-mono-a --ci --db postgres --with-storefront --use-npm --log-level info
             - name: Stop containers so the next project can bind port 6543
               run: docker ps -q | xargs -r docker stop
@@ -380,7 +393,7 @@ jobs:
               env:
                   GITHUB_TOKEN: ${{ github.token }}
               run: |
-                  cd $HOME/install
+                  cd "$HOME/install dir"
                   npx @vendure/create@ci shop-mono-b --ci --db postgres --with-storefront --use-npm --log-level info
             - name: Assert each project got its own Compose project
               run: |
