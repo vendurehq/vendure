@@ -502,8 +502,12 @@ function DraftOrderPage() {
                         </Button>
                     ) : null}
                     <CustomerSelector
+                        allowCreateNew
                         onSelect={customer => {
                             setCustomerForDraftOrder({ orderId: entity.id, customerId: customer.id });
+                        }}
+                        onCreateNew={input => {
+                            setCustomerForDraftOrder({ orderId: entity.id, input });
                         }}
                     />
                 </PageBlock>
@@ -522,6 +526,12 @@ function DraftOrderPage() {
                                         setShippingAddressForDraftOrder({
                                             orderId: entity.id,
                                             input: mapToAddressInput(address),
+                                        });
+                                    }}
+                                    onSubmitNew={input => {
+                                        setShippingAddressForDraftOrder({
+                                            orderId: entity.id,
+                                            input,
                                         });
                                     }}
                                 />
@@ -544,6 +554,12 @@ function DraftOrderPage() {
                                         setBillingAddressForDraftOrder({
                                             orderId: entity.id,
                                             input: mapToAddressInput(address),
+                                        });
+                                    }}
+                                    onSubmitNew={input => {
+                                        setBillingAddressForDraftOrder({
+                                            orderId: entity.id,
+                                            input,
                                         });
                                     }}
                                 />

@@ -294,6 +294,86 @@ test.describe('Orders', () => {
         await expect(page.getByRole('button', { name: /Select address/i })).toHaveCount(2);
     });
 
+    // #4838 — parity with the Angular admin-ui: a draft order should allow creating a
+    // new customer inline (not just selecting an existing one).
+    test('should create a new customer inline on a draft order', async ({ page }) => {
+        test.setTimeout(60_000);
+
+        // Create a draft order
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+        await lp.newButton.click();
+        await expect(page).toHaveURL(/\/orders\/draft\//, { timeout: 10_000 });
+
+        // Open the customer selector (a tabbed popover) and switch to "Create new customer"
+        await page.getByRole('button', { name: /Select customer/i }).click();
+        const customerPopover = page.locator('[data-slot="popover-content"]');
+        await expect(customerPopover).toBeVisible();
+        await customerPopover.getByRole('tab', { name: /Create new customer/i }).click();
+
+        const email = `inline.customer.${Date.now()}@test.com`;
+        await customerPopover.getByLabel('First name').fill('Inline');
+        await customerPopover.getByLabel('Last name').fill('Customer');
+        await customerPopover.getByLabel('Email address').fill(email);
+        await customerPopover.getByRole('button', { name: /Create customer/i }).click();
+
+        // The mutation runs and the customer becomes set on the order
+        await page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
+        await expect(page.getByRole('button', { name: /Inline Customer/i })).toBeVisible({
+            timeout: 10_000,
+        });
+    });
+
+    // #4838 — parity with the Angular admin-ui: a draft order should allow entering a
+    // new, ad-hoc address inline (not just selecting from the customer's saved addresses).
+    test('should enter a new shipping address inline on a draft order', async ({ page }) => {
+        test.setTimeout(60_000);
+
+        const client = new VendureAdminClient(page);
+        await client.login();
+
+        // Create a draft order with a customer already set
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+        await lp.newButton.click();
+        await expect(page).toHaveURL(/\/orders\/draft\//, { timeout: 10_000 });
+
+        await page.getByRole('button', { name: /Select customer/i }).click();
+        const customerPopover = page.locator('[data-slot="popover-content"]');
+        await customerPopover.getByPlaceholder('Search customers...').fill('hayden');
+        const haydenOption = page.getByRole('option').filter({ hasText: /hayden/i });
+        await expect(haydenOption.first()).toBeVisible({ timeout: 5_000 });
+        await haydenOption.first().click();
+        await page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
+
+        // Open the shipping address selector and switch to the "New address" tab
+        await page
+            .getByRole('button', { name: /Select address/i })
+            .first()
+            .click();
+        // Scope to the address popover (identified by its "New address" tab) to avoid
+        // matching the customer popover that may still be animating closed.
+        const popover = page
+            .locator('[data-slot="popover-content"]')
+            .filter({ has: page.getByRole('tab', { name: /New address/i }) });
+        await expect(popover).toBeVisible({ timeout: 5_000 });
+        await popover.getByRole('tab', { name: /New address/i }).click();
+
+        // Fill the inline address form
+        await popover.getByLabel('Street Address').fill('99 Inline Road');
+        await popover.getByLabel('City').fill('Inlineton');
+        // Country is a Select — open and pick the first available country
+        await popover.getByRole('combobox').click();
+        await page.getByRole('option').first().click();
+        await popover.getByRole('button', { name: /Save Address/i }).click();
+
+        // The new address is applied to the order
+        await page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
+        await expect(page.getByText('99 Inline Road')).toBeVisible({ timeout: 10_000 });
+    });
+
     // #4393 — custom order history entry types should be displayed with key-value data
     test('should display custom order history entry types', async ({ page }) => {
         test.setTimeout(60_000);
@@ -348,7 +428,7 @@ test.describe('Orders', () => {
 
         // The address selector popover should auto-open
         await expect(page.locator('[data-slot="popover-content"]')).toBeVisible({ timeout: 5_000 });
-        await expect(page.getByText('Select an address')).toBeVisible();
+        await expect(page.getByRole('tab', { name: 'Existing address' })).toBeVisible();
     });
 
     // #4393 — order modify page should show a "Recalculate shipping" checkbox

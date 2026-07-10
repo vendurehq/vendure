@@ -18,7 +18,7 @@ import { User } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { AddSurchargeForm } from './components/add-surcharge-form.js';
-import { CustomerAddressSelector } from './components/customer-address-selector.js';
+import { CreateAddressInput, CustomerAddressSelector } from './components/customer-address-selector.js';
 import { EditOrderTable } from './components/edit-order-table.js';
 import { OrderAddress } from './components/order-address.js';
 import { OrderModificationPreviewDialog } from './components/order-modification-preview-dialog.js';
@@ -88,6 +88,8 @@ function ModifyOrderPage() {
         removeCouponCode,
         updateShippingAddress: updateShippingAddressInInput,
         updateBillingAddress: updateBillingAddressInInput,
+        updateShippingAddressRaw: updateShippingAddressRawInInput,
+        updateBillingAddressRaw: updateBillingAddressRawInInput,
         addSurcharge,
         setNote,
         setRecalculateShipping,
@@ -106,6 +108,16 @@ function ModifyOrderPage() {
 
     function handleSelectBillingAddress(address: AddressFragment) {
         updateBillingAddressInInput(address);
+        setEditingBillingAddress(false);
+    }
+
+    function handleSubmitNewShippingAddress(input: CreateAddressInput) {
+        updateShippingAddressRawInInput(input);
+        setEditingShippingAddress(false);
+    }
+
+    function handleSubmitNewBillingAddress(input: CreateAddressInput) {
+        updateBillingAddressRawInInput(input);
         setEditingBillingAddress(false);
     }
 
@@ -250,6 +262,7 @@ function ModifyOrderPage() {
                                 <CustomerAddressSelector
                                     customerId={entity.customer?.id}
                                     onSelect={handleSelectShippingAddress}
+                                    onSubmitNew={handleSubmitNewShippingAddress}
                                     onCancel={() => setEditingShippingAddress(false)}
                                     defaultOpen
                                 />
@@ -279,6 +292,7 @@ function ModifyOrderPage() {
                                 <CustomerAddressSelector
                                     customerId={entity.customer?.id}
                                     onSelect={handleSelectBillingAddress}
+                                    onSubmitNew={handleSubmitNewBillingAddress}
                                     onCancel={() => setEditingBillingAddress(false)}
                                     defaultOpen
                                 />
