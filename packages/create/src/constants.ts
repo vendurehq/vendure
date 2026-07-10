@@ -1,4 +1,10 @@
 export const REQUIRED_NODE_VERSION = '>=20.0.0';
+/**
+ * Oldest Node.js major release that has not reached end-of-life. Used to warn (not block)
+ * users on EOL versions, for which native deps often stop publishing prebuilt binaries.
+ * Bump when the oldest maintained LTS goes EOL: https://nodejs.org/en/about/previous-releases
+ */
+export const OLDEST_NON_EOL_NODE_MAJOR = 22;
 export const SERVER_PORT = 3000;
 export const STOREFRONT_PORT = 3001;
 export const STOREFRONT_REPO = 'vendure-ecommerce/nextjs-starter-vendure';
@@ -34,6 +40,14 @@ export const PORT_SCAN_RANGE = 20;
  * by `PORT_SCAN_RANGE` could stall the CLI for tens of minutes.
  */
 export const SOCKET_TIMEOUT_MS = 2_000;
+
+/**
+ * How long to wait for the dockerized PostgreSQL container to accept connections.
+ * A first boot runs `initdb`, which alone can take well over 10 seconds on slower
+ * machines, so the budget must comfortably exceed that.
+ */
+export const PG_READY_MAX_ATTEMPTS = 120;
+export const PG_READY_POLL_INTERVAL_MS = 500;
 
 // Timing constants (milliseconds)
 export const SCAFFOLD_DELAY_MS = 500;

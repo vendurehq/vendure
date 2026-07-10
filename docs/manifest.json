@@ -2296,13 +2296,13 @@
                   "title": "MigrateAssetTranslationData",
                   "slug": "migrate-asset-translation-data",
                   "file": "docs/reference/typescript-api/migration/migrate-asset-translation-data.mdx",
-                  "lastModified": "2026-03-30T12:56:43+02:00"
+                  "lastModified": "2026-07-10T09:53:10+02:00"
                 },
                 {
                   "title": "MigrateProductOptionGroupData",
                   "slug": "migrate-product-option-group-data",
                   "file": "docs/reference/typescript-api/migration/migrate-product-option-group-data.mdx",
-                  "lastModified": "2026-03-06T09:35:25+01:00"
+                  "lastModified": "2026-07-10T09:53:10+02:00"
                 },
                 {
                   "title": "MigrationOptions",
@@ -2898,7 +2898,7 @@
                   "title": "AssetService",
                   "slug": "asset-service",
                   "file": "docs/reference/typescript-api/services/asset-service.mdx",
-                  "lastModified": "2026-06-29T22:40:46+02:00"
+                  "lastModified": "2026-07-10T17:49:38+02:00"
                 },
                 {
                   "title": "AuthService",
@@ -3548,7 +3548,7 @@
                   "title": "S3AssetStorageStrategy",
                   "slug": "s3asset-storage-strategy",
                   "file": "docs/reference/core-plugins/asset-server-plugin/s3asset-storage-strategy.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-07-10T09:53:10+02:00"
                 },
                 {
                   "title": "SharpAssetPreviewStrategy",
@@ -4271,7 +4271,7 @@
                   "title": "VendureDashboardPlugin",
                   "slug": "vendure-dashboard-plugin",
                   "file": "docs/reference/dashboard/vite-plugin/vendure-dashboard-plugin.mdx",
-                  "lastModified": "2026-06-30T09:24:24+02:00"
+                  "lastModified": "2026-07-10T14:29:40+02:00"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"

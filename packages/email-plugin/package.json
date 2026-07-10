@@ -25,6 +25,7 @@
         "access": "public"
     },
     "dependencies": {
+        "@types/nodemailer": "^8.0.1",
         "dateformat": "^3.0.3",
         "express": "^5.1.0",
         "fs-extra": "^11.2.0",
@@ -37,7 +38,6 @@
         "@types/express": "^5.0.1",
         "@types/fs-extra": "^11.0.4",
         "@types/mjml": "^5.0.0",
-        "@types/nodemailer": "^8.0.1",
         "@vendure/common": "3.7.0",
         "@vendure/core": "3.7.0",
         "rimraf": "^5.0.5",
