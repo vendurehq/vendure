@@ -87,9 +87,12 @@ jobs:
             contents: read
         strategy:
             matrix:
-                # For PRs: run minimal matrix (1 job). For push: run full matrix (9 jobs)
+                # For PRs: run minimal matrix (1 job). For push: run full matrix (9 jobs).
+                # Only non-EOL Node versions are tested: native deps (e.g. better-sqlite3)
+                # stop publishing prebuilt binaries for EOL versions, and the node-gyp
+                # bundled with an EOL Node cannot drive newer Visual Studio releases.
                 os: ${{ github.event_name == 'pull_request' && fromJSON('["ubuntu-latest"]') || fromJSON('["ubuntu-latest", "windows-latest", "macos-latest"]') }}
-                node-version: ${{ github.event_name == 'pull_request' && fromJSON('["22.x"]') || fromJSON('["20.x", "22.x", "24.x"]') }}
+                node-version: ${{ github.event_name == 'pull_request' && fromJSON('["22.x"]') || fromJSON('["22.x", "24.x", "26.x"]') }}
             fail-fast: false
         steps:
             - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
