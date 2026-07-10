@@ -4,13 +4,12 @@ import { describe, expect, it } from 'vitest';
 
 // Same bug class as https://github.com/vendurehq/vendure/issues/4920:
 //
-// Types from `@types/express` and `@types/fs-extra` are part of core's PUBLISHED `.d.ts`
-// surface — e.g. `RequestContext.req` (express `Request`), `setSessionToken()` (express
-// `Request`/`Response`), `createProxyHandler()` (express `RequestHandler`) and
-// `AssetService.createFromFileStream()` (fs-extra `ReadStream`). Neither `express` nor
-// `fs-extra` ship type definitions of their own, so the `@types/*` packages must be
-// runtime `dependencies` to be delivered transitively to consumers. As devDependencies
-// only, consumer projects fail to type-check against these public signatures (TS2353 etc.).
+// Types from `@types/express` are part of core's PUBLISHED `.d.ts` surface — e.g.
+// `RequestContext.req` (express `Request`), `setSessionToken()` (express
+// `Request`/`Response`) and `createProxyHandler()` (express `RequestHandler`).
+// `express` ships no type definitions of its own, so `@types/express` must be a
+// runtime `dependency` to be delivered transitively to consumers. As a devDependency
+// only, consumer projects fail to type-check against these public signatures.
 //
 // This can only be guarded at the packaging level: inside this repo the `@types/*`
 // packages are always resolvable regardless of dev/prod classification, so a type-level
@@ -30,17 +29,15 @@ describe('core published type dependencies', () => {
         expect(read('plugin/plugin-utils.ts')).toContain(`from 'express'`);
     });
 
-    it('exposes fs-extra types in its public API', () => {
-        expect(read('service/services/asset.service.ts')).toContain(`from 'fs-extra'`);
+    it('does not expose fs-extra types in its public API', () => {
+        // `AssetService.createFromFileStream()` takes fs's `ReadStream` (fs-extra's is the
+        // same class re-exported). Importing it from 'fs-extra' would put `@types/fs-extra`
+        // into the published `.d.ts` surface, forcing it to become a runtime dependency.
+        expect(read('service/services/asset.service.ts')).not.toContain(`from 'fs-extra'`);
     });
 
     it('declares @types/express as a runtime dependency, not a devDependency', () => {
         expect(pkg.dependencies?.['@types/express']).toBeTruthy();
         expect(pkg.devDependencies?.['@types/express']).toBeUndefined();
-    });
-
-    it('declares @types/fs-extra as a runtime dependency, not a devDependency', () => {
-        expect(pkg.dependencies?.['@types/fs-extra']).toBeTruthy();
-        expect(pkg.devDependencies?.['@types/fs-extra']).toBeUndefined();
     });
 });
