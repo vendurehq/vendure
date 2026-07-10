@@ -466,6 +466,11 @@ export function getPnpmWorkspaceYaml(dbType: DbType, packagesGlobs?: string[]): 
         lines.push(`    ${dep}: true`);
     }
     lines.push('');
+    lines.push('# pnpm v11 fails the install when a dependency has build scripts not covered by');
+    lines.push('# allowBuilds. Off, such scripts are skipped with a warning (as in pnpm v10);');
+    lines.push('# the packages concerned work without their build scripts.');
+    lines.push('strictDepBuilds: false');
+    lines.push('');
     return lines.join('\n');
 }
 

@@ -467,6 +467,12 @@ describe('getPnpmWorkspaceYaml', () => {
         expect(yaml).not.toContain('packages:');
     });
 
+    // pnpm v11 defaults strictDepBuilds to true, which hard-fails the install for any
+    // script-bearing dep not covered by allowBuilds (e.g. @apollo/protobufjs, msw).
+    it('disables strictDepBuilds so uncovered build scripts warn instead of failing', () => {
+        expect(getPnpmWorkspaceYaml('sqlite')).toContain('strictDepBuilds: false');
+    });
+
     it('includes the workspace packages globs when provided (monorepo)', () => {
         const yaml = getPnpmWorkspaceYaml('postgres', ['apps/*']);
         expect(yaml).toContain("packages:\n    - 'apps/*'");
