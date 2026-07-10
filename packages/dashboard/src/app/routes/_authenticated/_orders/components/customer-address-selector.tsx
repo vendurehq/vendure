@@ -51,7 +51,10 @@ export function CustomerAddressSelector({
     // Existing addresses are only selectable when a customer with saved addresses is present.
     // Otherwise, the admin can only enter a new ad-hoc address (matching the Angular admin-ui).
     const canSelectExisting = !!customerId && addresses.length > 0;
-    const effectiveTab = canSelectExisting ? activeTab : 'new';
+    // Only force the "new" tab once we know the customer has no selectable addresses. While the
+    // query is still loading we honour the explicitly chosen tab so the selection doesn't jump
+    // when the addresses transition from loading to loaded.
+    const effectiveTab = canSelectExisting || (!!customerId && isLoading) ? activeTab : 'new';
 
     return (
         <Popover

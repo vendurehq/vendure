@@ -261,6 +261,7 @@ export function CustomerSelector(props: CustomerSelectorProps) {
                                     onSelect={customer => {
                                         props.onSelect(customer);
                                         setOpen(false);
+                                        setActiveTab('existing');
                                     }}
                                 />
                             </div>
@@ -271,6 +272,7 @@ export function CustomerSelector(props: CustomerSelectorProps) {
                                     onSubmit={input => {
                                         props.onCreateNew?.(input);
                                         setOpen(false);
+                                        setActiveTab('existing');
                                     }}
                                 />
                             </div>
