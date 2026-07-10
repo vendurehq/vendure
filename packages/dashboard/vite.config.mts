@@ -4,7 +4,7 @@ import { loadEnv } from 'vite';
 import { defineConfig } from 'vitest/config';
 import { vendureDashboardPlugin } from './vite/vite-plugin-vendure-dashboard.js';
 
-import { sharedTestConfig } from '../../vitest.shared.mts';
+import { sharedTestConfig } from '../../vitest.shared.mjs';
 
 /**
  * This config is used for local development
