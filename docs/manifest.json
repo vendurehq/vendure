@@ -3548,7 +3548,7 @@
                   "title": "S3AssetStorageStrategy",
                   "slug": "s3asset-storage-strategy",
                   "file": "docs/reference/core-plugins/asset-server-plugin/s3asset-storage-strategy.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-07-10T11:12:38Z"
                 },
                 {
                   "title": "SharpAssetPreviewStrategy",
@@ -4271,7 +4271,7 @@
                   "title": "VendureDashboardPlugin",
                   "slug": "vendure-dashboard-plugin",
                   "file": "docs/reference/dashboard/vite-plugin/vendure-dashboard-plugin.mdx",
-                  "lastModified": "2026-06-30T09:24:24+02:00"
+                  "lastModified": "2026-07-10T11:12:38Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
