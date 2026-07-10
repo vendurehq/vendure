@@ -42,8 +42,10 @@ import {
     getDependencies,
     getMonorepoRootPackageJson,
     getPackageManagerInfo,
+    getPnpmWorkspaceYaml,
     getServerPackageScripts,
     getSingleProjectPackageJson,
+    getYarnRcYml,
     installPackages,
     isSafeToCreateProjectIn,
     registerTemplateHelpers,
@@ -80,10 +82,7 @@ program
         'info',
     )
     .option('--verbose', 'Alias for --log-level verbose', false)
-    .option(
-        '--use-npm',
-        'Force npm, overriding auto-detection of the package manager that invoked the CLI',
-    )
+    .option('--use-npm', 'Force npm, overriding auto-detection of the package manager that invoked the CLI')
     .option('--ci', 'Runs without prompts for use in CI scenarios', false)
     .option('--with-storefront', 'Include Next.js storefront (only used with --ci)', false)
     .parse(process.argv);
@@ -235,9 +234,16 @@ export async function createVendureApp(
         );
 
         // pnpm does not read the package.json `workspaces` field; it requires a
-        // pnpm-workspace.yaml instead.
-        if (!pmInfo.usesPackageJsonWorkspaces) {
-            fs.writeFileSync(path.join(root, 'pnpm-workspace.yaml'), `packages:\n  - 'apps/*'\n`);
+        // pnpm-workspace.yaml instead. The file also carries pnpm's settings,
+        // including the build-script allowlist for native dependencies.
+        if (pmInfo.name === 'pnpm') {
+            fs.writeFileSync(
+                path.join(root, 'pnpm-workspace.yaml'),
+                getPnpmWorkspaceYaml(dbType, ['apps/*']),
+            );
+        }
+        if (pmInfo.name === 'yarn') {
+            fs.writeFileSync(path.join(root, '.yarnrc.yml'), getYarnRcYml());
         }
 
         // Generate root README from template
@@ -272,6 +278,14 @@ export async function createVendureApp(
             path.join(root, 'package.json'),
             JSON.stringify(getSingleProjectPackageJson(appName, pmInfo, dbType), null, 2) + os.EOL,
         );
+        // Since pnpm v11, all pnpm settings (including the build-script allowlist for
+        // native dependencies) live in pnpm-workspace.yaml, even for single projects.
+        if (pmInfo.name === 'pnpm') {
+            fs.writeFileSync(path.join(root, 'pnpm-workspace.yaml'), getPnpmWorkspaceYaml(dbType));
+        }
+        if (pmInfo.name === 'yarn') {
+            fs.writeFileSync(path.join(root, '.yarnrc.yml'), getYarnRcYml());
+        }
         fs.ensureDirSync(path.join(root, 'src'));
     }
 
@@ -405,7 +419,16 @@ export async function createVendureApp(
 
     if (mode === 'quick' && dbType === 'postgres') {
         cleanUpDockerResources(name);
-        await startPostgresDatabase(serverRoot);
+        const dbStarted = await startPostgresDatabase(serverRoot, appName);
+        if (!dbStarted) {
+            outro(
+                pc.red(
+                    'The PostgreSQL database could not be started. Check the Docker logs, ' +
+                        'then run the create command again.',
+                ),
+            );
+            process.exit(1);
+        }
     }
 
     const populateSpinner = spinner();
@@ -637,10 +660,14 @@ async function installDependenciesWithSpinner(installOptions: InstallDependencie
         installSpinner.stop(successMessage);
         return true;
     } catch (e) {
+        const detail = e instanceof Error ? e.message : String(e);
         if (warnOnFailure) {
             installSpinner.stop(pc.yellow(`Warning: ${failureMessage}`));
+            log(detail);
             return false;
         } else {
+            installSpinner.stop(pc.red(failureMessage));
+            log(detail);
             outro(pc.red(failureMessage));
             process.exit(1);
         }

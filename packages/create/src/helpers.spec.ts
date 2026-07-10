@@ -9,12 +9,16 @@ import {
     findAvailablePort,
     getInstallCommand,
     getMonorepoRootPackageJson,
+    getNativeBuildDependencies,
     getPackageManagerInfo,
-    getPnpmOnlyBuiltDependencies,
+    getPnpmWorkspaceYaml,
     getServerPackageScripts,
     getSingleProjectPackageJson,
+    getYarnDependenciesMeta,
+    getYarnRcYml,
     isServerPortInUse,
     registerTemplateHelpers,
+    toComposeProjectName,
 } from './helpers';
 import { log } from './logger';
 import { PackageManager } from './types';
@@ -99,12 +103,10 @@ describe('isServerPortInUse', () => {
         // Simulate a firewall that drops SYN packets: connect() neither resolves
         // nor emits ECONNREFUSED. Without a setTimeout guard the promise would
         // hang for the OS-level connect timeout (~75s macOS, ~127s Linux).
-        const connectSpy = vi
-            .spyOn(Socket.prototype, 'connect')
-            .mockImplementation(function (this: Socket) {
-                // Intentionally never emit anything — let the socket's own timeout fire.
-                return this;
-            });
+        const connectSpy = vi.spyOn(Socket.prototype, 'connect').mockImplementation(function (this: Socket) {
+            // Intentionally never emit anything — let the socket's own timeout fire.
+            return this;
+        });
 
         await expect(isServerPortInUse(12345)).rejects.toThrow(/Timed out/);
         expect(connectSpy).toHaveBeenCalledOnce();
@@ -117,16 +119,14 @@ describe('isServerPortInUse', () => {
         // failures (e.g. EACCES on privileged ports, EHOSTUNREACH on DNS
         // misconfiguration) without needing elevated privileges or DNS
         // tricks at test time.
-        const connectSpy = vi
-            .spyOn(Socket.prototype, 'connect')
-            .mockImplementation(function (this: Socket) {
-                queueMicrotask(() => {
-                    const err = new Error('Host unreachable') as NodeJS.ErrnoException;
-                    err.code = 'EHOSTUNREACH';
-                    this.emit('error', err);
-                });
-                return this;
+        const connectSpy = vi.spyOn(Socket.prototype, 'connect').mockImplementation(function (this: Socket) {
+            queueMicrotask(() => {
+                const err = new Error('Host unreachable') as NodeJS.ErrnoException;
+                err.code = 'EHOSTUNREACH';
+                this.emit('error', err);
             });
+            return this;
+        });
 
         await expect(isServerPortInUse(12345)).rejects.toMatchObject({ code: 'EHOSTUNREACH' });
         expect(connectSpy).toHaveBeenCalledOnce();
@@ -326,9 +326,15 @@ describe('getPackageManagerInfo', () => {
 
     it('builds workspace run commands in each manager’s syntax', () => {
         expect(getPackageManagerInfo('npm').workspaceScript('server', 'dev')).toBe('npm run dev -w server');
-        expect(getPackageManagerInfo('yarn').workspaceScript('server', 'dev')).toBe('yarn workspace server dev');
-        expect(getPackageManagerInfo('pnpm').workspaceScript('server', 'dev')).toBe('pnpm --filter server dev');
-        expect(getPackageManagerInfo('bun').workspaceScript('server', 'dev')).toBe('bun run --filter server dev');
+        expect(getPackageManagerInfo('yarn').workspaceScript('server', 'dev')).toBe(
+            'yarn workspace server dev',
+        );
+        expect(getPackageManagerInfo('pnpm').workspaceScript('server', 'dev')).toBe(
+            'pnpm --filter server dev',
+        );
+        expect(getPackageManagerInfo('bun').workspaceScript('server', 'dev')).toBe(
+            'bun run --filter server dev',
+        );
     });
 
     it('flags pnpm as needing pnpm-workspace.yaml rather than the package.json workspaces field', () => {
@@ -375,17 +381,30 @@ describe('getMonorepoRootPackageJson', () => {
         ).toBeUndefined();
     });
 
-    // #4891 — pnpm v10 blocks dependency build scripts unless allowed at the workspace root.
-    it('adds pnpm.onlyBuiltDependencies only for pnpm, driver-aware', () => {
-        expect(getMonorepoRootPackageJson('x', getPackageManagerInfo('pnpm'), 'sqlite').pnpm).toEqual({
-            onlyBuiltDependencies: ['bcrypt', 'better-sqlite3', 'esbuild', 'sharp'],
+    // #4932 — pnpm v11 no longer reads the package.json `pnpm` field; the build-script
+    // allowlist lives in pnpm-workspace.yaml instead, so the field must never be written.
+    it('does not write a package.json pnpm field for any manager', () => {
+        for (const pm of ['npm', 'yarn', 'pnpm', 'bun'] as const) {
+            expect(getMonorepoRootPackageJson('x', getPackageManagerInfo(pm), 'sqlite').pnpm).toBeUndefined();
+        }
+    });
+
+    // #4932 — yarn ≥4.14 does not run dependency build scripts unless allowlisted.
+    it('adds dependenciesMeta with built: true only for yarn, driver-aware', () => {
+        expect(
+            getMonorepoRootPackageJson('x', getPackageManagerInfo('yarn'), 'sqlite').dependenciesMeta,
+        ).toEqual({
+            bcrypt: { built: true },
+            'better-sqlite3': { built: true },
+            esbuild: { built: true },
+            sharp: { built: true },
         });
-        expect(getMonorepoRootPackageJson('x', getPackageManagerInfo('pnpm'), 'postgres').pnpm).toEqual({
-            onlyBuiltDependencies: ['bcrypt', 'esbuild', 'sharp'],
-        });
-        // Non-pnpm managers run build scripts by default, so the field must be absent.
-        expect(getMonorepoRootPackageJson('x', getPackageManagerInfo('npm'), 'sqlite').pnpm).toBeUndefined();
-        expect(getMonorepoRootPackageJson('x', getPackageManagerInfo('bun'), 'sqlite').pnpm).toBeUndefined();
+        expect(
+            getMonorepoRootPackageJson('x', getPackageManagerInfo('npm'), 'sqlite').dependenciesMeta,
+        ).toBeUndefined();
+        expect(
+            getMonorepoRootPackageJson('x', getPackageManagerInfo('pnpm'), 'sqlite').dependenciesMeta,
+        ).toBeUndefined();
     });
 });
 
@@ -397,31 +416,35 @@ describe('getSingleProjectPackageJson', () => {
         expect((pkg.scripts as Record<string, string>).dev).toBe('vendure dev all');
     });
 
-    // #4891 — the single-project root package.json is where pnpm reads onlyBuiltDependencies.
-    it('adds pnpm.onlyBuiltDependencies only for pnpm, driver-aware', () => {
-        expect(getSingleProjectPackageJson('x', getPackageManagerInfo('pnpm'), 'sqlite').pnpm).toEqual({
-            onlyBuiltDependencies: ['bcrypt', 'better-sqlite3', 'esbuild', 'sharp'],
+    // #4932 — pnpm settings live in pnpm-workspace.yaml; yarn build scripts need allowlisting.
+    it('writes manager-specific build-script config fields', () => {
+        expect(
+            getSingleProjectPackageJson('x', getPackageManagerInfo('pnpm'), 'sqlite').pnpm,
+        ).toBeUndefined();
+        expect(
+            getSingleProjectPackageJson('x', getPackageManagerInfo('yarn'), 'postgres').dependenciesMeta,
+        ).toEqual({
+            bcrypt: { built: true },
+            esbuild: { built: true },
+            sharp: { built: true },
         });
-        expect(getSingleProjectPackageJson('x', getPackageManagerInfo('pnpm'), 'postgres').pnpm).toEqual({
-            onlyBuiltDependencies: ['bcrypt', 'esbuild', 'sharp'],
-        });
-        // Non-pnpm managers run build scripts by default, so the field must be absent.
-        expect(getSingleProjectPackageJson('x', getPackageManagerInfo('npm'), 'sqlite').pnpm).toBeUndefined();
-        expect(getSingleProjectPackageJson('x', getPackageManagerInfo('bun'), 'sqlite').pnpm).toBeUndefined();
+        expect(
+            getSingleProjectPackageJson('x', getPackageManagerInfo('npm'), 'sqlite').dependenciesMeta,
+        ).toBeUndefined();
     });
 });
 
-// #4891 — pnpm v10 does not run dependency build scripts unless they are listed in
-// pnpm.onlyBuiltDependencies, so better-sqlite3's native binding never compiles.
-describe('getPnpmOnlyBuiltDependencies', () => {
+// #4891 — pnpm and yarn do not run dependency build scripts unless allowlisted, so
+// e.g. better-sqlite3's native binding never compiles.
+describe('getNativeBuildDependencies', () => {
     it('always includes the native deps a Vendure scaffold installs', () => {
         for (const dbType of ['postgres', 'mysql', 'mariadb'] as const) {
-            expect(getPnpmOnlyBuiltDependencies(dbType)).toEqual(['bcrypt', 'esbuild', 'sharp']);
+            expect(getNativeBuildDependencies(dbType)).toEqual(['bcrypt', 'esbuild', 'sharp']);
         }
     });
 
     it('adds better-sqlite3 for the SQLite driver', () => {
-        expect(getPnpmOnlyBuiltDependencies('sqlite')).toEqual([
+        expect(getNativeBuildDependencies('sqlite')).toEqual([
             'bcrypt',
             'better-sqlite3',
             'esbuild',
@@ -430,13 +453,68 @@ describe('getPnpmOnlyBuiltDependencies', () => {
     });
 });
 
+// #4932 — pnpm v10 reads `onlyBuiltDependencies`, pnpm v11 replaced it with `allowBuilds`
+// and ignores both the old key and the package.json `pnpm` field. Both keys are written
+// so the scaffold works under either version.
+describe('getPnpmWorkspaceYaml', () => {
+    it('declares both the v10 and v11 build-script allowlists', () => {
+        const yaml = getPnpmWorkspaceYaml('sqlite');
+        expect(yaml).toContain('onlyBuiltDependencies:');
+        expect(yaml).toContain('    - better-sqlite3');
+        expect(yaml).toContain('allowBuilds:');
+        expect(yaml).toContain('    better-sqlite3: true');
+        expect(yaml).not.toContain('packages:');
+    });
+
+    it('includes the workspace packages globs when provided (monorepo)', () => {
+        const yaml = getPnpmWorkspaceYaml('postgres', ['apps/*']);
+        expect(yaml).toContain("packages:\n    - 'apps/*'");
+        expect(yaml).toContain('    - bcrypt');
+        expect(yaml).not.toContain('better-sqlite3');
+    });
+});
+
+describe('getYarnDependenciesMeta', () => {
+    it('marks each native build dependency as built', () => {
+        expect(getYarnDependenciesMeta('sqlite')).toEqual({
+            bcrypt: { built: true },
+            'better-sqlite3': { built: true },
+            esbuild: { built: true },
+            sharp: { built: true },
+        });
+    });
+});
+
+describe('getYarnRcYml', () => {
+    it('disables Plug’n’Play in favour of a physical node_modules tree', () => {
+        expect(getYarnRcYml()).toContain('nodeLinker: node-modules');
+    });
+});
+
+// #4932 — in monorepo mode the compose file lives in apps/server, so without an explicit
+// project name every created project collides on the Compose project "server": the second
+// `docker compose up` then hangs forever on an unanswerable "Recreate volume?" prompt.
+describe('toComposeProjectName', () => {
+    it('passes through already-valid names', () => {
+        expect(toComposeProjectName('my-shop')).toBe('my-shop');
+        expect(toComposeProjectName('shop_2')).toBe('shop_2');
+    });
+
+    it('lowercases and strips characters Compose does not allow', () => {
+        expect(toComposeProjectName('My Shop!')).toBe('myshop');
+        expect(toComposeProjectName('shop.name')).toBe('shopname');
+    });
+
+    it('strips leading separators and falls back for empty results', () => {
+        expect(toComposeProjectName('--shop')).toBe('shop');
+        expect(toComposeProjectName('...')).toBe('vendure');
+    });
+});
+
 // The Dockerfile template is rendered with helpers registered by registerTemplateHelpers.
 // A misspelled helper name renders an empty string silently, so assert real output.
 describe('registerTemplateHelpers + Dockerfile template', () => {
-    const dockerfileTemplate = fs.readFileSync(
-        path.join(__dirname, '../templates/Dockerfile.hbs'),
-        'utf-8',
-    );
+    const dockerfileTemplate = fs.readFileSync(path.join(__dirname, '../templates/Dockerfile.hbs'), 'utf-8');
 
     function renderDockerfile(pm: PackageManager): string {
         registerTemplateHelpers(getPackageManagerInfo(pm));
@@ -463,5 +541,25 @@ describe('registerTemplateHelpers + Dockerfile template', () => {
         expect(out).toContain('COPY package.json pnpm-lock.yaml ./');
         expect(out).toContain('RUN pnpm install --frozen-lockfile');
         expect(out).toContain('RUN pnpm run build');
+    });
+});
+
+// #4932 — the compose file must pin its own project name so containers/volumes never
+// collide across projects (the monorepo layout puts the file in apps/server for everyone).
+describe('docker-compose template', () => {
+    it('renders the sanitized compose project name', () => {
+        // Registered by generateSources() in production; needed for the labels/env sections.
+        Handlebars.registerHelper('escapeSingle', (aString: unknown) =>
+            typeof aString === 'string' ? aString.replace(/'/g, "\\'") : aString,
+        );
+        const template = fs.readFileSync(path.join(__dirname, '../templates/docker-compose.hbs'), 'utf-8');
+        const out = Handlebars.compile(template)({
+            composeProjectName: toComposeProjectName('My Shop'),
+            dbName: 'vendure',
+            dbUserName: 'vendure',
+            dbPassword: 'secret',
+            name: 'My Shop',
+        });
+        expect(out).toContain('name: myshop');
     });
 });

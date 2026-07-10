@@ -5,7 +5,7 @@ import fs from 'fs-extra';
 import Handlebars from 'handlebars';
 import path from 'path';
 
-import { checkCancel, isDockerAvailable } from './helpers';
+import { checkCancel, isDockerAvailable, toComposeProjectName } from './helpers';
 import { DbType, FileSources, PackageManager, UserResponses } from './types';
 
 interface PromptAnswers {
@@ -295,6 +295,7 @@ async function generateSources(
         ...answers,
         dbType: answers.dbType === 'sqlite' ? 'better-sqlite3' : answers.dbType,
         name: path.basename(root),
+        composeProjectName: toComposeProjectName(path.basename(root)),
         isSQLite: answers.dbType === 'sqlite',
         requiresConnection: answers.dbType !== 'sqlite',
         cookieSecret: randomBytes(16).toString('base64url'),

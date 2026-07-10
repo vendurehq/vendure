@@ -35,6 +35,14 @@ export const PORT_SCAN_RANGE = 20;
  */
 export const SOCKET_TIMEOUT_MS = 2_000;
 
+/**
+ * How long to wait for the dockerized PostgreSQL container to accept connections.
+ * A first boot runs `initdb`, which alone can take well over 10 seconds on slower
+ * machines, so the budget must comfortably exceed that.
+ */
+export const PG_READY_MAX_ATTEMPTS = 120;
+export const PG_READY_POLL_INTERVAL_MS = 500;
+
 // Timing constants (milliseconds)
 export const SCAFFOLD_DELAY_MS = 500;
 export const TIP_INTERVAL_MS = 10_000;
