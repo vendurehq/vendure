@@ -12,6 +12,6 @@
  *   cores — lerna already provides the cross-package parallelism.
  */
 export const sharedTestConfig = {
-    testTimeout: process.env.E2E_DEBUG ? 1800 * 1000 : process.env.CI ? 30 * 1000 : 15 * 1000,
+    testTimeout: process.env.CI ? 30 * 1000 : 15 * 1000,
     maxWorkers: process.env.CI ? 1 : undefined,
 };
