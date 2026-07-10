@@ -298,6 +298,9 @@ jobs:
                   npm_config_registry: http://localhost:4873/
                   YARN_NPM_REGISTRY_SERVER: http://localhost:4873/
                   YARN_UNSAFE_HTTP_WHITELIST: localhost
+                  # Yarn quarantines versions published less than npmMinimalAgeGate ago
+                  # (default 1d, YN0016) — the packages under test are seconds old.
+                  YARN_NPM_MINIMAL_AGE_GATE: 0
               run: |
                   mkdir -p $HOME/install
                   cd $HOME/install
