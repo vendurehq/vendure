@@ -230,12 +230,16 @@ jobs:
         strategy:
             matrix:
                 include:
+                    # $CREATE_VERSION is resolved from the ci dist-tag at run time. The tag
+                    # itself is not passed to dlx because Verdaccio serves pnpm's abbreviated
+                    # metadata requests a stale/merged tag map, resolving @ci to an upstream
+                    # nightly instead of the locally published version.
                     - pm: bun
-                      scaffold: bunx @vendure/create@ci test-app --ci --log-level info
+                      scaffold: bunx @vendure/create@$CREATE_VERSION test-app --ci --log-level info
                     - pm: pnpm
-                      scaffold: pnpm dlx @vendure/create@ci test-app --ci --log-level info
+                      scaffold: pnpm dlx @vendure/create@$CREATE_VERSION test-app --ci --log-level info
                     - pm: yarn
-                      scaffold: yarn dlx @vendure/create@ci test-app --ci --log-level info
+                      scaffold: yarn dlx @vendure/create@$CREATE_VERSION test-app --ci --log-level info
             fail-fast: false
         steps:
             - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
@@ -248,6 +252,9 @@ jobs:
                   bun-version: '1.3.10'
             - name: Enable pnpm and yarn via corepack
               run: |
+                  # The runner's bundled corepack maps yarn@stable to an outdated release;
+                  # updating corepack first gives the current one that users actually get.
+                  npm install -g corepack@latest
                   corepack enable
                   corepack prepare pnpm@latest --activate
                   corepack prepare yarn@stable --activate
@@ -295,6 +302,8 @@ jobs:
                   mkdir -p $HOME/install
                   cd $HOME/install
                   npm dist-tag ls @vendure/create
+                  CREATE_VERSION=$(npm view @vendure/create@ci version)
+                  echo "Resolved @vendure/create@ci -> $CREATE_VERSION"
                   # No --use-npm: the manager is detected from the invoking bunx / pnpm dlx.
                   ${{ matrix.scaffold }}
             - name: Assert the generated project used ${{ matrix.pm }}

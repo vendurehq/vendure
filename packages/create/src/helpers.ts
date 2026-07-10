@@ -514,16 +514,19 @@ export function installPackages(options: {
             logLevel,
         });
 
-        // Below verbose, capture stderr so a failing install can report the actual
-        // package-manager error rather than a generic message.
+        // Below verbose, capture output so a failing install can report the actual
+        // package-manager error rather than a generic message. Both streams are needed:
+        // npm reports errors on stderr, while yarn and pnpm largely report on stdout.
         const child = spawn(command, args, {
-            stdio: logLevel === 'verbose' ? 'inherit' : ['ignore', 'ignore', 'pipe'],
+            stdio: logLevel === 'verbose' ? 'inherit' : ['ignore', 'pipe', 'pipe'],
             cwd,
         });
-        let stderrTail = '';
-        child.stderr?.on('data', (chunk: Buffer) => {
-            stderrTail = (stderrTail + chunk.toString()).slice(-4000);
-        });
+        let outputTail = '';
+        const collectTail = (chunk: Buffer) => {
+            outputTail = (outputTail + chunk.toString()).slice(-4000);
+        };
+        child.stdout?.on('data', collectTail);
+        child.stderr?.on('data', collectTail);
         child.on('error', err => {
             reject(
                 new Error(
@@ -534,8 +537,8 @@ export function installPackages(options: {
         child.on('close', code => {
             if (code !== 0) {
                 let message = `\`${command} ${args.join(' ')}\` failed with exit code ${String(code)}.`;
-                if (stderrTail.trim()) {
-                    message += `\n\n${stderrTail.trim()}`;
+                if (outputTail.trim()) {
+                    message += `\n\n${outputTail.trim()}`;
                 } else if (logLevel !== 'verbose') {
                     message += ' Try running with `--log-level verbose` to diagnose.';
                 }
