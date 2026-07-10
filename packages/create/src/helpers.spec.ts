@@ -1,9 +1,12 @@
+import spawn from 'cross-spawn';
 import fs from 'fs-extra';
 import Handlebars from 'handlebars';
+import { EventEmitter } from 'node:events';
 import { Socket, createServer, type Server } from 'node:net';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { registerEscapeSingleHelper } from './gather-user-responses';
 import {
     checkNodeVersion,
     detectPackageManager,
@@ -17,6 +20,7 @@ import {
     getSingleProjectPackageJson,
     getYarnDependenciesMeta,
     getYarnRcYml,
+    installPackages,
     isServerPortInUse,
     registerTemplateHelpers,
     toComposeProjectName,
@@ -29,6 +33,13 @@ import { PackageManager } from './types';
 vi.mock('./logger', () => ({
     log: vi.fn(),
 }));
+
+// Mocked so installPackages can be exercised without spawning real package managers.
+vi.mock('cross-spawn', () => {
+    const spawnMock = vi.fn();
+    (spawnMock as any).sync = vi.fn();
+    return { default: spawnMock };
+});
 
 /**
  * Binds an ephemeral port on 127.0.0.1 and returns both the server and its
@@ -505,16 +516,22 @@ describe('toComposeProjectName', () => {
     it('passes through already-valid names', () => {
         expect(toComposeProjectName('my-shop')).toBe('my-shop');
         expect(toComposeProjectName('shop_2')).toBe('shop_2');
+        expect(toComposeProjectName('123')).toBe('123');
     });
 
-    it('lowercases and strips characters Compose does not allow', () => {
-        expect(toComposeProjectName('My Shop!')).toBe('myshop');
-        expect(toComposeProjectName('shop.name')).toBe('shopname');
+    it('sanitizes disallowed characters and appends a stable suffix', () => {
+        expect(toComposeProjectName('My Shop!')).toMatch(/^my-shop-[0-9a-f]{8}$/);
+        expect(toComposeProjectName('shop.name')).toMatch(/^shop-name-[0-9a-f]{8}$/);
+        expect(toComposeProjectName('--shop')).toMatch(/^shop-[0-9a-f]{8}$/);
+        expect(toComposeProjectName('...')).toMatch(/^vendure-[0-9a-f]{8}$/);
+        // Deterministic: re-running create over the same directory must yield the same project.
+        expect(toComposeProjectName('My Shop!')).toBe(toComposeProjectName('My Shop!'));
     });
 
-    it('strips leading separators and falls back for empty results', () => {
-        expect(toComposeProjectName('--shop')).toBe('shop');
-        expect(toComposeProjectName('...')).toBe('vendure');
+    it('keeps distinct names distinct after sanitization', () => {
+        const names = ['shop.v1', 'shop v1', 'shop-v1', 'shopv1', 'SHOP-V1'];
+        const projects = names.map(toComposeProjectName);
+        expect(new Set(projects).size).toBe(names.length);
     });
 });
 
@@ -554,20 +571,28 @@ describe('registerTemplateHelpers + Dockerfile template', () => {
 // #4932 — the compose file must pin its own project name so containers/volumes never
 // collide across projects (the monorepo layout puts the file in apps/server for everyone).
 describe('docker-compose template', () => {
-    it('renders the sanitized compose project name', () => {
+    function renderComposeTemplate(projectName: string): string {
         // Registered by generateSources() in production; needed for the labels/env sections.
-        Handlebars.registerHelper('escapeSingle', (aString: unknown) =>
-            typeof aString === 'string' ? aString.replace(/'/g, "\\'") : aString,
-        );
+        registerEscapeSingleHelper();
         const template = fs.readFileSync(path.join(__dirname, '../templates/docker-compose.hbs'), 'utf-8');
-        const out = Handlebars.compile(template)({
-            composeProjectName: toComposeProjectName('My Shop'),
+        return Handlebars.compile(template)({
+            composeProjectName: toComposeProjectName(projectName),
             dbName: 'vendure',
             dbUserName: 'vendure',
             dbPassword: 'secret',
-            name: 'My Shop',
+            name: projectName,
         });
-        expect(out).toContain('name: myshop');
+    }
+
+    it('renders the sanitized compose project name', () => {
+        expect(renderComposeTemplate('My Shop')).toMatch(/^name: 'my-shop-[0-9a-f]{8}'$/m);
+    });
+
+    // Numeric or boolean-looking directory names must stay YAML strings — Compose
+    // rejects a non-string project name.
+    it('quotes the project name so numeric-looking names stay strings', () => {
+        expect(renderComposeTemplate('123')).toContain("name: '123'");
+        expect(renderComposeTemplate('true')).toContain("name: 'true'");
     });
 });
 
@@ -586,5 +611,79 @@ describe('checkNodeVersion', () => {
     it('does not warn on a maintained Node version', () => {
         checkNodeVersion('>=20.0.0', 'v22.15.0');
         expect(log).not.toHaveBeenCalled();
+    });
+});
+
+// #4932 — failed installs used to run with stdio: 'ignore' and reject with a generic
+// message, hiding the actual package-manager error (npm reports on stderr; yarn and
+// pnpm largely on stdout). These pin the captured-output failure messages.
+describe('installPackages', () => {
+    function fakeChild() {
+        const child = new EventEmitter() as any;
+        child.stdout = new EventEmitter();
+        child.stderr = new EventEmitter();
+        return child;
+    }
+
+    afterEach(() => {
+        vi.mocked(spawn).mockReset();
+    });
+
+    it('resolves when the install exits 0', async () => {
+        vi.mocked(spawn).mockImplementation((() => {
+            const child = fakeChild();
+            setImmediate(() => child.emit('close', 0));
+            return child;
+        }) as any);
+
+        await expect(
+            installPackages({ dependencies: ['dotenv'], logLevel: 'info', packageManager: 'npm' }),
+        ).resolves.toBeUndefined();
+    });
+
+    it('rejects with the command and captured output tail from both streams', async () => {
+        vi.mocked(spawn).mockImplementation((() => {
+            const child = fakeChild();
+            setImmediate(() => {
+                child.stdout.emit('data', Buffer.from('ERR_PNPM_IGNORED_BUILDS Ignored build scripts\n'));
+                child.stderr.emit('data', Buffer.from('some stderr detail\n'));
+                child.emit('close', 1);
+            });
+            return child;
+        }) as any);
+
+        await expect(
+            installPackages({ dependencies: ['dotenv'], logLevel: 'info', packageManager: 'pnpm' }),
+        ).rejects.toThrow(
+            expect.objectContaining({
+                message: expect.stringMatching(
+                    /`pnpm add --save-exact dotenv` failed with exit code 1[\s\S]*ERR_PNPM_IGNORED_BUILDS[\s\S]*some stderr detail/,
+                ),
+            }),
+        );
+    });
+
+    it('suggests verbose logging when the install produced no output', async () => {
+        vi.mocked(spawn).mockImplementation((() => {
+            const child = fakeChild();
+            setImmediate(() => child.emit('close', 1));
+            return child;
+        }) as any);
+
+        await expect(
+            installPackages({ dependencies: ['dotenv'], logLevel: 'info', packageManager: 'npm' }),
+        ).rejects.toThrow(/--log-level verbose/);
+    });
+
+    it('rejects with a PATH hint when the package manager cannot be spawned', async () => {
+        vi.mocked(spawn).mockImplementation((() => {
+            const child = fakeChild();
+            setImmediate(() => child.emit('error', new Error('spawn yarn ENOENT')));
+            return child;
+        }) as any);
+
+        await expect(
+            installPackages({ dependencies: ['dotenv'], logLevel: 'info', packageManager: 'yarn' }),
+        ).rejects.toThrow(/Is yarn installed and on your PATH\?/);
     });
 });

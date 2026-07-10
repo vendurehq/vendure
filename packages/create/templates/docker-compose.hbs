@@ -6,8 +6,9 @@
 
 # The explicit project name keeps this project's containers and volumes distinct from
 # those of other projects, even when this file lives in an identically-named directory
-# (e.g. apps/server in a monorepo).
-name: {{ composeProjectName }}
+# (e.g. apps/server in a monorepo). Quoted so that numeric-looking names (e.g. "123")
+# stay YAML strings — Compose rejects a non-string name.
+name: '{{ composeProjectName }}'
 
 services:
     postgres_db:

@@ -3,6 +3,7 @@ import spawn from 'cross-spawn';
 import fs from 'fs-extra';
 import Handlebars from 'handlebars';
 import { execFile, execFileSync, execSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { createWriteStream } from 'node:fs';
 import { Socket } from 'node:net';
 import { platform } from 'node:os';
@@ -467,8 +468,8 @@ export function getPnpmWorkspaceYaml(dbType: DbType, packagesGlobs?: string[]): 
     }
     lines.push('');
     lines.push('# pnpm v11 fails the install when a dependency has build scripts not covered by');
-    lines.push('# allowBuilds. Off, such scripts are skipped with a warning (as in pnpm v10);');
-    lines.push('# the packages concerned work without their build scripts.');
+    lines.push('# allowBuilds. With this off, uncovered scripts are skipped with a warning instead');
+    lines.push('# (as in pnpm v10); the packages concerned work without their build scripts.');
     lines.push('strictDepBuilds: false');
     lines.push('');
     return lines.join('\n');
@@ -756,13 +757,22 @@ export async function isDockerAvailable(): Promise<{ result: 'not-found' | 'not-
  * created project gets its own Compose project. Without it, Compose derives the
  * project name from the compose file's directory — which in monorepo mode is
  * always `apps/server`, so every project would collide on the project "server".
+ *
+ * When sanitization alters the name, a stable suffix derived from the original is
+ * appended: otherwise distinct project names could sanitize to the same value
+ * (e.g. `shop.v1` and `shopv1`) and end up sharing containers and volumes.
  */
 export function toComposeProjectName(name: string): string {
     const sanitized = name
         .toLowerCase()
-        .replace(/[^a-z0-9_-]/g, '')
+        .replace(/[^a-z0-9_-]+/g, '-')
         .replace(/^[_-]+/, '');
-    return sanitized || 'vendure';
+    if (sanitized === name) {
+        return name;
+    }
+    const suffix = createHash('sha256').update(name).digest('hex').slice(0, 8);
+    const base = sanitized.replace(/[_-]+$/, '') || 'vendure';
+    return `${base}-${suffix}`;
 }
 
 export async function startPostgresDatabase(root: string, projectName: string): Promise<boolean> {
