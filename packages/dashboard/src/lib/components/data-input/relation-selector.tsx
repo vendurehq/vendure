@@ -1,4 +1,5 @@
 import { Button } from '@/vdb/components/ui/button.js';
+import { LoadingState } from '@/vdb/components/ui/state-views.js';
 import { Checkbox } from '@/vdb/components/ui/checkbox.js';
 import {
     Command,
@@ -422,10 +423,7 @@ export function RelationSelector<T>({
                         <CommandList className="h-[300px] overflow-y-auto" onScroll={handleScroll}>
                             <CommandEmpty>
                                 {isLoading ? (
-                                    <div className="flex items-center justify-center py-6">
-                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                        <Trans>Loading...</Trans>
-                                    </div>
+                                    <LoadingState variant="spinner" className="py-6" />
                                 ) : (
                                     <Trans>No results found</Trans>
                                 )}

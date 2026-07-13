@@ -1,5 +1,6 @@
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
 import { Input } from '@/vdb/components/ui/input.js';
+import { LoadingState } from '@/vdb/components/ui/state-views.js';
 import { api } from '@/vdb/graphql/api.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
@@ -55,9 +56,7 @@ export function OptionGroupProductsBlock({
             />
             <div className="divide-y rounded-md border">
                 {isFetching && items.length === 0 ? (
-                    <div className="p-3 text-sm text-muted-foreground text-center">
-                        <Trans>Loading...</Trans>
-                    </div>
+                    <LoadingState variant="spinner" className="py-6" />
                 ) : items.length === 0 ? (
                     <div className="p-3 text-sm text-muted-foreground text-center">
                         <Trans>No products found</Trans>

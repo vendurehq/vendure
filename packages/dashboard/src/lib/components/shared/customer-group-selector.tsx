@@ -1,4 +1,5 @@
 import { Button } from '@/vdb/components/ui/button.js';
+import { LoadingState } from '@/vdb/components/ui/state-views.js';
 import { Command, CommandEmpty, CommandItem, CommandList } from '@/vdb/components/ui/command.js';
 import { Popover, PopoverContent, PopoverTrigger } from '@/vdb/components/ui/popover.js';
 import { api } from '@/vdb/graphql/api.js';
@@ -53,7 +54,11 @@ export function CustomerGroupSelector(props: CustomerGroupSelectorProps) {
                             </CommandItem>
                         ))}
                         <CommandEmpty>
-                            {isLoading ? <Trans>Loading...</Trans> : <Trans>No results</Trans>}
+                            {isLoading ? (
+                                <LoadingState variant="spinner" className="py-4" />
+                            ) : (
+                                <Trans>No results</Trans>
+                            )}
                         </CommandEmpty>
                     </CommandList>
                 </Command>

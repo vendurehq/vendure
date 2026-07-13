@@ -1,4 +1,5 @@
 import { Button } from '@/vdb/components/ui/button.js';
+import { LoadingState } from '@/vdb/components/ui/state-views.js';
 import {
     Command,
     CommandEmpty,
@@ -85,7 +86,11 @@ export function CustomerSelector(props: CustomerSelectorProps) {
                     />
                     <CommandList>
                         <CommandEmpty>
-                            {isLoading ? <Trans>Loading...</Trans> : <Trans>No customers found</Trans>}
+                            {isLoading ? (
+                                <LoadingState variant="spinner" className="py-4" />
+                            ) : (
+                                <Trans>No customers found</Trans>
+                            )}
                         </CommandEmpty>
                         {data?.customers.items.map(customer => (
                             <CommandItem

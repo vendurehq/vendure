@@ -7,6 +7,11 @@ import { SaveViewButton } from '@/vdb/components/data-table/save-view-button.js'
 import { Button } from '@/vdb/components/ui/button.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { Skeleton } from '@/vdb/components/ui/skeleton.js';
+import {
+    EmptyCollectionIllustration,
+    NoResultsIllustration,
+} from '@/vdb/components/ui/illustrations.js';
+import { EmptyState } from '@/vdb/components/ui/state-views.js';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/vdb/components/ui/table.js';
 import { BulkActionsInput } from '@/vdb/framework/extension-api/types/index.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
@@ -350,6 +355,15 @@ export function DataTable<TData>({
     const nonFacetedFilters = columnFilters.filter(f => !facetedFilters?.[f.id]);
     const currencyCode = activeChannel?.defaultCurrencyCode ?? 'USD';
     const clearNonFacetedFilters = () => setColumnFilters(old => old.filter(f => !!facetedFilters?.[f.id]));
+    // Distinguishes the two empty states: `hasActiveFilters` means data may
+    // exist but the current query hides it (offer clear-filters), otherwise
+    // it's a genuine first-run empty (neutral message; the surrounding page
+    // owns any create action, so the table can't teach it).
+    const hasActiveFilters = columnFilters.length > 0 || searchTerm.trim().length > 0;
+    const clearFiltersAndSearch = () => {
+        setColumnFilters([]);
+        handleSearchChange('');
+    };
 
     return (
         <DataTableProvider
@@ -580,12 +594,41 @@ export function DataTable<TData>({
                                             return rows.map(renderRow);
                                         })()
                                     ) : (
-                                        <TableRow className="animate-in fade-in duration-100">
+                                        <TableRow className="animate-in fade-in duration-100 hover:bg-transparent">
                                             <TableCell
                                                 colSpan={columnsWithOptionalDragHandle.length}
-                                                className="h-24 text-center"
+                                                className="p-0"
                                             >
-                                                <Trans>No results</Trans>
+                                                {hasActiveFilters ? (
+                                                    <EmptyState
+                                                        className="border-0 rounded-none bg-transparent"
+                                                        illustration={<NoResultsIllustration />}
+                                                        title={<Trans>No results</Trans>}
+                                                        description={
+                                                            <Trans>
+                                                                No items match your current filters. Try
+                                                                clearing them to see more.
+                                                            </Trans>
+                                                        }
+                                                    >
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={clearFiltersAndSearch}
+                                                        >
+                                                            <Trans>Clear filters</Trans>
+                                                        </Button>
+                                                    </EmptyState>
+                                                ) : (
+                                                    <EmptyState
+                                                        className="border-0 rounded-none bg-transparent"
+                                                        illustration={<EmptyCollectionIllustration />}
+                                                        title={<Trans>No results</Trans>}
+                                                        description={
+                                                            <Trans>There are no items to display yet.</Trans>
+                                                        }
+                                                    />
+                                                )}
                                             </TableCell>
                                         </TableRow>
                                     )}

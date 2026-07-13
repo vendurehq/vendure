@@ -1,4 +1,5 @@
 import { Badge } from '@/vdb/components/ui/badge.js';
+import { LoadingState } from '@/vdb/components/ui/state-views.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import {
     Command,
@@ -242,7 +243,11 @@ function OptionGroupSearch({
             />
             <CommandList className="max-h-[300px]">
                 <CommandEmpty>
-                    {isLoading ? <Trans>Loading...</Trans> : <Trans>No option groups found</Trans>}
+                    {isLoading ? (
+                        <LoadingState variant="spinner" className="py-4" />
+                    ) : (
+                        <Trans>No option groups found</Trans>
+                    )}
                 </CommandEmpty>
                 {sortedItems.map(group => {
                     const isAlreadyAssigned = existingGroupIds.includes(group.id);
@@ -262,7 +267,7 @@ function OptionGroupSearch({
                                 <div className="text-sm text-muted-foreground">{group.code}</div>
                             </div>
                             {isAlreadyAssigned && (
-                                <Badge variant="secondary" className="ml-2">
+                                <Badge variant="default" className="ml-2">
                                     <Check className="mr-1 h-3 w-3" />
                                     <Trans>Assigned</Trans>
                                 </Badge>
