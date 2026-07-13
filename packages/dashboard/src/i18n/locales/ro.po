@@ -335,10 +335,10 @@ msgstr "Locația de stoc a fost creată cu succes"
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:120
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:166
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:185
-#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:53
-#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:70
+#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:55
+#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:73
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:105
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:190
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:197
 #: src/lib/components/shared/asset/asset-preview.tsx:127
 msgid "Unknown error"
 msgstr "Eroare necunoscută"
@@ -391,7 +391,7 @@ msgstr "Returnează în stoc"
 msgid "Visibility"
 msgstr "Vizibilitate"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:274
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:281
 msgid "Product variants"
 msgstr "Variante de produs"
 
@@ -1658,7 +1658,7 @@ msgid "Private collections are not visible in the shop"
 msgstr "Colecțiile private nu sunt vizibile în magazin"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:262
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:215
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:222
 msgid "When enabled, a product is available in the shop"
 msgstr "Când este activat, un produs este disponibil în magazin"
 
@@ -1719,7 +1719,7 @@ msgstr "Fără valori atribut"
 msgid "A reason for the refund is required"
 msgstr "Este necesar un motiv pentru rambursare"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:180
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:187
 msgid "Could not remove option group"
 msgstr "Nu s-a putut elimina grupul de opțiuni"
 
@@ -1748,7 +1748,7 @@ msgstr "Rambursare soluționată cu succes"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:279
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:205
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:212
 #: src/app/routes/_authenticated/_profile/profile.tsx:92
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
@@ -1839,7 +1839,7 @@ msgstr "Setări coloane"
 msgid "Code"
 msgstr "Cod"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:189
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:196
 msgid "Failed to remove option groups"
 msgstr "Nu s-au putut elimina grupurile de opțiuni"
 
@@ -1930,7 +1930,7 @@ msgid "Test Shipping Method"
 msgstr "Testare metodă de livrare"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:491
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:320
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:327
 msgid "Facet Values"
 msgstr "Valori atribute"
 
@@ -2422,6 +2422,10 @@ msgstr "Client setat pentru comandă"
 msgid "Facets"
 msgstr "Atribute"
 
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx:58
+msgid "{count, plural, one {Are you sure you want to remove {count} customer from this group?} other {Are you sure you want to remove {count} customers from this group?}}"
+msgstr "{count, plural, one {Sigur doriți să eliminați {count} client din acest grup?} few {Sigur doriți să eliminați {count} clienți din acest grup?} other {Sigur doriți să eliminați {count} de clienți din acest grup?}}"
+
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:293
 msgid "Stock on Hand"
 msgstr "Stoc Disponibil"
@@ -2564,11 +2568,11 @@ msgstr "Recalculează livrarea"
 #: src/app/routes/_authenticated/_assets/assets.tsx:40
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:225
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:508
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:353
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:360
 msgid "Assets"
 msgstr "Resurse"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:293
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:300
 msgid "This will remove all option groups from this product and return to the variant setup choice."
 msgstr "Se vor elimina toate grupurile de opțiuni de pe acest produs și veți reveni la alegerea configurării variantelor."
 
@@ -2664,7 +2668,7 @@ msgid "Successfully created administrator"
 msgstr "Administratorul a fost creat cu succes"
 
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:198
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:301
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:308
 msgid "Product Options"
 msgstr "Opțiuni Produs"
 
@@ -2744,7 +2748,7 @@ msgstr "Șterge vizualizarea globală"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:160
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:205
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:212
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
@@ -2897,7 +2901,7 @@ msgstr "Dark"
 msgid "Test Results"
 msgstr "Rezultate test"
 
-#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:127
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:137
 msgid "Add customer"
 msgstr "Adaugă client"
 
@@ -3282,7 +3286,7 @@ msgid "Yes"
 msgstr "Da"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:175
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:232
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:239
 msgid "Slug"
 msgstr "Identificator URL"
 
@@ -3340,7 +3344,7 @@ msgstr "Finalizează plata"
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:216
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:330
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:337
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:111
 #: src/lib/components/layout/channel-switcher.tsx:146
 msgid "Channels"
@@ -3367,7 +3371,7 @@ msgid "Select item"
 msgstr "Selectează elementul"
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:56
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:198
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:205
 msgid "New product"
 msgstr "Produs nou"
 
@@ -3387,6 +3391,10 @@ msgstr "Adaugă acțiune"
 #: src/app/common/duplicate-entity-dialog.tsx:85
 msgid "Duplicate {0}s"
 msgstr "Duplică {0}"
+
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx:56
+msgid "Remove from group"
+msgstr "Elimină din grup"
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:52
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:56
@@ -3557,7 +3565,7 @@ msgstr "Nu s-a putut crea grupul de clienți"
 msgid "Failed to create role"
 msgstr "Nu s-a putut crea rolul"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:226
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:233
 msgid "Product name"
 msgstr "Nume produs"
 
@@ -3740,8 +3748,8 @@ msgstr "Înapoi la căutare"
 msgid "View duplicated successfully"
 msgstr "Vizualizare duplicată cu succes"
 
-#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:45
-#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:51
+#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:50
+#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:56
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:297
 msgid "Remove option group"
 msgstr "Elimină grupul de opțiuni"
@@ -3750,7 +3758,7 @@ msgstr "Elimină grupul de opțiuni"
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:76
 #: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:14
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:248
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:255
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:174
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:94
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:162
@@ -4588,7 +4596,7 @@ msgstr "Județ / Provincie"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:147
 #: src/app/routes/_authenticated/_payment-methods/payment-methods.tsx:42
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:261
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:214
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:221
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:153
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:115
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:119
@@ -4813,13 +4821,17 @@ msgstr "Elimină"
 msgid "Failed to update customer"
 msgstr "Nu s-a putut actualiza clientul"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:292
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:299
 msgid "Remove option groups?"
 msgstr "Eliminați grupurile de opțiuni?"
 
 #: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:91
 msgid "This is a preview of the collection contents based on the current filter settings. Once you save the collection, the contents will be updated to reflect the new filter settings."
 msgstr "Acesta este o previzualizare a conținutului colecției bazată pe setările curente de filtrare. După ce salvați colecția, conținutul va fi actualizat pentru a reflecta noile setări de filtrare."
+
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx:31
+msgid "{count, plural, one {Removed {count} customer from group} other {Removed {count} customers from group}}"
+msgstr "{count, plural, one {{count} client eliminat din grup} few {{count} clienți eliminați din grup} other {{count} de clienți eliminați din grup}}"
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts:223
@@ -4830,6 +4842,10 @@ msgstr "Categorii de taxă"
 #: src/lib/framework/defaults.ts:230
 msgid "Tax Rates"
 msgstr "Cote de taxă"
+
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx:40
+msgid "Failed to remove customers from group"
+msgstr "Eliminarea clienților din grup a eșuat"
 
 #: src/lib/components/layout/manage-languages-dialog.tsx:273
 msgid "Failed to load global settings"
@@ -5037,8 +5053,8 @@ msgstr "Valoarea opțiunii a fost adăugată cu succes"
 msgid "Collection moved to new parent"
 msgstr "Colecția a fost mutată la un părinte nou"
 
-#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:49
-#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:65
+#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:51
+#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:67
 msgid "Option group removed"
 msgstr "Grup opțiuni eliminat"
 
@@ -5125,8 +5141,8 @@ msgstr "Nu s-au găsit grupuri de opțiuni"
 msgid "No items found"
 msgstr "Nu s-au găsit elemente"
 
-#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:52
-#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:69
+#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:54
+#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:72
 msgid "Failed to remove option group"
 msgstr ""
 
@@ -5364,7 +5380,7 @@ msgstr "Comandă vânzător"
 msgid "New facet"
 msgstr "Atribut nou"
 
-#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:46
+#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:51
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:298
 msgid "Are you sure you want to remove this option group from the product?"
 msgstr "Ești sigur că vrei să elimini acest grup de opțiuni din produs?"
@@ -5588,7 +5604,7 @@ msgstr "Valoarea atributului a fost actualizată cu succes"
 msgid "Add asset"
 msgstr "Adaugă resursă"
 
-#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:55
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:61
 msgid "Customer added to group"
 msgstr "Client adăugat la grup"
 
@@ -5793,13 +5809,13 @@ msgstr "Finalizează rambursarea"
 msgid "Payment method is required"
 msgstr "Metoda de plată este obligatorie"
 
-#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:61
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:67
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:134
 msgid "Failed to add customer to group"
 msgstr "Nu s-a putut adăuga clientul la grup"
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:256
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:265
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:272
 msgid "Manage variants"
 msgstr "Gestionează variante"
 

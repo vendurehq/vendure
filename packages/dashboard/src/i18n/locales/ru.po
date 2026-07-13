@@ -359,10 +359,10 @@ msgstr "Место хранения успешно создано"
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:120
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:166
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:185
-#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:53
-#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:70
+#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:55
+#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:73
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:105
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:190
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:197
 #: src/lib/components/shared/asset/asset-preview.tsx:127
 msgid "Unknown error"
 msgstr "Неизвестная ошибка"
@@ -415,7 +415,7 @@ msgstr "Вернуть на склад"
 msgid "Visibility"
 msgstr "Видимость"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:274
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:281
 msgid "Product variants"
 msgstr "Варианты товара"
 
@@ -1719,7 +1719,7 @@ msgid "Private collections are not visible in the shop"
 msgstr "Приватные коллекции не видны в магазине"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:262
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:215
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:222
 msgid "When enabled, a product is available in the shop"
 msgstr "При включении товар доступен в магазине"
 
@@ -1780,7 +1780,7 @@ msgstr "Нет значений фасета"
 msgid "A reason for the refund is required"
 msgstr "Требуется указать причину возврата"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:180
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:187
 msgid "Could not remove option group"
 msgstr "Не удалось удалить группу опций"
 
@@ -1809,7 +1809,7 @@ msgstr "Возврат успешно проведён"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:279
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:205
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:212
 #: src/app/routes/_authenticated/_profile/profile.tsx:92
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
@@ -1906,7 +1906,7 @@ msgstr "Настройки столбцов"
 msgid "Code"
 msgstr "Код"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:189
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:196
 msgid "Failed to remove option groups"
 msgstr "Не удалось удалить группы опций"
 
@@ -1997,7 +1997,7 @@ msgid "Test Shipping Method"
 msgstr "Проверить способ доставки"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:491
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:320
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:327
 msgid "Facet Values"
 msgstr "Значения фасета"
 
@@ -2489,6 +2489,10 @@ msgstr "Клиент установлен для заказа"
 msgid "Facets"
 msgstr "Аспекты"
 
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx:58
+msgid "{count, plural, one {Are you sure you want to remove {count} customer from this group?} other {Are you sure you want to remove {count} customers from this group?}}"
+msgstr "{count, plural, one {Вы уверены, что хотите удалить {count} клиента из этой группы?} few {Вы уверены, что хотите удалить {count} клиента из этой группы?} many {Вы уверены, что хотите удалить {count} клиентов из этой группы?} other {Вы уверены, что хотите удалить {count} клиентов из этой группы?}}"
+
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:293
 msgid "Stock on Hand"
 msgstr "Запас в наличии"
@@ -2643,11 +2647,11 @@ msgstr "Пересчитать доставку"
 #: src/app/routes/_authenticated/_assets/assets.tsx:40
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:225
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:508
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:353
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:360
 msgid "Assets"
 msgstr "Ресурсы"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:293
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:300
 msgid "This will remove all option groups from this product and return to the variant setup choice."
 msgstr "Это удалит все группы опций из этого товара и вернёт к выбору настройки вариантов."
 
@@ -2748,7 +2752,7 @@ msgid "Successfully created administrator"
 msgstr "Администратор успешно создан"
 
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:198
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:301
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:308
 msgid "Product Options"
 msgstr "Опции товара"
 
@@ -2828,7 +2832,7 @@ msgstr "Удалить глобальное представление"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:160
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:205
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:212
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
@@ -2989,7 +2993,7 @@ msgstr "Тёмная"
 msgid "Test Results"
 msgstr "Результаты тестирования"
 
-#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:127
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:137
 msgid "Add customer"
 msgstr "Добавить клиента"
 
@@ -3374,7 +3378,7 @@ msgid "Yes"
 msgstr "Да"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:175
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:232
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:239
 msgid "Slug"
 msgstr "Slug"
 
@@ -3440,7 +3444,7 @@ msgstr "Провести платёж"
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:216
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:330
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:337
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:111
 #: src/lib/components/layout/channel-switcher.tsx:146
 msgid "Channels"
@@ -3467,7 +3471,7 @@ msgid "Select item"
 msgstr "Выбрать элемент"
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:56
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:198
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:205
 msgid "New product"
 msgstr "Новый товар"
 
@@ -3491,6 +3495,10 @@ msgstr "Добавить действие"
 #: src/app/common/duplicate-entity-dialog.tsx:85
 msgid "Duplicate {0}s"
 msgstr "Дублировать {0}"
+
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx:56
+msgid "Remove from group"
+msgstr "Удалить из группы"
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:52
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:56
@@ -3668,7 +3676,7 @@ msgstr "Не удалось создать группу клиентов"
 msgid "Failed to create role"
 msgstr "Не удалось создать роль"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:226
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:233
 msgid "Product name"
 msgstr "Название товара"
 
@@ -3855,8 +3863,8 @@ msgstr "Вернуться к поиску"
 msgid "View duplicated successfully"
 msgstr "Представление успешно дублировано"
 
-#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:45
-#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:51
+#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:50
+#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:56
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:297
 msgid "Remove option group"
 msgstr "Удалить группу опций"
@@ -3865,7 +3873,7 @@ msgstr "Удалить группу опций"
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:76
 #: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:14
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:248
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:255
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:174
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:94
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:162
@@ -4744,7 +4752,7 @@ msgstr "Регион / Область"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:147
 #: src/app/routes/_authenticated/_payment-methods/payment-methods.tsx:42
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:261
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:214
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:221
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:153
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:115
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:119
@@ -4981,13 +4989,17 @@ msgstr "Удалить"
 msgid "Failed to update customer"
 msgstr "Не удалось обновить клиента"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:292
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:299
 msgid "Remove option groups?"
 msgstr "Удалить группы опций?"
 
 #: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:91
 msgid "This is a preview of the collection contents based on the current filter settings. Once you save the collection, the contents will be updated to reflect the new filter settings."
 msgstr "Это предварительный просмотр содержимого коллекции на основе текущих настроек фильтра. После сохранения коллекции содержимое будет обновлено, чтобы отразить новые настройки фильтра."
+
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx:31
+msgid "{count, plural, one {Removed {count} customer from group} other {Removed {count} customers from group}}"
+msgstr "{count, plural, one {{count} клиент удалён из группы} few {{count} клиента удалено из группы} many {{count} клиентов удалено из группы} other {{count} клиентов удалено из группы}}"
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts:223
@@ -4998,6 +5010,10 @@ msgstr "Налоговые категории"
 #: src/lib/framework/defaults.ts:230
 msgid "Tax Rates"
 msgstr "Налоговые ставки"
+
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx:40
+msgid "Failed to remove customers from group"
+msgstr "Не удалось удалить клиентов из группы"
 
 #: src/lib/components/layout/manage-languages-dialog.tsx:273
 msgid "Failed to load global settings"
@@ -5225,8 +5241,8 @@ msgstr "Значение опции успешно добавлено"
 msgid "Collection moved to new parent"
 msgstr "Коллекция перемещена в новый родительский элемент"
 
-#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:49
-#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:65
+#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:51
+#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:67
 msgid "Option group removed"
 msgstr "Группа опций удалена"
 
@@ -5313,8 +5329,8 @@ msgstr "Группы опций не найдены"
 msgid "No items found"
 msgstr "Элементы не найдены"
 
-#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:52
-#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:69
+#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:54
+#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:72
 msgid "Failed to remove option group"
 msgstr ""
 
@@ -5560,7 +5576,7 @@ msgstr "Заказ продавца"
 msgid "New facet"
 msgstr "Новый фасет"
 
-#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:46
+#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:51
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:298
 msgid "Are you sure you want to remove this option group from the product?"
 msgstr "Вы уверены, что хотите удалить эту группу опций из товара?"
@@ -5796,7 +5812,7 @@ msgstr "Добавить ресурс"
 #~ msgid "Save changes"
 #~ msgstr "Сохранить изменения"
 
-#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:55
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:61
 msgid "Customer added to group"
 msgstr "Клиент добавлен в группу"
 
@@ -6005,13 +6021,13 @@ msgstr "Провести возврат"
 msgid "Payment method is required"
 msgstr "Способ оплаты обязателен"
 
-#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:61
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:67
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:134
 msgid "Failed to add customer to group"
 msgstr "Не удалось добавить клиента в группу"
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:256
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:265
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:272
 msgid "Manage variants"
 msgstr "Управление вариантами"
 
