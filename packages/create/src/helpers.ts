@@ -24,6 +24,7 @@ import {
     SOCKET_TIMEOUT_MS,
     STOREFRONT_BRANCH,
     STOREFRONT_REPO,
+    TYPEORM_VERSION,
     TYPESCRIPT_VERSION,
     VITE_VERSION,
 } from './constants';
@@ -567,6 +568,7 @@ export function getDependencies(
         `@vendure/graphiql-plugin${vendurePkgVersion}`,
         `@vendure/dashboard${vendurePkgVersion}`,
         'dotenv',
+        `typeorm@${TYPEORM_VERSION}`,
         dbDriverPackage(dbType),
     ];
     const devDependencies = [
