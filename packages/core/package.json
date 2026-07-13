@@ -108,5 +108,8 @@
         "ioredis": {
             "optional": true
         }
+    },
+    "optionalDependencies": {
+        "re2": ">=1.21.0 <1.24.0"
     }
 }

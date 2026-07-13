@@ -400,6 +400,24 @@ describe('ListQueryBuilder', () => {
                     'exceeds the maximum allowed length',
                 ),
             );
+
+            // https://github.com/vendurehq/vendure/security/advisories/GHSA-jgm3-qmp2-c4p7
+            // An overlapping-alternation pattern that the star-height check does not reject: it is
+            // safe to evaluate (linear time under RE2 on SQLite backends) and must be accepted.
+            it('evaluates an overlapping-alternation pattern without error', async () => {
+                const { testEntities } = await adminClient.query(GET_LIST, {
+                    options: {
+                        filter: {
+                            description: {
+                                regex: '^(.|..)+$Z',
+                            },
+                        },
+                    },
+                });
+
+                // The trailing `Z` after `$` can never match, so no rows are returned.
+                expect(testEntities.items).toEqual([]);
+            });
         });
     });
 

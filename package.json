@@ -82,7 +82,8 @@
   },
   "trustedDependencies": [
     "husky",
-    "better-sqlite3"
+    "better-sqlite3",
+    "re2"
   ],
   "workspaces": [
     "packages/*"
