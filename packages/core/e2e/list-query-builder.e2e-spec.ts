@@ -402,22 +402,28 @@ describe('ListQueryBuilder', () => {
             );
 
             // https://github.com/vendurehq/vendure/security/advisories/GHSA-jgm3-qmp2-c4p7
-            // An overlapping-alternation pattern that the star-height check does not reject: it is
-            // safe to evaluate (linear time under RE2 on SQLite backends) and must be accepted.
-            it('evaluates an overlapping-alternation pattern without error', async () => {
-                const { testEntities } = await adminClient.query(GET_LIST, {
-                    options: {
-                        filter: {
-                            description: {
-                                regex: '^(.|..)+$Z',
+            // An overlapping-alternation pattern that the star-height check does not reject. On
+            // SQLite backends it is evaluated by RE2 in linear time and must be accepted. Other
+            // database engines handle it their own way (e.g. MySQL's ICU aborts with a match-limit
+            // error), so this SQLite-focused assertion is scoped to the SQLite drivers.
+            const dbType = process.env.DB || 'sqljs';
+            it.skipIf(dbType !== 'sqljs' && dbType !== 'better-sqlite3')(
+                'evaluates an overlapping-alternation pattern without error',
+                async () => {
+                    const { testEntities } = await adminClient.query(GET_LIST, {
+                        options: {
+                            filter: {
+                                description: {
+                                    regex: '^(.|..)+$Z',
+                                },
                             },
                         },
-                    },
-                });
+                    });
 
-                // The trailing `Z` after `$` can never match, so no rows are returned.
-                expect(testEntities.items).toEqual([]);
-            });
+                    // The trailing `Z` after `$` can never match, so no rows are returned.
+                    expect(testEntities.items).toEqual([]);
+                },
+            );
         });
     });
 
