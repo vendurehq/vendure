@@ -15,4 +15,4 @@ export {
     MenubarSubContent,
     MenubarSubTrigger,
     MenubarTrigger,
-} from '@vendure-io/ui/components/ui/menubar';
+} from '@vendure-io/ui/components/atoms/menubar';

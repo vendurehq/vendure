@@ -6,4 +6,4 @@ export {
     CardFooter,
     CardHeader,
     CardTitle,
-} from '@vendure-io/ui/components/ui/card';
+} from '@vendure-io/ui/components/atoms/card';

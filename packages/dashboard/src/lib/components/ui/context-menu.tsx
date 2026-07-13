@@ -14,4 +14,4 @@ export {
     ContextMenuSubContent,
     ContextMenuSubTrigger,
     ContextMenuTrigger,
-} from '@vendure-io/ui/components/ui/context-menu';
+} from '@vendure-io/ui/components/atoms/context-menu';

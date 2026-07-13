@@ -4,12 +4,19 @@ import { cn } from '@/vdb/lib/utils.js';
 
 import {
     Badge as BaseBadge,
-} from '@vendure-io/ui/components/ui/badge';
+} from '@vendure-io/ui/components/atoms/badge';
 
 type BaseBadgeProps = React.ComponentProps<typeof BaseBadge>;
 
 export type BadgeProps = Omit<BaseBadgeProps, 'variant'> & {
-    variant?: BaseBadgeProps['variant'] | 'success' | 'warning';
+    /**
+     * In addition to the base variants, "success" and "warning" are dashboard extensions.
+     * "secondary" was removed in @vendure-io/ui v2 and is kept as a deprecated alias
+     * of the neutral "default" variant for extension compatibility.
+     *
+     * @deprecated The "secondary" variant is deprecated; use "default" instead.
+     */
+    variant?: BaseBadgeProps['variant'] | 'success' | 'warning' | 'secondary';
 };
 
 const customVariantStyles: Record<string, string> = {
@@ -19,15 +26,19 @@ const customVariantStyles: Record<string, string> = {
 
 /**
  * Wrapper around @vendure-io/ui Badge that adds the "success" and "warning"
- * variants which are used in the dashboard but not available in the base library.
+ * variants which are used in the dashboard but not available in the base library,
+ * and preserves the removed "secondary" variant as an alias of "default".
  */
 function Badge({ className, variant, ...props }: BadgeProps) {
     const custom = variant && customVariantStyles[variant];
     if (custom) {
         return <BaseBadge className={cn(custom, className)} {...props} />;
     }
-    return <BaseBadge className={className} variant={variant as BaseBadgeProps['variant']} {...props} />;
+    const baseVariant = variant === 'secondary' ? 'default' : variant;
+    return (
+        <BaseBadge className={className} variant={baseVariant as BaseBadgeProps['variant']} {...props} />
+    );
 }
 
 export { Badge };
-export { badgeVariants } from '@vendure-io/ui/components/ui/badge';
+export { badgeVariants } from '@vendure-io/ui/components/atoms/badge';

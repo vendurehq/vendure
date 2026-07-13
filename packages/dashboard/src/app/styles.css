@@ -1,6 +1,4 @@
-@import '@fontsource-variable/inter';
-@import '@fontsource-variable/public-sans';
-@import '@fontsource-variable/geist-mono';
+@import '@vendure-io/design-tokens/css/fonts';
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import "shadcn/tailwind.css";

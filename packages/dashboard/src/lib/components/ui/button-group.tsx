@@ -3,4 +3,4 @@ export {
     ButtonGroupSeparator,
     ButtonGroupText,
     buttonGroupVariants,
-} from '@vendure-io/ui/components/ui/button-group';
+} from '@vendure-io/ui/components/atoms/button-group';
