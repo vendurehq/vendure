@@ -495,9 +495,8 @@ export async function createVendureApp(
         const { populate } = await import(
             path.join(resolvePackageRootDir('@vendure/core', serverRoot), 'cli', 'populate')
         );
-        const { bootstrap, DefaultLogger, LogLevel, JobQueueService } = await import(
-            path.join(resolvePackageRootDir('@vendure/core', serverRoot), 'dist', 'index')
-        );
+        const { bootstrap, generateMigration, runMigrations, DefaultLogger, LogLevel, JobQueueService } =
+            await import(path.join(resolvePackageRootDir('@vendure/core', serverRoot), 'dist', 'index'));
         const { config } = await import(configFile);
         const assetsDir = path.join(__dirname, '../assets');
         superAdminCredentials = config.authOptions.superadminCredentials;
@@ -509,8 +508,23 @@ export async function createVendureApp(
                   ? LogLevel.Verbose
                   : LogLevel.Info;
 
+        // Generate an initial "baseline" migration and run it, so that a fresh project ships with a
+        // schema-creating migration from day one. The database is empty at this point, so diffing
+        // the entity metadata against it yields the complete schema. This lets the very first remote
+        // deploy build its schema via migrations instead of relying on `synchronize`, which is unsafe
+        // in production.
+        await checkDbConnection(config.dbConnectionOptions, serverRoot);
+        const migrationsGlob = Array.isArray(config.dbConnectionOptions.migrations)
+            ? config.dbConnectionOptions.migrations[0]
+            : undefined;
+        const migrationsDir =
+            typeof migrationsGlob === 'string'
+                ? path.dirname(migrationsGlob)
+                : path.join(serverRoot, 'src', 'migrations');
+        await generateMigration(config, { name: 'init', outputDir: migrationsDir });
+        await runMigrations(config);
+
         const bootstrapFn = async () => {
-            await checkDbConnection(config.dbConnectionOptions, serverRoot);
             const _app = await bootstrap({
                 ...config,
                 apiOptions: {
@@ -519,7 +533,7 @@ export async function createVendureApp(
                 },
                 dbConnectionOptions: {
                     ...config.dbConnectionOptions,
-                    synchronize: true,
+                    synchronize: false,
                 },
                 logger: new DefaultLogger({ level: vendureLogLevel }),
                 importExportOptions: {
