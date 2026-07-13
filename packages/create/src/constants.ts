@@ -15,14 +15,6 @@ export const STOREFRONT_BRANCH = 'main';
  */
 export const TYPESCRIPT_VERSION = '5.8.2';
 /**
- * `typeorm` must be a direct dependency of the scaffolded project because generated migration
- * files import `MigrationInterface`/`QueryRunner` directly from `typeorm`, and strict
- * (non-hoisting) package managers like pnpm don't expose transitive deps. The range must stay
- * compatible with the version `@vendure/core` depends on so the two dedupe to a single instance -
- * a mismatch would produce duplicate TypeORM copies with separate decorator metadata.
- */
-export const TYPEORM_VERSION = '^0.3.21';
-/**
  * Vite must be a direct dependency of the scaffolded project because the
  * generated vite.config.mts imports `vite` directly, and strict
  * (non-hoisting) package managers like pnpm don't expose transitive deps.
