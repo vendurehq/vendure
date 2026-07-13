@@ -1,4 +1,5 @@
 import { Badge } from '@/vdb/components/ui/badge.js';
+import { LoadingState } from '@/vdb/components/ui/state-views.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import {
     Command,
@@ -102,7 +103,7 @@ export function AssetTagFilter({ selectedTags, onTagsChange }: Readonly<AssetTag
                         <Filter className="h-4 w-4 mr-2" />
                         <Trans>Filter by tags</Trans>
                         {selectedTags.length > 0 && (
-                            <Badge variant="secondary" className="ml-2">
+                            <Badge variant="default" className="ml-2">
                                 {selectedTags.length}
                             </Badge>
                         )}
@@ -117,10 +118,7 @@ export function AssetTagFilter({ selectedTags, onTagsChange }: Readonly<AssetTag
                         <CommandList className="max-h-[300px] overflow-y-auto" onScroll={handleScroll}>
                             <CommandEmpty>
                                 {isLoading ? (
-                                    <div className="flex items-center justify-center py-6">
-                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                        <Trans>Loading...</Trans>
-                                    </div>
+                                    <LoadingState variant="spinner" className="py-6" />
                                 ) : (
                                     <div className="p-2 text-sm">
                                         <Trans>No tags found</Trans>
@@ -187,7 +185,7 @@ export function AssetTagFilter({ selectedTags, onTagsChange }: Readonly<AssetTag
             {selectedTags.length > 0 && (
                 <div className="flex flex-wrap gap-1">
                     {selectedTags.map(tag => (
-                        <Badge key={tag} variant="secondary" className="text-xs">
+                        <Badge key={tag} variant="default" className="text-xs">
                             {tag}
                             <button
                                 onClick={() => handleRemoveTag(tag)}

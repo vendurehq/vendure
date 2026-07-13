@@ -58,7 +58,7 @@ function AdministratorListPage() {
                             <div className="flex flex-wrap gap-2">
                                 {row.original.user?.roles.map(role => {
                                     return (
-                                        <Badge variant="secondary" key={role.id}>
+                                        <Badge variant="default" key={role.id}>
                                             <RoleCodeLabel code={role.code} />
                                         </Badge>
                                     );

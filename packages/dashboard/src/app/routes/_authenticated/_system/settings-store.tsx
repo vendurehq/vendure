@@ -289,7 +289,7 @@ function SettingsStorePage() {
                 header: t`Readonly`,
                 cell: ({ row }) =>
                     row.original.readonly ? (
-                        <Badge variant="secondary">
+                        <Badge variant="default">
                             <Trans>Readonly</Trans>
                         </Badge>
                     ) : null,

@@ -304,7 +304,7 @@ function ManageProductVariants() {
                                         </label>
                                         <div className="flex flex-wrap gap-2 mt-1">
                                             {group.options.map(option => (
-                                                <Badge key={option.id} variant="secondary">
+                                                <Badge key={option.id} variant="default">
                                                     {option.name}
                                                 </Badge>
                                             ))}

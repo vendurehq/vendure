@@ -776,7 +776,7 @@ function AssetListView({
                             </TableCell>
                             <TableCell className="font-medium">{asset.name}</TableCell>
                             <TableCell>
-                                <Badge variant="secondary" className="text-xs font-normal">
+                                <Badge variant="default" className="text-xs font-normal">
                                     {asset.type.toLowerCase()}
                                 </Badge>
                             </TableCell>

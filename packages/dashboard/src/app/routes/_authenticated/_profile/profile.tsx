@@ -133,7 +133,7 @@ function ProfilePage() {
                                 key={method.id}
                                 className="flex items-center justify-between py-2 border-b last:border-b-0"
                             >
-                                <Badge variant="secondary">
+                                <Badge variant="default">
                                     {method.strategy === 'native' ? t`Password` : method.strategy}
                                 </Badge>
                                 <span className="text-sm text-muted-foreground">

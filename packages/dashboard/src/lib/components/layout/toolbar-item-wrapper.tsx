@@ -52,7 +52,6 @@ export function DevModeToolbarItemWrapper({
     };
 
     return (
-        // eslint-disable-next-line jsx-a11y/no-static-element-interactions
         <div
             className={cn(
                 'ring-1 ring-transparent rounded transition-all delay-50 relative',

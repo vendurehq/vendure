@@ -52,7 +52,7 @@ function CustomerListPage() {
                         return (
                             <div className="flex flex-wrap gap-1">
                                 {row.original.groups?.map(g => (
-                                    <Badge variant="secondary" key={g.id}>
+                                    <Badge variant="default" key={g.id}>
                                         {g.name}
                                     </Badge>
                                 ))}

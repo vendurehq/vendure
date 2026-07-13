@@ -10,7 +10,7 @@ interface ProductOptionGroupBadgeProps {
 
 export function ProductOptionGroupBadge({ id, name, productId }: ProductOptionGroupBadgeProps) {
     return (
-        <Badge variant="secondary" className="text-xs">
+        <Badge variant="default" className="text-xs">
             <span>{name}</span>
             <Link
                 to={`/option-groups/${id}`}

@@ -141,19 +141,19 @@ export function FacetValueFacetedFilter<TData, TValue>({
                     {selectedIds.size > 0 && (
                         <>
                             <Separator orientation="vertical" className="mx-2" />
-                            <Badge variant="secondary" className="rounded-sm px-1 font-normal lg:hidden">
+                            <Badge variant="default" className="rounded-sm px-1 font-normal lg:hidden">
                                 {selectedIds.size}
                             </Badge>
                             <div className="hidden space-x-1 lg:flex">
                                 {selectedIds.size > 2 ? (
-                                    <Badge variant="secondary" className="rounded-sm px-1 font-normal">
+                                    <Badge variant="default" className="rounded-sm px-1 font-normal">
                                         {selectedIds.size} selected
                                     </Badge>
                                 ) : (
                                     selectedLabels.map(label => (
                                         <Badge
                                             key={label}
-                                            variant="secondary"
+                                            variant="default"
                                             className="rounded-sm px-1 font-normal"
                                         >
                                             {label}

@@ -112,7 +112,7 @@ export function AssetTagsEditor({
                     </span>
                 ) : (
                     selectedTags.map(tag => (
-                        <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+                        <Badge key={tag} variant="default" className="flex items-center gap-1">
                             {tag}
                             {!disabled && (
                                 <button

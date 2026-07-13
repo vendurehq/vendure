@@ -35,7 +35,7 @@ export function FacetValueChip({
 }: FacetValueChipProps) {
     return (
         <Badge
-            variant="secondary"
+            variant="default"
             className="flex items-center gap-2 py-0.5 pl-2 pr-1 h-6 max-w-full shrink hover:bg-secondary/80"
         >
             <div className="flex items-center gap-1.5 min-w-0 truncate">
