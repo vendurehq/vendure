@@ -2,16 +2,7 @@ import BetterSqlite3 from 'better-sqlite3';
 import fs from 'fs-extra';
 import os from 'os';
 import path from 'path';
-import { afterAll, describe, expect, it, vi } from 'vitest';
-
-// `resetConfig()` reloads the default config via a synchronous `require()` of an extensionless
-// module path, which Node cannot resolve under the vitest/SWC runtime (only `import()` is hooked).
-// It is called in `generateMigration`'s `finally` block; neutralise it here so the function is
-// exercisable in-process. Config state is re-established by `setConfig()` on every call anyway.
-vi.mock('./config/config-helpers', async importOriginal => {
-    const actual = await importOriginal<typeof import('./config/config-helpers')>();
-    return { ...actual, resetConfig: () => undefined };
-});
+import { afterAll, describe, expect, it } from 'vitest';
 
 import { generateMigration } from './migrate';
 
