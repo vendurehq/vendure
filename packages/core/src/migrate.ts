@@ -268,11 +268,20 @@ async function createEmptyDatabaseConnection(
     }
 }
 
+/**
+ * A monotonically-increasing counter combined with a timestamp guarantees a unique shadow database
+ * name even if two are provisioned within the same millisecond.
+ */
+let shadowDatabaseCounter = 0;
+function uniqueShadowSuffix(): string {
+    return `${Date.now()}_${shadowDatabaseCounter++}`;
+}
+
 async function provisionShadowDatabase(
     baseOptions: DataSourceOptions,
     dialect: 'postgres' | 'mysql',
 ): Promise<EmptyDatabaseConnection> {
-    const shadowName = `vendure_shadow_${Date.now()}`;
+    const shadowName = `vendure_shadow_${uniqueShadowSuffix()}`;
     const quotedName = dialect === 'postgres' ? `"${shadowName}"` : `\`${shadowName}\``;
 
     // An admin connection to the *configured* database, used only to create and later drop the
@@ -295,11 +304,20 @@ async function provisionShadowDatabase(
         );
     }
 
-    const connection = await createConnection({
-        ...baseOptions,
-        name: `vendure-shadow-${shadowName}`,
-        database: shadowName,
-    } as DataSourceOptions);
+    let connection: Connection;
+    try {
+        connection = await createConnection({
+            ...baseOptions,
+            name: `vendure-shadow-${shadowName}`,
+            database: shadowName,
+        } as DataSourceOptions);
+    } catch (e) {
+        // The shadow database was created but we could not connect to it - drop it so it is not
+        // left behind, then surface the original error.
+        await admin.query(`DROP DATABASE IF EXISTS ${quotedName}`).catch(() => undefined);
+        await admin.close();
+        throw e;
+    }
 
     return {
         connection,
@@ -324,7 +342,7 @@ async function provisionShadowDatabase(
 function emptySqliteOptions(baseOptions: DataSourceOptions): DataSourceOptions {
     const shared = {
         ...baseOptions,
-        name: `vendure-shadow-${Date.now()}`,
+        name: `vendure-shadow-${uniqueShadowSuffix()}`,
     };
     if (baseOptions.type === 'sqljs') {
         return { ...shared, location: undefined, autoSave: false } as DataSourceOptions;
