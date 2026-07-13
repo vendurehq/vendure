@@ -24,6 +24,7 @@ import {
     SOCKET_TIMEOUT_MS,
     STOREFRONT_BRANCH,
     STOREFRONT_REPO,
+    TYPEORM_VERSION,
     TYPESCRIPT_VERSION,
     VITE_VERSION,
 } from './constants';
@@ -559,6 +560,7 @@ export function installPackages(options: {
 export function getDependencies(
     dbType: DbType,
     vendurePkgVersion = '',
+    packageManager?: PackageManager,
 ): { dependencies: string[]; devDependencies: string[] } {
     const dependencies = [
         `@vendure/core${vendurePkgVersion}`,
@@ -567,6 +569,10 @@ export function getDependencies(
         `@vendure/graphiql-plugin${vendurePkgVersion}`,
         `@vendure/dashboard${vendurePkgVersion}`,
         'dotenv',
+        // Generated migrations import from `typeorm`. Only pnpm's strict node_modules fails to
+        // resolve it as a transitive dep (npm/yarn/bun hoist, and the scaffold forces yarn's
+        // node-modules linker), so declare it directly for pnpm only. See #4960.
+        ...(packageManager === 'pnpm' ? [`typeorm@${TYPEORM_VERSION}`] : []),
         dbDriverPackage(dbType),
     ];
     const devDependencies = [

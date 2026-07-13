@@ -11,6 +11,7 @@ import {
     checkNodeVersion,
     detectPackageManager,
     findAvailablePort,
+    getDependencies,
     getInstallCommand,
     getMonorepoRootPackageJson,
     getNativeBuildDependencies,
@@ -25,6 +26,7 @@ import {
     registerTemplateHelpers,
     toComposeProjectName,
 } from './helpers';
+import { TYPEORM_VERSION } from './constants';
 import { log } from './logger';
 import { PackageManager } from './types';
 
@@ -685,5 +687,28 @@ describe('installPackages', () => {
         await expect(
             installPackages({ dependencies: ['dotenv'], logLevel: 'info', packageManager: 'yarn' }),
         ).rejects.toThrow(/Is yarn installed and on your PATH\?/);
+    });
+});
+
+describe('getDependencies', () => {
+    it('adds typeorm as a direct dependency only for pnpm', () => {
+        const pnpmDeps = getDependencies('postgres', '@3.7.0', 'pnpm').dependencies;
+        expect(pnpmDeps).toContain(`typeorm@${TYPEORM_VERSION}`);
+
+        for (const pm of ['npm', 'yarn', 'bun'] as const) {
+            const deps = getDependencies('postgres', '@3.7.0', pm).dependencies;
+            expect(deps.some(d => d.startsWith('typeorm'))).toBe(false);
+        }
+        // Unspecified package manager must not add typeorm either.
+        const noPmDeps = getDependencies('postgres', '@3.7.0').dependencies;
+        expect(noPmDeps.some(d => d.startsWith('typeorm'))).toBe(false);
+    });
+
+    // The typeorm pin used for pnpm projects must match the range @vendure/core depends on, so that
+    // pnpm dedupes to a single TypeORM instance. This fails if core bumps typeorm without the
+    // scaffold's TYPEORM_VERSION being updated to match.
+    it('pins typeorm to the same range as @vendure/core', () => {
+        const corePkg = fs.readJsonSync(path.resolve(__dirname, '../../core/package.json'));
+        expect(TYPEORM_VERSION).toBe(corePkg.dependencies.typeorm);
     });
 });

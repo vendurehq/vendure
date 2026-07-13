@@ -336,7 +336,11 @@ export async function createVendureApp(
     }
 
     // Install dependencies
-    const { dependencies, devDependencies } = getDependencies(dbType, `@${packageJson.version as string}`);
+    const { dependencies, devDependencies } = getDependencies(
+        dbType,
+        `@${packageJson.version as string}`,
+        packageManager,
+    );
 
     // Install server dependencies
     await installDependenciesWithSpinner({
