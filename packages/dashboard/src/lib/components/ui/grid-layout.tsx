@@ -340,8 +340,8 @@ export function GridLayout({
             style={{ 
                 height: `${containerHeight}px`,
                 backgroundImage: `
-                    linear-gradient(to right, hsl(var(--border)) 1px, transparent 1px),
-                    linear-gradient(to bottom, hsl(var(--border)) 1px, transparent 1px)
+                    linear-gradient(to right, var(--border) 1px, transparent 1px),
+                    linear-gradient(to bottom, var(--border) 1px, transparent 1px)
                 `,
                 backgroundSize: `${100 / cols}% ${rowHeight}px`,
             }}

@@ -211,11 +211,11 @@ export function RichTextEditor({ value, onChange, disabled = false, placeholder 
                     margin-bottom: 0;
                 }
                 .rich-text-editor blockquote {
-                    border-left: 4px solid hsl(var(--border));
+                    border-left: 4px solid var(--border);
                     margin: 1em 0;
                     padding-left: 1em;
                     font-style: italic;
-                    color: hsl(var(--muted-foreground));
+                    color: var(--muted-foreground);
                 }
                 .rich-text-editor blockquote p {
                     margin-bottom: 0.5em;
@@ -224,7 +224,7 @@ export function RichTextEditor({ value, onChange, disabled = false, placeholder 
                     margin-bottom: 0;
                 }
                 .rich-text-editor a {
-                    color: hsl(var(--primary));
+                    color: var(--primary);
                     text-decoration: underline;
                     text-underline-offset: 2px;
                     cursor: pointer;
@@ -242,7 +242,7 @@ export function RichTextEditor({ value, onChange, disabled = false, placeholder 
                 }
                 .rich-text-editor img.ProseMirror-selectednode,
                 .rich-text-editor .rich-text-image.ProseMirror-selectednode {
-                    outline: 2px solid hsl(var(--primary));
+                    outline: 2px solid var(--primary);
                     outline-offset: 2px;
                 }
                 .rich-text-editor table {
@@ -270,7 +270,7 @@ export function RichTextEditor({ value, onChange, disabled = false, placeholder 
                     vertical-align: top;
                     box-sizing: border-box;
                     position: relative;
-                    background-color: hsl(var(--background));
+                    background-color: var(--background);
                 }
                 .rich-text-editor table td:last-child,
                 .rich-text-editor table th:last-child {
@@ -284,10 +284,10 @@ export function RichTextEditor({ value, onChange, disabled = false, placeholder 
                 .rich-text-editor .rich-text-table-header {
                     font-weight: 600;
                     text-align: left;
-                    background-color: hsl(var(--muted));
+                    background-color: var(--muted);
                 }
                 .rich-text-editor table .selectedCell {
-                    background-color: hsl(var(--accent));
+                    background-color: var(--accent);
                 }
                 .rich-text-editor table .column-resize-handle {
                     position: absolute;
@@ -295,7 +295,7 @@ export function RichTextEditor({ value, onChange, disabled = false, placeholder 
                     top: 0;
                     bottom: 0;
                     width: 4px;
-                    background-color: hsl(var(--primary));
+                    background-color: var(--primary);
                     pointer-events: none;
                 }
                 .rich-text-editor table p {
@@ -309,14 +309,14 @@ export function RichTextEditor({ value, onChange, disabled = false, placeholder 
                     cursor: col-resize;
                 }
                 .rich-text-editor code {
-                    background-color: hsl(var(--muted));
+                    background-color: var(--muted);
                     border-radius: 3px;
                     font-family: 'Courier New', Courier, monospace;
                     padding: 0.2em 0.4em;
                     font-size: 0.9em;
                 }
                 .rich-text-editor pre {
-                    background-color: hsl(var(--muted));
+                    background-color: var(--muted);
                     border-radius: 6px;
                     padding: 1em;
                     overflow-x: auto;
@@ -329,7 +329,7 @@ export function RichTextEditor({ value, onChange, disabled = false, placeholder 
                 }
                 .rich-text-editor hr {
                     border: none;
-                    border-top: 1px solid hsl(var(--border));
+                    border-top: 1px solid var(--border);
                     margin: 2em 0;
                 }
                 .rich-text-editor:focus {
