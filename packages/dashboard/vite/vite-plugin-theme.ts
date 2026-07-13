@@ -1,6 +1,5 @@
-import path from 'node:path';
-
 import { brand, darkTheme, fontFamily, lightTheme, radii, shadows } from '@vendure-io/design-tokens';
+import path from 'node:path';
 import { Plugin } from 'vite';
 
 type ThemeColors = Record<string, string | undefined>;
@@ -57,9 +56,6 @@ export interface DashboardThemeOptions extends ThemeVariables {
 const dashboardLightExtensions: ThemeColors = {
     'dev-mode': brand[400],
     'dev-mode-foreground': brand[950],
-    brand: brand[500],
-    'brand-lighter': brand[300],
-    'brand-darker': brand[700],
     'font-sans': fontFamily.sans,
     'font-heading': fontFamily.heading,
     'font-body': fontFamily.body,
@@ -69,9 +65,6 @@ const dashboardLightExtensions: ThemeColors = {
 const dashboardDarkExtensions: ThemeColors = {
     'dev-mode': brand[400],
     'dev-mode-foreground': brand[950],
-    brand: brand[500],
-    'brand-lighter': brand[50],
-    'brand-darker': brand[700],
     'font-sans': fontFamily.sans,
     'font-heading': fontFamily.heading,
     'font-body': fontFamily.body,
@@ -121,14 +114,13 @@ function generateThemeInlineBlock(): string {
     // options are picked up (the :root block sets --font-* from dashboardExtensions)
     const fontLines = Object.entries(fontFamily).map(([key]) => `    --font-${key}: var(--font-${key});`);
 
-    // Dashboard-specific tokens not present in the base design-tokens
+    // Dashboard-specific tokens not present in the base design-tokens.
+    // `brand`/`brand-foreground` are published by @vendure-io/design-tokens v2
+    // and flow through automatically via `colorKeys` above, so they are not
+    // redefined here.
     const dashboardLines = [
         '    --color-dev-mode: var(--dev-mode);',
         '    --color-dev-mode-foreground: var(--dev-mode-foreground);',
-        '    --color-brand: var(--brand);',
-        '    --color-brand-lighter: var(--brand-lighter);',
-        '    --color-brand-darker: var(--brand-darker);',
-        '    --color-vendure-brand: #17c1ff;',
     ];
 
     const allLines = [...colorLines, ...radiusLines, ...shadowLines, ...fontLines, ...dashboardLines];

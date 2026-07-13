@@ -50,7 +50,7 @@ function StatusBadge({ condition, text, variant = 'orange' }: Readonly<StatusBad
         orange: 'text-warning',
         green: 'bg-success/10 text-success',
         red: 'bg-destructive/10 text-destructive',
-        blue: 'bg-primary/10 text-primary',
+        blue: 'bg-brand/10 text-brand',
     };
 
     return (

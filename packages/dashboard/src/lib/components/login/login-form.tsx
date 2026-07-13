@@ -51,7 +51,7 @@ export function LoginForm({ className, onFormSubmit, isVerifying, loginError, ..
             {loginExtensions.logo ? (
                 <loginExtensions.logo.component />
             ) : (
-                <LogoMark className="text-primary h-8 w-auto" />
+                <LogoMark className="text-brand h-8 w-auto" />
             )}
             <Card className="w-full">
                 <CardContent className="pt-6">
