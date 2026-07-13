@@ -337,13 +337,18 @@ export function GridLayout({
     return (
         <div
             className={cn("relative w-full bg-muted/10", className)}
-            style={{ 
+            style={{
                 height: `${containerHeight}px`,
-                backgroundImage: `
+                // Alignment lines are an editing aid; hide them in view mode.
+                ...(isDraggable || isResizable
+                    ? {
+                          backgroundImage: `
                     linear-gradient(to right, var(--border) 1px, transparent 1px),
                     linear-gradient(to bottom, var(--border) 1px, transparent 1px)
                 `,
-                backgroundSize: `${100 / cols}% ${rowHeight}px`,
+                          backgroundSize: `${100 / cols}% ${rowHeight}px`,
+                      }
+                    : {}),
             }}
         >
             {children.map((child, index) => {
