@@ -21,7 +21,7 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { createColumnHelper } from '@tanstack/react-table';
-import { defineStateEntries } from '@vendure-io/ui/lib/state-dictionary';
+import { defineStateEntries } from '@/vdb/components/ui/status-badge.js';
 import { CirclePlay, EllipsisIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { PayloadDialog } from './components/payload-dialog.js';

@@ -14,7 +14,7 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { ArrowRight, Workflow } from 'lucide-react';
 import { useMemo } from 'react';
 import { orderStateDictionary } from '@/vdb/utils/state-type.js';
-import type { Tone } from '@vendure-io/ui/lib/state-dictionary';
+import type { Tone } from '@/vdb/components/ui/status-badge.js';
 
 interface OrderProcessDialogProps {
     currentState: string;

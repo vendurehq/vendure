@@ -7,7 +7,7 @@ import {
 } from '@/vdb/components/ui/dropdown-menu.js';
 import { cn } from '@/vdb/lib/utils.js';
 import { orderStateDictionary } from '@/vdb/utils/state-type.js';
-import type { Tone } from '@vendure-io/ui/lib/state-dictionary';
+import type { Tone } from '@/vdb/components/ui/status-badge.js';
 import { Trans } from '@lingui/react/macro';
 import { CircleAlert, CircleCheck, CircleDashed, CircleX, EllipsisVertical } from 'lucide-react';
 import type { ReactNode } from 'react';

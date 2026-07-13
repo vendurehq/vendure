@@ -16,16 +16,27 @@ resolved before this PR leaves draft. This file is deleted before merge.
    nor a primary action — v2's new `neutral-subtle` slots fit better. Change them?
 3. **Cancel actions lost their red.** The state-transition dropdown derived
    destructive styling from the *target state's* tone; Cancelled is now correctly
-   neutral, so "Cancel order/payment" menu items are no longer red. Recommendation:
-   key destructive styling on the action semantics (cancel = irreversible loss)
-   rather than the state tone. Confirm and we'll special-case it.
+   neutral, so "Cancel order/payment" menu items are no longer red. Same root cause
+   in `order-process-dialog.tsx:828`: the guard that excluded destructive next
+   states from the dashed "suggested state" treatment keys on `tone === 'critical'`,
+   so Cancel transitions now *get* the suggested styling the adjacent comment says
+   to avoid. Recommendation: key destructive styling on the action semantics
+   (cancel = irreversible loss) rather than the state tone. Confirm and we'll
+   special-case both sites.
 4. **Scheduled task "Running" column** now uses the `progress` tone (pulsing dot)
    instead of `success`. This follows the state rules (actively executing = progress)
    but deviates from the previous look. Confirm.
-5. **Destructive confirmation dialogs.** All 4 `ConfirmationDialog` call sites are
-   destructive deletes, but the adapter keeps the previous non-destructive appearance
-   to avoid a silent visual change. v2's ConfirmDialog supports
-   `variant="destructive"` — add a `destructive` prop and use it at those sites?
+5. **Destructive confirmation dialogs.** There are 5 `ConfirmationDialog` call sites
+   in 4 files; 4 are destructive deletes (incl. two in
+   `products_.$id_.variants.tsx:322,460`), while
+   `generate-variants-panel.tsx:402` is a discard/navigation confirm. The adapter
+   keeps the previous non-destructive appearance to avoid a silent visual change.
+   v2's ConfirmDialog supports `variant="destructive"` — add a `destructive` prop
+   and use it at the 4 delete sites?
+   Note: the v2 dialog also awaits promise-returning `onConfirm` handlers — it stays
+   open with a spinner, blocks escape/backdrop while pending, and stays open on
+   rejection, where the old wrapper closed immediately. Current call sites are sync,
+   so no behavior change today, but future async handlers get this for free.
 6. **Dialog title typography.** v2 dialog/alert-dialog titles use the
    `text-style-section-title` role (family + size + weight) where the dashboard
    previously only re-bound the font family. Real visual change on every dialog —
@@ -65,7 +76,24 @@ resolved before this PR leaves draft. This file is deleted before merge.
 15. **CopyableText DOM change.** The v2 molecule renders an inline `<span>` container
     where the old component was a block `<div>`. No internal breakage; extension CSS
     targeting the container could notice.
-16. **design-lint false positive.** Issue references like `(#2608)` in test titles
+16. **Removed `state-type` helpers.** `getTypeForState`/`stateTypeToBadgeVariant`/
+    `StateType` were never in the generated public index, but extensions could reach
+    them via the documented `@/vdb/utils/state-type.js` deep-import path. They were
+    removed outright (replaced by the state-dictionary toolkit) — a deliberate break
+    for deep-importers. Add deprecated shims instead?
+17. **Upstream i18n gaps in v2 molecules.** The v2 CopyButton hard-codes English
+    aria-labels ("Copy"/"Copied") and CopyableText doesn't forward label props, so
+    the dashboard wrapper can't localize them; LoadingState likewise hard-codes an
+    sr-only "Loading…". Needs upstream prop passthroughs in `@vendure-io/ui`.
+18. **Removed brand ramp aliases.** The theme plugin no longer emits
+    `--color-brand-lighter`/`--color-brand-darker` (unused internally, not published
+    by v2). Any extension using `bg-brand-lighter` etc. silently loses the utility.
+19. **Minor status-badge polish.** The job-queue RUNNING badge now shows the
+    progress dot *and* the static state icon (double indicator — consider dropping
+    the icon for RUNNING), and the dashboard Badge's custom success/warning variants
+    inherit the neutral border rather than `border-success-border`/
+    `border-warning-border` as v2 StatusBadge does.
+20. **design-lint false positive.** Issue references like `(#2608)` in test titles
     parse as hex colors, so `src/**/*.spec.{ts,tsx}` is excluded from the rule
     (inline disables are impossible: the root pre-commit ESLint doesn't know the
     plugin). Worth an upstream fix in `@vendure-io/design-lint` (require a

@@ -12,8 +12,8 @@ import designLint from '@vendure-io/design-lint/eslint'
 export default [{ ignores: ['dist'] }, {
   files: ['src/**/*.{ts,tsx,js,jsx}'],
   // Spec files are excluded: issue references like "(#2608)" in test titles are
-  // false-positive hex colors, and the root pre-commit ESLint does not know this
-  // plugin, so inline disables are not an option.
+  // false-positive hex colors, and excluding them beats scattering disable
+  // comments through test suites.
   ignores: ['src/**/*.spec.{ts,tsx}'],
   languageOptions: {
     parser: tsParser,

@@ -1,4 +1,4 @@
-import { defineStateEntries } from '@vendure-io/ui/lib/state-dictionary';
+import { defineStateEntries } from '@/vdb/components/ui/status-badge.js';
 
 /**
  * The order-domain state dictionary. Covers order, payment and fulfillment

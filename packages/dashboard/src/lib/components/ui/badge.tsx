@@ -11,10 +11,8 @@ type BaseBadgeProps = React.ComponentProps<typeof BaseBadge>;
 export type BadgeProps = Omit<BaseBadgeProps, 'variant'> & {
     /**
      * In addition to the base variants, "success" and "warning" are dashboard extensions.
-     * "secondary" was removed in @vendure-io/ui v2 and is kept as a deprecated alias
-     * of the neutral "default" variant for extension compatibility.
-     *
-     * @deprecated The "secondary" variant is deprecated; use "default" instead.
+     * "secondary" was removed in @vendure-io/ui v2 and is kept only as a deprecated
+     * alias of the neutral "default" variant for extension compatibility.
      */
     variant?: BaseBadgeProps['variant'] | 'success' | 'warning' | 'secondary';
 };
