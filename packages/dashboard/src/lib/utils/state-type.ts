@@ -1,36 +1,28 @@
-import type { BadgeProps } from '../components/ui/badge.js';
+import { defineStateEntries } from '@vendure-io/ui/lib/state-dictionary';
 
-export type StateType = 'default' | 'destructive' | 'success' | 'warning';
-
-export function getTypeForState(state: string): StateType {
-    const stateLower = state.toLowerCase();
-    switch (stateLower) {
-        case 'cancelled':
-        case 'error':
-            return 'destructive';
-        case 'completed':
-        case 'settled':
-        case 'delivered':
-            return 'success';
-        case 'pending':
-        case 'arrangingpayment':
-        case 'arrangingadditionalpayment':
-        case 'modifying':
-            return 'warning';
-        default:
-            return 'default';
-    }
-}
-
-export function stateTypeToBadgeVariant(type: StateType): BadgeProps['variant'] {
-    switch (type) {
-        case 'success':
-            return 'success';
-        case 'destructive':
-            return 'destructive';
-        case 'warning':
-            return 'warning';
-        default:
-            return 'secondary';
-    }
-}
+/**
+ * The order-domain state dictionary. Covers order, payment and fulfillment
+ * states, which all share Vendure's order-process state vocabulary. Custom
+ * process states that are not listed here fall back to `neutral` via
+ * `toneFor` (see `defineStateEntries`).
+ *
+ * Tone rationale (see design-system state dictionary):
+ * - terminal & healthy (Delivered / Settled / Completed) → `success`
+ * - awaiting admin action (ArrangingPayment / ArrangingAdditionalPayment /
+ *   Modifying / Pending) → `warning`
+ * - user/terminal cancellation → `neutral` (a cancelled order is an outcome,
+ *   not a failure)
+ * - hard failure (Declined / Error) → `critical`
+ */
+export const orderStateDictionary = defineStateEntries({
+    Delivered: { tone: 'success', defaultLabel: 'Delivered' },
+    Settled: { tone: 'success', defaultLabel: 'Settled' },
+    Completed: { tone: 'success', defaultLabel: 'Completed' },
+    ArrangingPayment: { tone: 'warning', defaultLabel: 'Arranging payment' },
+    ArrangingAdditionalPayment: { tone: 'warning', defaultLabel: 'Arranging additional payment' },
+    Modifying: { tone: 'warning', defaultLabel: 'Modifying' },
+    Pending: { tone: 'warning', defaultLabel: 'Pending' },
+    Cancelled: { tone: 'neutral', defaultLabel: 'Cancelled' },
+    Declined: { tone: 'critical', defaultLabel: 'Declined' },
+    Error: { tone: 'critical', defaultLabel: 'Error' },
+});

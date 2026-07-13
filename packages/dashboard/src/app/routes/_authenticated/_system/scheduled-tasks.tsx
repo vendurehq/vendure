@@ -1,7 +1,7 @@
 import { CopyableText } from '@/vdb/components/shared/copyable-text.js';
 import { DataTable } from '@/vdb/components/data-table/data-table.js';
-import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
+import { StatusBadge } from '@/vdb/components/ui/status-badge.js';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -21,9 +21,20 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { createColumnHelper } from '@tanstack/react-table';
+import { defineStateEntries } from '@vendure-io/ui/lib/state-dictionary';
 import { CirclePlay, EllipsisIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { PayloadDialog } from './components/payload-dialog.js';
+
+// A scheduled task's enablement and execution status. `running` means the task
+// is executing right now (progress — renders a pulsing dot); enabled/idle map
+// to success/neutral. Keys are the local flag values, not wire states.
+const scheduledTaskStateDictionary = defineStateEntries({
+    enabled: { tone: 'success', defaultLabel: 'Enabled' },
+    disabled: { tone: 'neutral', defaultLabel: 'Disabled' },
+    running: { tone: 'progress', defaultLabel: 'Running' },
+    idle: { tone: 'neutral', defaultLabel: 'Not Running' },
+});
 
 export const Route = createFileRoute('/_authenticated/_system/scheduled-tasks')({
     component: ScheduledTasksPage,
@@ -114,14 +125,14 @@ function ScheduledTasksPage() {
         columnHelper.accessor('enabled', {
             header: t`Enabled`,
             cell: ({ row }) => {
-                return row.original.enabled ? (
-                    <Badge variant="success">
-                        <Trans>Enabled</Trans>
-                    </Badge>
-                ) : (
-                    <Badge variant="secondary">
-                        <Trans>Disabled</Trans>
-                    </Badge>
+                return (
+                    <StatusBadge
+                        tone={scheduledTaskStateDictionary.toneFor(
+                            row.original.enabled ? 'enabled' : 'disabled',
+                        )}
+                    >
+                        {row.original.enabled ? <Trans>Enabled</Trans> : <Trans>Disabled</Trans>}
+                    </StatusBadge>
                 );
             },
         }),
@@ -156,14 +167,14 @@ function ScheduledTasksPage() {
         columnHelper.accessor('isRunning', {
             header: t`Running`,
             cell: ({ row }) => {
-                return row.original.isRunning ? (
-                    <Badge variant="success">
-                        <Trans>Running</Trans>
-                    </Badge>
-                ) : (
-                    <Badge variant="secondary">
-                        <Trans>Not Running</Trans>
-                    </Badge>
+                return (
+                    <StatusBadge
+                        tone={scheduledTaskStateDictionary.toneFor(
+                            row.original.isRunning ? 'running' : 'idle',
+                        )}
+                    >
+                        {row.original.isRunning ? <Trans>Running</Trans> : <Trans>Not Running</Trans>}
+                    </StatusBadge>
                 );
             },
         }),

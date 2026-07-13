@@ -41,7 +41,8 @@ import { OrderTable } from './order-table.js';
 import { OrderTaxSummary } from './order-tax-summary.js';
 import { PaymentDetails } from './payment-details.js';
 import { RefundOrderDialog, RefundOrderDialogRef } from './refund-order-dialog.js';
-import { getTypeForState, StateTransitionControl } from './state-transition-control.js';
+import { orderStateDictionary } from '@/vdb/utils/state-type.js';
+import { StateTransitionControl } from './state-transition-control.js';
 import { useTransitionOrderToState } from './use-transition-order-to-state.js';
 
 export type OrderDetail = NonNullable<ResultOf<typeof orderDetailDocument>['order']>;
@@ -123,7 +124,7 @@ export function OrderDetailShared({
             .filter((state: string) => state !== 'Modifying')
             .map((state: string) => ({
                 label: t`Transition to ${getTranslatedOrderState(state)}`,
-                type: getTypeForState(state),
+                tone: orderStateDictionary.toneFor(state),
                 onClick: async () => {
                     const transitionError = await transitionToState(state);
                     if (transitionError) {

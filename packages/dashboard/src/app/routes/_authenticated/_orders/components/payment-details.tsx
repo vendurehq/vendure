@@ -19,11 +19,8 @@ import {
     transitionPaymentToStateDocument,
 } from '../orders.graphql.js';
 import { SettleRefundDialog } from './settle-refund-dialog.js';
-import {
-    getTypeForState,
-    StateTransitionAction,
-    StateTransitionControl,
-} from './state-transition-control.js';
+import { orderStateDictionary } from '@/vdb/utils/state-type.js';
+import { StateTransitionAction, StateTransitionControl } from './state-transition-control.js';
 
 type PaymentDetailsProps = {
     payment: ResultOf<typeof paymentWithRefundsFragment>;
@@ -141,7 +138,7 @@ export function PaymentDetails({ payment, currencyCode, onSuccess }: Readonly<Pa
             actions.push({
                 label: t`Settle payment`,
                 onClick: handleSettlePayment,
-                type: 'success',
+                tone: 'success',
                 disabled: settlePaymentMutation.isPending,
             });
         }
@@ -152,7 +149,7 @@ export function PaymentDetails({ payment, currencyCode, onSuccess }: Readonly<Pa
                     state === 'Cancelled'
                         ? t`Cancel payment`
                         : t`Transition to ${getTranslatedPaymentState(state)}`,
-                type: getTypeForState(state),
+                tone: orderStateDictionary.toneFor(state),
                 onClick: () => handlePaymentStateTransition(state),
                 disabled: transitionPaymentMutation.isPending || cancelPaymentMutation.isPending,
             });
