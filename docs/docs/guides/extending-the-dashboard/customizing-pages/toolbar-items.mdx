@@ -1,0 +1,130 @@
+---
+title: 'Toolbar Items'
+metaTitle: 'Adding Toolbar Items to the Vendure Dashboard'
+metaDescription: 'Add compact global actions to the Vendure Dashboard header toolbar and position them relative to built-in toolbar items.'
+---
+
+Toolbar items appear in the global header bar, next to the breadcrumbs, Dev Mode indicator, and alerts icon. Use them for compact actions that should be available across the Dashboard, such as quick search, a channel-aware shortcut, or a link to a custom help panel.
+
+For page-specific actions, use [action bar items](/extending-the-dashboard/customizing-pages/action-bar-items) instead.
+
+## Add a Toolbar Item
+
+```tsx title="src/plugins/my-plugin/dashboard/index.tsx"
+import { Button, defineDashboardExtension, useNavigate } from '@vendure/dashboard';
+import { SearchIcon } from 'lucide-react';
+
+function QuickProductSearchButton() {
+    const navigate = useNavigate();
+
+    return (
+        <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Open products"
+            onClick={() => void navigate({ to: '/products' })}
+        >
+            <SearchIcon className="h-4 w-4" />
+        </Button>
+    );
+}
+
+defineDashboardExtension({
+    toolbarItems: [
+        {
+            id: 'quick-product-search',
+            component: QuickProductSearchButton,
+            position: { itemId: 'alerts', order: 'before' },
+        },
+    ],
+});
+```
+
+Toolbar components receive no props. Use Dashboard hooks such as `useAuth()`, `useChannel()`, `usePermissions()`, or `useNavigate()` when the item needs application state.
+
+## Positioning
+
+Toolbar items can be positioned relative to built-in toolbar items or to items added by other extensions:
+
+```tsx
+defineDashboardExtension({
+    toolbarItems: [
+        {
+            id: 'help',
+            component: HelpButton,
+            position: {
+                itemId: 'alerts',
+                order: 'after',
+            },
+        },
+    ],
+});
+```
+
+The built-in toolbar item IDs are:
+
+| ID                   | Description                                               |
+| -------------------- | --------------------------------------------------------- |
+| `dev-mode-indicator` | The Dev Mode badge, visible only when Dev Mode is enabled |
+| `alerts`             | The alerts icon                                           |
+
+`order` can be:
+
+| Order     | Behavior                               |
+| --------- | -------------------------------------- |
+| `before`  | Place your item before the target item |
+| `after`   | Place your item after the target item  |
+| `replace` | Replace the target item with your item |
+
+Items without a `position` are placed before all built-in toolbar items.
+
+## Permissions and Conditional Display
+
+Use `requiresPermission` when the toolbar item should only be available to administrators with specific permissions:
+
+```tsx
+defineDashboardExtension({
+    toolbarItems: [
+        {
+            id: 'export-orders',
+            component: ExportOrdersButton,
+            position: { itemId: 'alerts', order: 'before' },
+            requiresPermission: ['ReadOrder'],
+        },
+    ],
+});
+```
+
+Return `null` from the component when visibility depends on runtime state:
+
+```tsx
+import { Button, useChannel } from '@vendure/dashboard';
+import { BuildingIcon } from 'lucide-react';
+
+function ChannelShortcut() {
+    const { activeChannel } = useChannel();
+
+    if (!activeChannel) {
+        return null;
+    }
+
+    return (
+        <Button variant="ghost" size="icon" aria-label={activeChannel.code}>
+            <BuildingIcon className="h-4 w-4" />
+        </Button>
+    );
+}
+```
+
+## Finding Toolbar IDs
+
+Enable [Dev Mode](/extending-the-dashboard/extending-overview/#dev-mode), then hover the toolbar item you want to target. The popover shows the `itemId` you can use in `position.itemId`.
+
+The [Extension Targets reference](/extending-the-dashboard/customizing-pages/extension-targets/#toolbar-item-ids) lists the built-in toolbar IDs.
+
+## Best Practices
+
+- Keep toolbar items icon-sized and provide an accessible label with `aria-label`.
+- Use toolbar items for global actions only.
+- Prefer `before` or `after` over `replace` unless you intentionally want to take ownership of a built-in toolbar action.
+- Import Dashboard UI components and hooks from `@vendure/dashboard`.

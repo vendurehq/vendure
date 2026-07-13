@@ -1,4 +1,4 @@
-import { paramCase } from 'change-case';
+import { kebabCase } from '../../../../../utilities/case-utils';
 
 import { AdminUiExtensionTypeName } from '../../../../../constants';
 import { VendurePluginRef } from '../../../../../shared/vendure-plugin-ref';
@@ -11,7 +11,7 @@ import { addImportsToFile } from '../../../../../utilities/ast-utils';
 export function addUiExtensionStaticProp(plugin: VendurePluginRef) {
     const pluginClass = plugin.classDeclaration;
     const adminUiExtensionType = AdminUiExtensionTypeName;
-    const extensionId = paramCase(pluginClass.getName() as string).replace(/-plugin$/, '');
+    const extensionId = kebabCase(pluginClass.getName() as string).replace(/-plugin$/, '');
     pluginClass
         .addProperty({
             name: 'ui',

@@ -15,8 +15,7 @@ import { omit } from '@vendure/common/lib/omit';
 import { ID, PaginatedList, Type } from '@vendure/common/lib/shared-types';
 import { notNullOrUndefined } from '@vendure/common/lib/shared-utils';
 import { unique } from '@vendure/common/lib/unique';
-import { ReadStream as FSReadStream } from 'fs';
-import { ReadStream } from 'fs-extra';
+import { ReadStream } from 'fs';
 import { IncomingMessage } from 'http';
 import { imageSize } from 'image-size';
 import mime from 'mime-types';
@@ -81,6 +80,74 @@ export interface EntityWithAssets extends VendureEntity {
 export interface EntityAssetInput {
     assetIds?: ID[] | null;
     featuredAssetId?: ID | null;
+}
+
+/**
+ * Detects the MIME type of a buffer from its magic bytes. Returns `undefined` for content
+ * with no recognisable signature (e.g. plain text, SVG). The `file-type` package is ESM-only,
+ * so it is loaded via dynamic import (preserved by the NodeNext build).
+ */
+async function detectMimeTypeFromContents(buffer: Buffer): Promise<string | undefined> {
+    const { fileTypeFromBuffer } = await import('file-type');
+    const result = await fileTypeFromBuffer(buffer);
+    return result?.mime;
+}
+
+/**
+ * The number of leading bytes to inspect for magic-byte detection. Signatures live at the
+ * start of a file and `file-type` samples only a small prefix, so peeking this much is
+ * sufficient to identify the content type without buffering the whole upload.
+ */
+const CONTENT_DETECTION_SAMPLE_BYTES = 4100;
+
+/**
+ * Reads up to `byteCount` leading bytes from a stream for inspection so the uploaded content
+ * can be validated before it is persisted. Returns the peeked bytes and whether the stream was
+ * fully consumed in the process (`complete`):
+ *
+ * - If the stream ended within `byteCount` (a small file), the whole content is in `head` and
+ *   the caller writes it directly — the stream cannot be replayed.
+ * - Otherwise the peeked bytes are unshifted back onto the stream, so the caller can write the
+ *   full original stream (preserving its error handling) without buffering it whole.
+ *
+ * The stream is read in paused mode because a `for await … break` would destroy it.
+ */
+function peekStreamHead(stream: Readable, byteCount: number): Promise<{ head: Buffer; complete: boolean }> {
+    return new Promise((resolve, reject) => {
+        const chunks: Buffer[] = [];
+        let size = 0;
+        const cleanup = () => {
+            stream.removeListener('readable', onReadable);
+            stream.removeListener('end', onEnd);
+            stream.removeListener('error', onError);
+        };
+        const onEnd = () => {
+            cleanup();
+            resolve({ head: Buffer.concat(chunks), complete: true });
+        };
+        const onError = (err: Error) => {
+            cleanup();
+            reject(err);
+        };
+        const onReadable = () => {
+            let chunk: Buffer | null;
+            // eslint-disable-next-line no-cond-assign
+            while ((chunk = stream.read()) !== null) {
+                chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+                size += chunks[chunks.length - 1].length;
+                if (size >= byteCount) {
+                    cleanup();
+                    const head = Buffer.concat(chunks);
+                    stream.unshift(head);
+                    resolve({ head, complete: false });
+                    return;
+                }
+            }
+        };
+        stream.on('readable', onReadable);
+        stream.on('end', onEnd);
+        stream.on('error', onError);
+    });
 }
 
 /**
@@ -337,7 +404,6 @@ export class AssetService {
             input.focalPoint.y = to3dp(input.focalPoint.y);
         }
         patchEntity(asset, omit(input, ['tags', 'name', 'translations']));
-        await this.customFieldRelationService.updateRelations(ctx, Asset, input, asset);
         if (input.tags) {
             asset.tags = await this.tagService.valuesToTags(ctx, input.tags);
         }
@@ -347,8 +413,11 @@ export class AssetService {
         if (input.name != null && !translationsInput.some(t => t.languageCode === ctx.languageCode)) {
             translationsInput.push({ languageCode: ctx.languageCode, name: input.name });
         }
-        // Save asset first to ensure it exists for translation foreign key
+        // Save asset first to ensure it exists for translation foreign key, and so that
+        // updateRelations() sees the freshly-patched scalar custom fields when it reloads
+        // the entity from the DB.
         const savedAsset = await this.connection.getRepository(ctx, Asset).save(asset);
+        await this.customFieldRelationService.updateRelations(ctx, Asset, input, asset);
         if (translationsInput.length > 0) {
             await this.translatableSaver.update({
                 ctx,
@@ -494,7 +563,7 @@ export class AssetService {
         const filePathFromArgs =
             maybeFilePathOrCtx instanceof RequestContext ? undefined : maybeFilePathOrCtx;
         const filePath =
-            stream instanceof ReadStream || stream instanceof FSReadStream ? stream.path : filePathFromArgs;
+            stream instanceof ReadStream ? stream.path : filePathFromArgs;
         if (typeof filePath === 'string') {
             const filename = path.basename(filePath).split('?')[0];
             const mimetype = this.getMimeType(stream, filename);
@@ -560,6 +629,48 @@ export class AssetService {
         return !permissions.includes(false);
     }
 
+    /**
+     * Validates an upload against the permitted MIME types using three independently spoofable
+     * signals (see GHSA-88rq-mq4v-frmm): the declared Content-Type, the file extension, and the
+     * actual content (magic bytes). Returns a {@link MimeTypeError} if any signal identifies a
+     * non-permitted type, or `undefined` if the file is permitted.
+     */
+    private getPermittedMimeTypeError(
+        filename: string,
+        declaredMimeType: string,
+        contentMimeType: string | undefined,
+    ): MimeTypeError | undefined {
+        // 1. The declared Content-Type must be permitted (cheap, header-only check).
+        if (!this.validateMimeType(declaredMimeType)) {
+            return new MimeTypeError({ fileName: filename, mimeType: declaredMimeType });
+        }
+        // 2. The file extension must be permitted: the stored file keeps it, and it is what
+        // determines whether a downstream web server might execute the file (e.g. `.php`).
+        // `mime.lookup` returns `false` for unrecognised extensions, handled by the content check.
+        const extensionMimeType = mime.lookup(filename) || undefined;
+        if (extensionMimeType && !this.validateMimeType(extensionMimeType)) {
+            return new MimeTypeError({ fileName: filename, mimeType: extensionMimeType });
+        }
+        // 3. The actual content must not identify a non-permitted type. Text-based formats have no
+        // binary signature: plain text yields `undefined`, while XML-based formats such as SVG
+        // yield a generic `application/xml`/`text/xml` which is consistent with a permitted `*+xml`
+        // extension and so is not a mismatch.
+        if (contentMimeType && !this.validateMimeType(contentMimeType)) {
+            const contentIsGenericXml =
+                contentMimeType === 'application/xml' || contentMimeType === 'text/xml';
+            const extensionIsXmlBased = !!extensionMimeType && extensionMimeType.endsWith('+xml');
+            if (!(contentIsGenericXml && extensionIsXmlBased)) {
+                return new MimeTypeError({ fileName: filename, mimeType: contentMimeType });
+            }
+        }
+        // A file recognised neither by content nor by a permitted extension cannot be verified as
+        // a permitted type (e.g. a script with an unrecognised extension such as `.phtml`).
+        if (!contentMimeType && !extensionMimeType) {
+            return new MimeTypeError({ fileName: filename, mimeType: 'application/octet-stream' });
+        }
+        return undefined;
+    }
+
     private async createAssetInternal(
         ctx: RequestContext,
         stream: Stream,
@@ -569,14 +680,26 @@ export class AssetService {
         translations?: Array<{ languageCode: LanguageCode; name?: string | null; customFields?: any }>,
     ): Promise<Asset | MimeTypeError> {
         const { assetOptions } = this.configService;
-        if (!this.validateMimeType(mimetype)) {
-            return new MimeTypeError({ fileName: filename, mimeType: mimetype });
+        // Inspect the leading bytes of the uploaded content (magic bytes) so the real content
+        // type can be validated, not just the spoofable declared Content-Type and extension. The
+        // stream is peeked rather than fully buffered so the file can still be written as a stream.
+        const { head, complete } = await peekStreamHead(stream as Readable, CONTENT_DETECTION_SAMPLE_BYTES);
+        const contentMimeType = await detectMimeTypeFromContents(head);
+        const mimeTypeError = this.getPermittedMimeTypeError(filename, mimetype, contentMimeType);
+        if (mimeTypeError) {
+            return mimeTypeError;
         }
+
         const { assetPreviewStrategy, assetStorageStrategy } = assetOptions;
         const sourceFileName = await this.getSourceFileName(ctx, filename);
         const previewFileName = await this.getPreviewFileName(ctx, sourceFileName);
 
-        const sourceFileIdentifier = await assetStorageStrategy.writeFileFromStream(sourceFileName, stream);
+        // If the stream was fully consumed during the peek (a small file), `head` holds the
+        // whole content and the stream cannot be replayed; write the buffer directly.
+        // Otherwise the peeked bytes were unshifted back, so write the full stream.
+        const sourceFileIdentifier = complete
+            ? await assetStorageStrategy.writeFileFromBuffer(sourceFileName, head)
+            : await assetStorageStrategy.writeFileFromStream(sourceFileName, stream);
         const sourceFile = await assetStorageStrategy.readFileToBuffer(sourceFileIdentifier);
         let preview: Buffer;
         try {

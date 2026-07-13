@@ -18,7 +18,13 @@ export type SupportedDatabaseType =
  * Information about plugins used in the Vendure installation
  */
 export interface TelemetryPluginInfo {
-    /** Names of detected npm packages (official Vendure and third-party plugins) */
+    /**
+     * Names of detected Vendure plugin npm packages. Detected either from loaded
+     * modules (official plugins by class name; third-party plugins via
+     * require.cache under CommonJS) or from the public ecosystem packages
+     * (`@vendure/*`, `@vendure-community/*`) declared in the host package.json.
+     * Private/custom plugin names are never collected.
+     */
     npm: string[];
     /** Count of custom plugins (names are NOT collected for privacy) */
     customCount: number;

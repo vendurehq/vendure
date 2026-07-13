@@ -1,5 +1,5 @@
 import { Trans } from '@lingui/react/macro';
-import { Editor } from '@tiptap/react';
+import { Editor, useEditorState } from '@tiptap/react';
 import {
     BoldIcon,
     ImageIcon,
@@ -48,6 +48,27 @@ export function ResponsiveToolbar({ editor, disabled }: Readonly<ResponsiveToolb
     const [overflowItems, setOverflowItems] = useState<string[]>([]);
     const toolbarRef = useRef<HTMLDivElement>(null);
 
+    const editorState = useEditorState({
+        editor: editor,
+        selector: (context) => {
+            if (context.editor == null) {
+                return;
+            }
+
+            return {
+                isBold: context.editor.isActive('bold'),
+                isItalic: context.editor.isActive('italic'),
+                isStrike: context.editor.isActive('strike'),
+                isBulletList: context.editor.isActive('bulletList'),
+                isOrderedList: context.editor.isActive('orderedList'),
+                isLink: context.editor.isActive('link'),
+                isImage: context.editor.isActive('image'),
+                isBlockquote: context.editor.isActive('blockquote'),
+                isTable: context.editor.isActive('table')
+            }
+        }
+    })
+
     const handleHeadingChange = useCallback(
         (value: string) => {
             if (!editor) return;
@@ -87,14 +108,14 @@ export function ResponsiveToolbar({ editor, disabled }: Readonly<ResponsiveToolb
     const canInsertTable = !!editor?.can().insertTable();
 
     const toolbarItems: ToolbarItem[] = useMemo(() => {
-        if (!editor) return [];
+        if (!editor || !editorState) return [];
 
         return [
             {
                 id: 'bold',
                 priority: 1,
                 label: 'Bold',
-                isActive: editor.isActive('bold'),
+                isActive: editorState.isBold,
                 action: () => editor.chain().focus().toggleBold().run(),
                 element: (
                     <Button
@@ -103,7 +124,7 @@ export function ResponsiveToolbar({ editor, disabled }: Readonly<ResponsiveToolb
                         variant="ghost"
                         size="sm"
                         onClick={() => editor.chain().focus().toggleBold().run()}
-                        className={`h-8 px-2 ${editor.isActive('bold') ? 'bg-accent' : ''}`}
+                        className={`h-8 px-2 ${editorState.isBold ? 'bg-accent' : ''}`}
                         disabled={disabled}
                     >
                         <BoldIcon className="h-4 w-4" />
@@ -114,7 +135,7 @@ export function ResponsiveToolbar({ editor, disabled }: Readonly<ResponsiveToolb
                 id: 'italic',
                 priority: 2,
                 label: 'Italic',
-                isActive: editor.isActive('italic'),
+                isActive: editorState.isItalic,
                 action: () => editor.chain().focus().toggleItalic().run(),
                 element: (
                     <Button
@@ -123,7 +144,7 @@ export function ResponsiveToolbar({ editor, disabled }: Readonly<ResponsiveToolb
                         variant="ghost"
                         size="sm"
                         onClick={() => editor.chain().focus().toggleItalic().run()}
-                        className={`h-8 px-2 ${editor.isActive('italic') ? 'bg-accent' : ''}`}
+                        className={`h-8 px-2 ${editorState.isItalic ? 'bg-accent' : ''}`}
                         disabled={disabled}
                     >
                         <ItalicIcon className="h-4 w-4" />
@@ -134,7 +155,7 @@ export function ResponsiveToolbar({ editor, disabled }: Readonly<ResponsiveToolb
                 id: 'strike',
                 priority: 3,
                 label: 'Strikethrough',
-                isActive: editor.isActive('strike'),
+                isActive: editorState.isStrike,
                 action: () => editor.chain().focus().toggleStrike().run(),
                 element: (
                     <Button
@@ -143,7 +164,7 @@ export function ResponsiveToolbar({ editor, disabled }: Readonly<ResponsiveToolb
                         variant="ghost"
                         size="sm"
                         onClick={() => editor.chain().focus().toggleStrike().run()}
-                        className={`h-8 px-2 ${editor.isActive('strike') ? 'bg-accent' : ''}`}
+                        className={`h-8 px-2 ${editorState.isStrike ? 'bg-accent' : ''}`}
                         disabled={disabled}
                     >
                         <StrikethroughIcon className="h-4 w-4" />
@@ -154,7 +175,7 @@ export function ResponsiveToolbar({ editor, disabled }: Readonly<ResponsiveToolb
                 id: 'bulletList',
                 priority: 4,
                 label: 'Bullet List',
-                isActive: editor.isActive('bulletList'),
+                isActive: editorState.isBulletList,
                 action: () => editor.chain().focus().toggleBulletList().run(),
                 element: (
                     <Button
@@ -163,7 +184,7 @@ export function ResponsiveToolbar({ editor, disabled }: Readonly<ResponsiveToolb
                         variant="ghost"
                         size="sm"
                         onClick={() => editor.chain().focus().toggleBulletList().run()}
-                        className={`h-8 px-2 ${editor.isActive('bulletList') ? 'bg-accent' : ''}`}
+                        className={`h-8 px-2 ${editorState.isBulletList ? 'bg-accent' : ''}`}
                         disabled={disabled}
                     >
                         <ListIcon className="h-4 w-4" />
@@ -174,7 +195,7 @@ export function ResponsiveToolbar({ editor, disabled }: Readonly<ResponsiveToolb
                 id: 'orderedList',
                 priority: 5,
                 label: 'Ordered List',
-                isActive: editor.isActive('orderedList'),
+                isActive: editorState.isOrderedList,
                 action: () => editor.chain().focus().toggleOrderedList().run(),
                 element: (
                     <Button
@@ -183,7 +204,7 @@ export function ResponsiveToolbar({ editor, disabled }: Readonly<ResponsiveToolb
                         variant="ghost"
                         size="sm"
                         onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                        className={`h-8 px-2 ${editor.isActive('orderedList') ? 'bg-accent' : ''}`}
+                        className={`h-8 px-2 ${editorState.isOrderedList ? 'bg-accent' : ''}`}
                         disabled={disabled}
                     >
                         <ListOrderedIcon className="h-4 w-4" />
@@ -194,7 +215,7 @@ export function ResponsiveToolbar({ editor, disabled }: Readonly<ResponsiveToolb
                 id: 'link',
                 priority: 6,
                 label: 'Link',
-                isActive: editor.isActive('link'),
+                isActive: editorState.isLink,
                 action: () => setLinkDialogOpen(true),
                 element: (
                     <Button
@@ -203,7 +224,7 @@ export function ResponsiveToolbar({ editor, disabled }: Readonly<ResponsiveToolb
                         variant="ghost"
                         size="sm"
                         onClick={() => setLinkDialogOpen(true)}
-                        className={`h-8 px-2 ${editor.isActive('link') ? 'bg-accent' : ''}`}
+                        className={`h-8 px-2 ${editorState.isLink ? 'bg-accent' : ''}`}
                         disabled={disabled}
                     >
                         <LinkIcon className="h-4 w-4" />
@@ -214,7 +235,7 @@ export function ResponsiveToolbar({ editor, disabled }: Readonly<ResponsiveToolb
                 id: 'image',
                 priority: 7,
                 label: 'Image',
-                isActive: editor.isActive('image'),
+                isActive: editorState.isImage,
                 action: () => setImageDialogOpen(true),
                 element: (
                     <Button
@@ -223,7 +244,7 @@ export function ResponsiveToolbar({ editor, disabled }: Readonly<ResponsiveToolb
                         variant="ghost"
                         size="sm"
                         onClick={() => setImageDialogOpen(true)}
-                        className={`h-8 px-2 ${editor.isActive('image') ? 'bg-accent' : ''}`}
+                        className={`h-8 px-2 ${editorState.isImage ? 'bg-accent' : ''}`}
                         disabled={disabled}
                     >
                         <ImageIcon className="h-4 w-4" />
@@ -234,7 +255,7 @@ export function ResponsiveToolbar({ editor, disabled }: Readonly<ResponsiveToolb
                 id: 'blockquote',
                 priority: 8,
                 label: 'Blockquote',
-                isActive: editor.isActive('blockquote'),
+                isActive: editorState.isBlockquote,
                 action: () => editor.chain().focus().toggleBlockquote().run(),
                 element: (
                     <Button
@@ -243,7 +264,7 @@ export function ResponsiveToolbar({ editor, disabled }: Readonly<ResponsiveToolb
                         variant="ghost"
                         size="sm"
                         onClick={() => editor.chain().focus().toggleBlockquote().run()}
-                        className={`h-8 px-2 ${editor.isActive('blockquote') ? 'bg-accent' : ''}`}
+                        className={`h-8 px-2 ${editorState.isBlockquote ? 'bg-accent' : ''}`}
                         disabled={disabled}
                     >
                         <QuoteIcon className="h-4 w-4" />
@@ -254,7 +275,7 @@ export function ResponsiveToolbar({ editor, disabled }: Readonly<ResponsiveToolb
                 id: 'table',
                 priority: 9,
                 label: 'Table',
-                isActive: editor.isActive('table'),
+                isActive: editorState.isTable,
                 action: () =>
                     editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
                 element: (
@@ -274,7 +295,7 @@ export function ResponsiveToolbar({ editor, disabled }: Readonly<ResponsiveToolb
                                 })
                                 .run()
                         }
-                        className={`h-8 px-2 ${editor.isActive('table') ? 'bg-accent' : ''}`}
+                        className={`h-8 px-2 ${editorState.isTable ? 'bg-accent' : ''}`}
                         disabled={disabled || !canInsertTable}
                     >
                         <TableIcon className="h-4 w-4" />
@@ -320,7 +341,7 @@ export function ResponsiveToolbar({ editor, disabled }: Readonly<ResponsiveToolb
                 ),
             },
         ];
-    }, [editor, disabled, linkDialogOpen, imageDialogOpen, canUndo, canRedo, canInsertTable]);
+    }, [editor, disabled, linkDialogOpen, imageDialogOpen, canUndo, canRedo, canInsertTable, editorState]);
 
     useEffect(() => {
         const calculateVisibleItems = () => {

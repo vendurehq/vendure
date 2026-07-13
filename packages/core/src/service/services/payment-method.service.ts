@@ -116,6 +116,8 @@ export class PaymentMethodService {
     }
 
     async update(ctx: RequestContext, input: UpdatePaymentMethodInput): Promise<PaymentMethod> {
+        // Ensure the entity belongs to the active channel before updating.
+        await this.connection.getEntityOrThrow(ctx, PaymentMethod, input.id, { channelId: ctx.channelId });
         const updatedPaymentMethod = await this.translatableSaver.update({
             ctx,
             input,

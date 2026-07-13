@@ -23,6 +23,19 @@ on:
 jobs:
   # Determine which publish type(s) to run based on trigger
   setup:
+    # Restrict who can trigger a publish to the listed maintainers. Both
+    # `workflow_dispatch` (manual) and `release` (a published GitHub Release)
+    # are user-initiated, so both are gated on `github.actor`; a publish
+    # triggered by anyone else skips this job, and `publish` (needs: setup)
+    # is skipped with it. `schedule` (nightly cron) is not user-initiated and
+    # is always allowed.
+    # This is the UX/first-line guard; actual enforcement against branch-based
+    # bypass is the `npm-publish` environment + npm trust `--env` binding below,
+    # and creation of the `v*` release tags is restricted by a tag ruleset.
+    if: >-
+      github.event_name == 'schedule' ||
+      ((github.event_name == 'release' || github.event_name == 'workflow_dispatch') &&
+       (github.actor == 'michaelbromley' || github.actor == 'dlhck'))
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -41,17 +54,28 @@ jobs:
   publish:
     needs: setup
     runs-on: ubuntu-latest
+    # The OIDC token minted for this job carries an `environment: npm-publish`
+    # claim, which the npm trusted publishers require (`npm trust --env`). The
+    # environment's deployment-branch policy (master, minor, v* tags) is
+    # enforced by GitHub before the job runs, so a publish cannot originate
+    # from an arbitrary branch — closing the workflow_dispatch branch-bypass.
+    # The environment has NO required reviewers, so nightlies stay unattended.
+    environment: npm-publish
     permissions:
       contents: read
       id-token: write
     strategy:
       fail-fast: false
+      # Both nightly jobs publish new versions of the same packages. npm rejects
+      # a publish with E409 while it is still processing a previous publish of
+      # the same package, so the jobs must not run concurrently.
+      max-parallel: 1
       matrix:
         type: ${{ fromJson(needs.setup.outputs.matrix) }}
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           ref: ${{ matrix.type == 'minor-nightly' && 'minor' || matrix.type == 'master-nightly' && 'master' || '' }}
           fetch-depth: ${{ matrix.type == 'release' && 1 || 0 }}
@@ -71,7 +95,7 @@ jobs:
 
       - name: Setup Node.js
         if: matrix.type == 'release' || steps.commit_check.outputs.should_publish == 'true'
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: '24.x'
           registry-url: 'https://registry.npmjs.org'
@@ -130,25 +154,37 @@ jobs:
           git add .
           git commit -m "chore: Bump version for ${{ matrix.type }} pre-release"
 
-      # Publish to npm with appropriate dist-tag
+      # Publish to npm with appropriate dist-tag.
       # Note: we do not use `lerna publish` because at the time of writing, it fails to publish
       # using the Trusted Publishing workflow for some reason.
       # We use a custom script to handle publishConfig.directory for packages like @vendure/admin-ui
       # that need to publish from a nested directory.
+      #
+      # Release publishes use `npm stage publish` — the version lands in npm's staging area and
+      # requires manual maintainer approval (with 2FA) before going live on the public registry.
+      # Approve all staged packages at once with: scripts/npm-stage-approve-all.sh <version>
+      # Nightly builds still use direct `npm publish` because they target non-default dist-tags
+      # (`master` / `minor`) that nobody installs unless they opt in explicitly.
+      #
+      # No --tag here is intentional: releases go to the default `latest` tag.
       - name: Publish to NPM (release)
         if: matrix.type == 'release'
         run: |
-          bunx lerna exec --no-private -- 'publish_dir=$(node -p "require(\"./package.json\").publishConfig?.directory || \".\"") && cd "$publish_dir" && npm publish --access public'
+          bunx lerna exec --no-private -- 'publish_dir=$(node -p "require(\"./package.json\").publishConfig?.directory || \".\"") && cd "$publish_dir" && npm stage publish --access public'
 
+      # --no-bail: a failure in one package must not skip publishing the rest —
+      # downstream consumers expect ALL packages to exist at a given nightly
+      # version. The retry loop handles transient registry errors (e.g. E409
+      # while npm is still processing an earlier publish of the same package).
       - name: Publish to NPM (master-nightly)
         if: matrix.type == 'master-nightly' && steps.commit_check.outputs.should_publish == 'true'
         run: |
-          bunx lerna exec --no-private -- 'publish_dir=$(node -p "require(\"./package.json\").publishConfig?.directory || \".\"") && cd "$publish_dir" && npm publish --access public --tag master'
+          bunx lerna exec --no-private --no-bail -- 'publish_dir=$(node -p "require(\"./package.json\").publishConfig?.directory || \".\"") && cd "$publish_dir" && for i in 1 2 3; do npm publish --access public --tag master && break; if [ "$i" = 3 ]; then exit 1; fi; echo "npm publish failed, retrying in 30s..."; sleep 30; done'
 
       - name: Publish to NPM (minor-nightly)
         if: matrix.type == 'minor-nightly' && steps.commit_check.outputs.should_publish == 'true'
         run: |
-          bunx lerna exec --no-private -- 'publish_dir=$(node -p "require(\"./package.json\").publishConfig?.directory || \".\"") && cd "$publish_dir" && npm publish --access public --tag minor'
+          bunx lerna exec --no-private --no-bail -- 'publish_dir=$(node -p "require(\"./package.json\").publishConfig?.directory || \".\"") && cd "$publish_dir" && for i in 1 2 3; do npm publish --access public --tag minor && break; if [ "$i" = 3 ]; then exit 1; fi; echo "npm publish failed, retrying in 30s..."; sleep 30; done'
 
       - name: Skip publish (no new commits)
         if: matrix.type != 'release' && steps.commit_check.outputs.should_publish == 'false'

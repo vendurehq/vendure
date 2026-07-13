@@ -2,16 +2,13 @@
 title: "HealthCheckRegistryService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/health-check/health-check-registry.service.ts" sourceLine="49" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/health-check/health-check-registry.service.ts" sourceLine="42" packageName="@vendure/core" />
 
 This service is used to register health indicator functions to be included in the
 health check. Health checks can be used by automated services such as Kubernetes
 to determine the state of applications it is running. They are also useful for
 administrators to get an overview of the health of all the parts of the
 Vendure stack.
-
-It wraps the [Nestjs Terminus module](https://docs.nestjs.com/recipes/terminus),
-so see those docs for information on creating custom health checks.
 
 Plugins which rely on external services (web services, databases etc.) can make use of this
 service to add a check for that dependency to the Vendure health check.
@@ -28,19 +25,15 @@ plugin module. To use it in your plugin, you'll need to import the [PluginCommon
 
 ```ts
 import { HealthCheckRegistryService, PluginCommonModule, VendurePlugin } from '@vendure/core';
-import { TerminusModule } from '@nestjs/terminus';
 
 @VendurePlugin({
-  imports: [PluginCommonModule, TerminusModule],
+  imports: [PluginCommonModule],
 })
 export class MyPlugin {
-  constructor(
-    private registry: HealthCheckRegistryService
-    private httpIndicator: HttpHealthIndicator
-  ) {
-    registry.registerIndicatorFunction(
-      () => this.httpIndicator.pingCheck('vendure-docs', 'https://www.vendure.io/docs/'),
-    )
+  constructor(private registry: HealthCheckRegistryService) {
+    registry.registerIndicatorFunction(async () => ({
+      'vendure-docs': { status: 'up' },
+    }));
   }
 }
 ```
@@ -55,11 +48,11 @@ class HealthCheckRegistryService {
 
 ### registerIndicatorFunction
 
-<MemberInfo kind="method" type={`(fn: HealthIndicatorFunction | HealthIndicatorFunction[]) => `}   />
+<MemberInfo kind="method" type={`(fn: <a href='/reference/typescript-api/health-check/health-indicator-function#healthindicatorfunction'>HealthIndicatorFunction</a> | <a href='/reference/typescript-api/health-check/health-indicator-function#healthindicatorfunction'>HealthIndicatorFunction</a>[]) => `}   />
 
-Registers one or more `HealthIndicatorFunctions` (see [Nestjs docs](https://docs.nestjs.com/recipes/terminus#setting-up-a-healthcheck))
-to be added to the health check endpoint.
-The indicator will also appear in the Admin UI's "system status" view.
+Registers one or more [HealthIndicatorFunction](/reference/typescript-api/health-check/health-indicator-function#healthindicatorfunction)s to be added to the
+health check endpoint. The indicator will also appear in the Admin UI's
+"system status" view.
 
 
 </div>

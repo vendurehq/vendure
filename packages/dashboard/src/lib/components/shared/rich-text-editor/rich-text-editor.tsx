@@ -78,7 +78,7 @@ export function RichTextEditor({ value, onChange, disabled = false, placeholder 
         content: value,
         editable: !disabled,
         onUpdate: ({ editor }) => {
-            if (!disabled) {
+            if (!disabled && !editor.isDestroyed) {
                 isInternalUpdate.current = true;
                 const newValue = editor.getHTML();
                 if (value !== newValue) {
@@ -94,7 +94,7 @@ export function RichTextEditor({ value, onChange, disabled = false, placeholder 
     }, [editorExtensions]);
 
     useLayoutEffect(() => {
-        if (editor && !isInternalUpdate.current) {
+        if (editor && !editor.isDestroyed && !isInternalUpdate.current) {
             const currentContent = editor.getHTML();
             if (currentContent !== value) {
                 const { from, to } = editor.state.selection;

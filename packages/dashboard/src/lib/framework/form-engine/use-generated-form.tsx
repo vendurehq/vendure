@@ -1,18 +1,27 @@
 import type { TypedDocumentNode } from '@graphql-typed-document-node/core';
 import { zodResolver } from '@/vdb/lib/zod.js';
 import { VariablesOf } from 'gql.tada';
-import { FormEvent } from 'react';
+import { FormEvent, useEffect, useMemo, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { useChannel } from '../../hooks/use-channel.js';
 import { useServerConfig } from '../../hooks/use-server-config.js';
 import { getOperationVariablesFields } from '../document-introspection/get-document-structure.js';
-import { createFormSchemaFromFields, getDefaultValuesFromFields } from './form-schema-tools.js';
+import {
+    applyNullableSelectCustomFieldDefaults,
+    createFormSchemaFromFields,
+    getDefaultValuesFromFields,
+} from './form-schema-tools.js';
 import {
     convertEmptyStringsToNull,
     removeEmptyIdFields,
     stripNullNullableFields,
     transformRelationFields,
 } from './utils.js';
+
+// Stable empty array reference used as a fallback when the server config
+// (and therefore `availableLanguages`) has not yet loaded — keeps memo
+// dependencies stable across renders.
+const EMPTY_LANGUAGES: string[] = [];
 
 export type WithLooseCustomFields<T> = T extends { customFields?: any }
     ? Omit<T, 'customFields'> & { customFields?: T['customFields'] | unknown }
@@ -96,20 +105,58 @@ export function useGeneratedForm<
     const { document, entity, setValues, onSubmit, varName, customFieldConfig } = options;
     const { activeChannel } = useChannel();
     const serverConfig = useServerConfig();
-    const availableLanguages = serverConfig?.availableLanguages || [];
-    const updateFields = document ? getOperationVariablesFields(document, varName) : [];
 
-    const schema = createFormSchemaFromFields(updateFields, customFieldConfig);
-    const defaultValues = getDefaultValuesFromFields(updateFields, activeChannel?.defaultLanguageCode);
-    const processedEntity = ensureTranslationsForAllLanguages(entity, availableLanguages, defaultValues);
+    // Callers typically pass `setValues` as an inline arrow function, which
+    // would change identity every render. Hold it in a ref so the values
+    // memo below can call the latest version without recomputing — and
+    // without going stale on a closure.
+    const setValuesRef = useRef(setValues);
+    useEffect(() => {
+        setValuesRef.current = setValues;
+    }, [setValues]);
 
-    // Also ensure defaultValues has translations for all languages (for creation case)
-    const processedDefaultValues =
-        ensureTranslationsForAllLanguages(defaultValues, availableLanguages, defaultValues) ?? defaultValues;
+    // Recomputing this on every render produces a new array identity which
+    // ripples into the schema and default-values memos below, defeating any
+    // stable form state. Memoise on the document + varName.
+    const updateFields = useMemo(
+        () => (document ? getOperationVariablesFields(document, varName) : []),
+        [document, varName],
+    );
 
-    const values = processedEntity
-        ? transformRelationFields(updateFields, setValues(processedEntity))
-        : processedDefaultValues;
+    // ServerConfigProvider memoises its value on the underlying query data,
+    // so this array has stable identity across renders when the server
+    // config hasn't changed.
+    const availableLanguages = serverConfig?.availableLanguages ?? EMPTY_LANGUAGES;
+
+    // Without memoisation these objects/arrays are rebuilt on every render of
+    // the parent route. When the schema changes identity, react-hook-form's
+    // resolver is replaced and the form re-validates everything; when
+    // defaultValues changes identity it can also reset uncontrolled inputs.
+    const schema = useMemo(
+        () => createFormSchemaFromFields(updateFields, customFieldConfig),
+        [updateFields, customFieldConfig],
+    );
+    const defaultValues = useMemo(
+        () => getDefaultValuesFromFields(updateFields, activeChannel?.defaultLanguageCode, customFieldConfig),
+        [updateFields, activeChannel?.defaultLanguageCode, customFieldConfig],
+    );
+    const processedEntity = useMemo(
+        () => ensureTranslationsForAllLanguages(entity, availableLanguages, defaultValues),
+        [entity, availableLanguages, defaultValues],
+    );
+    const processedDefaultValues = useMemo(
+        () =>
+            ensureTranslationsForAllLanguages(defaultValues, availableLanguages, defaultValues) ??
+            defaultValues,
+        [defaultValues, availableLanguages],
+    );
+
+    const values = useMemo(() => {
+        const raw = processedEntity
+            ? transformRelationFields(updateFields, setValuesRef.current(processedEntity))
+            : processedDefaultValues;
+        return applyNullableSelectCustomFieldDefaults(raw, customFieldConfig);
+    }, [processedEntity, processedDefaultValues, updateFields, customFieldConfig]);
 
     const form = useForm({
         resolver: async (values, context, options) => {

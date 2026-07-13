@@ -1,7 +1,19 @@
 import path from 'path';
 import { ConfigEnv, Plugin, UserConfig } from 'vite';
 
-export function viteConfigPlugin({ packageRoot }: { packageRoot: string }): Plugin {
+export interface ViteConfigPluginOptions {
+    packageRoot: string;
+    /**
+     * EXPERIMENTAL — see `vendureDashboardPlugin`'s `useExperimentalBundle` option.
+     * When true, the consumer's Vite serves the pre-built dashboard bundle from
+     * `<packageRoot>/dist/bundle/` instead of compiling the dashboard's
+     * TypeScript source file-by-file. This collapses ~3,000 raw module fetches
+     * into ~40 bundled chunks on cold load and fixes issue #4715.
+     */
+    useExperimentalBundle?: boolean;
+}
+
+export function viteConfigPlugin({ packageRoot, useExperimentalBundle }: ViteConfigPluginOptions): Plugin {
     return {
         name: 'vendure:vite-config-plugin',
         config: (config: UserConfig, env: ConfigEnv) => {
@@ -43,10 +55,31 @@ export function viteConfigPlugin({ packageRoot }: { packageRoot: string }): Plug
                     // See the readme for an explanation of this alias.
                     '@/vdb': path.resolve(packageRoot, './src/lib'),
                     '@/graphql': path.resolve(packageRoot, './src/lib/graphql'),
+                    // In experimental-bundle mode, redirect imports of
+                    // `@vendure/dashboard` (from extension code) to the bundled
+                    // library entry rather than the TypeScript source. The
+                    // package's `exports."."` still points at the source so
+                    // that TypeScript and other static tooling see types
+                    // resolve correctly; this alias only affects Vite's
+                    // module resolution at runtime.
+                    ...(useExperimentalBundle
+                        ? {
+                              '@vendure/dashboard': path.resolve(
+                                  packageRoot,
+                                  './dist/bundle/lib.js',
+                              ),
+                          }
+                        : {}),
                 },
             };
-            // This is required to prevent Vite from pre-bundling the
-            // dashboard source when it resides in node_modules.
+            // Exclude the dashboard's source from Vite's dep optimizer in both
+            // source mode and experimental-bundle mode. In source mode this
+            // prevents Vite from trying to pre-bundle the dashboard source. In
+            // bundle mode it stops Vite's scanner from following imports from
+            // the dashboard's source files in node_modules (e.g. `await
+            // import('virtual:plugin-translations')` inside load-i18n-messages),
+            // which would otherwise fail because the virtual module isn't
+            // resolvable to esbuild.
             config.optimizeDeps = {
                 ...config.optimizeDeps,
                 exclude: [
@@ -56,6 +89,7 @@ export function viteConfigPlugin({ packageRoot }: { packageRoot: string }): Plug
                     'virtual:vendure-ui-config',
                     'virtual:admin-api-schema',
                     'virtual:dashboard-extensions',
+                    'virtual:plugin-translations',
                 ],
                 // We however do want to pre-bundle recharts, as it depends
                 // on lodash which is a CJS packages and _does_ require

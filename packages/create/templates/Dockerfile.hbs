@@ -1,9 +1,9 @@
-FROM node:20
+{{#if isBun}}FROM oven/bun:1{{else}}FROM node:20{{/if}}
 
 WORKDIR /usr/src/app
 
-COPY package.json ./
-COPY package-lock.json ./
-RUN npm install --production
+{{#if needsCorepack}}RUN corepack enable
+{{/if}}COPY package.json {{pmLockfile}} ./
+RUN {{pmCiInstall}}
 COPY . .
-RUN npm run build
+RUN {{pmRunScript "build"}}

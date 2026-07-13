@@ -1,6 +1,7 @@
 import { ConfigurableOperationMultiSelector } from '@/vdb/components/shared/configurable-operation-multi-selector.js';
 import { configurableOperationDefFragment } from '@/vdb/graphql/fragments.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
+import { useLingui } from '@lingui/react/macro';
 import { ConfigurableOperationInput as ConfigurableOperationInputType } from '@vendure/common/lib/generated-types';
 
 export const promotionActionsDocument = graphql(
@@ -25,6 +26,7 @@ export function PromotionActionsSelector({
     onChange,
     onValidityChange,
 }: Readonly<PromotionActionsSelectorProps>) {
+    const { t } = useLingui();
     return (
         <ConfigurableOperationMultiSelector
             value={value}
@@ -32,8 +34,8 @@ export function PromotionActionsSelector({
             queryDocument={promotionActionsDocument}
             queryKey="promotionActions"
             dataPath="promotionActions"
-            buttonText="Add action"
-            dropdownTitle="Available Actions"
+            buttonText={t`Add action`}
+            dropdownTitle={t`Available Actions`}
             showEnhancedDropdown={true}
             onValidityChange={onValidityChange}
         />

@@ -65,6 +65,7 @@ function QuantityCell({
                 value={localValue}
                 min={0}
                 placeholder="0"
+                data-testid="order-line-quantity"
                 onChange={e => setLocalValue(e.target.value)}
                 onKeyDown={e => {
                     if (e.key === 'Enter') {

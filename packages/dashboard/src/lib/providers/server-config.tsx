@@ -270,18 +270,30 @@ export const ServerConfigProvider = ({ children }: { children: React.ReactNode }
         queryFn: () => api.query(getServerConfigDocument),
         retry: false,
         enabled: !!user?.id,
-        staleTime: 1000,
+        // The server config rarely changes during a session (it's driven by
+        // VendureConfig at boot time). Treat it as session-stable so we don't
+        // re-fetch on every reconnect, which would cause flashes of empty
+        // custom-field configuration as queries are re-derived.
+        staleTime: Infinity,
+        refetchOnReconnect: false,
     });
-    const value: ServerConfig | null = data?.globalSettings
-        ? {
-              availableLanguages: data?.globalSettings.availableLanguages ?? [],
-              moneyStrategyPrecision: data?.globalSettings.serverConfig.moneyStrategyPrecision ?? 2,
-              orderProcess: data?.globalSettings.serverConfig.orderProcess ?? [],
-              permittedAssetTypes: data?.globalSettings.serverConfig.permittedAssetTypes ?? [],
-              permissions: data?.globalSettings.serverConfig.permissions ?? [],
-              entityCustomFields: data?.globalSettings.serverConfig.entityCustomFields ?? [],
-          }
-        : null;
+    // Memoise the context value on the underlying query data so that
+    // consumers (and the memoised hooks downstream) see a stable reference
+    // for the array fields when the data hasn't changed.
+    const value = React.useMemo<ServerConfig | null>(
+        () =>
+            data?.globalSettings
+                ? {
+                      availableLanguages: data.globalSettings.availableLanguages ?? [],
+                      moneyStrategyPrecision: data.globalSettings.serverConfig.moneyStrategyPrecision ?? 2,
+                      orderProcess: data.globalSettings.serverConfig.orderProcess ?? [],
+                      permittedAssetTypes: data.globalSettings.serverConfig.permittedAssetTypes ?? [],
+                      permissions: data.globalSettings.serverConfig.permissions ?? [],
+                      entityCustomFields: data.globalSettings.serverConfig.entityCustomFields ?? [],
+                  }
+                : null,
+        [data],
+    );
 
     return <ServerConfigContext.Provider value={value}>{children}</ServerConfigContext.Provider>;
 };

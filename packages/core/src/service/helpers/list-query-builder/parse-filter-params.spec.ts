@@ -453,4 +453,36 @@ describe('parseFilterParams()', () => {
             ]);
         });
     });
+
+    describe('regex filter ReDoS protection', () => {
+        it('builds a clause for a safe regex pattern', () => {
+            const connection = new MockConnection();
+            connection.setColumns(Product, [{ propertyName: 'id' }, { propertyName: 'name' }]);
+            const filterParams: FilterParameter<Product> = {
+                name: { regex: 'foo.*bar' },
+            };
+            const result = parseFilterParams({
+                connection: connection as any,
+                entity: Product,
+                filterParams,
+            });
+            const first = result[0];
+            expect(isWhereCondition(first) && first.parameters).toEqual({ arg1: 'foo.*bar' });
+        });
+
+        it('rejects a catastrophic-backtracking regex pattern', () => {
+            const connection = new MockConnection();
+            connection.setColumns(Product, [{ propertyName: 'id' }, { propertyName: 'name' }]);
+            const filterParams: FilterParameter<Product> = {
+                name: { regex: '(a+)+$' },
+            };
+            expect(() =>
+                parseFilterParams({
+                    connection: connection as any,
+                    entity: Product,
+                    filterParams,
+                }),
+            ).toThrow();
+        });
+    });
 });

@@ -1,4 +1,4 @@
-import { Collapsible as CollapsiblePrimitive } from '@base-ui/react/collapsible';
+import { CollapsiblePrimitive } from '@vendure-io/ui/lib/base-ui';
 import { cn } from '@/vdb/lib/utils.js';
 
 function Collapsible({ ...props }: CollapsiblePrimitive.Root.Props) {

@@ -82,6 +82,16 @@ export function setCustomFieldsMap(
 
 /**
  * @description
+ * Resets the global custom fields map. Used on logout so that a subsequent
+ * login as a different administrator (with potentially different custom
+ * field permissions) starts from a clean slate.
+ */
+export function clearCustomFieldsMap() {
+    globalCustomFieldsMap = new Map<string, CustomFieldConfig[]>();
+}
+
+/**
+ * @description
  * This function is used to get the global custom fields map.
  */
 export function getCustomFieldsMap() {

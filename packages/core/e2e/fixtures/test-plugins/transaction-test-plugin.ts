@@ -148,6 +148,24 @@ class TestResolver {
     }
 
     @Mutation()
+    @Transaction('manual')
+    async createTestAdministrator6(@Ctx() ctx: RequestContext, @Args() args: any) {
+        // Regression test for #4708:
+        // In manual mode the TransactionInterceptor attaches a QueryRunner to the
+        // ctx without starting a transaction on it. When an inner
+        // `withTransaction(ctx, ...)` runs in this state, the buggy wrapper
+        // committed and *released* that inherited QR — so any subsequent DB op
+        // on the same ctx threw QueryRunnerAlreadyReleasedError. We intentionally
+        // do NOT call `startTransaction` here so the inner wrapper hits the
+        // BEGIN/COMMIT path (not a savepoint) and triggers the regression.
+        const first = await this.connection.withTransaction(ctx, _ctx =>
+            this.testAdminService.createAdministrator(_ctx, `${args.emailAddress}_a`, false),
+        );
+        const second = await this.testAdminService.createAdministrator(ctx, `${args.emailAddress}_b`, false);
+        return first ?? second;
+    }
+
+    @Mutation()
     @Transaction()
     async createNTestAdministrators(@Ctx() ctx: RequestContext, @Args() args: any) {
         let error: any;
@@ -295,6 +313,7 @@ class TestResolver {
                     fail: Boolean!
                     noContext: Boolean!
                 ): Administrator
+                createTestAdministrator6(emailAddress: String!): Administrator
                 createNTestAdministrators(emailAddress: String!, failFactor: Float!, n: Int!): JSON
                 createNTestAdministrators2(emailAddress: String!, failFactor: Float!, n: Int!): JSON
                 createNTestAdministrators3(emailAddress: String!, failFactor: Float!, n: Int!): JSON

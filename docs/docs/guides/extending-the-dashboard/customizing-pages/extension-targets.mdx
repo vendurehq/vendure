@@ -1,0 +1,164 @@
+---
+title: 'Extension Targets'
+metaTitle: 'Dashboard Extension Target IDs'
+metaDescription: 'Common Vendure Dashboard page IDs, block IDs, action bar item IDs, toolbar item IDs, and navigation IDs used by extension APIs.'
+---
+
+Many Dashboard extension APIs target existing UI by ID:
+
+- `pageId` identifies the page.
+- `blockId` identifies a page block or data table block.
+- `itemId` identifies an action bar item or toolbar item.
+- Navigation sections and items have their own `id` values.
+
+[Dev Mode](/extending-the-dashboard/extending-overview/#dev-mode) is the source of truth for these IDs. This page lists common built-in targets so that you can find the right extension point faster.
+
+## Built-in List Page IDs
+
+Standard data table list pages use `blockId: 'list-table'` for their main table unless noted otherwise.
+
+| Page             | `pageId`               | Main block      |
+| ---------------- | ---------------------- | --------------- |
+| Products         | `product-list`         | `list-table`    |
+| Product variants | `product-variant-list` | `list-table`    |
+| Collections      | `collection-list`      | `list-table`    |
+| Facets           | `facet-list`           | `list-table`    |
+| Assets           | `asset-list`           | `asset-gallery` |
+| Orders           | `order-list`           | `list-table`    |
+| Customers        | `customer-list`        | `list-table`    |
+| Customer groups  | `customer-group-list`  | `list-table`    |
+| Promotions       | `promotion-list`       | `list-table`    |
+| Administrators   | `administrator-list`   | `list-table`    |
+| Roles            | `role-list`            | `list-table`    |
+| Channels         | `channel-list`         | `list-table`    |
+| Sellers          | `seller-list`          | `list-table`    |
+| Stock locations  | `stock-location-list`  | `list-table`    |
+| Shipping methods | `shipping-method-list` | `list-table`    |
+| Payment methods  | `payment-method-list`  | `list-table`    |
+| Tax categories   | `tax-category-list`    | `list-table`    |
+| Tax rates        | `tax-rate-list`        | `list-table`    |
+| Countries        | `country-list`         | `list-table`    |
+| Zones            | `zone-list`            | `list-table`    |
+| Job queue        | `job-queue-list`       | `list-table`    |
+| Scheduled tasks  | `scheduled-tasks-list` | `list-table`    |
+| Settings store   | `settings-store-list`  | `list-table`    |
+| API keys         | `api-key-list`         | `list-table`    |
+
+Use the main block ID for `pageBlocks`. Use `dataTables` only for table-backed blocks such as `list-table` or `product-variants-table`.
+
+## Common Detail Page IDs
+
+Most generated-style detail pages use `blockId: 'main-form'` for their main form and `blockId: 'custom-fields'` for custom fields.
+
+| Page                       | `pageId`                     |
+| -------------------------- | ---------------------------- |
+| Product detail             | `product-detail`             |
+| Product variant detail     | `product-variant-detail`     |
+| Collection detail          | `collection-detail`          |
+| Facet detail               | `facet-detail`               |
+| Facet value detail         | `facet-value-detail`         |
+| Asset detail               | `asset-detail`               |
+| Order detail               | `order-detail`               |
+| Seller order detail        | `seller-order-detail`        |
+| Draft order detail         | `draft-order-detail`         |
+| Order modification         | `order-modify`               |
+| Customer detail            | `customer-detail`            |
+| Customer group detail      | `customer-group-detail`      |
+| Promotion detail           | `promotion-detail`           |
+| Administrator detail       | `administrator-detail`       |
+| Role detail                | `role-detail`                |
+| Channel detail             | `channel-detail`             |
+| Seller detail              | `seller-detail`              |
+| Option group detail        | `option-group-detail`        |
+| Option group option detail | `option-group-option-detail` |
+| Manage product variants    | `manage-product-variants`    |
+| Stock location detail      | `stock-location-detail`      |
+| Shipping method detail     | `shipping-method-detail`     |
+| Payment method detail      | `payment-method-detail`      |
+| Tax category detail        | `tax-category-detail`        |
+| Tax rate detail            | `tax-rate-detail`            |
+| Country detail             | `country-detail`             |
+| Zone detail                | `zone-detail`                |
+| API key detail             | `api-key-detail`             |
+| Global settings            | `global-settings`            |
+| Profile                    | `profile`                    |
+
+## Common Block IDs
+
+| Page                           | Useful `blockId` values                                                                                                                              |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Standard data table list pages | `list-table`                                                                                                                                         |
+| Insights                       | `widgets`                                                                                                                                            |
+| Asset list                     | `asset-gallery`                                                                                                                                      |
+| Product detail                 | `enabled-toggle`, `main-form`, `custom-fields`, `product-variants-table`, `generate-variants`, `option-groups`, `facet-values`, `channels`, `assets` |
+| Manage product variants        | `option-groups`, `product-variants`                                                                                                                  |
+| Product variant detail         | `enabled`, `options`, `main-form`, `custom-fields`, `price-and-tax`, `stock`, `facet-values`, `parent-product`, `assets`                             |
+| Collection detail              | `privacy`, `main-form`, `custom-fields`, `filters`, `assets`, `contents`                                                                             |
+| Facet detail                   | `privacy`, `main-form`, `custom-fields`, `facet-values`                                                                                              |
+| Facet value detail             | `facet-info`, `main-form`, `custom-fields`                                                                                                           |
+| Option group detail            | `main-form`, `custom-fields`, `product-options`, `products`, `channels`                                                                              |
+| Option group option detail     | `option-group-info`, `main-form`, `custom-fields`                                                                                                    |
+| Customer detail                | `main-form`, `custom-fields`, `addresses`, `orders`, `history`, `status`, `groups`                                                                   |
+| Customer group detail          | `main-form`, `custom-fields`, `customers`                                                                                                            |
+| Order detail                   | `order-table`, `tax-summary`, `custom-fields`, `payment-details`, `order-history`, `state`, `customer`, `fulfillment-details`                        |
+| Draft order detail             | `draft-order-status`, `order-table`, `order-custom-fields`, `customer`, `shipping-address`, `billing-address`                                        |
+| Order modification             | `order-lines`, `add-surcharge`, `modification-summary`, `customer`, `addresses`                                                                      |
+| Asset detail                   | `asset-preview`, `custom-fields`, `asset-name`, `asset-properties`, `asset-size`, `asset-tags`                                                       |
+| Promotion detail               | `enabled`, `main-form`, `custom-fields`, `conditions`, `actions`                                                                                     |
+| Channel detail                 | `main-form`, `channel-defaults`, `custom-fields`                                                                                                     |
+| Administrator detail           | `main-form`, `custom-fields`, `roles`                                                                                                                |
+| Role detail                    | `main-form`, `channels`                                                                                                                              |
+| Zone detail                    | `main-form`, `custom-fields`, `countries`                                                                                                            |
+| API key detail                 | `main-form`, `roles`, `custom-fields`, `metadata`                                                                                                    |
+| Profile                        | `main-form`, `auth-methods`, `custom-fields`                                                                                                         |
+| Shipping method detail         | `main-form`, `custom-fields`, `conditions`, `calculator`                                                                                             |
+| Payment method detail          | `enabled`, `main-form`, `custom-fields`, `payment-eligibility-checker`, `payment-handler`                                                            |
+
+For data table extensions, `blockId` targets the table block. For page block extensions, `location.position.blockId` targets the block you want to place your block before, after, or in place of.
+
+## Common Action Bar Item IDs
+
+| Item                         | Typical page                    |
+| ---------------------------- | ------------------------------- |
+| `create-button`              | Standard list pages             |
+| `save-button`                | Standard detail pages           |
+| `rebuild-index-button`       | Product list                    |
+| `create-draft-button`        | Order list                      |
+| `add-payment-button`         | Order detail                    |
+| `fulfill-order-button`       | Order detail                    |
+| `rotate-button`              | API key detail                  |
+| `delete-button`              | Draft order detail              |
+| `complete-draft-button`      | Draft order detail              |
+| `cancel-modification-button` | Order modification              |
+| `date-range-picker`          | Insights                        |
+| `edit-layout-button`         | Insights                        |
+| `auto-refresh-button`        | Job queue                       |
+| `test-shipping-button`       | Shipping method list and detail |
+
+Use these IDs in `actionBarItems[].position.itemId`.
+
+## Toolbar Item IDs
+
+| Item                 | Description                                      |
+| -------------------- | ------------------------------------------------ |
+| `dev-mode-indicator` | Dev Mode badge, visible when Dev Mode is enabled |
+| `alerts`             | Alerts icon                                      |
+
+Use these IDs in `toolbarItems[].position.itemId`.
+
+## Navigation Section IDs
+
+| Section   | `id`        |
+| --------- | ----------- |
+| Catalog   | `catalog`   |
+| Sales     | `sales`     |
+| Customers | `customers` |
+| Marketing | `marketing` |
+| Settings  | `settings`  |
+| System    | `system`    |
+
+The Insights entry has the ID `insights`, but it is a top-level navigation item, not an appendable section. Do not use it as `routes[].navMenuItem.sectionId`.
+
+Common navigation item IDs include `products`, `product-variants`, `option-groups`, `facets`, `collections`, `assets`, `orders`, `customers`, `customer-groups`, `promotions`, `sellers`, `channels`, `stock-locations`, `administrators`, `roles`, `shipping-methods`, `payment-methods`, `tax-categories`, `tax-rates`, `countries`, `zones`, `global-settings`, `job-queue`, `scheduled-tasks`, `settings-store`, and `api-keys`.
+
+Use route `navMenuItem.sectionId` to add a route to a section. Use function-form `navSections` to move, remove, or rename existing navigation entries.
