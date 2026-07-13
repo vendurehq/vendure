@@ -318,6 +318,20 @@ jobs:
                     yarn) test -f yarn.lock || { echo "Expected yarn.lock to exist"; ls -la; exit 1; } ;;
                   esac
                   echo "Lockfile for ${{ matrix.pm }} present ✓"
+            # Temporary workaround for #4960: a scaffolded project now ships an initial migration
+            # whose file imports `MigrationInterface`/`QueryRunner` from `typeorm`. pnpm's strict,
+            # non-hoisting node_modules does not expose `typeorm` (a transitive dep of
+            # @vendure/core), so the smoke test fails to compile the migration. Install it directly
+            # here until #4960 decides the permanent fix (direct dep vs peer dep vs re-export from
+            # core). The range tracks @vendure/core's `typeorm` so the two dedupe to one instance.
+            - name: 'Install typeorm directly (pnpm workaround, see #4960)'
+              if: matrix.pm == 'pnpm'
+              env:
+                  CI: true
+                  npm_config_registry: http://localhost:4873/
+              run: |
+                  cd $HOME/install/test-app
+                  pnpm add typeorm@^0.3.21
             - name: Server smoke tests
               run: |
                   cd $HOME/install/test-app
