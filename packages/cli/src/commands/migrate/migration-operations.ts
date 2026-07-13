@@ -10,6 +10,7 @@ import { VendureConfigRef } from '../../shared/vendure-config-ref';
 export interface MigrationOptions {
     name?: string;
     outputDir?: string;
+    fromEmpty?: boolean;
     config?: string;
 }
 
@@ -47,8 +48,16 @@ export async function generateMigrationOperation(options: MigrationOptions = {})
         const migrationsDirs = getMigrationsDir(vendureConfig, config);
         const migrationDir = options.outputDir || migrationsDirs[0];
 
-        log.info('Generating migration...');
-        const migrationName = await generateMigration(config, { name, outputDir: migrationDir });
+        log.info(
+            options.fromEmpty
+                ? 'Generating baseline migration from an empty shadow database...'
+                : 'Generating migration...',
+        );
+        const migrationName = await generateMigration(config, {
+            name,
+            outputDir: migrationDir,
+            fromEmpty: options.fromEmpty,
+        });
 
         const report =
             typeof migrationName === 'string'

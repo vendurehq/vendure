@@ -22,6 +22,8 @@ export interface MigrateOptions {
     run?: boolean;
     revert?: boolean;
     outputDir?: string;
+    /** Generate a baseline migration by diffing against an empty shadow database */
+    fromEmpty?: boolean;
     /** Specify the path to a custom Vendure config file */
     config?: string;
 }
@@ -65,6 +67,7 @@ async function handleNonInteractiveMode(options: MigrateOptions) {
             result = await generateMigrationOperation({
                 name: options.generate,
                 outputDir: options.outputDir,
+                fromEmpty: options.fromEmpty,
                 config: options.config,
             });
         } else if (options.run) {
