@@ -191,7 +191,7 @@ msgstr "Joriy"
 msgid "No fulfillments"
 msgstr "Bajarishlar yo'q"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:269
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:287
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
 msgstr "Bu yoqilganda, mahsulot katalogidagi narxlar standart soliq hududi solig'iga kiritiladi."
 
@@ -230,7 +230,7 @@ msgstr "Optsiyalar"
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
 msgstr "{fulfilled, plural, one {{fulfilled} ta vazifa muvaffaqiyatli bekor qilindi} other {{fulfilled} ta vazifa muvaffaqiyatli bekor qilindi}}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:189
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:198
 msgid "Seller"
 msgstr "Sotuvchi"
 
@@ -365,8 +365,8 @@ msgctxt "date-range"
 msgid "Last 7 days"
 msgstr "So'nggi 7 kun"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:125
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:131
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:134
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:140
 msgid "Failed to create channel"
 msgstr "Kanal yaratib bo'lmadi"
 
@@ -657,7 +657,7 @@ msgstr "Manzilni tanlang"
 msgid "Payment eligibility checker"
 msgstr "To'lov muvofiqligi tekshiruvchisi"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:251
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:269
 msgid "Default tax zone"
 msgstr "Standart soliq hududi"
 
@@ -685,7 +685,7 @@ msgstr "Filtrlash..."
 msgid "New facet value"
 msgstr "Yangi faset qiymati"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:118
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:127
 msgid "Successfully updated channel"
 msgstr "Kanal yangilandi"
 
@@ -697,7 +697,7 @@ msgstr "Kamroq ko'rsatish"
 msgid "Short date"
 msgstr "Qisqa sana"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:209
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:219
 msgid "Available currencies"
 msgstr "Mavjud valyutalar"
 
@@ -858,6 +858,10 @@ msgstr "To'plamni yaratib bo'lmadi"
 #: src/lib/components/data-table/data-table-pagination.tsx:57
 msgid "Go to first page"
 msgstr "Birinchi sahifaga o'tish"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:220
+msgid "Defaults to the default currency."
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:167
 msgid "Failed to create product"
@@ -1168,17 +1172,17 @@ msgstr "Qolgan:"
 msgid "No duplicator found with code \"{duplicatorCode}\" for {entityName}s"
 msgstr "{entityName}lar uchun \"{duplicatorCode}\" kodli dublikator topilmadi"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:267
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:285
 msgid "Prices include tax for default tax zone"
 msgstr "Narxlar standart soliq hududi uchun soliqni o'z ichiga oladi"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:91
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:92
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:95
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:96
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:102
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:103
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:104
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:106
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:107
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:117
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:118
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:120
 msgid "This field is required"
 msgstr ""
 
@@ -1289,7 +1293,7 @@ msgid "My Saved Views"
 msgstr "Saqlangan ko'rinishlarim"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:41
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:146
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:155
 msgid "New channel"
 msgstr "Yangi kanal"
 
@@ -1634,7 +1638,7 @@ msgstr "Variantni o'chirish"
 msgid "No modifications made"
 msgstr "Hech qanday o'zgartirish kiritilmadi"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:259
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:277
 msgid "Default shipping zone"
 msgstr "Standart yetkazib berish hududi"
 
@@ -1744,7 +1748,7 @@ msgstr "Pul qaytarish muvaffaqiyatli hisoblashildi"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:159
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:168
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
@@ -1835,7 +1839,7 @@ msgstr "Natijalar yo'q"
 msgid "Column settings"
 msgstr "Ustun sozlamalari"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:169
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:178
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:126
@@ -2525,7 +2529,7 @@ msgstr "Toʻplamni oʻzining avlodiga koʻchirib boʻlmaydi"
 msgid "New Tax Category"
 msgstr "Yangi soliq toifasi"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:118
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:127
 msgid "Successfully created channel"
 msgstr "Kanal yaratildi"
 
@@ -2747,7 +2751,7 @@ msgstr "Global koʻrinishni oʻchirish"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:159
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:168
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
@@ -2877,8 +2881,8 @@ msgid "Back"
 msgstr "Orqaga"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:111
-msgid "Select at least one currency"
-msgstr ""
+#~ msgid "Select at least one currency"
+#~ msgstr ""
 
 #: src/lib/components/data-table/views-sheet.tsx:63
 msgid "View renamed successfully"
@@ -3051,7 +3055,7 @@ msgstr "Shtat/Viloyat"
 msgid "Failed to update option group"
 msgstr "Optsiya guruhini yangilab bo'lmadi"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:220
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:231
 msgid "Channel defaults"
 msgstr "Kanal standartlari"
 
@@ -3207,7 +3211,7 @@ msgstr "Faset qiymatlarini qidirish..."
 msgid "Note"
 msgstr "Eslatma"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:197
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:206
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:112
 msgid "Available languages"
 msgstr "Mavjud tillar"
@@ -4927,7 +4931,7 @@ msgstr "{entityIdsLength} ta {entityType} kanalga biriktirib bo'lmadi"
 msgid "Default Language"
 msgstr "Standart til"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:178
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:187
 msgid "Token"
 msgstr "Token"
 
@@ -5023,7 +5027,7 @@ msgstr "{1} dan {2} ga bajarish #{0}"
 msgid "Failed to delete global view"
 msgstr "Global ko'rinishni o'chirib bo'lmadi"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:225
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:236
 msgid "Default language"
 msgstr "Standart til"
 
@@ -5267,6 +5271,10 @@ msgstr "O'tgan oy"
 msgid "Add Country"
 msgstr "Mamlakat qo'shish"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:207
+msgid "Defaults to the default language."
+msgstr ""
+
 #: src/lib/components/data-input/custom-field-list-input.tsx:85
 msgid "Remove item"
 msgstr "Elementni olib tashlash"
@@ -5351,8 +5359,8 @@ msgstr "Manba"
 msgid "No actions available"
 msgstr "Mavjud amallar yo'q"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:125
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:131
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:134
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:140
 msgid "Failed to update channel"
 msgstr "Kanalni yangilab bo'lmadi"
 
@@ -5409,7 +5417,7 @@ msgstr "Tavsif (muqobil)"
 msgid "No tags found"
 msgstr "Teglar topilmadi"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:238
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:254
 msgid "Default currency"
 msgstr "Standart valyuta"
 
@@ -5781,7 +5789,7 @@ msgstr "Buyurtmaga to'lov qo'shish"
 msgid "Loading..."
 msgstr "Yuklanmoqda..."
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:180
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:189
 msgid "The token is used to specify the channel when making API requests."
 msgstr "Token API so'rovlarini yuborishda kanalni belgilash uchun ishlatiladi."
 

@@ -195,7 +195,7 @@ msgstr "Gjeldende"
 msgid "No fulfillments"
 msgstr "Ingen oppfyllelser"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:269
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:287
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
 msgstr "Når dette er aktivert, vil prisene som er angitt i produktkatalogen inkludere mva for standard skattesone."
 
@@ -246,7 +246,7 @@ msgstr "Alternativer"
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
 msgstr "{fulfilled, plural, one {{fulfilled} jobb ble avbrutt} other {{fulfilled} jobber ble avbrutt}}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:189
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:198
 msgid "Seller"
 msgstr "Selger"
 
@@ -389,8 +389,8 @@ msgctxt "date-range"
 msgid "Last 7 days"
 msgstr "Siste 7 dager"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:125
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:131
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:134
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:140
 msgid "Failed to create channel"
 msgstr "Kunne ikke opprette kanal"
 
@@ -685,7 +685,7 @@ msgstr "Velg adresse"
 msgid "Payment eligibility checker"
 msgstr "Betalingsberettigelsessjekker"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:251
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:269
 msgid "Default tax zone"
 msgstr "Standard skattesone"
 
@@ -713,7 +713,7 @@ msgstr "Filtrer..."
 msgid "New facet value"
 msgstr "Ny fasettverdi"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:118
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:127
 msgid "Successfully updated channel"
 msgstr "Kanal oppdatert"
 
@@ -725,7 +725,7 @@ msgstr "Vis mindre"
 msgid "Short date"
 msgstr "Kort dato"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:209
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:219
 msgid "Available currencies"
 msgstr "Tilgjengelige valutaer"
 
@@ -886,6 +886,10 @@ msgstr "Kunne ikke opprette samling"
 #: src/lib/components/data-table/data-table-pagination.tsx:57
 msgid "Go to first page"
 msgstr "Gå til første side"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:220
+msgid "Defaults to the default currency."
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:167
 msgid "Failed to create product"
@@ -1204,17 +1208,17 @@ msgstr "Gjenstående:"
 msgid "No duplicator found with code \"{duplicatorCode}\" for {entityName}s"
 msgstr "Ingen duplikator funnet med kode \"{duplicatorCode}\" for {entityName}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:267
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:285
 msgid "Prices include tax for default tax zone"
 msgstr "Priser inkluderer mva for standard skattesone"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:91
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:92
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:95
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:96
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:102
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:103
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:104
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:106
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:107
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:117
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:118
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:120
 msgid "This field is required"
 msgstr ""
 
@@ -1333,7 +1337,7 @@ msgid "My Saved Views"
 msgstr "Mine lagrede visninger"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:41
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:146
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:155
 msgid "New channel"
 msgstr "Ny kanal"
 
@@ -1695,7 +1699,7 @@ msgstr "Slett variant"
 msgid "No modifications made"
 msgstr "Ingen endringer gjort"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:259
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:277
 msgid "Default shipping zone"
 msgstr "Standard fraktsone"
 
@@ -1805,7 +1809,7 @@ msgstr "Refusjon gjennomført"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:159
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:168
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
@@ -1902,7 +1906,7 @@ msgstr "Ingen resultater"
 msgid "Column settings"
 msgstr "Kolonneinnstillinger"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:169
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:178
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:126
@@ -2600,7 +2604,7 @@ msgstr "Ny skattekategori"
 #~ msgid "No stock locations available on current channel"
 #~ msgstr "Ingen lagerlokasjoner tilgjengelig på gjeldende kanal"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:118
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:127
 msgid "Successfully created channel"
 msgstr "Kanal opprettet"
 
@@ -2831,7 +2835,7 @@ msgstr "Slett global visning"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:159
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:168
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
@@ -2965,8 +2969,8 @@ msgid "Back"
 msgstr "Tilbake"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:111
-msgid "Select at least one currency"
-msgstr ""
+#~ msgid "Select at least one currency"
+#~ msgstr ""
 
 #: src/lib/components/data-table/views-sheet.tsx:63
 msgid "View renamed successfully"
@@ -3143,7 +3147,7 @@ msgstr "Stat/Fylke"
 msgid "Failed to update option group"
 msgstr "Kunne ikke oppdatere opsjonsgruppen"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:220
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:231
 msgid "Channel defaults"
 msgstr "Kanalstandarder"
 
@@ -3299,7 +3303,7 @@ msgstr "Søk i fasetverdier..."
 msgid "Note"
 msgstr "Notat"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:197
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:206
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:112
 msgid "Available languages"
 msgstr "Tilgjengelige språk"
@@ -5107,7 +5111,7 @@ msgstr "Kunne ikke tilordne {entityIdsLength} {entityType} til kanal"
 msgid "Default Language"
 msgstr "Standardspråk"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:178
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:187
 msgid "Token"
 msgstr "Token"
 
@@ -5207,7 +5211,7 @@ msgstr "Oppfyllelse #{0} fra {1} til {2}"
 msgid "Failed to delete global view"
 msgstr "Kunne ikke slette global visning"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:225
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:236
 msgid "Default language"
 msgstr "Standardspråk"
 
@@ -5455,6 +5459,10 @@ msgstr "Forrige måned"
 msgid "Add Country"
 msgstr "Legg til land"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:207
+msgid "Defaults to the default language."
+msgstr ""
+
 #: src/lib/components/data-input/custom-field-list-input.tsx:85
 msgid "Remove item"
 msgstr "Fjern vare"
@@ -5543,8 +5551,8 @@ msgstr "Kilde"
 msgid "No actions available"
 msgstr "Ingen tilgjengelige handlinger"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:125
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:131
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:134
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:140
 msgid "Failed to update channel"
 msgstr "Kunne ikke oppdatere kanal"
 
@@ -5605,7 +5613,7 @@ msgstr "Beskrivelse (alt-tekst)"
 msgid "No tags found"
 msgstr "Ingen tagger funnet"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:238
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:254
 msgid "Default currency"
 msgstr "Standardvaluta"
 
@@ -5989,7 +5997,7 @@ msgstr "Legg til betaling til bestilling"
 msgid "Loading..."
 msgstr "Laster..."
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:180
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:189
 msgid "The token is used to specify the channel when making API requests."
 msgstr "Token brukes til å spesifisere kanalen ved API-forespørsler."
 

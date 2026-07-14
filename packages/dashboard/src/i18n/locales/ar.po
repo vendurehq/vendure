@@ -195,7 +195,7 @@ msgstr "الحالي"
 msgid "No fulfillments"
 msgstr "لا توجد تنفيذات"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:269
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:287
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
 msgstr "عند تمكين هذا، ستكون الأسعار المدخلة في كتالوج المنتجات شاملة للضريبة للمنطقة الضريبية الافتراضية."
 
@@ -246,7 +246,7 @@ msgstr "الخيارات"
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
 msgstr "{fulfilled, plural, one {تم إلغاء مهمة واحدة بنجاح} two {تم إلغاء مهمتين بنجاح} few {تم إلغاء {fulfilled} مهام بنجاح} many {تم إلغاء {fulfilled} مهمة بنجاح} other {تم إلغاء {fulfilled} مهمة بنجاح}}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:189
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:198
 msgid "Seller"
 msgstr "البائع"
 
@@ -389,8 +389,8 @@ msgctxt "date-range"
 msgid "Last 7 days"
 msgstr "آخر 7 أيام"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:125
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:131
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:134
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:140
 msgid "Failed to create channel"
 msgstr "فشل إنشاء القناة"
 
@@ -685,7 +685,7 @@ msgstr "تحديد عنوان"
 msgid "Payment eligibility checker"
 msgstr "فاحص أهلية الدفع"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:251
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:269
 msgid "Default tax zone"
 msgstr "المنطقة الضريبية الافتراضية"
 
@@ -713,7 +713,7 @@ msgstr "تصفية..."
 msgid "New facet value"
 msgstr "قيمة خاصية جديدة"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:118
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:127
 msgid "Successfully updated channel"
 msgstr "تم تحديث القناة بنجاح"
 
@@ -725,7 +725,7 @@ msgstr "عرض أقل"
 msgid "Short date"
 msgstr "تاريخ قصير"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:209
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:219
 msgid "Available currencies"
 msgstr "العملات المتاحة"
 
@@ -886,6 +886,10 @@ msgstr "فشل إنشاء المجموعة"
 #: src/lib/components/data-table/data-table-pagination.tsx:57
 msgid "Go to first page"
 msgstr "الانتقال إلى الصفحة الأولى"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:220
+msgid "Defaults to the default currency."
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:167
 msgid "Failed to create product"
@@ -1204,17 +1208,17 @@ msgstr "المتبقي:"
 msgid "No duplicator found with code \"{duplicatorCode}\" for {entityName}s"
 msgstr "لم يتم العثور على أداة نسخ بالرمز \"{duplicatorCode}\" لـ {entityName}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:267
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:285
 msgid "Prices include tax for default tax zone"
 msgstr "الأسعار تشمل الضريبة للمنطقة الضريبية الافتراضية"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:91
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:92
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:95
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:96
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:102
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:103
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:104
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:106
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:107
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:117
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:118
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:120
 msgid "This field is required"
 msgstr ""
 
@@ -1333,7 +1337,7 @@ msgid "My Saved Views"
 msgstr "عروضي المحفوظة"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:41
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:146
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:155
 msgid "New channel"
 msgstr "قناة جديدة"
 
@@ -1695,7 +1699,7 @@ msgstr "حذف المتغير"
 msgid "No modifications made"
 msgstr "لم يتم إجراء تعديلات"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:259
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:277
 msgid "Default shipping zone"
 msgstr "منطقة الشحن الافتراضية"
 
@@ -1805,7 +1809,7 @@ msgstr "تم تسوية الاسترداد بنجاح"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:159
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:168
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
@@ -1902,7 +1906,7 @@ msgstr "لا توجد نتائج"
 msgid "Column settings"
 msgstr "إعدادات الأعمدة"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:169
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:178
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:126
@@ -2600,7 +2604,7 @@ msgstr "فئة ضريبية جديدة"
 #~ msgid "No stock locations available on current channel"
 #~ msgstr "لا توجد مواقع مخزون متاحة على القناة الحالية"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:118
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:127
 msgid "Successfully created channel"
 msgstr "تم إنشاء القناة بنجاح"
 
@@ -2831,7 +2835,7 @@ msgstr "حذف العرض العام"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:159
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:168
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
@@ -2965,8 +2969,8 @@ msgid "Back"
 msgstr "رجوع"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:111
-msgid "Select at least one currency"
-msgstr ""
+#~ msgid "Select at least one currency"
+#~ msgstr ""
 
 #: src/lib/components/data-table/views-sheet.tsx:63
 msgid "View renamed successfully"
@@ -3143,7 +3147,7 @@ msgstr "الولاية/المحافظة"
 msgid "Failed to update option group"
 msgstr "فشل في تحديث مجموعة الخيارات"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:220
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:231
 msgid "Channel defaults"
 msgstr "الإعدادات الافتراضية للقناة"
 
@@ -3299,7 +3303,7 @@ msgstr "البحث في قيم الفئات..."
 msgid "Note"
 msgstr "ملاحظة"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:197
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:206
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:112
 msgid "Available languages"
 msgstr "اللغات المتاحة"
@@ -5107,7 +5111,7 @@ msgstr "فشل في تعيين {entityIdsLength} {entityType} للقناة"
 msgid "Default Language"
 msgstr "اللغة الافتراضية"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:178
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:187
 msgid "Token"
 msgstr "الرمز المميز"
 
@@ -5207,7 +5211,7 @@ msgstr "التنفيذ #{0} من {1} إلى {2}"
 msgid "Failed to delete global view"
 msgstr "فشل حذف العرض العام"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:225
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:236
 msgid "Default language"
 msgstr "اللغة الافتراضية"
 
@@ -5455,6 +5459,10 @@ msgstr "الشهر الماضي"
 msgid "Add Country"
 msgstr "إضافة بلد"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:207
+msgid "Defaults to the default language."
+msgstr ""
+
 #: src/lib/components/data-input/custom-field-list-input.tsx:85
 msgid "Remove item"
 msgstr "إزالة العنصر"
@@ -5543,8 +5551,8 @@ msgstr "المصدر"
 msgid "No actions available"
 msgstr "لا توجد إجراءات متاحة"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:125
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:131
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:134
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:140
 msgid "Failed to update channel"
 msgstr "فشل تحديث القناة"
 
@@ -5605,7 +5613,7 @@ msgstr "الوصف (نص بديل)"
 msgid "No tags found"
 msgstr "لم يتم العثور على علامات"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:238
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:254
 msgid "Default currency"
 msgstr "العملة الافتراضية"
 
@@ -5989,7 +5997,7 @@ msgstr "إضافة دفع إلى الطلب"
 msgid "Loading..."
 msgstr "جارٍ التحميل..."
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:180
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:189
 msgid "The token is used to specify the channel when making API requests."
 msgstr "يُستخدم الرمز المميز لتحديد القناة عند إجراء طلبات API."
 

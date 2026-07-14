@@ -77,6 +77,17 @@ function ChannelDetailPage() {
             return {
                 ...input,
                 currencyCode: undefined,
+                // Omit the "available" lists when the user has left them empty, rather than
+                // sending `[]`. ChannelService.create then derives them from the defaults
+                // (`input.availableCurrencyCodes ?? [defaultCurrencyCode]`), which is what an
+                // empty selection means here — as opposed to `[]`, which would be saved as a
+                // channel with no available currencies/languages at all.
+                availableCurrencyCodes: input.availableCurrencyCodes?.length
+                    ? input.availableCurrencyCodes
+                    : undefined,
+                availableLanguageCodes: input.availableLanguageCodes?.length
+                    ? input.availableLanguageCodes
+                    : undefined,
             };
         },
         // The generated schema is derived from the GraphQL input type, which only tells us about
@@ -98,17 +109,15 @@ function ChannelDetailPage() {
                           // throws a raw UserInputError unless a defaultCurrencyCode or currencyCode is
                           // given — and this page always sends `currencyCode: undefined`. It is a nullable
                           // enum, so it is `null` (not '') until the user picks one; hence invalid_type_error.
+                          // `availableCurrencyCodes` is deliberately NOT required: the server derives it
+                          // from the default when omitted, so requiring it would just be a second field to
+                          // fill for no gain.
                           defaultCurrencyCode: z
                               .string({
                                   required_error: t`This field is required`,
                                   invalid_type_error: t`This field is required`,
                               })
                               .min(1, { message: t`This field is required` }),
-                          // The default-currency select only offers the currencies chosen here, so
-                          // without this the user hits a required error over an empty dropdown.
-                          availableCurrencyCodes: z
-                              .array(z.string())
-                              .min(1, { message: t`Select at least one currency` }),
                       }
                     : {}),
             }),
@@ -195,6 +204,7 @@ function ChannelDetailPage() {
                             control={form.control}
                             name="availableLanguageCodes"
                             label={<Trans>Available languages</Trans>}
+                            description={<Trans>Defaults to the default language.</Trans>}
                             render={({ field }) => (
                                 <LanguageSelector
                                     value={field.value ?? []}
@@ -207,6 +217,7 @@ function ChannelDetailPage() {
                             control={form.control}
                             name="availableCurrencyCodes"
                             label={<Trans>Available currencies</Trans>}
+                            description={<Trans>Defaults to the default currency.</Trans>}
                             render={({ field }) => (
                                 <CurrencySelector
                                     value={field.value ?? []}
@@ -228,7 +239,12 @@ function ChannelDetailPage() {
                                     value={field.value ?? ''}
                                     onChange={field.onChange}
                                     multiple={false}
-                                    availableLanguageCodes={availableLanguageCodes ?? []}
+                                    // Narrow to the available languages only once some have been
+                                    // chosen. Passing `[]` would leave nothing to pick from, which
+                                    // is a dead end when this field is required.
+                                    availableLanguageCodes={
+                                        availableLanguageCodes?.length ? availableLanguageCodes : undefined
+                                    }
                                 />
                             )}
                         />
@@ -241,7 +257,9 @@ function ChannelDetailPage() {
                                     value={field.value ?? ''}
                                     onChange={field.onChange}
                                     multiple={false}
-                                    availableCurrencyCodes={availableCurrencyCodes ?? []}
+                                    availableCurrencyCodes={
+                                        availableCurrencyCodes?.length ? availableCurrencyCodes : undefined
+                                    }
                                 />
                             )}
                         />

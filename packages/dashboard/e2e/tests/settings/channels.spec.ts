@@ -184,13 +184,46 @@ test.describe('Channel required-field validation', () => {
         for (const label of ['Token', 'Default tax zone', 'Default shipping zone', 'Default currency']) {
             await expect(dp.formItem(label).getByText('This field is required')).toBeVisible();
         }
-        await expect(
-            dp.formItem('Available currencies').getByText('Select at least one currency'),
-        ).toBeVisible();
+
+        // ...but the optional "available" lists are not flagged — the server derives them from
+        // the defaults, so demanding them would just be a second field to fill for no gain.
+        await expect(dp.formItem('Available currencies').getByText('This field is required')).toHaveCount(0);
 
         // ...and the mutation never leaves the client, so there is no raw GraphQL error toast.
         await expect(page.locator('[data-sonner-toast]')).toHaveCount(0);
         await expect(page).toHaveURL(/\/channels\/new$/);
+    });
+
+    // The default-currency select must offer every currency when none have been marked available,
+    // otherwise "Default currency" is required but impossible to fill.
+    test('should create a channel without touching the available currency/language lists', async ({
+        page,
+    }) => {
+        const dp = detailPage(page);
+        await dp.gotoNew();
+        await dp.expectNewPageLoaded();
+
+        await dp.fillInput('Code', 'e2e-derived-channel');
+        await dp.fillInput('Token', 'e2e-derived-token');
+
+        // Default currency, with "Available currencies" left untouched.
+        await dp.formItem('Default currency').getByRole('combobox').click();
+        await page
+            .locator('[data-slot="popover-content"]')
+            .getByPlaceholder('Search currencies...')
+            .fill('Dollar');
+        await page
+            .locator('[data-slot="popover-content"]')
+            .getByRole('button', { name: /Dollar/ })
+            .first()
+            .click();
+
+        await dp.selectOption('Default tax zone', 'Europe');
+        await dp.selectOption('Default shipping zone', 'Europe');
+
+        await dp.clickCreate();
+        await dp.expectSuccessToast(/Successfully created channel/);
+        await dp.expectNavigatedToExisting();
     });
 
     test('should clear the error once a required field is filled', async ({ page }) => {
