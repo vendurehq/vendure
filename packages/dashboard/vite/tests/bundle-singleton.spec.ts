@@ -35,11 +35,17 @@ describe('bundle singleton duplication', () => {
         expect(offenders, `Duplicated singleton libraries:\n  ${offenders.join('\n  ')}`).toEqual([]);
     });
 
-    it('keeps every audited library reachable through the public API (guards against a stale audit)', () => {
-        // If a candidate stops landing in the extension build the audit could
-        // silently pass; fail loudly so the candidate/marker list stays honest.
-        const unreachable = audit.results.filter(r => !r.inExtensionBuild).map(r => r.candidate.pkg);
-        expect(unreachable, `Not found in the extension build: ${unreachable.join(', ')}`).toEqual([]);
+    it('detects every still-bundled library in the extension build (guards against a stale marker)', () => {
+        // A library that is NOT externalised is frozen into the bundle and must
+        // be detectable in the extension build — otherwise its marker is stale
+        // and the duplication check would silently pass. (Externalised libraries
+        // may legitimately be tree-shaken out, so they are exempt.)
+        const undetected = audit.results
+            .filter(r => !r.externalInLib && !r.inExtensionBuild)
+            .map(r => r.candidate.pkg);
+        expect(undetected, `Stale marker — not detected in the extension build: ${undetected.join(', ')}`).toEqual(
+            [],
+        );
     });
 });
 
