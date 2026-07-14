@@ -499,6 +499,13 @@ export function PageActionBar({
             primaryItemIndex >= 0 ? [mergedItems[primaryItemIndex]] : [mergedItems[mergedItems.length - 1]];
     }
 
+    // When the page provides its own actions, the primary slot is taken (e.g. Update/Save),
+    // so extension buttons are demoted and may not render as primary. Checks mergedItems
+    // rather than the raw children so that an extension which *replaces* the page action
+    // is allowed to take over its primary styling.
+    const hasPageProvidedActions =
+        mergedItems.some(mergedItem => mergedItem.type === 'inline') || plainChildren.length > 0;
+
     const renderMergedItem = (mergedItem: MergedActionBarItem, index: number) => {
         if (mergedItem.type === 'inline') {
             return React.cloneElement(mergedItem.element, {
@@ -508,7 +515,11 @@ export function PageActionBar({
             const extItem = mergedItem.item;
             const itemId = extItem.id ?? `extension-${extItem.component.name || index}`;
             return (
-                <ActionBarItemWrapper key={`ext-${extItem.id ?? extItem.pageId}-${index}`} itemId={itemId}>
+                <ActionBarItemWrapper
+                    key={`ext-${extItem.id ?? extItem.pageId}-${index}`}
+                    itemId={itemId}
+                    demotePrimary={hasPageProvidedActions}
+                >
                     <PageActionBarItem item={extItem} page={page} />
                 </ActionBarItemWrapper>
             );

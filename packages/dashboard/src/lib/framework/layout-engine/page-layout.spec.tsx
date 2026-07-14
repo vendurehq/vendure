@@ -377,4 +377,29 @@ describe('PageLayout', () => {
         expect(renderedIds).toHaveLength(3);
         expect(renderedIds).toEqual(expect.arrayContaining(['a', 'b', 'save-button']));
     });
+
+    it('demotes primary styling of extension items when the page has its own actions', () => {
+        registerActionBarItem('ext-item');
+
+        const markup = renderActionBar();
+
+        expect(markup).toContain('[--primary:var(--secondary)]');
+    });
+
+    it('does not demote extension items when the page provides no actions', () => {
+        registerActionBarItem('ext-item');
+
+        const markup = renderActionBar(null);
+
+        expect(markup).not.toContain('[--primary:var(--secondary)]');
+    });
+
+    it('does not demote an extension item that replaces the page action', () => {
+        registerActionBarItem('replacement', { itemId: 'save-button', order: 'replace' });
+
+        const markup = renderActionBar();
+
+        expect(getRenderedActionBarIds(markup)).toEqual(['replacement']);
+        expect(markup).not.toContain('[--primary:var(--secondary)]');
+    });
 });
