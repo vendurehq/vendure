@@ -79,11 +79,13 @@ function ChannelDetailPage() {
                 currencyCode: undefined,
             };
         },
-        // The generated schema is derived from the GraphQL input type, which only tells us
-        // about nullability — `String!` still permits '', and an unfilled `ID!` relation is
-        // seeded with ''. Neither is a valid channel, so declare the required fields here.
-        // The zones are only required on create (`CreateChannelInput` has `defaultTaxZoneId: ID!`,
-        // whereas `UpdateChannelInput` has `defaultTaxZoneId: ID` and omits what isn't sent).
+        // The generated schema is derived from the GraphQL input type, which only tells us about
+        // nullability — `String!` still permits '', an unfilled `ID!` relation is seeded with '',
+        // and a nullable field can still be required by the server. None of those make a valid
+        // channel, so the fields the user must actually supply are declared here.
+        //
+        // These are only enforced on create: `UpdateChannelInput` makes every field optional and
+        // omits what isn't sent, so an update may legitimately touch just one field.
         extendSchema: schema =>
             schema.extend({
                 code: z.string().min(1, { message: t`This field is required` }),
@@ -92,6 +94,21 @@ function ChannelDetailPage() {
                     ? {
                           defaultTaxZoneId: z.string().min(1, { message: t`This field is required` }),
                           defaultShippingZoneId: z.string().min(1, { message: t`This field is required` }),
+                          // `defaultCurrencyCode` is nullable in the schema, but ChannelService.create
+                          // throws a raw UserInputError unless a defaultCurrencyCode or currencyCode is
+                          // given — and this page always sends `currencyCode: undefined`. It is a nullable
+                          // enum, so it is `null` (not '') until the user picks one; hence invalid_type_error.
+                          defaultCurrencyCode: z
+                              .string({
+                                  required_error: t`This field is required`,
+                                  invalid_type_error: t`This field is required`,
+                              })
+                              .min(1, { message: t`This field is required` }),
+                          // The default-currency select only offers the currencies chosen here, so
+                          // without this the user hits a required error over an empty dropdown.
+                          availableCurrencyCodes: z
+                              .array(z.string())
+                              .min(1, { message: t`Select at least one currency` }),
                       }
                     : {}),
             }),

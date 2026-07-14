@@ -157,7 +157,9 @@ test.describe('Channels CRUD', () => {
 // #4173 — creating a channel with missing required fields produced a raw GraphQL error toast,
 // and the offending fields were not highlighted. Required `ID!` relations (default tax/shipping
 // zone) were seeded with '' and passed the generated `z.string()`, then got stripped from the
-// payload and blew up during server-side variable coercion.
+// payload and blew up during server-side variable coercion. `defaultCurrencyCode` is nullable in
+// the schema but still required by ChannelService.create, which throws a raw UserInputError
+// ("Either a defaultCurrencyCode or currencyCode must be provided").
 test.describe('Channel required-field validation', () => {
     const detailPage = (page: Page) =>
         new BaseDetailPage(page, {
@@ -179,9 +181,12 @@ test.describe('Channel required-field validation', () => {
         await dp.clickCreate();
 
         // Each missing required field is called out in place...
-        for (const label of ['Token', 'Default tax zone', 'Default shipping zone']) {
+        for (const label of ['Token', 'Default tax zone', 'Default shipping zone', 'Default currency']) {
             await expect(dp.formItem(label).getByText('This field is required')).toBeVisible();
         }
+        await expect(
+            dp.formItem('Available currencies').getByText('Select at least one currency'),
+        ).toBeVisible();
 
         // ...and the mutation never leaves the client, so there is no raw GraphQL error toast.
         await expect(page.locator('[data-sonner-toast]')).toHaveCount(0);
