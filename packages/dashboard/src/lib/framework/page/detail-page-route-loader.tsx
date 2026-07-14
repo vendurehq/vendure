@@ -1,6 +1,7 @@
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
 
 import { PageBreadcrumb } from '@/vdb/components/layout/generated-breadcrumbs.js';
+import { NotFoundError } from '@/vdb/components/shared/not-found-error.js';
 import { extendDetailFormQuery } from '@/vdb/framework/document-extension/extend-detail-form-query.js';
 import { TypedDocumentNode } from '@graphql-typed-document-node/core';
 import { FileBaseRouteOptions, ParsedLocation } from '@tanstack/react-router';
@@ -59,7 +60,7 @@ export function detailPageRouteLoader<T extends TypedDocumentNode<any, any>>({
         const entityName = getQueryTypeFieldInfo(resolvedQueryDocument)?.type;
 
         if (!isNew && !result[entityField]) {
-            throw new Error(`${entityName} with the ID ${params.id} was not found`);
+            throw new NotFoundError(`${entityName} with the ID ${params.id} was not found`);
         }
         return {
             breadcrumb: breadcrumb(isNew, result?.[entityField], location),

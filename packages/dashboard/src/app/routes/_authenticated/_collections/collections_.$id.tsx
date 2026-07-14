@@ -47,7 +47,7 @@ export const Route = createFileRoute('/_authenticated/_collections/collections_/
             isNew ? <Trans>New collection</Trans> : entity?.name,
         ],
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function CollectionDetailPage() {

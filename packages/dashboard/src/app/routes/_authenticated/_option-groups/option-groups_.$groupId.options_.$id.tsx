@@ -97,7 +97,7 @@ export const Route = createFileRoute(
             ],
         };
     },
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function OptionGroupOptionDetailPage() {

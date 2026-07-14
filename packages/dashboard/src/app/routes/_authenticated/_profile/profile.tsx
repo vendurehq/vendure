@@ -38,7 +38,7 @@ export const Route = createFileRoute('/_authenticated/_profile/profile')({
             breadcrumb: [{ path: '/profile', label: <Trans>Profile</Trans> }],
         };
     },
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function ProfilePage() {

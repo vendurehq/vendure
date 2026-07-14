@@ -44,7 +44,7 @@ export const Route = createFileRoute('/_authenticated/_facets/facets_/$facetId/v
             return breadcrumb;
         },
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function FacetValueDetailPage() {

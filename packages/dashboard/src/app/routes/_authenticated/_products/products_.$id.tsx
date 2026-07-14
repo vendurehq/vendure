@@ -58,7 +58,7 @@ export const Route = createFileRoute('/_authenticated/_products/products_/$id')(
             ];
         },
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function NoVariantsPrompt({

@@ -30,7 +30,7 @@ export const Route = createFileRoute('/_authenticated/_sellers/sellers_/$id')({
             isNew ? <Trans>New seller</Trans> : entity?.name,
         ],
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function SellerDetailPage() {

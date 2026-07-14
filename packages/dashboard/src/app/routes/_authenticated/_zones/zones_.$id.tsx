@@ -35,7 +35,7 @@ export const Route = createFileRoute('/_authenticated/_zones/zones_/$id')({
             ];
         },
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function ZoneDetailPage() {

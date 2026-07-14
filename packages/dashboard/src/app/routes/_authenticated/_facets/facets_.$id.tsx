@@ -37,7 +37,7 @@ export const Route = createFileRoute('/_authenticated/_facets/facets_/$id')({
             ];
         },
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function FacetDetailPage() {

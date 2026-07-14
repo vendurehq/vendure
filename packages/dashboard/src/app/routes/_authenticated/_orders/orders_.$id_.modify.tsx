@@ -35,7 +35,7 @@ const pageId = 'order-modify';
 export const Route = createFileRoute('/_authenticated/_orders/orders_/$id_/modify')({
     component: ModifyOrderPage,
     loader: async ({ context, params }) => loadModifyingOrder(context, params),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function ModifyOrderPage() {

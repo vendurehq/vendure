@@ -13,7 +13,7 @@ export const Route = createFileRoute(
 )({
     component: SellerOrderDetailPage,
     loader: ({ context, params }) => loadSellerOrder(context, params),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function SellerOrderDetailPage() {

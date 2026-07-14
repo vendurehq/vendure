@@ -45,7 +45,7 @@ export const Route = createFileRoute('/_authenticated/_promotions/promotions_/$i
             ];
         },
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function PromotionDetailPage() {

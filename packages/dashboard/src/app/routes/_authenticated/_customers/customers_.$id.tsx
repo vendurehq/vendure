@@ -62,7 +62,7 @@ export const Route = createFileRoute('/_authenticated/_customers/customers_/$id'
             isNew ? <Trans>New customer</Trans> : `${entity?.firstName} ${entity?.lastName}`,
         ],
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function CustomerDetailPage() {

@@ -41,7 +41,7 @@ export const Route = createFileRoute('/_authenticated/_assets/assets_/$id')({
             ];
         },
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function AssetDetailPage() {

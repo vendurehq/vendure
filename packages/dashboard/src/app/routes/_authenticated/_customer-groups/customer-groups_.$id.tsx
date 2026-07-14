@@ -36,7 +36,7 @@ export const Route = createFileRoute('/_authenticated/_customer-groups/customer-
             isNew ? <Trans>New customer group</Trans> : entity?.name,
         ],
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function CustomerGroupDetailPage() {

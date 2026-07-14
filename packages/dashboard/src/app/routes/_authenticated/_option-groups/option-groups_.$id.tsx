@@ -83,7 +83,7 @@ export const Route = createFileRoute('/_authenticated/_option-groups/option-grou
             ],
         };
     },
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function OptionGroupDetailPage() {

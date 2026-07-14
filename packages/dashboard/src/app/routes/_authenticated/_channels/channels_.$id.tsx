@@ -40,7 +40,7 @@ export const Route = createFileRoute('/_authenticated/_channels/channels_/$id')(
             ];
         },
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function ChannelDetailPage() {

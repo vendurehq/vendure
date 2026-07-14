@@ -39,7 +39,7 @@ export const Route = createFileRoute('/_authenticated/_administrators/administra
             ];
         },
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 function AdministratorDetailPage() {

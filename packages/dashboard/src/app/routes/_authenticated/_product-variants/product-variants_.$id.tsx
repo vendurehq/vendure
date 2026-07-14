@@ -71,7 +71,7 @@ export const Route = createFileRoute('/_authenticated/_product-variants/product-
             return [{ path: '/product-variants', label: <Trans>Product Variants</Trans> }, entity?.name];
         },
     }),
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 type PriceInput = NonNullable<VariablesOf<typeof updateProductVariantDocument>['input']['prices']>[number];
