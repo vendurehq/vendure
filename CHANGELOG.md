@@ -3,6 +3,8 @@
 
 #### Fixes
 
+* **asset-server-plugin** Save and serve files with correct Content-Type (#4404) ([c729cb8](https://github.com/vendurehq/vendure/commit/c729cb8)), closes [#4404](https://github.com/vendurehq/vendure/issues/4404)
+* **core** Assign facets to channel when re-importing products via CSV (#4713) ([f9d5896](https://github.com/vendurehq/vendure/commit/f9d5896)), closes [#4713](https://github.com/vendurehq/vendure/issues/4713) [#4673](https://github.com/vendurehq/vendure/issues/4673)
 * **core** Deliver public API type dependencies to consumers (#4947) ([c4ed7a0](https://github.com/vendurehq/vendure/commit/c4ed7a0)), closes [#4947](https://github.com/vendurehq/vendure/issues/4947)
 * **core** Export and register Province entity and ProvinceService (#4857) ([c1b5b3d](https://github.com/vendurehq/vendure/commit/c1b5b3d)), closes [#4857](https://github.com/vendurehq/vendure/issues/4857)
 * **core** Merge shared entity instances into every hydration target (#4945) ([aa5859e](https://github.com/vendurehq/vendure/commit/aa5859e)), closes [#4945](https://github.com/vendurehq/vendure/issues/4945)
