@@ -22,6 +22,7 @@
         "build": "npm run check-types && npm run build:vite && npm run build:plugin && npm run build:lib",
         "watch": "tsc --project tsconfig.vite.json --watch",
         "test": "vitest run",
+        "audit:bundle": "vitest run vite/tests/bundle-singleton.spec.ts",
         "lint": "eslint .",
         "preview": "vite preview",
         "generate-index": "node scripts/generate-index.js",
