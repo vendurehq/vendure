@@ -203,8 +203,8 @@ test.describe('Product List', () => {
         await lp.goto();
         await lp.expectLoaded();
 
-        // The column settings trigger is the gear icon (Settings2) in the data table toolbar.
-        // We exclude sidebar buttons (which also use Settings2) via :not([data-sidebar]).
+        // The column settings live in the table settings menu (the ⋮ trigger
+        // in the data table header).
         const columnSettingsTrigger = page.getByTestId('dt-column-settings-trigger');
         await columnSettingsTrigger.click();
 

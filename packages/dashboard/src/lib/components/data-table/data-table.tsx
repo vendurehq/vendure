@@ -1,55 +1,42 @@
-import { DataTablePagination } from '@/vdb/components/data-table/data-table-pagination.js';
-import { DataTableViewOptions } from '@/vdb/components/data-table/data-table-view-options.js';
+import { DataTableSettingsMenu } from '@/vdb/components/data-table/data-table-settings-menu.js';
 import { GlobalViewsBar } from '@/vdb/components/data-table/global-views-bar.js';
 import { MyViewsButton } from '@/vdb/components/data-table/my-views-button.js';
-import { RefreshButton } from '@/vdb/components/data-table/refresh-button.js';
 import { SaveViewButton } from '@/vdb/components/data-table/save-view-button.js';
 import { Button } from '@/vdb/components/ui/button.js';
+import { CardTitle } from '@/vdb/components/ui/card.js';
+import { EmptyCollectionIllustration, NoResultsIllustration } from '@/vdb/components/ui/illustrations.js';
 import { Input } from '@/vdb/components/ui/input.js';
-import { Skeleton } from '@/vdb/components/ui/skeleton.js';
-import {
-    EmptyCollectionIllustration,
-    NoResultsIllustration,
-} from '@/vdb/components/ui/illustrations.js';
+import { toast } from '@/vdb/components/ui/sonner.js';
 import { EmptyState } from '@/vdb/components/ui/state-views.js';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/vdb/components/ui/table.js';
+import { TableCell, TableRow } from '@/vdb/components/ui/table.js';
 import { BulkActionsInput } from '@/vdb/framework/extension-api/types/index.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
+import { useDragAndDrop } from '@/vdb/hooks/use-drag-and-drop.js';
 import { usePage } from '@/vdb/hooks/use-page.js';
 import { useSavedViews } from '@/vdb/hooks/use-saved-views.js';
-import { Trans, useLingui } from '@lingui/react/macro';
-import {
-    closestCenter,
-    DndContext,
-} from '@dnd-kit/core';
+import { cn } from '@/vdb/lib/utils.js';
+import { closestCenter, DndContext } from '@dnd-kit/core';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
-import {
-    SortableContext,
-    useSortable,
-    verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { Trans, useLingui } from '@lingui/react/macro';
 import {
     ColumnDef,
     ColumnFilter,
     ColumnFiltersState,
     flexRender,
-    getCoreRowModel,
-    getPaginationRowModel,
     PaginationState,
     Row,
     SortingState,
     Table as TableType,
-    useReactTable,
     VisibilityState,
 } from '@tanstack/react-table';
 import { RowSelectionState, TableOptions } from '@tanstack/table-core';
+import { DataTable as UiDataTable } from '@vendure-io/ui/components/molecules/data-table/data-table';
 import { GripVertical } from 'lucide-react';
-import React, { Suspense, useEffect, useId, useMemo, useRef } from 'react';
-import { Separator } from '@/vdb/components/ui/separator.js';
-import { cn } from '@/vdb/lib/utils.js';
-import { ActiveFiltersPopover } from './data-table-active-filters-popover.js';
+import React, { Suspense, useEffect, useMemo, useRef } from 'react';
 import { AddFilterMenu } from './add-filter-menu.js';
+import { ActiveFiltersPopover } from './data-table-active-filters-popover.js';
 import { DataTableBulkActions } from './data-table-bulk-actions.js';
 import { DataTableProvider } from './data-table-context.js';
 import {
@@ -58,25 +45,24 @@ import {
     DataTableFacetedFilterProps,
 } from './data-table-faceted-filter.js';
 import { DataTableFilterBadgeEditable } from './data-table-filter-badge-editable.js';
-import { useDragAndDrop } from '@/vdb/hooks/use-drag-and-drop.js';
-import { toast } from '@/vdb/components/ui/sonner.js';
 
-// Layout constants used to reserve space and render skeletons during the
-// initial fetch. Row height matches the `h-12` class used on every TableCell
-// in this file (3rem). Header height matches the default `<TableHead>`
-// styling from `@vendure-io/ui` (h-10 = 2.5rem). Skeleton rows are capped
-// at `MAX_SKELETON_ROWS` so a large pageSize doesn't bloat the DOM.
-const ROW_HEIGHT_REM = 3;
-const HEADER_HEIGHT_REM = 2.5;
+// Skeleton rows are capped so a large pageSize doesn't bloat the DOM during
+// the initial fetch.
 const MAX_SKELETON_ROWS = 10;
 
 interface DraggableRowProps<TData> {
     row: Row<TData>;
     isDragDisabled: boolean;
     getRowCanDrag?: (row: Row<TData>) => boolean;
+    getCellClassName?: (columnId: string) => string | undefined;
 }
 
-function DraggableRow<TData>({ row, isDragDisabled, getRowCanDrag }: Readonly<DraggableRowProps<TData>>) {
+function DraggableRow<TData>({
+    row,
+    isDragDisabled,
+    getRowCanDrag,
+    getCellClassName,
+}: Readonly<DraggableRowProps<TData>>) {
     // Check if this specific row can be dragged
     const rowCanDrag = getRowCanDrag ? getRowCanDrag(row) : true;
     const isRowDragDisabled = isDragDisabled || !rowCanDrag;
@@ -97,7 +83,7 @@ function DraggableRow<TData>({ row, isDragDisabled, getRowCanDrag }: Readonly<Dr
             ref={setNodeRef}
             style={style}
             data-state={row.getIsSelected() && 'selected'}
-            className="animate-in fade-in duration-100"
+            className="group/row animate-in fade-in duration-100"
         >
             {!isDragDisabled && (
                 <TableCell className="w-[40px] h-12">
@@ -112,13 +98,31 @@ function DraggableRow<TData>({ row, isDragDisabled, getRowCanDrag }: Readonly<Dr
                     ) : null}
                 </TableCell>
             )}
-            {row.getVisibleCells().filter(cell => cell.column.id !== '__drag_handle__').map(cell => (
-                <TableCell key={cell.id} className="h-12">
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </TableCell>
-            ))}
+            {row
+                .getVisibleCells()
+                .filter(cell => cell.column.id !== '__drag_handle__')
+                .map(cell => (
+                    <TableCell key={cell.id} className={getCellClassName?.(cell.column.id) ?? 'h-12'}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                ))}
         </TableRow>
     );
+}
+
+// Captures the TanStack table instance the @vendure-io/ui DataTable molecule
+// creates internally, so the DataTableProvider (whose consumers — saved-view
+// buttons etc. — live in the toolbar slot) can expose it. useLayoutEffect so
+// the capture re-render happens before paint. The instance is stable across
+// renders, so the setState bails out after the first call.
+function TableInstanceCapture<TData>({
+    table,
+    onTable,
+}: Readonly<{ table: TableType<TData>; onTable: (table: TableType<TData>) => void }>) {
+    React.useLayoutEffect(() => {
+        onTable(table);
+    }, [table, onTable]);
+    return null;
 }
 
 const INLINE_FILTER_BADGE_LIMIT = 2;
@@ -154,6 +158,14 @@ interface DataTableProps<TData> {
     onFilterChange?: (table: TableType<TData>, columnFilters: ColumnFilter[]) => void;
     onColumnVisibilityChange?: (table: TableType<TData>, columnVisibility: VisibilityState) => void;
     onSearchTermChange?: (searchTerm: string) => void;
+    /**
+     * @description
+     * Placeholder text for the search input. Should say what the search targets,
+     * e.g. "Search products...". Defaults to a generic "Search...".
+     *
+     * @since 3.8.0
+     */
+    searchPlaceholder?: string;
     defaultColumnVisibility?: VisibilityState;
     facetedFilters?: { [key: string]: FacetedFilter | undefined };
     disableViewOptions?: boolean;
@@ -184,6 +196,46 @@ interface DataTableProps<TData> {
      * "no results match your filters" empty state, which offers "Clear filters" instead.
      */
     emptyStateAction?: React.ReactNode;
+    /**
+     * @description
+     * An optional title rendered in the table's header band. Intended for tables
+     * embedded in detail pages (e.g. "Product variants"), where the surrounding
+     * page block no longer provides a card title of its own.
+     *
+     * @since 3.8.0
+     */
+    title?: React.ReactNode;
+    /**
+     * @description
+     * Optional action buttons (e.g. a "Manage variants" CTA) rendered in the
+     * table's header band, next to the view-options and refresh controls.
+     *
+     * @since 3.8.0
+     */
+    actions?: React.ReactNode;
+    /**
+     * @description
+     * The table's frame. `'card'` (default) renders the table on its own card:
+     * a header band hosting the controls, the rows flush to the card edges, and
+     * a footer band for pagination. `'plain'` renders the same band structure
+     * without the card chrome, for a table embedded in an existing card (e.g. a
+     * dashboard widget) — the host card must be the direct frame.
+     *
+     * @default 'card'
+     * @since 3.8.0
+     */
+    frame?: 'card' | 'plain';
+    /**
+     * @description
+     * Extra `<TableRow>`s appended after the data rows — e.g. the order table's
+     * subtotal/shipping/total rows. Use the function form to receive the current
+     * visible `columnCount` for `colSpan`s. Rendered only alongside real rows,
+     * never with the loading or empty states. Takes precedence over `children`,
+     * which remains supported for the same purpose.
+     *
+     * @since 3.8.0
+     */
+    footerRows?: React.ReactNode | ((ctx: { columnCount: number }) => React.ReactNode);
 }
 
 /**
@@ -211,6 +263,7 @@ export function DataTable<TData>({
     onSortChange,
     onFilterChange,
     onSearchTermChange,
+    searchPlaceholder,
     onColumnVisibilityChange,
     defaultColumnVisibility,
     facetedFilters,
@@ -221,6 +274,10 @@ export function DataTable<TData>({
     onReorder,
     disableDragAndDrop = false,
     emptyStateAction,
+    title,
+    actions,
+    frame = 'card',
+    footerRows,
 }: Readonly<DataTableProps<TData>>) {
     const [sorting, setSorting] = React.useState<SortingState>(sortingInitialState || []);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(filtersInitialState || []);
@@ -241,7 +298,16 @@ export function DataTable<TData>({
     const prevSearchTermRef = useRef(searchTerm);
     const prevColumnFiltersRef = useRef(columnFilters);
 
-    const componentId = useId();
+    // The TanStack table instance is created inside the @vendure-io/ui DataTable
+    // molecule. The ref is populated synchronously while the molecule renders the
+    // toolbar slot (for the change-callback effects below); the state copy feeds
+    // the DataTableProvider so saved-view components can reach the table. For a
+    // table with no toolbar controls at all the instance is never captured and
+    // the change callbacks receive `undefined` — all in-repo consumers ignore
+    // that argument.
+    const tableRef = useRef<TableType<TData>>(undefined as any);
+    const [tableInstance, setTableInstance] = React.useState<TableType<TData>>();
+
     const { sensors, localData, handleDragEnd, itemIds } = useDragAndDrop({
         data,
         onReorder,
@@ -265,9 +331,18 @@ export function DataTable<TData>({
         setColumnVisibility(defaultColumnVisibility);
     }, [defaultColumnVisibility]);
 
-    // Add drag handle column if drag and drop is enabled
-    const columnsWithOptionalDragHandle = useMemo(() => {
-        if (!disableDragAndDrop && onReorder) {
+    const isDragDisabled = disableDragAndDrop || !onReorder;
+    const isDraggableEnabled = !isDragDisabled;
+
+    // The molecule injects its own selection column (identical treatment to the
+    // one generated by use-generated-columns) when its rowSelection config is
+    // wired, keyed to the same 'selection' id so column order/visibility
+    // settings keep working. Strip the generated one to avoid a duplicate id,
+    // and use its presence as the signal that this table is selectable.
+    const hasSelectionColumn = useMemo(() => columns.some(c => c.id === 'selection'), [columns]);
+    const bridgeColumns = useMemo(() => {
+        const dataColumns = hasSelectionColumn ? columns.filter(c => c.id !== 'selection') : columns;
+        if (isDraggableEnabled) {
             const dragHandleColumn: ColumnDef<TData, any> = {
                 id: '__drag_handle__',
                 header: '',
@@ -276,51 +351,21 @@ export function DataTable<TData>({
                 enableSorting: false,
                 enableHiding: false,
             };
-            return [dragHandleColumn, ...columns];
+            return [dragHandleColumn, ...dataColumns];
         }
-        return columns;
-    }, [columns, disableDragAndDrop, onReorder]);
-
-    let tableOptions: TableOptions<TData> = {
-        data: localData,
-        columns: columnsWithOptionalDragHandle,
-        getRowId: row => (row as { id: string }).id,
-        getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
-        manualPagination: true,
-        manualSorting: true,
-        manualFiltering: true,
-        rowCount: totalItems,
-        onPaginationChange: setPagination,
-        onSortingChange: setSorting,
-        onColumnVisibilityChange: setColumnVisibility,
-        onColumnFiltersChange: setColumnFilters,
-        onRowSelectionChange: setRowSelection,
-        state: {
-            pagination,
-            sorting,
-            columnVisibility,
-            columnFilters,
-            rowSelection,
-        },
-    };
-
-    if (typeof setTableOptions === 'function') {
-        tableOptions = setTableOptions(tableOptions);
-    }
-
-    const table = useReactTable(tableOptions);
+        return dataColumns;
+    }, [columns, hasSelectionColumn, isDraggableEnabled]);
 
     useEffect(() => {
-        onPageChange?.(table, pagination.pageIndex + 1, pagination.pageSize);
+        onPageChange?.(tableRef.current, pagination.pageIndex + 1, pagination.pageSize);
     }, [pagination]);
 
     useEffect(() => {
-        onSortChange?.(table, sorting);
+        onSortChange?.(tableRef.current, sorting);
     }, [sorting]);
 
     useEffect(() => {
-        onColumnVisibilityChange?.(table, columnVisibility);
+        onColumnVisibilityChange?.(tableRef.current, columnVisibility);
     }, [columnVisibility]);
 
     useEffect(() => {
@@ -335,7 +380,7 @@ export function DataTable<TData>({
     }, [onPageChange, searchTerm]);
 
     useEffect(() => {
-        onFilterChange?.(table, columnFilters);
+        onFilterChange?.(tableRef.current, columnFilters);
         if (
             page &&
             page > 1 &&
@@ -356,10 +401,6 @@ export function DataTable<TData>({
         onSearchTermChange?.(value);
     };
 
-    const visibleColumnCount = Object.values(columnVisibility).filter(Boolean).length;
-
-    const isDragDisabled = disableDragAndDrop || !onReorder;
-    const hasSelection = Object.keys(rowSelection).length > 0;
     const nonFacetedFilters = columnFilters.filter(f => !facetedFilters?.[f.id]);
     const currencyCode = activeChannel?.defaultCurrencyCode ?? 'USD';
     const clearNonFacetedFilters = () => setColumnFilters(old => old.filter(f => !!facetedFilters?.[f.id]));
@@ -372,6 +413,185 @@ export function DataTable<TData>({
         setColumnFilters([]);
         handleSearchChange('');
     };
+
+    // Cell classes for DraggableRow, which renders its own cells instead of the
+    // molecule's defaults: the selection checkbox floats over a zero-width cell
+    // (`pl-0!` opts out of the card's edge-cell padding), and the gutter it
+    // needs is folded into the leading data column's left padding.
+    const getDraggableCellClassName = (table: TableType<TData>) => (columnId: string) => {
+        const leadingColumnId = hasSelectionColumn
+            ? table
+                  .getVisibleLeafColumns()
+                  .find(column => column.id !== 'selection' && column.id !== '__drag_handle__')?.id
+            : undefined;
+        if (columnId === 'selection') return 'relative w-0 p-0 pl-0!';
+        return cn('h-12', columnId === leadingColumnId && 'pl-8');
+    };
+
+    // Everything TanStack-related that the dashboard renders its own UI for
+    // (sort headers, add-filter menu, editable filter badges, view options) is
+    // wired directly into the table options instead of the molecule's capability
+    // configs — passing those configs would make the molecule render a second,
+    // parallel UI for each feature. The consumer's setTableOptions is applied
+    // last, preserving its full-control contract.
+    const bridgeSetTableOptions = (options: TableOptions<TData>): TableOptions<TData> => {
+        let merged: TableOptions<TData> = {
+            ...options,
+            enableSorting: true,
+            enableFilters: true,
+            manualSorting: true,
+            manualFiltering: true,
+            onSortingChange: setSorting,
+            onColumnFiltersChange: setColumnFilters,
+            onColumnVisibilityChange: setColumnVisibility,
+            state: {
+                ...options.state,
+                sorting,
+                columnFilters,
+                columnVisibility,
+            },
+        };
+        if (typeof setTableOptions === 'function') {
+            merged = setTableOptions(merged);
+        }
+        return merged;
+    };
+
+    const showSaveViewButton = !!pageId && !!onFilterChange;
+    const hasHeaderControls =
+        actions != null || showSaveViewButton || !disableViewOptions || onRefresh != null;
+    // With a title, the icon controls and CTAs move up next to it (header band
+    // line 1) and the toolbar row carries only search/filters. Without a title,
+    // everything shares the single controls row, as before.
+    const showControlsInToolbar = title == null;
+    const hasToolbarContent =
+        onSearchTermChange != null ||
+        Object.keys(facetedFilters ?? {}).length > 0 ||
+        onFilterChange != null ||
+        (showControlsInToolbar && hasHeaderControls);
+
+    const renderHeaderControls = (table: TableType<TData> | undefined) => (
+        <div className="flex items-center gap-2 flex-shrink-0">
+            {actions}
+            {showSaveViewButton && <SaveViewButton />}
+            {table && (
+                <DataTableSettingsMenu
+                    table={table}
+                    disableViewOptions={disableViewOptions}
+                    onRefresh={onRefresh}
+                    isLoading={isLoading}
+                />
+            )}
+        </div>
+    );
+
+    const renderToolbar = (table: TableType<TData>) => {
+        tableRef.current = table;
+        return (
+            <div className="flex flex-wrap items-start justify-between gap-2 w-full">
+                <TableInstanceCapture table={table} onTable={setTableInstance} />
+                <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
+                    {onSearchTermChange && (
+                        <Input
+                            placeholder={searchPlaceholder ?? t`Search...`}
+                            value={searchTerm}
+                            onChange={event => handleSearchChange(event.target.value)}
+                            className="h-8 w-full @sm/table:w-64"
+                        />
+                    )}
+                    <Suspense>
+                        {Object.entries(facetedFilters ?? {}).map(([key, filter]) => {
+                            const FilterComponent = filter?.component ?? DataTableFacetedFilter;
+                            return (
+                                <FilterComponent
+                                    key={key}
+                                    column={table.getColumn(key) as any}
+                                    title={filter?.title}
+                                    options={filter?.options}
+                                    optionsFn={filter?.optionsFn}
+                                    icon={filter?.icon}
+                                />
+                            );
+                        })}
+                    </Suspense>
+                    {onFilterChange && <AddFilterMenu columns={table.getAllColumns()} />}
+                    {pageId && onFilterChange && <MyViewsButton />}
+                    {pageId && onFilterChange && globalViews.length > 0 && (
+                        <div className="hidden @md/table:contents">
+                            <GlobalViewsBar />
+                        </div>
+                    )}
+                    {nonFacetedFilters.length > 0 && (
+                        <>
+                            {nonFacetedFilters.length <= INLINE_FILTER_BADGE_LIMIT ? (
+                                <>
+                                    {nonFacetedFilters.map(f => {
+                                        const column = table.getColumn(f.id);
+                                        return (
+                                            <DataTableFilterBadgeEditable
+                                                key={f.id}
+                                                filter={f}
+                                                column={column}
+                                                currencyCode={currencyCode}
+                                                dataType={
+                                                    (column?.columnDef.meta as any)?.fieldInfo?.type ??
+                                                    'String'
+                                                }
+                                                onRemove={() =>
+                                                    setColumnFilters(old => old.filter(x => x.id !== f.id))
+                                                }
+                                            />
+                                        );
+                                    })}
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={clearNonFacetedFilters}
+                                        className="text-xs opacity-60 hover:opacity-100"
+                                    >
+                                        <Trans>Clear all</Trans>
+                                    </Button>
+                                </>
+                            ) : (
+                                <ActiveFiltersPopover
+                                    filters={nonFacetedFilters}
+                                    table={table}
+                                    currencyCode={currencyCode}
+                                    onRemoveFilter={id =>
+                                        setColumnFilters(old => old.filter(x => x.id !== id))
+                                    }
+                                    onClearAll={clearNonFacetedFilters}
+                                />
+                            )}
+                        </>
+                    )}
+                </div>
+                {showControlsInToolbar && renderHeaderControls(table)}
+            </div>
+        );
+    };
+
+    const emptyState = hasActiveFilters ? (
+        <EmptyState
+            className="border-0 rounded-none bg-transparent"
+            illustration={<NoResultsIllustration />}
+            title={<Trans>No results</Trans>}
+            description={<Trans>No items match your current filters. Try clearing them to see more.</Trans>}
+        >
+            <Button variant="outline" size="sm" onClick={clearFiltersAndSearch}>
+                <Trans>Clear filters</Trans>
+            </Button>
+        </EmptyState>
+    ) : (
+        <EmptyState
+            className="border-0 rounded-none bg-transparent"
+            illustration={<EmptyCollectionIllustration />}
+            title={<Trans>No results</Trans>}
+            description={<Trans>There are no items to display yet.</Trans>}
+        >
+            {emptyStateAction}
+        </EmptyState>
+    );
 
     return (
         <DataTableProvider
@@ -386,270 +606,109 @@ export function DataTable<TData>({
             onSearchTermChange={onSearchTermChange}
             onRefresh={onRefresh}
             isLoading={isLoading}
-            table={table}
+            table={tableInstance}
         >
-            <div className="space-y-2 @container/table">
-                <div className="relative">
-                    <div className={cn(
-                        "flex flex-wrap items-start justify-between gap-2 transition-opacity duration-150",
-                        hasSelection && "opacity-0 pointer-events-none"
-                    )}>
-                        <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
-                            {onSearchTermChange && (
-                                <Input
-                                    placeholder={t`Filter...`}
-                                    value={searchTerm}
-                                    onChange={event => handleSearchChange(event.target.value)}
-                                    className="h-8 w-full @sm/table:w-64"
-                                />
-                            )}
-                            <Suspense>
-                                {Object.entries(facetedFilters ?? {}).map(([key, filter]) => {
-                                    const FilterComponent = filter?.component ?? DataTableFacetedFilter;
-                                    return (
-                                        <FilterComponent
-                                            key={key}
-                                            column={table.getColumn(key) as any}
-                                            title={filter?.title}
-                                            options={filter?.options}
-                                            optionsFn={filter?.optionsFn}
-                                            icon={filter?.icon}
-                                        />
-                                    );
-                                })}
-                            </Suspense>
-                            {onFilterChange && <AddFilterMenu columns={table.getAllColumns()} />}
-                            {pageId && onFilterChange && <MyViewsButton />}
-                            {pageId && onFilterChange && globalViews.length > 0 && (
-                                <div className="hidden @md/table:contents">
-                                    <GlobalViewsBar />
+            <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+                modifiers={[restrictToVerticalAxis]}
+            >
+                <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
+                    <UiDataTable<TData>
+                        className="@container/table"
+                        rows={localData}
+                        columns={bridgeColumns}
+                        getRowId={row => (row as { id: string }).id}
+                        isLoading={isLoading}
+                        skeletonRowCount={Math.min(pagination.pageSize, MAX_SKELETON_ROWS)}
+                        frame={frame}
+                        pagination={
+                            onPageChange && totalItems != null
+                                ? {
+                                      page: pagination.pageIndex + 1,
+                                      pageSize: pagination.pageSize,
+                                      totalItems,
+                                      onPageChange: nextPage =>
+                                          setPagination(old => ({ ...old, pageIndex: nextPage - 1 })),
+                                      onPageSizeChange: nextSize =>
+                                          setPagination(old => ({ ...old, pageSize: nextSize })),
+                                      // The dashboard's established options (not the molecule's
+                                      // [10, 25, 50, 100] default) — stored page sizes like 20
+                                      // must stay selectable.
+                                      pageSizeOptions: [10, 20, 30, 40, 50],
+                                  }
+                                : undefined
+                        }
+                        rowSelection={
+                            hasSelectionColumn
+                                ? {
+                                      value: rowSelection,
+                                      onChange: setRowSelection,
+                                      selectColumnId: 'selection',
+                                  }
+                                : undefined
+                        }
+                        header={
+                            title != null ? (
+                                <div className="flex flex-wrap items-start justify-between gap-2">
+                                    <CardTitle>{title}</CardTitle>
+                                    {hasHeaderControls && renderHeaderControls(tableInstance)}
                                 </div>
-                            )}
-                            {nonFacetedFilters.length > 0 && (
-                                <>
-                                    <Separator orientation="vertical" className="self-stretch" />
-                                    {nonFacetedFilters.length <= INLINE_FILTER_BADGE_LIMIT ? (
-                                        <>
-                                            {nonFacetedFilters.map(f => {
-                                                const column = table.getColumn(f.id);
-                                                return (
-                                                    <DataTableFilterBadgeEditable
-                                                        key={f.id}
-                                                        filter={f}
-                                                        column={column}
-                                                        currencyCode={currencyCode}
-                                                        dataType={
-                                                            (column?.columnDef.meta as any)?.fieldInfo?.type ?? 'String'
-                                                        }
-                                                        onRemove={() =>
-                                                            setColumnFilters(old => old.filter(x => x.id !== f.id))
-                                                        }
-                                                    />
-                                                );
-                                            })}
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={clearNonFacetedFilters}
-                                                className="text-xs opacity-60 hover:opacity-100"
-                                            >
-                                                <Trans>Clear all</Trans>
-                                            </Button>
-                                        </>
-                                    ) : (
-                                        <ActiveFiltersPopover
-                                            filters={nonFacetedFilters}
-                                            table={table}
-                                            currencyCode={currencyCode}
-                                            onRemoveFilter={id => setColumnFilters(old => old.filter(x => x.id !== id))}
-                                            onClearAll={clearNonFacetedFilters}
-                                        />
-                                    )}
-                                </>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                            {pageId && onFilterChange && <SaveViewButton />}
-                            {!disableViewOptions && <DataTableViewOptions table={table} />}
-                            {onRefresh && <RefreshButton onRefresh={onRefresh} isLoading={isLoading ?? false} />}
-                        </div>
-                    </div>
-                    <DataTableBulkActions bulkActions={bulkActions ?? []} table={table} />
-                </div>
-
-                <div
-                    className="rounded-md border my-2 relative bg-card"
-                    // While the initial fetch is in flight (no data yet) reserve
-                    // vertical space for the skeleton rows so the table footer /
-                    // pagination controls don't jump up. Once we have any data —
-                    // even one row — let the table size to its content so small
-                    // result sets don't render with a huge empty container.
-                    style={
-                        isLoading && !localData?.length
-                            ? {
-                                  minHeight: `calc(${Math.min(
-                                      pagination.pageSize,
-                                      MAX_SKELETON_ROWS,
-                                  )} * ${ROW_HEIGHT_REM}rem + ${HEADER_HEIGHT_REM}rem)`,
-                              }
-                            : undefined
-                    }
-                >
-                    <DndContext
-                        sensors={sensors}
-                        collisionDetection={closestCenter}
-                        onDragEnd={handleDragEnd}
-                        modifiers={[restrictToVerticalAxis]}
-                    >
-                        <Table>
-                            <TableHeader>
-                                {table.getHeaderGroups().map(headerGroup => (
-                                    <TableRow key={headerGroup.id}>
-                                        {headerGroup.headers.map(header => {
-                                            return (
-                                                <TableHead key={header.id}>
-                                                    {header.isPlaceholder
-                                                        ? null
-                                                        : flexRender(
-                                                              header.column.columnDef.header,
-                                                              header.getContext(),
-                                                          )}
-                                                </TableHead>
-                                            );
-                                        })}
+                            ) : undefined
+                        }
+                        toolbar={hasToolbarContent ? renderToolbar : undefined}
+                        bulkActions={
+                            hasSelectionColumn
+                                ? ctx => (
+                                      <DataTableBulkActions
+                                          bulkActions={bulkActions ?? []}
+                                          table={ctx.table}
+                                      />
+                                  )
+                                : undefined
+                        }
+                        emptyState={emptyState}
+                        renderRow={(row, { table, columnCount, defaultRow }) => {
+                            const tableMeta = table.options.meta as any;
+                            // Utility rows (e.g. the draft order's "add item" row) span
+                            // the full visible width and render custom content.
+                            if (tableMeta?.isUtilityRow?.(row) && tableMeta.renderUtilityRow) {
+                                return (
+                                    <TableRow className="animate-in fade-in duration-100">
+                                        <TableCell colSpan={columnCount} className="h-12">
+                                            {tableMeta.renderUtilityRow(row)}
+                                        </TableCell>
                                     </TableRow>
-                                ))}
-                            </TableHeader>
-                            <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
-                                <TableBody>
-                                    {isLoading && !localData?.length ? (
-                                        Array.from({
-                                            length: Math.min(pagination.pageSize, MAX_SKELETON_ROWS),
-                                        }).map((_, index) => (
-                                            <TableRow
-                                                key={`skeleton-${index}`}
-                                                className="animate-in fade-in duration-100"
-                                            >
-                                                {!isDragDisabled && (
-                                                    <TableCell className="w-[40px] h-12">
-                                                        <Skeleton className="h-4 w-4" />
-                                                    </TableCell>
-                                                )}
-                                                {Array.from({ length: visibleColumnCount }).map((_, cellIndex) => (
-                                                    <TableCell
-                                                        key={`skeleton-cell-${index}-${cellIndex}`}
-                                                        className="h-12"
-                                                    >
-                                                        <Skeleton className="h-4 my-2 w-full" />
-                                                    </TableCell>
-                                                ))}
-                                            </TableRow>
-                                        ))
-                                    ) : table.getRowModel().rows?.length ? (
-                                        (() => {
-                                            const isDraggableEnabled = onReorder && !isDragDisabled;
-                                            const rows = table.getRowModel().rows;
-                                            const tableMeta = table.options.meta as any;
-                                            const getRowCanDrag = tableMeta?.getRowCanDrag;
-                                            const renderUtilityRow = tableMeta?.renderUtilityRow;
-                                            const isUtilityRow = tableMeta?.isUtilityRow;
-                                            const totalColumns = columnsWithOptionalDragHandle.length;
-
-                                            const renderRow = (row: Row<TData>) => {
-                                                // Check if this is a utility row that needs custom rendering
-                                                if (isUtilityRow?.(row) && renderUtilityRow) {
-                                                    return (
-                                                        <TableRow
-                                                            key={row.id}
-                                                            className="animate-in fade-in duration-100"
-                                                        >
-                                                            <TableCell
-                                                                colSpan={totalColumns}
-                                                                className="h-12"
-                                                            >
-                                                                {renderUtilityRow(row)}
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    );
-                                                }
-
-                                                if (isDraggableEnabled) {
-                                                    return (
-                                                        <DraggableRow
-                                                            key={`${row.id}-${componentId}`}
-                                                            row={row}
-                                                            isDragDisabled={isDragDisabled}
-                                                            getRowCanDrag={getRowCanDrag}
-                                                        />
-                                                    );
-                                                }
-
-                                                return (
-                                                    <TableRow
-                                                        key={row.id}
-                                                        data-state={row.getIsSelected() && 'selected'}
-                                                        className="animate-in fade-in duration-100"
-                                                    >
-                                                        {row.getVisibleCells().map(cell => (
-                                                            <TableCell key={cell.id} className="h-12">
-                                                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                                            </TableCell>
-                                                        ))}
-                                                    </TableRow>
-                                                );
-                                            };
-
-                                            return rows.map(renderRow);
-                                        })()
-                                    ) : (
-                                        <TableRow className="animate-in fade-in duration-100 hover:bg-transparent">
-                                            <TableCell
-                                                colSpan={columnsWithOptionalDragHandle.length}
-                                                className="p-0"
-                                            >
-                                                {hasActiveFilters ? (
-                                                    <EmptyState
-                                                        className="border-0 rounded-none bg-transparent"
-                                                        illustration={<NoResultsIllustration />}
-                                                        title={<Trans>No results</Trans>}
-                                                        description={
-                                                            <Trans>
-                                                                No items match your current filters. Try
-                                                                clearing them to see more.
-                                                            </Trans>
-                                                        }
-                                                    >
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={clearFiltersAndSearch}
-                                                        >
-                                                            <Trans>Clear filters</Trans>
-                                                        </Button>
-                                                    </EmptyState>
-                                                ) : (
-                                                    <EmptyState
-                                                        className="border-0 rounded-none bg-transparent"
-                                                        illustration={<EmptyCollectionIllustration />}
-                                                        title={<Trans>No results</Trans>}
-                                                        description={
-                                                            <Trans>There are no items to display yet.</Trans>
-                                                        }
-                                                    >
-                                                        {emptyStateAction}
-                                                    </EmptyState>
-                                                )}
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                    {children}
-                                </TableBody>
-                            </SortableContext>
-                        </Table>
-                    </DndContext>
-                </div>
-                {onPageChange && totalItems != null && <DataTablePagination table={table} />}
-            </div>
+                                );
+                            }
+                            if (isDraggableEnabled) {
+                                return (
+                                    <DraggableRow
+                                        row={row}
+                                        isDragDisabled={isDragDisabled}
+                                        getRowCanDrag={tableMeta?.getRowCanDrag}
+                                        getCellClassName={getDraggableCellClassName(table)}
+                                    />
+                                );
+                            }
+                            return defaultRow;
+                        }}
+                        footerRows={footerRows ?? (children != null ? children : undefined)}
+                        setTableOptions={bridgeSetTableOptions}
+                        labels={{
+                            selectAllRows: t`Select all rows`,
+                            selectRow: () => t`Select row`,
+                            pagination: {
+                                navLabel: t`Pagination`,
+                                previousLabel: t`Go to previous page`,
+                                nextLabel: t`Go to next page`,
+                                pageSizeLabel: t`Rows per page`,
+                            },
+                        }}
+                    />
+                </SortableContext>
+            </DndContext>
         </DataTableProvider>
     );
 }

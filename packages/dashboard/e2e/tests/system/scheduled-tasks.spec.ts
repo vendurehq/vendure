@@ -41,7 +41,9 @@ test.describe('Scheduled Tasks', () => {
         await page.keyboard.press('Escape');
         await expect(descriptionHeader).toBeHidden();
 
-        // Refresh — same code path the disable/enable mutation onSuccess takes.
+        // Refresh (a menu item in the table settings dropdown) — same code
+        // path the disable/enable mutation onSuccess takes.
+        await page.getByTestId('dt-column-settings-trigger').click();
         await page.getByTestId('dt-refresh-button').click();
 
         // Column visibility must persist across the refetch.

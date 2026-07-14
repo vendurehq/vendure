@@ -10,6 +10,7 @@ import { includeOnlySelectedListFields } from '@/vdb/framework/document-introspe
 import { BulkActionsInput } from '@/vdb/framework/extension-api/types/index.js';
 import { ResultOf } from '@/vdb/graphql/graphql.js';
 import { useExtendedListQuery } from '@/vdb/hooks/use-extended-list-query.js';
+import { useViewOptionDefaults } from '@/vdb/hooks/use-view-option-defaults.js';
 import { TypedDocumentNode } from '@graphql-typed-document-node/core';
 import { ColumnFiltersState, ColumnSort, SortingState, Table } from '@tanstack/react-table';
 import { ColumnDef, Row, TableOptions, VisibilityState } from '@tanstack/table-core';
@@ -17,7 +18,6 @@ import React from 'react';
 import { getColumnVisibility, getStandardizedDefaultColumnOrder } from '../data-table/data-table-utils.js';
 import { useGeneratedColumns } from '../data-table/use-generated-columns.js';
 import { PaginatedListContext } from './paginated-list-context.js';
-import { useViewOptionDefaults } from '@/vdb/hooks/use-view-option-defaults.js';
 
 // Type that identifies a paginated list structure (has items array and totalItems)
 type IsPaginatedList<T> = T extends { items: any[]; totalItems: number } ? true : false;
@@ -199,6 +199,14 @@ export interface PaginatedListDataTableProps<
      * still invoked on every change so pages can use it as a state-sync hook.
      */
     onSearchTermChange?: (searchTerm: string) => NonNullable<V['options']>['filter'];
+    /**
+     * @description
+     * Placeholder text for the search input. Should say what the search targets,
+     * e.g. "Search products...". Defaults to a generic "Search...".
+     *
+     * @since 3.8.0
+     */
+    searchPlaceholder?: string;
     page: number;
     itemsPerPage: number;
     sorting: SortingState;
@@ -257,6 +265,32 @@ export interface PaginatedListDataTableProps<
      * When omitted, a failed query renders as an empty table.
      */
     errorState?: (params: { error: Error; retry: () => void }) => React.ReactNode;
+    /**
+     * @description
+     * An optional title rendered in the table's header band. Intended for tables
+     * embedded in detail pages (e.g. "Product variants").
+     *
+     * @since 3.8.0
+     */
+    title?: React.ReactNode;
+    /**
+     * @description
+     * Optional action buttons (e.g. a "Manage variants" CTA) rendered in the
+     * table's header band, next to the view-options and refresh controls.
+     *
+     * @since 3.8.0
+     */
+    actions?: React.ReactNode;
+    /**
+     * @description
+     * The table's frame. `'card'` (default) renders the table on its own card;
+     * `'plain'` renders the same band structure without the card chrome, for a
+     * table embedded in an existing card (e.g. a dashboard widget).
+     *
+     * @default 'card'
+     * @since 3.8.0
+     */
+    frame?: 'card' | 'plain';
 }
 
 export const PaginatedListDataTableKey = 'PaginatedListDataTable';
@@ -386,6 +420,7 @@ export function PaginatedListDataTable<
     defaultVisibility: _defaultVisibility,
     defaultColumnOrder: _defaultColumnOrder,
     onSearchTermChange,
+    searchPlaceholder,
     page,
     itemsPerPage,
     sorting,
@@ -406,6 +441,9 @@ export function PaginatedListDataTable<
     includeSelectionColumn,
     emptyStateAction,
     errorState,
+    title,
+    actions,
+    frame,
 }: Readonly<PaginatedListDataTableProps<T, U, V, AC>>) {
     const [searchTerm, setSearchTerm] = React.useState<string>('');
     const debouncedSearchTerm = useDebounce(searchTerm, 500);
@@ -434,7 +472,10 @@ export function PaginatedListDataTable<
     const paginatedListObjectPath = getObjectPathToPaginatedList(extendedListQuery);
 
     // Merge code-defined default view options with any view options configured via the Plugin Extension API
-    const { defaultColumnVisibility, defaultColumnOrder } = useViewOptionDefaults(_defaultVisibility, _defaultColumnOrder);
+    const { defaultColumnVisibility, defaultColumnOrder } = useViewOptionDefaults(
+        _defaultVisibility,
+        _defaultColumnOrder,
+    );
 
     const { columns, customFieldColumnNames } = useGeneratedColumns({
         fields,
@@ -521,30 +562,34 @@ export function PaginatedListDataTable<
             {isError && errorState ? (
                 errorState({ error: error as Error, retry: () => refetch() })
             ) : (
-            <DataTable
-                columns={columns}
-                data={transformedData}
-                isLoading={isFetching}
-                page={page}
-                itemsPerPage={itemsPerPage}
-                sorting={sorting}
-                columnFilters={columnFilters}
-                totalItems={listData?.totalItems ?? 0}
-                onPageChange={onPageChange}
-                onSortChange={onSortChange}
-                onFilterChange={onFilterChange}
-                onColumnVisibilityChange={onColumnVisibilityChange}
-                onSearchTermChange={onSearchTermChange ? term => setSearchTerm(term) : undefined}
-                defaultColumnVisibility={columnVisibility}
-                facetedFilters={facetedFilters}
-                disableViewOptions={disableViewOptions}
-                bulkActions={bulkActions}
-                setTableOptions={setTableOptions}
-                onRefresh={refetchPaginatedList}
-                onReorder={onReorder}
-                disableDragAndDrop={disableDragAndDrop}
-                emptyStateAction={emptyStateAction}
-            />
+                <DataTable
+                    columns={columns}
+                    data={transformedData}
+                    isLoading={isFetching}
+                    page={page}
+                    itemsPerPage={itemsPerPage}
+                    sorting={sorting}
+                    columnFilters={columnFilters}
+                    totalItems={listData?.totalItems ?? 0}
+                    onPageChange={onPageChange}
+                    onSortChange={onSortChange}
+                    onFilterChange={onFilterChange}
+                    onColumnVisibilityChange={onColumnVisibilityChange}
+                    onSearchTermChange={onSearchTermChange ? term => setSearchTerm(term) : undefined}
+                    searchPlaceholder={searchPlaceholder}
+                    defaultColumnVisibility={columnVisibility}
+                    facetedFilters={facetedFilters}
+                    disableViewOptions={disableViewOptions}
+                    bulkActions={bulkActions}
+                    setTableOptions={setTableOptions}
+                    onRefresh={refetchPaginatedList}
+                    onReorder={onReorder}
+                    disableDragAndDrop={disableDragAndDrop}
+                    emptyStateAction={emptyStateAction}
+                    title={title}
+                    actions={actions}
+                    frame={frame}
+                />
             )}
         </PaginatedListContext.Provider>
     );
