@@ -31,9 +31,13 @@ msgstr "مشاهده تغییرات"
 msgid "Tracking code"
 msgstr "کد پیگیری"
 
-#: src/lib/components/data-table/data-table.tsx:700
+#: src/lib/components/data-table/data-table.tsx:714
 #: src/lib/components/data-table/use-generated-columns.tsx:226
 msgid "Select all rows"
+msgstr ""
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:343
+msgid "Text style"
 msgstr ""
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:113
@@ -66,7 +70,7 @@ msgstr "آپارتمان، سوئیت و غیره"
 msgid "No more items"
 msgstr "موردی دیگر وجود ندارد"
 
-#: src/lib/components/shared/rich-text-editor/link-dialog.tsx:84
+#: src/lib/components/shared/rich-text-editor/link-bubble-menu.tsx:185
 msgid "Edit link"
 msgstr "ویرایش پیوند"
 
@@ -99,7 +103,7 @@ msgstr "استفاده از استراتژی احراز هویت خارجی: {st
 msgid "Select a reason..."
 msgstr "یک دلیل انتخاب کنید..."
 
-#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:100
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:134
 msgid "Heading 5"
 msgstr "سرفصل ۵"
 
@@ -229,7 +233,7 @@ msgstr "تازه‌سازی خودکار: {0}"
 msgid "Deleted {deleted} {entityName}"
 msgstr "{deleted} {entityName} حذف شد"
 
-#: src/lib/components/data-table/data-table.tsx:590
+#: src/lib/components/data-table/data-table.tsx:604
 msgid "There are no items to display yet."
 msgstr ""
 
@@ -356,8 +360,8 @@ msgid "Last name"
 msgstr "نام خانوادگی"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:106
-msgid "Link title"
-msgstr "عنوان پیوند"
+#~ msgid "Link title"
+#~ msgstr "عنوان پیوند"
 
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:66
 msgid "Successfully updated customer group"
@@ -383,6 +387,10 @@ msgstr "محل انبار با موفقیت ایجاد شد"
 msgid "Unknown error"
 msgstr "خطای ناشناخته"
 
+#: src/lib/components/shared/rich-text-editor/rich-text-editor.tsx:142
+msgid "Uploading image..."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts:200
 msgid "Refund total cannot be negative"
 msgstr "کل بازپرداخت نمی‌تواند منفی باشد"
@@ -399,6 +407,10 @@ msgstr "یک کانال برای اختصاص {0} {entityType} انتخاب کن
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:98
 msgid "Successfully created customer"
 msgstr "مشتری با موفقیت ایجاد شد"
+
+#: src/lib/components/data-table/data-table-views-tabs.tsx:100
+msgid "More"
+msgstr ""
 
 #: src/lib/components/date-range-picker.tsx:55
 msgctxt "date-range"
@@ -541,17 +553,21 @@ msgid "Gross price: <0/>"
 msgstr "قیمت ناخالص: <0/>"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:82
-#: src/lib/components/data-table/data-table.tsx:705
+#: src/lib/components/data-table/data-table.tsx:719
 msgid "Go to next page"
 msgstr "رفتن به صفحه بعدی"
 
-#: src/lib/components/shared/rich-text-editor/link-dialog.tsx:142
+#: src/lib/components/shared/rich-text-editor/link-bubble-menu.tsx:188
 msgid "Remove link"
 msgstr "حذف پیوند"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:133
 msgid "This field is readonly"
 msgstr "این فیلد فقط خواندنی است"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:219
+msgid "Code block"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/components/product-options-table.tsx:108
 msgid "Search options..."
@@ -716,6 +732,10 @@ msgstr "بررسی صلاحیت پرداخت"
 msgid "Default tax zone"
 msgstr "منطقه مالیاتی پیش‌فرض"
 
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:268
+msgid "Clear formatting"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/draft-order-status.tsx:36
 msgid "Order draft is ready to be completed"
 msgstr "پیش‌نویس سفارش آماده تکمیل است"
@@ -782,8 +802,8 @@ msgid "Confirm navigation"
 msgstr "تایید پیمایش"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:118
-msgid "Link target"
-msgstr "هدف پیوند"
+#~ msgid "Link target"
+#~ msgstr "هدف پیوند"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:406
 msgid "Complete draft"
@@ -1018,7 +1038,7 @@ msgstr "وظیفه زمان‌بندی شده اجرا خواهد شد"
 msgid "New stock location"
 msgstr "محل انبار جدید"
 
-#: src/lib/components/data-table/data-table.tsx:701
+#: src/lib/components/data-table/data-table.tsx:715
 #: src/lib/components/data-table/use-generated-columns.tsx:238
 msgid "Select row"
 msgstr ""
@@ -1047,6 +1067,10 @@ msgstr "انتقال به {suggestedState}"
 msgctxt "date-range"
 msgid "This month"
 msgstr "این ماه"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:275
+msgid "Undo"
+msgstr ""
 
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:85
 msgid "Failed to create facet"
@@ -1152,6 +1176,10 @@ msgstr "وقتی دنبال می‌شود، سطوح موجودی نوع محص�
 msgid "Shipping method set for order"
 msgstr "روش حمل و نقل برای سفارش تنظیم شد"
 
+#: src/lib/components/shared/rich-text-editor/link-bubble-menu.tsx:160
+msgid "Open in new tab"
+msgstr ""
+
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:112
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:120
 msgid "Failed to update promotion"
@@ -1213,7 +1241,7 @@ msgid "Search facets..."
 msgstr ""
 
 #: src/lib/components/data-input/relation-selector.tsx:428
-#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:188
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:171
 #: src/lib/components/shared/facet-value-selector.tsx:164
 msgid "No results found"
 msgstr "هیچ نتیجه‌ای یافت نشد"
@@ -1582,7 +1610,7 @@ msgstr "تغییر نام نما ناموفق بود"
 msgid "Available"
 msgstr "موجود"
 
-#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:95
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:129
 msgid "Normal"
 msgstr "عادی"
 
@@ -1660,6 +1688,7 @@ msgid "not in"
 msgstr "در نیست"
 
 #: src/lib/components/data-table/views-sheet.tsx:227
+#: src/lib/components/shared/rich-text-editor/link-bubble-menu.tsx:168
 msgid "Apply"
 msgstr "اعمال"
 
@@ -1674,6 +1703,10 @@ msgstr "گزینه محصول جدید"
 #: src/lib/components/data-table/data-table-pagination.tsx:94
 msgid "Go to last page"
 msgstr "رفتن به صفحه آخر"
+
+#: src/lib/components/shared/rich-text-editor/table-grid-picker.tsx:84
+msgid "Insert {row} by {col} table"
+msgstr ""
 
 #: src/app/common/duplicate-entity-dialog.tsx:113
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx:61
@@ -1699,7 +1732,7 @@ msgstr "رفتن به صفحه آخر"
 #: src/lib/components/shared/customer-address-form.tsx:253
 #: src/lib/components/shared/navigation-confirmation.tsx:55
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:208
-#: src/lib/components/shared/rich-text-editor/link-dialog.tsx:146
+#: src/lib/components/shared/rich-text-editor/link-bubble-menu.tsx:164
 msgid "Cancel"
 msgstr "لغو"
 
@@ -1906,7 +1939,7 @@ msgstr "بازپرداخت با موفقیت تسویه شد"
 msgid "Update"
 msgstr "به‌روزرسانی"
 
-#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:97
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:131
 msgid "Heading 2"
 msgstr "سرفصل ۲"
 
@@ -1966,8 +1999,8 @@ msgstr "شروع در"
 msgid "Duplicate"
 msgstr "تکثیر"
 
-#: src/lib/components/data-table/data-table.tsx:578
-#: src/lib/components/data-table/data-table.tsx:589
+#: src/lib/components/data-table/data-table.tsx:592
+#: src/lib/components/data-table/data-table.tsx:603
 #: src/lib/components/shared/customer-group-selector.tsx:60
 msgid "No results"
 msgstr "نتیجه‌ای وجود ندارد"
@@ -2546,9 +2579,12 @@ msgstr "ارسال شده"
 msgid "Save View"
 msgstr "ذخیره نما"
 
+#. placeholder {0}: selectedIds.size
+#. placeholder {0}: selectedValues.size
 #. placeholder {0}: selection.length
-#. placeholder {0}: value.length
 #: src/lib/components/data-table/data-table-bulk-actions.tsx:76
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:137
+#: src/lib/components/data-table/data-table-faceted-filter.tsx:139
 #: src/lib/components/shared/asset/asset-bulk-actions.tsx:80
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx:67
 msgid "{0} selected"
@@ -2578,7 +2614,7 @@ msgstr "مشتری برای سفارش تنظیم شد"
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:36
 #: src/app/routes/_authenticated/_facets/facets.tsx:22
 #: src/app/routes/_authenticated/_facets/facets.tsx:30
-#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:231
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:214
 #: src/lib/components/shared/facet-value-selector.tsx:223
 msgid "Facets"
 msgstr "ویژگی‌ها"
@@ -2627,6 +2663,7 @@ msgstr "خالی است"
 msgid "These are the customers in the <0>{customerGroupName}</0> customer group."
 msgstr "اینها مشتریان در گروه مشتری <0>{customerGroupName}</0> هستند."
 
+#: src/lib/components/data-table/data-table-views-tabs.tsx:140
 #: src/lib/components/data-table/manage-global-views-button.tsx:18
 msgid "Manage global views"
 msgstr "مدیریت نماهای عمومی"
@@ -2772,6 +2809,10 @@ msgstr "لطفا یک مجموعه هدف انتخاب کنید"
 msgid "Review the changes before applying them to the order."
 msgstr "قبل از اعمال تغییرات به سفارش، آنها را بررسی کنید."
 
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:284
+msgid "Redo"
+msgstr ""
+
 #: src/lib/components/shared/role-selector.tsx:52
 msgid "Select a role"
 msgstr "یک نقش انتخاب کنید"
@@ -2842,6 +2883,7 @@ msgstr "مشتری جدید"
 
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:33
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:94
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:237
 msgid "Image"
 msgstr "تصویر"
 
@@ -3014,8 +3056,8 @@ msgid "Adding {0} surcharge(s)"
 msgstr "در حال افزودن {0} هزینه اضافی"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:93
-msgid "Link href"
-msgstr "آدرس پیوند"
+#~ msgid "Link href"
+#~ msgstr "آدرس پیوند"
 
 #: src/lib/utils/get-locale-fallback-placeholder.ts:31
 msgid "Fallback: {value}"
@@ -3048,13 +3090,17 @@ msgstr "هیچ برچسبی انتخاب نشده است"
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:408
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:417
-#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:203
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:186
 msgid "Back"
 msgstr "بازگشت"
 
 #: src/lib/components/data-table/views-sheet.tsx:63
 msgid "View renamed successfully"
 msgstr "نام نما با موفقیت تغییر کرد"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:192
+msgid "Bullet list"
+msgstr ""
 
 #: src/lib/components/data-table/data-table-filter-dialog.tsx:94
 msgid "Apply filter"
@@ -3077,6 +3123,10 @@ msgstr "بینش‌ها"
 #~ msgid "Create Variants"
 #~ msgstr "ایجاد انواع"
 
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:261
+msgid "Horizontal rule"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx:31
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-method-result.tsx:46
 msgid "Testing shipping method..."
@@ -3090,6 +3140,10 @@ msgstr "تیره"
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx:39
 msgid "Test Results"
 msgstr "نتایج آزمون"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:201
+msgid "Ordered list"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:80
 msgid "Add customer"
@@ -3128,7 +3182,6 @@ msgstr ""
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:191
 #: src/lib/components/data-input/product-multi-selector-input.tsx:378
 #: src/lib/components/data-input/product-multi-selector-input.tsx:381
-#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:439
 msgid "{0}"
 msgstr "{0}"
 
@@ -3199,6 +3252,10 @@ msgstr "تبلیغات جدید"
 
 #: src/lib/components/data-table/data-table-settings-menu.tsx:83
 msgid "Columns"
+msgstr ""
+
+#: src/lib/components/shared/rich-text-editor/rich-text-editor.tsx:163
+msgid "Failed to upload image"
 msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:152
@@ -3293,7 +3350,7 @@ msgstr ""
 msgid "Authentication methods"
 msgstr "روش‌های احراز هویت"
 
-#: src/lib/components/data-table/data-table-filter-badge.tsx:124
+#: src/lib/components/data-table/data-table-filter-badge.tsx:126
 msgid "start"
 msgstr "شروع"
 
@@ -3347,6 +3404,12 @@ msgstr "محصول"
 msgid "Rotate API Key"
 msgstr "چرخش کلید API"
 
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:245
+#: src/lib/components/shared/rich-text-editor/table-grid-picker.tsx:48
+#: src/lib/components/shared/rich-text-editor/table-grid-picker.tsx:58
+msgid "Insert table"
+msgstr ""
+
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:63
 msgid "Category"
 msgstr "دسته‌بندی"
@@ -3386,7 +3449,7 @@ msgid "Zones"
 msgstr "مناطق"
 
 #: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:111
-#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:168
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:151
 #: src/lib/components/shared/facet-value-selector.tsx:124
 msgid "Search facet values..."
 msgstr "جستجوی مقادیر فاست..."
@@ -3394,6 +3457,11 @@ msgstr "جستجوی مقادیر فاست..."
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx:267
 msgid "Note"
 msgstr "یادداشت"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:147
+#: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx:59
+msgid "Bold"
+msgstr ""
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:160
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:112
@@ -3415,7 +3483,7 @@ msgstr ""
 msgid "Facet values"
 msgstr "مقادیر ویژگی"
 
-#: src/lib/components/data-table/data-table.tsx:316
+#: src/lib/components/data-table/data-table.tsx:315
 msgid "Failed to reorder items"
 msgstr "مرتب‌سازی مجدد اقلام ناموفق بود"
 
@@ -3458,8 +3526,8 @@ msgid "Successfully created customer group"
 msgstr "گروه مشتری با موفقیت ایجاد شد"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:133
-msgid "New window"
-msgstr "پنجره جدید"
+#~ msgid "New window"
+#~ msgstr "پنجره جدید"
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:64
 msgid "Payment authorized"
@@ -3501,7 +3569,7 @@ msgstr "نامک"
 msgid "Set Focal Point"
 msgstr "تنظیم نقطه کانونی"
 
-#: src/lib/components/data-table/data-table-filter-badge.tsx:126
+#: src/lib/components/data-table/data-table-filter-badge.tsx:128
 msgid "end"
 msgstr "پایان"
 
@@ -3647,7 +3715,7 @@ msgstr "در حال اجرا نیست"
 msgid "Assigned"
 msgstr "تخصیص داده شده"
 
-#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:96
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:130
 msgid "Heading 1"
 msgstr "سرفصل ۱"
 
@@ -3763,6 +3831,10 @@ msgstr "آدرس صورتحساب وجود ندارد"
 msgid "Facet"
 msgstr "ویژگی"
 
+#: src/lib/components/data-table/data-table-views-tabs.tsx:116
+msgid "Unsaved view"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:41
 #~ msgid "{rejected, plural, one {{0}} other {{1}}}"
 #~ msgstr ""
@@ -3837,6 +3909,10 @@ msgstr "کلید API با موفقیت چرخش یافت"
 msgid "Add option group"
 msgstr "افزودن گروه گزینه"
 
+#: src/lib/components/data-table/data-table-views-tabs.tsx:77
+msgid "All"
+msgstr ""
+
 #. placeholder {0}: formatCurrency(refund.amountToRefundTotal, order.currencyCode)
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:372
 msgid "Refund {0}"
@@ -3872,7 +3948,7 @@ msgstr ""
 msgid "Created by"
 msgstr "ایجاد شده توسط"
 
-#: src/lib/components/data-table/data-table.tsx:579
+#: src/lib/components/data-table/data-table.tsx:593
 msgid "No items match your current filters. Try clearing them to see more."
 msgstr ""
 
@@ -3902,7 +3978,7 @@ msgstr "بازپرداخت شماره {0} به {1} منتقل شد"
 msgid "Customers"
 msgstr "مشتریان"
 
-#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:99
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:133
 msgid "Heading 4"
 msgstr "سرفصل ۴"
 
@@ -4063,6 +4139,10 @@ msgstr "در است"
 msgid "Email"
 msgstr "ایمیل"
 
+#: src/lib/components/data-table/add-filter-menu.tsx:47
+msgid "Filter"
+msgstr ""
+
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
 msgid "Failed to update administrator"
 msgstr "به‌روزرسانی مدیر ناموفق بود"
@@ -4134,6 +4214,14 @@ msgstr "دسته‌بندی مالیاتی با موفقیت ایجاد شد"
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx:294
 msgid "Failed to move collections"
 msgstr "جابجایی مجموعه‌ها ناموفق بود"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:210
+msgid "Blockquote"
+msgstr ""
+
+#: src/lib/components/shared/rich-text-editor/table-grid-picker.tsx:93
+msgid "Select table size"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:60
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:64
@@ -4268,6 +4356,10 @@ msgstr "اطلاعات موجودیت"
 msgid "Default"
 msgstr ""
 
+#: src/lib/components/data-table/data-table-views-tabs.tsx:136
+msgid "Manage my views"
+msgstr ""
+
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:35
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:82
 msgid "Order Total"
@@ -4280,6 +4372,11 @@ msgstr "فقط برای مدیران قابل مشاهده"
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:103
 msgid "Qty"
 msgstr "تعداد"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:183
+#: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx:91
+msgid "Inline code"
+msgstr ""
 
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx:104
 msgid "Tags"
@@ -4303,8 +4400,8 @@ msgid "Failed to update order line: {0}"
 msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:84
-msgid "Insert link"
-msgstr "درج پیوند"
+#~ msgid "Insert link"
+#~ msgstr "درج پیوند"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:205
 msgid "If enabled, the filters will be inherited from the parent collection and combined with the filters set on this collection."
@@ -4410,8 +4507,8 @@ msgid "Failed to rename global view"
 msgstr "تغییر نام نمای عمومی ناموفق بود"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:87
-msgid "Insert a new hyperlink with URL and target options"
-msgstr "درج لینک جدید با URL و گزینه‌های هدف"
+#~ msgid "Insert a new hyperlink with URL and target options"
+#~ msgstr "درج لینک جدید با URL و گزینه‌های هدف"
 
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:194
 msgid "Height"
@@ -4557,6 +4654,11 @@ msgstr "مثلا قرمز، بزرگ، پنبه"
 #: src/app/routes/_authenticated/_profile/profile.tsx:75
 msgid "Failed to update profile"
 msgstr "به‌روزرسانی پروفایل ناموفق بود"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:156
+#: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx:67
+msgid "Italic"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx:221
 msgid "Removed coupon codes"
@@ -4815,12 +4917,16 @@ msgid "Cancel modification"
 msgstr "لغو تغییر"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:130
-msgid "Same window"
-msgstr "همان پنجره"
+#~ msgid "Same window"
+#~ msgstr "همان پنجره"
 
 #: src/lib/components/data-table/views-sheet.tsx:155
 msgid "Apply filters to the table and click \"Save View\" to get started."
 msgstr "فیلترها را روی جدول اعمال کنید و برای شروع روی \"ذخیره نما\" کلیک کنید."
+
+#: src/lib/components/shared/rich-text-editor/link-bubble-menu.tsx:144
+msgid "Link URL"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts:202
@@ -4954,8 +5060,8 @@ msgid "Variant deleted successfully"
 msgstr "نوع با موفقیت حذف شد"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:87
-msgid "Edit the selected link properties"
-msgstr "ویرایش ویژگی‌های لینک انتخاب شده"
+#~ msgid "Edit the selected link properties"
+#~ msgstr "ویرایش ویژگی‌های لینک انتخاب شده"
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts:75
@@ -4998,7 +5104,7 @@ msgstr "تنظیمات"
 msgid "Settings Store"
 msgstr "فروشگاه تنظیمات"
 
-#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:98
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:132
 msgid "Heading 3"
 msgstr "سرفصل ۳"
 
@@ -5088,7 +5194,7 @@ msgid "Stock Locations"
 msgstr "محل‌های انبار"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:69
-#: src/lib/components/data-table/data-table.tsx:704
+#: src/lib/components/data-table/data-table.tsx:718
 msgid "Go to previous page"
 msgstr "رفتن به صفحه قبلی"
 
@@ -5168,6 +5274,7 @@ msgstr "اقلام را برای بازپرداخت انتخاب کنید و ب�
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:245
 #: src/app/routes/_authenticated/_system/settings-store.tsx:153
+#: src/lib/components/data-table/data-table-views-tabs.tsx:124
 #: src/lib/components/data-table/views-sheet.tsx:210
 #: src/lib/components/shared/history-timeline/history-note-editor.tsx:54
 msgid "Save"
@@ -5323,9 +5430,9 @@ msgstr "برای آزمایش این روش ارسال روی \"اجرای آز�
 msgid "Successfully updated administrator"
 msgstr "مدیر با موفقیت به‌روزرسانی شد"
 
-#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:280
-#: src/lib/components/data-table/data-table-faceted-filter.tsx:181
-#: src/lib/components/data-table/data-table.tsx:582
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:263
+#: src/lib/components/data-table/data-table-faceted-filter.tsx:225
+#: src/lib/components/data-table/data-table.tsx:596
 #: src/lib/components/shared/asset/asset-gallery.tsx:361
 msgid "Clear filters"
 msgstr "پاک کردن فیلترها"
@@ -5510,8 +5617,8 @@ msgid "Quantity"
 msgstr "تعداد"
 
 #: src/lib/components/data-table/add-filter-menu.tsx:47
-msgid "Add filter"
-msgstr "افزودن فیلتر"
+#~ msgid "Add filter"
+#~ msgstr "افزودن فیلتر"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:309
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:127
@@ -5710,6 +5817,11 @@ msgstr "افزودن آدرس جدید"
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:78
 msgid "Successfully updated facet"
 msgstr "ویژگی با موفقیت به‌روزرسانی شد"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:174
+#: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx:83
+msgid "Strikethrough"
+msgstr ""
 
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:126
 msgid "Try selecting a different date range."
@@ -5928,10 +6040,10 @@ msgid "Failed to remove facet from channel: {message}"
 msgstr "حذف ویژگی از کانال ناموفق بود: {message}"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:149
-msgid "Set link"
-msgstr "تنظیم پیوند"
+#~ msgid "Set link"
+#~ msgstr "تنظیم پیوند"
 
-#: src/lib/components/data-table/data-table.tsx:703
+#: src/lib/components/data-table/data-table.tsx:717
 msgid "Pagination"
 msgstr ""
 
@@ -5983,7 +6095,7 @@ msgid "View result"
 msgstr "مشاهده نتیجه"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:20
-#: src/lib/components/data-table/data-table.tsx:706
+#: src/lib/components/data-table/data-table.tsx:720
 msgid "Rows per page"
 msgstr "ردیف در هر صفحه"
 
@@ -6039,6 +6151,14 @@ msgstr ""
 msgid "SKU"
 msgstr "SKU"
 
+#: src/lib/components/shared/rich-text-editor/table-grid-picker.tsx:68
+msgid "Table size"
+msgstr ""
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:387
+msgid "More formatting options"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-history/default-order-history-components.tsx:117
 msgid "{totalQuantity} item(s) refunded"
 msgstr "{totalQuantity} کالا بازپرداخت شد"
@@ -6070,7 +6190,7 @@ msgid "Failed to create product variant"
 msgstr "ایجاد نوع محصول ناموفق بود"
 
 #: src/lib/components/data-input/relation-selector.tsx:418
-#: src/lib/components/data-table/data-table.tsx:496
+#: src/lib/components/data-table/data-table.tsx:503
 msgid "Search..."
 msgstr ""
 
@@ -6087,7 +6207,7 @@ msgstr "شما مجوز مشاهده تنظیمات زبان عمومی را ن�
 msgid "Successfully created tax rate"
 msgstr "نرخ مالیات با موفقیت ایجاد شد"
 
-#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:101
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:135
 msgid "Heading 6"
 msgstr "سرفصل ۶"
 
@@ -6144,7 +6264,7 @@ msgstr "فیلترهای فعال"
 
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:176
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx:54
-#: src/lib/components/data-table/data-table.tsx:552
+#: src/lib/components/data-table/data-table.tsx:579
 msgid "Clear all"
 msgstr "پاک کردن همه"
 
@@ -6152,9 +6272,19 @@ msgstr "پاک کردن همه"
 msgid "is greater than"
 msgstr "بزرگتر از است"
 
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:165
+#: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx:75
+msgid "Underline"
+msgstr ""
+
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx:125
 msgid "Close"
 msgstr "بستن"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:228
+#: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx:99
+msgid "Link"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:127
 msgid "Add payment to order"

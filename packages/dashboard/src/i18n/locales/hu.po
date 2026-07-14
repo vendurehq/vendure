@@ -31,9 +31,13 @@ msgstr "Változások megtekintése"
 msgid "Tracking code"
 msgstr "Nyomkövetési kód"
 
-#: src/lib/components/data-table/data-table.tsx:700
+#: src/lib/components/data-table/data-table.tsx:714
 #: src/lib/components/data-table/use-generated-columns.tsx:226
 msgid "Select all rows"
+msgstr ""
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:343
+msgid "Text style"
 msgstr ""
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:113
@@ -66,7 +70,7 @@ msgstr "Emelet, ajtó stb."
 msgid "No more items"
 msgstr "Nincs több elem"
 
-#: src/lib/components/shared/rich-text-editor/link-dialog.tsx:84
+#: src/lib/components/shared/rich-text-editor/link-bubble-menu.tsx:185
 msgid "Edit link"
 msgstr "Hivatkozás szerkesztése"
 
@@ -99,7 +103,7 @@ msgstr "Külső hitelesítési stratégia használata: {strategy}"
 msgid "Select a reason..."
 msgstr "Válasszon indokot..."
 
-#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:100
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:134
 msgid "Heading 5"
 msgstr "5. fejléc"
 
@@ -229,7 +233,7 @@ msgstr "Automatikus frissítés: {0}"
 msgid "Deleted {deleted} {entityName}"
 msgstr "{deleted} {entityName} törölve"
 
-#: src/lib/components/data-table/data-table.tsx:590
+#: src/lib/components/data-table/data-table.tsx:604
 msgid "There are no items to display yet."
 msgstr ""
 
@@ -356,8 +360,8 @@ msgid "Last name"
 msgstr "Vezetéknév"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:106
-msgid "Link title"
-msgstr "Link title"
+#~ msgid "Link title"
+#~ msgstr "Link title"
 
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:66
 msgid "Successfully updated customer group"
@@ -383,6 +387,10 @@ msgstr "A raktárhely sikeresen létrehozva"
 msgid "Unknown error"
 msgstr "Ismeretlen hiba"
 
+#: src/lib/components/shared/rich-text-editor/rich-text-editor.tsx:142
+msgid "Uploading image..."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts:200
 msgid "Refund total cannot be negative"
 msgstr "A visszatérítés összege nem lehet negatív"
@@ -399,6 +407,10 @@ msgstr "Válasszon csatornát, amelyhez hozzárendeli a következőt: {0} {entit
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:98
 msgid "Successfully created customer"
 msgstr "A vásárló sikeresen létrehozva"
+
+#: src/lib/components/data-table/data-table-views-tabs.tsx:100
+msgid "More"
+msgstr ""
 
 #: src/lib/components/date-range-picker.tsx:55
 msgctxt "date-range"
@@ -541,17 +553,21 @@ msgid "Gross price: <0/>"
 msgstr "Bruttó ár: <0/>"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:82
-#: src/lib/components/data-table/data-table.tsx:705
+#: src/lib/components/data-table/data-table.tsx:719
 msgid "Go to next page"
 msgstr "Ugrás a következő oldalra"
 
-#: src/lib/components/shared/rich-text-editor/link-dialog.tsx:142
+#: src/lib/components/shared/rich-text-editor/link-bubble-menu.tsx:188
 msgid "Remove link"
 msgstr "Hivatkozás eltávolítása"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:133
 msgid "This field is readonly"
 msgstr "Ez a mező csak olvasható"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:219
+msgid "Code block"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/components/product-options-table.tsx:108
 msgid "Search options..."
@@ -716,6 +732,10 @@ msgstr "Fizetési jogosultság ellenőrző"
 msgid "Default tax zone"
 msgstr "Alapértelmezett adózóna"
 
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:268
+msgid "Clear formatting"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/draft-order-status.tsx:36
 msgid "Order draft is ready to be completed"
 msgstr "A megrendelés piszkozata készen áll a teljesítésre"
@@ -782,8 +802,8 @@ msgid "Confirm navigation"
 msgstr "Navigáció megerősítése"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:118
-msgid "Link target"
-msgstr "Link target"
+#~ msgid "Link target"
+#~ msgstr "Link target"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:406
 msgid "Complete draft"
@@ -1018,7 +1038,7 @@ msgstr "Az ütemezett feladat végre lesz hajtva"
 msgid "New stock location"
 msgstr "Új raktárhely"
 
-#: src/lib/components/data-table/data-table.tsx:701
+#: src/lib/components/data-table/data-table.tsx:715
 #: src/lib/components/data-table/use-generated-columns.tsx:238
 msgid "Select row"
 msgstr ""
@@ -1047,6 +1067,10 @@ msgstr "Átváltás erre: {suggestedState}"
 msgctxt "date-range"
 msgid "This month"
 msgstr "Ez a hónap"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:275
+msgid "Undo"
+msgstr ""
 
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:85
 msgid "Failed to create facet"
@@ -1152,6 +1176,10 @@ msgstr "Nyomon követés esetén a termékváltozatok készletszintje automatiku
 msgid "Shipping method set for order"
 msgstr "Szállítási mód beállítva a megrendeléshez"
 
+#: src/lib/components/shared/rich-text-editor/link-bubble-menu.tsx:160
+msgid "Open in new tab"
+msgstr ""
+
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:112
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:120
 msgid "Failed to update promotion"
@@ -1213,7 +1241,7 @@ msgid "Search facets..."
 msgstr ""
 
 #: src/lib/components/data-input/relation-selector.tsx:428
-#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:188
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:171
 #: src/lib/components/shared/facet-value-selector.tsx:164
 msgid "No results found"
 msgstr "Nem található eredmény"
@@ -1582,7 +1610,7 @@ msgstr "Nézet átnevezése sikertelen"
 msgid "Available"
 msgstr "Elérhető"
 
-#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:95
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:129
 msgid "Normal"
 msgstr "Normál"
 
@@ -1660,6 +1688,7 @@ msgid "not in"
 msgstr "nincs benne"
 
 #: src/lib/components/data-table/views-sheet.tsx:227
+#: src/lib/components/shared/rich-text-editor/link-bubble-menu.tsx:168
 msgid "Apply"
 msgstr "Alkalmaz"
 
@@ -1674,6 +1703,10 @@ msgstr "Új termékopció"
 #: src/lib/components/data-table/data-table-pagination.tsx:94
 msgid "Go to last page"
 msgstr "Ugrás az utolsó oldalra"
+
+#: src/lib/components/shared/rich-text-editor/table-grid-picker.tsx:84
+msgid "Insert {row} by {col} table"
+msgstr ""
 
 #: src/app/common/duplicate-entity-dialog.tsx:113
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx:61
@@ -1699,7 +1732,7 @@ msgstr "Ugrás az utolsó oldalra"
 #: src/lib/components/shared/customer-address-form.tsx:253
 #: src/lib/components/shared/navigation-confirmation.tsx:55
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:208
-#: src/lib/components/shared/rich-text-editor/link-dialog.tsx:146
+#: src/lib/components/shared/rich-text-editor/link-bubble-menu.tsx:164
 msgid "Cancel"
 msgstr "Mégse"
 
@@ -1906,7 +1939,7 @@ msgstr "A visszatérítés sikeresen rendezve"
 msgid "Update"
 msgstr "Frissítés"
 
-#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:97
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:131
 msgid "Heading 2"
 msgstr "2. fejléc"
 
@@ -1960,8 +1993,8 @@ msgstr "Kezdés időpontja"
 msgid "Duplicate"
 msgstr "Duplikálás"
 
-#: src/lib/components/data-table/data-table.tsx:578
-#: src/lib/components/data-table/data-table.tsx:589
+#: src/lib/components/data-table/data-table.tsx:592
+#: src/lib/components/data-table/data-table.tsx:603
 #: src/lib/components/shared/customer-group-selector.tsx:60
 msgid "No results"
 msgstr "Nincs eredmény"
@@ -2540,9 +2573,12 @@ msgstr "Elküldve"
 msgid "Save View"
 msgstr "Nézet mentése"
 
+#. placeholder {0}: selectedIds.size
+#. placeholder {0}: selectedValues.size
 #. placeholder {0}: selection.length
-#. placeholder {0}: value.length
 #: src/lib/components/data-table/data-table-bulk-actions.tsx:76
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:137
+#: src/lib/components/data-table/data-table-faceted-filter.tsx:139
 #: src/lib/components/shared/asset/asset-bulk-actions.tsx:80
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx:67
 msgid "{0} selected"
@@ -2572,7 +2608,7 @@ msgstr "Vásárló beállítva a megrendeléshez"
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:36
 #: src/app/routes/_authenticated/_facets/facets.tsx:22
 #: src/app/routes/_authenticated/_facets/facets.tsx:30
-#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:231
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:214
 #: src/lib/components/shared/facet-value-selector.tsx:223
 msgid "Facets"
 msgstr "Tulajdonságok"
@@ -2621,6 +2657,7 @@ msgstr "üres"
 msgid "These are the customers in the <0>{customerGroupName}</0> customer group."
 msgstr "Ezek a <0>{customerGroupName}</0> vásárlói csoport tagjai."
 
+#: src/lib/components/data-table/data-table-views-tabs.tsx:140
 #: src/lib/components/data-table/manage-global-views-button.tsx:18
 msgid "Manage global views"
 msgstr "Globális nézetek kezelése"
@@ -2762,6 +2799,10 @@ msgstr "Kérjük, válasszon célgyűjteményt"
 msgid "Review the changes before applying them to the order."
 msgstr "Tekintse át a változtatásokat, mielőtt alkalmazza azokat a megrendelésre."
 
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:284
+msgid "Redo"
+msgstr ""
+
 #: src/lib/components/shared/role-selector.tsx:52
 msgid "Select a role"
 msgstr "Szerepkör kiválasztása"
@@ -2832,6 +2873,7 @@ msgstr "Új vásárló"
 
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:33
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:94
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:237
 msgid "Image"
 msgstr "Kép"
 
@@ -3004,8 +3046,8 @@ msgid "Adding {0} surcharge(s)"
 msgstr "{0} felár hozzáadása"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:93
-msgid "Link href"
-msgstr "Link href"
+#~ msgid "Link href"
+#~ msgstr "Link href"
 
 #: src/lib/utils/get-locale-fallback-placeholder.ts:31
 msgid "Fallback: {value}"
@@ -3038,13 +3080,17 @@ msgstr "Nincs kiválasztott címke"
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:408
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:417
-#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:203
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:186
 msgid "Back"
 msgstr "Vissza"
 
 #: src/lib/components/data-table/views-sheet.tsx:63
 msgid "View renamed successfully"
 msgstr "Nézet sikeresen átnevezve"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:192
+msgid "Bullet list"
+msgstr ""
 
 #: src/lib/components/data-table/data-table-filter-dialog.tsx:94
 msgid "Apply filter"
@@ -3067,6 +3113,10 @@ msgstr "Elemzések"
 #~ msgid "Create Variants"
 #~ msgstr "Termékváltozatok létrehozása"
 
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:261
+msgid "Horizontal rule"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx:31
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-method-result.tsx:46
 msgid "Testing shipping method..."
@@ -3080,6 +3130,10 @@ msgstr "Sötét"
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx:39
 msgid "Test Results"
 msgstr "Teszteredmények"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:201
+msgid "Ordered list"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:80
 msgid "Add customer"
@@ -3118,7 +3172,6 @@ msgstr ""
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:191
 #: src/lib/components/data-input/product-multi-selector-input.tsx:378
 #: src/lib/components/data-input/product-multi-selector-input.tsx:381
-#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:439
 msgid "{0}"
 msgstr "{0}"
 
@@ -3189,6 +3242,10 @@ msgstr "Új promóció"
 
 #: src/lib/components/data-table/data-table-settings-menu.tsx:83
 msgid "Columns"
+msgstr ""
+
+#: src/lib/components/shared/rich-text-editor/rich-text-editor.tsx:163
+msgid "Failed to upload image"
 msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:152
@@ -3283,7 +3340,7 @@ msgstr ""
 msgid "Authentication methods"
 msgstr "Hitelesítési módszerek"
 
-#: src/lib/components/data-table/data-table-filter-badge.tsx:124
+#: src/lib/components/data-table/data-table-filter-badge.tsx:126
 msgid "start"
 msgstr "kezdés"
 
@@ -3337,6 +3394,12 @@ msgstr "Termék"
 msgid "Rotate API Key"
 msgstr "API Key rotálása"
 
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:245
+#: src/lib/components/shared/rich-text-editor/table-grid-picker.tsx:48
+#: src/lib/components/shared/rich-text-editor/table-grid-picker.tsx:58
+msgid "Insert table"
+msgstr ""
+
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:63
 msgid "Category"
 msgstr "Kategória"
@@ -3376,7 +3439,7 @@ msgid "Zones"
 msgstr "Zónák"
 
 #: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:111
-#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:168
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:151
 #: src/lib/components/shared/facet-value-selector.tsx:124
 msgid "Search facet values..."
 msgstr "Tulajdonságértékek keresése..."
@@ -3384,6 +3447,11 @@ msgstr "Tulajdonságértékek keresése..."
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx:267
 msgid "Note"
 msgstr "Megjegyzés"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:147
+#: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx:59
+msgid "Bold"
+msgstr ""
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:160
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:112
@@ -3405,7 +3473,7 @@ msgstr ""
 msgid "Facet values"
 msgstr "Tulajdonságértékek"
 
-#: src/lib/components/data-table/data-table.tsx:316
+#: src/lib/components/data-table/data-table.tsx:315
 msgid "Failed to reorder items"
 msgstr "Elemek átrendezése sikertelen"
 
@@ -3448,8 +3516,8 @@ msgid "Successfully created customer group"
 msgstr "A vásárlói csoport sikeresen létrehozva"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:133
-msgid "New window"
-msgstr "Új ablak"
+#~ msgid "New window"
+#~ msgstr "Új ablak"
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:64
 msgid "Payment authorized"
@@ -3491,7 +3559,7 @@ msgstr "Slug"
 msgid "Set Focal Point"
 msgstr "Fókuszpont beállítása"
 
-#: src/lib/components/data-table/data-table-filter-badge.tsx:126
+#: src/lib/components/data-table/data-table-filter-badge.tsx:128
 msgid "end"
 msgstr "vége"
 
@@ -3634,7 +3702,7 @@ msgstr "Nem fut"
 msgid "Assigned"
 msgstr "Hozzárendelve"
 
-#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:96
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:130
 msgid "Heading 1"
 msgstr "1. fejléc"
 
@@ -3750,6 +3818,10 @@ msgstr "Nincs számlázási cím"
 msgid "Facet"
 msgstr "Tulajdonság"
 
+#: src/lib/components/data-table/data-table-views-tabs.tsx:116
+msgid "Unsaved view"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:41
 #~ msgid "{rejected, plural, one {{0}} other {{1}}}"
 #~ msgstr ""
@@ -3824,6 +3896,10 @@ msgstr "API key sikeresen rotálva"
 msgid "Add option group"
 msgstr "Opciócsoport hozzáadása"
 
+#: src/lib/components/data-table/data-table-views-tabs.tsx:77
+msgid "All"
+msgstr ""
+
 #. placeholder {0}: formatCurrency(refund.amountToRefundTotal, order.currencyCode)
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:372
 msgid "Refund {0}"
@@ -3859,7 +3935,7 @@ msgstr ""
 msgid "Created by"
 msgstr "Létrehozta"
 
-#: src/lib/components/data-table/data-table.tsx:579
+#: src/lib/components/data-table/data-table.tsx:593
 msgid "No items match your current filters. Try clearing them to see more."
 msgstr ""
 
@@ -3889,7 +3965,7 @@ msgstr "#{0} visszatérítés állapota {1} értékre változott"
 msgid "Customers"
 msgstr "Vásárlók"
 
-#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:99
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:133
 msgid "Heading 4"
 msgstr "4. fejléc"
 
@@ -4050,6 +4126,10 @@ msgstr "szerepel"
 msgid "Email"
 msgstr "E-mail"
 
+#: src/lib/components/data-table/add-filter-menu.tsx:47
+msgid "Filter"
+msgstr ""
+
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
 msgid "Failed to update administrator"
 msgstr "Rendszergazda frissítése sikertelen"
@@ -4121,6 +4201,14 @@ msgstr "Az adókategória sikeresen létrehozva"
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx:294
 msgid "Failed to move collections"
 msgstr "Gyűjtemények áthelyezése sikertelen"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:210
+msgid "Blockquote"
+msgstr ""
+
+#: src/lib/components/shared/rich-text-editor/table-grid-picker.tsx:93
+msgid "Select table size"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:60
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:64
@@ -4255,6 +4343,10 @@ msgstr "Entitás adatai"
 msgid "Default"
 msgstr ""
 
+#: src/lib/components/data-table/data-table-views-tabs.tsx:136
+msgid "Manage my views"
+msgstr ""
+
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:35
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:82
 msgid "Order Total"
@@ -4267,6 +4359,11 @@ msgstr "Csak rendszergazdák számára látható"
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:103
 msgid "Qty"
 msgstr "Menny."
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:183
+#: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx:91
+msgid "Inline code"
+msgstr ""
 
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx:104
 msgid "Tags"
@@ -4290,8 +4387,8 @@ msgid "Failed to update order line: {0}"
 msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:84
-msgid "Insert link"
-msgstr "Link beszúrása"
+#~ msgid "Insert link"
+#~ msgstr "Link beszúrása"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:205
 msgid "If enabled, the filters will be inherited from the parent collection and combined with the filters set on this collection."
@@ -4397,8 +4494,8 @@ msgid "Failed to rename global view"
 msgstr "Globális nézet átnevezése sikertelen"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:87
-msgid "Insert a new hyperlink with URL and target options"
-msgstr "Új hivatkozás beszúrása URL-lel és célbeállításokkal"
+#~ msgid "Insert a new hyperlink with URL and target options"
+#~ msgstr "Új hivatkozás beszúrása URL-lel és célbeállításokkal"
 
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:194
 msgid "Height"
@@ -4544,6 +4641,11 @@ msgstr "pl. Piros, Nagy, Pamut"
 #: src/app/routes/_authenticated/_profile/profile.tsx:75
 msgid "Failed to update profile"
 msgstr "Profil frissítése sikertelen"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:156
+#: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx:67
+msgid "Italic"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx:221
 msgid "Removed coupon codes"
@@ -4802,12 +4904,16 @@ msgid "Cancel modification"
 msgstr "Módosítás megszakítása"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:130
-msgid "Same window"
-msgstr "Ugyanabban az ablakban"
+#~ msgid "Same window"
+#~ msgstr "Ugyanabban az ablakban"
 
 #: src/lib/components/data-table/views-sheet.tsx:155
 msgid "Apply filters to the table and click \"Save View\" to get started."
 msgstr "Alkalmazzon szűrőket a táblázatra, majd kattintson a „Nézet mentése\" gombra a kezdéshez."
+
+#: src/lib/components/shared/rich-text-editor/link-bubble-menu.tsx:144
+msgid "Link URL"
+msgstr ""
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts:202
@@ -4941,8 +5047,8 @@ msgid "Variant deleted successfully"
 msgstr "Termékváltozat sikeresen törölve"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:87
-msgid "Edit the selected link properties"
-msgstr "A kiválasztott hivatkozás tulajdonságainak szerkesztése"
+#~ msgid "Edit the selected link properties"
+#~ msgstr "A kiválasztott hivatkozás tulajdonságainak szerkesztése"
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts:75
@@ -4985,7 +5091,7 @@ msgstr "Beállítások"
 msgid "Settings Store"
 msgstr "Beállítástár"
 
-#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:98
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:132
 msgid "Heading 3"
 msgstr "3. fejléc"
 
@@ -5075,7 +5181,7 @@ msgid "Stock Locations"
 msgstr "Raktárhelyek"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:69
-#: src/lib/components/data-table/data-table.tsx:704
+#: src/lib/components/data-table/data-table.tsx:718
 msgid "Go to previous page"
 msgstr "Ugrás az előző oldalra"
 
@@ -5155,6 +5261,7 @@ msgstr "Válassza ki a visszatérítendő elemeket, és szükség esetén adja v
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:245
 #: src/app/routes/_authenticated/_system/settings-store.tsx:153
+#: src/lib/components/data-table/data-table-views-tabs.tsx:124
 #: src/lib/components/data-table/views-sheet.tsx:210
 #: src/lib/components/shared/history-timeline/history-note-editor.tsx:54
 msgid "Save"
@@ -5310,9 +5417,9 @@ msgstr "Kattintson a \"Teszt futtatása\" gombra a szállítási mód tesztelés
 msgid "Successfully updated administrator"
 msgstr "Rendszergazda sikeresen frissítve"
 
-#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:280
-#: src/lib/components/data-table/data-table-faceted-filter.tsx:181
-#: src/lib/components/data-table/data-table.tsx:582
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:263
+#: src/lib/components/data-table/data-table-faceted-filter.tsx:225
+#: src/lib/components/data-table/data-table.tsx:596
 #: src/lib/components/shared/asset/asset-gallery.tsx:361
 msgid "Clear filters"
 msgstr "Szűrők törlése"
@@ -5497,8 +5604,8 @@ msgid "Quantity"
 msgstr "Mennyiség"
 
 #: src/lib/components/data-table/add-filter-menu.tsx:47
-msgid "Add filter"
-msgstr "Szűrő hozzáadása"
+#~ msgid "Add filter"
+#~ msgstr "Szűrő hozzáadása"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:309
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:127
@@ -5697,6 +5804,11 @@ msgstr "Új cím hozzáadása"
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:78
 msgid "Successfully updated facet"
 msgstr "Tulajdonság sikeresen frissítve"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:174
+#: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx:83
+msgid "Strikethrough"
+msgstr ""
 
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:126
 msgid "Try selecting a different date range."
@@ -5915,10 +6027,10 @@ msgid "Failed to remove facet from channel: {message}"
 msgstr "Tulajdonság eltávolítása a csatornából sikertelen: {message}"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:149
-msgid "Set link"
-msgstr "Hivatkozás beállítása"
+#~ msgid "Set link"
+#~ msgstr "Hivatkozás beállítása"
 
-#: src/lib/components/data-table/data-table.tsx:703
+#: src/lib/components/data-table/data-table.tsx:717
 msgid "Pagination"
 msgstr ""
 
@@ -5970,7 +6082,7 @@ msgid "View result"
 msgstr "Eredmény megtekintése"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:20
-#: src/lib/components/data-table/data-table.tsx:706
+#: src/lib/components/data-table/data-table.tsx:720
 msgid "Rows per page"
 msgstr "Sorok oldalanként"
 
@@ -6022,6 +6134,14 @@ msgstr ""
 msgid "SKU"
 msgstr "SKU"
 
+#: src/lib/components/shared/rich-text-editor/table-grid-picker.tsx:68
+msgid "Table size"
+msgstr ""
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:387
+msgid "More formatting options"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-history/default-order-history-components.tsx:117
 msgid "{totalQuantity} item(s) refunded"
 msgstr "{totalQuantity} tétel visszatérítve"
@@ -6053,7 +6173,7 @@ msgid "Failed to create product variant"
 msgstr "Termékváltozat létrehozása sikertelen"
 
 #: src/lib/components/data-input/relation-selector.tsx:418
-#: src/lib/components/data-table/data-table.tsx:496
+#: src/lib/components/data-table/data-table.tsx:503
 msgid "Search..."
 msgstr ""
 
@@ -6070,7 +6190,7 @@ msgstr "Nincs jogosultsága a globális nyelvbeállítások megtekintéséhez"
 msgid "Successfully created tax rate"
 msgstr "Az adókulcs sikeresen létrehozva"
 
-#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:101
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:135
 msgid "Heading 6"
 msgstr "6. fejléc"
 
@@ -6127,7 +6247,7 @@ msgstr "Aktív szűrők"
 
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:176
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx:54
-#: src/lib/components/data-table/data-table.tsx:552
+#: src/lib/components/data-table/data-table.tsx:579
 msgid "Clear all"
 msgstr "Összes törlése"
 
@@ -6135,9 +6255,19 @@ msgstr "Összes törlése"
 msgid "is greater than"
 msgstr "nagyobb mint"
 
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:165
+#: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx:75
+msgid "Underline"
+msgstr ""
+
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx:125
 msgid "Close"
 msgstr "Bezárás"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:228
+#: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx:99
+msgid "Link"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:127
 msgid "Add payment to order"

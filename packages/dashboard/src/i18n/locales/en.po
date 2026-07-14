@@ -31,10 +31,14 @@ msgstr "View changes"
 msgid "Tracking code"
 msgstr "Tracking code"
 
-#: src/lib/components/data-table/data-table.tsx:700
+#: src/lib/components/data-table/data-table.tsx:714
 #: src/lib/components/data-table/use-generated-columns.tsx:226
 msgid "Select all rows"
 msgstr "Select all rows"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:343
+msgid "Text style"
+msgstr "Text style"
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:113
 msgid "The selected permissions will be applied to the these channels."
@@ -66,7 +70,7 @@ msgstr "Apartment, suite, etc."
 msgid "No more items"
 msgstr "No more items"
 
-#: src/lib/components/shared/rich-text-editor/link-dialog.tsx:84
+#: src/lib/components/shared/rich-text-editor/link-bubble-menu.tsx:185
 msgid "Edit link"
 msgstr "Edit link"
 
@@ -99,7 +103,7 @@ msgstr "Using external authentication strategy: {strategy}"
 msgid "Select a reason..."
 msgstr "Select a reason..."
 
-#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:100
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:134
 msgid "Heading 5"
 msgstr "Heading 5"
 
@@ -229,7 +233,7 @@ msgstr "Auto refresh: {0}"
 msgid "Deleted {deleted} {entityName}"
 msgstr "Deleted {deleted} {entityName}"
 
-#: src/lib/components/data-table/data-table.tsx:590
+#: src/lib/components/data-table/data-table.tsx:604
 msgid "There are no items to display yet."
 msgstr "There are no items to display yet."
 
@@ -356,8 +360,8 @@ msgid "Last name"
 msgstr "Last name"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:106
-msgid "Link title"
-msgstr "Link title"
+#~ msgid "Link title"
+#~ msgstr "Link title"
 
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:66
 msgid "Successfully updated customer group"
@@ -383,6 +387,10 @@ msgstr "Successfully created stock location"
 msgid "Unknown error"
 msgstr "Unknown error"
 
+#: src/lib/components/shared/rich-text-editor/rich-text-editor.tsx:142
+msgid "Uploading image..."
+msgstr "Uploading image..."
+
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts:200
 msgid "Refund total cannot be negative"
 msgstr "Refund total cannot be negative"
@@ -399,6 +407,10 @@ msgstr "Select a channel to assign {0} {entityType} to"
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:98
 msgid "Successfully created customer"
 msgstr "Successfully created customer"
+
+#: src/lib/components/data-table/data-table-views-tabs.tsx:100
+msgid "More"
+msgstr "More"
 
 #: src/lib/components/date-range-picker.tsx:55
 msgctxt "date-range"
@@ -541,17 +553,21 @@ msgid "Gross price: <0/>"
 msgstr "Gross price: <0/>"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:82
-#: src/lib/components/data-table/data-table.tsx:705
+#: src/lib/components/data-table/data-table.tsx:719
 msgid "Go to next page"
 msgstr "Go to next page"
 
-#: src/lib/components/shared/rich-text-editor/link-dialog.tsx:142
+#: src/lib/components/shared/rich-text-editor/link-bubble-menu.tsx:188
 msgid "Remove link"
 msgstr "Remove link"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:133
 msgid "This field is readonly"
 msgstr "This field is readonly"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:219
+msgid "Code block"
+msgstr "Code block"
 
 #: src/app/routes/_authenticated/_products/components/product-options-table.tsx:108
 msgid "Search options..."
@@ -716,6 +732,10 @@ msgstr "Payment eligibility checker"
 msgid "Default tax zone"
 msgstr "Default tax zone"
 
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:268
+msgid "Clear formatting"
+msgstr "Clear formatting"
+
 #: src/app/routes/_authenticated/_orders/components/draft-order-status.tsx:36
 msgid "Order draft is ready to be completed"
 msgstr "Order draft is ready to be completed"
@@ -782,8 +802,8 @@ msgid "Confirm navigation"
 msgstr "Confirm navigation"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:118
-msgid "Link target"
-msgstr "Link target"
+#~ msgid "Link target"
+#~ msgstr "Link target"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:406
 msgid "Complete draft"
@@ -1018,7 +1038,7 @@ msgstr "Scheduled task will be executed"
 msgid "New stock location"
 msgstr "New stock location"
 
-#: src/lib/components/data-table/data-table.tsx:701
+#: src/lib/components/data-table/data-table.tsx:715
 #: src/lib/components/data-table/use-generated-columns.tsx:238
 msgid "Select row"
 msgstr "Select row"
@@ -1047,6 +1067,10 @@ msgstr "Transition to {suggestedState}"
 msgctxt "date-range"
 msgid "This month"
 msgstr "This month"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:275
+msgid "Undo"
+msgstr "Undo"
 
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:85
 msgid "Failed to create facet"
@@ -1152,6 +1176,10 @@ msgstr "When tracked, product variant stock levels will be automatically adjuste
 msgid "Shipping method set for order"
 msgstr "Shipping method set for order"
 
+#: src/lib/components/shared/rich-text-editor/link-bubble-menu.tsx:160
+msgid "Open in new tab"
+msgstr "Open in new tab"
+
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:112
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:120
 msgid "Failed to update promotion"
@@ -1213,7 +1241,7 @@ msgid "Search facets..."
 msgstr "Search facets..."
 
 #: src/lib/components/data-input/relation-selector.tsx:428
-#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:188
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:171
 #: src/lib/components/shared/facet-value-selector.tsx:164
 msgid "No results found"
 msgstr "No results found"
@@ -1582,7 +1610,7 @@ msgstr "Failed to rename view"
 msgid "Available"
 msgstr "Available"
 
-#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:95
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:129
 msgid "Normal"
 msgstr "Normal"
 
@@ -1660,6 +1688,7 @@ msgid "not in"
 msgstr "not in"
 
 #: src/lib/components/data-table/views-sheet.tsx:227
+#: src/lib/components/shared/rich-text-editor/link-bubble-menu.tsx:168
 msgid "Apply"
 msgstr "Apply"
 
@@ -1674,6 +1703,10 @@ msgstr "New product option"
 #: src/lib/components/data-table/data-table-pagination.tsx:94
 msgid "Go to last page"
 msgstr "Go to last page"
+
+#: src/lib/components/shared/rich-text-editor/table-grid-picker.tsx:84
+msgid "Insert {row} by {col} table"
+msgstr "Insert {row} by {col} table"
 
 #: src/app/common/duplicate-entity-dialog.tsx:113
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx:61
@@ -1699,7 +1732,7 @@ msgstr "Go to last page"
 #: src/lib/components/shared/customer-address-form.tsx:253
 #: src/lib/components/shared/navigation-confirmation.tsx:55
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:208
-#: src/lib/components/shared/rich-text-editor/link-dialog.tsx:146
+#: src/lib/components/shared/rich-text-editor/link-bubble-menu.tsx:164
 msgid "Cancel"
 msgstr "Cancel"
 
@@ -1906,7 +1939,7 @@ msgstr "Refund settled successfully"
 msgid "Update"
 msgstr "Update"
 
-#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:97
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:131
 msgid "Heading 2"
 msgstr "Heading 2"
 
@@ -1966,8 +1999,8 @@ msgstr "Starts at"
 msgid "Duplicate"
 msgstr "Duplicate"
 
-#: src/lib/components/data-table/data-table.tsx:578
-#: src/lib/components/data-table/data-table.tsx:589
+#: src/lib/components/data-table/data-table.tsx:592
+#: src/lib/components/data-table/data-table.tsx:603
 #: src/lib/components/shared/customer-group-selector.tsx:60
 msgid "No results"
 msgstr "No results"
@@ -2546,9 +2579,12 @@ msgstr "Shipped"
 msgid "Save View"
 msgstr "Save View"
 
+#. placeholder {0}: selectedIds.size
+#. placeholder {0}: selectedValues.size
 #. placeholder {0}: selection.length
-#. placeholder {0}: value.length
 #: src/lib/components/data-table/data-table-bulk-actions.tsx:76
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:137
+#: src/lib/components/data-table/data-table-faceted-filter.tsx:139
 #: src/lib/components/shared/asset/asset-bulk-actions.tsx:80
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx:67
 msgid "{0} selected"
@@ -2578,7 +2614,7 @@ msgstr "Customer set for order"
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:36
 #: src/app/routes/_authenticated/_facets/facets.tsx:22
 #: src/app/routes/_authenticated/_facets/facets.tsx:30
-#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:231
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:214
 #: src/lib/components/shared/facet-value-selector.tsx:223
 msgid "Facets"
 msgstr "Facets"
@@ -2627,6 +2663,7 @@ msgstr "is null"
 msgid "These are the customers in the <0>{customerGroupName}</0> customer group."
 msgstr "These are the customers in the <0>{customerGroupName}</0> customer group."
 
+#: src/lib/components/data-table/data-table-views-tabs.tsx:140
 #: src/lib/components/data-table/manage-global-views-button.tsx:18
 msgid "Manage global views"
 msgstr "Manage global views"
@@ -2772,6 +2809,10 @@ msgstr "Please select a target collection"
 msgid "Review the changes before applying them to the order."
 msgstr "Review the changes before applying them to the order."
 
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:284
+msgid "Redo"
+msgstr "Redo"
+
 #: src/lib/components/shared/role-selector.tsx:52
 msgid "Select a role"
 msgstr "Select a role"
@@ -2842,6 +2883,7 @@ msgstr "New customer"
 
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:33
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:94
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:237
 msgid "Image"
 msgstr "Image"
 
@@ -3014,8 +3056,8 @@ msgid "Adding {0} surcharge(s)"
 msgstr "Adding {0} surcharge(s)"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:93
-msgid "Link href"
-msgstr "Link href"
+#~ msgid "Link href"
+#~ msgstr "Link href"
 
 #: src/lib/utils/get-locale-fallback-placeholder.ts:31
 msgid "Fallback: {value}"
@@ -3048,13 +3090,17 @@ msgstr "No tags selected"
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:408
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:417
-#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:203
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:186
 msgid "Back"
 msgstr "Back"
 
 #: src/lib/components/data-table/views-sheet.tsx:63
 msgid "View renamed successfully"
 msgstr "View renamed successfully"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:192
+msgid "Bullet list"
+msgstr "Bullet list"
 
 #: src/lib/components/data-table/data-table-filter-dialog.tsx:94
 msgid "Apply filter"
@@ -3077,6 +3123,10 @@ msgstr "Insights"
 #~ msgid "Create Variants"
 #~ msgstr "Create Variants"
 
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:261
+msgid "Horizontal rule"
+msgstr "Horizontal rule"
+
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx:31
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-method-result.tsx:46
 msgid "Testing shipping method..."
@@ -3090,6 +3140,10 @@ msgstr "Dark"
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx:39
 msgid "Test Results"
 msgstr "Test Results"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:201
+msgid "Ordered list"
+msgstr "Ordered list"
 
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:80
 msgid "Add customer"
@@ -3128,7 +3182,6 @@ msgstr "Select value"
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:191
 #: src/lib/components/data-input/product-multi-selector-input.tsx:378
 #: src/lib/components/data-input/product-multi-selector-input.tsx:381
-#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:439
 msgid "{0}"
 msgstr "{0}"
 
@@ -3200,6 +3253,10 @@ msgstr "New Promotion"
 #: src/lib/components/data-table/data-table-settings-menu.tsx:83
 msgid "Columns"
 msgstr "Columns"
+
+#: src/lib/components/shared/rich-text-editor/rich-text-editor.tsx:163
+msgid "Failed to upload image"
+msgstr "Failed to upload image"
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:152
 msgid "Option value name"
@@ -3293,7 +3350,7 @@ msgstr "Select Payment Handler"
 msgid "Authentication methods"
 msgstr "Authentication methods"
 
-#: src/lib/components/data-table/data-table-filter-badge.tsx:124
+#: src/lib/components/data-table/data-table-filter-badge.tsx:126
 msgid "start"
 msgstr "start"
 
@@ -3347,6 +3404,12 @@ msgstr "Product"
 msgid "Rotate API Key"
 msgstr "Rotate API Key"
 
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:245
+#: src/lib/components/shared/rich-text-editor/table-grid-picker.tsx:48
+#: src/lib/components/shared/rich-text-editor/table-grid-picker.tsx:58
+msgid "Insert table"
+msgstr "Insert table"
+
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:63
 msgid "Category"
 msgstr "Category"
@@ -3386,7 +3449,7 @@ msgid "Zones"
 msgstr "Zones"
 
 #: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:111
-#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:168
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:151
 #: src/lib/components/shared/facet-value-selector.tsx:124
 msgid "Search facet values..."
 msgstr "Search facet values..."
@@ -3394,6 +3457,11 @@ msgstr "Search facet values..."
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx:267
 msgid "Note"
 msgstr "Note"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:147
+#: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx:59
+msgid "Bold"
+msgstr "Bold"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:160
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:112
@@ -3415,7 +3483,7 @@ msgstr "Not found"
 msgid "Facet values"
 msgstr "Facet values"
 
-#: src/lib/components/data-table/data-table.tsx:316
+#: src/lib/components/data-table/data-table.tsx:315
 msgid "Failed to reorder items"
 msgstr "Failed to reorder items"
 
@@ -3458,8 +3526,8 @@ msgid "Successfully created customer group"
 msgstr "Successfully created customer group"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:133
-msgid "New window"
-msgstr "New window"
+#~ msgid "New window"
+#~ msgstr "New window"
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:64
 msgid "Payment authorized"
@@ -3501,7 +3569,7 @@ msgstr "Slug"
 msgid "Set Focal Point"
 msgstr "Set Focal Point"
 
-#: src/lib/components/data-table/data-table-filter-badge.tsx:126
+#: src/lib/components/data-table/data-table-filter-badge.tsx:128
 msgid "end"
 msgstr "end"
 
@@ -3647,7 +3715,7 @@ msgstr "Not Running"
 msgid "Assigned"
 msgstr "Assigned"
 
-#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:96
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:130
 msgid "Heading 1"
 msgstr "Heading 1"
 
@@ -3763,6 +3831,10 @@ msgstr "No billing address"
 msgid "Facet"
 msgstr "Facet"
 
+#: src/lib/components/data-table/data-table-views-tabs.tsx:116
+msgid "Unsaved view"
+msgstr "Unsaved view"
+
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:41
 #~ msgid "{rejected, plural, one {{0}} other {{1}}}"
 #~ msgstr "{rejected, plural, one {{0}} other {{1}}}"
@@ -3837,6 +3909,10 @@ msgstr "API key rotated successfully"
 msgid "Add option group"
 msgstr "Add option group"
 
+#: src/lib/components/data-table/data-table-views-tabs.tsx:77
+msgid "All"
+msgstr "All"
+
 #. placeholder {0}: formatCurrency(refund.amountToRefundTotal, order.currencyCode)
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:372
 msgid "Refund {0}"
@@ -3872,7 +3948,7 @@ msgstr "Search administrators..."
 msgid "Created by"
 msgstr "Created by"
 
-#: src/lib/components/data-table/data-table.tsx:579
+#: src/lib/components/data-table/data-table.tsx:593
 msgid "No items match your current filters. Try clearing them to see more."
 msgstr "No items match your current filters. Try clearing them to see more."
 
@@ -3902,7 +3978,7 @@ msgstr "Refund #{0} transitioned to {1}"
 msgid "Customers"
 msgstr "Customers"
 
-#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:99
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:133
 msgid "Heading 4"
 msgstr "Heading 4"
 
@@ -4063,6 +4139,10 @@ msgstr "is in"
 msgid "Email"
 msgstr "Email"
 
+#: src/lib/components/data-table/add-filter-menu.tsx:47
+msgid "Filter"
+msgstr "Filter"
+
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
 msgid "Failed to update administrator"
 msgstr "Failed to update administrator"
@@ -4134,6 +4214,14 @@ msgstr "Successfully created tax category"
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx:294
 msgid "Failed to move collections"
 msgstr "Failed to move collections"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:210
+msgid "Blockquote"
+msgstr "Blockquote"
+
+#: src/lib/components/shared/rich-text-editor/table-grid-picker.tsx:93
+msgid "Select table size"
+msgstr "Select table size"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:60
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:64
@@ -4268,6 +4356,10 @@ msgstr "Entity Information"
 msgid "Default"
 msgstr "Default"
 
+#: src/lib/components/data-table/data-table-views-tabs.tsx:136
+msgid "Manage my views"
+msgstr "Manage my views"
+
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:35
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:82
 msgid "Order Total"
@@ -4280,6 +4372,11 @@ msgstr "Visible to admins only"
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:103
 msgid "Qty"
 msgstr "Qty"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:183
+#: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx:91
+msgid "Inline code"
+msgstr "Inline code"
 
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx:104
 msgid "Tags"
@@ -4303,8 +4400,8 @@ msgid "Failed to update order line: {0}"
 msgstr "Failed to update order line: {0}"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:84
-msgid "Insert link"
-msgstr "Insert link"
+#~ msgid "Insert link"
+#~ msgstr "Insert link"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:205
 msgid "If enabled, the filters will be inherited from the parent collection and combined with the filters set on this collection."
@@ -4410,8 +4507,8 @@ msgid "Failed to rename global view"
 msgstr "Failed to rename global view"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:87
-msgid "Insert a new hyperlink with URL and target options"
-msgstr "Insert a new hyperlink with URL and target options"
+#~ msgid "Insert a new hyperlink with URL and target options"
+#~ msgstr "Insert a new hyperlink with URL and target options"
 
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:194
 msgid "Height"
@@ -4557,6 +4654,11 @@ msgstr "e.g., Red, Large, Cotton"
 #: src/app/routes/_authenticated/_profile/profile.tsx:75
 msgid "Failed to update profile"
 msgstr "Failed to update profile"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:156
+#: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx:67
+msgid "Italic"
+msgstr "Italic"
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx:221
 msgid "Removed coupon codes"
@@ -4815,12 +4917,16 @@ msgid "Cancel modification"
 msgstr "Cancel modification"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:130
-msgid "Same window"
-msgstr "Same window"
+#~ msgid "Same window"
+#~ msgstr "Same window"
 
 #: src/lib/components/data-table/views-sheet.tsx:155
 msgid "Apply filters to the table and click \"Save View\" to get started."
 msgstr "Apply filters to the table and click \"Save View\" to get started."
+
+#: src/lib/components/shared/rich-text-editor/link-bubble-menu.tsx:144
+msgid "Link URL"
+msgstr "Link URL"
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts:202
@@ -4954,8 +5060,8 @@ msgid "Variant deleted successfully"
 msgstr "Variant deleted successfully"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:87
-msgid "Edit the selected link properties"
-msgstr "Edit the selected link properties"
+#~ msgid "Edit the selected link properties"
+#~ msgstr "Edit the selected link properties"
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts:75
@@ -4998,7 +5104,7 @@ msgstr "Settings"
 msgid "Settings Store"
 msgstr "Settings Store"
 
-#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:98
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:132
 msgid "Heading 3"
 msgstr "Heading 3"
 
@@ -5088,7 +5194,7 @@ msgid "Stock Locations"
 msgstr "Stock Locations"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:69
-#: src/lib/components/data-table/data-table.tsx:704
+#: src/lib/components/data-table/data-table.tsx:718
 msgid "Go to previous page"
 msgstr "Go to previous page"
 
@@ -5168,6 +5274,7 @@ msgstr "Select items to refund and optionally return to stock"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:245
 #: src/app/routes/_authenticated/_system/settings-store.tsx:153
+#: src/lib/components/data-table/data-table-views-tabs.tsx:124
 #: src/lib/components/data-table/views-sheet.tsx:210
 #: src/lib/components/shared/history-timeline/history-note-editor.tsx:54
 msgid "Save"
@@ -5323,9 +5430,9 @@ msgstr "Click \"Run Test\" to test this shipping method."
 msgid "Successfully updated administrator"
 msgstr "Successfully updated administrator"
 
-#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:280
-#: src/lib/components/data-table/data-table-faceted-filter.tsx:181
-#: src/lib/components/data-table/data-table.tsx:582
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:263
+#: src/lib/components/data-table/data-table-faceted-filter.tsx:225
+#: src/lib/components/data-table/data-table.tsx:596
 #: src/lib/components/shared/asset/asset-gallery.tsx:361
 msgid "Clear filters"
 msgstr "Clear filters"
@@ -5510,8 +5617,8 @@ msgid "Quantity"
 msgstr "Quantity"
 
 #: src/lib/components/data-table/add-filter-menu.tsx:47
-msgid "Add filter"
-msgstr "Add filter"
+#~ msgid "Add filter"
+#~ msgstr "Add filter"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:309
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:127
@@ -5710,6 +5817,11 @@ msgstr "Add new address"
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:78
 msgid "Successfully updated facet"
 msgstr "Successfully updated facet"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:174
+#: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx:83
+msgid "Strikethrough"
+msgstr "Strikethrough"
 
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:126
 msgid "Try selecting a different date range."
@@ -5928,10 +6040,10 @@ msgid "Failed to remove facet from channel: {message}"
 msgstr "Failed to remove facet from channel: {message}"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:149
-msgid "Set link"
-msgstr "Set link"
+#~ msgid "Set link"
+#~ msgstr "Set link"
 
-#: src/lib/components/data-table/data-table.tsx:703
+#: src/lib/components/data-table/data-table.tsx:717
 msgid "Pagination"
 msgstr "Pagination"
 
@@ -5983,7 +6095,7 @@ msgid "View result"
 msgstr "View result"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:20
-#: src/lib/components/data-table/data-table.tsx:706
+#: src/lib/components/data-table/data-table.tsx:720
 msgid "Rows per page"
 msgstr "Rows per page"
 
@@ -6039,6 +6151,14 @@ msgstr "Search orders..."
 msgid "SKU"
 msgstr "SKU"
 
+#: src/lib/components/shared/rich-text-editor/table-grid-picker.tsx:68
+msgid "Table size"
+msgstr "Table size"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:387
+msgid "More formatting options"
+msgstr "More formatting options"
+
 #: src/app/routes/_authenticated/_orders/components/order-history/default-order-history-components.tsx:117
 msgid "{totalQuantity} item(s) refunded"
 msgstr "{totalQuantity} item(s) refunded"
@@ -6070,7 +6190,7 @@ msgid "Failed to create product variant"
 msgstr "Failed to create product variant"
 
 #: src/lib/components/data-input/relation-selector.tsx:418
-#: src/lib/components/data-table/data-table.tsx:496
+#: src/lib/components/data-table/data-table.tsx:503
 msgid "Search..."
 msgstr "Search..."
 
@@ -6087,7 +6207,7 @@ msgstr "You don't have permission to view global language settings"
 msgid "Successfully created tax rate"
 msgstr "Successfully created tax rate"
 
-#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:101
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:135
 msgid "Heading 6"
 msgstr "Heading 6"
 
@@ -6144,7 +6264,7 @@ msgstr "Active filters"
 
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:176
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx:54
-#: src/lib/components/data-table/data-table.tsx:552
+#: src/lib/components/data-table/data-table.tsx:579
 msgid "Clear all"
 msgstr "Clear all"
 
@@ -6152,9 +6272,19 @@ msgstr "Clear all"
 msgid "is greater than"
 msgstr "is greater than"
 
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:165
+#: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx:75
+msgid "Underline"
+msgstr "Underline"
+
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx:125
 msgid "Close"
 msgstr "Close"
+
+#: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:228
+#: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx:99
+msgid "Link"
+msgstr "Link"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:127
 msgid "Add payment to order"
