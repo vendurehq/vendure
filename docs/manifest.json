@@ -3905,13 +3905,13 @@
                   "title": "UseDetailPage",
                   "slug": "use-detail-page",
                   "file": "docs/reference/dashboard/detail-views/use-detail-page.mdx",
-                  "lastModified": "2026-06-25T20:38:20+02:00"
+                  "lastModified": "2026-07-14T10:52:27Z"
                 },
                 {
                   "title": "UseGeneratedForm",
                   "slug": "use-generated-form",
                   "file": "docs/reference/dashboard/detail-views/use-generated-form.mdx",
-                  "lastModified": "2026-06-02T07:50:38+02:00"
+                  "lastModified": "2026-07-14T10:52:27Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -4163,7 +4163,7 @@
                   "title": "UsePermissions",
                   "slug": "use-permissions",
                   "file": "docs/reference/dashboard/hooks/use-permissions.mdx",
-                  "lastModified": "2026-04-14T11:17:24+02:00"
+                  "lastModified": "2026-01-28T14:49:21+01:00"
                 },
                 {
                   "title": "UseSortedLanguages",
