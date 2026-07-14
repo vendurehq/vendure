@@ -241,6 +241,22 @@ export interface PaginatedListDataTableProps<
      * @default true
      */
     includeSelectionColumn?: boolean;
+    /**
+     * @description
+     * An optional action rendered inside the first-run empty state (i.e. when the
+     * list has no items and no active filters/search). Typically a "create your
+     * first X" CTA. The page owns this because the table cannot know the create
+     * route or the permissions that gate it.
+     */
+    emptyStateAction?: React.ReactNode;
+    /**
+     * @description
+     * Render prop invoked when the underlying list query fails. Receives the
+     * error and a `retry` callback (re-runs the query) and should return the
+     * content to display in place of the table — typically an `ErrorState`.
+     * When omitted, a failed query renders as an empty table.
+     */
+    errorState?: (params: { error: Error; retry: () => void }) => React.ReactNode;
 }
 
 export const PaginatedListDataTableKey = 'PaginatedListDataTable';
@@ -388,6 +404,8 @@ export function PaginatedListDataTable<
     onReorder,
     disableDragAndDrop = false,
     includeSelectionColumn,
+    emptyStateAction,
+    errorState,
 }: Readonly<PaginatedListDataTableProps<T, U, V, AC>>) {
     const [searchTerm, setSearchTerm] = React.useState<string>('');
     const debouncedSearchTerm = useDebounce(searchTerm, 500);
@@ -464,7 +482,7 @@ export function PaginatedListDataTable<
     ];
     const queryKey = transformQueryKey ? transformQueryKey(defaultQueryKey) : defaultQueryKey;
 
-    const { data, isFetching } = useQuery({
+    const { data, isFetching, isError, error, refetch } = useQuery({
         queryFn: () => {
             // Always invoke onSearchTermChange so callers can use it as a
             // state-sync hook (e.g. collections.tsx gates drag-and-drop on the
@@ -500,6 +518,9 @@ export function PaginatedListDataTable<
         typeof transformData === 'function' ? transformData(listData?.items ?? []) : (listData?.items ?? []);
     return (
         <PaginatedListContext.Provider value={{ refetchPaginatedList }}>
+            {isError && errorState ? (
+                errorState({ error: error as Error, retry: () => refetch() })
+            ) : (
             <DataTable
                 columns={columns}
                 data={transformedData}
@@ -522,7 +543,9 @@ export function PaginatedListDataTable<
                 onRefresh={refetchPaginatedList}
                 onReorder={onReorder}
                 disableDragAndDrop={disableDragAndDrop}
+                emptyStateAction={emptyStateAction}
             />
+            )}
         </PaginatedListContext.Provider>
     );
 }

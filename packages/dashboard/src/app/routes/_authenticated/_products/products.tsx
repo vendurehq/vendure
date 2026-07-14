@@ -1,5 +1,6 @@
 import { FacetValueFacetedFilter } from '@/vdb/components/data-table/data-table-facet-value-faceted-filter.js';
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
+import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { RichTextDescriptionCell } from '@/vdb/components/shared/table-cell/order-table-cell-components.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
@@ -93,6 +94,14 @@ function ProductListPage() {
                 enabled: true,
             }}
             route={Route}
+            emptyStateAction={
+                <PermissionGuard requires={['CreateProduct', 'CreateCatalog']}>
+                    <Button render={<Link to="./new" />}>
+                        <PlusIcon className="mr-2 h-4 w-4" />
+                        <Trans>Create your first product</Trans>
+                    </Button>
+                </PermissionGuard>
+            }
             bulkActions={[
                 [
                     { component: AssignProductsToChannelBulkAction, order: 100 },

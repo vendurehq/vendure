@@ -1,5 +1,6 @@
 import { BooleanDisplayBadge } from '@/vdb/components/data-display/boolean.js';
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
+import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { RichTextDescriptionCell } from '@/vdb/components/shared/table-cell/order-table-cell-components.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
@@ -62,6 +63,14 @@ function PromotionListPage() {
                     cell: RichTextDescriptionCell,
                 },
             }}
+            emptyStateAction={
+                <PermissionGuard requires={['CreatePromotion']}>
+                    <Button render={<Link to="./new" />}>
+                        <PlusIcon className="mr-2 h-4 w-4" />
+                        <Trans>Create your first promotion</Trans>
+                    </Button>
+                </PermissionGuard>
+            }
             bulkActions={[
                 [
                     {

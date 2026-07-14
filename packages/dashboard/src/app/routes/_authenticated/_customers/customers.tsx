@@ -1,4 +1,5 @@
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
+import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
@@ -85,6 +86,14 @@ function CustomerListPage() {
                     component: DeleteCustomersBulkAction,
                 },
             ]}
+            emptyStateAction={
+                <PermissionGuard requires={['CreateCustomer']}>
+                    <Button render={<Link to="./new" />}>
+                        <PlusIcon />
+                        <Trans>Create your first customer</Trans>
+                    </Button>
+                </PermissionGuard>
+            }
         >
             <ActionBarItem itemId="create-button" requiresPermission={['CreateCustomer']}>
                 <Button render={<Link to="./new" />}>

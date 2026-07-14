@@ -177,6 +177,13 @@ interface DataTableProps<TData> {
      * When true, drag and drop will be disabled. This will only have an effect if the onReorder prop is also set
      */
     disableDragAndDrop?: boolean;
+    /**
+     * @description
+     * An optional action rendered inside the first-run empty state (no data and no
+     * active filters). Typically a "create your first X" CTA. Not shown in the
+     * "no results match your filters" empty state, which offers "Clear filters" instead.
+     */
+    emptyStateAction?: React.ReactNode;
 }
 
 /**
@@ -213,6 +220,7 @@ export function DataTable<TData>({
     onRefresh,
     onReorder,
     disableDragAndDrop = false,
+    emptyStateAction,
 }: Readonly<DataTableProps<TData>>) {
     const [sorting, setSorting] = React.useState<SortingState>(sortingInitialState || []);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(filtersInitialState || []);
@@ -627,7 +635,9 @@ export function DataTable<TData>({
                                                         description={
                                                             <Trans>There are no items to display yet.</Trans>
                                                         }
-                                                    />
+                                                    >
+                                                        {emptyStateAction}
+                                                    </EmptyState>
                                                 )}
                                             </TableCell>
                                         </TableRow>

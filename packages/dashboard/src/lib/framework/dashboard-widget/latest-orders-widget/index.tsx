@@ -5,6 +5,7 @@ import {
     OrderStateCell,
 } from '@/vdb/components/shared/table-cell/order-table-cell-components.js';
 import { Button } from '@/vdb/components/ui/button.js';
+import { ErrorState } from '@/vdb/components/ui/state-views.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 import { useLingui } from '@lingui/react/macro';
@@ -133,6 +134,13 @@ export function LatestOrdersWidget() {
                 columnFilters={filters}
                 listQuery={latestOrdersQuery}
                 defaultVisibility={columnVisibility}
+                errorState={({ retry }) => (
+                    <ErrorState
+                        title={t`Could not load orders`}
+                        description={t`There was a problem loading your latest orders.`}
+                        onRetry={retry}
+                    />
+                )}
                 onPageChange={(_, page, newPageSize) => {
                     setPage(page);
                     setPageSize(newPageSize);

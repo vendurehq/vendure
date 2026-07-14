@@ -1,5 +1,6 @@
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
 import { FacetValueChip } from '@/vdb/components/shared/facet-value-chip.js';
+import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
@@ -107,6 +108,14 @@ function FacetListPage() {
                 ],
             ]}
             route={Route}
+            emptyStateAction={
+                <PermissionGuard requires={['CreateFacet', 'CreateCatalog']}>
+                    <Button render={<Link to="./new" />}>
+                        <PlusIcon className="mr-2 h-4 w-4" />
+                        <Trans>Create your first facet</Trans>
+                    </Button>
+                </PermissionGuard>
+            }
         >
             <ActionBarItem itemId="create-button" requiresPermission={['CreateFacet', 'CreateCatalog']}>
                 <Button render={<Link to="./new" />}>

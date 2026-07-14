@@ -385,6 +385,13 @@ export interface ListPageProps<
      * Defaults to false. Only relevant when `onReorder` is provided.
      */
     disableDragAndDrop?: boolean;
+    /**
+     * @description
+     * An optional action rendered inside the first-run empty state (when the list
+     * has no items and no active filters), typically a "create your first X" CTA.
+     * Gate it with a {@link PermissionGuard} to mirror the create button's permissions.
+     */
+    emptyStateAction?: React.ReactNode;
 }
 
 /**
@@ -505,6 +512,7 @@ export function ListPage<
     registerRefresher,
     onReorder,
     disableDragAndDrop = false,
+    emptyStateAction,
 }: Readonly<ListPageProps<T, U, V, AC>>) {
     const route = typeof routeOrFn === 'function' ? routeOrFn() : routeOrFn;
     const routeSearch = route.useSearch();
@@ -600,6 +608,7 @@ export function ListPage<
         setTableOptions,
         transformData,
         registerRefresher,
+        emptyStateAction,
     };
 
     return (

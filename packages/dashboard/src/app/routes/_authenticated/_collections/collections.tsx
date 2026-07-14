@@ -19,6 +19,7 @@ import {
     getItemParentId,
     isCircularReference,
 } from '@/vdb/components/data-table/data-table-utils.js';
+import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { RichTextDescriptionCell } from '@/vdb/components/shared/table-cell/order-table-cell-components.js';
 import { Badge } from '@/vdb/components/ui/badge.js';
 import { collectionListDocument, moveCollectionDocument } from './collections.graphql.js';
@@ -513,6 +514,14 @@ function CollectionListPage() {
             ]}
             onReorder={handleReorder}
             disableDragAndDrop={!!searchTerm}
+            emptyStateAction={
+                <PermissionGuard requires={['CreateCollection', 'CreateCatalog']}>
+                    <Button render={<Link to="./new" />}>
+                        <PlusIcon className="mr-2 h-4 w-4" />
+                        <Trans>Create your first collection</Trans>
+                    </Button>
+                </PermissionGuard>
+            }
         >
             <ActionBarItem itemId="create-button" requiresPermission={['CreateCollection', 'CreateCatalog']}>
                 <Button render={<Link to="./new" />}>
