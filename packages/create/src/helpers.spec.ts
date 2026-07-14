@@ -6,6 +6,7 @@ import { Socket, createServer, type Server } from 'node:net';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { TYPEORM_VERSION } from './constants';
 import { registerEscapeSingleHelper } from './gather-user-responses';
 import {
     checkNodeVersion,
@@ -26,7 +27,6 @@ import {
     registerTemplateHelpers,
     toComposeProjectName,
 } from './helpers';
-import { TYPEORM_VERSION } from './constants';
 import { log } from './logger';
 import { PackageManager } from './types';
 

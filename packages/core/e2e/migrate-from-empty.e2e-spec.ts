@@ -5,7 +5,7 @@ import path from 'path';
 import { DataSource, DataSourceOptions } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { TEST_SETUP_TIMEOUT_MS } from '../../../e2e-common/test-config';
+import { getDbConfig, TEST_SETUP_TIMEOUT_MS } from '../../../e2e-common/test-config';
 
 /**
  * Exercises the `--from-empty` shadow-database provisioning against the real server databases
@@ -28,19 +28,11 @@ describe.runIf(isServerDb)(`generateMigration --from-empty (${dbType})`, () => {
     const quoted = (name: string) => (isPostgres ? `"${name}"` : `\`${name}\``);
 
     function serverConnection(): DataSourceOptions {
-        const ci = !!process.env.CI;
-        const common = { host: '127.0.0.1', username: isPostgres ? 'vendure' : 'root', password: 'password' };
-        if (isPostgres) {
-            return {
-                type: 'postgres',
-                port: ci ? +(process.env.E2E_POSTGRES_PORT || 5432) : 5432,
-                ...common,
-            } as DataSourceOptions;
-        }
-        const port = ci
-            ? +((dbType === 'mysql' ? process.env.E2E_MYSQL_PORT : process.env.E2E_MARIADB_PORT) || 3306)
-            : 3306;
-        return { type: dbType as 'mysql' | 'mariadb', port, ...common } as DataSourceOptions;
+        // Reuse the same per-dialect connection config as the rest of the e2e suite, so this spec
+        // does not drift when CI ports or credentials change. `database` is set explicitly by each
+        // caller below; `synchronize` is irrelevant to the raw admin/shadow connections.
+        const { synchronize, ...base } = getDbConfig() as any;
+        return base as DataSourceOptions;
     }
 
     async function dropDedicated() {
