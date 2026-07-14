@@ -204,7 +204,11 @@ function JobQueuePage() {
                         return (
                             <div className="flex items-center gap-2">
                                 <StatusBadge tone={jobStateDictionary.toneFor(row.original.state)}>
-                                    {state && <state.icon className="size-3" />}
+                                    {/* RUNNING renders the progress tone's pulsing dot, so the
+                                        static state icon would be redundant — omit it there. */}
+                                    {state && row.original.state !== 'RUNNING' && (
+                                        <state.icon className="size-3" />
+                                    )}
                                     {row.original.state}
                                 </StatusBadge>
                                 {row.original.state === 'RUNNING' && (

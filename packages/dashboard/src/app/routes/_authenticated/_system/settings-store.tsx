@@ -54,11 +54,11 @@ type FieldDefinition = ResultOf<
 
 const fieldDefinitionsQueryKey = ['settingsStoreFieldDefinitions'] as const;
 
-const scopeBadgeVariant: Record<string, 'default' | 'secondary' | 'outline'> = {
+const scopeBadgeVariant: Record<string, 'default' | 'outline'> = {
     GLOBAL: 'default',
-    USER: 'secondary',
+    USER: 'default',
     CHANNEL: 'outline',
-    USER_AND_CHANNEL: 'secondary',
+    USER_AND_CHANNEL: 'default',
     CUSTOM: 'outline',
 };
 

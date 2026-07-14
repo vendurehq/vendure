@@ -96,7 +96,7 @@ export const Playground: Story = {
                                         cell: ({ cell }) => {
                                             const value = cell.getValue() as boolean;
                                             return (
-                                                <Badge variant={value ? 'default' : 'secondary'}>
+                                                <Badge variant="default">
                                                     {value ? 'Enabled' : 'Disabled'}
                                                 </Badge>
                                             );

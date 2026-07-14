@@ -417,7 +417,7 @@ export function ProductMultiSelectorDialog({
                             <div className="flex items-center justify-between mb-4 flex-shrink-0">
                                 <div className="text-sm font-medium">
                                     <Trans>Selected Items</Trans>
-                                    <Badge variant="secondary" className="ml-2">
+                                    <Badge variant="default" className="ml-2">
                                         {selectedIds.size}
                                     </Badge>
                                 </div>

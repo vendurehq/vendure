@@ -82,7 +82,7 @@ export function MultiSelect<T extends boolean>(props: MultiSelectProps<T>) {
                                 return (
                                     <Badge
                                         key={selectedValue}
-                                        variant="secondary"
+                                        variant="default"
                                         className="flex items-center gap-1"
                                     >
                                         {item?.display ?? item?.label ?? selectedValue}
