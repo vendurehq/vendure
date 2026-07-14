@@ -11,7 +11,7 @@ import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 import { useWidgetFilters } from '@/vdb/hooks/use-widget-filters.js';
 import { useLingui } from '@lingui/react/macro';
 import { Link } from '@tanstack/react-router';
-import { ColumnFiltersState, SortingState } from '@tanstack/react-table';
+import { SortingState } from '@tanstack/react-table';
 import { useEffect, useState } from 'react';
 import { DashboardBaseWidget } from '../base-widget.js';
 import { latestOrdersQuery } from './latest-orders-widget.graphql.js';
@@ -33,17 +33,6 @@ export function LatestOrdersWidget() {
     ]);
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(tableSettings?.pageSize ?? 10);
-    const [filters, setFilters] = useState<ColumnFiltersState>([
-        {
-            id: 'orderPlacedAt',
-            value: {
-                between: {
-                    start: dateRange.from.toISOString(),
-                    end: dateRange.to.toISOString(),
-                },
-            },
-        },
-    ]);
 
     // Update page size if user settings change
     useEffect(() => {
@@ -51,21 +40,6 @@ export function LatestOrdersWidget() {
             setPageSize(tableSettings.pageSize);
         }
     }, [tableSettings?.pageSize]);
-
-    // Update filters when date range changes
-    useEffect(() => {
-        setFilters([
-            {
-                id: 'orderPlacedAt',
-                value: {
-                    between: {
-                        start: dateRange.from.toISOString(),
-                        end: dateRange.to.toISOString(),
-                    },
-                },
-            },
-        ]);
-    }, [dateRange]);
 
     const defaultVisibility = {
         code: true,
@@ -95,10 +69,23 @@ export function LatestOrdersWidget() {
                                 state: {
                                     notIn: ['Cancelled', 'Draft'],
                                 },
+                                orderPlacedAt: {
+                                    between: {
+                                        start: dateRange.from.toISOString(),
+                                        end: dateRange.to.toISOString(),
+                                    },
+                                },
                                 ...(variables.options?.filter ?? {}),
                             },
                         },
                     })}
+                    // transformVariables output is not part of the query key, so
+                    // the date range must be appended for range changes to refetch.
+                    transformQueryKey={queryKey => [
+                        ...queryKey,
+                        dateRange.from.toISOString(),
+                        dateRange.to.toISOString(),
+                    ]}
                     customizeColumns={{
                         code: {
                             header: t`Code`,
@@ -139,7 +126,6 @@ export function LatestOrdersWidget() {
                     }}
                     itemsPerPage={pageSize}
                     sorting={sorting}
-                    columnFilters={filters}
                     listQuery={latestOrdersQuery}
                     defaultVisibility={columnVisibility}
                     errorState={({ retry }) => (
@@ -156,9 +142,6 @@ export function LatestOrdersWidget() {
                     }}
                     onSortChange={(_, sorting) => {
                         setSorting(sorting);
-                    }}
-                    onFilterChange={(_, filters) => {
-                        setFilters(filters);
                     }}
                     onColumnVisibilityChange={(_, columnVisibility) => {
                         setTableSettings(WIDGET_ID, 'columnVisibility', columnVisibility);

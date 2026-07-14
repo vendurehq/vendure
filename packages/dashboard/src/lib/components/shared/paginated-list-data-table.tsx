@@ -213,7 +213,14 @@ export interface PaginatedListDataTableProps<
     columnFilters?: ColumnFiltersState;
     onPageChange: (table: Table<any>, page: number, perPage: number) => void;
     onSortChange: (table: Table<any>, sorting: SortingState) => void;
-    onFilterChange: (table: Table<any>, filters: ColumnFiltersState) => void;
+    /**
+     * @description
+     * Called when the user changes the column filters. When omitted, the table is
+     * treated as read-only with respect to filtering: the saved-views tabs and the
+     * "Add filter" menu are not rendered. Useful for embedded tables (e.g. dashboard
+     * widgets) that apply preset filters via `transformVariables`.
+     */
+    onFilterChange?: (table: Table<any>, filters: ColumnFiltersState) => void;
     onColumnVisibilityChange?: (table: Table<any>, columnVisibility: VisibilityState) => void;
     facetedFilters?: FacetedFilterConfig<T>;
     rowActions?: RowAction<PaginatedListItemFields<T>>[];
