@@ -34,7 +34,7 @@ export function LoginForm({ className, onFormSubmit, isVerifying, loginError, ..
 
     React.useEffect(() => {
         if (loginError && !isVerifying) {
-            toast.error(loginError);
+            toast.error(loginError, { id: 'login-error' });
         }
     }, [loginError, isVerifying]);
 
