@@ -1,4 +1,5 @@
 /* eslint-disable no-console */
+import { randomBytes } from 'crypto';
 import fs from 'fs-extra';
 import path from 'path';
 import pc from 'picocolors';
@@ -248,7 +249,7 @@ async function createEmptyDatabaseConnection(
  */
 let shadowDatabaseCounter = 0;
 function uniqueShadowSuffix(): string {
-    const random = Math.random().toString(16).slice(2, 8);
+    const random = randomBytes(3).toString('hex');
     return `${process.pid}_${Date.now()}_${shadowDatabaseCounter++}_${random}`;
 }
 
@@ -306,7 +307,7 @@ async function provisionShadowDatabase(
     // internally generated - neither is an injection surface.
     const charset = (master as any).charset;
     const charsetClause =
-        dialect === 'mysql' && typeof charset === 'string' && /^[a-zA-Z0-9_]+$/.test(charset)
+        dialect === 'mysql' && typeof charset === 'string' && /^\w+$/.test(charset)
             ? ` CHARACTER SET ${charset}`
             : '';
 
