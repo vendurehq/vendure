@@ -461,7 +461,7 @@ msgstr "Nieuwe klantengroep"
 msgid "Create \"{0}\""
 msgstr "\"{0}\" aanmaken"
 
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:147
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:133
 msgid "Could not load orders"
 msgstr ""
 
@@ -787,7 +787,7 @@ msgstr ""
 msgid "Select {0} Items"
 msgstr "Selecteer {0} items"
 
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:117
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:104
 msgid "Placed At"
 msgstr "Geplaatst op"
 
@@ -846,7 +846,7 @@ msgstr "Bestelling afhandelen mislukt"
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:88
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:106
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:226
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:130
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:117
 msgid "Total"
 msgstr "Totaal"
 
@@ -1057,6 +1057,10 @@ msgstr "Rechten"
 msgid "Shipping address changed"
 msgstr "Verzendadres gewijzigd"
 
+#: src/lib/components/data-table/data-table-column-header.tsx:33
+msgid "Sort by {display}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_option-groups/components/option-group-products-block.tsx:62
 msgid "No products found"
 msgstr "Geen producten gevonden"
@@ -1263,6 +1267,10 @@ msgstr "Stel een verzendadres in en selecteer een verzendmethode"
 #: src/app/routes/_authenticated/_system/job-queue.tsx:113
 msgid "Off"
 msgstr "Uit"
+
+#: src/lib/components/shared/rich-text-editor/resizable-image.tsx:97
+msgid "Resize image from right"
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:37
 #: src/app/routes/_authenticated/_system/settings-store.tsx:314
@@ -1551,7 +1559,7 @@ msgstr "Geen vertaling gevonden voor {0}"
 msgid "New Customer"
 msgstr "Nieuwe klant"
 
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:79
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:53
 msgid "Latest Orders"
 msgstr "Laatste bestellingen"
 
@@ -1850,7 +1858,7 @@ msgstr "Klantengroepen"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:139
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:59
-#: src/lib/components/data-display/boolean.tsx:25
+#: src/lib/components/data-display/boolean.tsx:22
 #: src/lib/components/data-input/default-relation-input.tsx:214
 #: src/lib/components/data-input/default-relation-input.tsx:445
 #: src/lib/components/data-input/default-relation-input.tsx:536
@@ -2019,7 +2027,7 @@ msgstr "Kolominstellingen"
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:100
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:154
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:63
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:104
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:91
 msgid "Code"
 msgstr "Code"
 
@@ -3483,7 +3491,7 @@ msgstr ""
 msgid "Facet values"
 msgstr "Facetwaarden"
 
-#: src/lib/components/data-table/data-table.tsx:315
+#: src/lib/components/data-table/data-table.tsx:314
 msgid "Failed to reorder items"
 msgstr "Opnieuw ordenen van artikelen mislukt"
 
@@ -4072,8 +4080,7 @@ msgstr "Terug naar zoeken"
 msgid "View duplicated successfully"
 msgstr "Weergave succesvol gedupliceerd"
 
-#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:50
-#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:56
+#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:62
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:297
 msgid "Remove option group"
 msgstr "Optiegroep verwijderen"
@@ -4392,6 +4399,10 @@ msgstr "Superbeheerder"
 #: src/app/routes/_authenticated/_system/healthchecks.tsx:74
 #~ msgid "Some resources are down"
 #~ msgstr "Sommige bronnen zijn offline"
+
+#: src/lib/components/shared/rich-text-editor/resizable-image.tsx:90
+msgid "Resize image from left"
+msgstr ""
 
 #: src/app/routes/_authenticated/_promotions/components/promotion-actions-selector.tsx:38
 msgid "Available Actions"
@@ -5016,7 +5027,7 @@ msgstr "Staat / Provincie"
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:56
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:58
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:59
-#: src/lib/components/data-display/boolean.tsx:25
+#: src/lib/components/data-display/boolean.tsx:22
 #: src/lib/components/layout/nav-user.tsx:152
 msgid "Enabled"
 msgstr "Ingeschakeld"
@@ -5079,7 +5090,7 @@ msgstr "Verkopen"
 msgid "Select a destination collection"
 msgstr "Selecteer een doelcollectie"
 
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:79
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:53
 msgid "Your latest orders"
 msgstr "Uw laatste bestellingen"
 
@@ -5872,7 +5883,7 @@ msgstr "Verkopersbestelling"
 msgid "New facet"
 msgstr "Nieuw facet"
 
-#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:51
+#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:63
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:298
 msgid "Are you sure you want to remove this option group from the product?"
 msgstr "Weet u zeker dat u deze optiegroep van het product wilt verwijderen?"
@@ -6084,7 +6095,7 @@ msgstr "Afbeelding bewerken"
 msgid "Manage Variants"
 msgstr "Varianten beheren"
 
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:148
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:134
 msgid "There was a problem loading your latest orders."
 msgstr ""
 
@@ -6227,6 +6238,10 @@ msgstr "U heeft geen toestemming om globale taalinstellingen te bekijken"
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:70
 msgid "Successfully created tax rate"
 msgstr "Belastingtarief succesvol aangemaakt"
+
+#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:46
+msgid "Remove option group {name}"
+msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:135
 msgid "Heading 6"

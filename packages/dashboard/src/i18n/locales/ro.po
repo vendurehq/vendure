@@ -437,7 +437,7 @@ msgstr "Grup client nou"
 msgid "Create \"{0}\""
 msgstr "Creează \"{0}\""
 
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:147
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:133
 msgid "Could not load orders"
 msgstr ""
 
@@ -759,7 +759,7 @@ msgstr ""
 msgid "Select {0} Items"
 msgstr "Selectează {0} elemente"
 
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:117
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:104
 msgid "Placed At"
 msgstr "Plasată la"
 
@@ -818,7 +818,7 @@ msgstr "Nu s-a putut livra comanda"
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:88
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:106
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:226
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:130
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:117
 msgid "Total"
 msgstr "Total"
 
@@ -1025,6 +1025,10 @@ msgstr "Permisiuni"
 msgid "Shipping address changed"
 msgstr "Adresa de livrare a fost modificată"
 
+#: src/lib/components/data-table/data-table-column-header.tsx:33
+msgid "Sort by {display}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_option-groups/components/option-group-products-block.tsx:62
 msgid "No products found"
 msgstr "Nu s-au găsit produse"
@@ -1223,6 +1227,10 @@ msgstr "Setează o adresă de livrare și selectează o metodă de livrare"
 #: src/app/routes/_authenticated/_system/job-queue.tsx:113
 msgid "Off"
 msgstr "Oprit"
+
+#: src/lib/components/shared/rich-text-editor/resizable-image.tsx:97
+msgid "Resize image from right"
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:37
 #: src/app/routes/_authenticated/_system/settings-store.tsx:314
@@ -1499,7 +1507,7 @@ msgstr "Nu s-a găsit traducere pentru {0}"
 msgid "New Customer"
 msgstr "Client Nou"
 
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:79
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:53
 msgid "Latest Orders"
 msgstr "Comenzi recente"
 
@@ -1785,7 +1793,7 @@ msgstr "Grupuri de clienți"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:139
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:59
-#: src/lib/components/data-display/boolean.tsx:25
+#: src/lib/components/data-display/boolean.tsx:22
 #: src/lib/components/data-input/default-relation-input.tsx:214
 #: src/lib/components/data-input/default-relation-input.tsx:445
 #: src/lib/components/data-input/default-relation-input.tsx:536
@@ -1954,7 +1962,7 @@ msgstr "Setări coloane"
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:100
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:154
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:63
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:104
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:91
 msgid "Code"
 msgstr "Cod"
 
@@ -3397,7 +3405,7 @@ msgstr ""
 msgid "Facet values"
 msgstr "Valori atribut"
 
-#: src/lib/components/data-table/data-table.tsx:315
+#: src/lib/components/data-table/data-table.tsx:314
 msgid "Failed to reorder items"
 msgstr "Nu s-a putut reordona elementele"
 
@@ -3970,8 +3978,7 @@ msgstr "Înapoi la căutare"
 msgid "View duplicated successfully"
 msgstr "Vizualizare duplicată cu succes"
 
-#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:50
-#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:56
+#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:62
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:297
 msgid "Remove option group"
 msgstr "Elimină grupul de opțiuni"
@@ -4269,6 +4276,10 @@ msgstr "Etichete"
 #: src/lib/components/shared/role-code-label.tsx:6
 msgid "Super Admin"
 msgstr "Super Administrator"
+
+#: src/lib/components/shared/rich-text-editor/resizable-image.tsx:90
+msgid "Resize image from left"
+msgstr ""
 
 #: src/app/routes/_authenticated/_promotions/components/promotion-actions-selector.tsx:38
 msgid "Available Actions"
@@ -4869,7 +4880,7 @@ msgstr "Județ / Provincie"
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:56
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:58
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:59
-#: src/lib/components/data-display/boolean.tsx:25
+#: src/lib/components/data-display/boolean.tsx:22
 #: src/lib/components/layout/nav-user.tsx:152
 msgid "Enabled"
 msgstr "Activat"
@@ -4932,7 +4943,7 @@ msgstr "Vânzări"
 msgid "Select a destination collection"
 msgstr "Selectează o colecție de destinație"
 
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:79
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:53
 msgid "Your latest orders"
 msgstr "Comenzile tale recente"
 
@@ -5685,7 +5696,7 @@ msgstr "Comandă vânzător"
 msgid "New facet"
 msgstr "Atribut nou"
 
-#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:51
+#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:63
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:298
 msgid "Are you sure you want to remove this option group from the product?"
 msgstr "Ești sigur că vrei să elimini acest grup de opțiuni din produs?"
@@ -5893,7 +5904,7 @@ msgstr "Editează imagine"
 msgid "Manage Variants"
 msgstr "Gestionează Variante"
 
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:148
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:134
 msgid "There was a problem loading your latest orders."
 msgstr ""
 
@@ -6028,6 +6039,10 @@ msgstr "Nu aveți permisiunea de a vizualiza setările globale ale limbii"
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:70
 msgid "Successfully created tax rate"
 msgstr "Cota de taxă a fost creată cu succes"
+
+#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:46
+msgid "Remove option group {name}"
+msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:135
 msgid "Heading 6"

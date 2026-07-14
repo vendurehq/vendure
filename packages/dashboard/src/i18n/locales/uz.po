@@ -437,7 +437,7 @@ msgstr "Yangi mijozlar guruhi"
 msgid "Create \"{0}\""
 msgstr "\"{0}\" ni yaratish"
 
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:147
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:133
 msgid "Could not load orders"
 msgstr ""
 
@@ -759,7 +759,7 @@ msgstr ""
 msgid "Select {0} Items"
 msgstr "{0} ta element tanlang"
 
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:117
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:104
 msgid "Placed At"
 msgstr "Joylashtirilgan sana"
 
@@ -818,7 +818,7 @@ msgstr "Buyurtmani bajarib bo'lmadi"
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:88
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:106
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:226
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:130
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:117
 msgid "Total"
 msgstr "Jami"
 
@@ -1025,6 +1025,10 @@ msgstr "Ruxsatlar"
 msgid "Shipping address changed"
 msgstr "Yetkazib berish manzili o'zgartirildi"
 
+#: src/lib/components/data-table/data-table-column-header.tsx:33
+msgid "Sort by {display}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_option-groups/components/option-group-products-block.tsx:62
 msgid "No products found"
 msgstr "Mahsulotlar topilmadi"
@@ -1223,6 +1227,10 @@ msgstr "Yetkazib berish manzilini o'rnating va usulini tanlang"
 #: src/app/routes/_authenticated/_system/job-queue.tsx:113
 msgid "Off"
 msgstr "O'chirilgan"
+
+#: src/lib/components/shared/rich-text-editor/resizable-image.tsx:97
+msgid "Resize image from right"
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:37
 #: src/app/routes/_authenticated/_system/settings-store.tsx:314
@@ -1499,7 +1507,7 @@ msgstr "{0} uchun tarjima topilmadi"
 msgid "New Customer"
 msgstr "Yangi mijoz"
 
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:79
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:53
 msgid "Latest Orders"
 msgstr "So'nggi buyurtmalar"
 
@@ -1785,7 +1793,7 @@ msgstr "Mijozlar guruhlari"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:139
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:59
-#: src/lib/components/data-display/boolean.tsx:25
+#: src/lib/components/data-display/boolean.tsx:22
 #: src/lib/components/data-input/default-relation-input.tsx:214
 #: src/lib/components/data-input/default-relation-input.tsx:445
 #: src/lib/components/data-input/default-relation-input.tsx:536
@@ -1954,7 +1962,7 @@ msgstr "Ustun sozlamalari"
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:100
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:154
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:63
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:104
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:91
 msgid "Code"
 msgstr "Kod"
 
@@ -3397,7 +3405,7 @@ msgstr ""
 msgid "Facet values"
 msgstr "Faset qiymatlari"
 
-#: src/lib/components/data-table/data-table.tsx:315
+#: src/lib/components/data-table/data-table.tsx:314
 msgid "Failed to reorder items"
 msgstr "Elementlarni qayta tartiblab bo'lmadi"
 
@@ -3970,8 +3978,7 @@ msgstr "Qidiruvga qaytish"
 msgid "View duplicated successfully"
 msgstr "Ko'rinish nusxalandi"
 
-#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:50
-#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:56
+#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:62
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:297
 msgid "Remove option group"
 msgstr "Optsiya guruhini olib tashlash"
@@ -4269,6 +4276,10 @@ msgstr "Teglar"
 #: src/lib/components/shared/role-code-label.tsx:6
 msgid "Super Admin"
 msgstr "Super Admin"
+
+#: src/lib/components/shared/rich-text-editor/resizable-image.tsx:90
+msgid "Resize image from left"
+msgstr ""
 
 #: src/app/routes/_authenticated/_promotions/components/promotion-actions-selector.tsx:38
 msgid "Available Actions"
@@ -4869,7 +4880,7 @@ msgstr "Shtat / Viloyat"
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:56
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:58
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:59
-#: src/lib/components/data-display/boolean.tsx:25
+#: src/lib/components/data-display/boolean.tsx:22
 #: src/lib/components/layout/nav-user.tsx:152
 msgid "Enabled"
 msgstr "Yoqilgan"
@@ -4932,7 +4943,7 @@ msgstr "Sotuvlar"
 msgid "Select a destination collection"
 msgstr "Manzil to'plamini tanlang"
 
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:79
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:53
 msgid "Your latest orders"
 msgstr "So'nggi buyurtmalaringiz"
 
@@ -5685,7 +5696,7 @@ msgstr "Sotuvchi buyurtmasi"
 msgid "New facet"
 msgstr "Yangi faset"
 
-#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:51
+#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:63
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:298
 msgid "Are you sure you want to remove this option group from the product?"
 msgstr "Ushbu optsiya guruhini mahsulotdan olib tashlamoqchimisiz?"
@@ -5893,7 +5904,7 @@ msgstr "Rasmni tahrirlash"
 msgid "Manage Variants"
 msgstr "Variantlarni boshqarish"
 
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:148
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:134
 msgid "There was a problem loading your latest orders."
 msgstr ""
 
@@ -6028,6 +6039,10 @@ msgstr "Sizda global til sozlamalarini ko'rish ruxsati yo'q"
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:70
 msgid "Successfully created tax rate"
 msgstr "Soliq stavkasi muvaffaqiyatli yaratildi"
+
+#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:46
+msgid "Remove option group {name}"
+msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:135
 msgid "Heading 6"

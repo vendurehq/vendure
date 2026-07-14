@@ -461,7 +461,7 @@ msgstr "קבוצת לקוחות חדשה"
 msgid "Create \"{0}\""
 msgstr "צור \"{0}\""
 
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:147
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:133
 msgid "Could not load orders"
 msgstr ""
 
@@ -787,7 +787,7 @@ msgstr ""
 msgid "Select {0} Items"
 msgstr "בחר {0} פריטים"
 
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:117
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:104
 msgid "Placed At"
 msgstr "בוצעה ב"
 
@@ -846,7 +846,7 @@ msgstr "מילוי ההזמנה נכשל"
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:88
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:106
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:226
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:130
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:117
 msgid "Total"
 msgstr "סה\"כ"
 
@@ -1052,6 +1052,10 @@ msgstr "הרשאות"
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx:131
 msgid "Shipping address changed"
 msgstr "כתובת המשלוח השתנתה"
+
+#: src/lib/components/data-table/data-table-column-header.tsx:33
+msgid "Sort by {display}"
+msgstr ""
 
 #: src/app/routes/_authenticated/_option-groups/components/option-group-products-block.tsx:62
 msgid "No products found"
@@ -1259,6 +1263,10 @@ msgstr "הגדר כתובת משלוח ובחר שיטת משלוח"
 #: src/app/routes/_authenticated/_system/job-queue.tsx:113
 msgid "Off"
 msgstr "כבוי"
+
+#: src/lib/components/shared/rich-text-editor/resizable-image.tsx:97
+msgid "Resize image from right"
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:37
 #: src/app/routes/_authenticated/_system/settings-store.tsx:314
@@ -1547,7 +1555,7 @@ msgstr "לא נמצא תרגום עבור {0}"
 msgid "New Customer"
 msgstr "לקוח חדש"
 
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:79
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:53
 msgid "Latest Orders"
 msgstr "הזמנות אחרונות"
 
@@ -1846,7 +1854,7 @@ msgstr "קבוצות לקוחות"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:139
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:59
-#: src/lib/components/data-display/boolean.tsx:25
+#: src/lib/components/data-display/boolean.tsx:22
 #: src/lib/components/data-input/default-relation-input.tsx:214
 #: src/lib/components/data-input/default-relation-input.tsx:445
 #: src/lib/components/data-input/default-relation-input.tsx:536
@@ -2021,7 +2029,7 @@ msgstr "הגדרות עמודות"
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:100
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:154
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:63
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:104
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:91
 msgid "Code"
 msgstr "קוד"
 
@@ -3489,7 +3497,7 @@ msgstr ""
 msgid "Facet values"
 msgstr "ערכי מאפיינים"
 
-#: src/lib/components/data-table/data-table.tsx:315
+#: src/lib/components/data-table/data-table.tsx:314
 msgid "Failed to reorder items"
 msgstr "נכשל בסידור מחדש של הפריטים"
 
@@ -4081,8 +4089,7 @@ msgstr "חזרה לחיפוש"
 msgid "View duplicated successfully"
 msgstr "התצוגה שוכפלה בהצלחה"
 
-#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:50
-#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:56
+#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:62
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:297
 msgid "Remove option group"
 msgstr "הסרת קבוצת אפשרויות"
@@ -4401,6 +4408,10 @@ msgstr "מנהל על"
 #: src/app/routes/_authenticated/_system/healthchecks.tsx:74
 #~ msgid "Some resources are down"
 #~ msgstr "חלק מהמשאבים לא פעילים"
+
+#: src/lib/components/shared/rich-text-editor/resizable-image.tsx:90
+msgid "Resize image from left"
+msgstr ""
 
 #: src/app/routes/_authenticated/_promotions/components/promotion-actions-selector.tsx:38
 msgid "Available Actions"
@@ -5021,7 +5032,7 @@ msgstr "מדינה / מחוז"
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:56
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:58
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:59
-#: src/lib/components/data-display/boolean.tsx:25
+#: src/lib/components/data-display/boolean.tsx:22
 #: src/lib/components/layout/nav-user.tsx:152
 msgid "Enabled"
 msgstr "מופעל"
@@ -5084,7 +5095,7 @@ msgstr "מכירות"
 msgid "Select a destination collection"
 msgstr "בחר אוסף יעד"
 
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:79
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:53
 msgid "Your latest orders"
 msgstr "ההזמנות האחרונות שלך"
 
@@ -5877,7 +5888,7 @@ msgstr "הזמנת מוכר"
 msgid "New facet"
 msgstr "מאפיין חדש"
 
-#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:51
+#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:63
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:298
 msgid "Are you sure you want to remove this option group from the product?"
 msgstr "האם אתה בטוח שברצונך להסיר את קבוצת האפשרויות הזו מהמוצר?"
@@ -6089,7 +6100,7 @@ msgstr "ערוך תמונה"
 msgid "Manage Variants"
 msgstr "נהל גרסאות"
 
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:148
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:134
 msgid "There was a problem loading your latest orders."
 msgstr ""
 
@@ -6232,6 +6243,10 @@ msgstr "אין לך הרשאה לצפות בהגדרות השפה הגלובלי
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:70
 msgid "Successfully created tax rate"
 msgstr "שיעור המס נוצר בהצלחה"
+
+#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:46
+msgid "Remove option group {name}"
+msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:135
 msgid "Heading 6"
