@@ -169,7 +169,7 @@ msgstr "Type"
 #. placeholder {0}: entityName.toLowerCase()
 #. placeholder {0}: group.name
 #: src/app/routes/_authenticated/_products/components/product-option-select.tsx:57
-#: src/lib/components/data-input/default-relation-input.tsx:676
+#: src/lib/components/data-input/default-relation-input.tsx:671
 msgid "Select {0}"
 msgstr "Selecteer {0}"
 
@@ -1816,6 +1816,9 @@ msgstr "Klantengroepen"
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:139
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:59
 #: src/lib/components/data-display/boolean.tsx:25
+#: src/lib/components/data-input/default-relation-input.tsx:214
+#: src/lib/components/data-input/default-relation-input.tsx:445
+#: src/lib/components/data-input/default-relation-input.tsx:536
 #: src/lib/components/layout/nav-user.tsx:155
 msgid "Disabled"
 msgstr "Uitgeschakeld"
@@ -1967,7 +1970,7 @@ msgstr "Dupliceren"
 msgid "No results"
 msgstr "Geen resultaten"
 
-#: src/lib/components/data-table/data-table-view-options.tsx:163
+#: src/lib/components/data-table/data-table-view-options.tsx:169
 msgid "Column settings"
 msgstr "Kolominstellingen"
 
@@ -2839,7 +2842,6 @@ msgstr "Afbeelding"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:77
 msgid "Successfully created administrator"
 msgstr "Beheerder succesvol aangemaakt"
-
 
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:196
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:318
@@ -4081,7 +4083,7 @@ msgctxt "theme"
 msgid "Light"
 msgstr "Licht"
 
-#: src/lib/components/data-table/data-table-view-options.tsx:135
+#: src/lib/components/data-table/data-table-view-options.tsx:141
 msgid "Reset"
 msgstr "Resetten"
 
@@ -5435,7 +5437,7 @@ msgid "Customer not found"
 msgstr "Klant niet gevonden"
 
 #. placeholder {0}: entityName.toLowerCase()
-#: src/lib/components/data-input/default-relation-input.tsx:663
+#: src/lib/components/data-input/default-relation-input.tsx:658
 msgid "Select {0}s"
 msgstr "Selecteer {0}"
 
@@ -5492,6 +5494,7 @@ msgid "Value updated"
 msgstr "Waarde bijgewerkt"
 
 #: src/app/routes/_authenticated/_customers/components/customer-status-badge.tsx:38
+#: src/lib/components/data-input/default-relation-input.tsx:172
 msgid "Unverified"
 msgstr "Niet geverifieerd"
 
@@ -6260,6 +6263,8 @@ msgstr "Telefoonnummer"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:161
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:109
+#: src/lib/components/data-input/default-relation-input.tsx:247
+#: src/lib/components/data-input/default-relation-input.tsx:277
 msgid "Private"
 msgstr "Privé"
 
