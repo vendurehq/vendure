@@ -25,7 +25,7 @@ const extensions = [
         link: {
             openOnClick: false,
             HTMLAttributes: {
-                class: 'text-primary underline underline-offset-2 cursor-pointer hover:text-primary/80',
+                class: 'text-brand underline underline-offset-2 cursor-pointer hover:text-brand/80',
             },
             validate: href => /^https?:\/\//.test(href),
         },

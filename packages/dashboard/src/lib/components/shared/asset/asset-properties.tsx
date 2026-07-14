@@ -20,7 +20,7 @@ export function AssetProperties({ asset }: Readonly<AssetPropertiesProps>) {
                     href={asset.source}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-primary hover:underline"
+                    className="text-sm text-brand hover:underline"
                 >
                     {asset.source.split('/').pop()}
                     <ExternalLink className="ml-1 h-3 w-3 inline" />
