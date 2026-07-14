@@ -64,10 +64,11 @@ test.describe('Product List', () => {
             await lp.goto();
             await lp.expectLoaded();
 
-            // Click the "Facet values" filter button in the toolbar
+            // Launch the "Facet values" filter from the unified Filter menu
+            await page.getByTestId('dt-add-filter-trigger').click();
+            await page.getByRole('menuitem', { name: 'Facet values' }).click();
             const facetFilterButton = page.getByRole('button', { name: 'Facet values' });
             await expect(facetFilterButton).toBeVisible();
-            await facetFilterButton.click();
 
             // The popover should open showing facets in browse mode
             const popover = page.locator('[data-slot="popover-content"]');
@@ -111,9 +112,10 @@ test.describe('Product List', () => {
             await lp.goto();
             await lp.expectLoaded();
 
-            // Open facet filter and select a value
+            // Launch the facet filter from the unified Filter menu and select a value
+            await page.getByTestId('dt-add-filter-trigger').click();
+            await page.getByRole('menuitem', { name: 'Facet values' }).click();
             const facetFilterButton = page.getByRole('button', { name: 'Facet values' });
-            await facetFilterButton.click();
 
             const popover = page.locator('[data-slot="popover-content"]');
             await expect(popover).toBeVisible({ timeout: 5_000 });
@@ -145,12 +147,14 @@ test.describe('Product List', () => {
             const lp = listPage(page);
             await lp.goto();
             await lp.expectLoaded();
+            await lp.expectRowsLoaded();
 
             const initialRowCount = await lp.getRows().count();
 
-            // Open facet filter and select a value
+            // Launch the facet filter from the unified Filter menu and select a value
+            await page.getByTestId('dt-add-filter-trigger').click();
+            await page.getByRole('menuitem', { name: 'Facet values' }).click();
             const facetFilterButton = page.getByRole('button', { name: 'Facet values' });
-            await facetFilterButton.click();
 
             const popover = page.locator('[data-slot="popover-content"]');
             await expect(popover).toBeVisible({ timeout: 5_000 });
@@ -178,9 +182,9 @@ test.describe('Product List', () => {
             await lp.goto();
             await lp.expectLoaded();
 
-            // Open the facet filter
-            const facetFilterButton = page.getByRole('button', { name: 'Facet values' });
-            await facetFilterButton.click();
+            // Launch the facet filter from the unified Filter menu
+            await page.getByTestId('dt-add-filter-trigger').click();
+            await page.getByRole('menuitem', { name: 'Facet values' }).click();
 
             const popover = page.locator('[data-slot="popover-content"]');
             await expect(popover).toBeVisible({ timeout: 5_000 });
@@ -270,6 +274,7 @@ test.describe('Product List', () => {
             const lp = listPage(page);
             await lp.goto();
             await lp.expectLoaded();
+            await lp.expectRowsLoaded();
 
             const initialCount = await lp.getRows().count();
             expect(initialCount).toBeLessThanOrEqual(10);
@@ -315,6 +320,7 @@ test.describe('Product List', () => {
             const lp = listPage(page);
             await lp.goto();
             await lp.expectLoaded();
+            await lp.expectRowsLoaded();
 
             const initialCount = await lp.getRows().count();
 
@@ -357,6 +363,7 @@ test.describe('Product List', () => {
             const lp = listPage(page);
             await lp.goto();
             await lp.expectLoaded();
+            await lp.expectRowsLoaded();
 
             const initialCount = await lp.getRows().count();
 
@@ -385,6 +392,7 @@ test.describe('Product List', () => {
             const lp = listPage(page);
             await lp.goto();
             await lp.expectLoaded();
+            await lp.expectRowsLoaded();
 
             const initialCount = await lp.getRows().count();
 

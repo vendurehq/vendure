@@ -107,6 +107,20 @@ export class BaseListPage {
         await expect(this.getRows()).toHaveCount(count);
     }
 
+    /**
+     * Wait until the table contains real data rows. `expectLoaded()` passes while
+     * the initial fetch is still rendering skeleton rows (and a transient empty
+     * state can flash between skeletons and data), so `getRows().count()` taken
+     * straight after it races the load. Only rows with a selection checkbox count
+     * as real data — skeleton and empty-state rows have none.
+     */
+    async expectRowsLoaded() {
+        await expect(this.dataTable.locator('[data-slot="skeleton"]')).toHaveCount(0, {
+            timeout: 10_000,
+        });
+        await expect(this.getRows().first().getByRole('checkbox')).toBeVisible({ timeout: 10_000 });
+    }
+
     async expectRowCountGreaterThan(min: number) {
         expect(await this.getRows().count()).toBeGreaterThan(min);
     }
