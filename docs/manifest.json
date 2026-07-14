@@ -3846,10 +3846,16 @@
                   "lastModified": "2026-01-28T14:49:21+01:00"
                 },
                 {
+                  "title": "ConfigurableOperationSentence",
+                  "slug": "configurable-operation-sentence",
+                  "file": "docs/reference/dashboard/components/configurable-operation-sentence.mdx",
+                  "lastModified": "2026-07-14T13:33:26Z"
+                },
+                {
                   "title": "CopyableText",
                   "slug": "copyable-text",
                   "file": "docs/reference/dashboard/components/copyable-text.mdx",
-                  "lastModified": "2026-03-23T10:11:25+01:00"
+                  "lastModified": "2026-07-14T13:33:26Z"
                 },
                 {
                   "title": "DetailPageButton",
@@ -3867,13 +3873,13 @@
                   "title": "FacetValueFacetedFilter",
                   "slug": "facet-value-faceted-filter",
                   "file": "docs/reference/dashboard/components/facet-value-faceted-filter.mdx",
-                  "lastModified": "2026-02-25T13:59:17+01:00"
+                  "lastModified": "2026-07-14T13:33:26Z"
                 },
                 {
                   "title": "FacetValueSelector",
                   "slug": "facet-value-selector",
                   "file": "docs/reference/dashboard/components/facet-value-selector.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-07-14T13:33:26Z"
                 },
                 {
                   "title": "PermissionGuard",
@@ -3961,13 +3967,13 @@
                   "title": "FormComponents",
                   "slug": "form-components",
                   "file": "docs/reference/dashboard/extensions-api/form-components.mdx",
-                  "lastModified": "2026-06-24T13:43:54+02:00"
+                  "lastModified": "2026-07-14T13:33:26Z"
                 },
                 {
                   "title": "HistoryEntries",
                   "slug": "history-entries",
                   "file": "docs/reference/dashboard/extensions-api/history-entries.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-07-14T13:33:26Z"
                 },
                 {
                   "title": "Login",
@@ -4035,7 +4041,7 @@
                   "title": "DateTimeInput",
                   "slug": "date-time-input",
                   "file": "docs/reference/dashboard/form-components/date-time-input.mdx",
-                  "lastModified": "2026-03-23T10:11:25+01:00"
+                  "lastModified": "2026-07-14T13:33:26Z"
                 },
                 {
                   "title": "FormFieldWrapper",
@@ -4201,7 +4207,7 @@
                   "title": "DataTable",
                   "slug": "data-table",
                   "file": "docs/reference/dashboard/list-views/data-table.mdx",
-                  "lastModified": "2026-06-24T13:43:54+02:00"
+                  "lastModified": "2026-07-14T13:33:26Z"
                 },
                 {
                   "title": "DataTableCellComponent",
@@ -4210,16 +4216,22 @@
                   "lastModified": "2026-03-23T10:11:25+01:00"
                 },
                 {
+                  "title": "DataTableViewsTabs",
+                  "slug": "data-table-views-tabs",
+                  "file": "docs/reference/dashboard/list-views/data-table-views-tabs.mdx",
+                  "lastModified": "2026-07-14T13:33:26Z"
+                },
+                {
                   "title": "ListPage",
                   "slug": "list-page",
                   "file": "docs/reference/dashboard/list-views/list-page.mdx",
-                  "lastModified": "2026-06-24T13:43:54+02:00"
+                  "lastModified": "2026-07-14T13:33:26Z"
                 },
                 {
                   "title": "PaginatedListDataTable",
                   "slug": "paginated-list-data-table",
                   "file": "docs/reference/dashboard/list-views/paginated-list-data-table.mdx",
-                  "lastModified": "2026-06-30T16:30:47+02:00"
+                  "lastModified": "2026-07-14T13:33:26Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -4233,25 +4245,25 @@
                   "title": "Page",
                   "slug": "page",
                   "file": "docs/reference/dashboard/page-layout/page.mdx",
-                  "lastModified": "2026-05-08T12:27:16+02:00"
+                  "lastModified": "2026-07-14T13:33:26Z"
                 },
                 {
                   "title": "PageActionBar",
                   "slug": "page-action-bar",
                   "file": "docs/reference/dashboard/page-layout/page-action-bar.mdx",
-                  "lastModified": "2026-06-12T10:15:51+02:00"
+                  "lastModified": "2026-07-14T13:33:26Z"
                 },
                 {
                   "title": "PageBlock",
                   "slug": "page-block",
                   "file": "docs/reference/dashboard/page-layout/page-block.mdx",
-                  "lastModified": "2026-06-12T10:15:51+02:00"
+                  "lastModified": "2026-07-14T13:33:26Z"
                 },
                 {
                   "title": "PageTitle",
                   "slug": "page-title",
                   "file": "docs/reference/dashboard/page-layout/page-title.mdx",
-                  "lastModified": "2026-06-12T10:15:51+02:00"
+                  "lastModified": "2026-07-14T13:33:26Z"
                 },
                 {
                   "title": "UsePageBlock",
@@ -4260,7 +4272,7 @@
                   "lastModified": "2026-01-28T14:49:21+01:00"
                 }
               ],
-              "lastModified": "2026-06-12T10:15:51+02:00"
+              "lastModified": "2026-07-14T13:33:26Z"
             },
             {
               "title": "Vite Plugin",
@@ -4271,7 +4283,7 @@
                   "title": "VendureDashboardPlugin",
                   "slug": "vendure-dashboard-plugin",
                   "file": "docs/reference/dashboard/vite-plugin/vendure-dashboard-plugin.mdx",
-                  "lastModified": "2026-07-10T14:29:40+02:00"
+                  "lastModified": "2026-07-14T13:33:26Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
