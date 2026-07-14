@@ -28,6 +28,8 @@ This lets the dashboard know how your component should be rendered in certain co
 
 - **`isListInput`**: Declare whether your component is intended for list fields. Use `'dynamic'` if it can handle both list and non-list fields.
 - **`isFullWidth`**: When `true`, the dashboard will render the field so it spans the full width of the standard 2-column detail form grids (e.g. `DetailFormGrid`).
+- **`summary`**: A component rendering a compact, read-only summary of the field's current value. Used to label the value chips when your component is used for a [configurable operation argument](#configurable-operation-components). It may use hooks and data fetching, e.g. to resolve stored IDs to display names.
+- **`popoverSize`**: When your component is used for a configurable operation argument, it renders inside a popover. Set to `'lg'` if it needs more room than the default width.
 
 ```tsx
 import { DashboardFormComponentProps } from '@vendure/dashboard';
@@ -190,6 +192,32 @@ const customShippingCalculator = new ShippingCalculator({
         // ...
     },
 });
+```
+
+### How operation arguments are rendered
+
+Configurable operations render as a one-line sentence based on the operation's description template, where
+each argument appears as an inline value chip. Clicking a chip opens a popover containing the argument's
+registered form component — your component receives exactly the same props as in any other context, so no
+changes are needed for it to work there.
+
+Two optional `metadata` properties let you refine how your component behaves in this context:
+
+- Without a `summary`, the chip label falls back to the raw value (or a count for list values). Provide a
+  `summary` component to render something more meaningful — this matters especially for components that
+  store entity IDs, since the summary can resolve them to display names.
+- If your component needs more horizontal space than the default popover provides, set `popoverSize: 'lg'`.
+
+```tsx title="src/plugins/my-plugin/dashboard/components/color-picker.tsx"
+ColorPickerComponent.metadata = {
+    summary: ({ value }) => (
+        <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block h-3 w-3 rounded-sm border" style={{ backgroundColor: value }} />
+            {value}
+        </span>
+    ),
+    popoverSize: 'lg',
+};
 ```
 
 ## Replacing Native Detail-Page Fields
