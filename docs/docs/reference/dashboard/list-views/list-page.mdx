@@ -4,7 +4,7 @@ generated: true
 ---
 ## ListPage
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/list-page.tsx" sourceLine="481" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/list-page.tsx" sourceLine="496" packageName="@vendure/dashboard" since="3.3.0" />
 
 Auto-generates a list page with columns generated based on the provided query document fields.
 
@@ -116,6 +116,7 @@ interface ListPageProps<T extends TypedDocumentNode<U, V>, U extends ListQuerySh
     deleteMutation?: TypedDocumentNode<any, { id: string }>;
     transformVariables?: (variables: V) => V;
     onSearchTermChange?: (searchTerm: string) => NonNullable<V['options']>['filter'];
+    searchPlaceholder?: string;
     customizeColumns?: CustomizeColumnConfig<T>;
     additionalColumns?: AC;
     defaultColumnOrder?: (keyof ListQueryFields<T> | keyof AC | CustomFieldKeysOfItem<ListQueryFields<T>>)[];
@@ -132,6 +133,7 @@ interface ListPageProps<T extends TypedDocumentNode<U, V>, U extends ListQuerySh
     registerRefresher?: PaginatedListRefresherRegisterFn;
     onReorder?: (oldIndex: number, newIndex: number, item: any) => void | Promise<void>;
     disableDragAndDrop?: boolean;
+    emptyStateAction?: React.ReactNode;
 }
 ```
 
@@ -258,6 +260,12 @@ For instance, when you want the term to filter on specific fields.
    }}
  />
 ```
+### searchPlaceholder
+
+<MemberInfo kind="property" type={`string`}  since="3.8.0"  />
+
+Placeholder text for the search input. Should say what the search targets,
+e.g. "Search products...". Defaults to a generic "Search...".
 ### customizeColumns
 
 <MemberInfo kind="property" type={`CustomizeColumnConfig<T>`}   />
@@ -489,6 +497,13 @@ Only applies to top-level items. When provided, enables drag-and-drop functional
 
 When true, drag and drop will be disabled. This will only have an effect if the onReorder prop is also set Useful when filtering or searching.
 Defaults to false. Only relevant when `onReorder` is provided.
+### emptyStateAction
+
+<MemberInfo kind="property" type={`React.ReactNode`}   />
+
+An optional action rendered inside the first-run empty state (when the list
+has no items and no active filters), typically a "create your first X" CTA.
+Gate it with a [PermissionGuard](/reference/dashboard/components/permission-guard#permissionguard) to mirror the create button's permissions.
 
 
 </div>
