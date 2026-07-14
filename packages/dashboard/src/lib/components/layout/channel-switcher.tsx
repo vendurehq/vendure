@@ -110,7 +110,7 @@ export function ChannelSwitcher() {
                     <DropdownMenu>
                         <DropdownMenuTrigger render={<SidebarMenuButton
                                 size="lg"
-                                className="data-open:bg-sidebar-accent data-open:text-sidebar-accent-foreground"
+                                className="bg-background border border-border/60 data-open:bg-sidebar-accent data-open:text-sidebar-accent-foreground"
                             />}>
                                 <div
                                     className={

@@ -142,7 +142,10 @@ export function AppLayout() {
                 <AppShellHeader>
                     <div className="flex items-center justify-start gap-2 min-w-0 overflow-hidden">
                         <SidebarTrigger className="-ml-1 shrink-0" />
-                        <Separator orientation="vertical" className="mr-2 shrink-0" />
+                        <Separator
+                            orientation="vertical"
+                            className="mr-2 shrink-0 data-vertical:h-4 data-vertical:self-auto"
+                        />
                         <GeneratedBreadcrumbs />
                     </div>
                     <div className="ms-auto flex items-center justify-end gap-2 shrink-0">
