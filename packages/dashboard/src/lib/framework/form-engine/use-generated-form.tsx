@@ -58,12 +58,21 @@ export interface GeneratedFormOptions<
     customFieldConfig?: any[]; // Add custom field config for validation
     /**
      * @description
-     * Refines the auto-generated Zod schema before it is passed to the form resolver.
+     * Refines the auto-generated Zod schema before it is passed to the form resolver. Use this
+     * to declare the fields which must actually be filled in by the user.
      *
-     * The generated schema is derived from the GraphQL input type, which can only express
-     * nullability. Nullability does not imply that a value is _required_ in the UI sense:
-     * `String!` permits an empty string. Use this to declare fields which must actually be
-     * filled in by the user.
+     * The generated schema is derived from the GraphQL input type, which only expresses
+     * nullability — and nullability tells you nothing about whether a value is required:
+     *
+     * - A non-nullable field may still be legitimately empty. `String!` means "not null", not
+     *   "not empty", and a non-nullable `ID!` such as `CreateFacetValueInput.facetId` may be
+     *   supplied by the page in `transformCreateInput` rather than by the user.
+     * - A nullable field may still be required by the server. `CreateChannelInput.
+     *   defaultCurrencyCode` is nullable, yet `ChannelService.create` rejects the input unless
+     *   it is set.
+     *
+     * Note that this is read once, when the schema is first built: it is held in a ref so that
+     * an inline arrow function does not replace the resolver on every render.
      *
      * @example
      * ```ts
@@ -72,6 +81,8 @@ export interface GeneratedFormOptions<
      *         code: z.string().min(1, { message: t`This field is required` }),
      *     }),
      * ```
+     *
+     * @since 3.7.0
      */
     extendSchema?: (schema: ZodObject<any>) => ZodTypeAny;
     setValues: (

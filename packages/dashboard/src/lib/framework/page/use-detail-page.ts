@@ -105,10 +105,20 @@ export interface DetailPageOptions<
     transformUpdateInput?: (input: VariablesOf<U>[VarNameUpdate]) => VariablesOf<U>[VarNameUpdate];
     /**
      * @description
-     * Refines the auto-generated Zod schema for this page's form. The generated schema is
-     * derived from the GraphQL input type, which can only express nullability — and in
-     * GraphQL, `String!` permits an empty string. Use this to declare the fields which the
-     * user must actually fill in.
+     * Refines the auto-generated Zod schema for this page's form. Use this to declare the
+     * fields the user must actually fill in.
+     *
+     * The generated schema is derived from the GraphQL input type, which only expresses
+     * nullability — and nullability tells you nothing about whether a value is required:
+     *
+     * - A non-nullable field may still be legitimately empty. `String!` means "not null",
+     *   not "not empty", and a non-nullable `ID!` such as `CreateFacetValueInput.facetId`
+     *   may be supplied by the page in `transformCreateInput` rather than by the user.
+     * - A nullable field may still be required by the server. `CreateChannelInput.
+     *   defaultCurrencyCode` is nullable, yet `ChannelService.create` rejects the input
+     *   unless it is set.
+     *
+     * So required-ness is declared per page, here.
      *
      * @example
      * ```ts
@@ -117,6 +127,8 @@ export interface DetailPageOptions<
      *         code: z.string().min(1, { message: t`This field is required` }),
      *     }),
      * ```
+     *
+     * @since 3.7.0
      */
     extendSchema?: (schema: ZodObject<any>) => ZodTypeAny;
     /**
