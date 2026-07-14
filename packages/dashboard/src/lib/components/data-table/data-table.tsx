@@ -301,9 +301,8 @@ export function DataTable<TData>({
     // molecule. The ref is populated synchronously while the molecule renders the
     // toolbar slot (for the change-callback effects below); the state copy feeds
     // the DataTableProvider so saved-view components can reach the table. For a
-    // table with no toolbar controls at all the instance is never captured and
-    // the change callbacks receive `undefined` — all in-repo consumers ignore
-    // that argument.
+    // table with no toolbar controls, a temporary pre-paint toolbar render
+    // captures the instance when header controls need it.
     const tableRef = useRef<TableType<TData>>(undefined as any);
     const [tableInstance, setTableInstance] = React.useState<TableType<TData>>();
 
@@ -466,7 +465,8 @@ export function DataTable<TData>({
         onSearchTermChange != null ||
         Object.keys(facetedFilters ?? {}).length > 0 ||
         onFilterChange != null ||
-        (showControlsInToolbar && hasHeaderControls);
+        (showControlsInToolbar && hasHeaderControls) ||
+        (title != null && hasHeaderControls && tableInstance == null);
 
     const renderHeaderControls = (table: TableType<TData> | undefined) => (
         <div className="flex items-center gap-2 flex-shrink-0">

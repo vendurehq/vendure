@@ -366,7 +366,7 @@
         "@types/react-dom": "^19.0.4",
         "@uidotdev/usehooks": "^2.4.1",
         "@vendure-io/design-tokens": "^2.0.0-beta.7",
-        "@vendure-io/ui": "^2.0.0-beta.11",
+        "@vendure-io/ui": "^2.0.0-beta.12",
         "@vitejs/plugin-react": "^5.2.0",
         "acorn": "^8.16.0",
         "acorn-walk": "^8.3.5",
@@ -2651,7 +2651,7 @@
 
     "@vendure-io/docs-generator": ["@vendure-io/docs-generator@0.1.1", "", { "dependencies": { "fs-extra": "^11.0.0", "klaw-sync": "^6.0.0", "typescript": "^5.0.0" } }, "sha512-tn1BUZuacKM4d99CuVQHb+rttZJANy5kuhfWmjwhyzXMx2Nvv41WguBxVpF9njT/E7iLfyvRtwin8dom4zJF2A=="],
 
-    "@vendure-io/ui": ["@vendure-io/ui@2.0.0-beta.11", "", { "dependencies": { "@base-ui/react": "^1.2.0", "@shikijs/langs": "^3.23.0", "@shikijs/themes": "^3.23.0", "@shikijs/transformers": "^3.22.0", "@tanstack/react-table": "^8.21.3", "@vendure-io/design-tokens": "^2.0.0-beta.7", "class-variance-authority": "^0.7.1", "clsx": "^2.1.1", "cmdk": "^1.1.1", "date-fns": "^4.1.0", "embla-carousel-react": "^8.6.0", "input-otp": "^1.4.2", "lucide-react": "^0.575.0", "motion": "^12.23.13", "react-day-picker": "^9.14.0", "react-resizable-panels": "^4.7.0", "recharts": "2.15.4", "shiki": "^3.22.0", "sonner": "^2.0.7", "tailwind-merge": "^3.5.0", "vaul": "^1.1.2" }, "peerDependencies": { "next": ">=14", "next-themes": "^0.4.6", "react": ">=19", "react-dom": ">=19" }, "optionalPeers": ["next", "next-themes"] }, "sha512-s8/sDCjXWJmkAERrmu+5exK/QHenp0CvVZ7bQUYSMFH2dcY3wkEdFiayJB7IHv3Nr2iRD7CQqcbqtJfcvQsZFg=="],
+    "@vendure-io/ui": ["@vendure-io/ui@2.0.0-beta.12", "", { "dependencies": { "@base-ui/react": "^1.2.0", "@shikijs/langs": "^3.23.0", "@shikijs/themes": "^3.23.0", "@shikijs/transformers": "^3.22.0", "@tanstack/react-table": "^8.21.3", "@vendure-io/design-tokens": "^2.0.0-beta.7", "class-variance-authority": "^0.7.1", "clsx": "^2.1.1", "cmdk": "^1.1.1", "date-fns": "^4.1.0", "embla-carousel-react": "^8.6.0", "input-otp": "^1.4.2", "lucide-react": "^0.575.0", "motion": "^12.23.13", "react-day-picker": "^9.14.0", "react-resizable-panels": "^4.7.0", "recharts": "2.15.4", "shiki": "^3.22.0", "sonner": "^2.0.7", "tailwind-merge": "^3.5.0", "vaul": "^1.1.2" }, "peerDependencies": { "next": ">=14", "next-themes": "^0.4.6", "react": ">=19", "react-dom": ">=19" }, "optionalPeers": ["next", "next-themes"] }, "sha512-XNQG39uW5hoT3SYhJX7X3EVsXqydDkg1i7KDtL8g4jRTOhMTjofsyHOncEPdcORtF7KD0a6hQdeWHdQ65xQ9MA=="],
 
     "@vendure/admin-ui": ["@vendure/admin-ui@workspace:packages/admin-ui"],
 
