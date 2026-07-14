@@ -21,8 +21,13 @@ const PORT = 5188;
  * own separate copy, and the dashboard's provider and the extension's hook bind
  * to different module instances. Serving from the shared dep lane is what makes
  * them one instance.
+ *
+ * Opt-in (`RUN_BUNDLE_AUDIT=true`, set by `npm run audit:bundle`): it boots a
+ * real Vite dev server with cold dep-optimization, which is too slow and load-
+ * sensitive to run in the standard unit suite. The artifact-level guard in
+ * `bundle-singleton.spec.ts` runs on every push instead.
  */
-describe('bundle singleton dev serving', () => {
+describe.skipIf(process.env.RUN_BUNDLE_AUDIT !== 'true')('bundle singleton dev serving', () => {
     let libJs: string;
     let stopServer: () => void = () => undefined;
 
