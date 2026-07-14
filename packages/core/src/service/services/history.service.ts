@@ -401,9 +401,6 @@ export class HistoryService {
     }
 
     private async getAdministratorFromContext(ctx: RequestContext): Promise<Administrator | undefined> {
-        const administrator = ctx.activeUserId
-            ? await this.administratorService.findOneByUserId(ctx, ctx.activeUserId)
-            : null;
-        return administrator ?? undefined;
+        return this.administratorService.resolveActorAdministrator(ctx);
     }
 }
