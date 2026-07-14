@@ -44,7 +44,28 @@ export const runtimePeers: Array<string | RegExp> = [
  * extension's separately-built code resolve to the consumer's single instance.
  */
 export const singletonSharedDeps: Array<string | RegExp> = [
-    // Populated by the #4919 fix once the audit confirms each offender.
+    // @tanstack/react-query — QueryClientContext
+    '@tanstack/react-query',
+    // react-hook-form — FormProvider context
+    'react-hook-form',
+    // @tanstack/react-router — RouterContext (companion packages travel with it
+    // since the whole package stays external)
+    /^@tanstack\/react-router(\/|$)/,
+    // sonner — module-level toast observer
+    'sonner',
+];
+
+/**
+ * Bare specifiers of {@link singletonSharedDeps}, for the consumer dev server's
+ * dep optimizer (`optimizeDeps.include`) so every bare import — from the
+ * pre-built `main.js`, from `lib.js`, and from extension code — resolves to one
+ * pre-bundled instance.
+ */
+export const singletonSharedDepNames: string[] = [
+    '@tanstack/react-query',
+    'react-hook-form',
+    '@tanstack/react-router',
+    'sonner',
 ];
 
 /**
