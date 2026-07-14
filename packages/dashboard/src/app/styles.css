@@ -53,6 +53,11 @@ html[dir="rtl"] * {
         isolation: isolate;
     }
 
+    /* Translucent so the same rule stays legible over light and dark backgrounds */
+    ::selection {
+        background-color: color-mix(in oklab, var(--brand) 30%, transparent);
+    }
+
     /* Restore h-svh on sidebar-gap to prevent sidebar fixed container
        from intercepting pointer events in the main content area */
     [data-slot="sidebar-gap"] {

@@ -37,8 +37,12 @@ function LoginPage() {
     const isVerifying = isLoading || auth.status === 'verifying';
 
     return (
-        <div className="flex min-h-svh flex-col items-center justify-center p-6 md:p-10 bg-sidebar">
-            <div className="w-full max-w-sm md:max-w-md">
+        <div className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden p-6 md:p-10 bg-sidebar">
+            <div
+                aria-hidden="true"
+                className="pointer-events-none absolute top-1/2 left-1/2 h-96 w-[36rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand/15 blur-[120px]"
+            />
+            <div className="relative w-full max-w-sm md:max-w-md">
                 <LoginForm
                     onFormSubmit={onFormSubmit}
                     isVerifying={isVerifying}
