@@ -1,13 +1,20 @@
+import { useLingui } from '@lingui/react/macro';
+import { useMutation } from '@tanstack/react-query';
 import { FloatingMenu } from '@tiptap/extension-floating-menu';
-import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import { TableKit } from '@tiptap/extension-table';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { useLayoutEffect, useMemo, useRef } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
 
+import { api } from '../../../graphql/api.js';
+import { createAssetsDocument } from '../asset/asset-gallery.js';
+import { LinkBubbleMenu } from './link-bubble-menu.js';
+import { ResizableImage } from './resizable-image.js';
 import { ResponsiveToolbar } from './responsive-toolbar.js';
+import { SelectionBubbleMenu } from './selection-bubble-menu.js';
 import { TableDeleteMenu } from './table-delete-menu.js';
 import { TableEditIcons } from './table-edit-icons.js';
 
@@ -30,7 +37,7 @@ const extensions = [
             validate: href => /^https?:\/\//.test(href),
         },
     }),
-    Image.configure({
+    ResizableImage.configure({
         inline: true,
         allowBase64: true,
         HTMLAttributes: {
@@ -62,13 +69,18 @@ export interface RichTextEditorProps {
 }
 
 export function RichTextEditor({ value, onChange, disabled = false, placeholder }: Readonly<RichTextEditorProps>) {
+    const { t } = useLingui();
     const isInternalUpdate = useRef(false);
+    const [linkEditToken, setLinkEditToken] = useState(0);
+    const requestLinkEdit = useCallback(() => setLinkEditToken(token => token + 1), []);
 
     const editorExtensions = useMemo(() => {
         return placeholder
             ? [...extensions, Placeholder.configure({ placeholder })]
             : extensions;
     }, [placeholder]);
+
+    const uploadImagesRef = useRef<(files: File[], pos?: number) => void>(() => undefined);
 
     const editor = useEditor({
         parseOptions: {
@@ -90,8 +102,67 @@ export function RichTextEditor({ value, onChange, disabled = false, placeholder 
             attributes: {
                 class: `rich-text-editor placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/10 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive field-sizing-content min-h-16 w-full bg-transparent px-3 py-2 text-base transition-[color,box-shadow] outline-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm max-h-[500px] overflow-y-auto ${disabled ? 'cursor-not-allowed opacity-50' : ''}`,
             },
+            handlePaste: (_view, event) => {
+                const files = Array.from(event.clipboardData?.files ?? []).filter(file =>
+                    file.type.startsWith('image/'),
+                );
+                if (files.length === 0) {
+                    return false;
+                }
+                event.preventDefault();
+                uploadImagesRef.current(files);
+                return true;
+            },
+            handleDrop: (view, event, _slice, moved) => {
+                if (moved) {
+                    return false;
+                }
+                const files = Array.from(event.dataTransfer?.files ?? []).filter(file =>
+                    file.type.startsWith('image/'),
+                );
+                if (files.length === 0) {
+                    return false;
+                }
+                event.preventDefault();
+                const coords = view.posAtCoords({ left: event.clientX, top: event.clientY });
+                uploadImagesRef.current(files, coords?.pos);
+                return true;
+            },
         },
     }, [editorExtensions]);
+
+    const { mutateAsync: createAssets } = useMutation({
+        mutationFn: api.mutate(createAssetsDocument),
+    });
+
+    uploadImagesRef.current = (files: File[], pos?: number) => {
+        if (!editor || disabled) {
+            return;
+        }
+        const toastId = toast.loading(t`Uploading image...`);
+        createAssets({ input: files.map(file => ({ file })) })
+            .then(result => {
+                toast.dismiss(toastId);
+                let insertPos = pos;
+                for (const asset of result.createAssets) {
+                    if ('source' in asset) {
+                        const image = { type: 'image', attrs: { src: asset.source } };
+                        if (insertPos != null) {
+                            editor.chain().focus().insertContentAt(insertPos, image).run();
+                            insertPos += 1;
+                        } else {
+                            editor.chain().focus().insertContent(image).run();
+                        }
+                    } else if ('message' in asset) {
+                        toast.error(asset.message);
+                    }
+                }
+            })
+            .catch(() => {
+                toast.dismiss(toastId);
+                toast.error(t`Failed to upload image`);
+            });
+    };
 
     useLayoutEffect(() => {
         if (editor && !editor.isDestroyed && !isInternalUpdate.current) {
@@ -116,9 +187,21 @@ export function RichTextEditor({ value, onChange, disabled = false, placeholder 
     }
 
     return (
-        <div className="border rounded-md overflow-hidden" data-testid="rich-text-editor">
-            <ResponsiveToolbar editor={editor} disabled={disabled} />
+        <div
+            className="border rounded-md overflow-hidden"
+            data-testid="rich-text-editor"
+            onKeyDown={event => {
+                // The app sidebar toggles on a window-level mod+B listener; keep
+                // the editor's bold shortcut from triggering it while typing
+                if (event.key === 'b' && (event.metaKey || event.ctrlKey)) {
+                    event.stopPropagation();
+                }
+            }}
+        >
+            <ResponsiveToolbar editor={editor} disabled={disabled} onRequestLinkEdit={requestLinkEdit} />
             <EditorContent editor={editor} />
+            <SelectionBubbleMenu editor={editor} onRequestLinkEdit={requestLinkEdit} />
+            <LinkBubbleMenu editor={editor} editRequestToken={linkEditToken} />
             <TableEditIcons editor={editor} disabled={disabled} />
             <TableDeleteMenu editor={editor} disabled={disabled} />
             <style>{`
