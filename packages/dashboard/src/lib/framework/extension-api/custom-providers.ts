@@ -85,7 +85,7 @@ export function registerDashboardCustomProviders(providers: DashboardCustomProvi
     }
 
     if (duplicateIds.size) {
-        const duplicates = Array.from(duplicateIds).sort();
+        const duplicates = Array.from(duplicateIds).sort((a, b) => a.localeCompare(b));
         throw new Error(
             `Duplicate dashboard custom provider ids detected: ` +
                 `${duplicates.map(id => `"${id}"`).join(', ')}. ` +
