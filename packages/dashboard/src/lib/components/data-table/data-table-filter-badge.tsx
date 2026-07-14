@@ -1,3 +1,4 @@
+import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { Trans } from '@lingui/react/macro';
 import { Filter, XIcon } from 'lucide-react';
@@ -17,6 +18,7 @@ export function DataTableFilterBadge({
     dataType: ColumnDataType;
     currencyCode: string;
 }) {
+    const { getTranslatedFieldName } = useDynamicTranslations();
     const [operator, value] = Object.entries(filter.value as Record<string, unknown>)[0];
     return (
         <div className="inline-flex items-center h-8 rounded-md border border-input bg-background text-sm">
@@ -26,7 +28,7 @@ export function DataTableFilterBadge({
             >
                 <Filter size="12" className="text-muted-foreground flex-shrink-0" />
                 <span className="max-w-[200px] truncate" title={filter.id}>
-                    {filter.id}
+                    {getTranslatedFieldName(filter.id)}
                 </span>
                 <span className="text-muted-foreground flex-shrink-0">
                     <HumanReadableOperator operator={operator as Operator} mode="short" />
