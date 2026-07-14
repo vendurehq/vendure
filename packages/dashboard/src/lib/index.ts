@@ -44,6 +44,7 @@ export * from './components/data-table/data-table-pagination.js';
 export * from './components/data-table/data-table-settings-menu.js';
 export * from './components/data-table/data-table-utils.js';
 export * from './components/data-table/data-table-view-options.js';
+export * from './components/data-table/data-table-views-tabs.js';
 export * from './components/data-table/data-table.js';
 export * from './components/data-table/filters/data-table-boolean-filter.js';
 export * from './components/data-table/filters/data-table-datetime-filter.js';

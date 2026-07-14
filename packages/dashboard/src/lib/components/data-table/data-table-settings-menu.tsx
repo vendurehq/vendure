@@ -50,7 +50,7 @@ export function DataTableSettingsMenu<TData>({
                         <DropdownMenuTrigger
                             render={
                                 <Button
-                                    variant="secondary"
+                                    variant="outline"
                                     size="icon-sm"
                                     data-testid="dt-column-settings-trigger"
                                 />

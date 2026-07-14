@@ -1,5 +1,3 @@
-import { Badge } from '@/vdb/components/ui/badge.js';
-import { Button } from '@/vdb/components/ui/button.js';
 import { Checkbox } from '@/vdb/components/ui/checkbox.js';
 import {
     Command,
@@ -19,9 +17,9 @@ import {
 } from '@/vdb/hooks/use-facet-value-browser.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronRight, FilterIcon, Loader2 } from 'lucide-react';
+import { ChevronRight, Loader2 } from 'lucide-react';
 import { useState } from 'react';
-import { DataTableFacetedFilterProps } from './data-table-faceted-filter.js';
+import { DataTableFacetedFilterProps, FacetedFilterChip } from './data-table-faceted-filter.js';
 
 /**
  * @description
@@ -59,6 +57,9 @@ import { DataTableFacetedFilterProps } from './data-table-faceted-filter.js';
 export function FacetValueFacetedFilter<TData, TValue>({
     column,
     title,
+    icon,
+    defaultOpen,
+    onOpenChange,
 }: DataTableFacetedFilterProps<TData, TValue>) {
     const { t } = useLingui();
 
@@ -131,37 +132,19 @@ export function FacetValueFacetedFilter<TData, TValue>({
         const fv = knownValues.get(id);
         return fv ? `${fv.facet.name}: ${fv.name}` : id;
     });
+    let valueLabel: string | undefined;
+    if (selectedIds.size > 0) {
+        valueLabel = selectedIds.size > 2 ? t`${selectedIds.size} selected` : selectedLabels.join(', ');
+    }
 
     return (
-        <Popover>
-            <PopoverTrigger render={<Button variant="secondary" size="sm" className="h-8" />}>
-                <FilterIcon />
-                {title}
-                {selectedIds.size > 0 && (
-                    <>
-                        <Badge variant="outline" className="rounded-sm px-1 font-normal lg:hidden">
-                            {selectedIds.size}
-                        </Badge>
-                        <div className="hidden space-x-1 lg:flex">
-                            {selectedIds.size > 2 ? (
-                                <Badge variant="outline" className="rounded-sm px-1 font-normal">
-                                    {selectedIds.size} selected
-                                </Badge>
-                            ) : (
-                                selectedLabels.map(label => (
-                                    <Badge
-                                        key={label}
-                                        variant="outline"
-                                        className="rounded-sm px-1 font-normal"
-                                    >
-                                        {label}
-                                    </Badge>
-                                ))
-                            )}
-                        </div>
-                    </>
-                )}
-            </PopoverTrigger>
+        <Popover defaultOpen={defaultOpen} onOpenChange={onOpenChange}>
+            <FacetedFilterChip
+                icon={icon}
+                title={title}
+                valueLabel={valueLabel}
+                onClear={() => column?.setFilterValue(undefined)}
+            />
             <PopoverContent className="w-[400px] p-0" align="start">
                 <Command shouldFilter={false}>
                     <CommandInput
