@@ -513,10 +513,15 @@ export async function createVendureApp(
                   : LogLevel.Info;
 
         // Generate an initial "baseline" migration and run it, so that a fresh project ships with a
-        // schema-creating migration from day one. The database is empty at this point, so diffing
-        // the entity metadata against it yields the complete schema. This lets the very first remote
-        // deploy build its schema via migrations instead of relying on `synchronize`, which is unsafe
-        // in production.
+        // schema-creating migration from day one. This lets the very first remote deploy build its
+        // schema via migrations instead of relying on `synchronize`, which is unsafe in production.
+        //
+        // `fromEmpty` diffs against a temporary empty database, so a complete baseline is produced
+        // even if the configured database is not pristine (e.g. a re-run pointing at a database left
+        // populated by an earlier attempt) - avoiding a silently-empty migrations directory.
+        // VENDURE_RUNNING_IN_CLI makes generateMigration/runMigrations throw on failure rather than
+        // logging and continuing, so any error surfaces to the catch below instead of letting the
+        // scaffold proceed against a broken schema.
         await checkDbConnection(config.dbConnectionOptions, serverRoot);
         const migrationsGlob = Array.isArray(config.dbConnectionOptions.migrations)
             ? config.dbConnectionOptions.migrations[0]
@@ -525,8 +530,20 @@ export async function createVendureApp(
             typeof migrationsGlob === 'string'
                 ? path.dirname(migrationsGlob)
                 : path.join(serverRoot, 'src', 'migrations');
-        await generateMigration(config, { name: 'init', outputDir: migrationsDir });
-        await runMigrations(config);
+        process.env.VENDURE_RUNNING_IN_CLI = 'true';
+        try {
+            const migrationFile = await generateMigration(config, {
+                name: 'init',
+                outputDir: migrationsDir,
+                fromEmpty: true,
+            });
+            if (!migrationFile) {
+                throw new Error('Failed to generate the initial database migration.');
+            }
+            await runMigrations(config);
+        } finally {
+            delete process.env.VENDURE_RUNNING_IN_CLI;
+        }
 
         const bootstrapFn = async () => {
             const _app = await bootstrap({
