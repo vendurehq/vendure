@@ -11,3 +11,8 @@ export {
     TONE_SEVERITY,
 } from '@vendure-io/ui/lib/state-dictionary';
 export type { StateEntry, StateMap, Tone } from '@vendure-io/ui/lib/state-dictionary';
+
+// The concrete order-domain state dictionary, surfaced alongside the toolkit so
+// extensions can reuse Vendure's canonical order/payment/fulfillment tone map
+// (or `toneFor` fallback) instead of redefining it.
+export { orderStateDictionary } from '@/vdb/utils/state-type.js';

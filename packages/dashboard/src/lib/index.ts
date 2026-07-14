@@ -130,6 +130,7 @@ export * from './components/shared/language-selector.js';
 export * from './components/shared/logo-mark.js';
 export * from './components/shared/multi-select.js';
 export * from './components/shared/navigation-confirmation.js';
+export * from './components/shared/not-found-error.js';
 export * from './components/shared/option-value-input.js';
 export * from './components/shared/paginated-list-context.js';
 export * from './components/shared/paginated-list-data-table.js';
