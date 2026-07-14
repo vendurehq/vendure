@@ -1,4 +1,5 @@
 import { FieldInfo } from '@/vdb/framework/document-introspection/get-document-structure.js';
+import { z } from '@/vdb/lib/zod.js';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -76,10 +77,13 @@ describe('form-schema-tools', () => {
             expect(() => schema.parse(null)).not.toThrow();
         });
 
+        // #4173 — required-ness is NOT inferable from the GraphQL type, so the generated schema
+        // must stay permissive and pages declare their required fields via `extendSchema`.
+        // A non-nullable ID! is not necessarily user-supplied: CreateFacetValueInput.facetId is
+        // injected by the page in transformCreateInput, so it is legitimately '' in the form.
+        // Rejecting '' here breaks facet-value creation.
         it('should accept empty strings for non-nullable ID fields', () => {
-            // ID fields are server-assigned and default to '' for new entities,
-            // so they must not have min(1) validation applied.
-            const field = createMockField('id', 'ID', false);
+            const field = createMockField('facetId', 'ID', false);
             const schema = getZodTypeFromField(field);
 
             expect(() => schema.parse('123')).not.toThrow();
@@ -87,12 +91,23 @@ describe('form-schema-tools', () => {
         });
 
         it('should accept empty strings for non-nullable DateTime fields', () => {
-            // In GraphQL, DateTime! means "not null", not "not empty".
             const field = createMockField('date', 'DateTime', false);
             const schema = getZodTypeFromField(field);
 
             expect(() => schema.parse('2024-01-01')).not.toThrow();
             expect(() => schema.parse('')).not.toThrow();
+        });
+
+        // Nullable ID/DateTime fields are seeded with '' by getDefaultValueFromField (e.g. the
+        // `id` of a translation on a create form). Rejecting '' made every create form with a
+        // translation block permanently invalid.
+        it('should accept empty strings for nullable ID fields', () => {
+            const field = createMockField('id', 'ID', true);
+            const schema = getZodTypeFromField(field);
+
+            expect(() => schema.parse('123')).not.toThrow();
+            expect(() => schema.parse('')).not.toThrow();
+            expect(() => schema.parse(null)).not.toThrow();
         });
 
         it('should create number type for Int fields', () => {
@@ -620,7 +635,8 @@ describe('form-schema-tools', () => {
         it('default values for nullable customFields inside translations should pass Zod validation', () => {
             const fields: FieldInfo[] = [
                 createMockField('translations', 'Object', false, true, [
-                    createMockField('id', 'ID'),
+                    // `id: ID` (nullable) in the real schema — see e.g. FacetTranslationInput
+                    createMockField('id', 'ID', true),
                     createMockField('languageCode', 'LanguageCode'),
                     {
                         name: 'customFields',
@@ -640,6 +656,56 @@ describe('form-schema-tools', () => {
             // defaults.translations[0].customFields should be {} not null
             expect(defaults.translations[0].customFields).toEqual({});
             expect(() => schema.parse(defaults)).not.toThrow();
+        });
+
+        // The generated defaults for a create form must satisfy the generated schema, or the
+        // form is invalid before the user types anything. A blanket min(1) on non-nullable
+        // String broke exactly this for facet/collection/promotion creates, because
+        // `description: String!` and `ConfigArgInput.value: String!` are legitimately empty.
+        it('default values for a create form should pass the generated schema', () => {
+            const fields: FieldInfo[] = [
+                createMockField('code', 'String'),
+                createMockField('translations', 'Object', false, true, [
+                    createMockField('id', 'ID', true),
+                    createMockField('languageCode', 'LanguageCode'),
+                    createMockField('name', 'String'),
+                    createMockField('description', 'String'),
+                ]),
+            ];
+
+            const defaults = getDefaultValuesFromFields(fields, 'en');
+            const schema = createFormSchemaFromFields(fields, [], false);
+
+            expect(defaults.translations[0].description).toBe('');
+            expect(() => schema.parse(defaults)).not.toThrow();
+        });
+
+        // #4173 — a page marks its genuinely-required fields via `extendSchema` (see the channel
+        // detail page). Blank required fields then fail client-side with an inline message,
+        // instead of reaching the server and coming back as a raw GraphQL error.
+        it('extendSchema should be able to mark a generated field as required', () => {
+            const fields: FieldInfo[] = [
+                createMockField('code', 'String'),
+                createMockField('defaultTaxZoneId', 'ID'),
+            ];
+
+            const defaults = getDefaultValuesFromFields(fields, 'en');
+            const generated = createFormSchemaFromFields(fields, [], false);
+
+            // The generated schema alone accepts the blank defaults...
+            expect(defaults.defaultTaxZoneId).toBe('');
+            expect(() => generated.parse(defaults)).not.toThrow();
+
+            // ...until the page declares the fields it actually requires.
+            const extended = generated.extend({
+                code: z.string().min(1, { message: 'This field is required' }),
+                defaultTaxZoneId: z.string().min(1, { message: 'This field is required' }),
+            });
+
+            expect(() => extended.parse(defaults)).toThrow();
+            expect(() =>
+                extended.parse({ ...defaults, code: 'my-channel', defaultTaxZoneId: '1' }),
+            ).not.toThrow();
         });
 
         it('default values for JSON-typed customFields should be {} not null', () => {

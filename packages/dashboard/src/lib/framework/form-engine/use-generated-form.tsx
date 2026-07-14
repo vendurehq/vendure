@@ -1,5 +1,5 @@
+import { zodResolver, type ZodObject, type ZodTypeAny } from '@/vdb/lib/zod.js';
 import type { TypedDocumentNode } from '@graphql-typed-document-node/core';
-import { zodResolver } from '@/vdb/lib/zod.js';
 import { VariablesOf } from 'gql.tada';
 import { FormEvent, useEffect, useMemo, useRef } from 'react';
 import { useForm } from 'react-hook-form';
@@ -56,6 +56,24 @@ export interface GeneratedFormOptions<
      */
     entity: E | null | undefined;
     customFieldConfig?: any[]; // Add custom field config for validation
+    /**
+     * @description
+     * Refines the auto-generated Zod schema before it is passed to the form resolver.
+     *
+     * The generated schema is derived from the GraphQL input type, which can only express
+     * nullability. Nullability does not imply that a value is _required_ in the UI sense:
+     * `String!` permits an empty string. Use this to declare fields which must actually be
+     * filled in by the user.
+     *
+     * @example
+     * ```ts
+     * extendSchema: schema =>
+     *     schema.extend({
+     *         code: z.string().min(1, { message: t`This field is required` }),
+     *     }),
+     * ```
+     */
+    extendSchema?: (schema: ZodObject<any>) => ZodTypeAny;
     setValues: (
         entity: NonNullable<E>,
     ) => WithLooseCustomFields<
@@ -102,7 +120,7 @@ export function useGeneratedForm<
     VarName extends keyof VariablesOf<T> | undefined,
     E extends Record<string, any> = Record<string, any>,
 >(options: GeneratedFormOptions<T, VarName, E>) {
-    const { document, entity, setValues, onSubmit, varName, customFieldConfig } = options;
+    const { document, entity, setValues, onSubmit, varName, customFieldConfig, extendSchema } = options;
     const { activeChannel } = useChannel();
     const serverConfig = useServerConfig();
 
@@ -114,6 +132,14 @@ export function useGeneratedForm<
     useEffect(() => {
         setValuesRef.current = setValues;
     }, [setValues]);
+
+    // Same reasoning as `setValues`: an inline `extendSchema` arrow would change
+    // identity every render, replacing the resolver and re-validating the whole
+    // form each time. Read it from a ref so the schema memo below stays stable.
+    const extendSchemaRef = useRef(extendSchema);
+    useEffect(() => {
+        extendSchemaRef.current = extendSchema;
+    }, [extendSchema]);
 
     // Recomputing this on every render produces a new array identity which
     // ripples into the schema and default-values memos below, defeating any
@@ -132,10 +158,10 @@ export function useGeneratedForm<
     // the parent route. When the schema changes identity, react-hook-form's
     // resolver is replaced and the form re-validates everything; when
     // defaultValues changes identity it can also reset uncontrolled inputs.
-    const schema = useMemo(
-        () => createFormSchemaFromFields(updateFields, customFieldConfig),
-        [updateFields, customFieldConfig],
-    );
+    const schema = useMemo(() => {
+        const generated = createFormSchemaFromFields(updateFields, customFieldConfig);
+        return extendSchemaRef.current?.(generated) ?? generated;
+    }, [updateFields, customFieldConfig]);
     const defaultValues = useMemo(
         () => getDefaultValuesFromFields(updateFields, activeChannel?.defaultLanguageCode, customFieldConfig),
         [updateFields, activeChannel?.defaultLanguageCode, customFieldConfig],

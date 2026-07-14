@@ -153,3 +153,51 @@ test.describe('Channels CRUD', () => {
         await expect(lp.getRows().filter({ hasText: 'e2e-test-channel' })).toHaveCount(0);
     });
 });
+
+// #4173 — creating a channel with missing required fields produced a raw GraphQL error toast,
+// and the offending fields were not highlighted. Required `ID!` relations (default tax/shipping
+// zone) were seeded with '' and passed the generated `z.string()`, then got stripped from the
+// payload and blew up during server-side variable coercion.
+test.describe('Channel required-field validation', () => {
+    const detailPage = (page: Page) =>
+        new BaseDetailPage(page, {
+            newPath: '/channels/new',
+            pathPrefix: '/channels/',
+            newTitle: 'New channel',
+        });
+
+    test('should show inline errors instead of a raw GraphQL toast when required fields are missing', async ({
+        page,
+    }) => {
+        const dp = detailPage(page);
+        await dp.gotoNew();
+        await dp.expectNewPageLoaded();
+
+        // Fill only `code`, exactly as the issue describes ("fill in some of the required
+        // fields"). This also makes the form dirty, so the Create button is enabled.
+        await dp.fillInput('Code', 'e2e-incomplete-channel');
+        await dp.clickCreate();
+
+        // Each missing required field is called out in place...
+        for (const label of ['Token', 'Default tax zone', 'Default shipping zone']) {
+            await expect(dp.formItem(label).getByText('This field is required')).toBeVisible();
+        }
+
+        // ...and the mutation never leaves the client, so there is no raw GraphQL error toast.
+        await expect(page.locator('[data-sonner-toast]')).toHaveCount(0);
+        await expect(page).toHaveURL(/\/channels\/new$/);
+    });
+
+    test('should clear the error once a required field is filled', async ({ page }) => {
+        const dp = detailPage(page);
+        await dp.gotoNew();
+        await dp.expectNewPageLoaded();
+
+        await dp.fillInput('Code', 'e2e-incomplete-channel');
+        await dp.clickCreate();
+        await expect(dp.formItem('Token').getByText('This field is required')).toBeVisible();
+
+        await dp.fillInput('Token', 'e2e-some-token');
+        await expect(dp.formItem('Token').getByText('This field is required')).not.toBeVisible();
+    });
+});

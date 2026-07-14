@@ -9,7 +9,9 @@ import { Button } from '@/vdb/components/ui/button.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { Switch } from '@/vdb/components/ui/switch.js';
 import { DEFAULT_CHANNEL_CODE, NEW_ENTITY_PATH } from '@/vdb/constants.js';
-import {    CustomFieldsPageBlock,
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
+import {
+    CustomFieldsPageBlock,
     DetailFormGrid,
     Page,
     PageActionBar,
@@ -17,10 +19,10 @@ import {    CustomFieldsPageBlock,
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
-import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
+import { z } from '@/vdb/lib/zod.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
@@ -77,6 +79,22 @@ function ChannelDetailPage() {
                 currencyCode: undefined,
             };
         },
+        // The generated schema is derived from the GraphQL input type, which only tells us
+        // about nullability — `String!` still permits '', and an unfilled `ID!` relation is
+        // seeded with ''. Neither is a valid channel, so declare the required fields here.
+        // The zones are only required on create (`CreateChannelInput` has `defaultTaxZoneId: ID!`,
+        // whereas `UpdateChannelInput` has `defaultTaxZoneId: ID` and omits what isn't sent).
+        extendSchema: schema =>
+            schema.extend({
+                code: z.string().min(1, { message: t`This field is required` }),
+                token: z.string().min(1, { message: t`This field is required` }),
+                ...(creatingNewEntity
+                    ? {
+                          defaultTaxZoneId: z.string().min(1, { message: t`This field is required` }),
+                          defaultShippingZoneId: z.string().min(1, { message: t`This field is required` }),
+                      }
+                    : {}),
+            }),
         params: { id: params.id },
         onSuccess: async data => {
             if (data.__typename === 'Channel') {
@@ -115,10 +133,12 @@ function ChannelDetailPage() {
             </PageTitle>
             <PageActionBar>
                 <ActionBarItem itemId="save-button" requiresPermission={['UpdateChannel']}>
-                    <Button
-                        type="submit"
-                        disabled={!form.formState.isDirty || !form.formState.isValid || isPending}
-                    >
+                    {/*
+                     * Deliberately not gated on `formState.isValid`: with required fields, an
+                     * untouched invalid form would leave the button disabled with no indication
+                     * of why. `submitHandler` validates and bails, surfacing inline field errors.
+                     */}
+                    <Button type="submit" disabled={!form.formState.isDirty || isPending}>
                         {creatingNewEntity ? <Trans>Create</Trans> : <Trans>Update</Trans>}
                     </Button>
                 </ActionBarItem>

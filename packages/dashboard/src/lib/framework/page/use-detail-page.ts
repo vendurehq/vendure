@@ -1,4 +1,5 @@
 import { removeReadonlyAndLocalizedCustomFields } from '@/vdb/lib/utils.js';
+import type { ZodObject, ZodTypeAny } from '@/vdb/lib/zod.js';
 import type { TypedDocumentNode } from '@graphql-typed-document-node/core';
 import {
     DefinedInitialDataOptions,
@@ -102,6 +103,22 @@ export interface DetailPageOptions<
     ) => WithLooseCustomFields<VariablesOf<U>[VarNameUpdate]>;
     transformCreateInput?: (input: VariablesOf<C>[VarNameCreate]) => VariablesOf<C>[VarNameCreate];
     transformUpdateInput?: (input: VariablesOf<U>[VarNameUpdate]) => VariablesOf<U>[VarNameUpdate];
+    /**
+     * @description
+     * Refines the auto-generated Zod schema for this page's form. The generated schema is
+     * derived from the GraphQL input type, which can only express nullability — and in
+     * GraphQL, `String!` permits an empty string. Use this to declare the fields which the
+     * user must actually fill in.
+     *
+     * @example
+     * ```ts
+     * extendSchema: schema =>
+     *     schema.extend({
+     *         code: z.string().min(1, { message: t`This field is required` }),
+     *     }),
+     * ```
+     */
+    extendSchema?: (schema: ZodObject<any>) => ZodTypeAny;
     /**
      * @description
      * The function to call when the update is successful.
@@ -257,6 +274,7 @@ export function useDetailPage<
         setValuesForUpdate,
         transformCreateInput,
         transformUpdateInput,
+        extendSchema,
         params,
         entityField,
         entityName,
@@ -317,6 +335,7 @@ export function useDetailPage<
         varName: 'input',
         entity,
         customFieldConfig,
+        extendSchema,
         setValues: setValuesForUpdate,
         onSubmit(values: any) {
             const filteredValues = removeReadonlyAndLocalizedCustomFields(values, customFieldConfig || []);

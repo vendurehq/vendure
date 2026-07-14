@@ -195,7 +195,7 @@ msgstr "Aktuální"
 msgid "No fulfillments"
 msgstr "Žádné expedice"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:232
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:251
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
 msgstr "Když je toto povoleno, ceny zadané v katalogu produktů budou zahrnovat DPH pro výchozí daňovou zónu."
 
@@ -246,7 +246,7 @@ msgstr "Možnosti"
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
 msgstr "{fulfilled, plural, one {Úspěšně zrušena {fulfilled} úloha} few {Úspěšně zrušeny {fulfilled} úlohy} other {Úspěšně zrušeno {fulfilled} úloh}}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:152
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:171
 msgid "Seller"
 msgstr "Prodejce"
 
@@ -389,8 +389,8 @@ msgctxt "date-range"
 msgid "Last 7 days"
 msgstr "Posledních 7 dní"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:90
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:96
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:107
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:113
 msgid "Failed to create channel"
 msgstr "Nepodařilo se vytvořit kanál"
 
@@ -685,7 +685,7 @@ msgstr "Vybrat adresu"
 msgid "Payment eligibility checker"
 msgstr "Kontrola způsobilosti platby"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:214
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:233
 msgid "Default tax zone"
 msgstr "Výchozí daňová zóna"
 
@@ -713,7 +713,7 @@ msgstr "Filtrovat..."
 msgid "New facet value"
 msgstr "Nová hodnota vlastnosti"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:83
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:100
 msgid "Successfully updated channel"
 msgstr "Kanál úspěšně aktualizován"
 
@@ -725,7 +725,7 @@ msgstr "Zobrazit méně"
 msgid "Short date"
 msgstr "Krátké datum"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:172
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:191
 msgid "Available currencies"
 msgstr "Dostupné měny"
 
@@ -1204,9 +1204,16 @@ msgstr "Zbývá:"
 msgid "No duplicator found with code \"{duplicatorCode}\" for {entityName}s"
 msgstr "Nenalezen žádný duplikátor s kódem \"{duplicatorCode}\" pro {entityName}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:230
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:249
 msgid "Prices include tax for default tax zone"
 msgstr "Ceny zahrnují DPH pro výchozí daňovou zónu"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:88
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:89
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:92
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:93
+msgid "This field is required"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx:276
 msgid "Total refund:"
@@ -1322,8 +1329,8 @@ msgstr "{productCount, plural, one {Tato skupina voleb je používána jedním d
 msgid "My Saved Views"
 msgstr "Moje uložené pohledy"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:39
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:111
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:40
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:128
 msgid "New channel"
 msgstr "Nový kanál"
 
@@ -1685,7 +1692,7 @@ msgstr "Smazat variantu"
 msgid "No modifications made"
 msgstr "Nebyly provedeny žádné úpravy"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:222
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:241
 msgid "Default shipping zone"
 msgstr "Výchozí dopravní zóna"
 
@@ -1795,7 +1802,7 @@ msgstr "Refund úspěšně vypořádán"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:141
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
@@ -1892,7 +1899,7 @@ msgstr "Žádné výsledky"
 msgid "Column settings"
 msgstr "Nastavení sloupců"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:132
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:151
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:126
@@ -2590,7 +2597,7 @@ msgstr "Nová daňová kategorie"
 #~ msgid "No stock locations available on current channel"
 #~ msgstr "Na aktuálním kanále nejsou k dispozici žádné sklady"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:83
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:100
 msgid "Successfully created channel"
 msgstr "Kanál úspěšně vytvořen"
 
@@ -2821,7 +2828,7 @@ msgstr "Smazat globální pohled"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:141
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
@@ -3129,7 +3136,7 @@ msgstr "Stát/Kraj"
 msgid "Failed to update option group"
 msgstr "Nepodařilo se aktualizovat skupinu voleb"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:183
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:202
 msgid "Channel defaults"
 msgstr "Výchozí nastavení kanálu"
 
@@ -3285,7 +3292,7 @@ msgstr "Hledat hodnoty faset..."
 msgid "Note"
 msgstr "Poznámka"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:160
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:179
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:112
 msgid "Available languages"
 msgstr "Dostupné jazyky"
@@ -3440,7 +3447,7 @@ msgstr ""
 msgid "Settle payment"
 msgstr "Vypořádat platbu"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:38
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:39
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:216
@@ -5093,7 +5100,7 @@ msgstr "Nepodařilo se přiřadit {entityIdsLength} {entityType} ke kanálu"
 msgid "Default Language"
 msgstr "Výchozí jazyk"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:141
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:160
 msgid "Token"
 msgstr "Token"
 
@@ -5193,7 +5200,7 @@ msgstr "Expedice #{0} z {1} na {2}"
 msgid "Failed to delete global view"
 msgstr "Nepodařilo se smazat globální pohled"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:188
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:207
 msgid "Default language"
 msgstr "Výchozí jazyk"
 
@@ -5529,8 +5536,8 @@ msgstr "Zdroj"
 msgid "No actions available"
 msgstr "Žádné akce k dispozici"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:90
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:96
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:107
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:113
 msgid "Failed to update channel"
 msgstr "Nepodařilo se aktualizovat kanál"
 
@@ -5591,7 +5598,7 @@ msgstr "Popis (alt)"
 msgid "No tags found"
 msgstr "Nenalezeny žádné štítky"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:201
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:220
 msgid "Default currency"
 msgstr "Výchozí měna"
 
@@ -5975,7 +5982,7 @@ msgstr "Přidat platbu k objednávce"
 msgid "Loading..."
 msgstr "Načítání..."
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:143
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:162
 msgid "The token is used to specify the channel when making API requests."
 msgstr "Token se používá k určení kanálu při provádění API požadavků."
 

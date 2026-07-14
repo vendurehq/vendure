@@ -195,7 +195,7 @@ msgstr "נוכחי"
 msgid "No fulfillments"
 msgstr "אין משלוחים"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:232
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:251
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
 msgstr "כאשר זה מופעל, המחירים שהוזנו בקטלוג המוצרים יכללו מע\"מ עבור אזור המס המחדלי."
 
@@ -246,7 +246,7 @@ msgstr "אפשרויות"
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
 msgstr "{fulfilled, plural, one {{fulfilled} משימה בוטלה בהצלחה} other {{fulfilled} משימות בוטלו בהצלחה}}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:152
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:171
 msgid "Seller"
 msgstr "מוכר"
 
@@ -389,8 +389,8 @@ msgctxt "date-range"
 msgid "Last 7 days"
 msgstr "7 הימים האחרונים"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:90
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:96
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:107
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:113
 msgid "Failed to create channel"
 msgstr "יצירת הערוץ נכשלה"
 
@@ -685,7 +685,7 @@ msgstr "בחר כתובת"
 msgid "Payment eligibility checker"
 msgstr "בודק זכאות תשלום"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:214
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:233
 msgid "Default tax zone"
 msgstr "אזור מס ברירת מחדל"
 
@@ -713,7 +713,7 @@ msgstr "סנן..."
 msgid "New facet value"
 msgstr "ערך מאפיין חדש"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:83
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:100
 msgid "Successfully updated channel"
 msgstr "הערוץ עודכן בהצלחה"
 
@@ -725,7 +725,7 @@ msgstr "הצג פחות"
 msgid "Short date"
 msgstr "תאריך קצר"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:172
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:191
 msgid "Available currencies"
 msgstr "מטבעות זמינים"
 
@@ -1204,9 +1204,16 @@ msgstr "נותר:"
 msgid "No duplicator found with code \"{duplicatorCode}\" for {entityName}s"
 msgstr "לא נמצא משכפל עם קוד \"{duplicatorCode}\" עבור {entityName}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:230
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:249
 msgid "Prices include tax for default tax zone"
 msgstr "המחירים כוללים מע\"מ עבור אזור המס המחדלי"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:88
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:89
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:92
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:93
+msgid "This field is required"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx:276
 msgid "Total refund:"
@@ -1322,8 +1329,8 @@ msgstr "{productCount, plural, one {קבוצת אפשרויות זו משמשת 
 msgid "My Saved Views"
 msgstr "התצוגות השמורות שלי"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:39
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:111
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:40
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:128
 msgid "New channel"
 msgstr "ערוץ חדש"
 
@@ -1685,7 +1692,7 @@ msgstr "מחיקת גרסה"
 msgid "No modifications made"
 msgstr "לא בוצעו שינויים"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:222
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:241
 msgid "Default shipping zone"
 msgstr "אזור משלוח ברירת מחדל"
 
@@ -1795,7 +1802,7 @@ msgstr "ההחזר סולק בהצלחה"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:141
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
@@ -1892,7 +1899,7 @@ msgstr "אין תוצאות"
 msgid "Column settings"
 msgstr "הגדרות עמודות"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:132
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:151
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:126
@@ -2590,7 +2597,7 @@ msgstr "קטגוריית מס חדשה"
 #~ msgid "No stock locations available on current channel"
 #~ msgstr "אין מיקומי מלאי זמינים בערוץ הנוכחי"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:83
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:100
 msgid "Successfully created channel"
 msgstr "הערוץ נוצר בהצלחה"
 
@@ -2821,7 +2828,7 @@ msgstr "מחק תצוגה גלובלית"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:141
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
@@ -3129,7 +3136,7 @@ msgstr "מדינה/מחוז"
 msgid "Failed to update option group"
 msgstr "עדכון קבוצת האפשרויות נכשל"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:183
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:202
 msgid "Channel defaults"
 msgstr "ברירות מחדל של ערוץ"
 
@@ -3285,7 +3292,7 @@ msgstr "חיפוש ערכי פאספט..."
 msgid "Note"
 msgstr "הערה"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:160
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:179
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:112
 msgid "Available languages"
 msgstr "שפות זמינות"
@@ -3440,7 +3447,7 @@ msgstr ""
 msgid "Settle payment"
 msgstr "סלק תשלום"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:38
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:39
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:216
@@ -5093,7 +5100,7 @@ msgstr "נכשל בהקצאת {entityIdsLength} {entityType} לערוץ"
 msgid "Default Language"
 msgstr "שפת ברירת מחדל"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:141
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:160
 msgid "Token"
 msgstr "טוקן"
 
@@ -5193,7 +5200,7 @@ msgstr "משלוח מס' {0} מ-{1} ל-{2}"
 msgid "Failed to delete global view"
 msgstr "מחיקת התצוגה הגלובלית נכשלה"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:188
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:207
 msgid "Default language"
 msgstr "שפת ברירת מחדל"
 
@@ -5529,8 +5536,8 @@ msgstr "מקור"
 msgid "No actions available"
 msgstr "אין פעולות זמינות"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:90
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:96
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:107
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:113
 msgid "Failed to update channel"
 msgstr "עדכון הערוץ נכשל"
 
@@ -5591,7 +5598,7 @@ msgstr "תיאור (טקסט חלופי)"
 msgid "No tags found"
 msgstr "לא נמצאו תגיות"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:201
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:220
 msgid "Default currency"
 msgstr "מטבע ברירת מחדל"
 
@@ -5975,7 +5982,7 @@ msgstr "הוסף תשלום להזמנה"
 msgid "Loading..."
 msgstr "טוען..."
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:143
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:162
 msgid "The token is used to specify the channel when making API requests."
 msgstr "הטוקן משמש לציון הערוץ בעת ביצוע בקשות API."
 

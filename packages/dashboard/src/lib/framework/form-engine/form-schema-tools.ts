@@ -499,11 +499,15 @@ export function getZodTypeFromField(field: FieldInfo): ZodTypeAny {
     // Custom fields are handled separately in createFormSchemaFromFields
 
     switch (field.type) {
+        // Required-ness cannot be inferred from the GraphQL type here, so none of these get a
+        // `min(1)`. `String!` means "not null", not "not empty" — an empty string is a valid
+        // value for e.g. `CollectionTranslationInput.description`. And a non-nullable `ID!` is
+        // not necessarily user-supplied: `CreateFacetValueInput.facetId` is injected by the page
+        // in `transformCreateInput`, so it is legitimately '' in the form.
+        // Pages declare their genuinely-required fields explicitly via `extendSchema`.
         case 'String':
-        case 'DateTime':
-            zodType = z.string();
-            break;
         case 'ID':
+        case 'DateTime':
             zodType = z.string();
             break;
         case 'Int':
