@@ -337,6 +337,203 @@ test.describe('manage product variants', () => {
     });
 });
 
+// #4703 / OSS-521 — a wrongly-added option group could not be removed from the
+// product detail page (only "remove all" via the variant setup back button, or
+// via the manage-variants page which is only linked once variants exist). The
+// Product Options badge now has a per-group remove control.
+test.describe('remove option group from product detail (#4703)', () => {
+    test.describe.configure({ mode: 'serial' });
+
+    let productId: string;
+
+    test('create a product and add an option group', async ({ page }) => {
+        const detail = new BaseDetailPage(page, productDetailConfig);
+        await detail.gotoNew();
+        await detail.expectNewPageLoaded();
+        await detail.fillFields([{ label: 'Product name', value: 'E2E Remove Option Group Product' }]);
+        await expect(detail.formItem('Slug').getByRole('textbox')).not.toHaveValue('', { timeout: 5_000 });
+        await detail.clickCreate();
+        await detail.expectSuccessToast(/created/i);
+        await detail.expectNavigatedToExisting();
+        productId = (page.url().match(/\/products\/([^/]+)$/) as RegExpMatchArray)[1];
+
+        // Add an option group via the "Product with options" dialog.
+        await page.getByRole('button', { name: /Product with options/i }).click();
+        await expect(page.getByRole('dialog')).toBeVisible();
+        await page.getByRole('tab', { name: 'Create new' }).click();
+        await page.getByPlaceholder('e.g. Size').fill('Size');
+        const optionInput = page.getByPlaceholder('Enter value and press Enter');
+        await optionInput.fill('Small');
+        await optionInput.press('Enter');
+        await page.getByRole('button', { name: 'Save option group' }).click();
+        await expect(
+            page
+                .locator('[data-sonner-toast]')
+                .filter({ hasText: /created/i })
+                .first(),
+        ).toBeVisible({ timeout: 10_000 });
+    });
+
+    test('removes the option group via the badge remove control', async ({ page }) => {
+        await page.goto(`/products/${productId}`);
+        await expect(page.getByRole('heading', { name: 'E2E Remove Option Group Product' })).toBeVisible({
+            timeout: 10_000,
+        });
+
+        // The Product Options block shows the "Size" group badge with a remove control.
+        const removeButton = page.getByRole('button', { name: 'Remove option group' });
+        await expect(removeButton).toBeVisible();
+        await removeButton.click();
+
+        // Confirm in the AlertDialog.
+        const alertDialog = page.locator('[role="alertdialog"]');
+        await expect(alertDialog.getByText('Remove option group')).toBeVisible();
+        await alertDialog.getByRole('button', { name: 'Continue' }).click();
+
+        await expect(
+            page
+                .locator('[data-sonner-toast]')
+                .filter({ hasText: /removed/i })
+                .first(),
+        ).toBeVisible({ timeout: 10_000 });
+
+        // The group is gone: no remove control remains and the variant-setup choice
+        // (which only appears with zero option groups) is shown again.
+        await expect(page.getByRole('button', { name: 'Remove option group' })).toHaveCount(0);
+        await expect(page.getByRole('button', { name: /Product with options/i })).toBeVisible();
+    });
+
+    test.afterAll(async ({ browser }) => {
+        if (!productId) return;
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, { id: productId });
+        await page.close();
+    });
+});
+
+// #4703 / OSS-521 — when the option group is still in use by a variant, a normal
+// remove returns ProductOptionInUseError; the badge must surface the force-remove
+// confirmation and, on confirm, force the removal through. This exercises the
+// riskier half of the feature that the happy-path test above does not.
+test.describe('force-remove an in-use option group (#4703)', () => {
+    test.describe.configure({ mode: 'serial' });
+
+    let productId: string;
+
+    test.beforeAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+
+        const product = await client.gql(
+            `mutation ($input: CreateProductInput!) { createProduct(input: $input) { id } }`,
+            {
+                input: {
+                    translations: [
+                        {
+                            languageCode: 'en',
+                            name: 'E2E Force Remove Product',
+                            slug: 'e2e-force-remove-product',
+                            description: '',
+                        },
+                    ],
+                },
+            },
+        );
+        productId = product.createProduct.id;
+
+        const group = await client.gql(
+            `mutation ($input: CreateProductOptionGroupInput!) {
+                createProductOptionGroup(input: $input) { id options { id } }
+            }`,
+            {
+                input: {
+                    code: 'e2e-force-size',
+                    translations: [{ languageCode: 'en', name: 'Size' }],
+                    options: [
+                        { code: 'e2e-force-small', translations: [{ languageCode: 'en', name: 'Small' }] },
+                    ],
+                },
+            },
+        );
+        const optionGroupId = group.createProductOptionGroup.id;
+        const optionId = group.createProductOptionGroup.options[0].id;
+
+        await client.gql(
+            `mutation ($productId: ID!, $optionGroupId: ID!) {
+                addOptionGroupToProduct(productId: $productId, optionGroupId: $optionGroupId) { id }
+            }`,
+            { productId, optionGroupId },
+        );
+
+        // A variant that uses the option makes the group "in use", so a normal
+        // remove returns ProductOptionInUseError and the force dialog is required.
+        await client.gql(
+            `mutation ($input: [CreateProductVariantInput!]!) {
+                createProductVariants(input: $input) { ... on ProductVariant { id } }
+            }`,
+            {
+                input: [
+                    {
+                        productId,
+                        sku: 'E2E-FORCE-SM',
+                        price: 1000,
+                        optionIds: [optionId],
+                        translations: [{ languageCode: 'en', name: 'E2E Force Remove Product Small' }],
+                    },
+                ],
+            },
+        );
+        await page.close();
+    });
+
+    test('surfaces the force dialog and forces removal through', async ({ page }) => {
+        await page.goto(`/products/${productId}`);
+        await expect(page.getByRole('heading', { name: 'E2E Force Remove Product' })).toBeVisible({
+            timeout: 10_000,
+        });
+
+        // Trigger the normal remove — the group is in use, so the mutation returns
+        // ProductOptionInUseError instead of removing.
+        const removeButton = page.getByRole('button', { name: 'Remove option group' });
+        await expect(removeButton).toBeVisible();
+        await removeButton.click();
+        await page
+            .locator('[role="alertdialog"]')
+            .filter({ hasText: 'Are you sure you want to remove this option group' })
+            .getByRole('button', { name: 'Continue' })
+            .click();
+
+        // The force-remove confirmation appears because the group is in use.
+        const forceDialog = page
+            .locator('[role="alertdialog"]')
+            .filter({ hasText: 'Force remove option group' });
+        await expect(forceDialog).toBeVisible({ timeout: 10_000 });
+        await forceDialog.getByRole('button', { name: 'Force remove' }).click();
+
+        await expect(
+            page
+                .locator('[data-sonner-toast]')
+                .filter({ hasText: /removed/i })
+                .first(),
+        ).toBeVisible({ timeout: 10_000 });
+
+        // The group is gone, so its remove control no longer renders.
+        await expect(page.getByRole('button', { name: 'Remove option group' })).toHaveCount(0);
+    });
+
+    test.afterAll(async ({ browser }) => {
+        if (!productId) return;
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, { id: productId });
+        await page.close();
+    });
+});
+
 // Regression: the edit icon on the variant detail Options badge should navigate
 // to the option group detail page, not a broken route.
 test.describe('variant option group edit link', () => {

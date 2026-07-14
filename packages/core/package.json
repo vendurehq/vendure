@@ -56,6 +56,7 @@
         "croner": "^10.0.1",
         "cronstrue": "^3.14.0",
         "csv-parse": "^6.2.1",
+        "dataloader": "^2.2.3",
         "express": "^5.1.0",
         "file-type": "^19.0.0",
         "fs-extra": "^11.2.0",
@@ -108,5 +109,8 @@
         "ioredis": {
             "optional": true
         }
+    },
+    "optionalDependencies": {
+        "re2": ">=1.21.0 <1.24.0"
     }
 }

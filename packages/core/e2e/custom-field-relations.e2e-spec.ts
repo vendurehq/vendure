@@ -960,6 +960,49 @@ describe('Custom field relations', () => {
                 expect(updateProductVariants[0].customFields.primitive).toBe('test');
             });
 
+            // Regression test for the DataLoader-batched resolution introduced to fix the N+1
+            // query problem (#4796): when several products are resolved in the same list query,
+            // each product's relation custom field must map back to its own row, not a
+            // neighbor's, even though the batched queries fetch and group results out of order.
+            it('preserves per-row relation mapping when resolving a list of products', async () => {
+                const singleIdByName: Array<[string, string]> = [
+                    ['order-test-a', 'T_3'],
+                    ['order-test-b', 'T_1'],
+                    ['order-test-c', 'T_2'],
+                ];
+
+                for (const [name, singleId] of singleIdByName) {
+                    await adminClient.query(gql`
+                        mutation {
+                            createProduct(
+                                input: {
+                                    translations: [{ languageCode: en, name: "${name}", slug: "${name}", description: "" }]
+                                    customFields: { singleId: "${singleId}" }
+                                }
+                            ) {
+                                id
+                            }
+                        }
+                    `);
+                }
+
+                const { products } = await adminClient.query(gql`
+                    query {
+                        products(options: { filter: { name: { contains: "order-test" } }, sort: { name: ASC } }) {
+                            items {
+                                id
+                                name
+                                ${customFieldsSelection}
+                            }
+                        }
+                    }
+                `);
+
+                expect(products.items.map((p: any) => [p.name, p.customFields.single.id])).toEqual(
+                    singleIdByName,
+                );
+            });
+
             describe('issue 1664', () => {
                 // https://github.com/vendurehq/vendure/issues/1664
                 it('successfully gets product by id with eager-loading custom field relation', async () => {

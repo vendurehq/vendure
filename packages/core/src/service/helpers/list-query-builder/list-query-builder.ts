@@ -31,6 +31,7 @@ import { getColumnMetadata, getEntityAlias } from './connection-utils';
 import { getCalculatedColumns } from './get-calculated-columns';
 import { parseFilterParams, WhereCondition, WhereGroup } from './parse-filter-params';
 import { parseSortParams } from './parse-sort-params';
+import { createSqliteRegexpFunction } from './sqlite-regexp-function';
 
 /**
  * Counter for generating unique aliases in EXISTS subqueries.
@@ -915,18 +916,17 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
      * so that we can run regex filters on string fields.
      */
     private registerSQLiteRegexpFunction() {
-        const regexpFn = (pattern: string, value: string) => {
-            const result = new RegExp(`${pattern}`, 'i').test(value);
-            return result ? 1 : 0;
-        };
         const dbType = this.connection.rawConnection.options.type;
+        // Only the SQLite flavours evaluate regex filters via a JS function; other backends
+        // defer to the database's own engine, so the regexp function (and any re2 warning)
+        // must not be created for them.
         if (dbType === 'better-sqlite3') {
             const driver = this.connection.rawConnection.driver as BetterSqlite3Driver;
-            driver.databaseConnection.function('regexp', regexpFn);
+            driver.databaseConnection.function('regexp', createSqliteRegexpFunction());
         }
         if (dbType === 'sqljs') {
             const driver = this.connection.rawConnection.driver as SqljsDriver;
-            driver.databaseConnection.create_function('regexp', regexpFn);
+            driver.databaseConnection.create_function('regexp', createSqliteRegexpFunction());
         }
     }
 

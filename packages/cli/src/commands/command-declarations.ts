@@ -332,6 +332,13 @@ export const cliCommands: CliCommandDefinition[] = [
                 required: false,
             },
             {
+                long: '--from-empty',
+                description:
+                    'Generate the migration by diffing against an empty shadow database, producing a ' +
+                    'complete baseline migration even when the configured database is already populated',
+                required: false,
+            },
+            {
                 long: '--config <path>',
                 description: 'Specify the path to a custom Vendure config file',
                 required: false,

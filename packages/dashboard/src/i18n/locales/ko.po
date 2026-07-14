@@ -4626,3 +4626,19 @@ msgstr "지역"
 #: src/app/routes/_authenticated/_zones/zones.tsx:25
 msgid "Zones"
 msgstr "지역"
+
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx:56
+msgid "Remove from group"
+msgstr "그룹에서 제거"
+
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx:40
+msgid "Failed to remove customers from group"
+msgstr "그룹에서 고객을 제거하지 못했습니다"
+
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx:31
+msgid "{count, plural, one {Removed {count} customer from group} other {Removed {count} customers from group}}"
+msgstr "{count, plural, other {{count}명의 고객을 그룹에서 제거했습니다}}"
+
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx:58
+msgid "{count, plural, one {Are you sure you want to remove {count} customer from this group?} other {Are you sure you want to remove {count} customers from this group?}}"
+msgstr "{count, plural, other {이 그룹에서 {count}명의 고객을 제거하시겠습니까?}}"

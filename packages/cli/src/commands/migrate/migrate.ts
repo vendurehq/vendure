@@ -22,6 +22,8 @@ export interface MigrateOptions {
     run?: boolean;
     revert?: boolean;
     outputDir?: string;
+    /** Generate a baseline migration by diffing against an empty shadow database */
+    fromEmpty?: boolean;
     /** Specify the path to a custom Vendure config file */
     config?: string;
 }
@@ -57,6 +59,12 @@ async function handleNonInteractiveMode(options: MigrateOptions) {
         return;
     }
 
+    if (options.fromEmpty && !options.generate) {
+        log.error('The --from-empty flag can only be used together with --generate <name>.');
+        process.exit(1);
+        return;
+    }
+
     let result: MigrationResult | undefined;
     try {
         process.env.VENDURE_RUNNING_IN_CLI = 'true';
@@ -65,6 +73,7 @@ async function handleNonInteractiveMode(options: MigrateOptions) {
             result = await generateMigrationOperation({
                 name: options.generate,
                 outputDir: options.outputDir,
+                fromEmpty: options.fromEmpty,
                 config: options.config,
             });
         } else if (options.run) {

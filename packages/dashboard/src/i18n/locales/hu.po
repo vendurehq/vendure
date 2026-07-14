@@ -31,7 +31,7 @@ msgstr "Változások megtekintése"
 msgid "Tracking code"
 msgstr "Nyomkövetési kód"
 
-#: src/lib/components/data-table/data-table.tsx:714
+#: src/lib/components/data-table/data-table.tsx:717
 #: src/lib/components/data-table/use-generated-columns.tsx:226
 msgid "Select all rows"
 msgstr ""
@@ -113,7 +113,7 @@ msgstr "5. fejléc"
 msgid "Failed to add payment"
 msgstr "Fizetés hozzáadása sikertelen"
 
-#: src/lib/framework/layout-engine/page-layout.tsx:748
+#: src/lib/framework/layout-engine/page-layout.tsx:759
 msgid "Updated"
 msgstr "Frissítve"
 
@@ -233,7 +233,7 @@ msgstr "Automatikus frissítés: {0}"
 msgid "Deleted {deleted} {entityName}"
 msgstr "{deleted} {entityName} törölve"
 
-#: src/lib/components/data-table/data-table.tsx:604
+#: src/lib/components/data-table/data-table.tsx:607
 msgid "There are no items to display yet."
 msgstr ""
 
@@ -316,7 +316,7 @@ msgstr "Szerepkörök kiválasztása"
 msgid "Successfully created role"
 msgstr "A szerepkör sikeresen létrehozva"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:460
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:435
 msgid "Are you sure you want to delete this variant?"
 msgstr "Biztosan törli ezt a termékváltozatot?"
 
@@ -341,7 +341,7 @@ msgstr "Termékváltozat sikeresen frissítve"
 msgid "Failed to delete {failed} {entityName}: {allErrors}"
 msgstr "{failed} {entityName} törlése sikertelen: {allErrors}"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:165
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:164
 msgid "Successfully updated product"
 msgstr "Termék sikeresen frissítve"
 
@@ -381,8 +381,10 @@ msgstr "A raktárhely sikeresen létrehozva"
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:121
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:166
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:185
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:113
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:206
+#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:55
+#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:73
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:105
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:202
 #: src/lib/components/shared/asset/asset-preview.tsx:127
 msgid "Unknown error"
 msgstr "Ismeretlen hiba"
@@ -408,7 +410,7 @@ msgstr "Válasszon csatornát, amelyhez hozzárendeli a következőt: {0} {entit
 msgid "Successfully created customer"
 msgstr "A vásárló sikeresen létrehozva"
 
-#: src/lib/components/data-table/data-table-views-tabs.tsx:100
+#: src/lib/components/data-table/data-table-views-tabs.tsx:108
 msgid "More"
 msgstr ""
 
@@ -443,8 +445,8 @@ msgstr "Visszahelyezés a készletbe"
 msgid "Visibility"
 msgstr "Láthatóság"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:277
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:291
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:273
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:287
 msgid "Product variants"
 msgstr "Termékvariánsok"
 
@@ -553,7 +555,7 @@ msgid "Gross price: <0/>"
 msgstr "Bruttó ár: <0/>"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:82
-#: src/lib/components/data-table/data-table.tsx:719
+#: src/lib/components/data-table/data-table.tsx:722
 msgid "Go to next page"
 msgstr "Ugrás a következő oldalra"
 
@@ -619,7 +621,7 @@ msgstr "Hiba a vásárló előzmények betöltésekor: {0}"
 msgid "Successfully removed {selectionLength} {entityType} from channel"
 msgstr "{selectionLength} {entityType} sikeresen eltávolítva a csatornából"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:159
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:151
 msgid "Add option value"
 msgstr "Opcióérték hozzáadása"
 
@@ -775,7 +777,7 @@ msgstr "Rövid dátum"
 msgid "Available currencies"
 msgstr "Elérhető pénznemek"
 
-#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:103
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:110
 #: src/app/routes/_authenticated/_customers/customers.tsx:26
 msgid "Search customers..."
 msgstr ""
@@ -822,7 +824,7 @@ msgstr "Piszkozat véglegesítése"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:173
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:158
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:286
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:354
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:329
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:165
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:89
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:148
@@ -840,7 +842,7 @@ msgstr "Név"
 msgid "Failed to fulfill order"
 msgstr "Megrendelés teljesítése sikertelen"
 
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:158
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:193
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:88
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:106
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:226
@@ -938,7 +940,7 @@ msgstr "Gyűjtemény létrehozása sikertelen"
 msgid "Go to first page"
 msgstr "Ugrás az első oldalra"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:173
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:172
 msgid "Failed to create product"
 msgstr "Termék létrehozása sikertelen"
 
@@ -967,7 +969,7 @@ msgstr "Szállítási cím beállítva a megrendeléshez"
 msgid "Focal Point"
 msgstr "Fókuszpont"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:102
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:101
 msgid "Single variant, no options"
 msgstr "Egyetlen variáns, opciók nélkül"
 
@@ -1038,7 +1040,7 @@ msgstr "Az ütemezett feladat végre lesz hajtva"
 msgid "New stock location"
 msgstr "Új raktárhely"
 
-#: src/lib/components/data-table/data-table.tsx:715
+#: src/lib/components/data-table/data-table.tsx:718
 #: src/lib/components/data-table/use-generated-columns.tsx:238
 msgid "Select row"
 msgstr ""
@@ -1429,7 +1431,7 @@ msgstr "Egyetlen változat sem felel meg az aktuális szűrőnek."
 msgid "Addresses"
 msgstr "Címek"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:144
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:136
 msgid "Add a new option value to the {groupName} option group"
 msgstr "Új opcióérték hozzáadása a(z) {groupName} opciócsoporthoz"
 
@@ -1563,7 +1565,7 @@ msgstr "Használja alapértelmezett számlázási címként"
 
 #: src/app/common/delete-bulk-action.tsx:139
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:41
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:363
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:338
 #: src/lib/components/data-table/use-generated-columns.tsx:419
 #: src/lib/components/data-table/use-generated-columns.tsx:449
 #: src/lib/components/data-table/views-sheet.tsx:270
@@ -1661,7 +1663,7 @@ msgstr "Cím sikeresen frissítve"
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:126
 #: src/lib/components/shared/asset/asset-gallery.tsx:747
-#: src/lib/framework/layout-engine/page-layout.tsx:735
+#: src/lib/framework/layout-engine/page-layout.tsx:746
 msgid "Created"
 msgstr "Létrehozva"
 
@@ -1718,7 +1720,7 @@ msgstr ""
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:363
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:71
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:272
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:500
+#: src/app/routes/_authenticated/_products/components/force-remove-option-group-dialog.tsx:48
 #: src/app/routes/_authenticated/_system/settings-store.tsx:150
 #: src/lib/components/data-input/product-multi-selector-input.tsx:471
 #: src/lib/components/data-table/data-table-bulk-action-item.tsx:122
@@ -1786,7 +1788,7 @@ msgstr "Gyűjtemények"
 msgid "Select Shipping Eligibility Checker"
 msgstr ""
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:459
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:434
 msgid "Delete variant"
 msgstr "Variáns törlése"
 
@@ -1828,7 +1830,7 @@ msgid "Private collections are not visible in the shop"
 msgstr "A privát gyűjtemények nem láthatók az áruházban"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:262
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:231
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:227
 msgid "When enabled, a product is available in the shop"
 msgstr "Ha engedélyezve van, a termék elérhető az áruházban"
 
@@ -1896,7 +1898,7 @@ msgstr "Nincsenek tulajdonságértékek"
 msgid "A reason for the refund is required"
 msgstr "A visszatérítés okának megadása kötelező"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:196
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:192
 msgid "Could not remove option group"
 msgstr "Nem sikerült eltávolítani az opciócsoportot"
 
@@ -1925,7 +1927,7 @@ msgstr "A visszatérítés sikeresen rendezve"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:278
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:221
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:217
 #: src/app/routes/_authenticated/_profile/profile.tsx:92
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
@@ -1962,7 +1964,7 @@ msgstr "Fizetési mód"
 msgid "Edit"
 msgstr "Szerkesztés"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:188
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:180
 msgid "Variant updated successfully"
 msgstr "Termékváltozat sikeresen frissítve"
 
@@ -1993,8 +1995,8 @@ msgstr "Kezdés időpontja"
 msgid "Duplicate"
 msgstr "Duplikálás"
 
-#: src/lib/components/data-table/data-table.tsx:592
-#: src/lib/components/data-table/data-table.tsx:603
+#: src/lib/components/data-table/data-table.tsx:595
+#: src/lib/components/data-table/data-table.tsx:606
 #: src/lib/components/shared/customer-group-selector.tsx:60
 msgid "No results"
 msgstr "Nincs eredmény"
@@ -2017,7 +2019,7 @@ msgstr "Oszlopbeállítások"
 msgid "Code"
 msgstr "Kód"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:205
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:201
 msgid "Failed to remove option groups"
 msgstr "Nem sikerült eltávolítani az opciócsoportokat"
 
@@ -2108,7 +2110,7 @@ msgid "Test Shipping Method"
 msgstr "Szállítási mód tesztelése"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:491
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:336
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:333
 msgid "Facet Values"
 msgstr "Tulajdonságértékek"
 
@@ -2529,7 +2531,7 @@ msgstr "{0}. oldal / {1}"
 msgid "Rate"
 msgstr "Kulcs"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:119
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:118
 msgid "Size, colour, etc."
 msgstr "Méret, szín stb."
 
@@ -2613,6 +2615,10 @@ msgstr "Vásárló beállítva a megrendeléshez"
 msgid "Facets"
 msgstr "Tulajdonságok"
 
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx:58
+msgid "{count, plural, one {Are you sure you want to remove {count} customer from this group?} other {Are you sure you want to remove {count} customers from this group?}}"
+msgstr "{count, plural, one {Biztosan eltávolít {count} ügyfelet ebből a csoportból?} other {Biztosan eltávolít {count} ügyfelet ebből a csoportból?}}"
+
 #: src/app/routes/_authenticated/_countries/countries.tsx:29
 msgid "Search countries..."
 msgstr ""
@@ -2657,7 +2663,7 @@ msgstr "üres"
 msgid "These are the customers in the <0>{customerGroupName}</0> customer group."
 msgstr "Ezek a <0>{customerGroupName}</0> vásárlói csoport tagjai."
 
-#: src/lib/components/data-table/data-table-views-tabs.tsx:140
+#: src/lib/components/data-table/data-table-views-tabs.tsx:148
 #: src/lib/components/data-table/manage-global-views-button.tsx:18
 msgid "Manage global views"
 msgstr "Globális nézetek kezelése"
@@ -2768,11 +2774,11 @@ msgstr "Szállítási díj újraszámítása"
 #: src/app/routes/_authenticated/_assets/assets.tsx:40
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:229
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:508
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:369
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:366
 msgid "Assets"
 msgstr "Média"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:310
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:306
 msgid "This will remove all option groups from this product and return to the variant setup choice."
 msgstr "Ez eltávolítja az összes opciócsoportot ebből a termékből és visszatér a variáns beállítási lehetőséghez."
 
@@ -2826,7 +2832,7 @@ msgstr "Minden típus"
 msgid "Only draft orders can be completed"
 msgstr "Csak piszkozat megrendelések teljesíthetők"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:173
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:172
 msgid "Failed to update product"
 msgstr "Termék frissítése sikertelen"
 
@@ -2882,7 +2888,7 @@ msgid "Successfully created administrator"
 msgstr "A rendszergazda sikeresen létrehozva"
 
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:196
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:318
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:314
 msgid "Product Options"
 msgstr "Termékopciók"
 
@@ -2898,7 +2904,7 @@ msgstr "Létrehozás..."
 msgid "Are you sure you want to delete this global view? This action cannot be undone and will affect all users."
 msgstr "Biztosan törli ezt a globális nézetet? Ez a művelet nem vonható vissza, és minden felhasználót érint."
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:493
+#: src/app/routes/_authenticated/_products/components/force-remove-option-group-dialog.tsx:37
 msgid "Force remove option group"
 msgstr "Opciócsoport kényszerített eltávolítása"
 
@@ -2962,7 +2968,7 @@ msgstr "Globális nézet törlése"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:163
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:221
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:217
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
@@ -2998,7 +3004,7 @@ msgstr "Vásárló létrehozása sikertelen"
 msgid "Focal point updated"
 msgstr "Fókuszpont frissítve"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:303
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:279
 msgid "Option values"
 msgstr "Opcióértékek"
 
@@ -3135,7 +3141,7 @@ msgstr "Teszteredmények"
 msgid "Ordered list"
 msgstr ""
 
-#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:80
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:86
 msgid "Add customer"
 msgstr "Vásárló hozzáadása"
 
@@ -3248,7 +3254,7 @@ msgstr ""
 msgid "Failed to upload image"
 msgstr ""
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:152
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:144
 msgid "Option value name"
 msgstr "Opcióérték neve"
 
@@ -3299,7 +3305,7 @@ msgstr "Szűrési feltételek beállítása a(z) {columnId} oszlophoz"
 msgid "Country"
 msgstr "Ország"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:99
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:98
 msgid "Simple product"
 msgstr "Egyszerű termék"
 
@@ -3384,7 +3390,7 @@ msgstr "{totalItems} {0} találat"
 msgid "Select date range"
 msgstr "Válasszon dátumtartományt"
 
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:87
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:158
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:44
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:97
 msgid "Product"
@@ -3499,7 +3505,7 @@ msgstr "Szállítás"
 msgid "useWidgetDimensions must be used within a DashboardBaseWidget"
 msgstr "A useWidgetDimensions csak DashboardBaseWidget-en belül használható"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:495
+#: src/app/routes/_authenticated/_products/components/force-remove-option-group-dialog.tsx:40
 msgid "This option group is in use by existing variants. Force removing it may affect those variants. Are you sure?"
 msgstr "Ez az opciócsoport meglévő változatok által használatban van. A kényszerített eltávolítás hatással lehet azokra a változatokra. Biztosan folytatja?"
 
@@ -3551,7 +3557,7 @@ msgid "Yes"
 msgstr "Igen"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:179
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:248
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:244
 msgid "Slug"
 msgstr "Slug"
 
@@ -3617,7 +3623,7 @@ msgstr "Fizetés rendezése"
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:24
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:210
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:346
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:343
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:111
 #: src/lib/components/layout/channel-switcher.tsx:146
 msgid "Channels"
@@ -3643,8 +3649,8 @@ msgstr "{successfulRefundCount} fizetés visszatérítve a hiba előtt. A részl
 msgid "Select item"
 msgstr "Válasszon elemet"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:58
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:214
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:57
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:210
 msgid "New product"
 msgstr "Új termék"
 
@@ -3668,6 +3674,10 @@ msgstr "Művelet hozzáadása"
 #: src/app/common/duplicate-entity-dialog.tsx:85
 msgid "Duplicate {0}s"
 msgstr "{0} másolása"
+
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx:56
+msgid "Remove from group"
+msgstr "Eltávolítás a csoportból"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:34
 msgid "Search API keys..."
@@ -3818,7 +3828,7 @@ msgstr "Nincs számlázási cím"
 msgid "Facet"
 msgstr "Tulajdonság"
 
-#: src/lib/components/data-table/data-table-views-tabs.tsx:116
+#: src/lib/components/data-table/data-table-views-tabs.tsx:124
 msgid "Unsaved view"
 msgstr ""
 
@@ -3835,7 +3845,7 @@ msgstr "Nem távolítható el az aktív csatornából"
 msgid "Not set"
 msgstr "Nincs beállítva"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:511
+#: src/app/routes/_authenticated/_products/components/force-remove-option-group-dialog.tsx:60
 msgid "Force remove"
 msgstr "Kényszerített eltávolítás"
 
@@ -3859,7 +3869,7 @@ msgstr "Vásárlói csoport létrehozása sikertelen"
 msgid "Failed to create role"
 msgstr "Szerepkör létrehozása sikertelen"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:242
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:238
 msgid "Product name"
 msgstr "Terméknév"
 
@@ -3872,8 +3882,8 @@ msgstr "Teljesítési állapot sikeresen frissítve"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:205
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:38
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:66
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:67
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:57
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:59
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:56
 #: src/app/routes/_authenticated/_products/products.tsx:25
 #: src/app/routes/_authenticated/_products/products.tsx:48
 msgid "Products"
@@ -3896,7 +3906,7 @@ msgstr "API key sikeresen rotálva"
 msgid "Add option group"
 msgstr "Opciócsoport hozzáadása"
 
-#: src/lib/components/data-table/data-table-views-tabs.tsx:77
+#: src/lib/components/data-table/data-table-views-tabs.tsx:84
 msgid "All"
 msgstr ""
 
@@ -3935,7 +3945,7 @@ msgstr ""
 msgid "Created by"
 msgstr "Létrehozta"
 
-#: src/lib/components/data-table/data-table.tsx:593
+#: src/lib/components/data-table/data-table.tsx:596
 msgid "No items match your current filters. Try clearing them to see more."
 msgstr ""
 
@@ -4058,7 +4068,9 @@ msgstr "Vissza a kereséshez"
 msgid "View duplicated successfully"
 msgstr "Nézet sikeresen másolva"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:320
+#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:50
+#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:56
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:297
 msgid "Remove option group"
 msgstr "Opciócsoport eltávolítása"
 
@@ -4066,7 +4078,7 @@ msgstr "Opciócsoport eltávolítása"
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:76
 #: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:14
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:264
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:260
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:174
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:94
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:162
@@ -4223,7 +4235,7 @@ msgstr "Megrendelései összesítése"
 msgid "Upload"
 msgstr "Feltöltés"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:116
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:115
 msgid "Product with options"
 msgstr "Termék opciókkal"
 
@@ -4335,7 +4347,7 @@ msgstr "Kiszállítva"
 #~ msgid "Monitored Resources"
 #~ msgstr "Figyelt erőforrások"
 
-#: src/lib/framework/layout-engine/page-layout.tsx:707
+#: src/lib/framework/layout-engine/page-layout.tsx:718
 msgid "Entity Information"
 msgstr "Entitás adatai"
 
@@ -4343,7 +4355,7 @@ msgstr "Entitás adatai"
 msgid "Default"
 msgstr ""
 
-#: src/lib/components/data-table/data-table-views-tabs.tsx:136
+#: src/lib/components/data-table/data-table-views-tabs.tsx:144
 msgid "Manage my views"
 msgstr ""
 
@@ -4505,7 +4517,7 @@ msgstr "Magasság"
 msgid "A refund of {formattedDiff} is required. Select payment amounts and enter a note to proceed."
 msgstr "{formattedDiff} összegű visszatérítés szükséges. A folytatáshoz válassza ki a fizetési összegeket és adjon meg egy megjegyzést."
 
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:100
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:171
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:57
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:100
 msgid "Unit price"
@@ -4634,7 +4646,7 @@ msgstr ""
 msgid "New seller"
 msgstr "Új eladó"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:154
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:146
 msgid "e.g., Red, Large, Cotton"
 msgstr "pl. Piros, Nagy, Pamut"
 
@@ -4799,7 +4811,7 @@ msgstr "Meglévő címkék szerkesztése vagy törlése"
 msgid "This shipping method's eligibility checker conditions are not met for the current order and shipping address."
 msgstr "Ennek a szállítási módnak a jogosultsági feltételei nem teljesülnek az aktuális megrendelés és szállítási cím esetén."
 
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:273
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:308
 msgid "Add coupon code"
 msgstr "Kuponkód hozzáadása"
 
@@ -4988,7 +5000,7 @@ msgstr "Állam / Tartomány"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:147
 #: src/app/routes/_authenticated/_payment-methods/payment-methods.tsx:43
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:261
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:230
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:226
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:153
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:131
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:139
@@ -5042,7 +5054,7 @@ msgstr "Módosítások előnézete"
 msgid "Failed to remove {entityType} from channel"
 msgstr "Nem sikerült eltávolítani a(z) {entityType} elemet a csatornából"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:196
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:188
 msgid "Variant deleted successfully"
 msgstr "Termékváltozat sikeresen törölve"
 
@@ -5072,7 +5084,7 @@ msgstr "Ütemezett feladatok"
 msgid "Are you sure you want to delete this item? This action cannot be undone."
 msgstr "Biztosan törli ezt az elemet? Ez a művelet nem vonható vissza."
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:348
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:323
 msgid "Variants"
 msgstr "Termékváltozatok"
 
@@ -5181,7 +5193,7 @@ msgid "Stock Locations"
 msgstr "Raktárhelyek"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:69
-#: src/lib/components/data-table/data-table.tsx:718
+#: src/lib/components/data-table/data-table.tsx:721
 msgid "Go to previous page"
 msgstr "Ugrás az előző oldalra"
 
@@ -5233,13 +5245,17 @@ msgstr "Eltávolítás"
 msgid "Failed to update customer"
 msgstr "Vásárló frissítése sikertelen"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:309
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:305
 msgid "Remove option groups?"
 msgstr "Opciócsoportok eltávolítása?"
 
 #: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:95
 msgid "This is a preview of the collection contents based on the current filter settings. Once you save the collection, the contents will be updated to reflect the new filter settings."
 msgstr "Ez a gyűjtemény tartalmának előnézete az aktuális szűrőbeállítások alapján. A gyűjtemény mentése után a tartalom frissül az új szűrőbeállításoknak megfelelően."
+
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx:31
+msgid "{count, plural, one {Removed {count} customer from group} other {Removed {count} customers from group}}"
+msgstr "{count, plural, one {{count} ügyfél eltávolítva a csoportból} other {{count} ügyfél eltávolítva a csoportból}}"
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts:223
@@ -5251,6 +5267,10 @@ msgstr "Adókategóriák"
 msgid "Tax Rates"
 msgstr "Adókulcsok"
 
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx:40
+msgid "Failed to remove customers from group"
+msgstr "Nem sikerült eltávolítani az ügyfeleket a csoportból"
+
 #: src/lib/components/layout/manage-languages-dialog.tsx:273
 msgid "Failed to load global settings"
 msgstr "Globális beállítások betöltése sikertelen"
@@ -5261,7 +5281,7 @@ msgstr "Válassza ki a visszatérítendő elemeket, és szükség esetén adja v
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:245
 #: src/app/routes/_authenticated/_system/settings-store.tsx:153
-#: src/lib/components/data-table/data-table-views-tabs.tsx:124
+#: src/lib/components/data-table/data-table-views-tabs.tsx:132
 #: src/lib/components/data-table/views-sheet.tsx:210
 #: src/lib/components/shared/history-timeline/history-note-editor.tsx:54
 msgid "Save"
@@ -5376,7 +5396,7 @@ msgstr "Elmentettem ezt az API key-t"
 msgid "Configure available languages for your store and channels"
 msgstr "Konfigurálja az áruháza és csatornái számára elérhető nyelveket"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:165
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:164
 msgid "Successfully created product"
 msgstr "A termék sikeresen létrehozva"
 
@@ -5419,7 +5439,7 @@ msgstr "Rendszergazda sikeresen frissítve"
 
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:263
 #: src/lib/components/data-table/data-table-faceted-filter.tsx:225
-#: src/lib/components/data-table/data-table.tsx:596
+#: src/lib/components/data-table/data-table.tsx:599
 #: src/lib/components/shared/asset/asset-gallery.tsx:361
 msgid "Clear filters"
 msgstr "Szűrők törlése"
@@ -5475,7 +5495,7 @@ msgstr "adó nélkül:"
 #~ msgid "Add Stock to Location"
 #~ msgstr "Készlet hozzáadása helyszínhez"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:106
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:98
 msgid "Successfully added option value"
 msgstr "Az opcióérték sikeresen hozzáadva"
 
@@ -5483,8 +5503,8 @@ msgstr "Az opcióérték sikeresen hozzáadva"
 msgid "Collection moved to new parent"
 msgstr "Gyűjtemény áthelyezve új szülőelembe"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:211
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:220
+#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:51
+#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:67
 msgid "Option group removed"
 msgstr "Opciócsoport eltávolítva"
 
@@ -5575,6 +5595,11 @@ msgstr "Nem találhatók opciócsoportok"
 msgid "No items found"
 msgstr "Nem található elem"
 
+#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:54
+#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:72
+msgid "Failed to remove option group"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:52
 msgid "Sub total"
 msgstr "Részösszeg"
@@ -5597,7 +5622,7 @@ msgstr "Érték frissítve"
 msgid "Unverified"
 msgstr "Nem ellenőrzött"
 
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:111
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:182
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:268
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:78
 msgid "Quantity"
@@ -5661,7 +5686,7 @@ msgstr "{entityType} sikeresen eltávolítva a csatornából"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:89
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:17
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:24
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:283
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:259
 msgid "Option Groups"
 msgstr "Opciócsoportok"
 
@@ -5839,7 +5864,8 @@ msgstr "Eladói megrendelés"
 msgid "New facet"
 msgstr "Új tulajdonság"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:321
+#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:51
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:298
 msgid "Are you sure you want to remove this option group from the product?"
 msgstr "Biztosan el szeretné távolítani ezt az opciócsoportot a termékből?"
 
@@ -6030,7 +6056,7 @@ msgstr "Tulajdonság eltávolítása a csatornából sikertelen: {message}"
 #~ msgid "Set link"
 #~ msgstr "Hivatkozás beállítása"
 
-#: src/lib/components/data-table/data-table.tsx:717
+#: src/lib/components/data-table/data-table.tsx:720
 msgid "Pagination"
 msgstr ""
 
@@ -6046,7 +6072,7 @@ msgstr ""
 msgid "Edit image"
 msgstr "Kép szerkesztése"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:69
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:61
 msgid "Manage Variants"
 msgstr "Termékváltozatok kezelése"
 
@@ -6082,7 +6108,7 @@ msgid "View result"
 msgstr "Eredmény megtekintése"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:20
-#: src/lib/components/data-table/data-table.tsx:720
+#: src/lib/components/data-table/data-table.tsx:723
 msgid "Rows per page"
 msgstr "Sorok oldalanként"
 
@@ -6099,7 +6125,7 @@ msgstr "Tulajdonságérték sikeresen frissítve"
 msgid "Add asset"
 msgstr "Média hozzáadása"
 
-#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:57
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:63
 msgid "Customer added to group"
 msgstr "Vásárló hozzáadva a csoporthoz"
 
@@ -6107,11 +6133,11 @@ msgstr "Vásárló hozzáadva a csoporthoz"
 msgid "Seller orders"
 msgstr "Eladói megrendelések"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:112
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:104
 msgid "Failed to add option value"
 msgstr "Opcióérték hozzáadása sikertelen"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:141
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:133
 msgid "Add option value to {groupName}"
 msgstr "Opcióérték hozzáadása ehhez: {groupName}"
 
@@ -6125,12 +6151,12 @@ msgid "Search orders..."
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:82
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:96
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:167
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:297
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:292
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:197
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:287
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:357
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:332
 msgid "SKU"
 msgstr "SKU"
 
@@ -6146,7 +6172,7 @@ msgstr ""
 msgid "{totalQuantity} item(s) refunded"
 msgstr "{totalQuantity} tétel visszatérítve"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:287
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:263
 msgid "No option groups defined yet. Add option groups to create different variants of your product (e.g., Size, Color, Material)"
 msgstr "Még nincsenek opciócsoportok megadva. Adjon hozzá opciócsoportokat a termék különböző változatainak létrehozásához (pl. Méret, Szín, Anyag)"
 
@@ -6173,7 +6199,7 @@ msgid "Failed to create product variant"
 msgstr "Termékváltozat létrehozása sikertelen"
 
 #: src/lib/components/data-input/relation-selector.tsx:418
-#: src/lib/components/data-table/data-table.tsx:503
+#: src/lib/components/data-table/data-table.tsx:506
 msgid "Search..."
 msgstr ""
 
@@ -6247,7 +6273,7 @@ msgstr "Aktív szűrők"
 
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:176
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx:54
-#: src/lib/components/data-table/data-table.tsx:579
+#: src/lib/components/data-table/data-table.tsx:582
 msgid "Clear all"
 msgstr "Összes törlése"
 
@@ -6335,13 +6361,13 @@ msgstr "Visszatérítés rendezése"
 msgid "Payment method is required"
 msgstr "Fizetési mód megadása kötelező"
 
-#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:63
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:69
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:134
 msgid "Failed to add customer to group"
 msgstr "Vásárló csoporthoz adása sikertelen"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:280
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:281
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:256
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:277
 msgid "Manage variants"
 msgstr "Termékváltozatok kezelése"
 
@@ -6367,7 +6393,7 @@ msgstr "Eladók keresése..."
 msgid "Successfully created promotion"
 msgstr "A promóció sikeresen létrehozva"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:297
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:273
 msgid "Option"
 msgstr "Opció"
 

@@ -24,6 +24,7 @@ import {
     SOCKET_TIMEOUT_MS,
     STOREFRONT_BRANCH,
     STOREFRONT_REPO,
+    TYPEORM_VERSION,
     TYPESCRIPT_VERSION,
     VITE_VERSION,
 } from './constants';
@@ -389,6 +390,9 @@ export function getMonorepoRootPackageJson(
     if (pmInfo.name === 'yarn') {
         pkg.dependenciesMeta = getYarnDependenciesMeta(dbType);
     }
+    if (pmInfo.name === 'bun') {
+        pkg.trustedDependencies = getNativeBuildDependencies(dbType);
+    }
     return pkg;
 }
 
@@ -409,16 +413,22 @@ export function getSingleProjectPackageJson(
     if (pmInfo.name === 'yarn') {
         pkg.dependenciesMeta = getYarnDependenciesMeta(dbType);
     }
+    if (pmInfo.name === 'bun') {
+        pkg.trustedDependencies = getNativeBuildDependencies(dbType);
+    }
     return pkg;
 }
 
 /**
  * Native dependencies whose install/build scripts must run for the scaffolded project to
  * work — otherwise e.g. better-sqlite3's native binding is never compiled and the server
- * crashes on startup. pnpm (v10+) and yarn (v4.14+) block dependency build scripts unless
- * allowlisted, so this list feeds their respective allowlist mechanisms.
+ * crashes on startup. pnpm (v10+), yarn (v4.14+) and bun block dependency build scripts
+ * unless allowlisted, so this list feeds their respective allowlist mechanisms
+ * (`onlyBuiltDependencies`, `dependenciesMeta.built`, `trustedDependencies`).
  * `bcrypt` (core), `sharp` (asset-server-plugin) and `esbuild` (vite) are always present;
- * SQLite adds `better-sqlite3`.
+ * SQLite adds `better-sqlite3` and `re2`. `re2` lets core evaluate `regex` list filters in
+ * guaranteed linear time; without its native binding those filters fall back to the built-in
+ * RegExp engine, which is vulnerable to ReDoS on SQLite backends (GHSA-jgm3-qmp2-c4p7).
  *
  * This list is derived from the scaffold's transitive native deps; re-check it against
  * `getDependencies()` whenever Vendure's direct native-dep surface changes.
@@ -426,7 +436,7 @@ export function getSingleProjectPackageJson(
 export function getNativeBuildDependencies(dbType: DbType): string[] {
     const deps = ['bcrypt', 'esbuild', 'sharp'];
     if (dbType === 'sqlite') {
-        deps.push('better-sqlite3');
+        deps.push('better-sqlite3', 're2');
     }
     return deps.sort((a, b) => a.localeCompare(b));
 }
@@ -559,6 +569,7 @@ export function installPackages(options: {
 export function getDependencies(
     dbType: DbType,
     vendurePkgVersion = '',
+    packageManager?: PackageManager,
 ): { dependencies: string[]; devDependencies: string[] } {
     const dependencies = [
         `@vendure/core${vendurePkgVersion}`,
@@ -567,6 +578,10 @@ export function getDependencies(
         `@vendure/graphiql-plugin${vendurePkgVersion}`,
         `@vendure/dashboard${vendurePkgVersion}`,
         'dotenv',
+        // Generated migrations import from `typeorm`. Only pnpm's strict node_modules fails to
+        // resolve it as a transitive dep (npm/yarn/bun hoist, and the scaffold forces yarn's
+        // node-modules linker), so declare it directly for pnpm only. See #4960.
+        ...(packageManager === 'pnpm' ? [`typeorm@${TYPEORM_VERSION}`] : []),
         dbDriverPackage(dbType),
     ];
     const devDependencies = [

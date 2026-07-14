@@ -11,9 +11,10 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { ColumnFiltersState, SortingState } from '@tanstack/react-table';
-import { ReactNode, useState } from 'react';
+import { ReactNode, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { addCustomerToGroupDocument } from '../../_customers/customers.graphql.js';
+import { createRemoveFromGroupBulkAction } from './customer-group-members-bulk-actions.js';
 
 export const customerGroupMemberListDocument = graphql(`
     query CustomerGroupMemberList($id: ID!, $options: CustomerListOptions) {
@@ -51,6 +52,11 @@ export function CustomerGroupMembersTable({
     const { t } = useLingui();
     const queryClient = useQueryClient();
 
+    const bulkActions = useMemo(
+        () => [{ component: createRemoveFromGroupBulkAction(customerGroupId) }],
+        [customerGroupId],
+    );
+
     const { mutate: addCustomerToGroup } = useMutation({
         mutationFn: api.mutate(addCustomerToGroupDocument),
         onSuccess: () => {
@@ -86,6 +92,7 @@ export function CustomerGroupMembersTable({
                     ...variables,
                     id: customerGroupId,
                 })}
+                bulkActions={bulkActions}
                 page={page}
                 itemsPerPage={pageSize}
                 sorting={sorting}

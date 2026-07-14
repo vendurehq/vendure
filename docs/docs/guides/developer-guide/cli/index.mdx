@@ -157,6 +157,9 @@ npx vendure migrate --revert
 
 # Generate migration with custom output directory
 npx vendure migrate -g my-migration -o ./custom/migrations
+
+# Generate a complete baseline migration against an empty shadow database
+npx vendure migrate -g initial --from-empty
 ```
 
 #### Migrate Command Options
@@ -167,6 +170,7 @@ npx vendure migrate -g my-migration -o ./custom/migrations
 | `-r` | `--run`               | Run all pending migrations             | `vendure migrate -r`                              |
 |      | `--revert`            | Revert the last migration              | `vendure migrate --revert`                        |
 | `-o` | `--output-dir <path>` | Custom output directory for migrations | `vendure migrate -g my-migration -o ./migrations` |
+|      | `--from-empty`        | Generate a complete baseline migration by diffing against an empty [shadow database](/developer-guide/migrations/#generating-a-baseline-migration-for-an-existing-project) | `vendure migrate -g initial --from-empty` |
 
 ## The Schema Command
 
