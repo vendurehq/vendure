@@ -18,7 +18,7 @@ msgstr ""
 msgid "Full Name"
 msgstr "Повне ім'я"
 
-#: src/lib/components/data-input/relation-selector.tsx:409
+#: src/lib/components/data-input/relation-selector.tsx:410
 msgid "Select items"
 msgstr "Вибрати елементи"
 
@@ -27,9 +27,14 @@ msgstr "Вибрати елементи"
 msgid "View changes"
 msgstr "Переглянути зміни"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:122
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
 msgid "Tracking code"
 msgstr "Код відстеження"
+
+#: src/lib/components/data-table/data-table.tsx:700
+#: src/lib/components/data-table/use-generated-columns.tsx:226
+msgid "Select all rows"
+msgstr ""
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:113
 msgid "The selected permissions will be applied to the these channels."
@@ -39,11 +44,11 @@ msgstr "Вибрані дозволи будуть застосовані до �
 msgid "Product options"
 msgstr "Опції товару"
 
-#: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:108
+#: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:109
 msgid "New Tax Rate"
 msgstr "Нова податкова ставка"
 
-#: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:150
+#: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:151
 msgid "Assign an existing option group or create a new one"
 msgstr "Призначити існуючу групу опцій або створити нову"
 
@@ -56,8 +61,8 @@ msgstr "Нова роль"
 msgid "Apartment, suite, etc."
 msgstr "Квартира, офіс тощо"
 
-#: src/lib/components/data-input/relation-selector.tsx:458
-#: src/lib/components/shared/facet-value-selector.tsx:214
+#: src/lib/components/data-input/relation-selector.tsx:456
+#: src/lib/components/shared/facet-value-selector.tsx:215
 msgid "No more items"
 msgstr "Більше немає елементів"
 
@@ -82,7 +87,7 @@ msgstr "Не вдалося створити адресу"
 msgid "Toggle all"
 msgstr "Перемкнути все"
 
-#: src/app/routes/_authenticated/_system/settings-store.tsx:123
+#: src/app/routes/_authenticated/_system/settings-store.tsx:133
 msgid "Edit JSON value"
 msgstr "Редагувати значення JSON"
 
@@ -104,7 +109,7 @@ msgstr "Заголовок 5"
 msgid "Failed to add payment"
 msgstr "Не вдалося додати платіж"
 
-#: src/lib/framework/layout-engine/page-layout.tsx:746
+#: src/lib/framework/layout-engine/page-layout.tsx:748
 msgid "Updated"
 msgstr "Оновлено"
 
@@ -137,7 +142,7 @@ msgstr "Керування мовами"
 msgid "Duplicating... ({0}/{1})"
 msgstr "Дублювання... ({0}/{1})"
 
-#: src/lib/components/data-table/use-generated-columns.tsx:389
+#: src/lib/components/data-table/use-generated-columns.tsx:401
 msgid "Deleted successfully"
 msgstr "Успішно видалено"
 
@@ -169,11 +174,11 @@ msgid "Select {0}"
 msgstr "Вибрати {0}"
 
 #. placeholder {0}: selectedItems.length
-#: src/lib/components/data-input/relation-selector.tsx:408
+#: src/lib/components/data-input/relation-selector.tsx:409
 msgid "Add more ({0} selected)"
 msgstr ""
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:67
+#: src/app/routes/_authenticated/_facets/facets.tsx:71
 msgid "View values"
 msgstr "Переглянути значення"
 
@@ -191,7 +196,7 @@ msgctxt "current channel"
 msgid "Current"
 msgstr "Поточний"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:326
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:330
 msgid "No fulfillments"
 msgstr "Немає виконань"
 
@@ -208,7 +213,7 @@ msgid "Draft order completed"
 msgstr "Чернетку замовлення завершено"
 
 #. placeholder {0}: currentInterval?.label
-#: src/app/routes/_authenticated/_system/job-queue.tsx:287
+#: src/app/routes/_authenticated/_system/job-queue.tsx:284
 msgid "Auto refresh: {0}"
 msgstr "Автооновлення: {0}"
 
@@ -224,6 +229,14 @@ msgstr "Автооновлення: {0}"
 msgid "Deleted {deleted} {entityName}"
 msgstr "Видалено {deleted} {entityName}"
 
+#: src/lib/components/data-table/data-table.tsx:590
+msgid "There are no items to display yet."
+msgstr ""
+
+#: src/app/routes/_authenticated/_orders/components/order-table.tsx:187
+msgid "Order items"
+msgstr ""
+
 #: src/lib/components/shared/asset/asset-properties.tsx:32
 msgid "File Size"
 msgstr ""
@@ -234,13 +247,17 @@ msgstr ""
 
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:29
 #: src/app/routes/_authenticated/_sellers/sellers.tsx:13
-#: src/app/routes/_authenticated/_sellers/sellers.tsx:22
+#: src/app/routes/_authenticated/_sellers/sellers.tsx:23
 msgid "Sellers"
 msgstr "Продавці"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:269
 msgid "Options"
 msgstr "Опції"
+
+#: src/lib/components/shared/error-page.tsx:86
+msgid "Go to dashboard"
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:35
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
@@ -268,7 +285,7 @@ msgstr "Перевірте цей спосіб доставки, симулюю�
 
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:36
 #: src/app/routes/_authenticated/_stock-locations/stock-locations.tsx:17
-#: src/app/routes/_authenticated/_stock-locations/stock-locations.tsx:24
+#: src/app/routes/_authenticated/_stock-locations/stock-locations.tsx:25
 msgid "Stock Locations"
 msgstr "Місця зберігання"
 
@@ -277,7 +294,7 @@ msgstr "Місця зберігання"
 msgid "Fulfillment handler"
 msgstr "Обробник виконання"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:247
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:248
 #: src/app/routes/_authenticated/_orders/orders.tsx:21
 #: src/app/routes/_authenticated/_orders/orders.tsx:37
 #: src/app/routes/_authenticated/_orders/utils/order-detail-loaders.tsx:48
@@ -295,7 +312,7 @@ msgstr "Вибрати ролі"
 msgid "Successfully created role"
 msgstr "Роль успішно створено"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:459
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:460
 msgid "Are you sure you want to delete this variant?"
 msgstr "Ви впевнені, що хочете видалити цей варіант?"
 
@@ -307,7 +324,8 @@ msgstr "Ви впевнені, що хочете видалити цей вар�
 msgid "Failed to create administrator"
 msgstr "Не вдалося створити адміністратора"
 
-#: src/app/routes/_authenticated/_system/settings-store.tsx:327
+#: src/app/routes/_authenticated/_system/settings-store.tsx:338
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:71
 msgid "No"
 msgstr "Ні"
 
@@ -319,7 +337,7 @@ msgstr "Варіант товару успішно оновлено"
 msgid "Failed to delete {failed} {entityName}: {allErrors}"
 msgstr "Не вдалося видалити {failed} {entityName}: {allErrors}"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:160
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:165
 msgid "Successfully updated product"
 msgstr "Товар успішно оновлено"
 
@@ -327,7 +345,7 @@ msgstr "Товар успішно оновлено"
 msgid "Failed to update country"
 msgstr "Не вдалося оновити країну"
 
-#: src/lib/components/shared/facet-value-selector.tsx:147
+#: src/lib/components/shared/facet-value-selector.tsx:148
 msgid "Type at least 2 characters to search..."
 msgstr "Введіть принаймні 2 символи для пошуку..."
 
@@ -341,7 +359,7 @@ msgstr "Прізвище"
 msgid "Link title"
 msgstr "Заголовок посилання"
 
-#: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:65
+#: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:66
 msgid "Successfully updated customer group"
 msgstr "Групу клієнтів успішно оновлено"
 
@@ -355,12 +373,12 @@ msgstr "Місце зберігання успішно створено"
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx:109
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts:303
-#: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:78
-#: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:120
+#: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:79
+#: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:121
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:166
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:185
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:113
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:204
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:206
 #: src/lib/components/shared/asset/asset-preview.tsx:127
 msgid "Unknown error"
 msgstr "Невідома помилка"
@@ -382,7 +400,7 @@ msgstr "Виберіть канал для призначення {0} {entityTyp
 msgid "Successfully created customer"
 msgstr "Клієнта успішно створено"
 
-#: src/lib/components/date-range-picker.tsx:39
+#: src/lib/components/date-range-picker.tsx:55
 msgctxt "date-range"
 msgid "Last 7 days"
 msgstr "Останні 7 днів"
@@ -409,16 +427,17 @@ msgstr "Не вдалося видалити ресурси: {message}"
 msgid "Return to stock"
 msgstr "Повернути на склад"
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:39
+#: src/app/routes/_authenticated/_facets/facets.tsx:41
 msgid "Visibility"
 msgstr "Видимість"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:288
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:277
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:291
 msgid "Product variants"
 msgstr "Варіанти товару"
 
-#: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:36
-#: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:85
+#: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:37
+#: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:86
 msgid "New customer group"
 msgstr "Нова група клієнтів"
 
@@ -427,6 +446,10 @@ msgstr "Нова група клієнтів"
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx:176
 msgid "Create \"{0}\""
 msgstr "Створити «{0}»"
+
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:147
+msgid "Could not load orders"
+msgstr ""
 
 #: src/lib/components/data-table/views-sheet.tsx:238
 msgid "Rename"
@@ -469,8 +492,8 @@ msgstr "Податкова ставка"
 msgid "Order draft isn't ready to be completed"
 msgstr "Чернетка замовлення не готова до завершення"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:47
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:136
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:48
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:137
 msgid "New collection"
 msgstr "Нова колекція"
 
@@ -478,7 +501,7 @@ msgstr "Нова колекція"
 msgid "Insights"
 msgstr "Аналітика"
 
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:210
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:226
 msgid "Run"
 msgstr "Запустити"
 
@@ -490,7 +513,7 @@ msgstr "Не вдалося оновити податкову ставку"
 msgid "This is the contents of the <0>{collectionName}</0> collection."
 msgstr "Це вміст колекції <0>{collectionName}</0>."
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:44
+#: src/app/routes/_authenticated/_facets/facets.tsx:48
 msgid "private"
 msgstr "приватне"
 
@@ -509,7 +532,7 @@ msgstr "Місто"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:37
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:15
-#: src/app/routes/_authenticated/_administrators/administrators.tsx:22
+#: src/app/routes/_authenticated/_administrators/administrators.tsx:23
 msgid "Administrators"
 msgstr "Адміністратори"
 
@@ -518,6 +541,7 @@ msgid "Gross price: <0/>"
 msgstr "Загальна ціна: <0/>"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:82
+#: src/lib/components/data-table/data-table.tsx:705
 msgid "Go to next page"
 msgstr "Перейти на наступну сторінку"
 
@@ -525,21 +549,25 @@ msgstr "Перейти на наступну сторінку"
 msgid "Remove link"
 msgstr "Видалити посилання"
 
-#: src/app/routes/_authenticated/_system/settings-store.tsx:123
+#: src/app/routes/_authenticated/_system/settings-store.tsx:133
 msgid "This field is readonly"
 msgstr "Це поле доступне лише для читання"
 
-#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:32
-#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:80
+#: src/app/routes/_authenticated/_products/components/product-options-table.tsx:108
+msgid "Search options..."
+msgstr ""
+
+#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:33
+#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:81
 msgid "Order Count"
 msgstr "Кількість замовлень"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:92
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:93
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:59
 msgid "Successfully updated order"
 msgstr "Замовлення успішно оновлено"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:199
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:203
 msgid "Inherit filters"
 msgstr "Успадкувати фільтри"
 
@@ -548,6 +576,7 @@ msgid "Manage global saved views that are visible to all users"
 msgstr "Керування глобальними збереженими поданнями, видимими для всіх користувачів"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:107
+#: src/app/routes/_authenticated/_payment-methods/payment-methods.tsx:35
 msgid "Search payment methods..."
 msgstr "Пошук способів оплати..."
 
@@ -592,7 +621,7 @@ msgid "Successfully updated product option"
 msgstr "Варіант продукту успішно оновлено"
 
 #: src/app/routes/_authenticated/_product-variants/components/product-variant-bulk-actions.tsx:95
-#: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:159
+#: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:160
 #: src/app/routes/_authenticated/_products/components/product-bulk-actions.tsx:89
 msgid "Edit facet values"
 msgstr "Редагувати значення фасетів"
@@ -607,7 +636,7 @@ msgid "Move Collections"
 msgstr "Перемістити колекції"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:139
-#: src/app/routes/_authenticated/_administrators/administrators.tsx:55
+#: src/app/routes/_authenticated/_administrators/administrators.tsx:57
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:170
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
 #: src/app/routes/_authenticated/_roles/roles.tsx:18
@@ -655,7 +684,7 @@ msgstr "Тестове замовлення"
 msgid "Select a customer to continue"
 msgstr "Оберіть клієнта для продовження"
 
-#: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:73
+#: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:74
 msgid "Successfully assigned option group"
 msgstr "Групу опцій успішно призначено"
 
@@ -692,7 +721,7 @@ msgid "Order draft is ready to be completed"
 msgstr "Чернетка замовлення готова до завершення"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:201
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:245
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:243
 msgid "Metadata"
 msgstr "Метадані"
 
@@ -701,8 +730,7 @@ msgstr "Метадані"
 msgid "Failed to set shipping method for order: {0}"
 msgstr ""
 
-#: src/app/routes/_authenticated/_option-groups/components/option-group-products-block.tsx:48
-#: src/lib/components/data-table/data-table.tsx:378
+#: src/app/routes/_authenticated/_option-groups/components/option-group-products-block.tsx:49
 msgid "Filter..."
 msgstr "Фільтрувати..."
 
@@ -727,12 +755,17 @@ msgstr "Коротка дата"
 msgid "Available currencies"
 msgstr "Доступні валюти"
 
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:103
+#: src/app/routes/_authenticated/_customers/customers.tsx:26
+msgid "Search customers..."
+msgstr ""
+
 #. placeholder {0}: selectedIds.size
-#: src/lib/components/data-input/product-multi-selector-input.tsx:473
+#: src/lib/components/data-input/product-multi-selector-input.tsx:474
 msgid "Select {0} Items"
 msgstr "Вибрати {0} елементів"
 
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:108
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:117
 msgid "Placed At"
 msgstr "Оформлено"
 
@@ -740,7 +773,7 @@ msgstr "Оформлено"
 msgid "Rotating this key will immediately invalidate the current key. Any integrations using it will stop working until updated with the new key."
 msgstr "Ротація цього ключа негайно анулює поточний ключ. Усі інтеграції, що його використовують, перестануть працювати до оновлення новим ключем."
 
-#: src/app/routes/_authenticated/_system/job-queue.tsx:163
+#: src/app/routes/_authenticated/_system/job-queue.tsx:162
 msgid "The data that has been passed to the job"
 msgstr "Дані, передані завданню"
 
@@ -752,24 +785,24 @@ msgstr "Підтвердити перехід"
 msgid "Link target"
 msgstr "Ціль посилання"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:405
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:406
 msgid "Complete draft"
 msgstr "Завершити чернетку"
 
-#: src/app/routes/_authenticated/_administrators/administrators.tsx:45
+#: src/app/routes/_authenticated/_administrators/administrators.tsx:47
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:165
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:169
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:173
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
-#: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:103
-#: src/app/routes/_authenticated/_customers/customers.tsx:70
+#: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:104
+#: src/app/routes/_authenticated/_customers/customers.tsx:73
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:131
-#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:120
+#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:121
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:202
-#: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:170
+#: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:173
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:158
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:286
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:353
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:354
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:165
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:89
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:148
@@ -790,8 +823,8 @@ msgstr "Не вдалося виконати замовлення"
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:158
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:88
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:106
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:228
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:121
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:226
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:130
 msgid "Total"
 msgstr "Разом"
 
@@ -822,7 +855,7 @@ msgstr "Знайдено {0} підходящих способ(ів) доста�
 msgid "Dimensions"
 msgstr "Розміри"
 
-#: src/lib/components/ui/password-input.tsx:20
+#: src/lib/components/ui/password-input.tsx:12
 msgid "Show password"
 msgstr "Показати пароль"
 
@@ -841,9 +874,9 @@ msgid "Add column after"
 msgstr "Додати стовпець після"
 
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:241
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:193
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:209
 #: src/lib/components/data-table/data-table-bulk-actions.tsx:82
-#: src/lib/components/data-table/use-generated-columns.tsx:253
+#: src/lib/components/data-table/use-generated-columns.tsx:262
 msgid "Actions"
 msgstr "Дії"
 
@@ -863,7 +896,7 @@ msgstr "Рядок замовлення видалено"
 msgid "Content:"
 msgstr "Вміст:"
 
-#: src/app/routes/_authenticated/_system/settings-store.tsx:260
+#: src/app/routes/_authenticated/_system/settings-store.tsx:270
 msgid "Key"
 msgstr "Ключ"
 
@@ -877,7 +910,7 @@ msgstr "Підтвердити"
 msgid "Failed to complete draft order: {0}"
 msgstr ""
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:118
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:119
 msgid "Failed to create collection"
 msgstr "Не вдалося створити колекцію"
 
@@ -885,16 +918,20 @@ msgstr "Не вдалося створити колекцію"
 msgid "Go to first page"
 msgstr "Перейти на першу сторінку"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:168
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:173
 msgid "Failed to create product"
 msgstr "Не вдалося створити товар"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:276
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:279
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:233
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:497
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:498
 #: src/lib/components/shared/role-code-label.tsx:8
 msgid "Customer"
 msgstr "Клієнт"
+
+#: src/lib/components/shared/error-page.tsx:98
+msgid "Page not found"
+msgstr ""
 
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-container.tsx:46
@@ -910,7 +947,7 @@ msgstr "Адресу доставки встановлено для замовл
 msgid "Focal Point"
 msgstr "Фокусна точка"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:99
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:102
 msgid "Single variant, no options"
 msgstr "Один варіант, без опцій"
 
@@ -918,12 +955,16 @@ msgstr "Один варіант, без опцій"
 msgid "Select the next state for the order"
 msgstr "Виберіть наступний стан для замовлення"
 
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:200
+msgid "{count} selected"
+msgstr ""
+
 #: src/lib/components/layout/language-dialog.tsx:80
 msgid "Locale"
 msgstr "Локаль"
 
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:30
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:232
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:42
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:248
 msgid "Scheduled Tasks"
 msgstr "Заплановані завдання"
 
@@ -936,7 +977,7 @@ msgid "Refresh data"
 msgstr "Оновити дані"
 
 #. placeholder {0}: entityIds.length
-#: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:162
+#: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:163
 msgid "Add or remove facet values for {0} {entityType}"
 msgstr "Додати або видалити значення фасетів для {0} {entityType}"
 
@@ -963,12 +1004,12 @@ msgstr "Не вдалося оновити зону"
 msgid "Password"
 msgstr "Пароль"
 
-#: src/lib/components/data-table/use-generated-columns.tsx:391
-#: src/lib/components/data-table/use-generated-columns.tsx:397
+#: src/lib/components/data-table/use-generated-columns.tsx:403
+#: src/lib/components/data-table/use-generated-columns.tsx:409
 msgid "Failed to delete"
 msgstr "Не вдалося видалити"
 
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:88
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:100
 msgid "Scheduled task will be executed"
 msgstr "Заплановане завдання буде виконано"
 
@@ -976,6 +1017,11 @@ msgstr "Заплановане завдання буде виконано"
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:88
 msgid "New stock location"
 msgstr "Нове місце зберігання"
+
+#: src/lib/components/data-table/data-table.tsx:701
+#: src/lib/components/data-table/use-generated-columns.tsx:238
+msgid "Select row"
+msgstr ""
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:129
 msgid "Permissions"
@@ -985,7 +1031,7 @@ msgstr "Дозволи"
 msgid "Shipping address changed"
 msgstr "Адресу доставки змінено"
 
-#: src/app/routes/_authenticated/_option-groups/components/option-group-products-block.tsx:63
+#: src/app/routes/_authenticated/_option-groups/components/option-group-products-block.tsx:62
 msgid "No products found"
 msgstr "Товари не знайдено"
 
@@ -993,16 +1039,16 @@ msgstr "Товари не знайдено"
 msgid "Add row before"
 msgstr "Додати рядок до"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:94
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:95
 msgid "Transition to {suggestedState}"
 msgstr "Перейти до {suggestedState}"
 
-#: src/lib/components/date-range-picker.tsx:71
+#: src/lib/components/date-range-picker.tsx:78
 msgctxt "date-range"
 msgid "This month"
 msgstr "Цей місяць"
 
-#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:84
+#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:85
 msgid "Failed to create facet"
 msgstr "Не вдалося створити фасет"
 
@@ -1011,8 +1057,8 @@ msgid "Failed to cancel order items"
 msgstr "Не вдалося скасувати позиції замовлення"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:160
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:178
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:239
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:176
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:237
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:58
 msgid "Transaction ID"
 msgstr "ID транзакції"
@@ -1030,15 +1076,19 @@ msgstr "Виділено"
 msgid "Failed to set coupon code for order: {0}"
 msgstr ""
 
+#: src/lib/components/data-table/data-table-settings-menu.tsx:64
+msgid "Table settings"
+msgstr ""
+
 #: src/lib/components/layout/nav-user.tsx:102
 msgid "Explore Platform & Cloud"
 msgstr "Огляд Platform & Cloud"
 
-#: src/app/routes/_authenticated/_system/job-queue.tsx:115
+#: src/app/routes/_authenticated/_system/job-queue.tsx:114
 msgid "Every 5 seconds"
 msgstr "Кожні 5 секунд"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:104
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:105
 msgid "Successfully created collection"
 msgstr "Колекцію успішно створено"
 
@@ -1052,12 +1102,12 @@ msgid "Price"
 msgstr "Ціна"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:383
-#: src/app/routes/_authenticated/_orders/orders.tsx:115
+#: src/app/routes/_authenticated/_orders/orders.tsx:116
 msgid "Draft order"
 msgstr "Чернетка замовлення"
 
-#: src/app/routes/_authenticated/_system/settings-store.tsx:281
-#: src/app/routes/_authenticated/_system/settings-store.tsx:314
+#: src/app/routes/_authenticated/_system/settings-store.tsx:291
+#: src/app/routes/_authenticated/_system/settings-store.tsx:325
 msgid "Scope"
 msgstr "Область дії"
 
@@ -1125,12 +1175,12 @@ msgstr "Пошук {name}..."
 msgid "Edit asset"
 msgstr "Редагувати ресурс"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:153
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:150
 msgid "Cancel payment"
 msgstr "Скасувати платіж"
 
-#: src/app/routes/_authenticated/_system/job-queue.tsx:77
-#: src/app/routes/_authenticated/_system/job-queue.tsx:147
+#: src/app/routes/_authenticated/_system/job-queue.tsx:76
+#: src/app/routes/_authenticated/_system/job-queue.tsx:146
 msgid "Job Queue"
 msgstr "Черга завдань"
 
@@ -1158,9 +1208,13 @@ msgstr "Перегенерувати slug з вихідного поля"
 msgid "Inherit from global settings"
 msgstr "Успадкувати з глобальних налаштувань"
 
-#: src/lib/components/data-input/relation-selector.tsx:430
-#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:190
-#: src/lib/components/shared/facet-value-selector.tsx:163
+#: src/app/routes/_authenticated/_facets/facets.tsx:79
+msgid "Search facets..."
+msgstr ""
+
+#: src/lib/components/data-input/relation-selector.tsx:428
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:188
+#: src/lib/components/shared/facet-value-selector.tsx:164
 msgid "No results found"
 msgstr "Результати не знайдено"
 
@@ -1172,16 +1226,20 @@ msgstr "Результати не знайдено"
 msgid "Set a shipping address and select a shipping method"
 msgstr "Встановіть адресу доставки та оберіть спосіб доставки"
 
-#: src/app/routes/_authenticated/_system/job-queue.tsx:114
+#: src/app/routes/_authenticated/_system/job-queue.tsx:113
 msgid "Off"
 msgstr "Вимк."
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:37
-#: src/app/routes/_authenticated/_system/settings-store.tsx:304
+#: src/app/routes/_authenticated/_system/settings-store.tsx:314
 msgid "Settings Store"
 msgstr "Сховище налаштувань"
 
-#: src/app/routes/_authenticated/_system/job-queue.tsx:257
+#: src/app/routes/_authenticated/_product-variants/product-variants.tsx:86
+msgid "Search product variants..."
+msgstr ""
+
+#: src/app/routes/_authenticated/_system/job-queue.tsx:254
 msgid "Queue"
 msgstr "Черга"
 
@@ -1210,8 +1268,8 @@ msgstr "Ціни включають податок для зони за замо
 msgid "Total refund:"
 msgstr "Разом повернення:"
 
-#: src/app/routes/_authenticated/_system/job-queue.tsx:180
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:176
+#: src/app/routes/_authenticated/_system/job-queue.tsx:179
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:192
 msgid "View job result"
 msgstr "Переглянути результат завдання"
 
@@ -1219,7 +1277,7 @@ msgstr "Переглянути результат завдання"
 msgid "Test your shipping methods by simulating a new order."
 msgstr "Перевірте свої способи доставки, симулюючи нове замовлення."
 
-#: src/lib/components/data-input/product-multi-selector-input.tsx:433
+#: src/lib/components/data-input/product-multi-selector-input.tsx:434
 msgid "No items selected"
 msgstr "Елементи не вибрано"
 
@@ -1228,7 +1286,7 @@ msgstr "Елементи не вибрано"
 msgid ", {0} selected"
 msgstr ", {0} вибрано"
 
-#: src/lib/components/shared/country-selector.tsx:86
+#: src/lib/components/shared/country-selector.tsx:90
 msgid "No countries found"
 msgstr "Країни не знайдено"
 
@@ -1255,7 +1313,7 @@ msgstr "Способи оплати"
 msgid "Stock"
 msgstr "Запас"
 
-#: src/lib/components/shared/customer-selector.tsx:88
+#: src/lib/components/shared/customer-selector.tsx:92
 msgid "No customers found"
 msgstr "Клієнти не знайдено"
 
@@ -1267,11 +1325,11 @@ msgstr "Використовувати глобальний поріг відс�
 #~ msgid "New product option group"
 #~ msgstr "Нова група опцій товару"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:60
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:57
 msgid "Payment state updated successfully"
 msgstr "Стан платежу успішно оновлено"
 
-#: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:161
+#: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:162
 msgid "Create new"
 msgstr "Створити новий"
 
@@ -1292,7 +1350,7 @@ msgstr "Доступні лише ролі, призначені вашому о
 msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
 msgstr ""
 
-#: src/lib/components/data-input/product-multi-selector-input.tsx:499
+#: src/lib/components/data-input/product-multi-selector-input.tsx:500
 msgid "{buttonText}"
 msgstr "{buttonText}"
 
@@ -1360,8 +1418,8 @@ msgstr "Додати стовпець до"
 msgid "Channel Languages"
 msgstr "Мови каналу"
 
-#: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:137
-#: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:119
+#: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:144
+#: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:120
 msgid "Failed to create option group"
 msgstr "Не вдалося створити групу опцій"
 
@@ -1369,7 +1427,7 @@ msgstr "Не вдалося створити групу опцій"
 msgid "True"
 msgstr "Істина"
 
-#: src/lib/components/shared/customer-selector.tsx:77
+#: src/lib/components/shared/customer-selector.tsx:78
 msgid "Select customer"
 msgstr "Вибрати клієнта"
 
@@ -1407,6 +1465,10 @@ msgstr "Акцію успішно оновлено"
 msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to cancel {rejected} jobs}}"
 msgstr "{rejected, plural, one {Не вдалося скасувати {rejected} завдання} few {Не вдалося скасувати {rejected} завдання} many {Не вдалося скасувати {rejected} завдань} other {Не вдалося скасувати {rejected} завдань}}"
 
+#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:102
+msgid "We couldn't load these metrics"
+msgstr ""
+
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:111
 #: src/lib/components/shared/channel-selector.tsx:47
 msgid "Select a channel"
@@ -1416,13 +1478,13 @@ msgstr "Виберіть канал"
 msgid "Display language"
 msgstr "Мова відображення"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:309
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:312
 msgid "Fulfillment details"
 msgstr "Деталі виконання"
 
 #: src/lib/components/data-input/datetime-input.tsx:181
-msgid "Now"
-msgstr "Зараз"
+#~ msgid "Now"
+#~ msgstr "Зараз"
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts:181
@@ -1451,15 +1513,19 @@ msgstr "Розмір"
 msgid "No translation found for {0}"
 msgstr "Переклад для {0} не знайдено"
 
-#: src/app/routes/_authenticated/_customers/customers.tsx:92
+#: src/app/routes/_authenticated/_customers/customers.tsx:103
 msgid "New Customer"
 msgstr "Новий клієнт"
 
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:78
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:79
 msgid "Latest Orders"
 msgstr "Останні замовлення"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:427
+#: src/lib/components/shared/error-page.tsx:81
+msgid "Go back"
+msgstr ""
+
+#: src/app/routes/_authenticated/_collections/collections.tsx:452
 msgid "+ {leftOver} more"
 msgstr "+ ще {leftOver}"
 
@@ -1469,15 +1535,15 @@ msgstr "Використовувати як адресу виставлення 
 
 #: src/app/common/delete-bulk-action.tsx:139
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:41
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:362
-#: src/lib/components/data-table/use-generated-columns.tsx:407
-#: src/lib/components/data-table/use-generated-columns.tsx:437
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:363
+#: src/lib/components/data-table/use-generated-columns.tsx:419
+#: src/lib/components/data-table/use-generated-columns.tsx:449
 #: src/lib/components/data-table/views-sheet.tsx:270
 #: src/lib/components/data-table/views-sheet.tsx:296
 msgid "Delete"
 msgstr "Видалити"
 
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:220
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:236
 msgid "Disable"
 msgstr "Вимкнути"
 
@@ -1499,6 +1565,10 @@ msgstr "Не вдалося створити країну"
 msgid "Countries"
 msgstr "Країни"
 
+#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:96
+msgid "Loading metrics…"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:124
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:209
 #~ msgid "Failed to create product options"
@@ -1516,7 +1586,7 @@ msgstr "Доступно"
 msgid "Normal"
 msgstr "Звичайний"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:195
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:199
 msgid "Filters"
 msgstr "Фільтри"
 
@@ -1548,6 +1618,10 @@ msgstr "Нова опція"
 msgid "Usage limit"
 msgstr "Ліміт використання"
 
+#: src/app/routes/_authenticated/_collections/collections.tsx:547
+msgid "Create your first collection"
+msgstr ""
+
 #: src/lib/components/layout/manage-languages-dialog.tsx:267
 msgid "Loading global settings..."
 msgstr "Завантаження глобальних налаштувань..."
@@ -1557,9 +1631,9 @@ msgid "Address updated successfully"
 msgstr "Адресу успішно оновлено"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:126
 #: src/lib/components/shared/asset/asset-gallery.tsx:747
-#: src/lib/framework/layout-engine/page-layout.tsx:733
+#: src/lib/framework/layout-engine/page-layout.tsx:735
 msgid "Created"
 msgstr "Створено"
 
@@ -1589,6 +1663,10 @@ msgstr "не у"
 msgid "Apply"
 msgstr "Застосувати"
 
+#: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:36
+msgid "Search tax rates..."
+msgstr ""
+
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:163
 msgid "New product option"
 msgstr "Нова опція товару"
@@ -1606,18 +1684,18 @@ msgstr "Перейти на останню сторінку"
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx:352
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:363
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:71
-#: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:273
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:498
-#: src/app/routes/_authenticated/_system/settings-store.tsx:140
-#: src/lib/components/data-input/product-multi-selector-input.tsx:470
+#: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:272
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:500
+#: src/app/routes/_authenticated/_system/settings-store.tsx:150
+#: src/lib/components/data-input/product-multi-selector-input.tsx:471
 #: src/lib/components/data-table/data-table-bulk-action-item.tsx:122
-#: src/lib/components/data-table/use-generated-columns.tsx:423
+#: src/lib/components/data-table/use-generated-columns.tsx:435
 #: src/lib/components/data-table/views-sheet.tsx:217
 #: src/lib/components/data-table/views-sheet.tsx:293
 #: src/lib/components/layout/manage-languages-dialog.tsx:379
-#: src/lib/components/shared/asset/asset-focal-point-editor.tsx:88
+#: src/lib/components/shared/asset/asset-focal-point-editor.tsx:93
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:126
-#: src/lib/components/shared/confirmation-dialog.tsx:42
+#: src/lib/components/shared/confirmation-dialog.tsx:27
 #: src/lib/components/shared/customer-address-form.tsx:253
 #: src/lib/components/shared/navigation-confirmation.tsx:55
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:208
@@ -1661,13 +1739,13 @@ msgstr "Нова податкова категорія"
 msgid "Partial refund completed"
 msgstr "Часткове повернення завершено"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:492
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:493
 msgid "Set custom fields"
 msgstr "Встановити користувацькі поля"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:46
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:47
 #: src/app/routes/_authenticated/_collections/collections.tsx:51
-#: src/app/routes/_authenticated/_collections/collections.tsx:339
+#: src/app/routes/_authenticated/_collections/collections.tsx:362
 msgid "Collections"
 msgstr "Колекції"
 
@@ -1675,7 +1753,7 @@ msgstr "Колекції"
 msgid "Select Shipping Eligibility Checker"
 msgstr ""
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:458
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:459
 msgid "Delete variant"
 msgstr "Видалити варіант"
 
@@ -1691,49 +1769,49 @@ msgstr "Зона доставки за замовчуванням"
 msgid "Reason:"
 msgstr "Причина:"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:291
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:294
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:248
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:510
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:511
 msgid "Shipping address"
 msgstr "Адреса доставки"
 
 #. placeholder {0}: getTranslatedFulfillmentState(state)
 #. placeholder {0}: getTranslatedOrderState(state)
 #. placeholder {0}: getTranslatedPaymentState(state)
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:102
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:125
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:154
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:103
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:126
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:151
 msgid "Transition to {0}"
 msgstr "Перейти до {0}"
 
 #: src/app/routes/_authenticated/_tax-categories/tax-categories_.$id.tsx:36
 #: src/app/routes/_authenticated/_tax-categories/tax-categories.tsx:14
-#: src/app/routes/_authenticated/_tax-categories/tax-categories.tsx:23
+#: src/app/routes/_authenticated/_tax-categories/tax-categories.tsx:24
 msgid "Tax Categories"
 msgstr "Податкові категорії"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:158
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:162
 msgid "Private collections are not visible in the shop"
 msgstr "Приватні колекції не видимі в магазині"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:262
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:229
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:231
 msgid "When enabled, a product is available in the shop"
 msgstr "При увімкненні товар доступний у магазині"
 
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:91
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:103
 msgid "Scheduled task could not be executed"
 msgstr "Заплановане завдання не може бути виконане"
 
-#: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:35
+#: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:36
 #: src/app/routes/_authenticated/_customer-groups/customer-groups.tsx:14
-#: src/app/routes/_authenticated/_customer-groups/customer-groups.tsx:21
+#: src/app/routes/_authenticated/_customer-groups/customer-groups.tsx:22
 msgid "Customer Groups"
 msgstr "Групи клієнтів"
 
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:123
-#: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:58
-#: src/lib/components/data-display/boolean.tsx:22
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:139
+#: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:59
+#: src/lib/components/data-display/boolean.tsx:25
 #: src/lib/components/layout/nav-user.tsx:155
 msgid "Disabled"
 msgstr "Вимкнено"
@@ -1751,6 +1829,10 @@ msgstr "Адреса доставки за замовчуванням"
 msgid "{operator}"
 msgstr "{operator}"
 
+#: src/app/routes/_authenticated/_customer-groups/customer-groups.tsx:48
+msgid "Search customer groups..."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx:177
 msgid "Refund required"
 msgstr "Потрібне повернення"
@@ -1765,12 +1847,12 @@ msgstr "Виконати замовлення"
 msgid "You don't have permission to view channel settings"
 msgstr "У вас немає дозволу на перегляд налаштувань каналу"
 
-#: src/lib/components/date-range-picker.tsx:55
+#: src/lib/components/date-range-picker.tsx:68
 msgctxt "date-range"
 msgid "Last 30 days"
 msgstr "Останні 30 днів"
 
-#: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:238
+#: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:237
 msgid "No facet values"
 msgstr "Немає значень фасетів"
 
@@ -1778,7 +1860,7 @@ msgstr "Немає значень фасетів"
 msgid "A reason for the refund is required"
 msgstr "Потрібно вказати причину повернення"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:194
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:196
 msgid "Could not remove option group"
 msgstr "Не вдалося видалити групу опцій"
 
@@ -1786,7 +1868,7 @@ msgstr "Не вдалося видалити групу опцій"
 msgid "Failed to update tax category"
 msgstr "Не вдалося оновити податкову категорію"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:90
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:87
 msgid "Refund settled successfully"
 msgstr "Повернення успішно проведено"
 
@@ -1794,20 +1876,20 @@ msgstr "Повернення успішно проведено"
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:152
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
-#: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
+#: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
-#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:99
+#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:102
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
-#: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:160
+#: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:163
 #: src/app/routes/_authenticated/_orders/components/order-line-custom-fields-form.tsx:51
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
-#: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:279
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:219
+#: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:278
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:221
 #: src/app/routes/_authenticated/_profile/profile.tsx:92
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
@@ -1840,7 +1922,7 @@ msgstr "Профіль успішно оновлено"
 #~ msgstr "кінець"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:146
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:168
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:166
 msgid "Payment method"
 msgstr "Спосіб оплати"
 
@@ -1881,30 +1963,31 @@ msgstr "Починається"
 msgid "Duplicate"
 msgstr "Дублювати"
 
-#: src/lib/components/data-table/data-table.tsx:588
-#: src/lib/components/shared/customer-group-selector.tsx:56
+#: src/lib/components/data-table/data-table.tsx:578
+#: src/lib/components/data-table/data-table.tsx:589
+#: src/lib/components/shared/customer-group-selector.tsx:60
 msgid "No results"
 msgstr "Немає результатів"
 
-#: src/lib/components/data-table/data-table-view-options.tsx:95
+#: src/lib/components/data-table/data-table-view-options.tsx:163
 msgid "Column settings"
 msgstr "Налаштування стовпців"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:132
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
-#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:126
+#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:127
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:208
-#: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:176
+#: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:179
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:164
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:100
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:154
-#: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:61
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:98
+#: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:63
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:104
 msgid "Code"
 msgstr "Код"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:203
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:205
 msgid "Failed to remove option groups"
 msgstr "Не вдалося видалити групи опцій"
 
@@ -1924,7 +2007,7 @@ msgstr "Виберіть з глобально доступних мов для 
 msgid "Are you sure you want to delete this address?"
 msgstr "Ви впевнені, що хочете видалити цю адресу?"
 
-#: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:77
+#: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:78
 msgid "Failed to assign option group"
 msgstr "Не вдалося призначити групу опцій"
 
@@ -1976,9 +2059,9 @@ msgstr "Не вдалося оновити примітку"
 msgid "Refund shipping"
 msgstr "Повернути вартість доставки"
 
-#: src/app/routes/_authenticated/_system/settings-store.tsx:289
-#: src/app/routes/_authenticated/_system/settings-store.tsx:293
-#: src/app/routes/_authenticated/_system/settings-store.tsx:324
+#: src/app/routes/_authenticated/_system/settings-store.tsx:299
+#: src/app/routes/_authenticated/_system/settings-store.tsx:303
+#: src/app/routes/_authenticated/_system/settings-store.tsx:335
 msgid "Readonly"
 msgstr "Лише для читання"
 
@@ -1995,7 +2078,7 @@ msgid "Test Shipping Method"
 msgstr "Перевірити спосіб доставки"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:491
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:333
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:336
 msgid "Facet Values"
 msgstr "Значення фасетів"
 
@@ -2008,13 +2091,13 @@ msgid "Theme"
 msgstr "Тема"
 
 #. placeholder {0}: value.totalItems
-#: src/app/routes/_authenticated/_customer-groups/customer-groups.tsx:40
+#: src/app/routes/_authenticated/_customer-groups/customer-groups.tsx:41
 msgid "{0} customers"
 msgstr "{0} клієнтів"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:48
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:14
-#: src/app/routes/_authenticated/_api-keys/api-keys.tsx:25
+#: src/app/routes/_authenticated/_api-keys/api-keys.tsx:26
 msgid "API Keys"
 msgstr "API Keys"
 
@@ -2361,11 +2444,15 @@ msgstr "Список значень"
 msgid "fieldName.zone"
 msgstr "Зона"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:116
+#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:125
+msgid "No metrics for this period"
+msgstr ""
+
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:118
 msgid "Method"
 msgstr "Метод"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:232
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:234
 msgid "Tax summary"
 msgstr "Податкове зведення"
 
@@ -2373,15 +2460,19 @@ msgstr "Податкове зведення"
 msgid "Sets the languages that are available for all channels. Individual channels can then support a subset of these languages."
 msgstr "Встановлює мови, доступні для всіх каналів. Окремі канали потім можуть підтримувати підмножину цих мов."
 
+#: src/app/routes/_authenticated/_facets/facets.tsx:119
+msgid "Create your first facet"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx:284
 msgid "Collections moved successfully"
 msgstr "Колекції успішно переміщено"
 
-#: src/lib/components/data-input/relation-selector.tsx:411
+#: src/lib/components/data-input/relation-selector.tsx:412
 msgid "Change selection"
 msgstr ""
 
-#: src/app/routes/_authenticated/_customers/components/customer-status-badge.tsx:23
+#: src/app/routes/_authenticated/_customers/components/customer-status-badge.tsx:33
 msgid "Registered"
 msgstr "Зареєстровано"
 
@@ -2390,7 +2481,7 @@ msgstr "Зареєстровано"
 msgid "Failed to set shipping address for order: {0}"
 msgstr ""
 
-#: src/app/routes/_authenticated/_system/job-queue.tsx:231
+#: src/app/routes/_authenticated/_system/job-queue.tsx:228
 msgid "Cancel Job"
 msgstr "Скасувати завдання"
 
@@ -2408,17 +2499,17 @@ msgstr "Сторінка {0} з {1}"
 msgid "Rate"
 msgstr "Ставка"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:114
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:119
 msgid "Size, colour, etc."
 msgstr "Розмір, колір тощо"
 
-#: src/lib/components/shared/facet-value-selector.tsx:155
-#: src/lib/components/shared/facet-value-selector.tsx:172
+#: src/lib/components/shared/facet-value-selector.tsx:156
+#: src/lib/components/shared/facet-value-selector.tsx:173
 msgid "Browse facets"
 msgstr "Перегляд фасетів"
 
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:135
-#: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:72
+#: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:73
 msgid "Zone"
 msgstr "Зона"
 
@@ -2453,12 +2544,14 @@ msgid "Save View"
 msgstr "Зберегти вигляд"
 
 #. placeholder {0}: selection.length
-#: src/lib/components/data-table/data-table-bulk-actions.tsx:78
+#. placeholder {0}: value.length
+#: src/lib/components/data-table/data-table-bulk-actions.tsx:76
 #: src/lib/components/shared/asset/asset-bulk-actions.tsx:80
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:67
 msgid "{0} selected"
 msgstr "{0} вибрано"
 
-#: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:239
+#: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:240
 msgid "Search option groups..."
 msgstr "Пошук груп опцій..."
 
@@ -2466,11 +2559,11 @@ msgstr "Пошук груп опцій..."
 msgid "Modify order"
 msgstr "Змінити замовлення"
 
-#: src/lib/components/data-input/product-multi-selector-input.tsx:418
+#: src/lib/components/data-input/product-multi-selector-input.tsx:419
 msgid "Selected Items"
 msgstr "Вибрані елементи"
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:50
+#: src/app/routes/_authenticated/_facets/facets.tsx:54
 msgid "Values"
 msgstr "Значення"
 
@@ -2479,19 +2572,23 @@ msgid "Customer set for order"
 msgstr "Клієнта встановлено для замовлення"
 
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:38
-#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:35
-#: src/app/routes/_authenticated/_facets/facets.tsx:21
-#: src/app/routes/_authenticated/_facets/facets.tsx:28
-#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:233
-#: src/lib/components/shared/facet-value-selector.tsx:222
+#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:36
+#: src/app/routes/_authenticated/_facets/facets.tsx:22
+#: src/app/routes/_authenticated/_facets/facets.tsx:30
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:231
+#: src/lib/components/shared/facet-value-selector.tsx:223
 msgid "Facets"
 msgstr "Фасети"
+
+#: src/app/routes/_authenticated/_countries/countries.tsx:29
+msgid "Search countries..."
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:293
 msgid "Stock on Hand"
 msgstr "Запас у наявності"
 
-#: src/app/routes/_authenticated/_products/products.tsx:35
+#: src/app/routes/_authenticated/_products/products.tsx:36
 msgid "Search index rebuild could not be started"
 msgstr "Не вдалося розпочати перебудову пошукового індексу"
 
@@ -2506,7 +2603,7 @@ msgstr "Нова зона"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:49
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:136
-#: src/app/routes/_authenticated/_api-keys/api-keys.tsx:79
+#: src/app/routes/_authenticated/_api-keys/api-keys.tsx:83
 msgid "New API Key"
 msgstr "Новий API Key"
 
@@ -2514,7 +2611,7 @@ msgstr "Новий API Key"
 msgid "Delete column"
 msgstr "Видалити стовпець"
 
-#: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:157
+#: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:158
 msgid "Assign existing"
 msgstr "Призначити існуючу"
 
@@ -2568,15 +2665,15 @@ msgstr "Клієнта верифіковано"
 msgid "Global Settings"
 msgstr "Глобальні налаштування"
 
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:132
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:148
 msgid "Schedule"
 msgstr "Розклад"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:288
+#: src/app/routes/_authenticated/_collections/collections.tsx:304
 msgid "Cannot move a collection into its own descendant"
 msgstr "Неможливо перемістити колекцію в її власного нащадка"
 
-#: src/app/routes/_authenticated/_tax-categories/tax-categories.tsx:58
+#: src/app/routes/_authenticated/_tax-categories/tax-categories.tsx:62
 msgid "New Tax Category"
 msgstr "Нова податкова категорія"
 
@@ -2592,7 +2689,7 @@ msgstr "Канал успішно створено"
 msgid "Successfully updated customer"
 msgstr "Клієнта успішно оновлено"
 
-#: src/app/routes/_authenticated/_system/job-queue.tsx:166
+#: src/app/routes/_authenticated/_system/job-queue.tsx:165
 msgid "View data"
 msgstr "Переглянути дані"
 
@@ -2620,7 +2717,7 @@ msgstr "Застосовано подання \"{viewName}\""
 msgid "Successfully removed {successCount} facets from channel"
 msgstr "{successCount} фасетів успішно видалено з каналу"
 
-#: src/app/routes/_authenticated/_products/products.tsx:117
+#: src/app/routes/_authenticated/_products/products.tsx:125
 msgid "New Product"
 msgstr "Новий товар"
 
@@ -2639,26 +2736,30 @@ msgstr "Перерахувати доставку"
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:39
 #: src/app/routes/_authenticated/_assets/assets.tsx:17
 #: src/app/routes/_authenticated/_assets/assets.tsx:40
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:225
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:229
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:508
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:366
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:369
 msgid "Assets"
 msgstr "Ресурси"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:307
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:310
 msgid "This will remove all option groups from this product and return to the variant setup choice."
 msgstr "Це видалить усі групи опцій з цього товару та поверне до вибору налаштування варіантів."
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:299
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:302
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:277
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:532
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:533
 msgid "Billing address"
 msgstr "Адреса виставлення рахунку"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:131
-#: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:172
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:64
+#: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:173
 msgid "Add facet value"
 msgstr "Додати значення фасету"
+
+#: src/lib/components/shared/error-page.tsx:118
+msgid "You do not have permission to view this page."
+msgstr ""
 
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx:312
 msgid "Please select a target collection"
@@ -2691,7 +2792,7 @@ msgstr "Усі типи"
 msgid "Only draft orders can be completed"
 msgstr "Лише чернетки замовлень можуть бути завершені"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:168
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:173
 msgid "Failed to update product"
 msgstr "Не вдалося оновити товар"
 
@@ -2704,7 +2805,7 @@ msgstr ""
 msgid "Adjusting {0} lines"
 msgstr "Коригування {0} рядків"
 
-#: src/lib/components/shared/facet-value-selector.tsx:118
+#: src/lib/components/shared/facet-value-selector.tsx:119
 msgid "Add facet values"
 msgstr "Додати значення фасетів"
 
@@ -2721,7 +2822,7 @@ msgstr "Канал"
 #~ msgid "Healthchecks"
 #~ msgstr "Перевірки стану"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:170
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:168
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:322
 msgid "Amount"
 msgstr "Сума"
@@ -2745,12 +2846,13 @@ msgstr "Зображення"
 msgid "Successfully created administrator"
 msgstr "Адміністратора успішно створено"
 
-#: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:198
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:315
+
+#: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:196
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:318
 msgid "Product Options"
 msgstr "Опції товару"
 
-#: src/lib/components/shared/country-selector.tsx:72
+#: src/lib/components/shared/country-selector.tsx:73
 msgid "Select country"
 msgstr "Вибрати країну"
 
@@ -2762,7 +2864,7 @@ msgstr "Створення..."
 msgid "Are you sure you want to delete this global view? This action cannot be undone and will affect all users."
 msgstr "Ви впевнені, що хочете видалити це глобальне подання? Цю дію неможливо скасувати, і вона вплине на всіх користувачів."
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:491
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:493
 msgid "Force remove option group"
 msgstr "Примусово видалити групу опцій"
 
@@ -2775,7 +2877,7 @@ msgstr "Додано"
 msgid "Customer history"
 msgstr "Історія клієнта"
 
-#: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:75
+#: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:76
 msgid "Successfully updated facet values for {entityIdsLength} {entityType}"
 msgstr "Значення фасетів успішно оновлено для {entityIdsLength} {entityType}"
 
@@ -2816,17 +2918,17 @@ msgstr "Видалити глобальне подання"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:152
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
-#: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
+#: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
-#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:99
+#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
-#: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:160
+#: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:163
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:219
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:221
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
@@ -2838,7 +2940,7 @@ msgstr "Видалити глобальне подання"
 msgid "Create"
 msgstr "Створити"
 
-#: src/app/routes/_authenticated/_system/job-queue.tsx:117
+#: src/app/routes/_authenticated/_system/job-queue.tsx:116
 msgid "Every 30 seconds"
 msgstr "Кожні 30 секунд"
 
@@ -2870,7 +2972,7 @@ msgstr "Значення опцій"
 msgid "Default Billing Address"
 msgstr "Адреса виставлення рахунку за замовчуванням"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:284
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:287
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:241
 msgid "No customer"
 msgstr "Немає клієнта"
@@ -2884,12 +2986,12 @@ msgstr "Не вдалося видалити країни із зони"
 msgid "Failed to create promotion"
 msgstr "Не вдалося створити акцію"
 
-#: src/lib/components/date-range-picker.tsx:23
+#: src/lib/components/date-range-picker.tsx:42
 msgctxt "date-range"
 msgid "Today"
 msgstr "Сьогодні"
 
-#: src/lib/components/date-range-picker.tsx:31
+#: src/lib/components/date-range-picker.tsx:47
 msgctxt "date-range"
 msgid "Yesterday"
 msgstr "Вчора"
@@ -2917,7 +3019,7 @@ msgstr "Посилання href"
 msgid "Fallback: {value}"
 msgstr "Резервне значення: {value}"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:260
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:263
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-container.tsx:30
 msgid "Order history"
 msgstr "Історія замовлень"
@@ -2944,7 +3046,7 @@ msgstr "Теги не вибрано"
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:408
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:417
-#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:205
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:203
 msgid "Back"
 msgstr "Назад"
 
@@ -2956,7 +3058,7 @@ msgstr "Подання успішно перейменовано"
 msgid "Apply filter"
 msgstr "Застосувати фільтр"
 
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:171
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:187
 msgid "Last Result"
 msgstr "Останній результат"
 
@@ -2987,7 +3089,7 @@ msgstr "Темна"
 msgid "Test Results"
 msgstr "Результати тестування"
 
-#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:127
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:80
 msgid "Add customer"
 msgstr "Додати клієнта"
 
@@ -2995,6 +3097,10 @@ msgstr "Додати клієнта"
 #: src/lib/components/layout/manage-languages-dialog.tsx:382
 msgid "Save Changes"
 msgstr "Зберегти зміни"
+
+#: src/app/routes/_authenticated/_products/products.tsx:57
+msgid "Search products..."
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:53
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx:78
@@ -3016,11 +3122,10 @@ msgstr ""
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:115
 #: src/app/routes/_authenticated/_orders/components/shipping-method-selector.tsx:37
 #: src/app/routes/_authenticated/_orders/components/shipping-method-selector.tsx:44
-#: src/app/routes/_authenticated/_orders/components/state-transition-control.tsx:77
-#: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:192
-#: src/app/routes/_authenticated/_tax-categories/tax-categories.tsx:44
-#: src/lib/components/data-input/product-multi-selector-input.tsx:377
-#: src/lib/components/data-input/product-multi-selector-input.tsx:380
+#: src/app/routes/_authenticated/_orders/components/state-transition-control.tsx:82
+#: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:191
+#: src/lib/components/data-input/product-multi-selector-input.tsx:378
+#: src/lib/components/data-input/product-multi-selector-input.tsx:381
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx:439
 msgid "{0}"
 msgstr "{0}"
@@ -3029,7 +3134,7 @@ msgstr "{0}"
 msgid "New Zone"
 msgstr "Нова зона"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:330
+#: src/app/routes/_authenticated/_collections/collections.tsx:353
 msgid "Failed to update collection position"
 msgstr "Не вдалося оновити позицію колекції"
 
@@ -3037,7 +3142,7 @@ msgstr "Не вдалося оновити позицію колекції"
 msgid "Refund"
 msgstr "Повернення"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:160
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:162
 #: src/app/routes/_authenticated/_orders/utils/order-detail-loaders.tsx:78
 msgid "Modify"
 msgstr "Змінити"
@@ -3086,16 +3191,20 @@ msgstr "Ви впевнені, що хочете покинути цю стор�
 msgid "Toggle header column"
 msgstr "Перемкнути стовпець заголовка"
 
-#: src/app/routes/_authenticated/_promotions/promotions.tsx:90
+#: src/app/routes/_authenticated/_promotions/promotions.tsx:101
 msgid "New Promotion"
 msgstr "Нова акція"
+
+#: src/lib/components/data-table/data-table-settings-menu.tsx:83
+msgid "Columns"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:152
 msgid "Option value name"
 msgstr "Назва значення опції"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:214
-#: src/app/routes/_authenticated/_api-keys/api-keys.tsx:46
+#: src/app/routes/_authenticated/_api-keys/api-keys.tsx:48
 msgid "Last used"
 msgstr "Останнє використання"
 
@@ -3119,7 +3228,7 @@ msgstr "Зону успішно оновлено"
 msgid "State/Province"
 msgstr "Регіон/Область"
 
-#: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:138
+#: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:144
 msgid "Failed to update option group"
 msgstr "Не вдалося оновити групу опцій"
 
@@ -3136,12 +3245,12 @@ msgid "Set filter criteria for the {columnId} column"
 msgstr "Задати критерії фільтрації для стовпця {columnId}"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:217
-#: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:53
+#: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:55
 #: src/lib/components/shared/customer-address-form.tsx:173
 msgid "Country"
 msgstr "Країна"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:97
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:99
 msgid "Simple product"
 msgstr "Простий товар"
 
@@ -3154,11 +3263,11 @@ msgstr "Черга завдань"
 msgid "Please confirm you have saved the API key before closing."
 msgstr "Будь ласка, підтвердіть, що ви зберегли API key перед закриттям."
 
-#: src/lib/components/data-table/use-generated-columns.tsx:413
+#: src/lib/components/data-table/use-generated-columns.tsx:425
 msgid "Confirm deletion"
 msgstr "Підтвердити видалення"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:150
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:152
 msgid "Failed to modify order"
 msgstr "Не вдалося змінити замовлення"
 
@@ -3166,7 +3275,7 @@ msgstr "Не вдалося змінити замовлення"
 msgid "Includes tax at {taxRate}%"
 msgstr "Включаючи податок {taxRate}%"
 
-#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:75
+#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:76
 msgid "Order metrics"
 msgstr "Метрики замовлень"
 
@@ -3182,7 +3291,7 @@ msgstr ""
 msgid "Authentication methods"
 msgstr "Методи автентифікації"
 
-#: src/lib/components/data-table/data-table-filter-badge.tsx:120
+#: src/lib/components/data-table/data-table-filter-badge.tsx:124
 msgid "start"
 msgstr "початок"
 
@@ -3222,7 +3331,7 @@ msgstr "Обробка..."
 msgid "{totalItems} {0} found"
 msgstr "{totalItems} {0} знайдено"
 
-#: src/lib/components/date-range-picker.tsx:126
+#: src/lib/components/date-range-picker.tsx:122
 msgid "Select date range"
 msgstr "Виберіть період"
 
@@ -3236,7 +3345,7 @@ msgstr "Товар"
 msgid "Rotate API Key"
 msgstr "Ротація API Key"
 
-#: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:62
+#: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:63
 msgid "Category"
 msgstr "Категорія"
 
@@ -3251,6 +3360,10 @@ msgstr "Призначити"
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:56
 msgid "Successfully created seller"
 msgstr "Продавця успішно створено"
+
+#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:104
+msgid "Try again"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:91
 msgid "Successfully updated shipping method"
@@ -3270,8 +3383,9 @@ msgstr "Перетягніть для зміни порядку"
 msgid "Zones"
 msgstr "Зони"
 
-#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:170
-#: src/lib/components/shared/facet-value-selector.tsx:123
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:111
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:168
+#: src/lib/components/shared/facet-value-selector.tsx:124
 msgid "Search facet values..."
 msgstr "Пошук значень фасетів..."
 
@@ -3285,17 +3399,21 @@ msgid "Available languages"
 msgstr "Доступні мови"
 
 #. placeholder {0}: Math.min(remaining, CHILDREN_PAGE_SIZE)
-#: src/app/routes/_authenticated/_collections/collections.tsx:478
+#: src/app/routes/_authenticated/_collections/collections.tsx:503
 msgid "Load {0} more ({remaining} remaining)"
 msgstr "Завантажити ще {0} (залишилось {remaining})"
 
-#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:141
-#: src/app/routes/_authenticated/_product-variants/product-variants.tsx:84
-#: src/app/routes/_authenticated/_products/products.tsx:76
+#: src/lib/components/shared/error-page.tsx:94
+msgid "Not found"
+msgstr ""
+
+#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:143
+#: src/app/routes/_authenticated/_product-variants/product-variants.tsx:82
+#: src/app/routes/_authenticated/_products/products.tsx:78
 msgid "Facet values"
 msgstr "Значення фасетів"
 
-#: src/lib/components/data-table/data-table.tsx:237
+#: src/lib/components/data-table/data-table.tsx:316
 msgid "Failed to reorder items"
 msgstr "Не вдалося змінити порядок позицій"
 
@@ -3307,13 +3425,13 @@ msgstr "Усього замовлень"
 msgid "No eligible shipping methods found for this order."
 msgstr "Для цього замовлення не знайдено підходящих способів доставки."
 
-#: src/app/routes/_authenticated/_products/components/product-options-table.tsx:126
+#: src/app/routes/_authenticated/_products/components/product-options-table.tsx:66
 msgid "Add product option"
 msgstr "Додати опцію товару"
 
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:66
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:194
-#: src/app/routes/_authenticated/_orders/orders.tsx:85
+#: src/app/routes/_authenticated/_orders/orders.tsx:86
 msgid "Shipping"
 msgstr "Доставка"
 
@@ -3321,7 +3439,7 @@ msgstr "Доставка"
 msgid "useWidgetDimensions must be used within a DashboardBaseWidget"
 msgstr "useWidgetDimensions має використовуватися всередині DashboardBaseWidget"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:493
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:495
 msgid "This option group is in use by existing variants. Force removing it may affect those variants. Are you sure?"
 msgstr "Ця група опцій використовується наявними варіантами. Примусове видалення може вплинути на ці варіанти. Ви впевнені?"
 
@@ -3333,7 +3451,7 @@ msgstr "Запитано оновлення електронної пошти"
 msgid "Error transitioning to state"
 msgstr "Помилка переходу до стану"
 
-#: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:64
+#: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:65
 msgid "Successfully created customer group"
 msgstr "Групу клієнтів успішно створено"
 
@@ -3359,7 +3477,7 @@ msgstr "Не вдалося оновити спосіб доставки"
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:42
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods.tsx:19
-#: src/app/routes/_authenticated/_shipping-methods/shipping-methods.tsx:28
+#: src/app/routes/_authenticated/_shipping-methods/shipping-methods.tsx:29
 msgid "Shipping Methods"
 msgstr "Способи доставки"
 
@@ -3367,20 +3485,21 @@ msgstr "Способи доставки"
 msgid "Select an address"
 msgstr "Виберіть адресу"
 
-#: src/app/routes/_authenticated/_system/settings-store.tsx:326
+#: src/app/routes/_authenticated/_system/settings-store.tsx:337
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:71
 msgid "Yes"
 msgstr "Так"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:175
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:246
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:179
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:248
 msgid "Slug"
 msgstr "Slug"
 
-#: src/lib/components/shared/asset/asset-focal-point-editor.tsx:98
+#: src/lib/components/shared/asset/asset-focal-point-editor.tsx:103
 msgid "Set Focal Point"
 msgstr "Встановити фокусну точку"
 
-#: src/lib/components/data-table/data-table-filter-badge.tsx:122
+#: src/lib/components/data-table/data-table-filter-badge.tsx:126
 msgid "end"
 msgstr "кінець"
 
@@ -3418,9 +3537,9 @@ msgstr "менше або дорівнює"
 msgid "is not equal to"
 msgstr "не дорівнює"
 
-#: src/app/routes/_authenticated/_system/healthchecks.tsx:47
-#~ msgid "Refresh"
-#~ msgstr "Оновити"
+#: src/lib/components/data-table/data-table-settings-menu.tsx:72
+msgid "Refresh"
+msgstr "Оновити"
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:269
 #~ msgid "e.g. Size"
@@ -3430,15 +3549,15 @@ msgstr "не дорівнює"
 msgid "No checkers found"
 msgstr ""
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:142
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:139
 msgid "Settle payment"
 msgstr "Провести платіж"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:38
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
-#: src/app/routes/_authenticated/_channels/channels.tsx:23
-#: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:216
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:343
+#: src/app/routes/_authenticated/_channels/channels.tsx:24
+#: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:210
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:346
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:111
 #: src/lib/components/layout/channel-switcher.tsx:146
 msgid "Channels"
@@ -3452,7 +3571,7 @@ msgstr "Доставку повернено"
 msgid "Asset type"
 msgstr "Тип ресурсу"
 
-#: src/app/routes/_authenticated/_stock-locations/stock-locations.tsx:58
+#: src/app/routes/_authenticated/_stock-locations/stock-locations.tsx:60
 msgid "New Stock Location"
 msgstr "Нове місце зберігання"
 
@@ -3460,12 +3579,12 @@ msgstr "Нове місце зберігання"
 msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
 msgstr "{successfulRefundCount} платіж(ів) повернено до помилки. Перевірте історію замовлення для деталей."
 
-#: src/lib/components/data-input/relation-selector.tsx:412
+#: src/lib/components/data-input/relation-selector.tsx:413
 msgid "Select item"
 msgstr "Вибрати елемент"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:57
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:212
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:58
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:214
 msgid "New product"
 msgstr "Новий товар"
 
@@ -3490,8 +3609,16 @@ msgstr "Додати дію"
 msgid "Duplicate {0}s"
 msgstr "Дублювати {0}"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:52
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:56
+#: src/app/routes/_authenticated/_api-keys/api-keys.tsx:34
+msgid "Search API keys..."
+msgstr ""
+
+#: src/lib/components/data-input/datetime-input.tsx:45
+msgid "Pick a date and time"
+msgstr ""
+
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:53
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:57
 msgid "Failed to update fulfillment state"
 msgstr "Не вдалося оновити стан виконання"
 
@@ -3499,7 +3626,7 @@ msgstr "Не вдалося оновити стан виконання"
 msgid "Create a new product variant with options, pricing, and stock"
 msgstr "Створити новий варіант товару з опціями, цінами та запасами"
 
-#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:109
+#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:110
 msgid "Private facets are not visible in the shop"
 msgstr "Приватні фасети не видимі в магазині"
 
@@ -3510,11 +3637,11 @@ msgstr "Виберіть податкову категорію"
 #~ msgid "fulfillmentState.Created"
 #~ msgstr "Створено"
 
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:165
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:181
 msgid "Not Running"
 msgstr "Не виконується"
 
-#: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:267
+#: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:272
 msgid "Assigned"
 msgstr "Призначено"
 
@@ -3539,9 +3666,14 @@ msgstr "Додати рядок після"
 msgid "Tax total"
 msgstr "Разом податок"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:414
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:415
 msgid "Draft order status"
 msgstr "Статус чернетки замовлення"
+
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:147
+#: src/app/routes/_authenticated/_collections/components/collection-contents-table.tsx:79
+msgid "Search variants..."
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:119
 #~ msgid "Successfully created product options"
@@ -3607,17 +3739,17 @@ msgstr "Вибрати продавця"
 msgid "Loading tags..."
 msgstr "Завантаження тегів..."
 
-#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:77
+#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:78
 msgid "Successfully created facet"
 msgstr "Фасет успішно створено"
 
 #. placeholder {0}: row.original.productVariantCount
-#: src/app/routes/_authenticated/_collections/collections.tsx:409
+#: src/app/routes/_authenticated/_collections/collections.tsx:432
 msgid "{0} variants"
 msgstr "{0} варіантів"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:48
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:52
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:45
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:49
 msgid "Failed to settle payment"
 msgstr "Не вдалося провести платіж"
 
@@ -3642,11 +3774,11 @@ msgstr "Неможливо видалити з активного каналу"
 msgid "Not set"
 msgstr "Не встановлено"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:509
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:511
 msgid "Force remove"
 msgstr "Примусово видалити"
 
-#: src/app/routes/_authenticated/_channels/channels.tsx:70
+#: src/app/routes/_authenticated/_channels/channels.tsx:72
 msgid "New Channel"
 msgstr "Новий канал"
 
@@ -3658,7 +3790,7 @@ msgstr "Назва групи опцій"
 msgid "AND"
 msgstr "І"
 
-#: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:74
+#: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:75
 msgid "Failed to create customer group"
 msgstr "Не вдалося створити групу клієнтів"
 
@@ -3666,23 +3798,23 @@ msgstr "Не вдалося створити групу клієнтів"
 msgid "Failed to create role"
 msgstr "Не вдалося створити роль"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:240
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:242
 msgid "Product name"
 msgstr "Назва товару"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:49
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:50
 msgid "Fulfillment state updated successfully"
 msgstr "Стан виконання успішно оновлено"
 
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:79
-#: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:71
-#: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:211
+#: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:79
+#: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:205
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:38
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:66
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:67
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:56
-#: src/app/routes/_authenticated/_products/products.tsx:24
-#: src/app/routes/_authenticated/_products/products.tsx:47
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:57
+#: src/app/routes/_authenticated/_products/products.tsx:25
+#: src/app/routes/_authenticated/_products/products.tsx:48
 msgid "Products"
 msgstr "Товари"
 
@@ -3699,7 +3831,7 @@ msgstr "Адресу створено"
 msgid "API key rotated successfully"
 msgstr "API key успішно оновлено"
 
-#: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:141
+#: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:142
 msgid "Add option group"
 msgstr "Додати групу опцій"
 
@@ -3716,12 +3848,12 @@ msgstr "Введіть slug вручну"
 msgid "No widgets available"
 msgstr "Немає доступних віджетів"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:78
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:82
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:75
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:79
 msgid "Failed to cancel payment"
 msgstr "Не вдалося скасувати платіж"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:75
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:72
 msgid "Payment cancelled successfully"
 msgstr "Платіж успішно скасовано"
 
@@ -3729,10 +3861,18 @@ msgstr "Платіж успішно скасовано"
 msgid "Global view duplicated successfully"
 msgstr "Глобальне подання успішно дубльовано"
 
+#: src/app/routes/_authenticated/_administrators/administrators.tsx:26
+msgid "Search administrators..."
+msgstr ""
+
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:210
-#: src/app/routes/_authenticated/_api-keys/api-keys.tsx:66
+#: src/app/routes/_authenticated/_api-keys/api-keys.tsx:70
 msgid "Created by"
 msgstr "Створено"
+
+#: src/lib/components/data-table/data-table.tsx:579
+msgid "No items match your current filters. Try clearing them to see more."
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:240
 msgid "Filter variants..."
@@ -3753,10 +3893,10 @@ msgstr "Адреса електронної пошти або ідентифік
 msgid "Refund #{0} transitioned to {1}"
 msgstr "Повернення #{0} переведено до {1}"
 
-#: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:110
+#: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:114
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:61
-#: src/app/routes/_authenticated/_customers/customers.tsx:15
-#: src/app/routes/_authenticated/_customers/customers.tsx:21
+#: src/app/routes/_authenticated/_customers/customers.tsx:16
+#: src/app/routes/_authenticated/_customers/customers.tsx:23
 msgid "Customers"
 msgstr "Клієнти"
 
@@ -3823,8 +3963,8 @@ msgstr "Примітку успішно видалено"
 msgid "Note updated successfully"
 msgstr "Примітку успішно оновлено"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:94
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:98
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:91
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:95
 msgid "Failed to settle refund"
 msgstr "Не вдалося провести повернення"
 
@@ -3845,7 +3985,7 @@ msgstr "API key успішно створено"
 msgid "Loading preview…"
 msgstr "Завантаження попереднього перегляду..."
 
-#: src/lib/components/shared/facet-value-selector.tsx:189
+#: src/lib/components/shared/facet-value-selector.tsx:190
 msgid "Back to search"
 msgstr "Повернутися до пошуку"
 
@@ -3857,23 +3997,23 @@ msgstr "Подання успішно дубльовано"
 msgid "Remove option group"
 msgstr "Видалити групу опцій"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:190
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:194
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:76
 #: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:14
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:262
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:264
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:174
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:94
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:162
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:114
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:112
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:128
 msgid "Description"
 msgstr "Опис"
 
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:32
 #: src/app/routes/_authenticated/_countries/countries.tsx:13
-#: src/app/routes/_authenticated/_countries/countries.tsx:22
-#: src/app/routes/_authenticated/_zones/zones_.$id.tsx:100
+#: src/app/routes/_authenticated/_countries/countries.tsx:23
+#: src/app/routes/_authenticated/_zones/zones_.$id.tsx:104
 msgid "Countries"
 msgstr "Країни"
 
@@ -3899,7 +4039,7 @@ msgstr "Редагувати макет"
 msgid "Assign to channel"
 msgstr "Призначити каналу"
 
-#: src/lib/components/date-range-picker.tsx:47
+#: src/lib/components/date-range-picker.tsx:60
 msgctxt "date-range"
 msgid "This week"
 msgstr "Цей тиждень"
@@ -3929,7 +4069,7 @@ msgstr "Не вдалося оновити адміністратора"
 msgid "Manage your personal saved views for this table"
 msgstr "Керування вашими особистими збереженими поданнями для цієї таблиці"
 
-#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:103
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:104
 msgid "Filter by tags"
 msgstr "Фільтрувати за тегами"
 
@@ -3950,7 +4090,7 @@ msgctxt "theme"
 msgid "Light"
 msgstr "Світла"
 
-#: src/lib/components/data-table/data-table-view-options.tsx:130
+#: src/lib/components/data-table/data-table-view-options.tsx:135
 msgid "Reset"
 msgstr "Скинути"
 
@@ -3993,8 +4133,8 @@ msgstr "Податкову категорію успішно створено"
 msgid "Failed to move collections"
 msgstr "Не вдалося перемістити колекції"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:63
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:67
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:60
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:64
 msgid "Failed to update payment state"
 msgstr "Не вдалося оновити стан платежу"
 
@@ -4006,23 +4146,23 @@ msgstr "Підсумок ваших замовлень"
 msgid "Upload"
 msgstr "Завантажити"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:112
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:116
 msgid "Product with options"
 msgstr "Товар з опціями"
 
 #. placeholder {0}: filteredTags.length
-#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:165
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:163
 msgid "Showing all {0} results"
 msgstr "Показано всі {0} результатів"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:204
-#: src/app/routes/_authenticated/_api-keys/api-keys.tsx:60
+#: src/app/routes/_authenticated/_api-keys/api-keys.tsx:66
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx:95
 msgid "Lookup ID"
 msgstr "Ідентифікатор пошуку"
 
 #. placeholder {0}: list.totalItems - 3
-#: src/app/routes/_authenticated/_facets/facets.tsx:65
+#: src/app/routes/_authenticated/_facets/facets.tsx:69
 msgid "+ {0} more"
 msgstr "+ ще {0}"
 
@@ -4031,11 +4171,11 @@ msgstr "+ ще {0}"
 msgid "Option Groups"
 msgstr "Групи опцій"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:471
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:472
 msgid "Custom fields"
 msgstr "Користувацькі поля"
 
-#: src/app/routes/_authenticated/_orders/components/order-process-dialog.tsx:85
+#: src/app/routes/_authenticated/_orders/components/order-process-dialog.tsx:98
 msgid "All possible order states and their transitions. The current state is highlighted."
 msgstr "Усі можливі статуси замовлення та їх переходи. Поточний статус виділено."
 
@@ -4118,12 +4258,16 @@ msgstr "Відправлено"
 #~ msgid "Monitored Resources"
 #~ msgstr "Відстежувані ресурси"
 
-#: src/lib/framework/layout-engine/page-layout.tsx:705
+#: src/lib/framework/layout-engine/page-layout.tsx:707
 msgid "Entity Information"
 msgstr "Інформація про об'єкт"
 
-#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:34
-#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:81
+#: src/app/routes/_authenticated/_tax-categories/tax-categories.tsx:48
+msgid "Default"
+msgstr ""
+
+#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:35
+#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:82
 msgid "Order Total"
 msgstr "Сума замовлення"
 
@@ -4160,7 +4304,7 @@ msgstr ""
 msgid "Insert link"
 msgstr "Вставити посилання"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:201
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:205
 msgid "If enabled, the filters will be inherited from the parent collection and combined with the filters set on this collection."
 msgstr "Якщо увімкнено, фільтри будуть успадковані від батьківської колекції та об'єднані з фільтрами, встановленими для цієї колекції."
 
@@ -4172,7 +4316,7 @@ msgstr "Виберіть зону"
 msgid "Test shipping methods"
 msgstr "Перевірити способи доставки"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:45
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:42
 msgid "Payment settled successfully"
 msgstr "Платіж успішно проведено"
 
@@ -4182,7 +4326,7 @@ msgstr "Платіж успішно проведено"
 msgid "Removed {0} {1} from zone"
 msgstr "{0} {1} видалено із зони"
 
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:220
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:236
 msgid "Enable"
 msgstr "Увімкнути"
 
@@ -4232,8 +4376,8 @@ msgstr "Очікування"
 msgid "paymentState.Settled"
 msgstr "Проведено"
 
-#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:36
-#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:83
+#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:37
+#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:84
 msgid "Average Order Value"
 msgstr "Середня вартість замовлення"
 
@@ -4281,7 +4425,7 @@ msgstr "Потрібне повернення в розмірі {formattedDiff}.
 msgid "Unit price"
 msgstr "Ціна за одиницю"
 
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:129
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:145
 msgid "Schedule Pattern"
 msgstr "Шаблон розкладу"
 
@@ -4297,11 +4441,12 @@ msgstr "Додати канал"
 #~ msgid "Failed to update product option group"
 #~ msgstr "Не вдалося оновити групу опцій товару"
 
+#: src/app/routes/_authenticated/_channels/channels.tsx:35
 #: src/lib/components/shared/channel-selector.tsx:48
 msgid "Search channels..."
 msgstr "Пошук каналів..."
 
-#: src/lib/components/shared/customer-group-selector.tsx:45
+#: src/lib/components/shared/customer-group-selector.tsx:46
 msgid "Add customer groups"
 msgstr "Додати групи клієнтів"
 
@@ -4309,7 +4454,7 @@ msgstr "Додати групи клієнтів"
 msgid "Available Languages"
 msgstr "Доступні мови"
 
-#: src/lib/components/data-table/data-table-bulk-actions.tsx:119
+#: src/lib/components/data-table/data-table-bulk-actions.tsx:114
 msgid "Reset selection"
 msgstr "Скинути вибір"
 
@@ -4377,6 +4522,10 @@ msgstr "Не вдалося створити варіанти"
 msgid "Sets the stock level at which this a variant is considered to be out of stock. Using a negative value enables backorder support. Can be overridden by product variants."
 msgstr "Встановлює рівень запасів, при якому цей варіант вважається відсутнім на складі. Використання від'ємного значення вмикає підтримку попередніх замовлень. Може бути перевизначено варіантами товару."
 
+#: src/app/routes/_authenticated/_promotions/promotions.tsx:40
+msgid "Search promotions..."
+msgstr ""
+
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx:45
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx:68
 msgid "Rotate Key"
@@ -4386,9 +4535,13 @@ msgstr "Ротація ключа"
 #~ msgid "Failed to create product variants"
 #~ msgstr "Не вдалося створити варіанти товару"
 
-#: src/lib/components/ui/password-input.tsx:20
+#: src/lib/components/ui/password-input.tsx:13
 msgid "Hide password"
 msgstr "Приховати пароль"
+
+#: src/lib/components/data-table/data-table-bulk-actions.tsx:71
+msgid "Bulk actions"
+msgstr ""
 
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:30
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:71
@@ -4423,13 +4576,13 @@ msgstr "Перетягніть файли сюди для завантаженн
 msgid "Toggle all visible variants"
 msgstr "Перемкнути всі видимі варіанти"
 
-#: src/app/routes/_authenticated/_customers/components/customer-status-badge.tsx:18
+#: src/app/routes/_authenticated/_customers/components/customer-status-badge.tsx:28
 msgid "Verified"
 msgstr "Верифіковано"
 
-#: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:74
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:82
-#: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:149
+#: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:90
+#: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:155
 msgid "New option group"
 msgstr "Нова група опцій"
 
@@ -4449,7 +4602,7 @@ msgstr "Не вдалося оновити роль"
 msgid "This is the only time the full API key will be displayed. Copy or download it now — it cannot be retrieved later."
 msgstr "Це єдиний раз, коли повний API key буде відображено. Скопіюйте або завантажте його зараз — пізніше його не можна буде отримати."
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:104
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:105
 msgid "Successfully updated collection"
 msgstr "Колекцію успішно оновлено"
 
@@ -4478,9 +4631,9 @@ msgid "Coupon code removed from order"
 msgstr "Код купона видалено із замовлення"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:221
-#: src/app/routes/_authenticated/_api-keys/api-keys.tsx:50
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:142
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:152
+#: src/app/routes/_authenticated/_api-keys/api-keys.tsx:54
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:158
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:168
 msgid "Never"
 msgstr "Ніколи"
 
@@ -4496,7 +4649,7 @@ msgstr "Не вдалося оновити значення фасету"
 msgid "Order fulfilled"
 msgstr "Замовлення виконано"
 
-#: src/lib/components/data-input/product-multi-selector-input.tsx:437
+#: src/lib/components/data-input/product-multi-selector-input.tsx:438
 msgid "Loading selected items..."
 msgstr ""
 
@@ -4535,7 +4688,7 @@ msgstr "Розширення запиту недійсне: має бути пр
 msgid "Query extension mismatch: "
 msgstr "Невідповідність розширення запиту:"
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:44
+#: src/app/routes/_authenticated/_facets/facets.tsx:48
 msgid "public"
 msgstr "публічне"
 
@@ -4567,7 +4720,7 @@ msgstr "Код купона встановлено для замовлення"
 msgid "Custom Fields"
 msgstr "Користувацькі поля"
 
-#: src/app/routes/_authenticated/_shipping-methods/shipping-methods.tsx:71
+#: src/app/routes/_authenticated/_shipping-methods/shipping-methods.tsx:73
 msgid "New Shipping Method"
 msgstr "Новий спосіб доставки"
 
@@ -4575,8 +4728,8 @@ msgstr "Новий спосіб доставки"
 msgid "is greater than or equal to"
 msgstr "більше або дорівнює"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:77
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:88
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:81
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:92
 #: src/lib/components/shared/entity-assets.tsx:151
 msgid "Preview"
 msgstr "Попередній перегляд"
@@ -4587,7 +4740,7 @@ msgstr "Попередній перегляд"
 msgid "{0} of {1} available to fulfill"
 msgstr "{0} з {1} доступно для виконання"
 
-#: src/lib/components/date-range-picker.tsx:63
+#: src/lib/components/date-range-picker.tsx:73
 msgctxt "date-range"
 msgid "Month to date"
 msgstr "З початку місяця"
@@ -4622,36 +4775,36 @@ msgid "Summary of modifications"
 msgstr "Зведення змін"
 
 #. placeholder {0}: payment.refunds.length
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:208
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:206
 msgid "Refunds ({0})"
 msgstr "Повернення ({0})"
 
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:135
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:151
 msgid "Last Executed"
 msgstr "Останнє виконання"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:248
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:250
 msgid "Payment details"
 msgstr "Деталі платежу"
 
-#: src/app/routes/_authenticated/_products/products.tsx:111
+#: src/app/routes/_authenticated/_products/products.tsx:119
 msgid "Rebuild search index"
 msgstr "Перебудувати пошуковий індекс"
 
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:157
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:161
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:173
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:181
 msgid "Running"
 msgstr "Виконується"
 
-#: src/app/routes/_authenticated/_system/job-queue.tsx:118
+#: src/app/routes/_authenticated/_system/job-queue.tsx:117
 msgid "Every 60 seconds"
 msgstr "Кожні 60 секунд"
 
-#: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:74
+#: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:75
 msgid "Failed to update customer group"
 msgstr "Не вдалося оновити групу клієнтів"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:191
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:189
 msgid "Payment metadata"
 msgstr "Метадані платежу"
 
@@ -4676,7 +4829,7 @@ msgstr "Ролі"
 msgid "Additional payment required"
 msgstr "Потрібен додатковий платіж"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:96
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:97
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:63
 msgid "Failed to update order"
 msgstr "Не вдалося оновити замовлення"
@@ -4702,10 +4855,10 @@ msgstr "Учасники групи клієнтів {customerGroupName}"
 msgid "Failed to set address for order: {0}"
 msgstr ""
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:118
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:217
-#: src/app/routes/_authenticated/_orders/orders.tsx:101
-#: src/app/routes/_authenticated/_system/job-queue.tsx:268
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:120
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:215
+#: src/app/routes/_authenticated/_orders/orders.tsx:102
+#: src/app/routes/_authenticated/_system/job-queue.tsx:265
 msgid "State"
 msgstr "Регіон"
 
@@ -4728,7 +4881,7 @@ msgstr "Виконання очікуючих оновлень пошуково�
 msgid "This is a default Role and cannot be modified"
 msgstr "Це роль за замовчуванням, і її не можна змінити"
 
-#: src/lib/components/data-table/my-views-button.tsx:37
+#: src/lib/components/data-table/my-views-button.tsx:41
 msgid "My saved views"
 msgstr "Мої збережені подання"
 
@@ -4738,17 +4891,17 @@ msgstr "Регіон / Область"
 
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:92
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:147
-#: src/app/routes/_authenticated/_payment-methods/payment-methods.tsx:42
+#: src/app/routes/_authenticated/_payment-methods/payment-methods.tsx:43
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:261
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:228
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:230
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:153
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:115
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:119
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:131
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:139
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:102
-#: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:55
-#: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:57
-#: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:57
-#: src/lib/components/data-display/boolean.tsx:22
+#: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:56
+#: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:58
+#: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:59
+#: src/lib/components/data-display/boolean.tsx:25
 #: src/lib/components/layout/nav-user.tsx:152
 msgid "Enabled"
 msgstr "Увімкнено"
@@ -4769,9 +4922,14 @@ msgstr "Запас у наявності"
 msgid "Filter by {columnId}"
 msgstr "Фільтрувати за {columnId}"
 
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:108
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:120
 msgid "ID"
 msgstr "ID"
+
+#: src/lib/components/shared/error-page.tsx:113
+#: src/lib/components/shared/error-page.tsx:117
+msgid "Access denied"
+msgstr ""
 
 #: src/lib/components/shared/alerts.tsx:33
 msgid "Alerts"
@@ -4806,7 +4964,7 @@ msgstr "Продажі"
 msgid "Select a destination collection"
 msgstr "Виберіть цільову колекцію"
 
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:78
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:79
 msgid "Your latest orders"
 msgstr "Ваші останні замовлення"
 
@@ -4815,11 +4973,11 @@ msgstr "Ваші останні замовлення"
 msgid "Scheduled Tasks"
 msgstr "Заплановані завдання"
 
-#: src/lib/components/data-table/use-generated-columns.tsx:416
+#: src/lib/components/data-table/use-generated-columns.tsx:428
 msgid "Are you sure you want to delete this item? This action cannot be undone."
 msgstr "Ви впевнені, що хочете видалити цей елемент? Цю дію неможливо скасувати."
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:347
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:348
 msgid "Variants"
 msgstr "Варіанти"
 
@@ -4855,7 +5013,7 @@ msgstr "Способи доставки"
 msgid "({maxRefundable} refundable)"
 msgstr "({maxRefundable} до повернення)"
 
-#: src/app/routes/_authenticated/_administrators/administrators.tsx:73
+#: src/app/routes/_authenticated/_administrators/administrators.tsx:75
 msgid "Identifier"
 msgstr "Ідентифікатор"
 
@@ -4863,7 +5021,7 @@ msgstr "Ідентифікатор"
 msgid "Select a fulfillment handler"
 msgstr ""
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:118
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:119
 msgid "Failed to update collection"
 msgstr "Не вдалося оновити колекцію"
 
@@ -4879,7 +5037,7 @@ msgstr "Замовлення не знайдено"
 msgid "!="
 msgstr "!="
 
-#: src/lib/components/shared/error-page.tsx:18
+#: src/lib/components/shared/error-page.tsx:126
 msgid "Error"
 msgstr "Помилка"
 
@@ -4914,7 +5072,7 @@ msgstr "Додати теги..."
 #~ msgstr "Не вдалося створити групу опцій товару"
 
 #. placeholder {0}: selectedIds.length
-#: src/lib/components/data-input/product-multi-selector-input.tsx:504
+#: src/lib/components/data-input/product-multi-selector-input.tsx:505
 msgid "{0} items selected"
 msgstr "{0} елементів вибрано"
 
@@ -4928,11 +5086,13 @@ msgid "Stock Locations"
 msgstr "Місця зберігання"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:69
+#: src/lib/components/data-table/data-table.tsx:704
 msgid "Go to previous page"
 msgstr "Перейти на попередню сторінку"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:245
-#: src/app/routes/_authenticated/_collections/collections.tsx:402
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:255
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:258
+#: src/app/routes/_authenticated/_collections/collections.tsx:425
 msgid "Contents"
 msgstr "Вміст"
 
@@ -4948,8 +5108,8 @@ msgstr "Не вдалося перетворити глобальне подан
 #~ msgid "The assigned option groups have no options yet. Add options to your option groups before generating variants."
 #~ msgstr ""
 
-#: src/app/routes/_authenticated/_system/job-queue.tsx:182
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:177
+#: src/app/routes/_authenticated/_system/job-queue.tsx:181
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:193
 msgid "The result of the job"
 msgstr "Результат завдання"
 
@@ -4964,11 +5124,12 @@ msgid "System"
 msgstr "Система"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:290
-#: src/app/routes/_authenticated/_products/components/product-variants-table.tsx:81
+#: src/app/routes/_authenticated/_products/components/product-variants-table.tsx:87
 msgid "Variant name"
 msgstr "Назва варіанта"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:579
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:580
+#: src/lib/components/shared/configurable-operation-input.tsx:117
 msgid "Remove"
 msgstr "Видалити"
 
@@ -4977,11 +5138,11 @@ msgstr "Видалити"
 msgid "Failed to update customer"
 msgstr "Не вдалося оновити клієнта"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:306
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:309
 msgid "Remove option groups?"
 msgstr "Видалити групи опцій?"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:91
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:95
 msgid "This is a preview of the collection contents based on the current filter settings. Once you save the collection, the contents will be updated to reflect the new filter settings."
 msgstr "Це попередній перегляд вмісту колекції на основі поточних налаштувань фільтра. Після збереження колекції вміст буде оновлено, щоб відобразити нові налаштування фільтра."
 
@@ -5003,8 +5164,8 @@ msgstr "Не вдалося завантажити глобальні налаш
 msgid "Select items to refund and optionally return to stock"
 msgstr "Виберіть позиції для повернення та за бажанням поверніть на склад"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:243
-#: src/app/routes/_authenticated/_system/settings-store.tsx:143
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:245
+#: src/app/routes/_authenticated/_system/settings-store.tsx:153
 #: src/lib/components/data-table/views-sheet.tsx:210
 #: src/lib/components/shared/history-timeline/history-note-editor.tsx:54
 msgid "Save"
@@ -5033,15 +5194,15 @@ msgstr "Сторінка продовжить роботу із запитом �
 msgid "Street Address"
 msgstr "Вулиця"
 
-#: src/lib/components/shared/facet-value-selector.tsx:242
+#: src/lib/components/shared/facet-value-selector.tsx:243
 msgid "No more facets"
 msgstr "Більше немає фасетів"
 
-#: src/app/routes/_authenticated/_products/products.tsx:32
+#: src/app/routes/_authenticated/_products/products.tsx:33
 msgid "Search index rebuild started"
 msgstr "Розпочато перебудову пошукового індексу"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:323
+#: src/app/routes/_authenticated/_collections/collections.tsx:346
 msgid "Collection position updated"
 msgstr "Позицію колекції оновлено"
 
@@ -5081,7 +5242,11 @@ msgstr "Токен"
 msgid "Fulfilling..."
 msgstr "Виконання..."
 
-#: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:147
+#: src/app/routes/_authenticated/_collections/collections.tsx:524
+msgid "Search collections..."
+msgstr ""
+
+#: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:148
 msgid "Add option group to product"
 msgstr "Додати групу опцій до товару"
 
@@ -5094,7 +5259,7 @@ msgstr "Попередній перегляд {0}"
 msgid "Successfully updated seller"
 msgstr "Продавця успішно оновлено"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:130
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:132
 msgid "Failed to transition order to state"
 msgstr "Не вдалося перевести замовлення до стану"
 
@@ -5115,7 +5280,7 @@ msgstr "Я зберіг цей API key"
 msgid "Configure available languages for your store and channels"
 msgstr "Налаштуйте доступні мови для вашого магазину та каналів"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:160
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:165
 msgid "Successfully created product"
 msgstr "Товар успішно створено"
 
@@ -5140,7 +5305,7 @@ msgstr "Ресурси не знайдено. Спробуйте змінити 
 msgid "Add Option"
 msgstr "Додати опцію"
 
-#: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:190
+#: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:191
 msgid "Save option group"
 msgstr "Зберегти групу опцій"
 
@@ -5156,8 +5321,9 @@ msgstr "Натисніть «Запустити тест» для перевір
 msgid "Successfully updated administrator"
 msgstr "Адміністратора успішно оновлено"
 
-#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:282
-#: src/lib/components/data-table/data-table-faceted-filter.tsx:185
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:280
+#: src/lib/components/data-table/data-table-faceted-filter.tsx:181
+#: src/lib/components/data-table/data-table.tsx:582
 #: src/lib/components/shared/asset/asset-gallery.tsx:361
 msgid "Clear filters"
 msgstr "Очистити фільтри"
@@ -5178,11 +5344,11 @@ msgid "Default language"
 msgstr "Мова за замовчуванням"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:253
-#: src/app/routes/_authenticated/_customers/customers.tsx:44
+#: src/app/routes/_authenticated/_customers/customers.tsx:47
 msgid "Status"
 msgstr "Статус"
 
-#: src/lib/components/shared/configurable-operation-multi-selector.tsx:298
+#: src/lib/components/shared/configurable-operation-multi-selector.tsx:320
 #: src/lib/components/shared/configurable-operation-selector.tsx:155
 msgid "No options found"
 msgstr "Опцій не знайдено"
@@ -5192,7 +5358,7 @@ msgstr "Опцій не знайдено"
 msgid "Binary"
 msgstr "Бінарний"
 
-#: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:127
+#: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:135
 msgid "Successfully updated option group"
 msgstr "Групу опцій успішно оновлено"
 
@@ -5201,7 +5367,7 @@ msgstr "Групу опцій успішно оновлено"
 msgid "New shipping method"
 msgstr "Новий спосіб доставки"
 
-#: src/app/routes/_authenticated/_system/job-queue.tsx:116
+#: src/app/routes/_authenticated/_system/job-queue.tsx:115
 msgid "Every 10 seconds"
 msgstr "Кожні 10 секунд"
 
@@ -5217,7 +5383,7 @@ msgstr "без податку:"
 msgid "Successfully added option value"
 msgstr "Значення опції успішно додано"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:325
+#: src/app/routes/_authenticated/_collections/collections.tsx:348
 msgid "Collection moved to new parent"
 msgstr "Колекцію переміщено до нового батьківського елемента"
 
@@ -5246,7 +5412,7 @@ msgstr "Вибрано {selected} з {total}"
 msgid "Successfully created shipping method"
 msgstr "Спосіб доставки успішно створено"
 
-#: src/app/routes/_authenticated/_customer-groups/customer-groups.tsx:61
+#: src/app/routes/_authenticated/_customer-groups/customer-groups.tsx:63
 msgid "New Customer Group"
 msgstr "Нова група клієнтів"
 
@@ -5254,8 +5420,8 @@ msgstr "Нова група клієнтів"
 msgid "Visible to customer"
 msgstr "Видимо клієнту"
 
-#: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:126
-#: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:115
+#: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:134
+#: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:116
 msgid "Successfully created option group"
 msgstr "Групу опцій успішно створено"
 
@@ -5278,7 +5444,7 @@ msgstr "Клієнта не знайдено"
 msgid "Select {0}s"
 msgstr "Вибрати {0}"
 
-#: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:256
+#: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:255
 msgid "New facet values to add:"
 msgstr "Нові значення фасетів для додавання:"
 
@@ -5301,11 +5467,15 @@ msgstr ""
 msgid "contains"
 msgstr "містить"
 
-#: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:245
+#: src/app/routes/_authenticated/_shipping-methods/shipping-methods.tsx:43
+msgid "Search shipping methods..."
+msgstr ""
+
+#: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:249
 msgid "No option groups found"
 msgstr "Групи опцій не знайдено"
 
-#: src/lib/components/data-input/product-multi-selector-input.tsx:162
+#: src/lib/components/data-input/product-multi-selector-input.tsx:163
 msgid "No items found"
 msgstr "Елементи не знайдено"
 
@@ -5314,15 +5484,19 @@ msgid "Sub total"
 msgstr "Проміжний підсумок"
 
 #. placeholder {0}: fulfillment.lines.reduce((acc, line) => acc + line.quantity, 0)
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:131
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:133
 msgid "Fulfilled items ({0})"
 msgstr "Виконані товари ({0})"
 
-#: src/app/routes/_authenticated/_system/settings-store.tsx:236
+#: src/app/routes/_authenticated/_products/products.tsx:102
+msgid "Create your first product"
+msgstr ""
+
+#: src/app/routes/_authenticated/_system/settings-store.tsx:246
 msgid "Value updated"
 msgstr "Значення оновлено"
 
-#: src/app/routes/_authenticated/_customers/components/customer-status-badge.tsx:28
+#: src/app/routes/_authenticated/_customers/components/customer-status-badge.tsx:38
 msgid "Unverified"
 msgstr "Не верифіковано"
 
@@ -5332,7 +5506,7 @@ msgstr "Не верифіковано"
 msgid "Quantity"
 msgstr "Кількість"
 
-#: src/lib/components/data-table/add-filter-menu.tsx:35
+#: src/lib/components/data-table/add-filter-menu.tsx:47
 msgid "Add filter"
 msgstr "Додати фільтр"
 
@@ -5359,7 +5533,7 @@ msgstr "не у"
 msgid "Order line updated"
 msgstr "Рядок замовлення оновлено"
 
-#: src/app/routes/_authenticated/_payment-methods/payment-methods.tsx:81
+#: src/app/routes/_authenticated/_payment-methods/payment-methods.tsx:82
 msgid "New Payment Method"
 msgstr "Новий спосіб оплати"
 
@@ -5367,7 +5541,11 @@ msgstr "Новий спосіб оплати"
 msgid "Duplicate value \"{trimmed}\" already exists"
 msgstr "Дублююче значення \"{trimmed}\" вже існує"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:233
+#: src/app/routes/_authenticated/_customers/customers.tsx:95
+msgid "Create your first customer"
+msgstr ""
+
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:231
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:222
 msgid "Reason"
 msgstr "Причина"
@@ -5382,8 +5560,8 @@ msgstr "{entityType} успішно видалено з каналу"
 
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:81
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:90
-#: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:73
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:81
+#: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:89
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:17
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:24
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:283
@@ -5395,11 +5573,11 @@ msgstr "Групи опцій"
 msgid "Add surcharge"
 msgstr "Додати доплату"
 
-#: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:202
+#: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:201
 msgid "Current facet values"
 msgstr "Поточні значення фасету"
 
-#: src/app/routes/_authenticated/_option-groups/components/option-group-products-block.tsx:80
+#: src/app/routes/_authenticated/_option-groups/components/option-group-products-block.tsx:79
 msgid "Page {page} of {totalPages}"
 msgstr "Сторінка {page} з {totalPages}"
 
@@ -5407,14 +5585,18 @@ msgstr "Сторінка {page} з {totalPages}"
 #~ msgid "Failed to cancel {rejected} job"
 #~ msgstr ""
 
-#: src/lib/components/date-range-picker.tsx:79
+#: src/lib/components/date-range-picker.tsx:86
 msgctxt "date-range"
 msgid "Last month"
 msgstr "Минулий місяць"
 
-#: src/app/routes/_authenticated/_countries/countries.tsx:59
+#: src/app/routes/_authenticated/_countries/countries.tsx:61
 msgid "Add Country"
 msgstr "Додати країну"
+
+#: src/app/routes/_authenticated/_promotions/promotions.tsx:72
+msgid "Create your first promotion"
+msgstr ""
 
 #: src/lib/components/data-input/custom-field-list-input.tsx:85
 msgid "Remove item"
@@ -5437,7 +5619,7 @@ msgstr "Не вдалося додати варіант. Переконайте�
 #~ msgid "An unknown error occurred"
 #~ msgstr "Сталася невідома помилка"
 
-#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:74
+#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:75
 msgid "Metrics"
 msgstr "Метрики"
 
@@ -5445,7 +5627,7 @@ msgstr "Метрики"
 msgid "Language"
 msgstr "Мова"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:520
+#: src/app/routes/_authenticated/_collections/collections.tsx:555
 msgid "New Collection"
 msgstr "Нова колекція"
 
@@ -5461,7 +5643,7 @@ msgstr "Оновлення електронної пошти підтвердж�
 msgid "is between"
 msgstr "між"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:171
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:173
 msgid "Refund & Cancel"
 msgstr "Повернути та скасувати"
 
@@ -5491,7 +5673,7 @@ msgstr "Глобальні мови"
 msgid "New administrator"
 msgstr "Новий адміністратор"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:395
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:396
 msgid "Delete draft"
 msgstr "Видалити чернетку"
 
@@ -5522,15 +5704,19 @@ msgstr "Загальні"
 msgid "Add new address"
 msgstr "Додати нову адресу"
 
-#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:77
+#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:78
 msgid "Successfully updated facet"
 msgstr "Фасет успішно оновлено"
+
+#: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:126
+msgid "Try selecting a different date range."
+msgstr ""
 
 #: src/app/routes/_authenticated/_zones/zones_.$id.tsx:61
 msgid "Successfully created zone"
 msgstr "Зону успішно створено"
 
-#: src/app/routes/_authenticated/_system/settings-store.tsx:268
+#: src/app/routes/_authenticated/_system/settings-store.tsx:278
 msgid "Value"
 msgstr "Значення"
 
@@ -5546,8 +5732,8 @@ msgstr "Коефіцієнт перерахунку ціни"
 msgid "Seller order"
 msgstr "Замовлення продавця"
 
-#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:36
-#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:92
+#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:37
+#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:93
 msgid "New facet"
 msgstr "Новий фасет"
 
@@ -5559,7 +5745,7 @@ msgstr "Ви впевнені, що хочете видалити цю груп�
 msgid "Description (alt)"
 msgstr "Опис (альтернативний текст)"
 
-#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:126
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:124
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx:164
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx:99
 msgid "No tags found"
@@ -5581,7 +5767,7 @@ msgstr ""
 msgid "Total Revenue"
 msgstr "Загальний дохід"
 
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:147
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:163
 msgid "Next Execution"
 msgstr "Наступне виконання"
 
@@ -5593,7 +5779,7 @@ msgstr "Примітка приватна"
 msgid "Medium date"
 msgstr "Середня дата"
 
-#: src/app/routes/_authenticated/_system/settings-store.tsx:169
+#: src/app/routes/_authenticated/_system/settings-store.tsx:179
 msgid "Invalid number"
 msgstr "Недійсне число"
 
@@ -5605,7 +5791,7 @@ msgstr "Ви ще не зберегли жодного подання."
 msgid "Are you sure you want to delete this view? This action cannot be undone."
 msgstr "Ви впевнені, що хочете видалити це подання? Цю дію неможливо скасувати."
 
-#: src/app/routes/_authenticated/_orders/components/order-process-dialog.tsx:73
+#: src/app/routes/_authenticated/_orders/components/order-process-dialog.tsx:86
 msgid "View order process"
 msgstr "Переглянути процес замовлення"
 
@@ -5622,7 +5808,7 @@ msgstr "Використовувати як адресу доставки за �
 msgid "Edit slug manually"
 msgstr "Редагувати slug вручну"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:80
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:84
 msgid "Add filters to preview the collection contents."
 msgstr "Додайте фільтри для попереднього перегляду вмісту колекції."
 
@@ -5638,13 +5824,17 @@ msgstr "Проміжний підсумок"
 msgid "is less than"
 msgstr "менше ніж"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:215
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:213
 msgid "Refund ID"
 msgstr "ID повернення"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:93
 msgid "Order custom fields updated"
 msgstr "Користувацькі поля замовлення оновлено"
+
+#: src/app/routes/_authenticated/_system/settings-store.tsx:320
+msgid "Search entries..."
+msgstr ""
 
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:193
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:191
@@ -5655,7 +5845,7 @@ msgstr "Калькулятор"
 msgid "Failed to remove option group from channel: {message}"
 msgstr "Не вдалося видалити групу опцій з каналу: {message}"
 
-#: src/app/routes/_authenticated/_system/job-queue.tsx:161
+#: src/app/routes/_authenticated/_system/job-queue.tsx:160
 msgid "View job data"
 msgstr "Переглянути дані завдання"
 
@@ -5663,7 +5853,7 @@ msgstr "Переглянути дані завдання"
 msgid "Move to the top level"
 msgstr "Перемістити на верхній рівень"
 
-#: src/lib/components/data-input/product-multi-selector-input.tsx:425
+#: src/lib/components/data-input/product-multi-selector-input.tsx:426
 msgid "Clear"
 msgstr "Очистити"
 
@@ -5671,11 +5861,15 @@ msgstr "Очистити"
 msgid "Orders Summary"
 msgstr "Підсумок замовлень"
 
+#: src/app/routes/_authenticated/_stock-locations/stock-locations.tsx:33
+msgid "Search stock locations..."
+msgstr ""
+
 #: src/lib/components/shared/asset/asset-gallery.tsx:349
 msgid "Search assets..."
 msgstr "Пошук ресурсів..."
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:114
+#: src/app/routes/_authenticated/_facets/facets.tsx:127
 msgid "New Facet"
 msgstr "Новий фасет"
 
@@ -5684,17 +5878,17 @@ msgid "Assign {entityType} to channel"
 msgstr "Призначити {entityType} каналу"
 
 #: src/lib/components/data-table/data-table-bulk-action-item.tsx:125
-#: src/lib/components/shared/confirmation-dialog.tsx:51
+#: src/lib/components/shared/confirmation-dialog.tsx:26
 msgid "Continue"
 msgstr "Продовжити"
 
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:43
-#: src/app/routes/_authenticated/_promotions/promotions.tsx:20
-#: src/app/routes/_authenticated/_promotions/promotions.tsx:29
+#: src/app/routes/_authenticated/_promotions/promotions.tsx:21
+#: src/app/routes/_authenticated/_promotions/promotions.tsx:31
 msgid "Promotions"
 msgstr "Акції"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:183
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:181
 msgid "Error message"
 msgstr "Повідомлення про помилку"
 
@@ -5706,13 +5900,21 @@ msgstr "Додати рівень запасів для іншого місця"
 msgid "Delete Address"
 msgstr "Видалити адресу"
 
-#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:84
+#: src/lib/components/shared/error-page.tsx:130
+msgid "We couldn't load this page"
+msgstr ""
+
+#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:85
 msgid "Failed to update facet"
 msgstr "Не вдалося оновити фасет"
 
 #: src/lib/hooks/use-widget-filters.ts:17
 msgid "useWidgetFilters must be used within a WidgetFiltersProvider"
 msgstr "useWidgetFilters має використовуватися всередині WidgetFiltersProvider"
+
+#: src/lib/components/shared/configurable-operation-input.tsx:104
+msgid "Edit as form"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx:129
 msgid "Edit Address"
@@ -5726,9 +5928,17 @@ msgstr "Не вдалося видалити фасет з каналу: {messag
 msgid "Set link"
 msgstr "Встановити посилання"
 
-#: src/app/routes/_authenticated/_sellers/sellers.tsx:45
+#: src/lib/components/data-table/data-table.tsx:703
+msgid "Pagination"
+msgstr ""
+
+#: src/app/routes/_authenticated/_sellers/sellers.tsx:47
 msgid "New Seller"
 msgstr "Новий продавець"
+
+#: src/app/routes/_authenticated/_tax-categories/tax-categories.tsx:29
+msgid "Search tax categories..."
+msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:106
 msgid "Edit image"
@@ -5737,6 +5947,10 @@ msgstr "Редагувати зображення"
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:69
 msgid "Manage Variants"
 msgstr "Керування варіантами"
+
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:148
+msgid "There was a problem loading your latest orders."
+msgstr ""
 
 #: src/lib/components/shared/stock-level-label.tsx:18
 msgid "Stock allocated"
@@ -5760,12 +5974,13 @@ msgstr "Встановлює рівень запасів, при якому це
 msgid "Saving..."
 msgstr "Збереження..."
 
-#: src/app/routes/_authenticated/_system/job-queue.tsx:185
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:180
+#: src/app/routes/_authenticated/_system/job-queue.tsx:184
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:196
 msgid "View result"
 msgstr "Переглянути результат"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:20
+#: src/lib/components/data-table/data-table.tsx:706
 msgid "Rows per page"
 msgstr "Рядків на сторінці"
 
@@ -5786,7 +6001,7 @@ msgstr "Додати ресурс"
 #~ msgid "Save changes"
 #~ msgstr "Зберегти зміни"
 
-#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:55
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:57
 msgid "Customer added to group"
 msgstr "Клієнта додано до групи"
 
@@ -5807,13 +6022,17 @@ msgstr "Додати значення опції до {groupName}"
 msgid "Failed to unset shipping address for order: {0}"
 msgstr ""
 
+#: src/app/routes/_authenticated/_orders/orders.tsx:38
+msgid "Search orders..."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:82
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:96
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:297
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:292
-#: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:198
+#: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:197
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:287
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:356
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:357
 msgid "SKU"
 msgstr "SKU"
 
@@ -5837,8 +6056,8 @@ msgstr "Не вдалося оновити спосіб оплати"
 msgid "Available:"
 msgstr "Доступно:"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:174
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:221
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:172
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:219
 msgid "Created at"
 msgstr "Дата створення"
 
@@ -5847,7 +6066,8 @@ msgstr "Дата створення"
 msgid "Failed to create product variant"
 msgstr "Не вдалося створити варіант товару"
 
-#: src/lib/components/data-input/relation-selector.tsx:417
+#: src/lib/components/data-input/relation-selector.tsx:418
+#: src/lib/components/data-table/data-table.tsx:496
 msgid "Search..."
 msgstr ""
 
@@ -5902,8 +6122,8 @@ msgstr "{count} {entityName} успішно дубльовано"
 msgid "New Option Group"
 msgstr "Нова група опцій"
 
-#: src/app/routes/_authenticated/_system/job-queue.tsx:191
-#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:186
+#: src/app/routes/_authenticated/_system/job-queue.tsx:190
+#: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:202
 msgid "No result yet"
 msgstr "Результатів поки немає"
 
@@ -5919,9 +6139,9 @@ msgstr "Доступні умови"
 msgid "Active filters"
 msgstr "Активні фільтри"
 
-#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:178
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:176
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx:54
-#: src/lib/components/data-table/data-table.tsx:434
+#: src/lib/components/data-table/data-table.tsx:552
 msgid "Clear all"
 msgstr "Очистити все"
 
@@ -5946,8 +6166,8 @@ msgstr "Додати платіж до замовлення"
 #: src/lib/components/shared/customer-group-selector.tsx:56
 #: src/lib/components/shared/customer-selector.tsx:88
 #: src/lib/components/shared/facet-value-selector.tsx:159
-msgid "Loading..."
-msgstr "Завантаження..."
+#~ msgid "Loading..."
+#~ msgstr "Завантаження..."
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:143
 msgid "The token is used to specify the channel when making API requests."
@@ -5957,13 +6177,17 @@ msgstr "Токен використовується для вказівки ка
 msgid "No addresses found"
 msgstr "Адреси не знайдено"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:115
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:117
 msgid "Fulfillment ID"
 msgstr "ID виконання"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:295
 msgid "Select payments to refund"
 msgstr "Виберіть платежі для повернення"
+
+#: src/lib/components/shared/error-page.tsx:101
+msgid "The page you are looking for does not exist or may have been moved."
+msgstr ""
 
 #: src/app/common/delete-bulk-action.tsx:115
 msgid "Failed to delete {failed} {entityName}"
@@ -5977,7 +6201,7 @@ msgstr "Поріг відсутності на складі"
 #~ msgid "Successfully removed product from channel"
 #~ msgstr "Товар успішно видалено з каналу"
 
-#: src/app/routes/_authenticated/_system/settings-store.tsx:239
+#: src/app/routes/_authenticated/_system/settings-store.tsx:249
 msgid "Failed to update value"
 msgstr "Не вдалося оновити значення"
 
@@ -5985,7 +6209,7 @@ msgstr "Не вдалося оновити значення"
 msgid "Failed to create API key"
 msgstr "Не вдалося створити API key"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:264
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:262
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:49
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:74
 msgid "Settle refund"
@@ -5995,13 +6219,13 @@ msgstr "Провести повернення"
 msgid "Payment method is required"
 msgstr "Спосіб оплати обов'язковий"
 
-#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:61
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:63
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:134
 msgid "Failed to add customer to group"
 msgstr "Не вдалося додати клієнта до групи"
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:280
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:279
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:281
 msgid "Manage variants"
 msgstr "Керування варіантами"
 
@@ -6018,6 +6242,7 @@ msgstr "Клієнта зареєстровано"
 msgid "Zones"
 msgstr "Зони"
 
+#: src/app/routes/_authenticated/_sellers/sellers.tsx:27
 #: src/lib/components/shared/seller-selector.tsx:37
 msgid "Search sellers..."
 msgstr "Пошук продавців..."
@@ -6030,7 +6255,7 @@ msgstr "Акцію успішно створено"
 msgid "Option"
 msgstr "Опція"
 
-#: src/app/routes/_authenticated/_orders/components/order-process-dialog.tsx:82
+#: src/app/routes/_authenticated/_orders/components/order-process-dialog.tsx:95
 msgid "Order process"
 msgstr "Процес замовлення"
 
@@ -6038,8 +6263,8 @@ msgstr "Процес замовлення"
 msgid "Phone number"
 msgstr "Номер телефону"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:157
-#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:108
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:161
+#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:109
 msgid "Private"
 msgstr "Приватне"
 

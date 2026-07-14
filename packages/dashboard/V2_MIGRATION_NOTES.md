@@ -223,3 +223,138 @@ popover/badge/button structure. The prop contract itself needs no changes.
 
 **Migrate:** if you styled or queried the old internals, retarget the Combobox
 / Select `data-slot` attributes above. No prop changes are required.
+
+---
+
+## 7. `DataTable` row selection & bulk actions — realigned to the v2 spec (props unchanged, markup changed)
+
+The dashboard `DataTable` / `PaginatedListDataTable` **public prop contracts are
+unchanged**. The row-selection and bulk-action *treatment* now follows the
+`@vendure-io/ui` `molecules/data-table` spec:
+
+- **Selection checkboxes are revealed on demand.** The per-row and header
+  select-all checkboxes are floated over a zero-width leading cell and stay
+  `opacity-0` until the row (or header row) is hovered, the checkbox is
+  keyboard-focused, or it carries a checked/indeterminate state. The gutter is
+  folded into the leading data column as left padding (`pl-8`), so an idle table
+  reserves no visible checkbox column. Selected rows use the `data-[state=selected]`
+  background from the v2 table atom.
+- **The bulk-action bar is a distinct in-flow bar, not an overlay.** When a
+  selection is active it replaces the toolbar controls row with a plain
+  `[data-slot="data-table-bulk-actions"]` row carrying the selection count, the
+  Actions menu and a clear-selection control (it takes the controls row's place
+  inside the table's header band — see entry 8 — so it carries no box chrome of
+  its own). The previous treatment was an absolutely-positioned overlay drawn
+  over a dimmed toolbar. The redundant select-all checkbox that used to live
+  inside the bar was removed — select-all is the table header checkbox.
+
+**Affected:** extension CSS or DOM queries that targeted the old selection column
+markup or the old absolute bulk-action overlay; automated tests that asserted on
+those internals. Row checkboxes are still `role="checkbox"` inside each row and
+remain clickable (`opacity-0` is still hit-testable and hover precedes the click).
+
+**Migrate:** if you styled or queried those internals, retarget the
+`[data-slot="data-table-bulk-actions"]` bar and the row/header checkboxes. No
+prop changes are required.
+
+---
+
+## 8. `DataTable` — the card is now the table's frame (props extended, markup changed)
+
+The dashboard `DataTable` / `PaginatedListDataTable` are now thin bridges over
+the `@vendure-io/ui` `molecules/data-table` composition root. **All existing
+props keep working**, but every table changes appearance automatically:
+
+- The table renders on a `Card` (`[data-slot="data-table"]`): the toolbar
+  (search, filters, view options, refresh) is anchored in a `CardHeader` band
+  with a bottom divider; the rows run flush to the card edges (edge cells carry
+  the card's content padding); pagination sits in a `CardFooter` band with a top
+  divider. Tables without pagination end flush at the card's bottom edge.
+- The old free-floating toolbar row and separately-boxed table wrapper are gone.
+  There is no `[data-slot="card"]` wrapper *around* the table anymore — the card
+  root **is** the table.
+- Row heights follow the v2 table atom's cell padding instead of the previous
+  fixed `h-12` cells.
+
+New opt-in props on both components:
+
+- `title` — a heading rendered inside the header band (used by detail-page
+  tables such as "Product variants"; the surrounding `PageBlock` no longer
+  renders a title of its own for these).
+- `actions` — CTA buttons (e.g. "Manage variants") rendered in the header band
+  next to the view-options/refresh controls, instead of floating below the
+  table.
+- `frame` — `'card'` (default) or `'plain'`. Pass `'plain'` for a table embedded
+  in an existing card (e.g. an Insights widget): the band structure renders
+  without card chrome and resolves its spacing against the host card's
+  `--card-px`/`--card-gap` variables.
+- `footerRows` — rows appended after the data rows inside the table body
+  (e.g. the order table's totals). Accepts a node or
+  `({ columnCount }) => ReactNode`; the function form receives the current
+  visible column count for `colSpan`s. `children` keeps working as before and
+  maps to the same slot.
+
+**Affected:** extension CSS or DOM queries that targeted the old wrapper
+(`overflow-hidden rounded-xl border ...` around the `<table>`), the old toolbar
+position, or fixed row heights; screenshots/visual baselines.
+
+**Migrate:** no prop changes are required. If you styled or queried the old
+internals, retarget the card frame (`[data-slot="data-table"]`) and its
+`[data-slot="card-header"]` / `[data-slot="card-table"]` /
+`[data-slot="card-footer"]` bands. If your extension renders a `DataTable`
+inside its own `Card`, pass `frame="plain"`.
+
+## 9. `DataTable` toolbar — decrowded controls, merged settings menu, page-aware search
+
+The toolbar of every `DataTable` has been reorganised to reduce the number of
+competing bordered surfaces:
+
+- The search input's placeholder is now configurable via a new
+  `searchPlaceholder` prop on `DataTable` / `PaginatedListDataTable` /
+  `ListPage` (e.g. `"Search products..."`). The default changed from
+  `"Filter..."` to `"Search..."`. All core list pages pass a page-aware value.
+- The standalone column-settings and refresh buttons have been merged into a
+  single table-settings dropdown (an `⋮` icon button). It contains a
+  **Refresh** item and the column visibility/order controls with **Reset**.
+  The trigger keeps the `dt-column-settings-trigger` testid; the refresh item
+  keeps `dt-refresh-button` — tests that clicked the refresh button directly
+  must now open the settings menu first. "Save View" remains a standalone
+  button (it only appears when the current filters are unsaved).
+- The add-filter and my-views icon triggers use the `secondary` button variant
+  (filled, borderless) instead of `outline`; applied-filter chips use a solid
+  border instead of dashed; the faceted-filter count badges are `secondary`
+  instead of `default`; the vertical separators between toolbar zones are gone.
+
+**Affected:** tests that clicked `dt-refresh-button` as a toolbar button;
+CSS/DOM queries targeting the old outline/dashed toolbar controls;
+screenshots/visual baselines.
+
+**Migrate:** open the settings menu (`dt-column-settings-trigger`) before
+clicking `dt-refresh-button`. Pass `searchPlaceholder` on list pages where the
+generic "Search..." is too vague.
+
+The standalone `DataTableViewOptions` and `RefreshButton` components remain
+exported and functional for extension use, but the core tables no longer render
+them.
+
+## 10. `BooleanDisplayBadge` / `vendure:booleanBadge` — emphasis flipped to the exceptional state
+
+Boolean state badges no longer highlight the expected default. Previously
+`true` rendered as a green `success` badge and `false` as a plain badge, so
+default-heavy columns (e.g. `enabled` in the product list) showed a green chip
+on nearly every row. `BooleanDisplayBadge` now renders through `StatusBadge`
+with `true` → `neutral` and `false` → `critical`: the calm tone marks the
+expected state, the accent marks the deviation worth spotting.
+
+This applies wherever the component is used — the `vendure:booleanBadge`
+display component, the auto-generated list column for fields named `enabled`,
+and the core list pages that render enabled/disabled state.
+
+**Affected:** extensions using `BooleanDisplayBadge` or `vendure:booleanBadge`
+for booleans where `true` is *not* the expected default, or where the green
+"success" reading was load-bearing; screenshots/visual baselines.
+
+**Migrate:** nothing to change for enabled-style flags — the flip is the
+intended reading. For lifecycle or outcome states where color should encode the
+value itself (completed/failed), use `StatusBadge` with a state dictionary
+(`defineStateEntries`) instead of a boolean badge.
