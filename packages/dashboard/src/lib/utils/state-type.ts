@@ -26,3 +26,21 @@ export const orderStateDictionary = defineStateEntries({
     Declined: { tone: 'critical', defaultLabel: 'Declined' },
     Error: { tone: 'critical', defaultLabel: 'Error' },
 });
+
+/**
+ * Target states whose transition irreversibly cancels an order, payment or
+ * fulfillment. Destructive styling keys on this action semantics rather than the
+ * target state's tone: `Cancelled` is a neutral *outcome* as a state, but
+ * *transitioning* to it is a destructive, irreversible action.
+ */
+const destructiveTransitionTargets = new Set(['Cancelled']);
+
+/**
+ * Whether transitioning to the given state is a destructive (irreversible loss)
+ * action. Used to drive the red menu-item styling in the state-transition
+ * dropdown and to exclude such states from the "suggested state" treatment in
+ * the order-process dialog.
+ */
+export function isDestructiveTransition(targetState: string): boolean {
+    return destructiveTransitionTargets.has(targetState);
+}

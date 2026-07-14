@@ -41,7 +41,7 @@ import { OrderTable } from './order-table.js';
 import { OrderTaxSummary } from './order-tax-summary.js';
 import { PaymentDetails } from './payment-details.js';
 import { RefundOrderDialog, RefundOrderDialogRef } from './refund-order-dialog.js';
-import { orderStateDictionary } from '@/vdb/utils/state-type.js';
+import { isDestructiveTransition, orderStateDictionary } from '@/vdb/utils/state-type.js';
 import { StateTransitionControl } from './state-transition-control.js';
 import { useTransitionOrderToState } from './use-transition-order-to-state.js';
 
@@ -125,6 +125,7 @@ export function OrderDetailShared({
             .map((state: string) => ({
                 label: t`Transition to ${getTranslatedOrderState(state)}`,
                 tone: orderStateDictionary.toneFor(state),
+                destructive: isDestructiveTransition(state),
                 onClick: async () => {
                     const transitionError = await transitionToState(state);
                     if (transitionError) {

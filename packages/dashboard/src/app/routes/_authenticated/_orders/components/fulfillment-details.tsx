@@ -17,7 +17,7 @@ import {
     orderDetailFragment,
     transitionFulfillmentToStateDocument,
 } from '../orders.graphql.js';
-import { orderStateDictionary } from '@/vdb/utils/state-type.js';
+import { isDestructiveTransition, orderStateDictionary } from '@/vdb/utils/state-type.js';
 import { StateTransitionControl } from './state-transition-control.js';
 
 type Order = NonNullable<ResultOf<typeof orderDetailFragment>>;
@@ -102,6 +102,7 @@ export function FulfillmentDetails({ order, fulfillment, onSuccess }: Readonly<F
             actions.push({
                 label: t`Transition to ${getTranslatedFulfillmentState(state)}`,
                 tone: orderStateDictionary.toneFor(state),
+                destructive: isDestructiveTransition(state),
                 onClick: () => handleStateTransition(state),
                 disabled: transitionFulfillmentMutation.isPending,
             });

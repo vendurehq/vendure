@@ -70,7 +70,7 @@ export const Route = createFileRoute('/_authenticated/_products/products_/$id_/v
             ],
         };
     },
-    errorComponent: ({ error }) => <ErrorPage message={error.message} />,
+    errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
 
 const addOptionValueSchema = z.object({
@@ -319,6 +319,7 @@ function ManageProductVariants() {
                                         <ConfirmationDialog
                                             title={t`Remove option group`}
                                             description={t`Are you sure you want to remove this option group from the product?`}
+                                            destructive
                                             onConfirm={() => removeOptionGroupMutation.mutate({
                                                 productId: id,
                                                 optionGroupId: group.id,
@@ -457,6 +458,7 @@ function ManageProductVariants() {
                                             <ConfirmationDialog
                                                 title={t`Delete variant`}
                                                 description={t`Are you sure you want to delete this variant?`}
+                                                destructive
                                                 onConfirm={() => deleteVariant(variant.id)}
                                             >
                                                 <Button

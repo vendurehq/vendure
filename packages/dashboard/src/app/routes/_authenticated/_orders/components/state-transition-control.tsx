@@ -17,6 +17,8 @@ export type StateTransitionAction = {
     onClick: () => void;
     disabled?: boolean;
     tone?: Tone;
+    /** Marks an irreversible transition (e.g. cancel) so it renders with destructive styling. */
+    destructive?: boolean;
 };
 
 type StateTransitionControlProps = {
@@ -71,10 +73,12 @@ export function StateTransitionControl({
                                 <DropdownMenuItem
                                     key={action.label + index}
                                     onClick={action.onClick}
-                                    variant={action.tone === 'critical' ? 'destructive' : 'default'}
+                                    variant={action.destructive ? 'destructive' : 'default'}
                                     disabled={action.disabled || isLoading}
                                 >
-                                    {iconForTone[action.tone ?? 'neutral']}
+                                    {action.destructive
+                                        ? iconForTone.critical
+                                        : iconForTone[action.tone ?? 'neutral']}
                                     <Trans>{action.label}</Trans>
                                 </DropdownMenuItem>
                             );

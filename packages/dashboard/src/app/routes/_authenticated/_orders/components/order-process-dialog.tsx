@@ -13,7 +13,7 @@ import { cn } from '@/vdb/lib/utils.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { ArrowRight, Workflow } from 'lucide-react';
 import { useMemo } from 'react';
-import { orderStateDictionary } from '@/vdb/utils/state-type.js';
+import { isDestructiveTransition, orderStateDictionary } from '@/vdb/utils/state-type.js';
 import type { Tone } from '@/vdb/components/ui/status-badge.js';
 
 interface OrderProcessDialogProps {
@@ -120,8 +120,13 @@ export function OrderProcessDialog({ currentState }: Readonly<OrderProcessDialog
                                             isCurrent &&
                                                 'ring-2 ring-primary ring-offset-2 ring-offset-background',
                                             // Dashed border for reachable next states, excluding
-                                            // destructive states to avoid visually suggesting them
-                                            isNext && !isCurrent && tone !== 'critical' && 'border-dashed',
+                                            // hard-failure states and destructive (irreversible)
+                                            // transitions like cancel to avoid visually suggesting them
+                                            isNext &&
+                                                !isCurrent &&
+                                                tone !== 'critical' &&
+                                                !isDestructiveTransition(state.name) &&
+                                                'border-dashed',
                                         )}
                                     >
                                         {getTranslatedOrderState(state.name)}

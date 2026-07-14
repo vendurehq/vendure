@@ -19,7 +19,7 @@ import {
     transitionPaymentToStateDocument,
 } from '../orders.graphql.js';
 import { SettleRefundDialog } from './settle-refund-dialog.js';
-import { orderStateDictionary } from '@/vdb/utils/state-type.js';
+import { isDestructiveTransition, orderStateDictionary } from '@/vdb/utils/state-type.js';
 import { StateTransitionAction, StateTransitionControl } from './state-transition-control.js';
 
 type PaymentDetailsProps = {
@@ -150,6 +150,7 @@ export function PaymentDetails({ payment, currencyCode, onSuccess }: Readonly<Pa
                         ? t`Cancel payment`
                         : t`Transition to ${getTranslatedPaymentState(state)}`,
                 tone: orderStateDictionary.toneFor(state),
+                destructive: isDestructiveTransition(state),
                 onClick: () => handlePaymentStateTransition(state),
                 disabled: transitionPaymentMutation.isPending || cancelPaymentMutation.isPending,
             });

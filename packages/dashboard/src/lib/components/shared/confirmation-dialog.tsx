@@ -8,12 +8,14 @@ export function ConfirmationDialog({
     children,
     confirmText,
     cancelText,
+    destructive,
 }: {
     title: string;
     description: string;
     onConfirm: () => void;
     confirmText?: string;
     cancelText?: string;
+    destructive?: boolean;
     children: React.ReactElement;
 }) {
     return (
@@ -23,6 +25,7 @@ export function ConfirmationDialog({
             onConfirm={onConfirm}
             confirmLabel={confirmText ?? <Trans>Continue</Trans>}
             cancelLabel={cancelText ?? <Trans>Cancel</Trans>}
+            variant={destructive ? 'destructive' : 'default'}
         >
             {children}
         </ConfirmDialog>
