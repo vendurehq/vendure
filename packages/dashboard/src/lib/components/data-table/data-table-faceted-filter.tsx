@@ -15,7 +15,6 @@ import {
     CommandSeparator,
 } from '@/vdb/components/ui/command.js';
 import { Popover, PopoverContent, PopoverTrigger } from '@/vdb/components/ui/popover.js';
-import { Separator } from '@/vdb/components/ui/separator.js';
 import { cn } from '@/vdb/lib/utils.js';
 import { Trans } from '@lingui/react/macro';
 
@@ -74,37 +73,36 @@ export function DataTableFacetedFilter<TData, TValue>({
 
     return (
         <Popover>
-            <PopoverTrigger render={<Button variant="outline" size="sm" className="h-8" />}>
-                    {Icon && <Icon />}
-                    {!Icon && <FilterIcon />}
-                    {title}
-                    {selectedValues?.size > 0 && (
-                        <>
-                            <Separator orientation="vertical" className="mx-2" />
-                            <Badge variant="default" className="rounded-sm px-1 font-normal lg:hidden">
-                                {selectedValues.size}
-                            </Badge>
-                            <div className="hidden space-x-1 lg:flex">
-                                {selectedValues.size > 2 ? (
-                                    <Badge variant="default" className="rounded-sm px-1 font-normal">
-                                        {selectedValues.size} selected
-                                    </Badge>
-                                ) : (
-                                    resolvedOptions
-                                        .filter(option => selectedValues.has(option.value))
-                                        .map(option => (
-                                            <Badge
-                                                variant="default"
-                                                key={option.value}
-                                                className="rounded-sm px-1 font-normal"
-                                            >
-                                                {option.label}
-                                            </Badge>
-                                        ))
-                                )}
-                            </div>
-                        </>
-                    )}
+            <PopoverTrigger render={<Button variant="secondary" size="sm" className="h-8" />}>
+                {Icon && <Icon />}
+                {!Icon && <FilterIcon />}
+                {title}
+                {selectedValues?.size > 0 && (
+                    <>
+                        <Badge variant="outline" className="rounded-sm px-1 font-normal lg:hidden">
+                            {selectedValues.size}
+                        </Badge>
+                        <div className="hidden space-x-1 lg:flex">
+                            {selectedValues.size > 2 ? (
+                                <Badge variant="outline" className="rounded-sm px-1 font-normal">
+                                    {selectedValues.size} selected
+                                </Badge>
+                            ) : (
+                                resolvedOptions
+                                    .filter(option => selectedValues.has(option.value))
+                                    .map(option => (
+                                        <Badge
+                                            variant="outline"
+                                            key={option.value}
+                                            className="rounded-sm px-1 font-normal"
+                                        >
+                                            {option.label}
+                                        </Badge>
+                                    ))
+                            )}
+                        </div>
+                    </>
+                )}
             </PopoverTrigger>
             <PopoverContent className="w-auto min-w-50 max-w-75 p-0" align="start">
                 <Command>
@@ -145,9 +143,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                                             <div
                                                 className={cn(
                                                     'mr-2 flex h-4 w-4 items-center justify-center rounded-full border border-primary',
-                                                    isSelected
-                                                        ? 'bg-primary text-primary-foreground'
-                                                        : '',
+                                                    isSelected ? 'bg-primary text-primary-foreground' : '',
                                                 )}
                                             >
                                                 {isSelected && (

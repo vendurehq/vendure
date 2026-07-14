@@ -1,5 +1,6 @@
 import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
+import { Checkbox } from '@/vdb/components/ui/checkbox.js';
 import {
     Command,
     CommandEmpty,
@@ -10,18 +11,16 @@ import {
     CommandSeparator,
 } from '@/vdb/components/ui/command.js';
 import { Popover, PopoverContent, PopoverTrigger } from '@/vdb/components/ui/popover.js';
-import { Separator } from '@/vdb/components/ui/separator.js';
 import { api } from '@/vdb/graphql/api.js';
 import {
     type FacetValue,
     getFacetValueListDocument,
     useFacetValueBrowser,
 } from '@/vdb/hooks/use-facet-value-browser.js';
-import { Checkbox } from '@/vdb/components/ui/checkbox.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronRight, FilterIcon, Loader2 } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { DataTableFacetedFilterProps } from './data-table-faceted-filter.js';
 
 /**
@@ -135,34 +134,33 @@ export function FacetValueFacetedFilter<TData, TValue>({
 
     return (
         <Popover>
-            <PopoverTrigger render={<Button variant="outline" size="sm" className="h-8" />}>
-                    <FilterIcon />
-                    {title}
-                    {selectedIds.size > 0 && (
-                        <>
-                            <Separator orientation="vertical" className="mx-2" />
-                            <Badge variant="default" className="rounded-sm px-1 font-normal lg:hidden">
-                                {selectedIds.size}
-                            </Badge>
-                            <div className="hidden space-x-1 lg:flex">
-                                {selectedIds.size > 2 ? (
-                                    <Badge variant="default" className="rounded-sm px-1 font-normal">
-                                        {selectedIds.size} selected
+            <PopoverTrigger render={<Button variant="secondary" size="sm" className="h-8" />}>
+                <FilterIcon />
+                {title}
+                {selectedIds.size > 0 && (
+                    <>
+                        <Badge variant="outline" className="rounded-sm px-1 font-normal lg:hidden">
+                            {selectedIds.size}
+                        </Badge>
+                        <div className="hidden space-x-1 lg:flex">
+                            {selectedIds.size > 2 ? (
+                                <Badge variant="outline" className="rounded-sm px-1 font-normal">
+                                    {selectedIds.size} selected
+                                </Badge>
+                            ) : (
+                                selectedLabels.map(label => (
+                                    <Badge
+                                        key={label}
+                                        variant="outline"
+                                        className="rounded-sm px-1 font-normal"
+                                    >
+                                        {label}
                                     </Badge>
-                                ) : (
-                                    selectedLabels.map(label => (
-                                        <Badge
-                                            key={label}
-                                            variant="default"
-                                            className="rounded-sm px-1 font-normal"
-                                        >
-                                            {label}
-                                        </Badge>
-                                    ))
-                                )}
-                            </div>
-                        </>
-                    )}
+                                ))
+                            )}
+                        </div>
+                    </>
+                )}
             </PopoverTrigger>
             <PopoverContent className="w-[400px] p-0" align="start">
                 <Command shouldFilter={false}>
@@ -291,11 +289,5 @@ export function FacetValueFacetedFilter<TData, TValue>({
 }
 
 function FacetValueCheckbox({ isSelected }: { isSelected: boolean }) {
-    return (
-        <Checkbox
-            checked={isSelected}
-            className="mr-2 pointer-events-none"
-            tabIndex={-1}
-        />
-    );
+    return <Checkbox checked={isSelected} className="mr-2 pointer-events-none" tabIndex={-1} />;
 }
