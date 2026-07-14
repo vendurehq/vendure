@@ -1,19 +1,15 @@
-import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
+import { Money as UiMoney } from '@vendure-io/ui/components/molecules/money';
 
-// Original component
-function MoneyInternal({ value, currency }: { value: number; currency?: string }) {
-    const { formatCurrency, formatNumber, toMajorUnits } = useLocalFormat();
-    // Currency is domain data: when it's genuinely unknown (e.g. a generic display
-    // component), show the amount as a plain number rather than mislabelling it as
-    // some default currency.
-    if (!currency) {
-        return formatNumber(toMajorUnits(value));
-    }
-    return formatCurrency(value, currency);
-}
-
-// Wrapper that makes it compatible with DataDisplayComponent
-export function Money(props: { value: any; [key: string]: any }) {
-    const { value, ...rest } = props;
-    return MoneyInternal({ value, currency: rest.currency });
+/**
+ * @description
+ * Renders a monetary value (in integer minor units) using the shared
+ * `@vendure-io/ui` `Money` molecule. Locale and minor-unit precision come from
+ * the app-wide `FormatBridge` (mirroring `useLocalFormat`); the currency is
+ * domain data supplied per call site. When `currency` is omitted the molecule
+ * shows a plain number rather than mislabelling the amount as a default
+ * currency.
+ */
+export function Money(props: { value: any; currency?: string; [key: string]: any }) {
+    const { value, currency } = props;
+    return <UiMoney value={value} currency={currency} />;
 }

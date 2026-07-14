@@ -154,3 +154,72 @@ If you genuinely need discrete ramp steps, the full numeric brand scale
 for programmatic use and theme overrides — but it is **not** emitted as
 ready-made utility classes. Prefer the semantic `brand` token with an opacity
 modifier over hard-coding ramp steps.
+
+---
+
+## 5. `Money` / `DateTime` now render through the shared `@vendure-io/ui` molecules
+
+The dashboard `Money` and `DateTime` display components are now thin adapters
+over the `@vendure-io/ui` `Money` / `DateTime` molecules. Locale and minor-unit
+precision (`moneyStrategyPrecision`) are supplied app-wide via a `FormatProvider`
+bridge mounted at the app root, so formatting still tracks the user's display
+language/region and the server's money precision exactly as before. **The public
+props are unchanged** — `Money` still takes `{ value, currency }` (currency
+per call site, from your data) and `DateTime` still takes `{ value }`.
+
+Two behaviours changed at the DOM/output level:
+
+- **`Money` now renders a `<span data-slot="money" class="tabular-nums">`** around
+  the formatted amount, instead of a bare text node. When a `currency` is passed
+  the formatted string is identical to before. When `currency` is omitted the
+  amount is still shown as a plain number (no currency symbol), but now with
+  fixed minor-unit decimals (e.g. `25.00` rather than `25`).
+- **`DateTime` still renders the two-line date-over-muted-time stack**, but the
+  two inner elements are now semantic `<time data-slot="date-time">` elements
+  instead of `<div>`s. Invalid/empty input now renders `—` rather than the raw
+  string.
+
+**Affected:** extension CSS or DOM queries that targeted the previous element
+structure (a bare `Money` text node, or `DateTime`'s inner `<div>`s), or that
+depended on `Money` omitting decimals when no currency was given.
+
+**Migrate:** target the `data-slot` attributes if you need to style these, and
+pass a `currency` wherever the amount represents real money. Presentation is
+otherwise unchanged.
+
+---
+
+## 6. `MultiSelect` — rebuilt on the v2 primitives (props unchanged, markup changed)
+
+The dashboard `MultiSelect` wrapper no longer renders its own hand-rolled popover
++ badge + search-box UI. **The public props are unchanged** — it still takes
+`{ value, onChange, multiple, items, placeholder, searchPlaceholder, showSearch,
+className }`, where each item is `{ value, label, display? }`, `value` is a
+`string[]` when `multiple` and a `string` otherwise, and (as before) a filter
+input appears when `showSearch` is set or the list has more than ten items. It
+now composes the v2 primitives underneath, and which primitive depends on
+whether a filter is shown:
+
+| Mode | Filter shown (`showSearch` or > 10 items) | No filter |
+| --- | --- | --- |
+| `multiple` | `@vendure-io/ui` **`Combobox`** — removable chips + inline filter input | `@vendure-io/ui` **`MultiSelect` molecule** (multi-value select) |
+| single | `@vendure-io/ui` **`Combobox`** — type-to-filter input | `@vendure-io/ui` **`Select` atom** |
+
+**Behaviour/markup changes to be aware of:**
+
+- The DOM is entirely different from v1 — there is no longer a `Button` trigger
+  wrapping `Badge` chips inside a `Popover`. Filtered modes render Base UI
+  Combobox parts (`[data-slot="combobox-chips"]`, `[data-slot="combobox-chip"]`,
+  `[data-slot="combobox-content"]`, …); unfiltered modes render Select parts.
+- **Non-filtered multi-select** (short lists) summarises the selection as
+  comma-separated labels in a select trigger rather than removable chips —
+  deselect by reopening and toggling. **Filtered multi-select** keeps removable
+  chips (each with an inline `×`), so long lists behave like v1.
+- Selected-option `display` nodes are still honoured in the list, chips and
+  trigger summary.
+
+**Affected:** extension CSS or DOM queries that targeted the old
+popover/badge/button structure. The prop contract itself needs no changes.
+
+**Migrate:** if you styled or queried the old internals, retarget the Combobox
+/ Select `data-slot` attributes above. No prop changes are required.
