@@ -4,7 +4,7 @@ generated: true
 ---
 ## useGeneratedForm
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/form-engine/use-generated-form.tsx" sourceLine="100" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/form-engine/use-generated-form.tsx" sourceLine="118" packageName="@vendure/dashboard" since="3.3.0" />
 
 This hook is used to create a form from a document and an entity.
 It will create a form with the fields defined in the document's input type.
@@ -52,6 +52,7 @@ interface GeneratedFormOptions<T extends TypedDocumentNode<any, any>, VarName ex
     varName?: VarName;
     entity: E | null | undefined;
     customFieldConfig?: any[];
+    extendSchema?: (schema: ZodObject<any>) => ZodTypeAny;
     setValues: (
         entity: NonNullable<E>,
     ) => WithLooseCustomFields<
@@ -85,6 +86,25 @@ The entity to use to generate the form.
 <MemberInfo kind="property" type={`any[]`}   />
 
 
+### extendSchema
+
+<MemberInfo kind="property" type={`(schema: ZodObject<any>) => ZodTypeAny`}   />
+
+Refines the auto-generated Zod schema before it is passed to the form resolver.
+
+The generated schema is derived from the GraphQL input type, which can only express
+nullability. Nullability does not imply that a value is _required_ in the UI sense:
+`String!` permits an empty string. Use this to declare fields which must actually be
+filled in by the user.
+
+*Example*
+
+```ts
+extendSchema: schema =>
+    schema.extend({
+        code: z.string().min(1, { message: t`This field is required` }),
+    }),
+```
 ### setValues
 
 <MemberInfo kind="property" type={`(         entity: NonNullable<E>,     ) => WithLooseCustomFields<         VarName extends keyof VariablesOf<T> ? VariablesOf<T>[VarName] : VariablesOf<T>     >`}   />
