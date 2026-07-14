@@ -388,7 +388,7 @@ test.describe('remove option group from product detail (#4703)', () => {
         // Confirm in the AlertDialog.
         const alertDialog = page.locator('[role="alertdialog"]');
         await expect(alertDialog.getByText('Remove option group')).toBeVisible();
-        await alertDialog.getByRole('button', { name: 'Continue' }).click();
+        await alertDialog.getByRole('button', { name: 'Confirm' }).click();
 
         await expect(
             page
@@ -503,7 +503,7 @@ test.describe('force-remove an in-use option group (#4703)', () => {
         await page
             .locator('[role="alertdialog"]')
             .filter({ hasText: 'Are you sure you want to remove this option group' })
-            .getByRole('button', { name: 'Continue' })
+            .getByRole('button', { name: 'Confirm' })
             .click();
 
         // The force-remove confirmation appears because the group is in use.

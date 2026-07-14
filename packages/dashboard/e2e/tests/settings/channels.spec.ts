@@ -55,41 +55,26 @@ test.describe('Channels CRUD', () => {
 
         // Available languages — MultiSelect popover (few items, no search input)
         await dp.formItem('Available languages').getByRole('combobox').click();
-        // Popover renders options as plain <button> inside [data-slot="popover-content"]
-        await page
-            .locator('[data-slot="popover-content"]')
-            .getByRole('button', { name: /English/ })
-            .click();
+        await page.getByRole('option', { name: /English/ }).click();
         // Click outside to close the popover and let form state propagate
         await page.locator('body').click({ position: { x: 0, y: 0 } });
         await expect(page.locator('[data-slot="popover-content"]')).not.toBeVisible();
 
         // Default language — single-select filtered by available languages
         await dp.formItem('Default language').getByRole('combobox').click();
-        await page
-            .locator('[data-slot="popover-content"]')
-            .getByRole('button', { name: /English/ })
-            .click();
+        await page.getByRole('option', { name: /English/ }).click();
 
         // Available currencies — MultiSelect popover (100+ items, search shows)
-        await dp.formItem('Available currencies').getByRole('combobox').click();
-        await page
-            .locator('[data-slot="popover-content"]')
-            .getByPlaceholder('Search currencies...')
-            .fill('Dollar');
-        await page
-            .locator('[data-slot="popover-content"]')
-            .getByRole('button', { name: /Dollar/ })
-            .first()
-            .click();
-        await page.locator('body').click({ position: { x: 0, y: 0 } });
-        await expect(page.locator('[data-slot="popover-content"]')).not.toBeVisible();
+        const availableCurrencies = dp.formItem('Available currencies').getByRole('combobox');
+        await availableCurrencies.fill('Dollar');
+        await page.getByRole('option', { name: 'Australian Dollar (A$)', exact: true }).click();
+        await page.keyboard.press('Escape');
 
         // Default currency — single-select filtered by available currencies
         await dp.formItem('Default currency').getByRole('combobox').click();
         await page
-            .locator('[data-slot="popover-content"]')
-            .getByRole('button', { name: /Dollar/ })
+            .locator('[data-slot="select-content"]')
+            .getByRole('option', { name: 'Australian Dollar (A$)', exact: true })
             .click();
 
         // Default tax zone — Base UI Select

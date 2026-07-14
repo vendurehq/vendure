@@ -29,7 +29,7 @@ export class BaseListPage {
         protected config: ListPageConfig,
     ) {
         this.heading = page.getByTestId('page-heading');
-        this.searchInput = page.getByPlaceholder('Filter...');
+        this.searchInput = page.getByRole('textbox', { name: /^Search(?: .+)?\.\.\.$/ }).first();
         this.dataTable = page.locator('table');
         // Base UI's Button with render={<Link />} adds role="button" to the element
         this.newButton = page.getByRole(config.newButtonRole ?? 'button', { name: config.newButtonLabel });
@@ -58,13 +58,17 @@ export class BaseListPage {
     }
 
     async search(term: string) {
-        await this.searchInput.fill(term);
-        await this.page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
+        await Promise.all([
+            this.page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200),
+            this.searchInput.fill(term),
+        ]);
     }
 
     async clearSearch() {
-        await this.searchInput.clear();
-        await this.page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
+        await Promise.all([
+            this.page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200),
+            this.searchInput.clear(),
+        ]);
     }
 
     /**

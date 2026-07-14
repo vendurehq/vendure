@@ -20,8 +20,10 @@ test.describe('Product detail features', () => {
         // Navigate to the seeded "Laptop" product via search to avoid race conditions
         await page.goto('/products');
         await expect(page.locator('table')).toBeVisible();
-        await page.getByPlaceholder('Filter...').fill('Laptop');
-        await page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
+        await Promise.all([
+            page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200),
+            page.getByRole('textbox', { name: 'Search products...' }).fill('Laptop'),
+        ]);
         await page.locator('table tbody tr').first().getByRole('button').first().click();
         await expect(page).toHaveURL(/\/products\/.+/);
 
@@ -60,8 +62,10 @@ test.describe('Product detail features', () => {
         // Navigate to the seeded "Laptop" product which has variants
         await page.goto('/products');
         await expect(page.locator('table')).toBeVisible();
-        await page.getByPlaceholder('Filter...').fill('Laptop');
-        await page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
+        await Promise.all([
+            page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200),
+            page.getByRole('textbox', { name: 'Search products...' }).fill('Laptop'),
+        ]);
         await page.locator('table tbody tr').first().getByRole('button').first().click();
         await expect(page).toHaveURL(/\/products\/.+/);
 

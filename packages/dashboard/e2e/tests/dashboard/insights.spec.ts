@@ -11,10 +11,7 @@ test.describe('Dashboard Insights', () => {
         await page.goto('/');
         await expect(page.getByTestId('page-heading')).toBeVisible();
 
-        // The DateRangePicker is a Button showing "Mar 1, 2026 - Mar 20, 2026"
-        const dateRangePicker = page.getByRole('button', {
-            name: /\w{3} \d{1,2}, \d{4}\s*-\s*\w{3} \d{1,2}, \d{4}/,
-        });
+        const dateRangePicker = page.locator('[data-slot="date-range-picker"]').getByRole('button');
         await expect(dateRangePicker).toBeVisible();
     });
 
