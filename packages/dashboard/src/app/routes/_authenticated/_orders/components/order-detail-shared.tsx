@@ -3,6 +3,7 @@ import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { DropdownMenuItem } from '@/vdb/components/ui/dropdown-menu.js';
 import { addCustomFields } from '@/vdb/framework/document-introspection/add-custom-fields.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import {
     Page,
     PageActionBar,
@@ -10,7 +11,6 @@ import {
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
-import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { api } from '@/vdb/graphql/api.js';
 import { useCustomFieldConfig } from '@/vdb/hooks/use-custom-field-config.js';
@@ -28,9 +28,10 @@ import {
     setOrderCustomFieldsDocument,
     transitionOrderToStateDocument,
 } from '../orders.graphql.js';
-import { OrderProcessDialog } from './order-process-dialog.js';
 import { canAddFulfillment, canRefundOrder, shouldShowAddManualPaymentButton } from '../utils/order-utils.js';
+import { OrderProcessDialog } from './order-process-dialog.js';
 
+import { isDestructiveTransition, orderStateDictionary } from '@/vdb/utils/state-type.js';
 import { AddManualPaymentDialog } from './add-manual-payment-dialog.js';
 import { FulfillOrderDialog } from './fulfill-order-dialog.js';
 import { FulfillmentDetails } from './fulfillment-details.js';
@@ -41,7 +42,6 @@ import { OrderTable } from './order-table.js';
 import { OrderTaxSummary } from './order-tax-summary.js';
 import { PaymentDetails } from './payment-details.js';
 import { RefundOrderDialog, RefundOrderDialogRef } from './refund-order-dialog.js';
-import { isDestructiveTransition, orderStateDictionary } from '@/vdb/utils/state-type.js';
 import { StateTransitionControl } from './state-transition-control.js';
 import { useTransitionOrderToState } from './use-transition-order-to-state.js';
 
@@ -190,11 +190,11 @@ export function OrderDetailShared({
         <Page pageId={pageId} form={form} submitHandler={submitHandler} entity={entity}>
             <PageTitle>{titleSlot?.(entity) || <DefaultOrderTitle entity={entity} />}</PageTitle>
             <PageActionBar
-                    dropdownMenuItems={[
-                        ...(nextStates.includes('Modifying') ? [{ component: ModifyMenuItem }] : []),
-                        ...(showRefundOption ? [{ component: RefundMenuItem }] : []),
-                    ]}
-                >
+                dropdownMenuItems={[
+                    ...(nextStates.includes('Modifying') ? [{ component: ModifyMenuItem }] : []),
+                    ...(showRefundOption ? [{ component: RefundMenuItem }] : []),
+                ]}
+            >
                 {showAddPaymentButton && (
                     <ActionBarItem itemId="add-payment-button" requiresPermission={['UpdateOrder']}>
                         <AddManualPaymentDialog
@@ -228,7 +228,7 @@ export function OrderDetailShared({
             <PageLayout>
                 {/* Main Column Blocks */}
                 {beforeOrderTable?.(entity)}
-                <PageBlock column="main" blockId="order-table">
+                <PageBlock column="main" blockId="order-table" layout="bare">
                     <OrderTable order={entity} pageId={pageId} />
                 </PageBlock>
                 <PageBlock column="main" blockId="tax-summary" title={<Trans>Tax summary</Trans>}>
@@ -248,14 +248,15 @@ export function OrderDetailShared({
                     </PageBlock>
                 ) : null}
                 <PageBlock column="main" blockId="payment-details" title={<Trans>Payment details</Trans>}>
-                    <div className="grid lg:grid-cols-2 gap-4">
+                    <div className="divide-y">
                         {entity?.payments?.map((payment: any) => (
-                            <PaymentDetails
-                                key={payment.id}
-                                payment={payment}
-                                currencyCode={entity.currencyCode}
-                                onSuccess={refreshPage}
-                            />
+                            <div key={payment.id} className="py-4 first:pt-0 last:pb-0">
+                                <PaymentDetails
+                                    payment={payment}
+                                    currencyCode={entity.currencyCode}
+                                    onSuccess={refreshPage}
+                                />
+                            </div>
                         ))}
                     </div>
                 </PageBlock>
@@ -311,16 +312,17 @@ export function OrderDetailShared({
                     title={<Trans>Fulfillment details</Trans>}
                 >
                     {entity?.fulfillments?.length && entity.fulfillments.length > 0 ? (
-                        <div className="space-y-2">
+                        <div className="divide-y">
                             {entity?.fulfillments?.map((fulfillment: any) => (
-                                <FulfillmentDetails
-                                    key={fulfillment.id}
-                                    order={entity}
-                                    fulfillment={fulfillment}
-                                    onSuccess={() => {
-                                        void refreshPage();
-                                    }}
-                                />
+                                <div key={fulfillment.id} className="py-4 first:pt-0 last:pb-0">
+                                    <FulfillmentDetails
+                                        order={entity}
+                                        fulfillment={fulfillment}
+                                        onSuccess={() => {
+                                            void refreshPage();
+                                        }}
+                                    />
+                                </div>
                             ))}
                         </div>
                     ) : (

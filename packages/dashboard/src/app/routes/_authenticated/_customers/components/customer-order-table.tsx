@@ -5,14 +5,15 @@ import { StatusBadge } from '@/vdb/components/ui/status-badge.js';
 import { orderStateDictionary } from '@/vdb/utils/state-type.js';
 import { Link } from '@tanstack/react-router';
 import { ColumnFiltersState, SortingState } from '@tanstack/react-table';
-import { useState } from 'react';
+import { ReactNode, useState } from 'react';
 import { customerOrderListDocument } from '../customers.graphql.js';
 
 interface CustomerOrderTableProps {
     customerId: string;
+    title?: ReactNode;
 }
 
-export function CustomerOrderTable({ customerId }: Readonly<CustomerOrderTableProps>) {
+export function CustomerOrderTable({ customerId, title }: Readonly<CustomerOrderTableProps>) {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [sorting, setSorting] = useState<SortingState>([{ id: 'orderPlacedAt', desc: true }]);
@@ -20,6 +21,7 @@ export function CustomerOrderTable({ customerId }: Readonly<CustomerOrderTablePr
 
     return (
         <PaginatedListDataTable
+            title={title}
             listQuery={customerOrderListDocument}
             transformVariables={variables => {
                 return {

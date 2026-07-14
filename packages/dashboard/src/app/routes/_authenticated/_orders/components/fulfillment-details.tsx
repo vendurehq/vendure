@@ -7,6 +7,7 @@ import { ResultOf } from '@/vdb/graphql/graphql.js';
 import { useCustomFieldConfig } from '@/vdb/hooks/use-custom-field-config.js';
 import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
+import { isDestructiveTransition, orderStateDictionary } from '@/vdb/utils/state-type.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation } from '@tanstack/react-query';
 import { ChevronDown } from 'lucide-react';
@@ -17,7 +18,6 @@ import {
     orderDetailFragment,
     transitionFulfillmentToStateDocument,
 } from '../orders.graphql.js';
-import { isDestructiveTransition, orderStateDictionary } from '@/vdb/utils/state-type.js';
 import { StateTransitionControl } from './state-transition-control.js';
 
 type Order = NonNullable<ResultOf<typeof orderDetailFragment>>;
@@ -112,7 +112,7 @@ export function FulfillmentDetails({ order, fulfillment, onSuccess }: Readonly<F
     };
 
     return (
-        <div className="space-y-1 p-3 border rounded-md">
+        <div className="space-y-1">
             <div className="space-y-1">
                 <LabeledData label={<Trans>Fulfillment ID</Trans>} value={fulfillment.id.slice(-8)} />
                 <LabeledData label={<Trans>Method</Trans>} value={fulfillment.method} />

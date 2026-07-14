@@ -1,5 +1,7 @@
 import { RichTextInput } from '@/vdb/components/data-input/rich-text-input.js';
 import { SlugInput } from '@/vdb/components/data-input/slug-input.js';
+import { usePriceFactor } from '@/vdb/components/shared/assign-to-channel-dialog.js';
+import { AssignedChannels } from '@/vdb/components/shared/assigned-channels.js';
 import { AssignedFacetValues } from '@/vdb/components/shared/assigned-facet-values.js';
 import { EntityAssets } from '@/vdb/components/shared/entity-assets.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
@@ -10,7 +12,9 @@ import { Field } from '@/vdb/components/ui/field.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { Switch } from '@/vdb/components/ui/switch.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
-import {    CustomFieldsPageBlock,
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
+import {
+    CustomFieldsPageBlock,
     DetailFormGrid,
     Page,
     PageActionBar,
@@ -18,12 +22,13 @@ import {    CustomFieldsPageBlock,
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
-import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
+import { api } from '@/vdb/graphql/api.js';
+import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { Trans, useLingui } from '@lingui/react/macro';
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useMutation } from '@tanstack/react-query';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { Layers, Package, PlusIcon } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -39,10 +44,6 @@ import {
     removeProductsFromChannelDocument,
     updateProductDocument,
 } from './products.graphql.js';
-import { api } from '@/vdb/graphql/api.js';
-import { AssignedChannels } from '@/vdb/components/shared/assigned-channels.js';
-import { usePriceFactor } from '@/vdb/components/shared/assign-to-channel-dialog.js';
-import { useChannel } from '@/vdb/hooks/use-channel.js';
 
 const pageId = 'product-detail';
 
@@ -94,7 +95,9 @@ function NoVariantsPrompt({
                 className="flex flex-col items-center gap-2 rounded-md border border-dashed border-border p-6 text-center transition-colors hover:border-primary hover:bg-accent cursor-pointer"
             >
                 <Package className="h-8 w-8 text-muted-foreground" />
-                <span className="font-medium"><Trans>Simple product</Trans></span>
+                <span className="font-medium">
+                    <Trans>Simple product</Trans>
+                </span>
                 <span className="text-sm text-muted-foreground">
                     <Trans>Single variant, no options</Trans>
                 </span>
@@ -109,7 +112,9 @@ function NoVariantsPrompt({
                         className="flex w-full flex-col items-center gap-2 rounded-md border border-dashed border-border p-6 text-center transition-colors hover:border-primary hover:bg-accent cursor-pointer"
                     >
                         <Layers className="h-8 w-8 text-muted-foreground" />
-                        <span className="font-medium"><Trans>Product with options</Trans></span>
+                        <span className="font-medium">
+                            <Trans>Product with options</Trans>
+                        </span>
                         <span className="text-sm text-muted-foreground">
                             <Trans>Size, colour, etc.</Trans>
                         </span>
@@ -175,10 +180,7 @@ function ProductDetailPage() {
         mutationFn: api.mutate(removeOptionGroupFromProductDocument),
     });
 
-    const removeAllOptionGroups = async (
-        productId: string,
-        optionGroups: Array<{ id: string }>,
-    ) => {
+    const removeAllOptionGroups = async (productId: string, optionGroups: Array<{ id: string }>) => {
         try {
             for (const group of optionGroups) {
                 const result = await removeOptionGroupMutation.mutateAsync({
@@ -265,20 +267,21 @@ function ProductDetailPage() {
                 </PageBlock>
                 <CustomFieldsPageBlock column="main" entityType="Product" control={form.control} />
                 {entity && entity.variantList.totalItems > 0 && (
-                    <PageBlock column="main" blockId="product-variants-table">
+                    <PageBlock column="main" blockId="product-variants-table" layout="bare">
                         <ProductVariantsTable
                             productId={params.id}
                             registerRefresher={refresher => {
                                 refreshRef.current = refresher;
                             }}
                             fromProductDetailPage={true}
+                            title={<Trans>Product variants</Trans>}
+                            actions={
+                                <Button render={<Link to="./variants" />} variant="outline" size="sm">
+                                    <PlusIcon className="mr-2 h-4 w-4" />
+                                    <Trans>Manage variants</Trans>
+                                </Button>
+                            }
                         />
-                        <div className="mt-4 flex gap-2">
-                            <Button render={<Link to="./variants" />} variant="outline">
-                                <PlusIcon className="mr-2 h-4 w-4" />
-                                <Trans>Manage variants</Trans>
-                            </Button>
-                        </div>
                     </PageBlock>
                 )}
                 {entity && entity.variantList.totalItems === 0 && (

@@ -1,3 +1,4 @@
+import { JsonViewer } from '@/vdb/components/data-display/json-viewer.js';
 import { LabeledData } from '@/vdb/components/labeled-data.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/vdb/components/ui/collapsible.js';
@@ -5,9 +6,9 @@ import { api } from '@/vdb/graphql/api.js';
 import { ResultOf } from '@/vdb/graphql/graphql.js';
 import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
+import { isDestructiveTransition, orderStateDictionary } from '@/vdb/utils/state-type.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation } from '@tanstack/react-query';
-import { JsonViewer } from '@/vdb/components/data-display/json-viewer.js';
 import { ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -19,7 +20,6 @@ import {
     transitionPaymentToStateDocument,
 } from '../orders.graphql.js';
 import { SettleRefundDialog } from './settle-refund-dialog.js';
-import { isDestructiveTransition, orderStateDictionary } from '@/vdb/utils/state-type.js';
 import { StateTransitionAction, StateTransitionControl } from './state-transition-control.js';
 
 type PaymentDetailsProps = {
@@ -161,7 +161,7 @@ export function PaymentDetails({ payment, currencyCode, onSuccess }: Readonly<Pa
 
     return (
         <>
-            <div className="space-y-1 p-3 border rounded-md">
+            <div className="space-y-1">
                 <div className="grid lg:grid-cols-2 gap-2">
                     <LabeledData label={<Trans>Payment method</Trans>} value={payment.method} />
                     <LabeledData
@@ -208,7 +208,7 @@ export function PaymentDetails({ payment, currencyCode, onSuccess }: Readonly<Pa
                         </CollapsibleTrigger>
                         <CollapsibleContent className="mt-2 space-y-3">
                             {payment.refunds.map(refund => (
-                                <div key={refund.id} className="p-3 border rounded-md bg-muted/50">
+                                <div key={refund.id} className="p-3 rounded-md bg-muted/50">
                                     <div className="space-y-1">
                                         <LabeledData label={<Trans>Refund ID</Trans>} value={refund.id} />
                                         <LabeledData

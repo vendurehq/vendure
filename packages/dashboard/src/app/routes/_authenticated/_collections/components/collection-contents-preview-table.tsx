@@ -3,13 +3,13 @@ import { Alert, AlertDescription, AlertTitle } from '@/vdb/components/ui/alert.j
 import { Button } from '@/vdb/components/ui/button.js';
 import { addCustomFields } from '@/vdb/framework/document-introspection/add-custom-fields.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { ColumnFiltersState, SortingState } from '@tanstack/react-table';
 import { PreviewCollectionVariantsInput } from '@vendure/common/lib/generated-types';
 import { Eye } from 'lucide-react';
-import { useState } from 'react';
+import { ReactNode, useState } from 'react';
 import { getCollectionFiltersQueryOptions } from '../collections.graphql.js';
 
 export const previewCollectionContentsDocument = graphql(`
@@ -31,13 +31,17 @@ export const previewCollectionContentsDocument = graphql(`
     }
 `);
 
-export type CollectionContentsPreviewTableProps = PreviewCollectionVariantsInput;
+export type CollectionContentsPreviewTableProps = PreviewCollectionVariantsInput & {
+    title?: ReactNode;
+};
 
 export function CollectionContentsPreviewTable({
     parentId,
     filters: collectionFilters,
     inheritFilters,
+    title,
 }: CollectionContentsPreviewTableProps) {
+    const { t } = useLingui();
     const [sorting, setSorting] = useState<SortingState>([]);
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
@@ -96,6 +100,7 @@ export function CollectionContentsPreviewTable({
                         </AlertDescription>
                     </Alert>
                     <PaginatedListDataTable
+                        title={title}
                         listQuery={addCustomFields(previewCollectionContentsDocument)}
                         transformQueryKey={queryKey => {
                             return [...queryKey, JSON.stringify(effectiveFilters), inheritFilters];
@@ -115,7 +120,10 @@ export function CollectionContentsPreviewTable({
                                 header: 'Variant name',
                                 cell: ({ row }) => {
                                     return (
-                                        <Button render={<Link to={`../../product-variants/${row.original.id}`} />} variant="ghost">
+                                        <Button
+                                            render={<Link to={`../../product-variants/${row.original.id}`} />}
+                                            variant="ghost"
+                                        >
                                             {row.original.name}{' '}
                                         </Button>
                                     );
@@ -136,6 +144,7 @@ export function CollectionContentsPreviewTable({
                         onFilterChange={(_, filters) => {
                             setFilters(filters);
                         }}
+                        searchPlaceholder={t`Search variants...`}
                         onSearchTermChange={searchTerm => {
                             return {
                                 name: {

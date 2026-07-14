@@ -97,8 +97,12 @@ function ZoneDetailPage() {
                 </PageBlock>
                 <CustomFieldsPageBlock column="main" entityType="Zone" control={form.control} />
                 {entity && (
-                    <PageBlock column="main" blockId="countries" title={<Trans>Countries</Trans>}>
-                        <ZoneCountriesTable zoneId={entity.id} canAddCountries={true} />
+                    <PageBlock column="main" blockId="countries" layout="bare">
+                        <ZoneCountriesTable
+                            zoneId={entity.id}
+                            canAddCountries={true}
+                            title={<Trans>Countries</Trans>}
+                        />
                     </PageBlock>
                 )}
             </PageLayout>
