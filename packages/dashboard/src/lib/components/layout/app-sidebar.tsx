@@ -20,7 +20,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
     return (
         extensionsLoaded && (
-            <Sidebar collapsible="icon" {...props} side={isRTL ? 'right' : 'left'}>
+            <Sidebar collapsible="icon" variant="inset" {...props} side={isRTL ? 'right' : 'left'}>
                 <SidebarHeader>
                     <ChannelSwitcher />
                 </SidebarHeader>
