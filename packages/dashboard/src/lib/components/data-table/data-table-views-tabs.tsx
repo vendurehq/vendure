@@ -51,10 +51,6 @@ export const DataTableViewsTabs: React.FC = () => {
     const activeView = findMatchingSavedView(columnFilters, searchTerm, allViews);
     const isUnsaved = hasActiveFilters && !activeView;
 
-    if (allViews.length === 0 && !isUnsaved) {
-        return null;
-    }
-
     const applyView = (view: SavedView) => {
         handleApplyView(view.filters, view.columnConfig, view.searchTerm ?? '');
     };
