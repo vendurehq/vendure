@@ -2290,7 +2290,7 @@
                   "title": "GenerateMigration",
                   "slug": "generate-migration",
                   "file": "docs/reference/typescript-api/migration/generate-migration.mdx",
-                  "lastModified": "2026-07-14T09:19:59Z"
+                  "lastModified": "2026-07-14T09:28:18Z"
                 },
                 {
                   "title": "MigrateAssetTranslationData",
@@ -2308,19 +2308,19 @@
                   "title": "MigrationOptions",
                   "slug": "migration-options",
                   "file": "docs/reference/typescript-api/migration/migration-options.mdx",
-                  "lastModified": "2026-07-14T09:19:59Z"
+                  "lastModified": "2026-07-14T09:28:18Z"
                 },
                 {
                   "title": "RevertLastMigration",
                   "slug": "revert-last-migration",
                   "file": "docs/reference/typescript-api/migration/revert-last-migration.mdx",
-                  "lastModified": "2026-07-14T09:19:59Z"
+                  "lastModified": "2026-07-14T09:28:18Z"
                 },
                 {
                   "title": "RunMigrations",
                   "slug": "run-migrations",
                   "file": "docs/reference/typescript-api/migration/run-migrations.mdx",
-                  "lastModified": "2026-07-14T09:19:59Z"
+                  "lastModified": "2026-07-14T09:28:18Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
