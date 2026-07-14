@@ -59,6 +59,12 @@ async function handleNonInteractiveMode(options: MigrateOptions) {
         return;
     }
 
+    if (options.fromEmpty && !options.generate) {
+        log.error('The --from-empty flag can only be used together with --generate <name>.');
+        process.exit(1);
+        return;
+    }
+
     let result: MigrationResult | undefined;
     try {
         process.env.VENDURE_RUNNING_IN_CLI = 'true';
