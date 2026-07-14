@@ -372,6 +372,8 @@ test.describe('Orders', () => {
         // Make a modification (change quantity) to enable the checkbox
         const quantityInput = page.getByTestId('order-line-quantity').first();
         await quantityInput.fill('2');
+        // The quantity is only committed on Enter or blur
+        await quantityInput.press('Enter');
 
         await expect(recalculateCheckbox).toBeEnabled();
         await expect(recalculateCheckbox).toBeChecked();

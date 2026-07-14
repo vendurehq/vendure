@@ -191,7 +191,7 @@ function findDuplicatePackages(
         }
 
         if (versions.size > 0) {
-            result.set(pkg, [...versions].sort());
+            result.set(pkg, [...versions].sort((a, b) => a.localeCompare(b)));
         }
     }
 

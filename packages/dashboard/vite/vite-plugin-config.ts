@@ -1,6 +1,8 @@
 import path from 'path';
 import { ConfigEnv, Plugin, UserConfig } from 'vite';
 
+import { singletonSharedDepNames } from './lib-externals.js';
+
 export interface ViteConfigPluginOptions {
     packageRoot: string;
     /**
@@ -105,6 +107,13 @@ export function viteConfigPlugin({ packageRoot, useExperimentalBundle }: ViteCon
                     'use-sync-external-store/shim',
                     'use-sync-external-store/shim/with-selector',
                     '@messageformat/parser',
+                    // In bundle mode these context/singleton libraries are kept
+                    // external from the pre-built bundle (see lib-externals.ts),
+                    // so pre-bundle them here to guarantee that main.js, lib.js
+                    // and extension code all resolve to ONE instance. Without
+                    // this the dashboard's provider and an extension's hook can
+                    // bind to different module instances — issue #4919.
+                    ...(useExperimentalBundle ? singletonSharedDepNames : []),
                 ],
             };
             return config;

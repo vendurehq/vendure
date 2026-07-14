@@ -1,7 +1,7 @@
 {
   "id": "core",
   "name": "Vendure Core Documentation",
-  "version": "3.7.0",
+  "version": "3.7.1",
   "vendureVersion": "v3",
   "navigation": [
     {
@@ -428,7 +428,7 @@
           "title": "CMS Integration Plugin",
           "slug": "cms-integration-plugin",
           "file": "docs/guides/how-to/cms-integration-plugin/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-07-14T11:47:37+02:00"
         },
         {
           "title": "Codegen",

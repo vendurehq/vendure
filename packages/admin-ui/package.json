@@ -1,6 +1,6 @@
 {
     "name": "@vendure/admin-ui",
-    "version": "3.7.0",
+    "version": "3.7.1",
     "license": "GPL-3.0-or-later",
     "repository": {
         "type": "git",
@@ -53,7 +53,7 @@
         "@ng-select/ng-select": "^14.2.6",
         "@ngx-translate/core": "^16.0.4",
         "@ngx-translate/http-loader": "^16.0.1",
-        "@vendure/common": "3.7.0",
+        "@vendure/common": "3.7.1",
         "@webcomponents/custom-elements": "^1.6.0",
         "apollo-angular": "^10.0.3",
         "apollo-upload-client": "^18.0.1",
