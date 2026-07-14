@@ -20,10 +20,13 @@ html[dir="rtl"] * {
 
 /*
  * Tailwind @theme inline block generated at build time by the themeVariablesPlugin.
- * It produces --color-*, --radius-*, --shadow-*, and --font-* mappings
- * directly from @vendure-io/design-tokens JS exports, plus dashboard-specific
- * extensions (dev-mode, brand). This keeps the dashboard in sync with the
- * design system without duplicating token values.
+ * It produces --color-*, --radius-*, --shadow-*, --font-*, and motion
+ * (--ease-*, --transition-duration-*, --animate-*) mappings directly from
+ * @vendure-io/design-tokens JS exports, plus dashboard-specific extensions
+ * (dev-mode, brand). It also emits the top-level @keyframes blocks backing the
+ * --animate-* tokens and the @utility text-style-* classes consumed by
+ * @vendure-io/ui. This keeps the dashboard in sync with the design system
+ * without duplicating token values.
  */
 @import 'virtual:admin-theme-inline';
 

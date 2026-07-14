@@ -196,6 +196,53 @@ describe('themeVariablesPlugin', () => {
         expect(result).toContain('@theme inline');
     });
 
+    it('emits motion tokens (easing, duration, animation) inside the @theme inline block', () => {
+        const plugin = themeVariablesPlugin({});
+        const css = `@import 'virtual:admin-theme-inline';`;
+        const result = callTransform(plugin, css, '/app/styles.css');
+        expect(result).toContain('--ease-default: cubic-bezier(0.4, 0, 0.2, 1);');
+        expect(result).toContain('--transition-duration-fast: 100ms;');
+        expect(result).toContain('--animate-shimmer: shimmer 1.75s linear infinite;');
+    });
+
+    it('kebab-cases camelCase easing keys (inOut -> --ease-in-out)', () => {
+        const plugin = themeVariablesPlugin({});
+        const css = `@import 'virtual:admin-theme-inline';`;
+        const result = callTransform(plugin, css, '/app/styles.css');
+        expect(result).toContain('--ease-in-out:');
+        // The raw camelCase key must not leak through
+        expect(result).not.toContain('--ease-inOut');
+    });
+
+    it('emits top-level @keyframes blocks with kebab-cased CSS properties', () => {
+        const plugin = themeVariablesPlugin({});
+        const css = `@import 'virtual:admin-theme-inline';`;
+        const result: string = callTransform(plugin, css, '/app/styles.css');
+        expect(result).toContain('@keyframes shimmer {');
+        expect(result).toContain('background-position: -200% 0;');
+        expect(result).toContain('background-position: 200% 0;');
+        // camelCase property names must be converted
+        expect(result).not.toContain('backgroundPosition');
+        // @keyframes must be a top-level at-rule, not nested inside @theme inline
+        const themeStart = result.indexOf('@theme inline');
+        const themeBlock = result.slice(themeStart, themeStart + result.slice(themeStart).indexOf('}') + 1);
+        expect(themeBlock).not.toContain('@keyframes');
+    });
+
+    it('emits @utility text-style-* classes for the design-token text styles', () => {
+        const plugin = themeVariablesPlugin({});
+        const css = `@import 'virtual:admin-theme-inline';`;
+        const result = callTransform(plugin, css, '/app/styles.css');
+        expect(result).toContain('@utility text-style-page-title {');
+        expect(result).toContain('@utility text-style-section-title {');
+        expect(result).toContain('@utility text-style-body {');
+        // Object props are rendered as kebab-cased declarations, not JS keys
+        expect(result).toContain('font-family:');
+        expect(result).toContain('font-weight:');
+        expect(result).not.toContain('fontFamily');
+        expect(result).not.toContain('fontWeight');
+    });
+
     it('replaces virtual:vendure-user-styles with additionalStylesheets (single path)', () => {
         const plugin = themeVariablesPlugin({
             additionalStylesheets: '/abs/project/src/dashboard.css',

@@ -1,4 +1,16 @@
-import { brand, darkTheme, fontFamily, lightTheme, radii, shadows } from '@vendure-io/design-tokens';
+import {
+    animation,
+    brand,
+    darkTheme,
+    duration,
+    easing,
+    fontFamily,
+    keyframes,
+    lightTheme,
+    radii,
+    shadows,
+    textStyles,
+} from '@vendure-io/design-tokens';
 import path from 'node:path';
 import { Plugin } from 'vite';
 
@@ -94,6 +106,24 @@ function normalizeStylesheetPaths(input: string | string[] | undefined): string[
 }
 
 /**
+ * Converts a camelCase identifier to kebab-case for use in CSS, e.g.
+ * `inOut` → `in-out`, `backgroundPosition` → `background-position`.
+ */
+function camelToKebab(str: string): string {
+    return str.replace(/[A-Z]/g, match => `-${match.toLowerCase()}`);
+}
+
+/**
+ * Renders a flat map of (camelCase) CSS properties to values as indented CSS
+ * declarations. Property names are kebab-cased; values are emitted verbatim.
+ */
+function cssDeclarations(props: Record<string, string>, indent: string): string {
+    return Object.entries(props)
+        .map(([prop, value]) => `${indent}${camelToKebab(prop)}: ${value};`)
+        .join('\n');
+}
+
+/**
  * Generates the `@theme inline` block from design-token JS exports,
  * mirroring the approach used by `@vendure-io/design-tokens/scripts/generate-css.ts`.
  * This avoids duplicating token values in CSS and keeps the dashboard in sync
@@ -114,6 +144,19 @@ function generateThemeInlineBlock(): string {
     // options are picked up (the :root block sets --font-* from dashboardExtensions)
     const fontLines = Object.entries(fontFamily).map(([key]) => `    --font-${key}: var(--font-${key});`);
 
+    // Motion — easing curves, transition durations and named animations, emitted
+    // as direct values (like radius/shadows). v2 `@vendure-io/ui` atoms reference
+    // these as CSS variables via arbitrary utilities (e.g.
+    // `duration-(--transition-duration-fast)`, `ease-(--ease-out)`) and via the
+    // `animate-*` utilities, so the custom properties must exist in the theme.
+    const easingLines = Object.entries(easing).map(
+        ([key, value]) => `    --ease-${camelToKebab(key)}: ${value};`,
+    );
+    const durationLines = Object.entries(duration).map(
+        ([key, value]) => `    --transition-duration-${key}: ${value};`,
+    );
+    const animationLines = Object.entries(animation).map(([key, value]) => `    --animate-${key}: ${value};`);
+
     // Dashboard-specific tokens not present in the base design-tokens.
     // `brand`/`brand-foreground` are published by @vendure-io/design-tokens v2
     // and flow through automatically via `colorKeys` above, so they are not
@@ -123,8 +166,48 @@ function generateThemeInlineBlock(): string {
         '    --color-dev-mode-foreground: var(--dev-mode-foreground);',
     ];
 
-    const allLines = [...colorLines, ...radiusLines, ...shadowLines, ...fontLines, ...dashboardLines];
+    const allLines = [
+        ...colorLines,
+        ...radiusLines,
+        ...shadowLines,
+        ...fontLines,
+        ...easingLines,
+        ...durationLines,
+        ...animationLines,
+        ...dashboardLines,
+    ];
     return `@theme inline {\n${allLines.join('\n')}\n}`;
+}
+
+/**
+ * Generates the top-level `@keyframes` blocks for the design-token `keyframes`
+ * group. These cannot live inside `@theme inline` (they are CSS at-rules, not
+ * variable declarations) and back the `--animate-*` tokens emitted above.
+ */
+function generateKeyframesBlocks(): string {
+    return Object.entries(keyframes)
+        .map(([name, steps]) => {
+            const stepBlocks = Object.entries(steps as Record<string, Record<string, string>>)
+                .map(([selector, props]) => `    ${selector} {\n${cssDeclarations(props, '        ')}\n    }`)
+                .join('\n');
+            return `@keyframes ${name} {\n${stepBlocks}\n}`;
+        })
+        .join('\n\n');
+}
+
+/**
+ * Generates a Tailwind `@utility text-style-*` block per design-token text
+ * style. v2 `@vendure-io/ui` atoms (card, dialog, sheet, page-header, …) apply
+ * these as utility classes (e.g. `text-style-section-title`), so they must be
+ * registered for the dashboard's Tailwind build.
+ */
+function generateTextStyleUtilities(): string {
+    return Object.entries(textStyles)
+        .map(
+            ([name, props]) =>
+                `@utility text-style-${name} {\n${cssDeclarations(props as Record<string, string>, '    ')}\n}`,
+        )
+        .join('\n\n');
 }
 
 export function themeVariablesPlugin(options: ThemeVariablesPluginOptions): Plugin {
@@ -199,7 +282,11 @@ export function themeVariablesPlugin(options: ThemeVariablesPluginOptions): Plug
             ) {
                 result = result.replace(
                     /@import ['"]virtual:admin-theme-inline['"];?/,
-                    generateThemeInlineBlock(),
+                    [
+                        generateThemeInlineBlock(),
+                        generateKeyframesBlocks(),
+                        generateTextStyleUtilities(),
+                    ].join('\n\n'),
                 );
                 modified = true;
             }
