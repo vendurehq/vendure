@@ -106,7 +106,7 @@ export class AdministratorService {
      * @description
      * Get an Administrator based on the User id.
      */
-    async findOneByUserId(
+    findOneByUserId(
         ctx: RequestContext,
         userId: ID,
         relations?: RelationPaths<Administrator>,
