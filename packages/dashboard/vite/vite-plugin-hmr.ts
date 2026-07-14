@@ -26,7 +26,7 @@ export function hmrPlugin(): Plugin {
                 if (isOutsideRoot) {
                     // For files outside root, trigger a full page reload
                     // This ensures all extension code is fresh
-                    server.ws.send({
+                    server.hot.send({
                         type: 'full-reload',
                         path: '*',
                     });

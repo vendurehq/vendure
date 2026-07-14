@@ -78,20 +78,18 @@ export function NavItemWrapper({
                     )}
                 >
                     <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-                        <PopoverTrigger asChild>
-                            <DevModeButton className={`h-6 w-6`} />
-                        </PopoverTrigger>
+                        <PopoverTrigger render={<DevModeButton className={`h-5 w-5 top-0 end-0`} />} />
                         <PopoverContent className="w-48 p-3">
                             <div className="space-y-2">
                                 <div className="space-y-1">
                                     <div className="text-xs">
                                         <div className="text-muted-foreground mb-0.5">locationId</div>
-                                        <CopyableText text={locationId} />
+                                        <CopyableText value={locationId} />
                                     </div>
                                     {order !== undefined && (
                                         <div className="text-xs">
                                             <div className="text-muted-foreground mb-0.5">order</div>
-                                            <CopyableText text={order.toString()} />
+                                            <CopyableText value={order.toString()} />
                                         </div>
                                     )}
                                 </div>

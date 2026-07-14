@@ -193,6 +193,89 @@ type AlreadyRefundedError {
 }`}
 </GraphQLDoc>
 
+<a name="apikey"></a>
+
+## ApiKey
+
+<GraphQLDoc
+  type="type"
+  typeName="ApiKey"
+  typeLinks={{
+    ID: '/reference/graphql-api/admin/object-types#id',
+    DateTime: '/reference/graphql-api/admin/object-types#datetime',
+    String: '/reference/graphql-api/admin/object-types#string',
+    User: '/reference/graphql-api/admin/object-types#user',
+    ApiKeyTranslation: '/reference/graphql-api/admin/object-types#apikeytranslation',
+    JSON: '/reference/graphql-api/admin/object-types#json',
+  }}
+>
+{`type ApiKey {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  """
+  ID by which we can look up the API-Key.
+  Also helps you identify keys without leaking the underlying secret API-Key.
+  """
+  lookupId: String!
+  """Helps you identify unused keys"""
+  lastUsedAt: DateTime
+  """
+  Usually the user who created the ApiKey but could also be used as the basis for
+  restricting resolvers to \`Permission.Owner\` queries for customers for example.
+  """
+  owner: User!
+  """This is the underlying User which determines the kind of permissions for this API-Key."""
+  user: User!
+  """A descriptive name so you can remind yourself where the API-Key gets used"""
+  name: String!
+  translations: [ApiKeyTranslation!]!
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="apikeylist"></a>
+
+## ApiKeyList
+
+<GraphQLDoc
+  type="type"
+  typeName="ApiKeyList"
+  typeLinks={{
+    ApiKey: '/reference/graphql-api/admin/object-types#apikey',
+    Int: '/reference/graphql-api/admin/object-types#int',
+  }}
+>
+{`type ApiKeyList {
+  items: [ApiKey!]!
+  totalItems: Int!
+}`}
+</GraphQLDoc>
+
+<a name="apikeytranslation"></a>
+
+## ApiKeyTranslation
+
+<GraphQLDoc
+  type="type"
+  typeName="ApiKeyTranslation"
+  typeLinks={{
+    ID: '/reference/graphql-api/admin/object-types#id',
+    DateTime: '/reference/graphql-api/admin/object-types#datetime',
+    LanguageCode: '/reference/graphql-api/admin/enums#languagecode',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`type ApiKeyTranslation {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  languageCode: LanguageCode!
+  """A descriptive name so you can remind yourself where the API-Key gets used"""
+  name: String!
+}`}
+</GraphQLDoc>
+
 <a name="applycouponcoderesult"></a>
 
 ## ApplyCouponCodeResult
@@ -220,11 +303,13 @@ type AlreadyRefundedError {
   typeLinks={{
     ID: '/reference/graphql-api/admin/object-types#id',
     DateTime: '/reference/graphql-api/admin/object-types#datetime',
+    LanguageCode: '/reference/graphql-api/admin/enums#languagecode',
     String: '/reference/graphql-api/admin/object-types#string',
     AssetType: '/reference/graphql-api/admin/enums#assettype',
     Int: '/reference/graphql-api/admin/object-types#int',
     Coordinate: '/reference/graphql-api/admin/object-types#coordinate',
     Tag: '/reference/graphql-api/admin/object-types#tag',
+    AssetTranslation: '/reference/graphql-api/admin/object-types#assettranslation',
     JSON: '/reference/graphql-api/admin/object-types#json',
   }}
 >
@@ -232,6 +317,7 @@ type AlreadyRefundedError {
   id: ID!
   createdAt: DateTime!
   updatedAt: DateTime!
+  languageCode: LanguageCode!
   name: String!
   type: AssetType!
   fileSize: Int!
@@ -242,6 +328,7 @@ type AlreadyRefundedError {
   preview: String!
   focalPoint: Coordinate
   tags: [Tag!]!
+  translations: [AssetTranslation!]!
   customFields: JSON
 }`}
 </GraphQLDoc>
@@ -261,6 +348,29 @@ type AlreadyRefundedError {
 {`type AssetList {
   items: [Asset!]!
   totalItems: Int!
+}`}
+</GraphQLDoc>
+
+<a name="assettranslation"></a>
+
+## AssetTranslation
+
+<GraphQLDoc
+  type="type"
+  typeName="AssetTranslation"
+  typeLinks={{
+    ID: '/reference/graphql-api/admin/object-types#id',
+    DateTime: '/reference/graphql-api/admin/object-types#datetime',
+    LanguageCode: '/reference/graphql-api/admin/enums#languagecode',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`type AssetTranslation {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  languageCode: LanguageCode!
+  name: String!
 }`}
 </GraphQLDoc>
 
@@ -906,6 +1016,26 @@ type CouponCodeLimitError {
 }`}
 </GraphQLDoc>
 
+<a name="createapikeyresult"></a>
+
+## CreateApiKeyResult
+
+<GraphQLDoc
+  type="type"
+  typeName="CreateApiKeyResult"
+  typeLinks={{
+    String: '/reference/graphql-api/admin/object-types#string',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type CreateApiKeyResult {
+  """The generated API-Key. API-Keys cannot be viewed again after creation!"""
+  apiKey: String!
+  """ID of the created ApiKey-Entity"""
+  entityId: ID!
+}`}
+</GraphQLDoc>
+
 <a name="createassetresult"></a>
 
 ## CreateAssetResult
@@ -1068,6 +1198,7 @@ which allows custom fields to be defined on user-supplied entities.
 type CustomFields {
   Address: [CustomFieldConfig!]!
   Administrator: [CustomFieldConfig!]!
+  ApiKey: [CustomFieldConfig!]!
   Asset: [CustomFieldConfig!]!
   Channel: [CustomFieldConfig!]!
   Collection: [CustomFieldConfig!]!
@@ -1214,8 +1345,7 @@ type CustomFields {
   typeName="DateTime"
   typeLinks={{}}
 >
-{`"""A date-time string at UTC, such as 2007-12-03T10:15:30Z, compliant with the \`date-time\` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar."""
-scalar DateTime`}
+{`scalar DateTime`}
 </GraphQLDoc>
 
 <a name="datetimecustomfieldconfig"></a>
@@ -2139,8 +2269,7 @@ type ItemsAlreadyFulfilledError {
   typeName="JSON"
   typeLinks={{}}
 >
-{`"""The \`JSON\` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf)."""
-scalar JSON`}
+{`scalar JSON`}
 </GraphQLDoc>
 
 <a name="job"></a>
@@ -2471,8 +2600,7 @@ type MissingConditionsError {
   typeName="Money"
   typeLinks={{}}
 >
-{`"""The \`Money\` scalar type represents monetary values and supports signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point)."""
-scalar Money`}
+{`scalar Money`}
 </GraphQLDoc>
 
 <a name="multipleordererror"></a>
@@ -3377,16 +3505,19 @@ type PriceRange {
   type="type"
   typeName="ProductOptionGroup"
   typeLinks={{
+    Channel: '/reference/graphql-api/admin/object-types#channel',
     ID: '/reference/graphql-api/admin/object-types#id',
     DateTime: '/reference/graphql-api/admin/object-types#datetime',
     LanguageCode: '/reference/graphql-api/admin/enums#languagecode',
     String: '/reference/graphql-api/admin/object-types#string',
     ProductOption: '/reference/graphql-api/admin/object-types#productoption',
+    Int: '/reference/graphql-api/admin/object-types#int',
     ProductOptionGroupTranslation: '/reference/graphql-api/admin/object-types#productoptiongrouptranslation',
     JSON: '/reference/graphql-api/admin/object-types#json',
   }}
 >
 {`type ProductOptionGroup {
+  channels: [Channel!]!
   id: ID!
   createdAt: DateTime!
   updatedAt: DateTime!
@@ -3394,8 +3525,50 @@ type PriceRange {
   code: String!
   name: String!
   options: [ProductOption!]!
+  """The number of products that use this option group"""
+  productCount: Int!
   translations: [ProductOptionGroupTranslation!]!
   customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="productoptiongroupinuseerror"></a>
+
+## ProductOptionGroupInUseError
+
+<GraphQLDoc
+  type="type"
+  typeName="ProductOptionGroupInUseError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/admin/enums#errorcode',
+    String: '/reference/graphql-api/admin/object-types#string',
+    Int: '/reference/graphql-api/admin/object-types#int',
+  }}
+>
+{`type ProductOptionGroupInUseError {
+  errorCode: ErrorCode!
+  message: String!
+  optionGroupCode: String!
+  productCount: Int!
+  variantCount: Int!
+}`}
+</GraphQLDoc>
+
+<a name="productoptiongrouplist"></a>
+
+## ProductOptionGroupList
+
+<GraphQLDoc
+  type="type"
+  typeName="ProductOptionGroupList"
+  typeLinks={{
+    Int: '/reference/graphql-api/admin/object-types#int',
+    ProductOptionGroup: '/reference/graphql-api/admin/object-types#productoptiongroup',
+  }}
+>
+{`type ProductOptionGroupList {
+  totalItems: Int!
+  items: [ProductOptionGroup!]!
 }`}
 </GraphQLDoc>
 
@@ -4081,6 +4254,21 @@ type RefundStateTransitionError {
 {`union RemoveOrderItemsResult = Order | OrderModificationError | OrderInterceptorError`}
 </GraphQLDoc>
 
+<a name="removeproductoptiongroupfromchannelresult"></a>
+
+## RemoveProductOptionGroupFromChannelResult
+
+<GraphQLDoc
+  type="union"
+  typeName="RemoveProductOptionGroupFromChannelResult"
+  typeLinks={{
+    ProductOptionGroup: '/reference/graphql-api/admin/object-types#productoptiongroup',
+    ProductOptionGroupInUseError: '/reference/graphql-api/admin/object-types#productoptiongroupinuseerror',
+  }}
+>
+{`union RemoveProductOptionGroupFromChannelResult = ProductOptionGroup | ProductOptionGroupInUseError`}
+</GraphQLDoc>
+
 <a name="return"></a>
 
 ## Return
@@ -4149,6 +4337,23 @@ type RefundStateTransitionError {
 {`type RoleList {
   items: [Role!]!
   totalItems: Int!
+}`}
+</GraphQLDoc>
+
+<a name="rotateapikeyresult"></a>
+
+## RotateApiKeyResult
+
+<GraphQLDoc
+  type="type"
+  typeName="RotateApiKeyResult"
+  typeLinks={{
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`type RotateApiKeyResult {
+  """The generated API-Key. API-Keys cannot be viewed again after creation!"""
+  apiKey: String!
 }`}
 </GraphQLDoc>
 
@@ -4441,6 +4646,28 @@ union SearchResultPrice = PriceRange | SinglePrice`}
   key: String!
   result: Boolean!
   error: String
+}`}
+</GraphQLDoc>
+
+<a name="settingsstorefielddefinition"></a>
+
+## SettingsStoreFieldDefinition
+
+<GraphQLDoc
+  type="type"
+  typeName="SettingsStoreFieldDefinition"
+  typeLinks={{
+    String: '/reference/graphql-api/admin/object-types#string',
+    SettingsStoreScopeType: '/reference/graphql-api/admin/enums#settingsstorescopetype',
+    Boolean: '/reference/graphql-api/admin/object-types#boolean',
+    JSON: '/reference/graphql-api/admin/object-types#json',
+  }}
+>
+{`type SettingsStoreFieldDefinition {
+  key: String!
+  scopeType: SettingsStoreScopeType!
+  readonly: Boolean!
+  currentValue: JSON
 }`}
 </GraphQLDoc>
 
@@ -5364,8 +5591,7 @@ union UpdateOrderItemErrorResult = OrderModificationError | OrderLimitError | Ne
   typeName="Upload"
   typeLinks={{}}
 >
-{`"""The \`Upload\` scalar type represents a file upload."""
-scalar Upload`}
+{`scalar Upload`}
 </GraphQLDoc>
 
 <a name="user"></a>

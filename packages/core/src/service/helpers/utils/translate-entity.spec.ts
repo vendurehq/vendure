@@ -5,12 +5,12 @@ import { Translatable, Translation } from '../../../common/types/locale-types';
 import { VendureEntity } from '../../../entity/base/base.entity';
 import { CollectionTranslation } from '../../../entity/collection/collection-translation.entity';
 import { Collection } from '../../../entity/collection/collection.entity';
-import { ProductTranslation } from '../../../entity/product/product-translation.entity';
-import { Product } from '../../../entity/product/product.entity';
 import { ProductOptionTranslation } from '../../../entity/product-option/product-option-translation.entity';
 import { ProductOption } from '../../../entity/product-option/product-option.entity';
 import { ProductVariantTranslation } from '../../../entity/product-variant/product-variant-translation.entity';
 import { ProductVariant } from '../../../entity/product-variant/product-variant.entity';
+import { ProductTranslation } from '../../../entity/product/product-translation.entity';
+import { Product } from '../../../entity/product/product.entity';
 
 import { translateDeep, translateEntity, translateTree } from './translate-entity';
 
@@ -125,12 +125,224 @@ describe('translateEntity()', () => {
         );
     });
 
-    it('falls back to default language', () => {
+    it('falls back to default language when requested not found', () => {
         expect(translateEntity(product, [LanguageCode.zu, LanguageCode.en]).name).toEqual(PRODUCT_NAME_EN);
     });
 
-    it('falls back to default language', () => {
+    it('falls back to first in language code array when default not found', () => {
         expect(translateEntity(product, [LanguageCode.zu, LanguageCode.de]).name).toEqual(PRODUCT_NAME_DE);
+    });
+
+    describe('field-level fallback for empty values', () => {
+        it('should fall back to default language for empty string fields', () => {
+            productTranslationEN.name = PRODUCT_NAME_EN;
+            productTranslationEN.slug = 'english-slug';
+            productTranslationEN.description = 'English description';
+
+            productTranslationDE.name = '';
+            productTranslationDE.slug = '';
+            productTranslationDE.description = '';
+
+            const result = translateEntity(product, LanguageCode.de);
+
+            expect(result.languageCode).toBe(LanguageCode.de);
+            expect(result.name).toBe(PRODUCT_NAME_EN);
+            expect(result.slug).toBe('english-slug');
+            expect(result.description).toBe('English description');
+        });
+
+        it('should keep non-empty translated values and only fall back empty ones', () => {
+            productTranslationEN.name = PRODUCT_NAME_EN;
+            productTranslationEN.slug = 'english-slug';
+            productTranslationEN.description = 'English description';
+
+            productTranslationDE.name = PRODUCT_NAME_DE;
+            productTranslationDE.slug = '';
+            productTranslationDE.description = 'German description';
+
+            const result = translateEntity(product, LanguageCode.de);
+
+            expect(result.languageCode).toBe(LanguageCode.de);
+            expect(result.name).toBe(PRODUCT_NAME_DE);
+            expect(result.slug).toBe('english-slug');
+            expect(result.description).toBe('German description');
+        });
+
+        it('should fall back custom field locale strings to default language', () => {
+            productTranslationEN.customFields = {
+                localeName: 'English locale name',
+            };
+            productTranslationDE.customFields = {
+                localeName: '',
+            };
+
+            const result = translateEntity(product, LanguageCode.de);
+
+            expect(result.customFields.localeName).toBe('English locale name');
+        });
+
+        it('should fall back null custom field values to default language', () => {
+            productTranslationEN.customFields = {
+                localeName: 'English locale name',
+            };
+            productTranslationDE.customFields = {
+                localeName: null,
+            };
+
+            const result = translateEntity(product, LanguageCode.de);
+
+            expect(result.customFields.localeName).toBe('English locale name');
+        });
+
+        it('should fall back null field values to default language', () => {
+            productTranslationEN.name = PRODUCT_NAME_EN;
+            (productTranslationDE as any).name = null;
+
+            const result = translateEntity(product, LanguageCode.de);
+
+            expect(result.languageCode).toBe(LanguageCode.de);
+            expect(result.name).toBe(PRODUCT_NAME_EN);
+        });
+
+        it('should not fall back when the requested language is the default language and is first translation', () => {
+            // When EN is both DEFAULT_LANGUAGE_CODE and translations[0], there's nothing to fall back to.
+            productTranslationEN.name = '';
+            productTranslationEN.slug = '';
+
+            const result = translateEntity(product, LanguageCode.en);
+
+            expect(result.languageCode).toBe(LanguageCode.en);
+            expect(result.name).toBe('');
+            expect(result.slug).toBe('');
+        });
+
+        it('should fall back to other translations when default language has empty values and is not first', () => {
+            // EN is DEFAULT_LANGUAGE_CODE but DE is translations[0] — DE should be used as fallback
+            productTranslationEN.name = '';
+            productTranslationDE.name = PRODUCT_NAME_DE;
+            product.translations = [productTranslationDE, productTranslationEN];
+
+            const result = translateEntity(product, LanguageCode.en);
+
+            expect(result.languageCode).toBe(LanguageCode.en);
+            expect(result.name).toBe(PRODUCT_NAME_DE);
+        });
+
+        it('should fall back to first available translation if default also has empty values', () => {
+            const productTranslationFR = new ProductTranslation({
+                id: '4',
+                languageCode: LanguageCode.fr,
+                name: '',
+                slug: '',
+                description: '',
+            });
+            productTranslationFR.base = { id: 1 } as any;
+            productTranslationFR.customFields = {};
+
+            // EN (default) also has empty name, but DE (first) has a value
+            productTranslationEN.name = '';
+            productTranslationDE.name = PRODUCT_NAME_DE;
+
+            product.translations = [productTranslationDE, productTranslationEN, productTranslationFR];
+
+            const result = translateEntity(product, LanguageCode.fr);
+
+            expect(result.languageCode).toBe(LanguageCode.fr);
+            // Default (EN) is empty, so falls through to first translation (DE)
+            expect(result.name).toBe(PRODUCT_NAME_DE);
+        });
+
+        it('should fall back to first translation when default translation row does not exist', () => {
+            const productTranslationFR = new ProductTranslation({
+                id: '4',
+                languageCode: LanguageCode.fr,
+                name: '',
+                slug: '',
+                description: '',
+            });
+            productTranslationFR.base = { id: 1 } as any;
+            productTranslationFR.customFields = {};
+
+            // No EN (default) translation exists at all, DE is first and has values
+            product.translations = [productTranslationDE, productTranslationFR];
+
+            const result = translateEntity(product, LanguageCode.fr);
+
+            expect(result.languageCode).toBe(LanguageCode.fr);
+            expect(result.name).toBe(PRODUCT_NAME_DE);
+        });
+
+        describe('with languageCode array (TranslatorService pattern)', () => {
+            it('should respect array priority for field-level fallback', () => {
+                const productTranslationFR = new ProductTranslation({
+                    id: '4',
+                    languageCode: LanguageCode.fr,
+                    name: 'French Name',
+                    slug: 'french-slug',
+                    description: '',
+                });
+                productTranslationFR.base = { id: 1 } as any;
+                productTranslationFR.customFields = {};
+
+                productTranslationEN.description = 'English description';
+                productTranslationDE.name = '';
+                productTranslationDE.slug = '';
+                productTranslationDE.description = '';
+
+                product.translations = [productTranslationEN, productTranslationDE, productTranslationFR];
+
+                // Simulates TranslatorService: [requested, channelDefault, systemDefault]
+                // Channel default is FR, system default is EN
+                const result = translateEntity(product, [LanguageCode.de, LanguageCode.fr, LanguageCode.en]);
+
+                expect(result.languageCode).toBe(LanguageCode.de);
+                // FR is higher priority in the array than EN, so field fallback goes to FR first
+                expect(result.name).toBe('French Name');
+                expect(result.slug).toBe('french-slug');
+                // FR description is also empty, so falls through to EN
+                expect(result.description).toBe('English description');
+            });
+
+            it('should fall back through array priority then to first translation', () => {
+                const productTranslationFR = new ProductTranslation({
+                    id: '4',
+                    languageCode: LanguageCode.fr,
+                    name: '',
+                    slug: '',
+                    description: '',
+                });
+                productTranslationFR.base = { id: 1 } as any;
+                productTranslationFR.customFields = {};
+
+                productTranslationEN.name = '';
+                productTranslationDE.name = '';
+
+                // Put a translation with content as first in the array
+                const productTranslationES = new ProductTranslation({
+                    id: '5',
+                    languageCode: LanguageCode.es,
+                    name: 'Spanish Name',
+                    slug: '',
+                    description: '',
+                });
+                productTranslationES.base = { id: 1 } as any;
+                productTranslationES.customFields = {};
+
+                product.translations = [
+                    productTranslationES,
+                    productTranslationEN,
+                    productTranslationDE,
+                    productTranslationFR,
+                ];
+
+                // None of the array languages have a name value
+                const result = translateEntity(product, [LanguageCode.fr, LanguageCode.de, LanguageCode.en]);
+
+                expect(result.languageCode).toBe(LanguageCode.fr);
+                // All array entries empty, falls to first translation (ES)
+                expect(result.name).toBe('Spanish Name');
+            });
+        });
     });
 });
 

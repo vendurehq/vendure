@@ -4,6 +4,12 @@
 # In case you don't have any services running on the default ports, you can expose them by changing the
 # ports section in the services block. Please don't forget to update the ports in the .env file as well.
 
+# The explicit project name keeps this project's containers and volumes distinct from
+# those of other projects, even when this file lives in an identically-named directory
+# (e.g. apps/server in a monorepo). Quoted so that numeric-looking names (e.g. "123")
+# stay YAML strings — Compose rejects a non-string name.
+name: '{{ composeProjectName }}'
+
 services:
     postgres_db:
         image: postgres:16-alpine
@@ -73,18 +79,30 @@ services:
             - "io.vendure.create.name={{{ escapeSingle name }}}"
 
     # Want to use Elasticsearch instead of our default database engine?
-    # Checkout our Elasticsearch plugin: https://docs.vendure.io/reference/core-plugins/elasticsearch-plugin/
+    # Checkout the community Elasticsearch plugin: https://github.com/vendurehq/vendure-community-plugins
     # To run the elasticsearch container run "docker compose up -d elasticsearch"
     elasticsearch:
-        image: docker.elastic.co/elasticsearch/elasticsearch:7.1.1
+        image: docker.elastic.co/elasticsearch/elasticsearch:9.1.0
+        container_name: elasticsearch
         environment:
-            discovery.type: single-node
-            bootstrap.memory_lock: true
-            ES_JAVA_OPTS: -Xms512m -Xmx512m
+            - node.name=es
+            - cluster.name=es-docker-cluster
+            - xpack.security.enabled=false
+            - xpack.security.http.ssl.enabled=false
+            - xpack.security.transport.ssl.enabled=false
+            - xpack.license.self_generated.type=basic
+            - discovery.type=single-node
+            - bootstrap.memory_lock=true
+            - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+        mem_limit: 536870912
+        ulimits:
+            memlock:
+                soft: -1
+                hard: -1
         volumes:
             - elasticsearch_data:/usr/share/elasticsearch/data
         ports:
-            - "9300:9200"
+            - 9200:9200
         labels:
             - "io.vendure.create.name={{{ escapeSingle name }}}"
 

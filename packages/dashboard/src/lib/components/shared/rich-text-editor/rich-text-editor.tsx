@@ -1,10 +1,11 @@
 import { FloatingMenu } from '@tiptap/extension-floating-menu';
 import Image from '@tiptap/extension-image';
+import Placeholder from '@tiptap/extension-placeholder';
 import { TableKit } from '@tiptap/extension-table';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useMemo, useRef } from 'react';
 
 import { ResponsiveToolbar } from './responsive-toolbar.js';
 import { TableDeleteMenu } from './table-delete-menu.js';
@@ -57,20 +58,27 @@ export interface RichTextEditorProps {
     value: string;
     onChange: (value: string) => void;
     disabled?: boolean;
+    placeholder?: string;
 }
 
-export function RichTextEditor({ value, onChange, disabled = false }: Readonly<RichTextEditorProps>) {
+export function RichTextEditor({ value, onChange, disabled = false, placeholder }: Readonly<RichTextEditorProps>) {
     const isInternalUpdate = useRef(false);
+
+    const editorExtensions = useMemo(() => {
+        return placeholder
+            ? [...extensions, Placeholder.configure({ placeholder })]
+            : extensions;
+    }, [placeholder]);
 
     const editor = useEditor({
         parseOptions: {
             preserveWhitespace: 'full',
         },
-        extensions: extensions,
+        extensions: editorExtensions,
         content: value,
         editable: !disabled,
         onUpdate: ({ editor }) => {
-            if (!disabled) {
+            if (!disabled && !editor.isDestroyed) {
                 isInternalUpdate.current = true;
                 const newValue = editor.getHTML();
                 if (value !== newValue) {
@@ -83,10 +91,10 @@ export function RichTextEditor({ value, onChange, disabled = false }: Readonly<R
                 class: `rich-text-editor placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/10 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive field-sizing-content min-h-16 w-full bg-transparent px-3 py-2 text-base transition-[color,box-shadow] outline-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm max-h-[500px] overflow-y-auto ${disabled ? 'cursor-not-allowed opacity-50' : ''}`,
             },
         },
-    });
+    }, [editorExtensions]);
 
     useLayoutEffect(() => {
-        if (editor && !isInternalUpdate.current) {
+        if (editor && !editor.isDestroyed && !isInternalUpdate.current) {
             const currentContent = editor.getHTML();
             if (currentContent !== value) {
                 const { from, to } = editor.state.selection;
@@ -108,7 +116,7 @@ export function RichTextEditor({ value, onChange, disabled = false }: Readonly<R
     }
 
     return (
-        <div className="border rounded-md overflow-hidden">
+        <div className="border rounded-md overflow-hidden" data-testid="rich-text-editor">
             <ResponsiveToolbar editor={editor} disabled={disabled} />
             <EditorContent editor={editor} />
             <TableEditIcons editor={editor} disabled={disabled} />
@@ -332,6 +340,13 @@ export function RichTextEditor({ value, onChange, disabled = false }: Readonly<R
                 }
                 .rich-text-editor > *:last-child {
                     margin-bottom: 0;
+                }
+                .rich-text-editor .is-editor-empty:first-child::before {
+                    content: attr(data-placeholder);
+                    float: left;
+                    color: var(--muted-foreground);
+                    pointer-events: none;
+                    height: 0;
                 }
             `}</style>
         </div>

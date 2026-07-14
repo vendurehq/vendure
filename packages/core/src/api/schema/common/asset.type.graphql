@@ -2,6 +2,7 @@ type Asset implements Node {
     id: ID!
     createdAt: DateTime!
     updatedAt: DateTime!
+    languageCode: LanguageCode!
     name: String!
     type: AssetType!
     fileSize: Int!
@@ -12,6 +13,15 @@ type Asset implements Node {
     preview: String!
     focalPoint: Coordinate
     tags: [Tag!]!
+    translations: [AssetTranslation!]!
+}
+
+type AssetTranslation {
+    id: ID!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    languageCode: LanguageCode!
+    name: String!
 }
 
 type Coordinate {

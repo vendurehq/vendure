@@ -1,8 +1,10 @@
 import { ConfigurableOperationInput as ConfigurableOperationInputComponent } from '@/vdb/components/shared/configurable-operation-input.js';
+import { getInitialConfigArgValue } from '@/vdb/components/shared/configurable-operation-utils.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle,
@@ -53,7 +55,7 @@ export function DuplicateEntityDialog({
                 arguments:
                     matchingDuplicator.args?.map(arg => ({
                         name: arg.name,
-                        value: arg.defaultValue != null ? arg.defaultValue.toString() : '',
+                        value: getInitialConfigArgValue(arg),
                     })) || [],
             });
         }
@@ -82,6 +84,9 @@ export function DuplicateEntityDialog({
                     <DialogTitle>
                         <Trans>Duplicate {entityName.toLowerCase()}s</Trans>
                     </DialogTitle>
+                    <DialogDescription className="sr-only">
+                        <Trans>Configure duplication settings for {entityName.toLowerCase()}s</Trans>
+                    </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-4">

@@ -69,6 +69,12 @@ export function GeneratedBreadcrumbs() {
         return p === u || p.startsWith(`${u}/`);
     };
 
+    // Nav-menu section titles are static translation keys (same convention as
+    // nav-main.tsx); page-level breadcrumbs from loaders may be dynamic entity
+    // names (product/collection/facet names) and must NOT be passed through
+    // i18n.t() — the BreadcrumbLink render below renders `label` as-is.
+    const translateSectionTitle = (title: string) => (title in i18n.messages ? i18n.t(title) : title);
+
     const checkSectionItems = (
         section: NavMenuSection | NavMenuItem,
         cleanPath: string,
@@ -80,7 +86,7 @@ export function GeneratedBreadcrumbs() {
         for (const item of section.items) {
             if (!item?.url) continue;
             if (pathMatches(cleanPath, item.url)) {
-                return { label: section.title, path: item.url };
+                return { label: translateSectionTitle(section.title), path: item.url };
             }
         }
         return undefined;
@@ -91,7 +97,7 @@ export function GeneratedBreadcrumbs() {
         cleanPath: string,
     ): BreadcrumbPair | undefined => {
         if ('url' in section && section.url && pathMatches(cleanPath, section.url)) {
-            return { label: section.title, path: section.url };
+            return { label: translateSectionTitle(section.title), path: section.url };
         }
         return undefined;
     };
@@ -123,9 +129,7 @@ export function GeneratedBreadcrumbs() {
                 {breadcrumbs.map(({ label, path }, index, arr) => (
                     <Fragment key={`${path}-${index}`}>
                         <BreadcrumbItem className="hidden md:block">
-                            <BreadcrumbLink asChild>
-                                <Link to={path}>{typeof label === 'string' ? i18n.t(label) : label}</Link>
-                            </BreadcrumbLink>
+                            <BreadcrumbLink render={<Link to={path} />}>{label}</BreadcrumbLink>
                         </BreadcrumbItem>
                         {index < arr.length - 1 && <BreadcrumbSeparator className="hidden md:block" />}
                     </Fragment>

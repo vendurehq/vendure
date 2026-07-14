@@ -2,6 +2,8 @@
 title: "StockMovement"
 generated: true
 ---
+## StockMovement
+
 <GenerationInfo sourceFile="packages/core/src/entity/stock-movement/stock-movement.entity.ts" sourceLine="21" packageName="@vendure/core" />
 
 A StockMovement is created whenever stock of a particular ProductVariant goes in
@@ -67,6 +69,8 @@ class StockMovement extends VendureEntity implements HasCustomFields {
 
 
 </div>
+## Allocation
+
 <GenerationInfo sourceFile="packages/core/src/entity/stock-movement/allocation.entity.ts" sourceLine="17" packageName="@vendure/core" />
 
 An Allocation is created for each ProductVariant in an Order when the checkout is completed
@@ -92,11 +96,6 @@ class Allocation extends StockMovement {
 <MemberInfo kind="property" type={``}   />
 
 
-### constructor
-
-<MemberInfo kind="method" type={`(input: DeepPartial<<a href='/reference/typescript-api/entities/stock-movement#allocation'>Allocation</a>>) => Allocation`}   />
-
-
 ### orderLine
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/order-line#orderline'>OrderLine</a>`}   />
@@ -105,6 +104,8 @@ class Allocation extends StockMovement {
 
 
 </div>
+## Cancellation
+
 <GenerationInfo sourceFile="packages/core/src/entity/stock-movement/cancellation.entity.ts" sourceLine="16" packageName="@vendure/core" />
 
 A Cancellation is created when OrderItems from a fulfilled Order are cancelled.
@@ -128,11 +129,6 @@ class Cancellation extends StockMovement {
 <MemberInfo kind="property" type={``}   />
 
 
-### constructor
-
-<MemberInfo kind="method" type={`(input: DeepPartial<<a href='/reference/typescript-api/entities/stock-movement#cancellation'>Cancellation</a>>) => Cancellation`}   />
-
-
 ### orderLine
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/order-line#orderline'>OrderLine</a>`}   />
@@ -141,6 +137,8 @@ class Cancellation extends StockMovement {
 
 
 </div>
+## Release
+
 <GenerationInfo sourceFile="packages/core/src/entity/stock-movement/release.entity.ts" sourceLine="17" packageName="@vendure/core" />
 
 A Release is created when OrderItems which have been allocated (but not yet fulfilled)
@@ -165,11 +163,6 @@ class Release extends StockMovement {
 <MemberInfo kind="property" type={``}   />
 
 
-### constructor
-
-<MemberInfo kind="method" type={`(input: DeepPartial<<a href='/reference/typescript-api/entities/stock-movement#release'>Release</a>>) => Release`}   />
-
-
 ### orderLine
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/order-line#orderline'>OrderLine</a>`}   />
@@ -178,6 +171,8 @@ class Release extends StockMovement {
 
 
 </div>
+## Sale
+
 <GenerationInfo sourceFile="packages/core/src/entity/stock-movement/sale.entity.ts" sourceLine="16" packageName="@vendure/core" />
 
 A Sale is created when OrderItems are fulfilled.
@@ -201,11 +196,6 @@ class Sale extends StockMovement {
 <MemberInfo kind="property" type={``}   />
 
 
-### constructor
-
-<MemberInfo kind="method" type={`(input: DeepPartial<<a href='/reference/typescript-api/entities/stock-movement#sale'>Sale</a>>) => Sale`}   />
-
-
 ### orderLine
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/order-line#orderline'>OrderLine</a>`}   />
@@ -214,6 +204,8 @@ class Sale extends StockMovement {
 
 
 </div>
+## StockAdjustment
+
 <GenerationInfo sourceFile="packages/core/src/entity/stock-movement/stock-adjustment.entity.ts" sourceLine="14" packageName="@vendure/core" />
 
 A StockAdjustment is created when the `stockOnHand` level of a ProductVariant is manually adjusted.
@@ -233,11 +225,6 @@ class StockAdjustment extends StockMovement {
 ### type
 
 <MemberInfo kind="property" type={``}   />
-
-
-### constructor
-
-<MemberInfo kind="method" type={`(input: DeepPartial<<a href='/reference/typescript-api/entities/stock-movement#stockadjustment'>StockAdjustment</a>>) => StockAdjustment`}   />
 
 
 

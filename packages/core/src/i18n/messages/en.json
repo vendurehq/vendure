@@ -4,6 +4,7 @@
     "available-currency-codes-must-include-default": "availableCurrencyCodes must include the defaultCurrencyCode ({ defaultCurrencyCode })",
     "cannot-delete-role": "The role \"{ roleCode }\" cannot be deleted",
     "cannot-delete-sole-superadmin": "The sole SuperAdmin cannot be deleted",
+    "email-address-already-exists-for-administrator": "An administrator with this email address already exists",
     "cannot-delete-default-channel": "The default Channel cannot be deleted",
     "cannot-locate-customer-for-user": "Cannot locate a Customer for the user",
     "cannot-modify-role": "The role \"{ roleCode }\" cannot be modified",
@@ -50,10 +51,13 @@
     "product-variant-option-ids-not-compatible": "ProductVariant optionIds must include one optionId from each of the groups: {groupNames}",
     "product-variant-options-combination-already-exists": "A ProductVariant with the selected options already exists: {variantName}",
     "promotion-channels-can-only-be-changed-from-default-channel": "Promotions channels may only be changed from the Default Channel",
+    "regex-filter-pattern-too-long": "The regex filter pattern exceeds the maximum allowed length of { max } characters",
+    "regex-filter-pattern-unsafe": "The regex filter pattern is not allowed as it may cause excessive resource consumption",
     "stockonhand-cannot-be-negative": "stockOnHand cannot be a negative value",
     "superadmin-must-have-superadmin-role": "Cannot remove the SuperAdmin role from the sole SuperAdmin",
     "target-customer-not-assigned-to-order-channels": "The target Customer is not assigned to the same Channels as the Order. Missing channels IDs: { missingChannelIds }",
-    "unauthorized": "The credentials did not match. Please check and try again"
+    "unauthorized": "The credentials did not match. Please check and try again",
+    "unverified-external-email-conflict": "Cannot link an unverified external authentication method to an existing account with the same email address"
   },
   "errorResult": {
     "ALREADY_LOGGED_IN_ERROR": "Cannot set a Customer for the Order when already logged in",
@@ -97,6 +101,7 @@
     "PAYMENT_FAILED_ERROR": "The payment failed",
     "PAYMENT_ORDER_MISMATCH_ERROR": "The Payment and OrderLines do not belong to the same Order",
     "PAYMENT_STATE_TRANSITION_ERROR": "Cannot transition Payment from \"{ fromState }\" to \"{ toState }\"",
+    "PRODUCT_OPTION_GROUP_IN_USE_ERROR": "Cannot remove ProductOptionGroup \"{ optionGroupCode }\" from the Channel as it is used by {productCount, plural, one {1 Product} other {# Products}} and {variantCount, plural, one {1 ProductVariant} other {# ProductVariants}}",
     "PRODUCT_OPTION_IN_USE_ERROR": "Cannot remove ProductOptionGroup \"{ optionGroupCode }\" as it is used by {productVariantCount, plural, one {1 ProductVariant} other {# ProductVariants}}. Use the `force` argument to remove it anyway",
     "QUANTITY_TOO_GREAT_ERROR": "The specified quantity is greater than the available OrderItems",
     "REFUND_AMOUNT_ERROR": "The amount specified exceeds the refundable amount for this payment",
@@ -133,6 +138,7 @@
     "facet-value-force-deleted": "The selected FacetValue was removed from {products, plural, =0 {} one {1 Product} other {# Products}}{both, select, both {, } single {} other {}}{variants, plural, =0 {} one {1 ProductVariant} other {# ProductVariants}} and deleted",
     "facet-value-used": "The FacetValue \"{ facetValueCode }\" is assigned to {products, plural, =0 {} one {1 Product} other {# Products}}{both, select, both {, } single {} other {}}{variants, plural, =0 {} one {1 ProductVariant} other {# ProductVariants}}",
     "payment-method-used-in-channels": "The selected PaymentMethod is assigned to the following Channels: { channelCodes }. Set \"force: true\" to delete from all Channels.",
+    "product-option-group-used": "Cannot delete the option group \"{code}\" as it is assigned to {count, plural, one {1 Product} other {# Products}}",
     "product-option-used": "Cannot delete the option \"{code}\" as it is being used by {count, plural, =0 {} one {1 ProductVariant} other {# ProductVariants}}",
     "zone-used-in-channels": "The selected Zone cannot be deleted as it used as a default in the following Channels: { channelCodes }",
     "zone-used-in-tax-rates": "The selected Zone cannot be deleted as it is used in the following TaxRates: { taxRateNames }"

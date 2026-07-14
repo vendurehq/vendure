@@ -305,14 +305,15 @@ export class AdminUiPlugin implements NestModule {
                 return partialConfig ? (partialConfig as AdminUiConfig)[prop] || defaultVal : defaultVal;
             }
         };
+        const serverTokenMethod = authOptions.tokenMethod;
+        const serverUsesBearer =
+            serverTokenMethod === 'bearer' ||
+            (Array.isArray(serverTokenMethod) && serverTokenMethod.includes('bearer'));
         return {
             adminApiPath: propOrDefault('adminApiPath', apiOptions.adminApiPath),
             apiHost: propOrDefault('apiHost', 'auto'),
             apiPort: propOrDefault('apiPort', 'auto'),
-            tokenMethod: propOrDefault(
-                'tokenMethod',
-                authOptions.tokenMethod === 'bearer' ? 'bearer' : 'cookie',
-            ),
+            tokenMethod: propOrDefault('tokenMethod', serverUsesBearer ? 'bearer' : 'cookie'),
             authTokenHeaderKey: propOrDefault(
                 'authTokenHeaderKey',
                 authOptions.authTokenHeaderKey || DEFAULT_AUTH_TOKEN_HEADER_KEY,

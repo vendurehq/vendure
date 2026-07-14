@@ -28,9 +28,7 @@ type Story = StoryObj<typeof meta>;
 export const Playground: Story = {
     render: () => (
         <AlertDialog>
-            <AlertDialogTrigger asChild>
-                <Button variant="destructive">Delete Item</Button>
-            </AlertDialogTrigger>
+            <AlertDialogTrigger render={<Button variant="destructive" />}>Delete Item</AlertDialogTrigger>
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>

@@ -2,7 +2,9 @@
 title: "Bootstrap"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/bootstrap.ts" sourceLine="158" packageName="@vendure/core" />
+## bootstrap
+
+<GenerationInfo sourceFile="packages/core/src/bootstrap.ts" sourceLine="190" packageName="@vendure/core" />
 
 Bootstraps the Vendure server. This is the entry point to the application.
 
@@ -72,7 +74,9 @@ Parameters
 
 <MemberInfo kind="parameter" type={`<a href='/reference/typescript-api/common/bootstrap#bootstrapoptions'>BootstrapOptions</a>`} />
 
-<GenerationInfo sourceFile="packages/core/src/bootstrap.ts" sourceLine="42" packageName="@vendure/core" since="2.2.0" />
+## BootstrapOptions
+
+<GenerationInfo sourceFile="packages/core/src/bootstrap.ts" sourceLine="45" packageName="@vendure/core" since="2.2.0" />
 
 Additional options that can be used to configure the bootstrap process of the
 Vendure server.
@@ -81,6 +85,7 @@ Vendure server.
 interface BootstrapOptions {
     nestApplicationOptions?: NestApplicationOptions;
     ignoreCompatibilityErrorsForPlugins?: Array<DynamicModule | Type<any>>;
+    onBeforeAppListen?: (app: INestApplication) => void | Promise<void>;
 }
 ```
 
@@ -111,6 +116,33 @@ import { MyPlugin } from './plugins/my-plugin';
 
 bootstrap(config, {
  ignoreCompatibilityErrorsForPlugins: [MyPlugin],
+});
+```
+### onBeforeAppListen
+
+<MemberInfo kind="property" type={`(app: INestApplication) => void | Promise<void>`} default={`undefined`}  since="3.6.0"  />
+
+A function which is called before the app starts listening. This can be used to perform any final configuration of the Nest application.
+E.g., to set up OpenAPI specification with Swagger.
+
+*Example*
+
+```ts
+import { bootstrap } from '@vendure/core';
+import { config } from './vendure-config';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+
+bootstrap(config, {
+ onBeforeAppListen: async (app) => {
+   const config = new DocumentBuilder()
+     .setTitle('Cats example')
+     .setDescription('The cats API description')
+     .setVersion('1.0')
+     .addTag('cats')
+     .build();
+   const documentFactory = () => SwaggerModule.createDocument(app, config);
+   SwaggerModule.setup('api', app, documentFactory);
+ }
 });
 ```
 

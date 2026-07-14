@@ -1,10 +1,11 @@
-import { createTestEnvironment } from '@vendure/testing';
-import gql from 'graphql-tag';
+import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
+
+import { graphql } from './graphql/graphql-admin';
 
 /**
  * Tests for GitHub issue #3266: Custom field default values not applied when explicitly set to null
@@ -30,7 +31,22 @@ const customConfig = {
 describe('Custom field default values', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(customConfig);
 
-    const CREATE_CUSTOMER = gql`
+    // Test-specific documents: only fetch customFields, avoid over-fetching shared definitions
+    const createProductDocument = graphql(`
+        mutation CreateProduct($input: CreateProductInput!) {
+            createProduct(input: $input) {
+                id
+                name
+                customFields {
+                    stringWithDefault
+                    intWithDefault
+                    booleanWithDefault
+                }
+            }
+        }
+    `);
+
+    const createCustomerDocument = graphql(`
         mutation CreateCustomer($input: CreateCustomerInput!) {
             createCustomer(input: $input) {
                 ... on Customer {
@@ -50,7 +66,18 @@ describe('Custom field default values', () => {
                 }
             }
         }
-    `;
+    `);
+
+    type CustomerSuccess = {
+        id: string;
+        firstName: string;
+        lastName: string;
+        emailAddress: string;
+        customFields: any;
+    };
+    const customerGuard: ErrorResultGuard<CustomerSuccess> = createErrorResultGuard(
+        input => 'id' in input && 'firstName' in input,
+    );
 
     beforeAll(async () => {
         await server.init({
@@ -67,30 +94,18 @@ describe('Custom field default values', () => {
 
     describe('translatable entity (Product)', () => {
         it('should apply default values when creating product without custom fields', async () => {
-            const { createProduct } = await adminClient.query(gql`
-                mutation {
-                    createProduct(
-                        input: {
-                            translations: [
-                                {
-                                    languageCode: en
-                                    name: "Test Product 1"
-                                    slug: "test-product-1"
-                                    description: "Test"
-                                }
-                            ]
-                        }
-                    ) {
-                        id
-                        name
-                        customFields {
-                            stringWithDefault
-                            intWithDefault
-                            booleanWithDefault
-                        }
-                    }
-                }
-            `);
+            const { createProduct } = await adminClient.query(createProductDocument, {
+                input: {
+                    translations: [
+                        {
+                            languageCode: 'en',
+                            name: 'Test Product 1',
+                            slug: 'test-product-1',
+                            description: 'Test',
+                        },
+                    ],
+                },
+            });
 
             expect(createProduct.customFields.stringWithDefault).toBe('hello');
             expect(createProduct.customFields.intWithDefault).toBe(5);
@@ -98,31 +113,19 @@ describe('Custom field default values', () => {
         });
 
         it('should apply default values when creating product with empty custom fields', async () => {
-            const { createProduct } = await adminClient.query(gql`
-                mutation {
-                    createProduct(
-                        input: {
-                            translations: [
-                                {
-                                    languageCode: en
-                                    name: "Test Product 2"
-                                    slug: "test-product-2"
-                                    description: "Test"
-                                }
-                            ]
-                            customFields: {}
-                        }
-                    ) {
-                        id
-                        name
-                        customFields {
-                            stringWithDefault
-                            intWithDefault
-                            booleanWithDefault
-                        }
-                    }
-                }
-            `);
+            const { createProduct } = await adminClient.query(createProductDocument, {
+                input: {
+                    translations: [
+                        {
+                            languageCode: 'en',
+                            name: 'Test Product 2',
+                            slug: 'test-product-2',
+                            description: 'Test',
+                        },
+                    ],
+                    customFields: {},
+                },
+            });
 
             expect(createProduct.customFields.stringWithDefault).toBe('hello');
             expect(createProduct.customFields.intWithDefault).toBe(5);
@@ -130,35 +133,23 @@ describe('Custom field default values', () => {
         });
 
         it('should apply default values when custom fields are explicitly set to null', async () => {
-            const { createProduct } = await adminClient.query(gql`
-                mutation {
-                    createProduct(
-                        input: {
-                            translations: [
-                                {
-                                    languageCode: en
-                                    name: "Test Product Null"
-                                    slug: "test-product-null"
-                                    description: "Test"
-                                }
-                            ]
-                            customFields: {
-                                stringWithDefault: null
-                                intWithDefault: null
-                                booleanWithDefault: null
-                            }
-                        }
-                    ) {
-                        id
-                        name
-                        customFields {
-                            stringWithDefault
-                            intWithDefault
-                            booleanWithDefault
-                        }
-                    }
-                }
-            `);
+            const { createProduct } = await adminClient.query(createProductDocument, {
+                input: {
+                    translations: [
+                        {
+                            languageCode: 'en',
+                            name: 'Test Product Null',
+                            slug: 'test-product-null',
+                            description: 'Test',
+                        },
+                    ],
+                    customFields: {
+                        stringWithDefault: null,
+                        intWithDefault: null,
+                        booleanWithDefault: null,
+                    },
+                },
+            });
 
             // This is the core issue: when custom fields are explicitly set to null,
             // they should still get their default values
@@ -168,35 +159,23 @@ describe('Custom field default values', () => {
         });
 
         it('should not override explicitly provided values', async () => {
-            const { createProduct } = await adminClient.query(gql`
-                mutation {
-                    createProduct(
-                        input: {
-                            translations: [
-                                {
-                                    languageCode: en
-                                    name: "Test Product Custom"
-                                    slug: "test-product-custom"
-                                    description: "Test"
-                                }
-                            ]
-                            customFields: {
-                                stringWithDefault: "custom value"
-                                intWithDefault: 999
-                                booleanWithDefault: false
-                            }
-                        }
-                    ) {
-                        id
-                        name
-                        customFields {
-                            stringWithDefault
-                            intWithDefault
-                            booleanWithDefault
-                        }
-                    }
-                }
-            `);
+            const { createProduct } = await adminClient.query(createProductDocument, {
+                input: {
+                    translations: [
+                        {
+                            languageCode: 'en',
+                            name: 'Test Product Custom',
+                            slug: 'test-product-custom',
+                            description: 'Test',
+                        },
+                    ],
+                    customFields: {
+                        stringWithDefault: 'custom value',
+                        intWithDefault: 999,
+                        booleanWithDefault: false,
+                    },
+                },
+            });
 
             // When explicit values are provided, they should be used instead of defaults
             expect(createProduct.customFields.stringWithDefault).toBe('custom value');
@@ -207,7 +186,7 @@ describe('Custom field default values', () => {
 
     describe('non-translatable entity (Customer)', () => {
         it('should apply default values when creating customer without custom fields', async () => {
-            const { createCustomer } = await adminClient.query(CREATE_CUSTOMER, {
+            const { createCustomer } = await adminClient.query(createCustomerDocument, {
                 input: {
                     firstName: 'John',
                     lastName: 'Doe',
@@ -215,13 +194,14 @@ describe('Custom field default values', () => {
                 },
             });
 
+            customerGuard.assertSuccess(createCustomer);
             expect(createCustomer.customFields.stringWithDefault).toBe('customer-default');
             expect(createCustomer.customFields.intWithDefault).toBe(100);
             expect(createCustomer.customFields.booleanWithDefault).toBe(false);
         });
 
         it('should apply default values when creating customer with empty custom fields', async () => {
-            const { createCustomer } = await adminClient.query(CREATE_CUSTOMER, {
+            const { createCustomer } = await adminClient.query(createCustomerDocument, {
                 input: {
                     firstName: 'Jane',
                     lastName: 'Smith',
@@ -230,13 +210,14 @@ describe('Custom field default values', () => {
                 },
             });
 
+            customerGuard.assertSuccess(createCustomer);
             expect(createCustomer.customFields.stringWithDefault).toBe('customer-default');
             expect(createCustomer.customFields.intWithDefault).toBe(100);
             expect(createCustomer.customFields.booleanWithDefault).toBe(false);
         });
 
         it('should apply default values when custom fields are explicitly set to null', async () => {
-            const { createCustomer } = await adminClient.query(CREATE_CUSTOMER, {
+            const { createCustomer } = await adminClient.query(createCustomerDocument, {
                 input: {
                     firstName: 'Bob',
                     lastName: 'Johnson',
@@ -249,6 +230,7 @@ describe('Custom field default values', () => {
                 },
             });
 
+            customerGuard.assertSuccess(createCustomer);
             // This should reproduce the issue for non-translatable entities
             expect(createCustomer.customFields.stringWithDefault).toBe('customer-default');
             expect(createCustomer.customFields.intWithDefault).toBe(100);
@@ -256,7 +238,7 @@ describe('Custom field default values', () => {
         });
 
         it('should not override explicitly provided values', async () => {
-            const { createCustomer } = await adminClient.query(CREATE_CUSTOMER, {
+            const { createCustomer } = await adminClient.query(createCustomerDocument, {
                 input: {
                     firstName: 'Alice',
                     lastName: 'Wilson',
@@ -269,6 +251,7 @@ describe('Custom field default values', () => {
                 },
             });
 
+            customerGuard.assertSuccess(createCustomer);
             // When explicit values are provided, they should be used instead of defaults
             expect(createCustomer.customFields.stringWithDefault).toBe('custom customer value');
             expect(createCustomer.customFields.intWithDefault).toBe(777);

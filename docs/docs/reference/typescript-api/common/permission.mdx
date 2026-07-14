@@ -2,7 +2,7 @@
 title: "Permission"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/common/src/generated-types.ts" sourceLine="4494" packageName="@vendure/common" />
+<GenerationInfo sourceFile="packages/common/src/generated-types.ts" sourceLine="4691" packageName="@vendure/common" />
 
 Permissions for administrators and customers. Used to control access to
 GraphQL resolvers via the [Allow](/reference/typescript-api/request/allow-decorator#allow) decorator.
@@ -36,6 +36,7 @@ of the resource has access. If not, then it is the equivalent of using `Permissi
 enum Permission {
     Authenticated = 'Authenticated'
     CreateAdministrator = 'CreateAdministrator'
+    CreateApiKey = 'CreateApiKey'
     CreateAsset = 'CreateAsset'
     CreateCatalog = 'CreateCatalog'
     CreateChannel = 'CreateChannel'
@@ -58,6 +59,7 @@ enum Permission {
     CreateTaxRate = 'CreateTaxRate'
     CreateZone = 'CreateZone'
     DeleteAdministrator = 'DeleteAdministrator'
+    DeleteApiKey = 'DeleteApiKey'
     DeleteAsset = 'DeleteAsset'
     DeleteCatalog = 'DeleteCatalog'
     DeleteChannel = 'DeleteChannel'
@@ -82,6 +84,7 @@ enum Permission {
     Owner = 'Owner'
     Public = 'Public'
     ReadAdministrator = 'ReadAdministrator'
+    ReadApiKey = 'ReadApiKey'
     ReadAsset = 'ReadAsset'
     ReadCatalog = 'ReadCatalog'
     ReadChannel = 'ReadChannel'
@@ -105,6 +108,7 @@ enum Permission {
     ReadZone = 'ReadZone'
     SuperAdmin = 'SuperAdmin'
     UpdateAdministrator = 'UpdateAdministrator'
+    UpdateApiKey = 'UpdateApiKey'
     UpdateAsset = 'UpdateAsset'
     UpdateCatalog = 'UpdateCatalog'
     UpdateChannel = 'UpdateChannel'

@@ -1,0 +1,5 @@
+name , slug , description , assets , facets , optionGroups , optionValues , sku , price , taxCategory , stockOnHand , trackInventory , variantAssets , variantFacets
+T-Shirt , , A cotton t-shirt , , , size:tshirt-size|color , Small|Red , TS-SR , 20 , standard , 100 , false , ,
+ , , , , , , Small|Blue , TS-SB , 20 , standard , 100 , false , ,
+ , , , , , , Large|Red , TS-LR , 25 , standard , 100 , false , ,
+ , , , , , , Large|Blue , TS-LB , 25 , standard , 100 , false , ,

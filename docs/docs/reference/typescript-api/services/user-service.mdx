@@ -2,7 +2,7 @@
 title: "UserService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/user.service.ts" sourceLine="38" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/user.service.ts" sourceLine="39" packageName="@vendure/core" />
 
 Contains methods relating to [User](/reference/typescript-api/entities/user#user) entities.
 
@@ -14,6 +14,7 @@ class UserService {
     createCustomerUser(ctx: RequestContext, identifier: string, password?: string) => Promise<User | PasswordValidationError>;
     addNativeAuthenticationMethod(ctx: RequestContext, user: User, identifier: string, password?: string) => Promise<User | PasswordValidationError>;
     createAdminUser(ctx: RequestContext, identifier: string, password: string) => Promise<User>;
+    createApiKeyUser(ctx: RequestContext, roles: Role[], identifier: string) => Promise<User>;
     softDelete(ctx: RequestContext, userId: ID) => ;
     setVerificationToken(ctx: RequestContext, user: User) => Promise<User>;
     verifyUserByToken(ctx: RequestContext, verificationToken: string, password?: string) => Promise<ErrorResultUnion<VerifyCustomerAccountResult, User>>;
@@ -33,11 +34,6 @@ class UserService {
 ```
 
 <div className="members-wrapper">
-
-### constructor
-
-<MemberInfo kind="method" type={`(connection: <a href='/reference/typescript-api/data-access/transactional-connection#transactionalconnection'>TransactionalConnection</a>, configService: ConfigService, roleService: <a href='/reference/typescript-api/services/role-service#roleservice'>RoleService</a>, passwordCipher: PasswordCipher, verificationTokenGenerator: VerificationTokenGenerator, moduleRef: ModuleRef) => UserService`}   />
-
 
 ### getUserById
 
@@ -66,6 +62,13 @@ flow is completed.
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, identifier: string, password: string) => Promise<<a href='/reference/typescript-api/entities/user#user'>User</a>>`}   />
 
 Creates a new verified User using the [NativeAuthenticationStrategy](/reference/typescript-api/auth/native-authentication-strategy#nativeauthenticationstrategy).
+### createApiKeyUser
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, roles: <a href='/reference/typescript-api/entities/role#role'>Role</a>[], identifier: string) => Promise<<a href='/reference/typescript-api/entities/user#user'>User</a>>`}   />
+
+Creates a new User which will be responsible for the permissions of an API-Key.
+
+IMPORTANT: The caller is responsible for avoiding privilege escalations!
 ### softDelete
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => `}   />

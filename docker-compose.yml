@@ -80,12 +80,19 @@ services:
         volumes:
             - keycloak_data:/opt/keycloak/data
     elasticsearch:
-        image: docker.elastic.co/elasticsearch/elasticsearch:7.10.2
+        image: docker.elastic.co/elasticsearch/elasticsearch:9.1.0
         container_name: elasticsearch
         environment:
+            - node.name=es
+            - cluster.name=es-docker-cluster
+            - xpack.security.enabled=false
+            - xpack.security.http.ssl.enabled=false
+            - xpack.security.transport.ssl.enabled=false
+            - xpack.license.self_generated.type=basic
             - discovery.type=single-node
             - bootstrap.memory_lock=true
-            - 'ES_JAVA_OPTS=-Xms512m -Xmx512m'
+            - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+        mem_limit: 536870912
         ulimits:
             memlock:
                 soft: -1
@@ -100,7 +107,6 @@ services:
         environment: []
         ports:
             - '6379:6379'
-
     jaeger:
         image: jaegertracing/all-in-one:latest
         container_name: jaeger

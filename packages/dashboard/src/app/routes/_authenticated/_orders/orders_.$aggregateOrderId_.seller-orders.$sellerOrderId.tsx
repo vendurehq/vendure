@@ -23,13 +23,11 @@ function SellerOrderDetailPage() {
         const seller = getSeller(order);
         return (
             <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" asChild>
-                    <Link
+                <Button variant="ghost" size="sm" render={<Link
                         to="/orders/$aggregateOrderId"
                         params={{ aggregateOrderId: params.aggregateOrderId }}
-                    >
-                        <ArrowLeft className="h-4 w-4" />
-                    </Link>
+                    />}>
+                    <ArrowLeft className="h-4 w-4" />
                 </Button>
                 {order.code ?? ''}
                 <Badge variant="secondary">

@@ -2,7 +2,7 @@
 title: "SimpleGraphQLClient"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/testing/src/simple-graphql-client.ts" sourceLine="40" packageName="@vendure/testing" />
+<GenerationInfo sourceFile="packages/testing/src/simple-graphql-client.ts" sourceLine="39" packageName="@vendure/testing" />
 
 A minimalistic GraphQL client for populating and querying test data.
 
@@ -22,16 +22,12 @@ class SimpleGraphQLClient {
         mutation: DocumentNode;
         filePaths: string[];
         mapVariables: (filePaths: string[]) => any;
+        contentTypeOverrides?: { [index: number]: string };
     }) => Promise<any>;
 }
 ```
 
 <div className="members-wrapper">
-
-### constructor
-
-<MemberInfo kind="method" type={`(vendureConfig: Required<<a href='/reference/typescript-api/configuration/vendure-config#vendureconfig'>VendureConfig</a>>, apiUrl: string = '') => SimpleGraphQLClient`}   />
-
 
 ### setAuthToken
 
@@ -82,7 +78,7 @@ Logs in as the SuperAdmin user.
 Logs out so that the client is then treated as an anonymous user.
 ### fileUploadMutation
 
-<MemberInfo kind="method" type={`(options: {         mutation: DocumentNode;         filePaths: string[];         mapVariables: (filePaths: string[]) => any;     }) => Promise<any>`}   />
+<MemberInfo kind="method" type={`(options: {         mutation: DocumentNode;         filePaths: string[];         mapVariables: (filePaths: string[]) => any;         contentTypeOverrides?: { [index: number]: string };     }) => Promise<any>`}   />
 
 Perform a file upload mutation.
 

@@ -107,8 +107,8 @@ test.describe('Administrators', () => {
         // Select the test admin row (not the first row which is the superadmin)
         const testAdminRow = lp.getRows().filter({ hasText: 'Updated Admin' });
         await testAdminRow.getByRole('checkbox').click();
-        await page.getByRole('button', { name: /With selected/i }).click();
-        await page.getByRole('menuitem').filter({ hasText: 'Delete' }).click();
+        await page.getByRole('button', { name: /Actions/i }).click();
+        await page.locator('[role="menu"]').getByText('Delete', { exact: true }).click();
         await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Continue' }).click();
         await lp.expectSuccessToast();
 

@@ -34,7 +34,14 @@ const renderNodeAsString = function (reactNode: React.ReactNode): string {
             string += renderNodeAsString(child);
         });
     } else if (isValidElement(reactNode)) {
-        string += renderNodeAsString((reactNode as ReactElement<any>).props.children);
+        const props = (reactNode as ReactElement<any>).props;
+        if (props.children != null) {
+            string += renderNodeAsString(props.children);
+        } else if (typeof props.message === 'string') {
+            // Lingui's babel macro compiles <Trans>Text</Trans> into
+            // <Trans id="hash" message="Text" />, stripping children.
+            string += props.message;
+        }
     }
     return string;
 };

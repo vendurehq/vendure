@@ -38,6 +38,7 @@ declare module 'virtual:vendure-ui-config' {
         api: ResolvedApiConfig;
         i18n: ResolvedI18nConfig;
         orders: ResolvedOrdersConfig;
+        version: string;
     }
 
     export const uiConfig: ResolvedUiConfig;

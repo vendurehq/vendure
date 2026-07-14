@@ -13,6 +13,7 @@ import { I18nService } from './i18n/i18n.service';
 import { PluginModule } from './plugin/plugin.module';
 import { ProcessContextModule } from './process-context/process-context.module';
 import { ServiceModule } from './service/service.module';
+import { TelemetryModule } from './telemetry/telemetry.module';
 
 @Module({
     imports: [
@@ -24,6 +25,7 @@ import { ServiceModule } from './service/service.module';
         HealthCheckModule,
         ServiceModule,
         ConnectionModule,
+        TelemetryModule,
     ],
 })
 export class AppModule implements NestModule, OnApplicationShutdown {

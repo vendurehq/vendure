@@ -31,7 +31,7 @@ export const CombinationModeInput = ({
 
     return (
         <div className="flex items-center justify-center -mt-4 -mb-4">
-            <div className="bg-muted border px-3 py-1.5 rounded-full flex gap-1.5 text-xs shadow-sm">
+            <div className="bg-muted border px-3 py-1.5 rounded-full flex gap-1.5 text-xs">
                 <button
                     type="button"
                     disabled={disabled}

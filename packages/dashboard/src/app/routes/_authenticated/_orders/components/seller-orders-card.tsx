@@ -3,6 +3,7 @@ import { Badge } from '@/vdb/components/ui/badge.js';
 import { api } from '@/vdb/graphql/api.js';
 import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
+import { getTypeForState, stateTypeToBadgeVariant } from '@/vdb/utils/state-type.js';
 import { useQuery } from '@tanstack/react-query';
 import { sellerOrdersDocument } from '../orders.graphql.js';
 import { getSeller } from '../utils/order-utils.js';
@@ -53,7 +54,7 @@ export function SellerOrdersCard({ orderId }: Readonly<SellerOrdersCardProps>) {
                             <div className="flex gap-2">
                                 {seller && <Badge variant={'secondary'}>{seller.name}</Badge>}
                             </div>
-                            <Badge variant={'secondary'}>{getTranslatedOrderState(sellerOrder.state)}</Badge>
+                            <Badge variant={stateTypeToBadgeVariant(getTypeForState(sellerOrder.state))}>{getTranslatedOrderState(sellerOrder.state)}</Badge>
                         </div>
                     </div>
                 );

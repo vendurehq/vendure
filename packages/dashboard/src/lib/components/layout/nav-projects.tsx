@@ -34,18 +34,14 @@ export function NavProjects({
             <SidebarMenu>
                 {projects.map(item => (
                     <SidebarMenuItem key={item.name}>
-                        <SidebarMenuButton asChild>
-                            <a href={item.url}>
+                        <SidebarMenuButton render={<a href={item.url} aria-label={item.name} />}>
                                 <item.icon />
                                 <span>{item.name}</span>
-                            </a>
                         </SidebarMenuButton>
                         <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <SidebarMenuAction showOnHover>
+                            <DropdownMenuTrigger render={<SidebarMenuAction showOnHover />}>
                                     <MoreHorizontal />
                                     <span className="sr-only">More</span>
-                                </SidebarMenuAction>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent
                                 className="w-48 rounded-lg"

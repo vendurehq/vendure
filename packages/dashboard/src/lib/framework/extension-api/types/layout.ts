@@ -52,7 +52,40 @@ export interface DashboardActionBarItem {
      * Any permissions that are required to display this action bar item.
      */
     requiresPermission?: string | string[];
+    /**
+     * @description
+     * A unique identifier for this action bar item. This is required if you want
+     * other extensions to be able to position their items relative to this one.
+     *
+     * @since 3.5.2
+     */
+    id?: string;
+    /**
+     * @description
+     * Position this item relative to another action bar item. The `itemId` should
+     * match the `id` of an existing action bar item (either a built-in item or one
+     * added by another extension).
+     *
+     * - `'before'`: Place this item before the target item
+     * - `'after'`: Place this item after the target item
+     * - `'replace'`: Replace the target item entirely with this item
+     *
+     * @since 3.5.2
+     */
+    position?: ActionBarItemPosition;
 }
+
+/**
+ * @description
+ * The relative position of an ActionBar item. This is determined by finding an existing
+ * action bar item by its `id`, and then specifying whether your custom item should come
+ * before, after, or completely replace that item.
+ *
+ * @docsCategory extensions-api
+ * @docsPage ActionBar
+ * @since 3.5.2
+ */
+export type ActionBarItemPosition = { itemId: string; order: 'before' | 'after' | 'replace' };
 
 /**
  * @description

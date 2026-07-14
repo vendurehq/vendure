@@ -150,8 +150,16 @@ export class SqliteSearchStrategy implements SearchStrategy {
         qb: SelectQueryBuilder<SearchIndexItem>,
         input: SearchInput,
     ): SelectQueryBuilder<SearchIndexItem> {
-        const { term, facetValueFilters, facetValueIds, facetValueOperator, collectionId, collectionSlug } =
-            input;
+        const {
+            term,
+            facetValueFilters,
+            facetValueIds,
+            facetValueOperator,
+            collectionId,
+            collectionSlug,
+            collectionIds,
+            collectionSlugs,
+        } = input;
 
         qb.where('1 = 1');
         if (term && term.length > this.minTermLength) {
@@ -236,6 +244,30 @@ export class SqliteSearchStrategy implements SearchStrategy {
             qb.andWhere("(',' || si.collectionSlugs || ',') LIKE :collectionSlug", {
                 collectionSlug: `%,${collectionSlug},%`,
             });
+        }
+        if (collectionIds?.length) {
+            qb.andWhere(
+                new Brackets(qb1 => {
+                    for (const id of Array.from(new Set(collectionIds))) {
+                        const placeholder = createPlaceholderFromId(id);
+                        qb1.orWhere(`(',' || si.collectionIds || ',') LIKE :${placeholder}`, {
+                            [placeholder]: `%,${id},%`,
+                        });
+                    }
+                }),
+            );
+        }
+        if (collectionSlugs?.length) {
+            qb.andWhere(
+                new Brackets(qb1 => {
+                    for (const slug of Array.from(new Set(collectionSlugs))) {
+                        const placeholder = createPlaceholderFromId(slug);
+                        qb1.orWhere(`(',' || si.collectionSlugs || ',') LIKE :${placeholder}`, {
+                            [placeholder]: `%,${slug},%`,
+                        });
+                    }
+                }),
+            );
         }
 
         qb.andWhere('si.channelId = :channelId', { channelId: ctx.channelId });

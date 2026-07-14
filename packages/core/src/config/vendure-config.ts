@@ -12,11 +12,14 @@ import { JobBufferStorageStrategy } from '../job-queue/job-buffer/job-buffer-sto
 import { ScheduledTask } from '../scheduler/scheduled-task';
 import { SchedulerStrategy } from '../scheduler/scheduler-strategy';
 
+import { ApiKeyStrategy } from './api-key-strategy/api-key-strategy';
 import { AssetImportStrategy } from './asset-import-strategy/asset-import-strategy';
 import { AssetNamingStrategy } from './asset-naming-strategy/asset-naming-strategy';
 import { AssetPreviewStrategy } from './asset-preview-strategy/asset-preview-strategy';
 import { AssetStorageStrategy } from './asset-storage-strategy/asset-storage-strategy';
 import { AuthenticationStrategy } from './auth/authentication-strategy';
+import { CustomerChannelAssignmentStrategy } from './auth/customer-channel-assignment-strategy';
+import { EntityAccessControlStrategy } from './auth/entity-access-control-strategy';
 import { PasswordHashingStrategy } from './auth/password-hashing-strategy';
 import { PasswordValidationStrategy } from './auth/password-validation-strategy';
 import { VerificationTokenStrategy } from './auth/verification-token-strategy';
@@ -43,6 +46,7 @@ import { OrderByCodeAccessStrategy } from './order/order-by-code-access-strategy
 import { OrderCodeStrategy } from './order/order-code-strategy';
 import { OrderInterceptor } from './order/order-interceptor';
 import { OrderItemPriceCalculationStrategy } from './order/order-item-price-calculation-strategy';
+import { OrderLineDiscountDistributionStrategy } from './order/order-line-discount-distribution-strategy';
 import { OrderMergeStrategy } from './order/order-merge-strategy';
 import { OrderPlacedStrategy } from './order/order-placed-strategy';
 import { OrderProcess } from './order/order-process';
@@ -63,6 +67,7 @@ import { CacheStrategy } from './system/cache-strategy';
 import { ErrorHandlerStrategy } from './system/error-handler-strategy';
 import { HealthCheckStrategy } from './system/health-check-strategy';
 import { InstrumentationStrategy } from './system/instrumentation-strategy';
+import { OrderTaxCalculationStrategy } from './tax/order-tax-calculation-strategy';
 import { TaxLineCalculationStrategy } from './tax/tax-line-calculation-strategy';
 import { TaxZoneStrategy } from './tax/tax-zone-strategy';
 
@@ -376,6 +381,9 @@ export interface AuthOptions {
      *   should automatically send the session cookie with each request.
      * * 'bearer': Upon login, the token is returned in the response and should be then stored by the
      *   client app. Each request should include the header `Authorization: Bearer <token>`.
+     * * 'api-key': The mutation `createApiKey` will return a generated API-Key once, which should then be
+     *   stored by the User. Each request should include the API-Key inside the header defined by `apiKeyHeaderKey`
+     * ('vendure-api-key' by default).
      *
      * Note that if the bearer method is used, Vendure will automatically expose the configured
      * `authTokenHeaderKey` in the server's CORS configuration (adding `Access-Control-Expose-Headers: vendure-auth-token`
@@ -383,9 +391,12 @@ export interface AuthOptions {
      *
      * From v1.2.0 it is possible to specify both methods as a tuple: `['cookie', 'bearer']`.
      *
+     * From v3.6.0 it is possible to include 'api-key' as additional method in the method-tuple to allow for long-lived
+     * API-Key based authorization.
+     *
      * @default 'cookie'
      */
-    tokenMethod?: 'cookie' | 'bearer' | ReadonlyArray<'cookie' | 'bearer'>;
+    tokenMethod?: 'cookie' | 'bearer' | ReadonlyArray<'cookie' | 'bearer' | 'api-key'>;
     /**
      * @description
      * Options related to the handling of cookies when using the 'cookie' tokenMethod.
@@ -398,6 +409,13 @@ export interface AuthOptions {
      * @default 'vendure-auth-token'
      */
     authTokenHeaderKey?: string;
+    /**
+     * @description
+     * Defines which header will be used to read the API-Key when using the 'api-key' token method.
+     *
+     * @default 'vendure-api-key'
+     */
+    apiKeyHeaderKey?: string;
     /**
      * @description
      * Session duration, i.e. the time which must elapse from the last authenticated request
@@ -484,6 +502,16 @@ export interface AuthOptions {
      */
     passwordHashingStrategy?: PasswordHashingStrategy;
     /**
+     * Defines how authorization via API-Keys is managed for the Admin API.
+     * @since 3.6.0
+     */
+    adminApiKeyStrategy?: ApiKeyStrategy;
+    /**
+     * Defines how authorization via API-Keys is managed for the Shop API.
+     * @since 3.6.0
+     */
+    shopApiKeyStrategy?: ApiKeyStrategy;
+    /**
      * @description
      * Allows you to set a custom policy for passwords when using the {@link NativeAuthenticationStrategy}.
      * By default, it uses the {@link DefaultPasswordValidationStrategy}, which will impose a minimum length
@@ -512,6 +540,31 @@ export interface AuthOptions {
      * @since 3.2.0
      */
     verificationTokenStrategy?: VerificationTokenStrategy;
+    /**
+     * @description
+     * Allows you to define access control for entity queries at three levels:
+     *
+     * - `canAccess()` — gate-level permission check (once per request)
+     * - `prepareAccessControl()` — async pre-loading for row-level filtering (once per request)
+     * - `applyAccessControl()` — synchronous row-level QB filtering (every entity query)
+     *
+     * **Developer preview:** this API is subject to change in future releases.
+     *
+     * @default DefaultEntityAccessControlStrategy
+     * @since 3.6.0
+     * @experimental
+     */
+    entityAccessControlStrategy?: EntityAccessControlStrategy;
+    /**
+     * @description
+     * Determines whether an authenticated Customer is auto-assigned to the active Channel.
+     * This is skipped for the default channel, `disableAuth`, and registration/checkout flows.
+     * The default strategy always assigns.
+     *
+     * @default DefaultCustomerChannelAssignmentStrategy
+     * @since 3.7.0
+     */
+    customerChannelAssignmentStrategy?: CustomerChannelAssignmentStrategy;
 }
 
 /**
@@ -618,6 +671,16 @@ export interface OrderOptions {
      * @default DefaultChangedPriceHandlingStrategy
      */
     changedPriceHandlingStrategy?: ChangedPriceHandlingStrategy;
+    /**
+     * @description
+     * Defines how an order-level promotion discount is distributed (prorated) across the OrderLines
+     * of an Order. The default redistributes a canceled line's share onto the remaining lines; a
+     * custom strategy can keep each line's share stable across refunds.
+     *
+     * @since 3.7.0
+     * @default DefaultOrderLineDiscountDistributionStrategy
+     */
+    orderLineDiscountDistributionStrategy?: OrderLineDiscountDistributionStrategy;
     /**
      * @description
      * Defines the point of the order process at which the Order is set as "placed".
@@ -925,6 +988,19 @@ export interface TaxOptions {
      * @default DefaultTaxLineCalculationStrategy
      */
     taxLineCalculationStrategy?: TaxLineCalculationStrategy;
+    /**
+     * @description
+     * Defines how order-level tax totals and the tax summary are calculated.
+     *
+     * The default strategy rounds tax at the individual line level and then sums
+     * (per-line rounding). The {@link OrderLevelTaxCalculationStrategy} alternative
+     * groups net subtotals by tax rate and rounds once per group (per-total rounding),
+     * which is required by certain jurisdictions and ERP systems.
+     *
+     * @default DefaultOrderTaxCalculationStrategy
+     * @since 3.6.0
+     */
+    orderTaxCalculationStrategy?: OrderTaxCalculationStrategy;
 }
 
 /**
@@ -1139,6 +1215,9 @@ export interface SystemOptions {
      *
      * @default [TypeORMHealthCheckStrategy]
      * @since 1.6.0
+     * @deprecated Use infrastructure-level health checks (e.g. Kubernetes probes, Docker healthchecks,
+     * load balancer checks) instead of application-level health checks. The application should not
+     * be responsible for determining its own health. This config option will be removed in v4.0.0.
      */
     healthChecks?: HealthCheckStrategy[];
     /**
@@ -1337,9 +1416,9 @@ type DeepPartialSimple<T> = {
     [P in keyof T]?:
         | null
         | (T[P] extends Array<infer U>
-              ? Array<DeepPartialSimple<U>>
+              ? U[]
               : T[P] extends ReadonlyArray<infer X>
-                ? ReadonlyArray<DeepPartialSimple<X>>
+                ? readonly X[]
                 : T[P] extends Type<any>
                   ? T[P]
                   : DeepPartialSimple<T[P]>);

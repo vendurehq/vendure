@@ -2,6 +2,8 @@
 title: "Merge Strategies"
 generated: true
 ---
+## MergeOrdersStrategy
+
 <GenerationInfo sourceFile="packages/core/src/config/order/merge-orders-strategy.ts" sourceLine="15" packageName="@vendure/core" />
 
 Merges both Orders. If the guest order contains items which are already in the
@@ -26,6 +28,8 @@ class MergeOrdersStrategy implements OrderMergeStrategy {
 
 
 </div>
+## UseExistingStrategy
+
 <GenerationInfo sourceFile="packages/core/src/config/order/use-existing-strategy.ts" sourceLine="13" packageName="@vendure/core" />
 
 The guest order is discarded and the existing order is used as the active order.
@@ -49,6 +53,8 @@ class UseExistingStrategy implements OrderMergeStrategy {
 
 
 </div>
+## UseGuestIfExistingEmptyStrategy
+
 <GenerationInfo sourceFile="packages/core/src/config/order/use-guest-if-existing-empty-strategy.ts" sourceLine="13" packageName="@vendure/core" />
 
 If the existing order is empty, then the guest order is used. Otherwise the existing order is used.
@@ -72,6 +78,8 @@ class UseGuestIfExistingEmptyStrategy implements OrderMergeStrategy {
 
 
 </div>
+## UseGuestStrategy
+
 <GenerationInfo sourceFile="packages/core/src/config/order/use-guest-strategy.ts" sourceLine="13" packageName="@vendure/core" />
 
 Any existing order is discarded and the guest order is set as the active order.

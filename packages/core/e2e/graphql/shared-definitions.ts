@@ -1,69 +1,185 @@
-import gql from 'graphql-tag';
-
 import {
-    ADMINISTRATOR_FRAGMENT,
-    ASSET_FRAGMENT,
-    CHANNEL_FRAGMENT,
-    COLLECTION_FRAGMENT,
-    COUNTRY_FRAGMENT,
-    CURRENT_USER_FRAGMENT,
-    CUSTOMER_FRAGMENT,
-    CUSTOMER_GROUP_FRAGMENT,
-    FACET_VALUE_FRAGMENT,
-    FACET_WITH_VALUES_FRAGMENT,
-    FULFILLMENT_FRAGMENT,
-    GLOBAL_SETTINGS_FRAGMENT,
-    ORDER_FRAGMENT,
-    ORDER_WITH_LINES_FRAGMENT,
-    PAYMENT_FRAGMENT,
-    PRODUCT_OPTION_GROUP_FRAGMENT,
-    PRODUCT_VARIANT_FRAGMENT,
-    PRODUCT_WITH_OPTIONS_FRAGMENT,
-    PRODUCT_WITH_VARIANTS_FRAGMENT,
-    PROMOTION_FRAGMENT,
-    ROLE_FRAGMENT,
-    SHIPPING_METHOD_FRAGMENT,
-    TAX_RATE_FRAGMENT,
-    VARIANT_WITH_STOCK_FRAGMENT,
-} from './fragments';
+    administratorFragment,
+    assetFragment,
+    canceledOrderFragment,
+    channelFragment,
+    collectionFragment,
+    countryFragment,
+    currentUserFragment,
+    customerFragment,
+    customerGroupFragment,
+    facetValueFragment,
+    facetWithValuesFragment,
+    fulfillmentFragment,
+    globalSettingsFragment,
+    orderFragment,
+    orderWithLinesFragment,
+    orderWithModificationsFragment,
+    paymentFragment,
+    productOptionGroupFragment,
+    productVariantFragment,
+    productWithOptionsFragment,
+    productWithVariantsFragment,
+    promotionFragment,
+    refundFragment,
+    roleFragment,
+    shippingMethodFragment,
+    taxRateFragment,
+    variantWithStockFragment,
+    zoneFragment,
+} from './fragments-admin';
+import { graphql } from './graphql-admin';
 
-export const CREATE_ADMINISTRATOR = gql`
-    mutation CreateAdministrator($input: CreateAdministratorInput!) {
-        createAdministrator(input: $input) {
-            ...Administrator
+export const getTasksDocument = graphql(`
+    query GetTasks {
+        scheduledTasks {
+            id
+            description
+            schedule
+            scheduleDescription
+            lastResult
+            enabled
         }
     }
-    ${ADMINISTRATOR_FRAGMENT}
-`;
+`);
 
-export const UPDATE_PRODUCT = gql`
-    mutation UpdateProduct($input: UpdateProductInput!) {
-        updateProduct(input: $input) {
-            ...ProductWithVariants
+export const updateTaskDocument = graphql(`
+    mutation UpdateTask($input: UpdateScheduledTaskInput!) {
+        updateScheduledTask(input: $input) {
+            id
+            enabled
         }
     }
-    ${PRODUCT_WITH_VARIANTS_FRAGMENT}
-`;
+`);
 
-export const CREATE_PRODUCT = gql`
-    mutation CreateProduct($input: CreateProductInput!) {
-        createProduct(input: $input) {
-            ...ProductWithVariants
+export const runTaskDocument = graphql(`
+    mutation RunTask($id: String!) {
+        runScheduledTask(id: $id) {
+            success
         }
     }
-    ${PRODUCT_WITH_VARIANTS_FRAGMENT}
-`;
+`);
 
-export const GET_PRODUCT_WITH_VARIANTS = gql`
-    query GetProductWithVariants($id: ID, $slug: String) {
-        product(slug: $slug, id: $id) {
-            ...ProductWithVariants
+export const createAdministratorDocument = graphql(
+    `
+        mutation CreateAdministrator($input: CreateAdministratorInput!) {
+            createAdministrator(input: $input) {
+                ...Administrator
+            }
+        }
+    `,
+    [administratorFragment],
+);
+
+export const getAdministratorsDocument = graphql(
+    `
+        query GetAdministrators($options: AdministratorListOptions) {
+            administrators(options: $options) {
+                items {
+                    ...Administrator
+                }
+                totalItems
+            }
+        }
+    `,
+    [administratorFragment],
+);
+
+export const getAdministratorDocument = graphql(
+    `
+        query GetAdministrator($id: ID!) {
+            administrator(id: $id) {
+                ...Administrator
+            }
+        }
+    `,
+    [administratorFragment],
+);
+
+export const getActiveAdministratorDocument = graphql(
+    `
+        query ActiveAdministrator {
+            activeAdministrator {
+                ...Administrator
+            }
+        }
+    `,
+    [administratorFragment],
+);
+
+export const updateAdministratorDocument = graphql(
+    `
+        mutation UpdateAdministrator($input: UpdateAdministratorInput!) {
+            updateAdministrator(input: $input) {
+                ...Administrator
+            }
+        }
+    `,
+    [administratorFragment],
+);
+
+export const updateActiveAdministratorDocument = graphql(
+    `
+        mutation UpdateActiveAdministrator($input: UpdateActiveAdministratorInput!) {
+            updateActiveAdministrator(input: $input) {
+                ...Administrator
+            }
+        }
+    `,
+    [administratorFragment],
+);
+
+export const deleteAdministratorDocument = graphql(`
+    mutation DeleteAdministrator($id: ID!) {
+        deleteAdministrator(id: $id) {
+            message
+            result
         }
     }
-    ${PRODUCT_WITH_VARIANTS_FRAGMENT}
-`;
+`);
 
-export const GET_PRODUCT_LIST = gql`
+export const updateProductDocument = graphql(
+    `
+        mutation UpdateProduct($input: UpdateProductInput!) {
+            updateProduct(input: $input) {
+                ...ProductWithVariants
+            }
+        }
+    `,
+    [productWithVariantsFragment],
+);
+
+export const updateProductOptionGroupDocument = graphql(`
+    mutation UpdateOptionGroup($input: UpdateProductOptionGroupInput!) {
+        updateProductOptionGroup(input: $input) {
+            id
+        }
+    }
+`);
+
+export const createProductDocument = graphql(
+    `
+        mutation CreateProduct($input: CreateProductInput!) {
+            createProduct(input: $input) {
+                ...ProductWithVariants
+            }
+        }
+    `,
+    [productWithVariantsFragment],
+);
+
+export const getProductWithVariantsDocument = graphql(
+    `
+        query GetProductWithVariants($id: ID, $slug: String) {
+            product(slug: $slug, id: $id) {
+                ...ProductWithVariants
+            }
+        }
+    `,
+    [productWithVariantsFragment],
+);
+
+export const getProductListDocument = graphql(`
     query GetProductList($options: ProductListOptions) {
         products(options: $options) {
             items {
@@ -79,72 +195,163 @@ export const GET_PRODUCT_LIST = gql`
             totalItems
         }
     }
-`;
+`);
 
-export const CREATE_PRODUCT_VARIANTS = gql`
-    mutation CreateProductVariants($input: [CreateProductVariantInput!]!) {
-        createProductVariants(input: $input) {
-            ...ProductVariant
+export const getProductWithFacetValuesDocument = graphql(`
+    query GetProductWithFacetValues($id: ID!) {
+        product(id: $id) {
+            id
+            facetValues {
+                id
+                name
+                code
+            }
+            variants {
+                id
+                facetValues {
+                    id
+                    name
+                    code
+                }
+            }
         }
     }
-    ${PRODUCT_VARIANT_FRAGMENT}
-`;
+`);
 
-export const UPDATE_PRODUCT_VARIANTS = gql`
-    mutation UpdateProductVariants($input: [UpdateProductVariantInput!]!) {
-        updateProductVariants(input: $input) {
-            ...ProductVariant
+export const getProductsListWithVariantsDocument = graphql(`
+    query GetProductListWithVariants {
+        products {
+            items {
+                id
+                name
+                variants {
+                    id
+                    name
+                }
+            }
+            totalItems
         }
     }
-    ${PRODUCT_VARIANT_FRAGMENT}
-`;
+`);
 
-export const UPDATE_TAX_RATE = gql`
-    mutation UpdateTaxRate($input: UpdateTaxRateInput!) {
-        updateTaxRate(input: $input) {
-            ...TaxRate
+export const createProductVariantsDocument = graphql(
+    `
+        mutation CreateProductVariants($input: [CreateProductVariantInput!]!) {
+            createProductVariants(input: $input) {
+                ...ProductVariant
+            }
+        }
+    `,
+    [productVariantFragment],
+);
+
+export const updateProductVariantsDocument = graphql(
+    `
+        mutation UpdateProductVariants($input: [UpdateProductVariantInput!]!) {
+            updateProductVariants(input: $input) {
+                ...ProductVariant
+            }
+        }
+    `,
+    [productVariantFragment],
+);
+
+export const updateTaxRateDocument = graphql(
+    `
+        mutation UpdateTaxRate($input: UpdateTaxRateInput!) {
+            updateTaxRate(input: $input) {
+                ...TaxRate
+            }
+        }
+    `,
+    [taxRateFragment],
+);
+
+export const createFacetDocument = graphql(
+    `
+        mutation CreateFacet($input: CreateFacetInput!) {
+            createFacet(input: $input) {
+                ...FacetWithValues
+            }
+        }
+    `,
+    [facetWithValuesFragment],
+);
+
+export const updateFacetDocument = graphql(
+    `
+        mutation UpdateFacet($input: UpdateFacetInput!) {
+            updateFacet(input: $input) {
+                ...FacetWithValues
+            }
+        }
+    `,
+    [facetWithValuesFragment],
+);
+
+export const createFacetValueDocument = graphql(
+    `
+        mutation CreateFacetValue($input: CreateFacetValueInput!) {
+            createFacetValue(input: $input) {
+                ...FacetValue
+            }
+        }
+    `,
+    [facetValueFragment],
+);
+
+export const updateFacetValueDocument = graphql(
+    `
+        mutation UpdateFacetValue($input: UpdateFacetValueInput!) {
+            updateFacetValue(input: $input) {
+                ...FacetValue
+            }
+        }
+    `,
+    [facetValueFragment],
+);
+
+export const createFacetValuesDocument = graphql(
+    `
+        mutation CreateFacetValues($input: [CreateFacetValueInput!]!) {
+            createFacetValues(input: $input) {
+                ...FacetValue
+            }
+        }
+    `,
+    [facetValueFragment],
+);
+
+export const updateFacetValuesDocument = graphql(
+    `
+        mutation UpdateFacetValues($input: [UpdateFacetValueInput!]!) {
+            updateFacetValues(input: $input) {
+                ...FacetValue
+            }
+        }
+    `,
+    [facetValueFragment],
+);
+
+export const deleteFacetValuesDocument = graphql(`
+    mutation DeleteFacetValues($ids: [ID!]!, $force: Boolean) {
+        deleteFacetValues(ids: $ids, force: $force) {
+            result
+            message
         }
     }
-    ${TAX_RATE_FRAGMENT}
-`;
+`);
 
-export const CREATE_FACET = gql`
-    mutation CreateFacet($input: CreateFacetInput!) {
-        createFacet(input: $input) {
-            ...FacetWithValues
+export const deleteFacetDocument = graphql(`
+    mutation DeleteFacet($id: ID!, $force: Boolean) {
+        deleteFacet(id: $id, force: $force) {
+            result
+            message
         }
     }
-    ${FACET_WITH_VALUES_FRAGMENT}
-`;
+`);
 
-export const UPDATE_FACET = gql`
-    mutation UpdateFacet($input: UpdateFacetInput!) {
-        updateFacet(input: $input) {
-            ...FacetWithValues
-        }
-    }
-    ${FACET_WITH_VALUES_FRAGMENT}
-`;
-
-export const CREATE_FACET_VALUE = gql`
-    mutation CreateFacetValue($input: CreateFacetValueInput!) {
-        createFacetValue(input: $input) {
-            ...FacetValue
-        }
-    }
-    ${FACET_VALUE_FRAGMENT}
-`;
-
-export const UPDATE_FACET_VALUE = gql`
-    mutation UpdateFacetValue($input: UpdateFacetValueInput!) {
-        updateFacetValue(input: $input) {
-            ...FacetValue
-        }
-    }
-    ${FACET_VALUE_FRAGMENT}
-`;
-
-export const GET_CUSTOMER_LIST = gql`
+export const getCustomerListDocument = graphql(`
     query GetCustomerList($options: CustomerListOptions) {
         customers(options: $options) {
             items {
@@ -163,81 +370,111 @@ export const GET_CUSTOMER_LIST = gql`
             totalItems
         }
     }
-`;
+`);
 
-export const GET_ASSET_LIST = gql`
-    query GetAssetList($options: AssetListOptions) {
-        assets(options: $options) {
+export const getCustomerIdsDocument = graphql(`
+    query GetCustomerIds {
+        customers {
             items {
-                ...Asset
+                id
             }
-            totalItems
         }
     }
-    ${ASSET_FRAGMENT}
-`;
+`);
 
-export const CREATE_ROLE = gql`
-    mutation CreateRole($input: CreateRoleInput!) {
-        createRole(input: $input) {
-            ...Role
-        }
-    }
-    ${ROLE_FRAGMENT}
-`;
-
-export const CREATE_COLLECTION = gql`
-    mutation CreateCollection($input: CreateCollectionInput!) {
-        createCollection(input: $input) {
-            ...Collection
-        }
-    }
-    ${COLLECTION_FRAGMENT}
-`;
-
-export const UPDATE_COLLECTION = gql`
-    mutation UpdateCollection($input: UpdateCollectionInput!) {
-        updateCollection(input: $input) {
-            ...Collection
-        }
-    }
-    ${COLLECTION_FRAGMENT}
-`;
-
-export const GET_CUSTOMER = gql`
-    query GetCustomer($id: ID!, $orderListOptions: OrderListOptions) {
-        customer(id: $id) {
-            ...Customer
-            orders(options: $orderListOptions) {
+export const getAssetListDocument = graphql(
+    `
+        query GetAssetList($options: AssetListOptions) {
+            assets(options: $options) {
                 items {
-                    id
-                    code
-                    state
-                    total
-                    currencyCode
-                    updatedAt
+                    ...Asset
                 }
                 totalItems
             }
         }
-    }
-    ${CUSTOMER_FRAGMENT}
-`;
+    `,
+    [assetFragment],
+);
 
-export const ATTEMPT_LOGIN = gql`
-    mutation AttemptLogin($username: String!, $password: String!, $rememberMe: Boolean) {
-        login(username: $username, password: $password, rememberMe: $rememberMe) {
-            ...CurrentUser
-            ... on ErrorResult {
-                errorCode
-                message
+export const createRoleDocument = graphql(
+    `
+        mutation CreateRole($input: CreateRoleInput!) {
+            createRole(input: $input) {
+                ...Role
             }
         }
-    }
-    ${CURRENT_USER_FRAGMENT}
-`;
+    `,
+    [roleFragment],
+);
 
-export const GET_COUNTRY_LIST = gql`
+export const createCollectionDocument = graphql(
+    `
+        mutation CreateCollection($input: CreateCollectionInput!) {
+            createCollection(input: $input) {
+                ...Collection
+            }
+        }
+    `,
+    [collectionFragment],
+);
+
+export const updateCollectionDocument = graphql(
+    `
+        mutation UpdateCollection($input: UpdateCollectionInput!) {
+            updateCollection(input: $input) {
+                ...Collection
+            }
+        }
+    `,
+    [collectionFragment],
+);
+
+export const getCustomerDocument = graphql(
+    `
+        query GetCustomer($id: ID!, $orderListOptions: OrderListOptions) {
+            customer(id: $id) {
+                ...Customer
+                orders(options: $orderListOptions) {
+                    items {
+                        id
+                        code
+                        state
+                        total
+                        currencyCode
+                        updatedAt
+                    }
+                    totalItems
+                }
+            }
+        }
+    `,
+    [customerFragment],
+);
+
+export const attemptLoginDocument = graphql(
+    `
+        mutation AttemptLogin($username: String!, $password: String!, $rememberMe: Boolean) {
+            login(username: $username, password: $password, rememberMe: $rememberMe) {
+                ...CurrentUser
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+            }
+        }
+    `,
+    [currentUserFragment],
+);
+
+export const logoutDocument = graphql(`
+    mutation Logout {
+        logout {
+            success
+        }
+    }
+`);
+
+export const getCountryListDocument = graphql(`
     query GetCountryList($options: CountryListOptions) {
         countries(options: $options) {
             items {
@@ -249,30 +486,45 @@ export const GET_COUNTRY_LIST = gql`
             totalItems
         }
     }
-`;
+`);
 
-export const UPDATE_COUNTRY = gql`
-    mutation UpdateCountry($input: UpdateCountryInput!) {
-        updateCountry(input: $input) {
-            ...Country
-        }
-    }
-    ${COUNTRY_FRAGMENT}
-`;
-
-export const GET_FACET_LIST = gql`
-    query GetFacetList($options: FacetListOptions) {
-        facets(options: $options) {
-            items {
-                ...FacetWithValues
+export const updateCountryDocument = graphql(
+    `
+        mutation UpdateCountry($input: UpdateCountryInput!) {
+            updateCountry(input: $input) {
+                ...Country
             }
-            totalItems
         }
-    }
-    ${FACET_WITH_VALUES_FRAGMENT}
-`;
+    `,
+    [countryFragment],
+);
 
-export const GET_FACET_LIST_SIMPLE = gql`
+export const getGlobalSettingsDocument = graphql(
+    `
+        query GetGlobalSettings {
+            globalSettings {
+                ...GlobalSettings
+            }
+        }
+    `,
+    [globalSettingsFragment],
+);
+
+export const getFacetListDocument = graphql(
+    `
+        query GetFacetList($options: FacetListOptions) {
+            facets(options: $options) {
+                items {
+                    ...FacetWithValues
+                }
+                totalItems
+            }
+        }
+    `,
+    [facetWithValuesFragment],
+);
+
+export const getFacetListSimpleDocument = graphql(`
     query GetFacetListSimple($options: FacetListOptions) {
         facets(options: $options) {
             items {
@@ -282,38 +534,49 @@ export const GET_FACET_LIST_SIMPLE = gql`
             totalItems
         }
     }
-`;
+`);
 
-export const DELETE_PRODUCT = gql`
+export const deleteProductDocument = graphql(`
     mutation DeleteProduct($id: ID!) {
         deleteProduct(id: $id) {
             result
         }
     }
-`;
+`);
 
-export const GET_PRODUCT_SIMPLE = gql`
+export const getProductSimpleDocument = graphql(`
     query GetProductSimple($id: ID, $slug: String) {
         product(slug: $slug, id: $id) {
             id
             slug
         }
     }
-`;
+`);
 
-export const GET_STOCK_MOVEMENT = gql`
-    query GetStockMovement($id: ID!) {
+export const getProductIdNameDocument = graphql(`
+    query GetProductIdName($id: ID!) {
         product(id: $id) {
             id
-            variants {
-                ...VariantWithStock
-            }
+            name
         }
     }
-    ${VARIANT_WITH_STOCK_FRAGMENT}
-`;
+`);
 
-export const GET_STOCK_MOVEMENT_BY_TYPE = gql`
+export const getStockMovementDocument = graphql(
+    `
+        query GetStockMovement($id: ID!) {
+            product(id: $id) {
+                id
+                variants {
+                    ...VariantWithStock
+                }
+            }
+        }
+    `,
+    [variantWithStockFragment],
+);
+
+export const getStockMovementByTypeDocument = graphql(`
     query GetStockMovementByType($id: ID!, $type: StockMovementType!) {
         product(id: $id) {
             id
@@ -331,9 +594,9 @@ export const GET_STOCK_MOVEMENT_BY_TYPE = gql`
             }
         }
     }
-`;
+`);
 
-export const GET_RUNNING_JOBS = gql`
+export const getRunningJobsDocument = graphql(`
     query GetRunningJobs($options: JobListOptions) {
         jobs(options: $options) {
             items {
@@ -346,130 +609,264 @@ export const GET_RUNNING_JOBS = gql`
             totalItems
         }
     }
-`;
-export const CREATE_PROMOTION = gql`
-    mutation CreatePromotion($input: CreatePromotionInput!) {
-        createPromotion(input: $input) {
-            ...Promotion
-            ... on ErrorResult {
-                errorCode
-                message
+`);
+
+export const cancelJobDocument = graphql(`
+    mutation CancelJob($id: ID!) {
+        cancelJob(jobId: $id) {
+            id
+            state
+            isSettled
+            settledAt
+        }
+    }
+`);
+
+export const createPromotionDocument = graphql(
+    `
+        mutation CreatePromotion($input: CreatePromotionInput!) {
+            createPromotion(input: $input) {
+                ...Promotion
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
             }
         }
-    }
-    ${PROMOTION_FRAGMENT}
-`;
-export const ME = gql`
-    query Me {
-        me {
-            ...CurrentUser
-        }
-    }
-    ${CURRENT_USER_FRAGMENT}
-`;
-
-export const CREATE_CHANNEL = gql`
-    mutation CreateChannel($input: CreateChannelInput!) {
-        createChannel(input: $input) {
-            ...Channel
-            ... on LanguageNotAvailableError {
-                errorCode
-                message
-                languageCode
+    `,
+    [promotionFragment],
+);
+export const MeDocument = graphql(
+    `
+        query Me {
+            me {
+                ...CurrentUser
             }
         }
-    }
-    ${CHANNEL_FRAGMENT}
-`;
+    `,
+    [currentUserFragment],
+);
 
-export const DELETE_PRODUCT_VARIANT = gql`
+export const createChannelDocument = graphql(
+    `
+        mutation CreateChannel($input: CreateChannelInput!) {
+            createChannel(input: $input) {
+                ...Channel
+                ... on LanguageNotAvailableError {
+                    errorCode
+                    message
+                    languageCode
+                }
+            }
+        }
+    `,
+    [channelFragment],
+);
+
+export const deleteProductVariantDocument = graphql(`
     mutation DeleteProductVariant($id: ID!) {
         deleteProductVariant(id: $id) {
             result
             message
         }
     }
-`;
+`);
 
-export const ASSIGN_PRODUCT_TO_CHANNEL = gql`
-    mutation AssignProductsToChannel($input: AssignProductsToChannelInput!) {
-        assignProductsToChannel(input: $input) {
-            ...ProductWithVariants
+export const assignProductToChannelDocument = graphql(
+    `
+        mutation AssignProductsToChannel($input: AssignProductsToChannelInput!) {
+            assignProductsToChannel(input: $input) {
+                ...ProductWithVariants
+            }
+        }
+    `,
+    [productWithVariantsFragment],
+);
+
+export const removeProductFromChannelDocument = graphql(
+    `
+        mutation RemoveProductsFromChannel($input: RemoveProductsFromChannelInput!) {
+            removeProductsFromChannel(input: $input) {
+                ...ProductWithVariants
+            }
+        }
+    `,
+    [productWithVariantsFragment],
+);
+
+export const assignProductVariantToChannelDocument = graphql(
+    `
+        mutation AssignProductVariantsToChannel($input: AssignProductVariantsToChannelInput!) {
+            assignProductVariantsToChannel(input: $input) {
+                ...ProductVariant
+            }
+        }
+    `,
+    [productVariantFragment],
+);
+
+export const removeProductVariantFromChannelDocument = graphql(
+    `
+        mutation RemoveProductVariantsFromChannel($input: RemoveProductVariantsFromChannelInput!) {
+            removeProductVariantsFromChannel(input: $input) {
+                ...ProductVariant
+            }
+        }
+    `,
+    [productVariantFragment],
+);
+
+export const assignFacetsToChannelDocument = graphql(`
+    mutation AssignFacetsToChannel($input: AssignFacetsToChannelInput!) {
+        assignFacetsToChannel(input: $input) {
+            id
+            name
         }
     }
-    ${PRODUCT_WITH_VARIANTS_FRAGMENT}
-`;
+`);
 
-export const REMOVE_PRODUCT_FROM_CHANNEL = gql`
-    mutation RemoveProductsFromChannel($input: RemoveProductsFromChannelInput!) {
-        removeProductsFromChannel(input: $input) {
-            ...ProductWithVariants
-        }
-    }
-    ${PRODUCT_WITH_VARIANTS_FRAGMENT}
-`;
-
-export const ASSIGN_PRODUCTVARIANT_TO_CHANNEL = gql`
-    mutation AssignProductVariantsToChannel($input: AssignProductVariantsToChannelInput!) {
-        assignProductVariantsToChannel(input: $input) {
-            ...ProductVariant
-        }
-    }
-    ${PRODUCT_VARIANT_FRAGMENT}
-`;
-
-export const REMOVE_PRODUCTVARIANT_FROM_CHANNEL = gql`
-    mutation RemoveProductVariantsFromChannel($input: RemoveProductVariantsFromChannelInput!) {
-        removeProductVariantsFromChannel(input: $input) {
-            ...ProductVariant
-        }
-    }
-    ${PRODUCT_VARIANT_FRAGMENT}
-`;
-
-export const UPDATE_ASSET = gql`
-    mutation UpdateAsset($input: UpdateAssetInput!) {
-        updateAsset(input: $input) {
-            ...Asset
-            ... on Asset {
-                tags {
-                    id
-                    value
-                }
-                focalPoint {
-                    x
-                    y
-                }
+export const removeFacetsFromChannelDocument = graphql(`
+    mutation RemoveFacetsFromChannel($input: RemoveFacetsFromChannelInput!) {
+        removeFacetsFromChannel(input: $input) {
+            ... on Facet {
+                id
+                name
+            }
+            ... on FacetInUseError {
+                errorCode
+                message
+                productCount
+                variantCount
             }
         }
     }
-    ${ASSET_FRAGMENT}
-`;
+`);
 
-export const DELETE_ASSET = gql`
+export const assignProductOptionGroupsToChannelDocument = graphql(`
+    mutation AssignProductOptionGroupsToChannel($input: AssignProductOptionGroupsToChannelInput!) {
+        assignProductOptionGroupsToChannel(input: $input) {
+            id
+            code
+            name
+        }
+    }
+`);
+
+export const removeProductOptionGroupsFromChannelDocument = graphql(`
+    mutation RemoveProductOptionGroupsFromChannel($input: RemoveProductOptionGroupsFromChannelInput!) {
+        removeProductOptionGroupsFromChannel(input: $input) {
+            ... on ProductOptionGroup {
+                id
+                code
+                name
+            }
+            ... on ProductOptionGroupInUseError {
+                errorCode
+                message
+                optionGroupCode
+                productCount
+                variantCount
+            }
+        }
+    }
+`);
+
+export const deleteProductOptionGroupDocument = graphql(`
+    mutation DeleteProductOptionGroup($id: ID!, $force: Boolean) {
+        deleteProductOptionGroup(id: $id, force: $force) {
+            result
+            message
+        }
+    }
+`);
+
+export const deleteProductOptionGroupsDocument = graphql(`
+    mutation DeleteProductOptionGroups($ids: [ID!]!, $force: Boolean) {
+        deleteProductOptionGroups(ids: $ids, force: $force) {
+            result
+            message
+        }
+    }
+`);
+
+export const getEntityDuplicatorsDocument = graphql(`
+    query GetEntityDuplicators {
+        entityDuplicators {
+            code
+            description
+            requiresPermission
+            forEntities
+            args {
+                name
+                type
+                defaultValue
+            }
+        }
+    }
+`);
+
+export const duplicateEntityDocument = graphql(`
+    mutation DuplicateEntity($input: DuplicateEntityInput!) {
+        duplicateEntity(input: $input) {
+            ... on DuplicateEntitySuccess {
+                newEntityId
+            }
+            ... on DuplicateEntityError {
+                errorCode
+                message
+                duplicationError
+            }
+        }
+    }
+`);
+
+export const updateAssetDocument = graphql(
+    `
+        mutation UpdateAsset($input: UpdateAssetInput!) {
+            updateAsset(input: $input) {
+                ...Asset
+                ... on Asset {
+                    tags {
+                        id
+                        value
+                    }
+                    focalPoint {
+                        x
+                        y
+                    }
+                }
+            }
+        }
+    `,
+    [assetFragment],
+);
+
+export const deleteAssetDocument = graphql(`
     mutation DeleteAsset($input: DeleteAssetInput!) {
         deleteAsset(input: $input) {
             result
             message
         }
     }
-`;
+`);
 
-export const UPDATE_CHANNEL = gql`
-    mutation UpdateChannel($input: UpdateChannelInput!) {
-        updateChannel(input: $input) {
-            ...Channel
-            ... on LanguageNotAvailableError {
-                errorCode
-                message
-                languageCode
+export const updateChannelDocument = graphql(
+    `
+        mutation UpdateChannel($input: UpdateChannelInput!) {
+            updateChannel(input: $input) {
+                ...Channel
+                ... on LanguageNotAvailableError {
+                    errorCode
+                    message
+                    languageCode
+                }
             }
         }
-    }
-    ${CHANNEL_FRAGMENT}
-`;
+    `,
+    [channelFragment],
+);
 
-export const GET_CUSTOMER_HISTORY = gql`
+export const getCustomerHistoryDocument = graphql(`
     query GetCustomerHistory($id: ID!, $options: HistoryEntryListOptions) {
         customer(id: $id) {
             id
@@ -486,68 +883,78 @@ export const GET_CUSTOMER_HISTORY = gql`
             }
         }
     }
-`;
+`);
 
-export const GET_ORDER = gql`
-    query GetOrder($id: ID!) {
-        order(id: $id) {
-            ...OrderWithLines
-        }
-    }
-    ${ORDER_WITH_LINES_FRAGMENT}
-`;
-
-export const CREATE_CUSTOMER_GROUP = gql`
-    mutation CreateCustomerGroup($input: CreateCustomerGroupInput!) {
-        createCustomerGroup(input: $input) {
-            ...CustomerGroup
-        }
-    }
-    ${CUSTOMER_GROUP_FRAGMENT}
-`;
-
-export const REMOVE_CUSTOMERS_FROM_GROUP = gql`
-    mutation RemoveCustomersFromGroup($groupId: ID!, $customerIds: [ID!]!) {
-        removeCustomersFromGroup(customerGroupId: $groupId, customerIds: $customerIds) {
-            ...CustomerGroup
-        }
-    }
-    ${CUSTOMER_GROUP_FRAGMENT}
-`;
-
-export const CREATE_FULFILLMENT = gql`
-    mutation CreateFulfillment($input: FulfillOrderInput!) {
-        addFulfillmentToOrder(input: $input) {
-            ...Fulfillment
-            ... on ErrorResult {
-                errorCode
-                message
-            }
-            ... on CreateFulfillmentError {
-                fulfillmentHandlerError
+export const getOrderDocument = graphql(
+    `
+        query GetOrder($id: ID!) {
+            order(id: $id) {
+                ...OrderWithLines
             }
         }
-    }
-    ${FULFILLMENT_FRAGMENT}
-`;
+    `,
+    [orderWithLinesFragment],
+);
 
-export const TRANSIT_FULFILLMENT = gql`
-    mutation TransitFulfillment($id: ID!, $state: String!) {
-        transitionFulfillmentToState(id: $id, state: $state) {
-            ...Fulfillment
-            ... on FulfillmentStateTransitionError {
-                errorCode
-                message
-                transitionError
-                fromState
-                toState
+export const createCustomerGroupDocument = graphql(
+    `
+        mutation CreateCustomerGroup($input: CreateCustomerGroupInput!) {
+            createCustomerGroup(input: $input) {
+                ...CustomerGroup
             }
         }
-    }
-    ${FULFILLMENT_FRAGMENT}
-`;
+    `,
+    [customerGroupFragment],
+);
 
-export const GET_ORDER_FULFILLMENTS = gql`
+export const removeCustomersFromGroupDocument = graphql(
+    `
+        mutation RemoveCustomersFromGroup($groupId: ID!, $customerIds: [ID!]!) {
+            removeCustomersFromGroup(customerGroupId: $groupId, customerIds: $customerIds) {
+                ...CustomerGroup
+            }
+        }
+    `,
+    [customerGroupFragment],
+);
+
+export const createFulfillmentDocument = graphql(
+    `
+        mutation CreateFulfillment($input: FulfillOrderInput!) {
+            addFulfillmentToOrder(input: $input) {
+                ...Fulfillment
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+                ... on CreateFulfillmentError {
+                    fulfillmentHandlerError
+                }
+            }
+        }
+    `,
+    [fulfillmentFragment],
+);
+
+export const transitFulfillmentDocument = graphql(
+    `
+        mutation TransitFulfillment($id: ID!, $state: String!) {
+            transitionFulfillmentToState(id: $id, state: $state) {
+                ...Fulfillment
+                ... on FulfillmentStateTransitionError {
+                    errorCode
+                    message
+                    transitionError
+                    fromState
+                    toState
+                }
+            }
+        }
+    `,
+    [fulfillmentFragment],
+);
+
+export const getOrderFulfillmentsDocument = graphql(`
     query GetOrderFulfillments($id: ID!) {
         order(id: $id) {
             id
@@ -566,21 +973,23 @@ export const GET_ORDER_FULFILLMENTS = gql`
             }
         }
     }
-`;
+`);
 
-export const GET_ORDERS_LIST = gql`
-    query GetOrderList($options: OrderListOptions) {
-        orders(options: $options) {
-            items {
-                ...Order
+export const getOrdersListDocument = graphql(
+    `
+        query GetOrderListFull($options: OrderListOptions) {
+            orders(options: $options) {
+                items {
+                    ...Order
+                }
+                totalItems
             }
-            totalItems
         }
-    }
-    ${ORDER_FRAGMENT}
-`;
+    `,
+    [orderFragment],
+);
 
-export const CREATE_ADDRESS = gql`
+export const createAddressDocument = graphql(`
     mutation CreateAddress($id: ID!, $input: CreateAddressInput!) {
         createCustomerAddress(customerId: $id, input: $input) {
             id
@@ -600,9 +1009,9 @@ export const CREATE_ADDRESS = gql`
             defaultBillingAddress
         }
     }
-`;
+`);
 
-export const UPDATE_ADDRESS = gql`
+export const updateAddressDocument = graphql(`
     mutation UpdateAddress($input: UpdateAddressInput!) {
         updateCustomerAddress(input: $input) {
             id
@@ -614,43 +1023,47 @@ export const UPDATE_ADDRESS = gql`
             }
         }
     }
-`;
+`);
 
-export const CREATE_CUSTOMER = gql`
-    mutation CreateCustomer($input: CreateCustomerInput!, $password: String) {
-        createCustomer(input: $input, password: $password) {
-            ...Customer
-            ... on ErrorResult {
-                errorCode
-                message
+export const createCustomerDocument = graphql(
+    `
+        mutation CreateCustomer($input: CreateCustomerInput!, $password: String) {
+            createCustomer(input: $input, password: $password) {
+                ...Customer
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
             }
         }
-    }
-    ${CUSTOMER_FRAGMENT}
-`;
+    `,
+    [customerFragment],
+);
 
-export const UPDATE_CUSTOMER = gql`
-    mutation UpdateCustomer($input: UpdateCustomerInput!) {
-        updateCustomer(input: $input) {
-            ...Customer
-            ... on ErrorResult {
-                errorCode
-                message
+export const updateCustomerDocument = graphql(
+    `
+        mutation UpdateCustomer($input: UpdateCustomerInput!) {
+            updateCustomer(input: $input) {
+                ...Customer
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
             }
         }
-    }
-    ${CUSTOMER_FRAGMENT}
-`;
+    `,
+    [customerFragment],
+);
 
-export const DELETE_CUSTOMER = gql`
+export const deleteCustomerDocument = graphql(`
     mutation DeleteCustomer($id: ID!) {
         deleteCustomer(id: $id) {
             result
         }
     }
-`;
+`);
 
-export const UPDATE_CUSTOMER_NOTE = gql`
+export const updateCustomerNoteDocument = graphql(`
     mutation UpdateCustomerNote($input: UpdateCustomerNoteInput!) {
         updateCustomerNote(input: $input) {
             id
@@ -658,36 +1071,38 @@ export const UPDATE_CUSTOMER_NOTE = gql`
             isPublic
         }
     }
-`;
+`);
 
-export const DELETE_CUSTOMER_NOTE = gql`
+export const deleteCustomerNoteDocument = graphql(`
     mutation DeleteCustomerNote($id: ID!) {
         deleteCustomerNote(id: $id) {
             result
             message
         }
     }
-`;
+`);
 
-export const UPDATE_CUSTOMER_GROUP = gql`
-    mutation UpdateCustomerGroup($input: UpdateCustomerGroupInput!) {
-        updateCustomerGroup(input: $input) {
-            ...CustomerGroup
+export const updateCustomerGroupDocument = graphql(
+    `
+        mutation UpdateCustomerGroup($input: UpdateCustomerGroupInput!) {
+            updateCustomerGroup(input: $input) {
+                ...CustomerGroup
+            }
         }
-    }
-    ${CUSTOMER_GROUP_FRAGMENT}
-`;
+    `,
+    [customerGroupFragment],
+);
 
-export const DELETE_CUSTOMER_GROUP = gql`
+export const deleteCustomerGroupDocument = graphql(`
     mutation DeleteCustomerGroup($id: ID!) {
         deleteCustomerGroup(id: $id) {
             result
             message
         }
     }
-`;
+`);
 
-export const GET_CUSTOMER_GROUPS = gql`
+export const getCustomerGroupsDocument = graphql(`
     query GetCustomerGroups($options: CustomerGroupListOptions) {
         customerGroups(options: $options) {
             items {
@@ -697,9 +1112,9 @@ export const GET_CUSTOMER_GROUPS = gql`
             totalItems
         }
     }
-`;
+`);
 
-export const GET_CUSTOMER_GROUP = gql`
+export const getCustomerGroupDocument = graphql(`
     query GetCustomerGroup($id: ID!, $options: CustomerListOptions) {
         customerGroup(id: $id) {
             id
@@ -712,18 +1127,20 @@ export const GET_CUSTOMER_GROUP = gql`
             }
         }
     }
-`;
+`);
 
-export const ADD_CUSTOMERS_TO_GROUP = gql`
-    mutation AddCustomersToGroup($groupId: ID!, $customerIds: [ID!]!) {
-        addCustomersToGroup(customerGroupId: $groupId, customerIds: $customerIds) {
-            ...CustomerGroup
+export const addCustomersToGroupDocument = graphql(
+    `
+        mutation AddCustomersToGroup($groupId: ID!, $customerIds: [ID!]!) {
+            addCustomersToGroup(customerGroupId: $groupId, customerIds: $customerIds) {
+                ...CustomerGroup
+            }
         }
-    }
-    ${CUSTOMER_GROUP_FRAGMENT}
-`;
+    `,
+    [customerGroupFragment],
+);
 
-export const GET_CUSTOMER_WITH_GROUPS = gql`
+export const getCustomerWithGroupsDocument = graphql(`
     query GetCustomerWithGroups($id: ID!) {
         customer(id: $id) {
             id
@@ -733,67 +1150,68 @@ export const GET_CUSTOMER_WITH_GROUPS = gql`
             }
         }
     }
-`;
+`);
 
-export const ADMIN_TRANSITION_TO_STATE = gql`
-    mutation AdminTransition($id: ID!, $state: String!) {
-        transitionOrderToState(id: $id, state: $state) {
-            ...Order
-            ... on OrderStateTransitionError {
-                errorCode
-                message
-                transitionError
-                fromState
-                toState
+export const adminTransitionToStateDocument = graphql(
+    `
+        mutation AdminTransition($id: ID!, $state: String!) {
+            transitionOrderToState(id: $id, state: $state) {
+                ...Order
+                ... on OrderStateTransitionError {
+                    errorCode
+                    message
+                    transitionError
+                    fromState
+                    toState
+                }
             }
         }
-    }
-    ${ORDER_FRAGMENT}
-`;
+    `,
+    [orderFragment],
+);
 
-export const CANCEL_ORDER = gql`
-    mutation CancelOrder($input: CancelOrderInput!) {
-        cancelOrder(input: $input) {
-            ...CanceledOrder
-            ... on ErrorResult {
-                errorCode
-                message
+export const cancelOrderDocument = graphql(
+    `
+        mutation CancelOrder($input: CancelOrderInput!) {
+            cancelOrder(input: $input) {
+                ...CanceledOrder
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
             }
         }
-    }
-    fragment CanceledOrder on Order {
-        id
-        state
-        lines {
-            id
-            quantity
-        }
-    }
-`;
+    `,
+    [canceledOrderFragment],
+);
 
-export const UPDATE_GLOBAL_SETTINGS = gql`
-    mutation UpdateGlobalSettings($input: UpdateGlobalSettingsInput!) {
-        updateGlobalSettings(input: $input) {
-            ...GlobalSettings
-            ... on ErrorResult {
-                errorCode
-                message
+export const updateGlobalSettingsDocument = graphql(
+    `
+        mutation UpdateGlobalSettings($input: UpdateGlobalSettingsInput!) {
+            updateGlobalSettings(input: $input) {
+                ...GlobalSettings
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
             }
         }
-    }
-    ${GLOBAL_SETTINGS_FRAGMENT}
-`;
+    `,
+    [globalSettingsFragment],
+);
 
-export const UPDATE_ROLE = gql`
-    mutation UpdateRole($input: UpdateRoleInput!) {
-        updateRole(input: $input) {
-            ...Role
+export const updateRoleDocument = graphql(
+    `
+        mutation UpdateRole($input: UpdateRoleInput!) {
+            updateRole(input: $input) {
+                ...Role
+            }
         }
-    }
-    ${ROLE_FRAGMENT}
-`;
+    `,
+    [roleFragment],
+);
 
-export const GET_PRODUCTS_WITH_VARIANT_PRICES = gql`
+export const getProductsWithVariantPricesDocument = graphql(`
     query GetProductsWithVariantPrices {
         products {
             items {
@@ -813,52 +1231,120 @@ export const GET_PRODUCTS_WITH_VARIANT_PRICES = gql`
             }
         }
     }
-`;
+`);
 
-export const CREATE_PRODUCT_OPTION_GROUP = gql`
-    mutation CreateProductOptionGroup($input: CreateProductOptionGroupInput!) {
-        createProductOptionGroup(input: $input) {
-            ...ProductOptionGroup
-        }
-    }
-    ${PRODUCT_OPTION_GROUP_FRAGMENT}
-`;
-
-export const ADD_OPTION_GROUP_TO_PRODUCT = gql`
-    mutation AddOptionGroupToProduct($productId: ID!, $optionGroupId: ID!) {
-        addOptionGroupToProduct(productId: $productId, optionGroupId: $optionGroupId) {
-            ...ProductWithOptions
-        }
-    }
-    ${PRODUCT_WITH_OPTIONS_FRAGMENT}
-`;
-
-export const CREATE_SHIPPING_METHOD = gql`
-    mutation CreateShippingMethod($input: CreateShippingMethodInput!) {
-        createShippingMethod(input: $input) {
-            ...ShippingMethod
-        }
-    }
-    ${SHIPPING_METHOD_FRAGMENT}
-`;
-
-export const SETTLE_PAYMENT = gql`
-    mutation SettlePayment($id: ID!) {
-        settlePayment(id: $id) {
-            ...Payment
-            ... on ErrorResult {
-                errorCode
-                message
-            }
-            ... on SettlePaymentError {
-                paymentErrorMessage
+export const createProductOptionGroupDocument = graphql(
+    `
+        mutation CreateProductOptionGroup($input: CreateProductOptionGroupInput!) {
+            createProductOptionGroup(input: $input) {
+                ...ProductOptionGroup
             }
         }
-    }
-    ${PAYMENT_FRAGMENT}
-`;
+    `,
+    [productOptionGroupFragment],
+);
 
-export const GET_ORDER_HISTORY = gql`
+export const addOptionGroupToProductDocument = graphql(
+    `
+        mutation AddOptionGroupToProduct($productId: ID!, $optionGroupId: ID!) {
+            addOptionGroupToProduct(productId: $productId, optionGroupId: $optionGroupId) {
+                ...ProductWithOptions
+            }
+        }
+    `,
+    [productWithOptionsFragment],
+);
+
+export const removeOptionGroupFromProductDocument = graphql(
+    `
+        mutation RemoveOptionGroupFromProduct($productId: ID!, $optionGroupId: ID!, $force: Boolean) {
+            removeOptionGroupFromProduct(
+                productId: $productId
+                optionGroupId: $optionGroupId
+                force: $force
+            ) {
+                ...ProductWithOptions
+                ... on ProductOptionInUseError {
+                    errorCode
+                    message
+                    optionGroupCode
+                    productVariantCount
+                }
+            }
+        }
+    `,
+    [productWithOptionsFragment],
+);
+
+export const getOptionGroupDocument = graphql(`
+    query GetOptionGroup($id: ID!) {
+        productOptionGroup(id: $id) {
+            id
+            code
+            options {
+                id
+                code
+            }
+        }
+    }
+`);
+
+export const getProductVariantDocument = graphql(`
+    query GetProductVariant($id: ID!) {
+        productVariant(id: $id) {
+            id
+            name
+        }
+    }
+`);
+
+export const getProductWithVariantListDocument = graphql(
+    `
+        query GetProductWithVariantList($id: ID, $variantListOptions: ProductVariantListOptions) {
+            product(id: $id) {
+                id
+                variantList(options: $variantListOptions) {
+                    items {
+                        ...ProductVariant
+                    }
+                    totalItems
+                }
+            }
+        }
+    `,
+    [productVariantFragment],
+);
+
+export const createShippingMethodDocument = graphql(
+    `
+        mutation CreateShippingMethod($input: CreateShippingMethodInput!) {
+            createShippingMethod(input: $input) {
+                ...ShippingMethod
+            }
+        }
+    `,
+    [shippingMethodFragment],
+);
+
+export const settlePaymentDocument = graphql(
+    `
+        mutation SettlePayment($id: ID!) {
+            settlePayment(id: $id) {
+                ...Payment
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+                ... on SettlePaymentError {
+                    paymentErrorMessage
+                }
+            }
+        }
+    `,
+    [paymentFragment],
+);
+
+export const getOrderHistoryDocument = graphql(`
     query GetOrderHistory($id: ID!, $options: HistoryEntryListOptions) {
         order(id: $id) {
             id
@@ -875,29 +1361,33 @@ export const GET_ORDER_HISTORY = gql`
             }
         }
     }
-`;
+`);
 
-export const UPDATE_SHIPPING_METHOD = gql`
-    mutation UpdateShippingMethod($input: UpdateShippingMethodInput!) {
-        updateShippingMethod(input: $input) {
-            ...ShippingMethod
+export const updateShippingMethodDocument = graphql(
+    `
+        mutation UpdateShippingMethod($input: UpdateShippingMethodInput!) {
+            updateShippingMethod(input: $input) {
+                ...ShippingMethod
+            }
         }
-    }
-    ${SHIPPING_METHOD_FRAGMENT}
-`;
+    `,
+    [shippingMethodFragment],
+);
 
-export const GET_ASSET = gql`
-    query GetAsset($id: ID!) {
-        asset(id: $id) {
-            ...Asset
-            width
-            height
+export const getAssetDocument = graphql(
+    `
+        query GetAsset($id: ID!) {
+            asset(id: $id) {
+                ...Asset
+                width
+                height
+            }
         }
-    }
-    ${ASSET_FRAGMENT}
-`;
+    `,
+    [assetFragment],
+);
 
-export const GET_ASSET_FRAGMENT_FIRST = gql`
+export const getAssetFragmentFirstDocument = graphql(`
     fragment AssetFragFirst on Asset {
         id
         preview
@@ -908,88 +1398,127 @@ export const GET_ASSET_FRAGMENT_FIRST = gql`
             ...AssetFragFirst
         }
     }
-`;
+`);
 
-export const ASSET_WITH_TAGS_AND_FOCAL_POINT_FRAGMENT = gql`
-    fragment AssetWithTagsAndFocalPoint on Asset {
-        ...Asset
-        focalPoint {
-            x
-            y
-        }
-        tags {
-            id
-            value
-        }
-    }
-    ${ASSET_FRAGMENT}
-`;
-
-export const CREATE_ASSETS = gql`
-    mutation CreateAssets($input: [CreateAssetInput!]!) {
-        createAssets(input: $input) {
-            ...AssetWithTagsAndFocalPoint
-            ... on MimeTypeError {
-                message
-                fileName
-                mimeType
+export const assetWithTagsAndFocalPointFragmentDocument = graphql(
+    `
+        fragment AssetWithTagsAndFocalPoint on Asset {
+            ...Asset
+            focalPoint {
+                x
+                y
+            }
+            tags {
+                id
+                value
             }
         }
-    }
-    ${ASSET_WITH_TAGS_AND_FOCAL_POINT_FRAGMENT}
-`;
+    `,
+    [assetFragment],
+);
 
-export const DELETE_SHIPPING_METHOD = gql`
+export const createAssetsDocument = graphql(
+    `
+        mutation CreateAssets($input: [CreateAssetInput!]!) {
+            createAssets(input: $input) {
+                ...AssetWithTagsAndFocalPoint
+                ... on MimeTypeError {
+                    message
+                    fileName
+                    mimeType
+                }
+            }
+        }
+    `,
+    [assetWithTagsAndFocalPointFragmentDocument],
+);
+
+export const deleteShippingMethodDocument = graphql(`
     mutation DeleteShippingMethod($id: ID!) {
         deleteShippingMethod(id: $id) {
             result
             message
         }
     }
-`;
+`);
 
-export const ASSIGN_PROMOTIONS_TO_CHANNEL = gql`
+export const assignPromotionsToChannelDocument = graphql(`
     mutation AssignPromotionToChannel($input: AssignPromotionsToChannelInput!) {
         assignPromotionsToChannel(input: $input) {
             id
             name
         }
     }
-`;
+`);
 
-export const REMOVE_PROMOTIONS_FROM_CHANNEL = gql`
+export const removePromotionsFromChannelDocument = graphql(`
     mutation RemovePromotionFromChannel($input: RemovePromotionsFromChannelInput!) {
         removePromotionsFromChannel(input: $input) {
             id
             name
         }
     }
-`;
+`);
 
-export const GET_TAX_RATES_LIST = gql`
-    query GetTaxRates($options: TaxRateListOptions) {
-        taxRates(options: $options) {
-            items {
+export const getTaxRateDocument = graphql(
+    `
+        query GetTaxRate($id: ID!) {
+            taxRate(id: $id) {
                 ...TaxRate
             }
-            totalItems
         }
-    }
-    ${TAX_RATE_FRAGMENT}
-`;
-export const GET_SHIPPING_METHOD_LIST = gql`
-    query GetShippingMethodList {
-        shippingMethods {
-            items {
-                ...ShippingMethod
-            }
-            totalItems
-        }
-    }
-    ${SHIPPING_METHOD_FRAGMENT}
-`;
+    `,
+    [taxRateFragment],
+);
 
-export const GET_COLLECTIONS = gql`
+export const createTaxRateDocument = graphql(
+    `
+        mutation CreateTaxRate($input: CreateTaxRateInput!) {
+            createTaxRate(input: $input) {
+                ...TaxRate
+            }
+        }
+    `,
+    [taxRateFragment],
+);
+
+export const deleteTaxRateDocument = graphql(`
+    mutation DeleteTaxRate($id: ID!) {
+        deleteTaxRate(id: $id) {
+            result
+            message
+        }
+    }
+`);
+
+export const getTaxRatesListDocument = graphql(
+    `
+        query GetTaxRates($options: TaxRateListOptions) {
+            taxRates(options: $options) {
+                items {
+                    ...TaxRate
+                }
+                totalItems
+            }
+        }
+    `,
+    [taxRateFragment],
+);
+export const getShippingMethodListDocument = graphql(
+    `
+        query GetShippingMethodList {
+            shippingMethods {
+                items {
+                    ...ShippingMethod
+                }
+                totalItems
+            }
+        }
+    `,
+    [shippingMethodFragment],
+);
+
+export const getCollectionsDocument = graphql(`
     query GetCollections {
         collections {
             items {
@@ -1003,25 +1532,27 @@ export const GET_COLLECTIONS = gql`
             }
         }
     }
-`;
+`);
 
-export const TRANSITION_PAYMENT_TO_STATE = gql`
-    mutation TransitionPaymentToState($id: ID!, $state: String!) {
-        transitionPaymentToState(id: $id, state: $state) {
-            ...Payment
-            ... on ErrorResult {
-                errorCode
-                message
-            }
-            ... on PaymentStateTransitionError {
-                transitionError
+export const transitionPaymentToStateDocument = graphql(
+    `
+        mutation TransitionPaymentToState($id: ID!, $state: String!) {
+            transitionPaymentToState(id: $id, state: $state) {
+                ...Payment
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+                ... on PaymentStateTransitionError {
+                    transitionError
+                }
             }
         }
-    }
-    ${PAYMENT_FRAGMENT}
-`;
+    `,
+    [paymentFragment],
+);
 
-export const GET_PRODUCT_VARIANT_LIST = gql`
+export const getProductVariantListDocument = graphql(`
     query GetProductVariantList($options: ProductVariantListOptions, $productId: ID) {
         productVariants(options: $options, productId: $productId) {
             items {
@@ -1039,17 +1570,17 @@ export const GET_PRODUCT_VARIANT_LIST = gql`
             totalItems
         }
     }
-`;
+`);
 
-export const DELETE_PROMOTION = gql`
+export const deletePromotionDocument = graphql(`
     mutation DeletePromotion($id: ID!) {
         deletePromotion(id: $id) {
             result
         }
     }
-`;
+`);
 
-export const GET_CHANNELS = gql`
+export const getChannelsDocument = graphql(`
     query GetChannels {
         channels {
             items {
@@ -1059,77 +1590,706 @@ export const GET_CHANNELS = gql`
             }
         }
     }
-`;
+`);
 
-export const UPDATE_ADMINISTRATOR = gql`
-    mutation UpdateAdministrator($input: UpdateAdministratorInput!) {
-        updateAdministrator(input: $input) {
-            ...Administrator
+export const assignCollectionsToChannelDocument = graphql(
+    `
+        mutation AssignCollectionsToChannel($input: AssignCollectionsToChannelInput!) {
+            assignCollectionsToChannel(input: $input) {
+                ...Collection
+            }
         }
-    }
-    ${ADMINISTRATOR_FRAGMENT}
-`;
+    `,
+    [collectionFragment],
+);
 
-export const ASSIGN_COLLECTIONS_TO_CHANNEL = gql`
-    mutation AssignCollectionsToChannel($input: AssignCollectionsToChannelInput!) {
-        assignCollectionsToChannel(input: $input) {
-            ...Collection
-        }
-    }
-    ${COLLECTION_FRAGMENT}
-`;
-
-export const GET_COLLECTION = gql`
-    query GetCollection($id: ID, $slug: String, $variantListOptions: ProductVariantListOptions) {
-        collection(id: $id, slug: $slug) {
-            ...Collection
-            productVariants(options: $variantListOptions) {
-                items {
-                    id
-                    name
-                    price
+export const getCollectionDocument = graphql(
+    `
+        query GetCollection($id: ID, $slug: String, $variantListOptions: ProductVariantListOptions) {
+            collection(id: $id, slug: $slug) {
+                ...Collection
+                productVariants(options: $variantListOptions) {
+                    items {
+                        id
+                        name
+                        price
+                    }
                 }
             }
         }
-    }
-    ${COLLECTION_FRAGMENT}
-`;
+    `,
+    [collectionFragment],
+);
 
-export const GET_FACET_WITH_VALUES = gql`
-    query GetFacetWithValues($id: ID!) {
-        facet(id: $id) {
-            ...FacetWithValues
+export const getFacetWithValuesDocument = graphql(
+    `
+        query GetFacetWithValues($id: ID!) {
+            facet(id: $id) {
+                ...FacetWithValues
+            }
         }
-    }
-    ${FACET_WITH_VALUES_FRAGMENT}
-`;
+    `,
+    [facetWithValuesFragment],
+);
 
-export const GET_FACET_VALUES = gql`
-    query GetFacetValues($options: FacetValueListOptions) {
-        facetValues(options: $options) {
-            items {
+export const getFacetWithValueListDocument = graphql(
+    `
+        query GetFacetWithValueList($id: ID!, $options: FacetValueListOptions) {
+            facet(id: $id) {
+                id
+                languageCode
+                isPrivate
+                code
+                name
+                valueList(options: $options) {
+                    items {
+                        ...FacetValue
+                    }
+                    totalItems
+                }
+            }
+        }
+    `,
+    [facetValueFragment],
+);
+
+export const getFacetValuesDocument = graphql(
+    `
+        query GetFacetValues($options: FacetValueListOptions) {
+            facetValues(options: $options) {
+                items {
+                    ...FacetValue
+                }
+                totalItems
+            }
+        }
+    `,
+    [facetValueFragment],
+);
+
+export const getFacetValueDocument = graphql(
+    `
+        query GetFacetValue($id: ID!) {
+            facetValue(id: $id) {
                 ...FacetValue
+            }
+        }
+    `,
+    [facetValueFragment],
+);
+
+export const getPromotionDocument = graphql(
+    `
+        query GetPromotion($id: ID!) {
+            promotion(id: $id) {
+                ...Promotion
+            }
+        }
+    `,
+    [promotionFragment],
+);
+
+export const getOrderListDocument = graphql(`
+    query GetOrderList($options: OrderListOptions) {
+        orders(options: $options) {
+            items {
+                id
+                code
+                state
+                total
+                totalWithTax
+                totalQuantity
+                customer {
+                    id
+                    emailAddress
+                    lastName
+                }
             }
             totalItems
         }
     }
-    ${FACET_VALUE_FRAGMENT}
-`;
+`);
 
-export const GET_FACET_VALUE = gql`
-    query GetFacetValue($id: ID!) {
-        facetValue(id: $id) {
-            ...FacetValue
+export const getOrderWithPaymentsDocument = graphql(`
+    query GetOrderWithPayments($id: ID!) {
+        order(id: $id) {
+            id
+            payments {
+                id
+                errorMessage
+                metadata
+                refunds {
+                    id
+                    total
+                }
+            }
         }
     }
-    ${FACET_VALUE_FRAGMENT}
-`;
+`);
 
-export const GET_PROMOTION = gql`
-    query GetPromotion($id: ID!) {
-        promotion(id: $id) {
-            ...Promotion
+export const getOrderListWithQtyDocument = graphql(`
+    query GetOrderListWithQty($options: OrderListOptions) {
+        orders(options: $options) {
+            items {
+                id
+                code
+                totalQuantity
+                lines {
+                    id
+                    quantity
+                }
+            }
         }
     }
-    ${PROMOTION_FRAGMENT}
-`;
+`);
+
+export const refundOrderDocument = graphql(
+    `
+        mutation RefundOrder($input: RefundOrderInput!) {
+            refundOrder(input: $input) {
+                ...Refund
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+            }
+        }
+    `,
+    [refundFragment],
+);
+
+export const settleRefundDocument = graphql(
+    `
+        mutation SettleRefund($input: SettleRefundInput!) {
+            settleRefund(input: $input) {
+                ...Refund
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+            }
+        }
+    `,
+    [refundFragment],
+);
+
+export const addNoteToOrderDocument = graphql(`
+    mutation AddNoteToOrder($input: AddNoteToOrderInput!) {
+        addNoteToOrder(input: $input) {
+            id
+        }
+    }
+`);
+
+export const updateOrderNoteDocument = graphql(`
+    mutation UpdateOrderNote($input: UpdateOrderNoteInput!) {
+        updateOrderNote(input: $input) {
+            id
+            data
+            isPublic
+        }
+    }
+`);
+
+export const deleteOrderNoteDocument = graphql(`
+    mutation DeleteOrderNote($id: ID!) {
+        deleteOrderNote(id: $id) {
+            result
+            message
+        }
+    }
+`);
+
+export const getOrderLineFulfillmentsDocument = graphql(`
+    query GetOrderLineFulfillments($id: ID!) {
+        order(id: $id) {
+            id
+            lines {
+                id
+                fulfillmentLines {
+                    fulfillment {
+                        id
+                        state
+                    }
+                    orderLineId
+                    quantity
+                }
+            }
+        }
+    }
+`);
+
+export const getOrderListFulfillmentsDocument = graphql(`
+    query GetOrderListFulfillments {
+        orders {
+            items {
+                id
+                state
+                fulfillments {
+                    id
+                    state
+                    nextStates
+                    method
+                }
+            }
+        }
+    }
+`);
+
+export const cancelPaymentDocument = graphql(
+    `
+        mutation CancelPayment($paymentId: ID!) {
+            cancelPayment(id: $paymentId) {
+                ...Payment
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+                ... on PaymentStateTransitionError {
+                    transitionError
+                }
+                ... on CancelPaymentError {
+                    paymentErrorMessage
+                }
+            }
+        }
+    `,
+    [paymentFragment],
+);
+
+export const setOrderCustomerDocument = graphql(`
+    mutation SetOrderCustomer($input: SetOrderCustomerInput!) {
+        setOrderCustomer(input: $input) {
+            id
+            customer {
+                id
+            }
+        }
+    }
+`);
+
+export const getOrderAssetEdgeCaseDocument = graphql(`
+    query OrderAssetEdgeCase($id: ID!) {
+        order(id: $id) {
+            lines {
+                id
+            }
+            id
+            lines {
+                id
+                featuredAsset {
+                    preview
+                }
+            }
+        }
+    }
+`);
+
+export const getOrderWithLineCalculatedPropsDocument = graphql(`
+    query GetOrderWithLineCalculatedProps($id: ID!) {
+        order(id: $id) {
+            id
+            lines {
+                id
+                linePriceWithTax
+                quantity
+            }
+        }
+    }
+`);
+
+export const addManualPaymentDocument = graphql(`
+    mutation AddManualPaymentToOrder($input: ManualPaymentInput!) {
+        addManualPaymentToOrder(input: $input) {
+            ... on Order {
+                id
+                code
+                state
+                active
+                total
+                totalWithTax
+                lines {
+                    id
+                }
+                payments {
+                    id
+                    state
+                }
+            }
+            ... on ErrorResult {
+                errorCode
+                message
+            }
+        }
+    }
+`);
+
+export const modifyOrderDocument = graphql(
+    `
+        mutation ModifyOrder($input: ModifyOrderInput!) {
+            modifyOrder(input: $input) {
+                ...OrderWithModifications
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+            }
+        }
+    `,
+    [orderWithModificationsFragment],
+);
+
+export const addManualPaymentToOrderDocument = graphql(
+    `
+        mutation AddManualPayment($input: ManualPaymentInput!) {
+            addManualPaymentToOrder(input: $input) {
+                ...OrderWithModifications
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+            }
+        }
+    `,
+    [orderWithModificationsFragment],
+);
+
+export const getOrderWithModificationsDocument = graphql(
+    `
+        query GetOrderWithModifications($id: ID!) {
+            order(id: $id) {
+                ...OrderWithModifications
+            }
+        }
+    `,
+    [orderWithModificationsFragment],
+);
+
+export const getOrderWithCustomFieldsDocument = graphql(`
+    query GetOrderCustomFields($id: ID!) {
+        order(id: $id) {
+            # Ignore error - customFields are dynamically generated at runtime, not in introspection schema
+            customFields {
+                points
+            }
+            lines {
+                id
+                # Ignore error - customFields are dynamically generated at runtime, not in introspection schema
+                customFields {
+                    color
+                }
+            }
+        }
+    }
+`);
+
+export const getSettingsStoreValueDocument = graphql(`
+    query GetSettingsStoreValue($key: String!) {
+        getSettingsStoreValue(key: $key)
+    }
+`);
+
+export const getSettingsStoreValuesDocument = graphql(`
+    query GetSettingsStoreValues($keys: [String!]!) {
+        getSettingsStoreValues(keys: $keys)
+    }
+`);
+
+export const setSettingsStoreValueDocument = graphql(`
+    mutation SetSettingsStoreValue($input: SettingsStoreInput!) {
+        setSettingsStoreValue(input: $input) {
+            key
+            result
+            error
+        }
+    }
+`);
+
+export const setSettingsStoreValuesDocument = graphql(`
+    mutation SetSettingsStoreValues($inputs: [SettingsStoreInput!]!) {
+        setSettingsStoreValues(inputs: $inputs) {
+            key
+            result
+            error
+        }
+    }
+`);
+
+export const getCheckersDocument = graphql(`
+    query GetCheckers {
+        shippingEligibilityCheckers {
+            code
+            args {
+                defaultValue
+                description
+                label
+                list
+                name
+                required
+                type
+            }
+        }
+    }
+`);
+
+export const getZonesDocument = graphql(`
+    query GetZones($options: ZoneListOptions) {
+        zones(options: $options) {
+            items {
+                id
+                name
+            }
+            totalItems
+        }
+    }
+`);
+
+export const getZoneDocument = graphql(
+    `
+        query GetZone($id: ID!) {
+            zone(id: $id) {
+                ...Zone
+            }
+        }
+    `,
+    [zoneFragment],
+);
+
+export const getActiveChannelWithZoneMembersDocument = graphql(`
+    query GetActiveChannelWithZoneMembers {
+        activeChannel {
+            id
+            defaultShippingZone {
+                id
+                members {
+                    name
+                }
+            }
+        }
+    }
+`);
+
+export const createZoneDocument = graphql(
+    `
+        mutation CreateZone($input: CreateZoneInput!) {
+            createZone(input: $input) {
+                ...Zone
+            }
+        }
+    `,
+    [zoneFragment],
+);
+
+export const updateZoneDocument = graphql(
+    `
+        mutation UpdateZone($input: UpdateZoneInput!) {
+            updateZone(input: $input) {
+                ...Zone
+            }
+        }
+    `,
+    [zoneFragment],
+);
+
+export const deleteZoneDocument = graphql(`
+    mutation DeleteZone($id: ID!) {
+        deleteZone(id: $id) {
+            result
+            message
+        }
+    }
+`);
+
+export const addMembersToZoneDocument = graphql(
+    `
+        mutation AddMembersToZone($zoneId: ID!, $memberIds: [ID!]!) {
+            addMembersToZone(zoneId: $zoneId, memberIds: $memberIds) {
+                ...Zone
+            }
+        }
+    `,
+    [zoneFragment],
+);
+
+export const removeMembersFromZoneDocument = graphql(
+    `
+        mutation RemoveMembersFromZone($zoneId: ID!, $memberIds: [ID!]!) {
+            removeMembersFromZone(zoneId: $zoneId, memberIds: $memberIds) {
+                ...Zone
+            }
+        }
+    `,
+    [zoneFragment],
+);
+
+export const getProductWithCustomFieldsDocument = graphql(`
+    query GetProductWithCustomFields($id: ID!) {
+        product(id: $id) {
+            id
+            customFields {
+                publicField
+                authenticatedField
+                updateProductField
+                updateProductOrCustomerField
+                superadminField
+            }
+        }
+    }
+`);
+
+export const getProductWithPublicCustomFieldsDocument = graphql(`
+    query GetProductWithPublicCustomFields($id: ID!) {
+        product(id: $id) {
+            id
+            customFields {
+                publicField
+                authenticatedField
+                updateProductField
+            }
+        }
+    }
+`);
+
+export const authenticateDocument = graphql(
+    `
+        mutation Authenticate($input: AuthenticationInput!) {
+            authenticate(input: $input) {
+                ...CurrentUser
+                ... on InvalidCredentialsError {
+                    authenticationError
+                    errorCode
+                    message
+                }
+            }
+        }
+    `,
+    [currentUserFragment],
+);
+
+export const getCustomersDocument = graphql(`
+    query GetCustomers {
+        customers {
+            totalItems
+            items {
+                id
+                emailAddress
+            }
+        }
+    }
+`);
+
+export const getCustomerUserAuthDocument = graphql(`
+    query GetCustomerUserAuth($id: ID!) {
+        customer(id: $id) {
+            id
+            user {
+                id
+                verified
+                authenticationMethods {
+                    id
+                    strategy
+                }
+            }
+        }
+    }
+`);
+
+export const updatePromotionDocument = graphql(
+    `
+        mutation UpdatePromotion($input: UpdatePromotionInput!) {
+            updatePromotion(input: $input) {
+                ...Promotion
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+            }
+        }
+    `,
+    [promotionFragment],
+);
+
+export const getPromotionListDocument = graphql(
+    `
+        query GetPromotionList($options: PromotionListOptions) {
+            promotions(options: $options) {
+                items {
+                    ...Promotion
+                }
+                totalItems
+            }
+        }
+    `,
+    [promotionFragment],
+);
+
+export const configurableOperationDefFragment = graphql(`
+    fragment ConfigurableOperationDef on ConfigurableOperationDefinition {
+        args {
+            name
+            type
+            ui
+        }
+        code
+        description
+    }
+`);
+
+export const getAdjustmentOperationsDocument = graphql(
+    `
+        query GetAdjustmentOperations {
+            promotionActions {
+                ...ConfigurableOperationDef
+            }
+            promotionConditions {
+                ...ConfigurableOperationDef
+            }
+        }
+    `,
+    [configurableOperationDefFragment],
+);
+
+export const getCustomerWithUserDocument = graphql(`
+    query GetCustomerWithUser($id: ID!) {
+        customer(id: $id) {
+            id
+            user {
+                id
+                identifier
+                verified
+            }
+        }
+    }
+`);
+
+export const getCustomerOrdersDocument = graphql(`
+    query GetCustomerOrders($id: ID!) {
+        customer(id: $id) {
+            orders {
+                items {
+                    id
+                }
+                totalItems
+            }
+        }
+    }
+`);
+
+export const addNoteToCustomerDocument = graphql(
+    `
+        mutation AddNoteToCustomer($input: AddNoteToCustomerInput!) {
+            addNoteToCustomer(input: $input) {
+                ...Customer
+            }
+        }
+    `,
+    [customerFragment],
+);
+
+export const deleteCustomerAddressDocument = graphql(`
+    mutation DeleteCustomerAddress($id: ID!) {
+        deleteCustomerAddress(id: $id) {
+            success
+        }
+    }
+`);

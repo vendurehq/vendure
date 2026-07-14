@@ -1,4 +1,0 @@
-{
-  "extends": "../../../../e2e-common/tsconfig.e2e.json",
-  "include": ["../**/*.e2e-spec.ts", "../**/*.d.ts"]
-}

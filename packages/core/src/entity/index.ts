@@ -1,5 +1,6 @@
 export * from './address/address.entity';
 export * from './administrator/administrator.entity';
+export * from './asset/asset-translation.entity';
 export * from './asset/asset.entity';
 export * from './asset/orderable-asset.entity';
 export * from './authentication-method/authentication-method.entity';
@@ -43,6 +44,7 @@ export * from './product/product.entity';
 export * from './promotion/promotion.entity';
 export * from './refund/refund.entity';
 export * from './region/country.entity';
+export * from './region/province.entity';
 export * from './role/role.entity';
 export * from './seller/seller.entity';
 export * from './session/anonymous-session.entity';

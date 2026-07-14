@@ -23,10 +23,8 @@ export function HistoryEntryDate({ date, className }: Readonly<HistoryEntryDateP
     return (
         <TooltipProvider>
             <Tooltip>
-                <TooltipTrigger asChild>
-                    <div className={className}>
+                <TooltipTrigger render={<div className={className} />}>
                         {formatRelativeDate(date)}
-                    </div>
                 </TooltipTrigger>
                 <TooltipContent>
                     <p>{formatFullDateTime(date)}</p>

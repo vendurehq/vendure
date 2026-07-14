@@ -1,4 +1,3 @@
-'use client';
 import { WidgetFiltersContext } from '@/vdb/framework/dashboard-widget/widget-filters-context.js';
 import { useLingui } from '@lingui/react/macro';
 import { useContext } from 'react';

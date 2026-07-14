@@ -36,10 +36,10 @@ import { VendureEntity } from '../../entity/base/base.entity';
 // prettier-ignore
 export type DefaultValueType<T extends CustomFieldType | StructFieldType> =
     T extends 'string' | 'localeString' | 'text' | 'localeText' ? string :
-        T extends 'int' | 'float' ? number :
-            T extends 'boolean' ? boolean :
-                T extends 'datetime' ? Date :
-                    T extends 'relation' ? any : never;
+    T extends 'int' | 'float' ? number :
+    T extends 'boolean' ? boolean :
+    T extends 'datetime' ? Date :
+    T extends 'relation' ? any : never;
 
 export type BaseTypedCustomFieldConfig<T extends CustomFieldType, C extends CustomField> = Omit<
     C,
@@ -290,6 +290,7 @@ export type CustomFieldConfig =
 export type CustomFields = {
     Address?: CustomFieldConfig[];
     Administrator?: CustomFieldConfig[];
+    ApiKey?: CustomFieldConfig[];
     Asset?: CustomFieldConfig[];
     Channel?: CustomFieldConfig[];
     Collection?: CustomFieldConfig[];

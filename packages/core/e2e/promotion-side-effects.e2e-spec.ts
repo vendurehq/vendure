@@ -2,6 +2,7 @@
 // OrderLine save in both order.service.ts (applyPriceAdjustments)
 // and order-modifier.ts (modifyOrder) so that in-memory changes
 // made by side effects are included in the save.
+import { LanguageCode } from '@vendure/common/lib/generated-types';
 import {
     defaultShippingCalculator,
     defaultShippingEligibilityChecker,
@@ -12,7 +13,6 @@ import {
     TransactionalConnection,
 } from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
-import gql from 'graphql-tag';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -20,15 +20,17 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import { testSuccessfulPaymentMethod } from './fixtures/test-payment-methods';
-import * as Codegen from './graphql/generated-e2e-admin-types';
-import { LanguageCode } from './graphql/generated-e2e-admin-types';
-import * as CodegenShop from './graphql/generated-e2e-shop-types';
+import { graphql as adminGraphql } from './graphql/graphql-admin';
 import {
-    ADMIN_TRANSITION_TO_STATE,
-    CREATE_PROMOTION,
-    CREATE_SHIPPING_METHOD,
+    adminTransitionToStateDocument,
+    createPromotionDocument,
+    createShippingMethodDocument,
 } from './graphql/shared-definitions';
-import { ADD_ITEM_TO_ORDER, APPLY_COUPON_CODE, REMOVE_COUPON_CODE } from './graphql/shop-definitions';
+import {
+    addItemToOrderDocument,
+    applyCouponCodeDocument,
+    removeCouponCodeDocument,
+} from './graphql/shop-definitions';
 import { addPaymentToOrder, proceedToArrangingPayment } from './utils/test-order-utils';
 
 let connection: TransactionalConnection;
@@ -93,37 +95,32 @@ const customConfig = mergeConfig(testConfig(), {
     },
 });
 
-const ORDER_WITH_MODIFICATIONS_FRAGMENT = gql`
-    fragment OrderWithModsPromoSideEffects on Order {
-        id
-        state
-        lines {
-            id
-            quantity
-        }
-        modifications {
-            id
-            priceChange
-        }
-        promotions {
-            id
-            couponCode
-        }
-    }
-`;
-
-const MODIFY_ORDER = gql`
+const modifyOrderPromoSideEffectsDocument = adminGraphql(`
     mutation ModifyOrderPromoSideEffects($input: ModifyOrderInput!) {
         modifyOrder(input: $input) {
-            ...OrderWithModsPromoSideEffects
+            ... on Order {
+                id
+                state
+                lines {
+                    id
+                    quantity
+                }
+                modifications {
+                    id
+                    priceChange
+                }
+                promotions {
+                    id
+                    couponCode
+                }
+            }
             ... on ErrorResult {
                 errorCode
                 message
             }
         }
     }
-    ${ORDER_WITH_MODIFICATIONS_FRAGMENT}
-`;
+`);
 
 function internalId(externalId: string): number {
     return +externalId.replace('T_', '');
@@ -137,7 +134,7 @@ async function getOrderLineFromDb(lineId: number) {
 describe('Promotion side effects on OrderLine customFields', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(customConfig);
 
-    const orderResultGuard: ErrorResultGuard<CodegenShop.UpdatedOrderFragment> = createErrorResultGuard(
+    const orderResultGuard: ErrorResultGuard<{ lines: any[] }> = createErrorResultGuard(
         input => !!input.lines,
     );
     const orderGuard: ErrorResultGuard<{ id: string }> = createErrorResultGuard(input => !!input.id);
@@ -162,10 +159,7 @@ describe('Promotion side effects on OrderLine customFields', () => {
         await adminClient.asSuperAdmin();
 
         // Create a shipping method (needed for checkout flow)
-        await adminClient.query<
-            Codegen.CreateShippingMethodMutation,
-            Codegen.CreateShippingMethodMutationVariables
-        >(CREATE_SHIPPING_METHOD, {
+        await adminClient.query(createShippingMethodDocument, {
             input: {
                 code: 'test-shipping',
                 fulfillmentHandler: manualFulfillmentHandler.code,
@@ -185,31 +179,25 @@ describe('Promotion side effects on OrderLine customFields', () => {
             },
         });
 
-        await adminClient.query<Codegen.CreatePromotionMutation, Codegen.CreatePromotionMutationVariables>(
-            CREATE_PROMOTION,
-            {
-                input: {
-                    enabled: true,
-                    couponCode: COUPON_NO_SAVE,
-                    conditions: [],
-                    actions: [{ code: sideEffectNoSaveAction.code, arguments: [] }],
-                    translations: [{ languageCode: LanguageCode.en, name: 'No-save side effect promo' }],
-                },
+        await adminClient.query(createPromotionDocument, {
+            input: {
+                enabled: true,
+                couponCode: COUPON_NO_SAVE,
+                conditions: [],
+                actions: [{ code: sideEffectNoSaveAction.code, arguments: [] }],
+                translations: [{ languageCode: LanguageCode.en, name: 'No-save side effect promo' }],
             },
-        );
+        });
 
-        await adminClient.query<Codegen.CreatePromotionMutation, Codegen.CreatePromotionMutationVariables>(
-            CREATE_PROMOTION,
-            {
-                input: {
-                    enabled: true,
-                    couponCode: COUPON_WITH_SAVE,
-                    conditions: [],
-                    actions: [{ code: sideEffectWithSaveAction.code, arguments: [] }],
-                    translations: [{ languageCode: LanguageCode.en, name: 'With-save side effect promo' }],
-                },
+        await adminClient.query(createPromotionDocument, {
+            input: {
+                enabled: true,
+                couponCode: COUPON_WITH_SAVE,
+                conditions: [],
+                actions: [{ code: sideEffectWithSaveAction.code, arguments: [] }],
+                translations: [{ languageCode: LanguageCode.en, name: 'With-save side effect promo' }],
             },
-        );
+        });
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -224,15 +212,11 @@ describe('Promotion side effects on OrderLine customFields', () => {
         it('onActivate persists customField changes', async () => {
             await shopClient.asAnonymousUser();
 
-            await shopClient.query<
-                CodegenShop.AddItemToOrderMutation,
-                CodegenShop.AddItemToOrderMutationVariables
-            >(ADD_ITEM_TO_ORDER, { productVariantId: 'T_1', quantity: 1 });
+            await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity: 1 });
 
-            const { applyCouponCode } = await shopClient.query<
-                CodegenShop.ApplyCouponCodeMutation,
-                CodegenShop.ApplyCouponCodeMutationVariables
-            >(APPLY_COUPON_CODE, { couponCode: COUPON_NO_SAVE });
+            const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, {
+                couponCode: COUPON_NO_SAVE,
+            });
             orderResultGuard.assertSuccess(applyCouponCode);
             noSaveLineId = applyCouponCode.lines[0].id;
 
@@ -241,10 +225,7 @@ describe('Promotion side effects on OrderLine customFields', () => {
         });
 
         it('onDeactivate persists customField changes', async () => {
-            await shopClient.query<
-                CodegenShop.RemoveCouponCodeMutation,
-                CodegenShop.RemoveCouponCodeMutationVariables
-            >(REMOVE_COUPON_CODE, { couponCode: COUPON_NO_SAVE });
+            await shopClient.query(removeCouponCodeDocument, { couponCode: COUPON_NO_SAVE });
 
             const orderLine = await getOrderLineFromDb(internalId(noSaveLineId));
             expect((orderLine.customFields as any).promoTag).toBe('deactivated');
@@ -257,15 +238,11 @@ describe('Promotion side effects on OrderLine customFields', () => {
         it('onActivate persists customField changes', async () => {
             await shopClient.asAnonymousUser();
 
-            await shopClient.query<
-                CodegenShop.AddItemToOrderMutation,
-                CodegenShop.AddItemToOrderMutationVariables
-            >(ADD_ITEM_TO_ORDER, { productVariantId: 'T_1', quantity: 1 });
+            await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity: 1 });
 
-            const { applyCouponCode } = await shopClient.query<
-                CodegenShop.ApplyCouponCodeMutation,
-                CodegenShop.ApplyCouponCodeMutationVariables
-            >(APPLY_COUPON_CODE, { couponCode: COUPON_WITH_SAVE });
+            const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, {
+                couponCode: COUPON_WITH_SAVE,
+            });
             orderResultGuard.assertSuccess(applyCouponCode);
             withSaveLineId = applyCouponCode.lines[0].id;
 
@@ -274,10 +251,7 @@ describe('Promotion side effects on OrderLine customFields', () => {
         });
 
         it('onDeactivate persists customField changes', async () => {
-            await shopClient.query<
-                CodegenShop.RemoveCouponCodeMutation,
-                CodegenShop.RemoveCouponCodeMutationVariables
-            >(REMOVE_COUPON_CODE, { couponCode: COUPON_WITH_SAVE });
+            await shopClient.query(removeCouponCodeDocument, { couponCode: COUPON_WITH_SAVE });
 
             const orderLine = await getOrderLineFromDb(internalId(withSaveLineId));
             expect((orderLine.customFields as any).promoTag).toBe('deactivated');
@@ -293,15 +267,11 @@ describe('Promotion side effects on OrderLine customFields', () => {
         beforeAll(async () => {
             // Create and place an order with the coupon applied
             await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
-            await shopClient.query<
-                CodegenShop.AddItemToOrderMutation,
-                CodegenShop.AddItemToOrderMutationVariables
-            >(ADD_ITEM_TO_ORDER, { productVariantId: 'T_1', quantity: 1 });
+            await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity: 1 });
 
-            const { applyCouponCode } = await shopClient.query<
-                CodegenShop.ApplyCouponCodeMutation,
-                CodegenShop.ApplyCouponCodeMutationVariables
-            >(APPLY_COUPON_CODE, { couponCode: COUPON_NO_SAVE });
+            const { applyCouponCode } = await shopClient.query(applyCouponCodeDocument, {
+                couponCode: COUPON_NO_SAVE,
+            });
             orderResultGuard.assertSuccess(applyCouponCode);
             orderLineId = applyCouponCode.lines[0].id;
 
@@ -318,14 +288,14 @@ describe('Promotion side effects on OrderLine customFields', () => {
 
         it('onDeactivate persists customField changes when coupon removed via modifyOrder', async () => {
             // Transition to Modifying state
-            const { transitionOrderToState } = await adminClient.query<
-                Codegen.AdminTransitionMutation,
-                Codegen.AdminTransitionMutationVariables
-            >(ADMIN_TRANSITION_TO_STATE, { id: placedOrderId, state: 'Modifying' });
+            const { transitionOrderToState } = await adminClient.query(adminTransitionToStateDocument, {
+                id: placedOrderId,
+                state: 'Modifying',
+            });
             orderGuard.assertSuccess(transitionOrderToState);
 
             // Modify the order: remove the coupon code
-            const { modifyOrder } = await adminClient.query(MODIFY_ORDER, {
+            const { modifyOrder } = await adminClient.query(modifyOrderPromoSideEffectsDocument, {
                 input: {
                     dryRun: false,
                     orderId: placedOrderId,

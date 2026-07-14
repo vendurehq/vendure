@@ -36,6 +36,7 @@ import {
     VariantChannelMessageData,
 } from '../types';
 
+import { dedupeSearchIndexItems } from './index-item-utils';
 import { MutableRequestContext } from './mutable-request-context';
 
 export const BATCH_SIZE = 1000;
@@ -375,6 +376,10 @@ export class IndexerController {
             where,
             take,
             skip,
+            // Ordering makes the take/skip pagination deterministic, otherwise variants
+            // can be repeated or skipped across batches when the catalog is concurrently
+            // modified during a reindex.
+            order: { id: 'ASC' },
             relationLoadStrategy: 'query',
         });
         return { variants, count };
@@ -435,74 +440,81 @@ export class IndexerController {
                 channelIds = unique(channelIds);
 
                 for (const channel of variant.channels) {
-                    ctx.setChannel(channel);
-                    await this.productPriceApplicator.applyChannelPriceAndTax(variant, ctx);
-                    const item = new SearchIndexItem({
-                        channelId: ctx.channelId,
-                        languageCode,
-                        productVariantId: variant.id,
-                        price: variant.price,
-                        priceWithTax: variant.priceWithTax,
-                        sku: variant.sku,
-                        enabled: product.enabled === false ? false : variant.enabled,
-                        slug: productTranslation?.slug ?? '',
-                        productId: product.id,
-                        productName: productTranslation?.name ?? '',
-                        description: this.constrainDescription(productTranslation?.description ?? ''),
-                        productVariantName: variantTranslation?.name ?? '',
-                        productAssetId: product.featuredAsset ? product.featuredAsset.id : null,
-                        productPreviewFocalPoint: product.featuredAsset
-                            ? product.featuredAsset.focalPoint
-                            : null,
-                        productVariantPreviewFocalPoint: variant.featuredAsset
-                            ? variant.featuredAsset.focalPoint
-                            : null,
-                        productVariantAssetId: variant.featuredAsset ? variant.featuredAsset.id : null,
-                        productPreview: product.featuredAsset ? product.featuredAsset.preview : '',
-                        productVariantPreview: variant.featuredAsset ? variant.featuredAsset.preview : '',
-                        channelIds: channelIds.map(x => x.toString()),
-                        facetIds: this.getFacetIds(variant, product),
-                        facetValueIds: this.getFacetValueIds(variant, product),
-                        collectionIds: variant.collections.map(c => c.id.toString()),
-                        collectionSlugs:
-                            collectionTranslations.map(c => c?.slug).filter(notNullOrUndefined) ?? [],
-                    });
-                    if (this.options.indexStockStatus) {
-                        item.inStock =
-                            0 < (await this.productVariantService.getSaleableStockLevel(ctx, variant));
-                        const productInStock = await this.requestContextCache.get(
-                            ctx,
-                            `productVariantsStock-${ctx.channelId}-${variant.productId}`,
-                            () =>
-                                this.connection
-                                    .getRepository(ctx, ProductVariant)
-                                    .find({
-                                        loadEagerRelations: false,
-                                        where: {
-                                            productId: variant.productId,
-                                            deletedAt: IsNull(),
-                                        },
-                                    })
-                                    .then(_variants =>
-                                        Promise.all(
-                                            _variants.map(v =>
-                                                this.productVariantService.getSaleableStockLevel(ctx, v),
+                    const availableCurrencyCodes = this.options.indexCurrencyCode
+                        ? unique(channel.availableCurrencyCodes)
+                        : [channel.defaultCurrencyCode];
+
+                    for (const currencyCode of availableCurrencyCodes) {
+                        const ch = new Channel({ ...channel, defaultCurrencyCode: currencyCode });
+                        ctx.setChannel(ch);
+
+                        await this.productPriceApplicator.applyChannelPriceAndTax(variant, ctx);
+                        const item = new SearchIndexItem({
+                            channelId: ctx.channelId,
+                            languageCode,
+                            currencyCode,
+                            productVariantId: variant.id,
+                            price: variant.price,
+                            priceWithTax: variant.priceWithTax,
+                            sku: variant.sku,
+                            enabled: product.enabled === false ? false : variant.enabled,
+                            slug: productTranslation?.slug ?? '',
+                            productId: product.id,
+                            productName: productTranslation?.name ?? '',
+                            description: this.constrainDescription(productTranslation?.description ?? ''),
+                            productVariantName: variantTranslation?.name ?? '',
+                            productAssetId: product.featuredAsset ? product.featuredAsset.id : null,
+                            productPreviewFocalPoint: product.featuredAsset
+                                ? product.featuredAsset.focalPoint
+                                : null,
+                            productVariantPreviewFocalPoint: variant.featuredAsset
+                                ? variant.featuredAsset.focalPoint
+                                : null,
+                            productVariantAssetId: variant.featuredAsset ? variant.featuredAsset.id : null,
+                            productPreview: product.featuredAsset ? product.featuredAsset.preview : '',
+                            productVariantPreview: variant.featuredAsset ? variant.featuredAsset.preview : '',
+                            channelIds: channelIds.map(x => x.toString()),
+                            facetIds: this.getFacetIds(variant, product),
+                            facetValueIds: this.getFacetValueIds(variant, product),
+                            collectionIds: variant.collections.map(c => c.id.toString()),
+                            collectionSlugs:
+                                collectionTranslations.map(c => c?.slug).filter(notNullOrUndefined) ?? [],
+                        });
+                        if (this.options.indexStockStatus) {
+                            item.inStock =
+                                0 < (await this.productVariantService.getSaleableStockLevel(ctx, variant));
+                            const productInStock = await this.requestContextCache.get(
+                                ctx,
+                                `productVariantsStock-${variant.productId}-${ctx.channelId}`,
+                                () =>
+                                    this.connection
+                                        .getRepository(ctx, ProductVariant)
+                                        .find({
+                                            loadEagerRelations: false,
+                                            where: {
+                                                productId: variant.productId,
+                                                deletedAt: IsNull(),
+                                            },
+                                        })
+                                        .then(_variants =>
+                                            Promise.all(
+                                                _variants.map(v =>
+                                                    this.productVariantService.getSaleableStockLevel(ctx, v),
+                                                ),
                                             ),
-                                        ),
-                                    )
-                                    .then(stockLevels => stockLevels.some(stockLevel => 0 < stockLevel)),
-                        );
-                        item.productInStock = productInStock;
+                                        )
+                                        .then(stockLevels => stockLevels.some(stockLevel => 0 < stockLevel)),
+                            );
+                            item.productInStock = productInStock;
+                        }
+                        items.push(item);
                     }
-                    items.push(item);
                 }
             }
         }
         ctx.setChannel(originalChannel);
 
-        await this.queue.push(() =>
-            this.connection.getRepository(ctx, SearchIndexItem).save(items, { chunk: 2500 }),
-        );
+        await this.queue.push(() => this.upsertSearchIndexItems(ctx, items));
     }
 
     /**
@@ -513,6 +525,7 @@ export class IndexerController {
         const productTranslation = this.getTranslation(product, ctx.languageCode);
         const item = new SearchIndexItem({
             channelId: ctx.channelId,
+            currencyCode: ctx.currencyCode,
             languageCode: ctx.languageCode,
             productVariantId: 0,
             price: 0,
@@ -536,7 +549,32 @@ export class IndexerController {
             collectionIds: [],
             collectionSlugs: [],
         });
-        await this.queue.push(() => this.connection.getRepository(ctx, SearchIndexItem).save(item));
+        await this.queue.push(() => this.upsertSearchIndexItems(ctx, [item]));
+    }
+
+    /**
+     * Persists the given items with an atomic upsert on the composite primary key, so that
+     * concurrent index writes (e.g. a reindex racing an update job in another worker process,
+     * or synthetic variant-less product rows, which all share `productVariantId: 0`) converge
+     * on the latest state rather than throwing a duplicate-key error, as the non-atomic
+     * check-then-insert of `save()` does.
+     * See https://github.com/vendurehq/vendure/issues/4805
+     */
+    private async upsertSearchIndexItems(ctx: RequestContext, items: SearchIndexItem[]) {
+        // The primary key is derived from the entity metadata because it is dynamic:
+        // the `indexCurrencyCode` option adds `currencyCode` as a fourth primary column.
+        const primaryKeyProperties = this.connection.rawConnection
+            .getMetadata(SearchIndexItem)
+            .primaryColumns.map(column => column.propertyName);
+        const dedupedItems = dedupeSearchIndexItems(items, primaryKeyProperties);
+        const repository = this.connection.getRepository(ctx, SearchIndexItem);
+        // A SearchIndexItem row binds ~24 parameters, so 500 rows per statement stays
+        // safely within the bound-parameter limits of all supported drivers (the lowest
+        // being sqlite's 32766).
+        const chunkSize = 500;
+        for (let i = 0; i < dedupedItems.length; i += chunkSize) {
+            await repository.upsert(dedupedItems.slice(i, i + chunkSize), primaryKeyProperties);
+        }
     }
 
     /**

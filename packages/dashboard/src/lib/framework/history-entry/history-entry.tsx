@@ -87,7 +87,7 @@ export function HistoryEntry({
             >
                 <div className={cn(`relative z-10 flex-shrink-0`, isPrimary ? 'ml-0' : 'ml-2 mt-1')}>
                     <div
-                        className={`rounded-full flex items-center justify-center ${isPrimary ? 'h-6 w-6' : 'h-2 w-2 border'} ${timelineIconClassName ?? ''}  ${isPrimary ? 'shadow-sm' : 'shadow-none'}`}
+                        className={`rounded-full flex items-center justify-center ${isPrimary ? 'h-6 w-6' : 'h-2 w-2 border'} ${timelineIconClassName ?? ''}`}
                     >
                         <div className={isPrimary ? 'text-current scale-80' : 'text-current scale-0'}>
                             {timelineIcon ?? ''}

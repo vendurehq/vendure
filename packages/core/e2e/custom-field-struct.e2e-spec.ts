@@ -1,12 +1,13 @@
 import { mergeConfig } from '@vendure/core';
-import { createTestEnvironment } from '@vendure/testing';
-import gql from 'graphql-tag';
+import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
+import { graphql } from './graphql/graphql-admin';
+import { graphql as graphqlShop, ResultOf } from './graphql/graphql-shop';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 import { fixPostgresTimezone } from './utils/fix-pg-timezone';
 
@@ -56,9 +57,9 @@ const customConfig = mergeConfig(testConfig(), {
                     {
                         name: 'stringWithValidationFn',
                         type: 'string',
-                        validate: value => {
+                        validate: (value: string) => {
                             if (value !== 'valid') {
-                                return `The value ['${value as string}'] is not valid`;
+                                return `The value ['${value}'] is not valid`;
                             }
                         },
                     },
@@ -101,6 +102,10 @@ const customConfig = mergeConfig(testConfig(), {
     },
 });
 
+const productGuard: ErrorResultGuard<
+    NonNullable<ResultOf<typeof getProductWithStructAttributesDocument>['product']>
+> = createErrorResultGuard(input => !!input);
+
 describe('Custom field struct type', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(customConfig);
 
@@ -118,32 +123,7 @@ describe('Custom field struct type', () => {
     });
 
     it('globalSettings.serverConfig.customFieldConfig resolves struct fields', async () => {
-        const { globalSettings } = await adminClient.query(gql`
-            query {
-                globalSettings {
-                    serverConfig {
-                        customFieldConfig {
-                            Product {
-                                ... on CustomField {
-                                    name
-                                    type
-                                    list
-                                }
-                                ... on StructCustomFieldConfig {
-                                    fields {
-                                        ... on StructField {
-                                            name
-                                            type
-                                            list
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        `);
+        const { globalSettings } = await adminClient.query(getGlobalSettingsCustomFieldConfigDocument);
 
         expect(globalSettings.serverConfig.customFieldConfig.Product).toEqual([
             {
@@ -163,33 +143,7 @@ describe('Custom field struct type', () => {
     });
 
     it('globalSettings.serverConfig.entityCustomFields resolves struct fields', async () => {
-        const { globalSettings } = await adminClient.query(gql`
-            query {
-                globalSettings {
-                    serverConfig {
-                        entityCustomFields {
-                            entityName
-                            customFields {
-                                ... on CustomField {
-                                    name
-                                    type
-                                    list
-                                }
-                                ... on StructCustomFieldConfig {
-                                    fields {
-                                        ... on StructField {
-                                            name
-                                            type
-                                            list
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        `);
+        const { globalSettings } = await adminClient.query(getGlobalSettingsEntityCustomFieldsDocument);
 
         const productEntry = globalSettings.serverConfig.entityCustomFields.find(
             (e: any) => e.entityName === 'Product',
@@ -215,23 +169,9 @@ describe('Custom field struct type', () => {
     });
 
     it('struct fields initially null', async () => {
-        const result = await adminClient.query(gql`
-            query {
-                product(id: "T_1") {
-                    id
-                    customFields {
-                        attributes {
-                            color
-                            size
-                            material
-                            weight
-                            isDownloadable
-                            releaseDate
-                        }
-                    }
-                }
-            }
-        `);
+        const result = await adminClient.query(getProductWithStructAttributesDocument);
+
+        productGuard.assertSuccess(result.product);
 
         expect(result.product.customFields.attributes).toEqual({
             color: null,
@@ -244,37 +184,7 @@ describe('Custom field struct type', () => {
     });
 
     it('update all fields in struct', async () => {
-        const result = await adminClient.query(gql`
-            mutation {
-                updateProduct(
-                    input: {
-                        id: "T_1"
-                        customFields: {
-                            attributes: {
-                                color: "red"
-                                size: "L"
-                                material: "cotton"
-                                weight: 123
-                                isDownloadable: true
-                                releaseDate: "2021-01-01T12:00:00.000Z"
-                            }
-                        }
-                    }
-                ) {
-                    id
-                    customFields {
-                        attributes {
-                            color
-                            size
-                            material
-                            weight
-                            isDownloadable
-                            releaseDate
-                        }
-                    }
-                }
-            }
-        `);
+        const result = await adminClient.query(updateProductWithAllStructFieldsDocument);
 
         expect(result.updateProduct.customFields.attributes).toEqual({
             color: 'red',
@@ -287,28 +197,7 @@ describe('Custom field struct type', () => {
     });
 
     it('partial update of struct fields nulls missing fields', async () => {
-        const result = await adminClient.query(gql`
-            mutation {
-                updateProduct(
-                    input: {
-                        id: "T_1"
-                        customFields: { attributes: { color: "red", size: "L", material: "cotton" } }
-                    }
-                ) {
-                    id
-                    customFields {
-                        attributes {
-                            color
-                            size
-                            material
-                            weight
-                            isDownloadable
-                            releaseDate
-                        }
-                    }
-                }
-            }
-        `);
+        const result = await adminClient.query(updateProductWithPartialStructFieldsDocument);
 
         expect(result.updateProduct.customFields.attributes).toEqual({
             color: 'red',
@@ -321,28 +210,8 @@ describe('Custom field struct type', () => {
     });
 
     it('updating OrderLine custom fields', async () => {
-        const result = await shopClient.query(gql`
-            mutation {
-                addItemToOrder(
-                    productVariantId: "T_1"
-                    quantity: 1
-                    customFields: { fromBundle: { bundleId: "bundle-1", bundleName: "Bundle 1" } }
-                ) {
-                    ... on Order {
-                        id
-                        lines {
-                            id
-                            customFields {
-                                fromBundle {
-                                    bundleId
-                                    bundleName
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        `);
+        const result = await shopClient.query(addItemToOrderWithBundleDocument);
+        orderGuard.assertSuccess(result.addItemToOrder);
 
         expect(result.addItemToOrder.lines[0].customFields).toEqual({
             fromBundle: {
@@ -353,21 +222,7 @@ describe('Custom field struct type', () => {
     });
 
     it('updating Address custom fields', async () => {
-        const result = await adminClient.query(gql`
-            mutation {
-                updateCustomerAddress(
-                    input: { id: "T_1", customFields: { geoLocation: { latitude: 1.23, longitude: 4.56 } } }
-                ) {
-                    id
-                    customFields {
-                        geoLocation {
-                            latitude
-                            longitude
-                        }
-                    }
-                }
-            }
-        `);
+        const result = await adminClient.query(updateCustomerAddressWithGeoLocationDocument);
 
         expect(result.updateCustomerAddress.customFields).toEqual({
             geoLocation: {
@@ -378,46 +233,24 @@ describe('Custom field struct type', () => {
     });
 
     it('updating OrderAddress custom fields', async () => {
-        const result = await shopClient.query(
-            gql`
-                mutation SetShippingAddress($input: CreateAddressInput!) {
-                    setOrderShippingAddress(input: $input) {
-                        ... on Order {
-                            id
-                            shippingAddress {
-                                customFields {
-                                    geoLocation {
-                                        latitude
-                                        longitude
-                                    }
-                                }
-                            }
-                        }
-                        ... on ErrorResult {
-                            errorCode
-                            message
-                        }
-                    }
-                }
-            `,
-            {
-                input: {
-                    fullName: 'name',
-                    streetLine1: '12 the street',
-                    city: 'foo',
-                    postalCode: '123456',
-                    countryCode: 'US',
-                    customFields: {
-                        geoLocation: {
-                            latitude: 1.23,
-                            longitude: 4.56,
-                        },
+        const result = await shopClient.query(setOrderShippingAddressWithGeoLocationDocument, {
+            input: {
+                fullName: 'name',
+                streetLine1: '12 the street',
+                city: 'foo',
+                postalCode: '123456',
+                countryCode: 'US',
+                customFields: {
+                    geoLocation: {
+                        latitude: 1.23,
+                        longitude: 4.56,
                     },
                 },
             },
-        );
+        });
+        orderShippingGuard.assertSuccess(result.setOrderShippingAddress);
 
-        expect(result.setOrderShippingAddress.shippingAddress.customFields).toEqual({
+        expect((result.setOrderShippingAddress.shippingAddress as any).customFields).toEqual({
             geoLocation: {
                 latitude: 1.23,
                 longitude: 4.56,
@@ -427,49 +260,14 @@ describe('Custom field struct type', () => {
 
     describe('struct list', () => {
         it('is initially an empty array', async () => {
-            const result = await adminClient.query(gql`
-                query {
-                    customer(id: "T_1") {
-                        customFields {
-                            coupons {
-                                code
-                                discount
-                                used
-                            }
-                        }
-                    }
-                }
-            `);
+            const result = await adminClient.query(getCustomerCouponsDocument);
+            customerQueryGuard.assertSuccess(result.customer);
             expect(result.customer.customFields.coupons).toEqual([]);
         });
 
         it('sets list values', async () => {
-            const result = await adminClient.query(gql`
-                mutation {
-                    updateCustomer(
-                        input: {
-                            id: "T_1"
-                            customFields: {
-                                coupons: [
-                                    { code: "ABC", discount: 10, used: false }
-                                    { code: "DEF", discount: 20, used: true }
-                                ]
-                            }
-                        }
-                    ) {
-                        ... on Customer {
-                            id
-                            customFields {
-                                coupons {
-                                    code
-                                    discount
-                                    used
-                                }
-                            }
-                        }
-                    }
-                }
-            `);
+            const result = await adminClient.query(updateCustomerCouponsDocument);
+            customerGuard.assertSuccess(result.updateCustomer);
 
             expect(result.updateCustomer.customFields).toEqual({
                 coupons: [
@@ -482,41 +280,16 @@ describe('Custom field struct type', () => {
 
     describe('struct field list', () => {
         it('is initially an empty array', async () => {
-            const result = await adminClient.query(gql`
-                query {
-                    customer(id: "T_1") {
-                        id
-                        customFields {
-                            company {
-                                phoneNumbers
-                            }
-                        }
-                    }
-                }
-            `);
-
+            const result = await adminClient.query(getCustomerCompanyDocument);
+            customerQueryGuard.assertSuccess(result.customer);
             expect(result.customer.customFields.company).toEqual({
                 phoneNumbers: [],
             });
         });
 
         it('set list field values', async () => {
-            const result = await adminClient.query(gql`
-                mutation {
-                    updateCustomer(
-                        input: { id: "T_1", customFields: { company: { phoneNumbers: ["123", "456"] } } }
-                    ) {
-                        ... on Customer {
-                            id
-                            customFields {
-                                company {
-                                    phoneNumbers
-                                }
-                            }
-                        }
-                    }
-                }
-            `);
+            const result = await adminClient.query(updateCustomerCompanyDocument);
+            customerGuard.assertSuccess(result.updateCustomer);
 
             expect(result.updateCustomer.customFields.company).toEqual({
                 phoneNumbers: ['123', '456'],
@@ -528,57 +301,363 @@ describe('Custom field struct type', () => {
         it(
             'string pattern',
             assertThrowsWithMessage(async () => {
-                await adminClient.query(gql`
-                    mutation {
-                        updateCustomer(
-                            input: {
-                                id: "T_1"
-                                customFields: { withValidation: { stringWithPattern: "abc" } }
-                            }
-                        ) {
-                            ... on Customer {
-                                id
-                            }
-                        }
-                    }
-                `);
+                await adminClient.query(updateCustomerWithInvalidPatternDocument);
             }, `The custom field "stringWithPattern" value ["abc"] does not match the pattern [^[0-9][a-z]+$]`),
         );
 
         it(
             'number range',
             assertThrowsWithMessage(async () => {
-                await adminClient.query(gql`
-                    mutation {
-                        updateCustomer(
-                            input: { id: "T_1", customFields: { withValidation: { numberWithRange: 15 } } }
-                        ) {
-                            ... on Customer {
-                                id
-                            }
-                        }
-                    }
-                `);
+                await adminClient.query(updateCustomerWithInvalidRangeDocument);
             }, `The custom field "numberWithRange" value [15] is greater than the maximum [10]`),
         );
         it(
             'validate function',
             assertThrowsWithMessage(async () => {
-                await adminClient.query(gql`
-                    mutation {
-                        updateCustomer(
-                            input: {
-                                id: "T_1"
-                                customFields: { withValidation: { stringWithValidationFn: "bad" } }
-                            }
-                        ) {
-                            ... on Customer {
-                                id
-                            }
-                        }
-                    }
-                `);
+                await adminClient.query(updateCustomerWithInvalidValidationDocument);
             }, `The value ['bad'] is not valid`),
         );
     });
 });
+
+// Error Result Guards
+type OrderWithCustomFields = Extract<
+    ResultOf<typeof addItemToOrderWithBundleDocument>['addItemToOrder'],
+    { id: string }
+>;
+const orderGuard: ErrorResultGuard<OrderWithCustomFields> = createErrorResultGuard(input => !!input.lines);
+
+type OrderWithShippingAddress = Extract<
+    ResultOf<typeof setOrderShippingAddressWithGeoLocationDocument>['setOrderShippingAddress'],
+    { id: string }
+>;
+
+const orderShippingGuard: ErrorResultGuard<OrderWithShippingAddress> = createErrorResultGuard(
+    input => !!input.shippingAddress,
+);
+
+type CustomerWithCoupons = Extract<
+    ResultOf<typeof updateCustomerCouponsDocument>['updateCustomer'],
+    { id: string }
+>;
+const customerGuard: ErrorResultGuard<CustomerWithCoupons> = createErrorResultGuard(
+    input => !!input.customFields,
+);
+
+type CustomerQueryResult = NonNullable<ResultOf<typeof getCustomerCouponsDocument>['customer']>;
+const customerQueryGuard: ErrorResultGuard<CustomerQueryResult> = createErrorResultGuard(input => !!input);
+
+// GraphQL Documents
+const getGlobalSettingsCustomFieldConfigDocument = graphql(`
+    query GetGlobalSettingsCustomFieldConfig {
+        globalSettings {
+            serverConfig {
+                customFieldConfig {
+                    Product {
+                        ... on CustomField {
+                            name
+                            type
+                            list
+                        }
+                        ... on StructCustomFieldConfig {
+                            fields {
+                                ... on StructField {
+                                    name
+                                    type
+                                    list
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+`);
+
+const getGlobalSettingsEntityCustomFieldsDocument = graphql(`
+    query GetGlobalSettingsEntityCustomFields {
+        globalSettings {
+            serverConfig {
+                entityCustomFields {
+                    entityName
+                    customFields {
+                        ... on CustomField {
+                            name
+                            type
+                            list
+                        }
+                        ... on StructCustomFieldConfig {
+                            fields {
+                                ... on StructField {
+                                    name
+                                    type
+                                    list
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+`);
+
+const getProductWithStructAttributesDocument = graphql(`
+    query GetProductWithStructAttributes {
+        product(id: "T_1") {
+            id
+            customFields {
+                attributes {
+                    color
+                    size
+                    material
+                    weight
+                    isDownloadable
+                    releaseDate
+                }
+            }
+        }
+    }
+`);
+
+const updateProductWithAllStructFieldsDocument = graphql(`
+    mutation UpdateProductWithAllStructFields {
+        updateProduct(
+            input: {
+                id: "T_1"
+                customFields: {
+                    attributes: {
+                        color: "red"
+                        size: "L"
+                        material: "cotton"
+                        weight: 123
+                        isDownloadable: true
+                        releaseDate: "2021-01-01T12:00:00.000Z"
+                    }
+                }
+            }
+        ) {
+            id
+            customFields {
+                attributes {
+                    color
+                    size
+                    material
+                    weight
+                    isDownloadable
+                    releaseDate
+                }
+            }
+        }
+    }
+`);
+
+const updateProductWithPartialStructFieldsDocument = graphql(`
+    mutation UpdateProductWithPartialStructFields {
+        updateProduct(
+            input: {
+                id: "T_1"
+                customFields: { attributes: { color: "red", size: "L", material: "cotton" } }
+            }
+        ) {
+            id
+            customFields {
+                attributes {
+                    color
+                    size
+                    material
+                    weight
+                    isDownloadable
+                    releaseDate
+                }
+            }
+        }
+    }
+`);
+
+const addItemToOrderWithBundleDocument = graphqlShop(`
+    mutation AddItemToOrderWithBundle {
+        addItemToOrder(
+            productVariantId: "T_1"
+            quantity: 1
+            customFields: { fromBundle: { bundleId: "bundle-1", bundleName: "Bundle 1" } }
+        ) {
+            ... on Order {
+                id
+                lines {
+                    id
+                    customFields {
+                        fromBundle {
+                            bundleId
+                            bundleName
+                        }
+                    }
+                }
+            }
+            ... on ErrorResult {
+                errorCode
+                message
+            }
+        }
+    }
+`);
+
+const updateCustomerAddressWithGeoLocationDocument = graphql(`
+    mutation UpdateCustomerAddressWithGeoLocation {
+        updateCustomerAddress(
+            input: { id: "T_1", customFields: { geoLocation: { latitude: 1.23, longitude: 4.56 } } }
+        ) {
+            id
+            customFields {
+                geoLocation {
+                    latitude
+                    longitude
+                }
+            }
+        }
+    }
+`);
+
+const setOrderShippingAddressWithGeoLocationDocument = graphqlShop(`
+    mutation SetOrderShippingAddressWithGeoLocation($input: CreateAddressInput!) {
+        setOrderShippingAddress(input: $input) {
+            ... on Order {
+                id
+                shippingAddress {
+                    customFields {
+                        geoLocation {
+                            latitude
+                            longitude
+                        }
+                    }
+                }
+            }
+            ... on ErrorResult {
+                errorCode
+                message
+            }
+        }
+    }
+`);
+
+const getCustomerCouponsDocument = graphql(`
+    query GetCustomerCoupons {
+        customer(id: "T_1") {
+            customFields {
+                coupons {
+                    code
+                    discount
+                    used
+                }
+            }
+        }
+    }
+`);
+
+const updateCustomerCouponsDocument = graphql(`
+    mutation UpdateCustomerCoupons {
+        updateCustomer(
+            input: {
+                id: "T_1"
+                customFields: {
+                    coupons: [
+                        { code: "ABC", discount: 10, used: false }
+                        { code: "DEF", discount: 20, used: true }
+                    ]
+                }
+            }
+        ) {
+            ... on Customer {
+                id
+                customFields {
+                    coupons {
+                        code
+                        discount
+                        used
+                    }
+                }
+            }
+            ... on ErrorResult {
+                errorCode
+                message
+            }
+        }
+    }
+`);
+
+const getCustomerCompanyDocument = graphql(`
+    query GetCustomerCompany {
+        customer(id: "T_1") {
+            id
+            customFields {
+                company {
+                    phoneNumbers
+                }
+            }
+        }
+    }
+`);
+
+const updateCustomerCompanyDocument = graphql(`
+    mutation UpdateCustomerCompany {
+        updateCustomer(input: { id: "T_1", customFields: { company: { phoneNumbers: ["123", "456"] } } }) {
+            ... on Customer {
+                id
+                customFields {
+                    company {
+                        phoneNumbers
+                    }
+                }
+            }
+            ... on ErrorResult {
+                errorCode
+                message
+            }
+        }
+    }
+`);
+
+const updateCustomerWithInvalidPatternDocument = graphql(`
+    mutation UpdateCustomerWithInvalidPattern {
+        updateCustomer(input: { id: "T_1", customFields: { withValidation: { stringWithPattern: "abc" } } }) {
+            ... on Customer {
+                id
+            }
+            ... on ErrorResult {
+                errorCode
+                message
+            }
+        }
+    }
+`);
+
+const updateCustomerWithInvalidRangeDocument = graphql(`
+    mutation UpdateCustomerWithInvalidRange {
+        updateCustomer(input: { id: "T_1", customFields: { withValidation: { numberWithRange: 15 } } }) {
+            ... on Customer {
+                id
+            }
+            ... on ErrorResult {
+                errorCode
+                message
+            }
+        }
+    }
+`);
+
+const updateCustomerWithInvalidValidationDocument = graphql(`
+    mutation UpdateCustomerWithInvalidValidation {
+        updateCustomer(
+            input: { id: "T_1", customFields: { withValidation: { stringWithValidationFn: "bad" } } }
+        ) {
+            ... on Customer {
+                id
+            }
+            ... on ErrorResult {
+                errorCode
+                message
+            }
+        }
+    }
+`);

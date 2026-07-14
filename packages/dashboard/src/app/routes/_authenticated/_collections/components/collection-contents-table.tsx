@@ -48,10 +48,8 @@ export function CollectionContentsTable({ collectionId }: Readonly<CollectionCon
                     header: 'Variant name',
                     cell: ({ row }) => {
                         return (
-                            <Button asChild variant="ghost">
-                                <Link to={`../../product-variants/${row.original.id}`}>
-                                    {row.original.name}{' '}
-                                </Link>
+                            <Button render={<Link to={`../../product-variants/${row.original.id}`} />} variant="ghost">
+                                {row.original.name}{' '}
                             </Button>
                         );
                     },

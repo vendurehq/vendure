@@ -95,7 +95,11 @@ export function DataTableNumberFilter({
     return (
         <div className="flex flex-col gap-2">
             <div className="flex flex-col md:flex-row gap-2">
-                <Select value={operator} onValueChange={value => setOperator(value)}>
+                <Select
+                    items={Object.fromEntries(NUMBER_OPERATORS.map(op => [op, <HumanReadableOperator key={op} operator={op} />]))}
+                    value={operator}
+                    onValueChange={value => value != null && setOperator(value)}
+                >
                     <SelectTrigger>
                         <SelectValue placeholder="Select operator" />
                     </SelectTrigger>
@@ -117,7 +121,7 @@ export function DataTableNumberFilter({
                         renderInput(value, setValue, 'Enter value...')
                     ))}
             </div>
-            {error && <p className="text-sm text-red-500">{error}</p>}
+            {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
     );
 }

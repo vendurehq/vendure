@@ -1,8 +1,7 @@
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
-import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { RichTextDescriptionCell } from '@/vdb/components/shared/table-cell/order-table-cell-components.js';
 import { Button } from '@/vdb/components/ui/button.js';
-import { PageActionBarRight } from '@/vdb/framework/layout-engine/page-layout.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
 import { Trans } from '@lingui/react/macro';
 import { createFileRoute, Link } from '@tanstack/react-router';
@@ -46,31 +45,32 @@ function ShippingMethodListPage() {
                 };
             }}
             bulkActions={[
-                {
-                    component: AssignShippingMethodsToChannelBulkAction,
-                    order: 100,
-                },
-                {
-                    component: RemoveShippingMethodsFromChannelBulkAction,
-                    order: 200,
-                },
-                {
-                    component: DeleteShippingMethodsBulkAction,
-                    order: 500,
-                },
+                [
+                    {
+                        component: AssignShippingMethodsToChannelBulkAction,
+                        order: 100,
+                    },
+                    {
+                        component: RemoveShippingMethodsFromChannelBulkAction,
+                        order: 200,
+                    },
+                ],
+                [
+                    {
+                        component: DeleteShippingMethodsBulkAction,
+                    },
+                ],
             ]}
         >
-            <PageActionBarRight>
+            <ActionBarItem itemId="test-shipping-button">
                 <TestShippingMethodsSheet />
-                <PermissionGuard requires={['CreateShippingMethod']}>
-                    <Button asChild>
-                        <Link to="./new">
-                            <PlusIcon className="mr-2 h-4 w-4" />
-                            <Trans>New Shipping Method</Trans>
-                        </Link>
-                    </Button>
-                </PermissionGuard>
-            </PageActionBarRight>
+            </ActionBarItem>
+            <ActionBarItem itemId="create-button" requiresPermission={['CreateShippingMethod']}>
+                <Button render={<Link to="./new" />}>
+                    <PlusIcon className="mr-2 h-4 w-4" />
+                    <Trans>New Shipping Method</Trans>
+                </Button>
+            </ActionBarItem>
         </ListPage>
     );
 }

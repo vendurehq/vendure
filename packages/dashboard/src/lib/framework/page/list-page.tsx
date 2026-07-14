@@ -16,7 +16,7 @@ import { AnyRoute, AnyRouter, useNavigate } from '@tanstack/react-router';
 import { ColumnFiltersState, SortingState, Table } from '@tanstack/react-table';
 import { TableOptions } from '@tanstack/table-core';
 
-import { BulkAction } from '@/vdb/framework/extension-api/types/index.js';
+import { BulkActionsInput } from '@/vdb/framework/extension-api/types/index.js';
 import {
     FullWidthPageBlock,
     Page,
@@ -48,7 +48,7 @@ export interface ListPageProps<
     pageId?: string;
     /**
      @description
-     * The Tanstack Router `Route` object, which will be defined in the component file.
+     * The TanStack Router `Route` object, which will be defined in the component file.
      */
     route: AnyRoute | (() => AnyRoute);
     /**
@@ -324,7 +324,7 @@ export interface ListPageProps<
     transformData?: (data: any[]) => any[];
     /**
      * @description
-     * Allows you to directly manipulate the Tanstack Table `TableOptions` object before the
+     * Allows you to directly manipulate the TanStack Table `TableOptions` object before the
      * table is created. And advanced option that is not often required.
      */
     setTableOptions?: (table: TableOptions<any>) => TableOptions<any>;
@@ -361,7 +361,7 @@ export interface ListPageProps<
      * />
      * ```
      */
-    bulkActions?: BulkAction[];
+    bulkActions?: BulkActionsInput;
     /**
      * @description
      * Register a function that allows you to assign a refresh function for
@@ -464,11 +464,9 @@ export interface ListPageProps<
  *             }}
  *         >
  *             <PageActionBarRight>
- *                 <Button asChild>
- *                     <Link to="./new">
- *                         <PlusIcon className="mr-2 h-4 w-4" />
- *                         New article
- *                     </Link>
+ *                 <Button render={<Link to="./new" />}>
+ *                     <PlusIcon className="mr-2 h-4 w-4" />
+ *                     New article
  *                 </Button>
  *             </PageActionBarRight>
  *         </ListPage>
@@ -516,13 +514,13 @@ export function ListPage<
 
     const pagination = {
         page: routeSearch.page ? Number.parseInt(routeSearch.page) : 1,
-        itemsPerPage: routeSearch.perPage ? Number.parseInt(routeSearch.perPage) : (tableSettings?.pageSize ?? 10),
+        itemsPerPage: routeSearch.perPage
+            ? Number.parseInt(routeSearch.perPage)
+            : (tableSettings?.pageSize ?? 10),
     };
 
-    const columnVisibility = pageId
-        ? (tableSettings?.columnVisibility ?? defaultVisibility)
-        : defaultVisibility;
-    const columnOrder = pageId ? (tableSettings?.columnOrder ?? defaultColumnOrder) : defaultColumnOrder;
+    // Column visibility/order user-settings merging is owned by useViewOptionDefaults inside
+    // PaginatedListDataTable, so only raw code defaults are passed down here.
     const columnFilters = pageId ? tableSettings?.columnFilters : routeSearch.filters;
 
     const sorting: SortingState = (routeSearch.sort ?? '')
@@ -569,8 +567,8 @@ export function ListPage<
         transformVariables,
         customizeColumns: customizeColumns as any,
         additionalColumns: additionalColumns as any,
-        defaultColumnOrder: columnOrder as any,
-        defaultVisibility: columnVisibility as any,
+        defaultColumnOrder: defaultColumnOrder as any,
+        defaultVisibility: defaultVisibility as any,
         onSearchTermChange,
         page: pagination.page,
         itemsPerPage: pagination.itemsPerPage,

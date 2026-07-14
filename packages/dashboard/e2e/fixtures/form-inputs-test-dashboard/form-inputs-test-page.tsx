@@ -8,19 +8,17 @@
 import {
     Button,
     ConfigurableFieldDef,
+    Field,
+    FieldLabel,
     Form,
-    FormControl,
     FormControlAdapter,
-    FormField,
-    FormItem,
-    FormLabel,
     FullWidthPageBlock,
     Page,
     PageLayout,
     PageTitle,
 } from '@vendure/dashboard';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 
 // Simulated custom field definitions. They must have a `readonly` property
 // so that `isCustomFieldConfig()` recognises them.
@@ -125,24 +123,22 @@ export function FormInputsTestPage() {
                         <Form {...form}>
                             <div className="space-y-6">
                                 {Object.entries(fieldDefs).map(([name, fieldDef]) => (
-                                    <FormField
+                                    <Controller
                                         key={name}
                                         control={form.control}
                                         name={name as keyof typeof form.formState.defaultValues}
                                         disabled={disabled}
                                         render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>
+                                            <Field>
+                                                <FieldLabel>
                                                     {(fieldDef as any).label?.[0]?.value ?? name}
-                                                </FormLabel>
-                                                <FormControl>
-                                                    <FormControlAdapter
-                                                        fieldDef={fieldDef}
-                                                        field={field}
-                                                        valueMode="native"
-                                                    />
-                                                </FormControl>
-                                            </FormItem>
+                                                </FieldLabel>
+                                                <FormControlAdapter
+                                                    fieldDef={fieldDef}
+                                                    field={field}
+                                                    valueMode="native"
+                                                />
+                                            </Field>
                                         )}
                                     />
                                 ))}

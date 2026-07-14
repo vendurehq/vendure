@@ -1,5 +1,3 @@
-'use client';
-
 import { Button } from '@/vdb/components/ui/button.js';
 import {
     DropdownMenu,
@@ -82,11 +80,9 @@ export function AssetBulkActions({ selection, bulkActions, refetch }: Readonly<A
                 <Trans>{selection.length} selected</Trans>
             </span>
             <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-8 shadow-none">
+                <DropdownMenuTrigger render={<Button variant="outline" size="sm" className="h-8 shadow-none" />}>
                         <Trans>With selected...</Trans>
                         <ChevronDown className="ml-2 h-4 w-4" />
-                    </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
                     {allBulkActions.length > 0 ? (

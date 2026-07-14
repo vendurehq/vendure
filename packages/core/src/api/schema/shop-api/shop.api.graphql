@@ -101,6 +101,8 @@ type Mutation {
     shipping method will apply to.
     """
     setOrderShippingMethod(shippingMethodId: [ID!]!): SetOrderShippingMethodResult!
+    "Sets the currency code for the active Order"
+    setCurrencyCodeForOrder(currencyCode: CurrencyCode!): UpdateOrderItemsResult!
     "Add a Payment to the Order"
     addPaymentToOrder(input: PaymentInput!): AddPaymentToOrderResult!
     "Set the Customer for the Order. Required only if the Customer is not currently logged in"
@@ -236,6 +238,7 @@ union AddPaymentToOrderResult =
     | PaymentDeclinedError
     | OrderStateTransitionError
     | NoActiveOrderError
+    | CouponRemovedDuringCheckoutError
 union TransitionOrderToStateResult = Order | OrderStateTransitionError
 union SetCustomerForOrderResult =
     | Order

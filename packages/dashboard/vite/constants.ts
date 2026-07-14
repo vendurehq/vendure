@@ -1,4 +1,4 @@
-import { LanguageCode } from '@vendure/core';
+import { LanguageCode } from '@vendure/common/lib/generated-types';
 
 export const defaultLanguage = LanguageCode.en;
 export const defaultLocale = undefined;
@@ -28,6 +28,8 @@ export const defaultAvailableLanguages = [
     LanguageCode.tr,
     LanguageCode.bg,
     LanguageCode.nl,
+    LanguageCode.ro,
+    LanguageCode.uz,
 ];
 
 export const defaultAvailableLocales = [

@@ -1,8 +1,7 @@
 import { ChannelCodeLabel } from '@/vdb/components/shared/channel-code-label.js';
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
-import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { Button } from '@/vdb/components/ui/button.js';
-import { PageActionBarRight } from '@/vdb/framework/layout-engine/page-layout.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { Trans } from '@lingui/react/macro';
@@ -62,20 +61,15 @@ function ChannelListPage() {
             bulkActions={[
                 {
                     component: DeleteChannelsBulkAction,
-                    order: 500,
                 },
             ]}
         >
-            <PageActionBarRight>
-                <PermissionGuard requires={['CreateChannel']}>
-                    <Button asChild>
-                        <Link to="./new">
-                            <PlusIcon className="mr-2 h-4 w-4" />
-                            <Trans>New Channel</Trans>
-                        </Link>
-                    </Button>
-                </PermissionGuard>
-            </PageActionBarRight>
+            <ActionBarItem itemId="create-button" requiresPermission={['CreateChannel']}>
+                <Button render={<Link to="./new" />}>
+                    <PlusIcon className="mr-2 h-4 w-4" />
+                    <Trans>New Channel</Trans>
+                </Button>
+            </ActionBarItem>
         </ListPage>
     );
 }

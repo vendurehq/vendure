@@ -339,7 +339,7 @@ export class ProductDataService {
             Codegen.GetProductOptionGroupsQuery,
             Codegen.GetProductOptionGroupsQueryVariables
         >(GET_PRODUCT_OPTION_GROUPS, {
-            filterTerm,
+            options: filterTerm ? { filter: { name: { contains: filterTerm } } } : undefined,
         });
     }
 

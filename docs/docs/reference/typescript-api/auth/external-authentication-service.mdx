@@ -2,7 +2,7 @@
 title: "ExternalAuthenticationService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/helpers/external-authentication/external-authentication.service.ts" sourceLine="24" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/helpers/external-authentication/external-authentication.service.ts" sourceLine="25" packageName="@vendure/core" />
 
 This is a helper service which exposes methods related to looking up and creating Users based on an
 external [AuthenticationStrategy](/reference/typescript-api/auth/authentication-strategy#authenticationstrategy).
@@ -39,11 +39,6 @@ class ExternalAuthenticationService {
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(connection: <a href='/reference/typescript-api/data-access/transactional-connection#transactionalconnection'>TransactionalConnection</a>, roleService: <a href='/reference/typescript-api/services/role-service#roleservice'>RoleService</a>, historyService: <a href='/reference/typescript-api/services/history-service#historyservice'>HistoryService</a>, customerService: <a href='/reference/typescript-api/services/customer-service#customerservice'>CustomerService</a>, administratorService: <a href='/reference/typescript-api/services/administrator-service#administratorservice'>AdministratorService</a>, channelService: <a href='/reference/typescript-api/services/channel-service#channelservice'>ChannelService</a>) => ExternalAuthenticationService`}   />
-
-
 ### findCustomerUser
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, strategy: string, externalIdentifier: string, checkCurrentChannelOnly:  = true) => Promise<<a href='/reference/typescript-api/entities/user#user'>User</a> | undefined>`}   />
@@ -68,6 +63,12 @@ If a customer has been successfully authenticated by an external authentication 
 be found using `findCustomerUser`, then we need to create a new User and
 Customer record in Vendure for that user. This method encapsulates that logic as well as additional
 housekeeping such as adding a record to the Customer's history.
+
+If a User account already exists with the same email address, the external authentication method will
+only be linked to that existing account when `config.verified` is `true`. An [AuthenticationStrategy](/reference/typescript-api/auth/authentication-strategy#authenticationstrategy)
+MUST therefore only set `verified: true` when the external provider has verified that the authenticating
+user owns the email address. Attempting to link an unverified external identity to an existing account
+will throw an [UnverifiedExternalEmailError](/reference/typescript-api/errors/error-types#unverifiedexternalemailerror).
 ### createAdministratorAndUser
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, config: {             strategy: string;             externalIdentifier: string;             identifier: string;             emailAddress?: string;             firstName?: string;             lastName?: string;             roles: <a href='/reference/typescript-api/entities/role#role'>Role</a>[];         }) => `}   />

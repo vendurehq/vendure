@@ -1,55 +1,50 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-import {
-    createErrorResultGuard,
-    createTestEnvironment,
-    E2E_DEFAULT_CHANNEL_TOKEN,
-    ErrorResultGuard,
-} from '@vendure/testing';
+import { CurrencyCode, LanguageCode, Permission } from '@vendure/common/lib/generated-types';
+import type { ErrorResultGuard } from '@vendure/testing';
+import { createErrorResultGuard, createTestEnvironment, E2E_DEFAULT_CHANNEL_TOKEN } from '@vendure/testing';
 import { fail } from 'assert';
 import gql from 'graphql-tag';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import type { FragmentOf, ResultOf } from './graphql/graphql-admin';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
+import { channelFragment, productVariantFragment } from './graphql/fragments-admin';
 import {
-    AssignProductsToChannelDocument,
-    AssignProductVariantsToChannelDocument,
-    ChannelFragment,
-    CreateAdministratorDocument,
-    CreateChannelDocument,
-    CreateProductDocument,
-    CreateProductMutation,
-    CreateProductVariantsDocument,
-    CreateRoleDocument,
-    CreateRoleMutation,
-    CurrencyCode,
-    GetChannelsDocument,
-    GetProductVariantListDocument,
-    GetProductWithVariantsDocument,
-    GetProductWithVariantsQuery,
-    LanguageCode,
-    Permission,
-    ProductVariantFragment,
-    RemoveProductsFromChannelDocument,
-    RemoveProductVariantsFromChannelDocument,
-    UpdateChannelDocument,
-    UpdateProductDocument,
-    UpdateProductVariantsDocument,
-} from './graphql/generated-e2e-admin-types';
-import { AddItemToOrderMutation, AddItemToOrderMutationVariables } from './graphql/generated-e2e-shop-types';
-import { ADD_ITEM_TO_ORDER } from './graphql/shop-definitions';
+    assignProductToChannelDocument,
+    assignProductVariantToChannelDocument,
+    createAdministratorDocument,
+    createChannelDocument,
+    createProductDocument,
+    createProductVariantsDocument,
+    createRoleDocument,
+    getChannelsDocument,
+    getProductVariantListDocument,
+    getProductWithVariantsDocument,
+    removeProductFromChannelDocument,
+    removeProductVariantFromChannelDocument,
+    updateChannelDocument,
+    updateProductDocument,
+    updateProductVariantsDocument,
+} from './graphql/shared-definitions';
+import { addItemToOrderDocument } from './graphql/shop-definitions';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 
 describe('ChannelAware Products and ProductVariants', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(testConfig());
     const SECOND_CHANNEL_TOKEN = 'second_channel_token';
     const THIRD_CHANNEL_TOKEN = 'third_channel_token';
-    let secondChannelAdminRole: CreateRoleMutation['createRole'];
+
+    let secondChannelAdminRole: ResultOf<typeof createRoleDocument>['createRole'];
     const orderResultGuard: ErrorResultGuard<{ lines: Array<{ id: string }> }> = createErrorResultGuard(
         input => !!input.lines,
     );
+    const productGuard: ErrorResultGuard<
+        NonNullable<ResultOf<typeof getProductWithVariantsDocument>['product']>
+    > = createErrorResultGuard(input => !!input.id);
+    const productVariantGuard: ErrorResultGuard<FragmentOf<typeof productVariantFragment>> =
+        createErrorResultGuard(input => !!input.id);
 
     beforeAll(async () => {
         await server.init({
@@ -59,7 +54,7 @@ describe('ChannelAware Products and ProductVariants', () => {
         });
         await adminClient.asSuperAdmin();
 
-        await adminClient.query(CreateChannelDocument, {
+        await adminClient.query(createChannelDocument, {
             input: {
                 code: 'second-channel',
                 token: SECOND_CHANNEL_TOKEN,
@@ -71,7 +66,7 @@ describe('ChannelAware Products and ProductVariants', () => {
             },
         });
 
-        await adminClient.query(CreateChannelDocument, {
+        await adminClient.query(createChannelDocument, {
             input: {
                 code: 'third-channel',
                 token: THIRD_CHANNEL_TOKEN,
@@ -83,7 +78,7 @@ describe('ChannelAware Products and ProductVariants', () => {
             },
         });
 
-        const { createRole } = await adminClient.query(CreateRoleDocument, {
+        const { createRole } = await adminClient.query(createRoleDocument, {
             input: {
                 description: 'second channel admin',
                 code: 'second-channel-admin',
@@ -99,7 +94,7 @@ describe('ChannelAware Products and ProductVariants', () => {
         });
         secondChannelAdminRole = createRole;
 
-        await adminClient.query(CreateAdministratorDocument, {
+        await adminClient.query(createAdministratorDocument, {
             input: {
                 firstName: 'Admin',
                 lastName: 'Two',
@@ -115,23 +110,24 @@ describe('ChannelAware Products and ProductVariants', () => {
     });
 
     describe('assigning Product to Channels', () => {
-        let product1: NonNullable<GetProductWithVariantsQuery['product']>;
+        let product1: NonNullable<ResultOf<typeof getProductWithVariantsDocument>['product']>;
 
         beforeAll(async () => {
             await adminClient.asSuperAdmin();
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
 
-            const { product } = await adminClient.query(GetProductWithVariantsDocument, {
+            const { product } = await adminClient.query(getProductWithVariantsDocument, {
                 id: 'T_1',
             });
-            product1 = product!;
+            productGuard.assertSuccess(product);
+            product1 = product;
         });
 
         it(
             'throws if attempting to assign Product to channel to which the admin has no access',
             assertThrowsWithMessage(async () => {
                 await adminClient.asUserWithCredentials('admin2@test.com', 'test');
-                await adminClient.query(AssignProductsToChannelDocument, {
+                await adminClient.query(assignProductToChannelDocument, {
                     input: {
                         channelId: 'T_3',
                         productIds: [product1.id],
@@ -144,7 +140,7 @@ describe('ChannelAware Products and ProductVariants', () => {
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
             const PRICE_FACTOR = 0.5;
             await adminClient.asSuperAdmin();
-            const { assignProductsToChannel } = await adminClient.query(AssignProductsToChannelDocument, {
+            const { assignProductsToChannel } = await adminClient.query(assignProductToChannelDocument, {
                 input: {
                     channelId: 'T_2',
                     productIds: [product1.id],
@@ -154,24 +150,25 @@ describe('ChannelAware Products and ProductVariants', () => {
 
             expect(assignProductsToChannel[0].channels.map(c => c.id).sort()).toEqual(['T_1', 'T_2']);
             adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
-            const { product } = await adminClient.query(GetProductWithVariantsDocument, {
+            const { product } = await adminClient.query(getProductWithVariantsDocument, {
                 id: product1.id,
             });
+            productGuard.assertSuccess(product);
 
-            expect(product!.variants.map(v => v.price)).toEqual(
+            expect(product.variants.map(v => v.price)).toEqual(
                 product1.variants.map(v => Math.round(v.price * PRICE_FACTOR)),
             );
             // Second Channel is configured to include taxes in price, so they should be the same.
-            expect(product!.variants.map(v => v.priceWithTax)).toEqual(
+            expect(product.variants.map(v => v.priceWithTax)).toEqual(
                 product1.variants.map(v => Math.round(v.priceWithTax * PRICE_FACTOR)),
             );
             // Second Channel has the default currency of GBP, so the prices should be the same.
-            expect(product!.variants.map(v => v.currencyCode)).toEqual(['GBP', 'GBP', 'GBP', 'GBP']);
+            expect(product.variants.map(v => v.currencyCode)).toEqual(['GBP', 'GBP', 'GBP', 'GBP']);
         });
 
         it('ProductVariant.channels includes all Channels from default Channel', async () => {
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
-            const { product } = await adminClient.query(GetProductWithVariantsDocument, {
+            const { product } = await adminClient.query(getProductWithVariantsDocument, {
                 id: product1.id,
             });
 
@@ -180,7 +177,7 @@ describe('ChannelAware Products and ProductVariants', () => {
 
         it('ProductVariant.channels includes only current Channel from non-default Channel', async () => {
             adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
-            const { product } = await adminClient.query(GetProductWithVariantsDocument, {
+            const { product } = await adminClient.query(getProductWithVariantsDocument, {
                 id: product1.id,
             });
 
@@ -189,7 +186,7 @@ describe('ChannelAware Products and ProductVariants', () => {
 
         it('does not assign Product to same channel twice', async () => {
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
-            const { assignProductsToChannel } = await adminClient.query(AssignProductsToChannelDocument, {
+            const { assignProductsToChannel } = await adminClient.query(assignProductToChannelDocument, {
                 input: {
                     channelId: 'T_2',
                     productIds: [product1.id],
@@ -199,10 +196,51 @@ describe('ChannelAware Products and ProductVariants', () => {
             expect(assignProductsToChannel[0].channels.map(c => c.id).sort()).toEqual(['T_1', 'T_2']);
         });
 
+        // https://github.com/vendurehq/vendure/issues/4614
+        it('assigns Product without variants to Channel', async () => {
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            await adminClient.asSuperAdmin();
+
+            // Create a product with no variants
+            const { createProduct } = await adminClient.query(createProductDocument, {
+                input: {
+                    translations: [
+                        {
+                            languageCode: LanguageCode.en,
+                            name: 'Product Without Variants',
+                            slug: 'product-without-variants',
+                            description: '',
+                        },
+                    ],
+                },
+            });
+
+            expect(createProduct.variants).toEqual([]);
+
+            // Assign the variant-less product to the second channel
+            const { assignProductsToChannel } = await adminClient.query(assignProductToChannelDocument, {
+                input: {
+                    channelId: 'T_2',
+                    productIds: [createProduct.id],
+                },
+            });
+
+            expect(assignProductsToChannel[0].channels.map(c => c.id).sort()).toEqual(['T_1', 'T_2']);
+
+            // Verify the product is visible from the second channel
+            adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
+            const { product } = await adminClient.query(getProductWithVariantsDocument, {
+                id: createProduct.id,
+            });
+            productGuard.assertSuccess(product);
+            expect(product.id).toBe(createProduct.id);
+            expect(product.name).toBe('Product Without Variants');
+        });
+
         it(
             'throws if attempting to remove Product from default Channel',
             assertThrowsWithMessage(async () => {
-                await adminClient.query(RemoveProductsFromChannelDocument, {
+                await adminClient.query(removeProductFromChannelDocument, {
                     input: {
                         productIds: [product1.id],
                         channelId: 'T_1',
@@ -214,7 +252,7 @@ describe('ChannelAware Products and ProductVariants', () => {
         it('removes Product from Channel', async () => {
             await adminClient.asSuperAdmin();
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
-            const { removeProductsFromChannel } = await adminClient.query(RemoveProductsFromChannelDocument, {
+            const { removeProductsFromChannel } = await adminClient.query(removeProductFromChannelDocument, {
                 input: {
                     productIds: [product1.id],
                     channelId: 'T_2',
@@ -226,7 +264,7 @@ describe('ChannelAware Products and ProductVariants', () => {
 
         // https://github.com/vendurehq/vendure/issues/2716
         it('querying an Order with a variant that was since removed from the channel', async () => {
-            await adminClient.query(AssignProductsToChannelDocument, {
+            await adminClient.query(assignProductToChannelDocument, {
                 input: {
                     channelId: 'T_2',
                     productIds: [product1.id],
@@ -236,17 +274,14 @@ describe('ChannelAware Products and ProductVariants', () => {
 
             // Create an order in the second channel with the variant just assigned
             shopClient.setChannelToken(SECOND_CHANNEL_TOKEN);
-            const { addItemToOrder } = await shopClient.query<
-                AddItemToOrderMutation,
-                AddItemToOrderMutationVariables
-            >(ADD_ITEM_TO_ORDER, {
+            const { addItemToOrder } = await shopClient.query(addItemToOrderDocument, {
                 productVariantId: product1.variants[0].id,
                 quantity: 1,
             });
             orderResultGuard.assertSuccess(addItemToOrder);
 
             // Now remove that variant from the second channel
-            await adminClient.query(RemoveProductsFromChannelDocument, {
+            await adminClient.query(removeProductFromChannelDocument, {
                 input: {
                     productIds: [product1.id],
                     channelId: 'T_2',
@@ -310,8 +345,8 @@ describe('ChannelAware Products and ProductVariants', () => {
                     id: addItemToOrder.id,
                 });
                 fail(`Should have thrown`);
-            } catch (e: any) {
-                expect(e.message).toContain(
+            } catch (e: unknown) {
+                expect((e as Error).message).toContain(
                     'No price information was found for ProductVariant ID "1" in the Channel "second-channel"',
                 );
             }
@@ -319,23 +354,24 @@ describe('ChannelAware Products and ProductVariants', () => {
     });
 
     describe('assigning ProductVariant to Channels', () => {
-        let product1: NonNullable<GetProductWithVariantsQuery['product']>;
+        let product1: NonNullable<ResultOf<typeof getProductWithVariantsDocument>['product']>;
 
         beforeAll(async () => {
             await adminClient.asSuperAdmin();
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
 
-            const { product } = await adminClient.query(GetProductWithVariantsDocument, {
+            const { product } = await adminClient.query(getProductWithVariantsDocument, {
                 id: 'T_2',
             });
-            product1 = product!;
+            productGuard.assertSuccess(product);
+            product1 = product;
         });
 
         it(
             'throws if attempting to assign ProductVariant to channel to which the admin has no access',
             assertThrowsWithMessage(async () => {
                 await adminClient.asUserWithCredentials('admin2@test.com', 'test');
-                await adminClient.query(AssignProductVariantsToChannelDocument, {
+                await adminClient.query(assignProductVariantToChannelDocument, {
                     input: {
                         channelId: 'T_3',
                         productVariantIds: [product1.variants[0].id],
@@ -349,7 +385,7 @@ describe('ChannelAware Products and ProductVariants', () => {
             await adminClient.asSuperAdmin();
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
             const { assignProductVariantsToChannel } = await adminClient.query(
-                AssignProductVariantsToChannelDocument,
+                assignProductVariantToChannelDocument,
                 {
                     input: {
                         channelId: 'T_3',
@@ -361,34 +397,36 @@ describe('ChannelAware Products and ProductVariants', () => {
 
             expect(assignProductVariantsToChannel[0].channels.map(c => c.id).sort()).toEqual(['T_1', 'T_3']);
             adminClient.setChannelToken(THIRD_CHANNEL_TOKEN);
-            const { product } = await adminClient.query(GetProductWithVariantsDocument, {
+            const { product } = await adminClient.query(getProductWithVariantsDocument, {
                 id: product1.id,
             });
-            expect(product!.channels.map(c => c.id).sort()).toEqual(['T_3']);
+            productGuard.assertSuccess(product);
+            expect(product.channels.map(c => c.id).sort()).toEqual(['T_3']);
             // Third Channel is configured to include taxes in price, so they should be the same.
-            expect(product!.variants.map(v => v.priceWithTax)).toEqual([
+            expect(product.variants.map(v => v.priceWithTax)).toEqual([
                 Math.round(product1.variants[0].priceWithTax * PRICE_FACTOR),
             ]);
 
             // Third Channel has the default currency EUR
-            expect(product!.variants.map(v => v.currencyCode)).toEqual(['EUR']);
+            expect(product.variants.map(v => v.currencyCode)).toEqual(['EUR']);
 
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
-            const { product: check } = await adminClient.query(GetProductWithVariantsDocument, {
+            const { product: check } = await adminClient.query(getProductWithVariantsDocument, {
                 id: product1.id,
             });
+            productGuard.assertSuccess(check);
 
             // from the default channel, all channels are visible
-            expect(check?.channels.map(c => c.id).sort()).toEqual(['T_1', 'T_3']);
-            expect(check?.variants[0].channels.map(c => c.id).sort()).toEqual(['T_1', 'T_3']);
-            expect(check?.variants[1].channels.map(c => c.id).sort()).toEqual(['T_1']);
+            expect(check.channels.map(c => c.id).sort()).toEqual(['T_1', 'T_3']);
+            expect(check.variants[0].channels.map(c => c.id).sort()).toEqual(['T_1', 'T_3']);
+            expect(check.variants[1].channels.map(c => c.id).sort()).toEqual(['T_1']);
         });
 
         it('does not assign ProductVariant to same channel twice', async () => {
             await adminClient.asSuperAdmin();
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
             const { assignProductVariantsToChannel } = await adminClient.query(
-                AssignProductVariantsToChannelDocument,
+                assignProductVariantToChannelDocument,
                 {
                     input: {
                         channelId: 'T_3',
@@ -402,7 +440,7 @@ describe('ChannelAware Products and ProductVariants', () => {
         it(
             'throws if attempting to remove ProductVariant from default Channel',
             assertThrowsWithMessage(async () => {
-                await adminClient.query(RemoveProductVariantsFromChannelDocument, {
+                await adminClient.query(removeProductVariantFromChannelDocument, {
                     input: {
                         productVariantIds: [product1.variants[0].id],
                         channelId: 'T_1',
@@ -415,7 +453,7 @@ describe('ChannelAware Products and ProductVariants', () => {
             await adminClient.asSuperAdmin();
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
             const { assignProductVariantsToChannel } = await adminClient.query(
-                AssignProductVariantsToChannelDocument,
+                assignProductVariantToChannelDocument,
                 {
                     input: {
                         channelId: 'T_3',
@@ -426,7 +464,7 @@ describe('ChannelAware Products and ProductVariants', () => {
             expect(assignProductVariantsToChannel[0].channels.map(c => c.id).sort()).toEqual(['T_1', 'T_3']);
 
             const { removeProductVariantsFromChannel } = await adminClient.query(
-                RemoveProductVariantsFromChannelDocument,
+                removeProductVariantFromChannelDocument,
                 {
                     input: {
                         productVariantIds: [product1.variants[1].id],
@@ -436,17 +474,18 @@ describe('ChannelAware Products and ProductVariants', () => {
             );
             expect(removeProductVariantsFromChannel[0].channels.map(c => c.id)).toEqual(['T_1']);
 
-            const { product } = await adminClient.query(GetProductWithVariantsDocument, {
+            const { product } = await adminClient.query(getProductWithVariantsDocument, {
                 id: product1.id,
             });
-            expect(product!.channels.map(c => c.id).sort()).toEqual(['T_1', 'T_3']);
+            productGuard.assertSuccess(product);
+            expect(product.channels.map(c => c.id).sort()).toEqual(['T_1', 'T_3']);
         });
 
         it('removes ProductVariant and Product from Channel', async () => {
             await adminClient.asSuperAdmin();
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
             const { removeProductVariantsFromChannel } = await adminClient.query(
-                RemoveProductVariantsFromChannelDocument,
+                removeProductVariantFromChannelDocument,
                 {
                     input: {
                         productVariantIds: [product1.variants[0].id],
@@ -457,21 +496,22 @@ describe('ChannelAware Products and ProductVariants', () => {
 
             expect(removeProductVariantsFromChannel[0].channels.map(c => c.id)).toEqual(['T_1']);
 
-            const { product } = await adminClient.query(GetProductWithVariantsDocument, {
+            const { product } = await adminClient.query(getProductWithVariantsDocument, {
                 id: product1.id,
             });
-            expect(product!.channels.map(c => c.id).sort()).toEqual(['T_1']);
+            productGuard.assertSuccess(product);
+            expect(product.channels.map(c => c.id).sort()).toEqual(['T_1']);
         });
     });
 
     describe('creating Product in sub-channel', () => {
-        let createdProduct: CreateProductMutation['createProduct'];
-        let createdVariant: ProductVariantFragment;
+        let createdProduct: ResultOf<typeof createProductDocument>['createProduct'];
+        let createdVariant: FragmentOf<typeof productVariantFragment>;
 
         it('creates a Product in sub-channel', async () => {
             adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
 
-            const { createProduct } = await adminClient.query(CreateProductDocument, {
+            const { createProduct } = await adminClient.query(createProductDocument, {
                 input: {
                     translations: [
                         {
@@ -483,7 +523,7 @@ describe('ChannelAware Products and ProductVariants', () => {
                     ],
                 },
             });
-            const { createProductVariants } = await adminClient.query(CreateProductVariantsDocument, {
+            const { createProductVariants } = await adminClient.query(createProductVariantsDocument, {
                 input: [
                     {
                         productId: createProduct.id,
@@ -495,7 +535,9 @@ describe('ChannelAware Products and ProductVariants', () => {
             });
 
             createdProduct = createProduct;
-            createdVariant = createProductVariants[0]!;
+            const firstVariant = createProductVariants[0];
+            productVariantGuard.assertSuccess(firstVariant);
+            createdVariant = firstVariant;
 
             // from sub-channel, only that channel is visible
             expect(createdProduct.channels.map(c => c.id).sort()).toEqual(['T_2']);
@@ -503,13 +545,14 @@ describe('ChannelAware Products and ProductVariants', () => {
 
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
 
-            const { product } = await adminClient.query(GetProductWithVariantsDocument, {
+            const { product } = await adminClient.query(getProductWithVariantsDocument, {
                 id: createProduct.id,
             });
+            productGuard.assertSuccess(product);
 
             // from the default channel, all channels are visible
-            expect(product?.channels.map(c => c.id).sort()).toEqual(['T_1', 'T_2']);
-            expect(product?.variants[0].channels.map(c => c.id).sort()).toEqual(['T_1', 'T_2']);
+            expect(product.channels.map(c => c.id).sort()).toEqual(['T_1', 'T_2']);
+            expect(product.variants[0].channels.map(c => c.id).sort()).toEqual(['T_1', 'T_2']);
         });
     });
 
@@ -518,7 +561,7 @@ describe('ChannelAware Products and ProductVariants', () => {
             'throws if attempting to update a Product which is not assigned to that Channel',
             assertThrowsWithMessage(async () => {
                 adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
-                await adminClient.query(UpdateProductDocument, {
+                await adminClient.query(updateProductDocument, {
                     input: {
                         id: 'T_2',
                         translations: [{ languageCode: LanguageCode.en, name: 'xyz' }],
@@ -530,20 +573,26 @@ describe('ChannelAware Products and ProductVariants', () => {
 
     describe('updating channel defaultCurrencyCode', () => {
         let secondChannelId: string;
-        const channelGuard: ErrorResultGuard<ChannelFragment> = createErrorResultGuard(input => !!input.id);
+        const channelGuard: ErrorResultGuard<FragmentOf<typeof channelFragment>> = createErrorResultGuard(
+            input => !!input.id,
+        );
 
         beforeAll(async () => {
-            const { channels } = await adminClient.query(GetChannelsDocument);
-            secondChannelId = channels.items.find(c => c.token === SECOND_CHANNEL_TOKEN)!.id;
+            const { channels } = await adminClient.query(getChannelsDocument);
+            const secondChannel = channels.items.find(c => c.token === SECOND_CHANNEL_TOKEN);
+            if (!secondChannel) {
+                throw new Error('Second channel not found');
+            }
+            secondChannelId = secondChannel.id;
         });
 
         it('updates variant prices from old default to new', async () => {
             adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
-            const { productVariants } = await adminClient.query(GetProductVariantListDocument, {});
+            const { productVariants } = await adminClient.query(getProductVariantListDocument, {});
 
             expect(productVariants.items.map(i => i.currencyCode)).toEqual(['GBP']);
 
-            const { updateChannel } = await adminClient.query(UpdateChannelDocument, {
+            const { updateChannel } = await adminClient.query(updateChannelDocument, {
                 input: {
                     id: secondChannelId,
                     availableCurrencyCodes: [CurrencyCode.MYR, CurrencyCode.GBP, CurrencyCode.EUR],
@@ -555,7 +604,7 @@ describe('ChannelAware Products and ProductVariants', () => {
             expect(updateChannel.defaultCurrencyCode).toBe(CurrencyCode.MYR);
 
             const { productVariants: variantsAfter } = await adminClient.query(
-                GetProductVariantListDocument,
+                getProductVariantListDocument,
                 {},
             );
 
@@ -564,9 +613,9 @@ describe('ChannelAware Products and ProductVariants', () => {
 
         it('does not change prices in other currencies', async () => {
             adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
-            const { productVariants } = await adminClient.query(GetProductVariantListDocument, {});
+            const { productVariants } = await adminClient.query(getProductVariantListDocument, {});
 
-            const { updateProductVariants } = await adminClient.query(UpdateProductVariantsDocument, {
+            const { updateProductVariants } = await adminClient.query(updateProductVariantsDocument, {
                 input: productVariants.items.map(i => ({
                     id: i.id,
                     prices: [
@@ -584,7 +633,7 @@ describe('ChannelAware Products and ProductVariants', () => {
             ]);
             expect(updateProductVariants[0]?.currencyCode).toBe('MYR');
 
-            await adminClient.query(UpdateChannelDocument, {
+            await adminClient.query(updateChannelDocument, {
                 input: {
                     id: secondChannelId,
                     availableCurrencyCodes: [
@@ -597,7 +646,7 @@ describe('ChannelAware Products and ProductVariants', () => {
                 },
             });
 
-            const { productVariants: after } = await adminClient.query(GetProductVariantListDocument, {});
+            const { productVariants: after } = await adminClient.query(getProductVariantListDocument, {});
 
             expect(after.items.map(i => i.currencyCode)).toEqual(['AUD']);
             expect(after.items[0]?.prices.sort((a, b) => a.price - b.price)).toEqual([
@@ -609,14 +658,14 @@ describe('ChannelAware Products and ProductVariants', () => {
 
         // https://github.com/vendurehq/vendure/issues/2391
         it('does not duplicate an existing price', async () => {
-            await adminClient.query(UpdateChannelDocument, {
+            await adminClient.query(updateChannelDocument, {
                 input: {
                     id: secondChannelId,
                     defaultCurrencyCode: CurrencyCode.GBP,
                 },
             });
 
-            const { productVariants: after } = await adminClient.query(GetProductVariantListDocument, {});
+            const { productVariants: after } = await adminClient.query(getProductVariantListDocument, {});
 
             expect(after.items.map(i => i.currencyCode)).toEqual(['GBP']);
             expect(after.items[0]?.prices.sort((a, b) => a.price - b.price)).toEqual([
@@ -632,7 +681,7 @@ describe('ChannelAware Products and ProductVariants', () => {
         it('find by slug with multiple channels', async () => {
             adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
 
-            const { createProduct: secondChannelProduct } = await adminClient.query(CreateProductDocument, {
+            const { createProduct: secondChannelProduct } = await adminClient.query(createProductDocument, {
                 input: {
                     translations: [
                         {
@@ -649,7 +698,7 @@ describe('ChannelAware Products and ProductVariants', () => {
 
             adminClient.setChannelToken(THIRD_CHANNEL_TOKEN);
 
-            const { createProduct: thirdChannelProduct } = await adminClient.query(CreateProductDocument, {
+            const { createProduct: thirdChannelProduct } = await adminClient.query(createProductDocument, {
                 input: {
                     translations: [
                         {
@@ -665,13 +714,13 @@ describe('ChannelAware Products and ProductVariants', () => {
             expect(thirdChannelProduct.slug).toBe('unique-slug');
 
             adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
-            const { product: result1 } = await adminClient.query(GetProductWithVariantsDocument, {
+            const { product: result1 } = await adminClient.query(getProductWithVariantsDocument, {
                 slug: 'unique-slug',
             });
             expect(result1?.name).toBe('Channel 2 Product');
 
             adminClient.setChannelToken(THIRD_CHANNEL_TOKEN);
-            const { product: result2 } = await adminClient.query(GetProductWithVariantsDocument, {
+            const { product: result2 } = await adminClient.query(getProductWithVariantsDocument, {
                 slug: 'unique-slug',
             });
             expect(result2?.name).toBe('Channel 3 Product');

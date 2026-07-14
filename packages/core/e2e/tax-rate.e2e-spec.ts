@@ -1,17 +1,20 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { DeletionResult } from '@vendure/common/lib/generated-types';
 import { pick } from '@vendure/common/lib/pick';
 import { createTestEnvironment } from '@vendure/testing';
-import gql from 'graphql-tag';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
-import { testConfig, TEST_SETUP_TIMEOUT_MS } from '../../../e2e-common/test-config';
+import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
-import { TAX_RATE_FRAGMENT } from './graphql/fragments';
-import * as Codegen from './graphql/generated-e2e-admin-types';
-import { DeletionResult } from './graphql/generated-e2e-admin-types';
-import { GET_TAX_RATES_LIST, UPDATE_TAX_RATE } from './graphql/shared-definitions';
+import {
+    createTaxRateDocument,
+    deleteTaxRateDocument,
+    getTaxRateDocument,
+    getTaxRatesListDocument,
+    updateTaxRateDocument,
+} from './graphql/shared-definitions';
 
 describe('TaxRate resolver', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(testConfig());
@@ -30,16 +33,13 @@ describe('TaxRate resolver', () => {
     });
 
     it('taxRates list', async () => {
-        const { taxRates } = await adminClient.query<Codegen.GetTaxRatesQuery>(GET_TAX_RATES_LIST);
+        const { taxRates } = await adminClient.query(getTaxRatesListDocument);
 
         expect(taxRates.totalItems).toBe(15);
     });
 
     it('taxRate', async () => {
-        const { taxRate } = await adminClient.query<
-            Codegen.GetTaxRateQuery,
-            Codegen.GetTaxRateQueryVariables
-        >(GET_TAX_RATE, {
+        const { taxRate } = await adminClient.query(getTaxRateDocument, {
             id: 'T_1',
         });
 
@@ -54,10 +54,7 @@ describe('TaxRate resolver', () => {
     });
 
     it('createTaxRate', async () => {
-        const { createTaxRate } = await adminClient.query<
-            Codegen.CreateTaxRateMutation,
-            Codegen.CreateTaxRateMutationVariables
-        >(CREATE_TAX_RATE, {
+        const { createTaxRate } = await adminClient.query(createTaxRateDocument, {
             input: {
                 name: 'My Tax Rate',
                 categoryId: 'T_1',
@@ -72,10 +69,7 @@ describe('TaxRate resolver', () => {
     });
 
     it('updateTaxRate', async () => {
-        const { updateTaxRate } = await adminClient.query<
-            Codegen.UpdateTaxRateMutation,
-            Codegen.UpdateTaxRateMutationVariables
-        >(UPDATE_TAX_RATE, {
+        const { updateTaxRate } = await adminClient.query(updateTaxRateDocument, {
             input: {
                 id: 'T_1',
                 value: 17.5,
@@ -86,44 +80,14 @@ describe('TaxRate resolver', () => {
     });
 
     it('deleteTaxRate', async () => {
-        const { deleteTaxRate } = await adminClient.query<
-            Codegen.DeleteTaxRateMutation,
-            Codegen.DeleteTaxRateMutationVariables
-        >(DELETE_TAX_RATE, {
+        const { deleteTaxRate } = await adminClient.query(deleteTaxRateDocument, {
             id: 'T_3',
         });
 
         expect(deleteTaxRate.result).toBe(DeletionResult.DELETED);
         expect(deleteTaxRate.message).toBeNull();
 
-        const { taxRates } = await adminClient.query<Codegen.GetTaxRatesQuery>(GET_TAX_RATES_LIST);
+        const { taxRates } = await adminClient.query(getTaxRatesListDocument);
         expect(taxRates.items.find(x => x.id === 'T_3')).toBeUndefined();
     });
 });
-
-export const GET_TAX_RATE = gql`
-    query GetTaxRate($id: ID!) {
-        taxRate(id: $id) {
-            ...TaxRate
-        }
-    }
-    ${TAX_RATE_FRAGMENT}
-`;
-
-export const CREATE_TAX_RATE = gql`
-    mutation CreateTaxRate($input: CreateTaxRateInput!) {
-        createTaxRate(input: $input) {
-            ...TaxRate
-        }
-    }
-    ${TAX_RATE_FRAGMENT}
-`;
-
-export const DELETE_TAX_RATE = gql`
-    mutation DeleteTaxRate($id: ID!) {
-        deleteTaxRate(id: $id) {
-            result
-            message
-        }
-    }
-`;

@@ -4,6 +4,8 @@ import { loadEnv } from 'vite';
 import { defineConfig } from 'vitest/config';
 import { vendureDashboardPlugin } from './vite/vite-plugin-vendure-dashboard.js';
 
+import { sharedTestConfig } from '../../vitest.shared.mjs';
+
 /**
  * This config is used for local development
  */
@@ -23,10 +25,17 @@ export default ({ mode }: { mode: string }) => {
               './sample-vendure-config.ts');
 
     return defineConfig({
+        optimizeDeps: {
+            include: ['lodash/get', 'lodash/isString', 'lodash/isNaN'],
+        },
         test: {
+            ...sharedTestConfig,
             globals: true,
             environment: 'jsdom',
             exclude: ['./e2e/**/*', './plugin/**/*', '**/node_modules/**/*'],
+            environmentMatchGlobs: [
+                ['vite/tests/**', 'node'],
+            ],
         },
         plugins: [
             vendureDashboardPlugin({

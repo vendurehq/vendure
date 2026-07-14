@@ -1,6 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&family=Inter:wght@100..900&display=swap');
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/public-sans';
+@import '@fontsource-variable/geist-mono';
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@import "shadcn/tailwind.css";
 
 html[dir="rtl"] * {
     direction: rtl;
@@ -11,60 +14,29 @@ html[dir="rtl"] * {
 /* @source rules from extensions will be added here by the dashboardTailwindSourcePlugin */
 
 /*
-* Important: This is not an actual import. We are pre-processing this CSS file
-* to inject the theme variables into the CSS. This import will be replaced
-* with the actual theme variables by the Vite plugin.
-*/
+ * The virtual:admin-theme import is replaced at build time by the themeVariablesPlugin.
+ * It injects :root and .dark CSS custom properties sourced from @vendure-io/design-tokens,
+ * extended with dashboard-specific tokens and any user overrides.
+ */
 @import 'virtual:admin-theme';
 
-@theme inline {
-    --color-background: var(--background);
-    --color-foreground: var(--foreground);
-    --color-card: var(--card);
-    --color-card-foreground: var(--card-foreground);
-    --color-popover: var(--popover);
-    --color-popover-foreground: var(--popover-foreground);
-    --color-primary: var(--primary);
-    --color-primary-foreground: var(--primary-foreground);
-    --color-secondary: var(--secondary);
-    --color-secondary-foreground: var(--secondary-foreground);
-    --color-muted: var(--muted);
-    --color-muted-foreground: var(--muted-foreground);
-    --color-accent: var(--accent);
-    --color-accent-foreground: var(--accent-foreground);
-    --color-destructive: var(--destructive);
-    --color-destructive-foreground: var(--destructive-foreground);
-    --color-success: var(--success);
-    --color-success-foreground: var(--success-foreground);
-    --color-dev-mode: var(--dev-mode);
-    --color-dev-mode-foreground: var(--dev-mode-foreground);
-    --color-border: var(--border);
-    --color-input: var(--input);
-    --color-ring: var(--ring);
-    --color-chart-1: var(--chart-1);
-    --color-chart-2: var(--chart-2);
-    --color-chart-3: var(--chart-3);
-    --color-chart-4: var(--chart-4);
-    --color-chart-5: var(--chart-5);
-    --radius-sm: calc(var(--radius) - 4px);
-    --radius-md: calc(var(--radius) - 2px);
-    --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) + 4px);
-    --color-sidebar-ring: var(--sidebar-ring);
-    --color-sidebar-border: var(--sidebar-border);
-    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-    --color-sidebar-accent: var(--sidebar-accent);
-    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-    --color-sidebar-primary: var(--sidebar-primary);
-    --color-sidebar-foreground: var(--sidebar-foreground);
-    --color-sidebar: var(--sidebar);
-    --color-brand: var(--brand);
-    --color-brand-lighter: var(--brand-lighter);
-    --color-brand-darker: var(--brand-darker);
-    --font-sans: var(--font-sans);
-    --font-mono: var(--font-mono);
-    --color-vendure-brand: #17c1ff;
-}
+/*
+ * Tailwind @theme inline block generated at build time by the themeVariablesPlugin.
+ * It produces --color-*, --radius-*, --shadow-*, and --font-* mappings
+ * directly from @vendure-io/design-tokens JS exports, plus dashboard-specific
+ * extensions (dev-mode, brand). This keeps the dashboard in sync with the
+ * design system without duplicating token values.
+ */
+@import 'virtual:admin-theme-inline';
+
+/*
+ * Replaced at build time by the themeVariablesPlugin with the @import
+ * statements for any stylesheets passed via the `theme.additionalStylesheets`
+ * option. Placed here so user styles participate in Tailwind's build pipeline.
+ * When no stylesheets are configured, this placeholder is removed.
+ */
+/* stylelint-disable-next-line no-invalid-position-at-import-rule */
+@import 'virtual:vendure-user-styles';
 
 @layer base {
     * {
@@ -73,11 +45,29 @@ html[dir="rtl"] * {
 
     body {
         @apply bg-background text-foreground;
+        font-family: var(--font-body);
+    }
+
+    #app {
+        isolation: isolate;
+    }
+
+    /* Restore h-svh on sidebar-gap to prevent sidebar fixed container
+       from intercepting pointer events in the main content area */
+    [data-slot="sidebar-gap"] {
+        height: 100svh;
     }
 }
 
 @utility col-main {
     grid-column: span 3 / span 3;
+}
+@utility scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    &::-webkit-scrollbar {
+        display: none;
+    }
 }
 @utility col-side {
     grid-column: span 2 / span 2;
@@ -98,3 +88,9 @@ html[dir="rtl"] * {
     }
 }
 
+/* Prevent the main content area from overflowing horizontally on mobile,
+   which otherwise extends behind the sidebar Sheet backdrop and blocks
+   tap-to-close interactions. */
+[data-slot="sidebar-inset"] {
+    overflow-x: hidden;
+}

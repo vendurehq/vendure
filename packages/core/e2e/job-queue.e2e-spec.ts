@@ -1,6 +1,6 @@
+import { JobState } from '@vendure/common/lib/generated-types';
 import { DefaultJobQueuePlugin, mergeConfig } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
-import gql from 'graphql-tag';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -8,14 +8,7 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import { PluginWithJobQueue } from './fixtures/test-plugins/with-job-queue';
-import {
-    CancelJobMutation,
-    CancelJobMutationVariables,
-    GetRunningJobsQuery,
-    GetRunningJobsQueryVariables,
-    JobState,
-} from './graphql/generated-e2e-admin-types';
-import { GET_RUNNING_JOBS } from './graphql/shared-definitions';
+import { cancelJobDocument, getRunningJobsDocument } from './graphql/shared-definitions';
 
 describe('JobQueue', () => {
     const activeConfig = testConfig();
@@ -58,7 +51,7 @@ describe('JobQueue', () => {
 
     function getJobsInTestQueue(state?: JobState) {
         return adminClient
-            .query<GetRunningJobsQuery, GetRunningJobsQueryVariables>(GET_RUNNING_JOBS, {
+            .query(getRunningJobsDocument, {
                 options: {
                     filter: {
                         queueName: {
@@ -133,12 +126,9 @@ describe('JobQueue', () => {
         expect(PluginWithJobQueue.jobHasDoneWork).toBe(false);
         const jobId = jobs.items[0].id;
 
-        const { cancelJob } = await adminClient.query<CancelJobMutation, CancelJobMutationVariables>(
-            CANCEL_JOB,
-            {
-                id: jobId,
-            },
-        );
+        const { cancelJob } = await adminClient.query(cancelJobDocument, {
+            id: jobId,
+        });
 
         expect(cancelJob.state).toBe(JobState.CANCELLED);
         expect(cancelJob.isSettled).toBe(true);
@@ -193,14 +183,3 @@ describe('JobQueue', () => {
 function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
-
-const CANCEL_JOB = gql`
-    mutation CancelJob($id: ID!) {
-        cancelJob(jobId: $id) {
-            id
-            state
-            isSettled
-            settledAt
-        }
-    }
-`;

@@ -1,4 +1,4 @@
-import { HealthIndicatorFunction } from '@nestjs/terminus';
+import { HealthIndicatorFunction } from './terminus-compat';
 
 /**
  * @description
@@ -7,9 +7,6 @@ import { HealthIndicatorFunction } from '@nestjs/terminus';
  * to determine the state of applications it is running. They are also useful for
  * administrators to get an overview of the health of all the parts of the
  * Vendure stack.
- *
- * It wraps the [Nestjs Terminus module](https://docs.nestjs.com/recipes/terminus),
- * so see those docs for information on creating custom health checks.
  *
  * Plugins which rely on external services (web services, databases etc.) can make use of this
  * service to add a check for that dependency to the Vendure health check.
@@ -25,24 +22,22 @@ import { HealthIndicatorFunction } from '@nestjs/terminus';
  * @example
  * ```ts
  * import { HealthCheckRegistryService, PluginCommonModule, VendurePlugin } from '\@vendure/core';
- * import { TerminusModule } from '\@nestjs/terminus';
  *
  * \@VendurePlugin({
- *   imports: [PluginCommonModule, TerminusModule],
+ *   imports: [PluginCommonModule],
  * })
  * export class MyPlugin {
- *   constructor(
- *     private registry: HealthCheckRegistryService
- *     private httpIndicator: HttpHealthIndicator
- *   ) {
- *     registry.registerIndicatorFunction(
- *       () => this.httpIndicator.pingCheck('vendure-docs', 'https://www.vendure.io/docs/'),
- *     )
+ *   constructor(private registry: HealthCheckRegistryService) {
+ *     registry.registerIndicatorFunction(async () => ({
+ *       'vendure-docs': { status: 'up' },
+ *     }));
  *   }
  * }
  * ```
  *
  * @docsCategory health-check
+ * @deprecated Use infrastructure-level health checks instead of application-level health checks.
+ * This service will be removed in v4.0.0.
  */
 export class HealthCheckRegistryService {
     /** @internal */
@@ -53,9 +48,11 @@ export class HealthCheckRegistryService {
 
     /**
      * @description
-     * Registers one or more `HealthIndicatorFunctions` (see [Nestjs docs](https://docs.nestjs.com/recipes/terminus#setting-up-a-healthcheck))
-     * to be added to the health check endpoint.
-     * The indicator will also appear in the Admin UI's "system status" view.
+     * Registers one or more {@link HealthIndicatorFunction}s to be added to the
+     * health check endpoint. The indicator will also appear in the Admin UI's
+     * "system status" view.
+     *
+     * @deprecated Use infrastructure-level health checks instead. This method will be removed in v4.0.0.
      */
     registerIndicatorFunction(fn: HealthIndicatorFunction | HealthIndicatorFunction[]) {
         const fnArray = Array.isArray(fn) ? fn : [fn];

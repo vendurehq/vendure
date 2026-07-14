@@ -1,10 +1,7 @@
 import { generate } from '@graphql-codegen/cli';
 import { Types } from '@graphql-codegen/plugin-helpers';
 import fs from 'fs';
-import { buildClientSchema } from 'graphql';
 import path from 'path';
-
-import { ADMIN_API_PATH, SHOP_API_PATH } from '../../packages/common/src/shared-constants';
 
 import { downloadIntrospectionSchema } from './download-introspection-schema';
 
@@ -13,52 +10,12 @@ const CLIENT_QUERY_FILES = [
     path.join(__dirname, '../../packages/admin-ui/src/lib/**/*.ts'),
 ];
 
-const specFileToIgnore = [
-    'import.e2e-spec',
-    'plugin.e2e-spec',
-    'shop-definitions',
-    'custom-fields.e2e-spec',
-    'custom-field-relations.e2e-spec',
-    'custom-field-struct.e2e-spec',
-    'custom-field-permissions.e2e-spec',
-    'custom-field-default-values.e2e-spec',
-    'order-item-price-calculation-strategy.e2e-spec',
-    'list-query-builder.e2e-spec',
-    'shop-order.e2e-spec',
-    'database-transactions.e2e-spec',
-    'custom-permissions.e2e-spec',
-    'parallel-transactions.e2e-spec',
-    'order-merge.e2e-spec',
-    'entity-hydrator.e2e-spec',
-    'relations-decorator.e2e-spec',
-    'active-order-strategy.e2e-spec',
-    'error-handler-strategy.e2e-spec',
-    'order-multi-vendor.e2e-spec',
-    'auth.e2e-spec',
-    'order-line-custom-fields.e2e-spec',
-];
-const E2E_ADMIN_QUERY_FILES = path.join(
-    __dirname,
-    `../../packages/core/e2e/**/!(${specFileToIgnore.join('|')}).ts`,
-);
-const E2E_SHOP_QUERY_FILES = [path.join(__dirname, '../../packages/core/e2e/graphql/shop-definitions.ts')];
-const E2E_ELASTICSEARCH_PLUGIN_QUERY_FILES = path.join(
-    __dirname,
-    '../../packages/elasticsearch-plugin/e2e/**/*.ts',
-);
-const E2E_ASSET_SERVER_PLUGIN_QUERY_FILES = path.join(
-    __dirname,
-    '../../packages/asset-server-plugin/e2e/**/*.ts',
-);
 const ADMIN_SCHEMA_OUTPUT_FILE = path.join(__dirname, '../../schema-admin.json');
 const SHOP_SCHEMA_OUTPUT_FILE = path.join(__dirname, '../../schema-shop.json');
 
 /* eslint-disable no-console */
 
-Promise.all([
-    downloadIntrospectionSchema(ADMIN_API_PATH, ADMIN_SCHEMA_OUTPUT_FILE),
-    downloadIntrospectionSchema(SHOP_API_PATH, SHOP_SCHEMA_OUTPUT_FILE),
-])
+Promise.all([downloadIntrospectionSchema('admin'), downloadIntrospectionSchema('shop')])
     .then(([adminSchemaSuccess, shopSchemaSuccess]) => {
         if (!adminSchemaSuccess || !shopSchemaSuccess) {
             console.log('Attempting to generate types from existing schema json files...');
@@ -66,8 +23,6 @@ Promise.all([
 
         const adminSchemaJson = JSON.parse(fs.readFileSync(ADMIN_SCHEMA_OUTPUT_FILE, 'utf-8'));
         const shopSchemaJson = JSON.parse(fs.readFileSync(SHOP_SCHEMA_OUTPUT_FILE, 'utf-8'));
-        const adminSchema = buildClientSchema(adminSchemaJson.data);
-        const shopSchema = buildClientSchema(shopSchemaJson.data);
 
         const config = {
             namingConvention: {
@@ -103,36 +58,6 @@ Promise.all([
                 )]: {
                     schema: [SHOP_SCHEMA_OUTPUT_FILE],
                     plugins: [disableEsLintPlugin, graphQlErrorsPlugin],
-                },
-                [path.join(__dirname, '../../packages/core/e2e/graphql/generated-e2e-admin-types.ts')]: {
-                    schema: [ADMIN_SCHEMA_OUTPUT_FILE],
-                    documents: E2E_ADMIN_QUERY_FILES,
-                    plugins: clientPlugins,
-                    config: e2eConfig,
-                },
-                [path.join(__dirname, '../../packages/core/e2e/graphql/generated-e2e-shop-types.ts')]: {
-                    schema: [SHOP_SCHEMA_OUTPUT_FILE],
-                    documents: E2E_SHOP_QUERY_FILES,
-                    plugins: clientPlugins,
-                    config: e2eConfig,
-                },
-                [path.join(
-                    __dirname,
-                    '../../packages/elasticsearch-plugin/e2e/graphql/generated-e2e-elasticsearch-plugin-types.ts',
-                )]: {
-                    schema: [ADMIN_SCHEMA_OUTPUT_FILE],
-                    documents: E2E_ELASTICSEARCH_PLUGIN_QUERY_FILES,
-                    plugins: clientPlugins,
-                    config: e2eConfig,
-                },
-                [path.join(
-                    __dirname,
-                    '../../packages/asset-server-plugin/e2e/graphql/generated-e2e-asset-server-plugin-types.ts',
-                )]: {
-                    schema: [ADMIN_SCHEMA_OUTPUT_FILE],
-                    documents: E2E_ASSET_SERVER_PLUGIN_QUERY_FILES,
-                    plugins: clientPlugins,
-                    config: e2eConfig,
                 },
                 [path.join(__dirname, '../../packages/admin-ui/src/lib/core/src/common/generated-types.ts')]:
                     {
@@ -176,49 +101,6 @@ Promise.all([
                         },
                         maybeValue: 'T',
                     },
-                },
-                [path.join(__dirname, '../../packages/payments-plugin/e2e/graphql/generated-admin-types.ts')]:
-                    {
-                        schema: [
-                            ADMIN_SCHEMA_OUTPUT_FILE,
-                            path.join(
-                                __dirname,
-                                '../../packages/payments-plugin/src/mollie/api-extensions.ts',
-                            ),
-                        ],
-                        documents: path.join(
-                            __dirname,
-                            '../../packages/payments-plugin/e2e/graphql/admin-queries.ts',
-                        ),
-                        plugins: clientPlugins,
-                        config: e2eConfig,
-                    },
-                [path.join(__dirname, '../../packages/payments-plugin/e2e/graphql/generated-shop-types.ts')]:
-                    {
-                        schema: [
-                            SHOP_SCHEMA_OUTPUT_FILE,
-                            path.join(
-                                __dirname,
-                                '../../packages/payments-plugin/src/mollie/api-extensions.ts',
-                            ),
-                        ],
-                        documents: path.join(
-                            __dirname,
-                            '../../packages/payments-plugin/e2e/graphql/shop-queries.ts',
-                        ),
-                        plugins: clientPlugins,
-                        config: e2eConfig,
-                    },
-                [path.join(
-                    __dirname,
-                    '../../packages/payments-plugin/src/mollie/graphql/generated-shop-types.ts',
-                )]: {
-                    schema: [
-                        SHOP_SCHEMA_OUTPUT_FILE,
-                        path.join(__dirname, '../../packages/payments-plugin/src/mollie/api-extensions.ts'),
-                    ],
-                    plugins: clientPlugins,
-                    config,
                 },
             },
         };

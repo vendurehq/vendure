@@ -45,9 +45,11 @@ export function TaxCategorySelector({ value, onChange }: Readonly<TaxCategorySel
     }
 
     return (
-        <Select value={value} onValueChange={value => value && onChange(value)}>
+        <Select items={data ? Object.fromEntries(data.taxCategories.items.map(tc => [tc.id, tc.name])) : {}} value={value ?? ''} onValueChange={value => value && onChange(value)}>
             <SelectTrigger>
-                <SelectValue placeholder={<Trans>Select a tax category</Trans>} />
+                <SelectValue placeholder={<Trans>Select a tax category</Trans>}>
+                    {(val: string) => data?.taxCategories.items.find(tc => tc.id === val)?.name}
+                </SelectValue>
             </SelectTrigger>
             <SelectContent>
                 {data && (

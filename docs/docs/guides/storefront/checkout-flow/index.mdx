@@ -374,19 +374,19 @@ mutation AddPaymentToOrder($input: PaymentInput!) {
 </TabItem>
 </Tabs>
 
+:::info
+If the order has a coupon code applied whose usage limit was exhausted by a concurrent checkout (or whose promotion was disabled or whose eligibility conditions are no longer met) and removing it would increase the customer's total, `addPaymentToOrder` returns a [`CouponRemovedDuringCheckoutError`](/reference/graphql-api/shop/object-types#couponremovedduringcheckouterror) rather than charging the customer the new (higher) total. The error includes `removedCouponCodes`, `previousTotalWithTax`, `newTotalWithTax`, and `currencyCode` so your storefront can present the customer with a clear choice to continue at the new price or abandon the checkout.
+:::
+
 Other payment integrations have specific setup instructions you must follow:
 
 ### Stripe
 
-Our [`StripePlugin docs`](/reference/core-plugins/payments-plugin/stripe-plugin/) describe how to set up your checkout to use Stripe.
+The following community plugins provide payment integrations:
 
-### Braintree
-
-Our [`BraintreePlugin` docs](/reference/core-plugins/payments-plugin/braintree-plugin/) describe how to set up your checkout to use Braintree.
-
-### Mollie
-
-Our [`MolliePlugin` docs](/reference/core-plugins/payments-plugin/mollie-plugin/) describe how to set up your checkout to use Mollie.
+- [`@vendure-community/stripe-plugin`](https://github.com/vendurehq/community-plugins)
+- [`@vendure-community/braintree-plugin`](https://github.com/vendurehq/community-plugins)
+- [`@vendure-community/mollie-plugin`](https://github.com/vendurehq/community-plugins)
 
 ### Other payment providers
 

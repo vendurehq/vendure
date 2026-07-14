@@ -143,7 +143,6 @@ export function DeleteBulkAction({
                 </Trans>
             }
             icon={TrashIcon}
-            className="text-destructive"
         />
     );
 }

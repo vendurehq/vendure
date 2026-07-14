@@ -23,9 +23,25 @@ export interface DefaultJobQueueOptions {
      * @description
      * How many jobs from a given queue to process concurrently.
      *
+     * Can be set to a function which receives the queue name and returns
+     * the concurrency limit. This is useful for limiting concurrency on
+     * queues which have resource-intensive jobs.
+     *
+     * @example
+     * ```ts
+     * DefaultJobQueuePlugin.init({
+     *   concurrency: (queueName) => {
+     *     if (queueName === 'apply-collection-filters') {
+     *       return 1;
+     *     }
+     *     return 3;
+     *   }
+     * })
+     * ```
+     *
      * @default 1
      */
-    concurrency?: number;
+    concurrency?: number | ((queueName: string) => number);
     /**
      * @description
      * The strategy used to decide how long to wait before retrying a failed job.

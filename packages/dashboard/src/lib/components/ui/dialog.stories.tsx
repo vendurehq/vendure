@@ -28,9 +28,7 @@ export const Playground: Story = {
         const [open, setOpen] = useState(false);
         return (
             <Dialog open={open} onOpenChange={setOpen}>
-                <DialogTrigger asChild>
-                    <Button>Open Dialog</Button>
-                </DialogTrigger>
+                <DialogTrigger render={<Button />}>Open Dialog</DialogTrigger>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Dialog Title</DialogTitle>

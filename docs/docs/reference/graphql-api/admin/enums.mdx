@@ -421,6 +421,7 @@ enum CurrencyCode {
   PAYMENT_METHOD_MISSING_ERROR
   REFUND_PAYMENT_ID_MISSING_ERROR
   MANUAL_PAYMENT_STATE_ERROR
+  PRODUCT_OPTION_GROUP_IN_USE_ERROR
   PRODUCT_OPTION_IN_USE_ERROR
   MISSING_CONDITIONS_ERROR
   NATIVE_AUTH_STRATEGY_ERROR
@@ -492,6 +493,7 @@ enum CurrencyCode {
   ORDER_COUPON_REMOVED
   ORDER_MODIFIED
   ORDER_CUSTOMER_UPDATED
+  ORDER_CURRENCY_UPDATED
 }`}
 </GraphQLDoc>
 
@@ -981,6 +983,14 @@ enum Permission {
   UpdateAdministrator
   """Grants permission to delete Administrator"""
   DeleteAdministrator
+  """Grants permission to create ApiKey"""
+  CreateApiKey
+  """Grants permission to read ApiKey"""
+  ReadApiKey
+  """Grants permission to update ApiKey"""
+  UpdateApiKey
+  """Grants permission to delete ApiKey"""
+  DeleteApiKey
   """Grants permission to create Asset"""
   CreateAsset
   """Grants permission to read Asset"""
@@ -1133,6 +1143,24 @@ enum Permission {
   UpdateZone
   """Grants permission to delete Zone"""
   DeleteZone
+}`}
+</GraphQLDoc>
+
+<a name="settingsstorescopetype"></a>
+
+## SettingsStoreScopeType
+
+<GraphQLDoc
+  type="enum"
+  typeName="SettingsStoreScopeType"
+  typeLinks={{}}
+>
+{`enum SettingsStoreScopeType {
+  GLOBAL
+  USER
+  CHANNEL
+  USER_AND_CHANNEL
+  CUSTOM
 }`}
 </GraphQLDoc>
 

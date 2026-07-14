@@ -62,9 +62,9 @@ export class FacetValueService {
     ): Promise<Array<Translated<FacetValue>>> {
         const [repository, languageCode, channelLanguageCode] =
             ctxOrLang instanceof RequestContext
-                ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                  [
+                ? [
                       this.connection.getRepository(ctxOrLang, FacetValue),
+                      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                       lang!,
                       ctxOrLang.channel.defaultLanguageCode,
                   ]
@@ -204,6 +204,8 @@ export class FacetValueService {
     }
 
     async update(ctx: RequestContext, input: UpdateFacetValueInput): Promise<Translated<FacetValue>> {
+        // Ensure the entity belongs to the active channel before updating.
+        await this.connection.getEntityOrThrow(ctx, FacetValue, input.id, { channelId: ctx.channelId });
         const facetValue = await this.translatableSaver.update({
             ctx,
             input,

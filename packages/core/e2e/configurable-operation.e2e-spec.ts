@@ -6,16 +6,13 @@ import {
     ShippingEligibilityChecker,
 } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
-import gql from 'graphql-tag';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
-import { testConfig, TEST_SETUP_TIMEOUT_MS } from '../../../e2e-common/test-config';
+import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
-import { UpdateShippingMethodMutationVariables } from './graphql/generated-e2e-admin-types';
-import { GetCheckersQuery, UpdateShippingMethodMutation } from './graphql/generated-e2e-admin-types';
-import { UPDATE_SHIPPING_METHOD } from './graphql/shared-definitions';
+import { getCheckersDocument, updateShippingMethodDocument } from './graphql/shared-definitions';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 
 const testShippingEligibilityChecker = new ShippingEligibilityChecker({
@@ -70,10 +67,7 @@ describe('Configurable operations', () => {
 
     describe('required args', () => {
         it('allows empty optional arg', async () => {
-            const { updateShippingMethod } = await adminClient.query<
-                UpdateShippingMethodMutation,
-                UpdateShippingMethodMutationVariables
-            >(UPDATE_SHIPPING_METHOD, {
+            const { updateShippingMethod } = await adminClient.query(updateShippingMethodDocument, {
                 input: {
                     id: 'T_1',
                     checker: {
@@ -102,48 +96,28 @@ describe('Configurable operations', () => {
         it(
             'throws if a required arg is null',
             assertThrowsWithMessage(async () => {
-                await adminClient.query<UpdateShippingMethodMutation, UpdateShippingMethodMutationVariables>(
-                    UPDATE_SHIPPING_METHOD,
-                    {
-                        input: {
-                            id: 'T_1',
-                            checker: {
-                                code: testShippingEligibilityChecker.code,
-                                arguments: [
-                                    { name: 'optional', value: 'null' },
-                                    { name: 'required', value: '' },
-                                ],
-                            },
-                            translations: [],
+                await adminClient.query(updateShippingMethodDocument, {
+                    input: {
+                        id: 'T_1',
+                        checker: {
+                            code: testShippingEligibilityChecker.code,
+                            arguments: [
+                                { name: 'optional', value: 'null' },
+                                { name: 'required', value: '' },
+                            ],
                         },
+                        translations: [],
                     },
-                );
+                });
             }, 'The argument "required" is required'),
         );
     });
 
     it('defaultValue', async () => {
-        const { shippingEligibilityCheckers } = await adminClient.query<GetCheckersQuery>(GET_CHECKERS);
+        const { shippingEligibilityCheckers } = await adminClient.query(getCheckersDocument);
         expect(shippingEligibilityCheckers[1].args.map(pick(['name', 'defaultValue']))).toEqual([
             { name: 'optional', defaultValue: null },
             { name: 'required', defaultValue: 'hello' },
         ]);
     });
 });
-
-export const GET_CHECKERS = gql`
-    query GetCheckers {
-        shippingEligibilityCheckers {
-            code
-            args {
-                defaultValue
-                description
-                label
-                list
-                name
-                required
-                type
-            }
-        }
-    }
-`;

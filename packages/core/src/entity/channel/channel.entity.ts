@@ -3,14 +3,17 @@ import { DeepPartial, ID } from '@vendure/common/lib/shared-types';
 import { Column, Entity, Index, ManyToMany, ManyToOne } from 'typeorm';
 
 import { Customer, PaymentMethod, Promotion, Role, ShippingMethod, StockLocation } from '..';
+import { ApiKey } from '../api-key/api-key.entity';
 import { VendureEntity } from '../base/base.entity';
 import { Collection } from '../collection/collection.entity';
 import { CustomChannelFields } from '../custom-entity-fields';
 import { EntityId } from '../entity-id.decorator';
-import { Facet } from '../facet/facet.entity';
 import { FacetValue } from '../facet-value/facet-value.entity';
-import { Product } from '../product/product.entity';
+import { Facet } from '../facet/facet.entity';
+import { ProductOptionGroup } from '../product-option-group/product-option-group.entity';
+import { ProductOption } from '../product-option/product-option.entity';
 import { ProductVariant } from '../product-variant/product-variant.entity';
+import { Product } from '../product/product.entity';
 import { Seller } from '../seller/seller.entity';
 import { Zone } from '../zone/zone.entity';
 
@@ -121,6 +124,12 @@ export class Channel extends VendureEntity {
     @ManyToMany(type => Facet, facet => facet.channels, { onDelete: 'CASCADE' })
     facets: Facet[];
 
+    @ManyToMany(type => ProductOptionGroup, pog => pog.channels, { onDelete: 'CASCADE' })
+    productOptionGroups: ProductOptionGroup[];
+
+    @ManyToMany(type => ProductOption, po => po.channels, { onDelete: 'CASCADE' })
+    productOptions: ProductOption[];
+
     @ManyToMany(type => Collection, collection => collection.channels, { onDelete: 'CASCADE' })
     collections: Collection[];
 
@@ -141,6 +150,9 @@ export class Channel extends VendureEntity {
 
     @ManyToMany(type => StockLocation, stockLocation => stockLocation.channels, { onDelete: 'CASCADE' })
     stockLocations: StockLocation[];
+
+    @ManyToMany(type => ApiKey, apiKey => apiKey.channels, { onDelete: 'CASCADE' })
+    apiKeys: ApiKey[];
 
     private generateToken(): string {
         const randomString = () => Math.random().toString(36).substr(3, 10);

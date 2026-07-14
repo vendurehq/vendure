@@ -119,7 +119,11 @@ export function DataTableDateTimeFilter({
     return (
         <div className="flex flex-col gap-2">
             <div className="flex flex-col md:flex-row gap-2">
-                <Select value={operator} onValueChange={value => setOperator(value)}>
+                <Select
+                    items={Object.fromEntries(DATETIME_OPERATORS.map(op => [op, <HumanReadableOperator key={op} operator={op} />]))}
+                    value={operator}
+                    onValueChange={value => { if (value != null) setOperator(value); }}
+                >
                     <SelectTrigger>
                         <SelectValue placeholder="Select operator" />
                     </SelectTrigger>
@@ -153,7 +157,7 @@ export function DataTableDateTimeFilter({
                         />
                     ))}
             </div>
-            {error && <p className="text-sm text-red-500">{error}</p>}
+            {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
     );
 }

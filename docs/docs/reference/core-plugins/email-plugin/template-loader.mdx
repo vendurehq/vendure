@@ -2,6 +2,8 @@
 title: "TemplateLoader"
 generated: true
 ---
+## TemplateLoader
+
 <GenerationInfo sourceFile="packages/email-plugin/src/template-loader/template-loader.ts" sourceLine="32" packageName="@vendure/email-plugin" />
 
 Loads email templates based on the given request context, type and template name
@@ -49,6 +51,8 @@ This method is only called during initialization, i.e. during server startup.
 
 
 </div>
+## FileBasedTemplateLoader
+
 <GenerationInfo sourceFile="packages/email-plugin/src/template-loader/file-based-template-loader.ts" sourceLine="17" packageName="@vendure/email-plugin" />
 
 Loads email templates from the local file system. This is the default
@@ -66,11 +70,6 @@ class FileBasedTemplateLoader implements TemplateLoader {
 
 
 <div className="members-wrapper">
-
-### constructor
-
-<MemberInfo kind="method" type={`(templatePath: string) => FileBasedTemplateLoader`}   />
-
 
 ### loadTemplate
 

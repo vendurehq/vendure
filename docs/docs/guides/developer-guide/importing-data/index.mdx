@@ -36,7 +36,15 @@ Here's an explanation of each column:
 * `description`: The product description.
 * `assets`: One or more asset file names separated by the pipe (`|`) character. The files can be located on the local file system, in which case the path is interpreted as being relative to the [`importAssetsDir`](/reference/typescript-api/import-export/import-export-options/#importassetsdir) as defined in the VendureConfig. Files can also be urls which will be fetched from a remote http/https url. If you need more control over how assets are imported, you can implement a custom [AssetImportStrategy](/reference/typescript-api/import-export/asset-import-strategy#assetimportstrategy). The first asset will be set as the featuredAsset.
 * `facets`: One or more facets to apply to the product separated by the pipe (`|`) character. A facet has the format `<facet-name>:<facet-value>`.
-* `optionGroups`: OptionGroups define what variants make up the product. Applies only to products with more than one variant. 
+* `optionGroups`: OptionGroups define what variants make up the product. Applies only to products with more than one variant. By default, each product gets its own option groups. To **share an option group** across multiple products (e.g. a common "Size" group for all shoes), use the `name:code` syntax: `size:shoe-size`. All products that reference the same code will share a single option group. Products using a plain name (e.g. just `size`) will each get their own independent option group. For example:
+  ```csv
+  ...optionGroups     , optionValues , ...
+  # Each shoe product shares a single "shoe-size" option group:
+  "size:shoe-size"    , Small        , ...
+  "size:shoe-size"    , Medium       , ...
+  # This product gets its own independent "size" group:
+  "size"              , 4GB          , ...
+  ```
 * `optionValues`: For each optionGroup defined, a corresponding value must be specified for each variant. Applies only to products with more than one variant.
 * `sku`: The Stock Keeping Unit (unique product code) for this product variant.
 * `price`: The price can be either with or without taxes, depending on your channel settings (can be set later).

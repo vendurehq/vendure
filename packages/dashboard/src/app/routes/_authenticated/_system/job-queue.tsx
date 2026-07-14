@@ -6,7 +6,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/vdb/components/ui/dropdown-menu.js';
-import { PageActionBarRight } from '@/vdb/framework/layout-engine/page-layout.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
 import { api } from '@/vdb/graphql/api.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
@@ -15,7 +15,7 @@ import { useMutation } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import {
     Ban,
-    CheckCircle2Icon,
+    CheckIcon,
     ChevronDown,
     CircleXIcon,
     ClockIcon,
@@ -25,8 +25,52 @@ import {
     RotateCcw,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { CancelJobsBulkAction } from './components/cancel-jobs-bulk-action.js';
 import { PayloadDialog } from './components/payload-dialog.js';
 import { cancelJobDocument, jobListDocument, jobQueueListDocument } from './job-queue.graphql.js';
+
+function formatDuration(ms: number): string {
+    if (ms < 1000) {
+        return `${ms}ms`;
+    }
+
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    const parts: string[] = [];
+
+    if (days > 0) {
+        parts.push(`${days}d`);
+    }
+    if (hours % 24 > 0) {
+        parts.push(`${hours % 24}h`);
+    }
+    if (minutes % 60 > 0) {
+        parts.push(`${minutes % 60}m`);
+    }
+    if (seconds % 60 > 0) {
+        parts.push(`${seconds % 60}s`);
+    }
+
+    return parts.join(' ');
+}
+
+function getJobStateBadgeVariant(state: string) {
+    switch (state) {
+        case 'PENDING':
+        case 'RETRYING':
+            return 'warning';
+        case 'COMPLETED':
+            return 'success';
+        case 'FAILED':
+        case 'CANCELLED':
+            return 'destructive';
+        default:
+            return 'secondary';
+    }
+}
 
 export const Route = createFileRoute('/_authenticated/_system/job-queue')({
     component: JobQueuePage,
@@ -42,7 +86,7 @@ const STATES = [
     {
         label: 'Completed',
         value: 'COMPLETED',
-        icon: CheckCircle2Icon,
+        icon: CheckIcon,
     },
     {
         label: 'Running',
@@ -107,9 +151,7 @@ function JobQueuePage() {
             customizeColumns={{
                 createdAt: {
                     cell: ({ row }) => (
-                        <div title={row.original.createdAt}>
-                            {formatRelativeDate(row.original.createdAt)}
-                        </div>
+                        <div title={row.original.createdAt}>{formatRelativeDate(row.original.createdAt)}</div>
                     ),
                 },
                 data: {
@@ -161,49 +203,43 @@ function JobQueuePage() {
                         });
                         const state = STATES.find(s => s.value === row.original.state);
                         return (
-                            <Badge
-                                variant={
-                                    row.original.state === 'PENDING'
-                                        ? 'secondary'
-                                        : row.original.state === 'COMPLETED'
-                                          ? 'success'
-                                          : row.original.state === 'FAILED'
-                                            ? 'destructive'
-                                            : 'outline'
-                                }
-                            >
-                                {state && <state.icon />}
-                                {row.original.state}
-                                {row.original.state === 'RUNNING' ? (
-                                    <div className="flex items-center gap-2">
-                                        <DropdownMenu
-                                            onOpenChange={open => (isActionMenuOpenRef.current = open)}
+                            <div className="flex items-center gap-2">
+                                <Badge variant={getJobStateBadgeVariant(row.original.state)}>
+                                    {state && (
+                                        <state.icon
+                                            className={
+                                                row.original.state === 'RUNNING' ? 'animate-spin' : undefined
+                                            }
+                                        />
+                                    )}
+                                    {row.original.state}
+                                </Badge>
+                                {row.original.state === 'RUNNING' && (
+                                    <DropdownMenu onOpenChange={open => (isActionMenuOpenRef.current = open)}>
+                                        <DropdownMenuTrigger
+                                            render={<Button variant="ghost" size="icon-xs" />}
                                         >
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                                                    <MoreVertical className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem
-                                                    onClick={() => cancelJobMutation.mutate(row.original.id)}
-                                                    disabled={cancelJobMutation.isPending}
-                                                    className="text-destructive focus:text-destructive"
-                                                >
-                                                    <Ban className="mr-2 h-4 w-4" />
-                                                    <Trans>Cancel Job</Trans>
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </div>
-                                ) : null}
-                            </Badge>
+                                            <MoreVertical />
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem
+                                                onClick={() => cancelJobMutation.mutate(row.original.id)}
+                                                disabled={cancelJobMutation.isPending}
+                                                className="text-destructive focus:text-destructive"
+                                            >
+                                                <Ban />
+                                                <Trans>Cancel Job</Trans>
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                )}
+                            </div>
                         );
                     },
                 },
                 duration: {
                     cell: ({ row }) => {
-                        return row.original.duration ? `${row.original.duration}ms` : null;
+                        return row.original.duration ? formatDuration(row.original.duration) : null;
                     },
                 },
             }}
@@ -233,20 +269,24 @@ function JobQueuePage() {
                     options: STATES,
                 },
             }}
+            bulkActions={[
+                {
+                    component: CancelJobsBulkAction,
+                    order: 100,
+                },
+            ]}
             registerRefresher={refresher => {
                 refreshRef.current = refresher;
             }}
         >
-            <PageActionBarRight>
+            <ActionBarItem itemId="auto-refresh-button">
                 <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" className="gap-2">
-                            <RefreshCw className="h-4 w-4" />
-                            <span>
-                                <Trans>Auto refresh: {currentInterval?.label}</Trans>
-                            </span>
-                            <ChevronDown className="h-4 w-4" />
-                        </Button>
+                    <DropdownMenuTrigger render={<Button variant="outline" size="sm" className="gap-2" />}>
+                        <RefreshCw className="h-4 w-4" />
+                        <span>
+                            <Trans>Auto refresh: {currentInterval?.label}</Trans>
+                        </span>
+                        <ChevronDown className="h-4 w-4" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                         {REFRESH_INTERVALS.map(interval => (
@@ -260,7 +300,7 @@ function JobQueuePage() {
                         ))}
                     </DropdownMenuContent>
                 </DropdownMenu>
-            </PageActionBarRight>
+            </ActionBarItem>
         </ListPage>
     );
 }

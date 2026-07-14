@@ -1,8 +1,8 @@
+import { toast } from '@/vdb/components/ui/sonner.js';
 import { extendDetailFormQuery } from '@/vdb/framework/document-extension/extend-detail-form-query.js';
 import { useLingui } from '@lingui/react/macro';
 import { DocumentNode } from 'graphql';
 import { useEffect, useMemo, useRef } from 'react';
-import { toast } from 'sonner';
 
 /**
  * @description

@@ -67,11 +67,9 @@ export function CountrySelector(props: CountrySelectorProps) {
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" type="button" disabled={props.readOnly} className="gap-2">
+            <PopoverTrigger render={<Button variant="outline" size="sm" type="button" disabled={props.readOnly} className="gap-2" />}>
                     <Plus className="h-4 w-4" />
                     {props.label ?? <Trans>Select country</Trans>}
-                </Button>
             </PopoverTrigger>
             <PopoverContent className="p-0 w-[350px]" align="start">
                 <Command shouldFilter={false}>

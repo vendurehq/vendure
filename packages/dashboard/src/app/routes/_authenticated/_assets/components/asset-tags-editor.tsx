@@ -131,16 +131,14 @@ export function AssetTagsEditor({
             {/* Tag selector */}
             {!disabled && (
                 <Popover open={open} onOpenChange={setOpen}>
-                    <PopoverTrigger asChild>
-                        <Button
+                    <PopoverTrigger render={<Button
                             variant="outline"
                             role="combobox"
                             aria-expanded={open}
                             className="w-full justify-between"
-                        >
-                            <Trans>Add tags...</Trans>
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
+                        />}>
+                        <Trans>Add tags...</Trans>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </PopoverTrigger>
                     <PopoverContent className="w-full p-0" align="start">
                         <Command>

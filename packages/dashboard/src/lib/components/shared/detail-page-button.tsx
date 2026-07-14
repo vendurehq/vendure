@@ -49,11 +49,9 @@ export function DetailPageButton({
         return <span>{label}</span>;
     }
     return (
-        <Button asChild variant="ghost" disabled={disabled} className={className}>
-            <Link to={href ?? `./${id}`} search={search ?? {}} preload={false}>
+        <Button render={<Link to={href ?? `./${id}`} search={search ?? {}} preload={false} />} variant="ghost" disabled={disabled} className={className}>
                 {label}
                 {!disabled && <ChevronRight className="h-3 w-3 text-muted-foreground" />}
-            </Link>
         </Button>
     );
 }

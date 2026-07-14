@@ -16,7 +16,7 @@ test.describe('Issue #4327: Collection filters with same type share state', () =
             newTitle: 'New collection',
         });
 
-    test.fixme('should maintain independent state for two filters of the same type', async ({ page }) => {
+    test('should maintain independent state for two filters of the same type', async ({ page }) => {
         const dp = detailPage(page);
         await dp.gotoNew();
         await dp.expectNewPageLoaded();
@@ -28,26 +28,21 @@ test.describe('Issue #4327: Collection filters with same type share state', () =
         await page.getByRole('button', { name: /Add collection filter/i }).click();
         await page.getByRole('menuitem', { name: /Filter by product variant name/i }).click();
 
-        // Fill the first filter's term
-        const termInputs = page.locator('[data-slot="form-item"]').filter({
-            has: page.getByText('Term', { exact: true }),
-        });
-        await termInputs.first().getByRole('textbox').fill('shirt');
+        // Fill the first filter's term input (identified by input name attribute,
+        // which comes from the configurable operation arg name and is stable)
+        const termInputs = page.locator('input[name="term"]');
+        await termInputs.first().fill('shirt');
 
         // Add second "Filter by product variant name" filter
         await page.getByRole('button', { name: /Add collection filter/i }).click();
         await page.getByRole('menuitem', { name: /Filter by product variant name/i }).click();
 
         // Fill the second filter's term with a DIFFERENT value
-        // After adding the second filter, there should be two "Term" inputs
-        const allTermInputs = page.locator('[data-slot="form-item"]').filter({
-            has: page.getByText('Term', { exact: true }),
-        });
-        await allTermInputs.last().getByRole('textbox').fill('pants');
+        await page.locator('input[name="term"]').last().fill('pants');
 
         // Verify the first filter's term is still "shirt" (not overwritten by "pants")
-        await expect(allTermInputs.first().getByRole('textbox')).toHaveValue('shirt');
+        await expect(termInputs.first()).toHaveValue('shirt');
         // Verify the second filter's term is "pants"
-        await expect(allTermInputs.last().getByRole('textbox')).toHaveValue('pants');
+        await expect(page.locator('input[name="term"]').last()).toHaveValue('pants');
     });
 });

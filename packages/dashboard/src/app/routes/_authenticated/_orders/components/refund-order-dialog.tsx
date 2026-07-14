@@ -28,7 +28,11 @@ import { uiConfig } from 'virtual:vendure-ui-config';
 
 import { useRefundOrder } from '../hooks/use-refund-order.js';
 import { Order } from '../utils/order-types.js';
-import { getMaxRefundableQuantity, lineCanBeRefunded } from '../utils/order-utils.js';
+import {
+    getMaxRefundableQuantity,
+    getRefundableQuantity,
+    lineCanBeRefunded,
+} from '../utils/order-utils.js';
 
 interface RefundOrderDialogProps {
     readonly order: Order;
@@ -110,6 +114,7 @@ export const RefundOrderDialog = forwardRef<RefundOrderDialogRef, RefundOrderDia
                                         {order.lines.map(line => {
                                             const canRefund = lineCanBeRefunded(order, line);
                                             const maxRefundable = getMaxRefundableQuantity(order, line);
+                                            const refundableQuantity = getRefundableQuantity(line);
                                             const selection = refund.lineSelections[line.id];
 
                                             if (!canRefund) return null;
@@ -138,8 +143,8 @@ export const RefundOrderDialog = forwardRef<RefundOrderDialogRef, RefundOrderDia
                                                         )}
                                                     </td>
                                                     <td className="p-2 text-center">
-                                                        {line.orderPlacedQuantity}
-                                                        {maxRefundable < line.orderPlacedQuantity && (
+                                                        {refundableQuantity}
+                                                        {maxRefundable < refundableQuantity && (
                                                             <div className="text-xs text-muted-foreground">
                                                                 <Trans>({maxRefundable} refundable)</Trans>
                                                             </div>
@@ -152,6 +157,7 @@ export const RefundOrderDialog = forwardRef<RefundOrderDialogRef, RefundOrderDia
                                                             max={maxRefundable}
                                                             value={selection?.quantity || ''}
                                                             placeholder="0"
+                                                            data-testid="refund-quantity"
                                                             onChange={e => {
                                                                 const value = Math.min(
                                                                     Math.max(0, Number.parseInt(e.target.value, 10) || 0),
@@ -215,7 +221,11 @@ export const RefundOrderDialog = forwardRef<RefundOrderDialogRef, RefundOrderDia
                             <Label className="text-base font-medium">
                                 <Trans>Reason</Trans>
                             </Label>
-                            <Select value={refund.selectedReason} onValueChange={refund.setSelectedReason}>
+                            <Select
+                                items={Object.fromEntries(refundReasons.map(r => [r.value, getTranslatedRefundReason(r.label)]))}
+                                value={refund.selectedReason}
+                                onValueChange={(value) => { if (value != null) refund.setSelectedReason(value) }}
+                            >
                                 <SelectTrigger className="w-full">
                                     <SelectValue placeholder={t`Select a reason...`} />
                                 </SelectTrigger>

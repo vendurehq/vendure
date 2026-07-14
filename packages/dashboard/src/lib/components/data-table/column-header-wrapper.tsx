@@ -71,27 +71,25 @@ export function ColumnHeaderWrapper({ children, columnId }: Readonly<ColumnHeade
                     )}
                 >
                     <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-                        <PopoverTrigger asChild>
-                            <DevModeButton className={`h-5 w-5`} />
-                        </PopoverTrigger>
+                        <PopoverTrigger render={<DevModeButton className={`h-5 w-5 end-1 top-1`} />} />
                         <PopoverContent className="w-48 p-3">
                             <div className="space-y-2">
                                 <div className="space-y-1">
                                     {pageId && (
                                         <div className="text-xs">
                                             <div className="text-muted-foreground mb-0.5">pageId</div>
-                                            <CopyableText text={pageId} />
+                                            <CopyableText value={pageId} />
                                         </div>
                                     )}
                                     {blockId && (
                                         <div className="text-xs">
                                             <div className="text-muted-foreground mb-0.5">blockId</div>
-                                            <CopyableText text={blockId} />
+                                            <CopyableText value={blockId} />
                                         </div>
                                     )}
                                     <div className="text-xs">
                                         <div className="text-muted-foreground mb-0.5">column</div>
-                                        <CopyableText text={columnId} />
+                                        <CopyableText value={columnId} />
                                     </div>
                                 </div>
                             </div>

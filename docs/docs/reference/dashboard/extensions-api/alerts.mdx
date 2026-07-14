@@ -2,7 +2,65 @@
 title: "Alerts"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/alerts.ts" sourceLine="11" packageName="@vendure/dashboard" since="3.3.0" />
+## AlertActionContext
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/alerts.ts" sourceLine="13" packageName="@vendure/dashboard" since="3.6.0" />
+
+The props passed to an alert action's `onClick` handler or `component`.
+
+```ts title="Signature"
+interface AlertActionContext<TResponse = any> {
+    data: TResponse;
+    dismiss: () => void;
+}
+```
+
+<div className="members-wrapper">
+
+### data
+
+<MemberInfo kind="property" type={`TResponse`}   />
+
+
+### dismiss
+
+<MemberInfo kind="property" type={`() => void`}   />
+
+
+
+
+</div>
+## DashboardAlertAction
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/alerts.ts" sourceLine="27" packageName="@vendure/dashboard" since="3.6.0" />
+
+Defines an alert action. Either provide an `onClick` handler (rendered as a default button
+with the given `label`), or a `component` for full control over rendering and hook access.
+
+```ts title="Signature"
+type DashboardAlertAction<TResponse = any> = | {
+          label: string;
+          onClick: (args: AlertActionContext<TResponse>) => void | Promise<any>;
+          component?: never;
+      }
+    | {
+          label?: string;
+          onClick?: never;
+          /**
+           * @description
+           * A React component to render as the action. This is useful when
+           * the action needs access to React hooks (e.g. `useNavigate` from TanStack Router).
+           *
+           * The component receives the alert `data` and a `dismiss` function as props.
+           *
+           * @since 3.6.0
+           */
+          component: ComponentType<AlertActionContext<TResponse>>;
+      }
+```
+## DashboardAlertDefinition
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/alerts.ts" sourceLine="56" packageName="@vendure/dashboard" since="3.3.0" />
 
 Allows you to define custom alerts that can be displayed in the dashboard.
 
@@ -15,10 +73,7 @@ interface DashboardAlertDefinition<TResponse = any> {
     check: () => Promise<TResponse> | TResponse;
     shouldShow: (data: TResponse) => boolean;
     recheckInterval?: number;
-    actions?: Array<{
-        label: string;
-        onClick: (args: { data: TResponse; dismiss: () => void }) => void | Promise<any>;
-    }>;
+    actions?: Array<DashboardAlertAction<TResponse>>;
 }
 ```
 
@@ -61,13 +116,13 @@ A function that determines whether the alert should be rendered based on the res
 The interval in milliseconds to recheck the condition.
 ### actions
 
-<MemberInfo kind="property" type={`Array<{         label: string;         onClick: (args: { data: TResponse; dismiss: () => void }) => void | Promise<any>;     }>`}   />
+<MemberInfo kind="property" type={`Array<<a href='/reference/dashboard/extensions-api/alerts#dashboardalertaction'>DashboardAlertAction</a><TResponse>>`}   />
 
 Optional actions that can be performed when the alert is shown.
 
-The `onClick()` handler will receive the data returned by the `check` function,
-as well as a `dismiss()` function that can be used to immediately dismiss the
-current alert.
+Each action is either a simple `onClick` handler (rendered as a default button
+with the given `label`), or a `component` for full control over rendering and
+access to React hooks.
 
 
 </div>

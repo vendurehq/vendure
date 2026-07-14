@@ -1,8 +1,7 @@
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
-import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
-import { PageActionBarRight } from '@/vdb/framework/layout-engine/page-layout.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
 import { Trans } from '@lingui/react/macro';
 import { createFileRoute, Link } from '@tanstack/react-router';
@@ -23,17 +22,13 @@ function CustomerListPage() {
             pageId="customer-list"
             listQuery={customerListDocument}
             onSearchTermChange={searchTerm => {
-                return {
-                    lastName: {
-                        contains: searchTerm,
-                    },
-                    emailAddress: {
-                        contains: searchTerm,
-                    },
-                    phoneNumber: {
-                        contains: searchTerm,
-                    },
-                };
+                return searchTerm
+                    ? {
+                          lastName: { contains: searchTerm },
+                          emailAddress: { contains: searchTerm },
+                          phoneNumber: { contains: searchTerm },
+                      }
+                    : {};
             }}
             transformVariables={variables => {
                 return {
@@ -88,20 +83,15 @@ function CustomerListPage() {
             bulkActions={[
                 {
                     component: DeleteCustomersBulkAction,
-                    order: 500,
                 },
             ]}
         >
-            <PageActionBarRight>
-                <PermissionGuard requires={['CreateCustomer']}>
-                    <Button asChild>
-                        <Link to="./new">
-                            <PlusIcon />
-                            <Trans>New Customer</Trans>
-                        </Link>
-                    </Button>
-                </PermissionGuard>
-            </PageActionBarRight>
+            <ActionBarItem itemId="create-button" requiresPermission={['CreateCustomer']}>
+                <Button render={<Link to="./new" />}>
+                    <PlusIcon />
+                    <Trans>New Customer</Trans>
+                </Button>
+            </ActionBarItem>
         </ListPage>
     );
 }

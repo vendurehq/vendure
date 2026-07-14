@@ -11,7 +11,18 @@ export interface AssetPreviewSelectorProps {
 export function AssetPreviewSelector({ size, setSize, width, height }: Readonly<AssetPreviewSelectorProps>) {
     return (
         <div className="flex items-center gap-2">
-            <Select value={size} onValueChange={value => setSize(value as PreviewPreset)}>
+            <Select
+                items={{
+                    tiny: 'Tiny',
+                    thumb: 'Thumb',
+                    small: 'Small',
+                    medium: 'Medium',
+                    large: 'Large',
+                    full: 'Full Size',
+                }}
+                value={size}
+                onValueChange={value => setSize(value as PreviewPreset)}
+            >
                 <SelectTrigger>
                     <SelectValue placeholder="Select size" />
                 </SelectTrigger>

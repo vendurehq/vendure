@@ -1,11 +1,10 @@
 import { ChannelCodeLabel } from '@/vdb/components/shared/channel-code-label.js';
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
-import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { RoleCodeLabel } from '@/vdb/components/shared/role-code-label.js';
 import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { CUSTOMER_ROLE_CODE, SUPER_ADMIN_ROLE_CODE } from '@/vdb/constants.js';
-import { PageActionBarRight } from '@/vdb/framework/layout-engine/page-layout.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
 import { Trans } from '@lingui/react/macro';
 import { createFileRoute, Link } from '@tanstack/react-router';
@@ -80,20 +79,15 @@ function RoleListPage() {
             bulkActions={[
                 {
                     component: DeleteRolesBulkAction,
-                    order: 500,
                 },
             ]}
         >
-            <PageActionBarRight>
-                <PermissionGuard requires={['CreateAdministrator']}>
-                    <Button asChild>
-                        <Link to="./new">
-                            <PlusIcon className="mr-2 h-4 w-4" />
-                            <Trans>New Role</Trans>
-                        </Link>
-                    </Button>
-                </PermissionGuard>
-            </PageActionBarRight>
+            <ActionBarItem itemId="create-button" requiresPermission={['CreateAdministrator']}>
+                <Button render={<Link to="./new" />}>
+                    <PlusIcon className="mr-2 h-4 w-4" />
+                    <Trans>New Role</Trans>
+                </Button>
+            </ActionBarItem>
         </ListPage>
     );
 }

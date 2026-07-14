@@ -8,7 +8,6 @@ import {
     TransactionalConnection,
 } from '@vendure/core';
 import { createTestEnvironment, E2E_DEFAULT_CHANNEL_TOKEN } from '@vendure/testing';
-import gql from 'graphql-tag';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -17,22 +16,14 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 
 import { SettingsStoreTestPlugin } from './fixtures/test-plugins/settings-store-test-plugin';
 import {
-    CreateAdministratorMutation,
-    CreateAdministratorMutationVariables,
-    CreateChannelMutation,
-    CreateChannelMutationVariables,
-    CreateRoleMutation,
-    CreateRoleMutationVariables,
-    GetSettingsStoreValueQuery,
-    GetSettingsStoreValueQueryVariables,
-    GetSettingsStoreValuesQuery,
-    GetSettingsStoreValuesQueryVariables,
-    SetSettingsStoreValueMutation,
-    SetSettingsStoreValueMutationVariables,
-    SetSettingsStoreValuesMutation,
-    SetSettingsStoreValuesMutationVariables,
-} from './graphql/generated-e2e-admin-types';
-import { CREATE_ADMINISTRATOR, CREATE_CHANNEL, CREATE_ROLE } from './graphql/shared-definitions';
+    createAdministratorDocument,
+    createChannelDocument,
+    createRoleDocument,
+    getSettingsStoreValueDocument,
+    getSettingsStoreValuesDocument,
+    setSettingsStoreValueDocument,
+    setSettingsStoreValuesDocument,
+} from './graphql/shared-definitions';
 
 describe('SettingsStore system', () => {
     const { server, adminClient } = createTestEnvironment(
@@ -56,20 +47,14 @@ describe('SettingsStore system', () => {
 
     describe('Global scoped fields', () => {
         it('should set and get a global value', async () => {
-            const { setSettingsStoreValue } = await adminClient.query<
-                SetSettingsStoreValueMutation,
-                SetSettingsStoreValueMutationVariables
-            >(SET_SETTINGS_STORE_VALUE, {
+            const { setSettingsStoreValue } = await adminClient.query(setSettingsStoreValueDocument, {
                 input: { key: 'test.globalSetting', value: 'global-value' },
             });
             expect(setSettingsStoreValue.result).toBe(true);
             expect(setSettingsStoreValue.key).toBe('test.globalSetting');
             expect(setSettingsStoreValue.error).toBeNull();
 
-            const { getSettingsStoreValue } = await adminClient.query<
-                GetSettingsStoreValueQuery,
-                GetSettingsStoreValueQueryVariables
-            >(GET_SETTINGS_STORE_VALUE, {
+            const { getSettingsStoreValue } = await adminClient.query(getSettingsStoreValueDocument, {
                 key: 'test.globalSetting',
             });
             expect(getSettingsStoreValue).toBe('global-value');
@@ -77,26 +62,20 @@ describe('SettingsStore system', () => {
 
         it('should return same global value from different contexts', async () => {
             // Create another user
-            await adminClient.query<CreateAdministratorMutation, CreateAdministratorMutationVariables>(
-                CREATE_ADMINISTRATOR,
-                {
-                    input: {
-                        firstName: 'Test',
-                        lastName: 'Admin',
-                        emailAddress: 'test@test.com',
-                        password: 'password',
-                        roleIds: ['1'], // SuperAdmin role
-                    },
+            await adminClient.query(createAdministratorDocument, {
+                input: {
+                    firstName: 'Test',
+                    lastName: 'Admin',
+                    emailAddress: 'test@test.com',
+                    password: 'password',
+                    roleIds: ['1'], // SuperAdmin role
                 },
-            );
+            });
 
             // Login as the new user and check global value
             await adminClient.asUserWithCredentials('test@test.com', 'password');
 
-            const { getSettingsStoreValue } = await adminClient.query<
-                GetSettingsStoreValueQuery,
-                GetSettingsStoreValueQueryVariables
-            >(GET_SETTINGS_STORE_VALUE, {
+            const { getSettingsStoreValue } = await adminClient.query(getSettingsStoreValueDocument, {
                 key: 'test.globalSetting',
             });
             expect(getSettingsStoreValue).toBe('global-value');
@@ -110,62 +89,53 @@ describe('SettingsStore system', () => {
 
         it('should store separate values per user', async () => {
             // Set value as superadmin
-            await adminClient.query<SetSettingsStoreValueMutation, SetSettingsStoreValueMutationVariables>(
-                SET_SETTINGS_STORE_VALUE,
-                {
-                    input: { key: 'test.userSetting', value: 'superadmin-value' },
-                },
-            );
+            await adminClient.query(setSettingsStoreValueDocument, {
+                input: { key: 'test.userSetting', value: 'superadmin-value' },
+            });
 
             // Create and switch to another user
-            await adminClient.query<CreateAdministratorMutation, CreateAdministratorMutationVariables>(
-                CREATE_ADMINISTRATOR,
-                {
-                    input: {
-                        firstName: 'Test2',
-                        lastName: 'Admin2',
-                        emailAddress: 'test2@test.com',
-                        password: 'password',
-                        roleIds: ['1'],
-                    },
+            await adminClient.query(createAdministratorDocument, {
+                input: {
+                    firstName: 'Test2',
+                    lastName: 'Admin2',
+                    emailAddress: 'test2@test.com',
+                    password: 'password',
+                    roleIds: ['1'],
                 },
-            );
+            });
 
             await adminClient.asUserWithCredentials('test2@test.com', 'password');
 
             // Should not see superadmin's value
-            const { getSettingsStoreValue: emptyValue } = await adminClient.query<
-                GetSettingsStoreValueQuery,
-                GetSettingsStoreValueQueryVariables
-            >(GET_SETTINGS_STORE_VALUE, {
-                key: 'test.userSetting',
-            });
+            const { getSettingsStoreValue: emptyValue } = await adminClient.query(
+                getSettingsStoreValueDocument,
+                {
+                    key: 'test.userSetting',
+                },
+            );
             expect(emptyValue).toBeNull();
 
             // Set different value for this user
-            await adminClient.query<SetSettingsStoreValueMutation, SetSettingsStoreValueMutationVariables>(
-                SET_SETTINGS_STORE_VALUE,
+            await adminClient.query(setSettingsStoreValueDocument, {
+                input: { key: 'test.userSetting', value: 'test2-value' },
+            });
+
+            const { getSettingsStoreValue: userValue } = await adminClient.query(
+                getSettingsStoreValueDocument,
                 {
-                    input: { key: 'test.userSetting', value: 'test2-value' },
+                    key: 'test.userSetting',
                 },
             );
-
-            const { getSettingsStoreValue: userValue } = await adminClient.query<
-                GetSettingsStoreValueQuery,
-                GetSettingsStoreValueQueryVariables
-            >(GET_SETTINGS_STORE_VALUE, {
-                key: 'test.userSetting',
-            });
             expect(userValue).toBe('test2-value');
 
             // Switch back to superadmin and verify original value
             await adminClient.asSuperAdmin();
-            const { getSettingsStoreValue: superadminValue } = await adminClient.query<
-                GetSettingsStoreValueQuery,
-                GetSettingsStoreValueQueryVariables
-            >(GET_SETTINGS_STORE_VALUE, {
-                key: 'test.userSetting',
-            });
+            const { getSettingsStoreValue: superadminValue } = await adminClient.query(
+                getSettingsStoreValueDocument,
+                {
+                    key: 'test.userSetting',
+                },
+            );
             expect(superadminValue).toBe('superadmin-value');
         });
     });
@@ -177,19 +147,13 @@ describe('SettingsStore system', () => {
             await adminClient.asSuperAdmin();
 
             // Set value in default channel
-            await adminClient.query<SetSettingsStoreValueMutation, SetSettingsStoreValueMutationVariables>(
-                SET_SETTINGS_STORE_VALUE,
-                {
-                    input: { key: 'test.channelSetting', value: 'default-channel-value' },
-                },
-            );
+            await adminClient.query(setSettingsStoreValueDocument, {
+                input: { key: 'test.channelSetting', value: 'default-channel-value' },
+            });
 
             const defaultZoneId = 'T_1';
             // Create a new channel
-            const { createChannel } = await adminClient.query<
-                CreateChannelMutation,
-                CreateChannelMutationVariables
-            >(CREATE_CHANNEL, {
+            await adminClient.query(createChannelDocument, {
                 input: {
                     code: 'test-channel',
                     token: testChannelToken,
@@ -205,39 +169,36 @@ describe('SettingsStore system', () => {
             adminClient.setChannelToken(testChannelToken);
 
             // Should not see default channel's value
-            const { getSettingsStoreValue: emptyValue } = await adminClient.query<
-                GetSettingsStoreValueQuery,
-                GetSettingsStoreValueQueryVariables
-            >(GET_SETTINGS_STORE_VALUE, {
-                key: 'test.channelSetting',
-            });
+            const { getSettingsStoreValue: emptyValue } = await adminClient.query(
+                getSettingsStoreValueDocument,
+                {
+                    key: 'test.channelSetting',
+                },
+            );
             expect(emptyValue).toBeNull();
 
             // Set different value for this channel
-            await adminClient.query<SetSettingsStoreValueMutation, SetSettingsStoreValueMutationVariables>(
-                SET_SETTINGS_STORE_VALUE,
+            await adminClient.query(setSettingsStoreValueDocument, {
+                input: { key: 'test.channelSetting', value: 'test-channel-value' },
+            });
+
+            const { getSettingsStoreValue: channelValue } = await adminClient.query(
+                getSettingsStoreValueDocument,
                 {
-                    input: { key: 'test.channelSetting', value: 'test-channel-value' },
+                    key: 'test.channelSetting',
                 },
             );
-
-            const { getSettingsStoreValue: channelValue } = await adminClient.query<
-                GetSettingsStoreValueQuery,
-                GetSettingsStoreValueQueryVariables
-            >(GET_SETTINGS_STORE_VALUE, {
-                key: 'test.channelSetting',
-            });
             expect(channelValue).toBe('test-channel-value');
 
             // Switch back to default channel and verify original value
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
 
-            const { getSettingsStoreValue: defaultValue } = await adminClient.query<
-                GetSettingsStoreValueQuery,
-                GetSettingsStoreValueQueryVariables
-            >(GET_SETTINGS_STORE_VALUE, {
-                key: 'test.channelSetting',
-            });
+            const { getSettingsStoreValue: defaultValue } = await adminClient.query(
+                getSettingsStoreValueDocument,
+                {
+                    key: 'test.channelSetting',
+                },
+            );
             expect(defaultValue).toBe('default-channel-value');
         });
     });
@@ -248,81 +209,72 @@ describe('SettingsStore system', () => {
             await adminClient.asSuperAdmin();
 
             // Set value as superadmin in default channel
-            await adminClient.query<SetSettingsStoreValueMutation, SetSettingsStoreValueMutationVariables>(
-                SET_SETTINGS_STORE_VALUE,
-                {
-                    input: { key: 'test.userAndChannelSetting', value: 'superadmin-default' },
-                },
-            );
+            await adminClient.query(setSettingsStoreValueDocument, {
+                input: { key: 'test.userAndChannelSetting', value: 'superadmin-default' },
+            });
 
             // Switch to test channel
             adminClient.setChannelToken(testChannelToken);
             // Should not see default channel value
-            const { getSettingsStoreValue: emptyValue } = await adminClient.query<
-                GetSettingsStoreValueQuery,
-                GetSettingsStoreValueQueryVariables
-            >(GET_SETTINGS_STORE_VALUE, {
-                key: 'test.userAndChannelSetting',
-            });
+            const { getSettingsStoreValue: emptyValue } = await adminClient.query(
+                getSettingsStoreValueDocument,
+                {
+                    key: 'test.userAndChannelSetting',
+                },
+            );
             expect(emptyValue).toBeNull();
 
             // Set different value for superadmin in test channel
-            await adminClient.query<SetSettingsStoreValueMutation, SetSettingsStoreValueMutationVariables>(
-                SET_SETTINGS_STORE_VALUE,
-                {
-                    input: { key: 'test.userAndChannelSetting', value: 'superadmin-test' },
-                },
-            );
+            await adminClient.query(setSettingsStoreValueDocument, {
+                input: { key: 'test.userAndChannelSetting', value: 'superadmin-test' },
+            });
 
             // Switch to test2 user in test channel
             await adminClient.asUserWithCredentials('test2@test.com', 'password');
             adminClient.setChannelToken(testChannelToken);
 
             // Should not see superadmin's value
-            const { getSettingsStoreValue: emptyUserValue } = await adminClient.query<
-                GetSettingsStoreValueQuery,
-                GetSettingsStoreValueQueryVariables
-            >(GET_SETTINGS_STORE_VALUE, {
-                key: 'test.userAndChannelSetting',
-            });
+            const { getSettingsStoreValue: emptyUserValue } = await adminClient.query(
+                getSettingsStoreValueDocument,
+                {
+                    key: 'test.userAndChannelSetting',
+                },
+            );
             expect(emptyUserValue).toBeNull();
 
             // Set value for test2 user in test channel
-            await adminClient.query<SetSettingsStoreValueMutation, SetSettingsStoreValueMutationVariables>(
-                SET_SETTINGS_STORE_VALUE,
-                {
-                    input: { key: 'test.userAndChannelSetting', value: 'test2-test' },
-                },
-            );
+            await adminClient.query(setSettingsStoreValueDocument, {
+                input: { key: 'test.userAndChannelSetting', value: 'test2-test' },
+            });
 
             // Verify all combinations maintain separate values
-            const { getSettingsStoreValue: test2TestValue } = await adminClient.query<
-                GetSettingsStoreValueQuery,
-                GetSettingsStoreValueQueryVariables
-            >(GET_SETTINGS_STORE_VALUE, {
-                key: 'test.userAndChannelSetting',
-            });
+            const { getSettingsStoreValue: test2TestValue } = await adminClient.query(
+                getSettingsStoreValueDocument,
+                {
+                    key: 'test.userAndChannelSetting',
+                },
+            );
             expect(test2TestValue).toBe('test2-test');
 
             // Switch back to superadmin in test channel
             await adminClient.asSuperAdmin();
             adminClient.setChannelToken(testChannelToken);
-            const { getSettingsStoreValue: superadminTestValue } = await adminClient.query<
-                GetSettingsStoreValueQuery,
-                GetSettingsStoreValueQueryVariables
-            >(GET_SETTINGS_STORE_VALUE, {
-                key: 'test.userAndChannelSetting',
-            });
+            const { getSettingsStoreValue: superadminTestValue } = await adminClient.query(
+                getSettingsStoreValueDocument,
+                {
+                    key: 'test.userAndChannelSetting',
+                },
+            );
             expect(superadminTestValue).toBe('superadmin-test');
 
             // Switch to default channel
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
-            const { getSettingsStoreValue: superadminDefaultValue } = await adminClient.query<
-                GetSettingsStoreValueQuery,
-                GetSettingsStoreValueQueryVariables
-            >(GET_SETTINGS_STORE_VALUE, {
-                key: 'test.userAndChannelSetting',
-            });
+            const { getSettingsStoreValue: superadminDefaultValue } = await adminClient.query(
+                getSettingsStoreValueDocument,
+                {
+                    key: 'test.userAndChannelSetting',
+                },
+            );
             expect(superadminDefaultValue).toBe('superadmin-default');
         });
     });
@@ -332,10 +284,7 @@ describe('SettingsStore system', () => {
             await adminClient.asSuperAdmin();
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
 
-            const result = await adminClient.query<
-                GetSettingsStoreValuesQuery,
-                GetSettingsStoreValuesQueryVariables
-            >(GET_SETTINGS_STORE_VALUES, {
+            const result = await adminClient.query(getSettingsStoreValuesDocument, {
                 keys: ['test.globalSetting', 'test.userSetting'],
             });
 
@@ -348,10 +297,7 @@ describe('SettingsStore system', () => {
         it('should set multiple values', async () => {
             await adminClient.asSuperAdmin();
 
-            const { setSettingsStoreValues } = await adminClient.query<
-                SetSettingsStoreValuesMutation,
-                SetSettingsStoreValuesMutationVariables
-            >(SET_SETTINGS_STORE_VALUES, {
+            const { setSettingsStoreValues } = await adminClient.query(setSettingsStoreValuesDocument, {
                 inputs: [
                     { key: 'test.bulk1', value: 'bulk-value-1' },
                     { key: 'test.bulk2', value: 'bulk-value-2' },
@@ -363,10 +309,7 @@ describe('SettingsStore system', () => {
             expect(setSettingsStoreValues[1].result).toBe(true);
             expect(setSettingsStoreValues[1].key).toBe('test.bulk2');
 
-            const result = await adminClient.query<
-                GetSettingsStoreValuesQuery,
-                GetSettingsStoreValuesQueryVariables
-            >(GET_SETTINGS_STORE_VALUES, {
+            const result = await adminClient.query(getSettingsStoreValuesDocument, {
                 keys: ['test.bulk1', 'test.bulk2'],
             });
 
@@ -390,17 +333,11 @@ describe('SettingsStore system', () => {
                 string: 'test',
             };
 
-            await adminClient.query<SetSettingsStoreValueMutation, SetSettingsStoreValueMutationVariables>(
-                SET_SETTINGS_STORE_VALUE,
-                {
-                    input: { key: 'test.complexData', value: complexData },
-                },
-            );
+            await adminClient.query(setSettingsStoreValueDocument, {
+                input: { key: 'test.complexData', value: complexData },
+            });
 
-            const { getSettingsStoreValue } = await adminClient.query<
-                GetSettingsStoreValueQuery,
-                GetSettingsStoreValueQueryVariables
-            >(GET_SETTINGS_STORE_VALUE, {
+            const { getSettingsStoreValue } = await adminClient.query(getSettingsStoreValueDocument, {
                 key: 'test.complexData',
             });
 
@@ -413,10 +350,7 @@ describe('SettingsStore system', () => {
             await adminClient.asSuperAdmin();
 
             // Try to set invalid theme value - should return structured error result
-            const invalidResult = await adminClient.query<
-                SetSettingsStoreValueMutation,
-                SetSettingsStoreValueMutationVariables
-            >(SET_SETTINGS_STORE_VALUE, {
+            const invalidResult = await adminClient.query(setSettingsStoreValueDocument, {
                 input: { key: 'test.validatedField', value: 'invalid-value' },
             });
             expect(invalidResult.setSettingsStoreValue.result).toBe(false);
@@ -424,10 +358,7 @@ describe('SettingsStore system', () => {
             expect(invalidResult.setSettingsStoreValue.error).toContain('Validation failed');
 
             // Set valid value should work
-            const { setSettingsStoreValue } = await adminClient.query<
-                SetSettingsStoreValueMutation,
-                SetSettingsStoreValueMutationVariables
-            >(SET_SETTINGS_STORE_VALUE, {
+            const { setSettingsStoreValue } = await adminClient.query(setSettingsStoreValueDocument, {
                 input: { key: 'test.validatedField', value: 'valid-option' },
             });
             expect(setSettingsStoreValue.result).toBe(true);
@@ -439,10 +370,7 @@ describe('SettingsStore system', () => {
         it('should prevent modification of readonly fields', async () => {
             await adminClient.asSuperAdmin();
 
-            const { setSettingsStoreValue } = await adminClient.query<
-                SetSettingsStoreValueMutation,
-                SetSettingsStoreValueMutationVariables
-            >(SET_SETTINGS_STORE_VALUE, {
+            const { setSettingsStoreValue } = await adminClient.query(setSettingsStoreValueDocument, {
                 input: { key: 'test.readonlyField', value: 'attempt-change' },
             });
             expect(setSettingsStoreValue.result).toBe(false);
@@ -456,48 +384,39 @@ describe('SettingsStore system', () => {
             await adminClient.asSuperAdmin();
 
             // Create a role with limited permissions (no CreateAdministrator permission)
-            const { createRole } = await adminClient.query<CreateRoleMutation, CreateRoleMutationVariables>(
-                CREATE_ROLE,
-                {
-                    input: {
-                        code: 'limited-role',
-                        description: 'Limited permissions role',
-                        permissions: [Permission.Authenticated, Permission.ReadAdministrator], // No CreateAdministrator
-                    },
+            const { createRole } = await adminClient.query(createRoleDocument, {
+                input: {
+                    code: 'limited-role',
+                    description: 'Limited permissions role',
+                    permissions: [Permission.Authenticated, Permission.ReadAdministrator], // No CreateAdministrator
                 },
-            );
+            });
 
             // Create a user with limited permissions
-            await adminClient.query<CreateAdministratorMutation, CreateAdministratorMutationVariables>(
-                CREATE_ADMINISTRATOR,
-                {
-                    input: {
-                        firstName: 'Limited',
-                        lastName: 'User',
-                        emailAddress: 'limited@test.com',
-                        password: 'password',
-                        roleIds: [createRole.id],
-                    },
+            await adminClient.query(createAdministratorDocument, {
+                input: {
+                    firstName: 'Limited',
+                    lastName: 'User',
+                    emailAddress: 'limited@test.com',
+                    password: 'password',
+                    roleIds: [createRole.id],
                 },
-            );
+            });
 
             // Switch to limited user
             await adminClient.asUserWithCredentials('limited@test.com', 'password');
 
             // Try to access admin-only field - should get null (no access)
-            const { getSettingsStoreValue: deniedValue } = await adminClient.query<
-                GetSettingsStoreValueQuery,
-                GetSettingsStoreValueQueryVariables
-            >(GET_SETTINGS_STORE_VALUE, {
-                key: 'test.adminOnlyField',
-            });
+            const { getSettingsStoreValue: deniedValue } = await adminClient.query(
+                getSettingsStoreValueDocument,
+                {
+                    key: 'test.adminOnlyField',
+                },
+            );
             expect(deniedValue).toBeNull();
 
             // Try to set admin-only field - should return structured error result
-            const { setSettingsStoreValue } = await adminClient.query<
-                SetSettingsStoreValueMutation,
-                SetSettingsStoreValueMutationVariables
-            >(SET_SETTINGS_STORE_VALUE, {
+            const { setSettingsStoreValue } = await adminClient.query(setSettingsStoreValueDocument, {
                 input: { key: 'test.adminOnlyField', value: 'denied-value' },
             });
             expect(setSettingsStoreValue.result).toBe(false);
@@ -509,20 +428,14 @@ describe('SettingsStore system', () => {
             await adminClient.asSuperAdmin();
 
             // SuperAdmin should have all permissions
-            const { setSettingsStoreValue } = await adminClient.query<
-                SetSettingsStoreValueMutation,
-                SetSettingsStoreValueMutationVariables
-            >(SET_SETTINGS_STORE_VALUE, {
+            const { setSettingsStoreValue } = await adminClient.query(setSettingsStoreValueDocument, {
                 input: { key: 'test.adminOnlyField', value: 'admin-value' },
             });
             expect(setSettingsStoreValue.result).toBe(true);
             expect(setSettingsStoreValue.key).toBe('test.adminOnlyField');
             expect(setSettingsStoreValue.error).toBeNull();
 
-            const { getSettingsStoreValue } = await adminClient.query<
-                GetSettingsStoreValueQuery,
-                GetSettingsStoreValueQueryVariables
-            >(GET_SETTINGS_STORE_VALUE, {
+            const { getSettingsStoreValue } = await adminClient.query(getSettingsStoreValueDocument, {
                 key: 'test.adminOnlyField',
             });
             expect(getSettingsStoreValue).toBe('admin-value');
@@ -534,12 +447,9 @@ describe('SettingsStore system', () => {
             await adminClient.asSuperAdmin();
 
             try {
-                await adminClient.query<GetSettingsStoreValueQuery, GetSettingsStoreValueQueryVariables>(
-                    GET_SETTINGS_STORE_VALUE,
-                    {
-                        key: 'invalid.nonExistentKey',
-                    },
-                );
+                await adminClient.query(getSettingsStoreValueDocument, {
+                    key: 'invalid.nonExistentKey',
+                });
                 expect.fail('Should have thrown an error for invalid key');
             } catch (error) {
                 expect((error as Error).message).toContain('not registered');
@@ -549,10 +459,7 @@ describe('SettingsStore system', () => {
         it('should gracefully handle setting invalid keys', async () => {
             await adminClient.asSuperAdmin();
 
-            const { setSettingsStoreValue } = await adminClient.query<
-                SetSettingsStoreValueMutation,
-                SetSettingsStoreValueMutationVariables
-            >(SET_SETTINGS_STORE_VALUE, {
+            const { setSettingsStoreValue } = await adminClient.query(setSettingsStoreValueDocument, {
                 input: { key: 'invalid.nonExistentKey', value: 'some-value' },
             });
             expect(setSettingsStoreValue.result).toBe(false);
@@ -566,12 +473,9 @@ describe('SettingsStore system', () => {
             await adminClient.asSuperAdmin();
 
             try {
-                await adminClient.query<GetSettingsStoreValuesQuery, GetSettingsStoreValuesQueryVariables>(
-                    GET_SETTINGS_STORE_VALUES,
-                    {
-                        keys: ['test.globalSetting', 'invalid.nonExistentKey'],
-                    },
-                );
+                await adminClient.query(getSettingsStoreValuesDocument, {
+                    keys: ['test.globalSetting', 'invalid.nonExistentKey'],
+                });
                 expect.fail('Should have thrown an error for invalid key in bulk operation');
             } catch (error) {
                 expect((error as Error).message).toContain('not registered');
@@ -581,10 +485,7 @@ describe('SettingsStore system', () => {
         it('should handle bulk set with one valid, one invalid key', async () => {
             await adminClient.asSuperAdmin();
 
-            const { setSettingsStoreValues } = await adminClient.query<
-                SetSettingsStoreValuesMutation,
-                SetSettingsStoreValuesMutationVariables
-            >(SET_SETTINGS_STORE_VALUES, {
+            const { setSettingsStoreValues } = await adminClient.query(setSettingsStoreValuesDocument, {
                 inputs: [
                     { key: 'test.bulk1', value: 'valid-value' },
                     { key: 'invalid.nonExistentKey', value: 'invalid-value' },
@@ -605,21 +506,15 @@ describe('SettingsStore system', () => {
             await adminClient.asSuperAdmin();
 
             // First set a value as admin
-            await adminClient.query<SetSettingsStoreValueMutation, SetSettingsStoreValueMutationVariables>(
-                SET_SETTINGS_STORE_VALUE,
-                {
-                    input: { key: 'test.adminOnlyField', value: 'admin-bulk-value' },
-                },
-            );
+            await adminClient.query(setSettingsStoreValueDocument, {
+                input: { key: 'test.adminOnlyField', value: 'admin-bulk-value' },
+            });
 
             // Switch to limited user
             await adminClient.asUserWithCredentials('limited@test.com', 'password');
 
             // Try bulk get with mix of accessible and restricted keys
-            const { getSettingsStoreValues } = await adminClient.query<
-                GetSettingsStoreValuesQuery,
-                GetSettingsStoreValuesQueryVariables
-            >(GET_SETTINGS_STORE_VALUES, {
+            const { getSettingsStoreValues } = await adminClient.query(getSettingsStoreValuesDocument, {
                 keys: ['test.globalSetting', 'test.adminOnlyField'],
             });
 
@@ -630,10 +525,7 @@ describe('SettingsStore system', () => {
             });
 
             // Try bulk set with mix of accessible and restricted keys
-            const { setSettingsStoreValues } = await adminClient.query<
-                SetSettingsStoreValuesMutation,
-                SetSettingsStoreValuesMutationVariables
-            >(SET_SETTINGS_STORE_VALUES, {
+            const { setSettingsStoreValues } = await adminClient.query(setSettingsStoreValuesDocument, {
                 inputs: [
                     { key: 'test.globalSetting', value: 'new-global-value' },
                     { key: 'test.adminOnlyField', value: 'denied-value' },
@@ -794,35 +686,3 @@ describe('SettingsStore system', () => {
         });
     });
 });
-
-const GET_SETTINGS_STORE_VALUE = gql`
-    query GetSettingsStoreValue($key: String!) {
-        getSettingsStoreValue(key: $key)
-    }
-`;
-
-const GET_SETTINGS_STORE_VALUES = gql`
-    query GetSettingsStoreValues($keys: [String!]!) {
-        getSettingsStoreValues(keys: $keys)
-    }
-`;
-
-const SET_SETTINGS_STORE_VALUE = gql`
-    mutation SetSettingsStoreValue($input: SettingsStoreInput!) {
-        setSettingsStoreValue(input: $input) {
-            key
-            result
-            error
-        }
-    }
-`;
-
-const SET_SETTINGS_STORE_VALUES = gql`
-    mutation SetSettingsStoreValues($inputs: [SettingsStoreInput!]!) {
-        setSettingsStoreValues(inputs: $inputs) {
-            key
-            result
-            error
-        }
-    }
-`;

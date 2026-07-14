@@ -1,30 +1,17 @@
 import { DefaultLogger, LogLevel, mergeConfig } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
-import { RedisConnection } from 'bullmq';
 import path from 'path';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
-import { testConfig, TEST_SETUP_TIMEOUT_MS } from '../../../e2e-common/test-config';
+import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { awaitRunningJobs } from '../../core/e2e/utils/await-running-jobs';
 import { BullMQJobQueuePlugin } from '../src/bullmq/plugin';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const Redis = require('ioredis');
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { redisHost, redisPort } = require('./constants');
-
-jest.setTimeout(10 * 3000);
-
-// TODO: How to solve issues with Jest open handles after test suite finishes?
-// See https://github.com/luin/ioredis/issues/1088
+const redisHost = '127.0.0.1';
+const redisPort = process.env.CI ? +(process.env.E2E_REDIS_PORT || 6379) : 6379;
 
 describe('BullMQJobQueuePlugin', () => {
-    const redisConnection: any = new Redis({
-        host: redisHost,
-        port: redisPort,
-    });
-
     const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
             apiOptions: {
@@ -33,7 +20,11 @@ describe('BullMQJobQueuePlugin', () => {
             logger: new DefaultLogger({ level: LogLevel.Info }),
             plugins: [
                 BullMQJobQueuePlugin.init({
-                    connection: redisConnection,
+                    connection: {
+                        host: redisHost,
+                        port: redisPort,
+                        maxRetriesPerRequest: null,
+                    },
                     workerOptions: {
                         prefix: 'e2e',
                     },

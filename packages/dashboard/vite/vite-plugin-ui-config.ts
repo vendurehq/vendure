@@ -1,4 +1,8 @@
-import { LanguageCode, VendureConfig } from '@vendure/core';
+import { LanguageCode } from '@vendure/common/lib/generated-types';
+import type { VendureConfig } from '@vendure/core';
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { dirname, resolve } from 'node:path';
 import { Plugin } from 'vite';
 
 import { getUiConfig } from './utils/ui-config.js';
@@ -180,21 +184,54 @@ export interface ResolvedUiConfig {
      * Order-related settings with all defaults applied
      */
     orders: Required<OrdersConfig>;
+    /**
+     * @description
+     * The version of the @vendure/dashboard package.
+     * Note: also declared in src/lib/virtual.d.ts (see TODO there about type sharing).
+     */
+    version: string;
 }
 
 /**
- * This Vite plugin scans the configured plugins for any dashboard extensions and dynamically
- * generates an import statement for each one, wrapped up in a `runDashboardExtensions()`
- * function which can then be imported and executed in the Dashboard app.
+ * Resolves the @vendure/dashboard version from its package.json.
+ * Uses Node's module resolution via createRequire so it works regardless
+ * of package manager layout (npm, pnpm, yarn PnP).
  */
+function readDashboardVersion(root: string): string {
+    const rootRequire = createRequire(root.endsWith('/') ? root : `${root}/`);
+    try {
+        // Resolve the main entry point of @vendure/dashboard, then walk up
+        // to find its package.json. This respects Node's module resolution
+        // regardless of package manager layout (npm, pnpm, yarn PnP).
+        const mainPath = rootRequire.resolve('@vendure/dashboard');
+        let dir = dirname(mainPath);
+        while (dir !== dirname(dir)) {
+            try {
+                const pkg = JSON.parse(readFileSync(resolve(dir, 'package.json'), 'utf-8'));
+                if (pkg.name === '@vendure/dashboard') {
+                    return pkg.version as string;
+                }
+            } catch {
+                /* no package.json at this level */
+            }
+            dir = dirname(dir);
+        }
+    } catch {
+        /* module resolution failed */
+    }
+    return 'unknown';
+}
+
 export function uiConfigPlugin(options: UiConfigPluginOptions = {}): Plugin {
     let configLoaderApi: ConfigLoaderApi;
     let vendureConfig: VendureConfig;
+    let dashboardVersion: string;
 
     return {
         name: 'vendure:dashboard-ui-config',
-        configResolved({ plugins }) {
-            configLoaderApi = getConfigLoaderApi(plugins);
+        configResolved(config) {
+            configLoaderApi = getConfigLoaderApi(config.plugins);
+            dashboardVersion = readDashboardVersion(config.root);
         },
         resolveId(id) {
             if (id === virtualModuleId) {
@@ -209,7 +246,7 @@ export function uiConfigPlugin(options: UiConfigPluginOptions = {}): Plugin {
                 }
                 const config = getUiConfig(vendureConfig, options);
                 return `
-                    export const uiConfig = ${JSON.stringify(config)}
+                    export const uiConfig = ${JSON.stringify({ ...config, version: dashboardVersion })}
                 `;
             }
         },

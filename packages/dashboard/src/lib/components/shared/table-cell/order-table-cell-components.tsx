@@ -3,6 +3,7 @@ import { DataTableCellComponent } from '@/vdb/components/data-table/types.js';
 import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
+import { getTypeForState, stateTypeToBadgeVariant } from '@/vdb/utils/state-type.js';
 import { Link } from '@tanstack/react-router';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -21,10 +22,8 @@ export const CustomerCell: DataTableCellComponent<CustomerCellData> = ({ row }) 
         return null;
     }
     return (
-        <Button asChild variant="ghost">
-            <Link to={`/customers/${value.id}`}>
+        <Button render={<Link to={`/customers/${value.id}`} />} variant="ghost">
                 {value.firstName} {value.lastName}
-            </Link>
         </Button>
     );
 };
@@ -32,7 +31,10 @@ export const CustomerCell: DataTableCellComponent<CustomerCellData> = ({ row }) 
 export const OrderStateCell: DataTableCellComponent<{ state: string }> = ({ row }) => {
     const { getTranslatedOrderState } = useDynamicTranslations();
     const value = row.original.state;
-    return <Badge variant="outline">{getTranslatedOrderState(value)}</Badge>;
+    if (!value) {
+        return null;
+    }
+    return <Badge variant={stateTypeToBadgeVariant(getTypeForState(value))}>{getTranslatedOrderState(value)}</Badge>;
 };
 
 export const OrderMoneyCell: DataTableCellComponent<{ currencyCode: string }> = ({ cell, row }) => {
@@ -48,9 +50,10 @@ export const RichTextDescriptionCell: DataTableCellComponent<{ description: stri
     // Strip HTML tags and decode HTML entities
     const textContent = useMemo(() => {
         if (!value) return '';
-        const div = document.createElement('div');
-        div.innerHTML = value;
-        return div.textContent ?? '';
+        // Use an inert DOMParser document, which (unlike assigning to a live
+        // element's innerHTML) does not execute scripts or load resources such as
+        // <img src=x onerror=...>, so stripping HTML cannot trigger stored XSS.
+        return new DOMParser().parseFromString(value, 'text/html').body.textContent ?? '';
     }, [value]);
 
     const shortLength = 100;

@@ -1,4 +1,4 @@
-import ms from 'ms';
+import ms, { type StringValue } from 'ms';
 
 import { RequestContext } from '../../api/common/request-context';
 import { Injector } from '../../common';
@@ -43,7 +43,7 @@ export class DefaultVerificationTokenStrategy implements VerificationTokenStrate
         const { verificationTokenDuration } = this.configService.authOptions;
         const verificationTokenDurationInMs =
             typeof verificationTokenDuration === 'string'
-                ? ms(verificationTokenDuration)
+                ? ms(verificationTokenDuration as StringValue)
                 : verificationTokenDuration;
 
         const [generatedOn] = token.split('_');

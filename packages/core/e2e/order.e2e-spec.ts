@@ -1,19 +1,30 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import {
+    CurrencyCode,
+    DeletionResult,
+    ErrorCode,
+    GlobalFlag,
+    HistoryEntryType,
+    LanguageCode,
+    SortOrder,
+    StockMovementType,
+} from '@vendure/common/lib/generated-types';
 import { omit } from '@vendure/common/lib/omit';
 import { pick } from '@vendure/common/lib/pick';
 import {
+    OrderService,
+    RequestContextService,
     defaultShippingCalculator,
     defaultShippingEligibilityChecker,
     manualFulfillmentHandler,
     mergeConfig,
 } from '@vendure/core';
 import {
-    createErrorResultGuard,
-    createTestEnvironment,
     ErrorResultGuard,
     SimpleGraphQLClient,
+    createErrorResultGuard,
+    createTestEnvironment,
 } from '@vendure/testing';
-import gql from 'graphql-tag';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -26,65 +37,65 @@ import {
     onCancelPaymentSpy,
     onTransitionSpy,
     partialPaymentMethod,
-    singleStageRefundablePaymentMethod,
     singleStageRefundFailingPaymentMethod,
+    singleStageRefundablePaymentMethod,
     twoStagePaymentMethod,
 } from './fixtures/test-payment-methods';
-import { FULFILLMENT_FRAGMENT, PAYMENT_FRAGMENT } from './graphql/fragments';
-import * as Codegen from './graphql/generated-e2e-admin-types';
 import {
-    AddManualPaymentDocument,
-    CanceledOrderFragment,
-    CreateFulfillmentDocument,
-    ErrorCode,
-    FulfillmentFragment,
-    GetOrderDocument,
-    GetOrderHistoryDocument,
-    GlobalFlag,
-    HistoryEntryType,
-    LanguageCode,
-    OrderLineInput,
-    PaymentFragment,
-    RefundFragment,
-    RefundOrderDocument,
-    SortOrder,
-    StockMovementType,
-    TransitFulfillmentDocument,
-} from './graphql/generated-e2e-admin-types';
-import * as CodegenShop from './graphql/generated-e2e-shop-types';
+    canceledOrderFragment,
+    fulfillmentFragment,
+    paymentFragment,
+    refundFragment,
+} from './graphql/fragments-admin';
+import { FragmentOf, ResultOf } from './graphql/graphql-admin';
+import { FragmentOf as FragmentOfShop } from './graphql/graphql-shop';
 import {
-    DeletionResult,
-    TestOrderFragmentFragment,
-    UpdatedOrderFragment,
-} from './graphql/generated-e2e-shop-types';
-import {
-    CANCEL_ORDER,
-    CREATE_FULFILLMENT,
-    CREATE_SHIPPING_METHOD,
-    DELETE_PRODUCT,
-    DELETE_SHIPPING_METHOD,
-    GET_CUSTOMER_LIST,
-    GET_ORDER,
-    GET_ORDER_FULFILLMENTS,
-    GET_ORDER_HISTORY,
-    GET_ORDERS_LIST,
-    GET_PRODUCT_WITH_VARIANTS,
-    GET_STOCK_MOVEMENT,
-    SETTLE_PAYMENT,
-    TRANSIT_FULFILLMENT,
-    UPDATE_PRODUCT_VARIANTS,
+    addManualPaymentDocument,
+    addNoteToOrderDocument,
+    cancelOrderDocument,
+    cancelPaymentDocument,
+    createFulfillmentDocument,
+    createShippingMethodDocument,
+    deleteOrderNoteDocument,
+    deleteProductDocument,
+    deleteShippingMethodDocument,
+    getCustomerListDocument,
+    getOrderAssetEdgeCaseDocument,
+    getOrderDocument,
+    getOrderFulfillmentsDocument,
+    getOrderHistoryDocument,
+    getOrderLineFulfillmentsDocument,
+    getOrderListDocument,
+    getOrderListFulfillmentsDocument,
+    getOrderListWithQtyDocument,
+    getOrderWithLineCalculatedPropsDocument,
+    getOrderWithPaymentsDocument,
+    getProductWithVariantsDocument,
+    getStockMovementDocument,
+    refundOrderDocument,
+    setOrderCustomerDocument,
+    settlePaymentDocument,
+    settleRefundDocument,
+    transitFulfillmentDocument,
+    updateChannelDocument,
+    updateOrderNoteDocument,
+    updateProductVariantsDocument,
 } from './graphql/shared-definitions';
 import {
-    ADD_ITEM_TO_ORDER,
-    ADD_MULTIPLE_ITEMS_TO_ORDER,
-    ADD_PAYMENT,
-    APPLY_COUPON_CODE,
-    GET_ACTIVE_CUSTOMER_WITH_ORDERS_PRODUCT_PRICE,
-    GET_ACTIVE_CUSTOMER_WITH_ORDERS_PRODUCT_SLUG,
-    GET_ACTIVE_ORDER,
-    GET_ORDER_BY_CODE_WITH_PAYMENTS,
-    SET_SHIPPING_ADDRESS,
-    SET_SHIPPING_METHOD,
+    addItemToOrderDocument,
+    addMultipleItemsToOrderDocument,
+    addPaymentDocument,
+    applyCouponCodeDocument,
+    getActiveCustomerWithOrdersProductPriceDocument,
+    getActiveCustomerWithOrdersProductSlugDocument,
+    getActiveOrderDocument,
+    getOrderByCodeWithPaymentsDocument,
+    setCurrencyCodeForOrderDocument,
+    setCustomerDocument,
+    setShippingAddressDocument,
+    setShippingMethodDocument,
+    testOrderWithPaymentsFragment,
+    transitionToStateDocument,
 } from './graphql/shop-definitions';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 import { addPaymentToOrder, proceedToArrangingPayment, sortById } from './utils/test-order-utils';
@@ -104,12 +115,21 @@ describe('Orders resolver', () => {
             },
         }),
     );
-    let customers: Codegen.GetCustomerListQuery['customers']['items'];
+    let customers: ResultOf<typeof getCustomerListDocument>['customers']['items'];
     const password = 'test';
 
-    const orderGuard: ErrorResultGuard<
-        TestOrderFragmentFragment | CanceledOrderFragment | UpdatedOrderFragment
-    > = createErrorResultGuard(input => !!input.lines);
+    type RefundFragment = FragmentOf<typeof refundFragment>;
+    type PaymentFragment = FragmentOf<typeof paymentFragment>;
+    type FulfillmentFragment = FragmentOf<typeof fulfillmentFragment>;
+    type CanceledOrderFragment = FragmentOf<typeof canceledOrderFragment>;
+    type ShopOrderFragment = FragmentOfShop<typeof testOrderWithPaymentsFragment>;
+
+    const canceledOrderGuard: ErrorResultGuard<CanceledOrderFragment> = createErrorResultGuard(
+        input => !!input.lines,
+    );
+    const shopOrderGuard: ErrorResultGuard<ShopOrderFragment> = createErrorResultGuard(
+        input => !!input.lines,
+    );
     const paymentGuard: ErrorResultGuard<PaymentFragment> = createErrorResultGuard(input => !!input.state);
     const fulfillmentGuard: ErrorResultGuard<FulfillmentFragment> = createErrorResultGuard(
         input => !!input.method,
@@ -153,42 +173,27 @@ describe('Orders resolver', () => {
         await adminClient.asSuperAdmin();
 
         // Create a couple of orders to be queried
-        const result = await adminClient.query<
-            Codegen.GetCustomerListQuery,
-            Codegen.GetCustomerListQueryVariables
-        >(GET_CUSTOMER_LIST, {
+        const result = await adminClient.query(getCustomerListDocument, {
             options: {
                 take: 3,
             },
         });
         customers = result.customers.items;
         await shopClient.asUserWithCredentials(customers[0].emailAddress, password);
-        await shopClient.query<
-            CodegenShop.AddItemToOrderMutation,
-            CodegenShop.AddItemToOrderMutationVariables
-        >(ADD_ITEM_TO_ORDER, {
+        await shopClient.query(addItemToOrderDocument, {
             productVariantId: 'T_1',
             quantity: 1,
         });
-        await shopClient.query<
-            CodegenShop.AddItemToOrderMutation,
-            CodegenShop.AddItemToOrderMutationVariables
-        >(ADD_ITEM_TO_ORDER, {
+        await shopClient.query(addItemToOrderDocument, {
             productVariantId: 'T_2',
             quantity: 1,
         });
         await shopClient.asUserWithCredentials(customers[1].emailAddress, password);
-        await shopClient.query<
-            CodegenShop.AddItemToOrderMutation,
-            CodegenShop.AddItemToOrderMutationVariables
-        >(ADD_ITEM_TO_ORDER, {
+        await shopClient.query(addItemToOrderDocument, {
             productVariantId: 'T_2',
             quantity: 1,
         });
-        await shopClient.query<
-            CodegenShop.AddItemToOrderMutation,
-            CodegenShop.AddItemToOrderMutationVariables
-        >(ADD_ITEM_TO_ORDER, {
+        await shopClient.query(addItemToOrderDocument, {
             productVariantId: 'T_3',
             quantity: 3,
         });
@@ -199,10 +204,7 @@ describe('Orders resolver', () => {
     });
 
     it('order history initially contains Created -> AddingItems transition', async () => {
-        const { order } = await adminClient.query<
-            Codegen.GetOrderHistoryQuery,
-            Codegen.GetOrderHistoryQueryVariables
-        >(GET_ORDER_HISTORY, { id: 'T_1' });
+        const { order } = await adminClient.query(getOrderHistoryDocument, { id: 'T_1' });
         expect(order!.history.totalItems).toBe(1);
         expect(order!.history.items.map(pick(['type', 'data']))).toEqual([
             {
@@ -217,15 +219,12 @@ describe('Orders resolver', () => {
 
     describe('querying', () => {
         it('orders', async () => {
-            const result = await adminClient.query<Codegen.GetOrderListQuery>(GET_ORDERS_LIST);
+            const result = await adminClient.query(getOrderListDocument);
             expect(result.orders.items.map(o => o.id).sort()).toEqual(['T_1', 'T_2']);
         });
 
         it('filtering by total', async () => {
-            const result = await adminClient.query<
-                Codegen.GetOrderListQuery,
-                Codegen.GetOrderListQueryVariables
-            >(GET_ORDERS_LIST, {
+            const result = await adminClient.query(getOrderListDocument, {
                 options: {
                     filter: { total: { gt: 1000_00 } },
                 },
@@ -234,10 +233,7 @@ describe('Orders resolver', () => {
         });
 
         it('filtering by total using boolean expression', async () => {
-            const result = await adminClient.query<
-                Codegen.GetOrderListQuery,
-                Codegen.GetOrderListQueryVariables
-            >(GET_ORDERS_LIST, {
+            const result = await adminClient.query(getOrderListDocument, {
                 options: {
                     filter: {
                         _and: [{ total: { gt: 1000_00 } }],
@@ -248,12 +244,9 @@ describe('Orders resolver', () => {
         });
 
         it('order', async () => {
-            const result = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                GET_ORDER,
-                {
-                    id: 'T_2',
-                },
-            );
+            const result = await adminClient.query(getOrderDocument, {
+                id: 'T_2',
+            });
             expect(result.order!.id).toBe('T_2');
         });
 
@@ -261,60 +254,20 @@ describe('Orders resolver', () => {
             // This came up as a strange edge-case where the AssetInterceptorPlugin was unable to
             // correctly transform the asset preview URL. It is not directly to do with Orders per se,
             // but manifested when attempting an order-related query.
-            const result = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                gql(`
-                    query OrderAssetEdgeCase($id: ID!) {
-                        order(id: $id) {
-                             lines {
-                               id
-                             }
-                            ...OrderDetail
-                        }
-                    }
-
-                    fragment OrderDetail on Order {
-                        id
-                        lines {
-                            ...OrderLine
-                        }
-                    }
-
-                    fragment OrderLine on OrderLine {
-                        id
-                        featuredAsset {
-                            preview
-                        }
-                    }
-                `),
-                {
-                    id: 'T_2',
-                },
-            );
+            const result = await adminClient.query(getOrderAssetEdgeCaseDocument, {
+                id: 'T_2',
+            });
             expect(result.order!.lines.length).toBe(2);
-            expect(result.order!.lines.map(l => l.featuredAsset?.preview)).toEqual([
+            expect(result.order!.lines.map((l: any) => l.featuredAsset?.preview)).toEqual([
                 'test-url/test-assets/derick-david-409858-unsplash__preview.jpg',
                 'test-url/test-assets/derick-david-409858-unsplash__preview.jpg',
             ]);
         });
 
         it('order with calculated line properties', async () => {
-            const result = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                gql`
-                    query GetOrderWithLineCalculatedProps($id: ID!) {
-                        order(id: $id) {
-                            id
-                            lines {
-                                id
-                                linePriceWithTax
-                                quantity
-                            }
-                        }
-                    }
-                `,
-                {
-                    id: 'T_2',
-                },
-            );
+            const result = await adminClient.query(getOrderWithLineCalculatedPropsDocument, {
+                id: 'T_2',
+            });
             expect(result.order!.lines).toEqual([
                 {
                     id: 'T_3',
@@ -330,10 +283,7 @@ describe('Orders resolver', () => {
         });
 
         it('sort by total', async () => {
-            const result = await adminClient.query<
-                Codegen.GetOrderListQuery,
-                Codegen.GetOrderListQueryVariables
-            >(GET_ORDERS_LIST, {
+            const result = await adminClient.query(getOrderListDocument, {
                 options: {
                     sort: {
                         total: SortOrder.DESC,
@@ -348,10 +298,7 @@ describe('Orders resolver', () => {
         });
 
         it('sort by totalWithTax', async () => {
-            const result = await adminClient.query<
-                Codegen.GetOrderListQuery,
-                Codegen.GetOrderListQueryVariables
-            >(GET_ORDERS_LIST, {
+            const result = await adminClient.query(getOrderListDocument, {
                 options: {
                     sort: {
                         totalWithTax: SortOrder.DESC,
@@ -366,10 +313,7 @@ describe('Orders resolver', () => {
         });
 
         it('sort by totalQuantity', async () => {
-            const result = await adminClient.query<
-                Codegen.GetOrderListQuery,
-                Codegen.GetOrderListQueryVariables
-            >(GET_ORDERS_LIST, {
+            const result = await adminClient.query(getOrderListDocument, {
                 options: {
                     sort: {
                         totalQuantity: SortOrder.DESC,
@@ -385,10 +329,7 @@ describe('Orders resolver', () => {
 
         it('sort by customerLastName', async () => {
             async function sortOrdersByLastName(sortOrder: SortOrder) {
-                const { orders } = await adminClient.query<
-                    Codegen.GetOrderListQuery,
-                    Codegen.GetOrderListQueryVariables
-                >(GET_ORDERS_LIST, {
+                const { orders } = await adminClient.query(getOrderListDocument, {
                     options: {
                         sort: {
                             customerLastName: sortOrder,
@@ -408,10 +349,7 @@ describe('Orders resolver', () => {
         });
 
         it('filter by total', async () => {
-            const result = await adminClient.query<
-                Codegen.GetOrderListQuery,
-                Codegen.GetOrderListQueryVariables
-            >(GET_ORDERS_LIST, {
+            const result = await adminClient.query(getOrderListDocument, {
                 options: {
                     filter: {
                         total: { gt: 323760 },
@@ -425,10 +363,7 @@ describe('Orders resolver', () => {
         });
 
         it('filter by totalWithTax', async () => {
-            const result = await adminClient.query<
-                Codegen.GetOrderListQuery,
-                Codegen.GetOrderListQueryVariables
-            >(GET_ORDERS_LIST, {
+            const result = await adminClient.query(getOrderListDocument, {
                 options: {
                     filter: {
                         totalWithTax: { gt: 323760 },
@@ -442,10 +377,7 @@ describe('Orders resolver', () => {
         });
 
         it('filter by totalQuantity', async () => {
-            const result = await adminClient.query<
-                Codegen.GetOrderListQuery,
-                Codegen.GetOrderListQueryVariables
-            >(GET_ORDERS_LIST, {
+            const result = await adminClient.query(getOrderListDocument, {
                 options: {
                     filter: {
                         totalQuantity: { eq: 4 },
@@ -458,10 +390,7 @@ describe('Orders resolver', () => {
         });
 
         it('filter by customerLastName', async () => {
-            const result = await adminClient.query<
-                Codegen.GetOrderListQuery,
-                Codegen.GetOrderListQueryVariables
-            >(GET_ORDERS_LIST, {
+            const result = await adminClient.query(getOrderListDocument, {
                 options: {
                     filter: {
                         customerLastName: {
@@ -483,15 +412,13 @@ describe('Orders resolver', () => {
             await shopClient.asUserWithCredentials(customers[0].emailAddress, password);
             await proceedToArrangingPayment(shopClient);
             const order = await addPaymentToOrder(shopClient, failsToSettlePaymentMethod);
-            orderGuard.assertSuccess(order);
+            shopOrderGuard.assertSuccess(order);
 
             expect(order.state).toBe('PaymentAuthorized');
 
-            const payment = order.payments![0];
-            const { settlePayment } = await adminClient.query<
-                Codegen.SettlePaymentMutation,
-                Codegen.SettlePaymentMutationVariables
-            >(SETTLE_PAYMENT, {
+            const payment = 'payments' in order ? order.payments![0] : null;
+            if (!payment) throw new Error('Expected payment');
+            const { settlePayment } = await adminClient.query(settlePaymentDocument, {
                 id: payment.id,
             });
             paymentGuard.assertErrorResult(settlePayment);
@@ -500,24 +427,20 @@ describe('Orders resolver', () => {
             expect(settlePayment.errorCode).toBe(ErrorCode.SETTLE_PAYMENT_ERROR);
             expect((settlePayment as any).paymentErrorMessage).toBe('Something went horribly wrong');
 
-            const result = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                GET_ORDER,
-                {
-                    id: order.id,
-                },
-            );
+            const result = await adminClient.query(getOrderDocument, {
+                id: order.id,
+            });
 
             expect(result.order!.state).toBe('PaymentAuthorized');
             expect(result.order!.payments![0].state).toBe('Cancelled');
-            firstOrderCode = order.code;
+            firstOrderCode = 'code' in order ? order.code : '';
             firstOrderId = order.id;
         });
 
         it('public payment metadata available in Shop API', async () => {
-            const { orderByCode } = await shopClient.query<
-                CodegenShop.GetOrderByCodeWithPaymentsQuery,
-                CodegenShop.GetOrderByCodeWithPaymentsQueryVariables
-            >(GET_ORDER_BY_CODE_WITH_PAYMENTS, { code: firstOrderCode });
+            const { orderByCode } = await shopClient.query(getOrderByCodeWithPaymentsDocument, {
+                code: firstOrderCode,
+            });
 
             expect(orderByCode?.payments?.[0].metadata).toEqual({
                 public: {
@@ -528,10 +451,7 @@ describe('Orders resolver', () => {
         });
 
         it('public and private payment metadata available in Admin API', async () => {
-            const { order } = await adminClient.query<
-                Codegen.GetOrderWithPaymentsQuery,
-                Codegen.GetOrderWithPaymentsQueryVariables
-            >(GET_ORDER_WITH_PAYMENTS, { id: firstOrderId });
+            const { order } = await adminClient.query(getOrderWithPaymentsDocument, { id: firstOrderId });
 
             expect(order?.payments?.[0].metadata).toEqual({
                 privateCreatePaymentData: 'secret',
@@ -548,18 +468,16 @@ describe('Orders resolver', () => {
             await shopClient.asUserWithCredentials(customers[1].emailAddress, password);
             await proceedToArrangingPayment(shopClient);
             const order = await addPaymentToOrder(shopClient, twoStagePaymentMethod);
-            orderGuard.assertSuccess(order);
+            shopOrderGuard.assertSuccess(order);
 
             expect(order.state).toBe('PaymentAuthorized');
             expect(onTransitionSpy).toHaveBeenCalledTimes(1);
             expect(onTransitionSpy.mock.calls[0][0]).toBe('Created');
             expect(onTransitionSpy.mock.calls[0][1]).toBe('Authorized');
 
-            const payment = order.payments![0];
-            const { settlePayment } = await adminClient.query<
-                Codegen.SettlePaymentMutation,
-                Codegen.SettlePaymentMutationVariables
-            >(SETTLE_PAYMENT, {
+            const payment = 'payments' in order ? order.payments![0] : null;
+            if (!payment) throw new Error('Expected payment');
+            const { settlePayment } = await adminClient.query(settlePaymentDocument, {
                 id: payment.id,
             });
             paymentGuard.assertSuccess(settlePayment);
@@ -577,23 +495,20 @@ describe('Orders resolver', () => {
             expect(onTransitionSpy.mock.calls[1][0]).toBe('Authorized');
             expect(onTransitionSpy.mock.calls[1][1]).toBe('Settled');
 
-            const result = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                GET_ORDER,
-                {
-                    id: order.id,
-                },
-            );
+            const result = await adminClient.query(getOrderDocument, {
+                id: order.id,
+            });
 
             expect(result.order!.state).toBe('PaymentSettled');
             expect(result.order!.payments![0].state).toBe('Settled');
         });
 
         it('order history contains expected entries', async () => {
-            const { order } = await adminClient.query<
-                Codegen.GetOrderHistoryQuery,
-                Codegen.GetOrderHistoryQueryVariables
-            >(GET_ORDER_HISTORY, { id: 'T_2', options: { sort: { id: SortOrder.ASC } } });
-            expect(order.history.items.map(pick(['type', 'data']))).toEqual([
+            const { order } = await adminClient.query(getOrderHistoryDocument, {
+                id: 'T_2',
+                options: { sort: { id: SortOrder.ASC } },
+            });
+            expect(order?.history.items.map(pick(['type', 'data']))).toEqual([
                 {
                     type: HistoryEntryType.ORDER_STATE_TRANSITION,
                     data: {
@@ -642,10 +557,7 @@ describe('Orders resolver', () => {
         });
 
         it('filter by transactionId', async () => {
-            const result = await adminClient.query<
-                Codegen.GetOrderListQuery,
-                Codegen.GetOrderListQueryVariables
-            >(GET_ORDERS_LIST, {
+            const result = await adminClient.query(getOrderListDocument, {
                 options: {
                     filter: {
                         transactionId: {
@@ -666,17 +578,11 @@ describe('Orders resolver', () => {
         let f3Id: string;
 
         it('return error result if lines is empty', async () => {
-            const { order } = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                GET_ORDER,
-                {
-                    id: orderId,
-                },
-            );
+            const { order } = await adminClient.query(getOrderDocument, {
+                id: orderId,
+            });
             expect(order!.state).toBe('PaymentSettled');
-            const { addFulfillmentToOrder } = await adminClient.query<
-                Codegen.CreateFulfillmentMutation,
-                Codegen.CreateFulfillmentMutationVariables
-            >(CREATE_FULFILLMENT, {
+            const { addFulfillmentToOrder } = await adminClient.query(createFulfillmentDocument, {
                 input: {
                     lines: [],
                     handler: {
@@ -692,17 +598,11 @@ describe('Orders resolver', () => {
         });
 
         it('returns error result if all quantities are zero', async () => {
-            const { order } = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                GET_ORDER,
-                {
-                    id: orderId,
-                },
-            );
+            const { order } = await adminClient.query(getOrderDocument, {
+                id: orderId,
+            });
             expect(order!.state).toBe('PaymentSettled');
-            const { addFulfillmentToOrder } = await adminClient.query<
-                Codegen.CreateFulfillmentMutation,
-                Codegen.CreateFulfillmentMutationVariables
-            >(CREATE_FULFILLMENT, {
+            const { addFulfillmentToOrder } = await adminClient.query(createFulfillmentDocument, {
                 input: {
                     lines: order!.lines.map(l => ({ orderLineId: l.id, quantity: 0 })),
                     handler: {
@@ -718,19 +618,13 @@ describe('Orders resolver', () => {
         });
 
         it('creates the first fulfillment', async () => {
-            const { order } = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                GET_ORDER,
-                {
-                    id: orderId,
-                },
-            );
+            const { order } = await adminClient.query(getOrderDocument, {
+                id: orderId,
+            });
             expect(order!.state).toBe('PaymentSettled');
             const lines = order!.lines;
 
-            const { addFulfillmentToOrder } = await adminClient.query<
-                Codegen.CreateFulfillmentMutation,
-                Codegen.CreateFulfillmentMutationVariables
-            >(CREATE_FULFILLMENT, {
+            const { addFulfillmentToOrder } = await adminClient.query(createFulfillmentDocument, {
                 input: {
                     lines: [{ orderLineId: lines[0].id, quantity: lines[0].quantity }],
                     handler: {
@@ -753,12 +647,9 @@ describe('Orders resolver', () => {
             ]);
             f1Id = addFulfillmentToOrder.id;
 
-            const result = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                GET_ORDER,
-                {
-                    id: orderId,
-                },
-            );
+            const result = await adminClient.query(getOrderDocument, {
+                id: orderId,
+            });
 
             expect(result.order!.fulfillments?.length).toBe(1);
             expect(result.order!.fulfillments![0]!.id).toBe(addFulfillmentToOrder.id);
@@ -776,10 +667,7 @@ describe('Orders resolver', () => {
         it('creates the second fulfillment', async () => {
             const lines = await getUnfulfilledOrderLineInput(adminClient, orderId);
 
-            const { addFulfillmentToOrder } = await adminClient.query<
-                Codegen.CreateFulfillmentMutation,
-                Codegen.CreateFulfillmentMutationVariables
-            >(CREATE_FULFILLMENT, {
+            const { addFulfillmentToOrder } = await adminClient.query(createFulfillmentDocument, {
                 input: {
                     lines,
                     handler: {
@@ -801,10 +689,7 @@ describe('Orders resolver', () => {
         });
 
         it('cancels second fulfillment', async () => {
-            const { transitionFulfillmentToState } = await adminClient.query<
-                Codegen.TransitFulfillmentMutation,
-                Codegen.TransitFulfillmentMutationVariables
-            >(TRANSIT_FULFILLMENT, {
+            const { transitionFulfillmentToState } = await adminClient.query(transitFulfillmentDocument, {
                 id: f2Id,
                 state: 'Cancelled',
             });
@@ -815,10 +700,7 @@ describe('Orders resolver', () => {
         });
 
         it('order.fulfillments still lists second (cancelled) fulfillment', async () => {
-            const { order } = await adminClient.query<
-                Codegen.GetOrderFulfillmentsQuery,
-                Codegen.GetOrderFulfillmentsQueryVariables
-            >(GET_ORDER_FULFILLMENTS, {
+            const { order } = await adminClient.query(getOrderFulfillmentsDocument, {
                 id: orderId,
             });
 
@@ -829,10 +711,7 @@ describe('Orders resolver', () => {
         });
 
         it('order.fulfillments.summary', async () => {
-            const { order } = await adminClient.query<
-                Codegen.GetOrderFulfillmentsQuery,
-                Codegen.GetOrderFulfillmentsQueryVariables
-            >(GET_ORDER_FULFILLMENTS, {
+            const { order } = await adminClient.query(getOrderFulfillmentsDocument, {
                 id: orderId,
             });
 
@@ -843,10 +722,7 @@ describe('Orders resolver', () => {
         });
 
         it('lines.fulfillments', async () => {
-            const { order } = await adminClient.query<
-                Codegen.GetOrderLineFulfillmentsQuery,
-                Codegen.GetOrderLineFulfillmentsQueryVariables
-            >(GET_ORDER_LINE_FULFILLMENTS, {
+            const { order } = await adminClient.query(getOrderLineFulfillmentsDocument, {
                 id: orderId,
             });
 
@@ -859,10 +735,7 @@ describe('Orders resolver', () => {
 
         it('creates third fulfillment with same items from second fulfillment', async () => {
             const lines = await getUnfulfilledOrderLineInput(adminClient, orderId);
-            const { addFulfillmentToOrder } = await adminClient.query<
-                Codegen.CreateFulfillmentMutation,
-                Codegen.CreateFulfillmentMutationVariables
-            >(CREATE_FULFILLMENT, {
+            const { addFulfillmentToOrder } = await adminClient.query(createFulfillmentDocument, {
                 input: {
                     lines,
                     handler: {
@@ -884,16 +757,10 @@ describe('Orders resolver', () => {
         });
 
         it('returns error result if an OrderItem already part of a Fulfillment', async () => {
-            const { order } = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                GET_ORDER,
-                {
-                    id: orderId,
-                },
-            );
-            const { addFulfillmentToOrder } = await adminClient.query<
-                Codegen.CreateFulfillmentMutation,
-                Codegen.CreateFulfillmentMutationVariables
-            >(CREATE_FULFILLMENT, {
+            const { order } = await adminClient.query(getOrderDocument, {
+                id: orderId,
+            });
+            const { addFulfillmentToOrder } = await adminClient.query(createFulfillmentDocument, {
                 input: {
                     lines: [
                         {
@@ -916,10 +783,7 @@ describe('Orders resolver', () => {
         });
 
         it('transitions the first fulfillment from created to Shipped and automatically change the order state to PartiallyShipped', async () => {
-            const { transitionFulfillmentToState } = await adminClient.query<
-                Codegen.TransitFulfillmentMutation,
-                Codegen.TransitFulfillmentMutationVariables
-            >(TRANSIT_FULFILLMENT, {
+            const { transitionFulfillmentToState } = await adminClient.query(transitFulfillmentDocument, {
                 id: f1Id,
                 state: 'Shipped',
             });
@@ -928,20 +792,14 @@ describe('Orders resolver', () => {
             expect(transitionFulfillmentToState.id).toBe(f1Id);
             expect(transitionFulfillmentToState.state).toBe('Shipped');
 
-            const { order } = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                GET_ORDER,
-                {
-                    id: orderId,
-                },
-            );
+            const { order } = await adminClient.query(getOrderDocument, {
+                id: orderId,
+            });
             expect(order?.state).toBe('PartiallyShipped');
         });
 
         it('transitions the third fulfillment from created to Shipped and automatically change the order state to Shipped', async () => {
-            const { transitionFulfillmentToState } = await adminClient.query<
-                Codegen.TransitFulfillmentMutation,
-                Codegen.TransitFulfillmentMutationVariables
-            >(TRANSIT_FULFILLMENT, {
+            const { transitionFulfillmentToState } = await adminClient.query(transitFulfillmentDocument, {
                 id: f3Id,
                 state: 'Shipped',
             });
@@ -950,20 +808,14 @@ describe('Orders resolver', () => {
             expect(transitionFulfillmentToState.id).toBe(f3Id);
             expect(transitionFulfillmentToState.state).toBe('Shipped');
 
-            const { order } = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                GET_ORDER,
-                {
-                    id: orderId,
-                },
-            );
+            const { order } = await adminClient.query(getOrderDocument, {
+                id: orderId,
+            });
             expect(order?.state).toBe('Shipped');
         });
 
         it('transitions the first fulfillment from Shipped to Delivered and change the order state to PartiallyDelivered', async () => {
-            const { transitionFulfillmentToState } = await adminClient.query<
-                Codegen.TransitFulfillmentMutation,
-                Codegen.TransitFulfillmentMutationVariables
-            >(TRANSIT_FULFILLMENT, {
+            const { transitionFulfillmentToState } = await adminClient.query(transitFulfillmentDocument, {
                 id: f1Id,
                 state: 'Delivered',
             });
@@ -972,20 +824,14 @@ describe('Orders resolver', () => {
             expect(transitionFulfillmentToState.id).toBe(f1Id);
             expect(transitionFulfillmentToState.state).toBe('Delivered');
 
-            const { order } = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                GET_ORDER,
-                {
-                    id: orderId,
-                },
-            );
+            const { order } = await adminClient.query(getOrderDocument, {
+                id: orderId,
+            });
             expect(order?.state).toBe('PartiallyDelivered');
         });
 
         it('transitions the third fulfillment from Shipped to Delivered and change the order state to Delivered', async () => {
-            const { transitionFulfillmentToState } = await adminClient.query<
-                Codegen.TransitFulfillmentMutation,
-                Codegen.TransitFulfillmentMutationVariables
-            >(TRANSIT_FULFILLMENT, {
+            const { transitionFulfillmentToState } = await adminClient.query(transitFulfillmentDocument, {
                 id: f3Id,
                 state: 'Delivered',
             });
@@ -994,20 +840,14 @@ describe('Orders resolver', () => {
             expect(transitionFulfillmentToState.id).toBe(f3Id);
             expect(transitionFulfillmentToState.state).toBe('Delivered');
 
-            const { order } = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                GET_ORDER,
-                {
-                    id: orderId,
-                },
-            );
+            const { order } = await adminClient.query(getOrderDocument, {
+                id: orderId,
+            });
             expect(order?.state).toBe('Delivered');
         });
 
         it('order history contains expected entries', async () => {
-            const { order } = await adminClient.query<
-                Codegen.GetOrderHistoryQuery,
-                Codegen.GetOrderHistoryQueryVariables
-            >(GET_ORDER_HISTORY, {
+            const { order } = await adminClient.query(getOrderHistoryDocument, {
                 id: orderId,
                 options: {
                     skip: 6,
@@ -1128,10 +968,7 @@ describe('Orders resolver', () => {
         });
 
         it('order.fulfillments resolver for single order', async () => {
-            const { order } = await adminClient.query<
-                Codegen.GetOrderFulfillmentsQuery,
-                Codegen.GetOrderFulfillmentsQueryVariables
-            >(GET_ORDER_FULFILLMENTS, {
+            const { order } = await adminClient.query(getOrderFulfillmentsDocument, {
                 id: orderId,
             });
 
@@ -1145,8 +982,7 @@ describe('Orders resolver', () => {
         });
 
         it('order.fulfillments resolver for order list', async () => {
-            const { orders } =
-                await adminClient.query<Codegen.GetOrderListFulfillmentsQuery>(GET_ORDER_LIST_FULFILLMENTS);
+            const { orders } = await adminClient.query(getOrderListFulfillmentsDocument);
 
             expect(orders.items[0].fulfillments).toEqual([]);
             expect(orders.items[1].fulfillments?.sort(sortById)).toEqual([
@@ -1165,26 +1001,17 @@ describe('Orders resolver', () => {
                 customers[0].emailAddress,
                 password,
             );
-            const { order } = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                GET_ORDER,
-                {
-                    id: testOrder.orderId,
-                },
-            );
+            const { order } = await adminClient.query(getOrderDocument, {
+                id: testOrder.orderId,
+            });
             expect(order!.state).toBe('AddingItems');
-            const { cancelOrder } = await adminClient.query<
-                Codegen.CancelOrderMutation,
-                Codegen.CancelOrderMutationVariables
-            >(CANCEL_ORDER, {
+            await adminClient.query(cancelOrderDocument, {
                 input: {
                     orderId: testOrder.orderId,
                 },
             });
 
-            const { order: order2 } = await adminClient.query<
-                Codegen.GetOrderQuery,
-                Codegen.GetOrderQueryVariables
-            >(GET_ORDER, {
+            const { order: order2 } = await adminClient.query(getOrderDocument, {
                 id: testOrder.orderId,
             });
             expect(order2!.state).toBe('Cancelled');
@@ -1200,26 +1027,17 @@ describe('Orders resolver', () => {
                 password,
             );
             await proceedToArrangingPayment(shopClient);
-            const { order } = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                GET_ORDER,
-                {
-                    id: testOrder.orderId,
-                },
-            );
+            const { order } = await adminClient.query(getOrderDocument, {
+                id: testOrder.orderId,
+            });
             expect(order!.state).toBe('ArrangingPayment');
-            await adminClient.query<Codegen.CancelOrderMutation, Codegen.CancelOrderMutationVariables>(
-                CANCEL_ORDER,
-                {
-                    input: {
-                        orderId: testOrder.orderId,
-                    },
+            await adminClient.query(cancelOrderDocument, {
+                input: {
+                    orderId: testOrder.orderId,
                 },
-            );
+            });
 
-            const { order: order2 } = await adminClient.query<
-                Codegen.GetOrderQuery,
-                Codegen.GetOrderQueryVariables
-            >(GET_ORDER, {
+            const { order: order2 } = await adminClient.query(getOrderDocument, {
                 id: testOrder.orderId,
             });
             expect(order2!.state).toBe('Cancelled');
@@ -1237,14 +1055,11 @@ describe('Orders resolver', () => {
             );
             await proceedToArrangingPayment(shopClient, 2);
             const order = await addPaymentToOrder(shopClient, failsToSettlePaymentMethod);
-            orderGuard.assertSuccess(order);
+            shopOrderGuard.assertSuccess(order);
 
             expect(order.state).toBe('PaymentAuthorized');
 
-            const result1 = await adminClient.query<
-                Codegen.GetStockMovementQuery,
-                Codegen.GetStockMovementQueryVariables
-            >(GET_STOCK_MOVEMENT, {
+            const result1 = await adminClient.query(getStockMovementDocument, {
                 id: 'T_3',
             });
             let variant1 = result1.product!.variants[0];
@@ -1255,24 +1070,18 @@ describe('Orders resolver', () => {
                 { type: StockMovementType.ALLOCATION, quantity: 2 },
             ]);
 
-            const { cancelOrder } = await adminClient.query<
-                Codegen.CancelOrderMutation,
-                Codegen.CancelOrderMutationVariables
-            >(CANCEL_ORDER, {
+            const { cancelOrder } = await adminClient.query(cancelOrderDocument, {
                 input: {
                     orderId: testOrder.orderId,
                     cancelShipping: true,
                 },
             });
-            orderGuard.assertSuccess(cancelOrder);
+            canceledOrderGuard.assertSuccess(cancelOrder);
 
             expect(cancelOrder.lines.sort((a, b) => (a.id > b.id ? 1 : -1))).toEqual([
                 { id: 'T_7', quantity: 0 },
             ]);
-            const { order: order2 } = await adminClient.query<
-                Codegen.GetOrderQuery,
-                Codegen.GetOrderQueryVariables
-            >(GET_ORDER, {
+            const { order: order2 } = await adminClient.query(getOrderDocument, {
                 id: testOrder.orderId,
             });
             expect(order2!.active).toBe(false);
@@ -1280,10 +1089,7 @@ describe('Orders resolver', () => {
             expect(order2!.totalWithTax).toBe(0);
             expect(order2!.shippingWithTax).toBe(0);
 
-            const result2 = await adminClient.query<
-                Codegen.GetStockMovementQuery,
-                Codegen.GetStockMovementQueryVariables
-            >(GET_STOCK_MOVEMENT, {
+            const result2 = await adminClient.query(getStockMovementDocument, {
                 id: 'T_3',
             });
             variant1 = result2.product!.variants[0];
@@ -1297,10 +1103,7 @@ describe('Orders resolver', () => {
         });
 
         async function assertNoStockMovementsCreated(productId: string) {
-            const result = await adminClient.query<
-                Codegen.GetStockMovementQuery,
-                Codegen.GetStockMovementQueryVariables
-            >(GET_STOCK_MOVEMENT, {
+            const result = await adminClient.query(getStockMovementDocument, {
                 id: productId,
             });
             const variant2 = result.product!.variants[0];
@@ -1313,8 +1116,7 @@ describe('Orders resolver', () => {
 
     describe('cancellation by OrderLine', () => {
         let orderId: string;
-        let product: Codegen.GetProductWithVariantsQuery['product'];
-        let productVariantId: string;
+        let product: ResultOf<typeof getProductWithVariantsDocument>['product'];
 
         beforeAll(async () => {
             const result = await createTestOrder(
@@ -1325,28 +1127,21 @@ describe('Orders resolver', () => {
             );
             orderId = result.orderId;
             product = result.product;
-            productVariantId = result.productVariantId;
         });
 
         it('cannot cancel from AddingItems state', async () => {
-            const { order } = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                GET_ORDER,
-                {
-                    id: orderId,
-                },
-            );
+            const { order } = await adminClient.query(getOrderDocument, {
+                id: orderId,
+            });
             expect(order!.state).toBe('AddingItems');
 
-            const { cancelOrder } = await adminClient.query<
-                Codegen.CancelOrderMutation,
-                Codegen.CancelOrderMutationVariables
-            >(CANCEL_ORDER, {
+            const { cancelOrder } = await adminClient.query(cancelOrderDocument, {
                 input: {
                     orderId,
                     lines: order!.lines.map(l => ({ orderLineId: l.id, quantity: 1 })),
                 },
             });
-            orderGuard.assertErrorResult(cancelOrder);
+            canceledOrderGuard.assertErrorResult(cancelOrder);
 
             expect(cancelOrder.message).toBe(
                 'Cannot cancel OrderLines from an Order in the "AddingItems" state',
@@ -1356,23 +1151,17 @@ describe('Orders resolver', () => {
 
         it('cannot cancel from ArrangingPayment state', async () => {
             await proceedToArrangingPayment(shopClient, 2);
-            const { order } = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                GET_ORDER,
-                {
-                    id: orderId,
-                },
-            );
+            const { order } = await adminClient.query(getOrderDocument, {
+                id: orderId,
+            });
             expect(order!.state).toBe('ArrangingPayment');
-            const { cancelOrder } = await adminClient.query<
-                Codegen.CancelOrderMutation,
-                Codegen.CancelOrderMutationVariables
-            >(CANCEL_ORDER, {
+            const { cancelOrder } = await adminClient.query(cancelOrderDocument, {
                 input: {
                     orderId,
                     lines: order!.lines.map(l => ({ orderLineId: l.id, quantity: 1 })),
                 },
             });
-            orderGuard.assertErrorResult(cancelOrder);
+            canceledOrderGuard.assertErrorResult(cancelOrder);
 
             expect(cancelOrder.message).toBe(
                 'Cannot cancel OrderLines from an Order in the "ArrangingPayment" state',
@@ -1382,52 +1171,40 @@ describe('Orders resolver', () => {
 
         it('returns error result if lines are empty', async () => {
             const order = await addPaymentToOrder(shopClient, twoStagePaymentMethod);
-            orderGuard.assertSuccess(order);
+            shopOrderGuard.assertSuccess(order);
 
             expect(order.state).toBe('PaymentAuthorized');
 
-            const { cancelOrder } = await adminClient.query<
-                Codegen.CancelOrderMutation,
-                Codegen.CancelOrderMutationVariables
-            >(CANCEL_ORDER, {
+            const { cancelOrder } = await adminClient.query(cancelOrderDocument, {
                 input: {
                     orderId,
                     lines: [],
                 },
             });
-            orderGuard.assertErrorResult(cancelOrder);
+            canceledOrderGuard.assertErrorResult(cancelOrder);
 
             expect(cancelOrder.message).toBe('At least one OrderLine must be specified');
             expect(cancelOrder.errorCode).toBe(ErrorCode.EMPTY_ORDER_LINE_SELECTION_ERROR);
         });
 
         it('returns error result if all quantities zero', async () => {
-            const { order } = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                GET_ORDER,
-                {
-                    id: orderId,
-                },
-            );
-            const { cancelOrder } = await adminClient.query<
-                Codegen.CancelOrderMutation,
-                Codegen.CancelOrderMutationVariables
-            >(CANCEL_ORDER, {
+            const { order } = await adminClient.query(getOrderDocument, {
+                id: orderId,
+            });
+            const { cancelOrder } = await adminClient.query(cancelOrderDocument, {
                 input: {
                     orderId,
                     lines: order!.lines.map(l => ({ orderLineId: l.id, quantity: 0 })),
                 },
             });
-            orderGuard.assertErrorResult(cancelOrder);
+            canceledOrderGuard.assertErrorResult(cancelOrder);
 
             expect(cancelOrder.message).toBe('At least one OrderLine must be specified');
             expect(cancelOrder.errorCode).toBe(ErrorCode.EMPTY_ORDER_LINE_SELECTION_ERROR);
         });
 
         it('partial cancellation', async () => {
-            const result1 = await adminClient.query<
-                Codegen.GetStockMovementQuery,
-                Codegen.GetStockMovementQueryVariables
-            >(GET_STOCK_MOVEMENT, {
+            const result1 = await adminClient.query(getStockMovementDocument, {
                 id: product!.id,
             });
             const variant1 = result1.product!.variants[0];
@@ -1440,41 +1217,29 @@ describe('Orders resolver', () => {
                 { type: StockMovementType.ALLOCATION, quantity: 2 },
             ]);
 
-            const { order } = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                GET_ORDER,
-                {
-                    id: orderId,
-                },
-            );
+            const { order } = await adminClient.query(getOrderDocument, {
+                id: orderId,
+            });
 
-            const { cancelOrder } = await adminClient.query<
-                Codegen.CancelOrderMutation,
-                Codegen.CancelOrderMutationVariables
-            >(CANCEL_ORDER, {
+            const { cancelOrder } = await adminClient.query(cancelOrderDocument, {
                 input: {
                     orderId,
                     lines: order!.lines.map(l => ({ orderLineId: l.id, quantity: 1 })),
                     reason: 'cancel reason 1',
                 },
             });
-            orderGuard.assertSuccess(cancelOrder);
+            canceledOrderGuard.assertSuccess(cancelOrder);
 
             expect(cancelOrder.lines[0].quantity).toBe(1);
 
-            const { order: order2 } = await adminClient.query<
-                Codegen.GetOrderQuery,
-                Codegen.GetOrderQueryVariables
-            >(GET_ORDER, {
+            const { order: order2 } = await adminClient.query(getOrderDocument, {
                 id: orderId,
             });
 
             expect(order2!.state).toBe('PaymentAuthorized');
             expect(order2!.lines[0].quantity).toBe(1);
 
-            const result2 = await adminClient.query<
-                Codegen.GetStockMovementQuery,
-                Codegen.GetStockMovementQueryVariables
-            >(GET_STOCK_MOVEMENT, {
+            const result2 = await adminClient.query(getStockMovementDocument, {
                 id: product!.id,
             });
             const variant2 = result2.product!.variants[0];
@@ -1490,22 +1255,16 @@ describe('Orders resolver', () => {
         });
 
         it('returns error result if attempting to cancel already cancelled item', async () => {
-            const { order } = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                GET_ORDER,
-                {
-                    id: orderId,
-                },
-            );
-            const { cancelOrder } = await adminClient.query<
-                Codegen.CancelOrderMutation,
-                Codegen.CancelOrderMutationVariables
-            >(CANCEL_ORDER, {
+            const { order } = await adminClient.query(getOrderDocument, {
+                id: orderId,
+            });
+            const { cancelOrder } = await adminClient.query(cancelOrderDocument, {
                 input: {
                     orderId,
                     lines: order!.lines.map(l => ({ orderLineId: l.id, quantity: 2 })),
                 },
             });
-            orderGuard.assertErrorResult(cancelOrder);
+            canceledOrderGuard.assertErrorResult(cancelOrder);
 
             expect(cancelOrder.message).toBe(
                 'The specified quantity is greater than the available OrderItems',
@@ -1514,38 +1273,26 @@ describe('Orders resolver', () => {
         });
 
         it('complete cancellation', async () => {
-            const { order } = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                GET_ORDER,
-                {
-                    id: orderId,
+            const { order } = await adminClient.query(getOrderDocument, {
+                id: orderId,
+            });
+            await adminClient.query(cancelOrderDocument, {
+                input: {
+                    orderId,
+                    lines: order!.lines.map(l => ({ orderLineId: l.id, quantity: 1 })),
+                    reason: 'cancel reason 2',
+                    cancelShipping: true,
                 },
-            );
-            await adminClient.query<Codegen.CancelOrderMutation, Codegen.CancelOrderMutationVariables>(
-                CANCEL_ORDER,
-                {
-                    input: {
-                        orderId,
-                        lines: order!.lines.map(l => ({ orderLineId: l.id, quantity: 1 })),
-                        reason: 'cancel reason 2',
-                        cancelShipping: true,
-                    },
-                },
-            );
+            });
 
-            const { order: order2 } = await adminClient.query<
-                Codegen.GetOrderQuery,
-                Codegen.GetOrderQueryVariables
-            >(GET_ORDER, {
+            const { order: order2 } = await adminClient.query(getOrderDocument, {
                 id: orderId,
             });
             expect(order2!.state).toBe('Cancelled');
             expect(order2!.shippingWithTax).toBe(0);
             expect(order2!.totalWithTax).toBe(0);
 
-            const result = await adminClient.query<
-                Codegen.GetStockMovementQuery,
-                Codegen.GetStockMovementQueryVariables
-            >(GET_STOCK_MOVEMENT, {
+            const result = await adminClient.query(getStockMovementDocument, {
                 id: product!.id,
             });
             const variant2 = result.product!.variants[0];
@@ -1562,21 +1309,15 @@ describe('Orders resolver', () => {
         });
 
         it('cancelled OrderLine.unitPrice is not zero', async () => {
-            const { order } = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                GET_ORDER,
-                {
-                    id: orderId,
-                },
-            );
+            const { order } = await adminClient.query(getOrderDocument, {
+                id: orderId,
+            });
 
             expect(order?.lines[0].unitPrice).not.toBe(0);
         });
 
         it('order history contains expected entries', async () => {
-            const { order } = await adminClient.query<
-                Codegen.GetOrderHistoryQuery,
-                Codegen.GetOrderHistoryQueryVariables
-            >(GET_ORDER_HISTORY, {
+            const { order } = await adminClient.query(getOrderHistoryDocument, {
                 id: orderId,
                 options: {
                     skip: 0,
@@ -1657,15 +1398,12 @@ describe('Orders resolver', () => {
         it('cannot refund from PaymentAuthorized state', async () => {
             await proceedToArrangingPayment(shopClient);
             const order = await addPaymentToOrder(shopClient, twoStagePaymentMethod);
-            orderGuard.assertSuccess(order);
+            shopOrderGuard.assertSuccess(order);
 
             expect(order.state).toBe('PaymentAuthorized');
-            paymentId = order.payments![0].id;
+            paymentId = 'payments' in order && order.payments?.[0] ? order.payments[0].id : '';
 
-            const { refundOrder } = await adminClient.query<
-                Codegen.RefundOrderMutation,
-                Codegen.RefundOrderMutationVariables
-            >(REFUND_ORDER, {
+            const { refundOrder } = await adminClient.query(refundOrderDocument, {
                 input: {
                     lines: order.lines.map(l => ({ orderLineId: l.id, quantity: 1 })),
                     shipping: 0,
@@ -1680,26 +1418,17 @@ describe('Orders resolver', () => {
         });
 
         it('returns error result if no amount and no shipping', async () => {
-            const { order } = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                GET_ORDER,
-                {
-                    id: orderId,
-                },
-            );
-            const { settlePayment } = await adminClient.query<
-                Codegen.SettlePaymentMutation,
-                Codegen.SettlePaymentMutationVariables
-            >(SETTLE_PAYMENT, {
+            const { order } = await adminClient.query(getOrderDocument, {
+                id: orderId,
+            });
+            const { settlePayment } = await adminClient.query(settlePaymentDocument, {
                 id: order!.payments![0].id,
             });
             paymentGuard.assertSuccess(settlePayment);
 
             expect(settlePayment.state).toBe('Settled');
 
-            const { refundOrder } = await adminClient.query<
-                Codegen.RefundOrderMutation,
-                Codegen.RefundOrderMutationVariables
-            >(REFUND_ORDER, {
+            const { refundOrder } = await adminClient.query(refundOrderDocument, {
                 input: {
                     lines: order!.lines.map(l => ({ orderLineId: l.id, quantity: 0 })),
                     shipping: 0,
@@ -1716,16 +1445,10 @@ describe('Orders resolver', () => {
         it(
             'throws if paymentId not valid',
             assertThrowsWithMessage(async () => {
-                const { order } = await adminClient.query<
-                    Codegen.GetOrderQuery,
-                    Codegen.GetOrderQueryVariables
-                >(GET_ORDER, {
+                await adminClient.query(getOrderDocument, {
                     id: orderId,
                 });
-                const { refundOrder } = await adminClient.query<
-                    Codegen.RefundOrderMutation,
-                    Codegen.RefundOrderMutationVariables
-                >(REFUND_ORDER, {
+                await adminClient.query(refundOrderDocument, {
                     input: {
                         lines: [],
                         shipping: 100,
@@ -1737,16 +1460,10 @@ describe('Orders resolver', () => {
         );
 
         it('returns error result if payment and order lines do not belong to the same Order', async () => {
-            const { order } = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                GET_ORDER,
-                {
-                    id: orderId,
-                },
-            );
-            const { refundOrder } = await adminClient.query<
-                Codegen.RefundOrderMutation,
-                Codegen.RefundOrderMutationVariables
-            >(REFUND_ORDER, {
+            const { order } = await adminClient.query(getOrderDocument, {
+                id: orderId,
+            });
+            const { refundOrder } = await adminClient.query(refundOrderDocument, {
                 input: {
                     lines: order!.lines.map(l => ({ orderLineId: l.id, quantity: l.quantity })),
                     shipping: 100,
@@ -1761,16 +1478,10 @@ describe('Orders resolver', () => {
         });
 
         it('creates a Refund to be manually settled', async () => {
-            const { order } = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                GET_ORDER,
-                {
-                    id: orderId,
-                },
-            );
-            const { refundOrder } = await adminClient.query<
-                Codegen.RefundOrderMutation,
-                Codegen.RefundOrderMutationVariables
-            >(REFUND_ORDER, {
+            const { order } = await adminClient.query(getOrderDocument, {
+                id: orderId,
+            });
+            const { refundOrder } = await adminClient.query(refundOrderDocument, {
                 input: {
                     lines: order!.lines.map(l => ({ orderLineId: l.id, quantity: l.quantity })),
                     shipping: order!.shippingWithTax,
@@ -1790,10 +1501,7 @@ describe('Orders resolver', () => {
         });
 
         it('manually settle a Refund', async () => {
-            const { settleRefund } = await adminClient.query<
-                Codegen.SettleRefundMutation,
-                Codegen.SettleRefundMutationVariables
-            >(SETTLE_REFUND, {
+            const { settleRefund } = await adminClient.query(settleRefundDocument, {
                 input: {
                     id: refundId,
                     transactionId: 'aaabbb',
@@ -1806,10 +1514,7 @@ describe('Orders resolver', () => {
         });
 
         it('order history contains expected entries', async () => {
-            const { order } = await adminClient.query<
-                Codegen.GetOrderHistoryQuery,
-                Codegen.GetOrderHistoryQueryVariables
-            >(GET_ORDER_HISTORY, {
+            const { order } = await adminClient.query(getOrderHistoryDocument, {
                 id: orderId,
                 options: {
                     skip: 0,
@@ -1874,93 +1579,80 @@ describe('Orders resolver', () => {
 
         // https://github.com/vendurehq/vendure/issues/873
         it('can add another refund if the first one fails', async () => {
-            const orderResult = await createTestOrder(
-                adminClient,
-                shopClient,
-                customers[0].emailAddress,
-                password,
-            );
+            await createTestOrder(adminClient, shopClient, customers[0].emailAddress, password);
             await proceedToArrangingPayment(shopClient, 2);
             const order = await addPaymentToOrder(shopClient, singleStageRefundFailingPaymentMethod);
-            orderGuard.assertSuccess(order);
+            shopOrderGuard.assertSuccess(order);
 
             expect(order.state).toBe('PaymentSettled');
 
-            const { refundOrder: refund1 } = await adminClient.query<
-                Codegen.RefundOrderMutation,
-                Codegen.RefundOrderMutationVariables
-            >(REFUND_ORDER, {
+            const shippingWithTax = 'shippingWithTax' in order ? order.shippingWithTax : 0;
+            const totalWithTax = 'totalWithTax' in order ? order.totalWithTax : 0;
+            const paymentIdForRefund = 'payments' in order && order.payments?.[0] ? order.payments[0].id : '';
+            const { refundOrder: refund1 } = await adminClient.query(refundOrderDocument, {
                 input: {
                     lines: order.lines.map(l => ({ orderLineId: l.id, quantity: l.quantity })),
-                    shipping: order.shippingWithTax,
+                    shipping: shippingWithTax,
                     adjustment: 0,
                     reason: 'foo',
-                    paymentId: order.payments![0].id,
+                    paymentId: paymentIdForRefund,
                 },
             });
             refundGuard.assertSuccess(refund1);
             expect(refund1.state).toBe('Failed');
-            expect(refund1.total).toBe(order.totalWithTax);
+            expect(refund1.total).toBe(totalWithTax);
 
-            const { refundOrder: refund2 } = await adminClient.query<
-                Codegen.RefundOrderMutation,
-                Codegen.RefundOrderMutationVariables
-            >(REFUND_ORDER, {
+            const shippingWithTax2 = 'shippingWithTax' in order ? order.shippingWithTax : 0;
+            const totalWithTax2 = 'totalWithTax' in order ? order.totalWithTax : 0;
+            const paymentId2 = 'payments' in order && order.payments?.[0] ? order.payments[0].id : '';
+            const { refundOrder: refund2 } = await adminClient.query(refundOrderDocument, {
                 input: {
                     lines: order.lines.map(l => ({ orderLineId: l.id, quantity: l.quantity })),
-                    shipping: order.shippingWithTax,
+                    shipping: shippingWithTax2,
                     adjustment: 0,
                     reason: 'foo',
-                    paymentId: order.payments![0].id,
+                    paymentId: paymentId2,
                 },
             });
             refundGuard.assertSuccess(refund2);
             expect(refund2.state).toBe('Settled');
-            expect(refund2.total).toBe(order.totalWithTax);
+            expect(refund2.total).toBe(totalWithTax2);
         });
 
         // https://github.com/vendurehq/vendure/issues/2302
         it('passes correct amount to createRefund function after cancellation', async () => {
-            const orderResult = await createTestOrder(
-                adminClient,
-                shopClient,
-                customers[0].emailAddress,
-                password,
-            );
+            await createTestOrder(adminClient, shopClient, customers[0].emailAddress, password);
             await proceedToArrangingPayment(shopClient, 2);
             const order = await addPaymentToOrder(shopClient, singleStageRefundablePaymentMethod);
-            orderGuard.assertSuccess(order);
+            shopOrderGuard.assertSuccess(order);
 
             expect(order.state).toBe('PaymentSettled');
 
-            const { cancelOrder } = await adminClient.query<
-                Codegen.CancelOrderMutation,
-                Codegen.CancelOrderMutationVariables
-            >(CANCEL_ORDER, {
+            const { cancelOrder } = await adminClient.query(cancelOrderDocument, {
                 input: {
                     orderId: order.id,
                     lines: order.lines.map(l => ({ orderLineId: l.id, quantity: l.quantity })),
                     reason: 'cancel reason 1',
                 },
             });
-            orderGuard.assertSuccess(cancelOrder);
+            canceledOrderGuard.assertSuccess(cancelOrder);
 
-            const { refundOrder } = await adminClient.query<
-                Codegen.RefundOrderMutation,
-                Codegen.RefundOrderMutationVariables
-            >(REFUND_ORDER, {
+            const shippingWithTax3 = 'shippingWithTax' in order ? order.shippingWithTax : 0;
+            const totalWithTax3 = 'totalWithTax' in order ? order.totalWithTax : 0;
+            const paymentId3 = 'payments' in order && order.payments?.[0] ? order.payments[0].id : '';
+            const { refundOrder } = await adminClient.query(refundOrderDocument, {
                 input: {
                     lines: order.lines.map(l => ({ orderLineId: l.id, quantity: l.quantity })),
-                    shipping: order.shippingWithTax,
+                    shipping: shippingWithTax3,
                     adjustment: 0,
                     reason: 'foo',
-                    paymentId: order.payments![0].id,
+                    paymentId: paymentId3,
                 },
             });
             refundGuard.assertSuccess(refundOrder);
             expect(refundOrder.state).toBe('Settled');
-            expect(refundOrder.total).toBe(order.totalWithTax);
-            expect(refundOrder.metadata.amount).toBe(order.totalWithTax);
+            expect(refundOrder.total).toBe(totalWithTax3);
+            expect(refundOrder.metadata.amount).toBe(totalWithTax3);
         });
     });
 
@@ -1969,17 +1661,15 @@ describe('Orders resolver', () => {
             await createTestOrder(adminClient, shopClient, customers[0].emailAddress, password);
             await proceedToArrangingPayment(shopClient);
             const order = await addPaymentToOrder(shopClient, twoStagePaymentMethod);
-            orderGuard.assertSuccess(order);
+            shopOrderGuard.assertSuccess(order);
 
             expect(order.state).toBe('PaymentAuthorized');
-            const paymentId = order.payments![0].id;
+            const paymentId = 'payments' in order && order.payments?.[0] ? order.payments[0].id : '';
+            if (!paymentId) throw new Error('Expected payment');
 
             expect(onCancelPaymentSpy).not.toHaveBeenCalled();
 
-            const { cancelPayment } = await adminClient.query<
-                Codegen.CancelPaymentMutation,
-                Codegen.CancelPaymentMutationVariables
-            >(CANCEL_PAYMENT, {
+            const { cancelPayment } = await adminClient.query(cancelPaymentDocument, {
                 paymentId,
             });
 
@@ -1993,24 +1683,19 @@ describe('Orders resolver', () => {
             await createTestOrder(adminClient, shopClient, customers[0].emailAddress, password);
             await proceedToArrangingPayment(shopClient);
             const order = await addPaymentToOrder(shopClient, failsToCancelPaymentMethod);
-            orderGuard.assertSuccess(order);
+            shopOrderGuard.assertSuccess(order);
 
             expect(order.state).toBe('PaymentAuthorized');
-            const paymentId = order.payments![0].id;
+            const paymentId = 'payments' in order && order.payments?.[0] ? order.payments[0].id : '';
+            if (!paymentId) throw new Error('Expected payment');
 
-            const { cancelPayment } = await adminClient.query<
-                Codegen.CancelPaymentMutation,
-                Codegen.CancelPaymentMutationVariables
-            >(CANCEL_PAYMENT, {
+            const { cancelPayment } = await adminClient.query(cancelPaymentDocument, {
                 paymentId,
             });
 
             paymentGuard.assertErrorResult(cancelPayment);
             expect(cancelPayment.message).toBe('Cancelling the payment failed');
-            const { order: checkorder } = await adminClient.query<
-                Codegen.GetOrderQuery,
-                Codegen.GetOrderQueryVariables
-            >(GET_ORDER, {
+            const { order: checkorder } = await adminClient.query(getOrderDocument, {
                 id: order.id,
             });
             expect(checkorder!.payments![0].state).toBe('Authorized');
@@ -2021,7 +1706,6 @@ describe('Orders resolver', () => {
     describe('refund by amount', () => {
         let orderId: string;
         let paymentId: string;
-        let refundId: string;
 
         beforeAll(async () => {
             const result = await createTestOrder(
@@ -2033,12 +1717,13 @@ describe('Orders resolver', () => {
             orderId = result.orderId;
             await proceedToArrangingPayment(shopClient);
             const order = await addPaymentToOrder(shopClient, singleStageRefundablePaymentMethod);
-            orderGuard.assertSuccess(order);
-            paymentId = order.payments![0].id;
+            shopOrderGuard.assertSuccess(order);
+            paymentId = 'payments' in order && order.payments?.[0] ? order.payments[0].id : '';
+            if (!paymentId) throw new Error('Expected payment');
         });
 
         it('return RefundAmountError if amount too large', async () => {
-            const { refundOrder } = await adminClient.query(RefundOrderDocument, {
+            const { refundOrder } = await adminClient.query(refundOrderDocument, {
                 input: {
                     lines: [],
                     shipping: 0,
@@ -2056,13 +1741,13 @@ describe('Orders resolver', () => {
         });
 
         it('creates a partial refund for the given amount', async () => {
-            const { order } = await adminClient.query(GetOrderDocument, {
+            const { order } = await adminClient.query(getOrderDocument, {
                 id: orderId,
             });
 
             const refundAmount = order!.totalWithTax - 500;
 
-            const { refundOrder } = await adminClient.query(RefundOrderDocument, {
+            const { refundOrder } = await adminClient.query(refundOrderDocument, {
                 input: {
                     lines: [],
                     shipping: 0,
@@ -2093,10 +1778,7 @@ describe('Orders resolver', () => {
         });
 
         it('private note', async () => {
-            const { addNoteToOrder } = await adminClient.query<
-                Codegen.AddNoteToOrderMutation,
-                Codegen.AddNoteToOrderMutationVariables
-            >(ADD_NOTE_TO_ORDER, {
+            const { addNoteToOrder } = await adminClient.query(addNoteToOrderDocument, {
                 input: {
                     id: orderId,
                     note: 'A private note',
@@ -2106,10 +1788,7 @@ describe('Orders resolver', () => {
 
             expect(addNoteToOrder.id).toBe(orderId);
 
-            const { order } = await adminClient.query<
-                Codegen.GetOrderHistoryQuery,
-                Codegen.GetOrderHistoryQueryVariables
-            >(GET_ORDER_HISTORY, {
+            const { order } = await adminClient.query(getOrderHistoryDocument, {
                 id: orderId,
                 options: {
                     skip: 1,
@@ -2127,7 +1806,7 @@ describe('Orders resolver', () => {
 
             firstNoteId = order!.history.items[0].id;
 
-            const { activeOrder } = await shopClient.query<CodegenShop.GetActiveOrderQuery>(GET_ACTIVE_ORDER);
+            const { activeOrder } = await shopClient.query(getActiveOrderDocument);
 
             expect(activeOrder!.history.items.map(pick(['type']))).toEqual([
                 { type: HistoryEntryType.ORDER_STATE_TRANSITION },
@@ -2135,10 +1814,7 @@ describe('Orders resolver', () => {
         });
 
         it('public note', async () => {
-            const { addNoteToOrder } = await adminClient.query<
-                Codegen.AddNoteToOrderMutation,
-                Codegen.AddNoteToOrderMutationVariables
-            >(ADD_NOTE_TO_ORDER, {
+            const { addNoteToOrder } = await adminClient.query(addNoteToOrderDocument, {
                 input: {
                     id: orderId,
                     note: 'A public note',
@@ -2148,10 +1824,7 @@ describe('Orders resolver', () => {
 
             expect(addNoteToOrder.id).toBe(orderId);
 
-            const { order } = await adminClient.query<
-                Codegen.GetOrderHistoryQuery,
-                Codegen.GetOrderHistoryQueryVariables
-            >(GET_ORDER_HISTORY, {
+            const { order } = await adminClient.query(getOrderHistoryDocument, {
                 id: orderId,
                 options: {
                     skip: 2,
@@ -2167,7 +1840,7 @@ describe('Orders resolver', () => {
                 },
             ]);
 
-            const { activeOrder } = await shopClient.query<CodegenShop.GetActiveOrderQuery>(GET_ACTIVE_ORDER);
+            const { activeOrder } = await shopClient.query(getActiveOrderDocument);
 
             expect(activeOrder!.history.items.map(pick(['type', 'data']))).toEqual([
                 {
@@ -2187,10 +1860,7 @@ describe('Orders resolver', () => {
         });
 
         it('update note', async () => {
-            const { updateOrderNote } = await adminClient.query<
-                Codegen.UpdateOrderNoteMutation,
-                Codegen.UpdateOrderNoteMutationVariables
-            >(UPDATE_ORDER_NOTE, {
+            const { updateOrderNote } = await adminClient.query(updateOrderNoteDocument, {
                 input: {
                     noteId: firstNoteId,
                     note: 'An updated note',
@@ -2203,25 +1873,16 @@ describe('Orders resolver', () => {
         });
 
         it('delete note', async () => {
-            const { order: before } = await adminClient.query<
-                Codegen.GetOrderHistoryQuery,
-                Codegen.GetOrderHistoryQueryVariables
-            >(GET_ORDER_HISTORY, { id: orderId });
+            const { order: before } = await adminClient.query(getOrderHistoryDocument, { id: orderId });
             expect(before?.history.totalItems).toBe(3);
 
-            const { deleteOrderNote } = await adminClient.query<
-                Codegen.DeleteOrderNoteMutation,
-                Codegen.DeleteOrderNoteMutationVariables
-            >(DELETE_ORDER_NOTE, {
+            const { deleteOrderNote } = await adminClient.query(deleteOrderNoteDocument, {
                 id: firstNoteId,
             });
 
             expect(deleteOrderNote.result).toBe(DeletionResult.DELETED);
 
-            const { order: after } = await adminClient.query<
-                Codegen.GetOrderHistoryQuery,
-                Codegen.GetOrderHistoryQueryVariables
-            >(GET_ORDER_HISTORY, { id: orderId });
+            const { order: after } = await adminClient.query(getOrderHistoryDocument, { id: orderId });
             expect(after?.history.totalItems).toBe(2);
         });
     });
@@ -2231,8 +1892,7 @@ describe('Orders resolver', () => {
         let orderId: string;
         let orderTotalWithTax: number;
         let payment1Id: string;
-        let payment2Id: string;
-        let productInOrder: Codegen.GetProductWithVariantsQuery['product'];
+        let productInOrder: ResultOf<typeof getProductWithVariantsDocument>['product'];
 
         beforeAll(async () => {
             const result = await createTestOrder(
@@ -2247,10 +1907,7 @@ describe('Orders resolver', () => {
 
         it('adds a partial payment', async () => {
             await proceedToArrangingPayment(shopClient, 2);
-            const { addPaymentToOrder: order } = await shopClient.query<
-                CodegenShop.AddPaymentToOrderMutation,
-                CodegenShop.AddPaymentToOrderMutationVariables
-            >(ADD_PAYMENT, {
+            const { addPaymentToOrder: order } = await shopClient.query(addPaymentDocument, {
                 input: {
                     method: partialPaymentMethod.code,
                     metadata: {
@@ -2258,7 +1915,7 @@ describe('Orders resolver', () => {
                     },
                 },
             });
-            orderGuard.assertSuccess(order);
+            shopOrderGuard.assertSuccess(order);
             orderTotalWithTax = order.totalWithTax;
 
             expect(order.state).toBe('ArrangingPayment');
@@ -2278,16 +1935,13 @@ describe('Orders resolver', () => {
         });
 
         it('adds another payment to make up order totalWithTax', async () => {
-            const { addPaymentToOrder: order } = await shopClient.query<
-                CodegenShop.AddPaymentToOrderMutation,
-                CodegenShop.AddPaymentToOrderMutationVariables
-            >(ADD_PAYMENT, {
+            const { addPaymentToOrder: order } = await shopClient.query(addPaymentDocument, {
                 input: {
                     method: singleStageRefundablePaymentMethod.code,
                     metadata: {},
                 },
             });
-            orderGuard.assertSuccess(order);
+            shopOrderGuard.assertSuccess(order);
 
             expect(order.state).toBe('PaymentSettled');
             expect(order.payments?.length).toBe(2);
@@ -2302,20 +1956,13 @@ describe('Orders resolver', () => {
                 state: 'Settled',
                 transactionId: '12345',
             });
-            payment2Id = order.payments![1].id;
         });
 
         it('partial refunding of order with multiple payments', async () => {
-            const { order } = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                GET_ORDER,
-                {
-                    id: orderId,
-                },
-            );
-            const { refundOrder } = await adminClient.query<
-                Codegen.RefundOrderMutation,
-                Codegen.RefundOrderMutationVariables
-            >(REFUND_ORDER, {
+            const { order } = await adminClient.query(getOrderDocument, {
+                id: orderId,
+            });
+            const { refundOrder } = await adminClient.query(refundOrderDocument, {
                 input: {
                     lines: order!.lines.map(l => ({ orderLineId: l.id, quantity: 1 })),
                     shipping: 0,
@@ -2327,10 +1974,7 @@ describe('Orders resolver', () => {
             refundGuard.assertSuccess(refundOrder);
             expect(refundOrder.total).toBe(PARTIAL_PAYMENT_AMOUNT);
 
-            const { order: orderWithPayments } = await adminClient.query<
-                Codegen.GetOrderWithPaymentsQuery,
-                Codegen.GetOrderWithPaymentsQueryVariables
-            >(GET_ORDER_WITH_PAYMENTS, {
+            const { order: orderWithPayments } = await adminClient.query(getOrderWithPaymentsDocument, {
                 id: orderId,
             });
 
@@ -2346,16 +1990,10 @@ describe('Orders resolver', () => {
         });
 
         it('refunding remaining amount of order with multiple payments', async () => {
-            const { order } = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                GET_ORDER,
-                {
-                    id: orderId,
-                },
-            );
-            const { refundOrder } = await adminClient.query<
-                Codegen.RefundOrderMutation,
-                Codegen.RefundOrderMutationVariables
-            >(REFUND_ORDER, {
+            const { order } = await adminClient.query(getOrderDocument, {
+                id: orderId,
+            });
+            const { refundOrder } = await adminClient.query(refundOrderDocument, {
                 input: {
                     lines: order!.lines.map(l => ({ orderLineId: l.id, quantity: 1 })),
                     shipping: order!.shippingWithTax,
@@ -2367,10 +2005,7 @@ describe('Orders resolver', () => {
             refundGuard.assertSuccess(refundOrder);
             expect(refundOrder.total).toBe(order!.totalWithTax - order!.lines[0].unitPriceWithTax);
 
-            const { order: orderWithPayments } = await adminClient.query<
-                Codegen.GetOrderWithPaymentsQuery,
-                Codegen.GetOrderWithPaymentsQueryVariables
-            >(GET_ORDER_WITH_PAYMENTS, {
+            const { order: orderWithPayments } = await adminClient.query(getOrderWithPaymentsDocument, {
                 id: orderId,
             });
 
@@ -2390,17 +2025,9 @@ describe('Orders resolver', () => {
 
         // https://github.com/vendurehq/vendure/issues/847
         it('manual call to settlePayment works with multiple payments', async () => {
-            const result = await createTestOrder(
-                adminClient,
-                shopClient,
-                customers[1].emailAddress,
-                password,
-            );
+            await createTestOrder(adminClient, shopClient, customers[1].emailAddress, password);
             await proceedToArrangingPayment(shopClient);
-            await shopClient.query<
-                CodegenShop.AddPaymentToOrderMutation,
-                CodegenShop.AddPaymentToOrderMutationVariables
-            >(ADD_PAYMENT, {
+            await shopClient.query(addPaymentDocument, {
                 input: {
                     method: partialPaymentMethod.code,
                     metadata: {
@@ -2409,23 +2036,17 @@ describe('Orders resolver', () => {
                     },
                 },
             });
-            const { addPaymentToOrder: order } = await shopClient.query<
-                CodegenShop.AddPaymentToOrderMutation,
-                CodegenShop.AddPaymentToOrderMutationVariables
-            >(ADD_PAYMENT, {
+            const { addPaymentToOrder: order } = await shopClient.query(addPaymentDocument, {
                 input: {
                     method: singleStageRefundablePaymentMethod.code,
                     metadata: {},
                 },
             });
-            orderGuard.assertSuccess(order);
+            shopOrderGuard.assertSuccess(order);
 
             expect(order.state).toBe('PaymentAuthorized');
 
-            const { settlePayment } = await adminClient.query<
-                Codegen.SettlePaymentMutation,
-                Codegen.SettlePaymentMutationVariables
-            >(SETTLE_PAYMENT, {
+            const { settlePayment } = await adminClient.query(settlePaymentDocument, {
                 id: order.payments!.find(p => p.method === partialPaymentMethod.code)!.id,
             });
 
@@ -2433,10 +2054,7 @@ describe('Orders resolver', () => {
 
             expect(settlePayment.state).toBe('Settled');
 
-            const { order: order2 } = await adminClient.query<
-                Codegen.GetOrderQuery,
-                Codegen.GetOrderQueryVariables
-            >(GET_ORDER, {
+            const { order: order2 } = await adminClient.query(getOrderDocument, {
                 id: order.id,
             });
 
@@ -2461,17 +2079,15 @@ describe('Orders resolver', () => {
 
             await proceedToArrangingPayment(shopClient);
             const order = await addPaymentToOrder(shopClient, singleStageRefundablePaymentMethod);
-            orderGuard.assertSuccess(order);
-            expect(order.customer?.id).toBe(customerId);
+            shopOrderGuard.assertSuccess(order);
+            const customerIdCheck = 'customer' in order ? order.customer?.id : undefined;
+            expect(customerIdCheck).toBe(customerId);
         });
 
         it(
             'throws in invalid orderId',
             assertThrowsWithMessage(async () => {
-                await adminClient.query<
-                    Codegen.SetOrderCustomerMutation,
-                    Codegen.SetOrderCustomerMutationVariables
-                >(SET_ORDER_CUSTOMER, {
+                await adminClient.query(setOrderCustomerDocument, {
                     input: {
                         orderId: 'T_9999',
                         customerId: customers[2].id,
@@ -2484,10 +2100,7 @@ describe('Orders resolver', () => {
         it(
             'throws in invalid orderId',
             assertThrowsWithMessage(async () => {
-                await adminClient.query<
-                    Codegen.SetOrderCustomerMutation,
-                    Codegen.SetOrderCustomerMutationVariables
-                >(SET_ORDER_CUSTOMER, {
+                await adminClient.query(setOrderCustomerDocument, {
                     input: {
                         orderId,
                         customerId: 'T_999',
@@ -2499,10 +2112,7 @@ describe('Orders resolver', () => {
 
         it('update order customer', async () => {
             const newCustomerId = customers[2].id;
-            const { setOrderCustomer } = await adminClient.query<
-                Codegen.SetOrderCustomerMutation,
-                Codegen.SetOrderCustomerMutationVariables
-            >(SET_ORDER_CUSTOMER, {
+            const { setOrderCustomer } = await adminClient.query(setOrderCustomerDocument, {
                 input: {
                     orderId,
                     customerId: customers[2].id,
@@ -2514,10 +2124,7 @@ describe('Orders resolver', () => {
         });
 
         it('adds a history entry for the customer update', async () => {
-            const { order } = await adminClient.query<
-                Codegen.GetOrderHistoryQuery,
-                Codegen.GetOrderHistoryQueryVariables
-            >(GET_ORDER_HISTORY, {
+            const { order } = await adminClient.query(getOrderHistoryDocument, {
                 id: orderId,
                 options: {
                     skip: 4,
@@ -2543,17 +2150,11 @@ describe('Orders resolver', () => {
         it('returns fulfillments for Order with no lines', async () => {
             await shopClient.asAnonymousUser();
             // Apply a coupon code just to create an active order with no OrderLines
-            await shopClient.query<
-                CodegenShop.ApplyCouponCodeMutation,
-                CodegenShop.ApplyCouponCodeMutationVariables
-            >(APPLY_COUPON_CODE, {
+            await shopClient.query(applyCouponCodeDocument, {
                 couponCode: 'TEST',
             });
-            const { activeOrder } = await shopClient.query<CodegenShop.GetActiveOrderQuery>(GET_ACTIVE_ORDER);
-            const { order } = await adminClient.query<
-                Codegen.GetOrderFulfillmentsQuery,
-                Codegen.GetOrderFulfillmentsQueryVariables
-            >(GET_ORDER_FULFILLMENTS, {
+            const { activeOrder } = await shopClient.query(getActiveOrderDocument);
+            const { order } = await adminClient.query(getOrderFulfillmentsDocument, {
                 id: activeOrder!.id,
             });
 
@@ -2563,19 +2164,13 @@ describe('Orders resolver', () => {
         // https://github.com/vendurehq/vendure/issues/603
         it('orders correctly resolves quantities and OrderItems', async () => {
             await shopClient.asAnonymousUser();
-            const { addItemToOrder } = await shopClient.query<
-                CodegenShop.AddItemToOrderMutation,
-                CodegenShop.AddItemToOrderMutationVariables
-            >(ADD_ITEM_TO_ORDER, {
+            const { addItemToOrder } = await shopClient.query(addItemToOrderDocument, {
                 productVariantId: 'T_1',
                 quantity: 2,
             });
-            orderGuard.assertSuccess(addItemToOrder);
+            shopOrderGuard.assertSuccess(addItemToOrder);
 
-            const { orders } = await adminClient.query<
-                Codegen.GetOrderListWithQtyQuery,
-                Codegen.GetOrderListWithQtyQueryVariables
-            >(GET_ORDERS_LIST_WITH_QUANTITIES, {
+            const { orders } = await adminClient.query(getOrderListWithQtyDocument, {
                 options: {
                     filter: {
                         code: { eq: addItemToOrder.code },
@@ -2589,39 +2184,35 @@ describe('Orders resolver', () => {
 
         // https://github.com/vendurehq/vendure/issues/716
         it('get an Order with a deleted ShippingMethod', async () => {
-            const { createShippingMethod: shippingMethod } = await adminClient.query<
-                Codegen.CreateShippingMethodMutation,
-                Codegen.CreateShippingMethodMutationVariables
-            >(CREATE_SHIPPING_METHOD, {
-                input: {
-                    code: 'royal-mail',
-                    translations: [{ languageCode: LanguageCode.en, name: 'Royal Mail', description: '' }],
-                    fulfillmentHandler: manualFulfillmentHandler.code,
-                    checker: {
-                        code: defaultShippingEligibilityChecker.code,
-                        arguments: [{ name: 'orderMinimum', value: '0' }],
-                    },
-                    calculator: {
-                        code: defaultShippingCalculator.code,
-                        arguments: [
-                            { name: 'rate', value: '500' },
-                            { name: 'taxRate', value: '0' },
+            const { createShippingMethod: shippingMethod } = await adminClient.query(
+                createShippingMethodDocument,
+                {
+                    input: {
+                        code: 'royal-mail',
+                        translations: [
+                            { languageCode: LanguageCode.en, name: 'Royal Mail', description: '' },
                         ],
+                        fulfillmentHandler: manualFulfillmentHandler.code,
+                        checker: {
+                            code: defaultShippingEligibilityChecker.code,
+                            arguments: [{ name: 'orderMinimum', value: '0' }],
+                        },
+                        calculator: {
+                            code: defaultShippingCalculator.code,
+                            arguments: [
+                                { name: 'rate', value: '500' },
+                                { name: 'taxRate', value: '0' },
+                            ],
+                        },
                     },
                 },
-            });
+            );
             await shopClient.asUserWithCredentials(customers[0].emailAddress, password);
-            await shopClient.query<
-                CodegenShop.AddItemToOrderMutation,
-                CodegenShop.AddItemToOrderMutationVariables
-            >(ADD_ITEM_TO_ORDER, {
+            await shopClient.query(addItemToOrderDocument, {
                 productVariantId: 'T_1',
                 quantity: 2,
             });
-            await shopClient.query<
-                CodegenShop.SetShippingAddressMutation,
-                CodegenShop.SetShippingAddressMutationVariables
-            >(SET_SHIPPING_ADDRESS, {
+            await shopClient.query(setShippingAddressDocument, {
                 input: {
                     fullName: 'name',
                     streetLine1: '12 the street',
@@ -2630,25 +2221,16 @@ describe('Orders resolver', () => {
                     countryCode: 'US',
                 },
             });
-            const { setOrderShippingMethod: order } = await shopClient.query<
-                CodegenShop.SetShippingMethodMutation,
-                CodegenShop.SetShippingMethodMutationVariables
-            >(SET_SHIPPING_METHOD, {
-                id: shippingMethod.id,
+            const { setOrderShippingMethod: order } = await shopClient.query(setShippingMethodDocument, {
+                id: [shippingMethod.id],
             });
-            orderGuard.assertSuccess(order);
+            shopOrderGuard.assertSuccess(order);
 
-            await adminClient.query<
-                Codegen.DeleteShippingMethodMutation,
-                Codegen.DeleteShippingMethodMutationVariables
-            >(DELETE_SHIPPING_METHOD, {
+            await adminClient.query(deleteShippingMethodDocument, {
                 id: shippingMethod.id,
             });
 
-            const { order: order2 } = await adminClient.query<
-                Codegen.GetOrderQuery,
-                Codegen.GetOrderQueryVariables
-            >(GET_ORDER, {
+            const { order: order2 } = await adminClient.query(getOrderDocument, {
                 id: order.id,
             });
             expect(order2?.shippingLines[0]).toEqual({
@@ -2660,41 +2242,33 @@ describe('Orders resolver', () => {
         // https://github.com/vendurehq/vendure/issues/868
         it('allows multiple refunds of same OrderLine', async () => {
             await shopClient.asUserWithCredentials(customers[0].emailAddress, password);
-            const { addItemToOrder } = await shopClient.query<
-                CodegenShop.AddItemToOrderMutation,
-                CodegenShop.AddItemToOrderMutationVariables
-            >(ADD_ITEM_TO_ORDER, {
+            await shopClient.query(addItemToOrderDocument, {
                 productVariantId: 'T_1',
                 quantity: 2,
             });
             await proceedToArrangingPayment(shopClient);
             const order = await addPaymentToOrder(shopClient, singleStageRefundablePaymentMethod);
-            orderGuard.assertSuccess(order);
+            shopOrderGuard.assertSuccess(order);
 
-            const { refundOrder: refund1 } = await adminClient.query<
-                Codegen.RefundOrderMutation,
-                Codegen.RefundOrderMutationVariables
-            >(REFUND_ORDER, {
+            const paymentId4 = 'payments' in order && order.payments?.[0] ? order.payments[0].id : '';
+            const { refundOrder: refund1 } = await adminClient.query(refundOrderDocument, {
                 input: {
                     lines: order.lines.map(l => ({ orderLineId: l.id, quantity: 1 })),
                     shipping: 0,
                     adjustment: 0,
                     reason: 'foo',
-                    paymentId: order.payments![0].id,
+                    paymentId: paymentId4,
                 },
             });
             refundGuard.assertSuccess(refund1);
 
-            const { refundOrder: refund2 } = await adminClient.query<
-                Codegen.RefundOrderMutation,
-                Codegen.RefundOrderMutationVariables
-            >(REFUND_ORDER, {
+            const { refundOrder: refund2 } = await adminClient.query(refundOrderDocument, {
                 input: {
                     lines: order.lines.map(l => ({ orderLineId: l.id, quantity: 1 })),
                     shipping: 0,
                     adjustment: 0,
                     reason: 'foo',
-                    paymentId: order.payments![0].id,
+                    paymentId: paymentId4,
                 },
             });
             refundGuard.assertSuccess(refund2);
@@ -2703,35 +2277,29 @@ describe('Orders resolver', () => {
         // https://github.com/vendurehq/vendure/issues/1125
         it('resolves deleted Product of OrderLine ProductVariants', async () => {
             await shopClient.asUserWithCredentials(customers[0].emailAddress, password);
-            const { addItemToOrder } = await shopClient.query<
-                CodegenShop.AddItemToOrderMutation,
-                CodegenShop.AddItemToOrderMutationVariables
-            >(ADD_ITEM_TO_ORDER, {
+            await shopClient.query(addItemToOrderDocument, {
                 productVariantId: 'T_7',
                 quantity: 1,
             });
 
             await proceedToArrangingPayment(shopClient);
             const order = await addPaymentToOrder(shopClient, singleStageRefundablePaymentMethod);
-            orderGuard.assertSuccess(order);
+            shopOrderGuard.assertSuccess(order);
 
-            await adminClient.query<Codegen.DeleteProductMutation, Codegen.DeleteProductMutationVariables>(
-                DELETE_PRODUCT,
+            await adminClient.query(deleteProductDocument, {
+                id: 'T_3',
+            });
+
+            const { activeCustomer } = await shopClient.query(
+                getActiveCustomerWithOrdersProductSlugDocument,
                 {
-                    id: 'T_3',
-                },
-            );
-
-            const { activeCustomer } = await shopClient.query<
-                CodegenShop.GetActiveCustomerWithOrdersProductSlugQuery,
-                CodegenShop.GetActiveCustomerWithOrdersProductSlugQueryVariables
-            >(GET_ACTIVE_CUSTOMER_WITH_ORDERS_PRODUCT_SLUG, {
-                options: {
-                    sort: {
-                        createdAt: SortOrder.ASC,
+                    options: {
+                        sort: {
+                            createdAt: SortOrder.ASC,
+                        },
                     },
                 },
-            });
+            );
             expect(
                 activeCustomer!.orders.items[activeCustomer!.orders.items.length - 1].lines[0].productVariant
                     .product.slug,
@@ -2740,16 +2308,16 @@ describe('Orders resolver', () => {
 
         // https://github.com/vendurehq/vendure/issues/1508
         it('resolves price of deleted ProductVariant of OrderLine', async () => {
-            const { activeCustomer } = await shopClient.query<
-                CodegenShop.GetActiveCustomerWithOrdersProductPriceQuery,
-                CodegenShop.GetActiveCustomerWithOrdersProductPriceQueryVariables
-            >(GET_ACTIVE_CUSTOMER_WITH_ORDERS_PRODUCT_PRICE, {
-                options: {
-                    sort: {
-                        createdAt: SortOrder.ASC,
+            const { activeCustomer } = await shopClient.query(
+                getActiveCustomerWithOrdersProductPriceDocument,
+                {
+                    options: {
+                        sort: {
+                            createdAt: SortOrder.ASC,
+                        },
                     },
                 },
-            });
+            );
             expect(
                 activeCustomer!.orders.items[activeCustomer!.orders.items.length - 1].lines[0].productVariant
                     .price,
@@ -2759,17 +2327,14 @@ describe('Orders resolver', () => {
         // https://github.com/vendurehq/vendure/issues/2204
         it('creates correct history entries and results in correct state when manually adding payment to order', async () => {
             await shopClient.asUserWithCredentials(customers[0].emailAddress, password);
-            const { addItemToOrder } = await shopClient.query<
-                CodegenShop.AddItemToOrderMutation,
-                CodegenShop.AddItemToOrderMutationVariables
-            >(ADD_ITEM_TO_ORDER, {
+            const { addItemToOrder } = await shopClient.query(addItemToOrderDocument, {
                 productVariantId: 'T_1',
                 quantity: 2,
             });
             await proceedToArrangingPayment(shopClient);
-            orderGuard.assertSuccess(addItemToOrder);
+            shopOrderGuard.assertSuccess(addItemToOrder);
 
-            const { addManualPaymentToOrder } = await adminClient.query(AddManualPaymentDocument, {
+            const { addManualPaymentToOrder } = await adminClient.query(addManualPaymentDocument, {
                 input: {
                     orderId: addItemToOrder.id,
                     metadata: {},
@@ -2778,46 +2343,44 @@ describe('Orders resolver', () => {
                 },
             });
 
-            orderGuard.assertSuccess(addManualPaymentToOrder);
+            canceledOrderGuard.assertSuccess(addManualPaymentToOrder as any);
+            if ('id' in addManualPaymentToOrder) {
+                const { order: orderWithHistory } = await adminClient.query(getOrderHistoryDocument, {
+                    id: addManualPaymentToOrder.id,
+                });
 
-            const { order: orderWithHistory } = await adminClient.query(GetOrderHistoryDocument, {
-                id: addManualPaymentToOrder.id,
-            });
+                const stateTransitionHistory = orderWithHistory!.history.items
+                    .filter(i => i.type === HistoryEntryType.ORDER_STATE_TRANSITION)
+                    .map(i => i.data);
 
-            const stateTransitionHistory = orderWithHistory!.history.items
-                .filter(i => i.type === HistoryEntryType.ORDER_STATE_TRANSITION)
-                .map(i => i.data);
+                expect(stateTransitionHistory).toEqual([
+                    { from: 'Created', to: 'AddingItems' },
+                    { from: 'AddingItems', to: 'ArrangingPayment' },
+                    { from: 'ArrangingPayment', to: 'PaymentSettled' },
+                ]);
 
-            expect(stateTransitionHistory).toEqual([
-                { from: 'Created', to: 'AddingItems' },
-                { from: 'AddingItems', to: 'ArrangingPayment' },
-                { from: 'ArrangingPayment', to: 'PaymentSettled' },
-            ]);
+                const { order } = await adminClient.query(getOrderDocument, {
+                    id: addManualPaymentToOrder.id,
+                });
 
-            const { order } = await adminClient.query(GetOrderDocument, {
-                id: addManualPaymentToOrder.id,
-            });
-
-            expect(order!.state).toBe('PaymentSettled');
+                expect(order!.state).toBe('PaymentSettled');
+            }
         });
 
         // https://github.com/vendurehq/vendure/issues/2191
         it('correctly transitions order & fulfillment on partial fulfillment being shipped', async () => {
             await shopClient.asUserWithCredentials(customers[0].emailAddress, password);
-            const { addItemToOrder } = await shopClient.query<
-                CodegenShop.AddItemToOrderMutation,
-                CodegenShop.AddItemToOrderMutationVariables
-            >(ADD_ITEM_TO_ORDER, {
+            const { addItemToOrder } = await shopClient.query(addItemToOrderDocument, {
                 productVariantId: 'T_6',
                 quantity: 3,
             });
             await proceedToArrangingPayment(shopClient);
-            orderGuard.assertSuccess(addItemToOrder);
+            shopOrderGuard.assertSuccess(addItemToOrder);
 
             const order = await addPaymentToOrder(shopClient, singleStageRefundablePaymentMethod);
-            orderGuard.assertSuccess(order);
+            shopOrderGuard.assertSuccess(order);
 
-            const { addFulfillmentToOrder } = await adminClient.query(CreateFulfillmentDocument, {
+            const { addFulfillmentToOrder } = await adminClient.query(createFulfillmentDocument, {
                 input: {
                     lines: [{ orderLineId: order.lines[0].id, quantity: 2 }],
                     handler: {
@@ -2831,7 +2394,7 @@ describe('Orders resolver', () => {
             });
             fulfillmentGuard.assertSuccess(addFulfillmentToOrder);
 
-            const { transitionFulfillmentToState } = await adminClient.query(TransitFulfillmentDocument, {
+            const { transitionFulfillmentToState } = await adminClient.query(transitFulfillmentDocument, {
                 id: addFulfillmentToOrder.id,
                 state: 'Shipped',
             });
@@ -2840,20 +2403,145 @@ describe('Orders resolver', () => {
             expect(transitionFulfillmentToState.id).toBe(addFulfillmentToOrder.id);
             expect(transitionFulfillmentToState.state).toBe('Shipped');
 
-            const { order: order2 } = await adminClient.query(GetOrderDocument, {
+            const { order: order2 } = await adminClient.query(getOrderDocument, {
                 id: order.id,
             });
             expect(order2?.state).toBe('PartiallyShipped');
+        });
+
+        // https://github.com/vendurehq/vendure/issues/4566
+        // Before the fix, `findOne` translated each `line.productVariant` even when the
+        // caller's relations list did not include `lines.productVariant.translations`,
+        // causing `error.entity-has-no-translation-in-language` on subsequent
+        // `addItemToOrder` calls that internally reload the active order via
+        // `getOrderOrThrow`.
+        it('loads ProductVariant translations when findOne is called with explicit relations', async () => {
+            await shopClient.asAnonymousUser();
+            const { addItemToOrder: firstAdd } = await shopClient.query(addItemToOrderDocument, {
+                productVariantId: 'T_1',
+                quantity: 1,
+            });
+            shopOrderGuard.assertSuccess(firstAdd);
+            const internalOrderId = +firstAdd.id.replace('T_', '');
+
+            const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+            const order = await server.app
+                .get(OrderService)
+                .findOne(ctx, internalOrderId, [
+                    'lines',
+                    'lines.productVariant',
+                    'lines.productVariant.productVariantPrices',
+                    'shippingLines',
+                    'surcharges',
+                    'customer',
+                ]);
+
+            expect(order).toBeDefined();
+            expect(order!.lines.length).toBe(1);
+            const variant = order!.lines[0].productVariant;
+            expect(variant.translations.length).toBe(1);
+            expect(variant.translations[0].languageCode).toBe(LanguageCode.en);
+            expect(variant.name).toBe('Laptop 13 inch 8GB');
+
+            // Re-add the same item: this exercises the original user-visible failure
+            // path (`addItemToOrder` -> `getOrderOrThrow` -> `findOne` -> translate).
+            // Pre-fix this would throw `error.entity-has-no-translation-in-language`.
+            const { addItemToOrder: secondAdd } = await shopClient.query(addItemToOrderDocument, {
+                productVariantId: 'T_1',
+                quantity: 1,
+            });
+            shopOrderGuard.assertSuccess(secondAdd);
+            expect(secondAdd.lines[0].quantity).toBe(2);
+        });
+    });
+
+    describe('set order currency code', () => {
+        it('throws if currency is not available on channel', async () => {
+            await shopClient.asAnonymousUser();
+            await shopClient.query(addItemToOrderDocument, {
+                productVariantId: 'T_1',
+                quantity: 1,
+            });
+
+            try {
+                await shopClient.query(setCurrencyCodeForOrderDocument, {
+                    currencyCode: 'GBP' as CurrencyCode,
+                });
+                expect.fail('Should have thrown');
+            } catch (e: any) {
+                expect(e.message).toContain('error.currency-not-available');
+            }
+        });
+
+        it('returns order unchanged if setting same currency', async () => {
+            const { setCurrencyCodeForOrder } = await shopClient.query(setCurrencyCodeForOrderDocument, {
+                currencyCode: 'USD' as CurrencyCode,
+            });
+            expect(setCurrencyCodeForOrder.currencyCode).toBe('USD');
+        });
+
+        it('successfully changes currency code', async () => {
+            // First, add GBP as available currency on the default channel
+            await adminClient.query(updateChannelDocument, {
+                input: {
+                    id: 'T_1',
+                    availableCurrencyCodes: [CurrencyCode.USD, CurrencyCode.GBP],
+                },
+            });
+
+            const { setCurrencyCodeForOrder } = await shopClient.query(setCurrencyCodeForOrderDocument, {
+                currencyCode: 'GBP' as CurrencyCode,
+            });
+            expect(setCurrencyCodeForOrder.currencyCode).toBe('GBP');
+        });
+
+        it('creates a history entry when currency is changed', async () => {
+            const { activeOrder } = await shopClient.query(getActiveOrderDocument);
+            expect(activeOrder).not.toBeNull();
+            const currencyUpdatedEntry = activeOrder!.history.items.find(
+                i => i.type === HistoryEntryType.ORDER_CURRENCY_UPDATED,
+            );
+            expect(currencyUpdatedEntry).toBeDefined();
+            expect(currencyUpdatedEntry!.data.previousCurrency).toBe('USD');
+            expect(currencyUpdatedEntry!.data.newCurrency).toBe('GBP');
+        });
+
+        it('returns error if order is not in AddingItems state', async () => {
+            await shopClient.query(setCustomerDocument, {
+                input: {
+                    firstName: 'Test',
+                    lastName: 'Person',
+                    emailAddress: 'currency-test@test.com',
+                },
+            });
+            await shopClient.query(setShippingAddressDocument, {
+                input: {
+                    fullName: 'name',
+                    streetLine1: '12 the street',
+                    city: 'Leedsburgh',
+                    postalCode: '123456',
+                    countryCode: 'AT',
+                },
+            });
+            await shopClient.query(setShippingMethodDocument, {
+                id: ['T_1'],
+            });
+            const { transitionOrderToState } = await shopClient.query(transitionToStateDocument, {
+                state: 'ArrangingPayment',
+            });
+            expect(transitionOrderToState?.state).toBe('ArrangingPayment');
+
+            const { setCurrencyCodeForOrder } = await shopClient.query(setCurrencyCodeForOrderDocument, {
+                currencyCode: 'USD' as CurrencyCode,
+            });
+            expect(setCurrencyCodeForOrder.errorCode).toBe('ORDER_MODIFICATION_ERROR');
         });
     });
 
     describe('multiple items to order', () => {
         it('adds multiple items to a new active order', async () => {
             await shopClient.asAnonymousUser();
-            const { addItemsToOrder } = await shopClient.query<
-                CodegenShop.AddItemsToOrderMutation,
-                CodegenShop.AddItemsToOrderMutationVariables
-            >(ADD_MULTIPLE_ITEMS_TO_ORDER, {
+            const { addItemsToOrder } = await shopClient.query(addMultipleItemsToOrderDocument, {
                 inputs: [
                     {
                         productVariantId: 'T_1',
@@ -2872,10 +2560,7 @@ describe('Orders resolver', () => {
 
         it('adds successful items and returns error results for failed items', async () => {
             await shopClient.asAnonymousUser();
-            const { addItemsToOrder } = await shopClient.query<
-                CodegenShop.AddItemsToOrderMutation,
-                CodegenShop.AddItemsToOrderMutationVariables
-            >(ADD_MULTIPLE_ITEMS_TO_ORDER, {
+            const { addItemsToOrder } = await shopClient.query(addMultipleItemsToOrderDocument, {
                 inputs: [
                     {
                         productVariantId: 'T_1',
@@ -2908,23 +2593,17 @@ async function createTestOrder(
     password: string,
 ): Promise<{
     orderId: string;
-    product: Codegen.GetProductWithVariantsQuery['product'];
+    product: ResultOf<typeof getProductWithVariantsDocument>['product'];
     productVariantId: string;
 }> {
-    const result = await adminClient.query<
-        Codegen.GetProductWithVariantsQuery,
-        Codegen.GetProductWithVariantsQueryVariables
-    >(GET_PRODUCT_WITH_VARIANTS, {
+    const result = await adminClient.query(getProductWithVariantsDocument, {
         id: 'T_3',
     });
     const product = result.product!;
     const productVariantId = product.variants[0].id;
 
     // Set the ProductVariant to trackInventory
-    const { updateProductVariants } = await adminClient.query<
-        Codegen.UpdateProductVariantsMutation,
-        Codegen.UpdateProductVariantsMutationVariables
-    >(UPDATE_PRODUCT_VARIANTS, {
+    await adminClient.query(updateProductVariantsDocument, {
         input: [
             {
                 id: productVariantId,
@@ -2935,28 +2614,31 @@ async function createTestOrder(
 
     // Add the ProductVariant to the Order
     await shopClient.asUserWithCredentials(emailAddress, password);
-    const { addItemToOrder } = await shopClient.query<
-        CodegenShop.AddItemToOrderMutation,
-        CodegenShop.AddItemToOrderMutationVariables
-    >(ADD_ITEM_TO_ORDER, {
+    const { addItemToOrder } = await shopClient.query(addItemToOrderDocument, {
         productVariantId,
         quantity: 2,
     });
-    const orderId = (addItemToOrder as CodegenShop.UpdatedOrderFragment).id;
+    if ('errorCode' in addItemToOrder) {
+        throw new Error(`Failed to add item to order: ${addItemToOrder.message}`);
+    }
+    const orderId = addItemToOrder.id;
     return { product, productVariantId, orderId };
 }
 
 async function getUnfulfilledOrderLineInput(
     client: SimpleGraphQLClient,
     id: string,
-): Promise<OrderLineInput[]> {
-    const { order } = await client.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(GET_ORDER, {
+): Promise<Array<{ quantity: number; orderLineId: string }>> {
+    const { order } = await client.query(getOrderDocument, {
         id,
     });
     const allFulfillmentLines =
         order?.fulfillments
             ?.filter(f => f.state !== 'Cancelled')
-            .reduce((all, f) => [...all, ...f.lines], [] as Codegen.FulfillmentFragment['lines']) || [];
+            .reduce(
+                (all, f) => [...all, ...f.lines],
+                [] as Array<{ orderLineId: string; quantity: number }>,
+            ) || [];
 
     const unfulfilledItems =
         order?.lines
@@ -2969,184 +2651,7 @@ async function getUnfulfilledOrderLineInput(
             .filter(l => 0 < l.unfulfilled) || [];
 
     return unfulfilledItems.map(l => ({
-        orderLineId: l.orderLineId,
+        orderLineId: String(l.orderLineId),
         quantity: l.unfulfilled,
     }));
 }
-
-export const GET_ORDER_LIST_FULFILLMENTS = gql`
-    query GetOrderListFulfillments {
-        orders {
-            items {
-                id
-                state
-                fulfillments {
-                    id
-                    state
-                    nextStates
-                    method
-                }
-            }
-        }
-    }
-`;
-
-export const GET_ORDER_FULFILLMENT_ITEMS = gql`
-    query GetOrderFulfillmentItems($id: ID!) {
-        order(id: $id) {
-            id
-            state
-            fulfillments {
-                ...Fulfillment
-            }
-        }
-    }
-    ${FULFILLMENT_FRAGMENT}
-`;
-
-const REFUND_FRAGMENT = gql`
-    fragment Refund on Refund {
-        id
-        state
-        items
-        transactionId
-        shipping
-        total
-        metadata
-    }
-`;
-
-export const REFUND_ORDER = gql`
-    mutation RefundOrder($input: RefundOrderInput!) {
-        refundOrder(input: $input) {
-            ...Refund
-            ... on ErrorResult {
-                errorCode
-                message
-            }
-        }
-    }
-    ${REFUND_FRAGMENT}
-`;
-
-export const SETTLE_REFUND = gql`
-    mutation SettleRefund($input: SettleRefundInput!) {
-        settleRefund(input: $input) {
-            ...Refund
-            ... on ErrorResult {
-                errorCode
-                message
-            }
-        }
-    }
-    ${REFUND_FRAGMENT}
-`;
-
-export const ADD_NOTE_TO_ORDER = gql`
-    mutation AddNoteToOrder($input: AddNoteToOrderInput!) {
-        addNoteToOrder(input: $input) {
-            id
-        }
-    }
-`;
-
-export const UPDATE_ORDER_NOTE = gql`
-    mutation UpdateOrderNote($input: UpdateOrderNoteInput!) {
-        updateOrderNote(input: $input) {
-            id
-            data
-            isPublic
-        }
-    }
-`;
-
-export const DELETE_ORDER_NOTE = gql`
-    mutation DeleteOrderNote($id: ID!) {
-        deleteOrderNote(id: $id) {
-            result
-            message
-        }
-    }
-`;
-
-const GET_ORDER_WITH_PAYMENTS = gql`
-    query GetOrderWithPayments($id: ID!) {
-        order(id: $id) {
-            id
-            payments {
-                id
-                errorMessage
-                metadata
-                refunds {
-                    id
-                    total
-                }
-            }
-        }
-    }
-`;
-
-export const GET_ORDER_LINE_FULFILLMENTS = gql`
-    query GetOrderLineFulfillments($id: ID!) {
-        order(id: $id) {
-            id
-            lines {
-                id
-                fulfillmentLines {
-                    fulfillment {
-                        id
-                        state
-                    }
-                    orderLineId
-                    quantity
-                }
-            }
-        }
-    }
-`;
-
-const GET_ORDERS_LIST_WITH_QUANTITIES = gql`
-    query GetOrderListWithQty($options: OrderListOptions) {
-        orders(options: $options) {
-            items {
-                id
-                code
-                totalQuantity
-                lines {
-                    id
-                    quantity
-                }
-            }
-        }
-    }
-`;
-
-const CANCEL_PAYMENT = gql`
-    mutation CancelPayment($paymentId: ID!) {
-        cancelPayment(id: $paymentId) {
-            ...Payment
-            ... on ErrorResult {
-                errorCode
-                message
-            }
-            ... on PaymentStateTransitionError {
-                transitionError
-            }
-            ... on CancelPaymentError {
-                paymentErrorMessage
-            }
-        }
-    }
-    ${PAYMENT_FRAGMENT}
-`;
-
-const SET_ORDER_CUSTOMER = gql`
-    mutation SetOrderCustomer($input: SetOrderCustomerInput!) {
-        setOrderCustomer(input: $input) {
-            id
-            customer {
-                id
-            }
-        }
-    }
-`;

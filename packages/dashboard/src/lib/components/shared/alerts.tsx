@@ -7,6 +7,7 @@ import { Button } from '../ui/button.js';
 import {
     DropdownMenu,
     DropdownMenuContent,
+    DropdownMenuGroup,
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
@@ -22,16 +23,16 @@ export function Alerts() {
 
     return (
         <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button size="icon" variant="ghost" className="relative">
+            <DropdownMenuTrigger render={<Button size="icon" variant="ghost" className="relative" />}>
                     <BellIcon />
                     <AlertsIndicator />
-                </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="max-w-[800px] min-w-96">
-                <DropdownMenuLabel>
-                    <Trans>Alerts</Trans>
-                </DropdownMenuLabel>
+                <DropdownMenuGroup>
+                    <DropdownMenuLabel>
+                        <Trans>Alerts</Trans>
+                    </DropdownMenuLabel>
+                </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <ScrollArea className="max-h-[500px]">
                     {activeCount > 0 ? (

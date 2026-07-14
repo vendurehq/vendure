@@ -1,6 +1,5 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import {
-    CreateAssetResult,
     MutationAssignAssetsToChannelArgs,
     MutationCreateAssetsArgs,
     MutationDeleteAssetArgs,
@@ -12,7 +11,8 @@ import {
 } from '@vendure/common/lib/generated-types';
 import { PaginatedList } from '@vendure/common/lib/shared-types';
 
-import { Administrator } from '../../../entity/administrator/administrator.entity';
+import { MimeTypeError } from '../../../common/error/generated-graphql-admin-errors';
+import { Translated } from '../../../common/types/locale-types';
 import { Asset } from '../../../entity/asset/asset.entity';
 import { AssetService } from '../../../service/services/asset.service';
 import { RequestContext } from '../../common/request-context';
@@ -51,10 +51,10 @@ export class AssetResolver {
     async createAssets(
         @Ctx() ctx: RequestContext,
         @Args() args: MutationCreateAssetsArgs,
-    ): Promise<CreateAssetResult[]> {
+    ): Promise<Array<Translated<Asset> | MimeTypeError>> {
         // TODO: Is there some way to parellelize this while still preserving
         // the order of files in the upload? Non-deterministic IDs mess up the e2e test snapshots.
-        const assets: CreateAssetResult[] = [];
+        const assets: Array<Translated<Asset> | MimeTypeError> = [];
         for (const input of args.input) {
             const asset = await this.assetService.create(ctx, input);
             assets.push(asset);

@@ -1,12 +1,13 @@
 import { Button } from '@/vdb/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/vdb/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/vdb/components/ui/form';
+import { Field, FieldError, FieldLabel } from '@/vdb/components/ui/field';
+import { Form } from '@/vdb/components/ui/form';
 import { Input } from '@/vdb/components/ui/input';
 import { Textarea } from '@/vdb/components/ui/textarea';
 import { DashboardFormComponentProps } from '@/vdb/framework/form-engine/form-engine-types';
 import { handleNestedFormSubmit } from '@/vdb/framework/form-engine/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { ReviewMultiSelect } from './custom-form-components';
@@ -36,8 +37,8 @@ export function ReviewSelectWithCreate(props: DashboardFormComponentProps) {
         <div>
             <ReviewMultiSelect {...props}></ReviewMultiSelect>
             <Dialog>
-                <DialogTrigger asChild>
-                    <Button variant="outline">Create new</Button>
+                <DialogTrigger render={<Button variant="outline" />}>
+                    Create new
                 </DialogTrigger>
 
                 <DialogContent>
@@ -46,34 +47,30 @@ export function ReviewSelectWithCreate(props: DashboardFormComponentProps) {
                     </DialogHeader>
                     <Form {...form}>
                         <form onSubmit={handleNestedFormSubmit(form, onSubmit)} className="space-y-4">
-                            <FormField
+                            <Controller
                                 control={form.control}
                                 name="title"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Title</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="Enter review title" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
+                                render={({ field, fieldState }) => (
+                                    <Field data-invalid={fieldState.invalid || undefined}>
+                                        <FieldLabel>Title</FieldLabel>
+                                        <Input placeholder="Enter review title" {...field} />
+                                        {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                                    </Field>
                                 )}
                             />
-                            <FormField
+                            <Controller
                                 control={form.control}
                                 name="body"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Body</FormLabel>
-                                        <FormControl>
-                                            <Textarea
-                                                placeholder="Enter review body"
-                                                className="min-h-[100px]"
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
+                                render={({ field, fieldState }) => (
+                                    <Field data-invalid={fieldState.invalid || undefined}>
+                                        <FieldLabel>Body</FieldLabel>
+                                        <Textarea
+                                            placeholder="Enter review body"
+                                            className="min-h-[100px]"
+                                            {...field}
+                                        />
+                                        {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                                    </Field>
                                 )}
                             />
                             <div className="flex justify-end gap-2">

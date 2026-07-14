@@ -26,18 +26,33 @@ export function AlertItem({ alert, className, ...props }: Readonly<AlertItemProp
                 </span>
             </div>
             <div className="flex items-center gap-1">
-                {def.actions?.map(action => (
-                    <Button
-                        key={action.label}
-                        variant="secondary"
-                        size="sm"
-                        onClick={async () => {
-                            await action.onClick({ data: alert.lastData, dismiss: () => alert.dismiss() });
-                        }}
-                    >
-                        {action.label}
-                    </Button>
-                ))}
+                {def.actions?.map((action, index) => {
+                    if (action.component) {
+                        const ActionComponent = action.component;
+                        return (
+                            <ActionComponent
+                                key={action.label ?? index}
+                                data={alert.lastData}
+                                dismiss={() => alert.dismiss()}
+                            />
+                        );
+                    }
+                    return (
+                        <Button
+                            key={action.label}
+                            variant="secondary"
+                            size="sm"
+                            onClick={async () => {
+                                await action.onClick?.({
+                                    data: alert.lastData,
+                                    dismiss: () => alert.dismiss(),
+                                });
+                            }}
+                        >
+                            {action.label}
+                        </Button>
+                    );
+                })}
             </div>
         </div>
     );

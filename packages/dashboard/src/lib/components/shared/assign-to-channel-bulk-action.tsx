@@ -54,6 +54,7 @@ export function AssignToChannelBulkAction({
                 onClick={() => setDialogOpen(true)}
                 label={<Trans>Assign to channel</Trans>}
                 icon={LayersIcon}
+                closeOnClick={false}
             />
             <AssignToChannelDialog
                 open={dialogOpen}

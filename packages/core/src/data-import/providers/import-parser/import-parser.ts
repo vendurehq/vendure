@@ -43,6 +43,12 @@ const requiredColumns: string[] = [
  * @docsPage ImportParser
  */
 export interface ParsedOptionGroup {
+    /**
+     * @description
+     * An optional explicit code for the option group, parsed from the CSV `name:code` syntax.
+     * When two products specify the same code, they will share the option group.
+     */
+    code?: string;
     translations: Array<{
         languageCode: LanguageCode;
         name: string;
@@ -358,15 +364,20 @@ export class ImportParser {
                 ? r[`optionGroups:${languageCode}`]
                 : r.optionGroups;
             const translatedOptionGroups = parseStringArray(rawTranslOptionGroups);
+            // Code extraction only runs on the first language pass because codes are language-agnostic
             if (optionGroups.length === 0) {
                 for (const translatedOptionGroup of translatedOptionGroups) {
-                    optionGroups.push({ translations: [] });
+                    const colonIdx = translatedOptionGroup.indexOf(':');
+                    const code =
+                        colonIdx >= 0 ? translatedOptionGroup.substring(colonIdx + 1).trim() : undefined;
+                    optionGroups.push({ code, translations: [] });
                 }
             }
             for (const i of optionGroups.map((optionGroup, index) => index)) {
+                const name = translatedOptionGroups[i].split(':')[0].trim();
                 optionGroups[i].translations.push({
                     languageCode,
-                    name: translatedOptionGroups[i],
+                    name,
                     values: [],
                 });
             }

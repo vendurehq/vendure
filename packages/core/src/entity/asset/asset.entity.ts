@@ -3,14 +3,17 @@ import { DeepPartial } from '@vendure/common/lib/shared-types';
 import { Column, Entity, JoinTable, ManyToMany, OneToMany } from 'typeorm';
 
 import { ChannelAware, Taggable } from '../../common/types/common-types';
+import { LocaleString, Translatable, Translation } from '../../common/types/locale-types';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { VendureEntity } from '../base/base.entity';
 import { Channel } from '../channel/channel.entity';
 import { Collection } from '../collection/collection.entity';
 import { CustomAssetFields } from '../custom-entity-fields';
-import { Product } from '../product/product.entity';
 import { ProductVariant } from '../product-variant/product-variant.entity';
+import { Product } from '../product/product.entity';
 import { Tag } from '../tag/tag.entity';
+
+import { AssetTranslation } from './asset-translation.entity';
 
 /**
  * @description
@@ -20,12 +23,12 @@ import { Tag } from '../tag/tag.entity';
  * @docsCategory entities
  */
 @Entity()
-export class Asset extends VendureEntity implements Taggable, ChannelAware, HasCustomFields {
+export class Asset extends VendureEntity implements Taggable, ChannelAware, HasCustomFields, Translatable {
     constructor(input?: DeepPartial<Asset>) {
         super(input);
     }
 
-    @Column() name: string;
+    name: LocaleString;
 
     @Column('varchar') type: AssetType;
 
@@ -63,4 +66,7 @@ export class Asset extends VendureEntity implements Taggable, ChannelAware, HasC
 
     @Column(type => CustomAssetFields)
     customFields: CustomAssetFields;
+
+    @OneToMany(type => AssetTranslation, translation => translation.base, { eager: true })
+    translations: Array<Translation<Asset>>;
 }

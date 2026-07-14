@@ -50,15 +50,13 @@ export function ProductOptionSelect({
             label={group.name}
             render={() => (
                 <Popover open={open} onOpenChange={setOpen}>
-                    <PopoverTrigger asChild>
-                        <Button variant="outline" role="combobox" className="w-full justify-between">
+                    <PopoverTrigger render={<Button variant="outline" role="combobox" className="w-full justify-between" />}>
                             {value ? (
                                 group.options.find(option => option.id === value)?.name
                             ) : (
                                 <Trans>Select {group.name}</Trans>
                             )}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-full p-0">
                         <Command>

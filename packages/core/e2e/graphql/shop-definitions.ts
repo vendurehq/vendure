@@ -1,6 +1,6 @@
-import gql from 'graphql-tag';
+import { graphql } from './graphql-shop';
 
-export const TEST_ORDER_FRAGMENT = gql`
+export const testOrderFragment = graphql(`
     fragment TestOrderFragment on Order {
         id
         code
@@ -66,9 +66,9 @@ export const TEST_ORDER_FRAGMENT = gql`
             }
         }
     }
-`;
+`);
 
-export const UPDATED_ORDER_FRAGMENT = gql`
+export const updatedOrderFragment = graphql(`
     fragment UpdatedOrder on Order {
         id
         code
@@ -77,6 +77,49 @@ export const UPDATED_ORDER_FRAGMENT = gql`
         total
         totalWithTax
         currencyCode
+        shipping
+        shippingWithTax
+        customer {
+            id
+        }
+        shippingAddress {
+            fullName
+            company
+            streetLine1
+            streetLine2
+            city
+            province
+            postalCode
+            country
+            phoneNumber
+        }
+        billingAddress {
+            fullName
+            company
+            streetLine1
+            streetLine2
+            city
+            province
+            postalCode
+            country
+            phoneNumber
+        }
+        shippingLines {
+            priceWithTax
+            shippingMethod {
+                id
+                code
+                description
+            }
+        }
+        payments {
+            id
+            transactionId
+            method
+            amount
+            state
+            metadata
+        }
         lines {
             id
             quantity
@@ -106,49 +149,169 @@ export const UPDATED_ORDER_FRAGMENT = gql`
             type
         }
     }
-`;
+`);
 
-export const ADD_ITEM_TO_ORDER = gql`
-    mutation AddItemToOrder($productVariantId: ID!, $quantity: Int!) {
-        addItemToOrder(productVariantId: $productVariantId, quantity: $quantity) {
-            ...UpdatedOrder
-            ... on ErrorResult {
-                errorCode
-                message
-            }
-            ... on InsufficientStockError {
-                quantityAvailable
-                order {
-                    ...UpdatedOrder
-                }
-            }
-            ... on OrderInterceptorError {
-                interceptorError
+export const updatedOrderWithCustomFieldsFragment = graphql(`
+    fragment UpdatedOrderWithCustomFields on Order {
+        id
+        code
+        state
+        active
+        total
+        totalWithTax
+        currencyCode
+        shipping
+        shippingWithTax
+        customer {
+            id
+        }
+        shippingAddress {
+            fullName
+            company
+            streetLine1
+            streetLine2
+            city
+            province
+            postalCode
+            country
+            phoneNumber
+        }
+        billingAddress {
+            fullName
+            company
+            streetLine1
+            streetLine2
+            city
+            province
+            postalCode
+            country
+            phoneNumber
+        }
+        shippingLines {
+            priceWithTax
+            shippingMethod {
+                id
+                code
+                description
             }
         }
-    }
-    ${UPDATED_ORDER_FRAGMENT}
-`;
-
-export const ADD_MULTIPLE_ITEMS_TO_ORDER = gql`
-    mutation AddItemsToOrder($inputs: [AddItemInput!]!) {
-        addItemsToOrder(inputs: $inputs) {
-            order {
-                ...UpdatedOrder
+        payments {
+            id
+            transactionId
+            method
+            amount
+            state
+            metadata
+        }
+        lines {
+            id
+            quantity
+            productVariant {
+                id
             }
-            errorResults {
-                ...on ErrorResult {
+            unitPrice
+            unitPriceWithTax
+            linePrice
+            linePriceWithTax
+            featuredAsset {
+                id
+            }
+            # Ignore error - customFields are dynamically generated at runtime, not in introspection schema
+            customFields {
+                notes
+                lineImage {
+                    id
+                }
+                lineImages {
+                    id
+                }
+            }
+            discounts {
+                adjustmentSource
+                amount
+                amountWithTax
+                description
+                type
+            }
+        }
+        discounts {
+            adjustmentSource
+            amount
+            amountWithTax
+            description
+            type
+        }
+    }
+`);
+
+export const addItemToOrderDocument = graphql(
+    `
+        mutation AddItemToOrder($productVariantId: ID!, $quantity: Int!) {
+            addItemToOrder(productVariantId: $productVariantId, quantity: $quantity) {
+                ...UpdatedOrder
+                ... on ErrorResult {
                     errorCode
                     message
                 }
+                ... on InsufficientStockError {
+                    quantityAvailable
+                    order {
+                        ...UpdatedOrder
+                    }
+                }
+                ... on OrderInterceptorError {
+                    interceptorError
+                }
             }
-            
         }
-    }
-    ${UPDATED_ORDER_FRAGMENT}
-`;
+    `,
+    [updatedOrderFragment],
+);
 
-export const SEARCH_PRODUCTS_SHOP = gql`
+export const addMultipleItemsToOrderDocument = graphql(
+    `
+        mutation AddItemsToOrder($inputs: [AddItemInput!]!) {
+            addItemsToOrder(inputs: $inputs) {
+                order {
+                    ...UpdatedOrder
+                }
+                errorResults {
+                    ... on ErrorResult {
+                        errorCode
+                        message
+                    }
+                }
+            }
+        }
+    `,
+    [updatedOrderFragment],
+);
+
+export const setCurrencyCodeForOrderDocument = graphql(
+    `
+        mutation SetCurrencyCodeForOrder($currencyCode: CurrencyCode!) {
+            setCurrencyCodeForOrder(currencyCode: $currencyCode) {
+                ...UpdatedOrder
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+                ... on InsufficientStockError {
+                    quantityAvailable
+                    order {
+                        ...UpdatedOrder
+                    }
+                }
+                ... on OrderInterceptorError {
+                    interceptorError
+                }
+            }
+        }
+    `,
+    [updatedOrderFragment],
+);
+
+export const searchProductsShopDocument = graphql(`
     query SearchProductsShop($input: SearchInput!) {
         search(input: $input) {
             totalItems
@@ -171,8 +334,9 @@ export const SEARCH_PRODUCTS_SHOP = gql`
             }
         }
     }
-`;
-export const REGISTER_ACCOUNT = gql`
+`);
+
+export const registerAccountDocument = graphql(`
     mutation Register($input: RegisterCustomerInput!) {
         registerCustomerAccount(input: $input) {
             ... on Success {
@@ -187,9 +351,9 @@ export const REGISTER_ACCOUNT = gql`
             }
         }
     }
-`;
+`);
 
-export const CURRENT_USER_FRAGMENT = gql`
+export const currentUserFragment = graphql(`
     fragment CurrentUserShop on CurrentUser {
         id
         identifier
@@ -199,25 +363,27 @@ export const CURRENT_USER_FRAGMENT = gql`
             permissions
         }
     }
-`;
+`);
 
-export const VERIFY_EMAIL = gql`
-    mutation Verify($password: String, $token: String!) {
-        verifyCustomerAccount(password: $password, token: $token) {
-            ...CurrentUserShop
-            ... on ErrorResult {
-                errorCode
-                message
-            }
-            ... on PasswordValidationError {
-                validationErrorMessage
+export const verifyEmailDocument = graphql(
+    `
+        mutation Verify($password: String, $token: String!) {
+            verifyCustomerAccount(password: $password, token: $token) {
+                ...CurrentUserShop
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+                ... on PasswordValidationError {
+                    validationErrorMessage
+                }
             }
         }
-    }
-    ${CURRENT_USER_FRAGMENT}
-`;
+    `,
+    [currentUserFragment],
+);
 
-export const REFRESH_TOKEN = gql`
+export const refreshTokenDocument = graphql(`
     mutation RefreshToken($emailAddress: String!) {
         refreshCustomerVerification(emailAddress: $emailAddress) {
             ... on Success {
@@ -229,8 +395,9 @@ export const REFRESH_TOKEN = gql`
             }
         }
     }
-`;
-export const REQUEST_PASSWORD_RESET = gql`
+`);
+
+export const requestPasswordResetDocument = graphql(`
     mutation RequestPasswordReset($identifier: String!) {
         requestPasswordReset(emailAddress: $identifier) {
             ... on Success {
@@ -242,23 +409,27 @@ export const REQUEST_PASSWORD_RESET = gql`
             }
         }
     }
-`;
-export const RESET_PASSWORD = gql`
-    mutation ResetPassword($token: String!, $password: String!) {
-        resetPassword(token: $token, password: $password) {
-            ...CurrentUserShop
-            ... on ErrorResult {
-                errorCode
-                message
-            }
-            ... on PasswordValidationError {
-                validationErrorMessage
+`);
+
+export const resetPasswordDocument = graphql(
+    `
+        mutation ResetPassword($token: String!, $password: String!) {
+            resetPassword(token: $token, password: $password) {
+                ...CurrentUserShop
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+                ... on PasswordValidationError {
+                    validationErrorMessage
+                }
             }
         }
-    }
-    ${CURRENT_USER_FRAGMENT}
-`;
-export const REQUEST_UPDATE_EMAIL_ADDRESS = gql`
+    `,
+    [currentUserFragment],
+);
+
+export const requestUpdateEmailAddressDocument = graphql(`
     mutation RequestUpdateEmailAddress($password: String!, $newEmailAddress: String!) {
         requestUpdateCustomerEmailAddress(password: $password, newEmailAddress: $newEmailAddress) {
             ... on Success {
@@ -270,8 +441,9 @@ export const REQUEST_UPDATE_EMAIL_ADDRESS = gql`
             }
         }
     }
-`;
-export const UPDATE_EMAIL_ADDRESS = gql`
+`);
+
+export const updateEmailAddressDocument = graphql(`
     mutation UpdateEmailAddress($token: String!) {
         updateCustomerEmailAddress(token: $token) {
             ... on Success {
@@ -283,16 +455,18 @@ export const UPDATE_EMAIL_ADDRESS = gql`
             }
         }
     }
-`;
-export const GET_ACTIVE_CUSTOMER = gql`
+`);
+
+export const getActiveCustomerDocument = graphql(`
     query GetActiveCustomer {
         activeCustomer {
             id
             emailAddress
         }
     }
-`;
-export const CREATE_ADDRESS = gql`
+`);
+
+export const createAddressDocument = graphql(`
     mutation CreateAddressShop($input: CreateAddressInput!) {
         createCustomerAddress(input: $input) {
             id
@@ -302,8 +476,9 @@ export const CREATE_ADDRESS = gql`
             }
         }
     }
-`;
-export const UPDATE_ADDRESS = gql`
+`);
+
+export const updateAddressDocument = graphql(`
     mutation UpdateAddressShop($input: UpdateAddressInput!) {
         updateCustomerAddress(input: $input) {
             streetLine1
@@ -312,16 +487,17 @@ export const UPDATE_ADDRESS = gql`
             }
         }
     }
-`;
-export const DELETE_ADDRESS = gql`
+`);
+
+export const deleteAddressDocument = graphql(`
     mutation DeleteAddressShop($id: ID!) {
         deleteCustomerAddress(id: $id) {
             success
         }
     }
-`;
+`);
 
-export const UPDATE_CUSTOMER = gql`
+export const updateCustomerDocument = graphql(`
     mutation UpdateCustomer($input: UpdateCustomerInput!) {
         updateCustomer(input: $input) {
             id
@@ -329,9 +505,9 @@ export const UPDATE_CUSTOMER = gql`
             lastName
         }
     }
-`;
+`);
 
-export const UPDATE_PASSWORD = gql`
+export const updatePasswordDocument = graphql(`
     mutation UpdatePassword($old: String!, $new: String!) {
         updateCustomerPassword(currentPassword: $old, newPassword: $new) {
             ... on Success {
@@ -343,18 +519,20 @@ export const UPDATE_PASSWORD = gql`
             }
         }
     }
-`;
+`);
 
-export const GET_ACTIVE_ORDER = gql`
-    query GetActiveOrder {
-        activeOrder {
-            ...TestOrderFragment
+export const getActiveOrderDocument = graphql(
+    `
+        query GetActiveOrder {
+            activeOrder {
+                ...TestOrderFragment
+            }
         }
-    }
-    ${TEST_ORDER_FRAGMENT}
-`;
+    `,
+    [testOrderFragment],
+);
 
-export const GET_ACTIVE_ORDER_WITH_PRICE_DATA = gql`
+export const getActiveOrderWithPriceDataDocument = graphql(`
     query GetActiveOrderWithPriceData {
         activeOrder {
             id
@@ -384,41 +562,45 @@ export const GET_ACTIVE_ORDER_WITH_PRICE_DATA = gql`
             }
         }
     }
-`;
+`);
 
-export const ADJUST_ITEM_QUANTITY = gql`
-    mutation AdjustItemQuantity($orderLineId: ID!, $quantity: Int!) {
-        adjustOrderLine(orderLineId: $orderLineId, quantity: $quantity) {
-            ...TestOrderFragment
-            ... on ErrorResult {
-                errorCode
-                message
-            }
-            ... on OrderInterceptorError {
-                interceptorError
+export const adjustItemQuantityDocument = graphql(
+    `
+        mutation AdjustItemQuantity($orderLineId: ID!, $quantity: Int!) {
+            adjustOrderLine(orderLineId: $orderLineId, quantity: $quantity) {
+                ...TestOrderFragment
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+                ... on OrderInterceptorError {
+                    interceptorError
+                }
             }
         }
-    }
-    ${TEST_ORDER_FRAGMENT}
-`;
+    `,
+    [testOrderFragment],
+);
 
-export const REMOVE_ITEM_FROM_ORDER = gql`
-    mutation RemoveItemFromOrder($orderLineId: ID!) {
-        removeOrderLine(orderLineId: $orderLineId) {
-            ...TestOrderFragment
-            ... on ErrorResult {
-                errorCode
-                message
-            }
-            ... on OrderInterceptorError {
-                interceptorError
+export const removeItemFromOrderDocument = graphql(
+    `
+        mutation RemoveItemFromOrder($orderLineId: ID!) {
+            removeOrderLine(orderLineId: $orderLineId) {
+                ...TestOrderFragment
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+                ... on OrderInterceptorError {
+                    interceptorError
+                }
             }
         }
-    }
-    ${TEST_ORDER_FRAGMENT}
-`;
+    `,
+    [testOrderFragment],
+);
 
-export const GET_ELIGIBLE_SHIPPING_METHODS = gql`
+export const getEligibleShippingMethodsDocument = graphql(`
     query GetShippingMethods {
         eligibleShippingMethods {
             id
@@ -428,22 +610,24 @@ export const GET_ELIGIBLE_SHIPPING_METHODS = gql`
             description
         }
     }
-`;
+`);
 
-export const SET_SHIPPING_METHOD = gql`
-    mutation SetShippingMethod($id: [ID!]!) {
-        setOrderShippingMethod(shippingMethodId: $id) {
-            ...TestOrderFragment
-            ... on ErrorResult {
-                errorCode
-                message
+export const setShippingMethodDocument = graphql(
+    `
+        mutation SetShippingMethod($id: [ID!]!) {
+            setOrderShippingMethod(shippingMethodId: $id) {
+                ...TestOrderFragment
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
             }
         }
-    }
-    ${TEST_ORDER_FRAGMENT}
-`;
+    `,
+    [testOrderFragment],
+);
 
-export const ACTIVE_ORDER_CUSTOMER = gql`
+export const activeOrderCustomerDocument = graphql(`
     fragment ActiveOrderCustomer on Order {
         id
         customer {
@@ -456,81 +640,105 @@ export const ACTIVE_ORDER_CUSTOMER = gql`
             id
         }
     }
-`;
+`);
 
-export const SET_CUSTOMER = gql`
-    mutation SetCustomerForOrder($input: CreateCustomerInput!) {
-        setCustomerForOrder(input: $input) {
-            ...ActiveOrderCustomer
-            ... on ErrorResult {
-                errorCode
-                message
-            }
-            ... on GuestCheckoutError {
-                errorDetail
-            }
-        }
-    }
-    ${ACTIVE_ORDER_CUSTOMER}
-`;
-
-export const GET_ORDER_BY_CODE = gql`
-    query GetOrderByCode($code: String!) {
-        orderByCode(code: $code) {
-            ...TestOrderFragment
-        }
-    }
-    ${TEST_ORDER_FRAGMENT}
-`;
-
-export const GET_ORDER_SHOP = gql`
-    query GetOrderShop($id: ID!) {
-        order(id: $id) {
-            ...TestOrderFragment
-        }
-    }
-    ${TEST_ORDER_FRAGMENT}
-`;
-
-export const GET_ORDER_PROMOTIONS_BY_CODE = gql`
-    query GetOrderPromotionsByCode($code: String!) {
-        orderByCode(code: $code) {
-            ...TestOrderFragment
-            promotions {
+export const getActiveOrderCustomerUserDocument = graphql(`
+    query GetActiveOrderCustomerUser {
+        activeOrder {
+            customer {
                 id
-                name
+                user {
+                    id
+                    verified
+                }
             }
         }
     }
-    ${TEST_ORDER_FRAGMENT}
-`;
+`);
 
-export const GET_AVAILABLE_COUNTRIES = gql`
+export const setCustomerDocument = graphql(
+    `
+        mutation SetCustomerForOrder($input: CreateCustomerInput!) {
+            setCustomerForOrder(input: $input) {
+                ...ActiveOrderCustomer
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+                ... on GuestCheckoutError {
+                    errorDetail
+                }
+            }
+        }
+    `,
+    [activeOrderCustomerDocument],
+);
+
+export const getOrderByCodeDocument = graphql(
+    `
+        query GetOrderByCode($code: String!) {
+            orderByCode(code: $code) {
+                ...TestOrderFragment
+            }
+        }
+    `,
+    [testOrderFragment],
+);
+
+export const getOrderShopDocument = graphql(
+    `
+        query GetOrderShop($id: ID!) {
+            order(id: $id) {
+                ...TestOrderFragment
+            }
+        }
+    `,
+    [testOrderFragment],
+);
+
+export const getOrderPromotionsByCodeDocument = graphql(
+    `
+        query GetOrderPromotionsByCode($code: String!) {
+            orderByCode(code: $code) {
+                ...TestOrderFragment
+                promotions {
+                    id
+                    name
+                }
+            }
+        }
+    `,
+    [testOrderFragment],
+);
+
+export const getAvailableCountriesDocument = graphql(`
     query GetAvailableCountries {
         availableCountries {
             id
             code
         }
     }
-`;
+`);
 
-export const TRANSITION_TO_STATE = gql`
-    mutation TransitionToState($state: String!) {
-        transitionOrderToState(state: $state) {
-            ...TestOrderFragment
-            ... on OrderStateTransitionError {
-                errorCode
-                message
-                transitionError
-                fromState
-                toState
+export const transitionToStateDocument = graphql(
+    `
+        mutation TransitionToState($state: String!) {
+            transitionOrderToState(state: $state) {
+                ...TestOrderFragment
+                ... on OrderStateTransitionError {
+                    errorCode
+                    message
+                    transitionError
+                    fromState
+                    toState
+                }
             }
         }
-    }
-    ${TEST_ORDER_FRAGMENT}
-`;
+    `,
+    [testOrderFragment],
+);
 
-export const ORDER_WITH_ADDRESSES_FRAGMENT = gql`
+export const orderWithAddressesFragmentDocument = graphql(`
     fragment OrderWithAddresses on Order {
         lines {
             id
@@ -558,109 +766,130 @@ export const ORDER_WITH_ADDRESSES_FRAGMENT = gql`
             phoneNumber
         }
     }
-`;
+`);
 
-export const SET_SHIPPING_ADDRESS = gql`
-    mutation SetShippingAddress($input: CreateAddressInput!) {
-        setOrderShippingAddress(input: $input) {
-            ...OrderWithAddresses
-            ... on ErrorResult {
-                errorCode
-                message
+export const setShippingAddressDocument = graphql(
+    `
+        mutation SetShippingAddress($input: CreateAddressInput!) {
+            setOrderShippingAddress(input: $input) {
+                ...OrderWithAddresses
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
             }
         }
-    }
-    ${ORDER_WITH_ADDRESSES_FRAGMENT}
-`;
+    `,
+    [orderWithAddressesFragmentDocument],
+);
 
-export const SET_BILLING_ADDRESS = gql`
-    mutation SetBillingAddress($input: CreateAddressInput!) {
-        setOrderBillingAddress(input: $input) {
-            ...OrderWithAddresses
-            ... on ErrorResult {
-                errorCode
-                message
+export const setBillingAddressDocument = graphql(
+    `
+        mutation SetBillingAddress($input: CreateAddressInput!) {
+            setOrderBillingAddress(input: $input) {
+                ...OrderWithAddresses
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
             }
         }
-    }
-    ${ORDER_WITH_ADDRESSES_FRAGMENT}
-`;
+    `,
+    [orderWithAddressesFragmentDocument],
+);
 
-export const UNSET_SHIPPING_ADDRESS = gql`
-    mutation UnsetShippingAddress {
-        unsetOrderShippingAddress {
-            ...OrderWithAddresses
-            ... on ErrorResult {
-                errorCode
-                message
+export const unsetShippingAddressDocument = graphql(
+    `
+        mutation UnsetShippingAddress {
+            unsetOrderShippingAddress {
+                ...OrderWithAddresses
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
             }
         }
-    }
-    ${ORDER_WITH_ADDRESSES_FRAGMENT}
-`;
-export const UNSET_BILLING_ADDRESS = gql`
-    mutation UnsetBillingAddress {
-        unsetOrderBillingAddress {
-            ...OrderWithAddresses
-            ... on ErrorResult {
-                errorCode
-                message
+    `,
+    [orderWithAddressesFragmentDocument],
+);
+export const unsetBillingAddressDocument = graphql(
+    `
+        mutation UnsetBillingAddress {
+            unsetOrderBillingAddress {
+                ...OrderWithAddresses
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
             }
         }
-    }
-    ${ORDER_WITH_ADDRESSES_FRAGMENT}
-`;
+    `,
+    [orderWithAddressesFragmentDocument],
+);
 
-export const TEST_ORDER_WITH_PAYMENTS_FRAGMENT = gql`
-    fragment TestOrderWithPayments on Order {
-        ...TestOrderFragment
-        payments {
-            id
-            transactionId
-            method
-            amount
-            state
-            metadata
-        }
-    }
-    ${TEST_ORDER_FRAGMENT}
-`;
-
-export const GET_ACTIVE_ORDER_WITH_PAYMENTS = gql`
-    query GetActiveOrderWithPayments {
-        activeOrder {
-            ...TestOrderWithPayments
-        }
-    }
-    ${TEST_ORDER_WITH_PAYMENTS_FRAGMENT}
-`;
-
-export const ADD_PAYMENT = gql`
-    mutation AddPaymentToOrder($input: PaymentInput!) {
-        addPaymentToOrder(input: $input) {
-            ...TestOrderWithPayments
-            ... on ErrorResult {
-                errorCode
-                message
-            }
-            ... on PaymentDeclinedError {
-                paymentErrorMessage
-            }
-            ... on PaymentFailedError {
-                paymentErrorMessage
-            }
-            ... on OrderStateTransitionError {
-                transitionError
-            }
-            ... on IneligiblePaymentMethodError {
-                eligibilityCheckerMessage
+export const testOrderWithPaymentsFragment = graphql(
+    `
+        fragment TestOrderWithPayments on Order {
+            ...TestOrderFragment
+            payments {
+                id
+                transactionId
+                method
+                amount
+                state
+                metadata
             }
         }
-    }
-    ${TEST_ORDER_WITH_PAYMENTS_FRAGMENT}
-`;
+    `,
+    [testOrderFragment],
+);
 
-export const GET_ACTIVE_ORDER_PAYMENTS = gql`
+export const getActiveOrderWithPaymentsDocument = graphql(
+    `
+        query GetActiveOrderWithPayments {
+            activeOrder {
+                ...TestOrderWithPayments
+            }
+        }
+    `,
+    [testOrderWithPaymentsFragment],
+);
+
+export const addPaymentDocument = graphql(
+    `
+        mutation AddPaymentToOrder($input: PaymentInput!) {
+            addPaymentToOrder(input: $input) {
+                __typename
+                ...TestOrderWithPayments
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+                ... on PaymentDeclinedError {
+                    paymentErrorMessage
+                }
+                ... on PaymentFailedError {
+                    paymentErrorMessage
+                }
+                ... on OrderStateTransitionError {
+                    transitionError
+                }
+                ... on IneligiblePaymentMethodError {
+                    eligibilityCheckerMessage
+                }
+                ... on CouponRemovedDuringCheckoutError {
+                    removedCouponCodes
+                    previousTotalWithTax
+                    newTotalWithTax
+                    currencyCode
+                }
+            }
+        }
+    `,
+    [testOrderWithPaymentsFragment],
+);
+
+export const getActiveOrderPaymentsDocument = graphql(`
     query GetActiveOrderPayments {
         activeOrder {
             id
@@ -675,18 +904,20 @@ export const GET_ACTIVE_ORDER_PAYMENTS = gql`
             }
         }
     }
-`;
+`);
 
-export const GET_ORDER_BY_CODE_WITH_PAYMENTS = gql`
-    query GetOrderByCodeWithPayments($code: String!) {
-        orderByCode(code: $code) {
-            ...TestOrderWithPayments
+export const getOrderByCodeWithPaymentsDocument = graphql(
+    `
+        query GetOrderByCodeWithPayments($code: String!) {
+            orderByCode(code: $code) {
+                ...TestOrderWithPayments
+            }
         }
-    }
-    ${TEST_ORDER_WITH_PAYMENTS_FRAGMENT}
-`;
+    `,
+    [testOrderWithPaymentsFragment],
+);
 
-export const GET_ACTIVE_ORDER_CUSTOMER_WITH_ITEM_FULFILLMENTS = gql`
+export const getActiveOrderCustomerWithItemFulfillmentsDocument = graphql(`
     query GetActiveCustomerOrderWithItemFulfillments {
         activeCustomer {
             orders(
@@ -710,15 +941,15 @@ export const GET_ACTIVE_ORDER_CUSTOMER_WITH_ITEM_FULFILLMENTS = gql`
             }
         }
     }
-`;
+`);
 
-export const GET_NEXT_STATES = gql`
+export const getNextStatesDocument = graphql(`
     query GetNextOrderStates {
         nextOrderStates
     }
-`;
+`);
 
-export const GET_ACTIVE_ORDER_ADDRESSES = gql`
+export const getActiveOrderAddressesDocument = graphql(`
     query GetCustomerAddresses {
         activeOrder {
             customer {
@@ -729,9 +960,33 @@ export const GET_ACTIVE_ORDER_ADDRESSES = gql`
             }
         }
     }
-`;
+`);
 
-export const GET_ACTIVE_ORDER_ORDERS = gql`
+export const getActiveOrderShippingBillingDocument = graphql(`
+    query GetActiveOrderShippingBilling {
+        activeOrder {
+            shippingAddress {
+                ...OrderAddress
+            }
+            billingAddress {
+                ...OrderAddress
+            }
+        }
+    }
+    fragment OrderAddress on OrderAddress {
+        fullName
+        company
+        streetLine1
+        streetLine2
+        city
+        province
+        postalCode
+        countryCode
+        phoneNumber
+    }
+`);
+
+export const getActiveOrderOrdersDocument = graphql(`
     query GetCustomerOrders {
         activeOrder {
             customer {
@@ -743,9 +998,9 @@ export const GET_ACTIVE_ORDER_ORDERS = gql`
             }
         }
     }
-`;
+`);
 
-export const GET_ACTIVE_CUSTOMER_ORDERS = gql`
+export const getActiveCustomerOrdersDocument = graphql(`
     query GetActiveCustomerOrders {
         activeCustomer {
             id
@@ -758,44 +1013,50 @@ export const GET_ACTIVE_CUSTOMER_ORDERS = gql`
             }
         }
     }
-`;
+`);
 
-export const APPLY_COUPON_CODE = gql`
-    mutation ApplyCouponCode($couponCode: String!) {
-        applyCouponCode(couponCode: $couponCode) {
-            ...TestOrderFragment
-            ... on ErrorResult {
-                errorCode
-                message
+export const applyCouponCodeDocument = graphql(
+    `
+        mutation ApplyCouponCode($couponCode: String!) {
+            applyCouponCode(couponCode: $couponCode) {
+                ...TestOrderFragment
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
             }
         }
-    }
-    ${TEST_ORDER_FRAGMENT}
-`;
+    `,
+    [testOrderFragment],
+);
 
-export const REMOVE_COUPON_CODE = gql`
-    mutation RemoveCouponCode($couponCode: String!) {
-        removeCouponCode(couponCode: $couponCode) {
-            ...TestOrderFragment
-        }
-    }
-    ${TEST_ORDER_FRAGMENT}
-`;
-
-export const REMOVE_ALL_ORDER_LINES = gql`
-    mutation RemoveAllOrderLines {
-        removeAllOrderLines {
-            ...TestOrderFragment
-            ... on ErrorResult {
-                errorCode
-                message
+export const removeCouponCodeDocument = graphql(
+    `
+        mutation RemoveCouponCode($couponCode: String!) {
+            removeCouponCode(couponCode: $couponCode) {
+                ...TestOrderFragment
             }
         }
-    }
-    ${TEST_ORDER_FRAGMENT}
-`;
+    `,
+    [testOrderFragment],
+);
 
-export const GET_ELIGIBLE_PAYMENT_METHODS = gql`
+export const removeAllOrderLinesDocument = graphql(
+    `
+        mutation RemoveAllOrderLines {
+            removeAllOrderLines {
+                ...TestOrderFragment
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+            }
+        }
+    `,
+    [testOrderFragment],
+);
+
+export const getEligiblePaymentMethodsDocument = graphql(`
     query GetEligiblePaymentMethods {
         eligiblePaymentMethods {
             id
@@ -804,9 +1065,9 @@ export const GET_ELIGIBLE_PAYMENT_METHODS = gql`
             isEligible
         }
     }
-`;
+`);
 
-export const GET_PRODUCT_WITH_STOCK_LEVEL = gql`
+export const getProductWithStockLevelDocument = graphql(`
     query GetProductStockLevel($id: ID!) {
         product(id: $id) {
             id
@@ -816,9 +1077,9 @@ export const GET_PRODUCT_WITH_STOCK_LEVEL = gql`
             }
         }
     }
-`;
+`);
 
-export const GET_ACTIVE_CUSTOMER_WITH_ORDERS_PRODUCT_SLUG = gql`
+export const getActiveCustomerWithOrdersProductSlugDocument = graphql(`
     query GetActiveCustomerWithOrdersProductSlug($options: OrderListOptions) {
         activeCustomer {
             orders(options: $options) {
@@ -834,8 +1095,8 @@ export const GET_ACTIVE_CUSTOMER_WITH_ORDERS_PRODUCT_SLUG = gql`
             }
         }
     }
-`;
-export const GET_ACTIVE_CUSTOMER_WITH_ORDERS_PRODUCT_PRICE = gql`
+`);
+export const getActiveCustomerWithOrdersProductPriceDocument = graphql(`
     query GetActiveCustomerWithOrdersProductPrice($options: OrderListOptions) {
         activeCustomer {
             orders(options: $options) {
@@ -852,9 +1113,9 @@ export const GET_ACTIVE_CUSTOMER_WITH_ORDERS_PRODUCT_PRICE = gql`
             }
         }
     }
-`;
+`);
 
-export const ACTIVE_PAYMENT_METHODS_QUERY = gql`
+export const activePaymentMethodsQueryDocument = graphql(`
     query ActivePaymentMethods {
         activePaymentMethods {
             id
@@ -868,9 +1129,9 @@ export const ACTIVE_PAYMENT_METHODS_QUERY = gql`
             }
         }
     }
-`;
+`);
 
-export const GET_ACTIVE_SHIPPING_METHODS = gql`
+export const getActiveShippingMethodsDocument = graphql(`
     query GetActiveShippingMethods {
         activeShippingMethods {
             id
@@ -884,4 +1145,447 @@ export const GET_ACTIVE_SHIPPING_METHODS = gql`
             }
         }
     }
-`;
+`);
+
+export const getCollectionShopDocument = graphql(`
+    query GetCollectionShop($id: ID, $slug: String) {
+        collection(id: $id, slug: $slug) {
+            id
+            name
+            slug
+            description
+            parent {
+                id
+                name
+            }
+            children {
+                id
+                name
+            }
+        }
+    }
+`);
+
+export const getCollectionVariantsDocument = graphql(`
+    query GetCollectionVariants($id: ID, $slug: String) {
+        collection(id: $id, slug: $slug) {
+            id
+            productVariants {
+                items {
+                    id
+                    name
+                }
+            }
+        }
+    }
+`);
+
+export const getCollectionListDocument = graphql(`
+    query GetCollectionList {
+        collections {
+            items {
+                id
+                name
+            }
+        }
+    }
+`);
+
+export const getProductFacetValuesDocument = graphql(`
+    query GetProductFacetValues($id: ID!) {
+        product(id: $id) {
+            id
+            name
+            facetValues {
+                name
+            }
+        }
+    }
+`);
+
+export const getProductVariantFacetValuesDocument = graphql(`
+    query GetVariantFacetValues($id: ID!) {
+        product(id: $id) {
+            id
+            name
+            variants {
+                id
+                facetValues {
+                    name
+                }
+            }
+        }
+    }
+`);
+
+export const getProductsWithOptionsDocument = graphql(`
+    query GetProductsWithOptions($options: ProductListOptions) {
+        products(options: $options) {
+            totalItems
+            items {
+                id
+                name
+                enabled
+            }
+        }
+    }
+`);
+
+export const getCollectionsWithOptionsDocument = graphql(`
+    query GetCollectionsWithOptions($options: CollectionListOptions) {
+        collections(options: $options) {
+            totalItems
+            items {
+                id
+                name
+            }
+        }
+    }
+`);
+
+export const getFacetsWithOptionsDocument = graphql(`
+    query GetFacetsWithOptions($options: FacetListOptions) {
+        facets(options: $options) {
+            totalItems
+            items {
+                id
+                name
+            }
+        }
+    }
+`);
+
+export const getProductsTake3Document = graphql(`
+    query GetProductsTake3 {
+        products(options: { take: 3 }) {
+            items {
+                id
+            }
+        }
+    }
+`);
+
+export const getProduct1Document = graphql(`
+    query GetProduct1 {
+        product(id: "T_1") {
+            id
+        }
+    }
+`);
+
+export const getProduct2VariantsDocument = graphql(`
+    query GetProduct2Variants {
+        product(id: "T_2") {
+            id
+            variants {
+                id
+                name
+            }
+        }
+    }
+`);
+
+export const getProductCollectionDocument = graphql(`
+    query GetProductCollection {
+        product(id: "T_12") {
+            collections {
+                id
+                name
+            }
+        }
+    }
+`);
+
+export const getOrderCustomFieldsDocument = graphql(`
+    query GetOrderCustomFields {
+        activeOrder {
+            id
+            customFields {
+                giftWrap
+                orderImage {
+                    id
+                }
+            }
+        }
+    }
+`);
+
+export const setOrderCustomFieldsDocument = graphql(`
+    mutation SetOrderCustomFields($input: UpdateOrderInput!) {
+        setOrderCustomFields(input: $input) {
+            ... on Order {
+                id
+                customFields {
+                    giftWrap
+                    orderImage {
+                        id
+                    }
+                }
+            }
+            ... on ErrorResult {
+                errorCode
+                message
+            }
+        }
+    }
+`);
+
+export const logOutDocument = graphql(`
+    mutation LogOut {
+        logout {
+            success
+        }
+    }
+`);
+
+export const addItemToOrderWithCustomFieldsDocument = graphql(
+    `
+        mutation AddItemToOrderWithCustomFields(
+            $productVariantId: ID!
+            $quantity: Int!
+            $customFields: OrderLineCustomFieldsInput
+        ) {
+            addItemToOrder(
+                productVariantId: $productVariantId
+                quantity: $quantity
+                customFields: $customFields
+            ) {
+                ...UpdatedOrderWithCustomFields
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+            }
+        }
+    `,
+    [updatedOrderWithCustomFieldsFragment],
+);
+
+export const addMultipleItemsToOrderWithCustomFieldsDocument = graphql(
+    `
+        mutation AddMultipleItemsToOrderWithCustomFields($inputs: [AddItemInput!]!) {
+            addItemsToOrder(inputs: $inputs) {
+                order {
+                    ...UpdatedOrder
+                    lines {
+                        id
+                        quantity
+                        productVariant {
+                            id
+                        }
+                        customFields {
+                            notes
+                        }
+                    }
+                }
+                errorResults {
+                    ... on ErrorResult {
+                        errorCode
+                        message
+                    }
+                }
+            }
+        }
+    `,
+    [updatedOrderFragment],
+);
+
+export const adjustOrderLineWithCustomFieldsDocument = graphql(`
+    mutation AdjustOrderLineWithCustomFields(
+        $orderLineId: ID!
+        $quantity: Int!
+        $customFields: OrderLineCustomFieldsInput
+    ) {
+        adjustOrderLine(orderLineId: $orderLineId, quantity: $quantity, customFields: $customFields) {
+            ... on Order {
+                lines {
+                    id
+                    customFields {
+                        notes
+                        lineImage {
+                            id
+                        }
+                        lineImages {
+                            id
+                        }
+                    }
+                }
+            }
+        }
+    }
+`);
+
+export const getOrderWithOrderLineCustomFieldsDocument = graphql(`
+    query GetOrderWithOrderLineCustomFields {
+        activeOrder {
+            lines {
+                id
+                customFields {
+                    notes
+                    lineImage {
+                        id
+                    }
+                    lineImages {
+                        id
+                    }
+                }
+            }
+        }
+    }
+`);
+
+export const localUpdatedOrderFragment = graphql(`
+    fragment UpdatedOrderMinimal on Order {
+        id
+        code
+        state
+        active
+        total
+        totalWithTax
+        currencyCode
+        lines {
+            id
+            linePrice
+            linePriceWithTax
+        }
+    }
+`);
+
+export const localAddItemToOrderDocument = graphql(
+    `
+        mutation AddItemToOrderMinimal($productVariantId: ID!, $quantity: Int!) {
+            addItemToOrder(productVariantId: $productVariantId, quantity: $quantity) {
+                ...UpdatedOrderMinimal
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+                ... on InsufficientStockError {
+                    quantityAvailable
+                    order {
+                        ...UpdatedOrderMinimal
+                    }
+                }
+            }
+        }
+    `,
+    [localUpdatedOrderFragment],
+);
+
+export const searchFacetValuesDocument = graphql(`
+    query SearchFacetValues($input: SearchInput!) {
+        search(input: $input) {
+            totalItems
+            facetValues {
+                count
+                facetValue {
+                    id
+                    name
+                }
+            }
+        }
+    }
+`);
+
+export const searchCollectionsDocument = graphql(`
+    query SearchCollections($input: SearchInput!) {
+        search(input: $input) {
+            totalItems
+            collections {
+                count
+                collection {
+                    id
+                    name
+                }
+            }
+        }
+    }
+`);
+
+export const searchGetPricesShopDocument = graphql(`
+    query SearchGetPrices($input: SearchInput!) {
+        search(input: $input) {
+            items {
+                price {
+                    ... on PriceRange {
+                        min
+                        max
+                    }
+                    ... on SinglePrice {
+                        value
+                    }
+                }
+                priceWithTax {
+                    ... on PriceRange {
+                        min
+                        max
+                    }
+                    ... on SinglePrice {
+                        value
+                    }
+                }
+            }
+        }
+    }
+`);
+
+export const orderWithLinesAndItemsFragment = graphql(`
+    fragment OrderWithLinesAndItems on Order {
+        id
+        subTotal
+        subTotalWithTax
+        shipping
+        total
+        totalWithTax
+        lines {
+            id
+            quantity
+            unitPrice
+            unitPriceWithTax
+        }
+    }
+`);
+
+export const addItemToOrderCustomFieldsDocument = graphql(
+    `
+        mutation AddItemToOrderCustomFields(
+            $productVariantId: ID!
+            $quantity: Int!
+            $customFields: OrderLineCustomFieldsInput
+        ) {
+            addItemToOrder(
+                productVariantId: $productVariantId
+                quantity: $quantity
+                customFields: $customFields
+            ) {
+                ...OrderWithLinesAndItems
+            }
+        }
+    `,
+    [orderWithLinesAndItemsFragment],
+);
+
+export const adjustOrderLineCustomFieldsDocument = graphql(
+    `
+        mutation AdjustOrderLineCustomFields(
+            $orderLineId: ID!
+            $quantity: Int!
+            $customFields: OrderLineCustomFieldsInput
+        ) {
+            adjustOrderLine(orderLineId: $orderLineId, quantity: $quantity, customFields: $customFields) {
+                ...OrderWithLinesAndItems
+            }
+        }
+    `,
+    [orderWithLinesAndItemsFragment],
+);
+
+export const registerSellerDocument = graphql(`
+    mutation RegisterSeller($input: RegisterSellerInput!) {
+        registerNewSeller(input: $input) {
+            id
+            code
+            token
+        }
+    }
+`);

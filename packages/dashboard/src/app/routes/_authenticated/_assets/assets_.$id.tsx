@@ -3,19 +3,20 @@ import { AssetPreviewSelector } from '@/vdb/components/shared/asset/asset-previe
 import { PreviewPreset } from '@/vdb/components/shared/asset/asset-preview.js';
 import { AssetProperties } from '@/vdb/components/shared/asset/asset-properties.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
-import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
+import { TranslatableFormFieldWrapper } from '@/vdb/components/shared/translatable-form-field.js';
 import { VendureImage } from '@/vdb/components/shared/vendure-image.js';
 import { Button } from '@/vdb/components/ui/button.js';
+import { Input } from '@/vdb/components/ui/input.js';
 import { Label } from '@/vdb/components/ui/label.js';
 import {
     CustomFieldsPageBlock,
     Page,
     PageActionBar,
-    PageActionBarRight,
     PageBlock,
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { Trans, useLingui } from '@lingui/react/macro';
@@ -57,10 +58,24 @@ function AssetDetailPage() {
         queryDocument: assetDetailDocument,
         updateDocument: assetUpdateDocument,
         setValuesForUpdate: entity => {
+            // Handle legacy assets without translations
+            const translations =
+                entity.translations && entity.translations.length > 0
+                    ? entity.translations.map(t => ({
+                          id: t.id,
+                          languageCode: t.languageCode,
+                          name: t.name,
+                      }))
+                    : [
+                          {
+                              languageCode: entity.languageCode,
+                              name: entity.name,
+                          },
+                      ];
             return {
                 id: entity.id,
                 focalPoint: entity.focalPoint,
-                name: entity.name,
+                translations,
                 tags: entity.tags?.map(tag => tag.value) ?? [],
                 customFields: entity.customFields,
             };
@@ -95,13 +110,11 @@ function AssetDetailPage() {
                 <Trans>Edit asset</Trans>
             </PageTitle>
             <PageActionBar>
-                <PageActionBarRight>
-                    <PermissionGuard requires={['UpdateChannel']}>
-                        <Button type="submit" disabled={!form.formState.isDirty || isPending}>
-                            <Trans>Update</Trans>
-                        </Button>
-                    </PermissionGuard>
-                </PageActionBarRight>
+                <ActionBarItem itemId="save-button" requiresPermission={['UpdateChannel']}>
+                    <Button type="submit" disabled={!form.formState.isDirty || isPending}>
+                        <Trans>Update</Trans>
+                    </Button>
+                </ActionBarItem>
             </PageActionBar>
             <PageLayout>
                 <PageBlock column="main" blockId="asset-preview">
@@ -132,6 +145,14 @@ function AssetDetailPage() {
                     </div>
                 </PageBlock>
                 <CustomFieldsPageBlock column="main" entityType={'Asset'} control={form.control} />
+                <PageBlock column="side" blockId="asset-name">
+                    <TranslatableFormFieldWrapper
+                        control={form.control}
+                        name="name"
+                        label={<Trans>Name</Trans>}
+                        render={({ field }) => <Input {...field} />}
+                    />
+                </PageBlock>
                 <PageBlock column="side" blockId="asset-properties">
                     <AssetProperties asset={entity} />
                 </PageBlock>

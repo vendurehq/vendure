@@ -8,14 +8,17 @@ on:
             - major
         paths:
             - 'docs/**'
+            - '!docs/manifest.json'
             - 'lerna.json'
     pull_request:
+        types: [opened, synchronize, reopened, ready_for_review]
         branches:
             - master
             - minor
             - major
         paths:
             - 'docs/**'
+            - '!docs/manifest.json'
             - 'lerna.json'
 
 concurrency:
@@ -25,6 +28,8 @@ concurrency:
 jobs:
     validate:
         name: Validate MDX
+        # Skip draft PRs
+        if: ${{ github.event_name == 'push' || !github.event.pull_request.draft }}
         permissions:
             contents: read
         runs-on: ubuntu-latest
@@ -33,7 +38,7 @@ jobs:
                 working-directory: docs
         steps:
             - name: Checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
 
             - name: Setup Bun
               uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
@@ -46,21 +51,23 @@ jobs:
 
     generate-manifest:
         name: Generate & commit manifest
-        # Skip fork PRs — can't push back to fork branches
-        if: ${{ github.event_name == 'push' || !github.event.pull_request.head.repo.fork }}
+        # Skip fork PRs (can't push back to fork branches) and draft PRs
+        if: ${{ github.event_name == 'push' || (!github.event.pull_request.head.repo.fork && !github.event.pull_request.draft) }}
         runs-on: ubuntu-latest
         permissions:
             contents: write
         steps:
             - name: Generate CI Bot Token
               id: app-token
-              uses: actions/create-github-app-token@v2
+              uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2.2.2
               with:
                   app-id: ${{ secrets.CI_BOT_APP_ID }}
                   private-key: ${{ secrets.CI_BOT_APP_PRIVATE_KEY }}
+                  # Least privilege: token is only used to commit & push the regenerated manifest.
+                  permission-contents: write
 
             - name: Checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
               with:
                   token: ${{ steps.app-token.outputs.token }}
                   ref: ${{ github.head_ref || github.ref }}
@@ -100,5 +107,5 @@ jobs:
               run: |
                   git config user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
                   git config user.email "${{ steps.get-user.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
-                  git commit -m "docs: Regenerate manifest.json [skip ci]"
+                  git commit -m "docs: Regenerate manifest.json"
                   git push

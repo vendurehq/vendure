@@ -1,15 +1,14 @@
-import { LogicalOperator } from '@vendure/common/lib/generated-types';
+import { LanguageCode, LogicalOperator, SortOrder } from '@vendure/common/lib/generated-types';
 import { mergeConfig } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import gql from 'graphql-tag';
-import path from 'path';
+import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import { ListQueryPlugin } from './fixtures/test-plugins/list-query-plugin';
-import { LanguageCode, SortOrder } from './graphql/generated-e2e-admin-types';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 import { fixPostgresTimezone } from './utils/fix-pg-timezone';
 import { sortById } from './utils/test-order-utils';
@@ -366,6 +365,41 @@ describe('ListQueryBuilder', () => {
 
                 expect(getItemLabels(testEntities.items)).toEqual(['B', 'D', 'E']);
             });
+
+            // https://github.com/vendurehq/vendure/security/advisories/GHSA-jgm3-qmp2-c4p7
+            it(
+                'rejects a catastrophic-backtracking pattern (ReDoS)',
+                assertThrowsWithMessage(
+                    () =>
+                        adminClient.query(GET_LIST, {
+                            options: {
+                                filter: {
+                                    description: {
+                                        regex: '(a+)+$',
+                                    },
+                                },
+                            },
+                        }),
+                    'The regex filter pattern is not allowed as it may cause excessive resource consumption',
+                ),
+            );
+
+            it(
+                'rejects an over-length pattern',
+                assertThrowsWithMessage(
+                    () =>
+                        adminClient.query(GET_LIST, {
+                            options: {
+                                filter: {
+                                    description: {
+                                        regex: 'a'.repeat(101),
+                                    },
+                                },
+                            },
+                        }),
+                    'exceeds the maximum allowed length',
+                ),
+            );
         });
     });
 

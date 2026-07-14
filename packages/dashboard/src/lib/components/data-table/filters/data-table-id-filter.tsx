@@ -35,7 +35,11 @@ export function DataTableIdFilter({ value: incomingValue, onChange }: Readonly<D
 
     return (
         <div className="flex flex-col md:flex-row gap-2">
-            <Select value={operator} onValueChange={value => setOperator(value)}>
+            <Select
+                items={Object.fromEntries(ID_OPERATORS.map(op => [op, <HumanReadableOperator key={op} operator={op} />]))}
+                value={operator}
+                onValueChange={value => { if (value != null) setOperator(value); }}
+            >
                 <SelectTrigger>
                     <SelectValue placeholder="Select operator" />
                 </SelectTrigger>

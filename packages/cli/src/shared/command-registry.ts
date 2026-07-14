@@ -4,12 +4,20 @@ import { CliCommandDefinition, CliCommandOption } from './cli-command-definition
 
 export function registerCommands(program: Command, commands: CliCommandDefinition[]): void {
     commands.forEach(commandDef => {
-        const command = program
-            .command(commandDef.name)
-            .description(commandDef.description)
-            .action(async options => {
-                await commandDef.action(options);
-            });
+        const command = program.command(commandDef.name).description(commandDef.description);
+
+        // Add positional arguments if defined
+        if (commandDef.arguments) {
+            for (const arg of commandDef.arguments) {
+                const syntax = arg.required ? `<${arg.name}>` : `[${arg.name}]`;
+                command.argument(syntax, arg.description);
+            }
+        }
+
+        command.action(async (...args: any[]) => {
+            // Commander passes positional args first, then the options object last
+            await commandDef.action(...args);
+        });
 
         // Add options if they exist
         if (commandDef.options) {

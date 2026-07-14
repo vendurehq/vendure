@@ -1,0 +1,351 @@
+---
+title: 'Public API & Imports'
+metaTitle: "Vendure Dashboard Public API — What to Import and From Where"
+metaDescription: "Learn why all dashboard extension imports should come from @vendure/dashboard, which exceptions exist, and how this protects your code against breaking changes."
+---
+
+When building dashboard extensions, **everything you need should be imported from `@vendure/dashboard`**.
+This is the single most important convention to follow, and this page explains exactly what that means, why it matters,
+and the few exceptions to the rule.
+
+## Why a Single Import Source?
+
+The Vendure Dashboard is built on top of several third-party libraries — Base UI, TanStack Router, TanStack Query,
+React Hook Form, and others. Over time, these libraries may be replaced, upgraded, or wrapped with custom behavior.
+
+To protect your extensions from breaking when that happens, the `@vendure/dashboard` package **re-exports** everything
+you need from these libraries. As long as you import from `@vendure/dashboard`, your code is insulated from changes
+to the underlying implementation.
+
+Here is a real-world example: the Dashboard originally used [Radix UI](https://www.radix-ui.com/) primitives for
+its component library. In a later release, the underlying primitives were migrated to [Base UI](https://base-ui.com/).
+Extensions that imported components from `@vendure/dashboard` continued to work without any changes. Extensions
+that had imported directly from `@radix-ui/*` packages broke.
+
+:::caution[The Golden Rule]
+**Always import from `@vendure/dashboard` first.** If it is exported from this package, that is where you get it.
+Do not import the same thing directly from a third-party package.
+:::
+
+## What is Available from `@vendure/dashboard`?
+
+The public API covers everything you should need to build dashboard extensions. The sections below
+highlight the most commonly used exports — for the full set, use your IDE's autocomplete on `@vendure/dashboard` imports.
+
+### UI Components
+
+All design-system components (buttons, inputs, dialogs, cards, selectors, etc.) are available directly:
+
+```tsx
+import { Button, Card, Input, Dialog, Select, Badge, Tabs } from '@vendure/dashboard';
+```
+
+These are the same components used internally by the Dashboard itself, styled with the Vendure design tokens.
+
+### Data Display & Input Components
+
+Vendure-specific components for displaying and editing data:
+
+```tsx
+import {
+    // Display
+    Money, DateTime, Boolean, Json,
+    // Input
+    TextInput, MoneyInput, RichTextInput, DatetimeInput,
+    BooleanInput, SelectWithOptions, RelationInput,
+} from '@vendure/dashboard';
+```
+
+### Data Tables
+
+Everything for building list views with sortable, filterable tables:
+
+```tsx
+import { DataTable, DataTableColumnHeader, DataTablePagination } from '@vendure/dashboard';
+```
+
+### Page Layout & Navigation
+
+```tsx
+import {
+    Page, PageTitle, PageLayout, PageBlock,
+    DetailPage, ListPage, Link,
+} from '@vendure/dashboard';
+```
+
+### Framework & Extension API
+
+The core APIs for defining extensions, registering custom components, and integrating with the Dashboard framework:
+
+```tsx
+import {
+    defineDashboardExtension,
+    useDetailPage, useExtendedDetailQuery, useExtendedListQuery,
+    detailPageRouteLoader,
+} from '@vendure/dashboard';
+```
+
+### Hooks
+
+All custom hooks for accessing Dashboard state and services:
+
+```tsx
+import {
+    useAuth, useChannel, usePermissions, useServerConfig,
+    useLocalFormat, useTheme, useAlerts, usePage, usePageBlock,
+} from '@vendure/dashboard';
+```
+
+### GraphQL Utilities
+
+The `api` helper and gql.tada type utilities are available from `@vendure/dashboard`:
+
+```tsx
+import { api, ResultOf, FragmentOf, VariablesOf, readFragment } from '@vendure/dashboard';
+```
+
+:::note
+The `graphql` tagged template function is **not** something you should import from `@vendure/dashboard`.
+See the [`@/gql` exception](#gql) below for why.
+:::
+
+### TanStack Query (Data Fetching)
+
+Re-exported from `@tanstack/react-query`:
+
+```tsx
+import {
+    useQuery, useMutation, useQueryClient,
+    useInfiniteQuery, useSuspenseQuery,
+    queryOptions, keepPreviousData,
+} from '@vendure/dashboard';
+import type { UseQueryOptions, UseMutationOptions, QueryClient } from '@vendure/dashboard';
+```
+
+### TanStack Router (Routing)
+
+Re-exported from `@tanstack/react-router`:
+
+```tsx
+import {
+    Link, Outlet, useRouter, useNavigate,
+    useRouterState, useBlocker,
+} from '@vendure/dashboard';
+import type { AnyRoute, LinkProps, RouteOptions } from '@vendure/dashboard';
+```
+
+The `AnyRoute` type is commonly needed when typing custom route definitions.
+
+### TanStack Table (Table Types)
+
+Re-exported from `@tanstack/react-table`:
+
+```tsx
+import type {
+    ColumnDef, Column, Row, CellContext, HeaderContext,
+    SortingState, ColumnFiltersState, VisibilityState,
+    TableInstance, AccessorFnColumnDef, ColumnSort,
+    ExpandedState, RowSelectionState,
+} from '@vendure/dashboard';
+```
+
+:::note
+The TanStack Table `Table` type is re-exported as **`TableInstance`** to avoid a naming conflict
+with the Dashboard's own `Table` UI component. If you are following TanStack Table documentation,
+replace `Table` with `TableInstance` in your imports.
+:::
+
+### React Hook Form
+
+Re-exported from `react-hook-form`:
+
+```tsx
+import {
+    useForm, useFormContext, useFieldArray, useWatch,
+    Controller, FormProvider,
+} from '@vendure/dashboard';
+import type { Control, UseFormReturn, FieldValues, FieldPath } from '@vendure/dashboard';
+```
+
+### Zod (Schema Validation)
+
+Re-exported from `zod`. Used for form validation with `zodResolver`:
+
+```tsx
+import { z, zodResolver } from '@vendure/dashboard';
+import type { ZodType, ZodObject, ZodArray, ZodEffects } from '@vendure/dashboard';
+```
+
+The dashboard accepts both Zod v3 and v4 (`^3.25.0 || ^4.0.0`). If your extension already imports
+`z` from `zod` directly, it will continue to work — `zodResolver` handles both versions at runtime.
+However, importing from `@vendure/dashboard` is recommended to stay insulated from future changes.
+
+### Toast Notifications
+
+Re-exported from `sonner`:
+
+```tsx
+import { toast } from '@vendure/dashboard';
+```
+
+### Animations
+
+Re-exported from `motion/react`:
+
+```tsx
+import {
+    motion, AnimatePresence, LayoutGroup,
+    useSpring, useTransform, useMotionValue,
+    useAnimation, useInView,
+} from '@vendure/dashboard';
+import type { Variants, Transition, MotionProps } from '@vendure/dashboard';
+```
+
+### Utility Functions
+
+```tsx
+import {
+    cn, camelCaseToTitleCase, formatFileSize, normalizeString,
+    removeReadonlyAndLocalizedCustomFields,
+} from '@vendure/dashboard';
+```
+
+The `removeReadonlyAndLocalizedCustomFields` helper is particularly useful when building custom forms
+that work with custom fields — it strips read-only and localized fields before mutation submission.
+
+### Constants
+
+```tsx
+import {
+    NEW_ENTITY_PATH, AUTHENTICATED_ROUTE_PREFIX,
+    DEFAULT_CHANNEL_CODE, SUPER_ADMIN_ROLE_CODE, CUSTOMER_ROLE_CODE,
+} from '@vendure/dashboard';
+```
+
+## Exceptions — What to Import Directly
+
+A small number of packages should be imported from their own modules because they are either
+not re-exported, or re-exporting them is not practical:
+
+### `react`
+
+React itself is a peer dependency. Import hooks and utilities directly:
+
+```tsx
+import { useState, useEffect, useCallback, useMemo } from 'react';
+```
+
+### `lucide-react`
+
+Icons are imported directly from `lucide-react`. There are thousands of icons and re-exporting them all
+would be impractical. The `LucideIcon` _type_ is available from `@vendure/dashboard` if you need it for typing.
+
+```tsx
+import { ShoppingCartIcon, UserIcon, SettingsIcon } from 'lucide-react';
+import type { LucideIcon } from '@vendure/dashboard'; // for typing icon props
+```
+
+### `@lingui/react/macro`
+
+The Lingui i18n macros (`Trans`, `useLingui` from the macro entry point) must be imported
+from their macro module because they are compile-time transforms:
+
+```tsx
+import { Trans, useLingui } from '@lingui/react/macro';
+```
+
+:::note
+The non-macro `useLingui` hook _is_ re-exported from `@vendure/dashboard`, but the macro version
+from `@lingui/react/macro` is what you should use in practice since it provides the `t` tagged template function.
+:::
+
+### `@/gql`
+
+The `graphql` tagged template function must be imported from the `@/gql` path alias — **not** from
+`@vendure/dashboard`:
+
+```tsx
+import { graphql } from '@/gql';
+```
+
+This is because gql.tada needs to be initialized against _your_ project's GraphQL schema, which includes
+any custom fields, custom types, or API extensions defined by your plugins. The `@/gql` path points to
+the types that the Vendure Vite plugin generates from your specific schema during development.
+
+If you were to import `graphql` from `@vendure/dashboard`, it would be initialized against the base
+Vendure schema only — your queries would compile, but the types would not reflect your custom schema
+extensions, leading to silent type errors.
+
+All other GraphQL utilities (`api`, `ResultOf`, `FragmentOf`, `VariablesOf`, `readFragment`) are correctly
+imported from `@vendure/dashboard`.
+
+## Quick Reference
+
+| What you need | Import from |
+|---|---|
+| UI components (Button, Dialog, Card, ...) | `@vendure/dashboard` |
+| Data components (TextInput, MoneyInput, ...) | `@vendure/dashboard` |
+| Hooks (useAuth, useChannel, useLocalFormat, ...) | `@vendure/dashboard` |
+| Extension API (defineDashboardExtension, ...) | `@vendure/dashboard` |
+| GraphQL utilities (api, ResultOf, FragmentOf, ...) | `@vendure/dashboard` |
+| TanStack Query (useQuery, useMutation, ...) | `@vendure/dashboard` |
+| TanStack Router (Link, useNavigate, AnyRoute, ...) | `@vendure/dashboard` |
+| TanStack Table types (ColumnDef, TableInstance, ...) | `@vendure/dashboard` |
+| React Hook Form (useForm, Controller, ...) | `@vendure/dashboard` |
+| Zod (z, zodResolver, ZodType, ...) | `@vendure/dashboard` |
+| Toast (toast) | `@vendure/dashboard` |
+| Animations (motion, AnimatePresence, ...) | `@vendure/dashboard` |
+| Utility functions (cn, ...) | `@vendure/dashboard` |
+| Constants | `@vendure/dashboard` |
+| React hooks (useState, useEffect, ...) | `react` |
+| Icons (ShoppingCartIcon, ...) | `lucide-react` |
+| i18n macros (Trans, useLingui) | `@lingui/react/macro` |
+| `graphql` tagged template function | `@/gql` |
+
+## Common Mistakes
+
+### Importing UI components from the underlying library
+
+```tsx
+// Wrong — imports directly from the underlying component library
+import { Button } from '@base-ui/react';
+import { Dialog } from '@radix-ui/react-dialog';
+
+// Correct
+import { Button, Dialog } from '@vendure/dashboard';
+```
+
+### Importing TanStack hooks directly
+
+```tsx
+// Wrong — bypasses the dashboard re-export
+import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
+
+// Correct
+import { useQuery, useNavigate } from '@vendure/dashboard';
+```
+
+### Importing React Hook Form directly
+
+```tsx
+// Wrong
+import { useForm } from 'react-hook-form';
+
+// Correct
+import { useForm } from '@vendure/dashboard';
+```
+
+### Importing Zod or zodResolver directly
+
+```tsx
+// Wrong — bypasses the dashboard re-export
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+
+// Correct
+import { z, zodResolver } from '@vendure/dashboard';
+```
+
+Following these conventions keeps your extensions stable across Dashboard upgrades and ensures
+you always get the correctly configured versions of these utilities.

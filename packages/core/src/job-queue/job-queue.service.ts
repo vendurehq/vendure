@@ -52,6 +52,14 @@ export class JobQueueService implements OnModuleDestroy {
     private queues: Array<JobQueue<any>> = [];
     private hasStarted = false;
 
+    /**
+     * @description
+     * Returns `true` if the job queues have been started.
+     */
+    get started(): boolean {
+        return this.hasStarted;
+    }
+
     private get jobQueueStrategy(): JobQueueStrategy {
         return this.configService.jobQueueOptions.jobQueueStrategy;
     }

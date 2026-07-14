@@ -1,0 +1,34 @@
+---
+title: "CopyableText"
+generated: true
+---
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/copyable-text.tsx" sourceLine="50" packageName="@vendure/dashboard" since="3.4.0" />
+
+Renders children alongside a copy-to-clipboard button. Shows a green checkmark
+for 2 seconds after a successful copy. Does not apply any styling to the children —
+all presentation is controlled by the consumer.
+
+*Example*
+
+```tsx
+<CopyableText value={entity.id}>
+    <span className="font-mono text-sm">{entity.id}</span>
+</CopyableText>
+
+<CopyableText value={order.code}>
+    <Badge>{order.code}</Badge>
+</CopyableText>
+
+// Plain text fallback — renders value as-is
+<CopyableText value={entity.id} />
+```
+
+```ts title="Signature"
+function CopyableText(props: Readonly<CopyableTextProps>): void
+```
+Parameters
+
+### props
+
+<MemberInfo kind="parameter" type={`Readonly<CopyableTextProps>`} />
+

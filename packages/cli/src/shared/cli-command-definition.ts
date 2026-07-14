@@ -11,11 +11,25 @@ export interface CliCommandOption {
     interactiveFn?: () => Promise<any>; // Function to execute in interactive mode
 }
 
+export interface CliCommandArgument {
+    name: string;
+    description: string;
+    required?: boolean;
+}
+
 export interface CliCommandDefinition {
     name: string;
     description: string;
+    arguments?: CliCommandArgument[];
     options?: CliCommandOption[];
-    action: (options?: Record<string, any>) => Promise<void>;
+    /**
+     * Commander calling convention: positional arguments are passed first
+     * (in the order they are declared in `arguments`), followed by the
+     * parsed options object, followed by the Command instance itself.
+     * E.g. for `vendure codemod <transform> [path]`:
+     *   action(transform, path, options, command)
+     */
+    action: (...args: any[]) => Promise<void>;
 }
 
 export interface CliCommandConfig {

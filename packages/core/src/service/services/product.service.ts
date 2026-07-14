@@ -16,7 +16,7 @@ import { FindOptionsUtils, In, IsNull } from 'typeorm';
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
 import { ErrorResultUnion } from '../../common/error/error-result';
-import { EntityNotFoundError, InternalServerError, UserInputError } from '../../common/error/errors';
+import { EntityNotFoundError } from '../../common/error/errors';
 import { ProductOptionInUseError } from '../../common/error/generated-graphql-admin-errors';
 import { Instrument } from '../../common/instrument-decorator';
 import { ListQueryOptions } from '../../common/types/common-types';
@@ -26,6 +26,7 @@ import { TransactionalConnection } from '../../connection/transactional-connecti
 import { Channel } from '../../entity/channel/channel.entity';
 import { FacetValue } from '../../entity/facet-value/facet-value.entity';
 import { ProductOptionGroup } from '../../entity/product-option-group/product-option-group.entity';
+import { ProductOption } from '../../entity/product-option/product-option.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
 import { ProductTranslation } from '../../entity/product/product-translation.entity';
 import { Product } from '../../entity/product/product.entity';
@@ -93,6 +94,14 @@ export class ProductService {
         if (hasSkuFilter) {
             effectiveRelations.push('variants');
             customPropertyMap.sku = 'variants.sku';
+        }
+        const hasOptionGroupIdFilter = this.listQueryBuilder.filterObjectHasProperty<ProductFilterParameter>(
+            options?.filter,
+            'optionGroupId',
+        );
+        if (hasOptionGroupIdFilter) {
+            effectiveRelations.push('optionGroups');
+            customPropertyMap.optionGroupId = 'optionGroups.id';
         }
 
         return this.listQueryBuilder
@@ -209,10 +218,13 @@ export class ProductService {
             .setParameters(translationQb.getParameters())
             .select('product.id', 'id')
             .addSelect(
-                // eslint-disable-next-line max-len
-                `CASE translation.languageCode WHEN '${ctx.languageCode}' THEN 2 WHEN '${ctx.channel.defaultLanguageCode}' THEN 1 ELSE 0 END`,
+                `CASE translation.languageCode WHEN :userLang THEN 2 WHEN :defaultLang THEN 1 ELSE 0 END`,
                 'sort_order',
             )
+            .setParameters({
+                userLang: ctx.languageCode,
+                defaultLang: ctx.channel.defaultLanguageCode,
+            })
             .orderBy('sort_order', 'DESC');
         // We use getRawOne here to simply get the ID as efficiently as possible,
         // which we then pass to the regular findOne() method which will handle
@@ -286,6 +298,8 @@ export class ProductService {
             relations: ['variants', 'optionGroups'],
         });
         product.deletedAt = new Date();
+        // Detach option groups from the product (they may be shared with other products)
+        product.optionGroups = [];
         await this.connection.getRepository(ctx, Product).save(product, { reload: false });
         await this.eventBus.publish(new ProductEvent(ctx, product, 'deleted', productId));
 
@@ -296,19 +310,6 @@ export class ProductService {
         if (variantResult.result === DeletionResult.NOT_DELETED) {
             await this.connection.rollBackTransaction(ctx);
             return variantResult;
-        }
-        for (const optionGroup of product.optionGroups) {
-            if (!optionGroup.deletedAt) {
-                const groupResult = await this.productOptionGroupService.deleteGroupAndOptionsFromProduct(
-                    ctx,
-                    optionGroup.id,
-                    productId,
-                );
-                if (groupResult.result === DeletionResult.NOT_DELETED) {
-                    await this.connection.rollBackTransaction(ctx);
-                    return groupResult;
-                }
-            }
         }
         return {
             result: DeletionResult.DELETED,
@@ -329,8 +330,14 @@ export class ProductService {
     ): Promise<Array<Translated<Product>>> {
         const productsWithVariants = await this.connection.getRepository(ctx, Product).find({
             where: { id: In(input.productIds) },
-            relations: ['variants', 'assets'],
+            relations: ['variants', 'assets', 'optionGroups', 'optionGroups.options'],
+            relationLoadStrategy: 'query',
+            loadEagerRelations: false,
         });
+        const productIds = unique(productsWithVariants.map(p => p.id));
+        await Promise.all(
+            productIds.map(id => this.channelService.assignToChannels(ctx, Product, id, [input.channelId])),
+        );
         await this.productVariantService.assignProductVariantsToChannel(ctx, {
             productVariantIds: ([] as ID[]).concat(
                 ...productsWithVariants.map(p => p.variants.map(v => v.id)),
@@ -342,6 +349,19 @@ export class ProductService {
             ([] as ID[]).concat(...productsWithVariants.map(p => p.assets.map(a => a.assetId))),
         );
         await this.assetService.assignToChannel(ctx, { channelId: input.channelId, assetIds });
+        // Also assign option groups and options to the target channel
+        const allOptionGroups = productsWithVariants.flatMap(p => p.optionGroups);
+        const allOptions = allOptionGroups.flatMap(g => g.options);
+        const uniqueGroupIds = unique(allOptionGroups.map(g => g.id));
+        const uniqueOptionIds = unique(allOptions.map(o => o.id));
+        await Promise.all([
+            ...uniqueGroupIds.map(id =>
+                this.channelService.assignToChannels(ctx, ProductOptionGroup, id, [input.channelId]),
+            ),
+            ...uniqueOptionIds.map(id =>
+                this.channelService.assignToChannels(ctx, ProductOption, id, [input.channelId]),
+            ),
+        ]);
         const products = await this.connection
             .getRepository(ctx, Product)
             .find({ where: { id: In(input.productIds) } });
@@ -360,7 +380,9 @@ export class ProductService {
     ): Promise<Array<Translated<Product>>> {
         const productsWithVariants = await this.connection.getRepository(ctx, Product).find({
             where: { id: In(input.productIds) },
-            relations: ['variants'],
+            relations: ['variants', 'optionGroups', 'optionGroups.options'],
+            relationLoadStrategy: 'query',
+            loadEagerRelations: false,
         });
         await this.productVariantService.removeProductVariantsFromChannel(ctx, {
             productVariantIds: ([] as ID[]).concat(
@@ -368,6 +390,40 @@ export class ProductService {
             ),
             channelId: input.channelId,
         });
+        // Remove option groups from the channel, but only if not used by other products in that channel
+        const removingProductIds = productsWithVariants.map(p => p.id);
+        const allGroups = productsWithVariants.flatMap(p => p.optionGroups);
+        const uniqueGroups = allGroups.filter(
+            (g, i, arr) => arr.findIndex(x => idsAreEqual(x.id, g.id)) === i,
+        );
+        for (const optionGroup of uniqueGroups) {
+            const otherProductCount = await this.connection
+                .getRepository(ctx, Product)
+                .createQueryBuilder('product')
+                .innerJoin('product.optionGroups', 'og', 'og.id = :ogId', { ogId: optionGroup.id })
+                .innerJoin('product.channels', 'channel', 'channel.id = :channelId', {
+                    channelId: input.channelId,
+                })
+                .where('product.deletedAt IS NULL')
+                .andWhere('product.id NOT IN (:...removingIds)', { removingIds: removingProductIds })
+                .getCount();
+            if (otherProductCount === 0) {
+                await this.channelService.removeFromChannels(ctx, ProductOptionGroup, optionGroup.id, [
+                    input.channelId,
+                ]);
+                await Promise.all(
+                    optionGroup.options.map(option =>
+                        this.channelService.removeFromChannels(ctx, ProductOption, option.id, [
+                            input.channelId,
+                        ]),
+                    ),
+                );
+            }
+        }
+        const productIds = unique(productsWithVariants.map(p => p.id));
+        await Promise.all(
+            productIds.map(id => this.channelService.removeFromChannels(ctx, Product, id, [input.channelId])),
+        );
         const products = await this.connection
             .getRepository(ctx, Product)
             .find({ where: { id: In(input.productIds) } });
@@ -386,31 +442,26 @@ export class ProductService {
         optionGroupId: ID,
     ): Promise<Translated<Product>> {
         const product = await this.getProductWithOptionGroups(ctx, productId);
-        const optionGroup = await this.connection.getRepository(ctx, ProductOptionGroup).findOne({
-            where: { id: optionGroupId },
-            relations: ['product'],
-        });
+        const optionGroup = await this.connection.findOneInChannel(
+            ctx,
+            ProductOptionGroup,
+            optionGroupId,
+            ctx.channelId,
+            {},
+        );
         if (!optionGroup) {
             throw new EntityNotFoundError('ProductOptionGroup', optionGroupId);
         }
-        if (optionGroup.product) {
-            const translated = this.translator.translate(optionGroup.product, ctx);
-            throw new UserInputError('error.product-option-group-already-assigned', {
-                groupCode: optionGroup.code,
-                productName: translated.name,
-            });
-        }
 
-        if (Array.isArray(product.optionGroups)) {
+        // Idempotent: if already linked, just return
+        const alreadyLinked = product.optionGroups.some(g => idsAreEqual(g.id, optionGroupId));
+        if (!alreadyLinked) {
             product.optionGroups.push(optionGroup);
-        } else {
-            product.optionGroups = [optionGroup];
+            await this.connection.getRepository(ctx, Product).save(product, { reload: false });
+            await this.eventBus.publish(
+                new ProductOptionGroupChangeEvent(ctx, product, optionGroupId, 'assigned'),
+            );
         }
-
-        await this.connection.getRepository(ctx, Product).save(product, { reload: false });
-        await this.eventBus.publish(
-            new ProductOptionGroupChangeEvent(ctx, product, optionGroupId, 'assigned'),
-        );
         return assertFound(this.findOne(ctx, productId));
     }
 
@@ -447,17 +498,9 @@ export class ProductService {
                 });
             }
         }
-        const result = await this.productOptionGroupService.deleteGroupAndOptionsFromProduct(
-            ctx,
-            optionGroupId,
-            productId,
-        );
-        product.optionGroups = product.optionGroups.filter(g => g.id !== optionGroupId);
+        // Detach the group from the product (don't delete — it may be shared)
+        product.optionGroups = product.optionGroups.filter(g => !idsAreEqual(g.id, optionGroupId));
         await this.connection.getRepository(ctx, Product).save(product, { reload: false });
-        if (result.result === DeletionResult.NOT_DELETED) {
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            throw new InternalServerError(result.message!);
-        }
         await this.eventBus.publish(
             new ProductOptionGroupChangeEvent(ctx, product, optionGroupId, 'removed'),
         );
@@ -465,15 +508,12 @@ export class ProductService {
     }
 
     private async getProductWithOptionGroups(ctx: RequestContext, productId: ID): Promise<Product> {
-        const product = await this.connection.getRepository(ctx, Product).findOne({
+        return this.connection.getEntityOrThrow(ctx, Product, productId, {
             relationLoadStrategy: 'query',
             loadEagerRelations: false,
-            where: { id: productId, deletedAt: IsNull() },
+            channelId: ctx.channelId,
+            where: { deletedAt: IsNull() },
             relations: ['optionGroups', 'variants', 'variants.options'],
         });
-        if (!product) {
-            throw new EntityNotFoundError('Product', productId);
-        }
-        return product;
     }
 }

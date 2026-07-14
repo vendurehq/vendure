@@ -1,230 +1,218 @@
+import path from 'node:path';
+
+import { brand, darkTheme, fontFamily, lightTheme, radii, shadows } from '@vendure-io/design-tokens';
 import { Plugin } from 'vite';
 
-/**
- * Shared color palette used across light and dark themes.
- * Extracting these reduces duplication and makes theme relationships clearer.
- */
-const COLORS = {
-    // Primary brand color
-    primary: 'oklch(0.7613 0.1503 231.1314)',
-    // Pure white/black variants
-    white: 'oklch(1.0000 0 0)',
-    nearWhite: 'oklch(0.9851 0 0)',
-    // Gray scale - light theme
-    lightForeground: 'oklch(0.2103 0.0059 285.8852)',
-    lightMuted: 'oklch(0.9674 0.0013 286.3752)',
-    lightMutedForeground: 'oklch(0.5517 0.0138 285.9385)',
-    lightBorder: 'oklch(0.9197 0.0040 286.3202)',
-    // Gray scale - dark theme
-    darkBackground: 'oklch(0.1408 0.0044 285.8229)',
-    darkCard: 'oklch(0.2103 0.0059 285.8852)',
-    darkMuted: 'oklch(0.2739 0.0055 286.0326)',
-    darkMutedForeground: 'oklch(0.7118 0.0129 286.0665)',
-    // Brand colors (shared)
-    brand: '#17c1ff',
-    brandLighter: '#e6f9ff',
-    brandDarker: '#0099ff',
-    // Fonts (shared)
-    fontSans: 'Inter, sans-serif',
-    fontMono: 'Geist Mono, monospace',
-} as const;
-
-type ThemeColors = {
-    background?: string;
-    foreground?: string;
-    card?: string;
-    'card-foreground'?: string;
-    popover?: string;
-    'popover-foreground'?: string;
-    primary?: string;
-    'primary-foreground'?: string;
-    secondary?: string;
-    'secondary-foreground'?: string;
-    muted?: string;
-    'muted-foreground'?: string;
-    accent?: string;
-    'accent-foreground'?: string;
-    destructive?: string;
-    'destructive-foreground'?: string;
-    success?: string;
-    'success-foreground'?: string;
-    'dev-mode'?: string;
-    'dev-mode-foreground'?: string;
-    border?: string;
-    input?: string;
-    ring?: string;
-    'chart-1'?: string;
-    'chart-2'?: string;
-    'chart-3'?: string;
-    'chart-4'?: string;
-    'chart-5'?: string;
-    radius?: string;
-    sidebar?: string;
-    'sidebar-foreground'?: string;
-    'sidebar-primary'?: string;
-    'sidebar-primary-foreground'?: string;
-    'sidebar-accent'?: string;
-    'sidebar-accent-foreground'?: string;
-    'sidebar-border'?: string;
-    'sidebar-ring'?: string;
-    brand?: string;
-    'brand-lighter'?: string;
-    'brand-darker'?: string;
-    'font-sans'?: string;
-    'font-mono'?: string;
-    [key: string]: string | undefined;
-};
+type ThemeColors = Record<string, string | undefined>;
 
 export interface ThemeVariables {
     light?: ThemeColors;
     dark?: ThemeColors;
 }
 
-const defaultVariables: ThemeVariables = {
-    light: {
-        background: COLORS.white,
-        foreground: COLORS.lightForeground,
-        card: COLORS.white,
-        'card-foreground': COLORS.lightForeground,
-        popover: COLORS.white,
-        'popover-foreground': COLORS.lightForeground,
-        primary: COLORS.primary,
-        'primary-foreground': 'oklch(0.261 0.043 218.379)',
-        secondary: COLORS.lightMuted,
-        'secondary-foreground': COLORS.lightForeground,
-        muted: COLORS.lightMuted,
-        'muted-foreground': COLORS.lightMutedForeground,
-        accent: COLORS.lightMuted,
-        'accent-foreground': COLORS.lightForeground,
-        // L=0.60 ensures WCAG AA contrast ratio (4.5:1) against white backgrounds
-        destructive: 'oklch(0.60 0.24 27.325)',
-        'destructive-foreground': COLORS.nearWhite,
-        success: 'hsl(99deg 67.25% 33.2%)',
-        'success-foreground': 'hsl(0 0% 98%)',
-        'dev-mode': 'hsl(204, 76%, 62%)',
-        'dev-mode-foreground': 'hsl(0 0% 98%)',
-        border: COLORS.lightBorder,
-        input: COLORS.lightBorder,
-        ring: COLORS.primary,
-        'chart-1': COLORS.primary,
-        'chart-2': 'oklch(0.5575 0.2525 302.3212)',
-        'chart-3': 'oklch(0.5858 0.2220 17.5846)',
-        'chart-4': 'oklch(0.6658 0.1574 58.3183)',
-        'chart-5': 'oklch(0.6271 0.1699 149.2138)',
-        radius: '0.375rem',
-        sidebar: COLORS.lightMuted,
-        'sidebar-foreground': COLORS.lightForeground,
-        'sidebar-primary': COLORS.primary,
-        'sidebar-primary-foreground': COLORS.darkBackground,
-        'sidebar-accent': COLORS.white,
-        'sidebar-accent-foreground': COLORS.lightForeground,
-        'sidebar-border': COLORS.lightBorder,
-        'sidebar-ring': COLORS.primary,
-        brand: COLORS.brand,
-        'brand-lighter': COLORS.brandLighter,
-        'brand-darker': COLORS.brandDarker,
-        'font-sans': COLORS.fontSans,
-        'font-mono': COLORS.fontMono,
-    },
-    dark: {
-        background: COLORS.darkBackground,
-        foreground: COLORS.nearWhite,
-        card: COLORS.darkCard,
-        'card-foreground': COLORS.nearWhite,
-        popover: COLORS.darkCard,
-        'popover-foreground': COLORS.nearWhite,
-        primary: COLORS.primary,
-        'primary-foreground': COLORS.darkBackground,
-        secondary: COLORS.darkMuted,
-        'secondary-foreground': COLORS.nearWhite,
-        muted: COLORS.darkMuted,
-        'muted-foreground': COLORS.darkMutedForeground,
-        accent: COLORS.darkMuted,
-        'accent-foreground': COLORS.nearWhite,
-        // L=0.75 ensures WCAG AA contrast ratio (4.5:1) against dark backgrounds
-        destructive: 'oklch(0.75 0.22 25)',
-        'destructive-foreground': COLORS.nearWhite,
-        success: 'hsl(100 76.42% 22.21%)',
-        'success-foreground': 'hsl(0 0% 98%)',
-        'dev-mode': 'hsl(204, 86%, 53%)',
-        'dev-mode-foreground': 'hsl(0 0% 98%)',
-        border: COLORS.darkMuted,
-        input: COLORS.darkMuted,
-        ring: COLORS.primary,
-        'chart-1': COLORS.primary,
-        'chart-2': 'oklch(0.6268 0.2325 303.9004)',
-        'chart-3': 'oklch(0.6450 0.2154 16.4393)',
-        'chart-4': 'oklch(0.7686 0.1647 70.0804)',
-        'chart-5': 'oklch(0.7227 0.1920 149.5793)',
-        sidebar: 'oklch(0.2 0 0)',
-        'sidebar-foreground': COLORS.nearWhite,
-        'sidebar-primary': COLORS.primary,
-        'sidebar-primary-foreground': COLORS.darkBackground,
-        'sidebar-accent': COLORS.darkMuted,
-        'sidebar-accent-foreground': COLORS.nearWhite,
-        'sidebar-border': COLORS.darkMuted,
-        'sidebar-ring': COLORS.primary,
-        brand: COLORS.brand,
-        'brand-lighter': COLORS.brandLighter,
-        'brand-darker': COLORS.brandDarker,
-        'font-sans': COLORS.fontSans,
-        'font-mono': COLORS.fontMono,
-    },
+/**
+ * @description
+ * Appearance options for the dashboard. Extends {@link ThemeVariables} (the
+ * `light`/`dark` colour-token overrides) with the ability to layer in
+ * additional stylesheets.
+ *
+ * @docsCategory vite-plugin
+ * @docsPage vendureDashboardPlugin
+ * @since 3.5.1
+ */
+export interface DashboardThemeOptions extends ThemeVariables {
+    /**
+     * @description
+     * One or more paths to additional CSS files that should be imported into
+     * the dashboard's main stylesheet. Each path is injected as an `@import`
+     * statement at a dedicated insertion point among the stylesheet's other
+     * imports, so the file participates in Tailwind's build pipeline — you can
+     * use `@source`, `@theme`, `@apply`, `@utility`, custom variants, etc.
+     * inside it.
+     *
+     * Paths may be absolute or relative to the current working directory;
+     * relative paths are resolved against `process.cwd()`. Backslashes are
+     * normalized to forward slashes so the resulting `@import` statement is
+     * valid on Windows.
+     *
+     * To override design tokens (e.g. brand colors), prefer the `light`/`dark`
+     * theme options — `additionalStylesheets` is for layering custom CSS rules.
+     *
+     * @example
+     * ```ts
+     * vendureDashboardPlugin({
+     *     theme: {
+     *         additionalStylesheets: [path.resolve(__dirname, 'src/dashboard.css')],
+     *     },
+     * })
+     * ```
+     */
+    additionalStylesheets?: string | string[];
+}
+
+/**
+ * Dashboard-specific tokens that extend the base design-tokens themes.
+ * These are layered on top of `@vendure-io/design-tokens` `lightTheme`/`darkTheme`.
+ */
+const dashboardLightExtensions: ThemeColors = {
+    'dev-mode': brand[400],
+    'dev-mode-foreground': brand[950],
+    brand: brand[500],
+    'brand-lighter': brand[300],
+    'brand-darker': brand[700],
+    'font-sans': fontFamily.sans,
+    'font-heading': fontFamily.heading,
+    'font-body': fontFamily.body,
+    'font-mono': fontFamily.mono,
 };
 
-export type ThemeVariablesPluginOptions = {
-    theme?: ThemeVariables;
+const dashboardDarkExtensions: ThemeColors = {
+    'dev-mode': brand[400],
+    'dev-mode-foreground': brand[950],
+    brand: brand[500],
+    'brand-lighter': brand[50],
+    'brand-darker': brand[700],
+    'font-sans': fontFamily.sans,
+    'font-heading': fontFamily.heading,
+    'font-body': fontFamily.body,
+    'font-mono': fontFamily.mono,
+};
+
+const defaultVariables: ThemeVariables = {
+    light: { ...lightTheme, ...dashboardLightExtensions },
+    dark: { ...darkTheme, ...dashboardDarkExtensions },
 };
 
 /**
- * Converts a theme colors object into CSS custom property declarations.
+ * Internal options for {@link themeVariablesPlugin}. Kept flat — the public
+ * surface nests `additionalStylesheets` under the `theme` option (see
+ * {@link DashboardThemeOptions}); the dashboard plugin maps the nested field
+ * onto this flat shape.
  */
-function generateCssVariables(theme: ThemeColors): string {
-    return Object.entries(theme)
-        .filter(([_, value]) => value !== undefined)
-        .map(([key, value]) => `--${key}: ${value as string};`)
-        .join('\n');
+export type ThemeVariablesPluginOptions = {
+    theme?: ThemeVariables;
+    additionalStylesheets?: string | string[];
+};
+
+function normalizeStylesheetPaths(input: string | string[] | undefined): string[] {
+    if (!input) return [];
+    const list = Array.isArray(input) ? input : [input];
+    return list.map(p => path.resolve(p).replace(/\\/g, '/'));
+}
+
+/**
+ * Generates the `@theme inline` block from design-token JS exports,
+ * mirroring the approach used by `@vendure-io/design-tokens/scripts/generate-css.ts`.
+ * This avoids duplicating token values in CSS and keeps the dashboard in sync
+ * with the design system automatically.
+ */
+function generateThemeInlineBlock(): string {
+    // Semantic color mappings — every lightTheme key except 'radius' gets a --color-* alias
+    const colorKeys = Object.keys(lightTheme).filter(k => k !== 'radius');
+    const colorLines = colorKeys.map(key => `    --color-${key}: var(--${key});`);
+
+    // Radius — direct values from token definitions (not calc-based)
+    const radiusLines = Object.entries(radii).map(([key, value]) => `    --radius-${key}: ${value};`);
+
+    // Shadows — direct values from token definitions
+    const shadowLines = Object.entries(shadows).map(([key, value]) => `    --shadow-${key}: ${value};`);
+
+    // Fonts — use var() indirection so user overrides via themeVariablesPlugin
+    // options are picked up (the :root block sets --font-* from dashboardExtensions)
+    const fontLines = Object.entries(fontFamily).map(([key]) => `    --font-${key}: var(--font-${key});`);
+
+    // Dashboard-specific tokens not present in the base design-tokens
+    const dashboardLines = [
+        '    --color-dev-mode: var(--dev-mode);',
+        '    --color-dev-mode-foreground: var(--dev-mode-foreground);',
+        '    --color-brand: var(--brand);',
+        '    --color-brand-lighter: var(--brand-lighter);',
+        '    --color-brand-darker: var(--brand-darker);',
+        '    --color-vendure-brand: #17c1ff;',
+    ];
+
+    const allLines = [...colorLines, ...radiusLines, ...shadowLines, ...fontLines, ...dashboardLines];
+    return `@theme inline {\n${allLines.join('\n')}\n}`;
 }
 
 export function themeVariablesPlugin(options: ThemeVariablesPluginOptions): Plugin {
-    const virtualModuleId = 'virtual:admin-theme';
-    const resolvedVirtualModuleId = `\0${virtualModuleId}`;
+    const additionalStylesheets = normalizeStylesheetPaths(options.additionalStylesheets);
 
     return {
         name: 'vendure:admin-theme',
         enforce: 'pre', // This ensures our plugin runs before other CSS processors
         transform(code, id) {
-            // Only transform CSS files
-            if (!id.endsWith('styles.css')) {
+            // Only transform CSS files: the dashboard's main `styles.css` and
+            // the dashboard-extension entry `extension-tailwind.css` (used in
+            // experimental-bundle mode, see issue #4719).
+            if (!id.endsWith('styles.css') && !id.endsWith('extension-tailwind.css')) {
                 return null;
             }
 
-            // Replace the @import 'virtual:admin-theme'; with our theme variables
+            let result = code;
+            let modified = false;
+
+            // Replace the `virtual:vendure-user-styles` placeholder with the
+            // user-supplied stylesheets as @import statements. The placeholder
+            // marks a deliberate insertion point among the @import statements in
+            // styles.css, so the CSS stays valid (imports must precede rules) and
+            // the imported files contribute @source, @theme, @apply, etc. to the
+            // dashboard build. When no stylesheets are configured, the placeholder
+            // is simply removed.
             if (
-                code.includes('@import "virtual:admin-theme";') ||
-                code.includes("@import 'virtual:admin-theme';")
+                result.includes('@import "virtual:vendure-user-styles";') ||
+                result.includes("@import 'virtual:vendure-user-styles';")
             ) {
-                const lightTheme = options.theme?.light || {};
-                const darkTheme = options.theme?.dark || {};
+                const userImports = additionalStylesheets.map(p => `@import '${p}';`).join('\n');
+                result = result.replace(/@import ['"]virtual:vendure-user-styles['"];?/, userImports);
+                modified = true;
+            }
+
+            // Replace @import 'virtual:admin-theme' with :root / .dark CSS custom properties
+            if (
+                result.includes('@import "virtual:admin-theme";') ||
+                result.includes("@import 'virtual:admin-theme';")
+            ) {
+                const lightOverrides = options.theme?.light || {};
+                const darkOverrides = options.theme?.dark || {};
 
                 // Merge default themes with custom themes
-                const mergedLightTheme = { ...defaultVariables.light, ...lightTheme };
-                const mergedDarkTheme = { ...defaultVariables.dark, ...darkTheme };
+                const mergedLightTheme = { ...defaultVariables.light, ...lightOverrides };
+                const mergedDarkTheme = { ...defaultVariables.dark, ...darkOverrides };
 
                 const themeCSS = `
                     :root {
-                        ${generateCssVariables(mergedLightTheme)}
+                        ${Object.entries(mergedLightTheme)
+                            .filter(([key, value]) => value !== undefined)
+                            .map(([key, value]) => `--${key}: ${value as string};`)
+                            .join('\n')}
                     }
 
                     .dark {
-                        ${generateCssVariables(mergedDarkTheme)}
+                        ${Object.entries(mergedDarkTheme)
+                            .filter(([key, value]) => value !== undefined)
+                            .map(([key, value]) => `--${key}: ${value as string};`)
+                            .join('\n')}
                     }
                 `;
 
-                return code.replace(/@import ['"]virtual:admin-theme['"];?/, themeCSS);
+                result = result.replace(/@import ['"]virtual:admin-theme['"];?/, themeCSS);
+                modified = true;
             }
 
-            return null;
+            // Replace @import 'virtual:admin-theme-inline' with the generated @theme inline block
+            if (
+                result.includes('@import "virtual:admin-theme-inline";') ||
+                result.includes("@import 'virtual:admin-theme-inline';")
+            ) {
+                result = result.replace(
+                    /@import ['"]virtual:admin-theme-inline['"];?/,
+                    generateThemeInlineBlock(),
+                );
+                modified = true;
+            }
+
+            return modified ? result : null;
         },
     };
 }

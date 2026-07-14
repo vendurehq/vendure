@@ -14,9 +14,8 @@ import { NATIVE_AUTH_STRATEGY_NAME } from '../../../config/auth/native-authentic
 import { ConfigService } from '../../../config/config.service';
 import { Logger } from '../../../config/logger/vendure-logger';
 import { AdministratorService } from '../../../service/services/administrator.service';
+import { ApiKeyService } from '../../../service/services/api-key.service';
 import { AuthService } from '../../../service/services/auth.service';
-import { ChannelService } from '../../../service/services/channel.service';
-import { CustomerService } from '../../../service/services/customer.service';
 import { UserService } from '../../../service/services/user.service';
 import { RequestContext } from '../../common/request-context';
 import { Allow } from '../../decorators/allow.decorator';
@@ -31,8 +30,9 @@ export class AuthResolver extends BaseAuthResolver {
         userService: UserService,
         configService: ConfigService,
         administratorService: AdministratorService,
+        apiKeyService: ApiKeyService,
     ) {
-        super(authService, userService, administratorService, configService);
+        super(authService, userService, administratorService, configService, apiKeyService);
     }
 
     @Transaction()

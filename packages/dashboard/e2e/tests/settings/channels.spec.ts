@@ -4,7 +4,7 @@ import { BaseDetailPage } from '../../page-objects/detail-page.base.js';
 import { BaseListPage } from '../../page-objects/list-page.base.js';
 
 // Channels have dependent selectors: available languages/currencies must be set
-// before their respective defaults. Zone selectors are standard Radix Selects.
+// before their respective defaults. Zone selectors are standard Base UI Selects.
 
 test.describe('Channels CRUD', () => {
     test.describe.configure({ mode: 'serial' });
@@ -92,10 +92,10 @@ test.describe('Channels CRUD', () => {
             .getByRole('button', { name: /Dollar/ })
             .click();
 
-        // Default tax zone — Radix Select
+        // Default tax zone — Base UI Select
         await dp.selectOption('Default tax zone', 'Europe');
 
-        // Default shipping zone — Radix Select
+        // Default shipping zone — Base UI Select
         await dp.selectOption('Default shipping zone', 'Europe');
 
         await dp.clickCreate();
@@ -145,8 +145,8 @@ test.describe('Channels CRUD', () => {
 
         const testChannelRow = lp.getRows().filter({ hasText: 'e2e-test-channel' });
         await testChannelRow.getByRole('checkbox').click();
-        await page.getByRole('button', { name: /With selected/i }).click();
-        await page.getByRole('menuitem').filter({ hasText: 'Delete' }).click();
+        await page.getByRole('button', { name: /Actions/i }).click();
+        await page.locator('[role="menu"]').getByText('Delete', { exact: true }).click();
         await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Continue' }).click();
         await lp.expectSuccessToast();
 

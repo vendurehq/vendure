@@ -8,12 +8,18 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const VITE_PORT = Number(process.env.VITE_TEST_PORT) || 5174;
 
 export default defineConfig({
+    build: {
+        // In this monorepo, workspace packages (e.g. @vendure/core) are symlinked
+        // so their real paths fall outside node_modules. Without this, Playwright's
+        // Babel transform re-processes compiled JS and breaks CJS module init order.
+        external: ['**/packages/core/**', '**/packages/common/**', '**/packages/testing/**'],
+    },
     testDir: './tests',
     fullyParallel: true,
     forbidOnly: !!process.env.CI,
-    retries: process.env.CI ? 2 : 0,
-    workers: process.env.CI ? 1 : undefined,
-    reporter: process.env.CI ? 'github' : 'html',
+    retries: process.env.CI ? 1 : 0,
+    workers: process.env.CI ? 4 : undefined,
+    reporter: process.env.CI ? [['github'], ['list']] : 'html',
     globalSetup: './global-setup.ts',
     globalTeardown: './global-teardown.ts',
     use: {
@@ -36,7 +42,7 @@ export default defineConfig({
         },
     ],
     webServer: {
-        command: `npx vite --port ${VITE_PORT}`,
+        command: `npx vite build && npx vite preview --port ${VITE_PORT}`,
         port: VITE_PORT,
         cwd: path.join(__dirname, '..'),
         reuseExistingServer: !process.env.CI,

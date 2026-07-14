@@ -409,22 +409,25 @@ export const GET_PRODUCT_LIST = gql`
 `;
 
 export const GET_PRODUCT_OPTION_GROUPS = gql`
-    query GetProductOptionGroups($filterTerm: String) {
-        productOptionGroups(filterTerm: $filterTerm) {
-            id
-            createdAt
-            updatedAt
-            languageCode
-            code
-            name
-            options {
+    query GetProductOptionGroups($options: ProductOptionGroupListOptions) {
+        productOptionGroups(options: $options) {
+            items {
                 id
                 createdAt
                 updatedAt
                 languageCode
                 code
                 name
+                options {
+                    id
+                    createdAt
+                    updatedAt
+                    languageCode
+                    code
+                    name
+                }
             }
+            totalItems
         }
     }
 `;

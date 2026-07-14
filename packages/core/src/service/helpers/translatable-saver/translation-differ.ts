@@ -1,4 +1,4 @@
-import { DeepPartial } from '@vendure/common/lib/shared-types';
+import { DeepPartial, ID } from '@vendure/common/lib/shared-types';
 
 import { RequestContext } from '../../../api/common/request-context';
 import { InternalServerError } from '../../../common/error/errors';
@@ -18,7 +18,7 @@ export interface TranslationDiff<T> {
 /**
  * This class is to be used when performing an update on a Translatable entity.
  */
-export class TranslationDiffer<Entity extends Translatable> {
+export class TranslationDiffer<Entity extends Translatable & { id: ID }> {
     constructor(
         private translationCtor: TranslationContructor<Entity>,
         private connection: TransactionalConnection,
@@ -65,6 +65,7 @@ export class TranslationDiffer<Entity extends Translatable> {
         if (toAdd.length) {
             for (const translation of toAdd) {
                 translation.base = entity;
+                (translation as any).baseId = entity.id;
                 let newTranslation: any;
                 try {
                     newTranslation = await this.connection

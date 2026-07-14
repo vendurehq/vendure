@@ -6,24 +6,23 @@ import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js'
 import { EntityAssets } from '@/vdb/components/shared/entity-assets.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
-import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { TaxCategorySelector } from '@/vdb/components/shared/tax-category-selector.js';
 import { TranslatableFormFieldWrapper } from '@/vdb/components/shared/translatable-form-field.js';
 import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
-import { FormControl, FormDescription, FormItem, FormLabel, FormMessage } from '@/vdb/components/ui/form.js';
+import { Field, FieldLabel } from '@/vdb/components/ui/field.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/vdb/components/ui/select.js';
 import { Separator } from '@/vdb/components/ui/separator.js';
 import { Switch } from '@/vdb/components/ui/switch.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
 import { addCustomFields } from '@/vdb/framework/document-introspection/add-custom-fields.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import {
     CustomFieldsPageBlock,
     DetailFormGrid,
     Page,
     PageActionBar,
-    PageActionBarRight,
     PageBlock,
     PageLayout,
     PageTitle,
@@ -37,6 +36,7 @@ import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { VariablesOf } from 'gql.tada';
 import { Edit2, Trash } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 
 import { AddCurrencyDropdown } from './components/add-currency-dropdown.js';
@@ -48,6 +48,7 @@ import {
     stockLocationsQueryDocument,
     updateProductVariantDocument,
 } from './product-variants.graphql.js';
+import { getChangedStockLevels, StockLevelInput } from './utils/stock-levels.js';
 
 const pageId = 'product-variant-detail';
 
@@ -87,6 +88,10 @@ function ProductVariantDetailPage() {
         queryFn: () => api.query(stockLocationsQueryDocument, {}),
     });
 
+    // Holds the stock levels as loaded into the form, so the update transform can
+    // tell which ones the admin actually edited (see #4803).
+    const originalStockLevelsRef = useRef<StockLevelInput[] | undefined>(undefined);
+
     const { form, submitHandler, entity, isPending, resetForm } = useDetailPage({
         pageId,
         queryDocument: addCustomFields(productVariantDetailDocument, {
@@ -121,6 +126,19 @@ function ProductVariantDetailPage() {
                 customFields: entity.customFields,
             };
         },
+        transformUpdateInput: input => {
+            // Only send stock levels the admin actually edited — see getChangedStockLevels
+            // and #4803 for why resending unchanged stock is destructive.
+            const changedStockLevels = getChangedStockLevels(
+                input.stockLevels,
+                originalStockLevelsRef.current,
+            );
+            if (changedStockLevels.length === 0) {
+                const { stockLevels: _omittedStockLevels, ...rest } = input;
+                return rest;
+            }
+            return { ...input, stockLevels: changedStockLevels };
+        },
         params: { id: params.id },
         onSuccess: data => {
             toast.success(
@@ -142,6 +160,13 @@ function ProductVariantDetailPage() {
             );
         },
     });
+
+    useEffect(() => {
+        originalStockLevelsRef.current = entity?.stockLevels.map(stockLevel => ({
+            stockLocationId: stockLevel.stockLocation.id,
+            stockOnHand: stockLevel.stockOnHand,
+        }));
+    }, [entity]);
 
     const availableCurrencies = activeChannel?.availableCurrencyCodes ?? [];
     const [prices, taxCategoryId, stockLevels] = form.watch(['prices', 'taxCategoryId', 'stockLevels']);
@@ -219,16 +244,14 @@ function ProductVariantDetailPage() {
                 {creatingNewEntity ? <Trans>New product variant</Trans> : (entity?.name ?? '')}
             </PageTitle>
             <PageActionBar>
-                <PageActionBarRight>
-                    <PermissionGuard requires={['UpdateProduct', 'UpdateCatalog']}>
-                        <Button
-                            type="submit"
-                            disabled={!form.formState.isDirty || !form.formState.isValid || isPending}
-                        >
-                            {creatingNewEntity ? <Trans>Create</Trans> : <Trans>Update</Trans>}
-                        </Button>
-                    </PermissionGuard>
-                </PageActionBarRight>
+                <ActionBarItem itemId="save-button" requiresPermission={['UpdateProduct', 'UpdateCatalog']}>
+                    <Button
+                        type="submit"
+                        disabled={!form.formState.isDirty || !form.formState.isValid || isPending}
+                    >
+                        {creatingNewEntity ? <Trans>Create</Trans> : <Trans>Update</Trans>}
+                    </Button>
+                </ActionBarItem>
             </PageActionBar>
             <PageLayout>
                 <PageBlock column="side" blockId="enabled">
@@ -249,7 +272,7 @@ function ProductVariantDetailPage() {
                                 <Badge key={option.id} variant="secondary" className="text-xs" title={option.code}>
                                     <span>{option.group.name}: {option.name}</span>
                                     <Link
-                                        to={`/products/${entity.product.id}/option-groups/${option.group.id}`}
+                                        to={`/option-groups/${option.group.id}`}
                                         className="ml-1.5 inline-flex"
                                     >
                                         <Edit2 className="h-3 w-3" />
@@ -357,8 +380,14 @@ function ProductVariantDetailPage() {
                             control={form.control}
                             name="trackInventory"
                             label={<Trans>Stock levels</Trans>}
+                            renderFormControl={false}
                             render={({ field }) => (
                                 <Select
+                                    items={{
+                                        INHERIT: t`Inherit from global settings`,
+                                        TRUE: t`Track`,
+                                        FALSE: t`Do not track`,
+                                    }}
                                     onValueChange={val => {
                                         if (val) {
                                             field.onChange(val);
@@ -366,11 +395,9 @@ function ProductVariantDetailPage() {
                                     }}
                                     value={field.value}
                                 >
-                                    <FormControl>
-                                        <SelectTrigger className="">
-                                            <SelectValue placeholder="Track inventory" />
-                                        </SelectTrigger>
-                                    </FormControl>
+                                    <SelectTrigger className="">
+                                        <SelectValue placeholder="Track inventory" />
+                                    </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="INHERIT">
                                             <Trans>Inherit from global settings</Trans>
@@ -444,12 +471,12 @@ function ProductVariantDetailPage() {
                                     render={({ field }) => <NumberInput {...field} value={field.value} />}
                                 />
                                 <div>
-                                    <FormItem>
-                                        <FormLabel>
+                                    <Field>
+                                        <FieldLabel>
                                             <Trans>Allocated</Trans>
-                                        </FormLabel>
+                                        </FieldLabel>
                                         <div className="text-sm pt-1.5">{stockAllocated}</div>
-                                    </FormItem>
+                                    </Field>
                                 </div>
                             </DetailFormGrid>
                         );
@@ -479,28 +506,24 @@ function ProductVariantDetailPage() {
                     />
                 </PageBlock>
                 <PageBlock column="side" blockId="assets" title={<Trans>Assets</Trans>}>
-                    <FormItem>
-                        <FormControl>
-                            <EntityAssets
-                                assets={entity?.assets}
-                                featuredAsset={entity?.featuredAsset}
-                                compact={true}
-                                value={form.getValues()}
-                                onChange={value => {
-                                    form.setValue('featuredAssetId', value.featuredAssetId ?? undefined, {
-                                        shouldDirty: true,
-                                        shouldValidate: true,
-                                    });
-                                    form.setValue('assetIds', value.assetIds ?? undefined, {
-                                        shouldDirty: true,
-                                        shouldValidate: true,
-                                    });
-                                }}
-                            />
-                        </FormControl>
-                        <FormDescription></FormDescription>
-                        <FormMessage />
-                    </FormItem>
+                    <Field>
+                        <EntityAssets
+                            assets={entity?.assets}
+                            featuredAsset={entity?.featuredAsset}
+                            compact={true}
+                            value={form.getValues()}
+                            onChange={value => {
+                                form.setValue('featuredAssetId', value.featuredAssetId ?? undefined, {
+                                    shouldDirty: true,
+                                    shouldValidate: true,
+                                });
+                                form.setValue('assetIds', value.assetIds ?? undefined, {
+                                    shouldDirty: true,
+                                    shouldValidate: true,
+                                });
+                            }}
+                        />
+                    </Field>
                 </PageBlock>
             </PageLayout>
         </Page>

@@ -129,7 +129,8 @@ export type DashboardFormComponentMetadata = {
     isListInput?: boolean | 'dynamic';
     /**
      * @description
-     * TODO: not currently implemented
+     * When true, the dashboard will render this form component so it spans
+     * the full width of the detail form grid.
      */
     isFullWidth?: boolean;
 };

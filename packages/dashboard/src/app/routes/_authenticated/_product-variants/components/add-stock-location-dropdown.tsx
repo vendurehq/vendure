@@ -35,17 +35,15 @@ export function AddStockLocationDropdown({
 
     return (
         <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                    <PlusIcon className="size-4" />
-                    {placeholder || t`Add stock level for another location`}
-                </Button>
+            <DropdownMenuTrigger render={<Button variant="outline" className="gap-2" />}>
+                <PlusIcon className="size-4" />
+                {placeholder || t`Add stock level for another location`}
             </DropdownMenuTrigger>
             <DropdownMenuContent>
                 {unusedStockLocations.map(location => (
                     <DropdownMenuItem
                         key={location.id}
-                        onSelect={() => onStockLocationSelect(location.id, location.name)}
+                        onClick={() => onStockLocationSelect(location.id, location.name)}
                     >
                         {location.name}
                     </DropdownMenuItem>

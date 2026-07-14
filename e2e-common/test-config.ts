@@ -56,8 +56,6 @@ function getBasePort(): number {
     const packageName = process.env.PACKAGE || 'core';
     const offsets: Record<string, number> = {
         core: 3010,
-        'elasticsearch-plugin': 3200,
-        'payments-plugin': 3210,
         'asset-server-plugin': 3220,
         'graphiql-plugin': 3230,
         cli: 3240,

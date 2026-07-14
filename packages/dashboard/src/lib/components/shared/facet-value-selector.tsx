@@ -113,11 +113,9 @@ export function FacetValueSelector({
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" type="button" disabled={disabled} className="gap-2">
+            <PopoverTrigger render={<Button variant="outline" size="sm" type="button" disabled={disabled} className="gap-2" />}>
                     <Plus className="h-4 w-4" />
                     <Trans>Add facet values</Trans>
-                </Button>
             </PopoverTrigger>
             <PopoverContent className="p-0 w-[400px]" align="start">
                 <Command shouldFilter={false}>

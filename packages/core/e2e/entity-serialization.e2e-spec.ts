@@ -1,3 +1,4 @@
+import { LanguageCode } from '@vendure/common/lib/generated-types';
 import {
     Channel,
     ChannelService,
@@ -25,15 +26,18 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import { testSuccessfulPaymentMethod } from './fixtures/test-payment-methods';
-import * as Codegen from './graphql/generated-e2e-admin-types';
-import { LanguageCode } from './graphql/generated-e2e-admin-types';
-import * as CodegenShop from './graphql/generated-e2e-shop-types';
-import { CREATE_PROMOTION } from './graphql/shared-definitions';
+import { FragmentOf } from './graphql/graphql-shop';
+import { createPromotionDocument } from './graphql/shared-definitions';
 import {
-    ADD_ITEM_TO_ORDER,
-    ADD_PAYMENT,
-    SET_SHIPPING_METHOD,
-    TRANSITION_TO_STATE,
+    activeOrderCustomerDocument,
+    addItemToOrderDocument,
+    addPaymentDocument,
+    orderWithAddressesFragmentDocument,
+    setShippingMethodDocument,
+    testOrderFragment,
+    testOrderWithPaymentsFragment,
+    transitionToStateDocument,
+    updatedOrderFragment,
 } from './graphql/shop-definitions';
 
 /**
@@ -45,11 +49,11 @@ import {
  */
 describe('Entity serialization', () => {
     type OrderSuccessResult =
-        | CodegenShop.UpdatedOrderFragment
-        | CodegenShop.TestOrderFragmentFragment
-        | CodegenShop.TestOrderWithPaymentsFragment
-        | CodegenShop.ActiveOrderCustomerFragment
-        | CodegenShop.OrderWithAddressesFragment;
+        | FragmentOf<typeof updatedOrderFragment>
+        | FragmentOf<typeof testOrderFragment>
+        | FragmentOf<typeof testOrderWithPaymentsFragment>
+        | FragmentOf<typeof activeOrderCustomerDocument>
+        | FragmentOf<typeof orderWithAddressesFragmentDocument>;
     const orderResultGuard: ErrorResultGuard<OrderSuccessResult> = createErrorResultGuard(
         input => !!input.lines,
     );
@@ -105,28 +109,17 @@ describe('Entity serialization', () => {
 
     it('serialize Order', async () => {
         await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
-        await shopClient.query<
-            CodegenShop.AddItemToOrderMutation,
-            CodegenShop.AddItemToOrderMutationVariables
-        >(ADD_ITEM_TO_ORDER, {
+        await shopClient.query(addItemToOrderDocument, {
             productVariantId: 'T_1',
             quantity: 1,
         });
-        await shopClient.query<
-            CodegenShop.SetShippingMethodMutation,
-            CodegenShop.SetShippingMethodMutationVariables
-        >(SET_SHIPPING_METHOD, {
+        await shopClient.query(setShippingMethodDocument, {
+            // @ts-expect-error - old test passes string, schema expects array
             id: 'T_1',
         });
-        const result = await shopClient.query<
-            CodegenShop.TransitionToStateMutation,
-            CodegenShop.TransitionToStateMutationVariables
-        >(TRANSITION_TO_STATE, { state: 'ArrangingPayment' });
+        const result = await shopClient.query(transitionToStateDocument, { state: 'ArrangingPayment' });
 
-        const { addPaymentToOrder } = await shopClient.query<
-            CodegenShop.AddPaymentToOrderMutation,
-            CodegenShop.AddPaymentToOrderMutationVariables
-        >(ADD_PAYMENT, {
+        const { addPaymentToOrder } = await shopClient.query(addPaymentDocument, {
             input: {
                 method: testSuccessfulPaymentMethod.code,
                 metadata: {
@@ -161,41 +154,40 @@ describe('Entity serialization', () => {
     });
 
     it('serialize Promotion', async () => {
-        await adminClient.query<Codegen.CreatePromotionMutation, Codegen.CreatePromotionMutationVariables>(
-            CREATE_PROMOTION,
-            {
-                input: {
-                    enabled: true,
-                    startsAt: new Date('2019-10-30T00:00:00.000Z'),
-                    endsAt: new Date('2019-12-01T00:00:00.000Z'),
-                    translations: [
-                        {
-                            languageCode: LanguageCode.en,
-                            name: 'test promotion',
-                            description: 'a test promotion',
-                        },
-                    ],
-                    conditions: [
-                        {
-                            code: hasFacetValues.code,
-                            arguments: [
-                                { name: 'minimum', value: '2' },
-                                { name: 'facets', value: `["T_1"]` },
-                            ],
-                        },
-                    ],
-                    actions: [
-                        {
-                            code: discountOnItemWithFacets.code,
-                            arguments: [
-                                { name: 'discount', value: '50' },
-                                { name: 'facets', value: `["T_1"]` },
-                            ],
-                        },
-                    ],
-                },
+        await adminClient.query(createPromotionDocument, {
+            input: {
+                enabled: true,
+                // @ts-expect-error - old test uses Date, schema expects string
+                startsAt: new Date('2019-10-30T00:00:00.000Z'),
+                // @ts-expect-error - old test uses Date, schema expects string
+                endsAt: new Date('2019-12-01T00:00:00.000Z'),
+                translations: [
+                    {
+                        languageCode: LanguageCode.en,
+                        name: 'test promotion',
+                        description: 'a test promotion',
+                    },
+                ],
+                conditions: [
+                    {
+                        code: hasFacetValues.code,
+                        arguments: [
+                            { name: 'minimum', value: '2' },
+                            { name: 'facets', value: `["T_1"]` },
+                        ],
+                    },
+                ],
+                actions: [
+                    {
+                        code: discountOnItemWithFacets.code,
+                        arguments: [
+                            { name: 'discount', value: '50' },
+                            { name: 'facets', value: `["T_1"]` },
+                        ],
+                    },
+                ],
             },
-        );
+        });
 
         const ctx = await createCtx();
         const promotion = await server.app.get(PromotionService).findOne(ctx, 1);

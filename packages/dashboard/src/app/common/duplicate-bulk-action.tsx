@@ -132,6 +132,7 @@ export function DuplicateBulkAction({
                     )
                 }
                 icon={CopyIcon}
+                closeOnClick={false}
             />
             <DuplicateEntityDialog
                 open={dialogOpen}

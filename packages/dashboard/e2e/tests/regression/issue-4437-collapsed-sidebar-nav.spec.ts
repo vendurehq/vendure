@@ -29,7 +29,7 @@ test.describe('Issue #4437: Collapsed sidebar nav items with sub-items', () => {
         await expect(hoverCardContent).toBeVisible({ timeout: 5_000 });
 
         // Verify the hover card contains the section title
-        await expect(hoverCardContent.locator('p').first()).toHaveText('Catalog');
+        await expect(hoverCardContent.getByTestId('sidebar-hover-title')).toHaveText('Catalog');
 
         // Verify sub-item links are present
         await expect(hoverCardContent.getByRole('link', { name: 'Products' })).toBeVisible();

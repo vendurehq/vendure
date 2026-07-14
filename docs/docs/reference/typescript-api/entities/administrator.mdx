@@ -15,7 +15,7 @@ class Administrator extends VendureEntity implements SoftDeletable, HasCustomFie
     deletedAt: Date | null;
     @Column() firstName: string;
     @Column() lastName: string;
-    @Column({ unique: true })
+    @Column()
     emailAddress: string;
     @OneToOne(type => User)
     @JoinColumn()
@@ -32,11 +32,6 @@ class Administrator extends VendureEntity implements SoftDeletable, HasCustomFie
 
 
 <div className="members-wrapper">
-
-### constructor
-
-<MemberInfo kind="method" type={`(input?: DeepPartial<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>>) => Administrator`}   />
-
 
 ### deletedAt
 

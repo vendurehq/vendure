@@ -41,9 +41,7 @@ test.describe('Issue #4336: Order state refresh after transition', () => {
 
         // Click the state transition dropdown (EllipsisVertical button next to state badge)
         // The state control has a button with the dropdown trigger
-        const stateDropdownTrigger = page
-            .locator('button')
-            .filter({ has: page.locator('svg.lucide-ellipsis-vertical') });
+        const stateDropdownTrigger = page.getByTestId('state-transition-trigger');
         await stateDropdownTrigger.click();
 
         // Click "Transition to Payment Settled" (via dummyPaymentHandler, this should be available)

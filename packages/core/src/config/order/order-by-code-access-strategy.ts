@@ -1,4 +1,4 @@
-import ms from 'ms';
+import ms, { type StringValue } from 'ms';
 
 import { RequestContext } from '../../api/common/request-context';
 import { InjectableStrategy } from '../../common/types/injectable-strategy';
@@ -68,7 +68,7 @@ export class DefaultOrderByCodeAccessStrategy implements OrderByCodeAccessStrate
         // For guest Customers, allow access to the Order for the following
         // time period
         const anonymousAccessPermitted = () => {
-            const anonymousAccessLimit = ms(this.anonymousAccessDuration);
+            const anonymousAccessLimit = ms(this.anonymousAccessDuration as StringValue);
             const orderPlaced = order.orderPlacedAt ? +order.orderPlacedAt : 0;
             const now = Date.now();
             return now - orderPlaced < anonymousAccessLimit;

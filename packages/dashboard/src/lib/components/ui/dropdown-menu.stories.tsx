@@ -3,6 +3,7 @@ import { Button } from './button.js';
 import {
     DropdownMenu,
     DropdownMenuContent,
+    DropdownMenuGroup,
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
@@ -24,11 +25,11 @@ type Story = StoryObj<typeof meta>;
 export const Playground: Story = {
     render: () => (
         <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button>Open Menu</Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger render={<Button />}>Open Menu</DropdownMenuTrigger>
             <DropdownMenuContent>
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuGroup>
+                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>Profile</DropdownMenuItem>
                 <DropdownMenuItem>Settings</DropdownMenuItem>

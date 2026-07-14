@@ -6,12 +6,12 @@ import { expect, test } from '@playwright/test';
 test.describe('Job Queue', () => {
     test('should display the job queue page', async ({ page }) => {
         await page.goto('/job-queue');
-        await expect(page.getByRole('heading', { level: 1, name: 'Job Queue' })).toBeVisible();
+        await expect(page.getByTestId('page-heading')).toBeVisible();
     });
 
     test('should show the data table with column headers', async ({ page }) => {
         await page.goto('/job-queue');
-        await expect(page.getByRole('heading', { level: 1, name: 'Job Queue' })).toBeVisible();
+        await expect(page.getByTestId('page-heading')).toBeVisible();
         // The ListPage renders a table with standard job columns
         await expect(page.getByRole('table')).toBeVisible();
     });

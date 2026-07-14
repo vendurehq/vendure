@@ -1,9 +1,9 @@
 import { Button } from '@/vdb/components/ui/button.js';
-import { Trans } from '@lingui/react/macro';
 import { cn } from '@/vdb/lib/utils.js';
 import { DndContext, useDraggable } from '@dnd-kit/core';
 import { restrictToParentElement } from '@dnd-kit/modifiers';
 import { CSS } from '@dnd-kit/utilities';
+import { Trans } from '@lingui/react/macro';
 import { Crosshair, X } from 'lucide-react';
 import { useState } from 'react';
 
@@ -89,6 +89,7 @@ export function AssetFocalPointEditor({
                     </Button>
                     <Button
                         type="button"
+                        data-testid="asset-focal-point-editor-confirm"
                         onClick={() => {
                             onFocalPointChange(focalPointCurrent);
                         }}

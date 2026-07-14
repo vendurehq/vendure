@@ -8,11 +8,17 @@ export const productOptionGroupDetailDocument = graphql(`
             updatedAt
             name
             code
+            productCount
             languageCode
             translations {
                 id
                 languageCode
                 name
+            }
+            channels {
+                id
+                code
+                token
             }
             customFields
         }

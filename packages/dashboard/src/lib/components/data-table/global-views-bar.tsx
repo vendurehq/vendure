@@ -71,11 +71,9 @@ export const GlobalViewsBar: React.FC = () => {
                 </Button>
             ))}
             <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
+                <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
                         <Trans>More views</Trans>
                         <ChevronDown className="h-3 w-3" />
-                    </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
                     {dropdownViews.map(view => (

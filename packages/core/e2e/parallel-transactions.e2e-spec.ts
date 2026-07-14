@@ -1,3 +1,4 @@
+import { LanguageCode } from '@vendure/common/lib/generated-types';
 import gql from 'graphql-tag';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -7,13 +8,11 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 import { createTestEnvironment } from '../../testing/lib/create-test-environment';
 
 import { SlowMutationPlugin } from './fixtures/test-plugins/slow-mutation-plugin';
-import * as Codegen from './graphql/generated-e2e-admin-types';
-import { LanguageCode } from './graphql/generated-e2e-admin-types';
 import {
-    ADD_OPTION_GROUP_TO_PRODUCT,
-    CREATE_PRODUCT,
-    CREATE_PRODUCT_OPTION_GROUP,
-    CREATE_PRODUCT_VARIANTS,
+    addOptionGroupToProductDocument,
+    createProductDocument,
+    createProductOptionGroupDocument,
+    createProductVariantsDocument,
 } from './graphql/shared-definitions';
 
 describe('Parallel transactions', () => {
@@ -63,10 +62,7 @@ describe('Parallel transactions', () => {
     it('does not deadlock on concurrent creating ProductVariants', async () => {
         const CONCURRENCY_LIMIT = 4;
 
-        const { createProduct } = await adminClient.query<
-            Codegen.CreateProductMutation,
-            Codegen.CreateProductMutationVariables
-        >(CREATE_PRODUCT, {
+        const { createProduct } = await adminClient.query(createProductDocument, {
             input: {
                 translations: [
                     { languageCode: LanguageCode.en, name: 'Test', slug: 'test', description: 'test' },
@@ -76,10 +72,7 @@ describe('Parallel transactions', () => {
 
         const sizes = Array.from({ length: CONCURRENCY_LIMIT }).map(i => `size-${i as string}`);
 
-        const { createProductOptionGroup } = await adminClient.query<
-            Codegen.CreateProductOptionGroupMutation,
-            Codegen.CreateProductOptionGroupMutationVariables
-        >(CREATE_PRODUCT_OPTION_GROUP, {
+        const { createProductOptionGroup } = await adminClient.query(createProductOptionGroupDocument, {
             input: {
                 code: 'size',
                 options: sizes.map(size => ({
@@ -90,10 +83,7 @@ describe('Parallel transactions', () => {
             },
         });
 
-        await adminClient.query<
-            Codegen.AddOptionGroupToProductMutation,
-            Codegen.AddOptionGroupToProductMutationVariables
-        >(ADD_OPTION_GROUP_TO_PRODUCT, {
+        await adminClient.query(addOptionGroupToProductDocument, {
             productId: createProduct.id,
             optionGroupId: createProductOptionGroup.id,
         });
@@ -101,10 +91,7 @@ describe('Parallel transactions', () => {
         const createVariantMutations = createProductOptionGroup.options
             .filter((_, index) => index < CONCURRENCY_LIMIT)
             .map((option, i) => {
-                return adminClient.query<
-                    Codegen.CreateProductVariantsMutation,
-                    Codegen.CreateProductVariantsMutationVariables
-                >(CREATE_PRODUCT_VARIANTS, {
+                return adminClient.query(createProductVariantsDocument, {
                     input: [
                         {
                             sku: `VARIANT-${i}`,

@@ -1,6 +1,6 @@
 {
     "name": "@vendure/graphiql-plugin",
-    "version": "3.5.5",
+    "version": "3.7.0",
     "license": "GPL-3.0-or-later",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -33,14 +33,14 @@
         "@types/express": "^5.0.0",
         "@types/react": "^19.0.0",
         "@types/react-dom": "^19.0.0",
-        "@vendure/common": "3.5.5",
-        "@vendure/core": "3.5.5",
+        "@vendure/common": "3.7.0",
+        "@vendure/core": "3.7.0",
         "@vitejs/plugin-react": "^5.0.4",
         "graphiql": "^4.0.2",
         "react": "^19.0.0",
         "react-dom": "^19.0.0",
         "rimraf": "^6.0.1",
-        "vite": "^6.3.6",
+        "vite": "^7.3.1",
         "vite-plugin-dts": "^4.5.4"
     }
 }

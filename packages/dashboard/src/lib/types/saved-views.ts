@@ -1,4 +1,5 @@
 import { ColumnFiltersState } from '@tanstack/react-table';
+
 import { ColumnConfig } from '../components/data-table/data-table-context.js';
 
 export interface SavedView {

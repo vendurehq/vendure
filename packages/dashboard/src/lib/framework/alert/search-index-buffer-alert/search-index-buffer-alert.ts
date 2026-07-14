@@ -1,6 +1,6 @@
+import { toast } from '@/vdb/components/ui/sonner.js';
 import { api } from '@/vdb/graphql/api.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
-import { toast } from 'sonner';
 
 import { DashboardAlertDefinition } from '../../extension-api/types/index.js';
 

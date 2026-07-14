@@ -26,14 +26,12 @@ export const MyViewsButton: React.FC = () => {
         <>
             <div className="flex items-center gap-2">
                 <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button
+                    <TooltipTrigger render={<Button
                             variant={activeView ? 'default' : 'outline'}
-                            size="icon"
+                            size="icon-sm"
                             onClick={() => setSheetOpen(true)}
-                        >
+                        />}>
                             <Bookmark />
-                        </Button>
                     </TooltipTrigger>
                     <TooltipContent>
                         <Trans>My saved views</Trans>

@@ -28,10 +28,10 @@ export class OrderMerger {
      * Applies the configured OrderMergeStrategy to the supplied guestOrder and existingOrder. Returns an object
      * containing entities which then need to be persisted to the database by the OrderService methods.
      */
-    merge(ctx: RequestContext, guestOrder?: Order, existingOrder?: Order): MergeResult {
+    async merge(ctx: RequestContext, guestOrder?: Order, existingOrder?: Order): Promise<MergeResult> {
         if (guestOrder && !this.orderEmpty(guestOrder) && existingOrder && !this.orderEmpty(existingOrder)) {
             const { mergeStrategy } = this.configService.orderOptions;
-            const mergedLines = mergeStrategy.merge(ctx, guestOrder, existingOrder);
+            const mergedLines = await mergeStrategy.merge(ctx, guestOrder, existingOrder);
             return {
                 order: existingOrder,
                 linesToInsert: this.getLinesToInsert(guestOrder, existingOrder, mergedLines),

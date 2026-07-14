@@ -4,33 +4,33 @@ import { AssignedFacetValues } from '@/vdb/components/shared/assigned-facet-valu
 import { EntityAssets } from '@/vdb/components/shared/entity-assets.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
-import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { TranslatableFormFieldWrapper } from '@/vdb/components/shared/translatable-form-field.js';
 import { Button } from '@/vdb/components/ui/button.js';
-import { FormControl, FormDescription, FormItem, FormMessage } from '@/vdb/components/ui/form.js';
+import { Field } from '@/vdb/components/ui/field.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { Switch } from '@/vdb/components/ui/switch.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
-import {
-    CustomFieldsPageBlock,
+import {    CustomFieldsPageBlock,
     DetailFormGrid,
     Page,
     PageActionBar,
-    PageActionBarRight,
     PageBlock,
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { PlusIcon } from 'lucide-react';
-import { useRef } from 'react';
+import { Layers, Package, PlusIcon } from 'lucide-react';
+import { useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { CreateProductVariantsDialog } from './components/create-product-variants-dialog.js';
+import { AddOptionGroupDialog } from './components/add-option-group-dialog.js';
+import { GenerateVariantsPanel } from './components/generate-variants-panel.js';
 import { ProductOptionGroupBadge } from './components/product-option-group-badge.js';
 import { ProductVariantsTable } from './components/product-variants-table.js';
+import { useRemoveOptionGroup } from './hooks/use-remove-option-group.js';
 import {
     assignProductsToChannelDocument,
     createProductDocument,
@@ -40,6 +40,7 @@ import {
 } from './products.graphql.js';
 import { api } from '@/vdb/graphql/api.js';
 import { AssignedChannels } from '@/vdb/components/shared/assigned-channels.js';
+import { usePriceFactor } from '@/vdb/components/shared/assign-to-channel-dialog.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
 
 const pageId = 'product-detail';
@@ -59,6 +60,65 @@ export const Route = createFileRoute('/_authenticated/_products/products_/$id')(
     errorComponent: ({ error }) => <ErrorPage message={error.message} />,
 });
 
+function NoVariantsPrompt({
+    productId,
+    productName,
+    onOptionGroupCreated,
+    onVariantCreated,
+}: Readonly<{
+    productId: string;
+    productName: string;
+    onOptionGroupCreated: () => void;
+    onVariantCreated: () => void;
+}>) {
+    const [mode, setMode] = useState<'choose' | 'single'>('choose');
+
+    if (mode === 'single') {
+        return (
+            <GenerateVariantsPanel
+                productId={productId}
+                productName={productName}
+                optionGroups={[]}
+                onSuccess={onVariantCreated}
+                onBack={{ handler: () => setMode('choose') }}
+            />
+        );
+    }
+
+    return (
+        <div className="grid grid-cols-2 gap-3">
+            <button
+                type="button"
+                onClick={() => setMode('single')}
+                className="flex flex-col items-center gap-2 rounded-md border border-dashed border-border p-6 text-center transition-colors hover:border-primary hover:bg-accent cursor-pointer"
+            >
+                <Package className="h-8 w-8 text-muted-foreground" />
+                <span className="font-medium"><Trans>Simple product</Trans></span>
+                <span className="text-sm text-muted-foreground">
+                    <Trans>Single variant, no options</Trans>
+                </span>
+            </button>
+            <AddOptionGroupDialog
+                productId={productId}
+                existingGroupIds={[]}
+                onSuccess={onOptionGroupCreated}
+                trigger={
+                    <button
+                        type="button"
+                        className="flex w-full flex-col items-center gap-2 rounded-md border border-dashed border-border p-6 text-center transition-colors hover:border-primary hover:bg-accent cursor-pointer"
+                    >
+                        <Layers className="h-8 w-8 text-muted-foreground" />
+                        <span className="font-medium"><Trans>Product with options</Trans></span>
+                        <span className="text-sm text-muted-foreground">
+                            <Trans>Size, colour, etc.</Trans>
+                        </span>
+                    </button>
+                }
+            />
+        </div>
+    );
+}
+
 function ProductDetailPage() {
     const params = Route.useParams();
     const navigate = useNavigate();
@@ -66,6 +126,7 @@ function ProductDetailPage() {
     const { t } = useLingui();
     const refreshRef = useRef<() => void>(() => {});
     const { channels } = useChannel();
+    const { priceFactor, priceFactorField } = usePriceFactor();
 
     const { form, submitHandler, entity, isPending, refreshEntity, resetForm } = useDetailPage({
         pageId,
@@ -109,20 +170,48 @@ function ProductDetailPage() {
         },
     });
 
+    // The empty-string fallback only ever applies before `entity` has loaded;
+    // `removeAllOptionGroups` is reachable exclusively from the onBack handler below,
+    // which is rendered only once `entity` exists, so the real id is always used.
+    const { removeOptionGroupAsync } = useRemoveOptionGroup(entity?.id ?? '');
+
+    // Batch-removes every option group when the user backs out of variant setup. This is
+    // reached only while the product has zero variants, so ProductOptionInUseError cannot
+    // realistically fire here — the branch is kept as a defensive guard. Note the loop is
+    // not transactional: a mid-list failure leaves earlier groups already removed.
+    const removeAllOptionGroups = async (optionGroups: Array<{ id: string }>) => {
+        try {
+            for (const group of optionGroups) {
+                const result = await removeOptionGroupAsync(group.id);
+                if (result.__typename === 'ProductOptionInUseError') {
+                    toast.error(t`Could not remove option group`, {
+                        description: result.message,
+                    });
+                    refreshEntity();
+                    return;
+                }
+            }
+            refreshEntity();
+        } catch (error) {
+            toast.error(t`Failed to remove option groups`, {
+                description: error instanceof Error ? error.message : t`Unknown error`,
+            });
+            refreshEntity();
+        }
+    };
+
     return (
         <Page pageId={pageId} form={form} submitHandler={submitHandler} entity={entity}>
             <PageTitle>{creatingNewEntity ? <Trans>New product</Trans> : (entity?.name ?? '')}</PageTitle>
             <PageActionBar>
-                <PageActionBarRight>
-                    <PermissionGuard requires={['UpdateProduct', 'UpdateCatalog']}>
-                        <Button
-                            type="submit"
-                            disabled={!form.formState.isDirty || !form.formState.isValid || isPending}
-                        >
-                            {creatingNewEntity ? <Trans>Create</Trans> : <Trans>Update</Trans>}
-                        </Button>
-                    </PermissionGuard>
-                </PageActionBarRight>
+                <ActionBarItem itemId="save-button" requiresPermission={['UpdateProduct', 'UpdateCatalog']}>
+                    <Button
+                        type="submit"
+                        disabled={!form.formState.isDirty || !form.formState.isValid || isPending}
+                    >
+                        {creatingNewEntity ? <Trans>Create</Trans> : <Trans>Update</Trans>}
+                    </Button>
+                </ActionBarItem>
             </PageActionBar>
             <PageLayout>
                 <PageBlock column="side" blockId="enabled-toggle">
@@ -178,35 +267,63 @@ function ProductDetailPage() {
                             fromProductDetailPage={true}
                         />
                         <div className="mt-4 flex gap-2">
-                            <Button asChild variant="outline">
-                                <Link to="./variants">
-                                    <PlusIcon className="mr-2 h-4 w-4" />
-                                    <Trans>Manage variants</Trans>
-                                </Link>
+                            <Button render={<Link to="./variants" />} variant="outline">
+                                <PlusIcon className="mr-2 h-4 w-4" />
+                                <Trans>Manage variants</Trans>
                             </Button>
                         </div>
                     </PageBlock>
                 )}
                 {entity && entity.variantList.totalItems === 0 && (
-                    <PageBlock column="main" blockId="create-product-variants-dialog">
-                        <CreateProductVariantsDialog
+                    <PageBlock
+                        column="main"
+                        blockId="generate-variants"
+                        title={<Trans>Product variants</Trans>}
+                    >
+                        {entity.optionGroups.length === 0 ? (
+                            <NoVariantsPrompt
+                                productId={entity.id}
+                                productName={entity.name}
+                                onOptionGroupCreated={() => refreshEntity()}
+                                onVariantCreated={() => refreshEntity()}
+                            />
+                        ) : (
+                            <GenerateVariantsPanel
+                                productId={entity.id}
+                                productName={entity.name}
+                                optionGroups={entity.optionGroups}
+                                onSuccess={() => refreshEntity()}
+                                onBack={{
+                                    handler: () => removeAllOptionGroups(entity.optionGroups),
+                                    confirmation: {
+                                        title: t`Remove option groups?`,
+                                        description: t`This will remove all option groups from this product and return to the variant setup choice.`,
+                                    },
+                                }}
+                            />
+                        )}
+                    </PageBlock>
+                )}
+                {entity && entity.optionGroups.length > 0 && (
+                    <PageBlock column="side" blockId="option-groups" title={<Trans>Product Options</Trans>}>
+                        <div className="flex flex-wrap gap-1.5 mb-3">
+                            {entity.optionGroups.map(g => (
+                                <ProductOptionGroupBadge
+                                    key={g.id}
+                                    id={g.id}
+                                    name={g.name}
+                                    productId={entity.id}
+                                    onRemoved={() => refreshEntity()}
+                                />
+                            ))}
+                        </div>
+                        <AddOptionGroupDialog
                             productId={entity.id}
-                            productName={entity.name}
-                            onSuccess={() => {
-                                refreshEntity();
-                            }}
+                            existingGroupIds={entity.optionGroups.map(g => g.id)}
+                            onSuccess={() => refreshEntity()}
                         />
                     </PageBlock>
                 )}
-                {entity?.optionGroups.length ? (
-                    <PageBlock column="side" blockId="option-groups" title={<Trans>Product Options</Trans>}>
-                        <div className="flex flex-wrap gap-1.5">
-                            {entity.optionGroups.map(g => (
-                                <ProductOptionGroupBadge key={g.id} id={g.id} name={g.name} />
-                            ))}
-                        </div>
-                    </PageBlock>
-                ) : null}
                 <PageBlock column="side" blockId="facet-values" title={<Trans>Facet Values</Trans>}>
                     <FormFieldWrapper
                         control={form.control}
@@ -221,36 +338,44 @@ function ProductDetailPage() {
                         <AssignedChannels
                             channels={entity.channels}
                             entityId={entity.id}
+                            entityType="product"
                             canUpdate={!creatingNewEntity}
                             assignMutationFn={api.mutate(assignProductsToChannelDocument)}
                             removeMutationFn={api.mutate(removeProductsFromChannelDocument)}
+                            buildRemoveInput={(eid, channelId) => ({
+                                productIds: [eid],
+                                channelId,
+                            })}
+                            buildAssignInput={(eid, channelId) => ({
+                                productIds: [eid],
+                                channelId,
+                                priceFactor,
+                            })}
+                            additionalAssignFields={priceFactorField}
+                            queryKeyScope={['DetailPage', 'product']}
                         />
                     </PageBlock>
                 )}
 
                 <PageBlock column="side" blockId="assets" title={<Trans>Assets</Trans>}>
-                    <FormItem>
-                        <FormControl>
-                            <EntityAssets
-                                assets={entity?.assets}
-                                featuredAsset={entity?.featuredAsset}
-                                compact={true}
-                                value={form.getValues()}
-                                onChange={value => {
-                                    form.setValue('featuredAssetId', value.featuredAssetId ?? undefined, {
-                                        shouldDirty: true,
-                                        shouldValidate: true,
-                                    });
-                                    form.setValue('assetIds', value.assetIds ?? [], {
-                                        shouldDirty: true,
-                                        shouldValidate: true,
-                                    });
-                                }}
-                            />
-                        </FormControl>
-                        <FormDescription></FormDescription>
-                        <FormMessage />
-                    </FormItem>
+                    <Field>
+                        <EntityAssets
+                            assets={entity?.assets}
+                            featuredAsset={entity?.featuredAsset}
+                            compact={true}
+                            value={form.getValues()}
+                            onChange={value => {
+                                form.setValue('featuredAssetId', value.featuredAssetId ?? undefined, {
+                                    shouldDirty: true,
+                                    shouldValidate: true,
+                                });
+                                form.setValue('assetIds', value.assetIds ?? [], {
+                                    shouldDirty: true,
+                                    shouldValidate: true,
+                                });
+                            }}
+                        />
+                    </Field>
                 </PageBlock>
             </PageLayout>
         </Page>

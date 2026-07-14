@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { ErrorCode } from '@vendure/common/lib/generated-types';
 import {
     CustomFulfillmentProcess,
     defaultFulfillmentProcess,
@@ -8,23 +9,21 @@ import {
 } from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import path from 'path';
-import { vi } from 'vitest';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
-import { testConfig, TEST_SETUP_TIMEOUT_MS } from '../../../e2e-common/test-config';
+import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import { testSuccessfulPaymentMethod } from './fixtures/test-payment-methods';
-import { ErrorCode, FulfillmentFragment } from './graphql/generated-e2e-admin-types';
-import * as Codegen from './graphql/generated-e2e-admin-types';
-import { AddItemToOrderMutation, AddItemToOrderMutationVariables } from './graphql/generated-e2e-shop-types';
+import { fulfillmentFragment } from './graphql/fragments-admin';
+import { FragmentOf } from './graphql/graphql-admin';
 import {
-    CREATE_FULFILLMENT,
-    GET_CUSTOMER_LIST,
-    GET_ORDER_FULFILLMENTS,
-    TRANSIT_FULFILLMENT,
+    createFulfillmentDocument,
+    getCustomerListDocument,
+    getOrderFulfillmentsDocument,
+    transitFulfillmentDocument,
 } from './graphql/shared-definitions';
-import { ADD_ITEM_TO_ORDER } from './graphql/shop-definitions';
+import { addItemToOrderDocument } from './graphql/shop-definitions';
 import { addPaymentToOrder, proceedToArrangingPayment } from './utils/test-order-utils';
 
 const initSpy = vi.fn();
@@ -34,6 +33,7 @@ const transitionEndSpy2 = vi.fn();
 const transitionErrorSpy = vi.fn();
 
 describe('Fulfillment process', () => {
+    type FulfillmentFragment = FragmentOf<typeof fulfillmentFragment>;
     const fulfillmentGuard: ErrorResultGuard<FulfillmentFragment> = createErrorResultGuard(
         input => !!input.id,
     );
@@ -107,10 +107,7 @@ describe('Fulfillment process', () => {
         await adminClient.asSuperAdmin();
 
         // Create a couple of orders to be queried
-        const result = await adminClient.query<
-            Codegen.GetCustomerListQuery,
-            Codegen.GetCustomerListQueryVariables
-        >(GET_CUSTOMER_LIST, {
+        const result = await adminClient.query(getCustomerListDocument, {
             options: {
                 take: 3,
             },
@@ -122,11 +119,11 @@ describe('Fulfillment process', () => {
          */
         await shopClient.asUserWithCredentials(customers[0].emailAddress, 'test');
         // Add Items
-        await shopClient.query<AddItemToOrderMutation, AddItemToOrderMutationVariables>(ADD_ITEM_TO_ORDER, {
+        await shopClient.query(addItemToOrderDocument, {
             productVariantId: 'T_1',
             quantity: 1,
         });
-        await shopClient.query<AddItemToOrderMutation, AddItemToOrderMutationVariables>(ADD_ITEM_TO_ORDER, {
+        await shopClient.query(addItemToOrderDocument, {
             productVariantId: 'T_2',
             quantity: 1,
         });
@@ -135,10 +132,7 @@ describe('Fulfillment process', () => {
         await addPaymentToOrder(shopClient, testSuccessfulPaymentMethod);
 
         // Add a fulfillment without tracking code
-        await adminClient.query<
-            Codegen.CreateFulfillmentMutation,
-            Codegen.CreateFulfillmentMutationVariables
-        >(CREATE_FULFILLMENT, {
+        await adminClient.query(createFulfillmentDocument, {
             input: {
                 lines: [{ orderLineId: 'T_1', quantity: 1 }],
                 handler: {
@@ -149,10 +143,7 @@ describe('Fulfillment process', () => {
         });
 
         // Add a fulfillment with tracking code
-        await adminClient.query<
-            Codegen.CreateFulfillmentMutation,
-            Codegen.CreateFulfillmentMutationVariables
-        >(CREATE_FULFILLMENT, {
+        await adminClient.query(createFulfillmentDocument, {
             input: {
                 lines: [{ orderLineId: 'T_2', quantity: 1 }],
                 handler: {
@@ -177,10 +168,7 @@ describe('Fulfillment process', () => {
         });
 
         it('replaced transition target', async () => {
-            const { order } = await adminClient.query<
-                Codegen.GetOrderFulfillmentsQuery,
-                Codegen.GetOrderFulfillmentsQueryVariables
-            >(GET_ORDER_FULFILLMENTS, {
+            const { order } = await adminClient.query(getOrderFulfillmentsDocument, {
                 id: 'T_1',
             });
             const [fulfillment] = order?.fulfillments || [];
@@ -189,10 +177,7 @@ describe('Fulfillment process', () => {
 
         it('custom onTransitionStart handler returning error message', async () => {
             // First transit to AwaitingPickup
-            await adminClient.query<
-                Codegen.TransitFulfillmentMutation,
-                Codegen.TransitFulfillmentMutationVariables
-            >(TRANSIT_FULFILLMENT, {
+            await adminClient.query(transitFulfillmentDocument, {
                 id: 'T_1',
                 state: 'AwaitingPickup',
             });
@@ -201,10 +186,7 @@ describe('Fulfillment process', () => {
             transitionErrorSpy.mockClear();
             transitionEndSpy.mockClear();
 
-            const { transitionFulfillmentToState } = await adminClient.query<
-                Codegen.TransitFulfillmentMutation,
-                Codegen.TransitFulfillmentMutationVariables
-            >(TRANSIT_FULFILLMENT, {
+            const { transitionFulfillmentToState } = await adminClient.query(transitFulfillmentDocument, {
                 id: 'T_1',
                 state: 'Shipped',
             });
@@ -227,20 +209,14 @@ describe('Fulfillment process', () => {
             transitionEndSpy.mockClear();
 
             // First transit to AwaitingPickup
-            await adminClient.query<
-                Codegen.TransitFulfillmentMutation,
-                Codegen.TransitFulfillmentMutationVariables
-            >(TRANSIT_FULFILLMENT, {
+            await adminClient.query(transitFulfillmentDocument, {
                 id: 'T_2',
                 state: 'AwaitingPickup',
             });
 
             transitionEndSpy.mockClear();
 
-            const { transitionFulfillmentToState } = await adminClient.query<
-                Codegen.TransitFulfillmentMutation,
-                Codegen.TransitFulfillmentMutationVariables
-            >(TRANSIT_FULFILLMENT, {
+            const { transitionFulfillmentToState } = await adminClient.query(transitFulfillmentDocument, {
                 id: 'T_2',
                 state: 'Shipped',
             });
@@ -252,10 +228,7 @@ describe('Fulfillment process', () => {
         });
 
         it('composes multiple CustomFulfillmentProcesses', async () => {
-            const { order } = await adminClient.query<
-                Codegen.GetOrderFulfillmentsQuery,
-                Codegen.GetOrderFulfillmentsQueryVariables
-            >(GET_ORDER_FULFILLMENTS, {
+            const { order } = await adminClient.query(getOrderFulfillmentsDocument, {
                 id: 'T_1',
             });
             const [fulfillment] = order?.fulfillments || [];

@@ -2,6 +2,8 @@
 title: "DefaultJobQueuePlugin"
 generated: true
 ---
+## DefaultJobQueuePlugin
+
 <GenerationInfo sourceFile="packages/core/src/plugin/default-job-queue-plugin/default-job-queue-plugin.ts" sourceLine="127" packageName="@vendure/core" />
 
 A plugin which configures Vendure to use the SQL database to persist the JobQueue jobs using the [SqlJobQueueStrategy](/reference/typescript-api/job-queue/sql-job-queue-strategy#sqljobqueuestrategy). If you add this
@@ -131,10 +133,14 @@ class DefaultJobQueuePlugin {
 
 
 </div>
+## cleanJobsTask
+
 <GenerationInfo sourceFile="packages/core/src/plugin/default-job-queue-plugin/clean-jobs-task.ts" sourceLine="18" packageName="@vendure/core" since="3.3.0" />
 
 A [ScheduledTask](/reference/typescript-api/scheduled-tasks/scheduled-task#scheduledtask) that cleans up old jobs from the database when using the DefaultJobQueuePlugin.
 You can configure the settings & schedule of the task via the [DefaultJobQueuePlugin](/reference/typescript-api/job-queue/default-job-queue-plugin#defaultjobqueueplugin) options.
+
+## DefaultJobQueueOptions
 
 <GenerationInfo sourceFile="packages/core/src/plugin/default-job-queue-plugin/types.ts" sourceLine="12" packageName="@vendure/core" />
 
@@ -144,7 +150,7 @@ Configuration options for the DefaultJobQueuePlugin. These values get passed int
 ```ts title="Signature"
 interface DefaultJobQueueOptions {
     pollInterval?: number | ((queueName: string) => number);
-    concurrency?: number;
+    concurrency?: number | ((queueName: string) => number);
     backoffStrategy?: BackoffStrategy;
     setRetries?: (queueName: string, job: Job) => number;
     useDatabaseForBuffer?: boolean;
@@ -165,9 +171,26 @@ are active, the polling may cause undue load on the database, in which case this
 should be increased to e.g. 1000.
 ### concurrency
 
-<MemberInfo kind="property" type={`number`} default={`1`}   />
+<MemberInfo kind="property" type={`number | ((queueName: string) => number)`} default={`1`}   />
 
 How many jobs from a given queue to process concurrently.
+
+Can be set to a function which receives the queue name and returns
+the concurrency limit. This is useful for limiting concurrency on
+queues which have resource-intensive jobs.
+
+*Example*
+
+```ts
+DefaultJobQueuePlugin.init({
+  concurrency: (queueName) => {
+    if (queueName === 'apply-collection-filters') {
+      return 1;
+    }
+    return 3;
+  }
+})
+```
 ### backoffStrategy
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/job-queue/types#backoffstrategy'>BackoffStrategy</a>`} default={`() => 1000`}   />

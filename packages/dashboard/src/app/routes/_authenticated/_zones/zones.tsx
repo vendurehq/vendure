@@ -1,7 +1,6 @@
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
-import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { Button } from '@/vdb/components/ui/button.js';
-import { PageActionBarRight } from '@/vdb/framework/layout-engine/page-layout.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, Link } from '@tanstack/react-router';
@@ -45,20 +44,15 @@ function ZoneListPage() {
             bulkActions={[
                 {
                     component: DeleteZonesBulkAction,
-                    order: 500,
                 },
             ]}
         >
-            <PageActionBarRight>
-                <PermissionGuard requires={['CreateZone']}>
-                    <Button asChild>
-                        <Link to="./new">
-                            <PlusIcon />
-                            <Trans>New Zone</Trans>
-                        </Link>
-                    </Button>
-                </PermissionGuard>
-            </PageActionBarRight>
+            <ActionBarItem itemId="create-button" requiresPermission={['CreateZone']}>
+                <Button render={<Link to="./new" />}>
+                    <PlusIcon />
+                    <Trans>New Zone</Trans>
+                </Button>
+            </ActionBarItem>
         </ListPage>
     );
 }

@@ -1,16 +1,26 @@
+import { DeletionResult } from '@vendure/common/lib/generated-types';
 import { Facet, LanguageCode, mergeConfig } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
-import gql from 'graphql-tag';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
-import { ZONE_FRAGMENT } from './graphql/fragments';
-import * as Codegen from './graphql/generated-e2e-admin-types';
-import { DeletionResult } from './graphql/generated-e2e-admin-types';
-import { GET_COUNTRY_LIST, UPDATE_CHANNEL } from './graphql/shared-definitions';
+import { graphql, ResultOf, VariablesOf } from './graphql/graphql-admin';
+import {
+    addMembersToZoneDocument,
+    createFacetDocument,
+    createZoneDocument,
+    deleteZoneDocument,
+    getActiveChannelWithZoneMembersDocument,
+    getCountryListDocument,
+    getZoneDocument,
+    getZonesDocument,
+    removeMembersFromZoneDocument,
+    updateChannelDocument,
+    updateZoneDocument,
+} from './graphql/shared-definitions';
 
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
@@ -28,10 +38,10 @@ describe('Zone resolver', () => {
             },
         }),
     );
-    let countries: Codegen.GetCountryListQuery['countries']['items'];
+    let countries: ResultOf<typeof getCountryListDocument>['countries']['items'];
     let zones: Array<{ id: string; name: string }>;
     let oceania: { id: string; name: string };
-    let pangaea: { id: string; name: string; members: any[] };
+    let pangaea: ResultOf<typeof createZoneDocument>['createZone'];
 
     beforeAll(async () => {
         await server.init({
@@ -41,7 +51,7 @@ describe('Zone resolver', () => {
         });
         await adminClient.asSuperAdmin();
 
-        const result = await adminClient.query<Codegen.GetCountryListQuery>(GET_COUNTRY_LIST, {});
+        const result = await adminClient.query(getCountryListDocument, {});
         countries = result.countries.items;
     }, TEST_SETUP_TIMEOUT_MS);
 
@@ -50,36 +60,28 @@ describe('Zone resolver', () => {
     });
 
     it('zones', async () => {
-        const result = await adminClient.query<Codegen.GetZonesQuery>(GET_ZONE_LIST);
+        const result = await adminClient.query(getZonesDocument);
         expect(result.zones.items.length).toBe(5);
         zones = result.zones.items;
         oceania = zones[0];
     });
 
     it('zone', async () => {
-        const result = await adminClient.query<Codegen.GetZoneQuery, Codegen.GetZoneQueryVariables>(
-            GET_ZONE,
-            {
-                id: oceania.id,
-            },
-        );
+        const result = await adminClient.query(getZoneDocument, {
+            id: oceania.id,
+        });
 
         expect(result.zone!.name).toBe('Oceania');
     });
 
     it('zone.members field resolver', async () => {
-        const { activeChannel } = await adminClient.query<Codegen.GetActiveChannelWithZoneMembersQuery>(
-            GET_ACTIVE_CHANNEL_WITH_ZONE_MEMBERS,
-        );
+        const { activeChannel } = await adminClient.query(getActiveChannelWithZoneMembersDocument);
 
         expect(activeChannel.defaultShippingZone?.members.length).toBe(2);
     });
 
     it('updateZone', async () => {
-        const result = await adminClient.query<
-            Codegen.UpdateZoneMutation,
-            Codegen.UpdateZoneMutationVariables
-        >(UPDATE_ZONE, {
+        const result = await adminClient.query(updateZoneDocument, {
             input: {
                 id: oceania.id,
                 name: 'oceania2',
@@ -90,10 +92,7 @@ describe('Zone resolver', () => {
     });
 
     it('createZone', async () => {
-        const result = await adminClient.query<
-            Codegen.CreateZoneMutation,
-            Codegen.CreateZoneMutationVariables
-        >(CREATE_ZONE, {
+        const result = await adminClient.query(createZoneDocument, {
             input: {
                 name: 'Pangaea',
                 memberIds: [countries[0].id, countries[1].id],
@@ -106,10 +105,7 @@ describe('Zone resolver', () => {
     });
 
     it('addMembersToZone', async () => {
-        const result = await adminClient.query<
-            Codegen.AddMembersToZoneMutation,
-            Codegen.AddMembersToZoneMutationVariables
-        >(ADD_MEMBERS_TO_ZONE, {
+        const result = await adminClient.query(addMembersToZoneDocument, {
             zoneId: oceania.id,
             memberIds: [countries[2].id, countries[3].id],
         });
@@ -119,10 +115,7 @@ describe('Zone resolver', () => {
     });
 
     it('removeMembersFromZone', async () => {
-        const result = await adminClient.query<
-            Codegen.RemoveMembersFromZoneMutation,
-            Codegen.RemoveMembersFromZoneMutationVariables
-        >(REMOVE_MEMBERS_FROM_ZONE, {
+        const result = await adminClient.query(removeMembersFromZoneDocument, {
             zoneId: oceania.id,
             memberIds: [countries[0].id, countries[2].id],
         });
@@ -134,10 +127,7 @@ describe('Zone resolver', () => {
 
     describe('deletion', () => {
         it('deletes Zone not used in any TaxRate', async () => {
-            const result1 = await adminClient.query<
-                Codegen.DeleteZoneMutation,
-                Codegen.DeleteZoneMutationVariables
-            >(DELETE_ZONE, {
+            const result1 = await adminClient.query(deleteZoneDocument, {
                 id: pangaea.id,
             });
 
@@ -146,15 +136,12 @@ describe('Zone resolver', () => {
                 message: '',
             });
 
-            const result2 = await adminClient.query<Codegen.GetZonesQuery>(GET_ZONE_LIST);
+            const result2 = await adminClient.query(getZonesDocument);
             expect(result2.zones.items.find(c => c.id === pangaea.id)).toBeUndefined();
         });
 
         it('does not delete Zone that is used in one or more TaxRates', async () => {
-            const result1 = await adminClient.query<
-                Codegen.DeleteZoneMutation,
-                Codegen.DeleteZoneMutationVariables
-            >(DELETE_ZONE, {
+            const result1 = await adminClient.query(deleteZoneDocument, {
                 id: oceania.id,
             });
 
@@ -165,25 +152,19 @@ describe('Zone resolver', () => {
                     'TaxRates: Standard Tax Oceania, Reduced Tax Oceania, Zero Tax Oceania',
             });
 
-            const result2 = await adminClient.query<Codegen.GetZonesQuery>(GET_ZONE_LIST);
+            const result2 = await adminClient.query(getZonesDocument);
             expect(result2.zones.items.find(c => c.id === oceania.id)).not.toBeUndefined();
         });
 
         it('does not delete Zone that is used as a Channel defaultTaxZone', async () => {
-            await adminClient.query<Codegen.UpdateChannelMutation, Codegen.UpdateChannelMutationVariables>(
-                UPDATE_CHANNEL,
-                {
-                    input: {
-                        id: 'T_1',
-                        defaultTaxZoneId: oceania.id,
-                    },
+            await adminClient.query(updateChannelDocument, {
+                input: {
+                    id: 'T_1',
+                    defaultTaxZoneId: oceania.id,
                 },
-            );
+            });
 
-            const result1 = await adminClient.query<
-                Codegen.DeleteZoneMutation,
-                Codegen.DeleteZoneMutationVariables
-            >(DELETE_ZONE, {
+            const result1 = await adminClient.query(deleteZoneDocument, {
                 id: oceania.id,
             });
 
@@ -194,26 +175,20 @@ describe('Zone resolver', () => {
                     '__default_channel__',
             });
 
-            const result2 = await adminClient.query<Codegen.GetZonesQuery>(GET_ZONE_LIST);
+            const result2 = await adminClient.query(getZonesDocument);
             expect(result2.zones.items.find(c => c.id === oceania.id)).not.toBeUndefined();
         });
 
         it('does not delete Zone that is used as a Channel defaultShippingZone', async () => {
-            await adminClient.query<Codegen.UpdateChannelMutation, Codegen.UpdateChannelMutationVariables>(
-                UPDATE_CHANNEL,
-                {
-                    input: {
-                        id: 'T_1',
-                        defaultTaxZoneId: 'T_1',
-                        defaultShippingZoneId: oceania.id,
-                    },
+            await adminClient.query(updateChannelDocument, {
+                input: {
+                    id: 'T_1',
+                    defaultTaxZoneId: 'T_1',
+                    defaultShippingZoneId: oceania.id,
                 },
-            );
+            });
 
-            const result1 = await adminClient.query<
-                Codegen.DeleteZoneMutation,
-                Codegen.DeleteZoneMutationVariables
-            >(DELETE_ZONE, {
+            const result1 = await adminClient.query(deleteZoneDocument, {
                 id: oceania.id,
             });
 
@@ -224,19 +199,17 @@ describe('Zone resolver', () => {
                     '__default_channel__',
             });
 
-            const result2 = await adminClient.query<Codegen.GetZonesQuery>(GET_ZONE_LIST);
+            const result2 = await adminClient.query(getZonesDocument);
             expect(result2.zones.items.find(c => c.id === oceania.id)).not.toBeUndefined();
         });
     });
 
     describe('Zone custom fields', () => {
-        let testFacet: Codegen.CreateFacetMutation['createFacet'];
+        let testFacet: ResultOf<typeof createFacetDocument>['createFacet'];
+
         // Create a target entity (Facet) to link the Zone to
         it('create a target Facet', async () => {
-            const result = await adminClient.query<
-                Codegen.CreateFacetMutation,
-                Codegen.CreateFacetMutationVariables
-            >(CREATE_FACET_WITH_VALUE, {
+            const result = await adminClient.query(createFacetDocument, {
                 input: {
                     code: 'test-relation-facet',
                     isPrivate: false,
@@ -250,7 +223,7 @@ describe('Zone resolver', () => {
 
         // Test createZone with a custom relation field
         it('createZone persists custom relation field', async () => {
-            const input: Codegen.CreateZoneInput = {
+            const input: VariablesOf<typeof createZoneDocument>['input'] = {
                 name: 'Zone with Custom Relation',
                 memberIds: [],
                 customFields: {
@@ -258,27 +231,20 @@ describe('Zone resolver', () => {
                 },
             };
 
-            const result = await adminClient.query<
-                CreateZoneMutationWithCF,
-                Codegen.CreateZoneMutationVariables
-            >(gql(CREATE_ZONE_WITH_CF), { input });
+            const result = await adminClient.query(createZoneWithCustomFieldsDocument, { input });
 
             //  Verify the return value
             expect(result.createZone.customFields.relatedFacet.id).toBe(testFacet.id);
             //  Verify by querying it again from the database
-            const result2 = await adminClient.query<GetZoneQueryWithCF, Codegen.GetZoneQueryVariables>(
-                gql(GET_ZONE_WITH_CUSTOM_FIELDS),
-                { id: result.createZone.id },
-            );
-            expect(result2.zone.customFields.relatedFacet.id).toBe(testFacet.id);
+            const result2 = await adminClient.query(getZoneWithCustomFieldsDocument, {
+                id: result.createZone.id,
+            });
+            expect(result2.zone?.customFields.relatedFacet.id).toBe(testFacet.id);
         });
 
         // Test updateZone with a custom relation field
         it('updateZone persists custom relation field', async () => {
-            const result = await adminClient.query<
-                UpdateZoneMutationWithCF,
-                Codegen.UpdateZoneMutationVariables
-            >(gql(UPDATE_ZONE_WITH_CF), {
+            const result = await adminClient.query(updateZoneWithCustomFieldsDocument, {
                 input: {
                     id: zones[1].id,
                     customFields: {
@@ -291,46 +257,13 @@ describe('Zone resolver', () => {
             expect(result.updateZone.customFields.relatedFacet.id).toBe(testFacet.id);
 
             // Verify by querying it again from the database
-            const result2 = await adminClient.query<GetZoneQueryWithCF, Codegen.GetZoneQueryVariables>(
-                gql(GET_ZONE_WITH_CUSTOM_FIELDS),
-                { id: zones[1].id },
-            );
-            expect(result2.zone.customFields.relatedFacet.id).toBe(testFacet.id);
+            const result2 = await adminClient.query(getZoneWithCustomFieldsDocument, { id: zones[1].id });
+            expect(result2.zone?.customFields.relatedFacet.id).toBe(testFacet.id);
         });
     });
 });
 
-type ZoneWithCustomFields = Omit<Codegen.Zone, 'customFields'> & {
-    customFields: {
-        relatedFacet: {
-            id: string;
-        };
-    };
-};
-
-type CreateZoneMutationWithCF = Omit<Codegen.CreateZoneMutation, 'createZone'> & {
-    createZone: ZoneWithCustomFields;
-};
-
-type UpdateZoneMutationWithCF = Omit<Codegen.UpdateZoneMutation, 'updateZone'> & {
-    updateZone: ZoneWithCustomFields;
-};
-
-type GetZoneQueryWithCF = Omit<Codegen.GetZoneQuery, 'zone'> & {
-    zone: ZoneWithCustomFields;
-};
-
-const CREATE_FACET_WITH_VALUE = gql`
-    mutation CreateFacetWithValue($input: CreateFacetInput!) {
-        createFacet(input: $input) {
-            id
-            name
-        }
-    }
-`;
-
-// A new fragment to include the custom fields
-const ZONE_CUSTOM_FIELDS_FRAGMENT = `
+const zoneWithCustomFieldsFragment = graphql(`
     fragment ZoneCustomFields on Zone {
         customFields {
             relatedFacet {
@@ -338,120 +271,43 @@ const ZONE_CUSTOM_FIELDS_FRAGMENT = `
             }
         }
     }
-`;
+`);
 
-// A new mutation to create a Zone with custom fields
-const CREATE_ZONE_WITH_CF = `
-    mutation CreateZoneWithCF($input: CreateZoneInput!) {
-        createZone(input: $input) {
-            id
-            name
-            ...ZoneCustomFields
-        }
-    }
-    ${ZONE_CUSTOM_FIELDS_FRAGMENT}
-`;
-
-// A new mutation to update a Zone with custom fields
-const UPDATE_ZONE_WITH_CF = `
-    mutation UpdateZoneWithCF($input: UpdateZoneInput!) {
-        updateZone(input: $input) {
-            id
-            name
-            ...ZoneCustomFields
-        }
-    }
-    ${ZONE_CUSTOM_FIELDS_FRAGMENT}
-`;
-
-// A new query to fetch the Zone with its custom fields
-const GET_ZONE_WITH_CUSTOM_FIELDS = `
-    query GetZoneWithCustomFields($id: ID!) {
-        zone(id: $id) {
-            id
-            name
-            ...ZoneCustomFields
-        }
-    }
-    ${ZONE_CUSTOM_FIELDS_FRAGMENT}
-`;
-
-const DELETE_ZONE = gql`
-    mutation DeleteZone($id: ID!) {
-        deleteZone(id: $id) {
-            result
-            message
-        }
-    }
-`;
-
-const GET_ZONE_LIST = gql`
-    query GetZones($options: ZoneListOptions) {
-        zones(options: $options) {
-            items {
+const createZoneWithCustomFieldsDocument = graphql(
+    `
+        mutation CreateZoneWithCF($input: CreateZoneInput!) {
+            createZone(input: $input) {
                 id
                 name
+                ...ZoneCustomFields
             }
-            totalItems
         }
-    }
-`;
+    `,
+    [zoneWithCustomFieldsFragment],
+);
 
-export const GET_ZONE = gql`
-    query GetZone($id: ID!) {
-        zone(id: $id) {
-            ...Zone
-        }
-    }
-    ${ZONE_FRAGMENT}
-`;
-
-export const GET_ACTIVE_CHANNEL_WITH_ZONE_MEMBERS = gql`
-    query GetActiveChannelWithZoneMembers {
-        activeChannel {
-            id
-            defaultShippingZone {
+const updateZoneWithCustomFieldsDocument = graphql(
+    `
+        mutation UpdateZoneWithCF($input: UpdateZoneInput!) {
+            updateZone(input: $input) {
                 id
-                members {
-                    name
-                }
+                name
+                ...ZoneCustomFields
             }
         }
-    }
-`;
+    `,
+    [zoneWithCustomFieldsFragment],
+);
 
-export const CREATE_ZONE = gql`
-    mutation CreateZone($input: CreateZoneInput!) {
-        createZone(input: $input) {
-            ...Zone
+const getZoneWithCustomFieldsDocument = graphql(
+    `
+        query GetZoneWithCustomFields($id: ID!) {
+            zone(id: $id) {
+                id
+                name
+                ...ZoneCustomFields
+            }
         }
-    }
-    ${ZONE_FRAGMENT}
-`;
-
-export const UPDATE_ZONE = gql`
-    mutation UpdateZone($input: UpdateZoneInput!) {
-        updateZone(input: $input) {
-            ...Zone
-        }
-    }
-    ${ZONE_FRAGMENT}
-`;
-
-export const ADD_MEMBERS_TO_ZONE = gql`
-    mutation AddMembersToZone($zoneId: ID!, $memberIds: [ID!]!) {
-        addMembersToZone(zoneId: $zoneId, memberIds: $memberIds) {
-            ...Zone
-        }
-    }
-    ${ZONE_FRAGMENT}
-`;
-
-export const REMOVE_MEMBERS_FROM_ZONE = gql`
-    mutation RemoveMembersFromZone($zoneId: ID!, $memberIds: [ID!]!) {
-        removeMembersFromZone(zoneId: $zoneId, memberIds: $memberIds) {
-            ...Zone
-        }
-    }
-    ${ZONE_FRAGMENT}
-`;
+    `,
+    [zoneWithCustomFieldsFragment],
+);

@@ -28,12 +28,8 @@ export function AddFilterMenu({ columns }: Readonly<AddFilterMenuProps>) {
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DropdownMenu>
                 <Tooltip>
-                    <TooltipTrigger asChild>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="icon">
+                    <TooltipTrigger render={<DropdownMenuTrigger render={<Button variant="outline" size="icon-sm" data-testid="dt-add-filter-trigger" />} />}>
                                 <FilterIcon />
-                            </Button>
-                        </DropdownMenuTrigger>
                     </TooltipTrigger>
                     <TooltipContent>
                         <Trans>Add filter</Trans>
@@ -43,7 +39,7 @@ export function AddFilterMenu({ columns }: Readonly<AddFilterMenuProps>) {
                     {filterableColumns.map(column => (
                         <DropdownMenuItem
                             key={column.id}
-                            onSelect={() => {
+                            onClick={() => {
                                 setSelectedColumn(column);
                                 setIsDialogOpen(true);
                             }}

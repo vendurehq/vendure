@@ -265,6 +265,24 @@ type Mutation {
 }`}
 </GraphQLDoc>
 
+<a name="assignproductoptiongroupstochannel"></a>
+
+## assignProductOptionGroupsToChannel
+
+<GraphQLDoc
+  type="mutation"
+  typeName="assignProductOptionGroupsToChannel"
+  typeLinks={{
+    ProductOptionGroup: '/reference/graphql-api/admin/object-types#productoptiongroup',
+    AssignProductOptionGroupsToChannelInput: '/reference/graphql-api/admin/input-types#assignproductoptiongroupstochannelinput',
+  }}
+>
+{`"""Assigns ProductOptionGroups to the specified Channel"""
+type Mutation {
+  assignProductOptionGroupsToChannel(input: AssignProductOptionGroupsToChannelInput!): [ProductOptionGroup!]!
+}`}
+</GraphQLDoc>
+
 <a name="assignproductvariantstochannel"></a>
 
 ## assignProductVariantsToChannel
@@ -458,6 +476,28 @@ type Mutation {
 {`"""Create a new Administrator"""
 type Mutation {
   createAdministrator(input: CreateAdministratorInput!): Administrator!
+}`}
+</GraphQLDoc>
+
+<a name="createapikey"></a>
+
+## createApiKey
+
+<GraphQLDoc
+  type="mutation"
+  typeName="createApiKey"
+  typeLinks={{
+    CreateApiKeyResult: '/reference/graphql-api/admin/object-types#createapikeyresult',
+    CreateApiKeyInput: '/reference/graphql-api/admin/input-types#createapikeyinput',
+  }}
+>
+{`"""
+Generates a new API-Key and attaches it to an Administrator.
+Returns the generated API-Key.
+API-Keys cannot be viewed again after creation.
+"""
+type Mutation {
+  createApiKey(input: CreateApiKeyInput!): CreateApiKeyResult!
 }`}
 </GraphQLDoc>
 
@@ -964,6 +1004,24 @@ type Mutation {
 }`}
 </GraphQLDoc>
 
+<a name="deleteapikeys"></a>
+
+## deleteApiKeys
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteApiKeys"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""Deletes API-Keys"""
+type Mutation {
+  deleteApiKeys(ids: [ID!]!): [DeletionResponse!]!
+}`}
+</GraphQLDoc>
+
 <a name="deleteasset"></a>
 
 ## deleteAsset
@@ -1378,6 +1436,44 @@ type Mutation {
 {`"""Delete a ProductOption"""
 type Mutation {
   deleteProductOption(id: ID!): DeletionResponse!
+}`}
+</GraphQLDoc>
+
+<a name="deleteproductoptiongroup"></a>
+
+## deleteProductOptionGroup
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteProductOptionGroup"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+    Boolean: '/reference/graphql-api/admin/object-types#boolean',
+  }}
+>
+{`"""Delete a ProductOptionGroup"""
+type Mutation {
+  deleteProductOptionGroup(id: ID!, force: Boolean): DeletionResponse!
+}`}
+</GraphQLDoc>
+
+<a name="deleteproductoptiongroups"></a>
+
+## deleteProductOptionGroups
+
+<GraphQLDoc
+  type="mutation"
+  typeName="deleteProductOptionGroups"
+  typeLinks={{
+    DeletionResponse: '/reference/graphql-api/admin/object-types#deletionresponse',
+    ID: '/reference/graphql-api/admin/object-types#id',
+    Boolean: '/reference/graphql-api/admin/object-types#boolean',
+  }}
+>
+{`"""Delete multiple ProductOptionGroups"""
+type Mutation {
+  deleteProductOptionGroups(ids: [ID!]!, force: Boolean): [DeletionResponse!]!
 }`}
 </GraphQLDoc>
 
@@ -2073,6 +2169,24 @@ type Mutation {
 }`}
 </GraphQLDoc>
 
+<a name="removeproductoptiongroupsfromchannel"></a>
+
+## removeProductOptionGroupsFromChannel
+
+<GraphQLDoc
+  type="mutation"
+  typeName="removeProductOptionGroupsFromChannel"
+  typeLinks={{
+    RemoveProductOptionGroupFromChannelResult: '/reference/graphql-api/admin/object-types#removeproductoptiongroupfromchannelresult',
+    RemoveProductOptionGroupsFromChannelInput: '/reference/graphql-api/admin/input-types#removeproductoptiongroupsfromchannelinput',
+  }}
+>
+{`"""Removes ProductOptionGroups from the specified Channel"""
+type Mutation {
+  removeProductOptionGroupsFromChannel(input: RemoveProductOptionGroupsFromChannelInput!): [RemoveProductOptionGroupFromChannelResult!]!
+}`}
+</GraphQLDoc>
+
 <a name="removeproductvariantsfromchannel"></a>
 
 ## removeProductVariantsFromChannel
@@ -2179,6 +2293,28 @@ type Mutation {
 {`"""Removes StockLocations from the specified Channel"""
 type Mutation {
   removeStockLocationsFromChannel(input: RemoveStockLocationsFromChannelInput!): [StockLocation!]!
+}`}
+</GraphQLDoc>
+
+<a name="rotateapikey"></a>
+
+## rotateApiKey
+
+<GraphQLDoc
+  type="mutation"
+  typeName="rotateApiKey"
+  typeLinks={{
+    RotateApiKeyResult: '/reference/graphql-api/admin/object-types#rotateapikeyresult',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`"""
+Replaces the old with a new API-Key.
+This is a convenience method to invalidate an API-Key without
+deleting the underlying roles and permissions.
+"""
+type Mutation {
+  rotateApiKey(id: ID!): RotateApiKeyResult!
 }`}
 </GraphQLDoc>
 
@@ -2536,6 +2672,24 @@ type Mutation {
 {`"""Update an existing Administrator"""
 type Mutation {
   updateAdministrator(input: UpdateAdministratorInput!): Administrator!
+}`}
+</GraphQLDoc>
+
+<a name="updateapikey"></a>
+
+## updateApiKey
+
+<GraphQLDoc
+  type="mutation"
+  typeName="updateApiKey"
+  typeLinks={{
+    ApiKey: '/reference/graphql-api/admin/object-types#apikey',
+    UpdateApiKeyInput: '/reference/graphql-api/admin/input-types#updateapikeyinput',
+  }}
+>
+{`"""Updates an API-Key"""
+type Mutation {
+  updateApiKey(input: UpdateApiKeyInput!): ApiKey!
 }`}
 </GraphQLDoc>
 

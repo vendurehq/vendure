@@ -6,13 +6,13 @@ import { Bench } from 'tinybench';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
-import { testConfig, TEST_SETUP_TIMEOUT_MS } from '../../../e2e-common/test-config';
+import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import {
     SearchProductsShopQuery,
     SearchProductsShopQueryVariables,
 } from './graphql/generated-e2e-shop-types';
-import { SEARCH_PRODUCTS_SHOP } from './graphql/shop-definitions';
+import { searchProductsShopDocument } from './graphql/shop-definitions';
 import { awaitRunningJobs } from './utils/await-running-jobs';
 
 registerInitializer('sqljs', new SqljsInitializer(path.join(__dirname, '__data__'), 1000));
@@ -91,7 +91,7 @@ describe.skipIf(isDevelopment)('Default search plugin - benchmark', () => {
 
         bench.add('group by product', async () => {
             await shopClient.query<SearchProductsShopQuery, SearchProductsShopQueryVariablesExt>(
-                SEARCH_PRODUCTS_SHOP,
+                searchProductsShopDocument,
                 {
                     input: {
                         groupByProduct: true,

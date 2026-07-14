@@ -60,7 +60,8 @@ export class Product
     @OneToMany(type => ProductVariant, variant => variant.product)
     variants: ProductVariant[];
 
-    @OneToMany(type => ProductOptionGroup, optionGroup => optionGroup.product)
+    @ManyToMany(type => ProductOptionGroup, optionGroup => optionGroup.products)
+    @JoinTable()
     optionGroups: ProductOptionGroup[];
 
     @ManyToMany(type => FacetValue, facetValue => facetValue.products)

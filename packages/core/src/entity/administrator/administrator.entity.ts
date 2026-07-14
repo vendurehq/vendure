@@ -28,7 +28,7 @@ export class Administrator extends VendureEntity implements SoftDeletable, HasCu
 
     @Column() lastName: string;
 
-    @Column({ unique: true })
+    @Column()
     emailAddress: string;
 
     @OneToOne(type => User)

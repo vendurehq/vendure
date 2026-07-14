@@ -91,4 +91,6 @@ export class SearchIndexItem {
     inStock?: boolean;
     // Added dynamically based on the `indexStockStatus` init option.
     productInStock?: boolean;
+    // Added dynamically based on the `indexCurrencyCode` init option.
+    currencyCode?: CurrencyCode;
 }

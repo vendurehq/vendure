@@ -2,6 +2,8 @@ import { InjectableStrategy, VendureEvent } from '@vendure/core';
 
 import { EmailDetails, EmailPluginOptions } from '../types';
 
+type EmailGeneratorResult = Pick<EmailDetails, 'from' | 'subject' | 'body'>;
+
 /**
  * @description
  * An EmailGenerator generates the subject and body details of an email.
@@ -28,5 +30,5 @@ export interface EmailGenerator<T extends string = any, E extends VendureEvent =
         subject: string,
         body: string,
         templateVars: { [key: string]: any },
-    ): Pick<EmailDetails, 'from' | 'subject' | 'body'>;
+    ): EmailGeneratorResult | Promise<EmailGeneratorResult>;
 }

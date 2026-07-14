@@ -1,5 +1,4 @@
 import { AssetStorageStrategy } from '@vendure/core';
-import { createHash } from 'crypto';
 import { Request } from 'express';
 import { ReadStream } from 'fs';
 import fs from 'fs-extra';
@@ -25,10 +24,17 @@ export class LocalAssetStorageStrategy implements AssetStorageStrategy {
         }
     }
 
-    async writeFileFromStream(fileName: string, data: ReadStream): Promise<string> {
+    async writeFileFromStream(
+        fileName: string,
+        data: ReadStream,
+        encoding?: BufferEncoding | null,
+    ): Promise<string> {
         const filePath = path.join(this.uploadPath, fileName);
         await fs.ensureDir(path.dirname(filePath));
-        const writeStream = fs.createWriteStream(filePath, 'binary');
+        const writeStream = fs.createWriteStream(
+            filePath,
+            encoding === undefined ? 'binary' : encoding === null ? undefined : encoding,
+        );
         return new Promise<string>((resolve, reject) => {
             data.pipe(writeStream);
             writeStream.on('close', () => resolve(this.filePathToIdentifier(filePath)));
@@ -55,8 +61,11 @@ export class LocalAssetStorageStrategy implements AssetStorageStrategy {
         return fs.readFile(this.identifierToFilePath(identifier));
     }
 
-    readFileToStream(identifier: string): Promise<Stream> {
-        const readStream = fs.createReadStream(this.identifierToFilePath(identifier), 'binary');
+    readFileToStream(identifier: string, encoding?: BufferEncoding | null): Promise<Stream> {
+        const readStream = fs.createReadStream(
+            this.identifierToFilePath(identifier),
+            encoding === undefined ? 'binary' : encoding === null ? undefined : encoding,
+        );
         return Promise.resolve(readStream);
     }
 

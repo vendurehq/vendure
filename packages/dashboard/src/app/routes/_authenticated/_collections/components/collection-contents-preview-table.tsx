@@ -115,10 +115,8 @@ export function CollectionContentsPreviewTable({
                                 header: 'Variant name',
                                 cell: ({ row }) => {
                                     return (
-                                        <Button asChild variant="ghost">
-                                            <Link to={`../../product-variants/${row.original.id}`}>
-                                                {row.original.name}{' '}
-                                            </Link>
+                                        <Button render={<Link to={`../../product-variants/${row.original.id}`} />} variant="ghost">
+                                            {row.original.name}{' '}
                                         </Button>
                                     );
                                 },

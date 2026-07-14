@@ -1,7 +1,7 @@
 import { JobState } from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
 import { isObject } from '@vendure/common/lib/shared-utils';
-import { from, interval, mergeMap, race, Subject, Subscription } from 'rxjs';
+import { from, interval, race, Subject, Subscription } from 'rxjs';
 import { filter, switchMap, take, throttleTime } from 'rxjs/operators';
 
 import { Logger } from '../config/logger/vendure-logger';
@@ -26,9 +26,23 @@ export interface PollingJobQueueStrategyConfig {
      * @description
      * How many jobs from a given queue to process concurrently.
      *
+     * Can be set to a function which receives the queue name and returns
+     * the concurrency limit. This is useful for limiting concurrency on
+     * queues which have resource-intensive jobs.
+     *
+     * @example
+     * ```ts
+     * concurrency: (queueName) => {
+     *   if (queueName === 'apply-collection-filters') {
+     *     return 1;
+     *   }
+     *   return 3;
+     * }
+     * ```
+     *
      * @default 1
      */
-    concurrency?: number;
+    concurrency?: number | ((queueName: string) => number);
     /**
      * @description
      * The interval in ms between polling the database for new jobs.
@@ -76,6 +90,7 @@ class ActiveQueue<Data extends JobData<Data> = object> {
     private queueStopped$ = new Subject<typeof STOP_SIGNAL>();
     private subscription: Subscription;
     private readonly pollInterval: number;
+    private readonly concurrency: number;
 
     constructor(
         private readonly queueName: string,
@@ -86,6 +101,10 @@ class ActiveQueue<Data extends JobData<Data> = object> {
             typeof this.jobQueueStrategy.pollInterval === 'function'
                 ? this.jobQueueStrategy.pollInterval(queueName)
                 : this.jobQueueStrategy.pollInterval;
+        this.concurrency =
+            typeof this.jobQueueStrategy.concurrency === 'function'
+                ? this.jobQueueStrategy.concurrency(queueName)
+                : this.jobQueueStrategy.concurrency;
     }
 
     start() {
@@ -98,7 +117,7 @@ class ActiveQueue<Data extends JobData<Data> = object> {
         const runNextJobs = async () => {
             try {
                 const runningJobsCount = this.activeJobs.length;
-                for (let i = runningJobsCount; i < this.jobQueueStrategy.concurrency; i++) {
+                for (let i = runningJobsCount; i < this.concurrency; i++) {
                     const nextJob = await this.jobQueueStrategy.next(this.queueName);
                     if (nextJob) {
                         this.activeJobs.push(nextJob);
@@ -193,7 +212,9 @@ class ActiveQueue<Data extends JobData<Data> = object> {
 
                 if (timedOut) {
                     Logger.warn(
-                        `Timed out (${stopActiveQueueTimeout}ms) waiting for ${this.activeJobs.length} active jobs in queue "${this.queueName}" to complete. Forcing stop...`,
+                        `Timed out (${stopActiveQueueTimeout}ms) waiting for ` +
+                            `${this.activeJobs.length} active jobs in queue "${this.queueName}" ` +
+                            `to complete. Forcing stop...`,
                     );
                     this.queueStopped$.next(STOP_SIGNAL);
                     clearTimeout(timeout);
@@ -240,7 +261,7 @@ class ActiveQueue<Data extends JobData<Data> = object> {
  * @docsCategory JobQueue
  */
 export abstract class PollingJobQueueStrategy extends InjectableJobQueueStrategy {
-    public concurrency: number;
+    public concurrency: number | ((queueName: string) => number);
     public pollInterval: number | ((queueName: string) => number);
     public setRetries: (queueName: string, job: Job) => number;
     public backOffStrategy?: BackoffStrategy;

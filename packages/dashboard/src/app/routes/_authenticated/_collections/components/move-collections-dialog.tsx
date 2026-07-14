@@ -68,7 +68,7 @@ function TargetAlert({
     collectionNameCache,
 }: Readonly<TargetAlertProps>) {
     return (
-        <Alert className={selectedCollectionId ? 'border-blue-200 bg-blue-50' : 'opacity-50'}>
+        <Alert className={selectedCollectionId ? 'border-primary/30 bg-primary/10' : 'opacity-50'}>
             <Folder className="h-4 w-4" />
             <AlertDescription>
                 {selectedCollectionId ? (

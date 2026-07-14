@@ -170,6 +170,11 @@ export class GlobalSettingsResolver {
                         }
                         return customFieldConfig;
                     });
+                if (!customFieldsConfig.length) {
+                    // All custom fields were filtered out (e.g. all marked as internal
+                    // or hidden from the dashboard), so skip this entity entirely.
+                    return;
+                }
                 return { entityName: entityType, customFields: customFieldsConfig };
             })
             .filter(notNullOrUndefined);

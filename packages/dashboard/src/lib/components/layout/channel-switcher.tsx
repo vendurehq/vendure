@@ -5,6 +5,7 @@ import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import {
     DropdownMenu,
     DropdownMenuContent,
+    DropdownMenuGroup,
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
@@ -107,11 +108,10 @@ export function ChannelSwitcher() {
             <SidebarMenu>
                 <SidebarMenuItem>
                     <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <SidebarMenuButton
+                        <DropdownMenuTrigger render={<SidebarMenuButton
                                 size="lg"
-                                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                            >
+                                className="data-open:bg-sidebar-accent data-open:text-sidebar-accent-foreground"
+                            />}>
                                 <div
                                     className={
                                         'bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg'
@@ -132,19 +132,20 @@ export function ChannelSwitcher() {
                                     </span>
                                 </div>
                                 <ChevronsUpDown className="ml-auto" />
-                            </SidebarMenuButton>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent
-                            className="w-(--radix-dropdown-menu-trigger-width) min-w-72 rounded-lg pt-0 pr-0"
+                            className="w-(--anchor-width) min-w-72 rounded-lg pt-0 pr-0"
                             align="start"
                             side={isMobile ? 'bottom' : 'right'}
                             sideOffset={4}
                         >
                             <ScrollArea className="max-h-[calc(100vh_-_24px)] overflow-y-auto pr-1">
                                 <div className="sticky top-0 pt-1 bg-popover z-10">
-                                    <DropdownMenuLabel className="text-muted-foreground text-xs">
-                                        <Trans>Channels</Trans>
-                                    </DropdownMenuLabel>
+                                    <DropdownMenuGroup>
+                                        <DropdownMenuLabel className="text-muted-foreground text-xs">
+                                            <Trans>Channels</Trans>
+                                        </DropdownMenuLabel>
+                                    </DropdownMenuGroup>
                                     {!!displayChannel && (
                                         <>
                                             {renderChannel(displayChannel)}
@@ -203,15 +204,13 @@ export function ChannelSwitcher() {
                                 {orderedChannels.map(renderChannel)}
                                 <PermissionGuard requires={['CreateChannel']}>
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem className="gap-2 p-2 cursor-pointer" asChild>
-                                        <Link to={'/channels/new'}>
+                                    <DropdownMenuItem className="gap-2 p-2 cursor-pointer" render={<Link to={'/channels/new'} />}>
                                             <div className="bg-background flex size-6 items-center justify-center rounded-md border">
                                                 <Plus className="size-4" />
                                             </div>
                                             <div className="text-muted-foreground font-medium">
                                                 <Trans>Add channel</Trans>
                                             </div>
-                                        </Link>
                                     </DropdownMenuItem>
                                 </PermissionGuard>
                             </ScrollArea>

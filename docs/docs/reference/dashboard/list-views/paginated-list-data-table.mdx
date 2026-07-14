@@ -2,7 +2,9 @@
 title: "PaginatedListDataTable"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/paginated-list-data-table.tsx" sourceLine="342" packageName="@vendure/dashboard" since="3.4.0" />
+## PaginatedListDataTable
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/paginated-list-data-table.tsx" sourceLine="358" packageName="@vendure/dashboard" since="3.4.0" />
 
 A wrapper around the [DataTable](/reference/dashboard/list-views/data-table#datatable) component, which automatically configures functionality common to
 list queries that implement the `PaginatedList` interface, which is the common way of representing lists
@@ -82,8 +84,8 @@ export function CustomerOrderTable({ customerId }: Readonly<CustomerOrderTablePr
                         const value = cell.getValue() as string;
                         const id = row.original.id;
                         return (
-                            <Button asChild variant="ghost">
-                                <Link to={`/orders/${id}`}>{value}</Link>
+                            <Button variant="ghost" render={<Link to={`/orders/${id}`} />}>
+                                {value}
                             </Button>
                         );
                     },
@@ -117,7 +119,9 @@ Parameters
 
 <MemberInfo kind="parameter" type={`Readonly<<a href='/reference/dashboard/list-views/paginated-list-data-table#paginatedlistdatatableprops'>PaginatedListDataTableProps</a><T, U, V, AC>>`} />
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/paginated-list-data-table.tsx" sourceLine="178" packageName="@vendure/dashboard" since="3.4.0" />
+## PaginatedListDataTableProps
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/paginated-list-data-table.tsx" sourceLine="177" packageName="@vendure/dashboard" since="3.4.0" />
 
 Props to configure the [PaginatedListDataTable](/reference/dashboard/list-views/paginated-list-data-table#paginatedlistdatatable) component.
 
@@ -142,7 +146,7 @@ interface PaginatedListDataTableProps<T extends TypedDocumentNode<U, V>, U exten
     onColumnVisibilityChange?: (table: Table<any>, columnVisibility: VisibilityState) => void;
     facetedFilters?: FacetedFilterConfig<T>;
     rowActions?: RowAction<PaginatedListItemFields<T>>[];
-    bulkActions?: BulkAction[];
+    bulkActions?: BulkActionsInput;
     disableViewOptions?: boolean;
     transformData?: (data: PaginatedListItemFields<T>[]) => PaginatedListItemFields<T>[];
     setTableOptions?: (table: TableOptions<any>) => TableOptions<any>;
@@ -153,6 +157,7 @@ interface PaginatedListDataTableProps<T extends TypedDocumentNode<U, V>, U exten
         item: PaginatedListItemFields<T>,
     ) => void | Promise<void>;
     disableDragAndDrop?: boolean;
+    includeSelectionColumn?: boolean;
 }
 ```
 
@@ -202,7 +207,13 @@ interface PaginatedListDataTableProps<T extends TypedDocumentNode<U, V>, U exten
 
 <MemberInfo kind="property" type={`(searchTerm: string) => NonNullable<V['options']>['filter']`}   />
 
-
+Called whenever the debounced search term changes (including when it
+becomes empty). Return a partial filter to merge with the column /
+faceted filters. The returned filter is only applied when the term is
+non-empty — when the term is `''`, the returned value is discarded so
+that callers can write `{ field: { contains: searchTerm } }` without
+producing tautological `contains: ''` clauses. The callback itself is
+still invoked on every change so pages can use it as a state-sync hook.
 ### page
 
 <MemberInfo kind="property" type={`number`}   />
@@ -255,7 +266,7 @@ interface PaginatedListDataTableProps<T extends TypedDocumentNode<U, V>, U exten
 
 ### bulkActions
 
-<MemberInfo kind="property" type={`<a href='/reference/dashboard/list-views/bulk-actions#bulkaction'>BulkAction</a>[]`}   />
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/list-views/bulk-actions#bulkactionsinput'>BulkActionsInput</a>`}   />
 
 
 ### disableViewOptions
@@ -289,6 +300,11 @@ When provided, enables drag-and-drop functionality.
 <MemberInfo kind="property" type={`boolean`}   />
 
 When true, drag and drop will be disabled. This will only have an effect if the onReorder prop is also set
+### includeSelectionColumn
+
+<MemberInfo kind="property" type={`boolean`} default={`true`}   />
+
+When false, the row selection checkbox column will not be included.
 
 
 </div>

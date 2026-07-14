@@ -1,9 +1,8 @@
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
-import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { RoleCodeLabel } from '@/vdb/components/shared/role-code-label.js';
 import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
-import { PageActionBarRight } from '@/vdb/framework/layout-engine/page-layout.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
 import { Trans } from '@lingui/react/macro';
 import { createFileRoute, Link } from '@tanstack/react-router';
@@ -85,20 +84,15 @@ function AdministratorListPage() {
             bulkActions={[
                 {
                     component: DeleteAdministratorsBulkAction,
-                    order: 500,
                 },
             ]}
         >
-            <PageActionBarRight>
-                <PermissionGuard requires={['CreateAdministrator']}>
-                    <Button asChild>
-                        <Link to="./new">
-                            <PlusIcon />
-                            New Administrator
-                        </Link>
-                    </Button>
-                </PermissionGuard>
-            </PageActionBarRight>
+            <ActionBarItem itemId="create-button" requiresPermission={['CreateAdministrator']}>
+                <Button render={<Link to="./new" />}>
+                    <PlusIcon />
+                    New Administrator
+                </Button>
+            </ActionBarItem>
         </ListPage>
     );
 }

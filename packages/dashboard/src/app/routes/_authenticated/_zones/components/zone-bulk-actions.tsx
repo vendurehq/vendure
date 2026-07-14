@@ -53,7 +53,6 @@ export function removeCountryFromZoneBulkAction(zoneId: string): BulkActionCompo
                     </Trans>
                 }
                 icon={TrashIcon}
-                className="text-destructive"
             />
         );
     };

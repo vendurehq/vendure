@@ -2,16 +2,17 @@
 title: "AuthOptions"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="360" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="365" packageName="@vendure/core" />
 
 The AuthOptions define how authentication and authorization is managed.
 
 ```ts title="Signature"
 interface AuthOptions {
     disableAuth?: boolean;
-    tokenMethod?: 'cookie' | 'bearer' | ReadonlyArray<'cookie' | 'bearer'>;
+    tokenMethod?: 'cookie' | 'bearer' | ReadonlyArray<'cookie' | 'bearer' | 'api-key'>;
     cookieOptions?: CookieOptions;
     authTokenHeaderKey?: string;
+    apiKeyHeaderKey?: string;
     sessionDuration?: string | number;
     sessionCacheStrategy?: SessionCacheStrategy;
     sessionCacheTTL?: string | number;
@@ -22,8 +23,12 @@ interface AuthOptions {
     adminAuthenticationStrategy?: AuthenticationStrategy[];
     customPermissions?: PermissionDefinition[];
     passwordHashingStrategy?: PasswordHashingStrategy;
+    adminApiKeyStrategy?: ApiKeyStrategy;
+    shopApiKeyStrategy?: ApiKeyStrategy;
     passwordValidationStrategy?: PasswordValidationStrategy;
     verificationTokenStrategy?: VerificationTokenStrategy;
+    entityAccessControlStrategy?: EntityAccessControlStrategy;
+    customerChannelAssignmentStrategy?: CustomerChannelAssignmentStrategy;
 }
 ```
 
@@ -38,7 +43,7 @@ NEVER set the to true in production. It exists
 only to aid certain development tasks.
 ### tokenMethod
 
-<MemberInfo kind="property" type={`'cookie' | 'bearer' | ReadonlyArray<'cookie' | 'bearer'>`} default={`'cookie'`}   />
+<MemberInfo kind="property" type={`'cookie' | 'bearer' | ReadonlyArray<'cookie' | 'bearer' | 'api-key'>`} default={`'cookie'`}   />
 
 Sets the method by which the session token is delivered and read.
 
@@ -47,12 +52,18 @@ Sets the method by which the session token is delivered and read.
   should automatically send the session cookie with each request.
 * 'bearer': Upon login, the token is returned in the response and should be then stored by the
   client app. Each request should include the header `Authorization: Bearer <token>`.
+* 'api-key': The mutation `createApiKey` will return a generated API-Key once, which should then be
+  stored by the User. Each request should include the API-Key inside the header defined by `apiKeyHeaderKey`
+('vendure-api-key' by default).
 
 Note that if the bearer method is used, Vendure will automatically expose the configured
 `authTokenHeaderKey` in the server's CORS configuration (adding `Access-Control-Expose-Headers: vendure-auth-token`
 by default).
 
 From v1.2.0 it is possible to specify both methods as a tuple: `['cookie', 'bearer']`.
+
+From v3.6.0 it is possible to include 'api-key' as additional method in the method-tuple to allow for long-lived
+API-Key based authorization.
 ### cookieOptions
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/auth/cookie-options#cookieoptions'>CookieOptions</a>`}   />
@@ -63,6 +74,11 @@ Options related to the handling of cookies when using the 'cookie' tokenMethod.
 <MemberInfo kind="property" type={`string`} default={`'vendure-auth-token'`}   />
 
 Sets the header property which will be used to send the auth token when using the 'bearer' method.
+### apiKeyHeaderKey
+
+<MemberInfo kind="property" type={`string`} default={`'vendure-api-key'`}   />
+
+Defines which header will be used to read the API-Key when using the 'api-key' token method.
 ### sessionDuration
 
 <MemberInfo kind="property" type={`string | number`} default={`'1y'`}   />
@@ -131,6 +147,16 @@ GraphQL resolvers defined in plugins.
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/auth/password-hashing-strategy#passwordhashingstrategy'>PasswordHashingStrategy</a>`} default={`<a href='/reference/typescript-api/auth/bcrypt-password-hashing-strategy#bcryptpasswordhashingstrategy'>BcryptPasswordHashingStrategy</a>`}  since="1.3.0"  />
 
 Allows you to customize the way passwords are hashed when using the [NativeAuthenticationStrategy](/reference/typescript-api/auth/native-authentication-strategy#nativeauthenticationstrategy).
+### adminApiKeyStrategy
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/auth/api-key-strategy#apikeystrategy'>ApiKeyStrategy</a>`}  since="3.6.0"  />
+
+
+### shopApiKeyStrategy
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/auth/api-key-strategy#apikeystrategy'>ApiKeyStrategy</a>`}  since="3.6.0"  />
+
+
 ### passwordValidationStrategy
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/auth/password-validation-strategy#passwordvalidationstrategy'>PasswordValidationStrategy</a>`} default={`<a href='/reference/typescript-api/auth/default-password-validation-strategy#defaultpasswordvalidationstrategy'>DefaultPasswordValidationStrategy</a>`}  since="1.5.0"  />
@@ -155,6 +181,24 @@ policy, which you can do like this:
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/auth/verification-token-strategy#verificationtokenstrategy'>VerificationTokenStrategy</a>`} default={`<a href='/reference/typescript-api/auth/default-verification-token-strategy#defaultverificationtokenstrategy'>DefaultVerificationTokenStrategy</a>`}  since="3.2.0"  />
 
 Allows you to customize the way verification tokens are generated.
+### entityAccessControlStrategy
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/auth/entity-access-control-strategy#entityaccesscontrolstrategy'>EntityAccessControlStrategy</a>`} default={`<a href='/reference/typescript-api/auth/entity-access-control-strategy#defaultentityaccesscontrolstrategy'>DefaultEntityAccessControlStrategy</a>`}  since="3.6.0" experimental="true" />
+
+Allows you to define access control for entity queries at three levels:
+
+- `canAccess()` — gate-level permission check (once per request)
+- `prepareAccessControl()` — async pre-loading for row-level filtering (once per request)
+- `applyAccessControl()` — synchronous row-level QB filtering (every entity query)
+
+**Developer preview:** this API is subject to change in future releases.
+### customerChannelAssignmentStrategy
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/auth/customer-channel-assignment-strategy#customerchannelassignmentstrategy'>CustomerChannelAssignmentStrategy</a>`} default={`<a href='/reference/typescript-api/auth/customer-channel-assignment-strategy#defaultcustomerchannelassignmentstrategy'>DefaultCustomerChannelAssignmentStrategy</a>`}  since="3.7.0"  />
+
+Determines whether an authenticated Customer is auto-assigned to the active Channel.
+This is skipped for the default channel, `disableAuth`, and registration/checkout flows.
+The default strategy always assigns.
 
 
 </div>

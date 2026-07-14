@@ -2,7 +2,7 @@ import { Trans } from '@lingui/react/macro';
 import { Editor } from '@tiptap/react';
 import { useEffect, useState } from 'react';
 import { Button } from '../../ui/button.js';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../../ui/dialog.js';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../ui/dialog.js';
 import { Input } from '../../ui/input.js';
 import { Label } from '../../ui/label.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select.js';
@@ -83,6 +83,9 @@ export function LinkDialog({ editor, isOpen, onClose }: Readonly<LinkDialogProps
                     <DialogTitle>
                         {isEditing ? <Trans>Edit link</Trans> : <Trans>Insert link</Trans>}
                     </DialogTitle>
+                    <DialogDescription className="sr-only">
+                        {isEditing ? <Trans>Edit the selected link properties</Trans> : <Trans>Insert a new hyperlink with URL and target options</Trans>}
+                    </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">
@@ -115,6 +118,7 @@ export function LinkDialog({ editor, isOpen, onClose }: Readonly<LinkDialogProps
                             <Trans>Link target</Trans>
                         </Label>
                         <Select
+                            items={{ '_self': 'Same window', '_blank': 'New window' }}
                             value={target}
                             onValueChange={value => setTarget(value as '_self' | '_blank')}
                         >

@@ -148,7 +148,7 @@ function renderListField(
  * - Custom field forms
  * - Configurable operation forms
  */
-export function FormControlAdapter({ fieldDef, field, valueMode }: Readonly<FormControlAdapterProps>) {
+export function FormControlAdapter({ fieldDef, field, valueMode, ...rest }: Readonly<FormControlAdapterProps> & { placeholder?: string }) {
     const isList = fieldDef.list ?? false;
     const isReadonly = isCustomFieldConfig(fieldDef) ? fieldDef.readonly === true : false;
     const componentId = fieldDef.ui?.component as string | undefined;
@@ -189,5 +189,5 @@ export function FormControlAdapter({ fieldDef, field, valueMode }: Readonly<Form
     }
 
     // Default case: non-list, non-struct fields
-    return <DefaultInputForType {...fieldWithTransform} fieldDef={fieldDef} />;
+    return <DefaultInputForType {...fieldWithTransform} fieldDef={fieldDef} {...rest} />;
 }

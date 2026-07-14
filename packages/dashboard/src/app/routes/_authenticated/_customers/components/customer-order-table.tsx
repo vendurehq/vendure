@@ -2,6 +2,7 @@ import { Money } from '@/vdb/components/data-display/money.js';
 import { PaginatedListDataTable } from '@/vdb/components/shared/paginated-list-data-table.js';
 import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
+import { getTypeForState, stateTypeToBadgeVariant } from '@/vdb/utils/state-type.js';
 import { Link } from '@tanstack/react-router';
 import { ColumnFiltersState, SortingState } from '@tanstack/react-table';
 import { useState } from 'react';
@@ -54,8 +55,11 @@ export function CustomerOrderTable({ customerId }: Readonly<CustomerOrderTablePr
                 state: {
                     header: 'State',
                     cell: ({ cell }) => {
-                        const value = cell.getValue() as string;
-                        return <Badge variant="outline">{value}</Badge>;
+                        const value = cell.getValue() as string | undefined;
+                        if (!value) {
+                            return null;
+                        }
+                        return <Badge variant={stateTypeToBadgeVariant(getTypeForState(value))}>{value}</Badge>;
                     },
                 },
                 code: {
@@ -64,8 +68,8 @@ export function CustomerOrderTable({ customerId }: Readonly<CustomerOrderTablePr
                         const value = cell.getValue() as string;
                         const id = row.original.id;
                         return (
-                            <Button asChild variant="ghost">
-                                <Link to={`/orders/${id}`}>{value}</Link>
+                            <Button render={<Link to={`/orders/${id}`} />} variant="ghost">
+                                {value}
                             </Button>
                         );
                     },

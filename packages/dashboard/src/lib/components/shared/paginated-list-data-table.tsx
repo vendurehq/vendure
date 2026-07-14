@@ -1,6 +1,4 @@
 import { DataTable, FacetedFilter } from '@/vdb/components/data-table/data-table.js';
-import { Alert, AlertDescription, AlertTitle } from '@/vdb/components/ui/alert.js';
-import { Trans } from '@lingui/react/macro';
 import { getObjectPathToPaginatedList } from '@/vdb/framework/document-introspection/get-document-structure.js';
 import { useListQueryFields } from '@/vdb/framework/document-introspection/hooks.js';
 import { api } from '@/vdb/graphql/api.js';
@@ -9,7 +7,7 @@ import { useDebounce } from '@uidotdev/usehooks';
 
 import { addCustomFields } from '@/vdb/framework/document-introspection/add-custom-fields.js';
 import { includeOnlySelectedListFields } from '@/vdb/framework/document-introspection/include-only-selected-list-fields.js';
-import { BulkAction } from '@/vdb/framework/extension-api/types/index.js';
+import { BulkActionsInput } from '@/vdb/framework/extension-api/types/index.js';
 import { ResultOf } from '@/vdb/graphql/graphql.js';
 import { useExtendedListQuery } from '@/vdb/hooks/use-extended-list-query.js';
 import { TypedDocumentNode } from '@graphql-typed-document-node/core';
@@ -19,6 +17,7 @@ import React from 'react';
 import { getColumnVisibility, getStandardizedDefaultColumnOrder } from '../data-table/data-table-utils.js';
 import { useGeneratedColumns } from '../data-table/use-generated-columns.js';
 import { PaginatedListContext } from './paginated-list-context.js';
+import { useViewOptionDefaults } from '@/vdb/hooks/use-view-option-defaults.js';
 
 // Type that identifies a paginated list structure (has items array and totalItems)
 type IsPaginatedList<T> = T extends { items: any[]; totalItems: number } ? true : false;
@@ -189,6 +188,16 @@ export interface PaginatedListDataTableProps<
     additionalColumns?: AC;
     defaultColumnOrder?: (keyof ListQueryFields<T> | keyof AC | CustomFieldKeysOfItem<ListQueryFields<T>>)[];
     defaultVisibility?: Partial<Record<AllItemFieldKeys<T>, boolean>>;
+    /**
+     * @description
+     * Called whenever the debounced search term changes (including when it
+     * becomes empty). Return a partial filter to merge with the column /
+     * faceted filters. The returned filter is only applied when the term is
+     * non-empty — when the term is `''`, the returned value is discarded so
+     * that callers can write `{ field: { contains: searchTerm } }` without
+     * producing tautological `contains: ''` clauses. The callback itself is
+     * still invoked on every change so pages can use it as a state-sync hook.
+     */
     onSearchTermChange?: (searchTerm: string) => NonNullable<V['options']>['filter'];
     page: number;
     itemsPerPage: number;
@@ -200,7 +209,7 @@ export interface PaginatedListDataTableProps<
     onColumnVisibilityChange?: (table: Table<any>, columnVisibility: VisibilityState) => void;
     facetedFilters?: FacetedFilterConfig<T>;
     rowActions?: RowAction<PaginatedListItemFields<T>>[];
-    bulkActions?: BulkAction[];
+    bulkActions?: BulkActionsInput;
     disableViewOptions?: boolean;
     transformData?: (data: PaginatedListItemFields<T>[]) => PaginatedListItemFields<T>[];
     setTableOptions?: (table: TableOptions<any>) => TableOptions<any>;
@@ -225,6 +234,13 @@ export interface PaginatedListDataTableProps<
      * When true, drag and drop will be disabled. This will only have an effect if the onReorder prop is also set
      */
     disableDragAndDrop?: boolean;
+    /**
+     * @description
+     * When false, the row selection checkbox column will not be included.
+     *
+     * @default true
+     */
+    includeSelectionColumn?: boolean;
 }
 
 export const PaginatedListDataTableKey = 'PaginatedListDataTable';
@@ -308,8 +324,8 @@ export const PaginatedListDataTableKey = 'PaginatedListDataTable';
  *                         const value = cell.getValue() as string;
  *                         const id = row.original.id;
  *                         return (
- *                             <Button asChild variant="ghost">
- *                                 <Link to={`/orders/${id}`}>{value}</Link>
+ *                             <Button variant="ghost" render={<Link to={`/orders/${id}`} />}>
+ *                                 {value}
  *                             </Button>
  *                         );
  *                     },
@@ -351,8 +367,8 @@ export function PaginatedListDataTable<
     transformVariables,
     customizeColumns,
     additionalColumns,
-    defaultVisibility,
-    defaultColumnOrder,
+    defaultVisibility: _defaultVisibility,
+    defaultColumnOrder: _defaultColumnOrder,
     onSearchTermChange,
     page,
     itemsPerPage,
@@ -371,6 +387,7 @@ export function PaginatedListDataTable<
     registerRefresher,
     onReorder,
     disableDragAndDrop = false,
+    includeSelectionColumn,
 }: Readonly<PaginatedListDataTableProps<T, U, V, AC>>) {
     const [searchTerm, setSearchTerm] = React.useState<string>('');
     const debouncedSearchTerm = useDebounce(searchTerm, 500);
@@ -398,6 +415,9 @@ export function PaginatedListDataTable<
     const fields = useListQueryFields(extendedListQuery);
     const paginatedListObjectPath = getObjectPathToPaginatedList(extendedListQuery);
 
+    // Merge code-defined default view options with any view options configured via the Plugin Extension API
+    const { defaultColumnVisibility, defaultColumnOrder } = useViewOptionDefaults(_defaultVisibility, _defaultColumnOrder);
+
     const { columns, customFieldColumnNames } = useGeneratedColumns({
         fields,
         customizeColumns,
@@ -406,8 +426,9 @@ export function PaginatedListDataTable<
         deleteMutation,
         additionalColumns,
         defaultColumnOrder: getStandardizedDefaultColumnOrder(defaultColumnOrder),
+        includeSelectionColumn,
     });
-    const columnVisibility = getColumnVisibility(columns, defaultVisibility, customFieldColumnNames);
+    const columnVisibility = getColumnVisibility(columns, defaultColumnVisibility, customFieldColumnNames);
     // Get the actual visible columns and only fetch those
     const visibleColumns = columns
         // Filter out invisible columns, but _always_ select "id"
@@ -443,9 +464,17 @@ export function PaginatedListDataTable<
     ];
     const queryKey = transformQueryKey ? transformQueryKey(defaultQueryKey) : defaultQueryKey;
 
-    const { data, isFetching, error } = useQuery({
+    const { data, isFetching } = useQuery({
         queryFn: () => {
-            const searchFilter = onSearchTermChange ? onSearchTermChange(debouncedSearchTerm) : {};
+            // Always invoke onSearchTermChange so callers can use it as a
+            // state-sync hook (e.g. collections.tsx gates drag-and-drop on the
+            // current search term). Discard its filter contribution when the
+            // term is empty — otherwise pages built around
+            // `contains: searchTerm` produce `contains: ''` clauses that match
+            // everything, and combined with `filterOperator: 'OR'` they
+            // silently disable all column filters.
+            const rawSearchFilter = onSearchTermChange ? onSearchTermChange(debouncedSearchTerm) : {};
+            const searchFilter = debouncedSearchTerm ? rawSearchFilter : {};
             const mergedFilter = { ...filter, ...searchFilter };
             const variables = {
                 options: {
@@ -471,14 +500,6 @@ export function PaginatedListDataTable<
         typeof transformData === 'function' ? transformData(listData?.items ?? []) : (listData?.items ?? []);
     return (
         <PaginatedListContext.Provider value={{ refetchPaginatedList }}>
-            {error && (
-                <Alert variant="destructive" className="mb-4">
-                    <AlertTitle><Trans>Error</Trans></AlertTitle>
-                    <AlertDescription>
-                        {error instanceof Error ? error.message : <Trans>An unknown error occurred</Trans>}
-                    </AlertDescription>
-                </Alert>
-            )}
             <DataTable
                 columns={columns}
                 data={transformedData}

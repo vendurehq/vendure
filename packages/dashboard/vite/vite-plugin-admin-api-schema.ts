@@ -11,7 +11,6 @@ import {
 } from 'graphql';
 import { Plugin } from 'vite';
 
-import { generateSchema } from './utils/schema-generator.js';
 import { ConfigLoaderApi, getConfigLoaderApi } from './vite-plugin-config-loader.js';
 
 export type FieldInfoTuple = readonly [
@@ -53,6 +52,7 @@ export function adminApiSchemaPlugin(): Plugin {
         async buildStart() {
             const { vendureConfig } = await configLoaderApi.getVendureConfig();
             if (!schemaInfo) {
+                const { generateSchema } = await import('./utils/schema-generator.js');
                 const safeSchema = await generateSchema({ vendureConfig });
                 schemaInfo = generateSchemaInfo(safeSchema);
             }

@@ -12,6 +12,7 @@ import { AssetFragment, assetFragment } from '@/vdb/graphql/fragments.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
 import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from '@uidotdev/usehooks';
+import { Trans } from '@lingui/react/macro';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '../ui/button.js';
@@ -78,11 +79,9 @@ export function ProductVariantSelector({ onProductVariantSelect }: Readonly<Prod
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" className="w-full">
-                    Add item to order
+            <PopoverTrigger render={<Button variant="outline" role="combobox" className="w-full" />}>
+                    <Trans>Add item to order</Trans>
                     <Plus className="opacity-50" />
-                </Button>
             </PopoverTrigger>
             <PopoverContent className="p-0">
                 <Command shouldFilter={false}>

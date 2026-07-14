@@ -64,7 +64,12 @@ export class EmailProcessor {
                     templateVars: data.templateVars,
                 },
             );
-            const generated = this.generator.generate(data.from, data.subject, bodySource, data.templateVars);
+            const generated = await this.generator.generate(
+                data.from,
+                data.subject,
+                bodySource,
+                data.templateVars,
+            );
             emailDetails = {
                 ...generated,
                 recipient: data.recipient,

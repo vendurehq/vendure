@@ -26,8 +26,7 @@ The API client is designed to work seamlessly with TanStack Query for optimal da
 #### Query Example
 
 ```tsx
-import { useQuery } from '@tanstack/react-query';
-import { api } from '@vendure/dashboard';
+import { useQuery, api } from '@vendure/dashboard';
 import { graphql } from '@/gql';
 
 const getProductsQuery = graphql(`
@@ -65,10 +64,8 @@ function ProductList() {
 #### Mutation Example
 
 ```tsx
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '@vendure/dashboard';
+import { useMutation, useQueryClient, api, toast } from '@vendure/dashboard';
 import { graphql } from '@/gql';
-import { toast } from 'sonner';
 
 const updateProductMutation = graphql(`
     mutation UpdateProduct($input: UpdateProductInput!) {

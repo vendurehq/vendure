@@ -1,8 +1,7 @@
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
-import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
-import { PageActionBarRight } from '@/vdb/framework/layout-engine/page-layout.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
 import { Trans } from '@lingui/react/macro';
 import { createFileRoute, Link } from '@tanstack/react-router';
@@ -41,7 +40,7 @@ function TaxCategoryListPage() {
                 },
                 isDefault: {
                     cell: ({ row }) => (
-                        <Badge variant={row.original.isDefault ? 'success' : 'destructive'}>
+                        <Badge variant={row.original.isDefault ? 'success' : 'secondary'}>
                             <Trans>{row.original.isDefault ? 'Yes' : 'No'}</Trans>
                         </Badge>
                     ),
@@ -50,20 +49,15 @@ function TaxCategoryListPage() {
             bulkActions={[
                 {
                     component: DeleteTaxCategoriesBulkAction,
-                    order: 500,
                 },
             ]}
         >
-            <PageActionBarRight>
-                <PermissionGuard requires={['CreateTaxCategory']}>
-                    <Button asChild>
-                        <Link to="./new">
-                            <PlusIcon />
-                            <Trans>New Tax Category</Trans>
-                        </Link>
-                    </Button>
-                </PermissionGuard>
-            </PageActionBarRight>
+            <ActionBarItem itemId="create-button" requiresPermission={['CreateTaxCategory']}>
+                <Button render={<Link to="./new" />}>
+                    <PlusIcon />
+                    <Trans>New Tax Category</Trans>
+                </Button>
+            </ActionBarItem>
         </ListPage>
     );
 }

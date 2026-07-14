@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { CurrencyCode, LanguageCode } from '@vendure/common/lib/generated-types';
 import { createTestEnvironment, E2E_DEFAULT_CHANNEL_TOKEN } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -6,27 +7,25 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
-import * as Codegen from './graphql/generated-e2e-admin-types';
-import { CurrencyCode, LanguageCode } from './graphql/generated-e2e-admin-types';
-import { RegisterMutation, RegisterMutationVariables } from './graphql/generated-e2e-shop-types';
+import { ResultOf } from './graphql/graphql-admin';
 import {
-    ADD_CUSTOMERS_TO_GROUP,
-    CREATE_ADDRESS,
-    CREATE_CHANNEL,
-    CREATE_CUSTOMER,
-    CREATE_CUSTOMER_GROUP,
-    DELETE_CUSTOMER,
-    GET_CUSTOMER_GROUP,
-    GET_CUSTOMER_LIST,
-    ME,
-    REMOVE_CUSTOMERS_FROM_GROUP,
-    UPDATE_ADDRESS,
-    UPDATE_CUSTOMER,
+    addCustomersToGroupDocument,
+    createAddressDocument,
+    createChannelDocument,
+    createCustomerDocument,
+    createCustomerGroupDocument,
+    deleteCustomerDocument,
+    getCustomerGroupDocument,
+    getCustomerListDocument,
+    MeDocument,
+    removeCustomersFromGroupDocument,
+    updateAddressDocument,
+    updateCustomerDocument,
 } from './graphql/shared-definitions';
-import { DELETE_ADDRESS, REGISTER_ACCOUNT } from './graphql/shop-definitions';
+import { deleteAddressDocument, registerAccountDocument } from './graphql/shop-definitions';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 
-type CustomerListItem = Codegen.GetCustomerListQuery['customers']['items'][number];
+type CustomerListItem = ResultOf<typeof getCustomerListDocument>['customers']['items'][number];
 
 describe('ChannelAware Customers', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(testConfig());
@@ -45,35 +44,26 @@ describe('ChannelAware Customers', () => {
         });
         await adminClient.asSuperAdmin();
 
-        const { customers } = await adminClient.query<
-            Codegen.GetCustomerListQuery,
-            Codegen.GetCustomerListQueryVariables
-        >(GET_CUSTOMER_LIST, {
+        const { customers } = await adminClient.query(getCustomerListDocument, {
             options: { take: numberOfCustomers },
         });
         firstCustomer = customers.items[0];
         secondCustomer = customers.items[1];
         thirdCustomer = customers.items[2];
 
-        await adminClient.query<Codegen.CreateChannelMutation, Codegen.CreateChannelMutationVariables>(
-            CREATE_CHANNEL,
-            {
-                input: {
-                    code: 'second-channel',
-                    token: SECOND_CHANNEL_TOKEN,
-                    defaultLanguageCode: LanguageCode.en,
-                    currencyCode: CurrencyCode.GBP,
-                    pricesIncludeTax: true,
-                    defaultShippingZoneId: 'T_1',
-                    defaultTaxZoneId: 'T_1',
-                },
+        await adminClient.query(createChannelDocument, {
+            input: {
+                code: 'second-channel',
+                token: SECOND_CHANNEL_TOKEN,
+                defaultLanguageCode: LanguageCode.en,
+                currencyCode: CurrencyCode.GBP,
+                pricesIncludeTax: true,
+                defaultShippingZoneId: 'T_1',
+                defaultTaxZoneId: 'T_1',
             },
-        );
+        });
 
-        const { createCustomerGroup } = await adminClient.query<
-            Codegen.CreateCustomerGroupMutation,
-            Codegen.CreateCustomerGroupMutationVariables
-        >(CREATE_CUSTOMER_GROUP, {
+        const { createCustomerGroup } = await adminClient.query(createCustomerGroupDocument, {
             input: {
                 name: 'TestGroup',
             },
@@ -90,10 +80,7 @@ describe('ChannelAware Customers', () => {
             'throws when updating address from customer from other channel',
             assertThrowsWithMessage(async () => {
                 adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
-                await adminClient.query<
-                    Codegen.UpdateAddressMutation,
-                    Codegen.UpdateAddressMutationVariables
-                >(UPDATE_ADDRESS, {
+                await adminClient.query(updateAddressDocument, {
                     input: {
                         id: 'T_1',
                         streetLine1: 'Dummy street',
@@ -106,10 +93,7 @@ describe('ChannelAware Customers', () => {
             'throws when creating address for customer from other channel',
             assertThrowsWithMessage(async () => {
                 adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
-                await adminClient.query<
-                    Codegen.CreateAddressMutation,
-                    Codegen.CreateAddressMutationVariables
-                >(CREATE_ADDRESS, {
+                await adminClient.query(createAddressDocument, {
                     id: firstCustomer.id,
                     input: {
                         streetLine1: 'Dummy street',
@@ -123,10 +107,7 @@ describe('ChannelAware Customers', () => {
             'throws when deleting address from customer from other channel',
             assertThrowsWithMessage(async () => {
                 adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
-                await adminClient.query<
-                    Codegen.DeleteCustomerAddressMutation,
-                    Codegen.DeleteCustomerAddressMutationVariables
-                >(DELETE_ADDRESS, {
+                await adminClient.query(deleteAddressDocument, {
                     id: 'T_1',
                 });
             }, 'No Address with the id "1" could be found'),
@@ -138,10 +119,7 @@ describe('ChannelAware Customers', () => {
             'throws when deleting customer from other channel',
             assertThrowsWithMessage(async () => {
                 adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
-                await adminClient.query<
-                    Codegen.DeleteCustomerMutation,
-                    Codegen.DeleteCustomerMutationVariables
-                >(DELETE_CUSTOMER, {
+                await adminClient.query(deleteCustomerDocument, {
                     id: firstCustomer.id,
                 });
             }, 'No Customer with the id "1" could be found'),
@@ -151,10 +129,7 @@ describe('ChannelAware Customers', () => {
             'throws when updating customer from other channel',
             assertThrowsWithMessage(async () => {
                 adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
-                await adminClient.query<
-                    Codegen.UpdateCustomerMutation,
-                    Codegen.UpdateCustomerMutationVariables
-                >(UPDATE_CUSTOMER, {
+                await adminClient.query(updateCustomerDocument, {
                     input: {
                         id: firstCustomer.id,
                         firstName: 'John',
@@ -166,25 +141,16 @@ describe('ChannelAware Customers', () => {
 
         it('creates customers on current and default channel', async () => {
             adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
-            await adminClient.query<Codegen.CreateCustomerMutation, Codegen.CreateCustomerMutationVariables>(
-                CREATE_CUSTOMER,
-                {
-                    input: {
-                        firstName: 'John',
-                        lastName: 'Doe',
-                        emailAddress: 'john.doe@test.com',
-                    },
+            await adminClient.query(createCustomerDocument, {
+                input: {
+                    firstName: 'John',
+                    lastName: 'Doe',
+                    emailAddress: 'john.doe@test.com',
                 },
-            );
-            const customersSecondChannel = await adminClient.query<
-                Codegen.GetCustomerListQuery,
-                Codegen.GetCustomerListQueryVariables
-            >(GET_CUSTOMER_LIST);
+            });
+            const customersSecondChannel = await adminClient.query(getCustomerListDocument);
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
-            const customersDefaultChannel = await adminClient.query<
-                Codegen.GetCustomerListQuery,
-                Codegen.GetCustomerListQueryVariables
-            >(GET_CUSTOMER_LIST);
+            const customersDefaultChannel = await adminClient.query(getCustomerListDocument);
 
             expect(customersSecondChannel.customers.totalItems).toBe(1);
             expect(customersDefaultChannel.customers.totalItems).toBe(numberOfCustomers + 1);
@@ -192,33 +158,21 @@ describe('ChannelAware Customers', () => {
 
         it('only shows customers from current channel', async () => {
             adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
-            const { customers } = await adminClient.query<
-                Codegen.GetCustomerListQuery,
-                Codegen.GetCustomerListQueryVariables
-            >(GET_CUSTOMER_LIST);
+            const { customers } = await adminClient.query(getCustomerListDocument);
             expect(customers.totalItems).toBe(1);
         });
 
         it('shows all customers on default channel', async () => {
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
-            const { customers } = await adminClient.query<
-                Codegen.GetCustomerListQuery,
-                Codegen.GetCustomerListQueryVariables
-            >(GET_CUSTOMER_LIST);
+            const { customers } = await adminClient.query(getCustomerListDocument);
             expect(customers.totalItems).toBe(numberOfCustomers + 1);
         });
 
         it('brings customer to current channel when creating with existing emailAddress', async () => {
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
-            let customersDefaultChannel = await adminClient.query<
-                Codegen.GetCustomerListQuery,
-                Codegen.GetCustomerListQueryVariables
-            >(GET_CUSTOMER_LIST);
+            let customersDefaultChannel = await adminClient.query(getCustomerListDocument);
             adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
-            let customersSecondChannel = await adminClient.query<
-                Codegen.GetCustomerListQuery,
-                Codegen.GetCustomerListQueryVariables
-            >(GET_CUSTOMER_LIST);
+            let customersSecondChannel = await adminClient.query(getCustomerListDocument);
             expect(customersDefaultChannel.customers.items.map(customer => customer.emailAddress)).toContain(
                 firstCustomer.emailAddress,
             );
@@ -226,26 +180,17 @@ describe('ChannelAware Customers', () => {
                 customersSecondChannel.customers.items.map(customer => customer.emailAddress),
             ).not.toContain(firstCustomer.emailAddress);
 
-            await adminClient.query<Codegen.CreateCustomerMutation, Codegen.CreateCustomerMutationVariables>(
-                CREATE_CUSTOMER,
-                {
-                    input: {
-                        firstName: firstCustomer.firstName + '_new',
-                        lastName: firstCustomer.lastName + '_new',
-                        emailAddress: firstCustomer.emailAddress,
-                    },
+            await adminClient.query(createCustomerDocument, {
+                input: {
+                    firstName: firstCustomer.firstName + '_new',
+                    lastName: firstCustomer.lastName + '_new',
+                    emailAddress: firstCustomer.emailAddress,
                 },
-            );
+            });
 
-            customersSecondChannel = await adminClient.query<
-                Codegen.GetCustomerListQuery,
-                Codegen.GetCustomerListQueryVariables
-            >(GET_CUSTOMER_LIST);
+            customersSecondChannel = await adminClient.query(getCustomerListDocument);
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
-            customersDefaultChannel = await adminClient.query<
-                Codegen.GetCustomerListQuery,
-                Codegen.GetCustomerListQueryVariables
-            >(GET_CUSTOMER_LIST);
+            customersDefaultChannel = await adminClient.query(getCustomerListDocument);
             const firstCustomerOnNewChannel = customersSecondChannel.customers.items.find(
                 customer => customer.emailAddress === firstCustomer.emailAddress,
             );
@@ -269,13 +214,10 @@ describe('ChannelAware Customers', () => {
         it('assigns authenticated customers to the channels they visit', async () => {
             shopClient.setChannelToken(SECOND_CHANNEL_TOKEN);
             await shopClient.asUserWithCredentials(secondCustomer.emailAddress, 'test');
-            await shopClient.query<Codegen.MeQuery>(ME);
+            await shopClient.query(MeDocument);
 
             adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
-            const { customers } = await adminClient.query<
-                Codegen.GetCustomerListQuery,
-                Codegen.GetCustomerListQueryVariables
-            >(GET_CUSTOMER_LIST);
+            const { customers } = await adminClient.query(getCustomerListDocument);
             expect(customers.totalItems).toBe(3);
             expect(customers.items.map(customer => customer.emailAddress)).toContain(
                 secondCustomer.emailAddress,
@@ -285,17 +227,14 @@ describe('ChannelAware Customers', () => {
         it('assigns newly registered customers to channel', async () => {
             shopClient.setChannelToken(SECOND_CHANNEL_TOKEN);
             await shopClient.asAnonymousUser();
-            await shopClient.query<RegisterMutation, RegisterMutationVariables>(REGISTER_ACCOUNT, {
+            await shopClient.query(registerAccountDocument, {
                 input: {
                     emailAddress: 'john.doe.2@test.com',
                 },
             });
 
             adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
-            const { customers } = await adminClient.query<
-                Codegen.GetCustomerListQuery,
-                Codegen.GetCustomerListQueryVariables
-            >(GET_CUSTOMER_LIST);
+            const { customers } = await adminClient.query(getCustomerListDocument);
             expect(customers.totalItems).toBe(4);
             expect(customers.items.map(customer => customer.emailAddress)).toContain('john.doe.2@test.com');
         });
@@ -303,38 +242,29 @@ describe('ChannelAware Customers', () => {
         // https://github.com/vendurehq/vendure/issues/834
         it('handles concurrent assignments to a new channel', async () => {
             const THIRD_CHANNEL_TOKEN = 'third_channel_token';
-            await adminClient.query<Codegen.CreateChannelMutation, Codegen.CreateChannelMutationVariables>(
-                CREATE_CHANNEL,
-                {
-                    input: {
-                        code: 'third-channel',
-                        token: THIRD_CHANNEL_TOKEN,
-                        defaultLanguageCode: LanguageCode.en,
-                        currencyCode: CurrencyCode.GBP,
-                        pricesIncludeTax: true,
-                        defaultShippingZoneId: 'T_1',
-                        defaultTaxZoneId: 'T_1',
-                    },
+            await adminClient.query(createChannelDocument, {
+                input: {
+                    code: 'third-channel',
+                    token: THIRD_CHANNEL_TOKEN,
+                    defaultLanguageCode: LanguageCode.en,
+                    currencyCode: CurrencyCode.GBP,
+                    pricesIncludeTax: true,
+                    defaultShippingZoneId: 'T_1',
+                    defaultTaxZoneId: 'T_1',
                 },
-            );
+            });
 
             await shopClient.asUserWithCredentials(secondCustomer.emailAddress, 'test');
             shopClient.setChannelToken(THIRD_CHANNEL_TOKEN);
 
             try {
-                await Promise.all([
-                    shopClient.query<Codegen.MeQuery>(ME),
-                    shopClient.query<Codegen.MeQuery>(ME),
-                ]);
+                await Promise.all([shopClient.query(MeDocument), shopClient.query(MeDocument)]);
             } catch (e: any) {
                 fail('Threw: ' + (e.message as string));
             }
 
             adminClient.setChannelToken(THIRD_CHANNEL_TOKEN);
-            const { customers } = await adminClient.query<
-                Codegen.GetCustomerListQuery,
-                Codegen.GetCustomerListQueryVariables
-            >(GET_CUSTOMER_LIST);
+            const { customers } = await adminClient.query(getCustomerListDocument);
             expect(customers.totalItems).toBe(1);
             expect(customers.items.map(customer => customer.emailAddress)).toContain(
                 secondCustomer.emailAddress,
@@ -345,19 +275,13 @@ describe('ChannelAware Customers', () => {
     describe('Customergroup manipulation', () => {
         it('does not add a customer from another channel to customerGroup', async () => {
             adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
-            await adminClient.query<
-                Codegen.AddCustomersToGroupMutation,
-                Codegen.AddCustomersToGroupMutationVariables
-            >(ADD_CUSTOMERS_TO_GROUP, {
+            await adminClient.query(addCustomersToGroupDocument, {
                 groupId: customerGroupId,
                 customerIds: [thirdCustomer.id],
             });
 
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
-            const { customerGroup } = await adminClient.query<
-                Codegen.GetCustomerGroupQuery,
-                Codegen.GetCustomerGroupQueryVariables
-            >(GET_CUSTOMER_GROUP, {
+            const { customerGroup } = await adminClient.query(getCustomerGroupDocument, {
                 id: customerGroupId,
             });
             expect(customerGroup!.customers.totalItems).toBe(0);
@@ -365,19 +289,13 @@ describe('ChannelAware Customers', () => {
 
         it('only shows customers from current channel in customerGroup', async () => {
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
-            await adminClient.query<
-                Codegen.AddCustomersToGroupMutation,
-                Codegen.AddCustomersToGroupMutationVariables
-            >(ADD_CUSTOMERS_TO_GROUP, {
+            await adminClient.query(addCustomersToGroupDocument, {
                 groupId: customerGroupId,
                 customerIds: [secondCustomer.id, thirdCustomer.id],
             });
 
             adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
-            const { customerGroup } = await adminClient.query<
-                Codegen.GetCustomerGroupQuery,
-                Codegen.GetCustomerGroupQueryVariables
-            >(GET_CUSTOMER_GROUP, {
+            const { customerGroup } = await adminClient.query(getCustomerGroupDocument, {
                 id: customerGroupId,
             });
             expect(customerGroup!.customers.totalItems).toBe(1);
@@ -386,10 +304,7 @@ describe('ChannelAware Customers', () => {
 
         it('throws when deleting customer from other channel from customerGroup', async () => {
             adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
-            await adminClient.query<
-                Codegen.RemoveCustomersFromGroupMutation,
-                Codegen.RemoveCustomersFromGroupMutationVariables
-            >(REMOVE_CUSTOMERS_FROM_GROUP, {
+            await adminClient.query(removeCustomersFromGroupDocument, {
                 groupId: customerGroupId,
                 customerIds: [thirdCustomer.id],
             });

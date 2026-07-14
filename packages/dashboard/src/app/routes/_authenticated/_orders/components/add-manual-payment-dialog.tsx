@@ -118,7 +118,7 @@ export function AddManualPaymentDialog({ order, onSuccess }: Readonly<AddManualP
                 }}
                 className="mr-2"
             >
-                <Trans>Add payment to order ({formatCurrency(outstandingAmount, currencyCode)})</Trans>
+                <Trans>Add payment</Trans>
             </Button>
             <Dialog open={open}>
                 <DialogContent className="sm:max-w-[500px]">

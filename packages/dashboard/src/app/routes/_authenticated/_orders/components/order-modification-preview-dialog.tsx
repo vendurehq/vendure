@@ -12,7 +12,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/vdb/components/ui/dialog.js';
-import { FormControl, FormField } from '@/vdb/components/ui/form.js';
 import { Textarea } from '@/vdb/components/ui/textarea.js';
 import { addCustomFields } from '@/vdb/framework/document-introspection/add-custom-fields.js';
 import { api } from '@/vdb/graphql/api.js';
@@ -22,7 +21,8 @@ import { useMutation } from '@tanstack/react-query';
 import { ResultOf, VariablesOf } from 'gql.tada';
 import { CheckIcon } from 'lucide-react';
 import { useEffect, useRef } from 'react';
-import { FormProvider, useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
+import { Form } from '@/vdb/components/ui/form.js';
 import { modifyOrderDocument, orderDetailDocument } from '../orders.graphql.js';
 import { OrderTable } from './order-table.js';
 
@@ -58,7 +58,9 @@ export function OrderModificationPreviewDialog({
     // Use a ref to track the last input sent to avoid duplicate calls
     const lastInputRef = useRef<ModifyOrderInput | null>(null);
     const previewMutation = useMutation({
-        mutationFn: api.mutate(addCustomFields(modifyOrderDocument)),
+        mutationFn: api.mutate(
+            addCustomFields(modifyOrderDocument, { includeNestedFragments: ['OrderLine', 'Fulfillment'] }),
+        ),
     });
 
     // Create form with dynamic fields for each payment
@@ -77,7 +79,12 @@ export function OrderModificationPreviewDialog({
     });
 
     const confirmMutation = useMutation({
-        mutationFn: (input: ModifyOrderInput) => api.mutate(addCustomFields(modifyOrderDocument))({ input }),
+        mutationFn: (input: ModifyOrderInput) =>
+            api.mutate(
+                addCustomFields(modifyOrderDocument, {
+                    includeNestedFragments: ['OrderLine', 'Fulfillment'],
+                }),
+            )({ input }),
     });
 
     // Trigger preview when dialog opens or input changes (while open)
@@ -176,7 +183,7 @@ export function OrderModificationPreviewDialog({
                                             </Trans>
                                         </AlertDescription>
                                     </Alert>
-                                    <FormProvider {...refundForm}>
+                                    <Form {...refundForm}>
                                         <form className="space-y-4 mt-4">
                                             {/* Payment Cards */}
                                             <div className="space-y-3">
@@ -239,24 +246,18 @@ export function OrderModificationPreviewDialog({
                                                                         )}
                                                                     </div>
                                                                     <div className="w-full">
-                                                                        <FormField
+                                                                        <Controller
                                                                             name={`payments.${payment.id}`}
                                                                             control={refundForm.control}
                                                                             render={({ field }) => (
-                                                                                <FormControl>
-                                                                                    <MoneyInput
-                                                                                        {...field}
-                                                                                        value={
-                                                                                            field.value || 0
-                                                                                        }
-                                                                                        onChange={
-                                                                                            field.onChange
-                                                                                        }
-                                                                                        currency={
-                                                                                            orderSnapshot.currencyCode
-                                                                                        }
-                                                                                    />
-                                                                                </FormControl>
+                                                                                <MoneyInput
+                                                                                    {...field}
+                                                                                    value={field.value || 0}
+                                                                                    onChange={field.onChange}
+                                                                                    currency={
+                                                                                        orderSnapshot.currencyCode
+                                                                                    }
+                                                                                />
                                                                             )}
                                                                         />
                                                                     </div>
@@ -281,7 +282,7 @@ export function OrderModificationPreviewDialog({
                                                             )}
                                                         </span>
                                                         {isRefundComplete && (
-                                                            <CheckIcon className="h-4 w-4 text-green-600" />
+                                                            <CheckIcon className="h-4 w-4 text-success" />
                                                         )}
                                                     </div>
                                                     {!isRefundComplete && (
@@ -310,7 +311,7 @@ export function OrderModificationPreviewDialog({
                                                 </div>
                                             </div>
                                         </form>
-                                    </FormProvider>
+                                    </Form>
                                 </>
                             )}
                             <div className="w-full flex justify-end">
@@ -345,10 +346,10 @@ export function OrderModificationPreviewDialog({
                     )}
                 </div>
                 <DialogFooter>
-                    <DialogClose asChild>
-                        <Button type="button" variant="secondary" onClick={() => onResolve()}>
-                            <Trans>Cancel</Trans>
-                        </Button>
+                    <DialogClose
+                        render={<Button type="button" variant="secondary" onClick={() => onResolve()} />}
+                    >
+                        <Trans>Cancel</Trans>
                     </DialogClose>
                     <Button
                         type="button"

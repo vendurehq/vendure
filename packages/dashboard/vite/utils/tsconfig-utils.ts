@@ -10,15 +10,28 @@ export interface TsConfigPathsConfig {
     paths: Record<string, string[]>;
 }
 
+interface RawTsConfigResult {
+    dir: string;
+    rawPaths: Required<CompilerOptions>['paths'];
+    baseUrl: string;
+}
+
+const rawTsConfigCache = new Map<string, RawTsConfigResult | undefined>();
+
+/** Clears the internal tsconfig cache. Intended for test isolation. */
+export function clearRawTsConfigCache() {
+    rawTsConfigCache.clear();
+}
+
 /**
- * Finds and parses tsconfig files in the given directory and its parent directories.
+ * Finds the raw tsconfig data (directory traversal + file reading) and caches
+ * the result so repeated calls with the same configPath skip the filesystem work.
  */
-export async function findTsConfigPaths(
-    configPath: string,
-    logger: Logger,
-    phase: 'compiling' | 'loading',
-    transformTsConfigPathMappings: TransformTsConfigPathMappingsFn,
-): Promise<TsConfigPathsConfig | undefined> {
+async function findRawTsConfig(configPath: string, logger: Logger): Promise<RawTsConfigResult | undefined> {
+    if (rawTsConfigCache.has(configPath)) {
+        return rawTsConfigCache.get(configPath);
+    }
+
     let currentDir = path.dirname(configPath);
 
     while (currentDir !== path.parse(currentDir).root) {
@@ -31,13 +44,13 @@ export async function findTsConfigPaths(
                 try {
                     const { paths, baseUrl } = await getCompilerOptionsFromFile(tsConfigFilePath);
                     if (paths) {
-                        const tsConfigBaseUrl = path.resolve(currentDir, baseUrl || '.');
-                        const pathMappings = getTransformedPathMappings(
-                            paths,
-                            phase,
-                            transformTsConfigPathMappings,
-                        );
-                        return { baseUrl: tsConfigBaseUrl, paths: pathMappings };
+                        const result: RawTsConfigResult = {
+                            dir: currentDir,
+                            rawPaths: paths,
+                            baseUrl: baseUrl || '.',
+                        };
+                        rawTsConfigCache.set(configPath, result);
+                        return result;
                     }
                 } catch (e) {
                     logger.warn(
@@ -52,7 +65,27 @@ export async function findTsConfigPaths(
         }
         currentDir = path.dirname(currentDir);
     }
+
+    rawTsConfigCache.set(configPath, undefined);
     return undefined;
+}
+
+/**
+ * Finds and parses tsconfig files in the given directory and its parent directories.
+ */
+export async function findTsConfigPaths(
+    configPath: string,
+    logger: Logger,
+    phase: 'compiling' | 'loading',
+    transformTsConfigPathMappings: TransformTsConfigPathMappingsFn,
+): Promise<TsConfigPathsConfig | undefined> {
+    const raw = await findRawTsConfig(configPath, logger);
+    if (!raw) {
+        return undefined;
+    }
+    const tsConfigBaseUrl = path.resolve(raw.dir, raw.baseUrl);
+    const pathMappings = getTransformedPathMappings(raw.rawPaths, phase, transformTsConfigPathMappings);
+    return { baseUrl: tsConfigBaseUrl, paths: pathMappings };
 }
 
 async function getCompilerOptionsFromFile(tsConfigFilePath: string): Promise<CompilerOptions> {

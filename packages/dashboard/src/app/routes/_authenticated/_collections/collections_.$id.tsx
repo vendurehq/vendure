@@ -3,23 +3,21 @@ import { RichTextInput } from '@/vdb/components/data-input/rich-text-input.js';
 import { EntityAssets } from '@/vdb/components/shared/entity-assets.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
-import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { TranslatableFormFieldWrapper } from '@/vdb/components/shared/translatable-form-field.js';
 import { Button } from '@/vdb/components/ui/button.js';
-import { FormControl, FormDescription, FormItem, FormLabel, FormMessage } from '@/vdb/components/ui/form.js';
+import { Field, FieldLabel } from '@/vdb/components/ui/field.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { Switch } from '@/vdb/components/ui/switch.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
-import {
-    CustomFieldsPageBlock,
+import {    CustomFieldsPageBlock,
     DetailFormGrid,
     Page,
     PageActionBar,
-    PageActionBarRight,
     PageBlock,
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { useJobQueuePolling } from '@/vdb/hooks/use-job-queue-polling.js';
@@ -137,21 +135,19 @@ function CollectionDetailPage() {
         <Page pageId={pageId} form={form} submitHandler={submitHandler} entity={entity}>
             <PageTitle>{creatingNewEntity ? <Trans>New collection</Trans> : (entity?.name ?? '')}</PageTitle>
             <PageActionBar>
-                <PageActionBarRight>
-                    <PermissionGuard requires={['UpdateCollection', 'UpdateCatalog']}>
-                        <Button
-                            type="submit"
-                            disabled={
-                                !form.formState.isDirty ||
-                                !form.formState.isValid ||
-                                isPending ||
-                                !filtersArgsValid
-                            }
-                        >
-                            {creatingNewEntity ? <Trans>Create</Trans> : <Trans>Update</Trans>}
-                        </Button>
-                    </PermissionGuard>
-                </PageActionBarRight>
+                <ActionBarItem itemId="save-button" requiresPermission={['UpdateCollection', 'UpdateCatalog']}>
+                    <Button
+                        type="submit"
+                        disabled={
+                            !form.formState.isDirty ||
+                            !form.formState.isValid ||
+                            isPending ||
+                            !filtersArgsValid
+                        }
+                    >
+                        {creatingNewEntity ? <Trans>Create</Trans> : <Trans>Update</Trans>}
+                    </Button>
+                </ActionBarItem>
             </PageActionBar>
             <PageLayout>
                 <PageBlock column="side" blockId="privacy">
@@ -224,31 +220,27 @@ function CollectionDetailPage() {
                     />
                 </PageBlock>
                 <PageBlock column="side" blockId="assets">
-                    <FormItem>
-                        <FormLabel>
+                    <Field>
+                        <FieldLabel>
                             <Trans>Assets</Trans>
-                        </FormLabel>
-                        <FormControl>
-                            <EntityAssets
-                                assets={entity?.assets}
-                                featuredAsset={entity?.featuredAsset}
-                                compact={true}
-                                value={form.getValues()}
-                                onChange={value => {
-                                    form.setValue('featuredAssetId', value.featuredAssetId ?? undefined, {
-                                        shouldDirty: true,
-                                        shouldValidate: true,
-                                    });
-                                    form.setValue('assetIds', value.assetIds ?? [], {
-                                        shouldDirty: true,
-                                        shouldValidate: true,
-                                    });
-                                }}
-                            />
-                        </FormControl>
-                        <FormDescription></FormDescription>
-                        <FormMessage />
-                    </FormItem>
+                        </FieldLabel>
+                        <EntityAssets
+                            assets={entity?.assets}
+                            featuredAsset={entity?.featuredAsset}
+                            compact={true}
+                            value={form.getValues()}
+                            onChange={value => {
+                                form.setValue('featuredAssetId', value.featuredAssetId ?? undefined, {
+                                    shouldDirty: true,
+                                    shouldValidate: true,
+                                });
+                                form.setValue('assetIds', value.assetIds ?? [], {
+                                    shouldDirty: true,
+                                    shouldValidate: true,
+                                });
+                            }}
+                        />
+                    </Field>
                 </PageBlock>
                 <PageBlock column="main" blockId="contents" title={<Trans>Contents</Trans>}>
                     {pendingFilterApplication || shouldPreviewContents || creatingNewEntity ? (

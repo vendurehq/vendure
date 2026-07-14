@@ -1,8 +1,12 @@
 import * as babel from '@babel/core';
+import { createRequire } from 'node:module';
 import type { Plugin } from 'vite';
 
 import { CompileResult } from './utils/compiler.js';
+import { filterActivePluginInfo } from './utils/get-active-plugin-info.js';
 import { ConfigLoaderApi, getConfigLoaderApi } from './vite-plugin-config-loader.js';
+
+const require = createRequire(import.meta.url);
 
 /**
  * Options for the linguiBabelPlugin.
@@ -95,8 +99,13 @@ export function linguiBabelPlugin(options?: LinguiBabelPluginOptions): Plugin {
                     if (configLoaderApi && !configResult) {
                         try {
                             configResult = await configLoaderApi.getVendureConfig();
-                            // Extract package paths from discovered npm plugins
-                            for (const plugin of configResult.pluginInfo) {
+                            // Extract package paths from discovered npm plugins,
+                            // restricted to plugins active in the runtime config.
+                            const activePluginInfo = filterActivePluginInfo(
+                                configResult.pluginInfo,
+                                configResult.vendureConfig,
+                            );
+                            for (const plugin of activePluginInfo) {
                                 if (!plugin.sourcePluginPath && plugin.pluginPath.includes('node_modules')) {
                                     const packagePath = extractPackagePath(plugin.pluginPath);
                                     if (packagePath) {
@@ -130,10 +139,9 @@ export function linguiBabelPlugin(options?: LinguiBabelPluginOptions): Plugin {
                 const result = await babel.transformAsync(code, {
                     filename: id,
                     presets: [
-                        ['@babel/preset-typescript', { isTSX: true, allExtensions: true }],
-                        ['@babel/preset-react', { runtime: 'automatic' }],
+                        [require.resolve('@babel/preset-typescript'), { isTSX: true, allExtensions: true }],
                     ],
-                    plugins: ['@lingui/babel-plugin-lingui-macro'],
+                    plugins: [require.resolve('@lingui/babel-plugin-lingui-macro')],
                     sourceMaps: true,
                     // Don't look for babel config files - we want to control the config completely
                     configFile: false,

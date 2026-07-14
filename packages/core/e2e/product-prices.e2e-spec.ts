@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { CurrencyCode, LanguageCode } from '@vendure/common/lib/generated-types';
 import { pick } from '@vendure/common/lib/pick';
 import { mergeConfig } from '@vendure/core';
 import {
@@ -14,25 +15,23 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { ProductVariantPrice, ProductVariantPriceUpdateStrategy, RequestContext } from '../src/index';
 
-import * as Codegen from './graphql/generated-e2e-admin-types';
+import { FragmentOf, ResultOf } from './graphql/graphql-admin';
 import {
-    AssignProductsToChannelDocument,
-    CreateChannelDocument,
-    CreateProductDocument,
-    CreateProductVariantsDocument,
-    CurrencyCode,
-    GetProductWithVariantsDocument,
-    LanguageCode,
-    UpdateChannelDocument,
-    UpdateProductVariantsDocument,
-} from './graphql/generated-e2e-admin-types';
+    assignProductToChannelDocument,
+    createChannelDocument,
+    createProductDocument,
+    createProductVariantsDocument,
+    getProductWithVariantsDocument,
+    updateChannelDocument,
+    updateProductVariantsDocument,
+} from './graphql/shared-definitions';
 import {
-    AddItemToOrderDocument,
-    AdjustItemQuantityDocument,
-    GetActiveOrderDocument,
-    TestOrderFragmentFragment,
-    UpdatedOrderFragment,
-} from './graphql/generated-e2e-shop-types';
+    addItemToOrderDocument,
+    adjustItemQuantityDocument,
+    getActiveOrderDocument,
+    testOrderFragment,
+    updatedOrderFragment,
+} from './graphql/shop-definitions';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 
 class TestProductVariantPriceUpdateStrategy implements ProductVariantPriceUpdateStrategy {
@@ -78,13 +77,14 @@ describe('Product prices', () => {
         ),
     );
 
-    let multiPriceProduct: Codegen.CreateProductMutation['createProduct'];
+    let multiPriceProduct: ResultOf<typeof createProductDocument>['createProduct'];
     let multiPriceVariant: NonNullable<
-        Codegen.CreateProductVariantsMutation['createProductVariants'][number]
+        ResultOf<typeof createProductVariantsDocument>['createProductVariants'][number]
     >;
 
-    const orderResultGuard: ErrorResultGuard<TestOrderFragmentFragment | UpdatedOrderFragment> =
-        createErrorResultGuard(input => !!input.lines);
+    const orderResultGuard: ErrorResultGuard<
+        FragmentOf<typeof testOrderFragment> | FragmentOf<typeof updatedOrderFragment>
+    > = createErrorResultGuard(input => !!input.lines);
 
     const createChannelResultGuard: ErrorResultGuard<{ id: string }> = createErrorResultGuard(
         input => !!input.id,
@@ -97,13 +97,13 @@ describe('Product prices', () => {
             productsCsvPath: path.join(__dirname, 'fixtures/e2e-products-full.csv'),
         });
         await adminClient.asSuperAdmin();
-        await adminClient.query(UpdateChannelDocument, {
+        await adminClient.query(updateChannelDocument, {
             input: {
                 id: 'T_1',
                 availableCurrencyCodes: [CurrencyCode.USD, CurrencyCode.GBP, CurrencyCode.EUR],
             },
         });
-        const { createProduct } = await adminClient.query(CreateProductDocument, {
+        const { createProduct } = await adminClient.query(createProductDocument, {
             input: {
                 translations: [
                     {
@@ -123,7 +123,7 @@ describe('Product prices', () => {
     });
 
     it('create ProductVariant creates price in Channel default currency', async () => {
-        const { createProductVariants } = await adminClient.query(CreateProductVariantsDocument, {
+        const { createProductVariants } = await adminClient.query(createProductVariantsDocument, {
             input: [
                 {
                     productId: multiPriceProduct.id,
@@ -148,7 +148,7 @@ describe('Product prices', () => {
     it(
         'updating ProductVariant with price in unavailable currency throws',
         assertThrowsWithMessage(async () => {
-            await adminClient.query(UpdateProductVariantsDocument, {
+            await adminClient.query(updateProductVariantsDocument, {
                 input: {
                     id: multiPriceVariant.id,
                     prices: [
@@ -163,7 +163,7 @@ describe('Product prices', () => {
     );
 
     it('updates ProductVariant with multiple prices', async () => {
-        await adminClient.query(UpdateProductVariantsDocument, {
+        await adminClient.query(updateProductVariantsDocument, {
             input: {
                 id: multiPriceVariant.id,
                 prices: [
@@ -174,7 +174,7 @@ describe('Product prices', () => {
             },
         });
 
-        const { product } = await adminClient.query(GetProductWithVariantsDocument, {
+        const { product } = await adminClient.query(getProductWithVariantsDocument, {
             id: multiPriceProduct.id,
         });
 
@@ -186,14 +186,14 @@ describe('Product prices', () => {
     });
 
     it('deletes a price in a non-default currency', async () => {
-        await adminClient.query(UpdateProductVariantsDocument, {
+        await adminClient.query(updateProductVariantsDocument, {
             input: {
                 id: multiPriceVariant.id,
                 prices: [{ currencyCode: CurrencyCode.EUR, price: 1100, delete: true }],
             },
         });
 
-        const { product } = await adminClient.query(GetProductWithVariantsDocument, {
+        const { product } = await adminClient.query(getProductWithVariantsDocument, {
             id: multiPriceProduct.id,
         });
 
@@ -205,7 +205,7 @@ describe('Product prices', () => {
 
     describe('DefaultProductVariantPriceSelectionStrategy', () => {
         it('defaults to default Channel currency', async () => {
-            const { product } = await adminClient.query(GetProductWithVariantsDocument, {
+            const { product } = await adminClient.query(getProductWithVariantsDocument, {
                 id: multiPriceProduct.id,
             });
 
@@ -216,7 +216,7 @@ describe('Product prices', () => {
 
         it('uses query string to select currency', async () => {
             const { product } = await adminClient.query(
-                GetProductWithVariantsDocument,
+                getProductWithVariantsDocument,
                 {
                     id: multiPriceProduct.id,
                 },
@@ -232,7 +232,7 @@ describe('Product prices', () => {
             'throws if unrecognised currency code passed in query string',
             assertThrowsWithMessage(async () => {
                 await adminClient.query(
-                    GetProductWithVariantsDocument,
+                    getProductWithVariantsDocument,
                     {
                         id: multiPriceProduct.id,
                     },
@@ -244,7 +244,7 @@ describe('Product prices', () => {
 
     describe('changing Order currencyCode', () => {
         beforeAll(async () => {
-            await adminClient.query(UpdateProductVariantsDocument, {
+            await adminClient.query(updateProductVariantsDocument, {
                 input: [
                     {
                         id: 'T_1',
@@ -275,16 +275,16 @@ describe('Product prices', () => {
         });
 
         it('create order in default currency', async () => {
-            await shopClient.query(AddItemToOrderDocument, {
+            await shopClient.query(addItemToOrderDocument, {
                 productVariantId: 'T_1',
                 quantity: 1,
             });
-            await shopClient.query(AddItemToOrderDocument, {
+            await shopClient.query(addItemToOrderDocument, {
                 productVariantId: 'T_2',
                 quantity: 1,
             });
 
-            const { activeOrder } = await shopClient.query(GetActiveOrderDocument);
+            const { activeOrder } = await shopClient.query(getActiveOrderDocument);
 
             expect(activeOrder?.lines[0]?.unitPrice).toBe(1000);
             expect(activeOrder?.lines[0]?.unitPriceWithTax).toBe(1200);
@@ -297,7 +297,7 @@ describe('Product prices', () => {
             'updating an order in an unsupported currency throws',
             assertThrowsWithMessage(async () => {
                 await shopClient.query(
-                    AddItemToOrderDocument,
+                    addItemToOrderDocument,
                     {
                         productVariantId: 'T_1',
                         quantity: 1,
@@ -308,9 +308,9 @@ describe('Product prices', () => {
         );
 
         it('updating an order line with a new currency updates all lines to that currency', async () => {
-            const { activeOrder } = await shopClient.query(GetActiveOrderDocument);
+            const { activeOrder } = await shopClient.query(getActiveOrderDocument);
             const { adjustOrderLine } = await shopClient.query(
-                AdjustItemQuantityDocument,
+                adjustItemQuantityDocument,
                 {
                     orderLineId: activeOrder!.lines[0]?.id,
                     quantity: 2,
@@ -329,7 +329,7 @@ describe('Product prices', () => {
 
         it('adding a new order line with a new currency updates all lines to that currency', async () => {
             const { addItemToOrder } = await shopClient.query(
-                AddItemToOrderDocument,
+                addItemToOrderDocument,
                 {
                     productVariantId: 'T_3',
                     quantity: 1,
@@ -353,7 +353,7 @@ describe('Product prices', () => {
         const SECOND_CHANNEL_TOKEN = 'second_channel_token';
         const THIRD_CHANNEL_TOKEN = 'third_channel_token';
         beforeAll(async () => {
-            const { createChannel: channel2Result } = await adminClient.query(CreateChannelDocument, {
+            const { createChannel: channel2Result } = await adminClient.query(createChannelDocument, {
                 input: {
                     code: 'second-channel',
                     token: SECOND_CHANNEL_TOKEN,
@@ -366,7 +366,7 @@ describe('Product prices', () => {
             });
             createChannelResultGuard.assertSuccess(channel2Result);
 
-            const { createChannel: channel3Result } = await adminClient.query(CreateChannelDocument, {
+            const { createChannel: channel3Result } = await adminClient.query(createChannelDocument, {
                 input: {
                     code: 'third-channel',
                     token: THIRD_CHANNEL_TOKEN,
@@ -379,14 +379,14 @@ describe('Product prices', () => {
             });
             createChannelResultGuard.assertSuccess(channel3Result);
 
-            await adminClient.query(AssignProductsToChannelDocument, {
+            await adminClient.query(assignProductToChannelDocument, {
                 input: {
                     channelId: channel2Result.id,
                     productIds: [multiPriceProduct.id],
                 },
             });
 
-            await adminClient.query(AssignProductsToChannelDocument, {
+            await adminClient.query(assignProductToChannelDocument, {
                 input: {
                     channelId: channel3Result.id,
                     productIds: [multiPriceProduct.id],
@@ -398,7 +398,7 @@ describe('Product prices', () => {
             await adminClient.asSuperAdmin();
             const onCreatedSpy = TestProductVariantPriceUpdateStrategy.onCreatedSpy;
             onCreatedSpy.mockClear();
-            await adminClient.query(UpdateChannelDocument, {
+            await adminClient.query(updateChannelDocument, {
                 input: {
                     id: 'T_1',
                     availableCurrencyCodes: [
@@ -409,7 +409,7 @@ describe('Product prices', () => {
                     ],
                 },
             });
-            await adminClient.query(UpdateProductVariantsDocument, {
+            await adminClient.query(updateProductVariantsDocument, {
                 input: {
                     id: multiPriceVariant.id,
                     prices: [{ currencyCode: CurrencyCode.MYR, price: 5500 }],
@@ -455,7 +455,7 @@ describe('Product prices', () => {
             const onUpdatedSpy = TestProductVariantPriceUpdateStrategy.onUpdatedSpy;
             onUpdatedSpy.mockClear();
 
-            await adminClient.query(UpdateProductVariantsDocument, {
+            await adminClient.query(updateProductVariantsDocument, {
                 input: {
                     id: multiPriceVariant.id,
                     prices: [
@@ -506,7 +506,7 @@ describe('Product prices', () => {
         });
 
         it('syncing prices in other channels', async () => {
-            const { product: productChannel3 } = await adminClient.query(GetProductWithVariantsDocument, {
+            const { product: productChannel3 } = await adminClient.query(getProductWithVariantsDocument, {
                 id: multiPriceProduct.id,
             });
             expect(productChannel3?.variants[0].prices).toEqual([
@@ -514,7 +514,7 @@ describe('Product prices', () => {
             ]);
 
             adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
-            const { product: productChannel2 } = await adminClient.query(GetProductWithVariantsDocument, {
+            const { product: productChannel2 } = await adminClient.query(getProductWithVariantsDocument, {
                 id: multiPriceProduct.id,
             });
             expect(productChannel2?.variants[0].prices).toEqual([
@@ -523,7 +523,7 @@ describe('Product prices', () => {
 
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
             const { product: productDefaultChannel } = await adminClient.query(
-                GetProductWithVariantsDocument,
+                getProductWithVariantsDocument,
                 {
                     id: multiPriceProduct.id,
                 },
@@ -540,7 +540,7 @@ describe('Product prices', () => {
             const onDeletedSpy = TestProductVariantPriceUpdateStrategy.onDeletedSpy;
             onDeletedSpy.mockClear();
 
-            const result = await adminClient.query(UpdateProductVariantsDocument, {
+            const result = await adminClient.query(updateProductVariantsDocument, {
                 input: {
                     id: multiPriceVariant.id,
                     prices: [

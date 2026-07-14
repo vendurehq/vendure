@@ -41,7 +41,6 @@ export const DeleteAssetsBulkAction = ({
             label={<Trans>Delete</Trans>}
             confirmationText={<Trans>Are you sure you want to delete {selectionLength} assets?</Trans>}
             icon={TrashIcon}
-            className="text-destructive"
         />
     );
 };

@@ -25,10 +25,8 @@ export function ExpandablePermissions({ role }: Readonly<{ role: ResultOf<typeof
             ))}
             {role.permissions.length > permissionsToPreview.length && (
                 <Dialog>
-                    <DialogTrigger asChild>
-                        <Button size={'xs'} variant={'secondary'}>
-                            <PlusIcon /> {role.permissions.length - permissionsToPreview.length}
-                        </Button>
+                    <DialogTrigger render={<Button size={'xs'} variant={'secondary'} />}>
+                        <PlusIcon /> {role.permissions.length - permissionsToPreview.length}
                     </DialogTrigger>
                     <DialogContent>
                         <DialogHeader>

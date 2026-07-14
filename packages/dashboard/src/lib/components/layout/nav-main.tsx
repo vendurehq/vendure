@@ -53,15 +53,10 @@ function CollapsedSectionMenu({
 }>) {
     const { i18n } = useLingui();
     return (
-        <HoverCard openDelay={HOVER_OPEN_DELAY} closeDelay={HOVER_CLOSE_DELAY}>
-            <HoverCardTrigger asChild>
-                {/* No tooltip prop — the HoverCard replaces it in collapsed mode */}
-                <SidebarMenuButton
-                    isActive={item.items?.some(subItem => isPathActive(subItem.url))}
-                >
+        <HoverCard>
+            <HoverCardTrigger delay={HOVER_OPEN_DELAY} render={<SidebarMenuButton isActive={item.items?.some(subItem => isPathActive(subItem.url))} />}>
                     {item.icon && <item.icon />}
                     <span>{i18n.t(item.title)}</span>
-                </SidebarMenuButton>
             </HoverCardTrigger>
             <HoverCardContent
                 side="right"
@@ -69,7 +64,7 @@ function CollapsedSectionMenu({
                 sideOffset={4}
                 className="w-auto min-w-[8rem] p-1"
             >
-                <p className="px-2 py-1.5 text-sm font-semibold">
+                <p className="px-2 py-1.5 text-sm font-semibold" data-testid="sidebar-hover-title">
                     {i18n.t(item.title)}
                 </p>
                 <div className="bg-border my-1 h-px" />
@@ -101,7 +96,7 @@ export function NavMain({ items }: Readonly<{ items: Array<NavMenuSection | NavM
     const routerState = useRouterState();
     const { hasPermissions } = usePermissions();
     const { i18n } = useLingui();
-    const { state: sidebarState, isMobile } = useSidebar();
+    const { state: sidebarState, isMobile, setOpenMobile } = useSidebar();
     const isCollapsed = sidebarState === 'collapsed' && !isMobile;
     const currentPath = routerState.location.pathname;
     const basePath = router.basepath || '';
@@ -241,6 +236,15 @@ export function NavMain({ items }: Readonly<{ items: Array<NavMenuSection | NavM
         }
     }, [currentPath, items, findActiveSections]);
 
+    // Close mobile sidebar on route change
+    const prevPathRef = React.useRef(currentPath);
+    React.useEffect(() => {
+        if (prevPathRef.current !== currentPath && isMobile) {
+            setOpenMobile(false);
+        }
+        prevPathRef.current = currentPath;
+    }, [currentPath, isMobile, setOpenMobile]);
+
     const renderSection = (
         item: NavMenuSection | NavMenuItem,
         isOpen: boolean,
@@ -252,13 +256,11 @@ export function NavMain({ items }: Readonly<{ items: Array<NavMenuSection | NavM
                     <SidebarMenuItem>
                         <SidebarMenuButton
                             tooltip={i18n.t(item.title)}
-                            asChild
+                            render={<Link to={item.url} />}
                             isActive={isPathActive(item.url)}
                         >
-                            <Link to={item.url}>
                                 {item.icon && <item.icon />}
                                 <span>{i18n.t(item.title)}</span>
-                            </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </NavItemWrapper>
@@ -278,18 +280,15 @@ export function NavMain({ items }: Readonly<{ items: Array<NavMenuSection | NavM
         return (
             <NavItemWrapper key={item.id} locationId={item.id} order={item.order} offset={true}>
                 <Collapsible
-                    asChild
                     open={isOpen}
                     onOpenChange={open => onToggle(item.id, open)}
                     className="group/collapsible"
                 >
                     <SidebarMenuItem>
-                        <CollapsibleTrigger asChild>
-                            <SidebarMenuButton tooltip={i18n.t(item.title)}>
+                        <CollapsibleTrigger render={<SidebarMenuButton tooltip={i18n.t(item.title)} />}>
                                 {item.icon && <item.icon />}
                                 <span>{i18n.t(item.title)}</span>
-                                <ChevronRight className="ms-auto transition-transform duration-200 rtl:rotate-180 group-data-[state=open]/collapsible:rotate-90" />
-                            </SidebarMenuButton>
+                                <ChevronRight className="ms-auto transition-transform duration-200 rtl:rotate-180 group-data-open/collapsible:rotate-90" />
                         </CollapsibleTrigger>
                         <CollapsibleContent>
                             <SidebarMenuSub>
@@ -302,12 +301,10 @@ export function NavMain({ items }: Readonly<{ items: Array<NavMenuSection | NavM
                                     >
                                         <SidebarMenuSubItem>
                                             <SidebarMenuSubButton
-                                                asChild
+                                                render={<Link to={subItem.url} />}
                                                 isActive={isPathActive(subItem.url)}
                                             >
-                                                <Link to={subItem.url}>
                                                     <span>{i18n.t(subItem.title)}</span>
-                                                </Link>
                                             </SidebarMenuSubButton>
                                         </SidebarMenuSubItem>
                                     </NavItemWrapper>
@@ -319,6 +316,8 @@ export function NavMain({ items }: Readonly<{ items: Array<NavMenuSection | NavM
             </NavItemWrapper>
         );
     };
+
+
 
     return (
         <>

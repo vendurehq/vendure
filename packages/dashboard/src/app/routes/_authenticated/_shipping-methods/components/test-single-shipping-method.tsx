@@ -60,7 +60,6 @@ export function TestSingleShippingMethod({ checker, calculator }: Readonly<TestS
     return (
         <div className="space-y-6 overflow-y-auto max-h-[calc(100vh-200px)] px-4">
             <Accordion
-                type="multiple"
                 value={expandedAccordions}
                 onValueChange={setExpandedAccordions}
                 className="w-full"

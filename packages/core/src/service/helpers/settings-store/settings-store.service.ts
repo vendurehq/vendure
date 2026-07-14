@@ -1,8 +1,8 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
-import { Permission } from '@vendure/common/lib/generated-types';
+import { Permission, SettingsStoreScopeType } from '@vendure/common/lib/generated-types';
 import { JsonCompatible } from '@vendure/common/lib/shared-types';
-import ms from 'ms';
+import ms, { type StringValue } from 'ms';
 
 import { RequestContext } from '../../../api/common/request-context';
 import { InternalServerError, UserInputError } from '../../../common/error/errors';
@@ -293,6 +293,32 @@ export class SettingsStoreService implements OnModuleInit {
 
     /**
      * @description
+     * Returns all registered field definitions with their full keys.
+     *
+     * @since 3.6.0
+     */
+    getAllFieldDefinitions(): Array<{ key: string; config: SettingsStoreFieldConfig }> {
+        return Array.from(this.fieldRegistry.entries()).map(([key, config]) => ({ key, config }));
+    }
+
+    /**
+     * @description
+     * Determines the scope type of a field by comparing its scope function reference
+     * to the pre-built SettingsStoreScopes functions.
+     *
+     * @since 3.6.0
+     */
+    getScopeType(fieldConfig: SettingsStoreFieldConfig): SettingsStoreScopeType {
+        const scope = fieldConfig.scope;
+        if (!scope || scope === SettingsStoreScopes.global) return SettingsStoreScopeType.GLOBAL;
+        if (scope === SettingsStoreScopes.user) return SettingsStoreScopeType.USER;
+        if (scope === SettingsStoreScopes.channel) return SettingsStoreScopeType.CHANNEL;
+        if (scope === SettingsStoreScopes.userAndChannel) return SettingsStoreScopeType.USER_AND_CHANNEL;
+        return SettingsStoreScopeType.CUSTOM;
+    }
+
+    /**
+     * @description
      * Validate a value against its field definition.
      */
     async validateValue(key: string, value: any, ctx: RequestContext): Promise<string | void> {
@@ -437,7 +463,7 @@ export class SettingsStoreService implements OnModuleInit {
      * Parse a duration string (e.g., '7d', '30m', '2h') into a Date object.
      */
     private parseDuration(duration: string): Date {
-        const milliseconds = ms(duration);
+        const milliseconds = ms(duration as StringValue);
         if (!milliseconds) {
             throw new Error(`Invalid duration format: ${duration}. Use format like '7d', '2h', '30m'`);
         }

@@ -123,7 +123,7 @@ export function CustomerAddressCard({
                             <DialogTrigger>
                                 <EditIcon className="w-4 h-4" />
                             </DialogTrigger>
-                            <DialogContent>
+                            <DialogContent className="max-h-[90vh] overflow-y-auto">
                                 <DialogHeader>
                                     <DialogTitle>
                                         <Trans>Edit Address</Trans>

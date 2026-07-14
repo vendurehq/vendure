@@ -16,9 +16,9 @@ import { Instrument } from '../../common/instrument-decorator';
 import { ConfigService } from '../../config/config.service';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Fulfillment } from '../../entity/fulfillment/fulfillment.entity';
-import { FulfillmentLine } from '../../entity/order-line-reference/fulfillment-line.entity';
-import { OrderLine } from '../../entity/order-line/order-line.entity';
 import { Order } from '../../entity/order/order.entity';
+import { OrderLine } from '../../entity/order-line/order-line.entity';
+import { FulfillmentLine } from '../../entity/order-line-reference/fulfillment-line.entity';
 import { EventBus } from '../../event-bus/event-bus';
 import { FulfillmentEvent } from '../../event-bus/events/fulfillment-event';
 import { FulfillmentStateTransitionEvent } from '../../event-bus/events/fulfillment-state-transition-event';
@@ -164,29 +164,44 @@ export class FulfillmentService {
           }
         | FulfillmentStateTransitionError
     > {
-        const fulfillment = await this.connection.getEntityOrThrow(ctx, Fulfillment, fulfillmentId, {
-            relations: ['lines'],
+        // Wrapped in withTransaction so the state save and onTransitionEnd hooks
+        // are atomic — see the equivalent comment on OrderService.transitionToState.
+        // #4686.
+        return this.connection.withTransaction(ctx, async txCtx => {
+            const fulfillment = await this.connection.getEntityOrThrow(
+                txCtx,
+                Fulfillment,
+                fulfillmentId,
+                { relations: ['lines'] },
+            );
+            const orderLinesIds = unique(fulfillment.lines.map(lines => lines.orderLineId));
+            const orders = await this.connection
+                .getRepository(txCtx, Order)
+                .createQueryBuilder('order')
+                .leftJoinAndSelect('order.lines', 'line')
+                .where('line.id IN (:...lineIds)', { lineIds: orderLinesIds })
+                .getMany();
+            const fromState = fulfillment.state;
+            let finalize: () => Promise<any>;
+            try {
+                const result = await this.fulfillmentStateMachine.transition(
+                    txCtx,
+                    fulfillment,
+                    orders,
+                    state,
+                );
+                finalize = result.finalize;
+            } catch (e: any) {
+                const transitionError = txCtx.translate(e.message, { fromState, toState: state });
+                return new FulfillmentStateTransitionError({ transitionError, fromState, toState: state });
+            }
+            await this.connection.getRepository(txCtx, Fulfillment).save(fulfillment, { reload: false });
+            await this.eventBus.publish(
+                new FulfillmentStateTransitionEvent(fromState, state, txCtx, fulfillment),
+            );
+            await finalize();
+            return { fulfillment, orders, fromState, toState: state };
         });
-        const orderLinesIds = unique(fulfillment.lines.map(lines => lines.orderLineId));
-        const orders = await this.connection
-            .getRepository(ctx, Order)
-            .createQueryBuilder('order')
-            .leftJoinAndSelect('order.lines', 'line')
-            .where('line.id IN (:...lineIds)', { lineIds: orderLinesIds })
-            .getMany();
-        const fromState = fulfillment.state;
-        let finalize: () => Promise<any>;
-        try {
-            const result = await this.fulfillmentStateMachine.transition(ctx, fulfillment, orders, state);
-            finalize = result.finalize;
-        } catch (e: any) {
-            const transitionError = ctx.translate(e.message, { fromState, toState: state });
-            return new FulfillmentStateTransitionError({ transitionError, fromState, toState: state });
-        }
-        await this.connection.getRepository(ctx, Fulfillment).save(fulfillment, { reload: false });
-        await this.eventBus.publish(new FulfillmentStateTransitionEvent(fromState, state, ctx, fulfillment));
-        await finalize();
-        return { fulfillment, orders, fromState, toState: state };
     }
 
     /**

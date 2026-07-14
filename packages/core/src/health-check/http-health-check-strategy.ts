@@ -1,11 +1,18 @@
 import { Injectable, Scope } from '@nestjs/common';
-import { HealthCheckError, HealthIndicatorFunction, HealthIndicatorResult } from '@nestjs/terminus';
-import { HealthIndicator } from '@nestjs/terminus/dist/health-indicator/index';
-import fetch from 'node-fetch';
 
 import { Injector } from '../common/injector';
 import { HealthCheckStrategy } from '../config/system/health-check-strategy';
 
+import {
+    HealthCheckError,
+    HealthIndicator,
+    HealthIndicatorFunction,
+    HealthIndicatorResult,
+} from './terminus-compat';
+
+/**
+ * @deprecated This interface is part of the deprecated health check feature and will be removed in v4.0.0.
+ */
 export interface HttpHealthCheckOptions {
     key: string;
     url: string;
@@ -14,8 +21,7 @@ export interface HttpHealthCheckOptions {
 
 /**
  * @description
- * A {@link HealthCheckStrategy} used to check health by pinging a url. Internally it uses
- * the [NestJS HttpHealthIndicator](https://docs.nestjs.com/recipes/terminus#http-healthcheck).
+ * A {@link HealthCheckStrategy} used to check health by pinging a url.
  *
  * @example
  * ```ts
@@ -33,6 +39,8 @@ export interface HttpHealthCheckOptions {
  * ```
  *
  * @docsCategory health-check
+ * @deprecated Use infrastructure-level health checks (e.g. Kubernetes probes, Docker healthchecks,
+ * load balancer checks) instead of application-level health checks. This class will be removed in v4.0.0.
  */
 export class HttpHealthCheckStrategy implements HealthCheckStrategy {
     constructor(private options: HttpHealthCheckOptions) {}
@@ -52,8 +60,11 @@ export class HttpHealthCheckStrategy implements HealthCheckStrategy {
 }
 
 /**
- * A much simplified version of the Terminus Modules' `HttpHealthIndicator` which has no
- * dependency on the @nestjs/axios package.
+ * A simple HTTP health indicator that pings a URL via the native `fetch` API
+ * and converts any error into a `HealthCheckError`. Subclasses {@link HealthIndicator}
+ * to pick up the shared `getStatus()` helper.
+ *
+ * @deprecated This class is part of the deprecated health check feature and will be removed in v4.0.0.
  */
 @Injectable({
     scope: Scope.TRANSIENT,
@@ -79,7 +90,12 @@ export class CustomHttpHealthIndicator extends HealthIndicator {
         let isHealthy = false;
 
         try {
-            await fetch(url, { timeout });
+            // Native `fetch` doesn't support a `timeout` option (node-fetch did);
+            // use AbortSignal.timeout when a positive timeout is supplied. Bare
+            // truthiness, not `!= null`, because `AbortSignal.timeout(0)` would
+            // fire immediately whereas the prior `node-fetch` semantics treated
+            // `timeout: 0` as "no timeout".
+            await fetch(url, timeout ? { signal: AbortSignal.timeout(timeout) } : undefined);
             isHealthy = true;
         } catch (err) {
             this.generateHttpError(key, err);

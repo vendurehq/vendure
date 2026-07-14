@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '../ui/input.js';
 import { Label } from '../ui/label.js';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group.js';
-import { toast } from 'sonner';
+import { toast } from '@/vdb/components/ui/sonner.js';
 import { usePage } from '@/vdb/hooks/use-page.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 

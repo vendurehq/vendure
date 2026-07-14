@@ -42,11 +42,11 @@ The input is readonly by default but can be made editable with a toggle button.
 ```
 
 ```ts title="Signature"
-function SlugInput(props: SlugInputProps): void
+function SlugInput(props: SlugInputProps & { placeholder?: string }): void
 ```
 Parameters
 
 ### props
 
-<MemberInfo kind="parameter" type={`SlugInputProps`} />
+<MemberInfo kind="parameter" type={`SlugInputProps &#38; { placeholder?: string }`} />
 

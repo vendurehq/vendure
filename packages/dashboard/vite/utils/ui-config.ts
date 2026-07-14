@@ -3,7 +3,7 @@ import {
     DEFAULT_AUTH_TOKEN_HEADER_KEY,
     DEFAULT_CHANNEL_TOKEN_KEY,
 } from '@vendure/common/lib/shared-constants';
-import { VendureConfig } from '@vendure/core';
+import type { VendureConfig } from '@vendure/core';
 
 import {
     defaultAvailableLanguages,
@@ -13,16 +13,23 @@ import {
 } from '../constants.js';
 import { ResolvedUiConfig, UiConfigPluginOptions } from '../vite-plugin-ui-config.js';
 
-export function getUiConfig(config: VendureConfig, pluginOptions: UiConfigPluginOptions): ResolvedUiConfig {
+export function getUiConfig(
+    config: VendureConfig,
+    pluginOptions: UiConfigPluginOptions,
+): Omit<ResolvedUiConfig, 'version'> {
     const { authOptions, apiOptions } = config;
+
+    const serverTokenMethod = authOptions.tokenMethod;
+    const serverUsesBearer =
+        serverTokenMethod === 'bearer' ||
+        (Array.isArray(serverTokenMethod) && serverTokenMethod.includes('bearer'));
 
     // Merge API configuration with defaults
     const api = {
         adminApiPath: pluginOptions.api?.adminApiPath ?? apiOptions.adminApiPath ?? ADMIN_API_PATH,
         host: pluginOptions.api?.host ?? 'auto',
         port: pluginOptions.api?.port ?? 'auto',
-        tokenMethod:
-            pluginOptions.api?.tokenMethod ?? (authOptions.tokenMethod === 'bearer' ? 'bearer' : 'cookie'),
+        tokenMethod: pluginOptions.api?.tokenMethod ?? (serverUsesBearer ? 'bearer' : 'cookie'),
         authTokenHeaderKey:
             pluginOptions.api?.authTokenHeaderKey ??
             authOptions.authTokenHeaderKey ??

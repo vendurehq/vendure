@@ -17,9 +17,7 @@ type Story = StoryObj<typeof meta>;
 export const Playground: Story = {
     render: () => (
         <HoverCard>
-            <HoverCardTrigger asChild>
-                <Button variant="link">@username</Button>
-            </HoverCardTrigger>
+            <HoverCardTrigger render={<Button variant="link" />}>@username</HoverCardTrigger>
             <HoverCardContent className="w-80">
                 <div className="flex justify-between space-x-4">
                     <div className="space-y-1">

@@ -24,7 +24,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <SidebarHeader>
                     <ChannelSwitcher />
                 </SidebarHeader>
-                <SidebarContent className="flex flex-col h-full overflow-y-auto">
+                <SidebarContent>
                     <NavMain items={sections} />
                 </SidebarContent>
                 <SidebarFooter>

@@ -1,12 +1,16 @@
-import gql from 'graphql-tag';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
-import { testConfig, TEST_SETUP_TIMEOUT_MS } from '../../../e2e-common/test-config';
+import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { createTestEnvironment } from '../../testing/lib/create-test-environment';
 
-import * as Codegen from './graphql/generated-e2e-admin-types';
+import {
+    createTagDocument,
+    getTagDocument,
+    getTagListDocument,
+    updateTagDocument,
+} from './graphql/admin-definitions';
 
 describe('Tag resolver', () => {
     const { server, adminClient } = createTestEnvironment(testConfig());
@@ -25,10 +29,7 @@ describe('Tag resolver', () => {
     });
 
     it('create', async () => {
-        const { createTag } = await adminClient.query<
-            Codegen.CreateTagMutation,
-            Codegen.CreateTagMutationVariables
-        >(CREATE_TAG, {
+        const { createTag } = await adminClient.query(createTagDocument, {
             input: { value: 'tag1' },
         });
 
@@ -39,10 +40,7 @@ describe('Tag resolver', () => {
     });
 
     it('create with existing value returns existing tag', async () => {
-        const { createTag } = await adminClient.query<
-            Codegen.CreateTagMutation,
-            Codegen.CreateTagMutationVariables
-        >(CREATE_TAG, {
+        const { createTag } = await adminClient.query(createTagDocument, {
             input: { value: 'tag1' },
         });
 
@@ -53,10 +51,7 @@ describe('Tag resolver', () => {
     });
 
     it('update', async () => {
-        const { updateTag } = await adminClient.query<
-            Codegen.UpdateTagMutation,
-            Codegen.UpdateTagMutationVariables
-        >(UPDATE_TAG, {
+        const { updateTag } = await adminClient.query(updateTagDocument, {
             input: { id: 'T_1', value: 'tag1-updated' },
         });
 
@@ -67,7 +62,7 @@ describe('Tag resolver', () => {
     });
 
     it('tag', async () => {
-        const { tag } = await adminClient.query<Codegen.GetTagQuery, Codegen.GetTagQueryVariables>(GET_TAG, {
+        const { tag } = await adminClient.query(getTagDocument, {
             id: 'T_1',
         });
 
@@ -78,9 +73,7 @@ describe('Tag resolver', () => {
     });
 
     it('tags', async () => {
-        const { tags } = await adminClient.query<Codegen.GetTagListQuery, Codegen.GetTagListQueryVariables>(
-            GET_TAG_LIST,
-        );
+        const { tags } = await adminClient.query(getTagListDocument);
 
         expect(tags).toEqual({
             items: [
@@ -93,51 +86,3 @@ describe('Tag resolver', () => {
         });
     });
 });
-
-const GET_TAG_LIST = gql`
-    query GetTagList($options: TagListOptions) {
-        tags(options: $options) {
-            items {
-                id
-                value
-            }
-            totalItems
-        }
-    }
-`;
-
-const GET_TAG = gql`
-    query GetTag($id: ID!) {
-        tag(id: $id) {
-            id
-            value
-        }
-    }
-`;
-
-const CREATE_TAG = gql`
-    mutation CreateTag($input: CreateTagInput!) {
-        createTag(input: $input) {
-            id
-            value
-        }
-    }
-`;
-
-const UPDATE_TAG = gql`
-    mutation UpdateTag($input: UpdateTagInput!) {
-        updateTag(input: $input) {
-            id
-            value
-        }
-    }
-`;
-
-const DELETE_TAG = gql`
-    mutation DeleteTag($id: ID!) {
-        deleteTag(id: $id) {
-            message
-            result
-        }
-    }
-`;

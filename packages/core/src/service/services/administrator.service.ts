@@ -26,6 +26,7 @@ import { CustomFieldRelationService } from '../helpers/custom-field-relation/cus
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
 import { PasswordCipher } from '../helpers/password-cipher/password-cipher';
 import { RequestContextService } from '../helpers/request-context/request-context.service';
+import { checkSuperadminCredentials } from '../helpers/utils/check-superadmin-credentials';
 import { getChannelPermissions } from '../helpers/utils/get-user-channels-permissions';
 import { patchEntity } from '../helpers/utils/patch-entity';
 
@@ -128,8 +129,10 @@ export class AdministratorService {
      */
     async create(ctx: RequestContext, input: CreateAdministratorInput): Promise<Administrator> {
         await this.checkActiveUserCanGrantRoles(ctx, input.roleIds);
+        const normalizedEmail = normalizeEmailAddress(input.emailAddress);
+        await this.checkForDuplicateEmailAddress(ctx, normalizedEmail);
         const administrator = new Administrator(input);
-        administrator.emailAddress = normalizeEmailAddress(input.emailAddress);
+        administrator.emailAddress = normalizedEmail;
         administrator.user = await this.userService.createAdminUser(ctx, input.emailAddress, input.password);
         let createdAdministrator = await this.connection
             .getRepository(ctx, Administrator)
@@ -158,6 +161,11 @@ export class AdministratorService {
         }
         if (input.roleIds) {
             await this.checkActiveUserCanGrantRoles(ctx, input.roleIds);
+        }
+        if (input.emailAddress) {
+            const normalizedEmail = normalizeEmailAddress(input.emailAddress);
+            await this.checkForDuplicateEmailAddress(ctx, normalizedEmail, input.id);
+            input.emailAddress = normalizedEmail;
         }
         let updatedAdministrator = patchEntity(administrator, input);
         await this.connection.getRepository(ctx, Administrator).save(administrator, { reload: false });
@@ -270,6 +278,18 @@ export class AdministratorService {
         };
     }
 
+    private async checkForDuplicateEmailAddress(ctx: RequestContext, emailAddress: string, excludeId?: ID) {
+        const existing = await this.connection.getRepository(ctx, Administrator).findOne({
+            where: {
+                emailAddress,
+                deletedAt: IsNull(),
+            },
+        });
+        if (existing && (!excludeId || !idsAreEqual(existing.id, excludeId))) {
+            throw new UserInputError('error.email-address-already-exists-for-administrator');
+        }
+    }
+
     /**
      * @description
      * Resolves to `true` if the administrator ID belongs to the only Administrator
@@ -279,15 +299,18 @@ export class AdministratorService {
         const superAdminRole = await this.roleService.getSuperAdminRole(ctx);
         const allAdmins = await this.connection.getRepository(ctx, Administrator).find({
             relations: ['user', 'user.roles'],
+            where: { deletedAt: IsNull() },
         });
         const superAdmins = allAdmins.filter(
-            admin => !!admin.user.roles.find(r => r.id === superAdminRole.id),
+            admin => !!admin.user.roles.find(r => idsAreEqual(r.id, superAdminRole.id)),
         );
-        if (1 < superAdmins.length) {
+        if (superAdmins.length === 0) {
             return false;
-        } else {
-            return idsAreEqual(superAdmins[0].id, id);
         }
+        if (superAdmins.length > 1) {
+            return false;
+        }
+        return idsAreEqual(superAdmins[0].id, id);
     }
 
     /**
@@ -299,6 +322,8 @@ export class AdministratorService {
      */
     private async ensureSuperAdminExists() {
         const { superadminCredentials } = this.configService.authOptions;
+
+        checkSuperadminCredentials(superadminCredentials);
 
         const superAdminUser = await this.connection.rawConnection.getRepository(User).findOne({
             where: {

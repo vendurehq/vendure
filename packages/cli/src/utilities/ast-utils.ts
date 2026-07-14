@@ -28,9 +28,11 @@ export function selectTsConfigFile() {
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function getTsMorphProject(options: ProjectOptions = {}, providedTsConfigPath?: string) {
     const tsConfigFile = providedTsConfigPath ?? selectTsConfigFile();
-    const tsConfigPath = path.join(process.cwd(), tsConfigFile);
+    const tsConfigPath = path.isAbsolute(tsConfigFile)
+        ? tsConfigFile
+        : path.join(process.cwd(), tsConfigFile);
     if (!fs.existsSync(tsConfigPath)) {
-        throw new Error('No tsconfig.json found in current directory');
+        throw new Error(`No tsconfig.json found in current directory (looked for ${tsConfigPath})`);
     }
     const project = new Project({
         tsConfigFilePath: tsConfigPath,

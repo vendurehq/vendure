@@ -13,7 +13,7 @@ export function AlertsIndicator() {
             className={cn(
                 `absolute -right-1 -top-1 rounded-full bg-primary text-xs w-4 h-4 flex items-center justify-center`,
                 highestSeverity === 'error' && 'bg-destructive',
-                highestSeverity === 'warning' && 'bg-yellow-400 dark:bg-yellow-600',
+                highestSeverity === 'warning' && 'bg-warning',
             )}
         >
             {activeCount}

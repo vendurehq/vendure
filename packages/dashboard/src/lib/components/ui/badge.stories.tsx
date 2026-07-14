@@ -11,7 +11,7 @@ const meta = {
     argTypes: {
         variant: {
             control: 'select',
-            options: ['default', 'secondary', 'destructive', 'outline'],
+            options: ['default', 'secondary', 'destructive', 'outline', 'success', 'warning'],
             description: 'Badge variant',
         },
     },

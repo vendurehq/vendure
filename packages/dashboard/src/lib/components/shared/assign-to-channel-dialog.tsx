@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { ReactNode, useState } from 'react';
-import { toast } from 'sonner';
+import { toast } from '@/vdb/components/ui/sonner.js';
 
 import { ChannelCodeLabel } from '@/vdb/components/shared/channel-code-label.js';
 import { Button } from '@/vdb/components/ui/button.js';
@@ -102,7 +102,11 @@ export function AssignToChannelDialog({
                         <label className="text-sm font-medium">
                             <Trans>Channel</Trans>
                         </label>
-                        <Select value={selectedChannelId} onValueChange={setSelectedChannelId}>
+                        <Select
+                            items={Object.fromEntries(availableChannels.map(ch => [ch.id, <ChannelCodeLabel key={ch.id} code={ch.code} />]))}
+                            value={selectedChannelId}
+                            onValueChange={value => value != null && setSelectedChannelId(value)}
+                        >
                             <SelectTrigger>
                                 <SelectValue placeholder={t`Select a channel`} />
                             </SelectTrigger>

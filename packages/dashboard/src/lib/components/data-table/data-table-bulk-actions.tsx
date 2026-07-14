@@ -1,33 +1,38 @@
 import { useAllBulkActions } from '@/vdb/components/data-table/use-all-bulk-actions.js';
 import { Button } from '@/vdb/components/ui/button.js';
+import { Checkbox } from '@/vdb/components/ui/checkbox.js';
 import {
     DropdownMenu,
     DropdownMenuContent,
+    DropdownMenuGroup,
     DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/vdb/components/ui/dropdown-menu.js';
-import { BulkAction } from '@/vdb/framework/extension-api/types/index.js';
-import { useFloatingBulkActions } from '@/vdb/hooks/use-floating-bulk-actions.js';
+import { BulkActionsInput } from '@/vdb/framework/extension-api/types/index.js';
 import { Trans } from '@lingui/react/macro';
 import { Table } from '@tanstack/react-table';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, X } from 'lucide-react';
 import { useRef } from 'react';
 
 interface DataTableBulkActionsProps<TData> {
     table: Table<TData>;
-    bulkActions: BulkAction[];
+    bulkActions: BulkActionsInput;
 }
 
 export function DataTableBulkActions<TData>({
     table,
     bulkActions,
 }: Readonly<DataTableBulkActionsProps<TData>>) {
-    const allBulkActions = useAllBulkActions(bulkActions);
+    const allBulkActionGroups = useAllBulkActions(bulkActions);
 
-    // Cache to store selected items across page changes
+    // Cache to store selected items across page changes.
+    // This component is always mounted (not conditionally rendered)
+    // so the cache survives page navigation.
     const selectedItemsCache = useRef<Map<string, TData>>(new Map());
     const selectedRowIds = Object.keys(table.getState().rowSelection);
-    const visibleSelectedCount = table.getRowModel().rows.filter(row => row.getIsSelected()).length;
+    const hasSelection = selectedRowIds.length > 0;
 
     // Get selection from cache instead of trying to get from table
     const selection = selectedRowIds
@@ -49,52 +54,71 @@ export function DataTableBulkActions<TData>({
         })
         .filter((item): item is TData => item !== undefined);
 
-    const { position, shouldShow } = useFloatingBulkActions({
-        selectionCount: visibleSelectedCount,
-        containerSelector: '[data-table-root], .data-table-container, table',
-        bottomOffset: 40,
-    });
-
-    if (!shouldShow) {
+    if (!hasSelection) {
         return null;
     }
 
+    const hasActions = allBulkActionGroups.some(g => g.actions.length > 0);
+    const allSelected = table.getIsAllPageRowsSelected();
+    const someSelected = table.getIsSomePageRowsSelected();
+
     return (
         <div
-            className="flex items-center gap-4 px-8 py-2 animate-in fade-in duration-200 fixed transform -translate-x-1/2 shadow-2xl bg-background rounded-md border z-50"
-            style={{
-                height: 'auto',
-                maxHeight: '60px',
-                bottom: position.bottom,
-                left: position.left,
-            }}
+            role="toolbar"
+            aria-label="Bulk actions"
+            className="absolute inset-0 z-10 flex items-center bg-background px-2 animate-in fade-in slide-in-from-top-1 duration-200"
         >
-            <span className="text-sm text-muted-foreground">
-                <Trans>{selection.length} selected</Trans>
-            </span>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-8 shadow-none">
-                        <Trans>With selected...</Trans>
-                        <ChevronDown className="ml-2 h-4 w-4" />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                    {allBulkActions.length > 0 ? (
-                        allBulkActions.map((action, index) => (
-                            <action.component
-                                key={`bulk-action-${index}`}
-                                selection={selection}
-                                table={table}
-                            />
-                        ))
-                    ) : (
-                        <DropdownMenuItem className="text-muted-foreground" disabled>
-                            <Trans>No actions available</Trans>
-                        </DropdownMenuItem>
-                    )}
-                </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex items-center gap-2">
+                <Checkbox
+                    checked={allSelected || someSelected}
+                    indeterminate={someSelected && !allSelected}
+                    onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)}
+                />
+                <span className="text-sm font-medium">
+                    <Trans>{selection.length} selected</Trans>
+                </span>
+                <DropdownMenu>
+                    <DropdownMenuTrigger render={<Button variant="outline" size="sm" className="h-8 shadow-none" />}>
+                        <Trans>Actions</Trans>
+                        <ChevronDown className="ml-1 h-4 w-4" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="min-w-56">
+                        {hasActions ? (
+                            allBulkActionGroups.map((group, groupIndex) => {
+                                if (group.actions.length === 0) return null;
+                                return (
+                                    <div key={`group-${groupIndex}`}>
+                                        {groupIndex > 0 && <DropdownMenuSeparator />}
+                                        <DropdownMenuGroup>
+                                            {group.label && <DropdownMenuLabel>{group.label}</DropdownMenuLabel>}
+                                            {group.actions.map((action, index) => (
+                                                <action.component
+                                                    key={`bulk-action-${groupIndex}-${index}`}
+                                                    selection={selection}
+                                                    table={table}
+                                                />
+                                            ))}
+                                        </DropdownMenuGroup>
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <DropdownMenuItem className="text-muted-foreground" disabled>
+                                <Trans>No actions available</Trans>
+                            </DropdownMenuItem>
+                        )}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8"
+                    onClick={() => table.resetRowSelection()}
+                >
+                    <X className="h-4 w-4" />
+                    <Trans>Reset selection</Trans>
+                </Button>
+            </div>
         </div>
     );
 }

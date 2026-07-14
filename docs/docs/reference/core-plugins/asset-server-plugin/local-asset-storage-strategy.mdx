@@ -2,7 +2,7 @@
 title: "LocalAssetStorageStrategy"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/asset-server-plugin/src/config/local-asset-storage-strategy.ts" sourceLine="15" packageName="@vendure/asset-server-plugin" />
+<GenerationInfo sourceFile="packages/asset-server-plugin/src/config/local-asset-storage-strategy.ts" sourceLine="14" packageName="@vendure/asset-server-plugin" />
 
 A persistence strategy which saves files to the local file system.
 
@@ -10,11 +10,11 @@ A persistence strategy which saves files to the local file system.
 class LocalAssetStorageStrategy implements AssetStorageStrategy {
     toAbsoluteUrl: ((reqest: Request, identifier: string) => string) | undefined;
     constructor(uploadPath: string, toAbsoluteUrlFn?: (reqest: Request, identifier: string) => string)
-    writeFileFromStream(fileName: string, data: ReadStream) => Promise<string>;
+    writeFileFromStream(fileName: string, data: ReadStream, encoding?: BufferEncoding | null) => Promise<string>;
     writeFileFromBuffer(fileName: string, data: Buffer) => Promise<string>;
     fileExists(fileName: string) => Promise<boolean>;
     readFileToBuffer(identifier: string) => Promise<Buffer>;
-    readFileToStream(identifier: string) => Promise<Stream>;
+    readFileToStream(identifier: string, encoding?: BufferEncoding | null) => Promise<Stream>;
     deleteFile(identifier: string) => Promise<void>;
 }
 ```
@@ -29,14 +29,9 @@ class LocalAssetStorageStrategy implements AssetStorageStrategy {
 <MemberInfo kind="property" type={`((reqest: Request, identifier: string) => string) | undefined`}   />
 
 
-### constructor
-
-<MemberInfo kind="method" type={`(uploadPath: string, toAbsoluteUrlFn?: (reqest: Request, identifier: string) => string) => LocalAssetStorageStrategy`}   />
-
-
 ### writeFileFromStream
 
-<MemberInfo kind="method" type={`(fileName: string, data: ReadStream) => Promise<string>`}   />
+<MemberInfo kind="method" type={`(fileName: string, data: ReadStream, encoding?: BufferEncoding | null) => Promise<string>`}   />
 
 
 ### writeFileFromBuffer
@@ -56,7 +51,7 @@ class LocalAssetStorageStrategy implements AssetStorageStrategy {
 
 ### readFileToStream
 
-<MemberInfo kind="method" type={`(identifier: string) => Promise<Stream>`}   />
+<MemberInfo kind="method" type={`(identifier: string, encoding?: BufferEncoding | null) => Promise<Stream>`}   />
 
 
 ### deleteFile

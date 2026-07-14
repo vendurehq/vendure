@@ -36,6 +36,7 @@ import { NATIVE_AUTH_STRATEGY_NAME } from '../../../config/auth/native-authentic
 import { ConfigService } from '../../../config/config.service';
 import { Logger } from '../../../config/logger/vendure-logger';
 import { AdministratorService } from '../../../service/services/administrator.service';
+import { ApiKeyService } from '../../../service/services/api-key.service';
 import { AuthService } from '../../../service/services/auth.service';
 import { CustomerService } from '../../../service/services/customer.service';
 import { HistoryService } from '../../../service/services/history.service';
@@ -54,10 +55,11 @@ export class ShopAuthResolver extends BaseAuthResolver {
         userService: UserService,
         administratorService: AdministratorService,
         configService: ConfigService,
+        apiKeyService: ApiKeyService,
         protected customerService: CustomerService,
         protected historyService: HistoryService,
     ) {
-        super(authService, userService, administratorService, configService);
+        super(authService, userService, administratorService, configService, apiKeyService);
     }
 
     @Transaction()

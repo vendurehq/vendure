@@ -2,7 +2,7 @@
 title: "OrderService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/order.service.ts" sourceLine="140" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/order.service.ts" sourceLine="143" packageName="@vendure/core" />
 
 Contains methods relating to [Order](/reference/typescript-api/entities/order#order) entities.
 
@@ -26,6 +26,7 @@ class OrderService {
     createDraft(ctx: RequestContext) => ;
     updateCustomFields(ctx: RequestContext, orderId: ID, customFields: any) => ;
     updateOrderCustomer(ctx: RequestContext, { customerId, orderId, note }: SetOrderCustomerInput) => ;
+    updateOrderCurrency(ctx: RequestContext, orderId: ID, currencyCode: CurrencyCode, relations?: RelationPaths<Order>) => Promise<ErrorResultUnion<UpdateOrderItemsResult, Order>>;
     addItemToOrder(ctx: RequestContext, orderId: ID, productVariantId: ID, quantity: number, customFields?: { [key: string]: any }, relations?: RelationPaths<Order>) => Promise<ErrorResultUnion<UpdateOrderItemsResult, Order>>;
     addItemsToOrder(ctx: RequestContext, orderId: ID, items: Array<{
             productVariantId: ID;
@@ -76,11 +77,6 @@ class OrderService {
 ```
 
 <div className="members-wrapper">
-
-### constructor
-
-<MemberInfo kind="method" type={`(connection: <a href='/reference/typescript-api/data-access/transactional-connection#transactionalconnection'>TransactionalConnection</a>, configService: ConfigService, productVariantService: <a href='/reference/typescript-api/services/product-variant-service#productvariantservice'>ProductVariantService</a>, customerService: <a href='/reference/typescript-api/services/customer-service#customerservice'>CustomerService</a>, countryService: <a href='/reference/typescript-api/services/country-service#countryservice'>CountryService</a>, orderCalculator: <a href='/reference/typescript-api/service-helpers/order-calculator#ordercalculator'>OrderCalculator</a>, shippingCalculator: <a href='/reference/typescript-api/shipping/shipping-calculator#shippingcalculator'>ShippingCalculator</a>, orderStateMachine: OrderStateMachine, orderMerger: OrderMerger, paymentService: <a href='/reference/typescript-api/services/payment-service#paymentservice'>PaymentService</a>, paymentMethodService: <a href='/reference/typescript-api/services/payment-method-service#paymentmethodservice'>PaymentMethodService</a>, fulfillmentService: <a href='/reference/typescript-api/services/fulfillment-service#fulfillmentservice'>FulfillmentService</a>, listQueryBuilder: <a href='/reference/typescript-api/data-access/list-query-builder#listquerybuilder'>ListQueryBuilder</a>, refundStateMachine: RefundStateMachine, historyService: <a href='/reference/typescript-api/services/history-service#historyservice'>HistoryService</a>, promotionService: <a href='/reference/typescript-api/services/promotion-service#promotionservice'>PromotionService</a>, eventBus: <a href='/reference/typescript-api/events/event-bus#eventbus'>EventBus</a>, channelService: <a href='/reference/typescript-api/services/channel-service#channelservice'>ChannelService</a>, orderModifier: <a href='/reference/typescript-api/service-helpers/order-modifier#ordermodifier'>OrderModifier</a>, customFieldRelationService: CustomFieldRelationService, requestCache: <a href='/reference/typescript-api/cache/request-context-cache-service#requestcontextcacheservice'>RequestContextCacheService</a>, translator: <a href='/reference/typescript-api/service-helpers/translator-service#translatorservice'>TranslatorService</a>, stockLevelService: <a href='/reference/typescript-api/services/stock-level-service#stocklevelservice'>StockLevelService</a>) => OrderService`}   />
-
 
 ### getOrderProcessStates
 
@@ -172,6 +168,12 @@ Updates the custom fields of an Order.
 
 Updates the Customer which is assigned to a given Order. The target Customer must be assigned to the same
 Channels as the Order, otherwise an error will be thrown.
+### updateOrderCurrency
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, orderId: <a href='/reference/typescript-api/common/id#id'>ID</a>, currencyCode: <a href='/reference/typescript-api/common/currency-code#currencycode'>CurrencyCode</a>, relations?: RelationPaths<<a href='/reference/typescript-api/entities/order#order'>Order</a>>) => Promise<<a href='/reference/typescript-api/errors/error-result-union#errorresultunion'>ErrorResultUnion</a><UpdateOrderItemsResult, <a href='/reference/typescript-api/entities/order#order'>Order</a>>>`}  since="3.3.0"  />
+
+Updates the currency code of an Order. This will recalculate all prices
+in the new currency using `applyPriceAdjustments`.
 ### addItemToOrder
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, orderId: <a href='/reference/typescript-api/common/id#id'>ID</a>, productVariantId: <a href='/reference/typescript-api/common/id#id'>ID</a>, quantity: number, customFields?: { [key: string]: any }, relations?: RelationPaths<<a href='/reference/typescript-api/entities/order#order'>Order</a>>) => Promise<<a href='/reference/typescript-api/errors/error-result-union#errorresultunion'>ErrorResultUnion</a><UpdateOrderItemsResult, <a href='/reference/typescript-api/entities/order#order'>Order</a>>>`}   />

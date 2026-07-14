@@ -1,15 +1,15 @@
 import { expect, test } from '@playwright/test';
 
 // #4424 — Built-in form controls do not correctly handle disabled state.
-// Radix UI components (Switch, Select, Popover) use portals and custom event
+// Base UI components (Switch, Select, Popover) use portals and custom event
 // handlers that bypass HTML's native <fieldset disabled> mechanism.
 //
 // This test page renders every built-in input type with a toggle that sets
 // `disabled` via react-hook-form's Controller prop. When disabled:
 // - native inputs (<input>, <textarea>) should be non-interactable
-// - Radix Switch should not toggle
-// - Radix Select should not open
-// - Radix Popover (DateTimeInput) should not open
+// - Base UI Switch should not toggle
+// - Base UI Select should not open
+// - Base UI Popover (DateTimeInput) should not open
 
 const TEST_PAGE = '/form-inputs-test';
 
@@ -26,9 +26,9 @@ test.describe('Form inputs — disabled state (#4424)', () => {
         // Text field → textbox
         await expect(
             page
-                .locator('[data-slot="form-item"]')
+                .locator('[data-slot="field"]')
                 .filter({
-                    has: page.locator('[data-slot="form-label"]').getByText('Text Field', { exact: true }),
+                    has: page.locator('[data-slot="field-label"]').getByText('Text Field', { exact: true }),
                 })
                 .getByRole('textbox'),
         ).toBeVisible();
@@ -36,9 +36,9 @@ test.describe('Form inputs — disabled state (#4424)', () => {
         // Number field → spinbutton
         await expect(
             page
-                .locator('[data-slot="form-item"]')
+                .locator('[data-slot="field"]')
                 .filter({
-                    has: page.locator('[data-slot="form-label"]').getByText('Number Field', { exact: true }),
+                    has: page.locator('[data-slot="field-label"]').getByText('Number Field', { exact: true }),
                 })
                 .getByRole('spinbutton'),
         ).toBeVisible();
@@ -46,9 +46,11 @@ test.describe('Form inputs — disabled state (#4424)', () => {
         // Boolean field → switch
         await expect(
             page
-                .locator('[data-slot="form-item"]')
+                .locator('[data-slot="field"]')
                 .filter({
-                    has: page.locator('[data-slot="form-label"]').getByText('Boolean Field', { exact: true }),
+                    has: page
+                        .locator('[data-slot="field-label"]')
+                        .getByText('Boolean Field', { exact: true }),
                 })
                 .getByRole('switch'),
         ).toBeVisible();
@@ -56,10 +58,10 @@ test.describe('Form inputs — disabled state (#4424)', () => {
         // DateTime field → button (calendar trigger)
         await expect(
             page
-                .locator('[data-slot="form-item"]')
+                .locator('[data-slot="field"]')
                 .filter({
                     has: page
-                        .locator('[data-slot="form-label"]')
+                        .locator('[data-slot="field-label"]')
                         .getByText('DateTime Field', { exact: true }),
                 })
                 .getByRole('button')
@@ -69,17 +71,17 @@ test.describe('Form inputs — disabled state (#4424)', () => {
         // Select field → combobox
         await expect(
             page
-                .locator('[data-slot="form-item"]')
+                .locator('[data-slot="field"]')
                 .filter({
-                    has: page.locator('[data-slot="form-label"]').getByText('Select Field', { exact: true }),
+                    has: page.locator('[data-slot="field-label"]').getByText('Select Field', { exact: true }),
                 })
                 .getByRole('combobox'),
         ).toBeVisible();
     });
 
     test('text input should be disabled when toggle is on', async ({ page }) => {
-        const field = page.locator('[data-slot="form-item"]').filter({
-            has: page.locator('[data-slot="form-label"]').getByText('Text Field', { exact: true }),
+        const field = page.locator('[data-slot="field"]').filter({
+            has: page.locator('[data-slot="field-label"]').getByText('Text Field', { exact: true }),
         });
         const input = field.getByRole('textbox');
 
@@ -96,8 +98,8 @@ test.describe('Form inputs — disabled state (#4424)', () => {
     });
 
     test('number input should be disabled when toggle is on', async ({ page }) => {
-        const field = page.locator('[data-slot="form-item"]').filter({
-            has: page.locator('[data-slot="form-label"]').getByText('Number Field', { exact: true }),
+        const field = page.locator('[data-slot="field"]').filter({
+            has: page.locator('[data-slot="field-label"]').getByText('Number Field', { exact: true }),
         });
         const input = field.getByRole('spinbutton');
 
@@ -110,8 +112,8 @@ test.describe('Form inputs — disabled state (#4424)', () => {
     });
 
     test('boolean switch should be disabled when toggle is on', async ({ page }) => {
-        const field = page.locator('[data-slot="form-item"]').filter({
-            has: page.locator('[data-slot="form-label"]').getByText('Boolean Field', { exact: true }),
+        const field = page.locator('[data-slot="field"]').filter({
+            has: page.locator('[data-slot="field-label"]').getByText('Boolean Field', { exact: true }),
         });
         const switchEl = field.getByRole('switch');
 
@@ -130,10 +132,10 @@ test.describe('Form inputs — disabled state (#4424)', () => {
     });
 
     test('datetime input should be disabled when toggle is on', async ({ page }) => {
-        const field = page.locator('[data-slot="form-item"]').filter({
-            has: page.locator('[data-slot="form-label"]').getByText('DateTime Field', { exact: true }),
+        const field = page.locator('[data-slot="field"]').filter({
+            has: page.locator('[data-slot="field-label"]').getByText('DateTime Field', { exact: true }),
         });
-        const triggerButton = field.getByRole('button').first();
+        const triggerButton = field.locator('button[data-slot="button"]').first();
 
         // Toggle disabled
         await page.getByTestId('toggle-disabled').click();
@@ -154,13 +156,13 @@ test.describe('Form inputs — disabled state (#4424)', () => {
     });
 
     test('select input should be disabled when toggle is on', async ({ page }) => {
-        const field = page.locator('[data-slot="form-item"]').filter({
-            has: page.locator('[data-slot="form-label"]').getByText('Select Field', { exact: true }),
+        const field = page.locator('[data-slot="field"]').filter({
+            has: page.locator('[data-slot="field-label"]').getByText('Select Field', { exact: true }),
         });
         const combobox = field.getByRole('combobox');
 
         // Should show initial value
-        await expect(combobox).toHaveText('medium');
+        await expect(combobox).toContainText('medium');
 
         // Toggle disabled
         await page.getByTestId('toggle-disabled').click();
@@ -184,18 +186,18 @@ test.describe('Form inputs — disabled state (#4424)', () => {
         await expect(page.getByText('Inputs are enabled')).toBeVisible();
 
         // All inputs should be enabled again
-        const textField = page.locator('[data-slot="form-item"]').filter({
-            has: page.locator('[data-slot="form-label"]').getByText('Text Field', { exact: true }),
+        const textField = page.locator('[data-slot="field"]').filter({
+            has: page.locator('[data-slot="field-label"]').getByText('Text Field', { exact: true }),
         });
         await expect(textField.getByRole('textbox')).toBeEnabled();
 
-        const booleanField = page.locator('[data-slot="form-item"]').filter({
-            has: page.locator('[data-slot="form-label"]').getByText('Boolean Field', { exact: true }),
+        const booleanField = page.locator('[data-slot="field"]').filter({
+            has: page.locator('[data-slot="field-label"]').getByText('Boolean Field', { exact: true }),
         });
         await expect(booleanField.getByRole('switch')).toBeEnabled();
 
-        const selectField = page.locator('[data-slot="form-item"]').filter({
-            has: page.locator('[data-slot="form-label"]').getByText('Select Field', { exact: true }),
+        const selectField = page.locator('[data-slot="field"]').filter({
+            has: page.locator('[data-slot="field-label"]').getByText('Select Field', { exact: true }),
         });
         await expect(selectField.getByRole('combobox')).toBeEnabled();
     });

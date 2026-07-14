@@ -3,7 +3,7 @@ import { ModuleRef } from '@nestjs/core';
 import { SearchReindexResponse } from '@vendure/common/lib/generated-types';
 import { ID, Type } from '@vendure/common/lib/shared-types';
 import { buffer, debounceTime, delay, filter, map } from 'rxjs/operators';
-import { Column } from 'typeorm';
+import { Column, PrimaryColumn } from 'typeorm';
 
 import { Injector } from '../../common';
 import { idsAreEqual } from '../../common/utils';
@@ -108,6 +108,9 @@ export class DefaultSearchPlugin implements OnApplicationBootstrap, OnApplicatio
         this.options = options;
         if (options.indexStockStatus === true) {
             this.addStockColumnsToEntity();
+        }
+        if (options.indexCurrencyCode) {
+            this.addCurrencyCodeToEntity();
         }
         return DefaultSearchPlugin;
     }
@@ -239,5 +242,16 @@ export class DefaultSearchPlugin implements OnApplicationBootstrap, OnApplicatio
         const instance = new SearchIndexItem();
         Column({ type: 'boolean', default: true })(instance, 'inStock');
         Column({ type: 'boolean', default: true })(instance, 'productInStock');
+    }
+
+    /**
+     * If the `indexCurrencyCode` option is set to `true`, we dynamically add
+     * a column to the SearchIndexItem entity. This is done in this way to allow us to add
+     * support for indexing on the currency code, while preventing a backwards-incompatible
+     * schema change.
+     */
+    private static addCurrencyCodeToEntity() {
+        const instance = new SearchIndexItem();
+        PrimaryColumn({ type: 'varchar' })(instance, 'currencyCode');
     }
 }

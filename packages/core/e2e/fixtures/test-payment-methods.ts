@@ -1,7 +1,6 @@
+import { LanguageCode } from '@vendure/common/lib/generated-types';
 import { Payment, PaymentMethodHandler, TransactionalConnection } from '@vendure/core';
 import { vi } from 'vitest';
-
-import { LanguageCode } from '../graphql/generated-e2e-admin-types';
 
 export const testSuccessfulPaymentMethod = new PaymentMethodHandler({
     code: 'test-payment-method',

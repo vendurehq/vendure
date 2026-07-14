@@ -27,11 +27,9 @@ export function TestSingleShippingMethodSheet({
 
     return (
         <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger asChild>
-                <Button variant="secondary">
-                    <FlaskConical />
-                    <Trans>Test</Trans>
-                </Button>
+            <SheetTrigger render={<Button variant="secondary" />}>
+                <FlaskConical />
+                <Trans>Test</Trans>
             </SheetTrigger>
             <SheetContent className="w-[800px] sm:max-w-[800px]">
                 <SheetHeader>

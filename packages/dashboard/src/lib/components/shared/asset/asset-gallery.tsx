@@ -1,6 +1,6 @@
 import { VendureImage } from '@/vdb/components/shared/vendure-image.js';
+import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
-import { Card, CardContent } from '@/vdb/components/ui/card.js';
 import { Checkbox } from '@/vdb/components/ui/checkbox.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import {
@@ -13,19 +13,24 @@ import {
     PaginationPrevious,
 } from '@/vdb/components/ui/pagination.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/vdb/components/ui/select.js';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/vdb/components/ui/table.js';
+import { ToggleGroup, ToggleGroupItem } from '@/vdb/components/ui/toggle-group.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
+import { PageActionBar } from '@/vdb/framework/layout-engine/page-layout.js';
 import { api } from '@/vdb/graphql/api.js';
 import { assetFragment, AssetFragment } from '@/vdb/graphql/fragments.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
+import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { formatFileSize } from '@/vdb/lib/utils.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
 import { useDebounce } from '@uidotdev/usehooks';
-import { Loader2, Search, Upload, X } from 'lucide-react';
+import { ChevronRight, LayoutGrid, LayoutList, Loader2, Search, Upload, X } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { tagListDocument } from '../../../../app/routes/_authenticated/_assets/assets.graphql.js';
 import { AssetTagFilter } from '../../../../app/routes/_authenticated/_assets/components/asset-tag-filter.js';
-import { DetailPageButton } from '../detail-page-button.js';
 import { AssetBulkAction, AssetBulkActions } from './asset-bulk-actions.js';
 
 const getAssetListDocument = graphql(
@@ -72,6 +77,8 @@ const AssetType = {
 } as const;
 
 export type Asset = AssetFragment;
+
+export type AssetViewMode = 'grid' | 'list';
 
 /**
  * @description
@@ -136,6 +143,17 @@ export interface AssetGalleryProps {
      * The function to call when the page size changes.
      */
     onPageSizeChange?: (pageSize: number) => void;
+    /**
+     * @description
+     * The current view mode for the gallery. Defaults to 'grid'.
+     */
+    viewMode?: AssetViewMode;
+    /**
+     * @description
+     * The function to call when the view mode changes.
+     * When provided, a toggle will be rendered in the header bar.
+     */
+    onViewModeChange?: (mode: AssetViewMode) => void;
 }
 
 /**
@@ -170,7 +188,11 @@ export function AssetGallery({
     bulkActions,
     displayBulkActions = true,
     onPageSizeChange,
+    viewMode = 'grid',
+    onViewModeChange,
 }: AssetGalleryProps) {
+    const { t } = useLingui();
+
     // State
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState('');
@@ -222,6 +244,8 @@ export function AssetGallery({
         },
     });
 
+    const assets = (data?.assets.items ?? []) as Asset[];
+
     const { mutate: createAssets } = useMutation({
         mutationFn: api.mutate(createAssetsDocument),
         onSuccess: () => {
@@ -243,20 +267,23 @@ export function AssetGallery({
     const totalItems = data?.assets.totalItems || 0;
     const totalPages = Math.ceil(totalItems / pageSize);
 
-    // Handle selection
-    const handleSelect = (asset: Asset, event: React.MouseEvent) => {
-        if (multiSelect === 'auto') {
-            const isSelected = selected.some(a => a.id === asset.id);
-            let newSelected: Asset[];
-
-            if (isSelected) {
-                newSelected = selected.filter(a => a.id !== asset.id);
-            } else {
-                newSelected = [...selected, asset];
-            }
-
+    // Toggle a single asset in the selection
+    const toggleAssetSelection = useCallback(
+        (asset: Asset) => {
+            const isCurrentlySelected = selected.some(a => a.id === asset.id);
+            const newSelected = isCurrentlySelected
+                ? selected.filter(a => a.id !== asset.id)
+                : [...selected, asset];
             setSelected(newSelected);
             onSelect?.(newSelected);
+        },
+        [selected, onSelect],
+    );
+
+    // Handle selection
+    const handleSelect = (asset: Asset, event: React.MouseEvent | React.KeyboardEvent) => {
+        if (multiSelect === 'auto') {
+            toggleAssetSelection(asset);
             return;
         }
 
@@ -264,18 +291,7 @@ export function AssetGallery({
         const isModifierKeyPressed = event.metaKey || event.ctrlKey;
 
         if (multiSelect === 'manual' && isModifierKeyPressed) {
-            // Toggle selection
-            const isSelected = selected.some(a => a.id === asset.id);
-            let newSelected: Asset[];
-
-            if (isSelected) {
-                newSelected = selected.filter(a => a.id !== asset.id);
-            } else {
-                newSelected = [...selected, asset];
-            }
-
-            setSelected(newSelected);
-            onSelect?.(newSelected);
+            toggleAssetSelection(asset);
         } else {
             // No modifier key - single select
             setSelected([asset]);
@@ -330,7 +346,7 @@ export function AssetGallery({
                         <div className="relative flex-grow flex items-center gap-2">
                             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                             <Input
-                                placeholder="Search assets..."
+                                placeholder={t`Search assets...`}
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
                                 className="pl-8"
@@ -342,24 +358,55 @@ export function AssetGallery({
                                     onClick={clearFilters}
                                     className="absolute right-0"
                                 >
-                                    <X className="h-4 w-4 mr-1" /> Clear filters
+                                    <X className="h-4 w-4 mr-1" /> <Trans>Clear filters</Trans>
                                 </Button>
                             )}
                         </div>
-                        <Select value={assetType} onValueChange={setAssetType}>
+                        <Select
+                            items={{
+                                [AssetType.ALL]: t`All types`,
+                                [AssetType.IMAGE]: t`Images`,
+                                [AssetType.VIDEO]: t`Video`,
+                                [AssetType.BINARY]: t`Binary`,
+                            }}
+                            value={assetType}
+                            onValueChange={value => value != null && setAssetType(value)}
+                        >
                             <SelectTrigger className="w-full md:w-[180px]">
-                                <SelectValue placeholder="Asset type" />
+                                <SelectValue placeholder={t`Asset type`} />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value={AssetType.ALL}>All types</SelectItem>
-                                <SelectItem value={AssetType.IMAGE}>Images</SelectItem>
-                                <SelectItem value={AssetType.VIDEO}>Video</SelectItem>
-                                <SelectItem value={AssetType.BINARY}>Binary</SelectItem>
+                                <SelectItem value={AssetType.ALL}><Trans>All types</Trans></SelectItem>
+                                <SelectItem value={AssetType.IMAGE}><Trans>Images</Trans></SelectItem>
+                                <SelectItem value={AssetType.VIDEO}><Trans>Video</Trans></SelectItem>
+                                <SelectItem value={AssetType.BINARY}><Trans>Binary</Trans></SelectItem>
                             </SelectContent>
                         </Select>
-                        <Button onClick={openFileDialog} className="whitespace-nowrap">
-                            <Upload className="h-4 w-4 mr-2" /> <Trans>Upload</Trans>
-                        </Button>
+                        {onViewModeChange && (
+                            <ToggleGroup
+                                value={[viewMode]}
+                                onValueChange={values => {
+                                    if (values.length > 0) {
+                                        onViewModeChange(values[0] as AssetViewMode);
+                                    }
+                                }}
+                                variant="outline"
+                            >
+                                <ToggleGroupItem value="grid" aria-label={t`Grid view`}>
+                                    <LayoutGrid className="h-4 w-4" />
+                                </ToggleGroupItem>
+                                <ToggleGroupItem value="list" aria-label={t`List view`}>
+                                    <LayoutList className="h-4 w-4" />
+                                </ToggleGroupItem>
+                            </ToggleGroup>
+                        )}
+                        <PageActionBar>
+                            <ActionBarItem itemId="upload-assets-button">
+                                <Button onClick={openFileDialog} className="whitespace-nowrap">
+                                    <Upload className="h-4 w-4 mr-2" /> <Trans>Upload</Trans>
+                                </Button>
+                            </ActionBarItem>
+                        </PageActionBar>
                     </div>
 
                     {hasTags && (
@@ -388,106 +435,50 @@ export function AssetGallery({
                 {isDragActive && (
                     <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center rounded-md">
                         <Upload className="h-12 w-12 text-primary mb-2" />
-                        <p className="text-center font-medium">Drop files here to upload</p>
+                        <p className="text-center font-medium"><Trans>Drop files here to upload</Trans></p>
                     </div>
                 )}
 
-                <div
-                    data-asset-gallery
-                    className="grid grid-cols-2 xs:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 p-1"
-                >
-                    {isLoading ? (
-                        <div className="col-span-full flex justify-center py-12">
-                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        </div>
-                    ) : (
-                        data?.assets.items.map(asset => (
-                            <Card
-                                key={asset.id}
-                                className={`
-                                    overflow-hidden cursor-pointer transition-all hover:ring-2 hover:ring-primary/20
-                                    ${isSelected(asset as Asset) ? 'ring-2 ring-primary' : ''}
-                                    flex flex-col min-w-[120px]
-                                `}
-                                onClick={e => handleSelect(asset as Asset, e)}
-                            >
-                                <div
-                                    className="relative w-full bg-muted/30"
-                                    style={{
-                                        aspectRatio: '1/1',
-                                        minHeight: '120px', // Ensure minimum height for the image
-                                    }}
-                                >
-                                    <VendureImage
-                                        asset={asset}
-                                        preset="thumb"
-                                        className="w-full h-full object-contain"
-                                    />
-                                    {selectable && (
-                                        <div className="absolute top-2 left-2">
-                                            <Checkbox
-                                                checked={isSelected(asset as Asset)}
-                                                onClick={e => {
-                                                    e.stopPropagation();
-                                                    const isCurrentlySelected = selected.some(
-                                                        a => a.id === asset.id,
-                                                    );
-                                                    let newSelected: Asset[];
-
-                                                    if (isCurrentlySelected) {
-                                                        newSelected = selected.filter(a => a.id !== asset.id);
-                                                    } else {
-                                                        newSelected = [...selected, asset as Asset];
-                                                    }
-
-                                                    setSelected(newSelected);
-                                                    onSelect?.(newSelected);
-                                                }}
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                                <CardContent className="p-2">
-                                    <p className="text-xs line-clamp-2 min-h-[2.5rem]" title={asset.name}>
-                                        {asset.name}
-                                    </p>
-                                    <div className="flex justify-between items-center">
-                                        {asset.fileSize && (
-                                            <p className="text-xs text-muted-foreground mt-1">
-                                                {formatFileSize(asset.fileSize)}
-                                            </p>
-                                        )}
-                                        <DetailPageButton
-                                            href={`/assets/${asset.id}`}
-                                            label={<Trans>Edit</Trans>}
-                                        />
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))
-                    )}
-
-                    {!isLoading && data?.assets.items.length === 0 && (
-                        <div className="col-span-full text-center py-12 text-muted-foreground">
-                            No assets found. Try adjusting your filters.
-                        </div>
-                    )}
-                </div>
+                {viewMode === 'list' ? (
+                    <AssetListView
+                        assets={assets}
+                        isLoading={isLoading}
+                        selectable={selectable}
+                        isSelected={isSelected}
+                        handleSelect={handleSelect}
+                        toggleAssetSelection={toggleAssetSelection}
+                    />
+                ) : (
+                    <AssetGridView
+                        assets={assets}
+                        isLoading={isLoading}
+                        selectable={selectable}
+                        isSelected={isSelected}
+                        handleSelect={handleSelect}
+                        toggleAssetSelection={toggleAssetSelection}
+                    />
+                )}
             </div>
 
             <div className="flex flex-col md:flex-row items-center md:justify-between gap-4 mt-4 flex-shrink-0">
                 <div className="mt-2 text-xs text-muted-foreground flex-shrink-0">
-                    {totalItems} {totalItems === 1 ? 'asset' : 'assets'} found
-                    {selected.length > 0 && `, ${selected.length} selected`}
+                    <Trans>
+                        {totalItems} {totalItems === 1 ? 'asset' : 'assets'} found
+                    </Trans>
+                    {selected.length > 0 && (
+                        <Trans>, {selected.length} selected</Trans>
+                    )}
                 </div>
                 <div className="flex-1"></div>
                 {/* Items per page selector */}
                 {onPageSizeChange && (
                     <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">Items per page</span>
+                        <span className="text-sm text-muted-foreground"><Trans>Items per page</Trans></span>
                         <Select
+                            items={Object.fromEntries([12, 24, 48, 96].map(size => [`${size}`, size]))}
                             value={pageSize.toString()}
                             onValueChange={value => {
+                                if (value == null) return;
                                 const newPageSize = Number.parseInt(value, 10);
                                 onPageSizeChange(newPageSize);
                                 setPage(1); // Reset to first page when changing page size
@@ -618,6 +609,201 @@ export function AssetGallery({
                     </Pagination>
                 )}
             </div>
+        </div>
+    );
+}
+
+interface AssetViewProps {
+    assets: Asset[];
+    isLoading: boolean;
+    selectable: boolean;
+    isSelected: (asset: Asset) => boolean;
+    handleSelect: (asset: Asset, event: React.MouseEvent | React.KeyboardEvent) => void;
+    toggleAssetSelection: (asset: Asset) => void;
+}
+
+function AssetEmptyState() {
+    return (
+        <div className="text-center py-12 text-muted-foreground">
+            <Trans>No assets found. Try adjusting your filters.</Trans>
+        </div>
+    );
+}
+
+function AssetGridView({
+    assets,
+    isLoading,
+    selectable,
+    isSelected,
+    handleSelect,
+    toggleAssetSelection,
+}: Readonly<AssetViewProps>) {
+    if (isLoading) {
+        return (
+            <div data-asset-gallery className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        );
+    }
+
+    if (assets.length === 0) {
+        return <div data-asset-gallery><AssetEmptyState /></div>;
+    }
+
+    return (
+        <div
+            data-asset-gallery
+            className="grid grid-cols-2 xs:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 p-1"
+        >
+            {assets.map(asset => (
+                <button
+                    type="button"
+                    key={asset.id}
+                    className={`
+                        group cursor-pointer transition-all overflow-hidden rounded-xl
+                        bg-card text-card-foreground ring-1 text-left
+                        hover:ring-primary/40
+                        ${isSelected(asset) ? 'ring-2 ring-primary' : 'ring-foreground/10'}
+                    `}
+                    onClick={e => handleSelect(asset, e)}
+                >
+                    <div className="relative aspect-square bg-muted/30 overflow-hidden">
+                        <VendureImage
+                            asset={asset}
+                            preset="thumb"
+                            className="w-full h-full object-cover"
+                        />
+                        {selectable && (
+                            <div className="absolute top-1.5 left-1.5">
+                                <Checkbox
+                                    checked={isSelected(asset)}
+                                    onClick={e => {
+                                        e.stopPropagation();
+                                        toggleAssetSelection(asset);
+                                    }}
+                                />
+                            </div>
+                        )}
+                    </div>
+                    <div className="px-2 py-1.5">
+                        <p
+                            className="text-sm font-medium leading-tight line-clamp-1"
+                            title={asset.name}
+                        >
+                            {asset.name}
+                        </p>
+                        <div className="flex items-center justify-between mt-0.5">
+                            <span className="text-xs text-muted-foreground">
+                                {asset.fileSize ? formatFileSize(asset.fileSize) : ''}
+                            </span>
+                            <Link
+                                to={`/assets/${asset.id}`}
+                                onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                                className="p-0.5 rounded-sm text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-foreground transition-all"
+                            >
+                                <ChevronRight className="h-3.5 w-3.5" />
+                            </Link>
+                        </div>
+                    </div>
+                </button>
+            ))}
+        </div>
+    );
+}
+
+function AssetListView({
+    assets,
+    isLoading,
+    selectable,
+    isSelected,
+    handleSelect,
+    toggleAssetSelection,
+}: Readonly<AssetViewProps>) {
+    const { formatDate } = useLocalFormat();
+
+    if (isLoading) {
+        return (
+            <div data-asset-gallery className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        );
+    }
+
+    if (assets.length === 0) {
+        return <div data-asset-gallery><AssetEmptyState /></div>;
+    }
+
+    return (
+        <div data-asset-gallery>
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        {selectable && <TableHead className="w-10" />}
+                        <TableHead className="w-12" />
+                        <TableHead><Trans>Name</Trans></TableHead>
+                        <TableHead><Trans>Type</Trans></TableHead>
+                        <TableHead><Trans>Size</Trans></TableHead>
+                        <TableHead><Trans>Dimensions</Trans></TableHead>
+                        <TableHead><Trans>Created</Trans></TableHead>
+                        <TableHead className="w-10" />
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {assets.map(asset => (
+                        <TableRow
+                            key={asset.id}
+                            data-state={isSelected(asset) ? 'selected' : undefined}
+                            className="cursor-pointer"
+                            onClick={e => handleSelect(asset, e)}
+                        >
+                            {selectable && (
+                                <TableCell>
+                                    <Checkbox
+                                        checked={isSelected(asset)}
+                                        onClick={e => {
+                                            e.stopPropagation();
+                                            toggleAssetSelection(asset);
+                                        }}
+                                    />
+                                </TableCell>
+                            )}
+                            <TableCell className="p-1.5">
+                                <VendureImage
+                                    asset={asset}
+                                    preset="tiny"
+                                    className="h-9 w-9 rounded object-cover"
+                                />
+                            </TableCell>
+                            <TableCell className="font-medium">{asset.name}</TableCell>
+                            <TableCell>
+                                <Badge variant="secondary" className="text-xs font-normal">
+                                    {asset.type.toLowerCase()}
+                                </Badge>
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                                {asset.fileSize ? formatFileSize(asset.fileSize) : '-'}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                                {asset.width && asset.height
+                                    ? `${asset.width} \u00d7 ${asset.height}`
+                                    : '-'}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                                {formatDate(asset.createdAt)}
+                            </TableCell>
+                            <TableCell>
+                                <Link
+                                    to={`/assets/${asset.id}`}
+                                    onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                                    className="p-1 rounded-sm text-muted-foreground hover:text-foreground"
+                                >
+                                    <ChevronRight className="h-4 w-4" />
+                                </Link>
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
         </div>
     );
 }

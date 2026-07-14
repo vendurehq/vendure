@@ -5,8 +5,8 @@ import { User } from '../user/user.entity';
 
 /**
  * @description
- * An AuthenticationMethod represents the means by which a {@link User} is authenticated. There are two kinds:
- * {@link NativeAuthenticationMethod} and {@link ExternalAuthenticationMethod}.
+ * An AuthenticationMethod represents the means by which a {@link User} is authenticated. There are three kinds:
+ * {@link NativeAuthenticationMethod}, {@link ExternalAuthenticationMethod} and ${@link ApiKeyAuthenticationMethod}.
  *
  * @docsCategory entities
  * @docsPage AuthenticationMethod

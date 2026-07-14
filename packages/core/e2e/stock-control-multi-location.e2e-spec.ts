@@ -1,39 +1,34 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { manualFulfillmentHandler, mergeConfig } from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
-import gql from 'graphql-tag';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
-import { testConfig, TEST_SETUP_TIMEOUT_MS } from '../../../e2e-common/test-config';
+import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import { testSuccessfulPaymentMethod, twoStagePaymentMethod } from './fixtures/test-payment-methods';
+import { TestMultiLocationStockPlugin } from './fixtures/test-plugins/multi-location-stock-plugin';
+import { fulfillmentFragment } from './graphql/fragments-admin';
+import { graphql as graphqlAdmin } from './graphql/graphql-admin';
+import { FragmentOf, graphql } from './graphql/graphql-shop';
 import {
-    TestMultiLocationStockPlugin,
-    TestStockDisplayStrategy,
-    TestStockLocationStrategy,
-} from './fixtures/test-plugins/multi-location-stock-plugin';
-import * as Codegen from './graphql/generated-e2e-admin-types';
-import { CreateAddressInput, FulfillmentFragment } from './graphql/generated-e2e-admin-types';
-import { PaymentInput } from './graphql/generated-e2e-shop-types';
-import * as CodegenShop from './graphql/generated-e2e-shop-types';
-import {
-    CANCEL_ORDER,
-    CREATE_FULFILLMENT,
-    GET_ORDER,
-    GET_STOCK_MOVEMENT,
-    UPDATE_GLOBAL_SETTINGS,
-    UPDATE_PRODUCT_VARIANTS,
+    cancelOrderDocument,
+    createFulfillmentDocument,
+    getOrderDocument,
+    getStockMovementDocument,
+    updateGlobalSettingsDocument,
+    updateProductVariantsDocument,
 } from './graphql/shared-definitions';
 import {
-    ADD_ITEM_TO_ORDER,
-    ADD_PAYMENT,
-    GET_ELIGIBLE_SHIPPING_METHODS,
-    GET_PRODUCT_WITH_STOCK_LEVEL,
-    SET_SHIPPING_ADDRESS,
-    SET_SHIPPING_METHOD,
-    TRANSITION_TO_STATE,
+    addPaymentDocument,
+    getEligibleShippingMethodsDocument,
+    getProductWithStockLevelDocument,
+    setShippingAddressDocument,
+    setShippingMethodDocument,
+    testOrderFragment,
+    transitionToStateDocument,
+    updatedOrderFragment,
 } from './graphql/shop-definitions';
 
 describe('Stock control (multi-location)', () => {
@@ -49,30 +44,22 @@ describe('Stock control (multi-location)', () => {
     );
 
     const orderGuard: ErrorResultGuard<
-        CodegenShop.TestOrderFragmentFragment | CodegenShop.UpdatedOrderFragment
+        FragmentOf<typeof testOrderFragment> | FragmentOf<typeof updatedOrderFragment>
     > = createErrorResultGuard(input => !!input.lines);
 
-    const fulfillmentGuard: ErrorResultGuard<FulfillmentFragment> = createErrorResultGuard(
+    const fulfillmentGuard: ErrorResultGuard<FragmentOf<typeof fulfillmentFragment>> = createErrorResultGuard(
         input => !!input.state,
     );
 
     async function getProductWithStockMovement(productId: string) {
-        const { product } = await adminClient.query<
-            Codegen.GetStockMovementQuery,
-            Codegen.GetStockMovementQueryVariables
-        >(GET_STOCK_MOVEMENT, { id: productId });
+        const { product } = await adminClient.query(getStockMovementDocument, { id: productId });
         return product;
     }
 
     async function setFirstEligibleShippingMethod() {
-        const { eligibleShippingMethods } = await shopClient.query<CodegenShop.GetShippingMethodsQuery>(
-            GET_ELIGIBLE_SHIPPING_METHODS,
-        );
-        await shopClient.query<
-            CodegenShop.SetShippingMethodMutation,
-            CodegenShop.SetShippingMethodMutationVariables
-        >(SET_SHIPPING_METHOD, {
-            id: eligibleShippingMethods[0].id,
+        const { eligibleShippingMethods } = await shopClient.query(getEligibleShippingMethodsDocument);
+        await shopClient.query(setShippingMethodDocument, {
+            id: [eligibleShippingMethods[0].id],
         });
     }
 
@@ -96,10 +83,7 @@ describe('Stock control (multi-location)', () => {
         });
         await adminClient.asSuperAdmin();
 
-        await adminClient.query<
-            Codegen.UpdateGlobalSettingsMutation,
-            Codegen.UpdateGlobalSettingsMutationVariables
-        >(UPDATE_GLOBAL_SETTINGS, {
+        await adminClient.query(updateGlobalSettingsDocument, {
             input: {
                 trackInventory: false,
             },
@@ -111,18 +95,14 @@ describe('Stock control (multi-location)', () => {
     });
 
     it('default StockLocation exists', async () => {
-        const { stockLocations } =
-            await adminClient.query<Codegen.GetStockLocationsQuery>(GET_STOCK_LOCATIONS);
+        const { stockLocations } = await adminClient.query(GET_STOCK_LOCATIONS);
         expect(stockLocations.items.length).toBe(1);
         expect(stockLocations.items[0].name).toBe('Default Stock Location');
         defaultStockLocationId = stockLocations.items[0].id;
     });
 
     it('variant stock is all at default StockLocation', async () => {
-        const { productVariants } = await adminClient.query<
-            Codegen.GetVariantStockLevelsQuery,
-            Codegen.GetVariantStockLevelsQueryVariables
-        >(GET_VARIANT_STOCK_LEVELS, {});
+        const { productVariants } = await adminClient.query(GET_VARIANT_STOCK_LEVELS, {});
 
         expect(productVariants.items.every(variant => variant.stockLevels.length === 1)).toBe(true);
         expect(
@@ -133,10 +113,7 @@ describe('Stock control (multi-location)', () => {
     });
 
     it('create StockLocation', async () => {
-        const { createStockLocation } = await adminClient.query<
-            Codegen.CreateStockLocationMutation,
-            Codegen.CreateStockLocationMutationVariables
-        >(CREATE_STOCK_LOCATION, {
+        const { createStockLocation } = await adminClient.query(CREATE_STOCK_LOCATION, {
             input: {
                 name: 'StockLocation1',
                 description: 'StockLocation1',
@@ -152,10 +129,7 @@ describe('Stock control (multi-location)', () => {
     });
 
     it('update StockLocation', async () => {
-        const { updateStockLocation } = await adminClient.query<
-            Codegen.UpdateStockLocationMutation,
-            Codegen.UpdateStockLocationMutationVariables
-        >(UPDATE_STOCK_LOCATION, {
+        const { updateStockLocation } = await adminClient.query(UPDATE_STOCK_LOCATION, {
             input: {
                 id: 'T_2',
                 name: 'Warehouse 2',
@@ -171,15 +145,9 @@ describe('Stock control (multi-location)', () => {
     });
 
     it('update ProductVariants with stock levels in second location', async () => {
-        const { productVariants } = await adminClient.query<
-            Codegen.GetVariantStockLevelsQuery,
-            Codegen.GetVariantStockLevelsQueryVariables
-        >(GET_VARIANT_STOCK_LEVELS, {});
+        const { productVariants } = await adminClient.query(GET_VARIANT_STOCK_LEVELS, {});
 
-        const { updateProductVariants } = await adminClient.query<
-            Codegen.UpdateProductVariantsMutation,
-            Codegen.UpdateProductVariantsMutationVariables
-        >(UPDATE_PRODUCT_VARIANTS, {
+        const { updateProductVariants } = await adminClient.query(updateProductVariantsDocument, {
             input: productVariants.items.map(variant => ({
                 id: variant.id,
                 stockLevels: [{ stockLocationId: secondStockLocationId, stockOnHand: 120 }],
@@ -188,10 +156,7 @@ describe('Stock control (multi-location)', () => {
 
         const {
             productVariants: { items },
-        } = await adminClient.query<
-            Codegen.GetVariantStockLevelsQuery,
-            Codegen.GetVariantStockLevelsQueryVariables
-        >(GET_VARIANT_STOCK_LEVELS, {});
+        } = await adminClient.query(GET_VARIANT_STOCK_LEVELS, {});
         expect(items.every(variant => variant.stockLevels.length === 2)).toBe(true);
         expect(
             items.every(variant => {
@@ -204,20 +169,14 @@ describe('Stock control (multi-location)', () => {
     });
 
     it('StockLocationStrategy.getAvailableStock() is used to calculate saleable stock level', async () => {
-        const result1 = await shopClient.query<
-            CodegenShop.GetProductStockLevelQuery,
-            CodegenShop.GetProductStockLevelQueryVariables
-        >(GET_PRODUCT_WITH_STOCK_LEVEL, {
+        const result1 = await shopClient.query(getProductWithStockLevelDocument, {
             id: 'T_1',
         });
 
         expect(result1.product?.variants[0].stockLevel).toBe('220');
 
-        const result2 = await shopClient.query<
-            CodegenShop.GetProductStockLevelQuery,
-            CodegenShop.GetProductStockLevelQueryVariables
-        >(
-            GET_PRODUCT_WITH_STOCK_LEVEL,
+        const result2 = await shopClient.query(
+            getProductWithStockLevelDocument,
             {
                 id: 'T_1',
             },
@@ -226,11 +185,8 @@ describe('Stock control (multi-location)', () => {
 
         expect(result2.product?.variants[0].stockLevel).toBe('100');
 
-        const result3 = await shopClient.query<
-            CodegenShop.GetProductStockLevelQuery,
-            CodegenShop.GetProductStockLevelQueryVariables
-        >(
-            GET_PRODUCT_WITH_STOCK_LEVEL,
+        const result3 = await shopClient.query(
+            getProductWithStockLevelDocument,
             {
                 id: 'T_1',
             },
@@ -241,7 +197,7 @@ describe('Stock control (multi-location)', () => {
     });
 
     describe('stock movements', () => {
-        const ADD_ITEM_TO_ORDER_WITH_CUSTOM_FIELDS = `
+        const addItemToOrderWithCustomFieldsDocument = graphql(`
             mutation AddItemToOrderWithCustomFields(
                 $productVariantId: ID!
                 $quantity: Int!
@@ -254,7 +210,9 @@ describe('Stock control (multi-location)', () => {
                 ) {
                     ... on Order {
                         id
-                        lines { id }
+                        lines {
+                            id
+                        }
                     }
                     ... on ErrorResult {
                         errorCode
@@ -262,70 +220,54 @@ describe('Stock control (multi-location)', () => {
                     }
                 }
             }
-        `;
+        `);
         let orderId: string;
 
         it('creates Allocations according to StockLocationStrategy', async () => {
             await shopClient.asUserWithCredentials('trevor_donnelly96@hotmail.com', 'test');
 
-            await shopClient.query(gql(ADD_ITEM_TO_ORDER_WITH_CUSTOM_FIELDS), {
+            await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
                 productVariantId: 'T_1',
                 quantity: 2,
                 customFields: {
                     stockLocationId: '1',
-                },
+                } as any,
             });
-            const { addItemToOrder } = await shopClient.query(gql(ADD_ITEM_TO_ORDER_WITH_CUSTOM_FIELDS), {
+            const { addItemToOrder } = await shopClient.query(addItemToOrderWithCustomFieldsDocument, {
                 productVariantId: 'T_2',
                 quantity: 2,
                 customFields: {
                     stockLocationId: '2',
-                },
+                } as any,
             });
+            orderGuard.assertSuccess(addItemToOrder);
 
             orderId = addItemToOrder.id;
             expect(addItemToOrder.lines.length).toBe(2);
 
             // Do all steps to check out
-            await shopClient.query<
-                CodegenShop.SetShippingAddressMutation,
-                CodegenShop.SetShippingAddressMutationVariables
-            >(SET_SHIPPING_ADDRESS, {
+            await shopClient.query(setShippingAddressDocument, {
                 input: {
                     streetLine1: '1 Test Street',
                     countryCode: 'GB',
-                } as CreateAddressInput,
+                },
             });
-            const { eligibleShippingMethods } = await shopClient.query<CodegenShop.GetShippingMethodsQuery>(
-                GET_ELIGIBLE_SHIPPING_METHODS,
-            );
-            await shopClient.query<
-                CodegenShop.SetShippingMethodMutation,
-                CodegenShop.SetShippingMethodMutationVariables
-            >(SET_SHIPPING_METHOD, {
-                id: eligibleShippingMethods[0].id,
+            const { eligibleShippingMethods } = await shopClient.query(getEligibleShippingMethodsDocument);
+            await shopClient.query(setShippingMethodDocument, {
+                id: [eligibleShippingMethods[0].id],
             });
-            await shopClient.query<
-                CodegenShop.TransitionToStateMutation,
-                CodegenShop.TransitionToStateMutationVariables
-            >(TRANSITION_TO_STATE, {
+            await shopClient.query(transitionToStateDocument, {
                 state: 'ArrangingPayment',
             });
-            const { addPaymentToOrder: order } = await shopClient.query<
-                CodegenShop.AddPaymentToOrderMutation,
-                CodegenShop.AddPaymentToOrderMutationVariables
-            >(ADD_PAYMENT, {
+            const { addPaymentToOrder: order } = await shopClient.query(addPaymentDocument, {
                 input: {
                     method: testSuccessfulPaymentMethod.code,
                     metadata: {},
-                } as PaymentInput,
+                },
             });
             orderGuard.assertSuccess(order);
 
-            const { productVariants } = await adminClient.query<
-                Codegen.GetVariantStockLevelsQuery,
-                Codegen.GetVariantStockLevelsQueryVariables
-            >(GET_VARIANT_STOCK_LEVELS, {
+            const { productVariants } = await adminClient.query(GET_VARIANT_STOCK_LEVELS, {
                 options: {
                     filter: {
                         id: { in: ['T_1', 'T_2'] },
@@ -363,15 +305,9 @@ describe('Stock control (multi-location)', () => {
         });
 
         it('creates Releases according to StockLocationStrategy', async () => {
-            const { order } = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                GET_ORDER,
-                { id: orderId },
-            );
+            const { order } = await adminClient.query(getOrderDocument, { id: orderId });
 
-            const { cancelOrder } = await adminClient.query<
-                Codegen.CancelOrderMutation,
-                Codegen.CancelOrderMutationVariables
-            >(CANCEL_ORDER, {
+            const { cancelOrder } = await adminClient.query(cancelOrderDocument, {
                 input: {
                     orderId,
                     lines: order?.lines
@@ -383,10 +319,7 @@ describe('Stock control (multi-location)', () => {
                 },
             });
 
-            const { productVariants } = await adminClient.query<
-                Codegen.GetVariantStockLevelsQuery,
-                Codegen.GetVariantStockLevelsQueryVariables
-            >(GET_VARIANT_STOCK_LEVELS, {
+            const { productVariants } = await adminClient.query(GET_VARIANT_STOCK_LEVELS, {
                 options: {
                     filter: {
                         id: { eq: 'T_2' },
@@ -410,14 +343,8 @@ describe('Stock control (multi-location)', () => {
         });
 
         it('creates Sales according to StockLocationStrategy', async () => {
-            const { order } = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                GET_ORDER,
-                { id: orderId },
-            );
-            await adminClient.query<
-                Codegen.CreateFulfillmentMutation,
-                Codegen.CreateFulfillmentMutationVariables
-            >(CREATE_FULFILLMENT, {
+            const { order } = await adminClient.query(getOrderDocument, { id: orderId });
+            await adminClient.query(createFulfillmentDocument, {
                 input: {
                     handler: {
                         code: manualFulfillmentHandler.code,
@@ -430,10 +357,7 @@ describe('Stock control (multi-location)', () => {
                 },
             });
 
-            const { productVariants } = await adminClient.query<
-                Codegen.GetVariantStockLevelsQuery,
-                Codegen.GetVariantStockLevelsQueryVariables
-            >(GET_VARIANT_STOCK_LEVELS, {
+            const { productVariants } = await adminClient.query(GET_VARIANT_STOCK_LEVELS, {
                 options: {
                     filter: {
                         id: { in: ['T_1', 'T_2'] },
@@ -471,25 +395,16 @@ describe('Stock control (multi-location)', () => {
         });
 
         it('creates Cancellations according to StockLocationStrategy', async () => {
-            const { order } = await adminClient.query<Codegen.GetOrderQuery, Codegen.GetOrderQueryVariables>(
-                GET_ORDER,
-                { id: orderId },
-            );
-            await adminClient.query<Codegen.CancelOrderMutation, Codegen.CancelOrderMutationVariables>(
-                CANCEL_ORDER,
-                {
-                    input: {
-                        orderId,
-                        cancelShipping: true,
-                        reason: 'No longer needed',
-                    },
+            const { order } = await adminClient.query(getOrderDocument, { id: orderId });
+            await adminClient.query(cancelOrderDocument, {
+                input: {
+                    orderId,
+                    cancelShipping: true,
+                    reason: 'No longer needed',
                 },
-            );
+            });
 
-            const { productVariants } = await adminClient.query<
-                Codegen.GetVariantStockLevelsQuery,
-                Codegen.GetVariantStockLevelsQueryVariables
-            >(GET_VARIANT_STOCK_LEVELS, {
+            const { productVariants } = await adminClient.query(GET_VARIANT_STOCK_LEVELS, {
                 options: {
                     filter: {
                         id: { in: ['T_1', 'T_2'] },
@@ -528,24 +443,27 @@ describe('Stock control (multi-location)', () => {
     });
 });
 
-const STOCK_LOCATION_FRAGMENT = gql`
+const stockLocationFragment = graphqlAdmin(`
     fragment StockLocation on StockLocation {
         id
         name
         description
     }
-`;
+`);
 
-const GET_STOCK_LOCATION = gql`
+const GET_STOCK_LOCATION = graphqlAdmin(
+    `
     query GetStockLocation($id: ID!) {
         stockLocation(id: $id) {
             ...StockLocation
         }
     }
-    ${STOCK_LOCATION_FRAGMENT}
-`;
+`,
+    [stockLocationFragment],
+);
 
-const GET_STOCK_LOCATIONS = gql`
+const GET_STOCK_LOCATIONS = graphqlAdmin(
+    `
     query GetStockLocations($options: StockLocationListOptions) {
         stockLocations(options: $options) {
             items {
@@ -554,28 +472,33 @@ const GET_STOCK_LOCATIONS = gql`
             totalItems
         }
     }
-    ${STOCK_LOCATION_FRAGMENT}
-`;
+`,
+    [stockLocationFragment],
+);
 
-const CREATE_STOCK_LOCATION = gql`
+const CREATE_STOCK_LOCATION = graphqlAdmin(
+    `
     mutation CreateStockLocation($input: CreateStockLocationInput!) {
         createStockLocation(input: $input) {
             ...StockLocation
         }
     }
-    ${STOCK_LOCATION_FRAGMENT}
-`;
+`,
+    [stockLocationFragment],
+);
 
-const UPDATE_STOCK_LOCATION = gql`
+const UPDATE_STOCK_LOCATION = graphqlAdmin(
+    `
     mutation UpdateStockLocation($input: UpdateStockLocationInput!) {
         updateStockLocation(input: $input) {
             ...StockLocation
         }
     }
-    ${STOCK_LOCATION_FRAGMENT}
-`;
+`,
+    [stockLocationFragment],
+);
 
-const GET_VARIANT_STOCK_LEVELS = gql`
+const GET_VARIANT_STOCK_LEVELS = graphqlAdmin(`
     query GetVariantStockLevels($options: ProductVariantListOptions) {
         productVariants(options: $options) {
             items {
@@ -591,4 +514,4 @@ const GET_VARIANT_STOCK_LEVELS = gql`
             }
         }
     }
-`;
+`);

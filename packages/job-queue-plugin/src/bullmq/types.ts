@@ -1,6 +1,5 @@
 import { Job } from '@vendure/core';
-import { ConnectionOptions, WorkerOptions, Queue } from 'bullmq';
-import { QueueOptions } from 'bullmq';
+import { ConnectionOptions, Queue, QueueOptions, WorkerOptions } from 'bullmq';
 
 /**
  * @description
@@ -41,6 +40,43 @@ export interface BullMQPluginOptions {
      * See the [BullMQ WorkerOptions docs](https://github.com/taskforcesh/bullmq/blob/master/docs/gitbook/api/bullmq.workeroptions.md)
      */
     workerOptions?: Omit<WorkerOptions, 'connection'>;
+    /**
+     * @description
+     * How many jobs from a given queue to process concurrently.
+     *
+     * Can be set to a function which receives the queue name and returns
+     * the concurrency limit. This is useful for limiting concurrency on
+     * queues which have resource-intensive jobs.
+     *
+     * **Important implementation note:** When using a function, workers are grouped
+     * by the _concurrency value_, not by queue name. Because all Vendure job types
+     * are stored in a single BullMQ queue (`QUEUE_NAME`), any worker can process
+     * any job type. This means:
+     *
+     * - Multiple Vendure queues returning the same concurrency value will share a worker
+     * - Jobs from different Vendure queues may be processed by the same worker
+     * - The concurrency limit applies to the total jobs processed by that worker,
+     *   not strictly per Vendure queue
+     *
+     * For strict per-queue concurrency isolation, consider:
+     * - Creating separate BullMQ queues per Vendure queue (requires custom implementation)
+     * - Using [BullMQ Pro Groups](https://docs.bullmq.io/bullmq-pro/groups)
+     *
+     * @example
+     * ```ts
+     * BullMQJobQueuePlugin.init({
+     *   concurrency: (queueName) => {
+     *     if (queueName === 'apply-collection-filters') {
+     *       return 1;
+     *     }
+     *     return 5;
+     *   }
+     * })
+     * ```
+     *
+     * @default 3
+     */
+    concurrency?: number | ((queueName: string) => number);
     /**
      * @description
      * When a job is added to the JobQueue using `JobQueue.add()`, the calling

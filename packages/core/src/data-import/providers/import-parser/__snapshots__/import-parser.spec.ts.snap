@@ -8,6 +8,7 @@ exports[`ImportParser > parseProducts > custom fields 1`] = `
       "facets": [],
       "optionGroups": [
         {
+          "code": undefined,
           "translations": [
             {
               "languageCode": "en",
@@ -108,6 +109,7 @@ exports[`ImportParser > parseProducts > multiple products with multiple variants
       "facets": [],
       "optionGroups": [
         {
+          "code": undefined,
           "translations": [
             {
               "languageCode": "en",
@@ -228,6 +230,7 @@ exports[`ImportParser > parseProducts > multiple products with multiple variants
       "facets": [],
       "optionGroups": [
         {
+          "code": undefined,
           "translations": [
             {
               "languageCode": "en",
@@ -295,6 +298,7 @@ exports[`ImportParser > parseProducts > multiple products with multiple variants
       "facets": [],
       "optionGroups": [
         {
+          "code": undefined,
           "translations": [
             {
               "languageCode": "en",
@@ -307,6 +311,7 @@ exports[`ImportParser > parseProducts > multiple products with multiple variants
           ],
         },
         {
+          "code": undefined,
           "translations": [
             {
               "languageCode": "en",
@@ -419,6 +424,7 @@ exports[`ImportParser > parseProducts > single product with a multiple variants 
       "facets": [],
       "optionGroups": [
         {
+          "code": undefined,
           "translations": [
             {
               "languageCode": "en",
@@ -610,6 +616,7 @@ exports[`ImportParser > parseProducts > works with multilingual input 1`] = `
       ],
       "optionGroups": [
         {
+          "code": undefined,
           "translations": [
             {
               "languageCode": "en",
@@ -756,6 +763,7 @@ exports[`ImportParser > parseProducts > works with streamed input 1`] = `
       "facets": [],
       "optionGroups": [
         {
+          "code": undefined,
           "translations": [
             {
               "languageCode": "en",
@@ -876,6 +884,7 @@ exports[`ImportParser > parseProducts > works with streamed input 1`] = `
       "facets": [],
       "optionGroups": [
         {
+          "code": undefined,
           "translations": [
             {
               "languageCode": "en",
@@ -943,6 +952,7 @@ exports[`ImportParser > parseProducts > works with streamed input 1`] = `
       "facets": [],
       "optionGroups": [
         {
+          "code": undefined,
           "translations": [
             {
               "languageCode": "en",
@@ -955,6 +965,7 @@ exports[`ImportParser > parseProducts > works with streamed input 1`] = `
           ],
         },
         {
+          "code": undefined,
           "translations": [
             {
               "languageCode": "en",

@@ -507,6 +507,23 @@ export class PaymentStateTransitionError extends ErrorResult {
   }
 }
 
+export class ProductOptionGroupInUseError extends ErrorResult {
+  readonly __typename = 'ProductOptionGroupInUseError';
+  readonly errorCode = 'PRODUCT_OPTION_GROUP_IN_USE_ERROR' as any;
+  readonly message = 'PRODUCT_OPTION_GROUP_IN_USE_ERROR';
+  readonly optionGroupCode: Scalars['String'];
+  readonly productCount: Scalars['Int'];
+  readonly variantCount: Scalars['Int'];
+  constructor(
+    input: { optionGroupCode: Scalars['String'], productCount: Scalars['Int'], variantCount: Scalars['Int'] }
+  ) {
+    super();
+    this.optionGroupCode = input.optionGroupCode
+    this.productCount = input.productCount
+    this.variantCount = input.variantCount
+  }
+}
+
 export class ProductOptionInUseError extends ErrorResult {
   readonly __typename = 'ProductOptionInUseError';
   readonly errorCode = 'PRODUCT_OPTION_IN_USE_ERROR' as any;
@@ -601,7 +618,7 @@ export class SettlePaymentError extends ErrorResult {
 }
 
 
-const errorTypeNames = new Set<string>(['AlreadyRefundedError', 'CancelActiveOrderError', 'CancelPaymentError', 'ChannelDefaultLanguageError', 'CouponCodeExpiredError', 'CouponCodeInvalidError', 'CouponCodeLimitError', 'CreateFulfillmentError', 'DuplicateEntityError', 'EmailAddressConflictError', 'EmptyOrderLineSelectionError', 'FacetInUseError', 'FulfillmentStateTransitionError', 'GuestCheckoutError', 'IneligibleShippingMethodError', 'InsufficientStockError', 'InsufficientStockOnHandError', 'InvalidCredentialsError', 'InvalidFulfillmentHandlerError', 'ItemsAlreadyFulfilledError', 'LanguageNotAvailableError', 'ManualPaymentStateError', 'MimeTypeError', 'MissingConditionsError', 'MultipleOrderError', 'NativeAuthStrategyError', 'NegativeQuantityError', 'NoActiveOrderError', 'NoChangesSpecifiedError', 'NothingToRefundError', 'OrderInterceptorError', 'OrderLimitError', 'OrderModificationError', 'OrderModificationStateError', 'OrderStateTransitionError', 'PaymentMethodMissingError', 'PaymentOrderMismatchError', 'PaymentStateTransitionError', 'ProductOptionInUseError', 'QuantityTooGreatError', 'RefundAmountError', 'RefundOrderStateError', 'RefundPaymentIdMissingError', 'RefundStateTransitionError', 'SettlePaymentError']);
+const errorTypeNames = new Set<string>(['AlreadyRefundedError', 'CancelActiveOrderError', 'CancelPaymentError', 'ChannelDefaultLanguageError', 'CouponCodeExpiredError', 'CouponCodeInvalidError', 'CouponCodeLimitError', 'CreateFulfillmentError', 'DuplicateEntityError', 'EmailAddressConflictError', 'EmptyOrderLineSelectionError', 'FacetInUseError', 'FulfillmentStateTransitionError', 'GuestCheckoutError', 'IneligibleShippingMethodError', 'InsufficientStockError', 'InsufficientStockOnHandError', 'InvalidCredentialsError', 'InvalidFulfillmentHandlerError', 'ItemsAlreadyFulfilledError', 'LanguageNotAvailableError', 'ManualPaymentStateError', 'MimeTypeError', 'MissingConditionsError', 'MultipleOrderError', 'NativeAuthStrategyError', 'NegativeQuantityError', 'NoActiveOrderError', 'NoChangesSpecifiedError', 'NothingToRefundError', 'OrderInterceptorError', 'OrderLimitError', 'OrderModificationError', 'OrderModificationStateError', 'OrderStateTransitionError', 'PaymentMethodMissingError', 'PaymentOrderMismatchError', 'PaymentStateTransitionError', 'ProductOptionGroupInUseError', 'ProductOptionInUseError', 'QuantityTooGreatError', 'RefundAmountError', 'RefundOrderStateError', 'RefundPaymentIdMissingError', 'RefundStateTransitionError', 'SettlePaymentError']);
 function isGraphQLError(input: any): input is import('@vendure/common/lib/generated-types').ErrorResult {
   return input instanceof ErrorResult || errorTypeNames.has(input.__typename);
 }
@@ -695,6 +712,11 @@ export const adminErrorOperationTypeResolvers = {
   RemoveOptionGroupFromProductResult: {
     __resolveType(value: any) {
       return isGraphQLError(value) ? (value as any).__typename : 'Product';
+    },
+  },
+  RemoveProductOptionGroupFromChannelResult: {
+    __resolveType(value: any) {
+      return isGraphQLError(value) ? (value as any).__typename : 'ProductOptionGroup';
     },
   },
   SetCustomerForDraftOrderResult: {

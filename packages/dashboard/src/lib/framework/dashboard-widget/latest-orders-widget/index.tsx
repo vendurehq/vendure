@@ -98,8 +98,8 @@ export function LatestOrdersWidget() {
                         header: t`Code`,
                         cell: ({ row }) => {
                             return (
-                                <Button variant="ghost" asChild>
-                                    <Link to={`/orders/${row.original.id}`}>{row.original.code}</Link>
+                                <Button variant="ghost" render={<Link to={`/orders/${row.original.id}`} />}>
+                                    {row.original.code}
                                 </Button>
                             );
                         },

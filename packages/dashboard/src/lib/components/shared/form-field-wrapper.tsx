@@ -1,7 +1,9 @@
+import React from 'react';
+import { Controller, ControllerProps, FieldPath, FieldValues } from 'react-hook-form';
 import { OverriddenFormComponent } from '@/vdb/framework/form-engine/overridden-form-component.js';
 import { LocationWrapper } from '@/vdb/framework/layout-engine/location-wrapper.js';
-import { FieldPath, FieldValues } from 'react-hook-form';
-import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '../ui/form.js';
+import { Field, FieldDescription, FieldError, FieldLabel } from '../ui/field.js';
+import { applyControlProps } from './apply-control-props.js';
 
 /**
  * @description
@@ -14,7 +16,7 @@ import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessa
 export type FormFieldWrapperProps<
     TFieldValues extends FieldValues = FieldValues,
     TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
-> = React.ComponentProps<typeof FormField<TFieldValues, TName>> & {
+> = ControllerProps<TFieldValues, TName> & {
     /**
      * @description
      * The label for the form field.
@@ -27,10 +29,9 @@ export type FormFieldWrapperProps<
     description?: React.ReactNode;
     /**
      * @description
-     * Whether to render the form control.
-     * If false, the form control will not be rendered.
-     * This is useful when you want to render the form control in a custom way, e.g. for <Select/> components,
-     * where the FormControl needs to nested in the root component.
+     * Whether to inject `id` and `aria-invalid` props onto the rendered form control.
+     * If false, the rendered element is used as-is without prop injection.
+     * This is useful for components like `<Select/>` that manage their own trigger element.
      *
      * @default true
      */
@@ -41,7 +42,7 @@ export type FormFieldWrapperProps<
  * @description
  * This is a wrapper that can be used in all forms to wrap the actual form control, and provide a label, description and error message.
  *
- * Use this instead of the default Shadcn FormField (etc.) components, as it also supports
+ * Use this instead of raw Controller + Field primitives, as it also supports
  * overridden form components.
  *
  * @example
@@ -83,27 +84,28 @@ export function FormFieldWrapper<
     const { name, render, ...rest } = controllerProps;
     return (
         <LocationWrapper identifier={name}>
-            <FormField
+            <Controller
                 {...rest}
                 name={name}
-                render={renderArgs => (
-                    <FormItem>
-                        {label && <FormLabel>{label}</FormLabel>}
-                        {renderFormControl ? (
-                            <FormControl>
-                                <OverriddenFormComponent field={renderArgs.field} fieldName={name}>
-                                    {render(renderArgs)}
-                                </OverriddenFormComponent>
-                            </FormControl>
-                        ) : (
+                render={renderArgs => {
+                    const { fieldState } = renderArgs;
+                    const fieldId = `field-${name}`;
+                    return (
+                        <Field data-invalid={fieldState.invalid || undefined}>
+                            {label && <FieldLabel htmlFor={fieldId}>{label}</FieldLabel>}
                             <OverriddenFormComponent field={renderArgs.field} fieldName={name}>
-                                {render(renderArgs)}
+                                {renderFormControl
+                                    ? applyControlProps(render(renderArgs), {
+                                          id: fieldId,
+                                          'aria-invalid': fieldState.invalid || undefined,
+                                      })
+                                    : render(renderArgs)}
                             </OverriddenFormComponent>
-                        )}
-                        {description && <FormDescription>{description}</FormDescription>}
-                        <FormMessage />
-                    </FormItem>
-                )}
+                            {description && <FieldDescription>{description}</FieldDescription>}
+                            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                        </Field>
+                    );
+                }}
             />
         </LocationWrapper>
     );

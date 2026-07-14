@@ -25,14 +25,13 @@ export function ConfirmationDialog({
     onConfirm: () => void;
     confirmText?: string;
     cancelText?: string;
-    children: React.ReactNode;
+    children: React.ReactElement;
 }) {
     const [open, setOpen] = useState(false);
     return (
         <AlertDialog open={open} onOpenChange={setOpen}>
-            <AlertDialogTrigger asChild onClick={() => setOpen(true)}>
-                {children}
-            </AlertDialogTrigger>
+            <AlertDialogTrigger render={children} onClick={() => setOpen(true)} />
+
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>{title}</AlertDialogTitle>

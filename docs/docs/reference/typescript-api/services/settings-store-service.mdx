@@ -44,6 +44,8 @@ class SettingsStoreService implements OnModuleInit {
     setMany(values: Record<string, JsonCompatible<any>>, ctx: RequestContext) => Promise<SetSettingsStoreValueResult[]>;
     setMany(valuesOrCtx: Record<string, JsonCompatible<any>> | RequestContext, ctxOrValues: RequestContext | Record<string, JsonCompatible<any>>) => Promise<SetSettingsStoreValueResult[]>;
     getFieldDefinition(key: string) => SettingsStoreFieldConfig | undefined;
+    getAllFieldDefinitions() => Array<{ key: string; config: SettingsStoreFieldConfig }>;
+    getScopeType(fieldConfig: SettingsStoreFieldConfig) => SettingsStoreScopeType;
     validateValue(key: string, value: any, ctx: RequestContext) => Promise<string | void>;
     findOrphanedEntries(options: CleanupOrphanedSettingsStoreEntriesOptions = {}) => Promise<OrphanedSettingsStoreEntry[]>;
     cleanupOrphanedEntries(options: CleanupOrphanedSettingsStoreEntriesOptions = {}) => Promise<CleanupOrphanedSettingsStoreEntriesResult>;
@@ -58,11 +60,6 @@ class SettingsStoreService implements OnModuleInit {
 
 
 <div className="members-wrapper">
-
-### constructor
-
-<MemberInfo kind="method" type={`(connection: <a href='/reference/typescript-api/data-access/transactional-connection#transactionalconnection'>TransactionalConnection</a>, moduleRef: ModuleRef, configService: ConfigService) => SettingsStoreService`}   />
-
 
 ### onModuleInit
 
@@ -146,6 +143,17 @@ detailed results for each key-value pair.
 <MemberInfo kind="method" type={`(key: string) => <a href='/reference/typescript-api/settings-store/settings-store-field-config#settingsstorefieldconfig'>SettingsStoreFieldConfig</a> | undefined`}   />
 
 Get the field configuration for a key.
+### getAllFieldDefinitions
+
+<MemberInfo kind="method" type={`() => Array<{ key: string; config: <a href='/reference/typescript-api/settings-store/settings-store-field-config#settingsstorefieldconfig'>SettingsStoreFieldConfig</a> }>`}  since="3.6.0"  />
+
+Returns all registered field definitions with their full keys.
+### getScopeType
+
+<MemberInfo kind="method" type={`(fieldConfig: <a href='/reference/typescript-api/settings-store/settings-store-field-config#settingsstorefieldconfig'>SettingsStoreFieldConfig</a>) => SettingsStoreScopeType`}  since="3.6.0"  />
+
+Determines the scope type of a field by comparing its scope function reference
+to the pre-built SettingsStoreScopes functions.
 ### validateValue
 
 <MemberInfo kind="method" type={`(key: string, value: any, ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>) => Promise<string | void>`}   />

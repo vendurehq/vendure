@@ -26,9 +26,7 @@ type Story = StoryObj<typeof meta>;
 export const Playground: Story = {
     render: () => (
         <Sheet>
-            <SheetTrigger asChild>
-                <Button>Open Sheet</Button>
-            </SheetTrigger>
+            <SheetTrigger render={<Button />}>Open Sheet</SheetTrigger>
             <SheetContent>
                 <SheetHeader>
                     <SheetTitle>Edit profile</SheetTitle>
@@ -40,9 +38,7 @@ export const Playground: Story = {
                     <p>Sheet content goes here</p>
                 </div>
                 <SheetFooter>
-                    <SheetClose asChild>
-                        <Button type="submit">Save changes</Button>
-                    </SheetClose>
+                    <SheetClose render={<Button type="submit" />}>Save changes</SheetClose>
                 </SheetFooter>
             </SheetContent>
         </Sheet>

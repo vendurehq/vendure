@@ -2,6 +2,8 @@
 title: "OrderMergeStrategy"
 generated: true
 ---
+## OrderMergeStrategy
+
 <GenerationInfo sourceFile="packages/core/src/config/order/order-merge-strategy.ts" sourceLine="48" packageName="@vendure/core" />
 
 An OrderMergeStrategy defines what happens when a Customer with an existing Order
@@ -19,7 +21,7 @@ your VendureConfig.
 
 ```ts title="Signature"
 interface OrderMergeStrategy extends InjectableStrategy {
-    merge(ctx: RequestContext, guestOrder: Order, existingOrder: Order): MergedOrderLine[];
+    merge(ctx: RequestContext, guestOrder: Order, existingOrder: Order): MergedOrderLine[] | Promise<MergedOrderLine[]>;
 }
 ```
 * Extends: [`InjectableStrategy`](/reference/typescript-api/common/injectable-strategy#injectablestrategy)
@@ -30,13 +32,15 @@ interface OrderMergeStrategy extends InjectableStrategy {
 
 ### merge
 
-<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, guestOrder: <a href='/reference/typescript-api/entities/order#order'>Order</a>, existingOrder: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => <a href='/reference/typescript-api/orders/order-merge-strategy#mergedorderline'>MergedOrderLine</a>[]`}   />
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, guestOrder: <a href='/reference/typescript-api/entities/order#order'>Order</a>, existingOrder: <a href='/reference/typescript-api/entities/order#order'>Order</a>) => <a href='/reference/typescript-api/orders/order-merge-strategy#mergedorderline'>MergedOrderLine</a>[] | Promise<<a href='/reference/typescript-api/orders/order-merge-strategy#mergedorderline'>MergedOrderLine</a>[]>`}   />
 
 Merges the lines of the guest Order with those of the existing Order which is associated
 with the active customer.
 
 
 </div>
+## MergedOrderLine
+
 <GenerationInfo sourceFile="packages/core/src/config/order/order-merge-strategy.ts" sourceLine="15" packageName="@vendure/core" />
 
 The result of the [OrderMergeStrategy](/reference/typescript-api/orders/order-merge-strategy#ordermergestrategy) `merge` method.

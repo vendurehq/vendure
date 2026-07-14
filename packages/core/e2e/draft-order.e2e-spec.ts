@@ -3,13 +3,13 @@ import { LanguageCode } from '@vendure/common/lib/generated-types';
 import {
     DefaultOrderPlacedStrategy,
     mergeConfig,
+    minimumOrderAmount,
     Order,
     orderPercentageDiscount,
     OrderState,
     RequestContext,
 } from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
-import gql from 'graphql-tag';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -17,22 +17,21 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import { singleStageRefundablePaymentMethod } from './fixtures/test-payment-methods';
-import { ORDER_WITH_LINES_FRAGMENT } from './graphql/fragments';
-import * as Codegen from './graphql/generated-e2e-admin-types';
 import {
-    AddManualPaymentDocument,
-    AdminTransitionDocument,
-    CanceledOrderFragment,
-    GetOrderPlacedAtDocument,
-    OrderWithLinesFragment,
-} from './graphql/generated-e2e-admin-types';
+    canceledOrderFragment,
+    orderFragment,
+    orderWithLinesFragment,
+    paymentFragment,
+} from './graphql/fragments-admin';
+import { FragmentOf, graphql, ResultOf } from './graphql/graphql-admin';
 import {
-    GetActiveCustomerOrdersQuery,
-    TestOrderFragmentFragment,
-    UpdatedOrderFragment,
-} from './graphql/generated-e2e-shop-types';
-import { CREATE_PROMOTION, GET_CUSTOMER_LIST } from './graphql/shared-definitions';
-import { GET_ACTIVE_CUSTOMER_ORDERS } from './graphql/shop-definitions';
+    addManualPaymentDocument,
+    adminTransitionToStateDocument,
+    createPromotionDocument,
+    deletePromotionDocument,
+    getCustomerListDocument,
+} from './graphql/shared-definitions';
+import { getActiveCustomerOrdersDocument } from './graphql/shop-definitions';
 
 class TestOrderPlacedStrategy extends DefaultOrderPlacedStrategy {
     static spy = vi.fn();
@@ -61,13 +60,15 @@ describe('Draft Orders resolver', () => {
             },
         }),
     );
-    let customers: Codegen.GetCustomerListQuery['customers']['items'];
-    let draftOrder: OrderWithLinesFragment;
+    let customers: ResultOf<typeof getCustomerListDocument>['customers']['items'];
+    let draftOrder: FragmentOf<typeof orderWithLinesFragment>;
     const freeOrderCouponCode = 'FREE';
 
     const orderGuard: ErrorResultGuard<
-        TestOrderFragmentFragment | CanceledOrderFragment | UpdatedOrderFragment
-    > = createErrorResultGuard(input => !!input.lines || !!input.state);
+        | FragmentOf<typeof orderWithLinesFragment>
+        | FragmentOf<typeof canceledOrderFragment>
+        | FragmentOf<typeof orderFragment>
+    > = createErrorResultGuard(input => ('lines' in input && !!input.lines) || !!input.state);
 
     beforeAll(async () => {
         await server.init({
@@ -86,10 +87,7 @@ describe('Draft Orders resolver', () => {
         await adminClient.asSuperAdmin();
 
         // Create a couple of orders to be queried
-        const result = await adminClient.query<
-            Codegen.GetCustomerListQuery,
-            Codegen.GetCustomerListQueryVariables
-        >(GET_CUSTOMER_LIST, {
+        const result = await adminClient.query(getCustomerListDocument, {
             options: {
                 take: 3,
             },
@@ -97,10 +95,7 @@ describe('Draft Orders resolver', () => {
         customers = result.customers.items;
 
         // Create a coupon code promotion
-        const { createPromotion } = await adminClient.query<
-            Codegen.CreatePromotionMutation,
-            Codegen.CreatePromotionMutationVariables
-        >(CREATE_PROMOTION, {
+        await adminClient.query(createPromotionDocument, {
             input: {
                 enabled: true,
                 conditions: [],
@@ -121,8 +116,7 @@ describe('Draft Orders resolver', () => {
     });
 
     it('create draft order', async () => {
-        const { createDraftOrder } =
-            await adminClient.query<Codegen.CreateDraftOrderMutation>(CREATE_DRAFT_ORDER);
+        const { createDraftOrder } = await adminClient.query(createDraftOrderDocument);
 
         expect(createDraftOrder.state).toBe('Draft');
         expect(createDraftOrder.active).toBe(false);
@@ -130,10 +124,7 @@ describe('Draft Orders resolver', () => {
     });
 
     it('addItemToDraftOrder', async () => {
-        const { addItemToDraftOrder } = await adminClient.query<
-            Codegen.AddItemToDraftOrderMutation,
-            Codegen.AddItemToDraftOrderMutationVariables
-        >(ADD_ITEM_TO_DRAFT_ORDER, {
+        const { addItemToDraftOrder } = await adminClient.query(addItemToDraftOrderDocument, {
             orderId: draftOrder.id,
             input: {
                 productVariantId: 'T_5',
@@ -148,13 +139,12 @@ describe('Draft Orders resolver', () => {
     });
 
     it('adjustDraftOrderLine up', async () => {
-        const { adjustDraftOrderLine } = await adminClient.query<
-            Codegen.AdjustDraftOrderLineMutation,
-            Codegen.AdjustDraftOrderLineMutationVariables
-        >(ADJUST_DRAFT_ORDER_LINE, {
+        const firstLine = draftOrder.lines[0];
+        if (!firstLine) throw new Error('Expected first line to exist');
+        const { adjustDraftOrderLine } = await adminClient.query(adjustDraftOrderLineDocument, {
             orderId: draftOrder.id,
             input: {
-                orderLineId: draftOrder.lines[0]!.id,
+                orderLineId: firstLine.id,
                 quantity: 5,
             },
         });
@@ -164,13 +154,12 @@ describe('Draft Orders resolver', () => {
     });
 
     it('adjustDraftOrderLine down', async () => {
-        const { adjustDraftOrderLine } = await adminClient.query<
-            Codegen.AdjustDraftOrderLineMutation,
-            Codegen.AdjustDraftOrderLineMutationVariables
-        >(ADJUST_DRAFT_ORDER_LINE, {
+        const firstLine = draftOrder.lines[0];
+        if (!firstLine) throw new Error('Expected first line to exist');
+        const { adjustDraftOrderLine } = await adminClient.query(adjustDraftOrderLineDocument, {
             orderId: draftOrder.id,
             input: {
-                orderLineId: draftOrder.lines[0]!.id,
+                orderLineId: firstLine.id,
                 quantity: 2,
             },
         });
@@ -180,12 +169,11 @@ describe('Draft Orders resolver', () => {
     });
 
     it('removeDraftOrderLine', async () => {
-        const { removeDraftOrderLine } = await adminClient.query<
-            Codegen.RemoveDraftOrderLineMutation,
-            Codegen.RemoveDraftOrderLineMutationVariables
-        >(REMOVE_DRAFT_ORDER_LINE, {
+        const firstLine = draftOrder.lines[0];
+        if (!firstLine) throw new Error('Expected first line to exist');
+        const { removeDraftOrderLine } = await adminClient.query(removeDraftOrderLineDocument, {
             orderId: draftOrder.id,
-            orderLineId: draftOrder.lines[0]!.id,
+            orderLineId: firstLine.id,
         });
 
         orderGuard.assertSuccess(removeDraftOrderLine);
@@ -193,10 +181,7 @@ describe('Draft Orders resolver', () => {
     });
 
     it('setCustomerForDraftOrder', async () => {
-        const { setCustomerForDraftOrder } = await adminClient.query<
-            Codegen.SetCustomerForDraftOrderMutation,
-            Codegen.SetCustomerForDraftOrderMutationVariables
-        >(SET_CUSTOMER_FOR_DRAFT_ORDER, {
+        const { setCustomerForDraftOrder } = await adminClient.query(setCustomerForDraftOrderDocument, {
             orderId: draftOrder.id,
             customerId: customers[0].id,
         });
@@ -208,27 +193,26 @@ describe('Draft Orders resolver', () => {
     it('custom does not see draft orders in history', async () => {
         await shopClient.asUserWithCredentials(customers[0].emailAddress, 'test');
 
-        const { activeCustomer } =
-            await shopClient.query<GetActiveCustomerOrdersQuery>(GET_ACTIVE_CUSTOMER_ORDERS);
+        const { activeCustomer } = await shopClient.query(getActiveCustomerOrdersDocument);
 
         expect(activeCustomer?.orders.totalItems).toBe(0);
         expect(activeCustomer?.orders.items.length).toBe(0);
     });
 
     it('setDraftOrderShippingAddress', async () => {
-        const { setDraftOrderShippingAddress } = await adminClient.query<
-            Codegen.SetDraftOrderShippingAddressMutation,
-            Codegen.SetDraftOrderShippingAddressMutationVariables
-        >(SET_SHIPPING_ADDRESS_FOR_DRAFT_ORDER, {
-            orderId: draftOrder.id,
-            input: {
-                streetLine1: 'Shipping Street',
-                city: 'Wigan',
-                province: 'Greater Manchester',
-                postalCode: 'WN1 2DD',
-                countryCode: 'GB',
+        const { setDraftOrderShippingAddress } = await adminClient.query(
+            setShippingAddressForDraftOrderDocument,
+            {
+                orderId: draftOrder.id,
+                input: {
+                    streetLine1: 'Shipping Street',
+                    city: 'Wigan',
+                    province: 'Greater Manchester',
+                    postalCode: 'WN1 2DD',
+                    countryCode: 'GB',
+                },
             },
-        });
+        );
 
         expect(setDraftOrderShippingAddress.shippingAddress).toEqual({
             company: null,
@@ -244,19 +228,19 @@ describe('Draft Orders resolver', () => {
     });
 
     it('setDraftOrderBillingAddress', async () => {
-        const { setDraftOrderBillingAddress } = await adminClient.query<
-            Codegen.SetDraftOrderBillingAddressMutation,
-            Codegen.SetDraftOrderBillingAddressMutationVariables
-        >(SET_BILLING_ADDRESS_FOR_DRAFT_ORDER, {
-            orderId: draftOrder.id,
-            input: {
-                streetLine1: 'Billing Street',
-                city: 'Skelmerdale',
-                province: 'Lancashire',
-                postalCode: 'WN8 3QW',
-                countryCode: 'GB',
+        const { setDraftOrderBillingAddress } = await adminClient.query(
+            setBillingAddressForDraftOrderDocument,
+            {
+                orderId: draftOrder.id,
+                input: {
+                    streetLine1: 'Billing Street',
+                    city: 'Skelmerdale',
+                    province: 'Lancashire',
+                    postalCode: 'WN8 3QW',
+                    countryCode: 'GB',
+                },
             },
-        });
+        );
 
         expect(setDraftOrderBillingAddress.billingAddress).toEqual({
             company: null,
@@ -272,12 +256,12 @@ describe('Draft Orders resolver', () => {
     });
 
     it('unsetDraftOrderShippingAddress', async () => {
-        const { unsetDraftOrderShippingAddress } = await adminClient.query<
-            Codegen.UnsetDraftOrderShippingAddressMutation,
-            Codegen.UnsetDraftOrderShippingAddressMutationVariables
-        >(UNSET_SHIPPING_ADDRESS_FOR_DRAFT_ORDER, {
-            orderId: draftOrder.id,
-        });
+        const { unsetDraftOrderShippingAddress } = await adminClient.query(
+            unsetShippingAddressForDraftOrderDocument,
+            {
+                orderId: draftOrder.id,
+            },
+        );
 
         expect(unsetDraftOrderShippingAddress.shippingAddress).toEqual({
             company: null,
@@ -293,12 +277,12 @@ describe('Draft Orders resolver', () => {
     });
 
     it('unsetDraftOrderBillingAddress', async () => {
-        const { unsetDraftOrderBillingAddress } = await adminClient.query<
-            Codegen.UnsetDraftOrderBillingAddressMutation,
-            Codegen.UnsetDraftOrderBillingAddressMutationVariables
-        >(UNSET_BILLING_ADDRESS_FOR_DRAFT_ORDER, {
-            orderId: draftOrder.id,
-        });
+        const { unsetDraftOrderBillingAddress } = await adminClient.query(
+            unsetBillingAddressForDraftOrderDocument,
+            {
+                orderId: draftOrder.id,
+            },
+        );
 
         expect(unsetDraftOrderBillingAddress.billingAddress).toEqual({
             company: null,
@@ -314,10 +298,7 @@ describe('Draft Orders resolver', () => {
     });
 
     it('applyCouponCodeToDraftOrder', async () => {
-        const { addItemToDraftOrder } = await adminClient.query<
-            Codegen.AddItemToDraftOrderMutation,
-            Codegen.AddItemToDraftOrderMutationVariables
-        >(ADD_ITEM_TO_DRAFT_ORDER, {
+        const { addItemToDraftOrder } = await adminClient.query(addItemToDraftOrderDocument, {
             orderId: draftOrder.id,
             input: {
                 productVariantId: 'T_1',
@@ -328,10 +309,7 @@ describe('Draft Orders resolver', () => {
         orderGuard.assertSuccess(addItemToDraftOrder);
         expect(addItemToDraftOrder.totalWithTax).toBe(155880);
 
-        const { applyCouponCodeToDraftOrder } = await adminClient.query<
-            Codegen.ApplyCouponCodeToDraftOrderMutation,
-            Codegen.ApplyCouponCodeToDraftOrderMutationVariables
-        >(APPLY_COUPON_CODE_TO_DRAFT_ORDER, {
+        const { applyCouponCodeToDraftOrder } = await adminClient.query(applyCouponCodeToDraftOrderDocument, {
             orderId: draftOrder.id,
             couponCode: freeOrderCouponCode,
         });
@@ -343,25 +321,26 @@ describe('Draft Orders resolver', () => {
     });
 
     it('removeCouponCodeFromDraftOrder', async () => {
-        const { removeCouponCodeFromDraftOrder } = await adminClient.query<
-            Codegen.RemoveCouponCodeFromDraftOrderMutation,
-            Codegen.RemoveCouponCodeFromDraftOrderMutationVariables
-        >(REMOVE_COUPON_CODE_FROM_DRAFT_ORDER, {
-            orderId: draftOrder.id,
-            couponCode: freeOrderCouponCode,
-        });
+        const { removeCouponCodeFromDraftOrder } = await adminClient.query(
+            removeCouponCodeFromDraftOrderDocument,
+            {
+                orderId: draftOrder.id,
+                couponCode: freeOrderCouponCode,
+            },
+        );
 
-        expect(removeCouponCodeFromDraftOrder!.couponCodes).toEqual([]);
-        expect(removeCouponCodeFromDraftOrder!.totalWithTax).toBe(155880);
+        if (!removeCouponCodeFromDraftOrder) throw new Error('Expected order to be returned');
+        expect(removeCouponCodeFromDraftOrder.couponCodes).toEqual([]);
+        expect(removeCouponCodeFromDraftOrder.totalWithTax).toBe(155880);
     });
 
     it('eligibleShippingMethodsForDraftOrder', async () => {
-        const { eligibleShippingMethodsForDraftOrder } = await adminClient.query<
-            Codegen.DraftOrderEligibleShippingMethodsQuery,
-            Codegen.DraftOrderEligibleShippingMethodsQueryVariables
-        >(DRAFT_ORDER_ELIGIBLE_SHIPPING_METHODS, {
-            orderId: draftOrder.id,
-        });
+        const { eligibleShippingMethodsForDraftOrder } = await adminClient.query(
+            draftOrderEligibleShippingMethodsDocument,
+            {
+                orderId: draftOrder.id,
+            },
+        );
 
         expect(eligibleShippingMethodsForDraftOrder).toEqual([
             {
@@ -395,10 +374,7 @@ describe('Draft Orders resolver', () => {
     });
 
     it('setDraftOrderShippingMethod', async () => {
-        const { setDraftOrderShippingMethod } = await adminClient.query<
-            Codegen.SetDraftOrderShippingMethodMutation,
-            Codegen.SetDraftOrderShippingMethodMutationVariables
-        >(SET_DRAFT_ORDER_SHIPPING_METHOD, {
+        const { setDraftOrderShippingMethod } = await adminClient.query(setDraftOrderShippingMethodDocument, {
             orderId: draftOrder.id,
             shippingMethodId: 'T_2',
         });
@@ -415,15 +391,16 @@ describe('Draft Orders resolver', () => {
         TestOrderPlacedStrategy.spy.mockClear();
         expect(TestOrderPlacedStrategy.spy.mock.calls.length).toBe(0);
 
-        const { transitionOrderToState } = await adminClient.query(AdminTransitionDocument, {
+        const { transitionOrderToState } = await adminClient.query(adminTransitionToStateDocument, {
             id: draftOrder.id,
             state: 'ArrangingPayment',
         });
 
+        if (!transitionOrderToState) throw new Error('Expected transitionOrderToState result');
         orderGuard.assertSuccess(transitionOrderToState);
         expect(transitionOrderToState.state).toBe('ArrangingPayment');
 
-        const { addManualPaymentToOrder } = await adminClient.query(AddManualPaymentDocument, {
+        const { addManualPaymentToOrder } = await adminClient.query(addManualPaymentDocument, {
             input: {
                 orderId: draftOrder.id,
                 metadata: {},
@@ -435,150 +412,365 @@ describe('Draft Orders resolver', () => {
         orderGuard.assertSuccess(addManualPaymentToOrder);
         expect(addManualPaymentToOrder.state).toBe('PaymentSettled');
 
-        const { order } = await adminClient.query(GetOrderPlacedAtDocument, {
+        const { order } = await adminClient.query(getOrderPlacedAtDocument, {
             id: draftOrder.id,
         });
         expect(order?.orderPlacedAt).not.toBeNull();
         expect(TestOrderPlacedStrategy.spy.mock.calls.length).toBe(1);
         expect(TestOrderPlacedStrategy.spy.mock.calls[0][0].code).toBe(draftOrder.code);
     });
+
+    // https://github.com/vendurehq/vendure/issues/4753
+    // An auto-applied promotion with a perCustomerUsageLimit must not toggle on/off
+    // as a draft order is recalculated. Draft orders are not "placed" and must not
+    // count towards a promotion's usage limit.
+    describe('perCustomerUsageLimit on draft orders', () => {
+        const promotionName = 'Auto free order (per-customer limit)';
+        let promotionId: string;
+        let perCustomerDraftOrderId: string;
+        let orderLineId: string;
+
+        beforeAll(async () => {
+            const { createPromotion } = await adminClient.query(createPromotionDocument, {
+                input: {
+                    enabled: true,
+                    conditions: [
+                        {
+                            code: minimumOrderAmount.code,
+                            arguments: [
+                                { name: 'amount', value: '100' },
+                                { name: 'taxInclusive', value: 'true' },
+                            ],
+                        },
+                    ],
+                    perCustomerUsageLimit: 1,
+                    actions: [
+                        {
+                            code: orderPercentageDiscount.code,
+                            arguments: [{ name: 'discount', value: '100' }],
+                        },
+                    ],
+                    translations: [{ languageCode: LanguageCode.en, name: promotionName }],
+                },
+            });
+            if (!createPromotion || !('id' in createPromotion)) {
+                throw new Error(`Failed to create promotion: ${JSON.stringify(createPromotion)}`);
+            }
+            promotionId = createPromotion.id;
+        });
+
+        afterAll(async () => {
+            await adminClient.query(deletePromotionDocument, { id: promotionId });
+        });
+
+        async function appliedDiscountDescriptions(): Promise<string[]> {
+            const { order } = await adminClient.query(getDraftOrderDiscountsDocument, {
+                id: perCustomerDraftOrderId,
+            });
+            return (order?.discounts ?? []).map(d => d.description);
+        }
+
+        it('promotion stays applied across repeated draft order updates', async () => {
+            const { createDraftOrder } = await adminClient.query(createDraftOrderDocument);
+            perCustomerDraftOrderId = createDraftOrder.id;
+
+            // perCustomerUsageLimit is only enforced once the customer is known
+            const { setCustomerForDraftOrder } = await adminClient.query(setCustomerForDraftOrderDocument, {
+                orderId: perCustomerDraftOrderId,
+                customerId: customers[0].id,
+            });
+            orderGuard.assertSuccess(setCustomerForDraftOrder);
+
+            // First eligible item -> promotion applied
+            const { addItemToDraftOrder: add1 } = await adminClient.query(addItemToDraftOrderDocument, {
+                orderId: perCustomerDraftOrderId,
+                input: { productVariantId: 'T_5', quantity: 1 },
+            });
+            orderGuard.assertSuccess(add1);
+            orderLineId = add1.lines[0].id;
+            expect(await appliedDiscountDescriptions()).toEqual([promotionName]);
+
+            // Second update (recalculation) must NOT toggle the promotion off
+            const { addItemToDraftOrder: add2 } = await adminClient.query(addItemToDraftOrderDocument, {
+                orderId: perCustomerDraftOrderId,
+                input: { productVariantId: 'T_5', quantity: 1 },
+            });
+            orderGuard.assertSuccess(add2);
+            expect(await appliedDiscountDescriptions()).toEqual([promotionName]);
+
+            // Third update (recalculation) must still keep the promotion applied
+            const { adjustDraftOrderLine } = await adminClient.query(adjustDraftOrderLineDocument, {
+                orderId: perCustomerDraftOrderId,
+                input: { orderLineId, quantity: 4 },
+            });
+            orderGuard.assertSuccess(adjustDraftOrderLine);
+            expect(await appliedDiscountDescriptions()).toEqual([promotionName]);
+        });
+    });
 });
 
-export const CREATE_DRAFT_ORDER = gql`
-    mutation CreateDraftOrder {
-        createDraftOrder {
-            ...OrderWithLines
-        }
+// Local fragment without countryCode to match original test expectations
+const draftOrderShippingAddressFragment = graphql(`
+    fragment DraftOrderShippingAddress on OrderAddress {
+        fullName
+        company
+        streetLine1
+        streetLine2
+        city
+        province
+        postalCode
+        country
+        phoneNumber
     }
-    ${ORDER_WITH_LINES_FRAGMENT}
-`;
+`);
 
-export const ADD_ITEM_TO_DRAFT_ORDER = gql`
-    mutation AddItemToDraftOrder($orderId: ID!, $input: AddItemToDraftOrderInput!) {
-        addItemToDraftOrder(orderId: $orderId, input: $input) {
-            ...OrderWithLines
-            ... on ErrorResult {
-                errorCode
-                message
+// Local orderWithLines fragment using the address fragment without countryCode
+const draftOrderWithLinesFragment = graphql(
+    `
+        fragment DraftOrderWithLines on Order {
+            id
+            createdAt
+            updatedAt
+            code
+            state
+            active
+            customer {
+                id
+                firstName
+                lastName
             }
-        }
-    }
-    ${ORDER_WITH_LINES_FRAGMENT}
-`;
-
-export const ADJUST_DRAFT_ORDER_LINE = gql`
-    mutation AdjustDraftOrderLine($orderId: ID!, $input: AdjustDraftOrderLineInput!) {
-        adjustDraftOrderLine(orderId: $orderId, input: $input) {
-            ...OrderWithLines
-            ... on ErrorResult {
-                errorCode
-                message
+            lines {
+                id
+                featuredAsset {
+                    preview
+                }
+                productVariant {
+                    id
+                    name
+                    sku
+                }
+                taxLines {
+                    description
+                    taxRate
+                }
+                unitPrice
+                unitPriceWithTax
+                quantity
+                taxRate
+                linePriceWithTax
             }
-        }
-    }
-    ${ORDER_WITH_LINES_FRAGMENT}
-`;
-
-export const REMOVE_DRAFT_ORDER_LINE = gql`
-    mutation RemoveDraftOrderLine($orderId: ID!, $orderLineId: ID!) {
-        removeDraftOrderLine(orderId: $orderId, orderLineId: $orderLineId) {
-            ...OrderWithLines
-            ... on ErrorResult {
-                errorCode
-                message
+            surcharges {
+                id
+                description
+                sku
+                price
+                priceWithTax
             }
-        }
-    }
-    ${ORDER_WITH_LINES_FRAGMENT}
-`;
-
-export const SET_CUSTOMER_FOR_DRAFT_ORDER = gql`
-    mutation SetCustomerForDraftOrder($orderId: ID!, $customerId: ID, $input: CreateCustomerInput) {
-        setCustomerForDraftOrder(orderId: $orderId, customerId: $customerId, input: $input) {
-            ...OrderWithLines
-            ... on ErrorResult {
-                errorCode
-                message
+            subTotal
+            subTotalWithTax
+            total
+            totalWithTax
+            totalQuantity
+            currencyCode
+            shipping
+            shippingWithTax
+            shippingLines {
+                priceWithTax
+                shippingMethod {
+                    id
+                    code
+                    name
+                    description
+                }
             }
-        }
-    }
-    ${ORDER_WITH_LINES_FRAGMENT}
-`;
-
-export const SET_SHIPPING_ADDRESS_FOR_DRAFT_ORDER = gql`
-    mutation SetDraftOrderShippingAddress($orderId: ID!, $input: CreateAddressInput!) {
-        setDraftOrderShippingAddress(orderId: $orderId, input: $input) {
-            ...OrderWithLines
-        }
-    }
-    ${ORDER_WITH_LINES_FRAGMENT}
-`;
-
-export const SET_BILLING_ADDRESS_FOR_DRAFT_ORDER = gql`
-    mutation SetDraftOrderBillingAddress($orderId: ID!, $input: CreateAddressInput!) {
-        setDraftOrderBillingAddress(orderId: $orderId, input: $input) {
-            ...OrderWithLines
-            billingAddress {
-                ...ShippingAddress
-            }
-        }
-    }
-    ${ORDER_WITH_LINES_FRAGMENT}
-`;
-
-export const UNSET_SHIPPING_ADDRESS_FOR_DRAFT_ORDER = gql`
-    mutation UnsetDraftOrderShippingAddress($orderId: ID!) {
-        unsetDraftOrderShippingAddress(orderId: $orderId) {
-            ...OrderWithLines
             shippingAddress {
-                ...ShippingAddress
+                ...DraftOrderShippingAddress
+            }
+            payments {
+                ...Payment
+            }
+            fulfillments {
+                id
+                state
+                method
+                trackingCode
+                lines {
+                    orderLineId
+                    quantity
+                }
+            }
+        }
+    `,
+    [draftOrderShippingAddressFragment, paymentFragment],
+);
+
+const getDraftOrderDiscountsDocument = graphql(`
+    query GetDraftOrderDiscounts($id: ID!) {
+        order(id: $id) {
+            id
+            totalWithTax
+            discounts {
+                description
+                amountWithTax
             }
         }
     }
-    ${ORDER_WITH_LINES_FRAGMENT}
-`;
+`);
 
-export const UNSET_BILLING_ADDRESS_FOR_DRAFT_ORDER = gql`
-    mutation UnsetDraftOrderBillingAddress($orderId: ID!) {
-        unsetDraftOrderBillingAddress(orderId: $orderId) {
-            ...OrderWithLines
-            billingAddress {
-                ...ShippingAddress
+const createDraftOrderDocument = graphql(
+    `
+        mutation CreateDraftOrder {
+            createDraftOrder {
+                ...OrderWithLines
             }
         }
-    }
-    ${ORDER_WITH_LINES_FRAGMENT}
-`;
+    `,
+    [orderWithLinesFragment],
+);
 
-export const APPLY_COUPON_CODE_TO_DRAFT_ORDER = gql`
-    mutation ApplyCouponCodeToDraftOrder($orderId: ID!, $couponCode: String!) {
-        applyCouponCodeToDraftOrder(orderId: $orderId, couponCode: $couponCode) {
-            ...OrderWithLines
-            ... on Order {
-                couponCodes
-            }
-            ... on ErrorResult {
-                errorCode
-                message
-            }
-        }
-    }
-    ${ORDER_WITH_LINES_FRAGMENT}
-`;
-
-export const REMOVE_COUPON_CODE_FROM_DRAFT_ORDER = gql`
-    mutation RemoveCouponCodeFromDraftOrder($orderId: ID!, $couponCode: String!) {
-        removeCouponCodeFromDraftOrder(orderId: $orderId, couponCode: $couponCode) {
-            ...OrderWithLines
-            ... on Order {
-                couponCodes
+const addItemToDraftOrderDocument = graphql(
+    `
+        mutation AddItemToDraftOrder($orderId: ID!, $input: AddItemToDraftOrderInput!) {
+            addItemToDraftOrder(orderId: $orderId, input: $input) {
+                ...OrderWithLines
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
             }
         }
-    }
-    ${ORDER_WITH_LINES_FRAGMENT}
-`;
+    `,
+    [orderWithLinesFragment],
+);
 
-export const DRAFT_ORDER_ELIGIBLE_SHIPPING_METHODS = gql`
+const adjustDraftOrderLineDocument = graphql(
+    `
+        mutation AdjustDraftOrderLine($orderId: ID!, $input: AdjustDraftOrderLineInput!) {
+            adjustDraftOrderLine(orderId: $orderId, input: $input) {
+                ...OrderWithLines
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+            }
+        }
+    `,
+    [orderWithLinesFragment],
+);
+
+const removeDraftOrderLineDocument = graphql(
+    `
+        mutation RemoveDraftOrderLine($orderId: ID!, $orderLineId: ID!) {
+            removeDraftOrderLine(orderId: $orderId, orderLineId: $orderLineId) {
+                ...OrderWithLines
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+            }
+        }
+    `,
+    [orderWithLinesFragment],
+);
+
+const setCustomerForDraftOrderDocument = graphql(
+    `
+        mutation SetCustomerForDraftOrder($orderId: ID!, $customerId: ID, $input: CreateCustomerInput) {
+            setCustomerForDraftOrder(orderId: $orderId, customerId: $customerId, input: $input) {
+                ...OrderWithLines
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+            }
+        }
+    `,
+    [orderWithLinesFragment],
+);
+
+const setShippingAddressForDraftOrderDocument = graphql(
+    `
+        mutation SetDraftOrderShippingAddress($orderId: ID!, $input: CreateAddressInput!) {
+            setDraftOrderShippingAddress(orderId: $orderId, input: $input) {
+                ...DraftOrderWithLines
+            }
+        }
+    `,
+    [draftOrderWithLinesFragment],
+);
+
+const setBillingAddressForDraftOrderDocument = graphql(
+    `
+        mutation SetDraftOrderBillingAddress($orderId: ID!, $input: CreateAddressInput!) {
+            setDraftOrderBillingAddress(orderId: $orderId, input: $input) {
+                ...DraftOrderWithLines
+                billingAddress {
+                    ...DraftOrderShippingAddress
+                }
+            }
+        }
+    `,
+    [draftOrderWithLinesFragment, draftOrderShippingAddressFragment],
+);
+
+const unsetShippingAddressForDraftOrderDocument = graphql(
+    `
+        mutation UnsetDraftOrderShippingAddress($orderId: ID!) {
+            unsetDraftOrderShippingAddress(orderId: $orderId) {
+                ...DraftOrderWithLines
+            }
+        }
+    `,
+    [draftOrderWithLinesFragment],
+);
+
+const unsetBillingAddressForDraftOrderDocument = graphql(
+    `
+        mutation UnsetDraftOrderBillingAddress($orderId: ID!) {
+            unsetDraftOrderBillingAddress(orderId: $orderId) {
+                ...DraftOrderWithLines
+                billingAddress {
+                    ...DraftOrderShippingAddress
+                }
+            }
+        }
+    `,
+    [draftOrderWithLinesFragment, draftOrderShippingAddressFragment],
+);
+
+const applyCouponCodeToDraftOrderDocument = graphql(
+    `
+        mutation ApplyCouponCodeToDraftOrder($orderId: ID!, $couponCode: String!) {
+            applyCouponCodeToDraftOrder(orderId: $orderId, couponCode: $couponCode) {
+                ...OrderWithLines
+                ... on Order {
+                    couponCodes
+                }
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+            }
+        }
+    `,
+    [orderWithLinesFragment],
+);
+
+const removeCouponCodeFromDraftOrderDocument = graphql(
+    `
+        mutation RemoveCouponCodeFromDraftOrder($orderId: ID!, $couponCode: String!) {
+            removeCouponCodeFromDraftOrder(orderId: $orderId, couponCode: $couponCode) {
+                ...OrderWithLines
+                ... on Order {
+                    couponCodes
+                }
+            }
+        }
+    `,
+    [orderWithLinesFragment],
+);
+
+const draftOrderEligibleShippingMethodsDocument = graphql(`
     query DraftOrderEligibleShippingMethods($orderId: ID!) {
         eligibleShippingMethodsForDraftOrder(orderId: $orderId) {
             id
@@ -590,22 +782,24 @@ export const DRAFT_ORDER_ELIGIBLE_SHIPPING_METHODS = gql`
             metadata
         }
     }
-`;
+`);
 
-export const SET_DRAFT_ORDER_SHIPPING_METHOD = gql`
-    mutation SetDraftOrderShippingMethod($orderId: ID!, $shippingMethodId: ID!) {
-        setDraftOrderShippingMethod(orderId: $orderId, shippingMethodId: $shippingMethodId) {
-            ...OrderWithLines
-            ... on ErrorResult {
-                errorCode
-                message
+const setDraftOrderShippingMethodDocument = graphql(
+    `
+        mutation SetDraftOrderShippingMethod($orderId: ID!, $shippingMethodId: ID!) {
+            setDraftOrderShippingMethod(orderId: $orderId, shippingMethodId: $shippingMethodId) {
+                ...OrderWithLines
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
             }
         }
-    }
-    ${ORDER_WITH_LINES_FRAGMENT}
-`;
+    `,
+    [orderWithLinesFragment],
+);
 
-export const GET_ORDER_PLACED_AT = gql`
+const getOrderPlacedAtDocument = graphql(`
     query GetOrderPlacedAt($id: ID!) {
         order(id: $id) {
             id
@@ -615,4 +809,4 @@ export const GET_ORDER_PLACED_AT = gql`
             orderPlacedAt
         }
     }
-`;
+`);

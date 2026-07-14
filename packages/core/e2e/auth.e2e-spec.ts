@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { ErrorCode, Permission } from '@vendure/common/lib/generated-types';
 import { SUPER_ADMIN_USER_IDENTIFIER, SUPER_ADMIN_USER_PASSWORD } from '@vendure/common/lib/shared-constants';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import { DocumentNode } from 'graphql';
-import gql from 'graphql-tag';
 import path from 'path';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
@@ -11,24 +11,34 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 
 import { Issue2097Plugin } from './fixtures/test-plugins/issue-2097-plugin';
 import { ProtectedFieldsPlugin, transactions } from './fixtures/test-plugins/with-protected-field-resolver';
-import * as Codegen from './graphql/generated-e2e-admin-types';
-import { ErrorCode, Permission } from './graphql/generated-e2e-admin-types';
-import * as CodegenShop from './graphql/generated-e2e-shop-types';
 import {
-    ATTEMPT_LOGIN,
-    CREATE_ADMINISTRATOR,
-    CREATE_CUSTOMER,
-    CREATE_CUSTOMER_GROUP,
-    CREATE_PRODUCT,
-    CREATE_ROLE,
-    GET_CUSTOMER_LIST,
-    GET_PRODUCT_LIST,
-    GET_TAX_RATES_LIST,
-    ME,
-    UPDATE_PRODUCT,
-    UPDATE_TAX_RATE,
+    canCreateCustomerDocument,
+    deepFieldResolutionTestQueryDocument,
+    getCustomerCountDocument,
+    getProductWithTransactionsDocument,
+    issue2097QueryDocument,
+} from './graphql/admin-definitions';
+import { currentUserFragment } from './graphql/fragments-admin';
+import { ResultOf } from './graphql/graphql-admin';
+import {
+    attemptLoginDocument,
+    createAdministratorDocument,
+    createCustomerDocument,
+    createCustomerGroupDocument,
+    createProductDocument,
+    createRoleDocument,
+    getCustomerListDocument,
+    getProductListDocument,
+    getTaxRatesListDocument,
+    MeDocument,
+    updateProductDocument,
+    updateTaxRateDocument,
 } from './graphql/shared-definitions';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
+
+const productResultGuard: ErrorResultGuard<
+    NonNullable<ResultOf<typeof getProductWithTransactionsDocument>['product']>
+> = createErrorResultGuard(input => !!input && 'id' in input);
 
 describe('Authorization & permissions', () => {
     const { server, adminClient, shopClient } = createTestEnvironment({
@@ -58,12 +68,12 @@ describe('Authorization & permissions', () => {
             it(
                 'me is not permitted',
                 assertThrowsWithMessage(async () => {
-                    await adminClient.query<Codegen.MeQuery>(ME);
+                    await adminClient.query(MeDocument);
                 }, 'You are not currently authorized to perform this action'),
             );
 
             it('can attempt login', async () => {
-                await assertRequestAllowed<Codegen.MutationLoginArgs>(ATTEMPT_LOGIN, {
+                await assertRequestAllowed(attemptLoginDocument, {
                     username: SUPER_ADMIN_USER_IDENTIFIER,
                     password: SUPER_ADMIN_USER_PASSWORD,
                     rememberMe: false,
@@ -75,8 +85,7 @@ describe('Authorization & permissions', () => {
             let customerEmailAddress: string;
             beforeAll(async () => {
                 await adminClient.asSuperAdmin();
-                const { customers } =
-                    await adminClient.query<Codegen.GetCustomerListQuery>(GET_CUSTOMER_LIST);
+                const { customers } = await adminClient.query(getCustomerListDocument);
                 customerEmailAddress = customers.items[0].emailAddress;
             });
 
@@ -97,20 +106,20 @@ describe('Authorization & permissions', () => {
             });
 
             it('me returns correct permissions', async () => {
-                const { me } = await adminClient.query<Codegen.MeQuery>(ME);
+                const result = await adminClient.query(MeDocument);
 
-                expect(me!.channels[0].permissions).toEqual([
+                expect(result.me!.channels[0].permissions).toEqual([
                     Permission.Authenticated,
                     Permission.ReadCatalog,
                 ]);
             });
 
             it('can read', async () => {
-                await assertRequestAllowed(GET_PRODUCT_LIST);
+                await assertRequestAllowed(getProductListDocument);
             });
 
             it('cannot update', async () => {
-                await assertRequestForbidden<Codegen.MutationUpdateProductArgs>(UPDATE_PRODUCT, {
+                await assertRequestForbidden(updateProductDocument, {
                     input: {
                         id: '1',
                         translations: [],
@@ -119,7 +128,7 @@ describe('Authorization & permissions', () => {
             });
 
             it('cannot create', async () => {
-                await assertRequestForbidden<Codegen.MutationCreateProductArgs>(CREATE_PRODUCT, {
+                await assertRequestForbidden(createProductDocument, {
                     input: {
                         translations: [],
                     },
@@ -140,9 +149,9 @@ describe('Authorization & permissions', () => {
             });
 
             it('me returns correct permissions', async () => {
-                const { me } = await adminClient.query<Codegen.MeQuery>(ME);
+                const result = await adminClient.query(MeDocument);
 
-                expect(me!.channels[0].permissions).toEqual([
+                expect(result.me!.channels[0].permissions).toEqual([
                     Permission.Authenticated,
                     Permission.CreateCustomer,
                     Permission.ReadCustomer,
@@ -152,27 +161,13 @@ describe('Authorization & permissions', () => {
             });
 
             it('can create', async () => {
-                await assertRequestAllowed(
-                    gql(`mutation CanCreateCustomer($input: CreateCustomerInput!) {
-                            createCustomer(input: $input) {
-                                ... on Customer {
-                                    id
-                                }
-                            }
-                        }
-                    `),
-                    { input: { emailAddress: '', firstName: '', lastName: '' } },
-                );
+                await assertRequestAllowed(canCreateCustomerDocument, {
+                    input: { emailAddress: '', firstName: '', lastName: '' },
+                });
             });
 
             it('can read', async () => {
-                await assertRequestAllowed(gql`
-                    query GetCustomerCount {
-                        customers {
-                            totalItems
-                        }
-                    }
-                `);
+                await assertRequestAllowed(getCustomerCountDocument);
             });
         });
     });
@@ -182,17 +177,13 @@ describe('Authorization & permissions', () => {
         const adminPassword = 'admin-password';
         const customerPassword = 'customer-password';
 
-        const loginErrorGuard: ErrorResultGuard<Codegen.CurrentUserFragment> = createErrorResultGuard(
-            input => !!input.identifier,
-        );
+        const loginErrorGuard: ErrorResultGuard<ResultOf<typeof currentUserFragment>> =
+            createErrorResultGuard(input => !!input.identifier);
 
         beforeAll(async () => {
             await adminClient.asSuperAdmin();
 
-            await adminClient.query<
-                Codegen.CreateAdministratorMutation,
-                Codegen.CreateAdministratorMutationVariables
-            >(CREATE_ADMINISTRATOR, {
+            await adminClient.query(createAdministratorDocument, {
                 input: {
                     emailAddress,
                     firstName: 'First',
@@ -202,17 +193,14 @@ describe('Authorization & permissions', () => {
                 },
             });
 
-            await adminClient.query<Codegen.CreateCustomerMutation, Codegen.CreateCustomerMutationVariables>(
-                CREATE_CUSTOMER,
-                {
-                    input: {
-                        emailAddress,
-                        firstName: 'First',
-                        lastName: 'Last',
-                    },
-                    password: customerPassword,
+            await adminClient.query(createCustomerDocument, {
+                input: {
+                    emailAddress,
+                    firstName: 'First',
+                    lastName: 'Last',
                 },
-            );
+                password: customerPassword,
+            });
         });
 
         beforeEach(async () => {
@@ -221,10 +209,7 @@ describe('Authorization & permissions', () => {
         });
 
         it('can log in as an administrator', async () => {
-            const loginResult = await adminClient.query<
-                CodegenShop.AttemptLoginMutation,
-                CodegenShop.AttemptLoginMutationVariables
-            >(ATTEMPT_LOGIN, {
+            const loginResult = await adminClient.query(attemptLoginDocument, {
                 username: emailAddress,
                 password: adminPassword,
             });
@@ -234,10 +219,7 @@ describe('Authorization & permissions', () => {
         });
 
         it('can log in as a customer', async () => {
-            const loginResult = await shopClient.query<
-                CodegenShop.AttemptLoginMutation,
-                CodegenShop.AttemptLoginMutationVariables
-            >(ATTEMPT_LOGIN, {
+            const loginResult = await shopClient.query(attemptLoginDocument, {
                 username: emailAddress,
                 password: customerPassword,
             });
@@ -247,10 +229,7 @@ describe('Authorization & permissions', () => {
         });
 
         it('cannot log in as an administrator using a customer password', async () => {
-            const loginResult = await adminClient.query<
-                CodegenShop.AttemptLoginMutation,
-                CodegenShop.AttemptLoginMutationVariables
-            >(ATTEMPT_LOGIN, {
+            const loginResult = await adminClient.query(attemptLoginDocument, {
                 username: emailAddress,
                 password: customerPassword,
             });
@@ -260,10 +239,7 @@ describe('Authorization & permissions', () => {
         });
 
         it('cannot log in as a customer using an administrator password', async () => {
-            const loginResult = await shopClient.query<
-                CodegenShop.AttemptLoginMutation,
-                CodegenShop.AttemptLoginMutationVariables
-            >(ATTEMPT_LOGIN, {
+            const loginResult = await shopClient.query(attemptLoginDocument, {
                 username: emailAddress,
                 password: adminPassword,
             });
@@ -276,19 +252,6 @@ describe('Authorization & permissions', () => {
     describe('protected field resolvers', () => {
         let readCatalogAdmin: { identifier: string; password: string };
         let transactionsAdmin: { identifier: string; password: string };
-
-        const GET_PRODUCT_WITH_TRANSACTIONS = `
-            query GetProductWithTransactions($id: ID!) {
-                product(id: $id) {
-                  id
-                  transactions {
-                      id
-                      amount
-                      description
-                  }
-                }
-            }
-        `;
 
         beforeAll(async () => {
             await adminClient.asSuperAdmin();
@@ -305,7 +268,7 @@ describe('Authorization & permissions', () => {
             await adminClient.asUserWithCredentials(readCatalogAdmin.identifier, readCatalogAdmin.password);
 
             try {
-                const status = await adminClient.query(gql(GET_PRODUCT_WITH_TRANSACTIONS), { id: 'T_1' });
+                const status = await adminClient.query(getProductWithTransactionsDocument, { id: 'T_1' });
                 fail('Should have thrown');
             } catch (e: any) {
                 expect(getErrorCode(e)).toBe('FORBIDDEN');
@@ -315,7 +278,9 @@ describe('Authorization & permissions', () => {
         it('protected field is resolved with permissions', async () => {
             await adminClient.asUserWithCredentials(transactionsAdmin.identifier, transactionsAdmin.password);
 
-            const { product } = await adminClient.query(gql(GET_PRODUCT_WITH_TRANSACTIONS), { id: 'T_1' });
+            const { product } = await adminClient.query(getProductWithTransactionsDocument, { id: 'T_1' });
+
+            productResultGuard.assertSuccess(product);
 
             expect(product.id).toBe('T_1');
             expect(product.transactions).toEqual([
@@ -327,10 +292,7 @@ describe('Authorization & permissions', () => {
         // https://github.com/vendurehq/vendure/issues/730
         it('protects against deep query data leakage', async () => {
             await adminClient.asSuperAdmin();
-            const { createCustomerGroup } = await adminClient.query<
-                Codegen.CreateCustomerGroupMutation,
-                Codegen.CreateCustomerGroupMutationVariables
-            >(CREATE_CUSTOMER_GROUP, {
+            const { createCustomerGroup } = await adminClient.query(createCustomerGroupDocument, {
                 input: {
                     name: 'Test group',
                     customerIds: ['T_1', 'T_2', 'T_3', 'T_4'],
@@ -338,10 +300,7 @@ describe('Authorization & permissions', () => {
             });
 
             const taxRateName = `Standard Tax ${initialData.defaultZone}`;
-            const { taxRates } = await adminClient.query<
-                Codegen.GetTaxRatesQuery,
-                Codegen.GetTaxRatesQueryVariables
-            >(GET_TAX_RATES_LIST, {
+            const { taxRates } = await adminClient.query(getTaxRatesListDocument, {
                 options: {
                     filter: {
                         name: { eq: taxRateName },
@@ -352,37 +311,15 @@ describe('Authorization & permissions', () => {
             const standardTax = taxRates.items[0];
             expect(standardTax.name).toBe(taxRateName);
 
-            await adminClient.query<Codegen.UpdateTaxRateMutation, Codegen.UpdateTaxRateMutationVariables>(
-                UPDATE_TAX_RATE,
-                {
-                    input: {
-                        id: standardTax.id,
-                        customerGroupId: createCustomerGroup.id,
-                    },
+            await adminClient.query(updateTaxRateDocument, {
+                input: {
+                    id: standardTax.id,
+                    customerGroupId: createCustomerGroup.id,
                 },
-            );
+            });
 
             try {
-                const status = await shopClient.query(
-                    gql(`
-                query DeepFieldResolutionTestQuery{
-                  product(id: "T_1") {
-                    variants {
-                      taxRateApplied {
-                        customerGroup {
-                          customers {
-                            items {
-                              id
-                              emailAddress
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }`),
-                    { id: 'T_1' },
-                );
+                const status = await shopClient.query(deepFieldResolutionTestQueryDocument, { id: 'T_1' });
                 fail('Should have thrown');
             } catch (e: any) {
                 expect(getErrorCode(e)).toBe('FORBIDDEN');
@@ -394,21 +331,14 @@ describe('Authorization & permissions', () => {
             // We run this multiple times since the error is based on a race condition that does not
             // show up consistently.
             for (let i = 0; i < 10; i++) {
-                const result = await shopClient.query(
-                    gql(`
-                        query Issue2097 {
-                            ownerProtectedThing
-                            publicThing
-                        }
-                    `),
-                );
+                const result = await shopClient.query(issue2097QueryDocument);
                 expect(result.ownerProtectedThing).toBe(true);
                 expect(result.publicThing).toBe(true);
             }
         });
     });
 
-    async function assertRequestAllowed<V>(operation: DocumentNode, variables?: V) {
+    async function assertRequestAllowed(operation: DocumentNode, variables?: any) {
         try {
             const status = await adminClient.queryStatus(operation, variables);
             expect(status).toBe(200);
@@ -422,7 +352,7 @@ describe('Authorization & permissions', () => {
         }
     }
 
-    async function assertRequestForbidden<V>(operation: DocumentNode, variables: V) {
+    async function assertRequestForbidden(operation: DocumentNode, variables?: any) {
         try {
             const status = await adminClient.query(operation, variables);
             fail('Should have thrown');
@@ -439,10 +369,7 @@ describe('Authorization & permissions', () => {
         code: string,
         permissions: Permission[],
     ): Promise<{ identifier: string; password: string }> {
-        const roleResult = await adminClient.query<
-            Codegen.CreateRoleMutation,
-            Codegen.CreateRoleMutationVariables
-        >(CREATE_ROLE, {
+        const roleResult = await adminClient.query(createRoleDocument, {
             input: {
                 code,
                 description: '',
@@ -455,10 +382,7 @@ describe('Authorization & permissions', () => {
         const identifier = `${code}@${Math.random().toString(16).substr(2, 8)}`;
         const password = 'test';
 
-        await adminClient.query<
-            Codegen.CreateAdministratorMutation,
-            Codegen.CreateAdministratorMutationVariables
-        >(CREATE_ADMINISTRATOR, {
+        await adminClient.query(createAdministratorDocument, {
             input: {
                 emailAddress: identifier,
                 firstName: code,

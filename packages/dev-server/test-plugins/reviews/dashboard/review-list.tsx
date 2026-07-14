@@ -1,6 +1,12 @@
 import { graphql } from '@/graphql/graphql';
 import { Trans } from '@lingui/react/macro';
-import { DashboardRouteDefinition, DetailPageButton, ListPage } from '@vendure/dashboard';
+import {
+    ActionBarItem,
+    Button,
+    DashboardRouteDefinition,
+    DetailPageButton,
+    ListPage,
+} from '@vendure/dashboard';
 
 const getReviewList = graphql(`
     query GetProductReviews($options: ProductReviewListOptions) {
@@ -83,6 +89,10 @@ export const reviewList: DashboardRouteDefinition = {
                     },
                 },
             }}
-        />
+        >
+            <ActionBarItem itemId="my-custom-button">
+                <Button>My Button</Button>
+            </ActionBarItem>
+        </ListPage>
     ),
 };

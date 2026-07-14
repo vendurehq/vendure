@@ -44,6 +44,7 @@ export class TestAdminPluginResolver {
                 'variants.options',
                 'variants.product',
                 'assets.product',
+                'assets.asset',
                 'facetValues.facet',
                 'featuredAsset',
                 'variants.stockMovements',

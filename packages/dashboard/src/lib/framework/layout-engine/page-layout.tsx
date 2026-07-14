@@ -3,20 +3,27 @@ import { NavigationConfirmation } from '@/vdb/components/shared/navigation-confi
 import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/vdb/components/ui/card.js';
 import { Form } from '@/vdb/components/ui/form.js';
+import { Skeleton } from '@/vdb/components/ui/skeleton.js';
 import { useCustomFieldConfig } from '@/vdb/hooks/use-custom-field-config.js';
+import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
+import { useIsMobile } from '@/vdb/hooks/use-mobile.js';
 import { usePage } from '@/vdb/hooks/use-page.js';
+import { usePermissions } from '@/vdb/hooks/use-permissions.js';
+import { useIsServerConfigLoaded } from '@/vdb/hooks/use-server-config.js';
 import { cn } from '@/vdb/lib/utils.js';
-import { useCopyToClipboard, useMediaQuery } from '@uidotdev/usehooks';
+import { useCopyToClipboard } from '@uidotdev/usehooks';
 import { CheckIcon, CopyIcon, EllipsisVerticalIcon, InfoIcon } from 'lucide-react';
 import React, { ComponentProps, useMemo, useState } from 'react';
 import { Control, UseFormReturn } from 'react-hook-form';
 
-import { DashboardActionBarItem } from '../extension-api/types/layout.js';
+import { ActionBarItemPosition, DashboardActionBarItem } from '../extension-api/types/layout.js';
+import { ActionBarItem, ActionBarItemProps, ActionBarItemWrapper } from './action-bar-item-wrapper.js';
 
 import { Button } from '@/vdb/components/ui/button.js';
 import {
     DropdownMenu,
     DropdownMenuContent,
+    DropdownMenuGroup,
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
@@ -91,7 +98,7 @@ export interface PageProps extends ComponentProps<'div'> {
 export function Page({ children, pageId, entity, form, submitHandler, ...props }: Readonly<PageProps>) {
     const childArray = React.Children.toArray(children);
 
-    const pageTitle = childArray.find(child => React.isValidElement(child) && child.type === PageTitle);
+    const pageTitle = childArray.find(child => isOfType(child, PageTitle));
     const pageActionBar = childArray.find(child => isOfType(child, PageActionBar));
 
     const pageContent = childArray.filter(
@@ -99,9 +106,9 @@ export function Page({ children, pageId, entity, form, submitHandler, ...props }
     );
 
     const pageHeader = (
-        <div className="flex items-center justify-between">
-            {pageTitle}
-            {pageActionBar}
+        <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0 shrink">{pageTitle ?? <div />}</div>
+            <div className="shrink-0">{pageActionBar}</div>
         </div>
     );
 
@@ -198,6 +205,16 @@ function isPageBlock(child: unknown): child is React.ReactElement<PageBlockProps
     return hasColumn || hasBlockId;
 }
 
+// Single source of truth for which column a block belongs to. `FullWidthPageBlock` is
+// identified by type since it doesn't declare a `column` prop; everything else is keyed
+// off the `column` prop. Keep all bucketing in `PageLayout` going through this.
+function getBlockColumn(child: React.ReactElement<PageBlockProps>): 'main' | 'side' | 'full' {
+    if (isOfType(child, FullWidthPageBlock)) {
+        return 'full';
+    }
+    return child.props.column;
+}
+
 /**
  * @description *
  * This component governs the layout of the contents of a {@link Page} component.
@@ -210,10 +227,11 @@ function isPageBlock(child: unknown): child is React.ReactElement<PageBlockProps
  */
 export function PageLayout({ children, className }: Readonly<PageLayoutProps>) {
     const page = usePage();
-    const isDesktop = useMediaQuery('only screen and (min-width : 769px)');
+    const isMobile = useIsMobile();
     // Separate blocks into categories
     const childArray: React.ReactElement<PageBlockProps>[] = [];
     const extensionBlocks = getDashboardPageBlocks(page.pageId ?? '');
+    const { hasPermissions } = usePermissions();
     React.Children.forEach(children, child => {
         if (isPageBlock(child)) {
             childArray.push(child);
@@ -241,23 +259,36 @@ export function PageLayout({ children, className }: Readonly<PageLayoutProps>) {
             );
 
             // sort the blocks to make sure we have the correct order
-            const arrangedExtensionBlocks = [...matchingExtensionBlocks].sort((a, b) => {
+            const arrangedExtensionBlocks = matchingExtensionBlocks.sort((a, b) => {
                 const orderPriority = { before: 1, replace: 2, after: 3 };
                 return orderPriority[a.location.position.order] - orderPriority[b.location.position.order];
             });
 
+            type ExtensionBlockEntry = (typeof arrangedExtensionBlocks)[number];
+
+            // using `hasPermissions` over `PermissionGuard` as this would defeat the `isPageBlock` typeguard
+            const willBlockRender = (
+                block: ExtensionBlockEntry,
+            ): block is ExtensionBlockEntry & {
+                component: NonNullable<ExtensionBlockEntry['component']>;
+            } => {
+                if (!block.component) return false;
+                if (typeof block.shouldRender === 'function' && !block.shouldRender(page)) {
+                    return false;
+                }
+                const required = block.requiresPermission ?? [];
+                return hasPermissions(Array.isArray(required) ? required : [required]);
+            };
+
+            // A `replace`-ordered block only counts as a replacement when it would actually render —
+            // otherwise the original child must be kept as a fallback.
             const replacementBlockExists = arrangedExtensionBlocks.some(
-                block => block.location.position.order === 'replace',
+                block => block.location.position.order === 'replace' && willBlockRender(block),
             );
 
             let childBlockInserted = false;
             if (matchingExtensionBlocks.length > 0) {
                 for (const extensionBlock of arrangedExtensionBlocks) {
-                    let extensionBlockShouldRender = true;
-                    if (typeof extensionBlock?.shouldRender === 'function') {
-                        extensionBlockShouldRender = extensionBlock.shouldRender(page);
-                    }
-
                     // Insert child block before the first non-"before" block
                     if (
                         !childBlockInserted &&
@@ -268,24 +299,21 @@ export function PageLayout({ children, className }: Readonly<PageLayoutProps>) {
                         childBlockInserted = true;
                     }
 
+                    if (!willBlockRender(extensionBlock)) continue;
+
                     const isFullWidth = extensionBlock.location.column === 'full';
                     const BlockComponent = isFullWidth ? FullWidthPageBlock : PageBlock;
 
-                    const ExtensionBlock =
-                        extensionBlock.component && extensionBlockShouldRender ? (
-                            <BlockComponent
-                                key={extensionBlock.id}
-                                column={extensionBlock.location.column}
-                                blockId={extensionBlock.id}
-                                title={extensionBlock.title}
-                            >
-                                {<extensionBlock.component context={page} />}
-                            </BlockComponent>
-                        ) : undefined;
-
-                    if (extensionBlockShouldRender && ExtensionBlock) {
-                        finalChildArray.push(ExtensionBlock);
-                    }
+                    finalChildArray.push(
+                        <BlockComponent
+                            key={extensionBlock.id}
+                            column={extensionBlock.location.column}
+                            blockId={extensionBlock.id}
+                            title={extensionBlock.title}
+                        >
+                            <extensionBlock.component context={page} />
+                        </BlockComponent>,
+                    );
                 }
 
                 // If all blocks were "before", insert child block at the end
@@ -299,14 +327,20 @@ export function PageLayout({ children, className }: Readonly<PageLayoutProps>) {
     }
 
     const fullWidthBlocks = finalChildArray.filter(
-        child => isPageBlock(child) && isOfType(child, FullWidthPageBlock),
+        child => isPageBlock(child) && getBlockColumn(child) === 'full',
     );
-    const mainBlocks = finalChildArray.filter(child => isPageBlock(child) && child.props.column === 'main');
-    const sideBlocks = finalChildArray.filter(child => isPageBlock(child) && child.props.column === 'side');
+    const mainBlocks = finalChildArray.filter(
+        child => isPageBlock(child) && getBlockColumn(child) === 'main',
+    );
+    const sideBlocks = finalChildArray.filter(
+        child => isPageBlock(child) && getBlockColumn(child) === 'side',
+    );
 
     return (
         <div className={cn('w-full space-y-4', className, '@container/layout')}>
-            {isDesktop ? (
+            {isMobile ? (
+                <div className="space-y-4">{finalChildArray}</div>
+            ) : (
                 <div className="grid grid-cols-1 gap-4 @3xl/layout:grid-cols-4">
                     {fullWidthBlocks.length > 0 && (
                         <div className="@md/layout:col-span-5 space-y-4">{fullWidthBlocks}</div>
@@ -314,8 +348,6 @@ export function PageLayout({ children, className }: Readonly<PageLayoutProps>) {
                     <div className="@3xl/layout:col-span-3 space-y-4">{mainBlocks}</div>
                     <div className="@3xl/layout:col-span-1 space-y-4">{sideBlocks}</div>
                 </div>
-            ) : (
-                <div className="space-y-4">{finalChildArray}</div>
             )}
         </div>
     );
@@ -334,60 +366,319 @@ export function DetailFormGrid({ children }: Readonly<{ children: React.ReactNod
  * @since 3.3.0
  */
 export function PageTitle({ children }: Readonly<{ children: React.ReactNode }>) {
-    return <h1 className="text-2xl font-semibold">{children}</h1>;
+    return (
+        <h1 data-testid="page-heading" className="text-2xl font-semibold font-heading">
+            {children}
+        </h1>
+    );
 }
 
+type InlineDropdownItem = Omit<DashboardActionBarItem, 'type' | 'pageId'>;
+
 /**
- * @description *
+ * @description
  * A component for displaying the main actions for a page. This should be used inside the {@link Page} component.
- * It should be used in conjunction with the {@link PageActionBarLeft} and {@link PageActionBarRight} components
- * as direct children.
+ *
+ * You can add action bar items by including {@link ActionBarItem} components as direct children.
+ * For backwards compatibility, {@link PageActionBarLeft} and {@link PageActionBarRight} are also supported.
+ *
+ * **Mobile behavior:** On mobile viewports, only the last inline {@link ActionBarItem} is
+ * shown (the primary action). Extension items and plain children are hidden to prevent
+ * overflow. The dropdown menu and entity info remain visible on all viewports.
+ *
+ * @example
+ * ```tsx
+ * <PageActionBar>
+ *     <ActionBarItem itemId="save-button" requiresPermission={['UpdateProduct']}>
+ *         <Button type="submit">Update</Button>
+ *     </ActionBarItem>
+ * </PageActionBar>
+ * ```
  *
  * @docsCategory page-layout
  * @docsPage PageActionBar
  * @docsWeight 0
  * @since 3.3.0
  */
-export function PageActionBar({ children }: Readonly<{ children: React.ReactNode }>) {
-    let childArray = React.Children.toArray(children);
+export function PageActionBar({
+    children,
+    dropdownMenuItems,
+}: Readonly<{
+    children: React.ReactNode;
+    /**
+     * @description
+     * Optional dropdown menu items to display in the action bar's context menu.
+     */
+    dropdownMenuItems?: InlineDropdownItem[];
+}>) {
+    const page = usePage();
+    const actionBarItems = page.pageId ? getDashboardActionBarItems(page.pageId) : [];
+    const childArray = React.Children.toArray(children);
 
+    // Extract different child types
     const leftContent = childArray.filter(child => isOfType(child, PageActionBarLeft));
     const rightContent = childArray.filter(child => isOfType(child, PageActionBarRight));
+
+    // Collect ActionBarItem children (direct or from PageActionBarRight)
+    const actionBarItemChildren: React.ReactElement<ActionBarItemProps>[] = [];
+    // Collect plain children (not ActionBarItem, not PageActionBarLeft/Right)
+    const plainChildren: React.ReactNode[] = [];
+    // Collect dropdownMenuItems from PageActionBarRight (backwards compat)
+    let legacyDropdownMenuItems: InlineDropdownItem[] = [];
+
+    // Direct children (new pattern)
+    childArray.forEach(child => {
+        if (isActionBarItem(child)) {
+            actionBarItemChildren.push(child);
+        } else if (!isOfType(child, PageActionBarLeft) && !isOfType(child, PageActionBarRight)) {
+            // Plain children (buttons etc.) that aren't ActionBarItem or layout components
+            plainChildren.push(child);
+        }
+    });
+
+    // Children and dropdownMenuItems from PageActionBarRight (backwards compat)
+    rightContent.forEach(rightChild => {
+        if (React.isValidElement(rightChild)) {
+            const props = rightChild.props as {
+                children?: React.ReactNode;
+                dropdownMenuItems?: InlineDropdownItem[];
+            };
+            React.Children.forEach(props.children, child => {
+                if (isActionBarItem(child)) {
+                    actionBarItemChildren.push(child);
+                } else {
+                    // Plain children (raw buttons etc.)
+                    plainChildren.push(child);
+                }
+            });
+            // Extract dropdownMenuItems from PageActionBarRight props
+            if (props.dropdownMenuItems) {
+                legacyDropdownMenuItems = [...legacyDropdownMenuItems, ...props.dropdownMenuItems];
+            }
+        }
+    });
+
+    // Separate button items from dropdown items
+    const extensionButtonItems = actionBarItems.filter(item => item.type !== 'dropdown');
+    const allDropdownMenuItems = [...(dropdownMenuItems ?? []), ...legacyDropdownMenuItems];
+    const actionBarDropdownItems = [
+        ...allDropdownMenuItems.map(item => ({
+            ...item,
+            pageId: page.pageId ?? '',
+            type: 'dropdown' as const,
+        })),
+        ...actionBarItems.filter(item => item.type === 'dropdown'),
+    ];
+
+    // Merge and sort inline items with extension items
+    const mergedItems = mergeAndSortActionBarItems(actionBarItemChildren, extensionButtonItems);
+
+    const isMobile = useIsMobile();
+
+    // Determine if we should render the right section
+    const hasRightContent =
+        mergedItems.length > 0 ||
+        plainChildren.length > 0 ||
+        actionBarDropdownItems.length > 0 ||
+        page.entity;
+
+    // On mobile, show only the primary inline action (e.g. Update/Save/Create)
+    // and hide extensions + plain children to prevent overflow
+    let primaryItemIndex = -1;
+    for (let i = mergedItems.length - 1; i >= 0; i--) {
+        if (mergedItems[i].type === 'inline') {
+            primaryItemIndex = i;
+            break;
+        }
+    }
+    let visibleMergedItems = mergedItems;
+    if (isMobile && mergedItems.length >= 2) {
+        visibleMergedItems =
+            primaryItemIndex >= 0 ? [mergedItems[primaryItemIndex]] : [mergedItems[mergedItems.length - 1]];
+    }
+
+    const renderMergedItem = (mergedItem: MergedActionBarItem, index: number) => {
+        if (mergedItem.type === 'inline') {
+            return React.cloneElement(mergedItem.element, {
+                key: `inline-${mergedItem.element.props.itemId}`,
+            });
+        } else {
+            const extItem = mergedItem.item;
+            const itemId = extItem.id ?? `extension-${extItem.component.name || index}`;
+            return (
+                <ActionBarItemWrapper key={`ext-${extItem.id ?? extItem.pageId}-${index}`} itemId={itemId}>
+                    <PageActionBarItem item={extItem} page={page} />
+                </ActionBarItemWrapper>
+            );
+        }
+    };
 
     return (
         <div className={cn('flex gap-2', leftContent.length > 0 ? 'justify-between' : 'justify-end')}>
             {leftContent.length > 0 && <div className="flex justify-start gap-2">{leftContent}</div>}
-            {rightContent.length > 0 && <div className="flex justify-end gap-2">{rightContent}</div>}
+            {hasRightContent && (
+                <div className="flex justify-end gap-2">
+                    {/* Plain children only on desktop */}
+                    {!isMobile &&
+                        plainChildren.map((child, index) => (
+                            <React.Fragment key={`plain-${index}`}>{child}</React.Fragment>
+                        ))}
+                    {/* Merged ActionBarItem children (filtered on mobile) */}
+                    {visibleMergedItems.map((mergedItem, index) => renderMergedItem(mergedItem, index))}
+                    {actionBarDropdownItems.length > 0 && (
+                        <PageActionBarDropdown items={actionBarDropdownItems} page={page} />
+                    )}
+                    <EntityInfoDropdown entity={page.entity} />
+                </div>
+            )}
         </div>
     );
 }
 
 /**
  * @description
- * The PageActionBarLeft component should be used to display the left content of the action bar.
+ * The PageActionBarLeft component is not used and will be removed in a future version.
  *
  * @docsCategory page-layout
  * @docsPage PageActionBar
+ * @deprecated
  * @since 3.3.0
  */
 export function PageActionBarLeft({ children }: Readonly<{ children: React.ReactNode }>) {
     return <div className="flex justify-start gap-2">{children}</div>;
 }
 
-type InlineDropdownItem = Omit<DashboardActionBarItem, 'type' | 'pageId'>;
+/**
+ * Checks if a React child is an ActionBarItem component.
+ */
+function isActionBarItem(child: unknown): child is React.ReactElement<ActionBarItemProps> {
+    return React.isValidElement(child) && isOfType(child, ActionBarItem);
+}
+
+/**
+ * Represents a merged action bar item that can be either inline (ActionBarItem child) or from an extension.
+ * Used internally for sorting and rendering.
+ */
+type MergedActionBarItem =
+    | { type: 'inline'; element: React.ReactElement<ActionBarItemProps> }
+    | { type: 'extension'; item: DashboardActionBarItem };
+
+type PositionedExtensionActionBarItem = {
+    type: 'extension';
+    item: DashboardActionBarItem & { position: ActionBarItemPosition };
+};
+
+function isPositionedExtensionActionBarItem(
+    item: MergedActionBarItem,
+): item is PositionedExtensionActionBarItem {
+    return item.type === 'extension' && !!item.item.position;
+}
+
+/**
+ * Merges inline ActionBarItem children with extension items, applying position-based ordering.
+ * Uses the same priority sorting as page blocks: before=1, replace=2, after=3.
+ */
+function mergeAndSortActionBarItems(
+    inlineElements: React.ReactElement<ActionBarItemProps>[],
+    extensionItems: DashboardActionBarItem[],
+): MergedActionBarItem[] {
+    const result: MergedActionBarItem[] = [];
+
+    // Treat inline ActionBarItem children and extension items as the same kind of sortable node.
+    // This lets position.itemId target either an inline ActionBarItem.itemId or another extension item's id.
+    const inlineItems: MergedActionBarItem[] = inlineElements.map(element => ({ type: 'inline', element }));
+    const extensionActionItems: MergedActionBarItem[] = extensionItems.map(item => ({
+        type: 'extension',
+        item,
+    }));
+    const getItemId = (item: MergedActionBarItem): string | undefined =>
+        item.type === 'inline' ? item.element.props.itemId : item.item.id;
+
+    // Sort by order priority: before=1, replace=2, after=3
+    const orderPriority: Record<ActionBarItemPosition['order'], number> = {
+        before: 1,
+        replace: 2,
+        after: 3,
+    };
+
+    // First, use extension items WITHOUT a position as root items (they still go first,
+    // preserving the previous behavior). Inline items are also root items.
+    const rootItems = [
+        ...extensionActionItems.filter(item => !isPositionedExtensionActionBarItem(item)),
+        ...inlineItems,
+    ];
+
+    // Group positioned extension items by their target id. The target id may refer to either
+    // an inline ActionBarItem.itemId or a DashboardActionBarItem.id.
+    const extensionsByTargetId = new Map<string, PositionedExtensionActionBarItem[]>();
+
+    for (const item of extensionActionItems.filter(isPositionedExtensionActionBarItem)) {
+        const targetItems = extensionsByTargetId.get(item.item.position.itemId) ?? [];
+        extensionsByTargetId.set(item.item.position.itemId, [...targetItems, item]);
+    }
+
+    const renderedExtensionItems = new Set<DashboardActionBarItem>();
+
+    function renderItem(item: MergedActionBarItem) {
+        // Prevent duplicate rendering if multiple paths reference the same extension item.
+        if (item.type === 'extension') {
+            if (renderedExtensionItems.has(item.item)) {
+                return;
+            }
+            renderedExtensionItems.add(item.item);
+        }
+
+        const itemId = getItemId(item);
+        const extensions = itemId
+            ? [...(extensionsByTargetId.get(itemId) ?? [])].sort((a, b) => {
+                  return orderPriority[a.item.position.order] - orderPriority[b.item.position.order];
+              })
+            : [];
+        const hasReplacement = extensions.some(ext => ext.item.position.order === 'replace');
+
+        // Render positioned items in before / replace / after order around their target.
+        for (const extension of extensions.filter(ext => ext.item.position.order === 'before')) {
+            renderItem(extension);
+        }
+
+        if (hasReplacement) {
+            for (const extension of extensions.filter(ext => ext.item.position.order === 'replace')) {
+                renderItem(extension);
+            }
+        } else {
+            result.push(item);
+        }
+
+        for (const extension of extensions.filter(ext => ext.item.position.order === 'after')) {
+            renderItem(extension);
+        }
+    }
+
+    for (const item of rootItems) {
+        renderItem(item);
+    }
+
+    // A positioned extension can be unreachable from the root walk if its target id is
+    // missing, or if positioned extensions only reference each other in a cycle. Render
+    // any remaining extension items so they do not silently disappear.
+    for (const item of extensionActionItems) {
+        if (item.type === 'extension' && !renderedExtensionItems.has(item.item)) {
+            renderItem(item);
+        }
+    }
+
+    return result;
+}
 
 function EntityInfoDropdown({ entity }: Readonly<{ entity: any }>) {
     const [copiedField, setCopiedField] = useState<string | null>(null);
     const [, copy] = useCopyToClipboard();
+    const { formatDate } = useLocalFormat();
 
     const handleCopy = async (text: string, field: string) => {
         await copy(text);
         setCopiedField(field);
         setTimeout(() => setCopiedField(null), 2000);
-    };
-
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleString();
     };
 
     if (!entity?.id) {
@@ -396,15 +687,24 @@ function EntityInfoDropdown({ entity }: Readonly<{ entity: any }>) {
 
     return (
         <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-muted-foreground">
-                    <InfoIcon className="w-4 h-4" />
-                </Button>
+            <DropdownMenuTrigger
+                render={
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground"
+                        data-testid="entity-info-trigger"
+                    />
+                }
+            >
+                <InfoIcon className="w-4 h-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-64">
-                <DropdownMenuLabel>
-                    <Trans>Entity Information</Trans>
-                </DropdownMenuLabel>
+                <DropdownMenuGroup>
+                    <DropdownMenuLabel>
+                        <Trans>Entity Information</Trans>
+                    </DropdownMenuLabel>
+                </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <div className="px-3 py-2">
                     <div className="flex items-center justify-between">
@@ -416,7 +716,7 @@ function EntityInfoDropdown({ entity }: Readonly<{ entity: any }>) {
                                 className="p-1 hover:bg-muted rounded-sm transition-colors"
                             >
                                 {copiedField === 'id' ? (
-                                    <CheckIcon className="h-3 w-3 text-green-500" />
+                                    <CheckIcon className="h-3 w-3 text-success" />
                                 ) : (
                                     <CopyIcon className="h-3 w-3" />
                                 )}
@@ -457,7 +757,28 @@ function EntityInfoDropdown({ entity }: Readonly<{ entity: any }>) {
 
 /**
  * @description
- * The PageActionBarRight component should be used to display the right content of the action bar.
+ * The PageActionBarRight component is used to display the right content of the action bar.
+ *
+ * @deprecated Use {@link ActionBarItem} children directly in {@link PageActionBar} instead.
+ *
+ * @example
+ * ```tsx
+ * // Old pattern (deprecated)
+ * <PageActionBar>
+ *     <PageActionBarRight>
+ *         <ActionBarItem itemId="save-button">
+ *             <Button type="submit">Update</Button>
+ *         </ActionBarItem>
+ *     </PageActionBarRight>
+ * </PageActionBar>
+ *
+ * // New pattern (recommended)
+ * <PageActionBar>
+ *     <ActionBarItem itemId="save-button" requiresPermission={['UpdateProduct']}>
+ *         <Button type="submit">Update</Button>
+ *     </ActionBarItem>
+ * </PageActionBar>
+ * ```
  *
  * @docsCategory page-layout
  * @docsPage PageActionBar
@@ -465,35 +786,25 @@ function EntityInfoDropdown({ entity }: Readonly<{ entity: any }>) {
  */
 export function PageActionBarRight({
     children,
-    dropdownMenuItems,
+    dropdownMenuItems: _dropdownMenuItems,
 }: Readonly<{
-    children: React.ReactNode;
+    /**
+     * @description
+     * ActionBarItem components that will be rendered in the action bar.
+     * Each item should have a unique itemId for extension targeting.
+     */
+    children?: React.ReactNode;
+    /**
+     * @description
+     * Optional dropdown menu items. These are now extracted and rendered by PageActionBar.
+     * @deprecated Pass dropdownMenuItems directly to PageActionBar instead.
+     */
     dropdownMenuItems?: InlineDropdownItem[];
 }>) {
-    const page = usePage();
-    const actionBarItems = page.pageId ? getDashboardActionBarItems(page.pageId) : [];
-    const actionBarButtonItems = actionBarItems.filter(item => item.type !== 'dropdown');
-    const actionBarDropdownItems = [
-        ...(dropdownMenuItems ?? []).map(item => ({
-            ...item,
-            pageId: page.pageId ?? '',
-            type: 'dropdown' as const,
-        })),
-        ...actionBarItems.filter(item => item.type === 'dropdown'),
-    ];
-
-    return (
-        <div className="flex justify-end gap-2">
-            {actionBarButtonItems.map((item, index) => (
-                <PageActionBarItem key={item.pageId + index} item={item} page={page} />
-            ))}
-            {children}
-            {actionBarDropdownItems.length > 0 && (
-                <PageActionBarDropdown items={actionBarDropdownItems} page={page} />
-            )}
-            <EntityInfoDropdown entity={page.entity} />
-        </div>
-    );
+    // This is now a passthrough wrapper for backwards compatibility.
+    // The actual logic is handled by PageActionBar which extracts ActionBarItem
+    // children and dropdownMenuItems from PageActionBarRight.
+    return <>{children}</>;
 }
 
 function PageActionBarItem({
@@ -513,10 +824,10 @@ function PageActionBarDropdown({
 }: Readonly<{ items: DashboardActionBarItem[]; page: PageContextValue }>) {
     return (
         <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                    <EllipsisVerticalIcon className="w-4 h-4" />
-                </Button>
+            <DropdownMenuTrigger
+                render={<Button variant="ghost" size="icon" data-testid="action-bar-dropdown-trigger" />}
+            >
+                <EllipsisVerticalIcon className="w-4 h-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent>
                 {items.map((item, index) => (
@@ -615,9 +926,7 @@ export function PageBlock({
                             {description && <CardDescription>{description}</CardDescription>}
                         </CardHeader>
                     ) : null}
-                    <CardContent className={cn(!title ? 'pt-6' : '', 'overflow-auto')}>
-                        {children}
-                    </CardContent>
+                    <CardContent>{children}</CardContent>
                 </Card>
             </LocationWrapper>
         </PageBlockContext.Provider>
@@ -640,7 +949,7 @@ export function FullWidthPageBlock({
     className,
     blockId,
 }: Readonly<Pick<PageBlockProps, 'children' | 'className' | 'blockId'>>) {
-    const contextValue = useMemo(() => ({ blockId, column: 'main' as const }), [blockId]);
+    const contextValue = useMemo(() => ({ blockId, column: 'full' as const }), [blockId]);
     return (
         <PageBlockContext.Provider value={contextValue}>
             <LocationWrapper>
@@ -675,6 +984,24 @@ export function CustomFieldsPageBlock({
     control: Control<any, any>;
 }>) {
     const customFieldConfig = useCustomFieldConfig(entityType);
+    const isServerConfigLoaded = useIsServerConfigLoaded();
+
+    // Until the server config has resolved we don't know whether this entity
+    // has custom fields or not. Render a skeleton placeholder block so the
+    // page layout doesn't visibly jump once the config arrives. Once loaded
+    // and we're confident there are no custom fields, render nothing.
+    if (!isServerConfigLoaded) {
+        return (
+            <PageBlock column={column} blockId="custom-fields">
+                <div className="space-y-4" aria-hidden="true">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-9 w-full" />
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-9 w-full" />
+                </div>
+            </PageBlock>
+        );
+    }
     if (!customFieldConfig || customFieldConfig.length === 0) {
         return null;
     }

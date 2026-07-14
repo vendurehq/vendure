@@ -190,8 +190,7 @@ In production, the way you manage environment variables will depend on your host
 If the config object grows too large, you can split it across several files. For example, the `plugins` array in a real-world project can easily grow quite big:
 
 ```ts title="src/vendure-config-plugins.ts"
-import { AssetServerPlugin, DefaultJobQueuePlugin, VendureConfig } from '@vendure/core';
-import { ElasticsearchPlugin } from '@vendure/elasticsearch-plugin';
+import { AssetServerPlugin, DefaultJobQueuePlugin, DefaultSearchPlugin, VendureConfig } from '@vendure/core';
 import { EmailPlugin } from '@vendure/email-plugin';
 import { CustomPlugin } from './plugins/custom-plugin';
 
@@ -203,10 +202,7 @@ export const plugins: VendureConfig['plugins'] = [
       port: 5002,
   }),
   DefaultJobQueuePlugin,
-  ElasticsearchPlugin.init({
-      host: 'localhost',
-      port: 9200,
-  }),
+  DefaultSearchPlugin,
   EmailPlugin.init({
     // ...lots of lines of config
   }),

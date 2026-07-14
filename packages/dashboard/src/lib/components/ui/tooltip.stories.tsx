@@ -18,9 +18,7 @@ export const Playground: Story = {
     render: () => (
         <TooltipProvider>
             <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button>Hover me</Button>
-                </TooltipTrigger>
+                <TooltipTrigger render={<Button />}>Hover me</TooltipTrigger>
                 <TooltipContent>
                     <p>This is a tooltip</p>
                 </TooltipContent>

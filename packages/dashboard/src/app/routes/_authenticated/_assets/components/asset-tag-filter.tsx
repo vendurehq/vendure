@@ -92,14 +92,13 @@ export function AssetTagFilter({ selectedTags, onTagsChange }: Readonly<AssetTag
     return (
         <div className="flex items-center gap-2">
             <Popover open={open} onOpenChange={setOpen}>
-                <PopoverTrigger asChild>
-                    <Button
+                <PopoverTrigger render={<Button
                         variant="outline"
                         size="sm"
                         role="combobox"
                         aria-expanded={open}
                         className="justify-start"
-                    >
+                    />}>
                         <Filter className="h-4 w-4 mr-2" />
                         <Trans>Filter by tags</Trans>
                         {selectedTags.length > 0 && (
@@ -107,7 +106,6 @@ export function AssetTagFilter({ selectedTags, onTagsChange }: Readonly<AssetTag
                                 {selectedTags.length}
                             </Badge>
                         )}
-                    </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-80 p-0" align="start">
                     <Command shouldFilter={false}>

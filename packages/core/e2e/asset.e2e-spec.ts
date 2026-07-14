@@ -1,32 +1,24 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { DeletionResult, LogicalOperator, SortOrder } from '@vendure/common/lib/generated-types';
 import { omit } from '@vendure/common/lib/omit';
 import { pick } from '@vendure/common/lib/pick';
 import { mergeConfig } from '@vendure/core';
-import { createTestEnvironment } from '@vendure/testing';
+import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import fs from 'fs-extra';
-import path from 'path';
+import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
-import * as Codegen from './graphql/generated-e2e-admin-types';
+import { ResultOf } from './graphql/graphql-admin';
 import {
-    AssetWithTagsAndFocalPointFragment,
-    CreateAssetsMutation,
-    DeletionResult,
-    GetProductWithVariantsQuery,
-    LogicalOperator,
-    SortOrder,
-} from './graphql/generated-e2e-admin-types';
-import {
-    CREATE_ASSETS,
-    DELETE_ASSET,
-    GET_ASSET,
-    GET_ASSET_FRAGMENT_FIRST,
-    GET_ASSET_LIST,
-    GET_PRODUCT_WITH_VARIANTS,
-    UPDATE_ASSET,
+    createAssetsDocument,
+    deleteAssetDocument,
+    getAssetDocument,
+    getAssetFragmentFirstDocument,
+    getAssetListDocument,
+    getProductWithVariantsDocument,
+    updateAssetDocument,
 } from './graphql/shared-definitions';
 
 describe('Asset resolver', () => {
@@ -55,10 +47,7 @@ describe('Asset resolver', () => {
     });
 
     it('assets', async () => {
-        const { assets } = await adminClient.query<
-            Codegen.GetAssetListQuery,
-            Codegen.GetAssetListQueryVariables
-        >(GET_ASSET_LIST, {
+        const { assets } = await adminClient.query(getAssetListDocument, {
             options: {
                 sort: {
                     name: SortOrder.ASC,
@@ -106,12 +95,9 @@ describe('Asset resolver', () => {
     });
 
     it('asset', async () => {
-        const { asset } = await adminClient.query<Codegen.GetAssetQuery, Codegen.GetAssetQueryVariables>(
-            GET_ASSET,
-            {
-                id: firstAssetId,
-            },
-        );
+        const { asset } = await adminClient.query(getAssetDocument, {
+            id: firstAssetId,
+        });
 
         expect(asset).toEqual({
             fileSize: 1680,
@@ -130,20 +116,25 @@ describe('Asset resolver', () => {
      * https://github.com/vendurehq/vendure/issues/459
      */
     it('transforms URL when fragment defined before query (GH issue #459)', async () => {
-        const { asset } = await adminClient.query<
-            Codegen.GetAssetFragmentFirstQuery,
-            Codegen.GetAssetFragmentFirstQueryVariables
-        >(GET_ASSET_FRAGMENT_FIRST, {
+        const result = await adminClient.query(getAssetFragmentFirstDocument, {
             id: firstAssetId,
         });
 
-        expect(asset?.preview).toBe('test-url/test-assets/alexandru-acea-686569-unsplash__preview.jpg');
+        // @ts-expect-error
+        expect(result.asset?.preview).toBe(
+            'test-url/test-assets/alexandru-acea-686569-unsplash__preview.jpg',
+        );
     });
 
     describe('createAssets', () => {
+        type AssetResult = Extract<
+            ResultOf<typeof createAssetsDocument>['createAssets'][number],
+            { name: string }
+        >;
+
         function isAsset(
-            input: CreateAssetsMutation['createAssets'][number],
-        ): input is AssetWithTagsAndFocalPointFragment {
+            input: ResultOf<typeof createAssetsDocument>['createAssets'][number],
+        ): input is AssetResult {
             return input.hasOwnProperty('name');
         }
 
@@ -152,8 +143,8 @@ describe('Asset resolver', () => {
                 path.join(__dirname, 'fixtures/assets/pps1.jpg'),
                 path.join(__dirname, 'fixtures/assets/pps2.jpg'),
             ];
-            const { createAssets }: Codegen.CreateAssetsMutation = await adminClient.fileUploadMutation({
-                mutation: CREATE_ASSETS,
+            const { createAssets } = await adminClient.fileUploadMutation({
+                mutation: createAssetsDocument,
                 filePaths: filesToUpload,
                 mapVariables: filePaths => ({
                     input: filePaths.map(p => ({ file: null })),
@@ -162,7 +153,11 @@ describe('Asset resolver', () => {
 
             expect(createAssets.length).toBe(2);
             const results = createAssets.filter(isAsset);
-            expect(results.map(a => omit(a, ['id'])).sort((a, b) => (a.name < b.name ? -1 : 1))).toEqual([
+            expect(
+                results
+                    .map((a: AssetResult) => omit(a, ['id']))
+                    .sort((a: AssetResult, b: AssetResult) => (a.name < b.name ? -1 : 1)),
+            ).toEqual([
                 {
                     fileSize: 1680,
                     focalPoint: null,
@@ -190,8 +185,8 @@ describe('Asset resolver', () => {
 
         it('permitted type by file extension', async () => {
             const filesToUpload = [path.join(__dirname, 'fixtures/assets/dummy.pdf')];
-            const { createAssets }: Codegen.CreateAssetsMutation = await adminClient.fileUploadMutation({
-                mutation: CREATE_ASSETS,
+            const { createAssets } = await adminClient.fileUploadMutation({
+                mutation: createAssetsDocument,
                 filePaths: filesToUpload,
                 mapVariables: filePaths => ({
                     input: filePaths.map(p => ({ file: null })),
@@ -200,7 +195,7 @@ describe('Asset resolver', () => {
 
             expect(createAssets.length).toBe(1);
             const results = createAssets.filter(isAsset);
-            expect(results.map(a => omit(a, ['id']))).toEqual([
+            expect(results.map((a: AssetResult) => omit(a, ['id']))).toEqual([
                 {
                     fileSize: 1680,
                     focalPoint: null,
@@ -217,8 +212,8 @@ describe('Asset resolver', () => {
         // https://github.com/vendurehq/vendure/issues/727
         it('file extension with shared type', async () => {
             const filesToUpload = [path.join(__dirname, 'fixtures/assets/dummy.zip')];
-            const { createAssets }: Codegen.CreateAssetsMutation = await adminClient.fileUploadMutation({
-                mutation: CREATE_ASSETS,
+            const { createAssets } = await adminClient.fileUploadMutation({
+                mutation: createAssetsDocument,
                 filePaths: filesToUpload,
                 mapVariables: filePaths => ({
                     input: filePaths.map(p => ({ file: null })),
@@ -229,7 +224,7 @@ describe('Asset resolver', () => {
 
             expect(isAsset(createAssets[0])).toBe(true);
             const results = createAssets.filter(isAsset);
-            expect(results.map(a => omit(a, ['id']))).toEqual([
+            expect(results.map((a: AssetResult) => omit(a, ['id']))).toEqual([
                 {
                     fileSize: 1680,
                     focalPoint: null,
@@ -245,8 +240,8 @@ describe('Asset resolver', () => {
 
         it('not permitted type', async () => {
             const filesToUpload = [path.join(__dirname, 'fixtures/assets/dummy.txt')];
-            const { createAssets }: Codegen.CreateAssetsMutation = await adminClient.fileUploadMutation({
-                mutation: CREATE_ASSETS,
+            const { createAssets } = await adminClient.fileUploadMutation({
+                mutation: createAssetsDocument,
                 filePaths: filesToUpload,
                 mapVariables: filePaths => ({
                     input: filePaths.map(p => ({ file: null })),
@@ -261,10 +256,77 @@ describe('Asset resolver', () => {
             });
         });
 
+        // GHSA-88rq-mq4v-frmm — the permitted-type check must not rely solely on the
+        // client-supplied Content-Type header, which can be spoofed (e.g. via a proxy tool).
+        it('rejects a dangerous extension even when the Content-Type header is spoofed', async () => {
+            const filesToUpload = [path.join(__dirname, 'fixtures/assets/malicious.php')];
+            const { createAssets } = await adminClient.fileUploadMutation({
+                mutation: createAssetsDocument,
+                filePaths: filesToUpload,
+                // Spoof the part Content-Type to a permitted type, as an attacker would.
+                contentTypeOverrides: { 0: 'image/jpeg' },
+                mapVariables: filePaths => ({
+                    input: filePaths.map(p => ({ file: null })),
+                }),
+            });
+
+            expect(createAssets.length).toBe(1);
+            expect(createAssets[0]).toEqual({
+                message: 'The MIME type "application/x-httpd-php" is not permitted.',
+                mimeType: 'application/x-httpd-php',
+                fileName: 'malicious.php',
+            });
+        });
+
+        // GHSA-88rq-mq4v-frmm — a file that cannot be positively identified as a permitted
+        // type by either its extension or its contents must be rejected. `.phtml` has no
+        // mime-types mapping and the text content has no magic bytes, so neither signal
+        // confirms it is permitted.
+        it('rejects an unrecognised extension with spoofed Content-Type and no detectable content type', async () => {
+            const filesToUpload = [path.join(__dirname, 'fixtures/assets/malicious.phtml')];
+            const { createAssets } = await adminClient.fileUploadMutation({
+                mutation: createAssetsDocument,
+                filePaths: filesToUpload,
+                contentTypeOverrides: { 0: 'image/jpeg' },
+                mapVariables: filePaths => ({
+                    input: filePaths.map(p => ({ file: null })),
+                }),
+            });
+
+            expect(createAssets.length).toBe(1);
+            expect(createAssets[0]).toEqual({
+                message: 'The MIME type "application/octet-stream" is not permitted.',
+                mimeType: 'application/octet-stream',
+                fileName: 'malicious.phtml',
+            });
+        });
+
+        // GHSA-88rq-mq4v-frmm — the actual file contents (magic bytes) are validated, so a
+        // disguised file whose extension and Content-Type are both permitted is still rejected
+        // when its real content type is not permitted.
+        it('rejects a file whose actual contents are a non-permitted type', async () => {
+            const filesToUpload = [path.join(__dirname, 'fixtures/assets/disguised-gzip.jpg')];
+            const { createAssets } = await adminClient.fileUploadMutation({
+                mutation: createAssetsDocument,
+                filePaths: filesToUpload,
+                contentTypeOverrides: { 0: 'image/jpeg' },
+                mapVariables: filePaths => ({
+                    input: filePaths.map(p => ({ file: null })),
+                }),
+            });
+
+            expect(createAssets.length).toBe(1);
+            expect(createAssets[0]).toEqual({
+                message: 'The MIME type "application/gzip" is not permitted.',
+                mimeType: 'application/gzip',
+                fileName: 'disguised-gzip.jpg',
+            });
+        });
+
         it('create with new tags', async () => {
             const filesToUpload = [path.join(__dirname, 'fixtures/assets/pps1.jpg')];
-            const { createAssets }: Codegen.CreateAssetsMutation = await adminClient.fileUploadMutation({
-                mutation: CREATE_ASSETS,
+            const { createAssets } = await adminClient.fileUploadMutation({
+                mutation: createAssetsDocument,
                 filePaths: filesToUpload,
                 mapVariables: filePaths => ({
                     input: filePaths.map(p => ({ file: null, tags: ['foo', 'bar'] })),
@@ -272,7 +334,7 @@ describe('Asset resolver', () => {
             });
             const results = createAssets.filter(isAsset);
 
-            expect(results.map(a => pick(a, ['id', 'name', 'tags']))).toEqual([
+            expect(results.map((a: AssetResult) => pick(a, ['id', 'name', 'tags']))).toEqual([
                 {
                     id: 'T_9',
                     name: 'pps1.jpg',
@@ -286,8 +348,8 @@ describe('Asset resolver', () => {
 
         it('create with existing tags', async () => {
             const filesToUpload = [path.join(__dirname, 'fixtures/assets/pps1.jpg')];
-            const { createAssets }: Codegen.CreateAssetsMutation = await adminClient.fileUploadMutation({
-                mutation: CREATE_ASSETS,
+            const { createAssets } = await adminClient.fileUploadMutation({
+                mutation: createAssetsDocument,
                 filePaths: filesToUpload,
                 mapVariables: filePaths => ({
                     input: filePaths.map(p => ({ file: null, tags: ['foo', 'bar'] })),
@@ -295,7 +357,7 @@ describe('Asset resolver', () => {
             });
             const results = createAssets.filter(isAsset);
 
-            expect(results.map(a => pick(a, ['id', 'name', 'tags']))).toEqual([
+            expect(results.map((a: AssetResult) => pick(a, ['id', 'name', 'tags']))).toEqual([
                 {
                     id: 'T_10',
                     name: 'pps1.jpg',
@@ -309,8 +371,8 @@ describe('Asset resolver', () => {
 
         it('create with new and existing tags', async () => {
             const filesToUpload = [path.join(__dirname, 'fixtures/assets/pps1.jpg')];
-            const { createAssets }: Codegen.CreateAssetsMutation = await adminClient.fileUploadMutation({
-                mutation: CREATE_ASSETS,
+            const { createAssets } = await adminClient.fileUploadMutation({
+                mutation: createAssetsDocument,
                 filePaths: filesToUpload,
                 mapVariables: filePaths => ({
                     input: filePaths.map(p => ({ file: null, tags: ['quux', 'bar'] })),
@@ -318,7 +380,7 @@ describe('Asset resolver', () => {
             });
             const results = createAssets.filter(isAsset);
 
-            expect(results.map(a => pick(a, ['id', 'name', 'tags']))).toEqual([
+            expect(results.map((a: AssetResult) => pick(a, ['id', 'name', 'tags']))).toEqual([
                 {
                     id: 'T_11',
                     name: 'pps1.jpg',
@@ -349,8 +411,8 @@ describe('Asset resolver', () => {
             await createEmptyFileOfSize(filename, twentyOneMib);
 
             try {
-                const { createAssets }: Codegen.CreateAssetsMutation = await adminClient.fileUploadMutation({
-                    mutation: CREATE_ASSETS,
+                await adminClient.fileUploadMutation({
+                    mutation: createAssetsDocument,
                     filePaths: [filename],
                     mapVariables: filePaths => ({
                         input: filePaths.map(p => ({ file: null })),
@@ -367,10 +429,7 @@ describe('Asset resolver', () => {
 
     describe('filter by tags', () => {
         it('and', async () => {
-            const { assets } = await adminClient.query<
-                Codegen.GetAssetListQuery,
-                Codegen.GetAssetListQueryVariables
-            >(GET_ASSET_LIST, {
+            const { assets } = await adminClient.query(getAssetListDocument, {
                 options: {
                     tags: ['foo', 'bar'],
                     tagsOperator: LogicalOperator.AND,
@@ -381,10 +440,7 @@ describe('Asset resolver', () => {
         });
 
         it('or', async () => {
-            const { assets } = await adminClient.query<
-                Codegen.GetAssetListQuery,
-                Codegen.GetAssetListQueryVariables
-            >(GET_ASSET_LIST, {
+            const { assets } = await adminClient.query(getAssetListDocument, {
                 options: {
                     tags: ['foo', 'bar'],
                     tagsOperator: LogicalOperator.OR,
@@ -395,10 +451,7 @@ describe('Asset resolver', () => {
         });
 
         it('empty array', async () => {
-            const { assets } = await adminClient.query<
-                Codegen.GetAssetListQuery,
-                Codegen.GetAssetListQueryVariables
-            >(GET_ASSET_LIST, {
+            const { assets } = await adminClient.query(getAssetListDocument, {
                 options: {
                     tags: [],
                 },
@@ -410,10 +463,7 @@ describe('Asset resolver', () => {
 
     describe('updateAsset', () => {
         it('update name', async () => {
-            const { updateAsset } = await adminClient.query<
-                Codegen.UpdateAssetMutation,
-                Codegen.UpdateAssetMutationVariables
-            >(UPDATE_ASSET, {
+            const { updateAsset } = await adminClient.query(updateAssetDocument, {
                 input: {
                     id: firstAssetId,
                     name: 'new name',
@@ -424,10 +474,7 @@ describe('Asset resolver', () => {
         });
 
         it('update focalPoint', async () => {
-            const { updateAsset } = await adminClient.query<
-                Codegen.UpdateAssetMutation,
-                Codegen.UpdateAssetMutationVariables
-            >(UPDATE_ASSET, {
+            const { updateAsset } = await adminClient.query(updateAssetDocument, {
                 input: {
                     id: firstAssetId,
                     focalPoint: {
@@ -444,10 +491,7 @@ describe('Asset resolver', () => {
         });
 
         it('unset focalPoint', async () => {
-            const { updateAsset } = await adminClient.query<
-                Codegen.UpdateAssetMutation,
-                Codegen.UpdateAssetMutationVariables
-            >(UPDATE_ASSET, {
+            const { updateAsset } = await adminClient.query(updateAssetDocument, {
                 input: {
                     id: firstAssetId,
                     focalPoint: null,
@@ -458,10 +502,7 @@ describe('Asset resolver', () => {
         });
 
         it('update tags', async () => {
-            const { updateAsset } = await adminClient.query<
-                Codegen.UpdateAssetMutation,
-                Codegen.UpdateAssetMutationVariables
-            >(UPDATE_ASSET, {
+            const { updateAsset } = await adminClient.query(updateAssetDocument, {
                 input: {
                     id: firstAssetId,
                     tags: ['foo', 'quux'],
@@ -475,10 +516,7 @@ describe('Asset resolver', () => {
         });
 
         it('remove tags', async () => {
-            const { updateAsset } = await adminClient.query<
-                Codegen.UpdateAssetMutation,
-                Codegen.UpdateAssetMutationVariables
-            >(UPDATE_ASSET, {
+            const { updateAsset } = await adminClient.query(updateAssetDocument, {
                 input: {
                     id: firstAssetId,
                     tags: [],
@@ -490,24 +528,29 @@ describe('Asset resolver', () => {
     });
 
     describe('deleteAsset', () => {
-        let firstProduct: NonNullable<GetProductWithVariantsQuery['product']>;
+        let firstProduct: NonNullable<ResultOf<typeof getProductWithVariantsDocument>['product']>;
+
+        const productGuard: ErrorResultGuard<
+            NonNullable<ResultOf<typeof getProductWithVariantsDocument>['product']>
+        > = createErrorResultGuard(input => input !== null);
+
+        const featuredAssetGuard: ErrorResultGuard<
+            NonNullable<
+                NonNullable<ResultOf<typeof getProductWithVariantsDocument>['product']>['featuredAsset']
+            >
+        > = createErrorResultGuard(input => input !== null);
 
         beforeAll(async () => {
-            const { product } = await adminClient.query<
-                Codegen.GetProductWithVariantsQuery,
-                Codegen.GetProductWithVariantsQueryVariables
-            >(GET_PRODUCT_WITH_VARIANTS, {
+            const { product } = await adminClient.query(getProductWithVariantsDocument, {
                 id: 'T_1',
             });
 
-            firstProduct = product!;
+            productGuard.assertSuccess(product);
+            firstProduct = product;
         });
 
         it('non-featured asset', async () => {
-            const { deleteAsset } = await adminClient.query<
-                Codegen.DeleteAssetMutation,
-                Codegen.DeleteAssetMutationVariables
-            >(DELETE_ASSET, {
+            const { deleteAsset } = await adminClient.query(deleteAssetDocument, {
                 input: {
                     assetId: createdAssetId,
                 },
@@ -515,74 +558,83 @@ describe('Asset resolver', () => {
 
             expect(deleteAsset.result).toBe(DeletionResult.DELETED);
 
-            const { asset } = await adminClient.query<Codegen.GetAssetQuery, Codegen.GetAssetQueryVariables>(
-                GET_ASSET,
-                {
-                    id: createdAssetId,
-                },
-            );
+            const { asset } = await adminClient.query(getAssetDocument, {
+                id: createdAssetId,
+            });
             expect(asset).toBeNull();
         });
 
         it('featured asset not deleted', async () => {
-            const { deleteAsset } = await adminClient.query<
-                Codegen.DeleteAssetMutation,
-                Codegen.DeleteAssetMutationVariables
-            >(DELETE_ASSET, {
+            featuredAssetGuard.assertSuccess(firstProduct.featuredAsset);
+            const { deleteAsset } = await adminClient.query(deleteAssetDocument, {
                 input: {
-                    assetId: firstProduct.featuredAsset!.id,
+                    assetId: firstProduct.featuredAsset.id,
                 },
             });
 
             expect(deleteAsset.result).toBe(DeletionResult.NOT_DELETED);
             expect(deleteAsset.message).toContain('The selected Asset is featured by 1 Product');
 
-            const { asset } = await adminClient.query<Codegen.GetAssetQuery, Codegen.GetAssetQueryVariables>(
-                GET_ASSET,
-                {
-                    id: firstAssetId,
-                },
-            );
+            const { asset } = await adminClient.query(getAssetDocument, {
+                id: firstAssetId,
+            });
             expect(asset).not.toBeNull();
         });
 
         it('featured asset force deleted', async () => {
-            const { product: p1 } = await adminClient.query<
-                Codegen.GetProductWithVariantsQuery,
-                Codegen.GetProductWithVariantsQueryVariables
-            >(GET_PRODUCT_WITH_VARIANTS, {
+            const { product: p1 } = await adminClient.query(getProductWithVariantsDocument, {
                 id: firstProduct.id,
             });
-            expect(p1!.assets.length).toEqual(1);
+            productGuard.assertSuccess(p1);
+            expect(p1.assets.length).toEqual(1);
 
-            const { deleteAsset } = await adminClient.query<
-                Codegen.DeleteAssetMutation,
-                Codegen.DeleteAssetMutationVariables
-            >(DELETE_ASSET, {
+            featuredAssetGuard.assertSuccess(firstProduct.featuredAsset);
+            const { deleteAsset } = await adminClient.query(deleteAssetDocument, {
                 input: {
-                    assetId: firstProduct.featuredAsset!.id,
+                    assetId: firstProduct.featuredAsset.id,
                     force: true,
                 },
             });
 
             expect(deleteAsset.result).toBe(DeletionResult.DELETED);
 
-            const { asset } = await adminClient.query<Codegen.GetAssetQuery, Codegen.GetAssetQueryVariables>(
-                GET_ASSET,
-                {
-                    id: firstAssetId,
-                },
-            );
+            const { asset } = await adminClient.query(getAssetDocument, {
+                id: firstAssetId,
+            });
             expect(asset).not.toBeNull();
 
-            const { product } = await adminClient.query<
-                Codegen.GetProductWithVariantsQuery,
-                Codegen.GetProductWithVariantsQueryVariables
-            >(GET_PRODUCT_WITH_VARIANTS, {
+            const { product } = await adminClient.query(getProductWithVariantsDocument, {
                 id: firstProduct.id,
             });
-            expect(product!.featuredAsset).toBeNull();
-            expect(product!.assets.length).toEqual(0);
+            productGuard.assertSuccess(product);
+            expect(product.featuredAsset).toBeNull();
+            expect(product.assets.length).toEqual(0);
+        });
+    });
+
+    // Placed last because creating an asset advances the auto-increment id, which the
+    // hardcoded-id assertions in the tests above rely on.
+    describe('MIME type content validation (GHSA-88rq-mq4v-frmm)', () => {
+        // An SVG that begins with an XML prolog is reported by `file-type` as the generic
+        // `application/xml`, which must not cause the permitted `image/svg+xml` upload to be
+        // rejected as a content/extension mismatch.
+        it('accepts an SVG whose contents are detected as generic XML', async () => {
+            const filesToUpload = [path.join(__dirname, 'fixtures/assets/test.svg')];
+            const { createAssets } = await adminClient.fileUploadMutation({
+                mutation: createAssetsDocument,
+                filePaths: filesToUpload,
+                mapVariables: filePaths => ({
+                    input: filePaths.map(p => ({ file: null })),
+                }),
+            });
+
+            expect(createAssets.length).toBe(1);
+            // An Asset (with name/source), not a MimeTypeError, confirms the SVG was accepted.
+            expect(createAssets[0]).toMatchObject({
+                name: 'test.svg',
+                source: expect.stringContaining('test.svg'),
+            });
+            expect(createAssets[0]).not.toHaveProperty('message');
         });
     });
 });

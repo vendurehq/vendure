@@ -2,7 +2,9 @@
 title: "EmailGenerator"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/email-plugin/src/generator/email-generator.ts" sourceLine="13" packageName="@vendure/email-plugin" />
+## EmailGenerator
+
+<GenerationInfo sourceFile="packages/email-plugin/src/generator/email-generator.ts" sourceLine="15" packageName="@vendure/email-plugin" />
 
 An EmailGenerator generates the subject and body details of an email.
 
@@ -14,7 +16,7 @@ interface EmailGenerator<T extends string = any, E extends VendureEvent = any> e
         subject: string,
         body: string,
         templateVars: { [key: string]: any },
-    ): Pick<EmailDetails, 'from' | 'subject' | 'body'>;
+    ): EmailGeneratorResult | Promise<EmailGeneratorResult>;
 }
 ```
 * Extends: [`InjectableStrategy`](/reference/typescript-api/common/injectable-strategy#injectablestrategy)
@@ -30,13 +32,15 @@ interface EmailGenerator<T extends string = any, E extends VendureEvent = any> e
 Any necessary setup can be performed here.
 ### generate
 
-<MemberInfo kind="method" type={`(from: string, subject: string, body: string, templateVars: { [key: string]: any }) => Pick<<a href='/reference/core-plugins/email-plugin/email-plugin-types#emaildetails'>EmailDetails</a>, 'from' | 'subject' | 'body'>`}   />
+<MemberInfo kind="method" type={`(from: string, subject: string, body: string, templateVars: { [key: string]: any }) => EmailGeneratorResult | Promise<EmailGeneratorResult>`}   />
 
 Given a subject and body from an email template, this method generates the final
 interpolated email text.
 
 
 </div>
+## HandlebarsMjmlGenerator
+
 <GenerationInfo sourceFile="packages/email-plugin/src/generator/handlebars-mjml-generator.ts" sourceLine="17" packageName="@vendure/email-plugin" />
 
 Uses Handlebars (https://handlebarsjs.com/) to output MJML (https://mjml.io) which is then

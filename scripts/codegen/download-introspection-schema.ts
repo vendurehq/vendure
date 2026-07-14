@@ -1,10 +1,26 @@
 /* eslint-disable no-console */
-import { INestApplication } from '@nestjs/common';
+import { GraphQLTypesLoader } from '@nestjs/graphql';
 import { AdminUiPlugin } from '@vendure/admin-ui-plugin';
-import { bootstrap, DefaultLogger, LogLevel, VendureConfig } from '@vendure/core';
-import fs from 'fs';
-import { getIntrospectionQuery } from 'graphql';
-import http from 'http';
+import {
+    DefaultLogger,
+    getConfig,
+    getFinalVendureSchema,
+    LogLevel,
+    runPluginConfigurations,
+    setConfig,
+    VendureConfig,
+} from '@vendure/core';
+import { writeFileSync } from 'fs';
+import { getIntrospectionQuery, graphqlSync } from 'graphql';
+import path from 'path';
+
+const VENDURE_SHOP_API_TYPE_PATHS = ['shop-api', 'common'].map(p =>
+    path.join(__dirname, '../../packages/core/src/api/schema', p, '*.graphql'),
+);
+
+const VENDURE_ADMIN_API_TYPE_PATHS = ['admin-api', 'common'].map(p =>
+    path.join(__dirname, '../../packages/core/src/api/schema', p, '*.graphql'),
+);
 
 export const config: VendureConfig = {
     apiOptions: {
@@ -31,61 +47,34 @@ export const config: VendureConfig = {
     logger: new DefaultLogger({ level: LogLevel.Verbose }),
 };
 
-let appPromise: Promise<INestApplication>;
-
-/**
- * Bootstraps the Vendure server with the AdminUiPlugin.
- * Starting up a dedicated server instance ensures that we don't
- * generate any types containing any custom plugin or
- * custom field types.
- */
-export async function bootstrapApp() {
-    if (appPromise) {
-        return appPromise;
-    }
-    appPromise = bootstrap(config);
-    return appPromise;
-}
-
 /**
  * Makes an introspection query to the Vendure server and writes the result to a
  * schema.json file.
  *
  * If there is an error connecting to the server, the promise resolves to false.
  */
-export async function downloadIntrospectionSchema(apiPath: string, outputFilePath: string): Promise<boolean> {
-    const body = JSON.stringify({ query: getIntrospectionQuery({ inputValueDeprecation: true }) });
-    const app = await bootstrapApp();
-
-    return new Promise<boolean>((resolve, reject) => {
-        const request = http.request(
-            {
-                method: 'post',
-                host: 'localhost',
-                port: config.apiOptions.port,
-                path: '/' + apiPath,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Content-Length': Buffer.byteLength(body),
-                },
-            },
-            response => {
-                const outputFile = fs.createWriteStream(outputFilePath);
-                response.pipe(outputFile);
-                response.on('end', () => resolve(true));
-                response.on('error', reject);
-            },
-        );
-        request.write(body);
-        request.end();
-        request.on('error', (err: any) => {
-            if (err.code === 'ECONNREFUSED') {
-                console.error(
-                    `ERROR: Could not connect to the Vendure server at http://localhost:${config.apiOptions.port}/${apiPath}`,
-                );
-                resolve(false);
-            }
-            reject(err);
+export async function downloadIntrospectionSchema(apiType: 'shop' | 'admin'): Promise<boolean> {
+    try {
+        await setConfig(config ?? {});
+        const runtimeConfig = await runPluginConfigurations(getConfig());
+        const typesLoader = new GraphQLTypesLoader();
+        const schema = await getFinalVendureSchema({
+            config: runtimeConfig,
+            typePaths: apiType === 'admin' ? VENDURE_ADMIN_API_TYPE_PATHS : VENDURE_SHOP_API_TYPE_PATHS,
+            typesLoader,
+            apiType: apiType,
         });
-    }).finally(() => app.close());
+        const fileName = `schema-${apiType}.json`;
+        const outFile = path.join(process.cwd(), fileName);
+        const jsonSchema = graphqlSync({
+            schema,
+            source: getIntrospectionQuery({ inputValueDeprecation: true }),
+        });
+        writeFileSync(outFile, JSON.stringify(jsonSchema));
+        console.log(`Generated schema: ${outFile}`);
+        return true;
+    } catch (error) {
+        console.error('An error occured when generating Introspection Schema');
+        throw error;
+    }
 }

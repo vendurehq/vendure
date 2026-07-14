@@ -98,4 +98,12 @@ export type DashboardWidgetDefinition = {
      * The maximum size constraints for the widget.
      */
     maxSize?: { w: number; h: number };
+    /**
+     * @description
+     * If set, the widget will only be displayed if the current user has
+     * at least one of the specified permissions in the active channel.
+     *
+     * If not set, the widget will be visible to all users.
+     */
+    requiresPermissions?: string[];
 };

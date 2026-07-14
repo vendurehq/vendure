@@ -11,7 +11,7 @@ import { getFieldsFromDocumentNode } from '@/vdb/framework/document-introspectio
 import { ResultOf } from '@/vdb/graphql/graphql.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 import { Trans } from '@lingui/react/macro';
-import { JsonEditor } from 'json-edit-react';
+import { JsonViewer } from '@/vdb/components/data-display/json-viewer.js';
 import { EllipsisVertical } from 'lucide-react';
 import { Fragment, useMemo } from 'react';
 import { orderDetailDocument, orderLineFragment } from '../orders.graphql.js';
@@ -65,13 +65,11 @@ function createCustomizeColumns(currencyCode: string) {
         fulfillmentLines: {
             cell: ({ row }: { row: any }) => (
                 <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                            <EllipsisVertical />
-                        </Button>
+                    <DropdownMenuTrigger render={<Button variant="ghost" size="icon" />}>
+                        <EllipsisVertical />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                        <JsonEditor data={row.original.fulfillmentLines} viewOnly rootFontSize={12} />
+                        <JsonViewer data={row.original.fulfillmentLines} viewOnly rootFontSize={12} />
                     </DropdownMenuContent>
                 </DropdownMenu>
             ),

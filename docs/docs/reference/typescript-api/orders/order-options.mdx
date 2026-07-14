@@ -2,7 +2,7 @@
 title: "OrderOptions"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="521" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="574" packageName="@vendure/core" />
 
 
 
@@ -18,6 +18,7 @@ interface OrderOptions {
     orderCodeStrategy?: OrderCodeStrategy;
     orderByCodeAccessStrategy?: OrderByCodeAccessStrategy;
     changedPriceHandlingStrategy?: ChangedPriceHandlingStrategy;
+    orderLineDiscountDistributionStrategy?: OrderLineDiscountDistributionStrategy;
     orderPlacedStrategy?: OrderPlacedStrategy;
     activeOrderStrategy?: ActiveOrderStrategy<any> | Array<ActiveOrderStrategy<any>>;
     orderSellerStrategy?: OrderSellerStrategy;
@@ -106,6 +107,13 @@ then later on another is added but in the meantime the price of the ProductVaria
 
 By default, the latest price will be used. Any price changes resulting from using a newer price
 will be reflected in the GraphQL `OrderLine.unitPrice[WithTax]ChangeSinceAdded` field.
+### orderLineDiscountDistributionStrategy
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/orders/order-line-discount-distribution-strategy#orderlinediscountdistributionstrategy'>OrderLineDiscountDistributionStrategy</a>`} default={`<a href='/reference/typescript-api/orders/order-line-discount-distribution-strategy#defaultorderlinediscountdistributionstrategy'>DefaultOrderLineDiscountDistributionStrategy</a>`}  since="3.7.0"  />
+
+Defines how an order-level promotion discount is distributed (prorated) across the OrderLines
+of an Order. The default redistributes a canceled line's share onto the remaining lines; a
+custom strategy can keep each line's share stable across refunds.
 ### orderPlacedStrategy
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/orders/order-placed-strategy#orderplacedstrategy'>OrderPlacedStrategy</a>`} default={`<a href='/reference/typescript-api/orders/default-order-placed-strategy#defaultorderplacedstrategy'>DefaultOrderPlacedStrategy</a>`}   />

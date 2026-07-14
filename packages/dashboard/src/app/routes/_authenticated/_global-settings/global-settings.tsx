@@ -2,24 +2,23 @@ import { NumberInput } from '@/vdb/components/data-input/number-input.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
 import { LanguageSelector } from '@/vdb/components/shared/language-selector.js';
-import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Switch } from '@/vdb/components/ui/switch.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
 import { extendDetailFormQuery } from '@/vdb/framework/document-extension/extend-detail-form-query.js';
 import { addCustomFields } from '@/vdb/framework/document-introspection/add-custom-fields.js';
-import {
-    CustomFieldsPageBlock,
+import {    CustomFieldsPageBlock,
     DetailFormGrid,
     Page,
     PageActionBar,
-    PageActionBarRight,
     PageBlock,
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { getDetailQueryOptions, useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { Trans, useLingui } from '@lingui/react/macro';
+import { useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import { globalSettingsDocument, updateGlobalSettingsDocument } from './global-settings.graphql.js';
@@ -48,6 +47,7 @@ export const Route = createFileRoute('/_authenticated/_global-settings/global-se
 function GlobalSettingsPage() {
     const params = Route.useParams();
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const creatingNewEntity = params.id === NEW_ENTITY_PATH;
     const { t } = useLingui();
 
@@ -70,6 +70,8 @@ function GlobalSettingsPage() {
             if (data.__typename === 'GlobalSettings') {
                 toast(t`Successfully updated global settings`);
                 form.reset(form.getValues());
+                await queryClient.invalidateQueries({ queryKey: ['availableGlobalLanguages'] });
+                await queryClient.invalidateQueries({ queryKey: ['getServerConfig'] });
                 if (creatingNewEntity) {
                     await navigate({ to: `../$id`, params: { id: data.id } });
                 }
@@ -92,16 +94,14 @@ function GlobalSettingsPage() {
                 <Trans>Global Settings</Trans>
             </PageTitle>
             <PageActionBar>
-                <PageActionBarRight>
-                    <PermissionGuard requires={['UpdateSettings', 'UpdateGlobalSettings']}>
-                        <Button
-                            type="submit"
-                            disabled={!form.formState.isDirty || !form.formState.isValid || isPending}
-                        >
-                            <Trans>Update</Trans>
-                        </Button>
-                    </PermissionGuard>
-                </PageActionBarRight>
+                <ActionBarItem itemId="save-button" requiresPermission={['UpdateSettings', 'UpdateGlobalSettings']}>
+                    <Button
+                        type="submit"
+                        disabled={!form.formState.isDirty || !form.formState.isValid || isPending}
+                    >
+                        <Trans>Update</Trans>
+                    </Button>
+                </ActionBarItem>
             </PageActionBar>
             <PageLayout>
                 <PageBlock column="main" blockId="main-form">

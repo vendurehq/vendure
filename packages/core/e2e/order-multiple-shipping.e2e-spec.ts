@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { LanguageCode } from '@vendure/common/lib/generated-types';
 import { summate } from '@vendure/common/lib/shared-utils';
 import {
     defaultShippingCalculator,
@@ -20,15 +21,19 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
-import { CreateShippingMethodDocument, LanguageCode } from './graphql/generated-e2e-admin-types';
-import * as CodegenShop from './graphql/generated-e2e-shop-types';
+import { FragmentOf } from './graphql/graphql-shop';
+import { createShippingMethodDocument } from './graphql/shared-definitions';
 import {
-    ADD_ITEM_TO_ORDER,
-    GET_ACTIVE_ORDER,
-    GET_ELIGIBLE_SHIPPING_METHODS,
-    REMOVE_ITEM_FROM_ORDER,
-    SET_SHIPPING_ADDRESS,
-    SET_SHIPPING_METHOD,
+    activeOrderCustomerDocument,
+    addItemToOrderDocument,
+    getActiveOrderDocument,
+    getEligibleShippingMethodsDocument,
+    removeItemFromOrderDocument,
+    setShippingAddressDocument,
+    setShippingMethodDocument,
+    testOrderFragment,
+    testOrderWithPaymentsFragment,
+    updatedOrderFragment,
 } from './graphql/shop-definitions';
 
 declare module '@vendure/core/dist/entity/custom-entity-fields' {
@@ -65,10 +70,10 @@ describe('Multiple shipping orders', () => {
     );
 
     type OrderSuccessResult =
-        | CodegenShop.UpdatedOrderFragment
-        | CodegenShop.TestOrderFragmentFragment
-        | CodegenShop.TestOrderWithPaymentsFragment
-        | CodegenShop.ActiveOrderCustomerFragment;
+        | FragmentOf<typeof updatedOrderFragment>
+        | FragmentOf<typeof testOrderFragment>
+        | FragmentOf<typeof testOrderWithPaymentsFragment>
+        | FragmentOf<typeof activeOrderCustomerDocument>;
     const orderResultGuard: ErrorResultGuard<OrderSuccessResult> = createErrorResultGuard(
         input => !!input.lines,
     );
@@ -92,7 +97,7 @@ describe('Multiple shipping orders', () => {
     });
 
     it('setup shipping methods', async () => {
-        const result1 = await adminClient.query(CreateShippingMethodDocument, {
+        const result1 = await adminClient.query(createShippingMethodDocument, {
             input: {
                 code: 'less-than-100',
                 translations: [{ languageCode: LanguageCode.en, name: 'Less than 100', description: '' }],
@@ -116,7 +121,7 @@ describe('Multiple shipping orders', () => {
             },
         });
 
-        const result2 = await adminClient.query(CreateShippingMethodDocument, {
+        const result2 = await adminClient.query(createShippingMethodDocument, {
             input: {
                 code: 'greater-than-100',
                 translations: [{ languageCode: LanguageCode.en, name: 'Greater than 200', description: '' }],
@@ -147,25 +152,16 @@ describe('Multiple shipping orders', () => {
     });
 
     it('assigns shipping methods to correct order lines', async () => {
-        await shopClient.query<
-            CodegenShop.AddItemToOrderMutation,
-            CodegenShop.AddItemToOrderMutationVariables
-        >(ADD_ITEM_TO_ORDER, {
+        await shopClient.query(addItemToOrderDocument, {
             productVariantId: 'T_1',
             quantity: 1,
         });
-        await shopClient.query<
-            CodegenShop.AddItemToOrderMutation,
-            CodegenShop.AddItemToOrderMutationVariables
-        >(ADD_ITEM_TO_ORDER, {
+        await shopClient.query(addItemToOrderDocument, {
             productVariantId: 'T_11',
             quantity: 1,
         });
 
-        await shopClient.query<
-            CodegenShop.SetShippingAddressMutation,
-            CodegenShop.SetShippingAddressMutationVariables
-        >(SET_SHIPPING_ADDRESS, {
+        await shopClient.query(setShippingAddressDocument, {
             input: {
                 streetLine1: '12 the street',
                 postalCode: '123456',
@@ -173,17 +169,12 @@ describe('Multiple shipping orders', () => {
             },
         });
 
-        const { eligibleShippingMethods } = await shopClient.query<CodegenShop.GetShippingMethodsQuery>(
-            GET_ELIGIBLE_SHIPPING_METHODS,
-        );
+        const { eligibleShippingMethods } = await shopClient.query(getEligibleShippingMethodsDocument);
 
         expect(eligibleShippingMethods.map(m => m.id).includes(lessThan100MethodId)).toBe(true);
         expect(eligibleShippingMethods.map(m => m.id).includes(greaterThan100MethodId)).toBe(true);
 
-        const { setOrderShippingMethod } = await shopClient.query<
-            CodegenShop.SetShippingMethodMutation,
-            CodegenShop.SetShippingMethodMutationVariables
-        >(SET_SHIPPING_METHOD, {
+        const { setOrderShippingMethod } = await shopClient.query(setShippingMethodDocument, {
             id: [lessThan100MethodId, greaterThan100MethodId],
         });
 
@@ -197,12 +188,9 @@ describe('Multiple shipping orders', () => {
     });
 
     it('removes shipping methods that are no longer applicable', async () => {
-        const { activeOrder } = await shopClient.query<CodegenShop.GetActiveOrderQuery>(GET_ACTIVE_ORDER);
+        const { activeOrder } = await shopClient.query(getActiveOrderDocument);
 
-        const { removeOrderLine } = await shopClient.query<
-            CodegenShop.RemoveItemFromOrderMutation,
-            CodegenShop.RemoveItemFromOrderMutationVariables
-        >(REMOVE_ITEM_FROM_ORDER, {
+        const { removeOrderLine } = await shopClient.query(removeItemFromOrderDocument, {
             orderLineId: activeOrder!.lines[0].id,
         });
         orderResultGuard.assertSuccess(removeOrderLine);
@@ -212,19 +200,15 @@ describe('Multiple shipping orders', () => {
         expect(order?.shippingLines.length).toBe(1);
         expect(order?.shippingLines[0].shippingMethod.code).toBe('less-than-100');
 
-        const { activeOrder: activeOrder2 } =
-            await shopClient.query<CodegenShop.GetActiveOrderQuery>(GET_ACTIVE_ORDER);
+        const { activeOrder: activeOrder2 } = await shopClient.query(getActiveOrderDocument);
 
         expect(activeOrder2?.shippingWithTax).toBe(summate(activeOrder2!.shippingLines, 'priceWithTax'));
     });
 
     it('removes remaining shipping method when removing all items', async () => {
-        const { activeOrder } = await shopClient.query<CodegenShop.GetActiveOrderQuery>(GET_ACTIVE_ORDER);
+        const { activeOrder } = await shopClient.query(getActiveOrderDocument);
 
-        const { removeOrderLine } = await shopClient.query<
-            CodegenShop.RemoveItemFromOrderMutation,
-            CodegenShop.RemoveItemFromOrderMutationVariables
-        >(REMOVE_ITEM_FROM_ORDER, {
+        const { removeOrderLine } = await shopClient.query(removeItemFromOrderDocument, {
             orderLineId: activeOrder!.lines[0].id,
         });
         orderResultGuard.assertSuccess(removeOrderLine);
@@ -232,8 +216,7 @@ describe('Multiple shipping orders', () => {
         const order = await getInternalOrder(activeOrder!.id);
         expect(order?.lines.length).toBe(0);
 
-        const { activeOrder: activeOrder2 } =
-            await shopClient.query<CodegenShop.GetActiveOrderQuery>(GET_ACTIVE_ORDER);
+        const { activeOrder: activeOrder2 } = await shopClient.query(getActiveOrderDocument);
 
         expect(activeOrder2?.shippingWithTax).toBe(0);
     });

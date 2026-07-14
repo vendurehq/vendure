@@ -1,21 +1,19 @@
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
-import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { TranslatableFormFieldWrapper } from '@/vdb/components/shared/translatable-form-field.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Input } from '@/vdb/components/ui/input.js';
-import { Textarea } from '@/vdb/components/ui/textarea.js';
+import { RichTextInput } from '@/vdb/components/data-input/rich-text-input.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
-import {
-    CustomFieldsPageBlock,
+import {    CustomFieldsPageBlock,
     DetailFormGrid,
     Page,
     PageActionBar,
-    PageActionBarRight,
     PageBlock,
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { Trans, useLingui } from '@lingui/react/macro';
@@ -119,27 +117,27 @@ function ShippingMethodDetailPage() {
                 {creatingNewEntity ? <Trans>New shipping method</Trans> : (entity?.name ?? '')}
             </PageTitle>
             <PageActionBar>
-                <PageActionBarRight>
-                    {!creatingNewEntity && entity && (
+                {!creatingNewEntity && entity && (
+                    <ActionBarItem itemId="test-shipping-button">
                         <TestSingleShippingMethodSheet checker={checker} calculator={calculator} />
-                    )}
-                    <PermissionGuard requires={['UpdateShippingMethod']}>
-                        <Button
-                            type="submit"
-                            disabled={
-                                !form.formState.isDirty ||
-                                !form.formState.isValid ||
-                                isPending ||
-                                !checker?.code ||
-                                !calculator?.code ||
-                                !checkerArgsValid ||
-                                !calculatorArgsValid
-                            }
-                        >
-                            {creatingNewEntity ? <Trans>Create</Trans> : <Trans>Update</Trans>}
-                        </Button>
-                    </PermissionGuard>
-                </PageActionBarRight>
+                    </ActionBarItem>
+                )}
+                <ActionBarItem itemId="save-button" requiresPermission={['UpdateShippingMethod']}>
+                    <Button
+                        type="submit"
+                        disabled={
+                            !form.formState.isDirty ||
+                            !form.formState.isValid ||
+                            isPending ||
+                            !checker?.code ||
+                            !calculator?.code ||
+                            !checkerArgsValid ||
+                            !calculatorArgsValid
+                        }
+                    >
+                        {creatingNewEntity ? <Trans>Create</Trans> : <Trans>Update</Trans>}
+                    </Button>
+                </ActionBarItem>
             </PageActionBar>
             <PageLayout>
                 <PageBlock column="main" blockId="main-form">
@@ -162,7 +160,7 @@ function ShippingMethodDetailPage() {
                             control={form.control}
                             name="description"
                             label={<Trans>Description</Trans>}
-                            render={({ field }) => <Textarea {...field} />}
+                            render={({ field }) => <RichTextInput {...field} />}
                         />
                     </div>
                     <DetailFormGrid>

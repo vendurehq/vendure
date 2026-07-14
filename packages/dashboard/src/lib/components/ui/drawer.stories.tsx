@@ -27,6 +27,7 @@ type Story = StoryObj<typeof meta>;
 export const Playground: Story = {
     render: () => (
         <Drawer>
+            {/* vaul uses Radix Dialog — asChild is correct here, not render */}
             <DrawerTrigger asChild>
                 <Button>Open Drawer</Button>
             </DrawerTrigger>
@@ -40,6 +41,7 @@ export const Playground: Story = {
                 </div>
                 <DrawerFooter>
                     <Button>Submit</Button>
+                    {/* vaul uses Radix Dialog — asChild is correct here, not render */}
                     <DrawerClose asChild>
                         <Button variant="outline">Cancel</Button>
                     </DrawerClose>

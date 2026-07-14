@@ -2,11 +2,13 @@
 title: "BootstrapWorker"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/bootstrap.ts" sourceLine="223" packageName="@vendure/core" />
+## bootstrapWorker
+
+<GenerationInfo sourceFile="packages/core/src/bootstrap.ts" sourceLine="256" packageName="@vendure/core" />
 
 Bootstraps a Vendure worker. Resolves to a [VendureWorker](/reference/typescript-api/worker/vendure-worker#vendureworker) object containing a reference to the underlying
 NestJs [standalone application](https://docs.nestjs.com/standalone-applications) as well as convenience
-methods for starting the job queue and health check server.
+methods for starting the job queue.
 
 Read more about the [Vendure Worker](/developer-guide/worker-job-queue/).
 
@@ -18,7 +20,6 @@ import { config } from './vendure-config';
 
 bootstrapWorker(config)
   .then(worker => worker.startJobQueue())
-  .then(worker => worker.startHealthCheckServer({ port: 3020 }))
   .catch(err => {
     console.log(err);
     process.exit(1);
@@ -38,7 +39,9 @@ Parameters
 
 <MemberInfo kind="parameter" type={`<a href='/reference/typescript-api/worker/bootstrap-worker#bootstrapworkeroptions'>BootstrapWorkerOptions</a>`} />
 
-<GenerationInfo sourceFile="packages/core/src/bootstrap.ts" sourceLine="83" packageName="@vendure/core" since="2.2.0" />
+## BootstrapWorkerOptions
+
+<GenerationInfo sourceFile="packages/core/src/bootstrap.ts" sourceLine="115" packageName="@vendure/core" since="2.2.0" />
 
 Additional options that can be used to configure the bootstrap process of the
 Vendure worker.

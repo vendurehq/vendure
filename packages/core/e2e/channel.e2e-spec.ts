@@ -1,4 +1,11 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import {
+    CurrencyCode,
+    DeletionResult,
+    ErrorCode,
+    LanguageCode,
+    Permission,
+} from '@vendure/common/lib/generated-types';
 import { DEFAULT_CHANNEL_CODE } from '@vendure/common/lib/shared-constants';
 import {
     createErrorResultGuard,
@@ -6,44 +13,42 @@ import {
     E2E_DEFAULT_CHANNEL_TOKEN,
     ErrorResultGuard,
 } from '@vendure/testing';
-import gql from 'graphql-tag';
+import { ResultOf } from 'gql.tada';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
-import * as Codegen from './graphql/generated-e2e-admin-types';
+import { channelFragment } from './graphql/fragments-admin';
+import { FragmentOf, graphql } from './graphql/graphql-admin';
 import {
-    CurrencyCode,
-    DeletionResult,
-    ErrorCode,
-    LanguageCode,
-    Permission,
-} from './graphql/generated-e2e-admin-types';
-import {
-    ASSIGN_PRODUCT_TO_CHANNEL,
-    CREATE_ADMINISTRATOR,
-    CREATE_CHANNEL,
-    CREATE_ROLE,
-    GET_CHANNELS,
-    GET_CUSTOMER_LIST,
-    GET_PRODUCT_LIST,
-    GET_PRODUCT_WITH_VARIANTS,
-    ME,
-    UPDATE_CHANNEL,
+    assignProductToChannelDocument,
+    createAdministratorDocument,
+    createChannelDocument,
+    createRoleDocument,
+    getChannelsDocument,
+    getCustomerListDocument,
+    getProductListDocument,
+    getProductWithVariantsDocument,
+    MeDocument,
+    updateChannelDocument,
 } from './graphql/shared-definitions';
-import { GET_ACTIVE_ORDER } from './graphql/shop-definitions';
+import { getActiveOrderDocument } from './graphql/shop-definitions';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 
 describe('Channels', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(testConfig());
     const SECOND_CHANNEL_TOKEN = 'second_channel_token';
-    let secondChannelAdminRole: Codegen.CreateRoleMutation['createRole'];
-    let customerUser: Codegen.GetCustomerListQuery['customers']['items'][number];
 
-    const channelGuard: ErrorResultGuard<Codegen.ChannelFragment> =
-        createErrorResultGuard<Codegen.ChannelFragment>(input => !!input.defaultLanguageCode);
+    let secondChannelAdminRole: ResultOf<typeof createRoleDocument>['createRole'];
+    let customerUser: ResultOf<typeof getCustomerListDocument>['customers']['items'][number];
+
+    type ChannelFragment = FragmentOf<typeof channelFragment>;
+
+    const channelGuard: ErrorResultGuard<ChannelFragment> = createErrorResultGuard(
+        input => !!input.defaultLanguageCode,
+    );
 
     beforeAll(async () => {
         await server.init({
@@ -53,10 +58,7 @@ describe('Channels', () => {
         });
         await adminClient.asSuperAdmin();
 
-        const { customers } = await adminClient.query<
-            Codegen.GetCustomerListQuery,
-            Codegen.GetCustomerListQueryVariables
-        >(GET_CUSTOMER_LIST, {
+        const { customers } = await adminClient.query(getCustomerListDocument, {
             options: { take: 1 },
         });
         customerUser = customers.items[0];
@@ -67,10 +69,7 @@ describe('Channels', () => {
     });
 
     it('createChannel returns error result defaultLanguageCode not available', async () => {
-        const { createChannel } = await adminClient.query<
-            Codegen.CreateChannelMutation,
-            Codegen.CreateChannelMutationVariables
-        >(CREATE_CHANNEL, {
+        const { createChannel } = await adminClient.query(createChannelDocument, {
             input: {
                 code: 'second-channel',
                 token: SECOND_CHANNEL_TOKEN,
@@ -91,10 +90,7 @@ describe('Channels', () => {
     });
 
     it('create a new Channel', async () => {
-        const { createChannel } = await adminClient.query<
-            Codegen.CreateChannelMutation,
-            Codegen.CreateChannelMutationVariables
-        >(CREATE_CHANNEL, {
+        const { createChannel } = await adminClient.query(createChannelDocument, {
             input: {
                 code: 'second-channel',
                 token: SECOND_CHANNEL_TOKEN,
@@ -129,7 +125,7 @@ describe('Channels', () => {
     //     const { updateChannel } = await adminClient.query<
     //         Codegen.UpdateChannelMutation,
     //         Codegen.UpdateChannelMutationVariables
-    //     >(UPDATE_CHANNEL, {
+    //     >(updateChannelDocument, {
     //         input: {
     //             id: 'T_1',
     //             currencyCode: CurrencyCode.MYR,
@@ -140,7 +136,7 @@ describe('Channels', () => {
     // });
 
     it('superadmin has all permissions on new channel', async () => {
-        const { me } = await adminClient.query<Codegen.MeQuery>(ME);
+        const { me } = await adminClient.query(MeDocument);
 
         expect(me!.channels.length).toBe(2);
 
@@ -153,11 +149,10 @@ describe('Channels', () => {
 
     it('customer has Authenticated permission on new channel', async () => {
         await shopClient.asUserWithCredentials(customerUser.emailAddress, 'test');
-        const { me } = await shopClient.query<Codegen.MeQuery>(ME);
+        const { me } = await shopClient.query(MeDocument);
 
         expect(me!.channels.length).toBe(2);
 
-        const secondChannelData = me!.channels.find(c => c.token === SECOND_CHANNEL_TOKEN);
         expect(me!.channels).toEqual([
             {
                 code: DEFAULT_CHANNEL_CODE,
@@ -173,10 +168,7 @@ describe('Channels', () => {
     });
 
     it('createRole on second Channel', async () => {
-        const { createRole } = await adminClient.query<
-            Codegen.CreateRoleMutation,
-            Codegen.CreateRoleMutationVariables
-        >(CREATE_ROLE, {
+        const { createRole } = await adminClient.query(createRoleDocument, {
             input: {
                 description: 'second channel admin',
                 code: 'second-channel-admin',
@@ -203,10 +195,7 @@ describe('Channels', () => {
     });
 
     it('createAdministrator with second-channel-admin role', async () => {
-        const { createAdministrator } = await adminClient.query<
-            Codegen.CreateAdministratorMutation,
-            Codegen.CreateAdministratorMutationVariables
-        >(CREATE_ADMINISTRATOR, {
+        const { createAdministrator } = await adminClient.query(createAdministratorDocument, {
             input: {
                 firstName: 'Admin',
                 lastName: 'Two',
@@ -223,25 +212,19 @@ describe('Channels', () => {
         'cannot create role on channel for which admin does not have CreateAdministrator permission',
         assertThrowsWithMessage(async () => {
             await adminClient.asUserWithCredentials('admin2@test.com', 'test');
-            await adminClient.query<Codegen.CreateRoleMutation, Codegen.CreateRoleMutationVariables>(
-                CREATE_ROLE,
-                {
-                    input: {
-                        description: 'read default channel catalog',
-                        code: 'read default channel catalog',
-                        channelIds: ['T_1'],
-                        permissions: [Permission.ReadCatalog],
-                    },
+            await adminClient.query(createRoleDocument, {
+                input: {
+                    description: 'read default channel catalog',
+                    code: 'read default channel catalog',
+                    channelIds: ['T_1'],
+                    permissions: [Permission.ReadCatalog],
                 },
-            );
+            });
         }, 'You are not currently authorized to perform this action'),
     );
 
     it('can create role on channel for which admin has CreateAdministrator permission', async () => {
-        const { createRole } = await adminClient.query<
-            Codegen.CreateRoleMutation,
-            Codegen.CreateRoleMutationVariables
-        >(CREATE_ROLE, {
+        const { createRole } = await adminClient.query(createRoleDocument, {
             input: {
                 description: 'read second channel catalog',
                 code: 'read-second-channel-catalog',
@@ -261,10 +244,7 @@ describe('Channels', () => {
 
     it('createRole with no channelId implicitly uses active channel', async () => {
         await adminClient.asSuperAdmin();
-        const { createRole } = await adminClient.query<
-            Codegen.CreateRoleMutation,
-            Codegen.CreateRoleMutationVariables
-        >(CREATE_ROLE, {
+        const { createRole } = await adminClient.query(createRoleDocument, {
             input: {
                 description: 'update second channel catalog',
                 code: 'update-second-channel-catalog',
@@ -285,10 +265,7 @@ describe('Channels', () => {
         it('returns error result if languageCode not in availableLanguages', async () => {
             await adminClient.asSuperAdmin();
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
-            const { updateChannel } = await adminClient.query<
-                Codegen.UpdateChannelMutation,
-                Codegen.UpdateChannelMutationVariables
-            >(UPDATE_CHANNEL, {
+            const { updateChannel } = await adminClient.query(updateChannelDocument, {
                 input: {
                     id: 'T_1',
                     defaultLanguageCode: LanguageCode.zh,
@@ -306,19 +283,13 @@ describe('Channels', () => {
         it('allows setting to an available language', async () => {
             await adminClient.asSuperAdmin();
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
-            await adminClient.query<
-                Codegen.UpdateGlobalLanguagesMutation,
-                Codegen.UpdateGlobalLanguagesMutationVariables
-            >(UPDATE_GLOBAL_LANGUAGES, {
+            await adminClient.query(updateGlobalLanguagesDocument, {
                 input: {
                     availableLanguages: [LanguageCode.en, LanguageCode.zh],
                 },
             });
 
-            const { updateChannel } = await adminClient.query<
-                Codegen.UpdateChannelMutation,
-                Codegen.UpdateChannelMutationVariables
-            >(UPDATE_CHANNEL, {
+            const { updateChannel } = await adminClient.query(updateChannelDocument, {
                 input: {
                     id: 'T_1',
                     defaultLanguageCode: LanguageCode.zh,
@@ -334,10 +305,7 @@ describe('Channels', () => {
         await adminClient.asSuperAdmin();
         adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
 
-        const { assignProductsToChannel } = await adminClient.query<
-            Codegen.AssignProductsToChannelMutation,
-            Codegen.AssignProductsToChannelMutationVariables
-        >(ASSIGN_PRODUCT_TO_CHANNEL, {
+        const { assignProductsToChannel } = await adminClient.query(assignProductToChannelDocument, {
             input: {
                 channelId: 'T_2',
                 productIds: [PROD_ID],
@@ -347,24 +315,18 @@ describe('Channels', () => {
 
         // create a Session on the Channel to be deleted to ensure it gets cleaned up
         shopClient.setChannelToken(SECOND_CHANNEL_TOKEN);
-        await shopClient.query(GET_ACTIVE_ORDER);
+        await shopClient.query(getActiveOrderDocument);
 
-        const { deleteChannel } = await adminClient.query<
-            Codegen.DeleteChannelMutation,
-            Codegen.DeleteChannelMutationVariables
-        >(DELETE_CHANNEL, {
+        const { deleteChannel } = await adminClient.query(deleteChannelDocument, {
             id: 'T_2',
         });
 
         expect(deleteChannel.result).toBe(DeletionResult.DELETED);
 
-        const { channels } = await adminClient.query<Codegen.GetChannelsQuery>(GET_CHANNELS);
+        const { channels } = await adminClient.query(getChannelsDocument);
         expect(channels.items.map(c => c.id).sort()).toEqual(['T_1']);
 
-        const { product } = await adminClient.query<
-            Codegen.GetProductWithVariantsQuery,
-            Codegen.GetProductWithVariantsQueryVariables
-        >(GET_PRODUCT_WITH_VARIANTS, {
+        const { product } = await adminClient.query(getProductWithVariantsDocument, {
             id: PROD_ID,
         });
         expect(product!.channels.map(c => c.id)).toEqual(['T_1']);
@@ -373,16 +335,13 @@ describe('Channels', () => {
     it('Fail to delete the default channel', async () => {
         await adminClient.asSuperAdmin();
 
-        const defaultChannelId = (
-            await adminClient.query<Codegen.GetChannelsQuery, Codegen.GetChannelsQueryVariables>(GET_CHANNELS)
-        ).channels.items.find(channel => channel.code === DEFAULT_CHANNEL_CODE)?.id;
+        const defaultChannelId = (await adminClient.query(getChannelsDocument)).channels.items.find(
+            channel => channel.code === DEFAULT_CHANNEL_CODE,
+        )?.id;
 
         expect(defaultChannelId).not.toBeUndefined();
 
-        const mutation = await adminClient.query<
-            Codegen.DeleteChannelMutation,
-            Codegen.DeleteChannelMutationVariables
-        >(DELETE_CHANNEL, { id: defaultChannelId! });
+        const mutation = await adminClient.query(deleteChannelDocument, { id: defaultChannelId! });
 
         expect(mutation.deleteChannel).toEqual({
             result: DeletionResult.NOT_DELETED,
@@ -397,10 +356,7 @@ describe('Channels', () => {
         });
 
         it('initial currencyCode values', async () => {
-            const { channel } = await adminClient.query<
-                Codegen.GetChannelQuery,
-                Codegen.GetChannelQueryVariables
-            >(GET_CHANNEL, {
+            const { channel } = await adminClient.query(getChannelDocument, {
                 id: 'T_1',
             });
 
@@ -409,10 +365,7 @@ describe('Channels', () => {
         });
 
         it('setting defaultCurrencyCode adds it to availableCurrencyCodes', async () => {
-            const { updateChannel } = await adminClient.query<
-                Codegen.UpdateChannelMutation,
-                Codegen.UpdateChannelMutationVariables
-            >(UPDATE_CHANNEL, {
+            const { updateChannel } = await adminClient.query(updateChannelDocument, {
                 input: {
                     id: 'T_1',
                     defaultCurrencyCode: CurrencyCode.MYR,
@@ -427,10 +380,7 @@ describe('Channels', () => {
         it('setting defaultCurrencyCode adds it to availableCurrencyCodes 2', async () => {
             // As above, but this time we set the availableCurrencyCodes explicitly
             // to exclude the defaultCurrencyCode
-            const { updateChannel } = await adminClient.query<
-                Codegen.UpdateChannelMutation,
-                Codegen.UpdateChannelMutationVariables
-            >(UPDATE_CHANNEL, {
+            const { updateChannel } = await adminClient.query(updateChannelDocument, {
                 input: {
                     id: 'T_1',
                     defaultCurrencyCode: CurrencyCode.AUD,
@@ -446,10 +396,7 @@ describe('Channels', () => {
         it(
             'cannot remove the defaultCurrencyCode from availableCurrencyCodes',
             assertThrowsWithMessage(async () => {
-                await adminClient.query<
-                    Codegen.UpdateChannelMutation,
-                    Codegen.UpdateChannelMutationVariables
-                >(UPDATE_CHANNEL, {
+                await adminClient.query(updateChannelDocument, {
                     input: {
                         id: 'T_1',
                         availableCurrencyCodes: [CurrencyCode.GBP],
@@ -461,8 +408,8 @@ describe('Channels', () => {
         it(
             'specifying an unsupported currencyCode throws',
             assertThrowsWithMessage(async () => {
-                await adminClient.query<Codegen.GetProductListQuery, Codegen.GetProductListQueryVariables>(
-                    GET_PRODUCT_LIST,
+                await adminClient.query(
+                    getProductListDocument,
                     {
                         options: {
                             take: 1,
@@ -475,16 +422,16 @@ describe('Channels', () => {
     });
 });
 
-const DELETE_CHANNEL = gql`
+const deleteChannelDocument = graphql(`
     mutation DeleteChannel($id: ID!) {
         deleteChannel(id: $id) {
             message
             result
         }
     }
-`;
+`);
 
-const GET_CHANNEL = gql`
+const getChannelDocument = graphql(`
     query GetChannel($id: ID!) {
         channel(id: $id) {
             id
@@ -498,9 +445,9 @@ const GET_CHANNEL = gql`
             pricesIncludeTax
         }
     }
-`;
+`);
 
-const UPDATE_GLOBAL_LANGUAGES = gql`
+const updateGlobalLanguagesDocument = graphql(`
     mutation UpdateGlobalLanguages($input: UpdateGlobalSettingsInput!) {
         updateGlobalSettings(input: $input) {
             ... on GlobalSettings {
@@ -509,4 +456,4 @@ const UPDATE_GLOBAL_LANGUAGES = gql`
             }
         }
     }
-`;
+`);

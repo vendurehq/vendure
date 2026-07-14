@@ -178,7 +178,9 @@ input SearchInput {
     facetValueOperator: LogicalOperator @deprecated(reason: "Use `facetValueFilters` instead")
     facetValueFilters: [FacetValueFilterInput!]
     collectionId: ID
+    collectionIds: [ID!]
     collectionSlug: String
+    collectionSlugs: [String!]
     groupByProduct: Boolean
     take: Int
     skip: Int

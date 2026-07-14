@@ -1,6 +1,5 @@
 import {
     DashboardFormComponent,
-    FormControl,
     MultiRelationInput,
     RelationSelectorConfig,
     ResultOf,
@@ -70,11 +69,9 @@ export const ReviewMultiSelect: DashboardFormComponent = props => {
 export const ReviewStateSelect: DashboardFormComponent = props => {
     return (
         <Select value={props.value} onValueChange={props.onChange} key={props.value}>
-            <FormControl>
-                <SelectTrigger>
-                    <SelectValue placeholder="Select state..."></SelectValue>
-                </SelectTrigger>
-            </FormControl>
+            <SelectTrigger>
+                <SelectValue placeholder="Select state..."></SelectValue>
+            </SelectTrigger>
             <SelectContent>
                 <SelectItem value="new">New</SelectItem>
                 <SelectItem value="approved">Approved</SelectItem>

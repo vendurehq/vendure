@@ -1,9 +1,13 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import {
     DeletionResponse,
+    MutationAssignProductOptionGroupsToChannelArgs,
     MutationCreateProductOptionArgs,
     MutationCreateProductOptionGroupArgs,
     MutationDeleteProductOptionArgs,
+    MutationDeleteProductOptionGroupArgs,
+    MutationDeleteProductOptionGroupsArgs,
+    MutationRemoveProductOptionGroupsFromChannelArgs,
     MutationUpdateProductOptionArgs,
     MutationUpdateProductOptionGroupArgs,
     Permission,
@@ -11,9 +15,11 @@ import {
     QueryProductOptionGroupArgs,
     QueryProductOptionGroupsArgs,
     QueryProductOptionsArgs,
+    RemoveProductOptionGroupFromChannelResult,
 } from '@vendure/common/lib/generated-types';
 import { PaginatedList } from '@vendure/common/lib/shared-types';
 
+import { ErrorResultUnion } from '../../../common/error/error-result';
 import { Translated } from '../../../common/types/locale-types';
 import { ProductOptionGroup } from '../../../entity/product-option-group/product-option-group.entity';
 import { ProductOption } from '../../../entity/product-option/product-option.entity';
@@ -38,8 +44,8 @@ export class ProductOptionResolver {
         @Ctx() ctx: RequestContext,
         @Args() args: QueryProductOptionGroupsArgs,
         @Relations(ProductOptionGroup) relations: RelationPaths<ProductOptionGroup>,
-    ): Promise<Array<Translated<ProductOptionGroup>>> {
-        return this.productOptionGroupService.findAll(ctx, args.filterTerm || undefined);
+    ): Promise<PaginatedList<Translated<ProductOptionGroup>>> {
+        return this.productOptionGroupService.findAll(ctx, args.options || undefined, relations);
     }
 
     @Query()
@@ -80,6 +86,30 @@ export class ProductOptionResolver {
     ): Promise<Translated<ProductOptionGroup>> {
         const { input } = args;
         return this.productOptionGroupService.update(ctx, input);
+    }
+
+    @Transaction()
+    @Mutation()
+    @Allow(Permission.DeleteCatalog, Permission.DeleteProduct)
+    async deleteProductOptionGroup(
+        @Ctx() ctx: RequestContext,
+        @Args() args: MutationDeleteProductOptionGroupArgs,
+    ): Promise<DeletionResponse> {
+        return this.productOptionGroupService.delete(ctx, args.id, args.force || false);
+    }
+
+    @Transaction()
+    @Mutation()
+    @Allow(Permission.DeleteCatalog, Permission.DeleteProduct)
+    async deleteProductOptionGroups(
+        @Ctx() ctx: RequestContext,
+        @Args() args: MutationDeleteProductOptionGroupsArgs,
+    ): Promise<DeletionResponse[]> {
+        const results: DeletionResponse[] = [];
+        for (const id of args.ids) {
+            results.push(await this.productOptionGroupService.delete(ctx, id, args.force || false));
+        }
+        return results;
     }
 
     @Query()
@@ -132,5 +162,25 @@ export class ProductOptionResolver {
         @Args() { id }: MutationDeleteProductOptionArgs,
     ): Promise<DeletionResponse> {
         return this.productOptionService.delete(ctx, id);
+    }
+
+    @Transaction()
+    @Mutation()
+    @Allow(Permission.CreateCatalog, Permission.CreateProduct)
+    async assignProductOptionGroupsToChannel(
+        @Ctx() ctx: RequestContext,
+        @Args() args: MutationAssignProductOptionGroupsToChannelArgs,
+    ): Promise<Array<Translated<ProductOptionGroup>>> {
+        return this.productOptionGroupService.assignProductOptionGroupsToChannel(ctx, args.input);
+    }
+
+    @Transaction()
+    @Mutation()
+    @Allow(Permission.DeleteCatalog, Permission.DeleteProduct)
+    async removeProductOptionGroupsFromChannel(
+        @Ctx() ctx: RequestContext,
+        @Args() args: MutationRemoveProductOptionGroupsFromChannelArgs,
+    ): Promise<Array<ErrorResultUnion<RemoveProductOptionGroupFromChannelResult, ProductOptionGroup>>> {
+        return this.productOptionGroupService.removeProductOptionGroupsFromChannel(ctx, args.input);
     }
 }

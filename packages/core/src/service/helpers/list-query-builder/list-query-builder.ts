@@ -348,6 +348,10 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         }
 
         qb.orderBy(sort);
+        // Note: EntityAccessControlStrategy.applyAccessControl() is NOT called explicitly
+        // here. When a strategy is configured, the QueryBuilder returned from
+        // getRepository(ctx, entity).createQueryBuilder() is Proxy-wrapped, and the
+        // strategy is applied automatically before any terminal method (getMany, getCount, etc.).
         return qb;
     }
 

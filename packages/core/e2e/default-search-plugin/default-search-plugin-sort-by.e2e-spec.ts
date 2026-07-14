@@ -1,23 +1,22 @@
+import { SearchResultSortParameter, SortOrder } from '@vendure/common/lib/generated-types';
 import { DefaultJobQueuePlugin, DefaultSearchPlugin, mergeConfig } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../../e2e-common/e2e-initial-data';
-import { testConfig, TEST_SETUP_TIMEOUT_MS } from '../../../../e2e-common/test-config';
-import { SEARCH_PRODUCTS_ADMIN } from '../graphql/admin-definitions';
-import {
-    SearchResultSortParameter,
-    SortOrder,
-    SearchProductsAdminQuery,
-    SearchProductsAdminQueryVariables,
-} from '../graphql/generated-e2e-admin-types';
-import {
-    SearchProductsShopQuery,
-    SearchProductsShopQueryVariables,
-} from '../graphql/generated-e2e-shop-types';
-import { SEARCH_PRODUCTS_SHOP } from '../graphql/shop-definitions';
+import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../../e2e-common/test-config';
+import { searchProductsAdminDocument } from '../graphql/admin-definitions';
+import { ResultOf, VariablesOf } from '../graphql/graphql-admin';
+import { ResultOf as ShopResultOf, VariablesOf as ShopVariablesOf } from '../graphql/graphql-shop';
+import { searchProductsShopDocument } from '../graphql/shop-definitions';
 import { awaitRunningJobs } from '../utils/await-running-jobs';
+
+// Type aliases for cleaner code
+type SearchProductsShopQuery = ShopResultOf<typeof searchProductsShopDocument>;
+type SearchProductsShopQueryVariables = ShopVariablesOf<typeof searchProductsShopDocument>;
+type SearchProductsAdminQuery = ResultOf<typeof searchProductsAdminDocument>;
+type SearchProductsAdminQueryVariables = VariablesOf<typeof searchProductsAdminDocument>;
 
 describe('Default search plugin', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(
@@ -47,17 +46,11 @@ describe('Default search plugin', () => {
     });
 
     function searchProductsShop(queryVariables: SearchProductsShopQueryVariables) {
-        return shopClient.query<SearchProductsShopQuery, SearchProductsShopQueryVariables>(
-            SEARCH_PRODUCTS_SHOP,
-            queryVariables,
-        );
+        return shopClient.query(searchProductsShopDocument, queryVariables);
     }
 
     function searchProductsAdmin(queryVariables: SearchProductsAdminQueryVariables) {
-        return adminClient.query<SearchProductsAdminQuery, SearchProductsAdminQueryVariables>(
-            SEARCH_PRODUCTS_ADMIN,
-            queryVariables,
-        );
+        return adminClient.query(searchProductsAdminDocument, queryVariables);
     }
 
     type SearchProducts = (

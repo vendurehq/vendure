@@ -1,0 +1,17 @@
+# Bun package manager configuration.
+# Security policy:
+#   - `install.minimumReleaseAge` defers installation of any package version
+#     published less than 7 days ago. This defeats the typical "publish-malware,
+#     worm-spreads-fast, maintainer-yanks-within-48h" supply-chain pattern.
+#   - `install.minimumReleaseAgeExcludes` lets first-party packages bypass the
+#     age check so internal hotfixes can be consumed immediately.
+# Lifecycle script execution is controlled separately via `trustedDependencies`
+# in the root package.json.
+# See https://bun.com/docs/runtime/bunfig#install-minimumreleaseage
+[install]
+minimumReleaseAge = 604800
+minimumReleaseAgeExcludes = [
+    "@vendure-io/design-tokens",
+    "@vendure-io/docs-generator",
+    "@vendure-io/ui",
+]

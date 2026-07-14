@@ -2,7 +2,7 @@
 title: "TransactionalConnection"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/connection/transactional-connection.ts" sourceLine="41" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/connection/transactional-connection.ts" sourceLine="73" packageName="@vendure/core" />
 
 The TransactionalConnection is a wrapper around the TypeORM `Connection` object which works in conjunction
 with the [Transaction](/reference/typescript-api/request/transaction-decorator#transaction) decorator to implement per-request transactions. All services which access the
@@ -14,7 +14,7 @@ API by the use of the `Transaction` decorator.
 
 ```ts title="Signature"
 class TransactionalConnection {
-    constructor(dataSource: DataSource, transactionWrapper: TransactionWrapper)
+    constructor(dataSource: DataSource, transactionWrapper: TransactionWrapper, configService: ConfigService)
     rawConnection: DataSource
     getRepository(target: ObjectType<Entity> | EntitySchema<Entity> | string) => Repository<Entity>;
     getRepository(ctx: RequestContext | undefined, target: ObjectType<Entity> | EntitySchema<Entity> | string, options?: {
@@ -36,11 +36,6 @@ class TransactionalConnection {
 ```
 
 <div className="members-wrapper">
-
-### constructor
-
-<MemberInfo kind="method" type={`(dataSource: DataSource, transactionWrapper: TransactionWrapper) => TransactionalConnection`}   />
-
 
 ### rawConnection
 

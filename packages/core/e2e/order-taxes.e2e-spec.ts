@@ -10,7 +10,6 @@ import {
     Zone,
 } from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
-import gql from 'graphql-tag';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -18,18 +17,19 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import { testSuccessfulPaymentMethod } from './fixtures/test-payment-methods';
-import * as Codegen from './graphql/generated-e2e-admin-types';
-import * as CodegenShop from './graphql/generated-e2e-shop-types';
+import { FragmentOf, graphql, ResultOf } from './graphql/graphql-admin';
 import {
-    GET_PRODUCTS_WITH_VARIANT_PRICES,
-    UPDATE_CHANNEL,
-    UPDATE_TAX_RATE,
+    getProductsWithVariantPricesDocument,
+    updateChannelDocument,
+    updateTaxRateDocument,
 } from './graphql/shared-definitions';
 import {
-    ADD_ITEM_TO_ORDER,
-    GET_ACTIVE_ORDER_WITH_PRICE_DATA,
-    SET_BILLING_ADDRESS,
-    SET_SHIPPING_ADDRESS,
+    addItemToOrderDocument,
+    getActiveOrderWithPriceDataDocument,
+    setBillingAddressDocument,
+    setShippingAddressDocument,
+    testOrderFragment,
+    updatedOrderFragment,
 } from './graphql/shop-definitions';
 import { sortById } from './utils/test-order-utils';
 
@@ -74,6 +74,28 @@ class TestTaxZoneStrategy implements TaxZoneStrategy {
     }
 }
 
+export const getTaxRateListDocument = graphql(`
+    query GetTaxRateList($options: TaxRateListOptions) {
+        taxRates(options: $options) {
+            items {
+                id
+                name
+                enabled
+                value
+                category {
+                    id
+                    name
+                }
+                zone {
+                    id
+                    name
+                }
+            }
+            totalItems
+        }
+    }
+`);
+
 describe('Order taxes', () => {
     const { server, adminClient, shopClient } = createTestEnvironment({
         ...testConfig(),
@@ -85,11 +107,24 @@ describe('Order taxes', () => {
         },
     });
 
-    type OrderSuccessResult = CodegenShop.UpdatedOrderFragment | CodegenShop.TestOrderFragmentFragment;
+    type OrderSuccessResult = FragmentOf<typeof updatedOrderFragment> | FragmentOf<typeof testOrderFragment>;
     const orderResultGuard: ErrorResultGuard<OrderSuccessResult> = createErrorResultGuard(
         input => !!input.lines,
     );
-    let products: Codegen.GetProductsWithVariantPricesQuery['products']['items'];
+
+    type ActiveOrderWithPriceData = NonNullable<
+        ResultOf<typeof getActiveOrderWithPriceDataDocument>['activeOrder']
+    >;
+    const activeOrderGuard: ErrorResultGuard<ActiveOrderWithPriceData> = createErrorResultGuard(
+        input => !!input.taxSummary,
+    );
+
+    type TaxRateList = ResultOf<typeof getTaxRateListDocument>['taxRates'];
+    const taxRatesGuard: ErrorResultGuard<TaxRateList> = createErrorResultGuard<TaxRateList>(
+        input => !!input.items,
+    );
+
+    let products: ResultOf<typeof getProductsWithVariantPricesDocument>['products']['items'];
 
     beforeAll(async () => {
         await server.init({
@@ -106,9 +141,7 @@ describe('Order taxes', () => {
             customerCount: 2,
         });
         await adminClient.asSuperAdmin();
-        const result = await adminClient.query<Codegen.GetProductsWithVariantPricesQuery>(
-            GET_PRODUCTS_WITH_VARIANT_PRICES,
-        );
+        const result = await adminClient.query(getProductsWithVariantPricesDocument);
         products = result.products.items;
     }, TEST_SETUP_TIMEOUT_MS);
 
@@ -118,31 +151,23 @@ describe('Order taxes', () => {
 
     describe('Channel.pricesIncludeTax = false', () => {
         beforeAll(async () => {
-            await adminClient.query<Codegen.UpdateChannelMutation, Codegen.UpdateChannelMutationVariables>(
-                UPDATE_CHANNEL,
-                {
-                    input: {
-                        id: 'T_1',
-                        pricesIncludeTax: false,
-                    },
+            await adminClient.query(updateChannelDocument, {
+                input: {
+                    id: 'T_1',
+                    pricesIncludeTax: false,
                 },
-            );
+            });
             await shopClient.asAnonymousUser();
         });
 
         it('prices are correct', async () => {
             const variant = products.sort(sortById)[0].variants.sort(sortById)[0];
-            await shopClient.query<
-                CodegenShop.AddItemToOrderMutation,
-                CodegenShop.AddItemToOrderMutationVariables
-            >(ADD_ITEM_TO_ORDER, {
+            await shopClient.query(addItemToOrderDocument, {
                 productVariantId: variant.id,
                 quantity: 2,
             });
 
-            const { activeOrder } = await shopClient.query<CodegenShop.GetActiveOrderWithPriceDataQuery>(
-                GET_ACTIVE_ORDER_WITH_PRICE_DATA,
-            );
+            const { activeOrder } = await shopClient.query(getActiveOrderWithPriceDataDocument);
             expect(activeOrder?.totalWithTax).toBe(240);
             expect(activeOrder?.total).toBe(200);
             expect(activeOrder?.lines[0].taxRate).toBe(20);
@@ -162,31 +187,23 @@ describe('Order taxes', () => {
 
     describe('Channel.pricesIncludeTax = true', () => {
         beforeAll(async () => {
-            await adminClient.query<Codegen.UpdateChannelMutation, Codegen.UpdateChannelMutationVariables>(
-                UPDATE_CHANNEL,
-                {
-                    input: {
-                        id: 'T_1',
-                        pricesIncludeTax: true,
-                    },
+            await adminClient.query(updateChannelDocument, {
+                input: {
+                    id: 'T_1',
+                    pricesIncludeTax: true,
                 },
-            );
+            });
             await shopClient.asAnonymousUser();
         });
 
         it('prices are correct', async () => {
             const variant = products[0].variants[0];
-            await shopClient.query<
-                CodegenShop.AddItemToOrderMutation,
-                CodegenShop.AddItemToOrderMutationVariables
-            >(ADD_ITEM_TO_ORDER, {
+            await shopClient.query(addItemToOrderDocument, {
                 productVariantId: variant.id,
                 quantity: 2,
             });
 
-            const { activeOrder } = await shopClient.query<CodegenShop.GetActiveOrderWithPriceDataQuery>(
-                GET_ACTIVE_ORDER_WITH_PRICE_DATA,
-            );
+            const { activeOrder } = await shopClient.query(getActiveOrderWithPriceDataDocument);
             expect(activeOrder?.totalWithTax).toBe(200);
             expect(activeOrder?.total).toBe(167);
             expect(activeOrder?.lines[0].taxRate).toBe(20);
@@ -205,14 +222,13 @@ describe('Order taxes', () => {
 
         // https://github.com/vendurehq/vendure/issues/1216
         it('re-calculates OrderLine prices when shippingAddress causes activeTaxZone change', async () => {
-            const { taxRates } = await adminClient.query<Codegen.GetTaxRateListQuery>(GET_TAX_RATE_LIST);
+            const { taxRates } = await adminClient.query(getTaxRateListDocument);
+            taxRatesGuard.assertSuccess(taxRates);
             // Set the TaxRates to Asia to 0%
+
             const taxRatesAsia = taxRates.items.filter(tr => tr.name.includes('Asia'));
             for (const taxRate of taxRatesAsia) {
-                await adminClient.query<
-                    Codegen.UpdateTaxRateMutation,
-                    Codegen.UpdateTaxRateMutationVariables
-                >(UPDATE_TAX_RATE, {
+                await adminClient.query(updateTaxRateDocument, {
                     input: {
                         id: taxRate.id,
                         value: 0,
@@ -220,10 +236,7 @@ describe('Order taxes', () => {
                 });
             }
 
-            await shopClient.query<
-                CodegenShop.SetShippingAddressMutation,
-                CodegenShop.SetShippingAddressMutationVariables
-            >(SET_SHIPPING_ADDRESS, {
+            await shopClient.query(setShippingAddressDocument, {
                 input: {
                     countryCode: 'CN',
                     streetLine1: '123 Lugu St',
@@ -233,9 +246,7 @@ describe('Order taxes', () => {
                 },
             });
 
-            const { activeOrder } = await shopClient.query<CodegenShop.GetActiveOrderWithPriceDataQuery>(
-                GET_ACTIVE_ORDER_WITH_PRICE_DATA,
-            );
+            const { activeOrder } = await shopClient.query(getActiveOrderWithPriceDataDocument);
             expect(activeOrder?.totalWithTax).toBe(166);
             expect(activeOrder?.total).toBe(166);
             expect(activeOrder?.lines[0].taxRate).toBe(0);
@@ -254,10 +265,7 @@ describe('Order taxes', () => {
 
         // https://github.com/vendurehq/vendure/issues/1216
         it('re-calculates OrderLine prices when billingAddress causes activeTaxZone change', async () => {
-            await shopClient.query<
-                CodegenShop.SetBillingAddressMutation,
-                CodegenShop.SetBillingAddressMutationVariables
-            >(SET_BILLING_ADDRESS, {
+            await shopClient.query(setBillingAddressDocument, {
                 input: {
                     countryCode: 'US',
                     streetLine1: '123 Chad Street',
@@ -267,9 +275,7 @@ describe('Order taxes', () => {
                 },
             });
 
-            const { activeOrder } = await shopClient.query<CodegenShop.GetActiveOrderWithPriceDataQuery>(
-                GET_ACTIVE_ORDER_WITH_PRICE_DATA,
-            );
+            const { activeOrder } = await shopClient.query(getActiveOrderWithPriceDataDocument);
             expect(activeOrder?.totalWithTax).toBe(199);
             expect(activeOrder?.total).toBe(166);
             expect(activeOrder?.lines[0].taxRate).toBe(20);
@@ -288,41 +294,27 @@ describe('Order taxes', () => {
     });
 
     it('taxSummary works', async () => {
-        await adminClient.query<Codegen.UpdateChannelMutation, Codegen.UpdateChannelMutationVariables>(
-            UPDATE_CHANNEL,
-            {
-                input: {
-                    id: 'T_1',
-                    pricesIncludeTax: false,
-                },
+        await adminClient.query(updateChannelDocument, {
+            input: {
+                id: 'T_1',
+                pricesIncludeTax: false,
             },
-        );
+        });
         await shopClient.asAnonymousUser();
-        await shopClient.query<
-            CodegenShop.AddItemToOrderMutation,
-            CodegenShop.AddItemToOrderMutationVariables
-        >(ADD_ITEM_TO_ORDER, {
+        await shopClient.query(addItemToOrderDocument, {
             productVariantId: products[0].variants[0].id,
             quantity: 2,
         });
-        await shopClient.query<
-            CodegenShop.AddItemToOrderMutation,
-            CodegenShop.AddItemToOrderMutationVariables
-        >(ADD_ITEM_TO_ORDER, {
+        await shopClient.query(addItemToOrderDocument, {
             productVariantId: products[1].variants[0].id,
             quantity: 2,
         });
-        await shopClient.query<
-            CodegenShop.AddItemToOrderMutation,
-            CodegenShop.AddItemToOrderMutationVariables
-        >(ADD_ITEM_TO_ORDER, {
+        await shopClient.query(addItemToOrderDocument, {
             productVariantId: products[2].variants[0].id,
             quantity: 2,
         });
 
-        const { activeOrder } = await shopClient.query<CodegenShop.GetActiveOrderWithPriceDataQuery>(
-            GET_ACTIVE_ORDER_WITH_PRICE_DATA,
-        );
+        const { activeOrder } = await shopClient.query(getActiveOrderWithPriceDataDocument);
 
         expect(activeOrder?.taxSummary).toEqual([
             {
@@ -346,32 +338,13 @@ describe('Order taxes', () => {
         ]);
 
         // ensure that the summary total add up to the overall totals
-        const taxSummaryBaseTotal = summate(activeOrder!.taxSummary, 'taxBase');
-        const taxSummaryTaxTotal = summate(activeOrder!.taxSummary, 'taxTotal');
 
-        expect(taxSummaryBaseTotal).toBe(activeOrder?.total);
-        expect(taxSummaryBaseTotal + taxSummaryTaxTotal).toBe(activeOrder?.totalWithTax);
+        activeOrderGuard.assertSuccess(activeOrder);
+
+        const taxSummaryBaseTotal = summate(activeOrder.taxSummary, 'taxBase');
+        const taxSummaryTaxTotal = summate(activeOrder.taxSummary, 'taxTotal');
+
+        expect(taxSummaryBaseTotal).toBe(activeOrder.total);
+        expect(taxSummaryBaseTotal + taxSummaryTaxTotal).toBe(activeOrder.totalWithTax);
     });
 });
-
-export const GET_TAX_RATE_LIST = gql`
-    query GetTaxRateList($options: TaxRateListOptions) {
-        taxRates(options: $options) {
-            items {
-                id
-                name
-                enabled
-                value
-                category {
-                    id
-                    name
-                }
-                zone {
-                    id
-                    name
-                }
-            }
-            totalItems
-        }
-    }
-`;

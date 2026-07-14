@@ -1,3 +1,4 @@
+import { SortOrder } from '@vendure/common/lib/generated-types';
 import { Logger, mergeConfig, MoneyStrategy, VendurePlugin } from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import path from 'path';
@@ -7,18 +8,14 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
-import * as Codegen from './graphql/generated-e2e-admin-types';
-import { SortOrder } from './graphql/generated-e2e-admin-types';
-import * as CodegenShop from './graphql/generated-e2e-shop-types';
-import { AddItemToOrderMutation, AddItemToOrderMutationVariables } from './graphql/generated-e2e-shop-types';
-import { GET_PRODUCT_VARIANT_LIST } from './graphql/shared-definitions';
-import { ADD_ITEM_TO_ORDER } from './graphql/shop-definitions';
+import { FragmentOf } from './graphql/graphql-shop';
+import { getProductVariantListDocument } from './graphql/shared-definitions';
+import { localAddItemToOrderDocument, localUpdatedOrderFragment } from './graphql/shop-definitions';
 
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
-const orderGuard: ErrorResultGuard<CodegenShop.UpdatedOrderFragment> = createErrorResultGuard(
-    input => !!input.total,
-);
+type UpdatedOrder = FragmentOf<typeof localUpdatedOrderFragment>;
+const orderGuard: ErrorResultGuard<UpdatedOrder> = createErrorResultGuard(input => !!input.total);
 
 class CustomMoneyStrategy implements MoneyStrategy {
     static transformerFromSpy = vi.fn();
@@ -84,10 +81,7 @@ describe('Custom MoneyStrategy', () => {
     it('check initial prices', async () => {
         expect(CustomMoneyStrategy.transformerFromSpy).toHaveBeenCalledTimes(0);
 
-        const { productVariants } = await adminClient.query<
-            Codegen.GetProductVariantListQuery,
-            Codegen.GetProductVariantListQueryVariables
-        >(GET_PRODUCT_VARIANT_LIST, {
+        const { productVariants } = await adminClient.query(getProductVariantListDocument, {
             options: {
                 sort: {
                     price: SortOrder.ASC,
@@ -108,10 +102,7 @@ describe('Custom MoneyStrategy', () => {
     // https://github.com/vendurehq/vendure/issues/838
     it('can handle totals over 21 million', async () => {
         await shopClient.asAnonymousUser();
-        const { addItemToOrder } = await shopClient.query<
-            AddItemToOrderMutation,
-            AddItemToOrderMutationVariables
-        >(ADD_ITEM_TO_ORDER, {
+        const { addItemToOrder } = await shopClient.query(localAddItemToOrderDocument, {
             productVariantId: expensiveVariantId,
             quantity: 2,
         });
@@ -126,10 +117,7 @@ describe('Custom MoneyStrategy', () => {
     // Math.round(37.2 * 10) =372
     it('tax calculation rounds at the unit level', async () => {
         await shopClient.asAnonymousUser();
-        const { addItemToOrder } = await shopClient.query<
-            AddItemToOrderMutation,
-            AddItemToOrderMutationVariables
-        >(ADD_ITEM_TO_ORDER, {
+        const { addItemToOrder } = await shopClient.query(localAddItemToOrderDocument, {
             productVariantId: cheapVariantId,
             quantity: 10,
         });

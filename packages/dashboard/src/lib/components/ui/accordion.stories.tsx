@@ -15,7 +15,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Playground: Story = {
     render: () => (
-        <Accordion type="single" collapsible className="w-[400px]">
+        <Accordion className="w-[400px]">
             <AccordionItem value="item-1">
                 <AccordionTrigger>Item 1</AccordionTrigger>
                 <AccordionContent>Content for item 1</AccordionContent>

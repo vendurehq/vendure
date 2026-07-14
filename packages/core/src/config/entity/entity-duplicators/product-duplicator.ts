@@ -1,6 +1,5 @@
 import {
     CreateProductInput,
-    CreateProductOptionInput,
     CreateProductVariantInput,
     LanguageCode,
     Permission,
@@ -9,14 +8,10 @@ import {
 import { IsNull } from 'typeorm';
 
 import { idsAreEqual } from '../../../common';
-import { InternalServerError } from '../../../common/error/errors';
 import { Injector } from '../../../common/injector';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
-import { Product } from '../../../entity/product/product.entity';
-import { ProductOptionGroup } from '../../../entity/product-option-group/product-option-group.entity';
 import { ProductVariant } from '../../../entity/product-variant/product-variant.entity';
-import { ProductOptionGroupService } from '../../../service/services/product-option-group.service';
-import { ProductOptionService } from '../../../service/services/product-option.service';
+import { Product } from '../../../entity/product/product.entity';
 import { ProductVariantService } from '../../../service/services/product-variant.service';
 import { ProductService } from '../../../service/services/product.service';
 import { EntityDuplicator } from '../entity-duplicator';
@@ -24,8 +19,6 @@ import { EntityDuplicator } from '../entity-duplicator';
 let connection: TransactionalConnection;
 let productService: ProductService;
 let productVariantService: ProductVariantService;
-let productOptionGroupService: ProductOptionGroupService;
-let productOptionService: ProductOptionService;
 
 /**
  * @description
@@ -52,8 +45,6 @@ export const productDuplicator = new EntityDuplicator({
         connection = injector.get(TransactionalConnection);
         productService = injector.get(ProductService);
         productVariantService = injector.get(ProductVariantService);
-        productOptionGroupService = injector.get(ProductOptionGroupService);
-        productOptionService = injector.get(ProductOptionService);
     },
     async duplicate({ ctx, id, args }) {
         const product = await connection.getEntityOrThrow(ctx, Product, id, {
@@ -107,64 +98,13 @@ export const productDuplicator = new EntityDuplicator({
                     taxCategory: true,
                 },
             });
-            if (product.optionGroups && product.optionGroups.length) {
+            if (product.optionGroups?.length) {
                 for (const optionGroup of product.optionGroups) {
-                    const newOptionGroup = await productOptionGroupService.create(ctx, {
-                        code: optionGroup.code,
-                        translations: optionGroup.translations.map(translation => {
-                            return {
-                                languageCode: translation.languageCode,
-                                name: translation.name,
-                                customFields: translation.customFields,
-                            };
-                        }),
-                    });
-                    const options: CreateProductOptionInput[] = optionGroup.options.map(option => {
-                        return {
-                            code: option.code,
-                            productOptionGroupId: newOptionGroup.id,
-                            translations: option.translations.map(translation => {
-                                return {
-                                    languageCode: translation.languageCode,
-                                    name: translation.name,
-                                    customFields: translation.customFields,
-                                };
-                            }),
-                        };
-                    });
-                    if (options && options.length) {
-                        for (const option of options) {
-                            const newOption = await productOptionService.create(ctx, newOptionGroup, option);
-                            newOptionGroup.options.push(newOption);
-                        }
-                    }
-                    await productService.addOptionGroupToProduct(
-                        ctx,
-                        duplicatedProduct.id,
-                        newOptionGroup.id,
-                    );
+                    await productService.addOptionGroupToProduct(ctx, duplicatedProduct.id, optionGroup.id);
                 }
             }
-            const newOptionGroups = await connection.getRepository(ctx, ProductOptionGroup).find({
-                where: {
-                    product: { id: duplicatedProduct.id },
-                },
-                relations: {
-                    options: true,
-                },
-            });
             const variantInput: CreateProductVariantInput[] = productVariants.map((variant, i) => {
-                const options = variant.options.map(existingOption => {
-                    const newOption = newOptionGroups
-                        .find(og => og.code === existingOption.group.code)
-                        ?.options.find(o => o.code === existingOption.code);
-                    if (!newOption) {
-                        throw new InternalServerError(
-                            `An error occurred when creating option ${existingOption.code}`,
-                        );
-                    }
-                    return newOption;
-                });
+                const optionIds = variant.options.map(o => o.id);
                 const price =
                     variant.productVariantPrices.find(p => idsAreEqual(p.channelId, ctx.channelId))?.price ??
                     variant.productVariantPrices[0]?.price;
@@ -185,7 +125,7 @@ export const productDuplicator = new EntityDuplicator({
                             customFields: translation.customFields,
                         };
                     }),
-                    optionIds: options.map(option => option.id),
+                    optionIds,
                     facetValueIds: variant.facetValues.map(value => value.id),
                     stockLevels: variant.stockLevels.map(stockLevel => ({
                         stockLocationId: stockLevel.stockLocationId,

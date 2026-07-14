@@ -1,3 +1,18 @@
+enum SettingsStoreScopeType {
+    GLOBAL
+    USER
+    CHANNEL
+    USER_AND_CHANNEL
+    CUSTOM
+}
+
+type SettingsStoreFieldDefinition {
+    key: String!
+    scopeType: SettingsStoreScopeType!
+    readonly: Boolean!
+    currentValue: JSON
+}
+
 input SettingsStoreInput {
     key: String!
     value: JSON!
@@ -19,6 +34,11 @@ extend type Query {
     Get multiple key-value pairs (each automatically scoped)
     """
     getSettingsStoreValues(keys: [String!]!): JSON
+
+    """
+    Returns all registered settings store field definitions with their current values
+    """
+    settingsStoreFieldDefinitions: [SettingsStoreFieldDefinition!]!
 }
 
 extend type Mutation {

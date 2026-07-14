@@ -1,4 +1,5 @@
 import { INestApplication } from '@nestjs/common';
+import { CurrencyCode, LanguageCode } from '@vendure/common/lib/generated-types';
 import { User } from '@vendure/core';
 import { populate } from '@vendure/core/cli';
 import { createTestEnvironment, E2E_DEFAULT_CHANNEL_TOKEN } from '@vendure/testing';
@@ -9,26 +10,17 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { InitialData } from '../src/index';
 
+import { channelFragment } from './graphql/fragments-admin';
+import { FragmentOf } from './graphql/graphql-admin';
 import {
-    ChannelFragment,
-    CreateChannelMutation,
-    CreateChannelMutationVariables,
-    CurrencyCode,
-    GetAssetListQuery,
-    GetCollectionsQuery,
-    GetProductListQuery,
-    GetProductListQueryVariables,
-    GetProductWithVariantsQuery,
-    GetProductWithVariantsQueryVariables,
-    LanguageCode,
-} from './graphql/generated-e2e-admin-types';
-import {
-    CREATE_CHANNEL,
-    GET_ASSET_LIST,
-    GET_COLLECTIONS,
-    GET_PRODUCT_LIST,
-    GET_PRODUCT_WITH_VARIANTS,
+    createChannelDocument,
+    getAssetListDocument,
+    getCollectionsDocument,
+    getProductListDocument,
+    getProductWithVariantsDocument,
 } from './graphql/shared-definitions';
+
+type ChannelFragment = FragmentOf<typeof channelFragment>;
 
 describe('populate() function', () => {
     let channel2: ChannelFragment;
@@ -72,10 +64,7 @@ describe('populate() function', () => {
             customerCount: 1,
         });
         await adminClient.asSuperAdmin();
-        const { createChannel } = await adminClient.query<
-            CreateChannelMutation,
-            CreateChannelMutationVariables
-        >(CREATE_CHANNEL, {
+        const { createChannel } = await adminClient.query(createChannelDocument, {
             input: {
                 code: 'Channel 2',
                 token: 'channel-2',
@@ -120,7 +109,7 @@ describe('populate() function', () => {
 
         it('populates products', async () => {
             await adminClient.asSuperAdmin();
-            const { products } = await adminClient.query<GetProductListQuery>(GET_PRODUCT_LIST);
+            const { products } = await adminClient.query(getProductListDocument);
             expect(products.totalItems).toBe(4);
             expect(products.items.map(i => i.name).sort()).toEqual([
                 'Artists Smock',
@@ -131,7 +120,7 @@ describe('populate() function', () => {
         });
 
         it('populates assets', async () => {
-            const { assets } = await adminClient.query<GetAssetListQuery>(GET_ASSET_LIST);
+            const { assets } = await adminClient.query(getAssetListDocument);
             expect(assets.items.map(i => i.name).sort()).toEqual([
                 'box-of-12.jpg',
                 'box-of-8.jpg',
@@ -141,7 +130,7 @@ describe('populate() function', () => {
         });
 
         it('populates collections', async () => {
-            const { collections } = await adminClient.query<GetCollectionsQuery>(GET_COLLECTIONS);
+            const { collections } = await adminClient.query(getCollectionsDocument);
             expect(collections.items.map(i => i.name).sort()).toEqual(['Collection 1']);
         });
     });
@@ -178,24 +167,24 @@ describe('populate() function', () => {
         it('populates products', async () => {
             await adminClient.asSuperAdmin();
             adminClient.setChannelToken(channel2.token);
-            const { products } = await adminClient.query<GetProductListQuery>(GET_PRODUCT_LIST);
+            const { products } = await adminClient.query(getProductListDocument);
             expect(products.totalItems).toBe(1);
             expect(products.items.map(i => i.name).sort()).toEqual(['Model Hand']);
         });
 
         it('populates assets', async () => {
-            const { assets } = await adminClient.query<GetAssetListQuery>(GET_ASSET_LIST);
+            const { assets } = await adminClient.query(getAssetListDocument);
             expect(assets.items.map(i => i.name).sort()).toEqual(['vincent-botta-736919-unsplash.jpg']);
         });
 
         it('populates collections', async () => {
-            const { collections } = await adminClient.query<GetCollectionsQuery>(GET_COLLECTIONS);
+            const { collections } = await adminClient.query(getCollectionsDocument);
             expect(collections.items.map(i => i.name).sort()).toEqual(['Collection 2']);
         });
 
         it('product also assigned to default channel', async () => {
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
-            const { products } = await adminClient.query<GetProductListQuery>(GET_PRODUCT_LIST);
+            const { products } = await adminClient.query(getProductListDocument);
             expect(products.items.map(i => i.name).includes('Model Hand')).toBe(true);
         });
     });
@@ -232,24 +221,18 @@ describe('populate() function', () => {
         it('populates variants & options', async () => {
             await adminClient.asSuperAdmin();
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
-            const { products } = await adminClient.query<GetProductListQuery, GetProductListQueryVariables>(
-                GET_PRODUCT_LIST,
-                {
-                    options: {
-                        filter: {
-                            slug: { eq: 'foo' },
-                        },
+            const { products } = await adminClient.query(getProductListDocument, {
+                options: {
+                    filter: {
+                        slug: { eq: 'foo' },
                     },
                 },
-            );
+            });
             expect(products.totalItems).toBe(1);
             const fooProduct = products.items[0];
             expect(fooProduct.name).toBe('Foo');
 
-            const { product } = await adminClient.query<
-                GetProductWithVariantsQuery,
-                GetProductWithVariantsQueryVariables
-            >(GET_PRODUCT_WITH_VARIANTS, {
+            const { product } = await adminClient.query(getProductWithVariantsDocument, {
                 id: fooProduct.id,
             });
 

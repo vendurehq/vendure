@@ -40,18 +40,23 @@ defineDashboardExtension({
     actionBarItems: [
         {
             pageId: 'product-detail',
-            component: props => {
+            component: function TestButton(props) {
                 const page = usePage();
+
                 return (
                     <Button
                         type="button"
                         onClick={() => {
-                            console.log('Clicked custom action bar item');
+                            console.log('Clicked custom action bar item', props.context.entity);
                         }}
                     >
                         Test Button
                     </Button>
                 );
+            },
+            position: {
+                itemId: 'save-button',
+                order: 'after',
             },
         },
     ],

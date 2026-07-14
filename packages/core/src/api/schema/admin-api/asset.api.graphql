@@ -33,9 +33,16 @@ input AssetListOptions {
     tagsOperator: LogicalOperator
 }
 
+input AssetTranslationInput {
+    id: ID
+    languageCode: LanguageCode!
+    name: String
+}
+
 input CreateAssetInput {
     file: Upload!
     tags: [String!]
+    translations: [AssetTranslationInput!]
 }
 
 input CoordinateInput {
@@ -60,6 +67,7 @@ input UpdateAssetInput {
     name: String
     focalPoint: CoordinateInput
     tags: [String!]
+    translations: [AssetTranslationInput!]
 }
 
 input AssignAssetsToChannelInput {

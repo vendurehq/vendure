@@ -1,20 +1,14 @@
+import { LanguageCode } from '@vendure/common/lib/generated-types';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
-import gql from 'graphql-tag';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
-import { testConfig, TEST_SETUP_TIMEOUT_MS } from '../../../e2e-common/test-config';
+import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
-import { GLOBAL_SETTINGS_FRAGMENT } from './graphql/fragments';
-import {
-    GetGlobalSettingsQuery,
-    GlobalSettingsFragment,
-    LanguageCode,
-    UpdateGlobalSettingsMutation,
-    UpdateGlobalSettingsMutationVariables,
-} from './graphql/generated-e2e-admin-types';
-import { UPDATE_GLOBAL_SETTINGS } from './graphql/shared-definitions';
+import { globalSettingsFragment } from './graphql/fragments-admin';
+import { FragmentOf } from './graphql/graphql-admin';
+import { getGlobalSettingsDocument, updateGlobalSettingsDocument } from './graphql/shared-definitions';
 
 describe('GlobalSettings resolver', () => {
     const { server, adminClient } = createTestEnvironment({
@@ -25,11 +19,10 @@ describe('GlobalSettings resolver', () => {
             },
         },
     });
-    let globalSettings: GlobalSettingsFragment;
+    let globalSettings: FragmentOf<typeof globalSettingsFragment>;
 
-    const globalSettingsGuard: ErrorResultGuard<GlobalSettingsFragment> = createErrorResultGuard(
-        input => !!input.availableLanguages,
-    );
+    const globalSettingsGuard: ErrorResultGuard<FragmentOf<typeof globalSettingsFragment>> =
+        createErrorResultGuard(input => !!input.availableLanguages);
 
     beforeAll(async () => {
         await server.init({
@@ -38,15 +31,12 @@ describe('GlobalSettings resolver', () => {
             customerCount: 1,
         });
         await adminClient.asSuperAdmin();
-        await adminClient.query<UpdateGlobalSettingsMutation, UpdateGlobalSettingsMutationVariables>(
-            UPDATE_GLOBAL_SETTINGS,
-            {
-                input: {
-                    trackInventory: false,
-                },
+        await adminClient.query(updateGlobalSettingsDocument, {
+            input: {
+                trackInventory: false,
             },
-        );
-        const result = await adminClient.query<GetGlobalSettingsQuery>(GET_GLOBAL_SETTINGS);
+        });
+        const result = await adminClient.query(getGlobalSettingsDocument);
         globalSettings = result.globalSettings;
     }, TEST_SETUP_TIMEOUT_MS);
 
@@ -91,10 +81,7 @@ describe('GlobalSettings resolver', () => {
 
     describe('update', () => {
         it('returns error result when removing required language', async () => {
-            const { updateGlobalSettings } = await adminClient.query<
-                UpdateGlobalSettingsMutation,
-                UpdateGlobalSettingsMutationVariables
-            >(UPDATE_GLOBAL_SETTINGS, {
+            const { updateGlobalSettings } = await adminClient.query(updateGlobalSettingsDocument, {
                 input: {
                     availableLanguages: [LanguageCode.zh],
                 },
@@ -107,10 +94,7 @@ describe('GlobalSettings resolver', () => {
         });
 
         it('successful update', async () => {
-            const { updateGlobalSettings } = await adminClient.query<
-                UpdateGlobalSettingsMutation,
-                UpdateGlobalSettingsMutationVariables
-            >(UPDATE_GLOBAL_SETTINGS, {
+            const { updateGlobalSettings } = await adminClient.query(updateGlobalSettingsDocument, {
                 input: {
                     availableLanguages: [LanguageCode.en, LanguageCode.zh],
                     trackInventory: true,
@@ -123,12 +107,3 @@ describe('GlobalSettings resolver', () => {
         });
     });
 });
-
-const GET_GLOBAL_SETTINGS = gql`
-    query GetGlobalSettings {
-        globalSettings {
-            ...GlobalSettings
-        }
-    }
-    ${GLOBAL_SETTINGS_FRAGMENT}
-`;

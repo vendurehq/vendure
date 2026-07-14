@@ -2,6 +2,8 @@
 title: "Bulk Actions"
 generated: true
 ---
+## DataTableBulkActionItemProps
+
 <GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-table/data-table-bulk-action-item.tsx" sourceLine="26" packageName="@vendure/dashboard" since="3.4.0" />
 
 
@@ -15,6 +17,7 @@ interface DataTableBulkActionItemProps {
     className?: string;
     requiresPermission?: string[];
     disabled?: boolean;
+    closeOnClick?: boolean;
 }
 ```
 
@@ -55,10 +58,17 @@ interface DataTableBulkActionItemProps {
 <MemberInfo kind="property" type={`boolean`}   />
 
 
+### closeOnClick
+
+<MemberInfo kind="property" type={`boolean`}   />
+
+
 
 
 </div>
-<GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-table/data-table-bulk-action-item.tsx" sourceLine="67" packageName="@vendure/dashboard" since="3.4.0" />
+## DataTableBulkActionItem
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-table/data-table-bulk-action-item.tsx" sourceLine="68" packageName="@vendure/dashboard" since="3.4.0" />
 
 A component that should be used to implement any bulk actions for list pages & data tables.
 
@@ -95,6 +105,8 @@ Parameters
 
 <MemberInfo kind="parameter" type={`Readonly<<a href='/reference/dashboard/list-views/bulk-actions#datatablebulkactionitemprops'>DataTableBulkActionItemProps</a>>`} />
 
+## BulkAction
+
 <GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/data-table.ts" sourceLine="109" packageName="@vendure/dashboard" since="3.4.0" />
 
 A bulk action is a component that will be rendered in the bulk actions dropdown.
@@ -102,9 +114,9 @@ A bulk action is a component that will be rendered in the bulk actions dropdown.
 The component receives the following props:
 
 - `selection`: The selected row or rows
-- `table`: A reference to the Tanstack table instance powering the list
+- `table`: A reference to the TanStack Table instance powering the list
 
-The `table` object has
+The `table` object can be used to clear row selection after the action completes.
 
 *Example*
 
@@ -184,3 +196,68 @@ The React component that will be rendered as the bulk action item.
 
 
 </div>
+## BulkActionGroup
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/data-table.ts" sourceLine="132" packageName="@vendure/dashboard" since="3.4.0" />
+
+A group of bulk actions that are visually separated in the dropdown menu.
+Optionally includes a translatable label rendered as a `DropdownMenuLabel`.
+
+```ts title="Signature"
+type BulkActionGroup = {
+    label?: React.ReactNode;
+    actions: BulkAction[];
+}
+```
+
+<div className="members-wrapper">
+
+### label
+
+<MemberInfo kind="property" type={`React.ReactNode`}   />
+
+Optional label rendered as a `DropdownMenuLabel` at the top of the group.
+### actions
+
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/list-views/bulk-actions#bulkaction'>BulkAction</a>[]`}   />
+
+The bulk actions in this group.
+
+
+</div>
+## BulkActionsInput
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/data-table.ts" sourceLine="179" packageName="@vendure/dashboard" since="3.4.0" />
+
+Bulk actions input supports three formats:
+
+1. **Flat array** (backwards compatible): `BulkAction[]` — all actions in one group.
+2. **Array of arrays**: `BulkAction[][]` — each inner array is a visually separated group.
+3. **Array of groups**: `BulkActionGroup[]` — groups with optional labels.
+
+Formats 2 and 3 can be mixed in the same array.
+
+*Example*
+
+```tsx
+// Flat (single group, backwards compatible)
+bulkActions={[
+  { component: AssignBulkAction },
+  { component: DeleteBulkAction },
+]}
+
+// Grouped with labels
+bulkActions={[
+  [
+    { component: AssignBulkAction },
+    { component: DuplicateBulkAction },
+  ],
+  { label: <Trans>Danger zone</Trans>, actions: [
+    { component: DeleteBulkAction },
+  ]},
+]}
+```
+
+```ts title="Signature"
+type BulkActionsInput = BulkAction[] | Array<BulkAction[] | BulkActionGroup>
+```

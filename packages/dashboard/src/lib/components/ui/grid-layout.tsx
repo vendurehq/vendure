@@ -1,6 +1,14 @@
 import * as React from "react";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { cn } from "@/vdb/lib/utils.js";
+import { useIsMobile } from "@/vdb/hooks/use-mobile.js";
+
+const MOBILE_GUTTER = 5;
+const MIN_CONTAINER_ROWS = 4;
+const MAX_SEARCH_ROWS = 100;
+const MAX_HEIGHT_FALLBACK = 999;
+const Z_INDEX_WIDGET = 10;
+const Z_INDEX_ACTIVE = 1000;
 
 export interface GridLayout {
     x: number;
@@ -120,7 +128,7 @@ function GridItem({
                 const minW = layout.minW ?? 1;
                 const minH = layout.minH ?? 1;
                 const maxW = layout.maxW ?? (cols - layout.x);
-                const maxH = layout.maxH ?? 999;
+                const maxH = layout.maxH ?? MAX_HEIGHT_FALLBACK;
                 
                 onLayoutChange({
                     ...layout,
@@ -155,7 +163,7 @@ function GridItem({
         top: `calc(${layout.y} * (${rowHeight}px + ${gutter}px))`,
         width: `calc(${layout.w} * ${colWidth} + ${(layout.w - 1) * gutter}px)`,
         height: `calc(${layout.h} * ${rowHeight}px + ${(layout.h - 1) * gutter}px)`,
-        zIndex: isDragging || isResizing ? 1000 : 10, // Normal widgets above grid (10), active widget much higher (1000)
+        zIndex: isDragging || isResizing ? Z_INDEX_ACTIVE : Z_INDEX_WIDGET,
     };
 
     return (
@@ -197,18 +205,7 @@ export function GridLayout({
     gutter = 10,
 }: GridLayoutProps) {
     const [showGrid, setShowGrid] = useState(false);
-    const [isMobile, setIsMobile] = useState(false);
-    
-    // Detect mobile screen size
-    useEffect(() => {
-        const checkMobile = () => {
-            setIsMobile(window.innerWidth < 768); // Tailwind's md breakpoint
-        };
-        
-        checkMobile();
-        window.addEventListener('resize', checkMobile);
-        return () => window.removeEventListener('resize', checkMobile);
-    }, []);
+    const isMobile = useIsMobile();
     
     // Transform layouts for mobile - stack widgets vertically in full width
     const mobileLayouts = React.useMemo(() => {
@@ -223,8 +220,8 @@ export function GridLayout({
     }, [layouts, isMobile, cols]);
     
     const effectiveLayouts = isMobile ? mobileLayouts : layouts;
-    const effectiveGutter = isMobile ? 5 : gutter; // Smaller gutter on mobile
-    const maxRow = Math.max(...effectiveLayouts.map(l => l.y + l.h), 4); // Minimum 4 rows
+    const effectiveGutter = isMobile ? MOBILE_GUTTER : gutter;
+    const maxRow = Math.max(...effectiveLayouts.map(l => l.y + l.h), MIN_CONTAINER_ROWS);
     const containerHeight = maxRow * rowHeight + (maxRow - 1) * effectiveGutter;
 
     // Helper function to check if two layouts overlap
@@ -248,7 +245,7 @@ export function GridLayout({
             .sort((a, b) => a.y === b.y ? a.x - b.x : a.y - b.y);
 
         // Try to place widget in rows, starting from its current position
-        for (let y = widget.y; y < 100; y++) { // Max 100 rows
+        for (let y = widget.y; y < MAX_SEARCH_ROWS; y++) {
             for (let x = 0; x <= cols - widget.w; x++) {
                 const testLayout = { ...widget, x, y };
                 

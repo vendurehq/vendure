@@ -1,9 +1,9 @@
+import { toast } from '@/vdb/components/ui/sonner.js';
 import { getListQueryDocuments } from '@/vdb/framework/data-table/data-table-extensions.js';
 import { extendDocument } from '@/vdb/framework/document-extension/extend-document.js';
 import { useLingui } from '@lingui/react/macro';
 import { DocumentNode } from 'graphql';
 import { useEffect, useMemo, useRef } from 'react';
-import { toast } from 'sonner';
 
 import { usePageBlock } from './use-page-block.js';
 import { usePage } from './use-page.js';

@@ -11,10 +11,8 @@ export const ManageGlobalViewsButton: React.FC = () => {
     return (
         <>
             <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button variant="outline" size="icon-sm" onClick={() => setSheetOpen(true)}>
+                <TooltipTrigger render={<Button variant="outline" size="icon-sm" onClick={() => setSheetOpen(true)} />}>
                         <Settings />
-                    </Button>
                 </TooltipTrigger>
                 <TooltipContent>
                     <Trans>Manage global views</Trans>

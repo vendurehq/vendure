@@ -117,6 +117,7 @@ export function EditOrderTable({
                                 type="number"
                                 value={row.original.quantity}
                                 min={0}
+                                data-testid="order-line-quantity"
                                 onChange={e => {
                                     const value = Number.isNaN(e.target.valueAsNumber)
                                         ? 0

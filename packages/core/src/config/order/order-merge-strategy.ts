@@ -51,5 +51,5 @@ export interface OrderMergeStrategy extends InjectableStrategy {
      * Merges the lines of the guest Order with those of the existing Order which is associated
      * with the active customer.
      */
-    merge(ctx: RequestContext, guestOrder: Order, existingOrder: Order): MergedOrderLine[];
+    merge(ctx: RequestContext, guestOrder: Order, existingOrder: Order): MergedOrderLine[] | Promise<MergedOrderLine[]>;
 }

@@ -88,6 +88,7 @@ export const AssignFacetValuesToProductsBulkAction: BulkActionComponent<any> = (
                 onClick={() => setDialogOpen(true)}
                 label={<Trans>Edit facet values</Trans>}
                 icon={TagIcon}
+                closeOnClick={false}
             />
             <AssignFacetValuesDialog
                 open={dialogOpen}

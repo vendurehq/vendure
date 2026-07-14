@@ -26,11 +26,11 @@ describe('OrderMerger', () => {
             orderMerger = module.get(OrderMerger);
         });
 
-        it('both orders undefined', () => {
+        it('both orders undefined', async () => {
             const guestOrder = new Order({ lines: [] });
             const existingOrder = new Order({ lines: [] });
 
-            const result = orderMerger.merge(ctx);
+            const result = await orderMerger.merge(ctx);
 
             expect(result.order).toBeUndefined();
             expect(result.linesToInsert).toBeUndefined();
@@ -39,10 +39,10 @@ describe('OrderMerger', () => {
             expect(result.orderToDelete).toBeUndefined();
         });
 
-        it('guestOrder undefined', () => {
+        it('guestOrder undefined', async () => {
             const existingOrder = createOrderFromLines([{ lineId: 1, quantity: 2, productVariantId: 100 }]);
 
-            const result = orderMerger.merge(ctx, undefined, existingOrder);
+            const result = await orderMerger.merge(ctx, undefined, existingOrder);
 
             expect(result.order).toBe(existingOrder);
             expect(result.linesToInsert).toBeUndefined();
@@ -51,10 +51,10 @@ describe('OrderMerger', () => {
             expect(result.orderToDelete).toBeUndefined();
         });
 
-        it('existingOrder undefined', () => {
+        it('existingOrder undefined', async () => {
             const guestOrder = createOrderFromLines([{ lineId: 1, quantity: 2, productVariantId: 100 }]);
 
-            const result = orderMerger.merge(ctx, guestOrder, undefined);
+            const result = await orderMerger.merge(ctx, guestOrder, undefined);
 
             expect(result.order).toBe(guestOrder);
             expect(result.linesToInsert).toBeUndefined();
@@ -63,12 +63,12 @@ describe('OrderMerger', () => {
             expect(result.orderToDelete).toBeUndefined();
         });
 
-        it('empty guestOrder', () => {
+        it('empty guestOrder', async () => {
             const guestOrder = createOrderFromLines([]);
             guestOrder.id = 42;
             const existingOrder = createOrderFromLines([{ lineId: 1, quantity: 2, productVariantId: 100 }]);
 
-            const result = orderMerger.merge(ctx, guestOrder, existingOrder);
+            const result = await orderMerger.merge(ctx, guestOrder, existingOrder);
 
             expect(result.order).toBe(existingOrder);
             expect(result.linesToInsert).toBeUndefined();
@@ -77,12 +77,12 @@ describe('OrderMerger', () => {
             expect(result.orderToDelete).toBe(guestOrder);
         });
 
-        it('empty existingOrder', () => {
+        it('empty existingOrder', async () => {
             const guestOrder = createOrderFromLines([{ lineId: 1, quantity: 2, productVariantId: 100 }]);
             const existingOrder = createOrderFromLines([]);
             existingOrder.id = 42;
 
-            const result = orderMerger.merge(ctx, guestOrder, existingOrder);
+            const result = await orderMerger.merge(ctx, guestOrder, existingOrder);
 
             expect(result.order).toBe(guestOrder);
             expect(result.linesToInsert).toBeUndefined();
@@ -91,12 +91,12 @@ describe('OrderMerger', () => {
             expect(result.orderToDelete).toBe(existingOrder);
         });
 
-        it('new lines added by merge', () => {
+        it('new lines added by merge', async () => {
             const guestOrder = createOrderFromLines([{ lineId: 20, quantity: 2, productVariantId: 200 }]);
             guestOrder.id = 42;
             const existingOrder = createOrderFromLines([{ lineId: 1, quantity: 2, productVariantId: 100 }]);
 
-            const result = orderMerger.merge(ctx, guestOrder, existingOrder);
+            const result = await orderMerger.merge(ctx, guestOrder, existingOrder);
 
             expect(result.order).toBe(existingOrder);
             expect(result.linesToInsert).toEqual([{ productVariantId: 200, quantity: 2 }]);
@@ -105,12 +105,12 @@ describe('OrderMerger', () => {
             expect(result.orderToDelete).toBe(guestOrder);
         });
 
-        it('guest quantity replaces existing quantity', () => {
+        it('guest quantity replaces existing quantity', async () => {
             const guestOrder = createOrderFromLines([{ lineId: 20, quantity: 2, productVariantId: 100 }]);
             guestOrder.id = 42;
             const existingOrder = createOrderFromLines([{ lineId: 1, quantity: 4, productVariantId: 100 }]);
 
-            const result = orderMerger.merge(ctx, guestOrder, existingOrder);
+            const result = await orderMerger.merge(ctx, guestOrder, existingOrder);
 
             expect(result.order).toBe(existingOrder);
             expect(result.linesToInsert).toEqual([]);
@@ -119,14 +119,14 @@ describe('OrderMerger', () => {
             expect(result.orderToDelete).toBe(guestOrder);
         });
 
-        it('takes customFields into account', () => {
+        it('takes customFields into account', async () => {
             const guestOrder = createOrderFromLines([
                 { lineId: 20, quantity: 2, productVariantId: 200, customFields: { foo: 'bar' } },
             ]);
             guestOrder.id = 42;
             const existingOrder = createOrderFromLines([{ lineId: 1, quantity: 2, productVariantId: 100 }]);
 
-            const result = orderMerger.merge(ctx, guestOrder, existingOrder);
+            const result = await orderMerger.merge(ctx, guestOrder, existingOrder);
 
             expect(result.order).toBe(existingOrder);
             expect(result.linesToInsert).toEqual([

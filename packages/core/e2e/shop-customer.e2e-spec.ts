@@ -1,33 +1,43 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { ErrorCode, HistoryEntryType } from '@vendure/common/lib/generated-types';
 import { pick } from '@vendure/common/lib/pick';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
-import gql from 'graphql-tag';
-import path from 'path';
+import * as path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
-import { testConfig, TEST_SETUP_TIMEOUT_MS } from '../../../e2e-common/test-config';
+import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
-import * as Codegen from './graphql/generated-e2e-admin-types';
-import { HistoryEntryType } from './graphql/generated-e2e-admin-types';
-import * as CodegenShop from './graphql/generated-e2e-shop-types';
-import { CreateAddressInput, ErrorCode, UpdateAddressInput } from './graphql/generated-e2e-shop-types';
-import { ATTEMPT_LOGIN, GET_CUSTOMER, GET_CUSTOMER_HISTORY } from './graphql/shared-definitions';
+import { ResultOf, VariablesOf } from './graphql/graphql-admin';
 import {
-    CREATE_ADDRESS,
-    DELETE_ADDRESS,
-    UPDATE_ADDRESS,
-    UPDATE_CUSTOMER,
-    UPDATE_PASSWORD,
+    attemptLoginDocument,
+    getCustomerDocument,
+    getCustomerHistoryDocument,
+    getCustomerIdsDocument,
+} from './graphql/shared-definitions';
+import {
+    createAddressDocument,
+    deleteAddressDocument,
+    updateAddressDocument,
+    updateCustomerDocument,
+    updatePasswordDocument,
 } from './graphql/shop-definitions';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 
+type CreateAddressInput = VariablesOf<typeof createAddressDocument>['input'];
+type UpdateAddressInput = VariablesOf<typeof updateAddressDocument>['input'];
+
 describe('Shop customers', () => {
     const { server, adminClient, shopClient } = createTestEnvironment(testConfig());
-    let customer: NonNullable<Codegen.GetCustomerQuery['customer']>;
+    let customer: NonNullable<ResultOf<typeof getCustomerDocument>['customer']>;
 
     const successErrorGuard: ErrorResultGuard<{ success: boolean }> = createErrorResultGuard(
         input => input.success != null,
+    );
+
+    type CustomersResult = ResultOf<typeof getCustomerIdsDocument>['customers'];
+    const customersGuard: ErrorResultGuard<CustomersResult> = createErrorResultGuard(
+        input => input.items != null && input.items.length > 0,
     );
 
     beforeAll(async () => {
@@ -39,21 +49,11 @@ describe('Shop customers', () => {
         await adminClient.asSuperAdmin();
 
         // Fetch the first Customer and store it as the `customer` variable.
-        const { customers } = await adminClient.query<Codegen.GetCustomerIdsQuery>(gql`
-            query GetCustomerIds {
-                customers {
-                    items {
-                        id
-                    }
-                }
-            }
-        `);
-        const result = await adminClient.query<Codegen.GetCustomerQuery, Codegen.GetCustomerQueryVariables>(
-            GET_CUSTOMER,
-            {
-                id: customers.items[0].id,
-            },
-        );
+        const { customers } = await adminClient.query(getCustomerIdsDocument);
+        customersGuard.assertSuccess(customers);
+        const result = await adminClient.query(getCustomerDocument, {
+            id: customers.items[0].id,
+        });
         customer = result.customer!;
     }, TEST_SETUP_TIMEOUT_MS);
 
@@ -64,13 +64,10 @@ describe('Shop customers', () => {
     it(
         'updateCustomer throws if not logged in',
         assertThrowsWithMessage(async () => {
-            const input: CodegenShop.UpdateCustomerInput = {
+            const input = {
                 firstName: 'xyz',
             };
-            await shopClient.query<
-                CodegenShop.UpdateCustomerMutation,
-                CodegenShop.UpdateCustomerMutationVariables
-            >(UPDATE_CUSTOMER, {
+            await shopClient.query(updateCustomerDocument, {
                 input,
             });
         }, 'You are not currently authorized to perform this action'),
@@ -83,10 +80,7 @@ describe('Shop customers', () => {
                 streetLine1: '1 Test Street',
                 countryCode: 'GB',
             };
-            await shopClient.query<
-                CodegenShop.CreateAddressShopMutation,
-                CodegenShop.CreateAddressShopMutationVariables
-            >(CREATE_ADDRESS, {
+            await shopClient.query(createAddressDocument, {
                 input,
             });
         }, 'You are not currently authorized to perform this action'),
@@ -99,10 +93,7 @@ describe('Shop customers', () => {
                 id: 'T_1',
                 streetLine1: 'zxc',
             };
-            await shopClient.query<
-                CodegenShop.UpdateAddressShopMutation,
-                CodegenShop.UpdateAddressShopMutationVariables
-            >(UPDATE_ADDRESS, {
+            await shopClient.query(updateAddressDocument, {
                 input,
             });
         }, 'You are not currently authorized to perform this action'),
@@ -111,10 +102,7 @@ describe('Shop customers', () => {
     it(
         'deleteCustomerAddress throws if not logged in',
         assertThrowsWithMessage(async () => {
-            await shopClient.query<
-                CodegenShop.DeleteAddressShopMutation,
-                CodegenShop.DeleteAddressShopMutationVariables
-            >(DELETE_ADDRESS, {
+            await shopClient.query(deleteAddressDocument, {
                 id: 'T_1',
             });
         }, 'You are not currently authorized to perform this action'),
@@ -124,33 +112,24 @@ describe('Shop customers', () => {
         let addressId: string;
 
         beforeAll(async () => {
-            await shopClient.query<Codegen.AttemptLoginMutation, Codegen.AttemptLoginMutationVariables>(
-                ATTEMPT_LOGIN,
-                {
-                    username: customer.emailAddress,
-                    password: 'test',
-                    rememberMe: false,
-                },
-            );
+            await shopClient.query(attemptLoginDocument, {
+                username: customer.emailAddress,
+                password: 'test',
+                rememberMe: false,
+            });
         });
 
         it('updateCustomer works', async () => {
-            const input: CodegenShop.UpdateCustomerInput = {
+            const input = {
                 firstName: 'xyz',
             };
-            const result = await shopClient.query<
-                CodegenShop.UpdateCustomerMutation,
-                CodegenShop.UpdateCustomerMutationVariables
-            >(UPDATE_CUSTOMER, { input });
+            const result = await shopClient.query(updateCustomerDocument, { input });
 
             expect(result.updateCustomer.firstName).toBe('xyz');
         });
 
         it('customer history for CUSTOMER_DETAIL_UPDATED', async () => {
-            const result = await adminClient.query<
-                Codegen.GetCustomerHistoryQuery,
-                Codegen.GetCustomerHistoryQueryVariables
-            >(GET_CUSTOMER_HISTORY, {
+            const result = await adminClient.query(getCustomerHistoryDocument, {
                 id: customer.id,
                 options: {
                     // skip populated CUSTOMER_ADDRESS_CREATED entry
@@ -173,10 +152,7 @@ describe('Shop customers', () => {
                 streetLine1: '1 Test Street',
                 countryCode: 'GB',
             };
-            const { createCustomerAddress } = await shopClient.query<
-                CodegenShop.CreateAddressShopMutation,
-                CodegenShop.CreateAddressShopMutationVariables
-            >(CREATE_ADDRESS, { input });
+            const { createCustomerAddress } = await shopClient.query(createAddressDocument, { input });
 
             expect(createCustomerAddress).toEqual({
                 id: 'T_3',
@@ -189,10 +165,7 @@ describe('Shop customers', () => {
         });
 
         it('customer history for CUSTOMER_ADDRESS_CREATED', async () => {
-            const result = await adminClient.query<
-                Codegen.GetCustomerHistoryQuery,
-                Codegen.GetCustomerHistoryQueryVariables
-            >(GET_CUSTOMER_HISTORY, {
+            const result = await adminClient.query(getCustomerHistoryDocument, {
                 id: customer.id,
                 options: {
                     // skip populated CUSTOMER_ADDRESS_CREATED, CUSTOMER_DETAIL_UPDATED entries
@@ -216,20 +189,17 @@ describe('Shop customers', () => {
                 streetLine1: '5 Test Street',
                 countryCode: 'AT',
             };
-            const result = await shopClient.query<
-                CodegenShop.UpdateAddressShopMutation,
-                CodegenShop.UpdateAddressShopMutationVariables
-            >(UPDATE_ADDRESS, { input });
+            const result = await shopClient.query(updateAddressDocument, { input });
 
             expect(result.updateCustomerAddress.streetLine1).toEqual('5 Test Street');
             expect(result.updateCustomerAddress.country.code).toEqual('AT');
         });
 
         it('customer history for CUSTOMER_ADDRESS_UPDATED', async () => {
-            const result = await adminClient.query<
-                Codegen.GetCustomerHistoryQuery,
-                Codegen.GetCustomerHistoryQueryVariables
-            >(GET_CUSTOMER_HISTORY, { id: customer.id, options: { skip: 5 } });
+            const result = await adminClient.query(getCustomerHistoryDocument, {
+                id: customer.id,
+                options: { skip: 5 },
+            });
 
             expect(result.customer?.history.items.map(pick(['type', 'data']))).toEqual([
                 {
@@ -253,27 +223,21 @@ describe('Shop customers', () => {
                     id: 'T_2',
                     streetLine1: '1 Test Street',
                 };
-                await shopClient.query<
-                    CodegenShop.UpdateAddressShopMutation,
-                    CodegenShop.UpdateAddressShopMutationVariables
-                >(UPDATE_ADDRESS, { input });
+                await shopClient.query(updateAddressDocument, { input });
             }, 'You are not currently authorized to perform this action'),
         );
 
         it('deleteCustomerAddress works', async () => {
-            const { deleteCustomerAddress } = await shopClient.query<
-                CodegenShop.DeleteAddressShopMutation,
-                CodegenShop.DeleteAddressShopMutationVariables
-            >(DELETE_ADDRESS, { id: 'T_3' });
+            const { deleteCustomerAddress } = await shopClient.query(deleteAddressDocument, { id: 'T_3' });
 
             expect(deleteCustomerAddress.success).toBe(true);
         });
 
         it('customer history for CUSTOMER_ADDRESS_DELETED', async () => {
-            const result = await adminClient.query<
-                Codegen.GetCustomerHistoryQuery,
-                Codegen.GetCustomerHistoryQueryVariables
-            >(GET_CUSTOMER_HISTORY, { id: customer!.id, options: { skip: 6 } });
+            const result = await adminClient.query(getCustomerHistoryDocument, {
+                id: customer!.id,
+                options: { skip: 6 },
+            });
 
             expect(result.customer?.history.items.map(pick(['type', 'data']))).toEqual([
                 {
@@ -288,32 +252,28 @@ describe('Shop customers', () => {
         it(
             'deleteCustomerAddress fails for address not owned by Customer',
             assertThrowsWithMessage(async () => {
-                await shopClient.query<
-                    CodegenShop.DeleteAddressShopMutation,
-                    CodegenShop.DeleteAddressShopMutationVariables
-                >(DELETE_ADDRESS, { id: 'T_2' });
+                await shopClient.query(deleteAddressDocument, { id: 'T_2' });
             }, 'You are not currently authorized to perform this action'),
         );
 
         it('updatePassword return error result with incorrect current password', async () => {
-            const { updateCustomerPassword } = await shopClient.query<
-                CodegenShop.UpdatePasswordMutation,
-                CodegenShop.UpdatePasswordMutationVariables
-            >(UPDATE_PASSWORD, {
+            const { updateCustomerPassword } = await shopClient.query(updatePasswordDocument, {
                 old: 'wrong',
                 new: 'test2',
             });
             successErrorGuard.assertErrorResult(updateCustomerPassword);
 
-            expect(updateCustomerPassword.message).toBe('The provided credentials are invalid');
-            expect(updateCustomerPassword.errorCode).toBe(ErrorCode.INVALID_CREDENTIALS_ERROR);
+            if ('message' in updateCustomerPassword && 'errorCode' in updateCustomerPassword) {
+                expect(updateCustomerPassword.message).toBe('The provided credentials are invalid');
+                expect(updateCustomerPassword.errorCode).toBe(ErrorCode.INVALID_CREDENTIALS_ERROR);
+            }
         });
 
         it('updatePassword works', async () => {
-            const { updateCustomerPassword } = await shopClient.query<
-                CodegenShop.UpdatePasswordMutation,
-                CodegenShop.UpdatePasswordMutationVariables
-            >(UPDATE_PASSWORD, { old: 'test', new: 'test2' });
+            const { updateCustomerPassword } = await shopClient.query(updatePasswordDocument, {
+                old: 'test',
+                new: 'test2',
+            });
             successErrorGuard.assertSuccess(updateCustomerPassword);
 
             expect(updateCustomerPassword.success).toBe(true);
@@ -324,10 +284,10 @@ describe('Shop customers', () => {
         });
 
         it('customer history for CUSTOMER_PASSWORD_UPDATED', async () => {
-            const result = await adminClient.query<
-                Codegen.GetCustomerHistoryQuery,
-                Codegen.GetCustomerHistoryQueryVariables
-            >(GET_CUSTOMER_HISTORY, { id: customer.id, options: { skip: 7 } });
+            const result = await adminClient.query(getCustomerHistoryDocument, {
+                id: customer.id,
+                options: { skip: 7 },
+            });
 
             expect(result.customer?.history.items.map(pick(['type', 'data']))).toEqual([
                 {

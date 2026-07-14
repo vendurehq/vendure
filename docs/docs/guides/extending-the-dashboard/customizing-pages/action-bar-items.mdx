@@ -1,7 +1,7 @@
 ---
 title: 'Action Bar Items'
-metaTitle: "Adding Action Bar Buttons to Vendure Dashboard Pages"
-metaDescription: "Add custom buttons and dropdown menu items to the action bar of any Vendure Dashboard page, with context access, loading states, and permission guards."
+metaTitle: 'Adding Action Bar Buttons to Vendure Dashboard Pages'
+metaDescription: 'Add custom buttons and dropdown menu items to the action bar of any Vendure Dashboard page, with context access, loading states, and permission guards.'
 ---
 
 The Action Bar is the bar at the top of the page where you can add
@@ -38,6 +38,39 @@ defineDashboardExtension({
 
 ![Action bar button](action-bar-button.webp)
 
+## Location and position
+
+The `pageId` property is required in order to specify on which page the action bar item should appear.
+By default, the item will be placed to the left of any existing action bar items.
+
+However, since Vendure v3.6.0, you can also specify the `position` property for more control over the placement of your action bar item.
+
+See the section on [finding page and item ids](#finding-page-ids) below for help in determining the correct `pageId` and `itemId` values.
+
+```typescript
+import { Button, defineDashboardExtension } from '@vendure/dashboard';
+import { useState } from 'react';
+
+defineDashboardExtension({
+    actionBarItems: [
+        {
+            pageId: 'product-detail',
+            component: ({ context }) => {
+                // omitted for brevity
+            },
+            // highlight-start
+            position: {
+                // The ID of the existing action bar item to position relative to
+                itemId: 'save-button',
+                // Order can be 'before', 'after' or 'replace'
+                order: 'after',
+            },
+            // highlight-end
+        },
+    ],
+});
+```
+
 ## Context Data
 
 The `context` prop provides access to:
@@ -62,8 +95,8 @@ defineDashboardExtension({
         {
             pageId: 'product-list',
             type: 'dropdown',
-            component: () => <DropdownMenuItem variant="default">My Item</DropdownMenuItem>
-        }
+            component: () => <DropdownMenuItem variant="default">My Item</DropdownMenuItem>,
+        },
     ],
 });
 ```
@@ -114,10 +147,9 @@ defineDashboardExtension({
 ### Sync Button with Loading State
 
 ```tsx title="src/plugins/my-plugin/dashboard/index.tsx"
-import { Button, defineDashboardExtension } from '@vendure/dashboard';
+import { Button, defineDashboardExtension, toast } from '@vendure/dashboard';
 import { RefreshCwIcon } from 'lucide-react';
 import { useState } from 'react';
-import { toast } from 'sonner';
 
 defineDashboardExtension({
     actionBarItems: [
@@ -264,11 +296,13 @@ The dashboard provides several button variants you can use:
 6. **Group related actions**: Consider the order and grouping of multiple action items
 7. **Test thoroughly**: Verify your actions work correctly across different entity states
 
-## Finding Page IDs
+## Finding Page and Item IDs
 
-To find the `pageId` for your action bar items:
+To find the `pageId` and `itemId` for your action bar items:
 
 1. Enable [Dev Mode](/extending-the-dashboard/extending-overview/#dev-mode) in the dashboard
 2. Navigate to the page where you want to add your action
-3. The page ID will be shown in the dev mode overlay
-4. Use this ID in your action bar item configuration
+3. Hover the page or existing action bar item to reveal its IDs
+4. Use these IDs in your action bar item configuration
+
+The [Extension Targets reference](/extending-the-dashboard/customizing-pages/extension-targets/) lists the most common built-in page IDs, block IDs, action bar item IDs, and toolbar item IDs.

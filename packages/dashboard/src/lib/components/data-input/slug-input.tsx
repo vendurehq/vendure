@@ -146,8 +146,9 @@ export function SlugInput({
     defaultReadonly = true,
     className,
     name,
+    placeholder: externalPlaceholder,
     ...props
-}: SlugInputProps) {
+}: SlugInputProps & { placeholder?: string }) {
     const { t } = useLingui();
     const form = useFormContext();
     const { contentLanguage } = useUserSettings().settings;
@@ -235,7 +236,7 @@ export function SlugInput({
                         isReadonly
                             ? value
                                 ? t`Slug is set`
-                                : t`Slug will be generated automatically...`
+                                : externalPlaceholder || t`Slug will be generated automatically...`
                             : t`Enter slug manually`
                     }
                     className={cn(
@@ -259,7 +260,7 @@ export function SlugInput({
                         <Button
                             type="button"
                             variant="outline"
-                            size="sm"
+                            size="icon"
                             onClick={handleRegenerate}
                             className="shrink-0"
                             title={t`Regenerate slug from source field`}
@@ -273,7 +274,7 @@ export function SlugInput({
                     <Button
                         type="button"
                         variant="outline"
-                        size="sm"
+                        size="icon"
                         onClick={toggleReadonly}
                         className="shrink-0"
                         title={isManuallyReadonly ? t`Edit slug manually` : t`Generate slug automatically`}

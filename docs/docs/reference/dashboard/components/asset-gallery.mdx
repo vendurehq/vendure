@@ -2,7 +2,9 @@
 title: "AssetGallery"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/asset/asset-gallery.tsx" sourceLine="160" packageName="@vendure/dashboard" />
+## AssetGallery
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/asset/asset-gallery.tsx" sourceLine="178" packageName="@vendure/dashboard" />
 
 A component for displaying a gallery of assets.
 
@@ -27,7 +29,9 @@ Parameters
 
 <MemberInfo kind="parameter" type={`<a href='/reference/dashboard/components/asset-gallery#assetgalleryprops'>AssetGalleryProps</a>`} />
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/asset/asset-gallery.tsx" sourceLine="83" packageName="@vendure/dashboard" />
+## AssetGalleryProps
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/asset/asset-gallery.tsx" sourceLine="90" packageName="@vendure/dashboard" />
 
 Props for the [AssetGallery](/reference/dashboard/components/asset-gallery#assetgallery) component.
 
@@ -45,6 +49,8 @@ interface AssetGalleryProps {
     bulkActions?: AssetBulkAction[];
     displayBulkActions?: boolean;
     onPageSizeChange?: (pageSize: number) => void;
+    viewMode?: AssetViewMode;
+    onViewModeChange?: (mode: AssetViewMode) => void;
 }
 ```
 
@@ -113,6 +119,17 @@ Whether the gallery should display bulk actions.
 <MemberInfo kind="property" type={`(pageSize: number) => void`}   />
 
 The function to call when the page size changes.
+### viewMode
+
+<MemberInfo kind="property" type={`AssetViewMode`}   />
+
+The current view mode for the gallery. Defaults to 'grid'.
+### onViewModeChange
+
+<MemberInfo kind="property" type={`(mode: AssetViewMode) => void`}   />
+
+The function to call when the view mode changes.
+When provided, a toggle will be rendered in the header bar.
 
 
 </div>

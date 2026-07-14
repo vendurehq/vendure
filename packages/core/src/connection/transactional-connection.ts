@@ -9,9 +9,9 @@ import {
     FindOneOptions,
     ObjectLiteral,
     ObjectType,
+    ReplicationMode,
     Repository,
     SelectQueryBuilder,
-    ReplicationMode,
 } from 'typeorm';
 
 import { RequestContext } from '../api/common/request-context';
@@ -19,12 +19,44 @@ import { TransactionIsolationLevel } from '../api/decorators/transaction.decorat
 import { TRANSACTION_MANAGER_KEY } from '../common/constants';
 import { EntityNotFoundError } from '../common/error/errors';
 import { ChannelAware, SoftDeletable } from '../common/types/common-types';
+import { EntityAccessControlStrategy } from '../config/auth/entity-access-control-strategy';
+import { ConfigService } from '../config/config.service';
 import { VendureEntity } from '../entity/base/base.entity';
 import { joinTreeRelationsDynamically } from '../service/helpers/utils/tree-relations-qb-joiner';
 
 import { findOptionsObjectToArray } from './find-options-object-to-array';
 import { TransactionWrapper } from './transaction-wrapper';
 import { GetEntityOrThrowOptions } from './types';
+
+/**
+ * Repository methods intercepted by the access control Proxy.
+ * Hoisted to module level to avoid re-creating the Set on every getRepository() call.
+ */
+const ACCESS_CONTROL_INTERCEPTED_METHODS = new Set([
+    'find',
+    'findOne',
+    'findOneOrFail',
+    'findAndCount',
+    'count',
+]);
+
+/**
+ * SelectQueryBuilder terminal methods that execute SQL. When a QueryBuilder
+ * is obtained via a Proxy-wrapped repository's `createQueryBuilder()`, these
+ * methods are intercepted to apply access control before execution.
+ */
+const QB_TERMINAL_METHODS = new Set([
+    'getMany',
+    'getOne',
+    'getOneOrFail',
+    'getManyAndCount',
+    'getCount',
+    'getExists',
+    'getRawMany',
+    'getRawOne',
+    'getRawAndEntities',
+    'stream',
+]);
 
 /**
  * @description
@@ -43,6 +75,7 @@ export class TransactionalConnection {
     constructor(
         @InjectDataSource() private dataSource: DataSource,
         private transactionWrapper: TransactionWrapper,
+        private configService: ConfigService,
     ) {}
 
     /**
@@ -109,24 +142,29 @@ export class TransactionalConnection {
     ): Repository<Entity> {
         if (ctxOrTarget instanceof RequestContext) {
             const transactionManager = this.getTransactionManager(ctxOrTarget);
+            let repo: Repository<Entity>;
             if (transactionManager) {
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                return transactionManager.getRepository(maybeTarget!);
-            }
-
-            if (ctxOrTarget.replicationMode === 'master' || options?.replicationMode === 'master') {
+                repo = transactionManager.getRepository(maybeTarget!);
+            } else if (ctxOrTarget.replicationMode === 'master' || options?.replicationMode === 'master') {
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                return this.dataSource.createQueryRunner('master').manager.getRepository(maybeTarget!);
+                repo = this.dataSource.createQueryRunner('master').manager.getRepository(maybeTarget!);
+            } else {
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                repo = this.rawConnection.getRepository(maybeTarget!);
             }
-
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            return this.rawConnection.getRepository(maybeTarget!);
+            const strategy = this.configService.authOptions.entityAccessControlStrategy;
+            if (strategy?.applyAccessControl && maybeTarget && typeof maybeTarget === 'function') {
+                return this.wrapWithAccessControl(repo, maybeTarget, ctxOrTarget, strategy);
+            }
+            return repo;
         } else {
             if (options?.replicationMode === 'master') {
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                /* eslint-disable @typescript-eslint/no-non-null-assertion */
                 return this.dataSource
                     .createQueryRunner(options.replicationMode)
                     .manager.getRepository(maybeTarget!);
+                /* eslint-enable @typescript-eslint/no-non-null-assertion */
             }
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             return this.rawConnection.getRepository(ctxOrTarget ?? maybeTarget!);
@@ -376,14 +414,91 @@ export class TransactionalConnection {
             ...options,
         });
 
-        return qb
-            .leftJoin('entity.channels', 'channel')
+        qb.leftJoin('entity.channels', 'channel')
             .andWhere('entity.id IN (:...ids)', { ids })
-            .andWhere('channel.id = :channelId', { channelId })
-            .getMany();
+            .andWhere('channel.id = :channelId', { channelId });
+
+        return qb.getMany();
+    }
+
+    private wrapWithAccessControl<Entity extends ObjectLiteral>(
+        repo: Repository<Entity>,
+        target: ObjectType<Entity>,
+        ctx: RequestContext,
+        strategy: EntityAccessControlStrategy,
+    ): Repository<Entity> {
+        return new Proxy(repo, {
+            get(obj, prop, receiver) {
+                if (prop === 'createQueryBuilder') {
+                    return (...args: any[]) => {
+                        const qb = obj.createQueryBuilder(...args);
+                        return wrapQueryBuilder(qb, target, ctx, strategy);
+                    };
+                }
+                if (typeof prop === 'string' && ACCESS_CONTROL_INTERCEPTED_METHODS.has(prop)) {
+                    return (options: FindOneOptions<Entity> | FindManyOptions<Entity> = {}) => {
+                        const alias = obj.metadata.name;
+                        const qb = obj.createQueryBuilder(alias);
+                        qb.setFindOptions(options as FindManyOptions<Entity>);
+                        strategy.applyAccessControl?.(qb as SelectQueryBuilder<any>, target as any, ctx);
+                        switch (prop) {
+                            case 'find':
+                                return qb.getMany();
+                            case 'findOne': {
+                                if (!(options as FindOneOptions<Entity>).where) {
+                                    return Promise.resolve(null);
+                                }
+                                return qb.getOne();
+                            }
+                            case 'findOneOrFail': {
+                                return qb.getOneOrFail();
+                            }
+                            case 'findAndCount':
+                                return qb.getManyAndCount();
+                            case 'count':
+                                return qb.getCount();
+                            default:
+                                return qb.getMany();
+                        }
+                    };
+                }
+                return Reflect.get(obj, prop, receiver);
+            },
+        });
     }
 
     private getTransactionManager(ctx: RequestContext): EntityManager | undefined {
         return (ctx as any)[TRANSACTION_MANAGER_KEY];
     }
+}
+
+/**
+ * Wraps a SelectQueryBuilder so that `applyAccessControl` is called
+ * before any terminal method (getMany, getOne, etc.) executes.
+ *
+ * Uses an `applied` flag to ensure ACL is applied exactly once,
+ * even if terminal methods call each other internally (e.g.
+ * getOneOrFail → getOne → getRawAndEntities).
+ */
+function wrapQueryBuilder<Entity extends ObjectLiteral>(
+    qb: SelectQueryBuilder<Entity>,
+    entityType: ObjectType<Entity>,
+    ctx: RequestContext,
+    strategy: EntityAccessControlStrategy,
+): SelectQueryBuilder<Entity> {
+    let applied = false;
+    return new Proxy(qb, {
+        get(obj, prop, receiver) {
+            if (typeof prop === 'string' && QB_TERMINAL_METHODS.has(prop)) {
+                return (...args: any[]) => {
+                    if (!applied) {
+                        strategy.applyAccessControl?.(obj as SelectQueryBuilder<any>, entityType as any, ctx);
+                        applied = true;
+                    }
+                    return (obj as any)[prop](...args);
+                };
+            }
+            return Reflect.get(obj, prop, receiver);
+        },
+    });
 }

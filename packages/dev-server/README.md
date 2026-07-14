@@ -15,7 +15,7 @@ To run the server, run the `dev` script. The database configuration can be speci
 ```bash
 cd packages/dev-server
 
-[DB=mysql|postgres|sqlite] npm run dev
+[DB=mysql|postgres|sqlite] bun run dev
 ```
 
 The default if no db is specified is mysql.
@@ -27,7 +27,7 @@ Test data can be populated by running the `populate` script. This uses the same 
 Specify the database as above to populate that database:
 
 ```bash
-[DB=mysql|postgres|sqlite] npm run populate
+[DB=mysql|postgres|sqlite] bun run populate
 ```
 
 ## Testing custom ui extension compilation
@@ -60,7 +60,7 @@ The npm scripts `load-test:1k`, `load-test:10k` and `load-test:100k` will popula
 An individual test script may be by specifying the script name as an argument:
 
 ```
-npm run load-test:1k deep-query.js
+bun run load-test:1k deep-query.js
 ```
 
 ## pg_stat_statements

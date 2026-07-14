@@ -1,5 +1,3 @@
-'use client';
-
 import { createContext, PropsWithChildren } from 'react';
 
 export interface DefinedDateRange {

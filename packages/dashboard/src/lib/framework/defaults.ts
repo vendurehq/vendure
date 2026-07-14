@@ -41,6 +41,13 @@ export function registerDefaults() {
                         requiresPermission: ['ReadProduct', 'ReadCatalog'],
                     },
                     {
+                        id: 'option-groups',
+                        title: /* i18n*/ 'Option Groups',
+                        url: '/option-groups',
+                        order: 250,
+                        requiresPermission: ['ReadProduct', 'ReadCatalog'],
+                    },
+                    {
                         id: 'facets',
                         title: /* i18n*/ 'Facets',
                         url: '/facets',
@@ -133,18 +140,25 @@ export function registerDefaults() {
                         requiresPermission: ['ReadSystem'],
                     },
                     {
-                        id: 'healthchecks',
-                        title: /* i18n*/ 'Healthchecks',
-                        url: '/healthchecks',
-                        order: 200,
-                        requiresPermission: ['ReadSystem'],
-                    },
-                    {
                         id: 'scheduled-tasks',
                         title: /* i18n*/ 'Scheduled Tasks',
                         url: '/scheduled-tasks',
                         order: 300,
                         requiresPermission: ['ReadSystem'],
+                    },
+                    {
+                        id: 'settings-store',
+                        title: /* i18n*/ 'Settings Store',
+                        url: '/settings-store',
+                        order: 400,
+                        requiresPermission: ['ReadSystem'],
+                    },
+                    {
+                        id: 'api-keys',
+                        title: /* i18n*/ 'API Keys',
+                        url: '/api-keys',
+                        order: 550,
+                        requiresPermission: ['ReadApiKey'],
                     },
                 ],
             },
@@ -250,6 +264,7 @@ export function registerDefaults() {
         component: MetricsWidget,
         defaultSize: { w: 12, h: 6, x: 0, y: 0 },
         minSize: { w: 6, h: 4 },
+        requiresPermissions: ['ReadOrder'],
     });
 
     registerDashboardWidget({
@@ -257,6 +272,7 @@ export function registerDefaults() {
         name: /* i18n*/ 'Latest Orders Widget',
         component: LatestOrdersWidget,
         defaultSize: { w: 6, h: 7, x: 0, y: 0 },
+        requiresPermissions: ['ReadOrder'],
     });
 
     registerDashboardWidget({
@@ -264,6 +280,7 @@ export function registerDefaults() {
         name: /* i18n*/ 'Orders Summary Widget',
         component: OrdersSummaryWidget,
         defaultSize: { w: 6, h: 3, x: 6, y: 0 },
+        requiresPermissions: ['ReadOrder'],
     });
 
     registerAlert(searchIndexBufferAlert);

@@ -1,9 +1,10 @@
 import { Column } from '@tanstack/react-table';
-import { Check, FilterIcon } from 'lucide-react';
+import { FilterIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
+import { Checkbox } from '@/vdb/components/ui/checkbox.js';
 import {
     Command,
     CommandEmpty,
@@ -73,14 +74,13 @@ export function DataTableFacetedFilter<TData, TValue>({
 
     return (
         <Popover>
-            <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 border-dashed">
+            <PopoverTrigger render={<Button variant="outline" size="sm" className="h-8" />}>
                     {Icon && <Icon />}
                     {!Icon && <FilterIcon />}
                     {title}
                     {selectedValues?.size > 0 && (
                         <>
-                            <Separator orientation="vertical" className="mx-2 h-4" />
+                            <Separator orientation="vertical" className="mx-2" />
                             <Badge variant="secondary" className="rounded-sm px-1 font-normal lg:hidden">
                                 {selectedValues.size}
                             </Badge>
@@ -105,9 +105,8 @@ export function DataTableFacetedFilter<TData, TValue>({
                             </div>
                         </>
                     )}
-                </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[200px] p-0" align="start">
+            <PopoverContent className="w-auto min-w-50 max-w-75 p-0" align="start">
                 <Command>
                     {resolvedOptions.length > 2 ? <CommandInput placeholder={title} /> : null}
                     <CommandList>
@@ -142,25 +141,26 @@ export function DataTableFacetedFilter<TData, TValue>({
                                             }
                                         }}
                                     >
-                                        <div
-                                            className={cn(
-                                                'mr-2 flex h-4 w-4 items-center justify-center border border-primary',
-                                                isBoolean ? 'rounded-full' : 'rounded-sm',
-                                                isSelected
-                                                    ? 'bg-primary text-primary-foreground'
-                                                    : isBoolean
-                                                      ? '' // Empty circle for unselected radio buttons
-                                                      : 'opacity-50 [&_svg]:invisible', // Grey checkbox for unselected checkboxes
-                                            )}
-                                        >
-                                            {isBoolean ? (
-                                                isSelected && (
+                                        {isBoolean ? (
+                                            <div
+                                                className={cn(
+                                                    'mr-2 flex h-4 w-4 items-center justify-center rounded-full border border-primary',
+                                                    isSelected
+                                                        ? 'bg-primary text-primary-foreground'
+                                                        : '',
+                                                )}
+                                            >
+                                                {isSelected && (
                                                     <div className="h-2 w-2 rounded-full bg-primary-foreground" />
-                                                )
-                                            ) : (
-                                                <Check />
-                                            )}
-                                        </div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <Checkbox
+                                                checked={isSelected}
+                                                className="mr-2 pointer-events-none"
+                                                tabIndex={-1}
+                                            />
+                                        )}
                                         {option.icon && (
                                             <option.icon className="mr-2 h-4 w-4 text-muted-foreground" />
                                         )}

@@ -1,0 +1,396 @@
+---
+title: "API Keys"
+description: "Learn how to create and manage API keys for server-to-server integrations, background jobs, and third-party services in Vendure."
+keywords:
+    - api-key
+    - authentication
+    - machine-to-machine
+    - integration
+    - automation
+---
+
+API keys provide long-lived, non-interactive authentication for machine-to-machine communication. Unlike session tokens that expire and require interactive login, API keys are designed for automated integrations that need persistent access to the Vendure Admin API.
+
+import { Callout } from '@vendure-io/docs-provider/components';
+
+<Callout type="note">
+Support for API Keys was added in Vendure v3.6.0
+</Callout>
+
+## When to use API keys
+
+API keys are the right choice when:
+
+- **Syncing data with external systems** (ERP, PIM, CRM) that need to read or write product data, orders, or inventory on a schedule
+- **Running background scripts** for data imports, bulk updates, or report generation
+- **Integrating CI/CD pipelines** that deploy or configure your Vendure instance
+- **Connecting third-party services** like AI agents, analytics platforms, or warehouse management systems
+
+API keys are **not** intended for end-user authentication. For customer-facing authentication, use the standard session-based login flow.
+
+## Enabling API key authentication
+
+API key authentication is opt-in. To enable it, add `'api-key'` to the `tokenMethod` array in your Vendure config:
+
+```ts title="src/vendure-config.ts"
+import { VendureConfig } from '@vendure/core';
+
+export const config: VendureConfig = {
+    authOptions: {
+        // highlight-next-line
+        tokenMethod: ['cookie', 'bearer', 'api-key'],
+    },
+};
+```
+
+With this configuration, Vendure checks incoming requests for authentication in the following order:
+
+1. **Cookie** — session cookie (browser-based clients)
+2. **Bearer** — `Authorization: Bearer <token>` header (SPAs, mobile apps)
+3. **API Key** — `vendure-api-key` header (machine-to-machine)
+
+The first matching method wins. This means if a request includes both a session cookie and an API key header, the cookie takes precedence.
+
+<Callout type="warning">
+If you do not include `'api-key'` in the `tokenMethod` array, API key headers will be silently ignored even if keys exist in the database.
+</Callout>
+
+## Creating API keys
+
+### Via the Dashboard
+
+Navigate to **Settings > API Keys** and click **New API Key**. You will need to:
+
+1. Give the key a descriptive name (e.g. "ERP Sync - Production")
+2. Select one or more **roles** that define the key's permissions
+3. Click **Create**
+
+The full API key will be displayed **once**. Copy it immediately or download the `.env` file — the secret cannot be retrieved later. If you lose it, you must rotate the key.
+
+### Via the Admin API
+
+```graphql
+mutation {
+    createApiKey(input: {
+        roleIds: ["3"]
+        translations: [{
+            languageCode: en
+            name: "ERP Sync Key"
+        }]
+    }) {
+        apiKey     # Shown once - store securely!
+        entityId
+    }
+}
+```
+
+<Callout type="note">
+You can only assign roles whose permissions you already have. A user with the "Catalog Manager" role cannot create an API key with "SuperAdmin" permissions.
+</Callout>
+
+## Using API keys
+
+Send the API key in the `vendure-api-key` header:
+
+```bash
+curl -X POST https://your-vendure-server.com/admin-api \
+    -H "Content-Type: application/json" \
+    -H "vendure-api-key: a1b2c3d4e5f6:9f86d081884c7d659a2feaa..." \
+    -d '{"query": "{ products(options: { take: 5 }) { items { id name } } }"}'
+```
+
+Or in a Node.js script:
+
+```ts title="scripts/sync-products.ts"
+const VENDURE_API_URL = process.env.VENDURE_API_URL!;
+const VENDURE_API_KEY = process.env.VENDURE_API_KEY!;
+
+async function fetchProducts() {
+    const response = await fetch(VENDURE_API_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'vendure-api-key': VENDURE_API_KEY,
+        },
+        body: JSON.stringify({
+            query: `{
+                products(options: { take: 100 }) {
+                    items { id name slug }
+                    totalItems
+                }
+            }`,
+        }),
+    });
+    const { data } = await response.json();
+    return data.products;
+}
+```
+
+## How API keys work
+
+Understanding the internals helps when customizing or debugging API key authentication.
+
+### Key structure
+
+An API key consists of two parts separated by a colon:
+
+```
+<lookupId>:<secret>
+```
+
+- **Lookup ID** (24 hex chars by default) — a non-secret identifier used to find the key in the database. Think of it like a username.
+- **Secret** (64 hex chars by default) — the secret portion of the key. The full key (`lookupId:secret`) is hashed using bcrypt and stored in the database.
+
+This two-part design is important: bcrypt produces different hashes for the same input (due to random salts), so you cannot look up a key by hashing the incoming secret and searching for a match. The lookup ID solves this by providing a stable, indexable identifier.
+
+### Authentication flow
+
+When a request arrives with an API key:
+
+1. The `vendure-api-key` header value is extracted
+2. The key is parsed into `lookupId` and `secret`
+3. The `ApiKey` entity is fetched from the database using the `lookupId`
+4. The full incoming key (`lookupId:secret`) is verified against the stored bcrypt hash
+5. The session associated with the key's user is loaded (or created if missing)
+6. The request proceeds with that user's roles and permissions
+
+### Permissions and channels
+
+Each API key is associated with a **dedicated user** that holds the key's roles. This user:
+
+- Has no login credentials (cannot be used for interactive authentication)
+- Is created automatically when the API key is created
+- Is soft-deleted when the API key is deleted (the database row remains with a `deletedAt` timestamp)
+- Has its permissions determined entirely by the assigned roles
+
+The key also tracks an **owner** — the administrator who created it. This is useful for auditing.
+
+API keys are **channel-aware**. When you create an API key in a specific channel context, it is scoped to that channel. The key's permissions only apply within its assigned channels, just like any other user in a multi-channel setup.
+
+## Real-world examples
+
+### ERP data sync
+
+A common use case is synchronizing product and inventory data between Vendure and an ERP system:
+
+```ts title="erp-sync/sync-inventory.ts"
+const VENDURE_API_URL = process.env.VENDURE_API_URL!;
+const VENDURE_API_KEY = process.env.VENDURE_API_KEY!;
+
+interface InventoryUpdate {
+    sku: string;
+    stockOnHand: number;
+}
+
+async function syncInventoryFromErp(updates: InventoryUpdate[]) {
+    for (const update of updates) {
+        const { data } = await vendureQuery(
+            `query ($sku: String!) {
+                productVariants(options: { filter: { sku: { eq: $sku } } }) {
+                    items { id stockOnHand }
+                }
+            }`,
+            { sku: update.sku },
+        );
+
+        const variant = data.productVariants.items[0];
+        if (!variant) {
+            console.warn(`Variant not found for SKU: ${update.sku}`);
+            continue;
+        }
+
+        await vendureQuery(
+            `mutation ($input: [UpdateProductVariantInput!]!) {
+                updateProductVariants(input: $input) { id stockOnHand }
+            }`,
+            { input: [{ id: variant.id, stockOnHand: update.stockOnHand }] },
+        );
+    }
+}
+
+async function vendureQuery(query: string, variables?: Record<string, unknown>) {
+    const res = await fetch(VENDURE_API_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'vendure-api-key': VENDURE_API_KEY,
+        },
+        body: JSON.stringify({ query, variables }),
+    });
+    return res.json();
+}
+```
+
+Create an API key with a role that has `ReadCatalog` and `UpdateCatalog` permissions — nothing more.
+
+### Scheduled report generation
+
+A cron job that generates daily sales reports:
+
+```ts title="scripts/daily-report.ts"
+async function generateDailySalesReport() {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const dateStr = yesterday.toISOString().split('T')[0];
+
+    const { data } = await vendureQuery(
+        `query ($after: DateTime!, $before: DateTime!) {
+            orders(options: {
+                filter: { orderPlacedAt: { after: $after, before: $before } }
+            }) {
+                totalItems
+                items { code totalWithTax currencyCode }
+            }
+        }`,
+        {
+            after: `${dateStr}T00:00:00Z`,
+            before: `${dateStr}T23:59:59Z`,
+        },
+    );
+
+    const total = data.orders.items.reduce(
+        (sum: number, order: { totalWithTax: number }) => sum + order.totalWithTax,
+        0,
+    );
+
+    console.log(`Daily report for ${dateStr}:`);
+    console.log(`  Orders: ${data.orders.totalItems}`);
+    console.log(`  Revenue: ${(total / 100).toFixed(2)}`);
+}
+```
+
+## Managing API keys
+
+### Rotating keys
+
+If a key is compromised or as part of regular security hygiene, you can rotate it:
+
+```graphql
+mutation {
+    rotateApiKey(id: "42") {
+        apiKey   # New key - old one is immediately invalidated
+    }
+}
+```
+
+Rotation preserves the key's roles and permissions but generates a new secret. Any integration using the old key will immediately stop working.
+
+### Tracking usage
+
+The `lastUsedAt` field on each API key tracks when it was last used for authentication. Use this to identify unused keys:
+
+```graphql
+query {
+    apiKeys(options: { sort: { lastUsedAt: ASC } }) {
+        items {
+            id
+            name
+            lastUsedAt
+            owner { identifier }
+        }
+    }
+}
+```
+
+Keys that haven't been used in months are candidates for deletion.
+
+## Customizing the API key strategy
+
+You can customize how API keys are generated, parsed, and hashed by providing a custom strategy.
+
+### Custom key format
+
+For example, to use a prefix that identifies the key type:
+
+```ts title="src/custom-api-key-strategy.ts"
+import { BaseApiKeyStrategy, RequestContext } from '@vendure/core';
+import { randomBytes } from 'crypto';
+
+export class PrefixedApiKeyStrategy extends BaseApiKeyStrategy {
+    private prefix: string;
+
+    constructor(prefix: string) {
+        super();
+        this.prefix = prefix;
+    }
+
+    async generateLookupId(ctx: RequestContext): Promise<string> {
+        return this.prefix + '_' + randomBytes(12).toString('hex');
+    }
+
+    async generateSecret(ctx: RequestContext): Promise<string> {
+        return randomBytes(32).toString('hex');
+    }
+}
+```
+
+```ts title="src/vendure-config.ts"
+import { VendureConfig } from '@vendure/core';
+import { PrefixedApiKeyStrategy } from './custom-api-key-strategy';
+
+export const config: VendureConfig = {
+    authOptions: {
+        tokenMethod: ['cookie', 'bearer', 'api-key'],
+        adminApiKeyStrategy: new PrefixedApiKeyStrategy('adm'),
+    },
+};
+```
+
+This produces keys like `adm_a1b2c3d4e5f6:xyz789...`.
+
+### Custom header name
+
+If `vendure-api-key` conflicts with your infrastructure:
+
+```ts
+export const config: VendureConfig = {
+    authOptions: {
+        apiKeyHeaderKey: 'x-api-key',
+    },
+};
+```
+
+### Tuning `lastUsedAt` updates
+
+By default, `lastUsedAt` is updated on every request. For high-traffic API key usage, you can reduce database writes:
+
+```ts
+import { RandomBytesApiKeyStrategy } from '@vendure/core';
+
+export const config: VendureConfig = {
+    authOptions: {
+        adminApiKeyStrategy: new RandomBytesApiKeyStrategy({
+            lastUsedAtUpdateInterval: '5m', // Update at most every 5 minutes
+        }),
+    },
+};
+```
+
+## Troubleshooting
+
+### API key is ignored (cookie takes priority)
+
+If you're testing in a browser-based tool (like the GraphQL playground at `/admin-api`), the browser sends a session cookie automatically. Since cookies are checked before API keys, the cookie wins and the key is ignored.
+
+**Fix:** Use a tool that doesn't send cookies, such as `curl` or a standalone HTTP client. Alternatively, clear your browser cookies for the Vendure domain.
+
+### "Forbidden" error with valid key
+
+If you get a Forbidden error despite having a valid API key:
+
+1. Check that `'api-key'` is included in the `tokenMethod` config
+2. Verify the key's roles include the required permissions for the query you're running
+3. Confirm the key hasn't been deleted or rotated
+
+### Key format errors
+
+API keys must be in the format `<lookupId>:<secret>`. If the header value doesn't contain the delimiter (`:` by default), the key won't be parsed and the request will be unauthenticated.
+
+## Security best practices
+
+1. **Principle of least privilege** — create keys with only the permissions needed. A data sync script that reads products should not have `SuperAdmin` access.
+2. **One key per integration** — don't share keys across services. If one is compromised, you can rotate it without affecting others.
+3. **Store keys in environment variables** — never commit API keys to source control. Use your hosting platform's secret management.
+4. **Rotate regularly** — establish a rotation schedule, especially for keys with broad permissions.
+5. **Monitor usage** — check `lastUsedAt` periodically. Delete keys that are no longer in use.
+6. **Use HTTPS** — API keys are sent in headers. Without TLS, they can be intercepted in transit.

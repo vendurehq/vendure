@@ -1,9 +1,12 @@
+import { DashboardCustomProviderDefinition } from '@/vdb/framework/extension-api/custom-providers.js';
 import {
     BulkAction,
     DashboardActionBarItem,
+    DashboardDataTableViewOptionDefaults,
     DashboardHistoryEntryComponent,
     DashboardLoginExtensions,
     DashboardPageBlockDefinition,
+    DashboardToolbarItemDefinition,
     DashboardWidgetDefinition,
 } from '@/vdb/framework/extension-api/types/index.js';
 import { DashboardFormComponent } from '@/vdb/framework/form-engine/form-engine-types.js';
@@ -27,6 +30,10 @@ export interface GlobalRegistryContents {
     bulkActionsRegistry: Map<string, BulkAction[]>;
     listQueryDocumentRegistry: Map<string, DocumentNode[]>;
     detailQueryDocumentRegistry: Map<string, DocumentNode[]>;
+    viewOptionDefaultsRegistry: Map<string, DashboardDataTableViewOptionDefaults>;
     loginExtensions: DashboardLoginExtensions;
     historyEntries: Map<string, DashboardHistoryEntryComponent['component']>;
+    navMenuModifiers: Array<(config: NavMenuConfig) => NavMenuConfig>;
+    dashboardToolbarItemRegistry: Map<string, DashboardToolbarItemDefinition>;
+    dashboardCustomProvidersRegistry: Map<string, DashboardCustomProviderDefinition>;
 }

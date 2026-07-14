@@ -2,42 +2,46 @@ import { Request } from 'express';
 
 import { AuthOptions } from '../../config/vendure-config';
 
+// Helper that gives us the content of the tokenmethod array so we dont duplicate options
+type ExtractArrayElement<T> = T extends ReadonlyArray<infer U> ? U : T;
+
+export type ExtractTokenResult = {
+    method: Exclude<ExtractArrayElement<AuthOptions['tokenMethod']>, undefined>;
+    token: string;
+};
+
 /**
- * Get the session token from either the cookie or the Authorization header, depending
- * on the configured tokenMethod.
+ * Depending on the configured `tokenMethod`, tries to extract a session token in the order:
+ *
+ * 1. Cookie
+ * 2. Authorization Header
+ * 3. API-Key Header
+ *
+ * @see {@link AuthOptions}
  */
 export function extractSessionToken(
     req: Request,
     tokenMethod: Exclude<AuthOptions['tokenMethod'], undefined>,
-): string | undefined {
-    const tokenFromCookie = getFromCookie(req);
-    const tokenFromHeader = getFromHeader(req);
+    apiKeyHeaderKey: string,
+): ExtractTokenResult | undefined {
+    if (req.session?.token && (tokenMethod === 'cookie' || tokenMethod.includes('cookie'))) {
+        return { method: 'cookie', token: req.session.token as string };
+    }
 
-    if (tokenMethod === 'cookie') {
-        return tokenFromCookie;
-    } else if (tokenMethod === 'bearer') {
-        return tokenFromHeader;
-    }
-    if (tokenMethod.includes('cookie') && tokenFromCookie) {
-        return tokenFromCookie;
-    }
-    if (tokenMethod.includes('bearer') && tokenFromHeader) {
-        return tokenFromHeader;
-    }
-}
-
-function getFromCookie(req: Request): string | undefined {
-    if (req.session && req.session.token) {
-        return req.session.token;
-    }
-}
-
-function getFromHeader(req: Request): string | undefined {
-    const authHeader = req.get('Authorization');
-    if (authHeader) {
-        const matches = authHeader.trim().match(/^bearer\s(.+)$/i);
-        if (matches) {
-            return matches[1];
+    const authHeader = req.get('Authorization')?.trim();
+    if (authHeader && (tokenMethod === 'bearer' || tokenMethod.includes('bearer'))) {
+        const matchesBearer = authHeader.match(/^bearer\s(.+)$/i);
+        if (matchesBearer) {
+            return { method: 'bearer', token: matchesBearer[1] };
         }
+    }
+
+    // TODO: For some reason `apiKeyHeaderKey` is undefined on CI Server Smoke tests... (confirmed on 2025-12-07)
+    // Maybe it has something to do with the package versions that get installed by the CI, I do not know.
+    // Anyway, this simple check fixes this for now, let's try removing this again when versions change.
+    if (!apiKeyHeaderKey) return;
+    const apiKeyHeader = req.get(apiKeyHeaderKey)?.trim();
+    if (apiKeyHeader && tokenMethod.includes('api-key')) {
+        return { method: 'api-key', token: apiKeyHeader };
     }
 }

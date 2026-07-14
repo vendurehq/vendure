@@ -2,12 +2,12 @@
 title: "ProductOptionGroup"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/product-option-group/product-option-group.entity.ts" sourceLine="20" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/entity/product-option-group/product-option-group.entity.ts" sourceLine="21" packageName="@vendure/core" />
 
 A grouping of one or more [ProductOption](/reference/typescript-api/entities/product-option#productoption)s.
 
 ```ts title="Signature"
-class ProductOptionGroup extends VendureEntity implements Translatable, HasCustomFields, SoftDeletable {
+class ProductOptionGroup extends VendureEntity implements Translatable, HasCustomFields, SoftDeletable, ChannelAware {
     constructor(input?: DeepPartial<ProductOptionGroup>)
     @Column({ type: Date, nullable: true })
     deletedAt: Date | null;
@@ -18,9 +18,11 @@ class ProductOptionGroup extends VendureEntity implements Translatable, HasCusto
     translations: Array<Translation<ProductOptionGroup>>;
     @OneToMany(type => ProductOption, option => option.group)
     options: ProductOption[];
-    @Index()
-    @ManyToOne(type => Product, product => product.optionGroups)
-    product: Product;
+    @ManyToMany(type => Product, product => product.optionGroups)
+    products: Product[];
+    @ManyToMany(type => Channel, channel => channel.productOptionGroups)
+    @JoinTable()
+    channels: Channel[];
     @Column(type => CustomProductOptionGroupFields)
     customFields: CustomProductOptionGroupFields;
 }
@@ -28,16 +30,11 @@ class ProductOptionGroup extends VendureEntity implements Translatable, HasCusto
 * Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
 
 
-* Implements: [`Translatable`](/reference/typescript-api/entities/interfaces#translatable), HasCustomFields, [`SoftDeletable`](/reference/typescript-api/entities/interfaces#softdeletable)
+* Implements: [`Translatable`](/reference/typescript-api/entities/interfaces#translatable), HasCustomFields, [`SoftDeletable`](/reference/typescript-api/entities/interfaces#softdeletable), [`ChannelAware`](/reference/typescript-api/entities/interfaces#channelaware)
 
 
 
 <div className="members-wrapper">
-
-### constructor
-
-<MemberInfo kind="method" type={`(input?: DeepPartial<<a href='/reference/typescript-api/entities/product-option-group#productoptiongroup'>ProductOptionGroup</a>>) => ProductOptionGroup`}   />
-
 
 ### deletedAt
 
@@ -64,9 +61,14 @@ class ProductOptionGroup extends VendureEntity implements Translatable, HasCusto
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/product-option#productoption'>ProductOption</a>[]`}   />
 
 
-### product
+### products
 
-<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/product#product'>Product</a>`}   />
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/product#product'>Product</a>[]`}   />
+
+
+### channels
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>[]`}   />
 
 
 ### customFields

@@ -217,6 +217,81 @@ generated: true
 }`}
 </GraphQLDoc>
 
+<a name="apikeyfilterparameter"></a>
+
+## ApiKeyFilterParameter
+
+<GraphQLDoc
+  type="input"
+  typeName="ApiKeyFilterParameter"
+  typeLinks={{
+    IDOperators: '/reference/graphql-api/admin/input-types#idoperators',
+    DateOperators: '/reference/graphql-api/admin/input-types#dateoperators',
+    StringOperators: '/reference/graphql-api/admin/input-types#stringoperators',
+    ApiKeyFilterParameter: '/reference/graphql-api/admin/input-types#apikeyfilterparameter',
+  }}
+>
+{`input ApiKeyFilterParameter {
+  id: IDOperators
+  createdAt: DateOperators
+  updatedAt: DateOperators
+  lookupId: StringOperators
+  lastUsedAt: DateOperators
+  name: StringOperators
+  _and: [ApiKeyFilterParameter!]
+  _or: [ApiKeyFilterParameter!]
+}`}
+</GraphQLDoc>
+
+<a name="apikeylistoptions"></a>
+
+## ApiKeyListOptions
+
+<GraphQLDoc
+  type="input"
+  typeName="ApiKeyListOptions"
+  typeLinks={{
+    Int: '/reference/graphql-api/admin/object-types#int',
+    ApiKeySortParameter: '/reference/graphql-api/admin/input-types#apikeysortparameter',
+    ApiKeyFilterParameter: '/reference/graphql-api/admin/input-types#apikeyfilterparameter',
+    LogicalOperator: '/reference/graphql-api/admin/enums#logicaloperator',
+  }}
+>
+{`input ApiKeyListOptions {
+  """Skips the first n results, for use in pagination"""
+  skip: Int
+  """Takes n results, for use in pagination"""
+  take: Int
+  """Specifies which properties to sort the results by"""
+  sort: ApiKeySortParameter
+  """Allows the results to be filtered"""
+  filter: ApiKeyFilterParameter
+  """Specifies whether multiple top-level "filter" fields should be combined with a logical AND or OR operation. Defaults to AND."""
+  filterOperator: LogicalOperator
+}`}
+</GraphQLDoc>
+
+<a name="apikeysortparameter"></a>
+
+## ApiKeySortParameter
+
+<GraphQLDoc
+  type="input"
+  typeName="ApiKeySortParameter"
+  typeLinks={{
+    SortOrder: '/reference/graphql-api/admin/enums#sortorder',
+  }}
+>
+{`input ApiKeySortParameter {
+  id: SortOrder
+  createdAt: SortOrder
+  updatedAt: SortOrder
+  lookupId: SortOrder
+  lastUsedAt: SortOrder
+  name: SortOrder
+}`}
+</GraphQLDoc>
+
 <a name="assetfilterparameter"></a>
 
 ## AssetFilterParameter
@@ -236,6 +311,7 @@ generated: true
   id: IDOperators
   createdAt: DateOperators
   updatedAt: DateOperators
+  languageCode: StringOperators
   name: StringOperators
   type: StringOperators
   fileSize: NumberOperators
@@ -305,6 +381,28 @@ generated: true
 }`}
 </GraphQLDoc>
 
+<a name="assettranslationinput"></a>
+
+## AssetTranslationInput
+
+<GraphQLDoc
+  type="input"
+  typeName="AssetTranslationInput"
+  typeLinks={{
+    ID: '/reference/graphql-api/admin/object-types#id',
+    LanguageCode: '/reference/graphql-api/admin/enums#languagecode',
+    String: '/reference/graphql-api/admin/object-types#string',
+    JSON: '/reference/graphql-api/admin/object-types#json',
+  }}
+>
+{`input AssetTranslationInput {
+  id: ID
+  languageCode: LanguageCode!
+  name: String
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
 <a name="assignassetstochannelinput"></a>
 
 ## AssignAssetsToChannelInput
@@ -369,6 +467,23 @@ generated: true
 >
 {`input AssignPaymentMethodsToChannelInput {
   paymentMethodIds: [ID!]!
+  channelId: ID!
+}`}
+</GraphQLDoc>
+
+<a name="assignproductoptiongroupstochannelinput"></a>
+
+## AssignProductOptionGroupsToChannelInput
+
+<GraphQLDoc
+  type="input"
+  typeName="AssignProductOptionGroupsToChannelInput"
+  typeLinks={{
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`input AssignProductOptionGroupsToChannelInput {
+  productOptionGroupIds: [ID!]!
   channelId: ID!
 }`}
 </GraphQLDoc>
@@ -922,6 +1037,55 @@ input CreateAddressInput {
 }`}
 </GraphQLDoc>
 
+<a name="createapikeyinput"></a>
+
+## CreateApiKeyInput
+
+<GraphQLDoc
+  type="input"
+  typeName="CreateApiKeyInput"
+  typeLinks={{
+    ID: '/reference/graphql-api/admin/object-types#id',
+    CreateApiKeyTranslationInput: '/reference/graphql-api/admin/input-types#createapikeytranslationinput',
+    JSON: '/reference/graphql-api/admin/object-types#json',
+  }}
+>
+{`"""
+There is no User ID because you can only create API-Keys for yourself,
+which gets determined by the User who does the request.
+"""
+input CreateApiKeyInput {
+  """
+  Which roles to attach to this ApiKey.
+  You may only grant roles which you, yourself have.
+  """
+  roleIds: [ID!]!
+  translations: [CreateApiKeyTranslationInput!]!
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="createapikeytranslationinput"></a>
+
+## CreateApiKeyTranslationInput
+
+<GraphQLDoc
+  type="input"
+  typeName="CreateApiKeyTranslationInput"
+  typeLinks={{
+    LanguageCode: '/reference/graphql-api/admin/enums#languagecode',
+    String: '/reference/graphql-api/admin/object-types#string',
+    JSON: '/reference/graphql-api/admin/object-types#json',
+  }}
+>
+{`input CreateApiKeyTranslationInput {
+  languageCode: LanguageCode!
+  """A descriptive name so you can remind yourself where the API-Key gets used"""
+  name: String!
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
 <a name="createassetinput"></a>
 
 ## CreateAssetInput
@@ -932,12 +1096,14 @@ input CreateAddressInput {
   typeLinks={{
     Upload: '/reference/graphql-api/admin/object-types#upload',
     String: '/reference/graphql-api/admin/object-types#string',
+    AssetTranslationInput: '/reference/graphql-api/admin/input-types#assettranslationinput',
     JSON: '/reference/graphql-api/admin/object-types#json',
   }}
 >
 {`input CreateAssetInput {
   file: Upload!
   tags: [String!]
+  translations: [AssetTranslationInput!]
   customFields: JSON
 }`}
 </GraphQLDoc>
@@ -1238,7 +1404,7 @@ input CreateAddressInput {
 {`input CreateProductOptionGroupInput {
   code: String!
   translations: [ProductOptionGroupTranslationInput!]!
-  options: [CreateGroupOptionInput!]!
+  options: [CreateGroupOptionInput!]
   customFields: JSON
 }`}
 </GraphQLDoc>
@@ -2731,6 +2897,7 @@ input NumberOperators {
 {`input ProductFilterParameter {
   facetValueId: IDOperators
   sku: StringOperators
+  optionGroupId: IDOperators
   id: IDOperators
   createdAt: DateOperators
   updatedAt: DateOperators
@@ -2796,6 +2963,83 @@ input NumberOperators {
   groupId: IDOperators
   _and: [ProductOptionFilterParameter!]
   _or: [ProductOptionFilterParameter!]
+}`}
+</GraphQLDoc>
+
+<a name="productoptiongroupfilterparameter"></a>
+
+## ProductOptionGroupFilterParameter
+
+<GraphQLDoc
+  type="input"
+  typeName="ProductOptionGroupFilterParameter"
+  typeLinks={{
+    IDOperators: '/reference/graphql-api/admin/input-types#idoperators',
+    DateOperators: '/reference/graphql-api/admin/input-types#dateoperators',
+    StringOperators: '/reference/graphql-api/admin/input-types#stringoperators',
+    NumberOperators: '/reference/graphql-api/admin/input-types#numberoperators',
+    ProductOptionGroupFilterParameter: '/reference/graphql-api/admin/input-types#productoptiongroupfilterparameter',
+  }}
+>
+{`input ProductOptionGroupFilterParameter {
+  id: IDOperators
+  createdAt: DateOperators
+  updatedAt: DateOperators
+  languageCode: StringOperators
+  code: StringOperators
+  name: StringOperators
+  productCount: NumberOperators
+  _and: [ProductOptionGroupFilterParameter!]
+  _or: [ProductOptionGroupFilterParameter!]
+}`}
+</GraphQLDoc>
+
+<a name="productoptiongrouplistoptions"></a>
+
+## ProductOptionGroupListOptions
+
+<GraphQLDoc
+  type="input"
+  typeName="ProductOptionGroupListOptions"
+  typeLinks={{
+    Int: '/reference/graphql-api/admin/object-types#int',
+    ProductOptionGroupSortParameter: '/reference/graphql-api/admin/input-types#productoptiongroupsortparameter',
+    ProductOptionGroupFilterParameter: '/reference/graphql-api/admin/input-types#productoptiongroupfilterparameter',
+    LogicalOperator: '/reference/graphql-api/admin/enums#logicaloperator',
+  }}
+>
+{`input ProductOptionGroupListOptions {
+  """Skips the first n results, for use in pagination"""
+  skip: Int
+  """Takes n results, for use in pagination"""
+  take: Int
+  """Specifies which properties to sort the results by"""
+  sort: ProductOptionGroupSortParameter
+  """Allows the results to be filtered"""
+  filter: ProductOptionGroupFilterParameter
+  """Specifies whether multiple top-level "filter" fields should be combined with a logical AND or OR operation. Defaults to AND."""
+  filterOperator: LogicalOperator
+}`}
+</GraphQLDoc>
+
+<a name="productoptiongroupsortparameter"></a>
+
+## ProductOptionGroupSortParameter
+
+<GraphQLDoc
+  type="input"
+  typeName="ProductOptionGroupSortParameter"
+  typeLinks={{
+    SortOrder: '/reference/graphql-api/admin/enums#sortorder',
+  }}
+>
+{`input ProductOptionGroupSortParameter {
+  id: SortOrder
+  createdAt: SortOrder
+  updatedAt: SortOrder
+  code: SortOrder
+  name: SortOrder
+  productCount: SortOrder
 }`}
 </GraphQLDoc>
 
@@ -3346,6 +3590,25 @@ input NumberOperators {
 }`}
 </GraphQLDoc>
 
+<a name="removeproductoptiongroupsfromchannelinput"></a>
+
+## RemoveProductOptionGroupsFromChannelInput
+
+<GraphQLDoc
+  type="input"
+  typeName="RemoveProductOptionGroupsFromChannelInput"
+  typeLinks={{
+    ID: '/reference/graphql-api/admin/object-types#id',
+    Boolean: '/reference/graphql-api/admin/object-types#boolean',
+  }}
+>
+{`input RemoveProductOptionGroupsFromChannelInput {
+  productOptionGroupIds: [ID!]!
+  channelId: ID!
+  force: Boolean
+}`}
+</GraphQLDoc>
+
 <a name="removeproductvariantsfromchannelinput"></a>
 
 ## RemoveProductVariantsFromChannelInput
@@ -3527,7 +3790,9 @@ input NumberOperators {
   facetValueOperator: LogicalOperator
   facetValueFilters: [FacetValueFilterInput!]
   collectionId: ID
+  collectionIds: [ID!]
   collectionSlug: String
+  collectionSlugs: [String!]
   groupByProduct: Boolean
   take: Int
   skip: Int
@@ -4337,6 +4602,55 @@ input UpdateAddressInput {
 }`}
 </GraphQLDoc>
 
+<a name="updateapikeyinput"></a>
+
+## UpdateApiKeyInput
+
+<GraphQLDoc
+  type="input"
+  typeName="UpdateApiKeyInput"
+  typeLinks={{
+    ID: '/reference/graphql-api/admin/object-types#id',
+    UpdateApiKeyTranslationInput: '/reference/graphql-api/admin/input-types#updateapikeytranslationinput',
+    JSON: '/reference/graphql-api/admin/object-types#json',
+  }}
+>
+{`input UpdateApiKeyInput {
+  """ID of the ApiKey"""
+  id: ID!
+  """
+  Which roles to attach to this ApiKey.
+  You may only grant roles which you, yourself have.
+  """
+  roleIds: [ID!]
+  translations: [UpdateApiKeyTranslationInput!]
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
+<a name="updateapikeytranslationinput"></a>
+
+## UpdateApiKeyTranslationInput
+
+<GraphQLDoc
+  type="input"
+  typeName="UpdateApiKeyTranslationInput"
+  typeLinks={{
+    ID: '/reference/graphql-api/admin/object-types#id',
+    LanguageCode: '/reference/graphql-api/admin/enums#languagecode',
+    String: '/reference/graphql-api/admin/object-types#string',
+    JSON: '/reference/graphql-api/admin/object-types#json',
+  }}
+>
+{`input UpdateApiKeyTranslationInput {
+  id: ID
+  languageCode: LanguageCode!
+  """A descriptive name so you can remind yourself where the API-Key gets used"""
+  name: String
+  customFields: JSON
+}`}
+</GraphQLDoc>
+
 <a name="updateassetinput"></a>
 
 ## UpdateAssetInput
@@ -4348,6 +4662,7 @@ input UpdateAddressInput {
     ID: '/reference/graphql-api/admin/object-types#id',
     String: '/reference/graphql-api/admin/object-types#string',
     CoordinateInput: '/reference/graphql-api/admin/input-types#coordinateinput',
+    AssetTranslationInput: '/reference/graphql-api/admin/input-types#assettranslationinput',
     JSON: '/reference/graphql-api/admin/object-types#json',
   }}
 >
@@ -4356,6 +4671,7 @@ input UpdateAddressInput {
   name: String
   focalPoint: CoordinateInput
   tags: [String!]
+  translations: [AssetTranslationInput!]
   customFields: JSON
 }`}
 </GraphQLDoc>

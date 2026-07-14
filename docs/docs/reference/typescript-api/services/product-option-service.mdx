@@ -2,13 +2,13 @@
 title: "ProductOptionService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/product-option.service.ts" sourceLine="37" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/product-option.service.ts" sourceLine="39" packageName="@vendure/core" />
 
 Contains methods relating to [ProductOption](/reference/typescript-api/entities/product-option#productoption) entities.
 
 ```ts title="Signature"
 class ProductOptionService {
-    constructor(connection: TransactionalConnection, translatableSaver: TranslatableSaver, customFieldRelationService: CustomFieldRelationService, eventBus: EventBus, translator: TranslatorService, listQueryBuilder: ListQueryBuilder)
+    constructor(connection: TransactionalConnection, translatableSaver: TranslatableSaver, customFieldRelationService: CustomFieldRelationService, eventBus: EventBus, translator: TranslatorService, listQueryBuilder: ListQueryBuilder, channelService: ChannelService)
     findAll(ctx: RequestContext, options?: ListQueryOptions<ProductOption>, groupId?: ID, relations?: RelationPaths<ProductOption>) => Promise<PaginatedList<Translated<ProductOption>>>;
     findOne(ctx: RequestContext, id: ID, relations?: RelationPaths<ProductOption>) => Promise<Translated<ProductOption> | undefined>;
     create(ctx: RequestContext, group: ProductOptionGroup | ID, input: CreateGroupOptionInput | CreateProductOptionInput) => Promise<Translated<ProductOption>>;
@@ -18,11 +18,6 @@ class ProductOptionService {
 ```
 
 <div className="members-wrapper">
-
-### constructor
-
-<MemberInfo kind="method" type={`(connection: <a href='/reference/typescript-api/data-access/transactional-connection#transactionalconnection'>TransactionalConnection</a>, translatableSaver: <a href='/reference/typescript-api/service-helpers/translatable-saver#translatablesaver'>TranslatableSaver</a>, customFieldRelationService: CustomFieldRelationService, eventBus: <a href='/reference/typescript-api/events/event-bus#eventbus'>EventBus</a>, translator: <a href='/reference/typescript-api/service-helpers/translator-service#translatorservice'>TranslatorService</a>, listQueryBuilder: <a href='/reference/typescript-api/data-access/list-query-builder#listquerybuilder'>ListQueryBuilder</a>) => ProductOptionService`}   />
-
 
 ### findAll
 

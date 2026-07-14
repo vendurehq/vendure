@@ -1,13 +1,13 @@
+import { LanguageCode } from '@vendure/common/lib/generated-types';
 import { createTestEnvironment } from '@vendure/testing';
-import gql from 'graphql-tag';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
-import { LanguageCode } from './graphql/generated-e2e-admin-types';
-import { CREATE_COLLECTION, CREATE_PRODUCT } from './graphql/shared-definitions';
+import { graphql } from './graphql/graphql-admin';
+import { createCollectionDocument, createProductDocument } from './graphql/shared-definitions';
 
 describe('Slug generation', () => {
     const { server, adminClient } = createTestEnvironment(testConfig());
@@ -28,7 +28,7 @@ describe('Slug generation', () => {
     describe('slugForEntity query', () => {
         describe('basic slug generation', () => {
             it('generates a simple slug', async () => {
-                const result = await adminClient.query(SLUG_FOR_ENTITY, {
+                const result = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Product',
                         fieldName: 'slug',
@@ -40,7 +40,7 @@ describe('Slug generation', () => {
             });
 
             it('handles multiple spaces', async () => {
-                const result = await adminClient.query(SLUG_FOR_ENTITY, {
+                const result = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Product',
                         fieldName: 'slug',
@@ -52,7 +52,7 @@ describe('Slug generation', () => {
             });
 
             it('converts uppercase to lowercase', async () => {
-                const result = await adminClient.query(SLUG_FOR_ENTITY, {
+                const result = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Product',
                         fieldName: 'slug',
@@ -64,7 +64,7 @@ describe('Slug generation', () => {
             });
 
             it('preserves numbers', async () => {
-                const result = await adminClient.query(SLUG_FOR_ENTITY, {
+                const result = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Product',
                         fieldName: 'slug',
@@ -78,7 +78,7 @@ describe('Slug generation', () => {
 
         describe('special characters and unicode', () => {
             it('removes special characters', async () => {
-                const result = await adminClient.query(SLUG_FOR_ENTITY, {
+                const result = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Product',
                         fieldName: 'slug',
@@ -90,7 +90,7 @@ describe('Slug generation', () => {
             });
 
             it('handles special characters with spaces', async () => {
-                const result = await adminClient.query(SLUG_FOR_ENTITY, {
+                const result = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Product',
                         fieldName: 'slug',
@@ -102,7 +102,7 @@ describe('Slug generation', () => {
             });
 
             it('handles diacritical marks (accents)', async () => {
-                const result = await adminClient.query(SLUG_FOR_ENTITY, {
+                const result = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Product',
                         fieldName: 'slug',
@@ -114,7 +114,7 @@ describe('Slug generation', () => {
             });
 
             it('handles German umlauts', async () => {
-                const result = await adminClient.query(SLUG_FOR_ENTITY, {
+                const result = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Product',
                         fieldName: 'slug',
@@ -126,7 +126,7 @@ describe('Slug generation', () => {
             });
 
             it('handles Spanish characters', async () => {
-                const result = await adminClient.query(SLUG_FOR_ENTITY, {
+                const result = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Product',
                         fieldName: 'slug',
@@ -138,7 +138,7 @@ describe('Slug generation', () => {
             });
 
             it('handles non-Latin scripts (removes them)', async () => {
-                const result = await adminClient.query(SLUG_FOR_ENTITY, {
+                const result = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Product',
                         fieldName: 'slug',
@@ -150,7 +150,7 @@ describe('Slug generation', () => {
             });
 
             it('handles emoji (removes them)', async () => {
-                const result = await adminClient.query(SLUG_FOR_ENTITY, {
+                const result = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Product',
                         fieldName: 'slug',
@@ -162,7 +162,7 @@ describe('Slug generation', () => {
             });
 
             it('handles punctuation and symbols', async () => {
-                const result = await adminClient.query(SLUG_FOR_ENTITY, {
+                const result = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Product',
                         fieldName: 'slug',
@@ -176,7 +176,7 @@ describe('Slug generation', () => {
 
         describe('edge cases', () => {
             it('handles leading and trailing spaces', async () => {
-                const result = await adminClient.query(SLUG_FOR_ENTITY, {
+                const result = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Product',
                         fieldName: 'slug',
@@ -188,7 +188,7 @@ describe('Slug generation', () => {
             });
 
             it('handles hyphens correctly', async () => {
-                const result = await adminClient.query(SLUG_FOR_ENTITY, {
+                const result = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Product',
                         fieldName: 'slug',
@@ -200,7 +200,7 @@ describe('Slug generation', () => {
             });
 
             it('handles leading and trailing hyphens', async () => {
-                const result = await adminClient.query(SLUG_FOR_ENTITY, {
+                const result = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Product',
                         fieldName: 'slug',
@@ -212,7 +212,7 @@ describe('Slug generation', () => {
             });
 
             it('handles empty string', async () => {
-                const result = await adminClient.query(SLUG_FOR_ENTITY, {
+                const result = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Product',
                         fieldName: 'slug',
@@ -224,7 +224,7 @@ describe('Slug generation', () => {
             });
 
             it('handles only special characters', async () => {
-                const result = await adminClient.query(SLUG_FOR_ENTITY, {
+                const result = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Product',
                         fieldName: 'slug',
@@ -236,7 +236,7 @@ describe('Slug generation', () => {
             });
 
             it('handles mixed case with numbers and special chars', async () => {
-                const result = await adminClient.query(SLUG_FOR_ENTITY, {
+                const result = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Product',
                         fieldName: 'slug',
@@ -251,7 +251,7 @@ describe('Slug generation', () => {
         describe('uniqueness handling', () => {
             it('appends number for duplicate slugs', async () => {
                 // First, create a product with slug 'laptop'
-                const createProduct = await adminClient.query(CREATE_PRODUCT, {
+                await adminClient.query(createProductDocument, {
                     input: {
                         translations: [
                             {
@@ -265,7 +265,7 @@ describe('Slug generation', () => {
                 });
 
                 // Now try to generate slug for another product with the same base slug
-                const result = await adminClient.query(SLUG_FOR_ENTITY, {
+                const result = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Product',
                         fieldName: 'slug',
@@ -278,7 +278,7 @@ describe('Slug generation', () => {
 
             it('increments counter for multiple duplicates', async () => {
                 // Create products with slugs 'phone' and 'phone-1'
-                await adminClient.query(CREATE_PRODUCT, {
+                await adminClient.query(createProductDocument, {
                     input: {
                         translations: [
                             {
@@ -291,7 +291,7 @@ describe('Slug generation', () => {
                     },
                 });
 
-                await adminClient.query(CREATE_PRODUCT, {
+                await adminClient.query(createProductDocument, {
                     input: {
                         translations: [
                             {
@@ -305,7 +305,7 @@ describe('Slug generation', () => {
                 });
 
                 // Now generate slug for another phone
-                const result = await adminClient.query(SLUG_FOR_ENTITY, {
+                const result = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Product',
                         fieldName: 'slug',
@@ -318,7 +318,7 @@ describe('Slug generation', () => {
 
             it('excludes own ID when checking uniqueness', async () => {
                 // Create a product
-                const createResult = await adminClient.query(CREATE_PRODUCT, {
+                const createResult = await adminClient.query(createProductDocument, {
                     input: {
                         translations: [
                             {
@@ -334,7 +334,7 @@ describe('Slug generation', () => {
                 const productId = createResult.createProduct.id;
 
                 // Generate slug for the same product (updating scenario)
-                const result = await adminClient.query(SLUG_FOR_ENTITY, {
+                const result = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Product',
                         fieldName: 'slug',
@@ -349,7 +349,7 @@ describe('Slug generation', () => {
 
             it('works with different entity types', async () => {
                 // Test with Collection entity (slug field is in CollectionTranslation)
-                const result = await adminClient.query(SLUG_FOR_ENTITY, {
+                const result = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Collection',
                         fieldName: 'slug',
@@ -362,7 +362,7 @@ describe('Slug generation', () => {
 
             it('handles multi-language slug generation', async () => {
                 // Create a product with English translation first
-                const createProduct = await adminClient.query(CREATE_PRODUCT, {
+                const createProduct = await adminClient.query(createProductDocument, {
                     input: {
                         translations: [
                             {
@@ -378,7 +378,7 @@ describe('Slug generation', () => {
                 const productId = createProduct.createProduct.id;
 
                 // Test generating slug for German translation of the same product
-                const germanResult = await adminClient.query(SLUG_FOR_ENTITY, {
+                const germanResult = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Product',
                         fieldName: 'slug',
@@ -390,7 +390,7 @@ describe('Slug generation', () => {
                 expect(germanResult.slugForEntity).toBe('deutsches-produkt');
 
                 // Test generating slug for French translation
-                const frenchResult = await adminClient.query(SLUG_FOR_ENTITY, {
+                const frenchResult = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Product',
                         fieldName: 'slug',
@@ -404,7 +404,7 @@ describe('Slug generation', () => {
 
             it('handles uniqueness across different language translations', async () => {
                 // Create first product with multiple language translations
-                const product1 = await adminClient.query(CREATE_PRODUCT, {
+                await adminClient.query(createProductDocument, {
                     input: {
                         translations: [
                             {
@@ -424,7 +424,7 @@ describe('Slug generation', () => {
                 });
 
                 // Generate slug for a new product with same English name
-                const englishSlugResult = await adminClient.query(SLUG_FOR_ENTITY, {
+                const englishSlugResult = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Product',
                         fieldName: 'slug',
@@ -435,7 +435,7 @@ describe('Slug generation', () => {
                 expect(englishSlugResult.slugForEntity).toBe('computer-1');
 
                 // Generate slug with German input that also conflicts
-                const germanSlugResult = await adminClient.query(SLUG_FOR_ENTITY, {
+                const germanSlugResult = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Product',
                         fieldName: 'slug',
@@ -446,7 +446,7 @@ describe('Slug generation', () => {
                 expect(germanSlugResult.slugForEntity).toBe('computer-de-1');
 
                 // Generate slug with French input that doesn't conflict
-                const frenchSlugResult = await adminClient.query(SLUG_FOR_ENTITY, {
+                const frenchSlugResult = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Product',
                         fieldName: 'slug',
@@ -459,7 +459,7 @@ describe('Slug generation', () => {
 
             it('handles translation entity exclusion correctly with multiple languages', async () => {
                 // Create a product with multiple language translations
-                const createProduct = await adminClient.query(CREATE_PRODUCT, {
+                const createProduct = await adminClient.query(createProductDocument, {
                     input: {
                         translations: [
                             {
@@ -481,7 +481,7 @@ describe('Slug generation', () => {
                 const productId = createProduct.createProduct.id;
 
                 // Update English translation - should not conflict with itself
-                const englishUpdateResult = await adminClient.query(SLUG_FOR_ENTITY, {
+                const englishUpdateResult = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Product',
                         fieldName: 'slug',
@@ -493,7 +493,7 @@ describe('Slug generation', () => {
                 expect(englishUpdateResult.slugForEntity).toBe('multilingual-product-updated');
 
                 // Update German translation - should not conflict with itself
-                const germanUpdateResult = await adminClient.query(SLUG_FOR_ENTITY, {
+                const germanUpdateResult = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Product',
                         fieldName: 'slug',
@@ -509,7 +509,7 @@ describe('Slug generation', () => {
         describe('multi-language collections', () => {
             it('generates unique slugs for collection translations', async () => {
                 // Create a collection with multiple language translations
-                const createCollection = await adminClient.query(CREATE_COLLECTION, {
+                const createCollection = await adminClient.query(createCollectionDocument, {
                     input: {
                         translations: [
                             {
@@ -532,7 +532,7 @@ describe('Slug generation', () => {
                 const collectionId = createCollection.createCollection.id;
 
                 // Test generating new slug for Spanish translation
-                const spanishResult = await adminClient.query(SLUG_FOR_ENTITY, {
+                const spanishResult = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Collection',
                         fieldName: 'slug',
@@ -546,7 +546,7 @@ describe('Slug generation', () => {
 
             it('handles collection slug conflicts across languages', async () => {
                 // Create collection with English name
-                await adminClient.query(CREATE_COLLECTION, {
+                await adminClient.query(createCollectionDocument, {
                     input: {
                         translations: [
                             {
@@ -561,7 +561,7 @@ describe('Slug generation', () => {
                 });
 
                 // Generate slug for another collection with similar name
-                const result = await adminClient.query(SLUG_FOR_ENTITY, {
+                const result = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Collection',
                         fieldName: 'slug',
@@ -572,7 +572,7 @@ describe('Slug generation', () => {
                 expect(result.slugForEntity).toBe('fashion-collection-1');
 
                 // Test with international name that transliterates to similar slug
-                const internationalResult = await adminClient.query(SLUG_FOR_ENTITY, {
+                const internationalResult = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Collection',
                         fieldName: 'slug',
@@ -597,7 +597,7 @@ describe('Slug generation', () => {
                 ];
 
                 for (const testCase of testCases) {
-                    const result = await adminClient.query(SLUG_FOR_ENTITY, {
+                    const result = await adminClient.query(slugForEntityDocument, {
                         input: {
                             entityName: 'Product',
                             fieldName: 'slug',
@@ -609,7 +609,7 @@ describe('Slug generation', () => {
             });
 
             it('handles mixed language input', async () => {
-                const result = await adminClient.query(SLUG_FOR_ENTITY, {
+                const result = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Product',
                         fieldName: 'slug',
@@ -624,7 +624,7 @@ describe('Slug generation', () => {
         describe('auto-detection functionality', () => {
             it('auto-detects translation entity for slug field', async () => {
                 // Using base entity name, should automatically detect ProductTranslation
-                const result = await adminClient.query(SLUG_FOR_ENTITY, {
+                const result = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Product',
                         fieldName: 'slug',
@@ -637,7 +637,7 @@ describe('Slug generation', () => {
 
             it('works with explicit translation entity names', async () => {
                 // Still works when explicitly using translation entity name
-                const result = await adminClient.query(SLUG_FOR_ENTITY, {
+                const result = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'ProductTranslation',
                         fieldName: 'slug',
@@ -650,7 +650,7 @@ describe('Slug generation', () => {
 
             it('works with Collection entity auto-detection', async () => {
                 // Using base entity name, should automatically detect CollectionTranslation
-                const result = await adminClient.query(SLUG_FOR_ENTITY, {
+                const result = await adminClient.query(slugForEntityDocument, {
                     input: {
                         entityName: 'Collection',
                         fieldName: 'slug',
@@ -671,7 +671,7 @@ describe('Slug generation', () => {
                 ];
 
                 for (const testCase of testCases) {
-                    const result = await adminClient.query(SLUG_FOR_ENTITY, {
+                    const result = await adminClient.query(slugForEntityDocument, {
                         input: {
                             entityName: 'Product',
                             fieldName: 'slug',
@@ -686,7 +686,7 @@ describe('Slug generation', () => {
         describe('error handling', () => {
             it('throws error for non-existent entity', async () => {
                 try {
-                    await adminClient.query(SLUG_FOR_ENTITY, {
+                    await adminClient.query(slugForEntityDocument, {
                         input: {
                             entityName: 'NonExistentEntity',
                             fieldName: 'slug',
@@ -701,7 +701,7 @@ describe('Slug generation', () => {
 
             it('throws error for non-existent field', async () => {
                 try {
-                    await adminClient.query(SLUG_FOR_ENTITY, {
+                    await adminClient.query(slugForEntityDocument, {
                         input: {
                             entityName: 'Product',
                             fieldName: 'nonExistentField',
@@ -717,8 +717,8 @@ describe('Slug generation', () => {
     });
 });
 
-const SLUG_FOR_ENTITY = gql`
+const slugForEntityDocument = graphql(`
     query SlugForEntity($input: SlugForEntityInput!) {
         slugForEntity(input: $input)
     }
-`;
+`);

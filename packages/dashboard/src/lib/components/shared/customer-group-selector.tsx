@@ -40,11 +40,9 @@ export function CustomerGroupSelector(props: CustomerGroupSelectorProps) {
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" type="button" disabled={props.readOnly} className="gap-2">
+            <PopoverTrigger render={<Button variant="outline" size="sm" type="button" disabled={props.readOnly} className="gap-2" />}>
                     <Plus className="h-4 w-4" />
                     <Trans>Add customer groups</Trans>
-                </Button>
             </PopoverTrigger>
             <PopoverContent className="p-0" align="start">
                 <Command shouldFilter={false}>

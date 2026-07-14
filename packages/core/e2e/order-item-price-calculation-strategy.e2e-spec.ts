@@ -1,24 +1,22 @@
-import { DefaultSearchPlugin, JobQueueService, mergeConfig } from '@vendure/core';
-import { createTestEnvironment } from '@vendure/testing';
-import gql from 'graphql-tag';
+import { DefaultSearchPlugin, mergeConfig } from '@vendure/core';
+import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
-import { testConfig, TEST_SETUP_TIMEOUT_MS } from '../../../e2e-common/test-config';
+import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import { TestOrderItemPriceCalculationStrategy } from './fixtures/test-order-item-price-calculation-strategy';
+import { FragmentOf, ResultOf } from './graphql/graphql-shop';
 import {
-    AddItemToOrderMutation,
-    AddItemToOrderMutationVariables,
-    SearchProductsShopQuery,
-    SearchProductsShopQueryVariables,
-    SinglePrice,
-} from './graphql/generated-e2e-shop-types';
-import { ADD_ITEM_TO_ORDER, SEARCH_PRODUCTS_SHOP } from './graphql/shop-definitions';
+    addItemToOrderCustomFieldsDocument,
+    adjustOrderLineCustomFieldsDocument,
+    orderWithLinesAndItemsFragment,
+    searchProductsShopDocument,
+} from './graphql/shop-definitions';
 
 describe('custom OrderItemPriceCalculationStrategy', () => {
-    let variants: SearchProductsShopQuery['search']['items'];
+    let variants: ResultOf<typeof searchProductsShopDocument>['search']['items'];
     const { server, adminClient, shopClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
             customFields: {
@@ -31,18 +29,20 @@ describe('custom OrderItemPriceCalculationStrategy', () => {
         }),
     );
 
+    type OrderWithLinesAndItems = FragmentOf<typeof orderWithLinesAndItemsFragment>;
+    const orderGuard: ErrorResultGuard<OrderWithLinesAndItems> = createErrorResultGuard(
+        input => !!input.lines,
+    );
+
     beforeAll(async () => {
         await server.init({
             initialData,
             productsCsvPath: path.join(__dirname, 'fixtures/e2e-products-full.csv'),
             customerCount: 3,
         });
-        const { search } = await shopClient.query<SearchProductsShopQuery, SearchProductsShopQueryVariables>(
-            SEARCH_PRODUCTS_SHOP,
-            {
-                input: { take: 3, groupByProduct: false },
-            },
-        );
+        const { search } = await shopClient.query(searchProductsShopDocument, {
+            input: { take: 3, groupByProduct: false },
+        });
         variants = search.items;
     }, TEST_SETUP_TIMEOUT_MS);
 
@@ -54,30 +54,33 @@ describe('custom OrderItemPriceCalculationStrategy', () => {
 
     it('does not add surcharge', async () => {
         const variant0 = variants[0];
+        const variantPrice = 'value' in variant0.price ? variant0.price.value : variant0.price.min;
 
-        const { addItemToOrder } = await shopClient.query(ADD_ITEM_TO_ORDER_CUSTOM_FIELDS, {
+        const { addItemToOrder } = await shopClient.query(addItemToOrderCustomFieldsDocument, {
             productVariantId: variant0.productVariantId,
             quantity: 1,
             customFields: {
                 giftWrap: false,
             },
-        });
+        } as any);
+        orderGuard.assertSuccess(addItemToOrder);
 
-        expect(addItemToOrder.lines[0].unitPrice).toEqual((variant0.price as SinglePrice).value);
+        expect(addItemToOrder.lines[0].unitPrice).toEqual(variantPrice);
     });
 
     it('adds a surcharge', async () => {
         const variant0 = variants[0];
+        const variantPrice = 'value' in variant0.price ? variant0.price.value : variant0.price.min;
 
-        const { addItemToOrder } = await shopClient.query(ADD_ITEM_TO_ORDER_CUSTOM_FIELDS, {
+        const { addItemToOrder } = await shopClient.query(addItemToOrderCustomFieldsDocument, {
             productVariantId: variant0.productVariantId,
             quantity: 1,
             customFields: {
                 giftWrap: true,
             },
-        });
+        } as any);
+        orderGuard.assertSuccess(addItemToOrder);
 
-        const variantPrice = (variant0.price as SinglePrice).value;
         expect(addItemToOrder.lines[0].unitPrice).toEqual(variantPrice);
         expect(addItemToOrder.lines[1].unitPrice).toEqual(variantPrice + 500);
         expect(addItemToOrder.subTotal).toEqual(variantPrice + variantPrice + 500);
@@ -85,78 +88,35 @@ describe('custom OrderItemPriceCalculationStrategy', () => {
     });
 
     it('re-calculates when customFields changes', async () => {
-        const { adjustOrderLine } = await shopClient.query(ADJUST_ORDER_LINE_CUSTOM_FIELDS, {
+        const variantPrice = 'value' in variants[0].price ? variants[0].price.value : variants[0].price.min;
+
+        const { adjustOrderLine } = await shopClient.query(adjustOrderLineCustomFieldsDocument, {
             orderLineId: secondOrderLineId,
             quantity: 1,
             customFields: {
                 giftWrap: false,
             },
-        });
+        } as any);
+        orderGuard.assertSuccess(adjustOrderLine);
 
-        const variantPrice = (variants[0].price as SinglePrice).value;
         expect(adjustOrderLine.lines[0].unitPrice).toEqual(variantPrice);
         expect(adjustOrderLine.lines[1].unitPrice).toEqual(variantPrice);
         expect(adjustOrderLine.subTotal).toEqual(variantPrice + variantPrice);
     });
 
     it('applies discount for quantity greater than 3', async () => {
-        const { adjustOrderLine } = await shopClient.query(ADJUST_ORDER_LINE_CUSTOM_FIELDS, {
+        const variantPrice = 'value' in variants[0].price ? variants[0].price.value : variants[0].price.min;
+
+        const { adjustOrderLine } = await shopClient.query(adjustOrderLineCustomFieldsDocument, {
             orderLineId: secondOrderLineId,
             quantity: 4,
             customFields: {
                 giftWrap: false,
             },
-        });
+        } as any);
+        orderGuard.assertSuccess(adjustOrderLine);
 
-        const variantPrice = (variants[0].price as SinglePrice).value;
         expect(adjustOrderLine.lines[1].unitPrice).toEqual(variantPrice / 2);
         expect(adjustOrderLine.subTotal).toEqual(variantPrice + (variantPrice / 2) * 4);
     });
 });
-
-const ORDER_WITH_LINES_AND_ITEMS_FRAGMENT = gql`
-    fragment OrderWithLinesAndItems on Order {
-        id
-        subTotal
-        subTotalWithTax
-        shipping
-        total
-        totalWithTax
-        lines {
-            id
-            quantity
-            unitPrice
-            unitPriceWithTax
-        }
-    }
-`;
-
-const ADD_ITEM_TO_ORDER_CUSTOM_FIELDS = gql`
-    mutation AddItemToOrderCustomFields(
-        $productVariantId: ID!
-        $quantity: Int!
-        $customFields: OrderLineCustomFieldsInput
-    ) {
-        addItemToOrder(
-            productVariantId: $productVariantId
-            quantity: $quantity
-            customFields: $customFields
-        ) {
-            ...OrderWithLinesAndItems
-        }
-    }
-    ${ORDER_WITH_LINES_AND_ITEMS_FRAGMENT}
-`;
-
-const ADJUST_ORDER_LINE_CUSTOM_FIELDS = gql`
-    mutation AdjustOrderLineCustomFields(
-        $orderLineId: ID!
-        $quantity: Int!
-        $customFields: OrderLineCustomFieldsInput
-    ) {
-        adjustOrderLine(orderLineId: $orderLineId, quantity: $quantity, customFields: $customFields) {
-            ...OrderWithLinesAndItems
-        }
-    }
-    ${ORDER_WITH_LINES_AND_ITEMS_FRAGMENT}
-`;

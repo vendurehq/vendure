@@ -1,11 +1,9 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { DeletionResult } from '@vendure/common/lib/generated-types';
 import { ConfigService, mergeConfig } from '@vendure/core';
-import { AssetFragment } from '@vendure/core/e2e/graphql/generated-e2e-admin-types';
 import { createTestEnvironment } from '@vendure/testing';
 import { exec } from 'child_process';
 import fs from 'fs-extra';
-import gql from 'graphql-tag';
-import fetch from 'node-fetch';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -18,12 +16,9 @@ import {
 } from '../src/config/image-transform-strategy';
 import { AssetServerPlugin } from '../src/plugin';
 
-import {
-    CreateAssetsMutation,
-    DeleteAssetMutation,
-    DeleteAssetMutationVariables,
-    DeletionResult,
-} from './graphql/generated-e2e-asset-server-plugin-types';
+import { createAssetsDocument, deleteAssetDocument } from './graphql/admin-definitions';
+import { assetFragment } from './graphql/fragments-admin';
+import { FragmentOf } from './graphql/graphql-admin';
 
 const TEST_ASSET_DIR = 'test-assets';
 const IMAGE_BASENAME = 'derick-david-409858-unsplash';
@@ -38,7 +33,7 @@ class TestImageTransformStrategy implements ImageTransformStrategy {
 }
 
 describe('AssetServerPlugin', () => {
-    let asset: AssetFragment;
+    let asset: FragmentOf<typeof assetFragment>;
     const sourceFilePath = path.join(__dirname, TEST_ASSET_DIR, `source/b6/${IMAGE_BASENAME}.jpg`);
     const previewFilePath = path.join(__dirname, TEST_ASSET_DIR, `preview/71/${IMAGE_BASENAME}__preview.jpg`);
 
@@ -74,26 +69,26 @@ describe('AssetServerPlugin', () => {
 
     it('names the Asset correctly', async () => {
         const filesToUpload = [path.join(__dirname, `fixtures/assets/${IMAGE_BASENAME}.jpg`)];
-        const { createAssets }: CreateAssetsMutation = await adminClient.fileUploadMutation({
-            mutation: CREATE_ASSETS,
+        const { createAssets } = await adminClient.fileUploadMutation({
+            mutation: createAssetsDocument,
             filePaths: filesToUpload,
             mapVariables: filePaths => ({
                 input: filePaths.map(p => ({ file: null })),
             }),
         });
 
-        asset = createAssets[0] as AssetFragment;
+        asset = createAssets[0];
         expect(asset.name).toBe(`${IMAGE_BASENAME}.jpg`);
     });
 
-    it('creates the expected asset files', async () => {
+    it('creates the expected asset files', () => {
         expect(fs.existsSync(sourceFilePath)).toBe(true);
         expect(fs.existsSync(previewFilePath)).toBe(true);
     });
 
     it('serves the source file', async () => {
         const res = await fetch(`${asset.source}`);
-        const responseBuffer = await res.buffer();
+        const responseBuffer = Buffer.from(await res.arrayBuffer());
         const sourceFile = await fs.readFile(sourceFilePath);
 
         expect(Buffer.compare(responseBuffer, sourceFile)).toBe(0);
@@ -101,7 +96,7 @@ describe('AssetServerPlugin', () => {
 
     it('serves the untransformed preview file', async () => {
         const res = await fetch(`${asset.preview}`);
-        const responseBuffer = await res.buffer();
+        const responseBuffer = Buffer.from(await res.arrayBuffer());
         const previewFile = await fs.readFile(previewFilePath);
 
         expect(Buffer.compare(responseBuffer, previewFile)).toBe(0);
@@ -110,8 +105,8 @@ describe('AssetServerPlugin', () => {
     it('can handle non-latin filenames', async () => {
         const FILE_NAME_ZH = '白飯';
         const filesToUpload = [path.join(__dirname, `fixtures/assets/${FILE_NAME_ZH}.jpg`)];
-        const { createAssets }: { createAssets: AssetFragment[] } = await adminClient.fileUploadMutation({
-            mutation: CREATE_ASSETS,
+        const { createAssets } = await adminClient.fileUploadMutation({
+            mutation: createAssetsDocument,
             filePaths: filesToUpload,
             mapVariables: filePaths => ({
                 input: filePaths.map(p => ({ file: null })),
@@ -120,7 +115,7 @@ describe('AssetServerPlugin', () => {
         expect(createAssets[0].name).toBe(`${FILE_NAME_ZH}.jpg`);
         expect(createAssets[0].source).toContain(`${FILE_NAME_ZH}.jpg`);
 
-        const previewUrl = encodeURI(`${createAssets[0].preview}`);
+        const previewUrl = encodeURI(createAssets[0].preview);
         const res = await fetch(previewUrl);
 
         expect(res.status).toBe(200);
@@ -131,7 +126,7 @@ describe('AssetServerPlugin', () => {
             `preview/3f/${FILE_NAME_ZH}__preview.jpg`,
         );
 
-        const responseBuffer = await res.buffer();
+        const responseBuffer = Buffer.from(await res.arrayBuffer());
         const previewFile = await fs.readFile(previewFilePathZH);
 
         expect(Buffer.compare(responseBuffer, previewFile)).toBe(0);
@@ -148,7 +143,7 @@ describe('AssetServerPlugin', () => {
 
         it('creates cached image on first request', async () => {
             const res = await fetch(`${asset.preview}?preset=thumb`);
-            const responseBuffer = await res.buffer();
+            const responseBuffer = Buffer.from(await res.arrayBuffer());
             expect(fs.existsSync(cacheFileDir)).toBe(true);
 
             const files = await fs.readdir(cacheFileDir);
@@ -182,7 +177,7 @@ describe('AssetServerPlugin', () => {
             expect(files.length).toBe(1);
 
             const previewFile = await fs.readFile(previewFilePath);
-            const responseBuffer = await res.buffer();
+            const responseBuffer = Buffer.from(await res.arrayBuffer());
             expect(Buffer.compare(responseBuffer, previewFile)).toBe(0);
         });
 
@@ -214,7 +209,7 @@ describe('AssetServerPlugin', () => {
         describe('path traversal', () => {
             function curlWithPathAsIs(url: string) {
                 return new Promise<string>((resolve, reject) => {
-                    // We use curl here rather than node-fetch or any other fetch-type function because
+                    // We use curl here rather than fetch or any other fetch-type function because
                     // those will automatically perform path normalization which will mask the path traversal
                     return exec(`curl --path-as-is ${url}`, (err, stdout, stderr) => {
                         if (err) {
@@ -250,10 +245,7 @@ describe('AssetServerPlugin', () => {
 
     describe('deletion', () => {
         it('deleting Asset deletes binary file', async () => {
-            const { deleteAsset } = await adminClient.query<
-                DeleteAssetMutation,
-                DeleteAssetMutationVariables
-            >(DELETE_ASSET, {
+            const { deleteAsset } = await adminClient.query(deleteAssetDocument, {
                 input: {
                     assetId: asset.id,
                     force: true,
@@ -268,29 +260,32 @@ describe('AssetServerPlugin', () => {
     });
 
     describe('MIME type detection', () => {
-        let testImages: AssetFragment[] = [];
+        let testImages: Array<FragmentOf<typeof assetFragment>> = [];
 
         async function testMimeTypeOfAssetWithExt(ext: string, expectedMimeType: string) {
-            const testImage = testImages.find(i => i.source.endsWith(ext))!;
-            const result = await fetch(testImage.source);
+            // Use optional chaining so a rejected upload (no `source`) does not throw here and
+            // cascade into false failures for the other formats; assert it was accepted instead.
+            const testImage = testImages.find(i => i.source?.endsWith(ext));
+            expect(testImage?.source, `Asset with extension ".${ext}" was not created`).toBeTruthy();
+            const result = await fetch(testImage!.source);
             const contentType = result.headers.get('Content-Type');
 
             expect(contentType).toBe(expectedMimeType);
         }
 
         beforeAll(async () => {
-            const formats = ['gif', 'jpg', 'png', 'svg', 'tiff', 'webp'];
+            const formats = ['gif', 'jpg', 'pdf', 'png', 'svg', 'tiff', 'webp'];
 
             const filesToUpload = formats.map(ext => path.join(__dirname, `fixtures/assets/test.${ext}`));
-            const { createAssets }: CreateAssetsMutation = await adminClient.fileUploadMutation({
-                mutation: CREATE_ASSETS,
+            const { createAssets } = await adminClient.fileUploadMutation({
+                mutation: createAssetsDocument,
                 filePaths: filesToUpload,
                 mapVariables: filePaths => ({
                     input: filePaths.map(p => ({ file: null })),
                 }),
             });
 
-            testImages = createAssets as AssetFragment[];
+            testImages = createAssets;
         });
 
         it('gif', async () => {
@@ -299,6 +294,10 @@ describe('AssetServerPlugin', () => {
 
         it('jpg', async () => {
             await testMimeTypeOfAssetWithExt('jpg', 'image/jpeg');
+        });
+
+        it('pdf', async () => {
+            await testMimeTypeOfAssetWithExt('pdf', 'application/pdf');
         });
 
         it('png', async () => {
@@ -321,8 +320,8 @@ describe('AssetServerPlugin', () => {
     // https://github.com/vendurehq/vendure/issues/1563
     it('falls back to binary preview if image file cannot be processed', async () => {
         const filesToUpload = [path.join(__dirname, 'fixtures/assets/bad-image.jpg')];
-        const { createAssets }: CreateAssetsMutation = await adminClient.fileUploadMutation({
-            mutation: CREATE_ASSETS,
+        const { createAssets } = await adminClient.fileUploadMutation({
+            mutation: createAssetsDocument,
             filePaths: filesToUpload,
             mapVariables: filePaths => ({
                 input: filePaths.map(p => ({ file: null })),
@@ -340,28 +339,3 @@ describe('AssetServerPlugin', () => {
         expect(text).toContain('Invalid parameters');
     });
 });
-
-export const CREATE_ASSETS = gql`
-    mutation CreateAssets($input: [CreateAssetInput!]!) {
-        createAssets(input: $input) {
-            ... on Asset {
-                id
-                name
-                source
-                preview
-                focalPoint {
-                    x
-                    y
-                }
-            }
-        }
-    }
-`;
-
-export const DELETE_ASSET = gql`
-    mutation DeleteAsset($input: DeleteAssetInput!) {
-        deleteAsset(input: $input) {
-            result
-        }
-    }
-`;

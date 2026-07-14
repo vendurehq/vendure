@@ -1,7 +1,7 @@
 ---
 title: 'Tech Stack'
 metaTitle: "Vendure Dashboard Tech Stack Overview"
-metaDescription: "Explore the technologies behind the Vendure Dashboard: React 19, Vite 6, Tailwind CSS v4, TanStack Query/Router, React Hook Form, gql.tada, and more."
+metaDescription: "Explore the technologies behind the Vendure Dashboard: React 19, Vite 7, Tailwind CSS v4, TanStack Query/Router, React Hook Form, gql.tada, and more."
 ---
 
 The Vendure Dashboard is built on a modern stack of technologies that provide a great developer experience and powerful capabilities for building custom extensions.
@@ -57,9 +57,9 @@ Full [TypeScript](https://www.typescriptlang.org/) support throughout the dashbo
 - Compile-time error checking
 - Generated types from your GraphQL schema
 
-### Vite 6
+### Vite 7
 
-[Vite 6](https://vite.dev/) powers the development experience with:
+[Vite 7](https://vite.dev/) powers the development experience with:
 
 - Lightning-fast hot module replacement (HMR)
 - Optimized build process with Rollup 4
@@ -91,14 +91,14 @@ function MyComponent() {
 }
 ```
 
-### Shadcn/ui
+### Vendure Design System
 
-Built on top of [Radix UI](https://www.radix-ui.com/) primitives, [Shadcn/ui](https://ui.shadcn.com/) provides:
+The Vendure Design System is based on [Base UI](https://base-ui.com/), [Shadcn/ui](https://ui.shadcn.com/) and Tailwind, providing:
 
 - Accessible components out of the box
 - Consistent design system
 - Customizable component library
-- Copy-and-paste component approach
+- Semantic design tokens
 
 ```tsx
 import { Button, Input, Card } from '@vendure/dashboard';
@@ -123,7 +123,7 @@ function MyForm() {
 - Error handling and retry logic
 
 ```tsx
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from '@vendure/dashboard';
 import { graphql } from '@/gql';
 
 const getProductsQuery = graphql(`
@@ -169,7 +169,7 @@ function ProductList() {
 - Route-level code splitting
 
 ```tsx
-import { Link, useNavigate } from '@tanstack/react-router';
+import { Link, useNavigate } from '@vendure/dashboard';
 
 function Navigation() {
     const navigate = useNavigate();
@@ -193,8 +193,7 @@ function Navigation() {
 - Easy integration with UI libraries
 
 ```tsx
-import { useForm } from 'react-hook-form';
-import { FormFieldWrapper, Input, Button } from '@vendure/dashboard';
+import { useForm, FormFieldWrapper, Input, Button } from '@vendure/dashboard';
 
 interface FormData {
     name: string;
@@ -239,7 +238,7 @@ function MyForm() {
 
 ```tsx
 import { graphql } from '@/gql';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation } from '@vendure/dashboard';
 
 const createProductMutation = graphql(`
     mutation CreateProduct($input: CreateProductInput!) {
@@ -278,7 +277,7 @@ function CreateProductForm() {
 - Stacking support
 
 ```tsx
-import { toast } from 'sonner';
+import { toast } from '@vendure/dashboard';
 
 function MyComponent() {
     const handleSave = async () => {

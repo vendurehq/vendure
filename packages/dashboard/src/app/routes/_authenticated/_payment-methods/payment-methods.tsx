@@ -1,9 +1,8 @@
 import { BooleanDisplayBadge } from '@/vdb/components/data-display/boolean.js';
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
-import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { RichTextDescriptionCell } from '@/vdb/components/shared/table-cell/order-table-cell-components.js';
 import { Button } from '@/vdb/components/ui/button.js';
-import { PageActionBarRight } from '@/vdb/framework/layout-engine/page-layout.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, Link } from '@tanstack/react-router';
@@ -59,30 +58,29 @@ function PaymentMethodListPage() {
                 },
             }}
             bulkActions={[
-                {
-                    component: AssignPaymentMethodsToChannelBulkAction,
-                    order: 100,
-                },
-                {
-                    component: RemovePaymentMethodsFromChannelBulkAction,
-                    order: 200,
-                },
-                {
-                    component: DeletePaymentMethodsBulkAction,
-                    order: 500,
-                },
+                [
+                    {
+                        component: AssignPaymentMethodsToChannelBulkAction,
+                        order: 100,
+                    },
+                    {
+                        component: RemovePaymentMethodsFromChannelBulkAction,
+                        order: 200,
+                    },
+                ],
+                [
+                    {
+                        component: DeletePaymentMethodsBulkAction,
+                    },
+                ],
             ]}
         >
-            <PageActionBarRight>
-                <PermissionGuard requires={['CreatePaymentMethod']}>
-                    <Button asChild>
-                        <Link to="./new">
-                            <PlusIcon className="mr-2 h-4 w-4" />
-                            <Trans>New Payment Method</Trans>
-                        </Link>
-                    </Button>
-                </PermissionGuard>
-            </PageActionBarRight>
+            <ActionBarItem itemId="create-button" requiresPermission={['CreatePaymentMethod']}>
+                <Button render={<Link to="./new" />}>
+                    <PlusIcon className="mr-2 h-4 w-4" />
+                    <Trans>New Payment Method</Trans>
+                </Button>
+            </ActionBarItem>
         </ListPage>
     );
 }

@@ -29,25 +29,22 @@ export function DashboardBaseWidget({
     description,
     actions,
 }: DashboardBaseWidgetProps) {
-    const headerRef = useRef<HTMLDivElement>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
     const [dimensions, setDimensions] = useState<WidgetDimensions>({ width: 0, height: 0 });
 
     useEffect(() => {
         const updateDimensions = () => {
-            if (wrapperRef.current && contentRef.current) {
+            if (contentRef.current) {
                 const contentStyles = window.getComputedStyle(contentRef.current);
                 const paddingTop = parseFloat(contentStyles.paddingTop);
                 const paddingBottom = parseFloat(contentStyles.paddingBottom);
                 const paddingLeft = parseFloat(contentStyles.paddingLeft);
                 const paddingRight = parseFloat(contentStyles.paddingRight);
 
-                const headerHeight = headerRef.current?.offsetHeight ?? 0;
-
                 setDimensions({
-                    width: wrapperRef.current.offsetWidth - paddingLeft - paddingRight,
-                    height: wrapperRef.current.offsetHeight - paddingTop - paddingBottom - headerHeight,
+                    width: contentRef.current.clientWidth - paddingLeft - paddingRight,
+                    height: contentRef.current.clientHeight - paddingTop - paddingBottom,
                 });
             }
         };
@@ -69,7 +66,6 @@ export function DashboardBaseWidget({
         >
             {title && (
                 <CardHeader
-                    ref={headerRef}
                     className={cn(
                         'flex flex-col lg:flex-row  items-start lg:items-center',
                         actions ? 'justify-between' : 'justify-start',

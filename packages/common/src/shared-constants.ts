@@ -14,6 +14,7 @@ export const CUSTOMER_ROLE_CODE = '__customer_role__';
 export const CUSTOMER_ROLE_DESCRIPTION = 'Customer';
 export const ROOT_COLLECTION_NAME = '__root_collection__';
 export const DEFAULT_AUTH_TOKEN_HEADER_KEY = 'vendure-auth-token';
+export const DEFAULT_APIKEY_HEADER_KEY = 'vendure-api-key';
 export const DEFAULT_COOKIE_NAME = 'session';
 export const DEFAULT_CHANNEL_TOKEN_KEY = 'vendure-token';
 

@@ -28,10 +28,11 @@ export class BaseListPage {
         protected page: Page,
         protected config: ListPageConfig,
     ) {
-        this.heading = page.getByRole('heading', { name: config.title });
+        this.heading = page.getByTestId('page-heading');
         this.searchInput = page.getByPlaceholder('Filter...');
         this.dataTable = page.locator('table');
-        this.newButton = page.getByRole(config.newButtonRole ?? 'link', { name: config.newButtonLabel });
+        // Base UI's Button with render={<Link />} adds role="button" to the element
+        this.newButton = page.getByRole(config.newButtonRole ?? 'button', { name: config.newButtonLabel });
     }
 
     async goto() {
@@ -39,17 +40,17 @@ export class BaseListPage {
     }
 
     async expectLoaded() {
-        await expect(this.heading).toBeVisible();
-        await expect(this.dataTable).toBeVisible();
+        await expect(this.heading).toBeVisible({ timeout: 10_000 });
+        await expect(this.dataTable).toBeVisible({ timeout: 10_000 });
     }
 
     getRows() {
         return this.dataTable.locator('tbody tr');
     }
 
-    /** Click the first link in a row matching `name` to navigate to its detail page. */
+    /** Click the first button in the data table matching `name` to navigate to its detail page. */
     async clickEntity(name: string) {
-        await this.page.getByRole('link', { name }).first().click();
+        await this.dataTable.getByRole('button', { name }).first().click();
     }
 
     async clickNewButton() {
@@ -84,10 +85,11 @@ export class BaseListPage {
     /** Open the bulk actions dropdown and click "Delete", then confirm. */
     async bulkDelete(indices: number[] | 'all') {
         await this.selectRows(indices);
-        // Open "With selected..." dropdown
-        await this.page.getByRole('button', { name: /With selected/i }).click();
-        // Click "Delete" in the dropdown
-        await this.page.getByRole('menuitem').filter({ hasText: 'Delete' }).click();
+        // Open "Actions" dropdown
+        await this.page.getByRole('button', { name: /Actions/i }).click();
+        // Click "Delete" in the dropdown. AlertDialogTrigger renders role="button"
+        // instead of role="menuitem", so match by text within the menu.
+        await this.page.locator('[role="menu"]').getByText('Delete', { exact: true }).click();
         // Confirm in the AlertDialog
         await this.page.locator('[role="alertdialog"]').getByRole('button', { name: 'Continue' }).click();
     }
@@ -95,10 +97,9 @@ export class BaseListPage {
     /** Open the row-level action menu (ellipsis) for a specific row index, then click "Delete" and confirm. */
     async deleteRowByIndex(rowIndex: number) {
         const row = this.getRows().nth(rowIndex);
-        // The ellipsis trigger is the last button in the row
-        await row.locator('button').last().click();
-        await this.page.getByRole('menuitem').filter({ hasText: 'Delete' }).click();
-        // Confirm in the AlertDialog — the row-level dialog button says "Delete"
+        await row.getByTestId('dt-row-actions-trigger').click();
+        await this.page.locator('[role="menu"]').getByText('Delete', { exact: true }).click();
+        // Confirm in the AlertDialog
         await this.page.locator('[role="alertdialog"]').getByRole('button', { name: 'Delete' }).click();
     }
 
@@ -108,6 +109,40 @@ export class BaseListPage {
 
     async expectRowCountGreaterThan(min: number) {
         expect(await this.getRows().count()).toBeGreaterThan(min);
+    }
+
+    /** Click the sort button in the column header matching `name`. */
+    async clickColumnSort(name: string) {
+        const header = this.dataTable.locator('thead th').filter({ hasText: name });
+        await header.getByRole('button').first().click();
+        await this.page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
+    }
+
+    /** Click the "Go to next page" pagination button. */
+    async clickNextPage() {
+        await this.page.getByRole('button', { name: 'Go to next page' }).click();
+        await this.page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
+    }
+
+    /** Click the "Go to previous page" pagination button. */
+    async clickPreviousPage() {
+        await this.page.getByRole('button', { name: 'Go to previous page' }).click();
+        await this.page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
+    }
+
+    /** Get a locator for the rows-per-page Select trigger in the pagination footer. */
+    getPageSizeSelect(): Locator {
+        return this.page.locator('[data-slot="select-trigger"]').last();
+    }
+
+    /** Open the column settings dropdown (gear icon in the toolbar). */
+    async openColumnSettings() {
+        await this.page.getByTestId('dt-column-settings-trigger').click();
+    }
+
+    /** Open the add filter dropdown menu (filter icon in the toolbar). */
+    async openAddFilterMenu() {
+        await this.page.getByTestId('dt-add-filter-trigger').click();
     }
 
     /** Wait for a success toast to appear (handles both toast.success and toast with text). */

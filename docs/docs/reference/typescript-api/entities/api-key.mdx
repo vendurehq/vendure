@@ -1,0 +1,117 @@
+---
+title: "ApiKey"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/entity/api-key/api-key.entity.ts" sourceLine="28" packageName="@vendure/core" />
+
+An ApiKey is mostly used for authenticating non-interactive clients such as scripts
+or other types of services. An ApiKey is associated with a [User](/reference/typescript-api/entities/user#user) whose
+permissions will apply when the ApiKey is used for authorization.
+
+Similar to how passwords are handled, only a hash of the API key is stored in the database
+meaning, generated API-Keys are not viewable after creation, Users are responsible for storing them.
+
+Hence, if a User forgets their ApiKey, the old one must be deleted and a new one created.
+This is called "rotating" an ApiKey.
+
+```ts title="Signature"
+class ApiKey extends VendureEntity implements HasCustomFields, ChannelAware, Translatable, SoftDeletable {
+    constructor(input?: DeepPartial<ApiKey>)
+    @Column({ unique: true })
+    lookupId: string;
+    @Column({ unique: true })
+    apiKeyHash: string;
+    @Column({ type: Date, nullable: true })
+    lastUsedAt: Date | null;
+    @Column({ type: Date, nullable: true })
+    deletedAt: Date | null;
+    @ManyToOne(type => User)
+    owner: User;
+    @EntityId()
+    ownerId: ID;
+    @ManyToOne(type => User)
+    user: User;
+    @EntityId()
+    userId: ID;
+    @ManyToMany(() => Channel)
+    @JoinTable()
+    channels: Channel[];
+    @OneToMany(() => ApiKeyTranslation, t => t.base, { eager: true })
+    translations: Array<Translation<ApiKey>>;
+    @Column(type => CustomApiKeyFields)
+    customFields: CustomApiKeyFields;
+    name: LocaleString;
+}
+```
+* Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
+
+
+* Implements: HasCustomFields, [`ChannelAware`](/reference/typescript-api/entities/interfaces#channelaware), [`Translatable`](/reference/typescript-api/entities/interfaces#translatable), [`SoftDeletable`](/reference/typescript-api/entities/interfaces#softdeletable)
+
+
+
+<div className="members-wrapper">
+
+### lookupId
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### apiKeyHash
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### lastUsedAt
+
+<MemberInfo kind="property" type={`Date | null`}   />
+
+
+### deletedAt
+
+<MemberInfo kind="property" type={`Date | null`}   />
+
+
+### owner
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/user#user'>User</a>`}   />
+
+
+### ownerId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
+
+
+### user
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/user#user'>User</a>`}   />
+
+
+### userId
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/id#id'>ID</a>`}   />
+
+
+### channels
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/channel#channel'>Channel</a>[]`}   />
+
+
+### translations
+
+<MemberInfo kind="property" type={`Array<Translation<<a href='/reference/typescript-api/entities/api-key#apikey'>ApiKey</a>>>`}   />
+
+
+### customFields
+
+<MemberInfo kind="property" type={`CustomApiKeyFields`}   />
+
+
+### name
+
+<MemberInfo kind="property" type={`LocaleString`}   />
+
+
+
+
+</div>

@@ -1,1 +1,0 @@
-# Vendure Paypal integration

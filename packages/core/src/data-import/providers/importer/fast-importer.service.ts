@@ -115,6 +115,9 @@ export class FastImporterService {
             input,
             entityType: ProductOptionGroup,
             translationType: ProductOptionGroupTranslation,
+            beforeSave: async g => {
+                g.channels = unique([this.defaultChannel, this.importCtx.channel], 'id');
+            },
         });
         return group.id;
     }
@@ -126,7 +129,10 @@ export class FastImporterService {
             input,
             entityType: ProductOption,
             translationType: ProductOptionTranslation,
-            beforeSave: po => (po.group = { id: input.productOptionGroupId } as any),
+            beforeSave: po => {
+                po.group = { id: input.productOptionGroupId } as any;
+                po.channels = unique([this.defaultChannel, this.importCtx.channel], 'id');
+            },
         });
         return option.id;
     }

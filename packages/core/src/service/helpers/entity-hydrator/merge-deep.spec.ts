@@ -43,6 +43,32 @@ describe('mergeDeep()', () => {
         expect(line2?.productVariant?.id).toBe('variant-of-line-2');
     });
 
+    // https://github.com/vendurehq/vendure/issues/4935
+    // A source object shared by multiple targets (e.g. two order lines referencing the
+    // same ProductVariant instance) must be merged into every referencing target, not
+    // just the first. Previously the persistent `visited` set treated the shared
+    // instance as a circular reference on its second encounter and skipped it.
+    it('should merge a shared source instance into every referencing target', () => {
+        const sharedVariant = {
+            id: 9572,
+            facetValues: [{ id: 1, code: '5kg', facet: { id: 7, code: 'weight' } }],
+        };
+        const hydrationFetched = [
+            { id: 1, productVariant: sharedVariant },
+            { id: 2, productVariant: sharedVariant },
+        ];
+        const prefetched = [
+            { id: 1, productVariant: { id: 9572 } },
+            { id: 2, productVariant: { id: 9572 } },
+        ];
+
+        const merged = mergeDeep(prefetched as any, hydrationFetched as any);
+
+        // Both lines' variants must have the hydrated facetValues (incl. the nested facet)
+        expect(merged[0].productVariant.facetValues?.[0].facet.code).toBe('weight');
+        expect(merged[1].productVariant.facetValues?.[0].facet.code).toBe('weight');
+    });
+
     it('should handle circular objects', () => {
         const first = {
             name: 'John',

@@ -4,7 +4,6 @@ import {
     OrderAddress,
     OrderTaxSummary,
     OrderType,
-    TaxLine,
 } from '@vendure/common/lib/generated-types';
 import { DeepPartial, ID } from '@vendure/common/lib/shared-types';
 import { summate } from '@vendure/common/lib/shared-utils';
@@ -13,6 +12,7 @@ import { Column, Entity, Index, JoinTable, ManyToMany, ManyToOne, OneToMany } fr
 import { Calculated } from '../../common/calculated-decorator';
 import { InternalServerError } from '../../common/error/errors';
 import { ChannelAware } from '../../common/types/common-types';
+import { getConfig } from '../../config/config-helpers';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { OrderState } from '../../service/helpers/order-state-machine/order-state';
 import { VendureEntity } from '../base/base.entity';
@@ -292,59 +292,12 @@ export class Order extends VendureEntity implements ChannelAware, HasCustomField
      * @description
      * A summary of the taxes being applied to this Order.
      */
-    @Calculated({ relations: ['lines', 'surcharges'] })
+    @Calculated({ relations: ['lines', 'surcharges', 'shippingLines'] })
     get taxSummary(): OrderTaxSummary[] {
         this.throwIfLinesNotJoined('taxSummary');
         this.throwIfSurchargesNotJoined('taxSummary');
-        const taxRateMap = new Map<
-            string,
-            { rate: number; base: number; tax: number; description: string }
-        >();
-        const taxId = (taxLine: TaxLine): string => `${taxLine.description}:${taxLine.taxRate}`;
-        const taxableLines = [
-            ...(this.lines ?? []),
-            ...(this.shippingLines ?? []),
-            ...(this.surcharges ?? []),
-        ];
-        for (const line of taxableLines) {
-            const taxRateTotal = summate(line.taxLines, 'taxRate');
-            for (const taxLine of line.taxLines) {
-                const id = taxId(taxLine);
-                const row = taxRateMap.get(id);
-                const proportionOfTotalRate = 0 < taxLine.taxRate ? taxLine.taxRate / taxRateTotal : 0;
-
-                const lineBase =
-                    line instanceof OrderLine
-                        ? line.proratedLinePrice
-                        : line instanceof Surcharge
-                          ? line.price
-                          : line.discountedPrice;
-                const lineWithTax =
-                    line instanceof OrderLine
-                        ? line.proratedLinePriceWithTax
-                        : line instanceof Surcharge
-                          ? line.priceWithTax
-                          : line.discountedPriceWithTax;
-                const amount = Math.round((lineWithTax - lineBase) * proportionOfTotalRate);
-                if (row) {
-                    row.tax += amount;
-                    row.base += lineBase;
-                } else {
-                    taxRateMap.set(id, {
-                        tax: amount,
-                        base: lineBase,
-                        description: taxLine.description,
-                        rate: taxLine.taxRate,
-                    });
-                }
-            }
-        }
-        return Array.from(taxRateMap.entries()).map(([taxRate, row]) => ({
-            taxRate: row.rate,
-            description: row.description,
-            taxBase: row.base,
-            taxTotal: row.tax,
-        }));
+        const { orderTaxCalculationStrategy } = getConfig().taxOptions;
+        return orderTaxCalculationStrategy.calculateTaxSummary(this);
     }
 
     private throwIfLinesNotJoined(propertyName: keyof Order) {

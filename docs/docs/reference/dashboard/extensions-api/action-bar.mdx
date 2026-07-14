@@ -2,6 +2,8 @@
 title: "ActionBar"
 generated: true
 ---
+## DashboardActionBarItem
+
 <GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/layout.ts" sourceLine="17" packageName="@vendure/dashboard" since="3.3.0" />
 
 Allows you to define custom action bar items for any page in the dashboard, which is the
@@ -16,6 +18,8 @@ interface DashboardActionBarItem {
     component: React.FunctionComponent<{ context: PageContextValue }>;
     type?: 'button' | 'dropdown';
     requiresPermission?: string | string[];
+    id?: string;
+    position?: ActionBarItemPosition;
 }
 ```
 
@@ -56,6 +60,53 @@ import { DropdownMenuItem } from '@vendure/dashboard';
 <MemberInfo kind="property" type={`string | string[]`}   />
 
 Any permissions that are required to display this action bar item.
+### id
+
+<MemberInfo kind="property" type={`string`}  since="3.5.2"  />
+
+A unique identifier for this action bar item. This is required if you want
+other extensions to be able to position their items relative to this one.
+### position
+
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/extensions-api/action-bar#actionbaritemposition'>ActionBarItemPosition</a>`}  since="3.5.2"  />
+
+Position this item relative to another action bar item. The `itemId` should
+match the `id` of an existing action bar item (either a built-in item or one
+added by another extension).
+
+- `'before'`: Place this item before the target item
+- `'after'`: Place this item after the target item
+- `'replace'`: Replace the target item entirely with this item
+
+
+</div>
+## ActionBarItemPosition
+
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/layout.ts" sourceLine="88" packageName="@vendure/dashboard" since="3.5.2" />
+
+The relative position of an ActionBar item. This is determined by finding an existing
+action bar item by its `id`, and then specifying whether your custom item should come
+before, after, or completely replace that item.
+
+```ts title="Signature"
+type ActionBarItemPosition = {
+    itemId: string;
+    order: 'before' | 'after' | 'replace'
+}
+```
+
+<div className="members-wrapper">
+
+### itemId
+
+<MemberInfo kind="property" type={`string`}   />
+
+
+### order
+
+<MemberInfo kind="property" type={`'before' | 'after' | 'replace'`}   />
+
+
 
 
 </div>

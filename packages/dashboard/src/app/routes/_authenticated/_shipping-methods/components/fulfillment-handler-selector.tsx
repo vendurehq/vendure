@@ -3,6 +3,7 @@ import { api } from '@/vdb/graphql/api.js';
 import { configurableOperationDefFragment } from '@/vdb/graphql/fragments.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
 import { useQuery } from '@tanstack/react-query';
+import { useLingui } from '@lingui/react/macro';
 
 export const fulfillmentHandlersDocument = graphql(
     `
@@ -21,6 +22,8 @@ interface FulfillmentHandlerSelectorProps {
 }
 
 export function FulfillmentHandlerSelector({ value, onChange }: Readonly<FulfillmentHandlerSelectorProps>) {
+    const { t } = useLingui();
+
     const { data: fulfillmentHandlersData } = useQuery({
         queryKey: ['fulfillmentHandlers'],
         queryFn: () => api.query(fulfillmentHandlersDocument),
@@ -39,9 +42,13 @@ export function FulfillmentHandlerSelector({ value, onChange }: Readonly<Fulfill
 
     return (
         <div>
-            <Select onValueChange={onFulfillmentHandlerSelected} value={value ?? undefined}>
+            <Select
+                items={fulfillmentHandlers ? Object.fromEntries(fulfillmentHandlers.map(fh => [fh.code, fh.description])) : undefined}
+                onValueChange={(value) => { if (value != null) onFulfillmentHandlerSelected(value) }}
+                value={value ?? undefined}
+            >
                 <SelectTrigger>
-                    <SelectValue placeholder="Select a fulfillment handler" />
+                    <SelectValue placeholder={t`Select a fulfillment handler`} />
                 </SelectTrigger>
                 <SelectContent>
                     {fulfillmentHandlers?.map(fulfillmentHandler => (

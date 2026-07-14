@@ -28,7 +28,8 @@ class Product extends VendureEntity implements Translatable, HasCustomFields, Ch
     translations: Array<Translation<Product>>;
     @OneToMany(type => ProductVariant, variant => variant.product)
     variants: ProductVariant[];
-    @OneToMany(type => ProductOptionGroup, optionGroup => optionGroup.product)
+    @ManyToMany(type => ProductOptionGroup, optionGroup => optionGroup.products)
+    @JoinTable()
     optionGroups: ProductOptionGroup[];
     @ManyToMany(type => FacetValue, facetValue => facetValue.products)
     @JoinTable()
@@ -48,11 +49,6 @@ class Product extends VendureEntity implements Translatable, HasCustomFields, Ch
 
 
 <div className="members-wrapper">
-
-### constructor
-
-<MemberInfo kind="method" type={`(input?: DeepPartial<<a href='/reference/typescript-api/entities/product#product'>Product</a>>) => Product`}   />
-
 
 ### deletedAt
 

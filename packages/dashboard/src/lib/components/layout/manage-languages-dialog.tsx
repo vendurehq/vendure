@@ -22,7 +22,7 @@ import { Trans } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Lock } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
+import { toast } from '@/vdb/components/ui/sonner.js';
 
 // GraphQL queries
 const globalSettingsLanguagesDocument = graphql(`
@@ -351,8 +351,9 @@ export function ManageLanguagesDialog({ open, onClose }: ManageLanguagesDialogPr
                                             <Trans>Default Language</Trans>
                                         </Label>
                                         <Select
+                                            items={Object.fromEntries(sortedChannelLanguages.map(({ code, label }) => [code, `${label} (${code.toUpperCase()})`]))}
                                             value={channelDefaultLanguage}
-                                            onValueChange={setChannelDefaultLanguage}
+                                            onValueChange={(value) => { if (value != null) setChannelDefaultLanguage(value) }}
                                             disabled={!canUpdateChannel}
                                         >
                                             <SelectTrigger className="w-[200px]">

@@ -31,10 +31,8 @@ export function OrderLineCustomFieldsForm({ onUpdate, value }: Readonly<OrderLin
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon">
-                    <Settings2 className="h-4 w-4" />
-                </Button>
+            <PopoverTrigger render={<Button variant="ghost" size="icon" />}>
+                <Settings2 className="h-4 w-4" />
             </PopoverTrigger>
             <PopoverContent className="w-80">
                 <Form {...form}>

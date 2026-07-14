@@ -2,6 +2,8 @@
 title: "Job"
 generated: true
 ---
+## Job
+
 <GenerationInfo sourceFile="packages/core/src/job-queue/job.ts" sourceLine="37" packageName="@vendure/core" />
 
 A Job represents a piece of work to be run in the background, i.e. outside the request-response cycle.
@@ -115,11 +117,6 @@ class Job<T extends JobData<T> = any> {
 <MemberInfo kind="property" type={`number`}   />
 
 
-### constructor
-
-<MemberInfo kind="method" type={`(config: <a href='/reference/typescript-api/job-queue/types#jobconfig'>JobConfig</a><T>) => Job`}   />
-
-
 ### start
 
 <MemberInfo kind="method" type={`() => `}   />
@@ -166,6 +163,8 @@ Used to register event handler for job events
 
 
 </div>
+## JobEventType
+
 <GenerationInfo sourceFile="packages/core/src/job-queue/job.ts" sourceLine="15" packageName="@vendure/core" />
 
 An event raised by a Job.
@@ -173,6 +172,8 @@ An event raised by a Job.
 ```ts title="Signature"
 type JobEventType = 'progress'
 ```
+## JobEventListener
+
 <GenerationInfo sourceFile="packages/core/src/job-queue/job.ts" sourceLine="24" packageName="@vendure/core" />
 
 The signature of the event handler expected by the `Job.on()` method.

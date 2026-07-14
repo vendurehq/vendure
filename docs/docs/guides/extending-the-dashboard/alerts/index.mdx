@@ -24,8 +24,7 @@ in your own custom alerts.
 
 ```tsx title="pending-updates-alert.tsx"
 import { graphql } from '@/gql';
-import { api, DashboardAlertDefinition } from '@vendure/dashboard';
-import { toast } from 'sonner';
+import { api, DashboardAlertDefinition, toast } from '@vendure/dashboard';
 
 const pendingSearchIndexUpdatesDocument = graphql(`
     query GetPendingSearchIndexUpdates {

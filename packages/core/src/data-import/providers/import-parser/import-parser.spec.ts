@@ -93,6 +93,29 @@ describe('ImportParser', () => {
             expect(result.results).toMatchSnapshot();
         });
 
+        it('parses option group with explicit code syntax', async () => {
+            const importParser = new ImportParser(mockConfigService);
+
+            const input = await loadTestFixture('option-group-with-codes.csv');
+            const result = await importParser.parseProducts(input);
+
+            expect(result.errors).toEqual([]);
+            expect(result.results.length).toBe(1);
+
+            const product = result.results[0].product;
+            expect(product.optionGroups.length).toBe(2);
+
+            // First group: "size:tshirt-size" should have code "tshirt-size" and name "size"
+            expect(product.optionGroups[0].code).toBe('tshirt-size');
+            expect(product.optionGroups[0].translations[0].name).toBe('size');
+            expect(product.optionGroups[0].translations[0].values).toEqual(['Small', 'Large']);
+
+            // Second group: "color" should have no explicit code
+            expect(product.optionGroups[1].code).toBeUndefined();
+            expect(product.optionGroups[1].translations[0].name).toBe('color');
+            expect(product.optionGroups[1].translations[0].values).toEqual(['Red', 'Blue']);
+        });
+
         describe('error conditions', () => {
             it('reports errors on invalid option values', async () => {
                 const importParser = new ImportParser(mockConfigService);

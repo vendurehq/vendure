@@ -7,11 +7,12 @@ import {
 } from '@/vdb/components/ui/dropdown-menu.js';
 import { api } from '@/vdb/graphql/api.js';
 import { ConfigurableOperationDefFragment } from '@/vdb/graphql/fragments.js';
-import { Trans } from '@lingui/react/macro';
+import { useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
 import { ConfigurableOperationInput as ConfigurableOperationInputType } from '@vendure/common/lib/generated-types';
 import { Plus } from 'lucide-react';
 import { ConfigurableOperationInput } from './configurable-operation-input.js';
+import { getInitialConfigArgValue } from './configurable-operation-utils.js';
 
 /**
  * Props interface for ConfigurableOperationSelector component
@@ -27,7 +28,7 @@ export interface ConfigurableOperationSelectorProps {
     queryKey: string;
     /** Dot-separated path to extract operations from query result (e.g., "paymentMethodHandlers") */
     dataPath: string;
-    /** Text to display on the selection button */
+    /** Text to display on the selection button. Must be pre-translated, e.g. with the `t` macro. */
     buttonText: string;
     /** Text to display when no operations are available (defaults to "No options found") */
     emptyText?: string;
@@ -64,7 +65,7 @@ type QueryData = {
  *   queryDocument={paymentHandlersDocument}
  *   queryKey="paymentMethodHandlers"
  *   dataPath="paymentMethodHandlers"
- *   buttonText="Select Payment Handler"
+ *   buttonText={t`Select Payment Handler`}
  * />
  * ```
  */
@@ -75,9 +76,10 @@ export function ConfigurableOperationSelector({
     queryKey,
     dataPath,
     buttonText,
-    emptyText = 'No options found',
+    emptyText,
     onValidityChange,
 }: Readonly<ConfigurableOperationSelectorProps>) {
+    const { t } = useLingui();
     const { data } = useQuery<QueryData>({
         queryKey: [queryKey],
         queryFn: () => api.query(queryDocument),
@@ -103,7 +105,7 @@ export function ConfigurableOperationSelector({
             code: operation.code,
             arguments: operationDef.args.map(arg => ({
                 name: arg.name,
-                value: arg.defaultValue != null ? arg.defaultValue.toString() : '',
+                value: getInitialConfigArgValue(arg),
             })),
         });
     };
@@ -134,11 +136,9 @@ export function ConfigurableOperationSelector({
             )}
             <DropdownMenu>
                 {!value?.code && (
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="w-fit">
+                    <DropdownMenuTrigger render={<Button variant="outline" className="w-fit" />}>
                             <Plus />
-                            <Trans>{buttonText}</Trans>
-                        </Button>
+                            {buttonText}
                     </DropdownMenuTrigger>
                 )}
                 <DropdownMenuContent className="w-96">
@@ -152,7 +152,7 @@ export function ConfigurableOperationSelector({
                             </DropdownMenuItem>
                         ))
                     ) : (
-                        <DropdownMenuItem>{emptyText}</DropdownMenuItem>
+                        <DropdownMenuItem>{emptyText ?? t`No options found`}</DropdownMenuItem>
                     )}
                 </DropdownMenuContent>
             </DropdownMenu>

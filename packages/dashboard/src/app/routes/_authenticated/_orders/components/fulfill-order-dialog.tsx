@@ -1,4 +1,5 @@
 import { ConfigurableOperationInput } from '@/vdb/components/shared/configurable-operation-input.js';
+import { getInitialConfigArgValue } from '@/vdb/components/shared/configurable-operation-utils.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import {
@@ -120,7 +121,7 @@ export function FulfillOrderDialog({ order, onSuccess }: Readonly<FulfillOrderDi
                 code: defaultHandler.code,
                 arguments: defaultHandler.args.map(arg => ({
                     name: arg.name,
-                    value: arg.defaultValue ?? '',
+                    value: getInitialConfigArgValue(arg),
                 })),
             });
         }
@@ -272,6 +273,7 @@ export function FulfillOrderDialog({ order, onSuccess }: Readonly<FulfillOrderDi
                                                     min="0"
                                                     max={quantity.max}
                                                     value={quantity.fulfillCount}
+                                                    data-testid="fulfill-quantity"
                                                     onChange={e => {
                                                         const value = Number.parseInt(e.target.value) || 0;
                                                         updateFulfillmentQuantity(line.id, value);
@@ -292,7 +294,9 @@ export function FulfillOrderDialog({ order, onSuccess }: Readonly<FulfillOrderDi
                                     render={({ field }) => (
                                         <ConfigurableOperationInput
                                             operationDefinition={selectedHandler}
-                                            value={field.value}
+                                            value={
+                                                field.value ?? { code: selectedHandler.code, arguments: [] }
+                                            }
                                             onChange={field.onChange}
                                             readonly={false}
                                             removable={false}

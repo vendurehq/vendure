@@ -17,9 +17,7 @@ type Story = StoryObj<typeof meta>;
 export const Playground: Story = {
     render: () => (
         <Popover>
-            <PopoverTrigger asChild>
-                <Button variant="outline">Open popover</Button>
-            </PopoverTrigger>
+            <PopoverTrigger render={<Button variant="outline" />}>Open popover</PopoverTrigger>
             <PopoverContent className="w-80">
                 <div className="grid gap-4">
                     <div className="space-y-2">

@@ -123,7 +123,14 @@ export class PostgresSearchStrategy implements SearchStrategy {
             .limit(take)
             .offset(skip)
             .getRawMany()
-            .then(res => res.map(r => mapToSearchResult(r, ctx.channel.defaultCurrencyCode)));
+            .then(res =>
+                res.map(r =>
+                    mapToSearchResult(
+                        r,
+                        this.options.indexCurrencyCode ? r.si_currencyCode : ctx.channel.defaultCurrencyCode,
+                    ),
+                ),
+            );
     }
 
     async getTotalCount(ctx: RequestContext, input: SearchInput, enabledOnly: boolean): Promise<number> {
@@ -152,13 +159,23 @@ export class PostgresSearchStrategy implements SearchStrategy {
         input: SearchInput,
         forceGroup: boolean = false,
     ): SelectQueryBuilder<SearchIndexItem> {
-        const { term, facetValueFilters, facetValueIds, facetValueOperator, collectionId, collectionSlug } =
-            input;
+        const {
+            term,
+            facetValueFilters,
+            facetValueIds,
+            facetValueOperator,
+            collectionId,
+            collectionSlug,
+            collectionIds,
+            collectionSlugs,
+        } = input;
         // join multiple words with the logical AND operator
         const termLogicalAnd = term
             ? term
                   .trim()
+                  .replace(/['":\\!|&()]/g, ' ')
                   .split(/\s+/g)
+                  .filter(t => t.length > 0)
                   .map(t => `'${t}':*`)
                   .join(' & ')
             : '';
@@ -250,9 +267,43 @@ export class PostgresSearchStrategy implements SearchStrategy {
                 collectionSlug,
             });
         }
+        if (collectionIds?.length) {
+            qb.andWhere(
+                new Brackets(qb1 => {
+                    for (const id of Array.from(new Set(collectionIds))) {
+                        const placeholder = createPlaceholderFromId(id);
+                        qb1.orWhere(
+                            `:${placeholder}::varchar = ANY (string_to_array(si.collectionIds, ','))`,
+                            {
+                                [placeholder]: id,
+                            },
+                        );
+                    }
+                }),
+            );
+        }
+        if (collectionSlugs?.length) {
+            qb.andWhere(
+                new Brackets(qb1 => {
+                    for (const slug of Array.from(new Set(collectionSlugs))) {
+                        const placeholder = createPlaceholderFromId(slug);
+                        qb1.orWhere(
+                            `:${placeholder}::varchar = ANY (string_to_array(si.collectionSlugs, ','))`,
+                            {
+                                [placeholder]: slug,
+                            },
+                        );
+                    }
+                }),
+            );
+        }
 
         qb.andWhere('si.channelId = :channelId', { channelId: ctx.channelId });
         applyLanguageConstraints(qb, ctx.languageCode, ctx.channel.defaultLanguageCode);
+
+        if (this.options.indexCurrencyCode) {
+            qb.andWhere('si.currencyCode = :currencyCode', { currencyCode: ctx.currencyCode });
+        }
 
         if (input.groupByProduct === true) {
             qb.groupBy('si.productId');
@@ -267,7 +318,7 @@ export class PostgresSearchStrategy implements SearchStrategy {
      * "MIN" function in this case to all other columns than the productId.
      */
     private createPostgresSelect(groupByProduct: boolean): string {
-        return getFieldsToSelect(this.options.indexStockStatus)
+        return getFieldsToSelect(this.options.indexStockStatus, this.options.indexCurrencyCode)
             .map(col => {
                 const qualifiedName = `si.${col}`;
                 const alias = `si_${col}`;

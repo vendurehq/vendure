@@ -1074,7 +1074,9 @@ input PaymentInput {
   facetValueOperator: LogicalOperator
   facetValueFilters: [FacetValueFilterInput!]
   collectionId: ID
+  collectionIds: [ID!]
   collectionSlug: String
+  collectionSlugs: [String!]
   groupByProduct: Boolean
   take: Int
   skip: Int

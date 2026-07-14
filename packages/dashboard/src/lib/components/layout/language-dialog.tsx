@@ -8,7 +8,7 @@ import { Trans } from '@lingui/react/macro';
 import { useMemo, useState } from 'react';
 import { uiConfig } from 'virtual:vendure-ui-config';
 import { Button } from '../ui/button.js';
-import { DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog.js';
+import { DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog.js';
 import { Label } from '../ui/label.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select.js';
 
@@ -48,13 +48,20 @@ export function LanguageDialog() {
                 <DialogTitle>
                     <Trans>Select display language</Trans>
                 </DialogTitle>
+                <DialogDescription className="sr-only">
+                    <Trans>Choose your preferred display language and locale settings</Trans>
+                </DialogDescription>
             </DialogHeader>
             <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-1 w-full">
                     <Label>
                         <Trans>Display language</Trans>
                     </Label>
-                    <Select defaultValue={settings.displayLanguage} onValueChange={handleLanguageChange}>
+                    <Select
+                        items={Object.fromEntries(sortedLanguages.map(({ code, label }) => [code, <><span className="uppercase text-muted-foreground">{code}</span> <span>{label}</span></>]))}
+                        defaultValue={settings.displayLanguage}
+                        onValueChange={(value) => { if (value != null) handleLanguageChange(value) }}
+                    >
                         <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select a language" />
                         </SelectTrigger>
@@ -72,7 +79,11 @@ export function LanguageDialog() {
                     <Label>
                         <Trans>Locale</Trans>
                     </Label>
-                    <Select defaultValue={settings.displayLocale} onValueChange={setDisplayLocale}>
+                    <Select
+                        items={Object.fromEntries(sortedLocales.map(({ code, label }) => [code, <><span className="uppercase text-muted-foreground">{code}</span> <span>{label}</span></>]))}
+                        defaultValue={settings.displayLocale}
+                        onValueChange={(value) => { if (value != null) setDisplayLocale(value) }}
+                    >
                         <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select a locale" />
                         </SelectTrigger>
@@ -92,7 +103,11 @@ export function LanguageDialog() {
                     <Trans>Sample Formatting</Trans>:{' '}
                     <span className="text-muted-foreground">{humanReadableLanguageAndLocale}</span>
                 </span>
-                <Select defaultValue={selectedCurrency} onValueChange={setSelectedCurrency}>
+                <Select
+                    items={Object.fromEntries(availableCurrencyCodes.map(c => [c, formatCurrencyName(c)]))}
+                    defaultValue={selectedCurrency}
+                    onValueChange={(value) => { if (value != null) setSelectedCurrency(value) }}
+                >
                     <SelectTrigger>
                         <SelectValue placeholder="Select a currency" />
                     </SelectTrigger>
@@ -124,9 +139,7 @@ export function LanguageDialog() {
                 </div>
             </div>
             <DialogFooter>
-                <DialogClose asChild>
-                    <Button>Close</Button>
-                </DialogClose>
+                <DialogClose render={<Button />}>Close</DialogClose>
             </DialogFooter>
         </DialogContent>
     );

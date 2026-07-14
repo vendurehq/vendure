@@ -6,6 +6,8 @@ type ProductOptionGroup implements Node {
     code: String!
     name: String!
     options: [ProductOption!]!
+    "The number of products that use this option group"
+    productCount: Int!
     translations: [ProductOptionGroupTranslation!]!
 }
 

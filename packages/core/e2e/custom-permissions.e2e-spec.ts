@@ -1,10 +1,9 @@
 import { mergeConfig } from '@vendure/core';
-import gql from 'graphql-tag';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
-import { testConfig, TEST_SETUP_TIMEOUT_MS } from '../../../e2e-common/test-config';
+import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { createTestEnvironment } from '../../testing/lib/create-test-environment';
 
 import {
@@ -13,16 +12,18 @@ import {
     wishlist,
 } from './fixtures/test-plugins/with-custom-permissions';
 import {
-    AdministratorFragment,
-    CreateAdministratorMutation,
-    CreateAdministratorMutationVariables,
-    CreateRoleMutation,
-    CreateRoleMutationVariables,
-    RoleFragment,
-    UpdateRoleMutation,
-    UpdateRoleMutationVariables,
-} from './graphql/generated-e2e-admin-types';
-import { CREATE_ADMINISTRATOR, CREATE_ROLE, UPDATE_ROLE } from './graphql/shared-definitions';
+    crudCreateDocument,
+    crudDeleteDocument,
+    crudReadDocument,
+    crudUpdateDocument,
+    syncCustomPermissionsDocument,
+} from './graphql/admin-definitions';
+import { ResultOf } from './graphql/graphql-admin';
+import {
+    createAdministratorDocument,
+    createRoleDocument,
+    updateRoleDocument,
+} from './graphql/shared-definitions';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 
 describe('Custom permissions', () => {
@@ -32,8 +33,8 @@ describe('Custom permissions', () => {
         }),
     );
 
-    let testRole: RoleFragment;
-    let testAdmin: AdministratorFragment;
+    let testRole: ResultOf<typeof createRoleDocument>['createRole'];
+    let testAdmin: ResultOf<typeof createAdministratorDocument>['createAdministrator'];
 
     beforeAll(async () => {
         await server.init({
@@ -44,22 +45,16 @@ describe('Custom permissions', () => {
         await adminClient.asSuperAdmin();
 
         // create a new role and Admin and sign in as that Admin
-        const { createRole } = await adminClient.query<CreateRoleMutation, CreateRoleMutationVariables>(
-            CREATE_ROLE,
-            {
-                input: {
-                    channelIds: ['T_1'],
-                    code: 'test-role',
-                    description: 'Testing custom permissions',
-                    permissions: [],
-                },
+        const { createRole } = await adminClient.query(createRoleDocument, {
+            input: {
+                channelIds: ['T_1'],
+                code: 'test-role',
+                description: 'Testing custom permissions',
+                permissions: [],
             },
-        );
+        });
         testRole = createRole;
-        const { createAdministrator } = await adminClient.query<
-            CreateAdministratorMutation,
-            CreateAdministratorMutationVariables
-        >(CREATE_ADMINISTRATOR, {
+        const { createAdministrator } = await adminClient.query(createAdministratorDocument, {
             input: {
                 firstName: 'Test',
                 lastName: 'Admin',
@@ -82,28 +77,28 @@ describe('Custom permissions', () => {
         });
 
         it('single permission', async () => {
-            const { syncWishlist } = await adminClient.query(SYNC);
+            const { syncWishlist } = await adminClient.query(syncCustomPermissionsDocument);
             expect(syncWishlist).toBe(true);
         });
 
         it('CRUD create permission', async () => {
-            const { createWishlist } = await adminClient.query(CRUD_CREATE);
+            const { createWishlist } = await adminClient.query(crudCreateDocument);
             expect(createWishlist).toBe(true);
         });
 
         it('CRUD read permission', async () => {
             // eslint-disable-next-line no-shadow,@typescript-eslint/no-shadow
-            const { wishlist } = await adminClient.query(CRUD_READ);
+            const { wishlist } = await adminClient.query(crudReadDocument);
             expect(wishlist).toBe(true);
         });
 
         it('CRUD update permission', async () => {
-            const { updateWishlist } = await adminClient.query(CRUD_UPDATE);
+            const { updateWishlist } = await adminClient.query(crudUpdateDocument);
             expect(updateWishlist).toBe(true);
         });
 
         it('CRUD delete permission', async () => {
-            const { deleteWishlist } = await adminClient.query(CRUD_DELETE);
+            const { deleteWishlist } = await adminClient.query(crudDeleteDocument);
             expect(deleteWishlist).toBe(true);
         });
     });
@@ -116,35 +111,35 @@ describe('Custom permissions', () => {
         it(
             'single permission',
             assertThrowsWithMessage(async () => {
-                await adminClient.query(SYNC);
+                await adminClient.query(syncCustomPermissionsDocument);
             }, 'You are not currently authorized to perform this action'),
         );
 
         it(
             'CRUD create permission',
             assertThrowsWithMessage(async () => {
-                await adminClient.query(CRUD_CREATE);
+                await adminClient.query(crudCreateDocument);
             }, 'You are not currently authorized to perform this action'),
         );
 
         it(
             'CRUD read permission',
             assertThrowsWithMessage(async () => {
-                await adminClient.query(CRUD_READ);
+                await adminClient.query(crudReadDocument);
             }, 'You are not currently authorized to perform this action'),
         );
 
         it(
             'CRUD update permission',
             assertThrowsWithMessage(async () => {
-                await adminClient.query(CRUD_UPDATE);
+                await adminClient.query(crudUpdateDocument);
             }, 'You are not currently authorized to perform this action'),
         );
 
         it(
             'CRUD delete permission',
             assertThrowsWithMessage(async () => {
-                await adminClient.query(CRUD_DELETE);
+                await adminClient.query(crudDeleteDocument);
             }, 'You are not currently authorized to perform this action'),
         );
     });
@@ -152,7 +147,7 @@ describe('Custom permissions', () => {
     describe('adding permissions enables access', () => {
         beforeAll(async () => {
             await adminClient.asSuperAdmin();
-            await adminClient.query<UpdateRoleMutation, UpdateRoleMutationVariables>(UPDATE_ROLE, {
+            await adminClient.query(updateRoleDocument, {
                 input: {
                     id: testRole.id,
                     permissions: [
@@ -169,59 +164,29 @@ describe('Custom permissions', () => {
         });
 
         it('single permission', async () => {
-            const { syncWishlist } = await adminClient.query(SYNC);
+            const { syncWishlist } = await adminClient.query(syncCustomPermissionsDocument);
             expect(syncWishlist).toBe(true);
         });
 
         it('CRUD create permission', async () => {
-            const { createWishlist } = await adminClient.query(CRUD_CREATE);
+            const { createWishlist } = await adminClient.query(crudCreateDocument);
             expect(createWishlist).toBe(true);
         });
 
         it('CRUD read permission', async () => {
             // eslint-disable-next-line no-shadow,@typescript-eslint/no-shadow
-            const { wishlist } = await adminClient.query(CRUD_READ);
+            const { wishlist } = await adminClient.query(crudReadDocument);
             expect(wishlist).toBe(true);
         });
 
         it('CRUD update permission', async () => {
-            const { updateWishlist } = await adminClient.query(CRUD_UPDATE);
+            const { updateWishlist } = await adminClient.query(crudUpdateDocument);
             expect(updateWishlist).toBe(true);
         });
 
         it('CRUD delete permission', async () => {
-            const { deleteWishlist } = await adminClient.query(CRUD_DELETE);
+            const { deleteWishlist } = await adminClient.query(crudDeleteDocument);
             expect(deleteWishlist).toBe(true);
         });
     });
 });
-
-const SYNC = gql`
-    mutation Sync {
-        syncWishlist
-    }
-`;
-
-const CRUD_READ = gql`
-    query CrudRead {
-        wishlist
-    }
-`;
-
-const CRUD_CREATE = gql`
-    mutation CrudCreate {
-        createWishlist
-    }
-`;
-
-const CRUD_UPDATE = gql`
-    mutation CrudUpdate {
-        updateWishlist
-    }
-`;
-
-const CRUD_DELETE = gql`
-    mutation CrudDelete {
-        deleteWishlist
-    }
-`;

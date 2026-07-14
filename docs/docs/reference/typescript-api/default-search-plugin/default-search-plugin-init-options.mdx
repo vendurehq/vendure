@@ -9,6 +9,7 @@ Options which configure the behaviour of the DefaultSearchPlugin
 ```ts title="Signature"
 interface DefaultSearchPluginInitOptions {
     indexStockStatus?: boolean;
+    indexCurrencyCode?: boolean;
     bufferUpdates?: boolean;
     searchStrategy?: SearchStrategy;
 }
@@ -23,6 +24,13 @@ interface DefaultSearchPluginInitOptions {
 If set to `true`, the stock status of a ProductVariant (inStock: Boolean) will
 be exposed in the `search` query results. Enabling this option on an existing
 Vendure installation will require a DB migration/synchronization.
+### indexCurrencyCode
+
+<MemberInfo kind="property" type={`boolean`} default={`false.`}  since="3.6.0"  />
+
+If set to `true`, the currencyCode of the ProductVariant will be exposed in the
+`search` query results. Enabling this option on an existing Vendure installation
+will require a DB migration/synchronization.
 ### bufferUpdates
 
 <MemberInfo kind="property" type={`boolean`} default={`false`}  since="1.3.0"  />

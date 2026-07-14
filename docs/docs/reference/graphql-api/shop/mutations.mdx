@@ -356,6 +356,24 @@ type Mutation {
 }`}
 </GraphQLDoc>
 
+<a name="setcurrencycodefororder"></a>
+
+## setCurrencyCodeForOrder
+
+<GraphQLDoc
+  type="mutation"
+  typeName="setCurrencyCodeForOrder"
+  typeLinks={{
+    UpdateOrderItemsResult: '/reference/graphql-api/shop/object-types#updateorderitemsresult',
+    CurrencyCode: '/reference/graphql-api/shop/enums#currencycode',
+  }}
+>
+{`"""Sets the currency code for the active Order"""
+type Mutation {
+  setCurrencyCodeForOrder(currencyCode: CurrencyCode!): UpdateOrderItemsResult!
+}`}
+</GraphQLDoc>
+
 <a name="setcustomerfororder"></a>
 
 ## setCustomerForOrder

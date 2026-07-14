@@ -2,6 +2,7 @@ import { Trans } from '@lingui/react/macro';
 import { Table } from '@tanstack/react-table';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
+
 import { Button } from '@/vdb/components/ui/button.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/vdb/components/ui/select.js';
 
@@ -10,20 +11,16 @@ interface DataTablePaginationProps<TData> {
 }
 
 export function DataTablePagination<TData>({ table }: DataTablePaginationProps<TData>) {
-    const selectedRowCount = Object.keys(table.getState().rowSelection).length;
     return (
         <div className="flex items-center justify-between px-2">
-            <div className="flex-1 text-sm text-muted-foreground">
-                <Trans>
-                    {selectedRowCount} of {table.getFilteredRowModel().rows.length} row(s) selected.
-                </Trans>
-            </div>
+            <div className="flex-1" />
             <div className="flex items-center space-x-6 lg:space-x-8">
                 <div className="flex items-center space-x-2">
                     <p className="hidden @xl/table:block text-sm font-medium">
                         <Trans>Rows per page</Trans>
                     </p>
                     <Select
+                        items={Object.fromEntries([10, 20, 30, 40, 50].map(size => [`${size}`, size]))}
                         value={`${table.getState().pagination.pageSize}`}
                         onValueChange={value => {
                             table.setPageSize(Number(value));

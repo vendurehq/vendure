@@ -1,4 +1,3 @@
-'use client';
 import { DataTableContext } from '@/vdb/components/data-table/data-table-context.js';
 import { useContext } from 'react';
 

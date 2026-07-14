@@ -1,8 +1,10 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { Permission } from '@vendure/common/lib/generated-types';
 
 import { SetSettingsStoreValueResult } from '../../../config/settings-store/settings-store-types';
 import { SettingsStoreService } from '../../../service/helpers/settings-store/settings-store.service';
 import { RequestContext } from '../../common/request-context';
+import { Allow } from '../../decorators/allow.decorator';
 import { Ctx } from '../../decorators/request-context.decorator';
 
 export class SettingsStoreInput {
@@ -24,6 +26,27 @@ export class SettingsStoreAdminResolver {
     constructor(private readonly settingsStoreService: SettingsStoreService) {}
 
     @Query()
+    @Allow(Permission.ReadSystem)
+    async settingsStoreFieldDefinitions(@Ctx() ctx: RequestContext) {
+        const allFields = this.settingsStoreService.getAllFieldDefinitions();
+
+        // Filter to fields the user can read
+        const readable = allFields.filter(({ key }) => this.settingsStoreService.hasReadPermission(ctx, key));
+
+        // Batch-fetch current values
+        const keys = readable.map(f => f.key);
+        const values = keys.length > 0 ? await this.settingsStoreService.getMany(ctx, keys) : {};
+
+        return readable.map(({ key, config }) => ({
+            key,
+            scopeType: this.settingsStoreService.getScopeType(config),
+            readonly: config.readonly ?? false,
+            currentValue: values[key] ?? null,
+        }));
+    }
+
+    @Query()
+    @Allow(Permission.Authenticated)
     async getSettingsStoreValue(@Ctx() ctx: RequestContext, @Args('key') key: string): Promise<any> {
         if (!this.settingsStoreService.hasReadPermission(ctx, key)) {
             return undefined;
@@ -32,6 +55,7 @@ export class SettingsStoreAdminResolver {
     }
 
     @Query()
+    @Allow(Permission.Authenticated)
     async getSettingsStoreValues(
         @Ctx() ctx: RequestContext,
         @Args('keys') keys: string[],
@@ -46,6 +70,7 @@ export class SettingsStoreAdminResolver {
     }
 
     @Mutation()
+    @Allow(Permission.Authenticated)
     async setSettingsStoreValue(
         @Ctx() ctx: RequestContext,
         @Args('input') input: SettingsStoreInput,
@@ -77,6 +102,7 @@ export class SettingsStoreAdminResolver {
     }
 
     @Mutation()
+    @Allow(Permission.Authenticated)
     async setSettingsStoreValues(
         @Ctx() ctx: RequestContext,
         @Args('inputs') inputs: SettingsStoreInput[],

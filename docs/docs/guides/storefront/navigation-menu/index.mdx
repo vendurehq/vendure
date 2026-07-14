@@ -30,7 +30,7 @@ query GetTopLevelCollections {
 ```
 
 </TabItem>
-<TabItem value="Response" label="Response" >
+<TabItem value="Response" label="Response">
 
 ```json
 {
@@ -126,7 +126,7 @@ export function arrayToTree<T extends HasParent>(nodes: T[]): RootNode<T> {
         if (mappedArr.hasOwnProperty(id)) {
             const mappedElem = mappedArr[id];
             const parentId = mappedElem.parentId;
-            if (!parent) {
+            if (!parentId) {
                 continue;
             }
             // If the element is not at the root level, add it to its parent array of children.

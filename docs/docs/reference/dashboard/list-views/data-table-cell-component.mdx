@@ -2,7 +2,7 @@
 title: "DataTableCellComponent"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-table/types.ts" sourceLine="40" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-table/types.ts" sourceLine="38" packageName="@vendure/dashboard" since="3.4.0" />
 
 This type is used to define re-usable components that can render a table cell in a
 DataTable.
@@ -26,10 +26,8 @@ export const CustomerCell: DataTableCellComponent<CustomerCellData> = ({ row }) 
         return null;
     }
     return (
-        <Button asChild variant="ghost">
-            <Link to={`/customers/${value.id}`}>
-                {value.firstName} {value.lastName}
-            </Link>
+        <Button variant="ghost" render={<Link to={`/customers/${value.id}`} />}>
+            {value.firstName} {value.lastName}
         </Button>
     );
 };

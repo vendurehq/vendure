@@ -10,6 +10,7 @@ import { SchedulerModule } from '../scheduler/scheduler.module';
 import { ActiveOrderService } from './helpers/active-order/active-order.service';
 import { ConfigArgService } from './helpers/config-arg/config-arg.service';
 import { CustomFieldRelationService } from './helpers/custom-field-relation/custom-field-relation.service';
+import { CustomerChannelAssignmentService } from './helpers/customer-channel-assignment/customer-channel-assignment.service';
 import { EntityDuplicatorService } from './helpers/entity-duplicator/entity-duplicator.service';
 import { EntityHydrator } from './helpers/entity-hydrator/entity-hydrator.service';
 import { EntitySlugService } from './helpers/entity-slug.service';
@@ -37,6 +38,7 @@ import { TranslatorService } from './helpers/translator/translator.service';
 import { VerificationTokenGenerator } from './helpers/verification-token-generator/verification-token-generator';
 import { InitializerService } from './initializer.service';
 import { AdministratorService } from './services/administrator.service';
+import { ApiKeyService } from './services/api-key.service';
 import { AssetService } from './services/asset.service';
 import { AuthService } from './services/auth.service';
 import { ChannelService } from './services/channel.service';
@@ -58,6 +60,7 @@ import { ProductOptionService } from './services/product-option.service';
 import { ProductVariantService } from './services/product-variant.service';
 import { ProductService } from './services/product.service';
 import { PromotionService } from './services/promotion.service';
+import { ProvinceService } from './services/province.service';
 import { RoleService } from './services/role.service';
 import { SearchService } from './services/search.service';
 import { SellerService } from './services/seller.service';
@@ -74,6 +77,7 @@ import { ZoneService } from './services/zone.service';
 
 const services = [
     AdministratorService,
+    ApiKeyService,
     AssetService,
     AuthService,
     ChannelService,
@@ -96,6 +100,7 @@ const services = [
     ProductService,
     ProductVariantService,
     PromotionService,
+    ProvinceService,
     RoleService,
     SearchService,
     SellerService,
@@ -135,6 +140,7 @@ const helpers = [
     ProductPriceApplicator,
     EntityHydrator,
     RequestContextService,
+    CustomerChannelAssignmentService,
     TranslatorService,
     EntityDuplicatorService,
     FacetValueChecker,

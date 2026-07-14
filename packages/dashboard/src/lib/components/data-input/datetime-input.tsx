@@ -1,5 +1,3 @@
-'use client';
-
 import { format } from 'date-fns';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
@@ -74,24 +72,23 @@ export function DateTimeInput({ value, onChange, fieldDef, disabled }: Readonly<
 
     return (
         <Popover open={isOpen} onOpenChange={readOnly ? undefined : setIsOpen}>
-            <PopoverTrigger asChild>
-                <div className="flex items-center">
+            <PopoverTrigger render={<div className="flex items-center" />}>
                     <Button
                         variant="outline"
                         disabled={readOnly}
                         className={cn(
-                            'w-full justify-start text-left font-normal shadow-xs',
+                            'flex-1 min-w-0 justify-start text-left font-normal',
                             date ? 'rounded-r-none' : 'text-muted-foreground',
                         )}
                     >
-                        <CalendarClock className="mr-2 h-4 w-4" />
-                        {date ? format(date, 'MM/dd/yyyy hh:mm aa') : <span>MM/DD/YYYY hh:mm aa</span>}
+                        <CalendarClock className="mr-2 h-4 w-4 shrink-0" />
+                        <span className="truncate">{date ? format(date, 'MM/dd/yyyy hh:mm aa') : 'MM/DD/YYYY hh:mm aa'}</span>
                     </Button>
                     {date ? (
                         <Button
                             variant="outline"
                             disabled={readOnly}
-                            className="rounded-l-none border-l-0"
+                            className="shrink-0 rounded-l-none border-l-0"
                             onClick={e => {
                                 e.stopPropagation();
                                 onChange(null);
@@ -100,7 +97,6 @@ export function DateTimeInput({ value, onChange, fieldDef, disabled }: Readonly<
                             <X />
                         </Button>
                     ) : null}
-                </div>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0">
                 <div className="sm:flex">

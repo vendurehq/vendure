@@ -121,17 +121,14 @@ export function FacetValuesTable({ facetId, registerRefresher }: Readonly<FacetV
                 }}
                 bulkActions={[
                     {
-                        order: 400,
                         component: DeleteFacetValuesBulkAction,
                     },
                 ]}
             />
             <div className="mt-4">
-                <Button asChild variant="outline">
-                    <Link to={`/facets/${facetId}/values/new`}>
-                        <PlusIcon />
-                        <Trans>Add facet value</Trans>
-                    </Link>
+                <Button render={<Link to={`/facets/${facetId}/values/new`} />} variant="outline">
+                    <PlusIcon />
+                    <Trans>Add facet value</Trans>
                 </Button>
             </div>
         </>

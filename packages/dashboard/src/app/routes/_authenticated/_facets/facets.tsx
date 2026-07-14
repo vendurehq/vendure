@@ -1,9 +1,8 @@
 import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
 import { FacetValueChip } from '@/vdb/components/shared/facet-value-chip.js';
-import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
-import { PageActionBarRight } from '@/vdb/framework/layout-engine/page-layout.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
 import { Trans } from '@lingui/react/macro';
 import { createFileRoute, Link } from '@tanstack/react-router';
@@ -41,7 +40,7 @@ function FacetListPage() {
                     cell: ({ row }) => {
                         const isPrivate = row.original.isPrivate;
                         return (
-                            <Badge variant={isPrivate ? 'destructive' : 'success'}>
+                            <Badge variant={isPrivate ? 'warning' : 'success'}>
                                 {isPrivate ? <Trans>private</Trans> : <Trans>public</Trans>}
                             </Badge>
                         );
@@ -87,35 +86,34 @@ function FacetListPage() {
                 };
             }}
             bulkActions={[
-                {
-                    order: 100,
-                    component: AssignFacetsToChannelBulkAction,
-                },
-                {
-                    order: 200,
-                    component: RemoveFacetsFromChannelBulkAction,
-                },
-                {
-                    order: 300,
-                    component: DuplicateFacetsBulkAction,
-                },
-                {
-                    order: 400,
-                    component: DeleteFacetsBulkAction,
-                },
+                [
+                    {
+                        order: 100,
+                        component: AssignFacetsToChannelBulkAction,
+                    },
+                    {
+                        order: 200,
+                        component: RemoveFacetsFromChannelBulkAction,
+                    },
+                    {
+                        order: 300,
+                        component: DuplicateFacetsBulkAction,
+                    },
+                ],
+                [
+                    {
+                        component: DeleteFacetsBulkAction,
+                    },
+                ],
             ]}
             route={Route}
         >
-            <PageActionBarRight>
-                <PermissionGuard requires={['CreateFacet', 'CreateCatalog']}>
-                    <Button asChild>
-                        <Link to="./new">
-                            <PlusIcon className="mr-2 h-4 w-4" />
-                            <Trans>New Facet</Trans>
-                        </Link>
-                    </Button>
-                </PermissionGuard>
-            </PageActionBarRight>
+            <ActionBarItem itemId="create-button" requiresPermission={['CreateFacet', 'CreateCatalog']}>
+                <Button render={<Link to="./new" />}>
+                    <PlusIcon className="mr-2 h-4 w-4" />
+                    <Trans>New Facet</Trans>
+                </Button>
+            </ActionBarItem>
         </ListPage>
     );
 }

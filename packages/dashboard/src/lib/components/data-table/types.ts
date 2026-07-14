@@ -25,10 +25,8 @@ export type ColumnDataType = 'String' | 'Int' | 'Float' | 'DateTime' | 'Boolean'
  *         return null;
  *     }
  *     return (
- *         <Button asChild variant="ghost">
- *             <Link to={`/customers/${value.id}`}>
- *                 {value.firstName} {value.lastName}
- *             </Link>
+ *         <Button variant="ghost" render={<Link to={`/customers/${value.id}`} />}>
+ *             {value.firstName} {value.lastName}
  *         </Button>
  *     );
  * };

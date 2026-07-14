@@ -4,9 +4,9 @@ import {
     AssetType,
     AssignAssetsToChannelInput,
     CreateAssetInput,
-    CreateAssetResult,
     DeletionResponse,
     DeletionResult,
+    LanguageCode,
     LogicalOperator,
     Permission,
     UpdateAssetInput,
@@ -15,9 +15,9 @@ import { omit } from '@vendure/common/lib/omit';
 import { ID, PaginatedList, Type } from '@vendure/common/lib/shared-types';
 import { notNullOrUndefined } from '@vendure/common/lib/shared-utils';
 import { unique } from '@vendure/common/lib/unique';
-import { ReadStream as FSReadStream } from 'fs';
-import { ReadStream } from 'fs-extra';
+import { ReadStream } from 'fs';
 import { IncomingMessage } from 'http';
+import { imageSize } from 'image-size';
 import mime from 'mime-types';
 import path from 'path';
 import { Readable, Stream } from 'stream';
@@ -32,10 +32,12 @@ import { isGraphQlErrorResult } from '../../common/error/error-result';
 import { ForbiddenError, InternalServerError } from '../../common/error/errors';
 import { MimeTypeError } from '../../common/error/generated-graphql-admin-errors';
 import { ChannelAware } from '../../common/types/common-types';
+import { Translated } from '../../common/types/locale-types';
 import { getAssetType, idsAreEqual } from '../../common/utils';
 import { ConfigService } from '../../config/config.service';
 import { Logger } from '../../config/logger/vendure-logger';
 import { TransactionalConnection } from '../../connection/transactional-connection';
+import { AssetTranslation } from '../../entity/asset/asset-translation.entity';
 import { Asset } from '../../entity/asset/asset.entity';
 import { OrderableAsset } from '../../entity/asset/orderable-asset.entity';
 import { VendureEntity } from '../../entity/base/base.entity';
@@ -47,14 +49,13 @@ import { AssetChannelEvent } from '../../event-bus/events/asset-channel-event';
 import { AssetEvent } from '../../event-bus/events/asset-event';
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
+import { TranslatableSaver } from '../helpers/translatable-saver/translatable-saver';
+import { TranslatorService } from '../helpers/translator/translator.service';
 import { patchEntity } from '../helpers/utils/patch-entity';
 
 import { ChannelService } from './channel.service';
 import { RoleService } from './role.service';
 import { TagService } from './tag.service';
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const sizeOf = require('image-size');
 
 /**
  * @description
@@ -82,6 +83,74 @@ export interface EntityAssetInput {
 }
 
 /**
+ * Detects the MIME type of a buffer from its magic bytes. Returns `undefined` for content
+ * with no recognisable signature (e.g. plain text, SVG). The `file-type` package is ESM-only,
+ * so it is loaded via dynamic import (preserved by the NodeNext build).
+ */
+async function detectMimeTypeFromContents(buffer: Buffer): Promise<string | undefined> {
+    const { fileTypeFromBuffer } = await import('file-type');
+    const result = await fileTypeFromBuffer(buffer);
+    return result?.mime;
+}
+
+/**
+ * The number of leading bytes to inspect for magic-byte detection. Signatures live at the
+ * start of a file and `file-type` samples only a small prefix, so peeking this much is
+ * sufficient to identify the content type without buffering the whole upload.
+ */
+const CONTENT_DETECTION_SAMPLE_BYTES = 4100;
+
+/**
+ * Reads up to `byteCount` leading bytes from a stream for inspection so the uploaded content
+ * can be validated before it is persisted. Returns the peeked bytes and whether the stream was
+ * fully consumed in the process (`complete`):
+ *
+ * - If the stream ended within `byteCount` (a small file), the whole content is in `head` and
+ *   the caller writes it directly — the stream cannot be replayed.
+ * - Otherwise the peeked bytes are unshifted back onto the stream, so the caller can write the
+ *   full original stream (preserving its error handling) without buffering it whole.
+ *
+ * The stream is read in paused mode because a `for await … break` would destroy it.
+ */
+function peekStreamHead(stream: Readable, byteCount: number): Promise<{ head: Buffer; complete: boolean }> {
+    return new Promise((resolve, reject) => {
+        const chunks: Buffer[] = [];
+        let size = 0;
+        const cleanup = () => {
+            stream.removeListener('readable', onReadable);
+            stream.removeListener('end', onEnd);
+            stream.removeListener('error', onError);
+        };
+        const onEnd = () => {
+            cleanup();
+            resolve({ head: Buffer.concat(chunks), complete: true });
+        };
+        const onError = (err: Error) => {
+            cleanup();
+            reject(err);
+        };
+        const onReadable = () => {
+            let chunk: Buffer | null;
+            // eslint-disable-next-line no-cond-assign
+            while ((chunk = stream.read()) !== null) {
+                chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+                size += chunks[chunks.length - 1].length;
+                if (size >= byteCount) {
+                    cleanup();
+                    const head = Buffer.concat(chunks);
+                    stream.unshift(head);
+                    resolve({ head, complete: false });
+                    return;
+                }
+            }
+        };
+        stream.on('readable', onReadable);
+        stream.on('end', onEnd);
+        stream.on('error', onError);
+    });
+}
+
+/**
  * @description
  * Contains methods relating to {@link Asset} entities.
  *
@@ -102,6 +171,8 @@ export class AssetService {
         private channelService: ChannelService,
         private roleService: RoleService,
         private customFieldRelationService: CustomFieldRelationService,
+        private readonly translatableSaver: TranslatableSaver,
+        private readonly translator: TranslatorService,
     ) {
         this.permittedMimeTypes = this.configService.assetOptions.permittedFileTypes
             .map(val => (/\.[\w]+/.test(val) ? mime.lookup(val) || undefined : val))
@@ -112,19 +183,23 @@ export class AssetService {
             });
     }
 
-    findOne(ctx: RequestContext, id: ID, relations?: RelationPaths<Asset>): Promise<Asset | undefined> {
+    findOne(
+        ctx: RequestContext,
+        id: ID,
+        relations?: RelationPaths<Asset>,
+    ): Promise<Translated<Asset> | undefined> {
         return this.connection
             .findOneInChannel(ctx, Asset, id, ctx.channelId, {
                 relations: relations ?? [],
             })
-            .then(result => result ?? undefined);
+            .then(result => (result ? this.translator.translate(result, ctx) : undefined));
     }
 
     findAll(
         ctx: RequestContext,
         options?: AssetListOptions,
         relations?: RelationPaths<Asset>,
-    ): Promise<PaginatedList<Asset>> {
+    ): Promise<PaginatedList<Translated<Asset>>> {
         const qb = this.listQueryBuilder.build(Asset, options, {
             ctx,
             relations: [...(relations ?? []), 'tags'],
@@ -150,7 +225,7 @@ export class AssetService {
             });
         }
         return qb.getManyAndCount().then(([items, totalItems]) => ({
-            items,
+            items: items.map(asset => this.translator.translate(asset, ctx)),
             totalItems,
         }));
     }
@@ -206,6 +281,7 @@ export class AssetService {
                 .createQueryBuilder('entity')
                 .leftJoinAndSelect('entity.assets', 'orderable_asset')
                 .leftJoinAndSelect('orderable_asset.asset', 'asset')
+                .leftJoinAndSelect('asset.translations', 'asset_translations')
                 .leftJoinAndSelect('asset.channels', 'asset_channel')
                 .where('entity.id = :id', { id: entity.id })
                 .andWhere('asset_channel.id = :channelId', { channelId: ctx.channelId })
@@ -295,11 +371,11 @@ export class AssetService {
      *
      * See the [Uploading Files docs](/developer-guide/uploading-files) for an example of usage.
      */
-    async create(ctx: RequestContext, input: CreateAssetInput): Promise<CreateAssetResult> {
+    async create(ctx: RequestContext, input: CreateAssetInput): Promise<Translated<Asset> | MimeTypeError> {
         const { createReadStream, filename, mimetype } = await input.file;
         const { stream, errorPromise } = this.makeStreamGuard(createReadStream);
         const result = await Promise.race([
-            this.createAssetInternal(ctx, stream, filename, mimetype, input.customFields),
+            this.createAssetInternal(ctx, stream, filename, mimetype, input.customFields, input.translations),
             errorPromise,
         ]);
         if (isGraphQlErrorResult(result)) {
@@ -311,29 +387,51 @@ export class AssetService {
             result.tags = tags;
             await this.connection.getRepository(ctx, Asset).save(result);
         }
-        await this.eventBus.publish(new AssetEvent(ctx, result, 'created', input));
-        return result;
+        const translatedAsset = this.translator.translate(result, ctx);
+        await this.eventBus.publish(new AssetEvent(ctx, translatedAsset, 'created', input));
+        return translatedAsset;
     }
 
     /**
      * @description
      * Updates the name, focalPoint, tags & custom fields of an Asset.
      */
-    async update(ctx: RequestContext, input: UpdateAssetInput): Promise<Asset> {
+    async update(ctx: RequestContext, input: UpdateAssetInput): Promise<Translated<Asset>> {
         const asset = await this.connection.getEntityOrThrow(ctx, Asset, input.id);
         if (input.focalPoint) {
             const to3dp = (x: number) => +x.toFixed(3);
             input.focalPoint.x = to3dp(input.focalPoint.x);
             input.focalPoint.y = to3dp(input.focalPoint.y);
         }
-        patchEntity(asset, omit(input, ['tags']));
-        await this.customFieldRelationService.updateRelations(ctx, Asset, input, asset);
+        patchEntity(asset, omit(input, ['tags', 'name', 'translations']));
         if (input.tags) {
             asset.tags = await this.tagService.valuesToTags(ctx, input.tags);
         }
-        const updatedAsset = await this.connection.getRepository(ctx, Asset).save(asset);
-        await this.eventBus.publish(new AssetEvent(ctx, updatedAsset, 'updated', input));
-        return updatedAsset;
+        // Handle translations
+        const translationsInput = input.translations ?? [];
+        // For backward compatibility: if name is provided without translations, update the current language translation
+        if (input.name != null && !translationsInput.some(t => t.languageCode === ctx.languageCode)) {
+            translationsInput.push({ languageCode: ctx.languageCode, name: input.name });
+        }
+        // Save asset first to ensure it exists for translation foreign key, and so that
+        // updateRelations() sees the freshly-patched scalar custom fields when it reloads
+        // the entity from the DB.
+        const savedAsset = await this.connection.getRepository(ctx, Asset).save(asset);
+        await this.customFieldRelationService.updateRelations(ctx, Asset, input, asset);
+        if (translationsInput.length > 0) {
+            await this.translatableSaver.update({
+                ctx,
+                input: { id: savedAsset.id, translations: translationsInput },
+                entityType: Asset,
+                translationType: AssetTranslation,
+            });
+        }
+        const translatedAsset = await this.findOne(ctx, savedAsset.id);
+        if (!translatedAsset) {
+            throw new InternalServerError('error.entity-not-found');
+        }
+        await this.eventBus.publish(new AssetEvent(ctx, translatedAsset, 'updated', input));
+        return translatedAsset;
     }
 
     /**
@@ -406,7 +504,10 @@ export class AssetService {
         return this.deleteUnconditional(ctx, assets);
     }
 
-    async assignToChannel(ctx: RequestContext, input: AssignAssetsToChannelInput): Promise<Asset[]> {
+    async assignToChannel(
+        ctx: RequestContext,
+        input: AssignAssetsToChannelInput,
+    ): Promise<Array<Translated<Asset>>> {
         const hasPermission = await this.roleService.userHasPermissionOnChannel(
             ctx,
             input.channelId,
@@ -430,35 +531,39 @@ export class AssetService {
                 );
             }),
         );
-        return this.connection.findByIdsInChannel(
+        const updatedAssets = await this.connection.findByIdsInChannel(
             ctx,
             Asset,
             assets.map(a => a.id),
             ctx.channelId,
             {},
         );
+        return updatedAssets.map(asset => this.translator.translate(asset, ctx));
     }
 
     /**
      * @description
      * Create an Asset from a file stream, for example to create an Asset during data import.
      */
-    async createFromFileStream(stream: ReadStream, ctx?: RequestContext): Promise<CreateAssetResult>;
+    async createFromFileStream(
+        stream: ReadStream,
+        ctx?: RequestContext,
+    ): Promise<Translated<Asset> | MimeTypeError>;
     async createFromFileStream(
         stream: Readable,
         filePath: string,
         ctx?: RequestContext,
-    ): Promise<CreateAssetResult>;
+    ): Promise<Translated<Asset> | MimeTypeError>;
     async createFromFileStream(
         stream: ReadStream | Readable,
         maybeFilePathOrCtx?: string | RequestContext,
         maybeCtx?: RequestContext,
-    ): Promise<CreateAssetResult> {
+    ): Promise<Translated<Asset> | MimeTypeError> {
         const { assetImportStrategy } = this.configService.importExportOptions;
         const filePathFromArgs =
             maybeFilePathOrCtx instanceof RequestContext ? undefined : maybeFilePathOrCtx;
         const filePath =
-            stream instanceof ReadStream || stream instanceof FSReadStream ? stream.path : filePathFromArgs;
+            stream instanceof ReadStream ? stream.path : filePathFromArgs;
         if (typeof filePath === 'string') {
             const filename = path.basename(filePath).split('?')[0];
             const mimetype = this.getMimeType(stream, filename);
@@ -468,7 +573,11 @@ export class AssetService {
                     : maybeCtx instanceof RequestContext
                       ? maybeCtx
                       : RequestContext.empty();
-            return this.createAssetInternal(ctx, stream, filename, mimetype);
+            const result = await this.createAssetInternal(ctx, stream, filename, mimetype);
+            if (isGraphQlErrorResult(result)) {
+                return result;
+            }
+            return this.translator.translate(result, ctx);
         } else {
             throw new InternalServerError('error.path-should-be-a-string-got-buffer');
         }
@@ -520,22 +629,77 @@ export class AssetService {
         return !permissions.includes(false);
     }
 
+    /**
+     * Validates an upload against the permitted MIME types using three independently spoofable
+     * signals (see GHSA-88rq-mq4v-frmm): the declared Content-Type, the file extension, and the
+     * actual content (magic bytes). Returns a {@link MimeTypeError} if any signal identifies a
+     * non-permitted type, or `undefined` if the file is permitted.
+     */
+    private getPermittedMimeTypeError(
+        filename: string,
+        declaredMimeType: string,
+        contentMimeType: string | undefined,
+    ): MimeTypeError | undefined {
+        // 1. The declared Content-Type must be permitted (cheap, header-only check).
+        if (!this.validateMimeType(declaredMimeType)) {
+            return new MimeTypeError({ fileName: filename, mimeType: declaredMimeType });
+        }
+        // 2. The file extension must be permitted: the stored file keeps it, and it is what
+        // determines whether a downstream web server might execute the file (e.g. `.php`).
+        // `mime.lookup` returns `false` for unrecognised extensions, handled by the content check.
+        const extensionMimeType = mime.lookup(filename) || undefined;
+        if (extensionMimeType && !this.validateMimeType(extensionMimeType)) {
+            return new MimeTypeError({ fileName: filename, mimeType: extensionMimeType });
+        }
+        // 3. The actual content must not identify a non-permitted type. Text-based formats have no
+        // binary signature: plain text yields `undefined`, while XML-based formats such as SVG
+        // yield a generic `application/xml`/`text/xml` which is consistent with a permitted `*+xml`
+        // extension and so is not a mismatch.
+        if (contentMimeType && !this.validateMimeType(contentMimeType)) {
+            const contentIsGenericXml =
+                contentMimeType === 'application/xml' || contentMimeType === 'text/xml';
+            const extensionIsXmlBased = !!extensionMimeType && extensionMimeType.endsWith('+xml');
+            if (!(contentIsGenericXml && extensionIsXmlBased)) {
+                return new MimeTypeError({ fileName: filename, mimeType: contentMimeType });
+            }
+        }
+        // A file recognised neither by content nor by a permitted extension cannot be verified as
+        // a permitted type (e.g. a script with an unrecognised extension such as `.phtml`).
+        if (!contentMimeType && !extensionMimeType) {
+            return new MimeTypeError({ fileName: filename, mimeType: 'application/octet-stream' });
+        }
+        return undefined;
+    }
+
     private async createAssetInternal(
         ctx: RequestContext,
         stream: Stream,
         filename: string,
         mimetype: string,
         customFields?: { [key: string]: any },
+        translations?: Array<{ languageCode: LanguageCode; name?: string | null; customFields?: any }>,
     ): Promise<Asset | MimeTypeError> {
         const { assetOptions } = this.configService;
-        if (!this.validateMimeType(mimetype)) {
-            return new MimeTypeError({ fileName: filename, mimeType: mimetype });
+        // Inspect the leading bytes of the uploaded content (magic bytes) so the real content
+        // type can be validated, not just the spoofable declared Content-Type and extension. The
+        // stream is peeked rather than fully buffered so the file can still be written as a stream.
+        const { head, complete } = await peekStreamHead(stream as Readable, CONTENT_DETECTION_SAMPLE_BYTES);
+        const contentMimeType = await detectMimeTypeFromContents(head);
+        const mimeTypeError = this.getPermittedMimeTypeError(filename, mimetype, contentMimeType);
+        if (mimeTypeError) {
+            return mimeTypeError;
         }
+
         const { assetPreviewStrategy, assetStorageStrategy } = assetOptions;
         const sourceFileName = await this.getSourceFileName(ctx, filename);
         const previewFileName = await this.getPreviewFileName(ctx, sourceFileName);
 
-        const sourceFileIdentifier = await assetStorageStrategy.writeFileFromStream(sourceFileName, stream);
+        // If the stream was fully consumed during the peek (a small file), `head` holds the
+        // whole content and the stream cannot be replayed; write the buffer directly.
+        // Otherwise the peeked bytes were unshifted back, so write the full stream.
+        const sourceFileIdentifier = complete
+            ? await assetStorageStrategy.writeFileFromBuffer(sourceFileName, head)
+            : await assetStorageStrategy.writeFileFromStream(sourceFileName, stream);
         const sourceFile = await assetStorageStrategy.readFileToBuffer(sourceFileIdentifier);
         let preview: Buffer;
         try {
@@ -552,11 +716,11 @@ export class AssetService {
         const type = getAssetType(mimetype);
         const { width, height } = this.getDimensions(type === AssetType.IMAGE ? sourceFile : preview);
 
+        // Save asset first
         const asset = new Asset({
             type,
             width,
             height,
-            name: path.basename(sourceFileName),
             fileSize: sourceFile.byteLength,
             mimeType: mimetype,
             source: sourceFileIdentifier,
@@ -565,7 +729,41 @@ export class AssetService {
             customFields,
         });
         await this.channelService.assignToCurrentChannel(asset, ctx);
-        return this.connection.getRepository(ctx, Asset).save(asset);
+        const savedAsset = await this.connection.getRepository(ctx, Asset).save(asset);
+
+        // Create and save translations with the base relationship set
+        // Use the original filename for the default translation name
+        const defaultName = filename;
+        let assetTranslations: AssetTranslation[];
+        if (translations && translations.length > 0) {
+            assetTranslations = translations.map(
+                t =>
+                    new AssetTranslation({
+                        languageCode: t.languageCode,
+                        name: t.name ?? defaultName,
+                        customFields: t.customFields,
+                        base: savedAsset,
+                    }),
+            );
+        } else {
+            // Create default translation using context language
+            assetTranslations = [
+                new AssetTranslation({
+                    languageCode: ctx.languageCode,
+                    name: defaultName,
+                    base: savedAsset,
+                }),
+            ];
+        }
+
+        // Save translations
+        const savedTranslations = await this.connection
+            .getRepository(ctx, AssetTranslation)
+            .save(assetTranslations);
+
+        // Return the asset with translations eagerly loaded
+        savedAsset.translations = savedTranslations;
+        return savedAsset;
     }
 
     private async getSourceFileName(ctx: RequestContext, fileName: string): Promise<string> {
@@ -596,8 +794,8 @@ export class AssetService {
 
     private getDimensions(imageFile: Buffer): { width: number; height: number } {
         try {
-            const { width, height } = sizeOf(imageFile);
-            return { width, height };
+            const { width, height } = imageSize(imageFile);
+            return { width: width ?? 0, height: height ?? 0 };
         } catch (e: any) {
             Logger.error('Could not determine Asset dimensions: ' + JSON.stringify(e));
             return { width: 0, height: 0 };

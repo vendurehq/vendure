@@ -134,8 +134,12 @@ export class RequestContextService {
     }
 
     private getLanguageCode(req: Request, channel: Channel): LanguageCode | undefined {
+        const queryLanguageCode = req.query?.languageCode as string | undefined;
+        // We use a format check rather than an enum check to allow for custom/extended
+        // language codes while still blocking any SQL injection payloads.
+        const isValidFormat = queryLanguageCode && /^[a-zA-Z0-9_-]+$/.test(queryLanguageCode);
         return (
-            (req.query && (req.query.languageCode as LanguageCode)) ??
+            (isValidFormat ? (queryLanguageCode as LanguageCode) : undefined) ??
             channel.defaultLanguageCode ??
             this.configService.defaultLanguageCode
         );

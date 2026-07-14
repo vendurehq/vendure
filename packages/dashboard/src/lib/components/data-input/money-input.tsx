@@ -1,5 +1,5 @@
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AffixedInput } from './affixed-input.js';
 
 import { DashboardFormComponentProps } from '@/vdb/framework/form-engine/form-engine-types.js';
@@ -27,10 +27,13 @@ export function MoneyInput(props: Readonly<MoneyInputProps>) {
     const { bcp47Tag } = useDisplayLocale();
     const { toMajorUnits, toMinorUnits } = useLocalFormat();
     const [displayValue, setDisplayValue] = useState(toMajorUnits(value).toFixed(2));
+    const isFocused = useRef(false);
 
-    // Update display value when prop value changes
+    // Update display value when prop value changes externally (but not while the user is typing)
     useEffect(() => {
-        setDisplayValue(toMajorUnits(value).toFixed(2));
+        if (!isFocused.current) {
+            setDisplayValue(toMajorUnits(value).toFixed(2));
+        }
     }, [value, toMajorUnits]);
 
     // Determine if the currency symbol should be a prefix based on locale
@@ -70,11 +73,15 @@ export function MoneyInput(props: Readonly<MoneyInputProps>) {
             value={displayValue}
             disabled={readOnly}
             {...rest}
+            onFocus={() => {
+                isFocused.current = true;
+            }}
             onChange={e => {
                 const inputValue = e.target.value;
                 // Allow empty input
                 if (inputValue === '') {
                     setDisplayValue('');
+                    onChange(0);
                     return;
                 }
                 // Only allow numbers and one decimal point
@@ -82,6 +89,10 @@ export function MoneyInput(props: Readonly<MoneyInputProps>) {
                     return;
                 }
                 setDisplayValue(inputValue);
+                const parsed = parseFloat(inputValue);
+                if (!isNaN(parsed)) {
+                    onChange(toMinorUnits(parsed));
+                }
             }}
             onKeyDown={e => {
                 if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
@@ -96,10 +107,11 @@ export function MoneyInput(props: Readonly<MoneyInputProps>) {
                 }
             }}
             onBlur={() => {
+                isFocused.current = false;
                 const inputValue = displayValue;
                 if (inputValue === '') {
                     onChange(0);
-                    setDisplayValue('0');
+                    setDisplayValue('0.00');
                     return;
                 }
                 const newValue = parseFloat(inputValue);

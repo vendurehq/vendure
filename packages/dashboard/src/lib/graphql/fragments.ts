@@ -5,6 +5,7 @@ export const assetFragment = graphql(`
         id
         createdAt
         updatedAt
+        languageCode
         name
         fileSize
         mimeType
@@ -16,6 +17,11 @@ export const assetFragment = graphql(`
         focalPoint {
             x
             y
+        }
+        translations {
+            id
+            languageCode
+            name
         }
     }
 `);

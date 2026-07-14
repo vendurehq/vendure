@@ -1,4 +1,3 @@
-'use client';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 import { ColumnFiltersState, SortingState, Table } from '@tanstack/react-table';
 import React, { createContext, ReactNode } from 'react';

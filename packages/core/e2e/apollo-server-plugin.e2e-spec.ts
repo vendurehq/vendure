@@ -1,12 +1,13 @@
 import { ApolloServerPlugin, GraphQLRequestListener, GraphQLServerContext } from '@apollo/server';
 import { mergeConfig } from '@vendure/core';
-import gql from 'graphql-tag';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
-import { testConfig, TEST_SETUP_TIMEOUT_MS } from '../../../e2e-common/test-config';
+import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { createTestEnvironment } from '../../testing/lib/create-test-environment';
+
+import { getProductIdNameDocument } from './graphql/shared-definitions';
 
 class MyApolloServerPlugin implements ApolloServerPlugin {
     static serverWillStartFn = vi.fn();
@@ -64,14 +65,7 @@ describe('custom apolloServerPlugins', () => {
 
     it('runs plugin on shop api query', async () => {
         MyApolloServerPlugin.reset();
-        await shopClient.query(gql`
-            query Q1 {
-                product(id: "T_1") {
-                    id
-                    name
-                }
-            }
-        `);
+        await shopClient.query(getProductIdNameDocument, { id: 'T_1' });
 
         expect(MyApolloServerPlugin.requestDidStartFn).toHaveBeenCalledTimes(1);
         expect(MyApolloServerPlugin.willSendResponseFn).toHaveBeenCalledTimes(1);
@@ -85,14 +79,7 @@ describe('custom apolloServerPlugins', () => {
 
     it('runs plugin on admin api query', async () => {
         MyApolloServerPlugin.reset();
-        await adminClient.query(gql`
-            query Q2 {
-                product(id: "T_1") {
-                    id
-                    name
-                }
-            }
-        `);
+        await adminClient.query(getProductIdNameDocument, { id: 'T_1' });
 
         expect(MyApolloServerPlugin.requestDidStartFn).toHaveBeenCalledTimes(1);
         expect(MyApolloServerPlugin.willSendResponseFn).toHaveBeenCalledTimes(1);

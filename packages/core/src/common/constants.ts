@@ -52,6 +52,7 @@ export const DEFAULT_PERMISSIONS: PermissionDefinition[] = [
             `Grants permission to ${operation} PaymentMethods, ShippingMethods, TaxCategories, TaxRates, Zones, Countries, System & GlobalSettings`,
     ),
     new CrudPermissionDefinition('Administrator'),
+    new CrudPermissionDefinition('ApiKey'),
     new CrudPermissionDefinition('Asset'),
     new CrudPermissionDefinition('Channel'),
     new CrudPermissionDefinition('Collection'),
@@ -84,4 +85,6 @@ export const CacheKey = {
     ActiveTaxZone: (channelId: ID) => `ActiveTaxZone:${channelId}`,
     ActiveTaxZone_PPA: (channelId: ID) => `ActiveTaxZone_PPA:${channelId}`,
     CollectionVariantCounts: 'CollectionService.getProductVariantCounts',
+    ExhaustedPromotions: (channelId: ID, customerId: ID | undefined) =>
+        `ExhaustedPromotions:${channelId}:${customerId ?? 'guest'}`,
 };

@@ -13,7 +13,7 @@ jobs:
     sweep:
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/stale@v9 # v9 or later
+            - uses: actions/stale@5bef64f19d7facfb25b37b414482c7164d639639 # v9.1.0
               with:
                   days-before-stale: 30
                   days-before-close: 3
@@ -41,10 +41,8 @@ jobs:
                       @vendure/core,
                       @vendure/create,
                       @vendure/dashboard,
-                      @vendure/elasticsearch-plugin,
                       @vendure/email-plugin,
                       @vendure/job-queue-plugin,
-                      @vendure/payments-plugin,
                       @vendure/testing,
                       @vendure/ui-devkit,
                       P1: urgent,

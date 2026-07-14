@@ -29,6 +29,15 @@ export const useExtendedRouter = (
         );
 
         if (authenticatedRouteIndex === -1) {
+            if (process.env.NODE_ENV !== 'production') {
+                console.error(
+                    `[Dashboard] Could not find authenticated route with id ` +
+                        `"${AUTHENTICATED_ROUTE_PREFIX}" in the route tree. Extension routes ` +
+                        `will not be registered. This usually indicates a drift ` +
+                        `between AUTHENTICATED_ROUTE_PREFIX (src/lib/constants.ts) and the ` +
+                        `route id generated from src/app/routes/_authenticated.tsx.`,
+                );
+            }
             // No authenticated route found, return router with base tree
             return createExtendedRouter(routerOptions, routeTree);
         }

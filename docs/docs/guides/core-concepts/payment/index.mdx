@@ -7,7 +7,7 @@ metaDescription: "Understand payment workflows in Vendure, including authorizati
 Vendure can support many kinds of payment workflows, such as authorizing and capturing payment in a single step upon checkout or authorizing on checkout and then capturing on fulfillment.
 
 :::info
-For complete working examples of real payment integrations, see the [payments-plugins](https://github.com/vendurehq/vendure/tree/master/packages/payments-plugin/src)
+For complete working examples of real payment integrations, see the [community payment plugins](https://github.com/vendurehq/community-plugins)
 :::
 
 ## Authorization & Settlement
@@ -244,6 +244,12 @@ mutation {
         }
         ...on IneligiblePaymentMethodError {
             eligibilityCheckerMessage
+        }
+        ...on CouponRemovedDuringCheckoutError {
+            removedCouponCodes
+            previousTotalWithTax
+            newTotalWithTax
+            currencyCode
         }
     }
 }

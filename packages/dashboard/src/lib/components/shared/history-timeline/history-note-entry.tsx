@@ -32,10 +32,8 @@ export function HistoryNoteEntry(props: HistoryNoteEntryProps) {
                             {entry.isPublic ? 'Public' : 'Private'}
                         </Badge>
                         <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                            <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="h-6 w-6 p-0" />}>
                                     <MoreVerticalIcon className="h-3 w-3" />
-                                </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                                 <DropdownMenuItem
@@ -50,7 +48,7 @@ export function HistoryNoteEntry(props: HistoryNoteEntryProps) {
                                 <Separator className="my-1" />
                                 <DropdownMenuItem
                                     onClick={() => onDeleteNote(entry.id)}
-                                    className="cursor-pointer text-red-600 focus:text-red-600"
+                                    className="cursor-pointer text-destructive focus:text-destructive"
                                 >
                                     <TrashIcon className="mr-2 h-4 w-4" />
                                     <span>Delete</span>

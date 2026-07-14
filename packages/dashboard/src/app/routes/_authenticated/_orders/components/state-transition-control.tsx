@@ -7,9 +7,11 @@ import {
 } from '@/vdb/components/ui/dropdown-menu.js';
 import { cn } from '@/vdb/lib/utils.js';
 import { Trans } from '@lingui/react/macro';
-import { CircleCheck, CircleDashed, CircleX, EllipsisVertical } from 'lucide-react';
+import { CircleAlert, CircleCheck, CircleDashed, CircleX, EllipsisVertical } from 'lucide-react';
 
-export type StateType = 'default' | 'destructive' | 'success';
+import { getTypeForState, type StateType } from '@/vdb/utils/state-type.js';
+
+export { getTypeForState, type StateType } from '@/vdb/utils/state-type.js';
 
 export type StateTransitionAction = {
     label: string;
@@ -25,21 +27,6 @@ type StateTransitionControlProps = {
     isLoading?: boolean;
 };
 
-export function getTypeForState(state: string): StateType {
-    const stateLower = state.toLowerCase();
-    switch (stateLower) {
-        case 'cancelled':
-        case 'error':
-            return 'destructive';
-        case 'completed':
-        case 'settled':
-        case 'delivered':
-            return 'success';
-        default:
-            return 'default';
-    }
-}
-
 export function StateTransitionControl({
     currentState,
     statesTranslationFunction,
@@ -50,6 +37,7 @@ export function StateTransitionControl({
     const iconForType = {
         destructive: <CircleX className="h-4 w-4 text-destructive" />,
         success: <CircleCheck className="h-4 w-4 text-success" />,
+        warning: <CircleAlert className="h-4 w-4 text-warning" />,
         default: <CircleDashed className="h-4 w-4 text-muted-foreground" />,
     };
 
@@ -67,17 +55,16 @@ export function StateTransitionControl({
             </div>
             {actions.length > 0 && (
                 <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button
+                    <DropdownMenuTrigger render={<Button
                             variant="outline"
                             size="sm"
                             disabled={isLoading}
                             className={cn('rounded-l-none border-l-0 shadow-none', 'bg-background')}
-                        >
-                            <EllipsisVertical className="h-4 w-4" />
-                        </Button>
+                            data-testid="state-transition-trigger"
+                        />}>
+                        <EllipsisVertical className="h-4 w-4" />
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent align="end" className="min-w-48">
                         {actions.map((action, index) => {
                             return (
                                 <DropdownMenuItem

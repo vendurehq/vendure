@@ -103,8 +103,8 @@ test.describe('Roles', () => {
 
         const testRoleRow = lp.getRows().filter({ hasText: 'E2E Updated Role' });
         await testRoleRow.getByRole('checkbox').click();
-        await page.getByRole('button', { name: /With selected/i }).click();
-        await page.getByRole('menuitem').filter({ hasText: 'Delete' }).click();
+        await page.getByRole('button', { name: /Actions/i }).click();
+        await page.locator('[role="menu"]').getByText('Delete', { exact: true }).click();
         await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Continue' }).click();
         await lp.expectSuccessToast();
 

@@ -71,6 +71,40 @@ generated: true
 }`}
 </GraphQLDoc>
 
+<a name="apikey"></a>
+
+## apiKey
+
+<GraphQLDoc
+  type="query"
+  typeName="apiKey"
+  typeLinks={{
+    ApiKey: '/reference/graphql-api/admin/object-types#apikey',
+    ID: '/reference/graphql-api/admin/object-types#id',
+  }}
+>
+{`type Query {
+  apiKey(id: ID!): ApiKey
+}`}
+</GraphQLDoc>
+
+<a name="apikeys"></a>
+
+## apiKeys
+
+<GraphQLDoc
+  type="query"
+  typeName="apiKeys"
+  typeLinks={{
+    ApiKeyList: '/reference/graphql-api/admin/object-types#apikeylist',
+    ApiKeyListOptions: '/reference/graphql-api/admin/input-types#apikeylistoptions',
+  }}
+>
+{`type Query {
+  apiKeys(options: ApiKeyListOptions): ApiKeyList!
+}`}
+</GraphQLDoc>
+
 <a name="asset"></a>
 
 ## asset
@@ -780,12 +814,12 @@ type Query {
   type="query"
   typeName="productOptionGroups"
   typeLinks={{
-    ProductOptionGroup: '/reference/graphql-api/admin/object-types#productoptiongroup',
-    String: '/reference/graphql-api/admin/object-types#string',
+    ProductOptionGroupList: '/reference/graphql-api/admin/object-types#productoptiongrouplist',
+    ProductOptionGroupListOptions: '/reference/graphql-api/admin/input-types#productoptiongrouplistoptions',
   }}
 >
 {`type Query {
-  productOptionGroups(filterTerm: String): [ProductOptionGroup!]!
+  productOptionGroups(options: ProductOptionGroupListOptions): ProductOptionGroupList!
 }`}
 </GraphQLDoc>
 
@@ -1060,6 +1094,23 @@ type Query {
 >
 {`type Query {
   sellers(options: SellerListOptions): SellerList!
+}`}
+</GraphQLDoc>
+
+<a name="settingsstorefielddefinitions"></a>
+
+## settingsStoreFieldDefinitions
+
+<GraphQLDoc
+  type="query"
+  typeName="settingsStoreFieldDefinitions"
+  typeLinks={{
+    SettingsStoreFieldDefinition: '/reference/graphql-api/admin/object-types#settingsstorefielddefinition',
+  }}
+>
+{`"""Returns all registered settings store field definitions with their current values"""
+type Query {
+  settingsStoreFieldDefinitions: [SettingsStoreFieldDefinition!]!
 }`}
 </GraphQLDoc>
 

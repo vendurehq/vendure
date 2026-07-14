@@ -1,2 +1,13 @@
-schema: ./schema-admin.json
-documents: '**/*.graphql'
+projects:
+  admin:
+    schema: ./schema-admin.json
+    documents:
+      - 'packages/**/graphql/admin-definitions.ts'
+      - 'packages/**/graphql/shared-definitions.ts'
+      - 'packages/**/graphql/fragments-admin.ts'
+  shop:
+    schema: ./schema-shop.json
+    documents:
+      - 'packages/**/graphql/shop-definitions.ts'
+      - 'packages/core/e2e/order-merge.e2e-spec.ts'
+      - 'packages/core/e2e/product-option.e2e-spec.ts'

@@ -2,15 +2,15 @@
 title: "Asset"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/entity/asset/asset.entity.ts" sourceLine="22" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/entity/asset/asset.entity.ts" sourceLine="25" packageName="@vendure/core" />
 
 An Asset represents a file such as an image which can be associated with certain other entities
 such as Products.
 
 ```ts title="Signature"
-class Asset extends VendureEntity implements Taggable, ChannelAware, HasCustomFields {
+class Asset extends VendureEntity implements Taggable, ChannelAware, HasCustomFields, Translatable {
     constructor(input?: DeepPartial<Asset>)
-    @Column() name: string;
+    name: LocaleString;
     @Column('varchar') type: AssetType;
     @Column() mimeType: string;
     @Column({ default: 0 }) width: number;
@@ -34,25 +34,22 @@ class Asset extends VendureEntity implements Taggable, ChannelAware, HasCustomFi
     featuredInProducts?: Product[];
     @Column(type => CustomAssetFields)
     customFields: CustomAssetFields;
+    @OneToMany(type => AssetTranslation, translation => translation.base, { eager: true })
+    translations: Array<Translation<Asset>>;
 }
 ```
 * Extends: [`VendureEntity`](/reference/typescript-api/entities/vendure-entity#vendureentity)
 
 
-* Implements: [`Taggable`](/reference/typescript-api/entities/interfaces#taggable), [`ChannelAware`](/reference/typescript-api/entities/interfaces#channelaware), HasCustomFields
+* Implements: [`Taggable`](/reference/typescript-api/entities/interfaces#taggable), [`ChannelAware`](/reference/typescript-api/entities/interfaces#channelaware), HasCustomFields, [`Translatable`](/reference/typescript-api/entities/interfaces#translatable)
 
 
 
 <div className="members-wrapper">
 
-### constructor
-
-<MemberInfo kind="method" type={`(input?: DeepPartial<<a href='/reference/typescript-api/entities/asset#asset'>Asset</a>>) => Asset`}   />
-
-
 ### name
 
-<MemberInfo kind="property" type={`string`}   />
+<MemberInfo kind="property" type={`LocaleString`}   />
 
 
 ### type
@@ -123,6 +120,11 @@ class Asset extends VendureEntity implements Taggable, ChannelAware, HasCustomFi
 ### customFields
 
 <MemberInfo kind="property" type={`CustomAssetFields`}   />
+
+
+### translations
+
+<MemberInfo kind="property" type={`Array<Translation<<a href='/reference/typescript-api/entities/asset#asset'>Asset</a>>>`}   />
 
 
 

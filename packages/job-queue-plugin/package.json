@@ -1,6 +1,6 @@
 {
     "name": "@vendure/job-queue-plugin",
-    "version": "3.5.5",
+    "version": "3.7.0",
     "license": "GPL-3.0-or-later",
     "main": "package/index.js",
     "types": "package/index.d.ts",
@@ -16,7 +16,6 @@
         "watch": "tsc -p ./tsconfig.build.json --watch",
         "build": "rimraf package && tsc -p ./tsconfig.build.json",
         "lint": "eslint --fix .",
-        "test": "vitest --run",
         "e2e-wip": "node e2e/check-connection.js || jest --config ../../e2e-common/jest-config.js --runInBand --package=job-queue-plugin",
         "ci": "npm run build"
     },
@@ -26,16 +25,14 @@
         "access": "public"
     },
     "devDependencies": {
-        "@google-cloud/pubsub": "^4.11.0",
-        "@vendure/common": "3.5.5",
-        "@vendure/core": "3.5.5",
-        "bullmq": "^5.66.4",
-        "ioredis": "5.8.2",
+        "@vendure/common": "3.7.0",
+        "@vendure/core": "3.7.0",
+        "bullmq": "^5.67.1",
+        "ioredis": "5.9.3",
         "rimraf": "^5.0.5",
         "typescript": "5.8.2"
     },
     "peerDependencies": {
-        "@google-cloud/pubsub": "^4.11.0",
         "bullmq": "^5.4.2",
         "ioredis": "^5.3.2"
     },
@@ -44,9 +41,6 @@
             "optional": true
         },
         "ioredis": {
-            "optional": true
-        },
-        "@google-cloud/pubsub": {
             "optional": true
         }
     }

@@ -45,7 +45,7 @@ test.describe('Shipping Methods CRUD', () => {
         await dp.fillInput('Name', 'E2E Test Shipping');
         await dp.fillInput('Code', 'e2e-test-shipping');
 
-        // Fulfillment handler — standard Radix Select
+        // Fulfillment handler — standard Select
         await dp.selectOption('Fulfillment handler', 'Manually enter fulfillment details');
 
         // Shipping Eligibility Checker — ConfigurableOperationSelector (DropdownMenu)

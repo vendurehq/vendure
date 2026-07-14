@@ -412,6 +412,7 @@ enum CurrencyCode {
   INELIGIBLE_PAYMENT_METHOD_ERROR
   PAYMENT_FAILED_ERROR
   PAYMENT_DECLINED_ERROR
+  COUPON_REMOVED_DURING_CHECKOUT_ERROR
   ALREADY_LOGGED_IN_ERROR
   MISSING_PASSWORD_ERROR
   PASSWORD_VALIDATION_ERROR
@@ -477,6 +478,7 @@ enum CurrencyCode {
   ORDER_COUPON_REMOVED
   ORDER_MODIFIED
   ORDER_CUSTOMER_UPDATED
+  ORDER_CURRENCY_UPDATED
 }`}
 </GraphQLDoc>
 
@@ -916,6 +918,14 @@ enum Permission {
   UpdateAdministrator
   """Grants permission to delete Administrator"""
   DeleteAdministrator
+  """Grants permission to create ApiKey"""
+  CreateApiKey
+  """Grants permission to read ApiKey"""
+  ReadApiKey
+  """Grants permission to update ApiKey"""
+  UpdateApiKey
+  """Grants permission to delete ApiKey"""
+  DeleteApiKey
   """Grants permission to create Asset"""
   CreateAsset
   """Grants permission to read Asset"""

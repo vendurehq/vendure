@@ -10,7 +10,6 @@ import { SettingsStoreFields } from './settings-store/settings-store-types';
 import {
     ApiOptions,
     AssetOptions,
-    AuthOptions,
     CatalogOptions,
     EntityOptions,
     ImportExportOptions,
@@ -43,7 +42,7 @@ export class ConfigService implements VendureConfig {
         return this.activeConfig.apiOptions;
     }
 
-    get authOptions(): Required<AuthOptions> {
+    get authOptions() {
         return this.activeConfig.authOptions;
     }
 

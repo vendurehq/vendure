@@ -36,7 +36,6 @@ const LIB_DIR = isDashboardDir
 const CONTEXT_PATTERN_ALLOWLIST = [
     'components/ui/carousel.tsx',
     'components/ui/chart.tsx',
-    'components/ui/form.tsx',
     'components/ui/toggle-group.tsx',
 ];
 

@@ -20,15 +20,14 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
-import { PROMOTION_FRAGMENT } from './graphql/fragments';
-import * as Codegen from './graphql/generated-e2e-admin-types';
 import {
-    CREATE_ADMINISTRATOR,
-    CREATE_PROMOTION,
-    CREATE_ROLE,
-    CREATE_SHIPPING_METHOD,
-    UPDATE_ADMINISTRATOR,
-    UPDATE_SHIPPING_METHOD,
+    createAdministratorDocument,
+    createPromotionDocument,
+    createRoleDocument,
+    createShippingMethodDocument,
+    updateAdministratorDocument,
+    updatePromotionDocument,
+    updateShippingMethodDocument,
 } from './graphql/shared-definitions';
 
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
@@ -91,10 +90,7 @@ describe('Entity event updated state', () => {
         let promotionId: string;
 
         it('setup: create promotion', async () => {
-            const { createPromotion } = await adminClient.query<
-                Codegen.CreatePromotionMutation,
-                Codegen.CreatePromotionMutationVariables
-            >(CREATE_PROMOTION, {
+            const { createPromotion } = await adminClient.query(createPromotionDocument, {
                 input: {
                     enabled: true,
                     couponCode: 'EVENT_TEST',
@@ -125,7 +121,7 @@ describe('Entity event updated state', () => {
         it('emits post-update entity when enabled is changed', async () => {
             const eventPromise = firstValueFrom(eventBus.ofType(PromotionEvent));
 
-            await adminClient.query(UPDATE_PROMOTION, {
+            await adminClient.query(updatePromotionDocument, {
                 input: {
                     id: promotionId,
                     enabled: false,
@@ -141,7 +137,7 @@ describe('Entity event updated state', () => {
         it('emits post-update entity when name is changed', async () => {
             const eventPromise = firstValueFrom(eventBus.ofType(PromotionEvent));
 
-            await adminClient.query(UPDATE_PROMOTION, {
+            await adminClient.query(updatePromotionDocument, {
                 input: {
                     id: promotionId,
                     translations: [
@@ -165,10 +161,7 @@ describe('Entity event updated state', () => {
         let shippingMethodId: string;
 
         it('setup: create shipping method', async () => {
-            const { createShippingMethod } = await adminClient.query<
-                Codegen.CreateShippingMethodMutation,
-                Codegen.CreateShippingMethodMutationVariables
-            >(CREATE_SHIPPING_METHOD, {
+            const { createShippingMethod } = await adminClient.query(createShippingMethodDocument, {
                 input: {
                     code: 'event-test-shipping',
                     fulfillmentHandler: 'manual-fulfillment',
@@ -200,10 +193,7 @@ describe('Entity event updated state', () => {
         it('emits post-update entity when name is changed', async () => {
             const eventPromise = firstValueFrom(eventBus.ofType(ShippingMethodEvent));
 
-            await adminClient.query<
-                Codegen.UpdateShippingMethodMutation,
-                Codegen.UpdateShippingMethodMutationVariables
-            >(UPDATE_SHIPPING_METHOD, {
+            await adminClient.query(updateShippingMethodDocument, {
                 input: {
                     id: shippingMethodId,
                     translations: [
@@ -226,10 +216,7 @@ describe('Entity event updated state', () => {
         it('emits post-update entity when calculator is changed', async () => {
             const eventPromise = firstValueFrom(eventBus.ofType(ShippingMethodEvent));
 
-            await adminClient.query<
-                Codegen.UpdateShippingMethodMutation,
-                Codegen.UpdateShippingMethodMutationVariables
-            >(UPDATE_SHIPPING_METHOD, {
+            await adminClient.query(updateShippingMethodDocument, {
                 input: {
                     id: shippingMethodId,
                     calculator: {
@@ -263,10 +250,7 @@ describe('Entity event updated state', () => {
         let testRoleId: string;
 
         it('setup: create role and administrator', async () => {
-            const { createRole } = await adminClient.query<
-                Codegen.CreateRoleMutation,
-                Codegen.CreateRoleMutationVariables
-            >(CREATE_ROLE, {
+            const { createRole } = await adminClient.query(createRoleDocument, {
                 input: {
                     code: 'event-test-role',
                     description: 'A test role for event testing',
@@ -275,10 +259,7 @@ describe('Entity event updated state', () => {
             });
             testRoleId = createRole.id;
 
-            const { createAdministrator } = await adminClient.query<
-                Codegen.CreateAdministratorMutation,
-                Codegen.CreateAdministratorMutationVariables
-            >(CREATE_ADMINISTRATOR, {
+            const { createAdministrator } = await adminClient.query(createAdministratorDocument, {
                 input: {
                     firstName: 'Event',
                     lastName: 'TestAdmin',
@@ -294,10 +275,7 @@ describe('Entity event updated state', () => {
         it('emits post-update entity when name is changed', async () => {
             const eventPromise = firstValueFrom(eventBus.ofType(AdministratorEvent));
 
-            await adminClient.query<
-                Codegen.UpdateAdministratorMutation,
-                Codegen.UpdateAdministratorMutationVariables
-            >(UPDATE_ADMINISTRATOR, {
+            await adminClient.query(updateAdministratorDocument, {
                 input: {
                     id: administratorId,
                     lastName: 'UpdatedLastName',
@@ -311,10 +289,7 @@ describe('Entity event updated state', () => {
         });
 
         it('emits post-update entity when roles are changed', async () => {
-            const { createRole } = await adminClient.query<
-                Codegen.CreateRoleMutation,
-                Codegen.CreateRoleMutationVariables
-            >(CREATE_ROLE, {
+            const { createRole } = await adminClient.query(createRoleDocument, {
                 input: {
                     code: 'event-test-role-2',
                     description: 'Second test role',
@@ -325,10 +300,7 @@ describe('Entity event updated state', () => {
 
             const eventPromise = firstValueFrom(eventBus.ofType(AdministratorEvent));
 
-            await adminClient.query<
-                Codegen.UpdateAdministratorMutation,
-                Codegen.UpdateAdministratorMutationVariables
-            >(UPDATE_ADMINISTRATOR, {
+            await adminClient.query(updateAdministratorDocument, {
                 input: {
                     id: administratorId,
                     roleIds: [testRoleId, secondRoleId],
@@ -440,17 +412,4 @@ const UPDATE_PAYMENT_METHOD = gql`
         }
     }
     ${PAYMENT_METHOD_FRAGMENT}
-`;
-
-const UPDATE_PROMOTION = gql`
-    mutation UpdatePromotionEventTest($input: UpdatePromotionInput!) {
-        updatePromotion(input: $input) {
-            ...Promotion
-            ... on ErrorResult {
-                errorCode
-                message
-            }
-        }
-    }
-    ${PROMOTION_FRAGMENT}
 `;

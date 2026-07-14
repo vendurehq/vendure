@@ -22,8 +22,8 @@ export interface FieldInput {
  * Base page object for all detail (create/edit) pages.
  *
  * Detail pages follow a consistent pattern:
- * - Every field is wrapped in a `[data-slot="form-item"]` container
- *   with a `[data-slot="form-label"]` child
+ * - Every field is wrapped in a `[data-slot="field"]` container
+ *   with a `[data-slot="field-label"]` child
  * - Submit button says "Create" for new entities or "Update" for existing ones
  * - Success/error feedback via Sonner toasts
  *
@@ -53,17 +53,19 @@ export class BaseDetailPage {
     }
 
     async expectNewPageLoaded() {
-        await expect(this.page.getByRole('heading', { name: this.config.newTitle })).toBeVisible();
+        await expect(this.page.getByTestId('page-heading')).toBeVisible({
+            timeout: 10_000,
+        });
     }
 
     /**
      * Locate the form-item container for a given label text.
-     * This is the [data-slot="form-item"] div that wraps both the label and the input.
+     * This is the [data-slot="field"] div that wraps both the label and the input.
      * Uses exact text matching to avoid ambiguity (e.g. "Name" vs "First name").
      */
     formItem(label: string): Locator {
-        return this.page.locator('[data-slot="form-item"]').filter({
-            has: this.page.locator('[data-slot="form-label"]').getByText(label, { exact: true }),
+        return this.page.locator('[data-slot="field"]').filter({
+            has: this.page.locator('[data-slot="field-label"]').getByText(label, { exact: true }),
         });
     }
 
@@ -84,7 +86,7 @@ export class BaseDetailPage {
 
     /**
      * Select an option from a MultiSelect/Popover-based picker.
-     * Unlike `selectOption` (which targets `role="option"` in a Radix Select),
+     * Unlike `selectOption` (which targets `role="option"` in a Select),
      * this targets buttons inside a Popover — used by RoleSelector, etc.
      *
      * @param triggerLocator Locator for the combobox trigger button
@@ -98,10 +100,7 @@ export class BaseDetailPage {
     /** Toggle a switch field identified by its label. */
     async toggleSwitch(label: string, checked: boolean) {
         const switchEl = this.formItem(label).getByRole('switch');
-        const isChecked = await switchEl.isChecked();
-        if (isChecked !== checked) {
-            await switchEl.click();
-        }
+        await switchEl.setChecked(checked);
     }
 
     /**
@@ -143,6 +142,7 @@ export class BaseDetailPage {
     }
 
     async clickUpdate() {
+        await expect(this.updateButton).toBeEnabled({ timeout: 10_000 });
         await this.updateButton.click();
     }
 

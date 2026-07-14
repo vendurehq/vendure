@@ -1,15 +1,16 @@
-import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ID } from '@vendure/common/lib/shared-types';
 import crypto from 'crypto';
-import ms from 'ms';
+import ms, { type StringValue } from 'ms';
 import { Brackets, EntitySubscriberInterface, InsertEvent, RemoveEvent, UpdateEvent } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { Instrument } from '../../common/instrument-decorator';
-import { Logger } from '../../config';
+import { API_KEY_AUTH_STRATEGY_DEFAULT_DURATION_MS, API_KEY_AUTH_STRATEGY_NAME, Logger } from '../../config';
 import { ConfigService } from '../../config/config.service';
 import { CachedSession, SessionCacheStrategy } from '../../config/session-cache/session-cache-strategy';
 import { TransactionalConnection } from '../../connection/transactional-connection';
+import { ApiKey } from '../../entity/api-key/api-key.entity';
 import { Channel } from '../../entity/channel/channel.entity';
 import { Order } from '../../entity/order/order.entity';
 import { Role } from '../../entity/role/role.entity';
@@ -32,7 +33,7 @@ import { OrderService } from './order.service';
  */
 @Injectable()
 @Instrument()
-export class SessionService implements EntitySubscriberInterface, OnApplicationBootstrap {
+export class SessionService implements EntitySubscriberInterface, OnModuleInit {
     private sessionCacheStrategy: SessionCacheStrategy;
     private cleanSessionsJobQueue: JobQueue<{ batchSize: number }>;
     private readonly sessionDurationInMs: number;
@@ -49,14 +50,14 @@ export class SessionService implements EntitySubscriberInterface, OnApplicationB
 
         const { sessionDuration } = this.configService.authOptions;
         this.sessionDurationInMs =
-            typeof sessionDuration === 'string' ? ms(sessionDuration) : sessionDuration;
+            typeof sessionDuration === 'string' ? ms(sessionDuration as StringValue) : sessionDuration;
 
         // This allows us to register this class as a TypeORM Subscriber while also allowing
         // the injection on dependencies. See https://docs.nestjs.com/techniques/database#subscribers
         this.connection.rawConnection.subscribers.push(this);
     }
 
-    async onApplicationBootstrap() {
+    async onModuleInit() {
         this.cleanSessionsJobQueue = await this.jobQueueService.createQueue({
             name: 'clean-sessions',
             process: async job => {
@@ -108,21 +109,29 @@ export class SessionService implements EntitySubscriberInterface, OnApplicationB
         ctx: RequestContext,
         user: User,
         authenticationStrategyName: string,
+        sessionToken?: string,
     ): Promise<AuthenticatedSession> {
-        const token = await this.generateSessionToken();
+        const token = sessionToken ?? (await this.generateSessionToken());
         const guestOrder =
             ctx.session && ctx.session.activeOrderId
                 ? await this.orderService.findOne(ctx, ctx.session.activeOrderId)
                 : undefined;
         const existingOrder = await this.orderService.getActiveOrderForUser(ctx, user.id);
         const activeOrder = await this.orderService.mergeOrders(ctx, user, guestOrder, existingOrder);
+
+        const expires = this.getExpiryDate(
+            authenticationStrategyName === API_KEY_AUTH_STRATEGY_NAME
+                ? API_KEY_AUTH_STRATEGY_DEFAULT_DURATION_MS
+                : this.sessionDurationInMs,
+        );
+
         const authenticatedSession = await this.connection.getRepository(ctx, AuthenticatedSession).save(
             new AuthenticatedSession({
                 token,
                 user,
                 activeOrder,
                 authenticationStrategy: authenticationStrategyName,
-                expires: this.getExpiryDate(this.sessionDurationInMs),
+                expires,
                 invalidated: false,
             }),
         );
@@ -177,7 +186,7 @@ export class SessionService implements EntitySubscriberInterface, OnApplicationB
     serializeSession(session: AuthenticatedSession | AnonymousSession): CachedSession {
         const { sessionCacheTTL } = this.configService.authOptions;
         const sessionCacheTTLSeconds =
-            typeof sessionCacheTTL === 'string' ? ms(sessionCacheTTL) / 1000 : sessionCacheTTL;
+            typeof sessionCacheTTL === 'string' ? ms(sessionCacheTTL as StringValue) / 1000 : sessionCacheTTL;
 
         const expiry = new Date().getTime() / 1000 + sessionCacheTTLSeconds;
         const serializedSession: CachedSession = {
@@ -313,10 +322,34 @@ export class SessionService implements EntitySubscriberInterface, OnApplicationB
 
     /**
      * @description
+     * Deletes session related to API-Key
+     */
+    async deleteApiKeySession(ctx: RequestContext, apiKey: ApiKey): Promise<void> {
+        await this.connection.getRepository(ctx, AuthenticatedSession).delete({
+            token: apiKey.apiKeyHash,
+            user: { id: apiKey.userId },
+            authenticationStrategy: API_KEY_AUTH_STRATEGY_NAME,
+        });
+        await this.withTimeout(this.sessionCacheStrategy.delete(apiKey.apiKeyHash));
+    }
+
+    /**
+     * @description
      * Deletes all existing sessions with the given activeOrder.
      */
     async deleteSessionsByActiveOrderId(ctx: RequestContext, activeOrderId: ID): Promise<void> {
-        const sessions = await this.connection.getRepository(ctx, Session).find({ where: { activeOrderId } });
+        const sessions = await this.connection
+            .getRepository(ctx, Session)
+            // Using a query builder here because sessions utilize @TableInheritance,
+            // `authenticationStrategy` only exists on `AuthenticatedSession`
+            .createQueryBuilder('s')
+            .where('s.activeOrderId = :activeOrderId', { activeOrderId })
+            // Specifically do not delete api key based sessions,
+            // else the api key becomes unusable!
+            .andWhere('(s.authenticationStrategy != :name OR s.authenticationStrategy IS NULL)', {
+                name: API_KEY_AUTH_STRATEGY_NAME,
+            })
+            .getMany();
         await this.connection.getRepository(ctx, Session).remove(sessions);
         for (const session of sessions) {
             await this.withTimeout(this.sessionCacheStrategy.delete(session.token));
@@ -366,9 +399,13 @@ export class SessionService implements EntitySubscriberInterface, OnApplicationB
      * needing to run an update query on *every* request.
      */
     private async updateSessionExpiry(session: Session) {
-        const now = new Date().getTime();
-        if (session.expires.getTime() - now < this.sessionDurationInMs / 2) {
-            const newExpiryDate = this.getExpiryDate(this.sessionDurationInMs);
+        const isApiKeySession =
+            this.isAuthenticatedSession(session) &&
+            session.authenticationStrategy === API_KEY_AUTH_STRATEGY_NAME;
+        const ttlMs = isApiKeySession ? API_KEY_AUTH_STRATEGY_DEFAULT_DURATION_MS : this.sessionDurationInMs;
+
+        if (session.expires.getTime() - Date.now() < ttlMs / 2) {
+            const newExpiryDate = this.getExpiryDate(ttlMs);
             session.expires = newExpiryDate;
             await this.connection.rawConnection
                 .getRepository(Session)

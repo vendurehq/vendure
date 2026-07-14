@@ -30,15 +30,13 @@ export function AddCurrencyDropdown({
 
     return (
         <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                    <PlusIcon className="size-4" />
-                    {placeholder || t`Add a price in another currency`}
-                </Button>
+            <DropdownMenuTrigger render={<Button variant="outline" className="gap-2" />}>
+                <PlusIcon className="size-4" />
+                {placeholder || t`Add a price in another currency`}
             </DropdownMenuTrigger>
             <DropdownMenuContent>
                 {unusedCurrencies.map(currencyCode => (
-                    <DropdownMenuItem key={currencyCode} onSelect={() => onCurrencySelect(currencyCode)}>
+                    <DropdownMenuItem key={currencyCode} onClick={() => onCurrencySelect(currencyCode)}>
                         <span className="uppercase text-muted-foreground">{currencyCode}</span>
                         {formatCurrencyName(currencyCode)}
                     </DropdownMenuItem>

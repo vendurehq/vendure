@@ -1,3 +1,4 @@
+import { ErrorCode } from '@vendure/common/lib/generated-types';
 import {
     defaultShippingCalculator,
     defaultShippingEligibilityChecker,
@@ -7,28 +8,22 @@ import {
     mergeConfig,
 } from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
-import gql from 'graphql-tag';
 import path from 'path';
-import { vi } from 'vitest';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
-import { testConfig, TEST_SETUP_TIMEOUT_MS } from '../../../e2e-common/test-config';
+import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import { testSuccessfulPaymentMethod } from './fixtures/test-payment-methods';
-import * as Codegen from './graphql/generated-e2e-admin-types';
-import { CreateFulfillmentError, ErrorCode, FulfillmentFragment } from './graphql/generated-e2e-admin-types';
+import { getFulfillmentHandlersDocument } from './graphql/admin-definitions';
+import { fulfillmentFragment } from './graphql/fragments-admin';
+import { FragmentOf } from './graphql/graphql-admin';
 import {
-    AddItemToOrderMutation,
-    AddItemToOrderMutationVariables,
-    TestOrderWithPaymentsFragment,
-} from './graphql/generated-e2e-shop-types';
-import {
-    CREATE_FULFILLMENT,
-    CREATE_SHIPPING_METHOD,
-    TRANSIT_FULFILLMENT,
+    createFulfillmentDocument,
+    createShippingMethodDocument,
+    transitFulfillmentDocument,
 } from './graphql/shared-definitions';
-import { ADD_ITEM_TO_ORDER } from './graphql/shop-definitions';
+import { addItemToOrderDocument, testOrderWithPaymentsFragment } from './graphql/shop-definitions';
 import { addPaymentToOrder, proceedToArrangingPayment } from './utils/test-order-utils';
 
 const badTrackingCode = 'bad-code';
@@ -59,14 +54,13 @@ const testFulfillmentHandler = new FulfillmentHandler({
 });
 
 describe('Order fulfillments', () => {
-    const orderGuard: ErrorResultGuard<TestOrderWithPaymentsFragment> = createErrorResultGuard(
-        input => !!input.lines,
-    );
-    const fulfillmentGuard: ErrorResultGuard<FulfillmentFragment> = createErrorResultGuard(
+    const orderGuard: ErrorResultGuard<FragmentOf<typeof testOrderWithPaymentsFragment>> =
+        createErrorResultGuard(input => !!input.lines);
+    const fulfillmentGuard: ErrorResultGuard<FragmentOf<typeof fulfillmentFragment>> = createErrorResultGuard(
         input => !!input.id,
     );
 
-    let order: TestOrderWithPaymentsFragment;
+    let order: FragmentOf<typeof testOrderWithPaymentsFragment>;
     let f1Id: string;
 
     const { server, adminClient, shopClient } = createTestEnvironment(
@@ -95,10 +89,7 @@ describe('Order fulfillments', () => {
             customerCount: 2,
         });
         await adminClient.asSuperAdmin();
-        await adminClient.query<
-            Codegen.CreateShippingMethodMutation,
-            Codegen.CreateShippingMethodMutationVariables
-        >(CREATE_SHIPPING_METHOD, {
+        await adminClient.query(createShippingMethodDocument, {
             input: {
                 code: 'test-method',
                 fulfillmentHandler: manualFulfillmentHandler.code,
@@ -128,11 +119,11 @@ describe('Order fulfillments', () => {
             },
         });
         await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
-        await shopClient.query<AddItemToOrderMutation, AddItemToOrderMutationVariables>(ADD_ITEM_TO_ORDER, {
+        await shopClient.query(addItemToOrderDocument, {
             productVariantId: 'T_1',
             quantity: 1,
         });
-        await shopClient.query<AddItemToOrderMutation, AddItemToOrderMutationVariables>(ADD_ITEM_TO_ORDER, {
+        await shopClient.query(addItemToOrderDocument, {
             productVariantId: 'T_2',
             quantity: 1,
         });
@@ -147,9 +138,7 @@ describe('Order fulfillments', () => {
     });
 
     it('fulfillmentHandlers query', async () => {
-        const { fulfillmentHandlers } = await adminClient.query<Codegen.GetFulfillmentHandlersQuery>(
-            GET_FULFILLMENT_HANDLERS,
-        );
+        const { fulfillmentHandlers } = await adminClient.query(getFulfillmentHandlersDocument);
 
         expect(fulfillmentHandlers.map(h => h.code)).toEqual([
             'manual-fulfillment',
@@ -158,10 +147,7 @@ describe('Order fulfillments', () => {
     });
 
     it('creates fulfillment based on args', async () => {
-        const { addFulfillmentToOrder } = await adminClient.query<
-            Codegen.CreateFulfillmentMutation,
-            Codegen.CreateFulfillmentMutationVariables
-        >(CREATE_FULFILLMENT, {
+        const { addFulfillmentToOrder } = await adminClient.query(createFulfillmentDocument, {
             input: {
                 lines: order.lines.slice(0, 1).map(l => ({ orderLineId: l.id, quantity: l.quantity })),
                 handler: {
@@ -187,10 +173,7 @@ describe('Order fulfillments', () => {
     });
 
     it('onFulfillmentTransition can prevent state transition', async () => {
-        const { transitionFulfillmentToState } = await adminClient.query<
-            Codegen.TransitFulfillmentMutation,
-            Codegen.TransitFulfillmentMutationVariables
-        >(TRANSIT_FULFILLMENT, {
+        const { transitionFulfillmentToState } = await adminClient.query(transitFulfillmentDocument, {
             id: f1Id,
             state: 'Shipped',
         });
@@ -201,10 +184,7 @@ describe('Order fulfillments', () => {
     });
 
     it('throwing from createFulfillment returns CreateFulfillmentError result', async () => {
-        const { addFulfillmentToOrder } = await adminClient.query<
-            Codegen.CreateFulfillmentMutation,
-            Codegen.CreateFulfillmentMutationVariables
-        >(CREATE_FULFILLMENT, {
+        const { addFulfillmentToOrder } = await adminClient.query(createFulfillmentDocument, {
             input: {
                 lines: order.lines.slice(1, 2).map(l => ({ orderLineId: l.id, quantity: l.quantity })),
                 handler: {
@@ -221,24 +201,6 @@ describe('Order fulfillments', () => {
         fulfillmentGuard.assertErrorResult(addFulfillmentToOrder);
 
         expect(addFulfillmentToOrder.errorCode).toBe(ErrorCode.CREATE_FULFILLMENT_ERROR);
-        expect((addFulfillmentToOrder as CreateFulfillmentError).fulfillmentHandlerError).toBe(
-            'The code was bad!',
-        );
+        expect((addFulfillmentToOrder as any).fulfillmentHandlerError).toBe('The code was bad!');
     });
 });
-
-const GET_FULFILLMENT_HANDLERS = gql`
-    query GetFulfillmentHandlers {
-        fulfillmentHandlers {
-            code
-            description
-            args {
-                name
-                type
-                description
-                label
-                ui
-            }
-        }
-    }
-`;

@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { LayersIcon } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/vdb/components/ui/sonner.js';
 
 import { DataTableBulkActionItem } from '@/vdb/components/data-table/data-table-bulk-action-item.js';
 import { usePaginatedList } from '@/vdb/hooks/use-paginated-list.js';
@@ -79,14 +79,13 @@ export function RemoveFromChannelBulkAction({
         <DataTableBulkActionItem
             requiresPermission={requiredPermissions}
             onClick={handleRemove}
-            label={<Trans>Remove from current channel</Trans>}
+            label={<Trans>Remove from channel</Trans>}
             confirmationText={
                 <Trans>
                     Are you sure you want to remove {selection.length} {entityType} from the current channel?
                 </Trans>
             }
             icon={LayersIcon}
-            className="text-warning"
             disabled={activeChannel.code === DEFAULT_CHANNEL_CODE}
         />
     );
