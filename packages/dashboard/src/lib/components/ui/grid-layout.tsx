@@ -1,7 +1,7 @@
-import * as React from "react";
-import { useState, useRef, useCallback, useEffect } from "react";
-import { cn } from "@/vdb/lib/utils.js";
-import { useIsMobile } from "@/vdb/hooks/use-mobile.js";
+import { useIsMobile } from '@/vdb/hooks/use-mobile.js';
+import { cn } from '@/vdb/lib/utils.js';
+import * as React from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const MOBILE_GUTTER = 5;
 const MIN_CONTAINER_ROWS = 4;
@@ -64,54 +64,60 @@ function GridItem({
     const [dragStart, setDragStart] = useState({ x: 0, y: 0, mouseX: 0, mouseY: 0 });
     const itemRef = useRef<HTMLDivElement>(null);
 
-    const handleMouseDown = useCallback((e: React.MouseEvent) => {
-        if (!isDraggable || isResizing) return;
-        e.preventDefault();
-        e.stopPropagation();
-        
-        const rect = itemRef.current?.getBoundingClientRect();
-        if (!rect) return;
-        
-        setIsDragging(true);
-        onInteractionStart?.();
-        setDragStart({
-            x: layout.x,
-            y: layout.y,
-            mouseX: e.clientX,
-            mouseY: e.clientY,
-        });
-    }, [isDraggable, isResizing, layout.x, layout.y, onInteractionStart]);
+    const handleMouseDown = useCallback(
+        (e: React.MouseEvent) => {
+            if (!isDraggable || isResizing) return;
+            e.preventDefault();
+            e.stopPropagation();
 
-    const handleResizeStart = useCallback((e: React.MouseEvent) => {
-        if (!isResizable) return;
-        e.preventDefault();
-        e.stopPropagation();
-        setIsResizing(true);
-        onInteractionStart?.();
-        setDragStart({
-            x: layout.w,
-            y: layout.h,
-            mouseX: e.clientX,
-            mouseY: e.clientY,
-        });
-    }, [isResizable, layout.w, layout.h, onInteractionStart]);
+            const rect = itemRef.current?.getBoundingClientRect();
+            if (!rect) return;
+
+            setIsDragging(true);
+            onInteractionStart?.();
+            setDragStart({
+                x: layout.x,
+                y: layout.y,
+                mouseX: e.clientX,
+                mouseY: e.clientY,
+            });
+        },
+        [isDraggable, isResizing, layout.x, layout.y, onInteractionStart],
+    );
+
+    const handleResizeStart = useCallback(
+        (e: React.MouseEvent) => {
+            if (!isResizable) return;
+            e.preventDefault();
+            e.stopPropagation();
+            setIsResizing(true);
+            onInteractionStart?.();
+            setDragStart({
+                x: layout.w,
+                y: layout.h,
+                mouseX: e.clientX,
+                mouseY: e.clientY,
+            });
+        },
+        [isResizable, layout.w, layout.h, onInteractionStart],
+    );
 
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
             if (!itemRef.current) return;
-            
+
             const containerRect = itemRef.current.parentElement?.getBoundingClientRect();
             if (!containerRect) return;
-            
+
             const colWidth = (containerRect.width - gutter * (cols - 1)) / cols;
-            
+
             if (isDragging && onLayoutChange) {
                 const deltaX = e.clientX - dragStart.mouseX;
                 const deltaY = e.clientY - dragStart.mouseY;
-                
+
                 const newX = Math.round(dragStart.x + deltaX / colWidth);
                 const newY = Math.round(dragStart.y + deltaY / rowHeight);
-                
+
                 onLayoutChange({
                     ...layout,
                     x: Math.max(0, Math.min(cols - layout.w, newX)),
@@ -120,16 +126,16 @@ function GridItem({
             } else if (isResizing && onLayoutChange) {
                 const deltaX = e.clientX - dragStart.mouseX;
                 const deltaY = e.clientY - dragStart.mouseY;
-                
+
                 const newW = Math.round(dragStart.x + deltaX / colWidth);
                 const newH = Math.round(dragStart.y + deltaY / rowHeight);
-                
+
                 // Apply min/max constraints
                 const minW = layout.minW ?? 1;
                 const minH = layout.minH ?? 1;
-                const maxW = layout.maxW ?? (cols - layout.x);
+                const maxW = layout.maxW ?? cols - layout.x;
                 const maxH = layout.maxH ?? MAX_HEIGHT_FALLBACK;
-                
+
                 onLayoutChange({
                     ...layout,
                     w: Math.max(minW, Math.min(maxW, Math.min(cols - layout.x, newW))),
@@ -171,20 +177,18 @@ function GridItem({
             ref={itemRef}
             style={style}
             className={cn(
-                "transition-shadow",
-                isDraggable && !isResizing && "cursor-move",
-                (isDragging || isResizing) && "shadow-lg",
+                'transition-shadow',
+                isDraggable && !isResizing && 'cursor-move',
+                (isDragging || isResizing) && 'shadow-lg',
             )}
             onMouseDown={handleMouseDown}
         >
-            <div className="h-full w-full">
-                {children}
-            </div>
+            <div className="h-full w-full">{children}</div>
             {isResizable && (
                 <div
                     className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize bg-muted-foreground/20 hover:bg-muted-foreground/40 transition-colors"
                     style={{
-                        clipPath: "polygon(100% 0%, 0% 100%, 100% 100%)",
+                        clipPath: 'polygon(100% 0%, 0% 100%, 100% 100%)',
                     }}
                     onMouseDown={handleResizeStart}
                 />
@@ -206,11 +210,11 @@ export function GridLayout({
 }: GridLayoutProps) {
     const [showGrid, setShowGrid] = useState(false);
     const isMobile = useIsMobile();
-    
+
     // Transform layouts for mobile - stack widgets vertically in full width
     const mobileLayouts = React.useMemo(() => {
         if (!isMobile) return layouts;
-        
+
         return layouts.map((layout, index) => ({
             ...layout,
             x: 0,
@@ -218,7 +222,7 @@ export function GridLayout({
             w: cols, // Full width
         }));
     }, [layouts, isMobile, cols]);
-    
+
     const effectiveLayouts = isMobile ? mobileLayouts : layouts;
     const effectiveGutter = isMobile ? MOBILE_GUTTER : gutter;
     const maxRow = Math.max(...effectiveLayouts.map(l => l.y + l.h), MIN_CONTAINER_ROWS);
@@ -230,7 +234,7 @@ export function GridLayout({
             a.x + a.w <= b.x || // a is left of b
             b.x + b.w <= a.x || // b is left of a
             a.y + a.h <= b.y || // a is above b
-            b.y + b.h <= a.y    // b is above a
+            b.y + b.h <= a.y // b is above a
         );
     };
 
@@ -238,61 +242,65 @@ export function GridLayout({
     const findNextAvailablePosition = (
         widget: GridLayout,
         occupiedLayouts: GridLayout[],
-        draggedWidget?: GridLayout
+        draggedWidget?: GridLayout,
     ): GridLayout => {
         const sortedLayouts = [...occupiedLayouts]
-            .filter(l => l.i !== widget.i && (l.i !== draggedWidget?.i))
-            .sort((a, b) => a.y === b.y ? a.x - b.x : a.y - b.y);
+            .filter(l => l.i !== widget.i && l.i !== draggedWidget?.i)
+            .sort((a, b) => (a.y === b.y ? a.x - b.x : a.y - b.y));
 
         // Try to place widget in rows, starting from its current position
         for (let y = widget.y; y < MAX_SEARCH_ROWS; y++) {
             for (let x = 0; x <= cols - widget.w; x++) {
                 const testLayout = { ...widget, x, y };
-                
+
                 // Check if this position overlaps with any other widget
                 const hasOverlap = sortedLayouts.some(layout => layoutsOverlap(testLayout, layout));
-                
+
                 // Also check overlap with dragged widget if provided
                 if (!hasOverlap && (!draggedWidget || !layoutsOverlap(testLayout, draggedWidget))) {
                     return testLayout;
                 }
             }
         }
-        
+
         // Fallback: place at the bottom
         const maxY = Math.max(...sortedLayouts.map(l => l.y + l.h), 0);
         return { ...widget, x: 0, y: maxY };
     };
 
-    const handleItemLayoutChange = useCallback((newLayout: GridLayout) => {
-        if (onLayoutChange && !isMobile) { // Disable layout changes on mobile
-            const newLayouts = [...layouts];
-            const draggedIndex = layouts.findIndex(l => l.i === newLayout.i);
-            
-            if (draggedIndex === -1) return;
-            
-            // Update the dragged widget's position
-            newLayouts[draggedIndex] = newLayout;
-            
-            // Find widgets that overlap with the new position
-            const overlappingWidgets: number[] = [];
-            
-            for (let i = 0; i < newLayouts.length; i++) {
-                if (i !== draggedIndex && layoutsOverlap(newLayout, newLayouts[i])) {
-                    overlappingWidgets.push(i);
+    const handleItemLayoutChange = useCallback(
+        (newLayout: GridLayout) => {
+            if (onLayoutChange && !isMobile) {
+                // Disable layout changes on mobile
+                const newLayouts = [...layouts];
+                const draggedIndex = layouts.findIndex(l => l.i === newLayout.i);
+
+                if (draggedIndex === -1) return;
+
+                // Update the dragged widget's position
+                newLayouts[draggedIndex] = newLayout;
+
+                // Find widgets that overlap with the new position
+                const overlappingWidgets: number[] = [];
+
+                for (let i = 0; i < newLayouts.length; i++) {
+                    if (i !== draggedIndex && layoutsOverlap(newLayout, newLayouts[i])) {
+                        overlappingWidgets.push(i);
+                    }
                 }
+
+                // Move overlapping widgets to new positions
+                for (const index of overlappingWidgets) {
+                    const widgetToMove = newLayouts[index];
+                    const newPosition = findNextAvailablePosition(widgetToMove, newLayouts, newLayout);
+                    newLayouts[index] = newPosition;
+                }
+
+                onLayoutChange(newLayouts);
             }
-            
-            // Move overlapping widgets to new positions
-            for (const index of overlappingWidgets) {
-                const widgetToMove = newLayouts[index];
-                const newPosition = findNextAvailablePosition(widgetToMove, newLayouts, newLayout);
-                newLayouts[index] = newPosition;
-            }
-            
-            onLayoutChange(newLayouts);
-        }
-    }, [layouts, onLayoutChange, cols, isMobile]);
+        },
+        [layouts, onLayoutChange, cols, isMobile],
+    );
 
     const handleInteractionStart = useCallback(() => {
         setShowGrid(true);
@@ -302,10 +310,13 @@ export function GridLayout({
         setShowGrid(false);
     }, []);
 
-    // Create grid overlay
+    // Create the edit-mode grid: one set of cells matching the exact cell geometry
+    // (including gutters) used to position widgets. Shown faintly while editing as
+    // an alignment aid, and highlighted while dragging/resizing.
+    const isEditing = isDraggable || isResizable;
     const renderGridOverlay = () => {
-        if (!showGrid) return null;
-        
+        if (!isEditing) return null;
+
         const gridCells = [];
         for (let row = 0; row < maxRow; row++) {
             for (let col = 0; col < cols; col++) {
@@ -320,35 +331,28 @@ export function GridLayout({
                     zIndex: 0, // Behind widgets but above background
                     boxSizing: 'border-box',
                 };
-                
+
                 gridCells.push(
                     <div
                         key={`grid-${row}-${col}`}
                         style={cellStyle}
-                        className="transition-opacity duration-200 border-2 border-dashed border-primary bg-primary/10"
-                    />
+                        className={cn(
+                            'transition-colors duration-200 border-dashed rounded-sm',
+                            showGrid ? 'border-2 border-primary bg-primary/10' : 'border border-border',
+                        )}
+                    />,
                 );
             }
         }
-        
+
         return gridCells;
     };
 
     return (
         <div
-            className={cn("relative w-full bg-muted/10", className)}
+            className={cn('relative w-full bg-muted/10', className)}
             style={{
                 height: `${containerHeight}px`,
-                // Alignment lines are an editing aid; hide them in view mode.
-                ...(isDraggable || isResizable
-                    ? {
-                          backgroundImage: `
-                    linear-gradient(to right, var(--border) 1px, transparent 1px),
-                    linear-gradient(to bottom, var(--border) 1px, transparent 1px)
-                `,
-                          backgroundSize: `${100 / cols}% ${rowHeight}px`,
-                      }
-                    : {}),
             }}
         >
             {children.map((child, index) => {
