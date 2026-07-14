@@ -42,6 +42,8 @@ export default ({ mode }: { mode: string }) => {
                 vendureConfigPath: pathToFileURL(vendureConfigPath),
                 api: { host: adminApiHost, port: adminApiPort },
                 tempCompilationDir: path.resolve(__dirname, './.temp'),
+                // Opt into the pre-built bundle for the bundle-mode e2e run.
+                useExperimentalBundle: process.env.VITE_USE_EXPERIMENTAL_BUNDLE === 'true',
             }) as any,
         ],
     });

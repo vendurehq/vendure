@@ -14,7 +14,7 @@ import { AvailableStock, LocationWithQuantity, StockLocationStrategy } from './s
 export abstract class BaseStockLocationStrategy implements StockLocationStrategy {
     protected connection: TransactionalConnection;
 
-    init(injector: Injector) {
+    init(injector: Injector): void | Promise<void> {
         this.connection = injector.get(TransactionalConnection);
     }
 

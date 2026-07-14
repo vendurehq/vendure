@@ -1,6 +1,6 @@
 {
     "name": "@vendure/harden-plugin",
-    "version": "3.7.0",
+    "version": "3.7.1",
     "license": "GPL-3.0-or-later",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
@@ -28,7 +28,7 @@
         "@apollo/server": "^4.12.2"
     },
     "devDependencies": {
-        "@vendure/common": "3.7.0",
-        "@vendure/core": "3.7.0"
+        "@vendure/common": "3.7.1",
+        "@vendure/core": "3.7.1"
     }
 }

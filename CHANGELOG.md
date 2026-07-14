@@ -1,3 +1,28 @@
+## <small>3.7.1 (2026-07-14)</small>
+
+
+#### Fixes
+
+* **core** Deliver public API type dependencies to consumers (#4947) ([c4ed7a0](https://github.com/vendurehq/vendure/commit/c4ed7a0)), closes [#4947](https://github.com/vendurehq/vendure/issues/4947)
+* **core** Export and register Province entity and ProvinceService (#4857) ([c1b5b3d](https://github.com/vendurehq/vendure/commit/c1b5b3d)), closes [#4857](https://github.com/vendurehq/vendure/issues/4857)
+* **core** Merge shared entity instances into every hydration target (#4945) ([aa5859e](https://github.com/vendurehq/vendure/commit/aa5859e)), closes [#4945](https://github.com/vendurehq/vendure/issues/4945)
+* **core** Stop double-encoding non-list ID config args ([7591e6f](https://github.com/vendurehq/vendure/commit/7591e6f)), closes [#2483](https://github.com/vendurehq/vendure/issues/2483) [#4856](https://github.com/vendurehq/vendure/issues/4856) [#2483](https://github.com/vendurehq/vendure/issues/2483) [#4856](https://github.com/vendurehq/vendure/issues/4856)
+* **core** Use tax-inclusive amount when cancelling shipping with pricesIncludeTax (#4370) ([e30fd9e](https://github.com/vendurehq/vendure/commit/e30fd9e)), closes [#4370](https://github.com/vendurehq/vendure/issues/4370)
+* **core** validate minimum threshold in promotion conditions (#4922) ([47c003c](https://github.com/vendurehq/vendure/commit/47c003c)), closes [#4922](https://github.com/vendurehq/vendure/issues/4922)
+* **create** Fix Quick Start hangs and package-manager install failures (#4946) ([449be92](https://github.com/vendurehq/vendure/commit/449be92)), closes [#4946](https://github.com/vendurehq/vendure/issues/4946)
+* **dashboard** Add "Remove from group" bulk action to customer group members (#4346) ([49aee74](https://github.com/vendurehq/vendure/commit/49aee74)), closes [#4346](https://github.com/vendurehq/vendure/issues/4346)
+* **dashboard** Add several missing translation strings (#4074) ([dbc31ff](https://github.com/vendurehq/vendure/commit/dbc31ff)), closes [#4074](https://github.com/vendurehq/vendure/issues/4074)
+* **dashboard** Allow removing an option group from the product detail page (#4876) ([5a14f4a](https://github.com/vendurehq/vendure/commit/5a14f4a)), closes [#4876](https://github.com/vendurehq/vendure/issues/4876)
+* **dashboard** Localize configurable operation selector buttons (#4914) ([56a41bf](https://github.com/vendurehq/vendure/commit/56a41bf)), closes [#4914](https://github.com/vendurehq/vendure/issues/4914)
+* **dashboard** Prevent accidental line removal when editing draft order quantity (#4345) ([0ed149e](https://github.com/vendurehq/vendure/commit/0ed149e)), closes [#4345](https://github.com/vendurehq/vendure/issues/4345)
+* **dashboard** Reflect modified line quantities in refund dialog (#4917) ([e7f8fe0](https://github.com/vendurehq/vendure/commit/e7f8fe0)), closes [#4917](https://github.com/vendurehq/vendure/issues/4917)
+* **dashboard** Share context libraries in experimental bundle mode (#4967) ([5e6528f](https://github.com/vendurehq/vendure/commit/5e6528f)), closes [#4967](https://github.com/vendurehq/vendure/issues/4967)
+* **email-plugin** Move @types/nodemailer to dependencies (#4942) ([ce88f8e](https://github.com/vendurehq/vendure/commit/ce88f8e)), closes [#4942](https://github.com/vendurehq/vendure/issues/4942)
+
+#### Perf
+
+* **core** resolve relation custom fields using request-scoped DataLoader batching ([9051651](https://github.com/vendurehq/vendure/commit/9051651))
+
 ## 3.7.0 (2026-07-01)
 
 

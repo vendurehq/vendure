@@ -1,6 +1,6 @@
 {
     "name": "@vendure/asset-server-plugin",
-    "version": "3.7.0",
+    "version": "3.7.1",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
     "files": [
@@ -29,8 +29,8 @@
         "@aws-sdk/lib-storage": "^3.529.1",
         "@types/fs-extra": "^11.0.4",
         "@types/mime-types": "^3.0.1",
-        "@vendure/common": "3.7.0",
-        "@vendure/core": "3.7.0",
+        "@vendure/common": "3.7.1",
+        "@vendure/core": "3.7.1",
         "rimraf": "^5.0.5",
         "typescript": "5.8.2"
     },
