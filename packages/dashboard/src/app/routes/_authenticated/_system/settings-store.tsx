@@ -1,3 +1,4 @@
+import { JsonViewer } from '@/vdb/components/data-display/json-viewer.js';
 import { DataTable } from '@/vdb/components/data-table/data-table.js';
 import { CopyableText } from '@/vdb/components/shared/copyable-text.js';
 import { Badge } from '@/vdb/components/ui/badge.js';
@@ -27,7 +28,6 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { ColumnFilter, createColumnHelper } from '@tanstack/react-table';
-import { JsonViewer } from '@/vdb/components/data-display/json-viewer.js';
 import { Braces } from 'lucide-react';
 import React, { useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -68,7 +68,9 @@ function ValueCell({ field, onSave }: { field: FieldDefinition; onSave: (value: 
 
     // Complex objects/arrays → dialog with JSON tree viewer/editor
     if (isComplex) {
-        return <JsonValueDialog value={value} fieldKey={field.key} readonly={field.readonly} onSave={onSave} />;
+        return (
+            <JsonValueDialog value={value} fieldKey={field.key} readonly={field.readonly} onSave={onSave} />
+        );
     }
 
     // Readonly simple values → plain text
@@ -110,7 +112,15 @@ function JsonValueDialog({
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger render={<Button variant="outline" size="sm" className="max-w-[300px] justify-start gap-2 font-mono text-xs" />}>
+            <DialogTrigger
+                render={
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="max-w-[300px] justify-start gap-2 font-mono text-xs"
+                    />
+                }
+            >
                 <Braces className="size-3.5 shrink-0" />
                 <span className="truncate">{truncated}</span>
             </DialogTrigger>
@@ -307,6 +317,7 @@ function SettingsStorePage() {
                 <FullWidthPageBlock blockId="list-table">
                     <DataTable
                         onRefresh={invalidateFieldDefinitions}
+                        searchPlaceholder={t`Search entries...`}
                         onSearchTermChange={setSearch}
                         onFilterChange={(_table, filters) => setColumnFilters(filters)}
                         facetedFilters={{

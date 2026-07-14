@@ -2,7 +2,7 @@ import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js'
 import { Button } from '@/vdb/components/ui/button.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
-import { Trans } from '@lingui/react/macro';
+import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { PlusIcon } from 'lucide-react';
 import { DeleteCountriesBulkAction } from './components/country-bulk-actions.js';
@@ -14,6 +14,7 @@ export const Route = createFileRoute('/_authenticated/_countries/countries')({
 });
 
 function CountryListPage() {
+    const { t } = useLingui();
     return (
         <ListPage
             pageId="country-list"
@@ -25,6 +26,7 @@ function CountryListPage() {
                 code: true,
                 enabled: true,
             }}
+            searchPlaceholder={t`Search countries...`}
             onSearchTermChange={searchTerm => {
                 return searchTerm
                     ? {

@@ -54,6 +54,7 @@ function ProductListPage() {
                     cell: RichTextDescriptionCell,
                 },
             }}
+            searchPlaceholder={t`Search products...`}
             onSearchTermChange={searchTerm => {
                 return searchTerm
                     ? {
@@ -109,9 +110,7 @@ function ProductListPage() {
                     { component: AssignFacetValuesToProductsBulkAction, order: 300 },
                     { component: DuplicateProductsBulkAction, order: 400 },
                 ],
-                [
-                    { component: DeleteProductsBulkAction },
-                ],
+                [{ component: DeleteProductsBulkAction }],
             ]}
         >
             <ActionBarItem itemId="rebuild-index-button" requiresPermission={['UpdateCatalog']}>

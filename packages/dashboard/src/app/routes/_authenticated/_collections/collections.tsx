@@ -32,7 +32,6 @@ import {
 } from './components/collection-bulk-actions.js';
 import { CollectionContentsSheet } from './components/collection-contents-sheet.js';
 
-
 function parseExpandedParam(expanded?: string): ExpandedState {
     if (!expanded) return {};
     const ids = expanded.split(',').filter(Boolean);
@@ -82,26 +81,31 @@ function CollectionListPage() {
     const queryClient = useQueryClient();
     const routeSearch = Route.useSearch();
     const navigate = useNavigate({ from: Route.fullPath });
-    const [expanded, setExpandedState] = useState<ExpandedState>(() => parseExpandedParam(routeSearch.expanded));
+    const [expanded, setExpandedState] = useState<ExpandedState>(() =>
+        parseExpandedParam(routeSearch.expanded),
+    );
     const [searchTerm, setSearchTerm] = useState<string>('');
     const [accumulatedChildren, setAccumulatedChildren] = useState<
         Record<string, { items: Collection[]; totalItems: number }>
     >({});
     const [nextPageToFetch, setNextPageToFetch] = useState<Record<string, number>>({});
 
-    const setExpanded = useCallback((updater: ExpandedState | ((prev: ExpandedState) => ExpandedState)) => {
-        setExpandedState(prev => {
-            const next = typeof updater === 'function' ? updater(prev) : updater;
-            navigate({
-                search: (old: Record<string, unknown>) => ({
-                    ...old,
-                    expanded: serializeExpandedState(next),
-                }),
-                replace: true,
+    const setExpanded = useCallback(
+        (updater: ExpandedState | ((prev: ExpandedState) => ExpandedState)) => {
+            setExpandedState(prev => {
+                const next = typeof updater === 'function' ? updater(prev) : updater;
+                navigate({
+                    search: (old: Record<string, unknown>) => ({
+                        ...old,
+                        expanded: serializeExpandedState(next),
+                    }),
+                    replace: true,
+                });
+                return next;
             });
-            return next;
-        });
-    }, [navigate]);
+        },
+        [navigate],
+    );
 
     // NOTE: queryFn must be pure (no setState side effects) because TanStack Query
     // skips queryFn entirely when data is served from cache (staleTime: 5min). If we
@@ -110,30 +114,33 @@ function CollectionListPage() {
     // render. Instead we sync via useEffect below, which fires for both cache hits and
     // fresh fetches.
     const firstPageChildQueries = useQueries({
-        queries: expanded === true ? [] : Object.entries(expanded)
-            .filter(([collectionId]) => !accumulatedChildren[collectionId])
-            .map(([collectionId]) => {
-                return {
-                    queryKey: ['childCollections', collectionId, 'page', 0],
-                    queryFn: async () => {
-                        const result = await api.query(collectionListDocument, {
-                            options: {
-                                filter: {
-                                    parentId: { eq: collectionId },
-                                },
-                                take: CHILDREN_PAGE_SIZE,
-                                skip: 0,
-                            },
-                        });
-                        return {
-                            collectionId,
-                            items: result.collections.items,
-                            totalItems: result.collections.totalItems,
-                        };
-                    },
-                    staleTime: 1000 * 60 * 5,
-                } satisfies FetchQueryOptions;
-            }),
+        queries:
+            expanded === true
+                ? []
+                : Object.entries(expanded)
+                      .filter(([collectionId]) => !accumulatedChildren[collectionId])
+                      .map(([collectionId]) => {
+                          return {
+                              queryKey: ['childCollections', collectionId, 'page', 0],
+                              queryFn: async () => {
+                                  const result = await api.query(collectionListDocument, {
+                                      options: {
+                                          filter: {
+                                              parentId: { eq: collectionId },
+                                          },
+                                          take: CHILDREN_PAGE_SIZE,
+                                          skip: 0,
+                                      },
+                                  });
+                                  return {
+                                      collectionId,
+                                      items: result.collections.items,
+                                      totalItems: result.collections.totalItems,
+                                  };
+                              },
+                              staleTime: 1000 * 60 * 5,
+                          } satisfies FetchQueryOptions;
+                      }),
     });
 
     useEffect(() => {
@@ -232,7 +239,10 @@ function CollectionListPage() {
                         _totalItems: childData.totalItems,
                         _loadedItems: childData.items.length,
                         id: `load-more-${row.id}`,
-                        breadcrumbs: [...(row.breadcrumbs || []), { id: row.id, name: row.name, slug: row.slug }],
+                        breadcrumbs: [
+                            ...(row.breadcrumbs || []),
+                            { id: row.id, name: row.name, slug: row.slug },
+                        ],
                     });
                 }
             }
@@ -253,7 +263,12 @@ function CollectionListPage() {
         }));
     };
 
-    const handleReorder = async (oldIndex: number, newIndex: number, item: Collection, allItems?: Collection[]) => {
+    const handleReorder = async (
+        oldIndex: number,
+        newIndex: number,
+        item: Collection,
+        allItems?: Collection[],
+    ) => {
         if (isLoadMoreRow(item as CollectionOrLoadMore)) {
             return;
         }
@@ -290,9 +305,16 @@ function CollectionListPage() {
                 throw new Error('Circular reference detected');
             }
 
-            const adjustedIndex = targetParentId === sourceParentId
-                ? calculateSiblingIndex({ item, oldIndex: adjustedOldIndex, newIndex: adjustedNewIndex, items, parentId: sourceParentId })
-                : initialIndex;
+            const adjustedIndex =
+                targetParentId === sourceParentId
+                    ? calculateSiblingIndex({
+                          item,
+                          oldIndex: adjustedOldIndex,
+                          newIndex: adjustedNewIndex,
+                          items,
+                          parentId: sourceParentId,
+                      })
+                    : initialIndex;
 
             await api.mutate(moveCollectionDocument, {
                 input: {
@@ -421,7 +443,9 @@ function CollectionListPage() {
                         return (
                             <div className="flex flex-wrap gap-2">
                                 {children.slice(0, maxDisplay).map(child => (
-                                    <Badge key={child.id} variant="outline">{child.name}</Badge>
+                                    <Badge key={child.id} variant="outline">
+                                        {child.name}
+                                    </Badge>
                                 ))}
                                 {leftOver > 0 ? (
                                     <Badge variant="outline">
@@ -476,7 +500,10 @@ function CollectionListPage() {
                                     variant="outline"
                                     onClick={() => handleLoadMoreChildren(original._parentId)}
                                 >
-                                    <Trans>Load {Math.min(remaining, CHILDREN_PAGE_SIZE)} more ({remaining} remaining)</Trans>
+                                    <Trans>
+                                        Load {Math.min(remaining, CHILDREN_PAGE_SIZE)} more ({remaining}{' '}
+                                        remaining)
+                                    </Trans>
                                 </Button>
                             </div>
                         );
@@ -494,6 +521,7 @@ function CollectionListPage() {
                 description: false,
                 isPrivate: false,
             }}
+            searchPlaceholder={t`Search collections...`}
             onSearchTermChange={searchTerm => {
                 setSearchTerm(searchTerm);
                 return {
@@ -508,9 +536,7 @@ function CollectionListPage() {
                     { component: DuplicateCollectionsBulkAction, order: 300 },
                     { component: MoveCollectionsBulkAction, order: 400 },
                 ],
-                [
-                    { component: DeleteCollectionsBulkAction },
-                ],
+                [{ component: DeleteCollectionsBulkAction }],
             ]}
             onReorder={handleReorder}
             disableDragAndDrop={!!searchTerm}

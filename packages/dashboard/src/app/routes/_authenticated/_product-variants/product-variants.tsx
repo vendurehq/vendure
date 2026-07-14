@@ -41,9 +41,7 @@ function ProductListPage() {
                     { component: RemoveProductVariantsFromChannelBulkAction, order: 200 },
                     { component: AssignFacetValuesToProductVariantsBulkAction, order: 300 },
                 ],
-                [
-                    { component: DeleteProductVariantsBulkAction },
-                ],
+                [{ component: DeleteProductVariantsBulkAction }],
             ]}
             customizeColumns={{
                 name: {
@@ -85,6 +83,7 @@ function ProductListPage() {
                     component: FacetValueFacetedFilter,
                 },
             }}
+            searchPlaceholder={t`Search product variants...`}
             onSearchTermChange={searchTerm => {
                 return searchTerm
                     ? {
