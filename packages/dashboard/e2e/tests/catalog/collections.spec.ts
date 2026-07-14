@@ -237,8 +237,8 @@ test.describe('Issue #4389: Collection form dirty state with filters', () => {
 
     async function goToCollection(page: Page) {
         await page.goto(`/collections/${collectionId}`);
-        // Wait for the filter card to render — confirms the detail page loaded
-        await expect(page.getByText('facet-value-filter')).toBeVisible({ timeout: 10_000 });
+        // Wait for the filter sentence to render — confirms the detail page loaded
+        await expect(page.getByText('Filter by facet values')).toBeVisible({ timeout: 10_000 });
     }
 
     test('should enable Update button when editing the Name field', async ({ page }) => {
@@ -289,7 +289,7 @@ test.describe('Issue #4389: Collection form dirty state with filters', () => {
 
         // Reload and verify the change persisted
         await page.reload();
-        await expect(page.getByText('facet-value-filter')).toBeVisible({ timeout: 10_000 });
+        await expect(page.getByText('Filter by facet values')).toBeVisible({ timeout: 10_000 });
         await expect(dp.formItem('Name').getByRole('textbox')).toHaveValue('E2E Filter Test Saved');
     });
 });
@@ -337,13 +337,21 @@ test.describe('Issue #3548: Collection facet filter boolean args', () => {
 
         await page.getByRole('button', { name: /Add collection filter/i }).click();
         await page.getByRole('menuitem', { name: /Filter by facet values/i }).click();
+
+        // Open the "Facet values" chip popover and select a facet value
+        await page.getByRole('button', { name: 'Facet values' }).click();
         await page.getByRole('button', { name: /Add facet values/i }).click();
         await page.getByPlaceholder('Search facet values...').fill(facetValueName);
         await page.getByRole('option', { name: facetValueName, exact: true }).click();
+        await page.keyboard.press('Escape');
+        await page.keyboard.press('Escape');
 
+        // Open the "Contains any" chip popover and verify the switch defaults to off
+        await page.getByRole('button', { name: 'Contains any' }).click();
         await expect(
             page.locator('[data-slot="field"]').filter({ hasText: 'Contains any' }).getByRole('switch'),
         ).not.toBeChecked();
+        await page.keyboard.press('Escape');
         await expect(dp.createButton).toBeEnabled({ timeout: 5_000 });
         await dp.clickCreate();
         await dp.expectNavigatedToExisting();
