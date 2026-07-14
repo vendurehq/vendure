@@ -1,13 +1,13 @@
-import { CopyableText } from '@/vdb/components/shared/copyable-text.js';
 import { DataTable } from '@/vdb/components/data-table/data-table.js';
+import { CopyableText } from '@/vdb/components/shared/copyable-text.js';
 import { Button } from '@/vdb/components/ui/button.js';
-import { StatusBadge } from '@/vdb/components/ui/status-badge.js';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/vdb/components/ui/dropdown-menu.js';
+import { defineStateEntries, StatusBadge } from '@/vdb/components/ui/status-badge.js';
 import {
     FullWidthPageBlock,
     Page,
@@ -21,17 +21,18 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { createColumnHelper } from '@tanstack/react-table';
-import { defineStateEntries } from '@/vdb/components/ui/status-badge.js';
 import { CirclePlay, EllipsisIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { PayloadDialog } from './components/payload-dialog.js';
 
 // A scheduled task's enablement and execution status. `running` means the task
-// is executing right now (progress — renders a pulsing dot); enabled/idle map
-// to success/neutral. Keys are the local flag values, not wire states.
+// is executing right now (progress — renders a pulsing dot). Enabled is the
+// expected default and stays calm; disabled is the exception worth spotting
+// (critical, matching BooleanDisplayBadge). Keys are the local flag values,
+// not wire states.
 const scheduledTaskStateDictionary = defineStateEntries({
-    enabled: { tone: 'success', defaultLabel: 'Enabled' },
-    disabled: { tone: 'neutral', defaultLabel: 'Disabled' },
+    enabled: { tone: 'neutral', defaultLabel: 'Enabled' },
+    disabled: { tone: 'critical', defaultLabel: 'Disabled' },
     running: { tone: 'progress', defaultLabel: 'Running' },
     idle: { tone: 'neutral', defaultLabel: 'Not Running' },
 });
@@ -117,7 +118,11 @@ function ScheduledTasksPage() {
     const columns = [
         columnHelper.accessor('id', {
             header: t`ID`,
-            cell: ({ getValue }) => <CopyableText value={getValue()}><span className="font-mono">{getValue()}</span></CopyableText>,
+            cell: ({ getValue }) => (
+                <CopyableText value={getValue()}>
+                    <span className="font-mono">{getValue()}</span>
+                </CopyableText>
+            ),
         }),
         columnHelper.accessor('description', {
             header: t`Description`,
