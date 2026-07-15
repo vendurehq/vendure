@@ -148,6 +148,7 @@ export const devConfig: VendureConfig = {
                 verifyEmailAddressUrl: 'http://localhost:4201/verify',
                 passwordResetUrl: 'http://localhost:4201/reset-password',
                 changeEmailAddressUrl: 'http://localhost:4201/change-email-address',
+                adminPasswordResetUrl: 'http://localhost:3000/dashboard/reset-password',
             },
         }),
         ...(IS_INSTRUMENTED ? [TelemetryPlugin.init({})] : []),
