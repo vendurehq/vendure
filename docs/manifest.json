@@ -1234,7 +1234,7 @@
                   "title": "JobState",
                   "slug": "job-state",
                   "file": "docs/reference/typescript-api/common/job-state.mdx",
-                  "lastModified": "2026-03-06T09:35:25+01:00"
+                  "lastModified": "2026-07-15T13:05:08Z"
                 },
                 {
                   "title": "JsonCompatible",
@@ -1246,7 +1246,7 @@
                   "title": "LanguageCode",
                   "slug": "language-code",
                   "file": "docs/reference/typescript-api/common/language-code.mdx",
-                  "lastModified": "2026-03-06T09:35:25+01:00"
+                  "lastModified": "2026-07-15T13:05:08Z"
                 },
                 {
                   "title": "Middleware",
@@ -1264,7 +1264,7 @@
                   "title": "Permission",
                   "slug": "permission",
                   "file": "docs/reference/typescript-api/common/permission.mdx",
-                  "lastModified": "2026-03-06T09:35:25+01:00"
+                  "lastModified": "2026-07-15T13:05:08Z"
                 },
                 {
                   "title": "PriceCalculationResult",
@@ -1966,7 +1966,7 @@
                   "title": "Event Types",
                   "slug": "event-types",
                   "file": "docs/reference/typescript-api/events/event-types.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-07-15T13:05:08Z"
                 },
                 {
                   "title": "EventBus",
@@ -2892,7 +2892,7 @@
                   "title": "AdministratorService",
                   "slug": "administrator-service",
                   "file": "docs/reference/typescript-api/services/administrator-service.mdx",
-                  "lastModified": "2026-06-30T07:18:09+02:00"
+                  "lastModified": "2026-07-15T13:05:08Z"
                 },
                 {
                   "title": "AssetService",
@@ -3126,7 +3126,7 @@
                   "title": "UserService",
                   "slug": "user-service",
                   "file": "docs/reference/typescript-api/services/user-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-07-15T13:05:08Z"
                 },
                 {
                   "title": "ZoneService",
@@ -3588,7 +3588,7 @@
                   "title": "Email Utils",
                   "slug": "email-utils",
                   "file": "docs/reference/core-plugins/email-plugin/email-utils.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-07-15T13:05:08Z"
                 },
                 {
                   "title": "EmailEventHandler",
@@ -3748,7 +3748,7 @@
                   "title": "Enums",
                   "slug": "enums",
                   "file": "docs/reference/graphql-api/admin/enums.mdx",
-                  "lastModified": "2026-03-06T13:07:42+01:00"
+                  "lastModified": "2026-07-15T13:05:08Z"
                 },
                 {
                   "title": "Input Objects",
@@ -3760,7 +3760,7 @@
                   "title": "Mutations",
                   "slug": "mutations",
                   "file": "docs/reference/graphql-api/admin/mutations.mdx",
-                  "lastModified": "2026-03-06T09:35:25+01:00"
+                  "lastModified": "2026-07-15T13:05:08Z"
                 },
                 {
                   "title": "Queries",
@@ -3772,7 +3772,7 @@
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/admin/object-types.mdx",
-                  "lastModified": "2026-03-10T16:50:41+01:00"
+                  "lastModified": "2026-07-15T13:05:08Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
