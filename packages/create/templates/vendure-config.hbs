@@ -97,7 +97,7 @@ export const config: VendureConfig = {
                 passwordResetUrl: 'http://localhost:8080/password-reset',
                 changeEmailAddressUrl: 'http://localhost:8080/verify-email-address-change',
                 // The URL of the password reset page of the Vendure Dashboard.
-                adminPasswordResetUrl: 'http://localhost:3000/dashboard/reset-password'
+                adminPasswordResetUrl: `http://localhost:${serverPort}/dashboard/reset-password`
             },
         }),
         DashboardPlugin.init({
