@@ -13,6 +13,7 @@ import {
     resolvePackageBin,
     signalToExitCode,
 } from '../../shared/cli-process-utils';
+import { showStarPromptOnce } from '../../shared/star-prompt';
 import { findPackageJsonWithDependency } from '../../utilities/monorepo-utils';
 
 export type DevTarget = 'all' | 'server' | 'worker' | 'dashboard';
@@ -79,9 +80,15 @@ export async function devCommand(targetArg?: string, options: DevOptions = {}): 
                 reload: options.reload !== false && processDefinition.reloadOnChange,
             }),
         );
-        return await waitForDevProcesses(children, {
+        let shutdownSignal: NodeJS.Signals | undefined;
+        const exitCode = await waitForDevProcesses(children, {
             onError: error => log.error(error.message),
+            onShutdownSignal: signal => (shutdownSignal = signal),
         });
+        if (shutdownSignal === 'SIGINT') {
+            showStarPromptOnce();
+        }
+        return exitCode;
     } catch (e: unknown) {
         log.error(e instanceof Error ? e.message : String(e));
         return 1;
@@ -284,6 +291,7 @@ function startSupervisedDevProcess(
 
 interface WaitForDevProcessesOptions {
     onError?: (error: Error) => void;
+    onShutdownSignal?: (signal: NodeJS.Signals) => void;
 }
 
 export function waitForDevProcesses(
@@ -338,8 +346,12 @@ export function waitForDevProcesses(
                 resolveOnce(firstNonZeroExitCode || (shutdownExitCode ?? exitCode));
             }
         };
-        const handleSigint = () => stopChildren('SIGINT', signalToExitCode('SIGINT'));
-        const handleSigterm = () => stopChildren('SIGTERM', signalToExitCode('SIGTERM'));
+        const handleSignal = (signal: NodeJS.Signals) => {
+            options.onShutdownSignal?.(signal);
+            stopChildren(signal, signalToExitCode(signal));
+        };
+        const handleSigint = () => handleSignal('SIGINT');
+        const handleSigterm = () => handleSignal('SIGTERM');
 
         process.once('SIGINT', handleSigint);
         process.once('SIGTERM', handleSigterm);
