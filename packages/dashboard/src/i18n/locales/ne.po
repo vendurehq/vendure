@@ -56,6 +56,10 @@ msgstr "नयाँ कर दर"
 msgid "Assign an existing option group or create a new one"
 msgstr "अवस्थित विकल्प समूह तोक्नुहोस् वा नयाँ सिर्जना गर्नुहोस्"
 
+#: src/lib/components/login/reset-password-form.tsx:158
+msgid "New password"
+msgstr ""
+
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:77
 msgid "New role"
@@ -686,7 +690,7 @@ msgstr "पूर्ति संक्रमण भयो"
 msgid "Are you sure you want to delete {selectionLength} assets?"
 msgstr "के तपाईं निश्चित हुनुहुन्छ कि तपाईं {selectionLength} सम्पत्तिहरू मेट्न चाहनुहुन्छ?"
 
-#: src/lib/components/login/login-form.tsx:105
+#: src/lib/components/login/login-form.tsx:114
 msgid "Sign in"
 msgstr "साइन इन गर्नुहोस्"
 
@@ -1026,7 +1030,7 @@ msgstr "क्षेत्र अपडेट गर्न असफल"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:133
 #: src/app/routes/_authenticated/_profile/profile.tsx:120
 #: src/app/routes/_authenticated/_profile/profile.tsx:137
-#: src/lib/components/login/login-form.tsx:93
+#: src/lib/components/login/login-form.tsx:94
 msgid "Password"
 msgstr "पासवर्ड"
 
@@ -1139,6 +1143,10 @@ msgstr "मूल्य"
 #: src/app/routes/_authenticated/_orders/orders.tsx:116
 msgid "Draft order"
 msgstr "मस्यौदा अर्डर"
+
+#: src/lib/components/login/forgot-password-form.tsx:108
+msgid "Enter your email address and we will send you a link to reset your password"
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:291
 #: src/app/routes/_authenticated/_system/settings-store.tsx:325
@@ -1892,6 +1900,10 @@ msgstr "रिफन्ड आवश्यक"
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:317
 msgid "Fulfill order"
 msgstr "अर्डर पूरा गर्नुहोस्"
+
+#: src/lib/components/login/forgot-password-form.tsx:139
+msgid "Send reset link"
+msgstr ""
 
 #: src/lib/components/layout/manage-languages-dialog.tsx:316
 msgid "You don't have permission to view channel settings"
@@ -2723,6 +2735,10 @@ msgstr "ग्राहक प्रमाणित गरियो"
 msgid "Global Settings"
 msgstr "ग्लोबल सेटिङहरू"
 
+#: src/lib/components/login/forgot-password-form.tsx:105
+msgid "Forgot your password?"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:148
 msgid "Schedule"
 msgstr "तालिका"
@@ -3272,6 +3288,10 @@ msgstr "हेडर स्तम्भ टगल गर्नुहोस्"
 msgid "New Promotion"
 msgstr "नयाँ प्रमोशन"
 
+#: src/lib/components/login/reset-password-form.tsx:130
+msgid "Request a new link"
+msgstr ""
+
 #: src/lib/components/data-table/data-table-settings-menu.tsx:83
 msgid "Columns"
 msgstr ""
@@ -3360,12 +3380,20 @@ msgstr "{taxRate}% कर समावेश"
 msgid "Order metrics"
 msgstr "अर्डर मेट्रिक्स"
 
+#: src/lib/components/login/reset-password-form.tsx:175
+msgid "Confirm new password"
+msgstr ""
+
 #: src/lib/components/layout/language-dialog.tsx:49
 msgid "Select display language"
 msgstr "प्रदर्शन भाषा चयन गर्नुहोस्"
 
 #: src/app/routes/_authenticated/_payment-methods/components/payment-handler-selector.tsx:37
 msgid "Select Payment Handler"
+msgstr ""
+
+#: src/lib/components/login/reset-password-form.tsx:119
+msgid "Password reset links are only valid for a limited time. Request a new one to reset your password."
 msgstr ""
 
 #: src/app/routes/_authenticated/_profile/profile.tsx:128
@@ -3707,6 +3735,10 @@ msgstr "समूहबाट हटाउनुहोस्"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:34
 msgid "Search API keys..."
+msgstr ""
+
+#: src/lib/components/login/reset-password-form.tsx:61
+msgid "Passwords do not match"
 msgstr ""
 
 #: src/lib/components/data-input/datetime-input.tsx:45
@@ -4122,6 +4154,11 @@ msgstr "विवरण"
 msgid "Countries"
 msgstr "देशहरू"
 
+#: src/lib/components/login/forgot-password-form.tsx:61
+#: src/lib/components/login/reset-password-form.tsx:91
+msgid "Something went wrong"
+msgstr ""
+
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:162
 msgid "Failed to remove order line: {0}"
@@ -4162,7 +4199,8 @@ msgstr "{0} को म्यानुअल भुक्तानी थप्�
 msgid "is in"
 msgstr "मा छ"
 
-#: src/lib/components/login/login-form.tsx:83
+#: src/lib/components/login/forgot-password-form.tsx:123
+#: src/lib/components/login/login-form.tsx:84
 msgid "Email"
 msgstr "इमेल"
 
@@ -4182,7 +4220,7 @@ msgstr "यस तालिकाको लागि तपाईंको व�
 msgid "Filter by tags"
 msgstr "ट्यागद्वारा फिल्टर गर्नुहोस्"
 
-#: src/lib/components/login/login-form.tsx:73
+#: src/lib/components/login/login-form.tsx:74
 msgid "Sign in to access the admin dashboard"
 msgstr "प्रशासक ड्यासबोर्ड पहुँच गर्न साइन इन गर्नुहोस्"
 
@@ -4430,6 +4468,10 @@ msgstr "उपलब्ध कार्यहरू"
 msgid "Failed to update order line: {0}"
 msgstr ""
 
+#: src/lib/components/login/reset-password-form.tsx:116
+msgid "This link is invalid or has expired"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:84
 #~ msgid "Insert link"
 #~ msgstr "लिङ्क घुसाउनुहोस्"
@@ -4554,6 +4596,10 @@ msgstr "{formattedDiff} को फिर्ता आवश्यक छ। भ�
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:100
 msgid "Unit price"
 msgstr "एकाइ मूल्य"
+
+#: src/lib/components/login/forgot-password-form.tsx:87
+msgid "If an account exists for {submittedEmailAddress}, you will receive an email with a link to reset your password."
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:145
 msgid "Schedule Pattern"
@@ -4728,6 +4774,12 @@ msgstr "नयाँ विकल्प समूह"
 #: src/app/routes/_authenticated/_system/healthchecks.tsx:58
 #~ msgid "Last updated {0}"
 #~ msgstr "अन्तिम अपडेट {0}"
+
+#: src/lib/components/login/forgot-password-form.tsx:94
+#: src/lib/components/login/forgot-password-form.tsx:147
+#: src/lib/components/login/reset-password-form.tsx:199
+msgid "Back to sign in"
+msgstr ""
 
 #: src/lib/components/data-table/views-sheet.tsx:141
 msgid "No global views have been created yet."
@@ -4913,6 +4965,10 @@ msgstr "गलत सामान"
 msgid "Summary of modifications"
 msgstr "परिमार्जनहरूको सारांश"
 
+#: src/lib/components/login/reset-password-form.tsx:191
+msgid "Reset password"
+msgstr ""
+
 #. placeholder {0}: payment.refunds.length
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:206
 msgid "Refunds ({0})"
@@ -4980,6 +5036,10 @@ msgstr "अर्डर अपडेट गर्न असफल"
 #: src/lib/components/shared/asset/asset-bulk-actions.tsx:84
 msgid "With selected..."
 msgstr "चयन गरिएकासँग..."
+
+#: src/lib/components/login/reset-password-form.tsx:146
+msgid "Choose a new password for your account"
+msgstr ""
 
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:77
 msgid "Failed to create stock location"
@@ -5143,7 +5203,7 @@ msgstr "सेटिङ स्टोर"
 msgid "Heading 3"
 msgstr "शीर्षक ३"
 
-#: src/lib/components/login/login-form.tsx:70
+#: src/lib/components/login/login-form.tsx:71
 msgid "Welcome to Vendure"
 msgstr "Vendure मा स्वागत छ"
 
@@ -5187,6 +5247,10 @@ msgstr "त्रुटि"
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:103
 msgid "Order modified"
 msgstr "अर्डर परिमार्जन गरियो"
+
+#: src/lib/components/login/reset-password-form.tsx:143
+msgid "Reset your password"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:59
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx:128
@@ -5378,6 +5442,11 @@ msgstr "रिफन्ड संक्रमण भयो"
 msgid "Using native authentication strategy"
 msgstr "मूल प्रमाणीकरण रणनीति प्रयोग गर्दै"
 
+#: src/lib/components/login/forgot-password-form.tsx:136
+#: src/lib/components/login/reset-password-form.tsx:188
+msgid "Please wait"
+msgstr ""
+
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:73
 msgid "Failed to assign {entityIdsLength} {entityType} to channel"
 msgstr "च्यानलमा {entityIdsLength} {entityType} तोक्न असफल"
@@ -5544,6 +5613,10 @@ msgstr "संग्रह नयाँ अभिभावकमा सारि
 msgid "Option group removed"
 msgstr "विकल्प समूह हटाइयो"
 
+#: src/lib/components/login/login-form.tsx:101
+msgid "Forgot password?"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/use-transition-order-to-state.tsx:130
 msgid "Transition to selected state"
 msgstr "चयन गरिएको स्थितिमा संक्रमण गर्नुहोस्"
@@ -5621,6 +5694,10 @@ msgstr "समावेश गर्दछ"
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods.tsx:43
 msgid "Search shipping methods..."
+msgstr ""
+
+#: src/lib/components/login/forgot-password-form.tsx:84
+msgid "Check your email"
 msgstr ""
 
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:249

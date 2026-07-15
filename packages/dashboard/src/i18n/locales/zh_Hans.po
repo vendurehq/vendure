@@ -56,6 +56,10 @@ msgstr "新税率"
 msgid "Assign an existing option group or create a new one"
 msgstr "分配现有选项组或创建新的选项组"
 
+#: src/lib/components/login/reset-password-form.tsx:158
+msgid "New password"
+msgstr ""
+
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:77
 msgid "New role"
@@ -686,7 +690,7 @@ msgstr "履行已转换"
 msgid "Are you sure you want to delete {selectionLength} assets?"
 msgstr "确定要删除 {selectionLength} 个资源吗？"
 
-#: src/lib/components/login/login-form.tsx:105
+#: src/lib/components/login/login-form.tsx:114
 msgid "Sign in"
 msgstr "登录"
 
@@ -1026,7 +1030,7 @@ msgstr "更新区域失败"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:133
 #: src/app/routes/_authenticated/_profile/profile.tsx:120
 #: src/app/routes/_authenticated/_profile/profile.tsx:137
-#: src/lib/components/login/login-form.tsx:93
+#: src/lib/components/login/login-form.tsx:94
 msgid "Password"
 msgstr "密码"
 
@@ -1139,6 +1143,10 @@ msgstr "价格"
 #: src/app/routes/_authenticated/_orders/orders.tsx:116
 msgid "Draft order"
 msgstr "草稿订单"
+
+#: src/lib/components/login/forgot-password-form.tsx:108
+msgid "Enter your email address and we will send you a link to reset your password"
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:291
 #: src/app/routes/_authenticated/_system/settings-store.tsx:325
@@ -1892,6 +1900,10 @@ msgstr "需要退款"
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:317
 msgid "Fulfill order"
 msgstr "履行订单"
+
+#: src/lib/components/login/forgot-password-form.tsx:139
+msgid "Send reset link"
+msgstr ""
 
 #: src/lib/components/layout/manage-languages-dialog.tsx:316
 msgid "You don't have permission to view channel settings"
@@ -2723,6 +2735,10 @@ msgstr "客户已验证"
 msgid "Global Settings"
 msgstr "全局设置"
 
+#: src/lib/components/login/forgot-password-form.tsx:105
+msgid "Forgot your password?"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:148
 msgid "Schedule"
 msgstr "时间表"
@@ -3272,6 +3288,10 @@ msgstr "切换标题列"
 msgid "New Promotion"
 msgstr "新促销"
 
+#: src/lib/components/login/reset-password-form.tsx:130
+msgid "Request a new link"
+msgstr ""
+
 #: src/lib/components/data-table/data-table-settings-menu.tsx:83
 msgid "Columns"
 msgstr ""
@@ -3360,12 +3380,20 @@ msgstr "含 {taxRate}% 税"
 msgid "Order metrics"
 msgstr "订单指标"
 
+#: src/lib/components/login/reset-password-form.tsx:175
+msgid "Confirm new password"
+msgstr ""
+
 #: src/lib/components/layout/language-dialog.tsx:49
 msgid "Select display language"
 msgstr "选择显示语言"
 
 #: src/app/routes/_authenticated/_payment-methods/components/payment-handler-selector.tsx:37
 msgid "Select Payment Handler"
+msgstr ""
+
+#: src/lib/components/login/reset-password-form.tsx:119
+msgid "Password reset links are only valid for a limited time. Request a new one to reset your password."
 msgstr ""
 
 #: src/app/routes/_authenticated/_profile/profile.tsx:128
@@ -3707,6 +3735,10 @@ msgstr "从组中移除"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:34
 msgid "Search API keys..."
+msgstr ""
+
+#: src/lib/components/login/reset-password-form.tsx:61
+msgid "Passwords do not match"
 msgstr ""
 
 #: src/lib/components/data-input/datetime-input.tsx:45
@@ -4122,6 +4154,11 @@ msgstr "描述"
 msgid "Countries"
 msgstr "国家"
 
+#: src/lib/components/login/forgot-password-form.tsx:61
+#: src/lib/components/login/reset-password-form.tsx:91
+msgid "Something went wrong"
+msgstr ""
+
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:162
 msgid "Failed to remove order line: {0}"
@@ -4162,7 +4199,8 @@ msgstr "添加 {0} 的手动付款"
 msgid "is in"
 msgstr "在"
 
-#: src/lib/components/login/login-form.tsx:83
+#: src/lib/components/login/forgot-password-form.tsx:123
+#: src/lib/components/login/login-form.tsx:84
 msgid "Email"
 msgstr "电子邮件"
 
@@ -4182,7 +4220,7 @@ msgstr "管理此表格的个人保存视图"
 msgid "Filter by tags"
 msgstr "按标签筛选"
 
-#: src/lib/components/login/login-form.tsx:73
+#: src/lib/components/login/login-form.tsx:74
 msgid "Sign in to access the admin dashboard"
 msgstr "登录以访问管理仪表板"
 
@@ -4430,6 +4468,10 @@ msgstr "可用操作"
 msgid "Failed to update order line: {0}"
 msgstr ""
 
+#: src/lib/components/login/reset-password-form.tsx:116
+msgid "This link is invalid or has expired"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:84
 #~ msgid "Insert link"
 #~ msgstr "插入链接"
@@ -4554,6 +4596,10 @@ msgstr "需要退款 {formattedDiff}。选择付款金额并输入备注以继�
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:100
 msgid "Unit price"
 msgstr "单价"
+
+#: src/lib/components/login/forgot-password-form.tsx:87
+msgid "If an account exists for {submittedEmailAddress}, you will receive an email with a link to reset your password."
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:145
 msgid "Schedule Pattern"
@@ -4728,6 +4774,12 @@ msgstr "新建选项组"
 #: src/app/routes/_authenticated/_system/healthchecks.tsx:58
 #~ msgid "Last updated {0}"
 #~ msgstr "上次更新 {0}"
+
+#: src/lib/components/login/forgot-password-form.tsx:94
+#: src/lib/components/login/forgot-password-form.tsx:147
+#: src/lib/components/login/reset-password-form.tsx:199
+msgid "Back to sign in"
+msgstr ""
 
 #: src/lib/components/data-table/views-sheet.tsx:141
 msgid "No global views have been created yet."
@@ -4913,6 +4965,10 @@ msgstr "发错商品"
 msgid "Summary of modifications"
 msgstr "修改摘要"
 
+#: src/lib/components/login/reset-password-form.tsx:191
+msgid "Reset password"
+msgstr ""
+
 #. placeholder {0}: payment.refunds.length
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:206
 msgid "Refunds ({0})"
@@ -4980,6 +5036,10 @@ msgstr "更新订单失败"
 #: src/lib/components/shared/asset/asset-bulk-actions.tsx:84
 msgid "With selected..."
 msgstr "对所选..."
+
+#: src/lib/components/login/reset-password-form.tsx:146
+msgid "Choose a new password for your account"
+msgstr ""
 
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:77
 msgid "Failed to create stock location"
@@ -5143,7 +5203,7 @@ msgstr "设置商店"
 msgid "Heading 3"
 msgstr "标题 3"
 
-#: src/lib/components/login/login-form.tsx:70
+#: src/lib/components/login/login-form.tsx:71
 msgid "Welcome to Vendure"
 msgstr "欢迎使用 Vendure"
 
@@ -5187,6 +5247,10 @@ msgstr "错误"
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:103
 msgid "Order modified"
 msgstr "订单已修改"
+
+#: src/lib/components/login/reset-password-form.tsx:143
+msgid "Reset your password"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:59
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx:128
@@ -5378,6 +5442,11 @@ msgstr "退款已转换"
 msgid "Using native authentication strategy"
 msgstr "使用本地身份验证策略"
 
+#: src/lib/components/login/forgot-password-form.tsx:136
+#: src/lib/components/login/reset-password-form.tsx:188
+msgid "Please wait"
+msgstr ""
+
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:73
 msgid "Failed to assign {entityIdsLength} {entityType} to channel"
 msgstr "无法将 {entityIdsLength} 个 {entityType} 分配到渠道"
@@ -5544,6 +5613,10 @@ msgstr "集合已移至新的父级"
 msgid "Option group removed"
 msgstr "选项组已删除"
 
+#: src/lib/components/login/login-form.tsx:101
+msgid "Forgot password?"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/use-transition-order-to-state.tsx:130
 msgid "Transition to selected state"
 msgstr "转换到选定状态"
@@ -5621,6 +5694,10 @@ msgstr "包含"
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods.tsx:43
 msgid "Search shipping methods..."
+msgstr ""
+
+#: src/lib/components/login/forgot-password-form.tsx:84
+msgid "Check your email"
 msgstr ""
 
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:249

@@ -56,6 +56,10 @@ msgstr "Cotă de Taxă Nouă"
 msgid "Assign an existing option group or create a new one"
 msgstr "Atribuie un grup de opțiuni existent sau creează unul nou"
 
+#: src/lib/components/login/reset-password-form.tsx:158
+msgid "New password"
+msgstr ""
+
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:77
 msgid "New role"
@@ -658,7 +662,7 @@ msgstr "Statusul livrării a fost schimbat"
 msgid "Are you sure you want to delete {selectionLength} assets?"
 msgstr "Ești sigur că vrei să ștergi {selectionLength} resurse?"
 
-#: src/lib/components/login/login-form.tsx:105
+#: src/lib/components/login/login-form.tsx:114
 msgid "Sign in"
 msgstr "Autentificare"
 
@@ -998,7 +1002,7 @@ msgstr "Nu s-a putut actualiza zona"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:133
 #: src/app/routes/_authenticated/_profile/profile.tsx:120
 #: src/app/routes/_authenticated/_profile/profile.tsx:137
-#: src/lib/components/login/login-form.tsx:93
+#: src/lib/components/login/login-form.tsx:94
 msgid "Password"
 msgstr "Parolă"
 
@@ -1107,6 +1111,10 @@ msgstr "Preț"
 #: src/app/routes/_authenticated/_orders/orders.tsx:116
 msgid "Draft order"
 msgstr "Comandă ciornă"
+
+#: src/lib/components/login/forgot-password-form.tsx:108
+msgid "Enter your email address and we will send you a link to reset your password"
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:291
 #: src/app/routes/_authenticated/_system/settings-store.tsx:325
@@ -1831,6 +1839,10 @@ msgstr "Rambursare necesară"
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:317
 msgid "Fulfill order"
 msgstr "Livrare comandă"
+
+#: src/lib/components/login/forgot-password-form.tsx:139
+msgid "Send reset link"
+msgstr ""
 
 #: src/lib/components/layout/manage-languages-dialog.tsx:316
 msgid "You don't have permission to view channel settings"
@@ -2652,6 +2664,10 @@ msgstr "Client verificat"
 msgid "Global Settings"
 msgstr "Setări globale"
 
+#: src/lib/components/login/forgot-password-form.tsx:105
+msgid "Forgot your password?"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:148
 msgid "Schedule"
 msgstr "Program"
@@ -3180,6 +3196,10 @@ msgstr "Comută coloana antet"
 msgid "New Promotion"
 msgstr "Promoție Nouă"
 
+#: src/lib/components/login/reset-password-form.tsx:130
+msgid "Request a new link"
+msgstr ""
+
 #: src/lib/components/data-table/data-table-settings-menu.tsx:83
 msgid "Columns"
 msgstr ""
@@ -3268,12 +3288,20 @@ msgstr "Include taxa de {taxRate}%"
 msgid "Order metrics"
 msgstr "Metrici comenzi"
 
+#: src/lib/components/login/reset-password-form.tsx:175
+msgid "Confirm new password"
+msgstr ""
+
 #: src/lib/components/layout/language-dialog.tsx:49
 msgid "Select display language"
 msgstr "Selectează limba de afișare"
 
 #: src/app/routes/_authenticated/_payment-methods/components/payment-handler-selector.tsx:37
 msgid "Select Payment Handler"
+msgstr ""
+
+#: src/lib/components/login/reset-password-form.tsx:119
+msgid "Password reset links are only valid for a limited time. Request a new one to reset your password."
 msgstr ""
 
 #: src/app/routes/_authenticated/_profile/profile.tsx:128
@@ -3607,6 +3635,10 @@ msgstr "Elimină din grup"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:34
 msgid "Search API keys..."
+msgstr ""
+
+#: src/lib/components/login/reset-password-form.tsx:61
+msgid "Passwords do not match"
 msgstr ""
 
 #: src/lib/components/data-input/datetime-input.tsx:45
@@ -4011,6 +4043,11 @@ msgstr "Descriere"
 msgid "Countries"
 msgstr "Țări"
 
+#: src/lib/components/login/forgot-password-form.tsx:61
+#: src/lib/components/login/reset-password-form.tsx:91
+msgid "Something went wrong"
+msgstr ""
+
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:162
 msgid "Failed to remove order line: {0}"
@@ -4047,7 +4084,8 @@ msgstr "Adaugă o plată manuală de {0}"
 msgid "is in"
 msgstr "este în"
 
-#: src/lib/components/login/login-form.tsx:83
+#: src/lib/components/login/forgot-password-form.tsx:123
+#: src/lib/components/login/login-form.tsx:84
 msgid "Email"
 msgstr "Email"
 
@@ -4067,7 +4105,7 @@ msgstr "Gestionează vizualizările tale personale salvate pentru acest tabel"
 msgid "Filter by tags"
 msgstr "Filtrează după etichete"
 
-#: src/lib/components/login/login-form.tsx:73
+#: src/lib/components/login/login-form.tsx:74
 msgid "Sign in to access the admin dashboard"
 msgstr "Autentifică-te pentru a accesa panoul de administrare"
 
@@ -4298,6 +4336,10 @@ msgstr "Acțiuni disponibile"
 msgid "Failed to update order line: {0}"
 msgstr ""
 
+#: src/lib/components/login/reset-password-form.tsx:116
+msgid "This link is invalid or has expired"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:84
 #~ msgid "Insert link"
 #~ msgstr "Inserează link"
@@ -4422,6 +4464,10 @@ msgstr "Este necesară o rambursare de {formattedDiff}. Selectează sumele de pl
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:100
 msgid "Unit price"
 msgstr "Preț unitar"
+
+#: src/lib/components/login/forgot-password-form.tsx:87
+msgid "If an account exists for {submittedEmailAddress}, you will receive an email with a link to reset your password."
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:145
 msgid "Schedule Pattern"
@@ -4584,6 +4630,12 @@ msgstr "Verificat"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:155
 msgid "New option group"
 msgstr "Grup de opțiuni nou"
+
+#: src/lib/components/login/forgot-password-form.tsx:94
+#: src/lib/components/login/forgot-password-form.tsx:147
+#: src/lib/components/login/reset-password-form.tsx:199
+msgid "Back to sign in"
+msgstr ""
 
 #: src/lib/components/data-table/views-sheet.tsx:141
 msgid "No global views have been created yet."
@@ -4761,6 +4813,10 @@ msgstr "Articol greșit"
 msgid "Summary of modifications"
 msgstr "Rezumat modificări"
 
+#: src/lib/components/login/reset-password-form.tsx:191
+msgid "Reset password"
+msgstr ""
+
 #. placeholder {0}: payment.refunds.length
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:206
 msgid "Refunds ({0})"
@@ -4828,6 +4884,10 @@ msgstr "Nu s-a putut actualiza comanda"
 #: src/lib/components/shared/asset/asset-bulk-actions.tsx:84
 msgid "With selected..."
 msgstr "Cu selecția..."
+
+#: src/lib/components/login/reset-password-form.tsx:146
+msgid "Choose a new password for your account"
+msgstr ""
 
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:77
 msgid "Failed to create stock location"
@@ -4991,7 +5051,7 @@ msgstr "Stocare setări"
 msgid "Heading 3"
 msgstr "Heading 3"
 
-#: src/lib/components/login/login-form.tsx:70
+#: src/lib/components/login/login-form.tsx:71
 msgid "Welcome to Vendure"
 msgstr "Bun venit la Vendure"
 
@@ -5035,6 +5095,10 @@ msgstr "Eroare"
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:103
 msgid "Order modified"
 msgstr "Comandă modificată"
+
+#: src/lib/components/login/reset-password-form.tsx:143
+msgid "Reset your password"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:59
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx:128
@@ -5202,6 +5266,11 @@ msgstr "Status rambursare schimbat"
 msgid "Using native authentication strategy"
 msgstr "Folosind strategia de autentificare nativă"
 
+#: src/lib/components/login/forgot-password-form.tsx:136
+#: src/lib/components/login/reset-password-form.tsx:188
+msgid "Please wait"
+msgstr ""
+
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:73
 msgid "Failed to assign {entityIdsLength} {entityType} to channel"
 msgstr "Nu s-a putut atribui {entityIdsLength} {entityType} canalului"
@@ -5360,6 +5429,10 @@ msgstr "Colecția a fost mutată la un părinte nou"
 msgid "Option group removed"
 msgstr "Grup opțiuni eliminat"
 
+#: src/lib/components/login/login-form.tsx:101
+msgid "Forgot password?"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/use-transition-order-to-state.tsx:130
 msgid "Transition to selected state"
 msgstr "Tranziție la statusul selectat"
@@ -5437,6 +5510,10 @@ msgstr "conține"
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods.tsx:43
 msgid "Search shipping methods..."
+msgstr ""
+
+#: src/lib/components/login/forgot-password-form.tsx:84
+msgid "Check your email"
 msgstr ""
 
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:249

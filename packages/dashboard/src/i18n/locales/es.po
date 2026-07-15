@@ -56,6 +56,10 @@ msgstr "Nueva Tasa de Impuesto"
 msgid "Assign an existing option group or create a new one"
 msgstr "Asignar un grupo de opciones existente o crear uno nuevo"
 
+#: src/lib/components/login/reset-password-form.tsx:158
+msgid "New password"
+msgstr ""
+
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:33
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:77
 msgid "New role"
@@ -686,7 +690,7 @@ msgstr "Cumplimiento transicionado"
 msgid "Are you sure you want to delete {selectionLength} assets?"
 msgstr "¿Está seguro de que desea eliminar {selectionLength} recursos?"
 
-#: src/lib/components/login/login-form.tsx:105
+#: src/lib/components/login/login-form.tsx:114
 msgid "Sign in"
 msgstr "Iniciar sesión"
 
@@ -1026,7 +1030,7 @@ msgstr "Error al actualizar zona"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:133
 #: src/app/routes/_authenticated/_profile/profile.tsx:120
 #: src/app/routes/_authenticated/_profile/profile.tsx:137
-#: src/lib/components/login/login-form.tsx:93
+#: src/lib/components/login/login-form.tsx:94
 msgid "Password"
 msgstr "Contraseña"
 
@@ -1139,6 +1143,10 @@ msgstr "Precio"
 #: src/app/routes/_authenticated/_orders/orders.tsx:116
 msgid "Draft order"
 msgstr "Pedido borrador"
+
+#: src/lib/components/login/forgot-password-form.tsx:108
+msgid "Enter your email address and we will send you a link to reset your password"
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:291
 #: src/app/routes/_authenticated/_system/settings-store.tsx:325
@@ -1892,6 +1900,10 @@ msgstr "Reembolso requerido"
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:317
 msgid "Fulfill order"
 msgstr "Cumplir pedido"
+
+#: src/lib/components/login/forgot-password-form.tsx:139
+msgid "Send reset link"
+msgstr ""
 
 #: src/lib/components/layout/manage-languages-dialog.tsx:316
 msgid "You don't have permission to view channel settings"
@@ -2723,6 +2735,10 @@ msgstr "Cliente verificado"
 msgid "Global Settings"
 msgstr "Configuración global"
 
+#: src/lib/components/login/forgot-password-form.tsx:105
+msgid "Forgot your password?"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:148
 msgid "Schedule"
 msgstr "Programación"
@@ -3272,6 +3288,10 @@ msgstr "Alternar columna de encabezado"
 msgid "New Promotion"
 msgstr "Nueva Promoción"
 
+#: src/lib/components/login/reset-password-form.tsx:130
+msgid "Request a new link"
+msgstr ""
+
 #: src/lib/components/data-table/data-table-settings-menu.tsx:83
 msgid "Columns"
 msgstr ""
@@ -3360,12 +3380,20 @@ msgstr "Incluye impuesto del {taxRate}%"
 msgid "Order metrics"
 msgstr "Métricas de pedidos"
 
+#: src/lib/components/login/reset-password-form.tsx:175
+msgid "Confirm new password"
+msgstr ""
+
 #: src/lib/components/layout/language-dialog.tsx:49
 msgid "Select display language"
 msgstr "Seleccione el idioma de visualización"
 
 #: src/app/routes/_authenticated/_payment-methods/components/payment-handler-selector.tsx:37
 msgid "Select Payment Handler"
+msgstr ""
+
+#: src/lib/components/login/reset-password-form.tsx:119
+msgid "Password reset links are only valid for a limited time. Request a new one to reset your password."
 msgstr ""
 
 #: src/app/routes/_authenticated/_profile/profile.tsx:128
@@ -3707,6 +3735,10 @@ msgstr "Eliminar del grupo"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx:34
 msgid "Search API keys..."
+msgstr ""
+
+#: src/lib/components/login/reset-password-form.tsx:61
+msgid "Passwords do not match"
 msgstr ""
 
 #: src/lib/components/data-input/datetime-input.tsx:45
@@ -4122,6 +4154,11 @@ msgstr "Descripción"
 msgid "Countries"
 msgstr "Países"
 
+#: src/lib/components/login/forgot-password-form.tsx:61
+#: src/lib/components/login/reset-password-form.tsx:91
+msgid "Something went wrong"
+msgstr ""
+
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:162
 msgid "Failed to remove order line: {0}"
@@ -4162,7 +4199,8 @@ msgstr "Agregar un pago manual de {0}"
 msgid "is in"
 msgstr "está en"
 
-#: src/lib/components/login/login-form.tsx:83
+#: src/lib/components/login/forgot-password-form.tsx:123
+#: src/lib/components/login/login-form.tsx:84
 msgid "Email"
 msgstr "Correo electrónico"
 
@@ -4182,7 +4220,7 @@ msgstr "Gestionar sus vistas guardadas personales para esta tabla"
 msgid "Filter by tags"
 msgstr "Filtrar por etiquetas"
 
-#: src/lib/components/login/login-form.tsx:73
+#: src/lib/components/login/login-form.tsx:74
 msgid "Sign in to access the admin dashboard"
 msgstr "Inicia sesión para acceder al panel de administración"
 
@@ -4430,6 +4468,10 @@ msgstr "Acciones disponibles"
 msgid "Failed to update order line: {0}"
 msgstr ""
 
+#: src/lib/components/login/reset-password-form.tsx:116
+msgid "This link is invalid or has expired"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:84
 #~ msgid "Insert link"
 #~ msgstr "Insertar enlace"
@@ -4554,6 +4596,10 @@ msgstr "Se requiere un reembolso de {formattedDiff}. Seleccione los importes de 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:100
 msgid "Unit price"
 msgstr "Precio unitario"
+
+#: src/lib/components/login/forgot-password-form.tsx:87
+msgid "If an account exists for {submittedEmailAddress}, you will receive an email with a link to reset your password."
+msgstr ""
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:145
 msgid "Schedule Pattern"
@@ -4728,6 +4774,12 @@ msgstr "Nuevo grupo de opciones"
 #: src/app/routes/_authenticated/_system/healthchecks.tsx:58
 #~ msgid "Last updated {0}"
 #~ msgstr "Última actualización {0}"
+
+#: src/lib/components/login/forgot-password-form.tsx:94
+#: src/lib/components/login/forgot-password-form.tsx:147
+#: src/lib/components/login/reset-password-form.tsx:199
+msgid "Back to sign in"
+msgstr ""
 
 #: src/lib/components/data-table/views-sheet.tsx:141
 msgid "No global views have been created yet."
@@ -4913,6 +4965,10 @@ msgstr "Artículo incorrecto"
 msgid "Summary of modifications"
 msgstr "Resumen de modificaciones"
 
+#: src/lib/components/login/reset-password-form.tsx:191
+msgid "Reset password"
+msgstr ""
+
 #. placeholder {0}: payment.refunds.length
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:206
 msgid "Refunds ({0})"
@@ -4980,6 +5036,10 @@ msgstr "Error al actualizar pedido"
 #: src/lib/components/shared/asset/asset-bulk-actions.tsx:84
 msgid "With selected..."
 msgstr "Con seleccionados..."
+
+#: src/lib/components/login/reset-password-form.tsx:146
+msgid "Choose a new password for your account"
+msgstr ""
 
 #: src/app/routes/_authenticated/_stock-locations/stock-locations_.$id.tsx:77
 msgid "Failed to create stock location"
@@ -5143,7 +5203,7 @@ msgstr "Almacén de configuración"
 msgid "Heading 3"
 msgstr "Encabezado 3"
 
-#: src/lib/components/login/login-form.tsx:70
+#: src/lib/components/login/login-form.tsx:71
 msgid "Welcome to Vendure"
 msgstr "Bienvenido a Vendure"
 
@@ -5187,6 +5247,10 @@ msgstr "Error"
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:103
 msgid "Order modified"
 msgstr "Pedido modificado"
+
+#: src/lib/components/login/reset-password-form.tsx:143
+msgid "Reset your password"
+msgstr ""
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:59
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx:128
@@ -5378,6 +5442,11 @@ msgstr "Reembolso transicionado"
 msgid "Using native authentication strategy"
 msgstr "Usando estrategia de autenticación nativa"
 
+#: src/lib/components/login/forgot-password-form.tsx:136
+#: src/lib/components/login/reset-password-form.tsx:188
+msgid "Please wait"
+msgstr ""
+
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:73
 msgid "Failed to assign {entityIdsLength} {entityType} to channel"
 msgstr "Error al asignar {entityIdsLength} {entityType} al canal"
@@ -5544,6 +5613,10 @@ msgstr "Colección movida al nuevo padre"
 msgid "Option group removed"
 msgstr "Grupo de opciones eliminado"
 
+#: src/lib/components/login/login-form.tsx:101
+msgid "Forgot password?"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/use-transition-order-to-state.tsx:130
 msgid "Transition to selected state"
 msgstr "Transición al estado seleccionado"
@@ -5621,6 +5694,10 @@ msgstr "contiene"
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods.tsx:43
 msgid "Search shipping methods..."
+msgstr ""
+
+#: src/lib/components/login/forgot-password-form.tsx:84
+msgid "Check your email"
 msgstr ""
 
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:249
