@@ -36,7 +36,7 @@ const requestPasswordResetDocument = graphql(`
 export type ForgotPasswordFormProps = Readonly<React.ComponentProps<'div'>>;
 
 const formSchema = z.object({
-    emailAddress: z.string().min(1),
+    emailAddress: z.string().email(),
 });
 
 export function ForgotPasswordForm({ className, ...props }: ForgotPasswordFormProps) {
