@@ -2,7 +2,7 @@
 title: "AdministratorService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/administrator.service.ts" sourceLine="42" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/administrator.service.ts" sourceLine="50" packageName="@vendure/core" />
 
 Contains methods relating to [Administrator](/reference/typescript-api/entities/administrator#administrator) entities.
 
@@ -14,6 +14,10 @@ class AdministratorService {
     findOneByUserId(ctx: RequestContext, userId: ID, relations?: RelationPaths<Administrator>) => Promise<Administrator | undefined>;
     create(ctx: RequestContext, input: CreateAdministratorInput) => Promise<Administrator>;
     update(ctx: RequestContext, input: UpdateAdministratorInput) => Promise<Administrator>;
+    requestPasswordReset(ctx: RequestContext, emailAddress: string) => Promise<void>;
+    resetPassword(ctx: RequestContext, passwordResetToken: string, password: string) => Promise<
+        User | PasswordResetTokenExpiredError | PasswordResetTokenInvalidError | PasswordValidationError
+    >;
     assignRole(ctx: RequestContext, administratorId: ID, roleId: ID) => Promise<Administrator>;
     softDelete(ctx: RequestContext, id: ID) => ;
 }
@@ -46,6 +50,19 @@ Create a new Administrator.
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: UpdateAdministratorInput) => Promise<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>>`}   />
 
 Update an existing Administrator.
+### requestPasswordReset
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, emailAddress: string) => Promise<void>`}  since="3.8.0"  />
+
+Publishes a new [AdministratorPasswordResetEvent](/reference/typescript-api/events/event-types#administratorpasswordresetevent) for the Administrator with the given
+email address. The event contains a token which can then be used in the `resetPassword()`
+method. If no Administrator exists with the given email address, no action is taken.
+### resetPassword
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, passwordResetToken: string, password: string) => Promise<         <a href='/reference/typescript-api/entities/user#user'>User</a> | PasswordResetTokenExpiredError | PasswordResetTokenInvalidError | PasswordValidationError     >`}  since="3.8.0"  />
+
+Given a valid password reset token created by a call to the `requestPasswordReset()` method,
+this method will change the Administrator's password to that given as the `password` argument.
 ### assignRole
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, administratorId: <a href='/reference/typescript-api/common/id#id'>ID</a>, roleId: <a href='/reference/typescript-api/common/id#id'>ID</a>) => Promise<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>>`}   />

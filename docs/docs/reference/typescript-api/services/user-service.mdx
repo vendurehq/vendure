@@ -19,6 +19,7 @@ class UserService {
     setVerificationToken(ctx: RequestContext, user: User) => Promise<User>;
     verifyUserByToken(ctx: RequestContext, verificationToken: string, password?: string) => Promise<ErrorResultUnion<VerifyCustomerAccountResult, User>>;
     setPasswordResetToken(ctx: RequestContext, emailAddress: string) => Promise<User | undefined>;
+    getUserByPasswordResetToken(ctx: RequestContext, passwordResetToken: string) => Promise<User | undefined>;
     resetPasswordByToken(ctx: RequestContext, passwordResetToken: string, password: string) => Promise<
         User | PasswordResetTokenExpiredError | PasswordResetTokenInvalidError | PasswordValidationError
     >;
@@ -94,6 +95,13 @@ If valid, the User will be set to `verified: true`.
 
 Sets the [NativeAuthenticationMethod](/reference/typescript-api/entities/authentication-method#nativeauthenticationmethod) `passwordResetToken` as part of the User password reset
 flow.
+### getUserByPasswordResetToken
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, passwordResetToken: string) => Promise<<a href='/reference/typescript-api/entities/user#user'>User</a> | undefined>`}  since="3.8.0"  />
+
+Returns the User whose [NativeAuthenticationMethod](/reference/typescript-api/entities/authentication-method#nativeauthenticationmethod) has the given `passwordResetToken` set,
+as a result of a prior call to the `setPasswordResetToken()` method. Note that this method does
+not check whether the token has expired.
 ### resetPasswordByToken
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, passwordResetToken: string, password: string) => Promise<         <a href='/reference/typescript-api/entities/user#user'>User</a> | PasswordResetTokenExpiredError | PasswordResetTokenInvalidError | PasswordValidationError     >`}   />

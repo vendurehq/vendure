@@ -64,6 +64,26 @@ class AdministratorEvent extends VendureEntityEvent<Administrator, Administrator
 
 
 </div>
+## AdministratorPasswordResetEvent
+
+<GenerationInfo sourceFile="packages/core/src/event-bus/events/administrator-password-reset-event.ts" sourceLine="14" packageName="@vendure/core" since="3.8.0" />
+
+This event is fired when an Administrator requests a password reset email.
+
+```ts title="Signature"
+class AdministratorPasswordResetEvent extends VendureEvent {
+    constructor(ctx: RequestContext, administrator: Administrator, user: User)
+}
+```
+* Extends: [`VendureEvent`](/reference/typescript-api/events/vendure-event#vendureevent)
+
+
+
+<div className="members-wrapper">
+
+
+
+</div>
 ## ApiKeyEvent
 
 <GenerationInfo sourceFile="packages/core/src/event-bus/events/api-key-event.ts" sourceLine="18" packageName="@vendure/core" since="3.6.0" />

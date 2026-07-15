@@ -3168,6 +3168,70 @@ type OrderTaxSummary {
 }`}
 </GraphQLDoc>
 
+<a name="passwordresettokenexpirederror"></a>
+
+## PasswordResetTokenExpiredError
+
+<GraphQLDoc
+  type="type"
+  typeName="PasswordResetTokenExpiredError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/admin/enums#errorcode',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`"""
+Returned if the token used to reset an Administrator's password is valid, but has
+expired according to the \`verificationTokenDuration\` setting in the AuthOptions.
+"""
+type PasswordResetTokenExpiredError {
+  errorCode: ErrorCode!
+  message: String!
+}`}
+</GraphQLDoc>
+
+<a name="passwordresettokeninvaliderror"></a>
+
+## PasswordResetTokenInvalidError
+
+<GraphQLDoc
+  type="type"
+  typeName="PasswordResetTokenInvalidError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/admin/enums#errorcode',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`"""
+Returned if the token used to reset an Administrator's password is either
+invalid or does not match any expected tokens.
+"""
+type PasswordResetTokenInvalidError {
+  errorCode: ErrorCode!
+  message: String!
+}`}
+</GraphQLDoc>
+
+<a name="passwordvalidationerror"></a>
+
+## PasswordValidationError
+
+<GraphQLDoc
+  type="type"
+  typeName="PasswordValidationError"
+  typeLinks={{
+    ErrorCode: '/reference/graphql-api/admin/enums#errorcode',
+    String: '/reference/graphql-api/admin/object-types#string',
+  }}
+>
+{`"""Returned when the given password fails password validation."""
+type PasswordValidationError {
+  errorCode: ErrorCode!
+  message: String!
+  validationErrorMessage: String!
+}`}
+</GraphQLDoc>
+
 <a name="payment"></a>
 
 ## Payment
@@ -4267,6 +4331,39 @@ type RefundStateTransitionError {
   }}
 >
 {`union RemoveProductOptionGroupFromChannelResult = ProductOptionGroup | ProductOptionGroupInUseError`}
+</GraphQLDoc>
+
+<a name="requestpasswordresetresult"></a>
+
+## RequestPasswordResetResult
+
+<GraphQLDoc
+  type="union"
+  typeName="RequestPasswordResetResult"
+  typeLinks={{
+    Success: '/reference/graphql-api/admin/object-types#success',
+    NativeAuthStrategyError: '/reference/graphql-api/admin/object-types#nativeauthstrategyerror',
+  }}
+>
+{`union RequestPasswordResetResult = Success | NativeAuthStrategyError`}
+</GraphQLDoc>
+
+<a name="resetpasswordresult"></a>
+
+## ResetPasswordResult
+
+<GraphQLDoc
+  type="union"
+  typeName="ResetPasswordResult"
+  typeLinks={{
+    CurrentUser: '/reference/graphql-api/admin/object-types#currentuser',
+    PasswordResetTokenInvalidError: '/reference/graphql-api/admin/object-types#passwordresettokeninvaliderror',
+    PasswordResetTokenExpiredError: '/reference/graphql-api/admin/object-types#passwordresettokenexpirederror',
+    PasswordValidationError: '/reference/graphql-api/admin/object-types#passwordvalidationerror',
+    NativeAuthStrategyError: '/reference/graphql-api/admin/object-types#nativeauthstrategyerror',
+  }}
+>
+{`union ResetPasswordResult = CurrentUser | PasswordResetTokenInvalidError | PasswordResetTokenExpiredError | PasswordValidationError | NativeAuthStrategyError`}
 </GraphQLDoc>
 
 <a name="return"></a>
