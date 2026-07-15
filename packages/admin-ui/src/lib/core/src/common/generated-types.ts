@@ -1838,6 +1838,9 @@ export enum ErrorCode {
   ORDER_MODIFICATION_ERROR = 'ORDER_MODIFICATION_ERROR',
   ORDER_MODIFICATION_STATE_ERROR = 'ORDER_MODIFICATION_STATE_ERROR',
   ORDER_STATE_TRANSITION_ERROR = 'ORDER_STATE_TRANSITION_ERROR',
+  PASSWORD_RESET_TOKEN_EXPIRED_ERROR = 'PASSWORD_RESET_TOKEN_EXPIRED_ERROR',
+  PASSWORD_RESET_TOKEN_INVALID_ERROR = 'PASSWORD_RESET_TOKEN_INVALID_ERROR',
+  PASSWORD_VALIDATION_ERROR = 'PASSWORD_VALIDATION_ERROR',
   PAYMENT_METHOD_MISSING_ERROR = 'PAYMENT_METHOD_MISSING_ERROR',
   PAYMENT_ORDER_MISMATCH_ERROR = 'PAYMENT_ORDER_MISMATCH_ERROR',
   PAYMENT_STATE_TRANSITION_ERROR = 'PAYMENT_STATE_TRANSITION_ERROR',
@@ -3150,7 +3153,19 @@ export type Mutation = {
   /** Removes StockLocations from the specified Channel */
   removeStockLocationsFromChannel: Array<StockLocation>;
   requestCompleted: Scalars['Int']['output'];
+  /**
+   * Requests a password reset email to be sent to the Administrator with the given email address. To
+   * prevent leaking information about which email addresses exist, the mutation resolves to `Success`
+   * even if no Administrator with that email address was found.
+   */
+  requestPasswordReset?: Maybe<RequestPasswordResetResult>;
   requestStarted: Scalars['Int']['output'];
+  /**
+   * Resets an Administrator's password based on the provided token, which is obtained via the email
+   * sent as a result of the `requestPasswordReset` mutation. Upon success, the Administrator will be
+   * signed in.
+   */
+  resetPassword: ResetPasswordResult;
   /**
    * Replaces the old with a new API-Key.
    * This is a convenience method to invalidate an API-Key without
@@ -3900,6 +3915,17 @@ export type MutationRemoveStockLocationsFromChannelArgs = {
 };
 
 
+export type MutationRequestPasswordResetArgs = {
+  emailAddress: Scalars['String']['input'];
+};
+
+
+export type MutationResetPasswordArgs = {
+  password: Scalars['String']['input'];
+  token: Scalars['String']['input'];
+};
+
+
 export type MutationRotateApiKeyArgs = {
   id: Scalars['ID']['input'];
 };
@@ -4597,6 +4623,34 @@ export enum OrderType {
 export type PaginatedList = {
   items: Array<Node>;
   totalItems: Scalars['Int']['output'];
+};
+
+/**
+ * Returned if the token used to reset an Administrator's password is valid, but has
+ * expired according to the `verificationTokenDuration` setting in the AuthOptions.
+ */
+export type PasswordResetTokenExpiredError = ErrorResult & {
+  __typename?: 'PasswordResetTokenExpiredError';
+  errorCode: ErrorCode;
+  message: Scalars['String']['output'];
+};
+
+/**
+ * Returned if the token used to reset an Administrator's password is either
+ * invalid or does not match any expected tokens.
+ */
+export type PasswordResetTokenInvalidError = ErrorResult & {
+  __typename?: 'PasswordResetTokenInvalidError';
+  errorCode: ErrorCode;
+  message: Scalars['String']['output'];
+};
+
+/** Returned when the given password fails password validation. */
+export type PasswordValidationError = ErrorResult & {
+  __typename?: 'PasswordValidationError';
+  errorCode: ErrorCode;
+  message: Scalars['String']['output'];
+  validationErrorMessage: Scalars['String']['output'];
 };
 
 export type Payment = Node & {
@@ -6129,6 +6183,10 @@ export type RemoveStockLocationsFromChannelInput = {
   channelId: Scalars['ID']['input'];
   stockLocationIds: Array<Scalars['ID']['input']>;
 };
+
+export type RequestPasswordResetResult = NativeAuthStrategyError | Success;
+
+export type ResetPasswordResult = CurrentUser | NativeAuthStrategyError | PasswordResetTokenExpiredError | PasswordResetTokenInvalidError | PasswordValidationError;
 
 export type Return = Node & StockMovement & {
   __typename?: 'Return';
@@ -9312,6 +9370,12 @@ type ErrorResult_OrderModificationStateError_Fragment = { __typename?: 'OrderMod
 
 type ErrorResult_OrderStateTransitionError_Fragment = { __typename?: 'OrderStateTransitionError', errorCode: ErrorCode, message: string };
 
+type ErrorResult_PasswordResetTokenExpiredError_Fragment = { __typename?: 'PasswordResetTokenExpiredError', errorCode: ErrorCode, message: string };
+
+type ErrorResult_PasswordResetTokenInvalidError_Fragment = { __typename?: 'PasswordResetTokenInvalidError', errorCode: ErrorCode, message: string };
+
+type ErrorResult_PasswordValidationError_Fragment = { __typename?: 'PasswordValidationError', errorCode: ErrorCode, message: string };
+
 type ErrorResult_PaymentMethodMissingError_Fragment = { __typename?: 'PaymentMethodMissingError', errorCode: ErrorCode, message: string };
 
 type ErrorResult_PaymentOrderMismatchError_Fragment = { __typename?: 'PaymentOrderMismatchError', errorCode: ErrorCode, message: string };
@@ -9370,6 +9434,9 @@ export type ErrorResultFragment =
   | ErrorResult_OrderModificationError_Fragment
   | ErrorResult_OrderModificationStateError_Fragment
   | ErrorResult_OrderStateTransitionError_Fragment
+  | ErrorResult_PasswordResetTokenExpiredError_Fragment
+  | ErrorResult_PasswordResetTokenInvalidError_Fragment
+  | ErrorResult_PasswordValidationError_Fragment
   | ErrorResult_PaymentMethodMissingError_Fragment
   | ErrorResult_PaymentOrderMismatchError_Fragment
   | ErrorResult_PaymentStateTransitionError_Fragment

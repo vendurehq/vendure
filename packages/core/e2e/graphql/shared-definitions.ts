@@ -474,6 +474,38 @@ export const logoutDocument = graphql(`
     }
 `);
 
+export const requestAdminPasswordResetDocument = graphql(`
+    mutation RequestAdminPasswordReset($emailAddress: String!) {
+        requestPasswordReset(emailAddress: $emailAddress) {
+            ... on Success {
+                success
+            }
+            ... on ErrorResult {
+                errorCode
+                message
+            }
+        }
+    }
+`);
+
+export const resetAdminPasswordDocument = graphql(
+    `
+        mutation ResetAdminPassword($token: String!, $password: String!) {
+            resetPassword(token: $token, password: $password) {
+                ...CurrentUser
+                ... on ErrorResult {
+                    errorCode
+                    message
+                }
+                ... on PasswordValidationError {
+                    validationErrorMessage
+                }
+            }
+        }
+    `,
+    [currentUserFragment],
+);
+
 export const getCountryListDocument = graphql(`
     query GetCountryList($options: CountryListOptions) {
         countries(options: $options) {

@@ -6,6 +6,7 @@ export * from './vendure-event';
 export * from './events/account-registration-event';
 export * from './events/account-verified-event';
 export * from './events/administrator-event';
+export * from './events/administrator-password-reset-event';
 export * from './events/api-key-event';
 export * from './events/asset-channel-event';
 export * from './events/asset-event';

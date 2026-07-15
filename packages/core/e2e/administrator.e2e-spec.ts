@@ -1,9 +1,18 @@
-import { DeletionResult } from '@vendure/common/lib/generated-types';
+import { OnModuleInit } from '@nestjs/common';
+import { DeletionResult, ErrorCode } from '@vendure/common/lib/generated-types';
 import { SUPER_ADMIN_USER_IDENTIFIER } from '@vendure/common/lib/shared-constants';
+import {
+    AdministratorPasswordResetEvent,
+    EventBus,
+    EventBusModule,
+    mergeConfig,
+    PasswordResetEvent,
+    VendurePlugin,
+} from '@vendure/core';
 import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
 import { fail } from 'assert';
 import path from 'path';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
@@ -17,13 +26,43 @@ import {
     getActiveAdministratorDocument,
     getAdministratorDocument,
     getAdministratorsDocument,
+    getCustomerListDocument,
+    requestAdminPasswordResetDocument,
+    resetAdminPasswordDocument,
     updateActiveAdministratorDocument,
     updateAdministratorDocument,
 } from './graphql/shared-definitions';
+import { requestPasswordResetDocument } from './graphql/shop-definitions';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 
+let sendEmailFn: Mock;
+
+/**
+ * This mock plugin simulates an EmailPlugin which would send emails
+ * on the password reset events.
+ */
+@VendurePlugin({
+    imports: [EventBusModule],
+})
+class TestEmailPlugin implements OnModuleInit {
+    constructor(private eventBus: EventBus) {}
+
+    onModuleInit() {
+        this.eventBus.ofType(AdministratorPasswordResetEvent).subscribe(event => {
+            sendEmailFn?.(event);
+        });
+        this.eventBus.ofType(PasswordResetEvent).subscribe(event => {
+            sendEmailFn?.(event);
+        });
+    }
+}
+
 describe('Administrator resolver', () => {
-    const { server, adminClient } = createTestEnvironment(testConfig());
+    const { server, adminClient, shopClient } = createTestEnvironment(
+        mergeConfig(testConfig(), {
+            plugins: [TestEmailPlugin as any],
+        }),
+    );
     let createdAdmin: FragmentOf<typeof administratorFragment>;
 
     beforeAll(async () => {
@@ -278,5 +317,159 @@ describe('Administrator resolver', () => {
 
         loginResultGuard.assertSuccess(login);
         expect(login.identifier).toBe('NewAdmin');
+    });
+
+    // https://github.com/vendurehq/vendure/issues/1116
+    describe('password reset', () => {
+        const testAdminEmail = 'password-reset-test@test.com';
+        const newPassword = 'new-password-123';
+        let customerEmail: string;
+        let passwordResetToken: string;
+
+        const successGuard: ErrorResultGuard<{ success: boolean }> = createErrorResultGuard(
+            input => input.success != null,
+        );
+        const currentUserGuard: ErrorResultGuard<FragmentOf<typeof currentUserFragment>> =
+            createErrorResultGuard(input => !!input.identifier);
+
+        beforeAll(async () => {
+            // The `updateActiveAdministrator` test above changed the superadmin's email address
+            await adminClient.asUserWithCredentials('neo@metacortex.com', 'superadmin');
+            await adminClient.query(createAdministratorDocument, {
+                input: {
+                    emailAddress: testAdminEmail,
+                    firstName: 'Password',
+                    lastName: 'Reset',
+                    password: 'initial-password',
+                    roleIds: ['1'],
+                },
+            });
+            const { customers } = await adminClient.query(getCustomerListDocument);
+            customerEmail = customers.items[0].emailAddress;
+        });
+
+        beforeEach(() => {
+            sendEmailFn = vi.fn();
+        });
+
+        it('requestPasswordReset silently succeeds with unknown email address', async () => {
+            const { requestPasswordReset } = await adminClient.query(requestAdminPasswordResetDocument, {
+                emailAddress: 'unknown-email@test.com',
+            });
+            successGuard.assertSuccess(requestPasswordReset);
+
+            await waitForSendEmailFn();
+            expect(requestPasswordReset.success).toBe(true);
+            expect(sendEmailFn).not.toHaveBeenCalled();
+        });
+
+        it('requestPasswordReset silently succeeds with a Customer email address', async () => {
+            const { requestPasswordReset } = await adminClient.query(requestAdminPasswordResetDocument, {
+                emailAddress: customerEmail,
+            });
+            successGuard.assertSuccess(requestPasswordReset);
+
+            await waitForSendEmailFn();
+            expect(requestPasswordReset.success).toBe(true);
+            expect(sendEmailFn).not.toHaveBeenCalled();
+        });
+
+        it('requestPasswordReset publishes event with token for an Administrator email address', async () => {
+            const passwordResetTokenPromise = getPasswordResetTokenPromise();
+            const { requestPasswordReset } = await adminClient.query(requestAdminPasswordResetDocument, {
+                emailAddress: testAdminEmail,
+            });
+            successGuard.assertSuccess(requestPasswordReset);
+
+            passwordResetToken = await passwordResetTokenPromise;
+
+            expect(requestPasswordReset.success).toBe(true);
+            expect(sendEmailFn).toHaveBeenCalled();
+            expect(sendEmailFn.mock.calls[0][0] instanceof AdministratorPasswordResetEvent).toBe(true);
+            expect(passwordResetToken).toBeDefined();
+        });
+
+        it('resetPassword returns error result with invalid token', async () => {
+            const { resetPassword } = await adminClient.query(resetAdminPasswordDocument, {
+                token: 'bad-token',
+                password: newPassword,
+            });
+            currentUserGuard.assertErrorResult(resetPassword);
+
+            expect(resetPassword.errorCode).toBe(ErrorCode.PASSWORD_RESET_TOKEN_INVALID_ERROR);
+        });
+
+        it('resetPassword returns error result with a Customer token', async () => {
+            const customerTokenPromise = getPasswordResetTokenPromise();
+            await shopClient.query(requestPasswordResetDocument, {
+                identifier: customerEmail,
+            });
+            const customerToken = await customerTokenPromise;
+            expect(customerToken).toBeDefined();
+
+            const { resetPassword } = await adminClient.query(resetAdminPasswordDocument, {
+                token: customerToken,
+                password: newPassword,
+            });
+            currentUserGuard.assertErrorResult(resetPassword);
+
+            expect(resetPassword.errorCode).toBe(ErrorCode.PASSWORD_RESET_TOKEN_INVALID_ERROR);
+
+            // The Customer's password has not been changed
+            const customerLogin = await shopClient.asUserWithCredentials(customerEmail, 'test');
+            expect(customerLogin.identifier).toBe(customerEmail);
+        });
+
+        it('resetPassword returns error result with invalid password', async () => {
+            const { resetPassword } = await adminClient.query(resetAdminPasswordDocument, {
+                token: passwordResetToken,
+                password: 'ab',
+            });
+            currentUserGuard.assertErrorResult(resetPassword);
+
+            expect(resetPassword.errorCode).toBe(ErrorCode.PASSWORD_VALIDATION_ERROR);
+        });
+
+        it('resetPassword works with valid token and signs the Administrator in', async () => {
+            const { resetPassword } = await adminClient.query(resetAdminPasswordDocument, {
+                token: passwordResetToken,
+                password: newPassword,
+            });
+            currentUserGuard.assertSuccess(resetPassword);
+
+            expect(resetPassword.identifier).toBe(testAdminEmail);
+
+            await adminClient.asAnonymousUser();
+            const { login } = await adminClient.query(attemptLoginDocument, {
+                username: testAdminEmail,
+                password: newPassword,
+            });
+            currentUserGuard.assertSuccess(login);
+            expect(login.identifier).toBe(testAdminEmail);
+        });
+
+        it('used token cannot be used again', async () => {
+            const { resetPassword } = await adminClient.query(resetAdminPasswordDocument, {
+                token: passwordResetToken,
+                password: 'another-password',
+            });
+            currentUserGuard.assertErrorResult(resetPassword);
+
+            expect(resetPassword.errorCode).toBe(ErrorCode.PASSWORD_RESET_TOKEN_INVALID_ERROR);
+        });
+
+        function getPasswordResetTokenPromise(): Promise<string> {
+            return new Promise<any>(resolve => {
+                sendEmailFn.mockImplementation(
+                    (event: AdministratorPasswordResetEvent | PasswordResetEvent) => {
+                        resolve(event.user.getNativeAuthenticationMethod().passwordResetToken);
+                    },
+                );
+            });
+        }
+
+        function waitForSendEmailFn() {
+            return new Promise(resolve => setTimeout(resolve, 10));
+        }
     });
 });

@@ -10,7 +10,13 @@ import { In, IsNull } from 'typeorm';
 import { RequestContext } from '../../api/common/request-context';
 import { RelationPaths } from '../../api/decorators/relations.decorator';
 import { Instrument } from '../../common';
+import { isGraphQlErrorResult } from '../../common/error/error-result';
 import { EntityNotFoundError, InternalServerError, UserInputError } from '../../common/error/errors';
+import {
+    PasswordResetTokenExpiredError,
+    PasswordResetTokenInvalidError,
+    PasswordValidationError,
+} from '../../common/error/generated-graphql-admin-errors';
 import { ListQueryOptions } from '../../common/types/common-types';
 import { assertFound, idsAreEqual, normalizeEmailAddress } from '../../common/utils';
 import { ConfigService } from '../../config';
@@ -21,6 +27,8 @@ import { Role } from '../../entity/role/role.entity';
 import { User } from '../../entity/user/user.entity';
 import { EventBus } from '../../event-bus';
 import { AdministratorEvent } from '../../event-bus/events/administrator-event';
+import { AdministratorPasswordResetEvent } from '../../event-bus/events/administrator-password-reset-event';
+import { PasswordResetVerifiedEvent } from '../../event-bus/events/password-reset-verified-event';
 import { RoleChangeEvent } from '../../event-bus/events/role-change-event';
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
@@ -214,6 +222,69 @@ export class AdministratorService {
         );
         await this.eventBus.publish(new AdministratorEvent(ctx, updatedAdministrator, 'updated', input));
         return updatedAdministrator;
+    }
+
+    /**
+     * @description
+     * Publishes a new {@link AdministratorPasswordResetEvent} for the Administrator with the given
+     * email address. The event contains a token which can then be used in the `resetPassword()`
+     * method. If no Administrator exists with the given email address, no action is taken.
+     *
+     * @since 3.8.0
+     */
+    async requestPasswordReset(ctx: RequestContext, emailAddress: string): Promise<void> {
+        const user = await this.userService.setPasswordResetToken(ctx, emailAddress);
+        if (!user) {
+            return;
+        }
+        const administrator = await this.findOneByUserId(ctx, user.id);
+        if (!administrator) {
+            return;
+        }
+        await this.eventBus.publish(new AdministratorPasswordResetEvent(ctx, administrator, user));
+    }
+
+    /**
+     * @description
+     * Given a valid password reset token created by a call to the `requestPasswordReset()` method,
+     * this method will change the Administrator's password to that given as the `password` argument.
+     *
+     * @since 3.8.0
+     */
+    async resetPassword(
+        ctx: RequestContext,
+        passwordResetToken: string,
+        password: string,
+    ): Promise<
+        User | PasswordResetTokenExpiredError | PasswordResetTokenInvalidError | PasswordValidationError
+    > {
+        const userForToken = await this.userService.getUserByPasswordResetToken(ctx, passwordResetToken);
+        if (!userForToken) {
+            return new PasswordResetTokenInvalidError();
+        }
+        const administrator = await this.findOneByUserId(ctx, userForToken.id);
+        if (!administrator) {
+            // The token belongs to a non-administrator User (e.g. a Customer), so
+            // it may not be used to reset a password via the Admin API.
+            return new PasswordResetTokenInvalidError();
+        }
+        const result = await this.userService.resetPasswordByToken(ctx, passwordResetToken, password);
+        if (isGraphQlErrorResult(result)) {
+            // The UserService is typed against the Shop API error results, so the
+            // structurally-identical Admin API equivalents are returned instead.
+            switch (result.__typename) {
+                case 'PasswordResetTokenExpiredError':
+                    return new PasswordResetTokenExpiredError();
+                case 'PasswordValidationError':
+                    return new PasswordValidationError({
+                        validationErrorMessage: result.validationErrorMessage,
+                    });
+                default:
+                    return new PasswordResetTokenInvalidError();
+            }
+        }
+        await this.eventBus.publish(new PasswordResetVerifiedEvent(ctx, result));
+        return result;
     }
 
     /**
