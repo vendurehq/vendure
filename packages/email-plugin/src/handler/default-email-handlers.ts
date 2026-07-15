@@ -6,6 +6,7 @@ import {
     EntityHydrator,
     IdentifierChangeRequestEvent,
     Injector,
+    Logger,
     NativeAuthenticationMethod,
     Order,
     OrderStateTransitionEvent,
@@ -15,7 +16,9 @@ import {
 } from '@vendure/core';
 import { Request } from 'express';
 
+import { EMAIL_PLUGIN_OPTIONS, loggerCtx } from '../constants';
 import { EmailEventListener } from '../event-listener';
+import { EmailPluginOptions } from '../types';
 
 import { EmailEventHandler } from './event-handler';
 import {
@@ -77,6 +80,20 @@ export const passwordResetHandler = new EmailEventListener('password-reset')
 
 export const adminPasswordResetHandler = new EmailEventListener('admin-password-reset')
     .on(AdministratorPasswordResetEvent)
+    .loadData(async ({ injector }) => {
+        // Existing projects will not have this variable set when upgrading, in which case
+        // the reset link in the email would silently render as a dead relative URL.
+        const { globalTemplateVars } = injector.get<EmailPluginOptions>(EMAIL_PLUGIN_OPTIONS);
+        if (typeof globalTemplateVars !== 'function' && globalTemplateVars?.adminPasswordResetUrl == null) {
+            Logger.warn(
+                'The "adminPasswordResetUrl" global template variable is not set, so the reset link in the ' +
+                    '"admin-password-reset" email will not work. Set it in the EmailPlugin `globalTemplateVars` ' +
+                    'to the URL of your Dashboard password reset page, e.g. "https://my-server.com/dashboard/reset-password".',
+                loggerCtx,
+            );
+        }
+        return {};
+    })
     .setRecipient(event => event.administrator.emailAddress)
     .setFrom('{{ fromAddress }}')
     .setSubject('Forgotten password reset')
