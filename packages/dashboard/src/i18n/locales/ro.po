@@ -31,7 +31,7 @@ msgstr "Vizualizează modificările"
 msgid "Tracking code"
 msgstr "Cod de urmărire"
 
-#: src/lib/components/data-table/data-table.tsx:717
+#: src/lib/components/data-table/data-table.tsx:701
 #: src/lib/components/data-table/use-generated-columns.tsx:226
 msgid "Select all rows"
 msgstr ""
@@ -221,7 +221,7 @@ msgstr "Reîmprospătare automată: {0}"
 msgid "Deleted {deleted} {entityName}"
 msgstr "{deleted} {entityName} șterse"
 
-#: src/lib/components/data-table/data-table.tsx:607
+#: src/lib/components/data-table/data-table.tsx:590
 msgid "There are no items to display yet."
 msgstr ""
 
@@ -527,7 +527,7 @@ msgid "Gross price: <0/>"
 msgstr "Preț brut: <0/>"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:82
-#: src/lib/components/data-table/data-table.tsx:722
+#: src/lib/components/data-table/data-table.tsx:706
 msgid "Go to next page"
 msgstr "Mergi la pagina următoare"
 
@@ -771,6 +771,10 @@ msgstr "Rotirea acestei chei va invalida imediat cheia curentă. Orice integrăr
 msgid "The data that has been passed to the job"
 msgstr "Datele care au fost transmise job-ului"
 
+#: src/lib/components/shared/copyable-text.tsx:72
+msgid "Copied"
+msgstr ""
+
 #: src/lib/components/shared/navigation-confirmation.tsx:44
 msgid "Confirm navigation"
 msgstr "Confirmă navigarea"
@@ -1012,7 +1016,7 @@ msgstr "Sarcina planificată va fi executată"
 msgid "New stock location"
 msgstr "Locație stoc nouă"
 
-#: src/lib/components/data-table/data-table.tsx:718
+#: src/lib/components/data-table/data-table.tsx:702
 #: src/lib/components/data-table/use-generated-columns.tsx:238
 msgid "Select row"
 msgstr ""
@@ -1942,8 +1946,8 @@ msgstr "Începe la"
 msgid "Duplicate"
 msgstr "Duplică"
 
-#: src/lib/components/data-table/data-table.tsx:595
-#: src/lib/components/data-table/data-table.tsx:606
+#: src/lib/components/data-table/data-table.tsx:578
+#: src/lib/components/data-table/data-table.tsx:589
 #: src/lib/components/shared/customer-group-selector.tsx:60
 msgid "No results"
 msgstr "Fără rezultate"
@@ -2796,6 +2800,10 @@ msgstr "după"
 msgid "Channel"
 msgstr "Canal"
 
+#: src/lib/components/shared/copyable-text.tsx:71
+msgid "Copy"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:168
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:322
 msgid "Amount"
@@ -3405,7 +3413,7 @@ msgstr ""
 msgid "Facet values"
 msgstr "Valori atribut"
 
-#: src/lib/components/data-table/data-table.tsx:314
+#: src/lib/components/data-table/data-table.tsx:300
 msgid "Failed to reorder items"
 msgstr "Nu s-a putut reordona elementele"
 
@@ -3855,7 +3863,7 @@ msgstr ""
 msgid "Created by"
 msgstr "Creat de"
 
-#: src/lib/components/data-table/data-table.tsx:596
+#: src/lib/components/data-table/data-table.tsx:579
 msgid "No items match your current filters. Try clearing them to see more."
 msgstr ""
 
@@ -4530,6 +4538,10 @@ msgstr ""
 msgid "New seller"
 msgstr "Vânzător nou"
 
+#: src/lib/components/ui/state-views.tsx:14
+msgid "Loading…"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:146
 msgid "e.g., Red, Large, Cotton"
 msgstr "ex., Roșu, Large, Bumbac"
@@ -5057,7 +5069,7 @@ msgid "Stock Locations"
 msgstr "Locații de stoc"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:69
-#: src/lib/components/data-table/data-table.tsx:721
+#: src/lib/components/data-table/data-table.tsx:705
 msgid "Go to previous page"
 msgstr "Mergi la pagina anterioară"
 
@@ -5283,7 +5295,7 @@ msgstr "Administratorul a fost actualizat cu succes"
 
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:263
 #: src/lib/components/data-table/data-table-faceted-filter.tsx:225
-#: src/lib/components/data-table/data-table.tsx:599
+#: src/lib/components/data-table/data-table.tsx:582
 #: src/lib/components/shared/asset/asset-gallery.tsx:361
 msgid "Clear filters"
 msgstr "Șterge filtre"
@@ -5884,7 +5896,7 @@ msgstr "Nu s-a putut elimina atributul din canal: {message}"
 #~ msgid "Set link"
 #~ msgstr "Setează linkul"
 
-#: src/lib/components/data-table/data-table.tsx:720
+#: src/lib/components/data-table/data-table.tsx:704
 msgid "Pagination"
 msgstr ""
 
@@ -5932,7 +5944,7 @@ msgid "View result"
 msgstr "Vizualizează rezultatul"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:20
-#: src/lib/components/data-table/data-table.tsx:723
+#: src/lib/components/data-table/data-table.tsx:707
 msgid "Rows per page"
 msgstr "Rânduri pe pagină"
 
@@ -6023,7 +6035,7 @@ msgid "Failed to create product variant"
 msgstr "Nu s-a putut crea varianta produsului"
 
 #: src/lib/components/data-input/relation-selector.tsx:418
-#: src/lib/components/data-table/data-table.tsx:506
+#: src/lib/components/data-table/data-table.tsx:489
 msgid "Search..."
 msgstr ""
 
@@ -6101,7 +6113,7 @@ msgstr "Filtre active"
 
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:176
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx:54
-#: src/lib/components/data-table/data-table.tsx:582
+#: src/lib/components/data-table/data-table.tsx:565
 msgid "Clear all"
 msgstr "Șterge tot"
 

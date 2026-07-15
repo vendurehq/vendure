@@ -12,7 +12,7 @@ export function ConfirmationDialog({
 }: {
     title: string;
     description: string;
-    onConfirm: () => void;
+    onConfirm: () => void | Promise<void>;
     confirmText?: string;
     cancelText?: string;
     destructive?: boolean;

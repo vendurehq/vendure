@@ -31,7 +31,7 @@ msgstr "परिवर्तनहरू हेर्नुहोस्"
 msgid "Tracking code"
 msgstr "ट्र्याकिङ कोड"
 
-#: src/lib/components/data-table/data-table.tsx:717
+#: src/lib/components/data-table/data-table.tsx:701
 #: src/lib/components/data-table/use-generated-columns.tsx:226
 msgid "Select all rows"
 msgstr ""
@@ -233,7 +233,7 @@ msgstr "स्वत: रिफ्रेस: {0}"
 msgid "Deleted {deleted} {entityName}"
 msgstr "{deleted} {entityName} मेटियो"
 
-#: src/lib/components/data-table/data-table.tsx:607
+#: src/lib/components/data-table/data-table.tsx:590
 msgid "There are no items to display yet."
 msgstr ""
 
@@ -555,7 +555,7 @@ msgid "Gross price: <0/>"
 msgstr "सकल मूल्य: <0/>"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:82
-#: src/lib/components/data-table/data-table.tsx:722
+#: src/lib/components/data-table/data-table.tsx:706
 msgid "Go to next page"
 msgstr "अर्को पृष्ठमा जानुहोस्"
 
@@ -799,6 +799,10 @@ msgstr "यो कुञ्जी घुमाउँदा हालको क�
 msgid "The data that has been passed to the job"
 msgstr "कार्यमा पास गरिएको डेटा"
 
+#: src/lib/components/shared/copyable-text.tsx:72
+msgid "Copied"
+msgstr ""
+
 #: src/lib/components/shared/navigation-confirmation.tsx:44
 msgid "Confirm navigation"
 msgstr "नेभिगेसन पुष्टि गर्नुहोस्"
@@ -1040,7 +1044,7 @@ msgstr "अनुसूचित कार्य कार्यान्वय�
 msgid "New stock location"
 msgstr "नयाँ स्टक स्थान"
 
-#: src/lib/components/data-table/data-table.tsx:718
+#: src/lib/components/data-table/data-table.tsx:702
 #: src/lib/components/data-table/use-generated-columns.tsx:238
 msgid "Select row"
 msgstr ""
@@ -2009,8 +2013,8 @@ msgstr "सुरु हुन्छ"
 msgid "Duplicate"
 msgstr "नक्कल गर्नुहोस्"
 
-#: src/lib/components/data-table/data-table.tsx:595
-#: src/lib/components/data-table/data-table.tsx:606
+#: src/lib/components/data-table/data-table.tsx:578
+#: src/lib/components/data-table/data-table.tsx:589
 #: src/lib/components/shared/customer-group-selector.tsx:60
 msgid "No results"
 msgstr "कुनै परिणामहरू छैनन्"
@@ -2875,6 +2879,10 @@ msgstr "पछि"
 msgid "Channel"
 msgstr "च्यानल"
 
+#: src/lib/components/shared/copyable-text.tsx:71
+msgid "Copy"
+msgstr ""
+
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts:137
 #~ msgid "Healthchecks"
@@ -3497,7 +3505,7 @@ msgstr ""
 msgid "Facet values"
 msgstr "विशेषता मानहरू"
 
-#: src/lib/components/data-table/data-table.tsx:314
+#: src/lib/components/data-table/data-table.tsx:300
 msgid "Failed to reorder items"
 msgstr "वस्तुहरू पुनः क्रमबद्ध गर्न असफल"
 
@@ -3966,7 +3974,7 @@ msgstr ""
 msgid "Created by"
 msgstr "द्वारा सिर्जित"
 
-#: src/lib/components/data-table/data-table.tsx:596
+#: src/lib/components/data-table/data-table.tsx:579
 msgid "No items match your current filters. Try clearing them to see more."
 msgstr ""
 
@@ -4670,6 +4678,10 @@ msgstr ""
 msgid "New seller"
 msgstr "नयाँ विक्रेता"
 
+#: src/lib/components/ui/state-views.tsx:14
+msgid "Loading…"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:146
 msgid "e.g., Red, Large, Cotton"
 msgstr "जस्तै रातो, ठूलो, कपास"
@@ -5217,7 +5229,7 @@ msgid "Stock Locations"
 msgstr "स्टक स्थानहरू"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:69
-#: src/lib/components/data-table/data-table.tsx:721
+#: src/lib/components/data-table/data-table.tsx:705
 msgid "Go to previous page"
 msgstr "अघिल्लो पृष्ठमा जानुहोस्"
 
@@ -5463,7 +5475,7 @@ msgstr "प्रशासक सफलतापूर्वक अपडेट 
 
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:263
 #: src/lib/components/data-table/data-table-faceted-filter.tsx:225
-#: src/lib/components/data-table/data-table.tsx:599
+#: src/lib/components/data-table/data-table.tsx:582
 #: src/lib/components/shared/asset/asset-gallery.tsx:361
 msgid "Clear filters"
 msgstr "फिल्टरहरू खाली गर्नुहोस्"
@@ -6080,7 +6092,7 @@ msgstr "च्यानलबाट विशेषता हटाउन अस
 #~ msgid "Set link"
 #~ msgstr "लिङ्क सेट गर्नुहोस्"
 
-#: src/lib/components/data-table/data-table.tsx:720
+#: src/lib/components/data-table/data-table.tsx:704
 msgid "Pagination"
 msgstr ""
 
@@ -6132,7 +6144,7 @@ msgid "View result"
 msgstr "परिणाम हेर्नुहोस्"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:20
-#: src/lib/components/data-table/data-table.tsx:723
+#: src/lib/components/data-table/data-table.tsx:707
 msgid "Rows per page"
 msgstr "प्रति पृष्ठ पङ्क्तिहरू"
 
@@ -6227,7 +6239,7 @@ msgid "Failed to create product variant"
 msgstr "उत्पादन भेरियन्ट सिर्जना गर्न असफल"
 
 #: src/lib/components/data-input/relation-selector.tsx:418
-#: src/lib/components/data-table/data-table.tsx:506
+#: src/lib/components/data-table/data-table.tsx:489
 msgid "Search..."
 msgstr ""
 
@@ -6305,7 +6317,7 @@ msgstr "सक्रिय फिल्टरहरू"
 
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:176
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx:54
-#: src/lib/components/data-table/data-table.tsx:582
+#: src/lib/components/data-table/data-table.tsx:565
 msgid "Clear all"
 msgstr "सबै खाली गर्नुहोस्"
 

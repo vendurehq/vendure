@@ -7,24 +7,34 @@ import { defineStateEntries } from '@/vdb/components/ui/status-badge.js';
  * `toneFor` (see `defineStateEntries`).
  *
  * Tone rationale (see design-system state dictionary):
- * - terminal & healthy (Delivered / Settled / Completed) → `success`
- * - awaiting admin action (ArrangingPayment / ArrangingAdditionalPayment /
- *   Modifying / Pending) → `warning`
+ * - routine / healthy states stay `neutral` so badges do not create constant visual noise
+ * - noteworthy but healthy states (authorized / partially fulfilled) → `info`
+ * - awaiting action (ArrangingPayment / ArrangingAdditionalPayment / Pending) → `warning`
+ * - work actively in progress (Modifying) → `progress`
  * - user/terminal cancellation → `neutral` (a cancelled order is an outcome,
  *   not a failure)
  * - hard failure (Declined / Error) → `critical`
  */
 export const orderStateDictionary = defineStateEntries({
-    Delivered: { tone: 'success', defaultLabel: 'Delivered' },
-    Settled: { tone: 'success', defaultLabel: 'Settled' },
-    Completed: { tone: 'success', defaultLabel: 'Completed' },
+    Created: { tone: 'neutral', defaultLabel: 'Created' },
+    Draft: { tone: 'neutral', defaultLabel: 'Draft' },
+    AddingItems: { tone: 'neutral', defaultLabel: 'Adding items' },
     ArrangingPayment: { tone: 'warning', defaultLabel: 'Arranging payment' },
+    PaymentAuthorized: { tone: 'info', defaultLabel: 'Payment authorized' },
+    PaymentSettled: { tone: 'neutral', defaultLabel: 'Payment settled' },
+    PartiallyShipped: { tone: 'info', defaultLabel: 'Partially shipped' },
+    Shipped: { tone: 'neutral', defaultLabel: 'Shipped' },
+    PartiallyDelivered: { tone: 'info', defaultLabel: 'Partially delivered' },
+    Delivered: { tone: 'neutral', defaultLabel: 'Delivered' },
+    Modifying: { tone: 'progress', defaultLabel: 'Modifying' },
     ArrangingAdditionalPayment: { tone: 'warning', defaultLabel: 'Arranging additional payment' },
-    Modifying: { tone: 'warning', defaultLabel: 'Modifying' },
-    Pending: { tone: 'warning', defaultLabel: 'Pending' },
     Cancelled: { tone: 'neutral', defaultLabel: 'Cancelled' },
+    Authorized: { tone: 'info', defaultLabel: 'Authorized' },
+    Settled: { tone: 'neutral', defaultLabel: 'Settled' },
     Declined: { tone: 'critical', defaultLabel: 'Declined' },
     Error: { tone: 'critical', defaultLabel: 'Error' },
+    Pending: { tone: 'warning', defaultLabel: 'Pending' },
+    Completed: { tone: 'neutral', defaultLabel: 'Completed' },
 });
 
 /**

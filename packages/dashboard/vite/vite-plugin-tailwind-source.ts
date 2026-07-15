@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Plugin } from 'vite';
@@ -15,7 +16,11 @@ import { ConfigLoaderApi, getConfigLoaderApi } from './vite-plugin-config-loader
  */
 function resolveVendureUiSourcePath(): string | undefined {
     try {
-        const resolved = import.meta.resolve('@vendure-io/ui/components/atoms/button');
+        const specifier = '@vendure-io/ui/components/atoms/button';
+        const resolved =
+            typeof import.meta.resolve === 'function'
+                ? import.meta.resolve(specifier)
+                : createRequire(import.meta.url).resolve(specifier);
         // fileURLToPath decodes percent-encoding (e.g. spaces) and handles Windows drive letters.
         const filePath = resolved.startsWith('file:') ? fileURLToPath(resolved) : resolved;
         return path.resolve(filePath, '../../../');

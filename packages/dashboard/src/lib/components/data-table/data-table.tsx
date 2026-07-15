@@ -107,21 +107,6 @@ function DraggableRow<TData>({
     );
 }
 
-// Captures the TanStack table instance the @vendure-io/ui DataTable molecule
-// creates internally, so the DataTableProvider (whose consumers — saved-view
-// buttons etc. — live in the toolbar slot) can expose it. useLayoutEffect so
-// the capture re-render happens before paint. The instance is stable across
-// renders, so the setState bails out after the first call.
-function TableInstanceCapture<TData>({
-    table,
-    onTable,
-}: Readonly<{ table: TableType<TData>; onTable: (table: TableType<TData>) => void }>) {
-    React.useLayoutEffect(() => {
-        onTable(table);
-    }, [table, onTable]);
-    return null;
-}
-
 const INLINE_FILTER_BADGE_LIMIT = 2;
 
 export interface FacetedFilter {
@@ -298,13 +283,14 @@ export function DataTable<TData>({
     const prevColumnFiltersRef = useRef(columnFilters);
 
     // The TanStack table instance is created inside the @vendure-io/ui DataTable
-    // molecule. The ref is populated synchronously while the molecule renders the
-    // toolbar slot (for the change-callback effects below); the state copy feeds
-    // the DataTableProvider so saved-view components can reach the table. For a
-    // table with no toolbar controls, a temporary pre-paint toolbar render
-    // captures the instance when header controls need it.
+    // molecule. The ref feeds change callbacks without causing renders; the state
+    // copy feeds the DataTableProvider so saved-view components can reach it.
     const tableRef = useRef<TableType<TData>>(undefined as any);
     const [tableInstance, setTableInstance] = React.useState<TableType<TData>>();
+    const handleTableReady = (table: TableType<TData>) => {
+        tableRef.current = table;
+        setTableInstance(table);
+    };
 
     const { sensors, localData, handleDragEnd, itemIds } = useDragAndDrop({
         data,
@@ -465,8 +451,7 @@ export function DataTable<TData>({
         onSearchTermChange != null ||
         Object.keys(facetedFilters ?? {}).length > 0 ||
         onFilterChange != null ||
-        (showControlsInToolbar && hasHeaderControls) ||
-        (title != null && hasHeaderControls && tableInstance == null);
+        (showControlsInToolbar && hasHeaderControls);
 
     const renderHeaderControls = (table: TableType<TData> | undefined) => (
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -483,7 +468,6 @@ export function DataTable<TData>({
     );
 
     const renderToolbar = (table: TableType<TData>) => {
-        tableRef.current = table;
         const hasFacetedFilters = Object.keys(facetedFilters ?? {}).length > 0;
         // A faceted filter's chip is only rendered while it has selected values
         // or the user is interacting with it — dormant filters live in the
@@ -494,7 +478,6 @@ export function DataTable<TData>({
         const showFilterRow = visibleFacetedEntries.length > 0 || nonFacetedFilters.length > 0;
         return (
             <div className="flex flex-col gap-2 w-full">
-                <TableInstanceCapture table={table} onTable={setTableInstance} />
                 {/* One band: view tabs anchor the left, search/filter/settings group
                     on the right — mirroring the tabs-left, tools-right layout of
                     index tables elsewhere, and avoiding a dead middle. */}
@@ -637,6 +620,7 @@ export function DataTable<TData>({
                         rows={localData}
                         columns={bridgeColumns}
                         getRowId={row => (row as { id: string }).id}
+                        onTableReady={handleTableReady}
                         isLoading={isLoading}
                         skeletonRowCount={Math.min(pagination.pageSize, MAX_SKELETON_ROWS)}
                         frame={frame}

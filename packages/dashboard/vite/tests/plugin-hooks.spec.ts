@@ -146,6 +146,21 @@ describe('themeVariablesPlugin', () => {
         expect(result).toContain('--background: navy;');
     });
 
+    it('preserves custom brand and brand-foreground overrides', () => {
+        const plugin = themeVariablesPlugin({
+            theme: {
+                light: {
+                    brand: 'oklch(0.55 0.18 240)',
+                    'brand-foreground': 'oklch(0.98 0.01 240)',
+                },
+            },
+        });
+        const css = `@import 'virtual:admin-theme';`;
+        const result = callTransform(plugin, css, '/app/styles.css');
+        expect(result).toContain('--brand: oklch(0.55 0.18 240);');
+        expect(result).toContain('--brand-foreground: oklch(0.98 0.01 240);');
+    });
+
     it('preserves surrounding CSS', () => {
         const plugin = themeVariablesPlugin({});
         const css = `.header { display: flex; }\n@import 'virtual:admin-theme';\n.footer { margin: 0; }`;
@@ -721,15 +736,16 @@ describe('dashboardTailwindSourcePlugin', () => {
         expect(result.code.endsWith("';")).toBe(true);
     });
 
-    it('handles zero extensions (no @source directives)', async () => {
+    it('scans only the @vendure-io/ui source root when there are no extensions', async () => {
         const plugin = setupPlugin([]);
         const css = `@tailwind base;\n${markerComment}\n@tailwind components;`;
         const result = await callTransformWithContext(plugin, {}, css, '/some/app/styles.css');
-        // The empty sources string is still spliced in, but no actual @source directive exists
-        const hasSourceDirective = result.code
+        const sourceLines: string[] = result.code
             .split('\n')
-            .some((l: string) => l.trimStart().startsWith("@source '"));
-        expect(hasSourceDirective).toBe(false);
+            .filter((line: string) => line.trimStart().startsWith("@source '"));
+
+        expect(sourceLines).toHaveLength(1);
+        expect(sourceLines[0].replaceAll(path.sep, '/')).toMatch(/\/@vendure-io\/ui\/src';$/);
     });
 
     // #4706 — Tailwind @source directives should only be emitted for plugins

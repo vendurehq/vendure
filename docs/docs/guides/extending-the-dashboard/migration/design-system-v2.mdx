@@ -1,11 +1,17 @@
-# Dashboard Design System v2 — Migration Notes
+---
+title: 'Migrating Dashboard extensions to Design System v2'
+metaTitle: 'Vendure Dashboard Design System v2 Migration Guide'
+metaDescription: 'Update Vendure Dashboard extensions for Design System v2 component, theming, and markup changes.'
+---
+
+# Dashboard Design System v2 migration
 
 Upgrade notes for **extension authors** moving an existing Vendure Dashboard
 extension onto the v2 design system (`@vendure-io/ui@2.x` /
 `@vendure-io/design-tokens@2.x`).
 
-These are the **deliberate breaking changes**. They are intentional and will not
-be shimmed. Each entry gives the change, who is affected, and how to migrate.
+This guide records the extension-facing changes introduced by the Design System
+v2 migration. Each entry explains who is affected and how to update an extension.
 
 > Import everything from `@vendure/dashboard`. Deep imports from
 > `@/vdb/...` are internal paths and are not part of the public API contract —
@@ -107,15 +113,15 @@ build your own map — the dashboard's canonical dictionary is now public:
 ```tsx
 import { StatusBadge, orderStateDictionary } from '@vendure/dashboard';
 
-<StatusBadge tone={orderStateDictionary.toneFor(order.state)}>
-    {order.state}
-</StatusBadge>;
+<StatusBadge tone={orderStateDictionary.toneFor(order.state)}>{order.state}</StatusBadge>;
 ```
 
 > Behaviour change to be aware of: in the v2 dictionary a **`Cancelled`** order
 > resolves to `neutral` (a terminal outcome), not to the old red
 > `destructive`/`critical` treatment. Hard failures (`Declined`, `Error`) are
-> `critical`.
+> `critical`. Routine and healthy states such as `PaymentSettled`, `Shipped`,
+> and `Delivered` are also deliberately neutral; color is reserved for states
+> that need attention or communicate exceptional progress.
 
 ---
 
@@ -131,6 +137,9 @@ to them (`bg-brand-lighter`, `bg-brand-darker`, `text-brand-lighter`,
 
 **Affected:** extension markup or CSS using any `*-brand-lighter` / `*-brand-darker`
 utility.
+
+The legacy `--color-vendure-brand` Tailwind theme variable is also no longer
+emitted. Use `--color-brand`, backed by the `--brand` theme override, instead.
 
 **Migrate:** use the semantic `brand` token, which v2
 `@vendure-io/design-tokens` publishes and the theme forwards automatically:
@@ -192,18 +201,19 @@ otherwise unchanged.
 ## 6. `MultiSelect` — rebuilt on the v2 primitives (props unchanged, markup changed)
 
 The dashboard `MultiSelect` wrapper no longer renders its own hand-rolled popover
-+ badge + search-box UI. **The public props are unchanged** — it still takes
-`{ value, onChange, multiple, items, placeholder, searchPlaceholder, showSearch,
-className }`, where each item is `{ value, label, display? }`, `value` is a
-`string[]` when `multiple` and a `string` otherwise, and (as before) a filter
-input appears when `showSearch` is set or the list has more than ten items. It
-now composes the v2 primitives underneath, and which primitive depends on
-whether a filter is shown:
 
-| Mode | Filter shown (`showSearch` or > 10 items) | No filter |
-| --- | --- | --- |
+- badge + search-box UI. **The public props are unchanged** — it still takes
+  `{ value, onChange, multiple, items, placeholder, searchPlaceholder, showSearch,
+className }`, where each item is `{ value, label, display? }`, `value` is a
+  `string[]` when `multiple` and a `string` otherwise, and (as before) a filter
+  input appears when `showSearch` is set or the list has more than ten items. It
+  now composes the v2 primitives underneath, and which primitive depends on
+  whether a filter is shown:
+
+| Mode       | Filter shown (`showSearch` or > 10 items)                               | No filter                                                        |
+| ---------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------- |
 | `multiple` | `@vendure-io/ui` **`Combobox`** — removable chips + inline filter input | `@vendure-io/ui` **`MultiSelect` molecule** (multi-value select) |
-| single | `@vendure-io/ui` **`Combobox`** — type-to-filter input | `@vendure-io/ui` **`Select` atom** |
+| single     | `@vendure-io/ui` **`Combobox`** — type-to-filter input                  | `@vendure-io/ui` **`Select` atom**                               |
 
 **Behaviour/markup changes to be aware of:**
 
@@ -229,7 +239,7 @@ popover/badge/button structure. The prop contract itself needs no changes.
 ## 7. `DataTable` row selection & bulk actions — realigned to the v2 spec (props unchanged, markup changed)
 
 The dashboard `DataTable` / `PaginatedListDataTable` **public prop contracts are
-unchanged**. The row-selection and bulk-action *treatment* now follows the
+unchanged**. The row-selection and bulk-action _treatment_ now follows the
 `@vendure-io/ui` `molecules/data-table` spec:
 
 - **Selection checkboxes are revealed on demand.** The per-row and header
@@ -271,7 +281,7 @@ props keep working**, but every table changes appearance automatically:
   the card's content padding); pagination sits in a `CardFooter` band with a top
   divider. Tables without pagination end flush at the card's bottom edge.
 - The old free-floating toolbar row and separately-boxed table wrapper are gone.
-  There is no `[data-slot="card"]` wrapper *around* the table anymore — the card
+  There is no `[data-slot="card"]` wrapper _around_ the table anymore — the card
   root **is** the table.
 - Row heights follow the v2 table atom's cell padding instead of the previous
   fixed `h-12` cells.
@@ -351,10 +361,23 @@ display component, the auto-generated list column for fields named `enabled`,
 and the core list pages that render enabled/disabled state.
 
 **Affected:** extensions using `BooleanDisplayBadge` or `vendure:booleanBadge`
-for booleans where `true` is *not* the expected default, or where the green
+for booleans where `true` is _not_ the expected default, or where the green
 "success" reading was load-bearing; screenshots/visual baselines.
 
 **Migrate:** nothing to change for enabled-style flags — the flip is the
 intended reading. For lifecycle or outcome states where color should encode the
 value itself (completed/failed), use `StatusBadge` with a state dictionary
 (`defineStateEntries`) instead of a boolean badge.
+
+---
+
+## 11. `LinkDialog` removed from the public API
+
+The rich text editor now edits links through an inline bubble menu, and the old
+modal `LinkDialog` component is no longer exported from `@vendure/dashboard`.
+
+**Affected:** extensions importing and rendering `LinkDialog` directly.
+
+**Migrate:** use `RichTextEditor` for the complete editing experience. Extensions
+that provide a custom editor surface can compose the exported
+`LinkBubbleMenu` component instead of opening the removed modal dialog.

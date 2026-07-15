@@ -1,3 +1,4 @@
+import { useLingui } from '@lingui/react/macro';
 import { CopyableText as BaseCopyableText } from '@vendure-io/ui/components/molecules/copyable-text';
 
 export interface CopyableTextProps {
@@ -17,6 +18,16 @@ export interface CopyableTextProps {
      * Optional className applied to the outer container.
      */
     className?: string;
+    /**
+     * @description
+     * Accessible label for the copy button. Defaults to the localized "Copy" label.
+     */
+    copyLabel?: string;
+    /**
+     * @description
+     * Accessible label after copying. Defaults to the localized "Copied" label.
+     */
+    copiedLabel?: string;
 }
 
 /**
@@ -44,9 +55,22 @@ export interface CopyableTextProps {
  * @docsWeight 0
  * @since 3.4.0
  */
-export function CopyableText({ value, children, className }: Readonly<CopyableTextProps>) {
+export function CopyableText({
+    value,
+    children,
+    className,
+    copyLabel,
+    copiedLabel,
+}: Readonly<CopyableTextProps>) {
+    const { t } = useLingui();
+
     return (
-        <BaseCopyableText value={value} className={className}>
+        <BaseCopyableText
+            value={value}
+            className={className}
+            copyLabel={copyLabel ?? t`Copy`}
+            copiedLabel={copiedLabel ?? t`Copied`}
+        >
             {children}
         </BaseCopyableText>
     );

@@ -31,7 +31,7 @@ msgstr "Voir les modifications"
 msgid "Tracking code"
 msgstr "Code de suivi"
 
-#: src/lib/components/data-table/data-table.tsx:717
+#: src/lib/components/data-table/data-table.tsx:701
 #: src/lib/components/data-table/use-generated-columns.tsx:226
 msgid "Select all rows"
 msgstr ""
@@ -233,7 +233,7 @@ msgstr "Actualisation automatique : {0}"
 msgid "Deleted {deleted} {entityName}"
 msgstr "{deleted} {entityName} supprimé(s)"
 
-#: src/lib/components/data-table/data-table.tsx:607
+#: src/lib/components/data-table/data-table.tsx:590
 msgid "There are no items to display yet."
 msgstr ""
 
@@ -555,7 +555,7 @@ msgid "Gross price: <0/>"
 msgstr "Prix brut : <0/>"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:82
-#: src/lib/components/data-table/data-table.tsx:722
+#: src/lib/components/data-table/data-table.tsx:706
 msgid "Go to next page"
 msgstr "Aller à la page suivante"
 
@@ -799,6 +799,10 @@ msgstr "La rotation de cette clé invalidera immédiatement la clé actuelle. To
 msgid "The data that has been passed to the job"
 msgstr "Les données qui ont été transmises au travail"
 
+#: src/lib/components/shared/copyable-text.tsx:72
+msgid "Copied"
+msgstr ""
+
 #: src/lib/components/shared/navigation-confirmation.tsx:44
 msgid "Confirm navigation"
 msgstr "Confirmer la navigation"
@@ -1040,7 +1044,7 @@ msgstr "La tâche planifiée sera exécutée"
 msgid "New stock location"
 msgstr "Nouvel emplacement de stock"
 
-#: src/lib/components/data-table/data-table.tsx:718
+#: src/lib/components/data-table/data-table.tsx:702
 #: src/lib/components/data-table/use-generated-columns.tsx:238
 msgid "Select row"
 msgstr ""
@@ -2009,8 +2013,8 @@ msgstr "Commence à"
 msgid "Duplicate"
 msgstr "Dupliquer"
 
-#: src/lib/components/data-table/data-table.tsx:595
-#: src/lib/components/data-table/data-table.tsx:606
+#: src/lib/components/data-table/data-table.tsx:578
+#: src/lib/components/data-table/data-table.tsx:589
 #: src/lib/components/shared/customer-group-selector.tsx:60
 msgid "No results"
 msgstr "Aucun résultat"
@@ -2875,6 +2879,10 @@ msgstr "après"
 msgid "Channel"
 msgstr "Canal"
 
+#: src/lib/components/shared/copyable-text.tsx:71
+msgid "Copy"
+msgstr ""
+
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts:137
 #~ msgid "Healthchecks"
@@ -3497,7 +3505,7 @@ msgstr ""
 msgid "Facet values"
 msgstr "Valeurs de facette"
 
-#: src/lib/components/data-table/data-table.tsx:314
+#: src/lib/components/data-table/data-table.tsx:300
 msgid "Failed to reorder items"
 msgstr "Échec de la réorganisation des articles"
 
@@ -3966,7 +3974,7 @@ msgstr ""
 msgid "Created by"
 msgstr "Créé par"
 
-#: src/lib/components/data-table/data-table.tsx:596
+#: src/lib/components/data-table/data-table.tsx:579
 msgid "No items match your current filters. Try clearing them to see more."
 msgstr ""
 
@@ -4670,6 +4678,10 @@ msgstr ""
 msgid "New seller"
 msgstr "Nouveau vendeur"
 
+#: src/lib/components/ui/state-views.tsx:14
+msgid "Loading…"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:146
 msgid "e.g., Red, Large, Cotton"
 msgstr "ex. Rouge, Grande, Coton"
@@ -5217,7 +5229,7 @@ msgid "Stock Locations"
 msgstr "Emplacements de stock"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:69
-#: src/lib/components/data-table/data-table.tsx:721
+#: src/lib/components/data-table/data-table.tsx:705
 msgid "Go to previous page"
 msgstr "Aller à la page précédente"
 
@@ -5463,7 +5475,7 @@ msgstr "Administrateur mis à jour avec succès"
 
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:263
 #: src/lib/components/data-table/data-table-faceted-filter.tsx:225
-#: src/lib/components/data-table/data-table.tsx:599
+#: src/lib/components/data-table/data-table.tsx:582
 #: src/lib/components/shared/asset/asset-gallery.tsx:361
 msgid "Clear filters"
 msgstr "Effacer les filtres"
@@ -6080,7 +6092,7 @@ msgstr "Échec de la suppression de la facette du canal : {message}"
 #~ msgid "Set link"
 #~ msgstr "Définir le lien"
 
-#: src/lib/components/data-table/data-table.tsx:720
+#: src/lib/components/data-table/data-table.tsx:704
 msgid "Pagination"
 msgstr ""
 
@@ -6132,7 +6144,7 @@ msgid "View result"
 msgstr "Voir le résultat"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:20
-#: src/lib/components/data-table/data-table.tsx:723
+#: src/lib/components/data-table/data-table.tsx:707
 msgid "Rows per page"
 msgstr "Lignes par page"
 
@@ -6227,7 +6239,7 @@ msgid "Failed to create product variant"
 msgstr "Échec de la création de la variante de produit"
 
 #: src/lib/components/data-input/relation-selector.tsx:418
-#: src/lib/components/data-table/data-table.tsx:506
+#: src/lib/components/data-table/data-table.tsx:489
 msgid "Search..."
 msgstr ""
 
@@ -6305,7 +6317,7 @@ msgstr "Filtres actifs"
 
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:176
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx:54
-#: src/lib/components/data-table/data-table.tsx:582
+#: src/lib/components/data-table/data-table.tsx:565
 msgid "Clear all"
 msgstr "Tout effacer"
 

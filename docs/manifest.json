@@ -668,6 +668,13 @@
           "title": "Migration",
           "slug": "migration",
           "file": "docs/guides/extending-the-dashboard/migration/index.mdx",
+          "children": [
+            {
+              "title": "Design System v2",
+              "slug": "design-system-v2",
+              "file": "docs/guides/extending-the-dashboard/migration/design-system-v2.mdx"
+            }
+          ],
           "lastModified": "2026-07-01T14:03:28+02:00"
         },
         {
