@@ -3863,7 +3863,7 @@
                   "title": "CopyableText",
                   "slug": "copyable-text",
                   "file": "docs/reference/dashboard/components/copyable-text.mdx",
-                  "lastModified": "2026-07-14T13:33:26Z"
+                  "lastModified": "2026-07-15T09:12:45Z"
                 },
                 {
                   "title": "DetailPageButton",
@@ -4215,7 +4215,7 @@
                   "title": "DataTable",
                   "slug": "data-table",
                   "file": "docs/reference/dashboard/list-views/data-table.mdx",
-                  "lastModified": "2026-07-14T13:33:26Z"
+                  "lastModified": "2026-07-15T09:12:45Z"
                 },
                 {
                   "title": "DataTableCellComponent",
