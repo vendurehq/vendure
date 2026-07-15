@@ -644,7 +644,7 @@
           "title": "Theming",
           "slug": "theming",
           "file": "docs/guides/extending-the-dashboard/theming/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-07-15T11:09:55+02:00"
         },
         {
           "title": "Localization",
@@ -672,10 +672,11 @@
             {
               "title": "Design System v2",
               "slug": "design-system-v2",
-              "file": "docs/guides/extending-the-dashboard/migration/design-system-v2.mdx"
+              "file": "docs/guides/extending-the-dashboard/migration/design-system-v2.mdx",
+              "lastModified": "2026-07-15T11:09:55+02:00"
             }
           ],
-          "lastModified": "2026-07-01T14:03:28+02:00"
+          "lastModified": "2026-07-15T11:09:55+02:00"
         },
         {
           "title": "Custom Providers",
