@@ -32,7 +32,11 @@ import {
     updateActiveAdministratorDocument,
     updateAdministratorDocument,
 } from './graphql/shared-definitions';
-import { requestPasswordResetDocument } from './graphql/shop-definitions';
+import {
+    requestPasswordResetDocument,
+    resetPasswordDocument,
+    currentUserFragment as shopCurrentUserFragment,
+} from './graphql/shop-definitions';
 import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 
 let sendEmailFn: Mock;
@@ -331,6 +335,8 @@ describe('Administrator resolver', () => {
         );
         const currentUserGuard: ErrorResultGuard<FragmentOf<typeof currentUserFragment>> =
             createErrorResultGuard(input => !!input.identifier);
+        const shopCurrentUserGuard: ErrorResultGuard<FragmentOf<typeof shopCurrentUserFragment>> =
+            createErrorResultGuard(input => !!input.identifier);
 
         beforeAll(async () => {
             // The `updateActiveAdministrator` test above changed the superadmin's email address
@@ -364,6 +370,15 @@ describe('Administrator resolver', () => {
         });
 
         it('requestPasswordReset silently succeeds with a Customer email address', async () => {
+            // Create a pending shop-side reset token for the Customer, so that we can
+            // assert that the admin-side request does not overwrite it
+            const customerTokenPromise = getPasswordResetTokenPromise();
+            await shopClient.query(requestPasswordResetDocument, {
+                identifier: customerEmail,
+            });
+            const customerToken = await customerTokenPromise;
+            sendEmailFn = vi.fn();
+
             const { requestPasswordReset } = await adminClient.query(requestAdminPasswordResetDocument, {
                 emailAddress: customerEmail,
             });
@@ -372,6 +387,15 @@ describe('Administrator resolver', () => {
             await waitForSendEmailFn();
             expect(requestPasswordReset.success).toBe(true);
             expect(sendEmailFn).not.toHaveBeenCalled();
+
+            // The Customer's pending shop-side token is still valid, i.e. the admin-side
+            // request did not write a new token onto the Customer's User
+            const { resetPassword } = await shopClient.query(resetPasswordDocument, {
+                token: customerToken,
+                password: 'test',
+            });
+            shopCurrentUserGuard.assertSuccess(resetPassword);
+            expect(resetPassword.identifier).toBe(customerEmail);
         });
 
         it('requestPasswordReset publishes event with token for an Administrator email address', async () => {

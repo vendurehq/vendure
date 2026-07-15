@@ -233,7 +233,10 @@ export class AdministratorService {
      * @since 3.8.0
      */
     async requestPasswordReset(ctx: RequestContext, emailAddress: string): Promise<void> {
-        const user = await this.userService.setPasswordResetToken(ctx, emailAddress);
+        // Verify that a non-deleted Administrator exists for the email address *before*
+        // writing a reset token, so that this publicly-accessible mutation can never
+        // create or overwrite a token on a non-administrator User.
+        const user = await this.userService.getUserByEmailAddress(ctx, emailAddress, 'administrator');
         if (!user) {
             return;
         }
@@ -241,7 +244,11 @@ export class AdministratorService {
         if (!administrator) {
             return;
         }
-        await this.eventBus.publish(new AdministratorPasswordResetEvent(ctx, administrator, user));
+        const userWithToken = await this.userService.setPasswordResetToken(ctx, emailAddress);
+        if (!userWithToken) {
+            return;
+        }
+        await this.eventBus.publish(new AdministratorPasswordResetEvent(ctx, administrator, userWithToken));
     }
 
     /**
