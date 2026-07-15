@@ -16,7 +16,11 @@ describe('star prompt', () => {
         try {
             expect(showStarPromptOnce({ configDir, isInteractive: true, color: false, write })).toBe(true);
             expect(write).toHaveBeenCalledOnce();
-            expect(write.mock.calls[0][0]).toContain('Thanks for using Vendure');
+            expect(write.mock.calls[0][0]).toContain('✨ Thanks for using Vendure.');
+            expect(write.mock.calls[0][0]).not.toContain('Vendure. ✨');
+            expect(write.mock.calls[0][0]).toContain(
+                'If you like the experience, please consider starring us on GitHub',
+            );
             expect(write.mock.calls[0][0]).toContain('https://github.com/vendurehq/vendure');
             expect(existsSync(path.join(configDir, 'star-prompted'))).toBe(true);
 

@@ -57,9 +57,9 @@ export function getVendureCliConfigDir(env: NodeJS.ProcessEnv = process.env): st
 
 export function renderStarPrompt(color = pc.isColorSupported): string {
     const lines = [
-        '✨ Thanks for using Vendure. ✨',
+        '✨ Thanks for using Vendure.',
         '',
-        'If you liked it, please consider starring us on GitHub',
+        'If you like the experience, please consider starring us on GitHub',
         'https://github.com/vendurehq/vendure',
         '',
         'Note: you will not see this message again.',
