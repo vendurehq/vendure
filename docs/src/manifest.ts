@@ -612,13 +612,6 @@ const manifestInput: DocsPackageManifestInput = {
                     title: 'Migration',
                     slug: 'migration',
                     file: file('docs/guides/extending-the-dashboard/migration/index.mdx'),
-                    children: [
-                        {
-                            title: 'Design System v2',
-                            slug: 'design-system-v2',
-                            file: file('docs/guides/extending-the-dashboard/migration/design-system-v2.mdx'),
-                        },
-                    ],
                 },
                 {
                     title: 'Custom Providers',
