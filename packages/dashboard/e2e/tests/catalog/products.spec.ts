@@ -224,3 +224,128 @@ test.describe('Product detail features', () => {
         // If no custom fields configured in the fixture, this test passes silently
     });
 });
+
+// The Manage variants page is now an inline editor: every option cell renders as an
+// always-editable select (no read-only badges, no per-row Save button), and picking a
+// value auto-saves immediately and survives a reload. This test provisions a throwaway
+// product with its own option group + variant via the admin API so the cached seed DB is
+// never mutated, and cleans everything up unconditionally in `finally`.
+test.describe('Manage variants inline editing', () => {
+    test('option cells are editable selects that auto-save on change', async ({ page }) => {
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const unique = Date.now();
+        const productName = `E2E Inline Variant ${unique}`;
+
+        const { createProduct } = await client.gql(
+            `mutation ($input: CreateProductInput!) { createProduct(input: $input) { id } }`,
+            {
+                input: {
+                    translations: [
+                        {
+                            languageCode: 'en',
+                            name: productName,
+                            slug: `e2e-inline-variant-${unique}`,
+                            description: '',
+                        },
+                    ],
+                },
+            },
+        );
+        const productId = createProduct.id as string;
+        let optionGroupId: string | undefined;
+
+        try {
+            const { createProductOptionGroup } = await client.gql(
+                `mutation ($input: CreateProductOptionGroupInput!) {
+                    createProductOptionGroup(input: $input) { id options { id name } }
+                }`,
+                {
+                    input: {
+                        code: `size-${unique}`,
+                        translations: [{ languageCode: 'en', name: 'Size' }],
+                        options: [
+                            {
+                                code: `small-${unique}`,
+                                translations: [{ languageCode: 'en', name: 'Small' }],
+                            },
+                            {
+                                code: `large-${unique}`,
+                                translations: [{ languageCode: 'en', name: 'Large' }],
+                            },
+                        ],
+                    },
+                },
+            );
+            optionGroupId = createProductOptionGroup.id as string;
+            const smallOption = (
+                createProductOptionGroup.options as Array<{ id: string; name: string }>
+            ).find(o => o.name === 'Small')!;
+
+            await client.gql(
+                `mutation ($productId: ID!, $optionGroupId: ID!) {
+                    addOptionGroupToProduct(productId: $productId, optionGroupId: $optionGroupId) { id }
+                }`,
+                { productId, optionGroupId },
+            );
+
+            const { createProductVariants } = await client.gql(
+                `mutation ($input: [CreateProductVariantInput!]!) {
+                    createProductVariants(input: $input) { id }
+                }`,
+                {
+                    input: [
+                        {
+                            productId,
+                            translations: [{ languageCode: 'en', name: `${productName} Small` }],
+                            sku: `e2e-inline-${unique}`,
+                            optionIds: [smallOption.id],
+                            price: 1000,
+                        },
+                    ],
+                },
+            );
+            const variantId = (createProductVariants as Array<{ id: string }>)[0].id;
+            const selectTestId = `variant-option-select-${variantId}-${optionGroupId}`;
+
+            await page.goto(`/products/${productId}/variants`);
+
+            // The assigned option renders as an editable select (combobox) preloaded with
+            // the current value — not a static badge — so assignment can be changed inline.
+            const optionSelect = page.getByTestId(selectTestId);
+            await expect(optionSelect).toBeVisible({ timeout: 10_000 });
+            // The cell is an editable select (combobox role), not a static badge.
+            await expect(optionSelect.and(page.getByRole('combobox'))).toBeVisible();
+            await expect(optionSelect).toContainText('Small');
+
+            // Changing the select fires the update immediately (no Save click).
+            await optionSelect.click();
+            await Promise.all([
+                page.waitForResponse(
+                    resp =>
+                        resp.url().includes('/admin-api') &&
+                        resp.request().postData()?.includes('UpdateProductVariant') === true &&
+                        resp.status() === 200,
+                ),
+                page.getByRole('option', { name: 'Large', exact: true }).click(),
+            ]);
+            await expect(optionSelect).toContainText('Large');
+
+            // The change persisted server-side: a reload still shows "Large".
+            await page.reload();
+            const reloadedSelect = page.getByTestId(selectTestId);
+            await expect(reloadedSelect).toBeVisible({ timeout: 10_000 });
+            await expect(reloadedSelect).toContainText('Large');
+        } finally {
+            await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, {
+                id: productId,
+            });
+            if (optionGroupId) {
+                await client.gql(
+                    `mutation ($id: ID!) { deleteProductOptionGroup(id: $id, force: true) { result } }`,
+                    { id: optionGroupId },
+                );
+            }
+        }
+    });
+});

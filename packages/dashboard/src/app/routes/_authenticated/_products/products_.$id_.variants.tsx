@@ -26,7 +26,7 @@ import { z, zodResolver } from '@/vdb/lib/zod.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { Plus, Save, Trash2 } from 'lucide-react';
+import { Check, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -158,12 +158,17 @@ function AddOptionValueDialog({
     );
 }
 
+// Per-cell auto-save feedback for the option-assignment selects. `value` holds
+// the optimistically-selected option id (so the select shows the pending choice
+// before the server confirms) and `status` drives the inline spinner/checkmark.
+type OptionCellState = { value: string; status: 'saving' | 'success' };
+
+const getCellKey = (variantId: string, groupId: string) => `${variantId}:${groupId}`;
+
 function ManageProductVariants() {
     const { id } = Route.useParams();
     const { t } = useLingui();
-    const [optionsToAddToVariant, setOptionsToAddToVariant] = useState<
-        Record<string, Record<string, string>>
-    >({});
+    const [optionCellState, setOptionCellState] = useState<Record<string, OptionCellState>>({});
 
     const { data: productData, refetch, isFetching } = useQuery({
         queryFn: () => api.query(productDetailWithVariantsDocument, { id }),
@@ -176,10 +181,6 @@ function ManageProductVariants() {
 
     const updateVariantMutation = useMutation({
         mutationFn: api.mutate(updateProductVariantDocument),
-        onSuccess: () => {
-            toast.success(t`Variant updated successfully`);
-            refetch();
-        },
     });
 
     const deleteVariantMutation = useMutation({
@@ -198,44 +199,62 @@ function ManageProductVariants() {
         isPending: isRemovingOptionGroup,
     } = useRemoveOptionGroup(id, { onRemoved: refetch });
 
-    const setOptionToAddToVariant = (variantId: string, groupId: string, optionId: string | undefined) => {
-        if (!optionId) {
-            const updated = { ...optionsToAddToVariant };
-            if (updated[variantId]) {
-                delete updated[variantId][groupId];
-            }
-            setOptionsToAddToVariant(updated);
-        } else {
-            setOptionsToAddToVariant(prev => ({
-                ...prev,
-                [variantId]: {
-                    ...prev[variantId],
-                    [groupId]: optionId,
-                },
-            }));
+    // Auto-save an option-value assignment for a single cell. Fires the update
+    // immediately. On error the optimistic value is dropped so the select reverts
+    // to the server value and the server message is surfaced.
+    const assignOptionToVariant = async (variant: Variant, groupId: string, optionId: string) => {
+        const cellKey = getCellKey(variant.id, groupId);
+        setOptionCellState(prev => ({ ...prev, [cellKey]: { value: optionId, status: 'saving' } }));
+
+        // Build the full option-id set from every group's effective value: a pending
+        // cell value (a save in flight or just completed for that group) takes
+        // precedence over the server value, then the group being changed wins. This
+        // prevents a concurrent save in another group from being reverted by this
+        // one's click-time snapshot of `variant.options`.
+        const optionIdsByGroup = new Map<string, string>();
+        for (const option of variant.options) {
+            optionIdsByGroup.set(option.groupId, option.id);
         }
-    };
+        for (const group of productData?.product?.optionGroups ?? []) {
+            const pending = optionCellState[getCellKey(variant.id, group.id)];
+            if (pending) {
+                optionIdsByGroup.set(group.id, pending.value);
+            }
+        }
+        optionIdsByGroup.set(groupId, optionId);
+        const optionIds = [...optionIdsByGroup.values()];
 
-    const addOptionToVariant = async (variant: Variant) => {
-        const optionsToAdd = optionsToAddToVariant[variant.id];
-        if (!optionsToAdd) return;
+        try {
+            await updateVariantMutation.mutateAsync({ input: { id: variant.id, optionIds } });
+        } catch (error) {
+            setOptionCellState(prev => {
+                const updated = { ...prev };
+                delete updated[cellKey];
+                return updated;
+            });
+            toast.error(t`Failed to update variant`, {
+                description: error instanceof Error ? error.message : t`Unknown error`,
+            });
+            return;
+        }
 
-        const existingOptionIds = variant.options.map(o => o.id);
-        const newOptionIds = Object.values(optionsToAdd).filter(Boolean);
-        const allOptionIds = [...existingOptionIds, ...newOptionIds];
-
-        await updateVariantMutation.mutateAsync({
-            input: {
-                id: variant.id,
-                optionIds: allOptionIds,
-            },
-        });
-
-        setOptionsToAddToVariant(prev => {
-            const updated = { ...prev };
-            delete updated[variant.id];
-            return updated;
-        });
+        setOptionCellState(prev => ({ ...prev, [cellKey]: { value: optionId, status: 'success' } }));
+        // Refetch is intentionally outside the try/catch: a failed background refetch
+        // must not surface the save-failed toast or revert the just-saved value.
+        refetch();
+        setTimeout(() => {
+            setOptionCellState(prev => {
+                const current = prev[cellKey];
+                // Only clear if this exact success is still showing; a newer change to
+                // the same cell owns the state and must not be wiped by this timeout.
+                if (current?.status === 'success' && current.value === optionId) {
+                    const updated = { ...prev };
+                    delete updated[cellKey];
+                    return updated;
+                }
+                return prev;
+            });
+        }, 1500);
     };
 
     const deleteVariant = async (variantId: string) => {
@@ -269,10 +288,10 @@ function ManageProductVariants() {
                             productData.product.optionGroups.map(group => (
                                 <div key={group.id} className="grid grid-cols-12 gap-4 items-start">
                                     <div className="col-span-3">
-                                        <label className="text-sm font-medium">
+                                        <div className="text-sm font-medium text-muted-foreground">
                                             <Trans>Option</Trans>
-                                        </label>
-                                        <Input value={group.name} disabled />
+                                        </div>
+                                        <div className="text-sm mt-1">{group.name}</div>
                                     </div>
                                     <div className="col-span-7">
                                         <label className="text-sm font-medium">
@@ -335,7 +354,9 @@ function ManageProductVariants() {
                                         <TableHead key={group.id}>{group.name}</TableHead>
                                     ))}
                                     <TableHead>
-                                        <Trans>Delete</Trans>
+                                        <span className="sr-only">
+                                            <Trans>Actions</Trans>
+                                        </span>
                                     </TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -345,87 +366,48 @@ function ManageProductVariants() {
                                         <TableCell>{variant.name}</TableCell>
                                         <TableCell>{variant.sku}</TableCell>
                                         {productData.product?.optionGroups.map(group => {
-                                            const option = getOption(variant, group.id);
+                                            const cellKey = getCellKey(variant.id, group.id);
+                                            const cell = optionCellState[cellKey];
+                                            const value = cell?.value ?? getOption(variant, group.id)?.id ?? '';
                                             return (
                                                 <TableCell key={group.id}>
-                                                    {option ? (
-                                                        <Badge variant="outline">{option.name}</Badge>
-                                                    ) : group.options.length === 1 ? (
-                                                        <div className="flex items-center gap-2">
-                                                            <Badge variant="outline">
-                                                                {group.options[0].name}
-                                                            </Badge>
-                                                            <Button
-                                                                size="sm"
-                                                                disabled={updateVariantMutation.isPending}
-                                                                onClick={() =>
-                                                                    updateVariantMutation.mutate({
-                                                                        input: {
-                                                                            id: variant.id,
-                                                                            optionIds: [
-                                                                                ...variant.options.map(
-                                                                                    o => o.id,
-                                                                                ),
-                                                                                group.options[0].id,
-                                                                            ],
-                                                                        },
-                                                                    })
-                                                                }
-                                                            >
-                                                                <Save className="h-4 w-4" />
-                                                            </Button>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="flex items-center gap-2">
-                                                            <Select
-                                                                items={Object.fromEntries(group.options.map(opt => [opt.id, opt.name]))}
-                                                                value={
-                                                                    optionsToAddToVariant[variant.id]?.[
-                                                                        group.id
-                                                                    ] || ''
-                                                                }
-                                                                onValueChange={value =>
-                                                                    setOptionToAddToVariant(
-                                                                        variant.id,
+                                                    <div className="flex items-center gap-2">
+                                                        <Select
+                                                            items={Object.fromEntries(
+                                                                group.options.map(opt => [opt.id, opt.name]),
+                                                            )}
+                                                            value={value}
+                                                            onValueChange={optionId => {
+                                                                if (optionId) {
+                                                                    assignOptionToVariant(
+                                                                        variant,
                                                                         group.id,
-                                                                        value || undefined,
-                                                                    )
+                                                                        optionId,
+                                                                    );
                                                                 }
+                                                            }}
+                                                        >
+                                                            <SelectTrigger
+                                                                className="w-32"
+                                                                data-testid={`variant-option-select-${variant.id}-${group.id}`}
                                                             >
-                                                                <SelectTrigger className="w-32">
-                                                                    <SelectValue />
-                                                                </SelectTrigger>
-                                                                <SelectContent>
-                                                                    {group.options.map(opt => (
-                                                                        <SelectItem
-                                                                            key={opt.id}
-                                                                            value={opt.id}
-                                                                        >
-                                                                            {opt.name}
-                                                                        </SelectItem>
-                                                                    ))}
-                                                                </SelectContent>
-                                                            </Select>
-                                                            <Button
-                                                                size="sm"
-                                                                variant={
-                                                                    optionsToAddToVariant[variant.id]?.[
-                                                                        group.id
-                                                                    ]
-                                                                        ? 'default'
-                                                                        : 'outline'
-                                                                }
-                                                                disabled={
-                                                                    !optionsToAddToVariant[variant.id]?.[
-                                                                        group.id
-                                                                    ]
-                                                                }
-                                                                onClick={() => addOptionToVariant(variant)}
-                                                            >
-                                                                <Save className="h-4 w-4" />
-                                                            </Button>
-                                                        </div>
-                                                    )}
+                                                                <SelectValue placeholder={t`Select`} />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {group.options.map(opt => (
+                                                                    <SelectItem key={opt.id} value={opt.id}>
+                                                                        {opt.name}
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                        {cell?.status === 'saving' && (
+                                                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                                        )}
+                                                        {cell?.status === 'success' && (
+                                                            <Check className="h-4 w-4 text-success" />
+                                                        )}
+                                                    </div>
                                                 </TableCell>
                                             );
                                         })}
