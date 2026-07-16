@@ -375,7 +375,7 @@ export function PageTitle({ children }: Readonly<{ children: React.ReactNode }>)
     return <PageHeaderTitle data-testid="page-heading">{children}</PageHeaderTitle>;
 }
 
-type InlineDropdownItem = Omit<DashboardActionBarItem, 'type' | 'pageId'>;
+export type InlineDropdownItem = Omit<DashboardActionBarItem, 'type' | 'pageId'>;
 
 /**
  * @description
@@ -835,6 +835,19 @@ function PageActionBarDropdown({
     items,
     page,
 }: Readonly<{ items: DashboardActionBarItem[]; page: PageContextValue }>) {
+    const { hasPermissions } = usePermissions();
+    // Filter by permission up front so an under-permissioned user never sees an
+    // empty overflow menu (or its ⋮ trigger). Items without a `requiresPermission`
+    // are always visible.
+    const visibleItems = items.filter(item => {
+        const required = item.requiresPermission ?? [];
+        return hasPermissions(Array.isArray(required) ? required : [required]);
+    });
+
+    if (visibleItems.length === 0) {
+        return null;
+    }
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger
@@ -843,10 +856,8 @@ function PageActionBarDropdown({
                 <EllipsisVerticalIcon className="w-4 h-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-                {items.map((item, index) => (
-                    <PermissionGuard key={item.pageId + index} requires={item.requiresPermission ?? []}>
-                        <item.component context={page} />
-                    </PermissionGuard>
+                {visibleItems.map((item, index) => (
+                    <item.component key={item.pageId + index} context={page} />
                 ))}
             </DropdownMenuContent>
         </DropdownMenu>

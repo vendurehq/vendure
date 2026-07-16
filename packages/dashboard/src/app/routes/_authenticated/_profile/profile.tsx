@@ -3,6 +3,7 @@ import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js'
 import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Input } from '@/vdb/components/ui/input.js';
+import { PasswordInput } from '@/vdb/components/ui/password-input.js';
 import { extendDetailFormQuery } from '@/vdb/framework/document-extension/extend-detail-form-query.js';
 import { addCustomFields } from '@/vdb/framework/document-introspection/add-custom-fields.js';
 import {    CustomFieldsPageBlock,
@@ -118,7 +119,7 @@ function ProfilePage() {
                             control={form.control}
                             name="password"
                             label={<Trans>Password</Trans>}
-                            render={({ field }) => <Input type="password" {...field} />}
+                            render={({ field }) => <PasswordInput {...field} />}
                         />
                     </DetailFormGrid>
                 </PageBlock>

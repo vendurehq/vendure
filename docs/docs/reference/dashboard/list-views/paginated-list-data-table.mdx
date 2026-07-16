@@ -4,7 +4,7 @@ generated: true
 ---
 ## PaginatedListDataTable
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/paginated-list-data-table.tsx" sourceLine="415" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/paginated-list-data-table.tsx" sourceLine="426" packageName="@vendure/dashboard" since="3.4.0" />
 
 A wrapper around the [DataTable](/reference/dashboard/list-views/data-table#datatable) component, which automatically configures functionality common to
 list queries that implement the `PaginatedList` interface, which is the common way of representing lists
@@ -149,6 +149,7 @@ interface PaginatedListDataTableProps<T extends TypedDocumentNode<U, V>, U exten
     rowActions?: RowAction<PaginatedListItemFields<T>>[];
     bulkActions?: BulkActionsInput;
     disableViewOptions?: boolean;
+    hideViewsControls?: boolean;
     transformData?: (data: PaginatedListItemFields<T>[]) => PaginatedListItemFields<T>[];
     setTableOptions?: (table: TableOptions<any>) => TableOptions<any>;
     registerRefresher?: PaginatedListRefresherRegisterFn;
@@ -289,6 +290,15 @@ widgets) that apply preset filters via `transformVariables`.
 <MemberInfo kind="property" type={`boolean`}   />
 
 
+### hideViewsControls
+
+<MemberInfo kind="property" type={`boolean`}  since="3.8.0"  />
+
+When true, suppresses the saved-views tabs even when a page context and
+filter handler are present. Useful for tables embedded in a detail page,
+where saved views (keyed only by page id and block id) would otherwise be
+shared across every entity showing that block. Filtering and column
+customization are unaffected.
 ### transformData
 
 <MemberInfo kind="property" type={`(data: PaginatedListItemFields<T>[]) => PaginatedListItemFields<T>[]`}   />

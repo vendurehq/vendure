@@ -142,7 +142,7 @@ export function AddOptionGroupDialog({
                     <Trans>Add option group</Trans>
                 </DialogTrigger>
             )}
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>
                         <Trans>Add option group to product</Trans>

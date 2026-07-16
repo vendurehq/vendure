@@ -3,6 +3,7 @@ import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js'
 import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { RichTextDescriptionCell } from '@/vdb/components/shared/table-cell/order-table-cell-components.js';
 import { Button } from '@/vdb/components/ui/button.js';
+import { DropdownMenuItem } from '@/vdb/components/ui/dropdown-menu.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { ListPage } from '@/vdb/framework/page/list-page.js';
 import { api } from '@/vdb/graphql/api.js';
@@ -10,6 +11,7 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { ListRestart, PlusIcon } from 'lucide-react';
+import { useCallback } from 'react';
 import { toast } from 'sonner';
 import {
     AssignFacetValuesToProductsBulkAction,
@@ -37,15 +39,28 @@ function ProductListPage() {
         },
     });
 
-    const handleRebuildSearchIndex = () => {
-        reindexMutation.mutate();
-    };
+    const RebuildIndexMenuItem = useCallback(
+        () => (
+            <DropdownMenuItem onClick={() => reindexMutation.mutate()}>
+                <ListRestart className="w-4 h-4" />
+                <Trans>Rebuild search index</Trans>
+            </DropdownMenuItem>
+        ),
+        [reindexMutation.mutate],
+    );
 
     return (
         <ListPage
             pageId="product-list"
             listQuery={productListDocument}
             title={<Trans>Products</Trans>}
+            dropdownMenuItems={[
+                {
+                    id: 'rebuild-index-button',
+                    requiresPermission: ['UpdateCatalog'],
+                    component: RebuildIndexMenuItem,
+                },
+            ]}
             customizeColumns={{
                 name: {
                     cell: ({ row }) => <DetailPageButton id={row.original.id} label={row.original.name} />,
@@ -113,12 +128,6 @@ function ProductListPage() {
                 [{ component: DeleteProductsBulkAction }],
             ]}
         >
-            <ActionBarItem itemId="rebuild-index-button" requiresPermission={['UpdateCatalog']}>
-                <Button variant="outline" onClick={handleRebuildSearchIndex}>
-                    <ListRestart />
-                    <Trans>Rebuild search index</Trans>
-                </Button>
-            </ActionBarItem>
             <ActionBarItem itemId="create-button" requiresPermission={['CreateProduct', 'CreateCatalog']}>
                 <Button render={<Link to="./new" />}>
                     <PlusIcon className="mr-2 h-4 w-4" />

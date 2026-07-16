@@ -432,22 +432,23 @@
       "version": "3.7.1",
       "dependencies": {
         "@nestjs/axios": "^4.0.0",
-        "@vendure/admin-ui-plugin": "3.7.0",
-        "@vendure/asset-server-plugin": "3.7.0",
-        "@vendure/common": "3.7.0",
-        "@vendure/core": "3.7.0",
-        "@vendure/email-plugin": "3.7.0",
+        "@vendure/asset-server-plugin": "3.7.1",
+        "@vendure/common": "3.7.1",
+        "@vendure/core": "3.7.1",
+        "@vendure/email-plugin": "3.7.1",
       },
       "devDependencies": {
         "@typescript/native-preview": "7.0.0-dev.20260515.1",
-        "@vendure/cli": "3.7.0",
-        "@vendure/testing": "3.7.0",
-        "@vendure/ui-devkit": "3.7.0",
+        "@vendure/cli": "3.7.1",
+        "@vendure/dashboard": "3.7.1",
+        "@vendure/testing": "3.7.1",
+        "@vendure/ui-devkit": "3.7.1",
         "commander": "^12.0.0",
         "concurrently": "^9.2.0",
         "csv-stringify": "^6.4.6",
         "dayjs": "^1.11.10",
         "jsdom": "^26.0.0",
+        "portless": "0.13.0",
         "progress": "^2.0.3",
         "tsconfig-paths": "^4.2.0",
         "typescript": "5.8.2",
@@ -4752,6 +4753,8 @@
     "please-upgrade-node": ["please-upgrade-node@3.2.0", "", { "dependencies": { "semver-compare": "^1.0.0" } }, "sha512-gQR3WpIgNIKwBMVLkpMUeR3e1/E1y42bqDQZfql+kDeXd8COYfM8PQA4X6y7a8u9Ua9FHmsrrmirW2vHs45hWg=="],
 
     "pofile": ["pofile@1.1.4", "", {}, "sha512-r6Q21sKsY1AjTVVjOuU02VYKVNQGJNQHjTIvs4dEbeuuYfxgYk/DGD2mqqq4RDaVkwdSq0VEtmQUOPe/wH8X3g=="],
+
+    "portless": ["portless@0.13.0", "", { "os": [ "linux", "win32", "darwin", ], "bin": { "portless": "dist/cli.js" } }, "sha512-PxMZ5BHH+ZZi9rTq4T8m003aZxh56qI0aBdNsxLn7jrTtvNJYBWYD3lc5PuQrom/aVh6z8iLb+tKUI6b7QNYQw=="],
 
     "possible-typed-array-names": ["possible-typed-array-names@1.1.0", "", {}, "sha512-/+5VFTchJDoVj3bhoqi6UeymcD00DAwb1nJwamzPvHEszJ4FpF6SNNbUbOS8yI56qHzdV8eK0qEfOSiodkTdxg=="],
 

@@ -46,6 +46,43 @@ test.describe('Product List', () => {
         await expect(lp.newButton).toBeVisible();
     });
 
+    // "Rebuild search index" moved from an inline action-bar button into the action bar's overflow (⋮) menu
+    test('should rebuild the search index from the action bar overflow menu', async ({ page }) => {
+        // The DefaultSearchPlugin (which provides the `reindex` mutation) is not loaded in the
+        // e2e backend, so stub the mutation to a success response to exercise the UI wiring.
+        await page.route('**/admin-api**', async route => {
+            const body = route.request().postData() ?? '';
+            if (body.includes('reindex')) {
+                await route.fulfill({
+                    status: 200,
+                    contentType: 'application/json',
+                    body: JSON.stringify({ data: { reindex: { id: 'reindex-job-1' } } }),
+                });
+            } else {
+                await route.fallback();
+            }
+        });
+
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+
+        // Open the action bar overflow (⋮) dropdown
+        const actionBarEllipsis = page.getByTestId('action-bar-dropdown-trigger');
+        await expect(actionBarEllipsis).toBeVisible({ timeout: 10_000 });
+        await actionBarEllipsis.click();
+
+        // The menu should contain the "Rebuild search index" item
+        const menu = page.locator('[data-slot="dropdown-menu-content"]');
+        await expect(menu).toBeVisible();
+        const rebuildItem = menu.getByText('Rebuild search index');
+        await expect(rebuildItem).toBeVisible();
+
+        // Trigger it and expect the success toast
+        await rebuildItem.click();
+        await lp.expectSuccessToast('Search index rebuild started');
+    });
+
     // #4393 — product list should default to sorting by updatedAt descending
     test('should apply descending updatedAt sort by default', async ({ page }) => {
         const lp = listPage(page);

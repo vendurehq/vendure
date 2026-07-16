@@ -31,7 +31,7 @@ msgstr "Zobrazit změny"
 msgid "Tracking code"
 msgstr "Sledovací kód"
 
-#: src/lib/components/data-table/data-table.tsx:701
+#: src/lib/components/data-table/data-table.tsx:713
 #: src/lib/components/data-table/use-generated-columns.tsx:226
 msgid "Select all rows"
 msgstr "Vybrat všechny řádky"
@@ -237,7 +237,7 @@ msgstr "Automatické obnovení: {0}"
 msgid "Deleted {deleted} {entityName}"
 msgstr "Smazáno {deleted} {entityName}"
 
-#: src/lib/components/data-table/data-table.tsx:590
+#: src/lib/components/data-table/data-table.tsx:602
 msgid "There are no items to display yet."
 msgstr "Zatím nejsou k dispozici žádné položky k zobrazení."
 
@@ -263,7 +263,7 @@ msgstr "Prodejci"
 msgid "Options"
 msgstr "Možnosti"
 
-#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:118
+#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:114
 msgid "Loading top products…"
 msgstr "Načítání nejprodávanějších produktů…"
 
@@ -324,7 +324,7 @@ msgstr "Vybrat role"
 msgid "Successfully created role"
 msgstr "Role úspěšně vytvořena"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:435
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:480
 msgid "Are you sure you want to delete this variant?"
 msgstr "Opravdu chcete smazat tuto variantu?"
 
@@ -349,7 +349,7 @@ msgstr "Varianta produktu úspěšně aktualizována"
 msgid "Failed to delete {failed} {entityName}: {allErrors}"
 msgstr "Nepodařilo se smazat {failed} {entityName}: {allErrors}"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:164
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:165
 msgid "Successfully updated product"
 msgstr "Produkt úspěšně aktualizován"
 
@@ -383,7 +383,7 @@ msgstr "Vlastní pole změněna"
 msgid "Successfully created stock location"
 msgstr "Sklad úspěšně vytvořen"
 
-#: src/app/routes/_authenticated/index.tsx:393
+#: src/app/routes/_authenticated/index.tsx:364
 msgid "No widgets to add"
 msgstr "Žádné widgety k přidání"
 
@@ -392,11 +392,13 @@ msgstr "Žádné widgety k přidání"
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:79
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:121
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:166
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:185
+#: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:155
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:91
 #: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:55
 #: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:73
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:105
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:202
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:107
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:290
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:203
 #: src/lib/components/shared/asset/asset-preview.tsx:127
 msgid "Unknown error"
 msgstr "Neznámá chyba"
@@ -457,8 +459,8 @@ msgstr "Vrátit na sklad"
 msgid "Visibility"
 msgstr "Viditelnost"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:273
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:287
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:288
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:302
 msgid "Product variants"
 msgstr "Varianty produktu"
 
@@ -473,7 +475,7 @@ msgstr "Nová skupina zákazníků"
 msgid "Create \"{0}\""
 msgstr "Vytvořit \"{0}\""
 
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:137
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:136
 msgid "Could not load orders"
 msgstr "Nepodařilo se načíst objednávky"
 
@@ -523,7 +525,7 @@ msgstr "Koncept objednávky není připraven k dokončení"
 msgid "New collection"
 msgstr "Nová kolekce"
 
-#: src/app/routes/_authenticated/index.tsx:336
+#: src/app/routes/_authenticated/index.tsx:307
 msgid "Insights"
 msgstr "Přehledy"
 
@@ -551,7 +553,7 @@ msgstr "Možnost produktu byla úspěšně vytvořena"
 msgid "Parent product"
 msgstr "Nadřazený produkt"
 
-#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:80
+#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:78
 msgid "We couldn't load the stock levels"
 msgstr "Nepodařilo se načíst skladové úrovně"
 
@@ -571,7 +573,7 @@ msgid "Gross price: <0/>"
 msgstr "Hrubá cena: <0/>"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:82
-#: src/lib/components/data-table/data-table.tsx:706
+#: src/lib/components/data-table/data-table.tsx:718
 msgid "Go to next page"
 msgstr "Přejít na další stránku"
 
@@ -605,7 +607,7 @@ msgstr "Objednávka úspěšně aktualizována"
 msgid "Inherit filters"
 msgstr "Zdědit filtry"
 
-#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:99
+#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:95
 msgid "Best sellers from the most recent {ORDER_SAMPLE_SIZE} orders in {currencyCode} for the selected period"
 msgstr "Nejprodávanější položky z posledních {ORDER_SAMPLE_SIZE} objednávek v {currencyCode} za vybrané období"
 
@@ -622,7 +624,8 @@ msgstr "Hledat způsoby platby..."
 msgid "Shipping address unset for order"
 msgstr "Dodací adresa zrušena pro objednávku"
 
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:432
+#: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:258
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:284
 msgid "Create {enabledCount} variants"
 msgstr "Vytvořit {enabledCount} variant"
 
@@ -641,7 +644,7 @@ msgstr "Chyba při načítání historie zákazníka: {0}"
 msgid "Successfully removed {selectionLength} {entityType} from channel"
 msgstr "Úspěšně odebráno {selectionLength} {entityType} z kanálu"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:151
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:153
 msgid "Add option value"
 msgstr "Přidat hodnotu volby"
 
@@ -742,7 +745,7 @@ msgstr "Pro spuštění testu přidejte produkty a vyplňte doručovací adresu.
 msgid "Toggle header row"
 msgstr "Přepnout řádek hlavičky"
 
-#: src/lib/hooks/use-widget-config.ts:45
+#: src/lib/hooks/use-widget-config.ts:44
 msgid "useWidgetConfig must be used within an Insights page widget"
 msgstr "useWidgetConfig musí být použito v rámci widgetu stránky Přehledy"
 
@@ -811,7 +814,7 @@ msgstr "Hledat zákazníky..."
 msgid "Select {0} Items"
 msgstr "Vybrat {0} položek"
 
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:108
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:107
 msgid "Placed At"
 msgstr "Vytvořeno"
 
@@ -852,7 +855,7 @@ msgstr "Dokončit koncept"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:173
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:158
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:286
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:329
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:411
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:165
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:89
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:148
@@ -874,7 +877,7 @@ msgstr "Nepodařilo se expedovat objednávku"
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:88
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:106
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:226
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:121
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:120
 msgid "Total"
 msgstr "Celkem"
 
@@ -923,6 +926,7 @@ msgstr "Společnost"
 msgid "Add column after"
 msgstr "Přidat sloupec za"
 
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:421
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:241
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:209
 #: src/lib/components/data-table/data-table-bulk-actions.tsx:82
@@ -968,7 +972,7 @@ msgstr "Nepodařilo se vytvořit kolekci"
 msgid "Go to first page"
 msgstr "Přejít na první stránku"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:172
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:173
 msgid "Failed to create product"
 msgstr "Nepodařilo se vytvořit produkt"
 
@@ -997,7 +1001,7 @@ msgstr "Dodací adresa nastavena pro objednávku"
 msgid "Focal Point"
 msgstr "Ohniskový bod"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:101
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:102
 msgid "Single variant, no options"
 msgstr "Jedna varianta, bez voleb"
 
@@ -1026,7 +1030,7 @@ msgstr "Zadat ID transakce"
 msgid "Refresh data"
 msgstr "Obnovit data"
 
-#: src/app/routes/_authenticated/index.tsx:366
+#: src/app/routes/_authenticated/index.tsx:337
 msgid "Add widget"
 msgstr "Přidat widget"
 
@@ -1047,7 +1051,7 @@ msgstr "Platba úspěšně přidána k objednávce"
 msgid "Billing address set for order"
 msgstr "Fakturační adresa nastavena pro objednávku"
 
-#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:110
+#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:106
 msgid "Revenue"
 msgstr "Tržby"
 
@@ -1076,7 +1080,7 @@ msgstr "Plánovaná úloha bude provedena"
 msgid "New stock location"
 msgstr "Nový sklad"
 
-#: src/lib/components/data-table/data-table.tsx:702
+#: src/lib/components/data-table/data-table.tsx:714
 #: src/lib/components/data-table/use-generated-columns.tsx:238
 msgid "Select row"
 msgstr "Vybrat řádek"
@@ -1162,7 +1166,8 @@ msgstr "Kolekce úspěšně vytvořena"
 #: src/app/routes/_authenticated/_orders/components/shipping-method-selector.tsx:49
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:324
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:298
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:290
+#: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:191
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:196
 #: src/lib/components/layout/language-dialog.tsx:136
 msgid "Price"
 msgstr "Cena"
@@ -1368,7 +1373,8 @@ msgstr ", {0} vybráno"
 msgid "No countries found"
 msgstr "Nenalezeny žádné země"
 
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:181
+#: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:151
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:87
 msgid "Successfully created variants"
 msgstr "Varianty úspěšně vytvořeny"
 
@@ -1391,7 +1397,7 @@ msgstr "Způsoby platby"
 msgid "Stock"
 msgstr "Sklad"
 
-#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:157
+#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:153
 msgid "No sales for this period"
 msgstr "Za toto období nejsou žádné prodeje"
 
@@ -1474,7 +1480,7 @@ msgstr "Nepodařilo se vytvořit prodejce"
 msgid "Configure duplication settings for {0}s"
 msgstr "Konfigurovat nastavení duplikace pro {0}s"
 
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:304
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:210
 msgid "No variants match the current filter."
 msgstr "Žádné varianty neodpovídají aktuálnímu filtru."
 
@@ -1483,7 +1489,7 @@ msgstr "Žádné varianty neodpovídají aktuálnímu filtru."
 msgid "Addresses"
 msgstr "Adresy"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:136
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:138
 msgid "Add a new option value to the {groupName} option group"
 msgstr "Přidat novou hodnotu volby do skupiny voleb {groupName}"
 
@@ -1524,6 +1530,11 @@ msgstr "Objednávka převedena"
 #: src/lib/components/data-table/human-readable-operator.tsx:30
 msgid "is before"
 msgstr "je před"
+
+#. placeholder {0}: collision.name
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:277
+msgid "This option combination is already used by \"{0}\""
+msgstr "Tuto kombinaci možností již používá „{0}“"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:388
 msgid "Delete draft order"
@@ -1617,7 +1628,6 @@ msgstr "Použít jako výchozí fakturační adresu"
 
 #: src/app/common/delete-bulk-action.tsx:139
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:41
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:338
 #: src/lib/components/data-table/use-generated-columns.tsx:419
 #: src/lib/components/data-table/use-generated-columns.tsx:449
 #: src/lib/components/data-table/views-sheet.tsx:270
@@ -1840,7 +1850,7 @@ msgstr "Kolekce"
 msgid "Select Shipping Eligibility Checker"
 msgstr "Vyberte kontrolu způsobilosti dopravy"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:434
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:479
 msgid "Delete variant"
 msgstr "Smazat variantu"
 
@@ -1882,7 +1892,7 @@ msgid "Private collections are not visible in the shop"
 msgstr "Soukromé kolekce nejsou viditelné v obchodě"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:262
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:227
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:221
 msgid "When enabled, a product is available in the shop"
 msgstr "Když je povoleno, produkt je dostupný v obchodě"
 
@@ -1954,7 +1964,7 @@ msgstr "Žádné hodnoty vlastností"
 msgid "A reason for the refund is required"
 msgstr "Je vyžadován důvod vrácení"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:192
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:193
 msgid "Could not remove option group"
 msgstr "Nepodařilo se odebrat skupinu voleb"
 
@@ -1983,7 +1993,7 @@ msgstr "Refund úspěšně vypořádán"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:278
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:217
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:242
 #: src/app/routes/_authenticated/_profile/profile.tsx:92
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
@@ -2027,8 +2037,8 @@ msgid "Edit"
 msgstr "Upravit"
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:180
-msgid "Variant updated successfully"
-msgstr "Varianta úspěšně aktualizována"
+#~ msgid "Variant updated successfully"
+#~ msgstr "Varianta úspěšně aktualizována"
 
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx:370
 msgid "Filter by collection name"
@@ -2057,8 +2067,8 @@ msgstr "Začíná"
 msgid "Duplicate"
 msgstr "Duplikovat"
 
-#: src/lib/components/data-table/data-table.tsx:578
-#: src/lib/components/data-table/data-table.tsx:589
+#: src/lib/components/data-table/data-table.tsx:590
+#: src/lib/components/data-table/data-table.tsx:601
 #: src/lib/components/shared/customer-group-selector.tsx:60
 msgid "No results"
 msgstr "Žádné výsledky"
@@ -2077,11 +2087,11 @@ msgstr "Nastavení sloupců"
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:100
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:154
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:63
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:95
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:94
 msgid "Code"
 msgstr "Kód"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:201
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:202
 msgid "Failed to remove option groups"
 msgstr "Nepodařilo se odebrat skupiny voleb"
 
@@ -2163,7 +2173,7 @@ msgstr "Pouze pro čtení"
 msgid "Failed to duplicate global view"
 msgstr "Nepodařilo se duplikovat globální pohled"
 
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:254
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:160
 msgid "Showing {shown} of {total} • {selected} selected"
 msgstr "Zobrazeno {shown} z {total} • vybráno {selected}"
 
@@ -2172,7 +2182,7 @@ msgid "Test Shipping Method"
 msgstr "Testovat způsob dopravy"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:491
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:333
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:348
 msgid "Facet Values"
 msgstr "Hodnoty vlastností"
 
@@ -2593,7 +2603,7 @@ msgstr "Stránka {0} z {1}"
 msgid "Rate"
 msgstr "Sazba"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:118
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:119
 msgid "Size, colour, etc."
 msgstr "Velikost, barva atd."
 
@@ -2685,11 +2695,12 @@ msgstr "{count, plural, one {Opravdu chcete odebrat {count} zákazníka z této 
 msgid "Search countries..."
 msgstr "Hledat země..."
 
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:293
+#: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:194
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:199
 msgid "Stock on Hand"
 msgstr "Sklad na skladě"
 
-#: src/app/routes/_authenticated/_products/products.tsx:36
+#: src/app/routes/_authenticated/_products/products.tsx:38
 msgid "Search index rebuild could not be started"
 msgstr "Přebudování vyhledávacího indexu nemohlo být spuštěno"
 
@@ -2715,6 +2726,11 @@ msgstr "Smazat sloupec"
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:158
 msgid "Assign existing"
 msgstr "Přiřadit existující"
+
+#: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:62
+#: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:68
+msgid "Generate variants"
+msgstr "Vygenerovat varianty"
 
 #: src/lib/components/data-table/filters/data-table-enum-filter.tsx:19
 #: src/lib/components/data-table/human-readable-operator.tsx:36
@@ -2827,7 +2843,7 @@ msgstr "Použit pohled \"{viewName}\""
 msgid "Successfully removed {successCount} facets from channel"
 msgstr "Úspěšně odebráno {successCount} vlastností z kanálu"
 
-#: src/app/routes/_authenticated/_products/products.tsx:125
+#: src/app/routes/_authenticated/_products/products.tsx:134
 msgid "New Product"
 msgstr "Nový produkt"
 
@@ -2835,7 +2851,7 @@ msgstr "Nový produkt"
 msgid "New asset"
 msgstr "Nový soubor"
 
-#: src/app/routes/_authenticated/index.tsx:409
+#: src/app/routes/_authenticated/index.tsx:380
 msgid "Tidy"
 msgstr "Uspořádat"
 
@@ -2852,11 +2868,11 @@ msgstr "Přepočítat dopravu"
 #: src/app/routes/_authenticated/_assets/assets.tsx:40
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:229
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:508
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:366
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:381
 msgid "Assets"
 msgstr "Soubory"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:306
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:321
 msgid "This will remove all option groups from this product and return to the variant setup choice."
 msgstr "Tímto se odeberou všechny skupiny voleb z tohoto produktu a vrátíte se k výběru nastavení variant."
 
@@ -2901,7 +2917,7 @@ msgstr "Objednávka zrušena"
 msgid "Discount"
 msgstr "Sleva"
 
-#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:98
+#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:94
 msgid "Top Products"
 msgstr "Nejprodávanější produkty"
 
@@ -2914,7 +2930,7 @@ msgstr "Všechny typy"
 msgid "Only draft orders can be completed"
 msgstr "Lze dokončit pouze koncepty objednávek"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:172
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:173
 msgid "Failed to update product"
 msgstr "Nepodařilo se aktualizovat produkt"
 
@@ -2974,7 +2990,7 @@ msgid "Successfully created administrator"
 msgstr "Administrátor byl úspěšně vytvořen"
 
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:196
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:314
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:329
 msgid "Product Options"
 msgstr "Volby produktu"
 
@@ -2982,7 +2998,8 @@ msgstr "Volby produktu"
 msgid "Select country"
 msgstr "Vybrat zemi"
 
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:427
+#: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:253
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:279
 msgid "Creating..."
 msgstr "Vytváření..."
 
@@ -3054,7 +3071,7 @@ msgstr "Smazat globální pohled"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:163
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:217
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:242
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
@@ -3090,7 +3107,7 @@ msgstr "Nepodařilo se vytvořit zákazníka"
 msgid "Focal point updated"
 msgstr "Ohniskový bod aktualizován"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:279
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:361
 msgid "Option values"
 msgstr "Hodnoty voleb"
 
@@ -3170,8 +3187,8 @@ msgstr "Globální pohled úspěšně přejmenován"
 msgid "No tags selected"
 msgstr "Nejsou vybrány žádné štítky"
 
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:408
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:417
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:260
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:269
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:186
 msgid "Back"
 msgstr "Zpět"
@@ -3236,7 +3253,7 @@ msgstr "Přidat zákazníka"
 msgid "Save Changes"
 msgstr "Uložit změny"
 
-#: src/app/routes/_authenticated/_products/products.tsx:57
+#: src/app/routes/_authenticated/_products/products.tsx:72
 msgid "Search products..."
 msgstr "Hledat produkty..."
 
@@ -3299,7 +3316,8 @@ msgid "Track"
 msgstr "Sledovat"
 
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:322
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:429
+#: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:255
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:281
 msgid "Create variant"
 msgstr "Vytvořit variantu"
 
@@ -3307,7 +3325,7 @@ msgstr "Vytvořit variantu"
 msgid "Facet values for {facetName}"
 msgstr "Hodnoty vlastností pro {facetName}"
 
-#: src/app/routes/_authenticated/index.tsx:431
+#: src/app/routes/_authenticated/index.tsx:402
 msgid "Save Layout"
 msgstr "Uložit rozložení"
 
@@ -3344,7 +3362,7 @@ msgstr "Sloupce"
 msgid "Failed to upload image"
 msgstr "Nepodařilo se nahrát obrázek"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:144
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:146
 msgid "Option value name"
 msgstr "Název hodnoty volby"
 
@@ -3395,7 +3413,7 @@ msgstr "Nastavit kritéria filtru pro sloupec {columnId}"
 msgid "Country"
 msgstr "Země"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:98
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:99
 msgid "Simple product"
 msgstr "Jednoduchý produkt"
 
@@ -3465,7 +3483,7 @@ msgstr "Hledat role..."
 #~ msgid "Successfully cancelled {fulfilled} jobs"
 #~ msgstr "Úspěšně zrušeno {fulfilled} úloh"
 
-#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:117
+#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:115
 msgid "None of the {CANDIDATE_POOL_SIZE} sampled variants are at or below {threshold}. Others may still be low."
 msgstr "Žádná z {CANDIDATE_POOL_SIZE} vzorkovaných variant není na úrovni {threshold} nebo pod ní. Ostatní mohou přesto mít nízkou zásobu."
 
@@ -3525,9 +3543,9 @@ msgid "Successfully created seller"
 msgstr "Prodejce úspěšně vytvořen"
 
 #: src/lib/framework/dashboard-widget/latest-customers-widget/index.tsx:58
-#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:82
+#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:80
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:105
-#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:126
+#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:122
 msgid "Try again"
 msgstr "Zkusit znovu"
 
@@ -3569,7 +3587,7 @@ msgstr "Tučné"
 msgid "Available languages"
 msgstr "Dostupné jazyky"
 
-#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:102
+#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:100
 msgid "{saleable} in stock"
 msgstr "{saleable} skladem"
 
@@ -3584,11 +3602,11 @@ msgstr "Nenalezeno"
 
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:143
 #: src/app/routes/_authenticated/_product-variants/product-variants.tsx:82
-#: src/app/routes/_authenticated/_products/products.tsx:78
+#: src/app/routes/_authenticated/_products/products.tsx:93
 msgid "Facet values"
 msgstr "Hodnoty vlastností"
 
-#: src/lib/components/data-table/data-table.tsx:300
+#: src/lib/components/data-table/data-table.tsx:312
 msgid "Failed to reorder items"
 msgstr "Nepodařilo se přeuspořádat položky"
 
@@ -3666,7 +3684,7 @@ msgid "Yes"
 msgstr "Ano"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:179
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:244
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:259
 msgid "Slug"
 msgstr "URL segment"
 
@@ -3696,7 +3714,7 @@ msgstr "Widget nejnovějších zákazníků"
 msgid "Latest Orders Widget"
 msgstr "Widget posledních objednávek"
 
-#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:74
+#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:72
 msgid "Loading stock levels…"
 msgstr "Načítání skladových úrovní…"
 
@@ -3721,7 +3739,7 @@ msgstr "je menší nebo rovno"
 msgid "is not equal to"
 msgstr "není rovno"
 
-#: src/app/routes/_authenticated/index.tsx:424
+#: src/app/routes/_authenticated/index.tsx:395
 #: src/lib/components/data-table/data-table-settings-menu.tsx:72
 msgid "Refresh"
 msgstr "Obnovit"
@@ -3742,7 +3760,7 @@ msgstr "Vypořádat platbu"
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:24
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:210
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:343
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:358
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:111
 #: src/lib/components/layout/channel-switcher.tsx:146
 msgid "Channels"
@@ -3768,8 +3786,8 @@ msgstr "{successfulRefundCount} plateb bylo vráceno před selháním. Podrobnos
 msgid "Select item"
 msgstr "Vybrat položku"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:57
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:210
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:58
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:211
 msgid "New product"
 msgstr "Nový produkt"
 
@@ -3941,7 +3959,7 @@ msgstr "Načítání štítků..."
 msgid "Successfully created facet"
 msgstr "Vlastnost úspěšně vytvořena"
 
-#: src/app/routes/_authenticated/index.tsx:489
+#: src/app/routes/_authenticated/index.tsx:460
 msgid "No widgets to display. Use \"Edit Layout\" to add widgets."
 msgstr "Žádné widgety k zobrazení. Pro přidání widgetů použijte „Upravit rozložení“."
 
@@ -4004,7 +4022,7 @@ msgstr "Nepodařilo se vytvořit skupinu zákazníků"
 msgid "Failed to create role"
 msgstr "Nepodařilo se vytvořit roli"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:238
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:253
 msgid "Product name"
 msgstr "Název produktu"
 
@@ -4017,10 +4035,10 @@ msgstr "Stav expedice úspěšně aktualizován"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:205
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:38
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:66
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:59
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:56
-#: src/app/routes/_authenticated/_products/products.tsx:25
-#: src/app/routes/_authenticated/_products/products.tsx:48
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:61
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:57
+#: src/app/routes/_authenticated/_products/products.tsx:27
+#: src/app/routes/_authenticated/_products/products.tsx:56
 msgid "Products"
 msgstr "Produkty"
 
@@ -4080,11 +4098,11 @@ msgstr "Hledat správce..."
 msgid "Created by"
 msgstr "Vytvořil"
 
-#: src/lib/components/data-table/data-table.tsx:579
+#: src/lib/components/data-table/data-table.tsx:591
 msgid "No items match your current filters. Try clearing them to see more."
 msgstr "Aktuálním filtrům neodpovídají žádné položky. Zkuste je vymazat, abyste viděli více."
 
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:240
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:146
 msgid "Filter variants..."
 msgstr "Filtrovat varianty..."
 
@@ -4204,7 +4222,7 @@ msgid "View duplicated successfully"
 msgstr "Pohled úspěšně duplikován"
 
 #: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:62
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:297
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:379
 msgid "Remove option group"
 msgstr "Odebrat skupinu možností"
 
@@ -4212,7 +4230,7 @@ msgstr "Odebrat skupinu možností"
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:76
 #: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:14
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:260
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:275
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:174
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:94
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:162
@@ -4379,7 +4397,7 @@ msgstr "Přehled vašich objednávek"
 msgid "Upload"
 msgstr "Nahrát"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:115
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:116
 msgid "Product with options"
 msgstr "Produkt s volbami"
 
@@ -4546,8 +4564,8 @@ msgstr "Dostupné akce"
 msgid "Failed to update order line: {0}"
 msgstr "Nepodařilo se aktualizovat položku objednávky: {0}"
 
-#: src/app/routes/_authenticated/index.tsx:440
-#: src/app/routes/_authenticated/index.tsx:448
+#: src/app/routes/_authenticated/index.tsx:411
+#: src/app/routes/_authenticated/index.tsx:419
 msgid "Edit layout"
 msgstr "Upravit rozložení"
 
@@ -4777,7 +4795,8 @@ msgstr "Starý e-mail:"
 msgid "Save a view as \"Global\" to make it available to all users."
 msgstr "Uložte pohled jako \"Globální\", aby byl dostupný všem uživatelům."
 
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:184
+#: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:154
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:90
 msgid "Failed to create variants"
 msgstr "Nepodařilo se vytvořit varianty"
 
@@ -4815,7 +4834,7 @@ msgstr "Nový prodejce"
 msgid "Loading…"
 msgstr "Načítání…"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:146
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:148
 msgid "e.g., Red, Large, Cotton"
 msgstr "např. Červená, Velká, Bavlna"
 
@@ -4844,7 +4863,7 @@ msgstr "Regiony"
 msgid "Drop files here to upload"
 msgstr "Přetáhněte sem soubory pro nahrání"
 
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:276
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:182
 msgid "Toggle all visible variants"
 msgstr "Přepnout všechny viditelné varianty"
 
@@ -5056,6 +5075,10 @@ msgstr "Souhrn úprav"
 msgid "Reset password"
 msgstr "Obnovit heslo"
 
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:457
+msgid "Select"
+msgstr "Vybrat"
+
 #. placeholder {0}: payment.refunds.length
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:206
 msgid "Refunds ({0})"
@@ -5069,7 +5092,7 @@ msgstr "Naposledy provedeno"
 msgid "Payment details"
 msgstr "Detaily platby"
 
-#: src/app/routes/_authenticated/_products/products.tsx:119
+#: src/app/routes/_authenticated/_products/products.tsx:46
 msgid "Rebuild search index"
 msgstr "Přebudovat vyhledávací index"
 
@@ -5086,7 +5109,7 @@ msgstr "Každých 60 sekund"
 msgid "Failed to update customer group"
 msgstr "Nepodařilo se aktualizovat skupinu zákazníků"
 
-#: src/app/routes/_authenticated/index.tsx:298
+#: src/app/routes/_authenticated/index.tsx:270
 msgid "Remove widget"
 msgstr "Odebrat widget"
 
@@ -5187,7 +5210,7 @@ msgstr "Stát / Kraj"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:147
 #: src/app/routes/_authenticated/_payment-methods/payment-methods.tsx:43
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:261
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:226
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:228
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:153
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:131
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:139
@@ -5241,7 +5264,7 @@ msgstr "Náhled změn"
 msgid "Failed to remove {entityType} from channel"
 msgstr "Nepodařilo se odebrat {entityType} z kanálu"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:188
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:214
 msgid "Variant deleted successfully"
 msgstr "Varianta úspěšně smazána"
 
@@ -5271,7 +5294,7 @@ msgstr "Plánované úlohy"
 msgid "Are you sure you want to delete this item? This action cannot be undone."
 msgstr "Opravdu chcete smazat tuto položku? Tuto akci nelze vrátit zpět."
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:323
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:405
 msgid "Variants"
 msgstr "Varianty"
 
@@ -5323,7 +5346,7 @@ msgstr "Nepodařilo se aktualizovat kolekci"
 msgid "Price and tax"
 msgstr "Cena a daň"
 
-#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:124
+#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:120
 msgid "We couldn't load the top products"
 msgstr "Nepodařilo se načíst nejprodávanější produkty"
 
@@ -5378,7 +5401,7 @@ msgstr "Přidat štítky..."
 msgid "{0} items selected"
 msgstr "{0} položek vybráno"
 
-#: src/app/routes/_authenticated/index.tsx:484
+#: src/app/routes/_authenticated/index.tsx:455
 msgid "All widgets are hidden. Use the \"Add widget\" button to add them back."
 msgstr "Všechny widgety jsou skryté. Pro jejich opětovné přidání použijte tlačítko „Přidat widget“."
 
@@ -5391,8 +5414,13 @@ msgstr "Hledat jazyky..."
 msgid "Stock Locations"
 msgstr "Sklady"
 
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:276
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:289
+msgid "Failed to update variant"
+msgstr "Nepodařilo se aktualizovat variantu"
+
 #: src/lib/components/data-table/data-table-pagination.tsx:69
-#: src/lib/components/data-table/data-table.tsx:705
+#: src/lib/components/data-table/data-table.tsx:717
 msgid "Go to previous page"
 msgstr "Přejít na předchozí stránku"
 
@@ -5430,7 +5458,7 @@ msgid "System"
 msgstr "Systém"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:290
-#: src/app/routes/_authenticated/_products/components/product-variants-table.tsx:87
+#: src/app/routes/_authenticated/_products/components/product-variants-table.tsx:88
 msgid "Variant name"
 msgstr "Název varianty"
 
@@ -5444,7 +5472,7 @@ msgstr "Odebrat"
 msgid "Failed to update customer"
 msgstr "Nepodařilo se aktualizovat zákazníka"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:305
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:320
 msgid "Remove option groups?"
 msgstr "Odebrat skupiny voleb?"
 
@@ -5513,7 +5541,7 @@ msgstr "Stránka bude pokračovat s výchozím dotazem."
 msgid "Street Address"
 msgstr "Ulice"
 
-#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:115
+#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:113
 msgid "No low stock in this sample"
 msgstr "V tomto vzorku nejsou žádné nízké zásoby"
 
@@ -5521,7 +5549,7 @@ msgstr "V tomto vzorku nejsou žádné nízké zásoby"
 msgid "No more facets"
 msgstr "Žádné další fasety"
 
-#: src/app/routes/_authenticated/_products/products.tsx:33
+#: src/app/routes/_authenticated/_products/products.tsx:35
 msgid "Search index rebuild started"
 msgstr "Přebudování vyhledávacího indexu spuštěno"
 
@@ -5548,6 +5576,10 @@ msgstr "Refund převeden"
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx:13
 msgid "Using native authentication strategy"
 msgstr "Použití nativní autentizační strategie"
+
+#: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:212
+msgid "Exists"
+msgstr "Existuje"
 
 #: src/lib/components/login/forgot-password-form.tsx:136
 #: src/lib/components/login/reset-password-form.tsx:188
@@ -5613,7 +5645,7 @@ msgstr "Uložil jsem si tento API key"
 msgid "Configure available languages for your store and channels"
 msgstr "Nastavte dostupné jazyky pro váš obchod a kanály"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:164
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:165
 msgid "Successfully created product"
 msgstr "Produkt úspěšně vytvořen"
 
@@ -5656,7 +5688,7 @@ msgstr "Administrátor byl úspěšně aktualizován"
 
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:263
 #: src/lib/components/data-table/data-table-faceted-filter.tsx:225
-#: src/lib/components/data-table/data-table.tsx:582
+#: src/lib/components/data-table/data-table.tsx:594
 #: src/lib/components/shared/asset/asset-gallery.tsx:361
 msgid "Clear filters"
 msgstr "Vymazat filtry"
@@ -5704,7 +5736,7 @@ msgstr "Nový způsob dopravy"
 msgid "Every 10 seconds"
 msgstr "Každých 10 sekund"
 
-#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:55
+#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:53
 msgid "Low Stock"
 msgstr "Nízké zásoby"
 
@@ -5716,7 +5748,7 @@ msgstr "bez DPH:"
 #~ msgid "Add Stock to Location"
 #~ msgstr "Přidat zásoby do skladu"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:98
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:100
 msgid "Successfully added option value"
 msgstr "Hodnota volby úspěšně přidána"
 
@@ -5745,7 +5777,7 @@ msgstr "Bude vyžadována dodatečná platba ve výši {formattedDiff}."
 msgid "Track inventory by default"
 msgstr "Sledovat zásoby ve výchozím nastavení"
 
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:258
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:164
 msgid "{selected} of {total} selected"
 msgstr "Vybráno {selected} z {total}"
 
@@ -5838,7 +5870,7 @@ msgstr "Mezisoučet"
 msgid "Fulfilled items ({0})"
 msgstr "Expedované položky ({0})"
 
-#: src/app/routes/_authenticated/_products/products.tsx:102
+#: src/app/routes/_authenticated/_products/products.tsx:117
 msgid "Create your first product"
 msgstr "Vytvořte svůj první produkt"
 
@@ -5854,7 +5886,7 @@ msgstr "Neověřený"
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:182
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:268
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:78
-#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:107
+#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:103
 msgid "Quantity"
 msgstr "Množství"
 
@@ -5916,7 +5948,7 @@ msgstr "{entityType} úspěšně odebráno z kanálu"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:89
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:17
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:24
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:259
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:341
 msgid "Option Groups"
 msgstr "Skupiny voleb"
 
@@ -6071,7 +6103,7 @@ msgstr "Přeškrtnuté"
 
 #: src/lib/framework/dashboard-widget/latest-customers-widget/index.tsx:92
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:127
-#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:158
+#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:154
 msgid "Try selecting a different date range."
 msgstr "Zkuste vybrat jiné časové období."
 
@@ -6101,7 +6133,7 @@ msgid "New facet"
 msgstr "Nová vlastnost"
 
 #: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:63
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:298
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:380
 msgid "Are you sure you want to remove this option group from the product?"
 msgstr "Opravdu chcete odebrat tuto skupinu možností z produktu?"
 
@@ -6123,6 +6155,10 @@ msgstr "Výchozí měna"
 msgid "No payment or refund is required for these changes."
 msgstr "Pro tyto změny není vyžadována žádná platba ani refund."
 
+#: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:169
+msgid "All possible variant combinations already exist."
+msgstr "Všechny možné kombinace variant již existují."
+
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:72
 msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
 msgstr "{cancellableCount, plural, one {Opravdu chcete zrušit {cancellableCount} úlohu? Tuto akci nelze vrátit zpět.} few {Opravdu chcete zrušit {cancellableCount} úlohy? Tuto akci nelze vrátit zpět.} other {Opravdu chcete zrušit {cancellableCount} úloh? Tuto akci nelze vrátit zpět.}}"
@@ -6135,7 +6171,7 @@ msgstr "Celkové tržby"
 msgid "Next Execution"
 msgstr "Další provedení"
 
-#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:56
+#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:54
 msgid "Saleable stock at or below {threshold}, from a sample of {CANDIDATE_POOL_SIZE} variants"
 msgstr "Prodejná zásoba na úrovni {threshold} nebo pod ní, ze vzorku {CANDIDATE_POOL_SIZE} variant"
 
@@ -6296,7 +6332,7 @@ msgstr "Nepodařilo se odebrat vlastnost z kanálu: {message}"
 #~ msgid "Set link"
 #~ msgstr "Nastavit odkaz"
 
-#: src/lib/components/data-table/data-table.tsx:704
+#: src/lib/components/data-table/data-table.tsx:716
 msgid "Pagination"
 msgstr "Stránkování"
 
@@ -6312,11 +6348,11 @@ msgstr "Hledat daňové kategorie..."
 msgid "Edit image"
 msgstr "Upravit obrázek"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:61
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:63
 msgid "Manage Variants"
 msgstr "Spravovat varianty"
 
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:138
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:137
 msgid "There was a problem loading your latest orders."
 msgstr "Při načítání nejnovějších objednávek došlo k problému."
 
@@ -6348,7 +6384,7 @@ msgid "View result"
 msgstr "Zobrazit výsledek"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:20
-#: src/lib/components/data-table/data-table.tsx:707
+#: src/lib/components/data-table/data-table.tsx:719
 msgid "Rows per page"
 msgstr "Řádků na stránku"
 
@@ -6377,11 +6413,11 @@ msgstr "Zákazník přidán do skupiny"
 msgid "Seller orders"
 msgstr "Objednávky prodejců"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:104
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:106
 msgid "Failed to add option value"
 msgstr "Nepodařilo se přidat hodnotu volby"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:133
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:135
 msgid "Add option value to {groupName}"
 msgstr "Přidat hodnotu volby do {groupName}"
 
@@ -6399,8 +6435,10 @@ msgstr "Hledat objednávky..."
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:297
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:292
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:197
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:287
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:332
+#: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:188
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:193
+#: src/app/routes/_authenticated/_products/components/variant-generation-fields.tsx:100
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:414
 msgid "SKU"
 msgstr "SKU"
 
@@ -6416,7 +6454,7 @@ msgstr "Další možnosti formátování"
 msgid "{totalQuantity} item(s) refunded"
 msgstr "{totalQuantity} položek vráceno"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:263
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:345
 msgid "No option groups defined yet. Add option groups to create different variants of your product (e.g., Size, Color, Material)"
 msgstr "Zatím nejsou definovány žádné skupiny voleb. Přidejte skupiny voleb pro vytvoření různých variant vašeho produktu (např. Velikost, Barva, Materiál)"
 
@@ -6443,7 +6481,7 @@ msgid "Failed to create product variant"
 msgstr "Nepodařilo se vytvořit variantu produktu"
 
 #: src/lib/components/data-input/relation-selector.tsx:418
-#: src/lib/components/data-table/data-table.tsx:489
+#: src/lib/components/data-table/data-table.tsx:501
 msgid "Search..."
 msgstr "Hledat..."
 
@@ -6521,7 +6559,7 @@ msgstr "Aktivní filtry"
 
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:176
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx:54
-#: src/lib/components/data-table/data-table.tsx:565
+#: src/lib/components/data-table/data-table.tsx:577
 msgid "Clear all"
 msgstr "Vymazat vše"
 
@@ -6558,6 +6596,10 @@ msgstr "Přidat platbu k objednávce"
 #: src/lib/components/shared/facet-value-selector.tsx:159
 #~ msgid "Loading..."
 #~ msgstr "Načítání..."
+
+#: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:71
+msgid "Create variants for the option combinations that don't exist yet. Combinations that already exist are shown for context and can't be edited."
+msgstr "Vytvořte varianty pro kombinace možností, které ještě neexistují. Již existující kombinace jsou zobrazeny pro kontext a nelze je upravovat."
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:143
 msgid "The token is used to specify the channel when making API requests."
@@ -6614,8 +6656,8 @@ msgstr "Způsob platby je povinný"
 msgid "Failed to add customer to group"
 msgstr "Nepodařilo se přidat zákazníka do skupiny"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:256
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:277
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:338
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:292
 msgid "Manage variants"
 msgstr "Spravovat varianty"
 
@@ -6641,7 +6683,7 @@ msgstr "Hledat prodejce..."
 msgid "Successfully created promotion"
 msgstr "Akce úspěšně vytvořena"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:273
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:355
 msgid "Option"
 msgstr "Volba"
 
@@ -6660,7 +6702,8 @@ msgstr "Telefonní číslo"
 msgid "Private"
 msgstr "Soukromé"
 
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:283
+#: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:185
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:189
 msgid "Variant"
 msgstr "Varianta"
 
