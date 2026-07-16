@@ -4193,7 +4193,7 @@
                   "title": "UseWidgetConfig",
                   "slug": "use-widget-config",
                   "file": "docs/reference/dashboard/hooks/use-widget-config.mdx",
-                  "lastModified": "2026-07-16T09:10:19+02:00"
+                  "lastModified": "2026-07-16T12:32:13Z"
                 },
                 {
                   "title": "UseWidgetFilters",
@@ -4219,7 +4219,7 @@
                   "title": "DataTable",
                   "slug": "data-table",
                   "file": "docs/reference/dashboard/list-views/data-table.mdx",
-                  "lastModified": "2026-07-15T13:23:53+02:00"
+                  "lastModified": "2026-07-16T12:32:13Z"
                 },
                 {
                   "title": "DataTableCellComponent",
@@ -4237,13 +4237,13 @@
                   "title": "ListPage",
                   "slug": "list-page",
                   "file": "docs/reference/dashboard/list-views/list-page.mdx",
-                  "lastModified": "2026-07-15T13:23:53+02:00"
+                  "lastModified": "2026-07-16T12:32:13Z"
                 },
                 {
                   "title": "PaginatedListDataTable",
                   "slug": "paginated-list-data-table",
                   "file": "docs/reference/dashboard/list-views/paginated-list-data-table.mdx",
-                  "lastModified": "2026-07-15T13:23:53+02:00"
+                  "lastModified": "2026-07-16T12:32:13Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -4269,7 +4269,7 @@
                   "title": "PageBlock",
                   "slug": "page-block",
                   "file": "docs/reference/dashboard/page-layout/page-block.mdx",
-                  "lastModified": "2026-07-15T13:23:53+02:00"
+                  "lastModified": "2026-07-16T12:32:13Z"
                 },
                 {
                   "title": "PageTitle",
