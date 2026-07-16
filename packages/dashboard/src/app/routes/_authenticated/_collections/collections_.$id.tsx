@@ -1,5 +1,6 @@
 import { SlugInput } from '@/vdb/components/data-input/index.js';
 import { RichTextInput } from '@/vdb/components/data-input/rich-text-input.js';
+import { PageBreadcrumb } from '@/vdb/components/layout/generated-breadcrumbs.js';
 import { EntityAssets } from '@/vdb/components/shared/entity-assets.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
@@ -43,10 +44,25 @@ export const Route = createFileRoute('/_authenticated/_collections/collections_/
     loader: detailPageRouteLoader({
         pageId,
         queryDocument: collectionDetailDocument,
-        breadcrumb: (isNew, entity) => [
-            { path: '/collections', label: <Trans>Collections</Trans> },
-            isNew ? <Trans>New collection</Trans> : entity?.name,
-        ],
+        breadcrumb: (isNew, entity) => {
+            const breadcrumb: PageBreadcrumb[] = [
+                { path: '/collections', label: <Trans>Collections</Trans> },
+            ];
+            if (isNew) {
+                breadcrumb.push(<Trans>New collection</Trans>);
+            } else if (entity) {
+                // Breadcrumbs are always [root, ...ancestors, self]; link each ancestor.
+                const ancestors = (entity.breadcrumbs ?? []).slice(1, -1);
+                breadcrumb.push(
+                    ...ancestors.map(ancestor => ({
+                        path: `/collections/${ancestor.id}`,
+                        label: ancestor.name,
+                    })),
+                    entity.name,
+                );
+            }
+            return breadcrumb;
+        },
     }),
     errorComponent: ({ error }) => <ErrorPage error={error} />,
 });
@@ -61,6 +77,9 @@ function CollectionDetailPage() {
     const { isPolling: pendingFilterApplication, startPolling } = useJobQueuePolling(
         'apply-collection-filters',
         () => queryClient.invalidateQueries({ queryKey: ['PaginatedListDataTable'] }),
+        // Scope persisted polling to this collection. While creating there is no stable id yet,
+        // so pass no scope: polling stays in-memory and never persists onto a fresh create form.
+        creatingNewEntity ? undefined : params.id,
     );
 
     const { form, submitHandler, entity, isPending, resetForm } = useDetailPage({
@@ -247,11 +266,12 @@ function CollectionDetailPage() {
                     </Field>
                 </PageBlock>
                 <PageBlock column="main" blockId="contents" layout="bare">
-                    {pendingFilterApplication || shouldPreviewContents || creatingNewEntity ? (
+                    {shouldPreviewContents || creatingNewEntity ? (
                         <CollectionContentsPreviewTable
                             parentId={entity?.parent?.id}
                             filters={currentFiltersValue ?? []}
                             inheritFilters={currentInheritFiltersValue ?? false}
+                            applying={pendingFilterApplication}
                             title={<Trans>Contents</Trans>}
                         />
                     ) : (

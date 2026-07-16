@@ -12,6 +12,8 @@ const STORAGE_KEY_PREFIX = 'job-queue-polling:';
 interface StoredPollingState {
     startTime: string;
     expiresAt: number;
+    /** The scope the state was written under; resume only happens when it matches the current scope. */
+    scopeKey?: string;
 }
 
 const jobListForPollingDocument = graphql(`
@@ -27,10 +29,9 @@ const jobListForPollingDocument = graphql(`
     }
 `);
 
-const getStorageKey = (queueName: string) => `${STORAGE_KEY_PREFIX}${queueName}`;
-const getStoredState = (queueName: string) => {
+const getStoredState = (storageKey: string) => {
     try {
-        const stored = sessionStorage.getItem(getStorageKey(queueName));
+        const stored = sessionStorage.getItem(storageKey);
         if (stored) {
             return JSON.parse(stored) as StoredPollingState;
         }
@@ -39,52 +40,82 @@ const getStoredState = (queueName: string) => {
     }
     return null;
 };
-const setStoredState = (queueName: string, state: StoredPollingState) =>
-    sessionStorage.setItem(getStorageKey(queueName), JSON.stringify(state));
-const clearStoredState = (queueName: string) => sessionStorage.removeItem(getStorageKey(queueName));
+const setStoredState = (storageKey: string, state: StoredPollingState) =>
+    sessionStorage.setItem(storageKey, JSON.stringify(state));
+const clearStoredState = (storageKey: string) => sessionStorage.removeItem(storageKey);
 
 /**
  * Hook to poll a job queue until jobs complete.
  * Waits for jobs created after polling starts to settle before calling onComplete.
  *
- * Polling state is persisted in sessionStorage, allowing it to survive navigation
- * (e.g., after creating an entity) and page refresh while maintaining the correct
- * time window for finding relevant jobs.
+ * Polling state is persisted in sessionStorage under a constant per-queue key, so it
+ * survives a page refresh while maintaining the correct time window for finding relevant jobs.
+ *
+ * Pass `scopeKey` (e.g. the current entity id) to bind the persisted state to a scope. The
+ * stored payload records the scopeKey it was written under, and resume only happens when that
+ * scopeKey matches the current one — so navigating between entities of the same page (which
+ * does not remount this hook) never resumes another entity's polling. A non-matching entry is
+ * left untouched and self-expires via the timeout window.
+ *
+ * Omit `scopeKey` (pass `undefined`) for transient flows without a stable identity, e.g. an
+ * entity-creation page: polling then stays purely in-memory — it is never written to
+ * sessionStorage and never resumed — so a later visit to the same page cannot resurrect it.
+ *
+ * Note: because the state is bound to a scopeKey, polling does NOT resume across a scopeKey
+ * change. In particular, the create -> real-id navigation after creating an entity starts under
+ * the (unscoped) create page and does not carry over to the newly-created id. This is an
+ * accepted trade-off for correct per-entity isolation.
  */
-export function useJobQueuePolling(queueName: string, onComplete: () => void) {
+export function useJobQueuePolling(queueName: string, onComplete: () => void, scopeKey?: string) {
+    const storageKey = `${STORAGE_KEY_PREFIX}${queueName}`;
     const [isPolling, setIsPolling] = useState(false);
     const [pollCount, setPollCount] = useState(0);
     const startTimeRef = useRef<string | null>(null);
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const onCompleteRef = useRef(onComplete);
-    const hasResumedRef = useRef(false);
 
     useEffect(() => {
         onCompleteRef.current = onComplete;
     }, [onComplete]);
 
-    // On mount, check for pending polling state
+    // Reset polling state whenever the scope changes (e.g. navigating between entities without
+    // a remount), then resume from persisted state only if it belongs to the current scope.
     useEffect(() => {
-        if (hasResumedRef.current) return;
-        hasResumedRef.current = true;
-
-        const stored = getStoredState(queueName);
-        if (stored && Date.now() < stored.expiresAt) {
-            startTimeRef.current = stored.startTime;
-            setPollCount(0);
-            setIsPolling(true);
-
-            const remainingTime = stored.expiresAt - Date.now();
-            timeoutRef.current = setTimeout(() => {
-                setIsPolling(false);
-                startTimeRef.current = null;
-                clearStoredState(queueName);
-                onCompleteRef.current();
-            }, remainingTime);
-        } else if (stored) {
-            clearStoredState(queueName);
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
         }
-    }, [queueName]);
+        startTimeRef.current = null;
+        setIsPolling(false);
+
+        // Unscoped (transient) usage is in-memory only — never resume from storage.
+        if (scopeKey == null) return;
+
+        const stored = getStoredState(storageKey);
+        if (!stored) return;
+
+        if (Date.now() >= stored.expiresAt) {
+            // Expired entry — clean it up.
+            clearStoredState(storageKey);
+            return;
+        }
+        if (stored.scopeKey !== scopeKey) {
+            // Belongs to a different scope; leave it to self-expire.
+            return;
+        }
+
+        startTimeRef.current = stored.startTime;
+        setPollCount(0);
+        setIsPolling(true);
+
+        const remainingTime = stored.expiresAt - Date.now();
+        timeoutRef.current = setTimeout(() => {
+            setIsPolling(false);
+            startTimeRef.current = null;
+            clearStoredState(storageKey);
+            onCompleteRef.current();
+        }, remainingTime);
+    }, [storageKey, scopeKey]);
 
     // Calculate exponential backoff interval
     const pollInterval = isPolling
@@ -92,7 +123,7 @@ export function useJobQueuePolling(queueName: string, onComplete: () => void) {
         : false;
 
     const { data: jobsData } = useQuery({
-        queryKey: ['jobQueuePolling', queueName],
+        queryKey: ['jobQueuePolling', queueName, scopeKey],
         queryFn: () => {
             setPollCount(c => c + 1);
             return api.query(jobListForPollingDocument, {
@@ -120,14 +151,14 @@ export function useJobQueuePolling(queueName: string, onComplete: () => void) {
         if (hasSettledJob) {
             setIsPolling(false);
             startTimeRef.current = null;
-            clearStoredState(queueName);
+            clearStoredState(storageKey);
             if (timeoutRef.current) {
                 clearTimeout(timeoutRef.current);
                 timeoutRef.current = null;
             }
             onCompleteRef.current();
         }
-    }, [jobsData, isPolling, queueName]);
+    }, [jobsData, isPolling, storageKey]);
 
     useEffect(() => {
         return () => {
@@ -141,8 +172,11 @@ export function useJobQueuePolling(queueName: string, onComplete: () => void) {
         const startTime = new Date(Date.now() - JOB_LOOKBACK_MS).toISOString();
         const expiresAt = Date.now() + MAX_POLLING_TIMEOUT_MS;
 
-        // Store in sessionStorage so polling can resume after navigation
-        setStoredState(queueName, { startTime, expiresAt });
+        // Persist (with the current scope) so polling can resume after a refresh. Unscoped
+        // (transient) usage stays in-memory only, so it can never resurrect on a later visit.
+        if (scopeKey != null) {
+            setStoredState(storageKey, { startTime, expiresAt, scopeKey });
+        }
 
         startTimeRef.current = startTime;
         setPollCount(0);
@@ -151,10 +185,10 @@ export function useJobQueuePolling(queueName: string, onComplete: () => void) {
         timeoutRef.current = setTimeout(() => {
             setIsPolling(false);
             startTimeRef.current = null;
-            clearStoredState(queueName);
+            clearStoredState(storageKey);
             onCompleteRef.current();
         }, MAX_POLLING_TIMEOUT_MS);
-    }, [queueName]);
+    }, [storageKey, scopeKey]);
 
     return { isPolling, startPolling };
 }
