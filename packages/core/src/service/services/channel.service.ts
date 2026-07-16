@@ -379,10 +379,21 @@ export class ChannelService {
             await this.connection.getRepository(ctx, Channel).save(newChannel);
         }
         await this.customFieldRelationService.updateRelations(ctx, Channel, input, newChannel);
+        // RoleService depends on ChannelService, so it cannot be injected here without creating a
+        // circular dependency; the default roles are therefore looked up directly.
+        const defaultRoleCodes = [SUPER_ADMIN_ROLE_CODE, CUSTOMER_ROLE_CODE];
         const defaultRoles = await this.connection.getRepository(ctx, Role).find({
-            where: { code: In([SUPER_ADMIN_ROLE_CODE, CUSTOMER_ROLE_CODE]) },
+            where: { code: In(defaultRoleCodes) },
         });
-        for (const role of defaultRoles) {
+        for (const code of defaultRoleCodes) {
+            const role = defaultRoles.find(r => r.code === code);
+            if (!role) {
+                throw new InternalServerError(
+                    code === SUPER_ADMIN_ROLE_CODE
+                        ? 'error.super-admin-role-not-found'
+                        : 'error.customer-role-not-found',
+                );
+            }
             await this.assignToChannels(ctx, Role, role.id, [newChannel.id]);
         }
         await this.allChannels.refresh(ctx);
