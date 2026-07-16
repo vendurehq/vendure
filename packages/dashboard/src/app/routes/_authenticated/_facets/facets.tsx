@@ -64,13 +64,11 @@ function FacetListPage() {
                                         displayFacetName={false}
                                     />
                                 ))}
-                                <FacetValuesSheet facetId={row.original.id} facetName={row.original.name}>
-                                    {list && list.totalItems > 3 ? (
+                                {list && list.totalItems > 3 && (
+                                    <FacetValuesSheet facetId={row.original.id} facetName={row.original.name}>
                                         <Trans>+ {list.totalItems - 3} more</Trans>
-                                    ) : (
-                                        <Trans>View values</Trans>
-                                    )}
-                                </FacetValuesSheet>
+                                    </FacetValuesSheet>
+                                )}
                             </div>
                         );
                     },
