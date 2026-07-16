@@ -329,6 +329,16 @@ export class ChannelService {
             .then(result => result ?? undefined);
     }
 
+    /**
+     * @description
+     * Creates a new Channel from the given input, validating the default language code and
+     * resolving the default tax and shipping Zones and the Seller if provided.
+     *
+     * Since v3.8.0, the new Channel is automatically assigned to the SuperAdmin and Customer
+     * roles. Without these assignments a Channel is not administrable (it does not appear in the
+     * Dashboard) and cannot support customer accounts, so callers no longer need to assign these
+     * roles themselves.
+     */
     async create(
         ctx: RequestContext,
         input: CreateChannelInput,
@@ -369,8 +379,6 @@ export class ChannelService {
             await this.connection.getRepository(ctx, Channel).save(newChannel);
         }
         await this.customFieldRelationService.updateRelations(ctx, Channel, input, newChannel);
-        // A new Channel must be assigned to the SuperAdmin and Customer roles, otherwise it is
-        // not administrable and cannot support customer accounts.
         const defaultRoles = await this.connection.getRepository(ctx, Role).find({
             where: { code: In([SUPER_ADMIN_ROLE_CODE, CUSTOMER_ROLE_CODE]) },
         });
