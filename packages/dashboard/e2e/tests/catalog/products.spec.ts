@@ -348,4 +348,149 @@ test.describe('Manage variants inline editing', () => {
             }
         }
     });
+
+    // After a new option value is added, the "Generate variants" dialog lets the user create
+    // only the now-missing combinations: existing combinations render greyed-out with an
+    // "Exists" label and are not editable, while missing combinations are offered as an
+    // editable form. Self-provisions a throwaway product and cleans up unconditionally.
+    test('generate-variants dialog offers only the missing combinations and creates them', async ({
+        page,
+    }) => {
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const unique = Date.now();
+        const productName = `E2E Generate Variant ${unique}`;
+
+        const { createProduct } = await client.gql(
+            `mutation ($input: CreateProductInput!) { createProduct(input: $input) { id } }`,
+            {
+                input: {
+                    translations: [
+                        {
+                            languageCode: 'en',
+                            name: productName,
+                            slug: `e2e-generate-variant-${unique}`,
+                            description: '',
+                        },
+                    ],
+                },
+            },
+        );
+        const productId = createProduct.id as string;
+        let optionGroupId: string | undefined;
+
+        try {
+            const { createProductOptionGroup } = await client.gql(
+                `mutation ($input: CreateProductOptionGroupInput!) {
+                    createProductOptionGroup(input: $input) { id options { id name } }
+                }`,
+                {
+                    input: {
+                        code: `size-${unique}`,
+                        translations: [{ languageCode: 'en', name: 'Size' }],
+                        options: [
+                            { code: `small-${unique}`, translations: [{ languageCode: 'en', name: 'Small' }] },
+                            { code: `large-${unique}`, translations: [{ languageCode: 'en', name: 'Large' }] },
+                        ],
+                    },
+                },
+            );
+            optionGroupId = createProductOptionGroup.id as string;
+            const options = createProductOptionGroup.options as Array<{ id: string; name: string }>;
+            const smallOption = options.find(o => o.name === 'Small')!;
+            const largeOption = options.find(o => o.name === 'Large')!;
+
+            await client.gql(
+                `mutation ($productId: ID!, $optionGroupId: ID!) {
+                    addOptionGroupToProduct(productId: $productId, optionGroupId: $optionGroupId) { id }
+                }`,
+                { productId, optionGroupId },
+            );
+
+            // Create variants for every current combination (Small, Large) so nothing is missing yet.
+            await client.gql(
+                `mutation ($input: [CreateProductVariantInput!]!) {
+                    createProductVariants(input: $input) { id }
+                }`,
+                {
+                    input: [
+                        {
+                            productId,
+                            translations: [{ languageCode: 'en', name: `${productName} Small` }],
+                            sku: `e2e-gen-small-${unique}`,
+                            optionIds: [smallOption.id],
+                            price: 1000,
+                        },
+                        {
+                            productId,
+                            translations: [{ languageCode: 'en', name: `${productName} Large` }],
+                            sku: `e2e-gen-large-${unique}`,
+                            optionIds: [largeOption.id],
+                            price: 1000,
+                        },
+                    ],
+                },
+            );
+
+            // Add a new option value: this introduces a "Medium" combination with no variant yet.
+            await client.gql(
+                `mutation ($input: CreateProductOptionInput!) {
+                    createProductOption(input: $input) { id }
+                }`,
+                {
+                    input: {
+                        productOptionGroupId: optionGroupId,
+                        code: `medium-${unique}`,
+                        translations: [{ languageCode: 'en', name: 'Medium' }],
+                    },
+                },
+            );
+
+            await page.goto(`/products/${productId}/variants`);
+
+            // Open the generator dialog.
+            const generateButton = page.getByTestId('generate-variants-btn');
+            await expect(generateButton).toBeVisible({ timeout: 10_000 });
+            await generateButton.click();
+
+            const dialog = page.getByRole('dialog');
+            await expect(dialog).toBeVisible();
+
+            // Small and Large already exist: two greyed-out "Exists" rows, none editable.
+            await expect(dialog.getByTestId('variant-exists-label')).toHaveCount(2);
+            // Only the missing Medium combination is offered as an editable row.
+            await expect(dialog.getByTestId('missing-variant-row')).toHaveCount(1);
+            const skuInput = dialog.getByTestId('variant-sku-input');
+            await expect(skuInput).toHaveCount(1);
+
+            const mediumSku = `e2e-gen-medium-${unique}`;
+            await skuInput.fill(mediumSku);
+
+            // Explicit review-then-confirm: only after clicking create does the mutation fire.
+            await Promise.all([
+                page.waitForResponse(
+                    resp =>
+                        resp.url().includes('/admin-api') &&
+                        resp.request().postData()?.includes('CreateProductVariants') === true &&
+                        resp.status() === 200,
+                ),
+                dialog.getByTestId('create-missing-variants-btn').click(),
+            ]);
+
+            // The dialog closes and the new variant appears in the manage-variants table.
+            await expect(page.getByTestId('create-missing-variants-btn')).toBeHidden();
+            await expect(page.getByRole('cell', { name: mediumSku })).toBeVisible({ timeout: 10_000 });
+            await expect(page.getByRole('cell', { name: `${productName} Medium` })).toBeVisible();
+        } finally {
+            await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, {
+                id: productId,
+            });
+            if (optionGroupId) {
+                await client.gql(
+                    `mutation ($id: ID!) { deleteProductOptionGroup(id: $id, force: true) { result } }`,
+                    { id: optionGroupId },
+                );
+            }
+        }
+    });
 });

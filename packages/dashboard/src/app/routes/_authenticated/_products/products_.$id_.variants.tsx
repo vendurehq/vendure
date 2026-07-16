@@ -33,6 +33,7 @@ import { toast } from 'sonner';
 import { AddOptionGroupDialog } from './components/add-option-group-dialog.js';
 import { AddProductVariantDialog } from './components/add-product-variant-dialog.js';
 import { ForceRemoveOptionGroupDialog } from './components/force-remove-option-group-dialog.js';
+import { GenerateMissingVariantsDialog } from './components/generate-missing-variants-dialog.js';
 import { useRemoveOptionGroup } from './hooks/use-remove-option-group.js';
 import {
     createProductOptionDocument,
@@ -435,12 +436,23 @@ function ManageProductVariants() {
                     </div>
 
                     {productData.product.optionGroups.length > 0 && (
-                        <AddProductVariantDialog
-                            productId={id}
-                            onSuccess={() => {
-                                refetch();
-                            }}
-                        />
+                        <div className="flex items-center gap-2">
+                            <AddProductVariantDialog
+                                productId={id}
+                                onSuccess={() => {
+                                    refetch();
+                                }}
+                            />
+                            <GenerateMissingVariantsDialog
+                                productId={id}
+                                productName={productData.product.name}
+                                optionGroups={productData.product.optionGroups}
+                                existingVariants={productData.product.variants.map(v => ({
+                                    optionIds: v.options.map(o => o.id),
+                                }))}
+                                onSuccess={() => refetch()}
+                            />
+                        </div>
                     )}
                 </PageBlock>
             </PageLayout>
