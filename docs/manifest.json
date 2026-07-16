@@ -2910,7 +2910,7 @@
                   "title": "ChannelService",
                   "slug": "channel-service",
                   "file": "docs/reference/typescript-api/services/channel-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-07-16T09:00:56Z"
                 },
                 {
                   "title": "CollectionService",
@@ -4193,7 +4193,7 @@
                   "title": "UseWidgetConfig",
                   "slug": "use-widget-config",
                   "file": "docs/reference/dashboard/hooks/use-widget-config.mdx",
-                  "lastModified": "2026-07-16T09:10:19+02:00"
+                  "lastModified": "2026-07-16T09:00:56Z"
                 },
                 {
                   "title": "UseWidgetFilters",
