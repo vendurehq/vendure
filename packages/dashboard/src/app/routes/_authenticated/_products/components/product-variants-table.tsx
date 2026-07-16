@@ -47,6 +47,7 @@ export function ProductVariantsTable({
         <PaginatedListDataTable
             title={title}
             actions={actions}
+            hideViewsControls={fromProductDetailPage}
             registerRefresher={registerRefresher}
             listQuery={productVariantListDocument}
             transformVariables={variables => ({

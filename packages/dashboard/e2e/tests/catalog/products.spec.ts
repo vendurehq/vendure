@@ -101,6 +101,40 @@ test.describe('Product detail features', () => {
         await expect(editorContainer.first()).toBeVisible({ timeout: 5_000 });
     });
 
+    // Saved views are keyed by page id + block id only, so a view saved on one
+    // product's embedded variants table would leak onto every other product. The
+    // embedded table therefore hides the views tabs (via `hideViewsControls`)
+    // while keeping filtering and column customization intact.
+    // Note: the e2e fixture doesn't register the DashboardPlugin settings-store
+    // fields, so saved-views tabs never render in this environment regardless;
+    // the observable guarantees here are that filtering and column customization
+    // controls remain, and the views-tabs assertion guards against regressions.
+    test('embedded variants table hides views tabs but keeps filter and column controls', async ({
+        page,
+    }) => {
+        // Navigate to the seeded "Laptop" product which has variants
+        await page.goto('/products');
+        await expect(page.locator('table')).toBeVisible();
+        await Promise.all([
+            page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200),
+            page.getByRole('textbox', { name: 'Search products...' }).fill('Laptop'),
+        ]);
+        await page.locator('table tbody tr').first().getByRole('button').first().click();
+        await expect(page).toHaveURL(/\/products\/.+/);
+
+        // Wait for the embedded variants table to be present
+        await expect(page.getByRole('button', { name: /Manage variants/i })).toBeVisible({
+            timeout: 10_000,
+        });
+
+        // No saved-views tabs on the embedded table
+        await expect(page.getByTestId('dt-views-tabs')).toHaveCount(0);
+
+        // Filtering and column customization controls remain
+        await expect(page.getByTestId('dt-add-filter-trigger')).toBeVisible();
+        await expect(page.getByTestId('dt-column-settings-trigger')).toBeVisible();
+    });
+
     test('should display custom field tabs when configured', async ({ page }) => {
         await page.goto('/products');
         await expect(page.locator('table')).toBeVisible();
