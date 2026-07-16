@@ -8,10 +8,14 @@ import {
     UpdateChannelInput,
     UpdateChannelResult,
 } from '@vendure/common/lib/generated-types';
-import { DEFAULT_CHANNEL_CODE } from '@vendure/common/lib/shared-constants';
+import {
+    CUSTOMER_ROLE_CODE,
+    DEFAULT_CHANNEL_CODE,
+    SUPER_ADMIN_ROLE_CODE,
+} from '@vendure/common/lib/shared-constants';
 import { ID, PaginatedList, Type } from '@vendure/common/lib/shared-types';
 import { unique } from '@vendure/common/lib/unique';
-import { FindOptionsWhere } from 'typeorm';
+import { FindOptionsWhere, In } from 'typeorm';
 
 import { RelationPaths } from '../../api';
 import { RequestContext } from '../../api/common/request-context';
@@ -34,6 +38,7 @@ import { Channel } from '../../entity/channel/channel.entity';
 import { Order } from '../../entity/order/order.entity';
 import { ProductVariantPrice } from '../../entity/product-variant/product-variant-price.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
+import { Role } from '../../entity/role/role.entity';
 import { Seller } from '../../entity/seller/seller.entity';
 import { Session } from '../../entity/session/session.entity';
 import { Zone } from '../../entity/zone/zone.entity';
@@ -364,6 +369,14 @@ export class ChannelService {
             await this.connection.getRepository(ctx, Channel).save(newChannel);
         }
         await this.customFieldRelationService.updateRelations(ctx, Channel, input, newChannel);
+        // A new Channel must be assigned to the SuperAdmin and Customer roles, otherwise it is
+        // not administrable and cannot support customer accounts.
+        const defaultRoles = await this.connection.getRepository(ctx, Role).find({
+            where: { code: In([SUPER_ADMIN_ROLE_CODE, CUSTOMER_ROLE_CODE]) },
+        });
+        for (const role of defaultRoles) {
+            await this.assignToChannels(ctx, Role, role.id, [newChannel.id]);
+        }
         await this.allChannels.refresh(ctx);
         await this.eventBus.publish(new ChannelEvent(ctx, newChannel, 'created', input));
         return newChannel;
