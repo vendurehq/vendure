@@ -1143,7 +1143,7 @@ msgstr "取消订单商品失败"
 msgid "Transaction ID"
 msgstr "交易 ID"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:766
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:752
 msgid "Allocated"
 msgstr "已分配"
 
@@ -1174,7 +1174,7 @@ msgstr "已成功创建集合"
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:88
 #: src/app/routes/_authenticated/_orders/components/shipping-method-selector.tsx:49
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:611
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:597
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:298
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:191
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:196
@@ -1402,7 +1402,7 @@ msgstr "附加费"
 msgid "Payment Methods"
 msgstr "支付方式"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:664
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:650
 msgid "Stock"
 msgstr "库存"
 
@@ -1414,7 +1414,7 @@ msgstr "此时间段内没有销售"
 msgid "No customers found"
 msgstr "未找到客户"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:703
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:689
 msgid "Use global out-of-stock threshold"
 msgstr "使用全局缺货阈值"
 
@@ -2196,7 +2196,7 @@ msgstr "显示 {total} 个中的 {shown} 个 • 已选择 {selected} 个"
 msgid "Test Shipping Method"
 msgstr "测试配送方式"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:781
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:767
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:348
 msgid "Facet Values"
 msgstr "属性值"
@@ -2886,7 +2886,7 @@ msgstr "重新计算运费"
 #: src/app/routes/_authenticated/_assets/assets.tsx:17
 #: src/app/routes/_authenticated/_assets/assets.tsx:40
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:229
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:791
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:777
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:381
 msgid "Assets"
 msgstr "资源"
@@ -3060,7 +3060,7 @@ msgstr "每位客户使用限制"
 msgid "Billing address changed"
 msgstr "账单地址已更改"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:567
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:553
 msgid "Manage option groups"
 msgstr ""
 
@@ -3333,8 +3333,8 @@ msgstr "未配置全局语言"
 msgid "Removing {0} item(s)"
 msgstr "正在删除 {0} 个项目"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:675
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:691
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:661
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:677
 msgid "Track"
 msgstr "跟踪"
 
@@ -4225,7 +4225,7 @@ msgstr "备注已成功更新"
 msgid "Failed to settle refund"
 msgstr "完成退款失败"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:751
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:737
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:311
 msgid "Stock level"
 msgstr "库存水平"
@@ -4456,7 +4456,7 @@ msgid "Custom fields"
 msgstr "自定义字段"
 
 #. placeholder {0}: group.name
-#: src/app/routes/_authenticated/_product-variants/components/variant-option-select.tsx:66
+#: src/app/routes/_authenticated/_product-variants/components/variant-option-select.tsx:79
 msgid "Select or create {0}"
 msgstr ""
 
@@ -4696,7 +4696,7 @@ msgstr "平均订单价值"
 msgid "Failed to create zone"
 msgstr "创建区域失败"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:669
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:655
 msgid "Stock levels"
 msgstr "库存水平"
 
@@ -5217,8 +5217,8 @@ msgstr "设置订单地址失败：{0}"
 msgid "State"
 msgstr "州/省"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:676
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:694
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:662
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:680
 msgid "Do not track"
 msgstr "不跟踪"
 
@@ -5380,7 +5380,7 @@ msgstr "选择履约处理器"
 msgid "Failed to update collection"
 msgstr "更新集合失败"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:591
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:577
 msgid "Price and tax"
 msgstr "价格和税费"
 
@@ -5495,7 +5495,7 @@ msgstr "添加支付 ({0})"
 msgid "System"
 msgstr "系统"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:577
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:563
 #: src/app/routes/_authenticated/_products/components/product-variants-table.tsx:88
 msgid "Variant name"
 msgstr "变体名称"
@@ -5784,8 +5784,8 @@ msgid "Low Stock"
 msgstr "低库存"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:549
-msgid "Edit option group"
-msgstr ""
+#~ msgid "Edit option group"
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/price-display.tsx:17
 msgid "ex. tax:"
@@ -5945,7 +5945,7 @@ msgstr "数量"
 #~ msgid "Add filter"
 #~ msgstr "添加筛选器"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:596
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:582
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:127
 msgid "Tax category"
 msgstr "税务类别"
@@ -6214,6 +6214,10 @@ msgstr "所有可能的变体组合均已存在。"
 msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
 msgstr "{cancellableCount, plural, one {确定要取消 {cancellableCount} 个任务吗？此操作无法撤销。} other {确定要取消 {cancellableCount} 个任务吗？此操作无法撤销。}}"
 
+#: src/app/routes/_authenticated/_product-variants/components/variant-option-select.tsx:66
+msgid "Go to option group"
+msgstr ""
+
 #: src/lib/framework/dashboard-widget/orders-summary/index.tsx:101
 msgid "Total Revenue"
 msgstr "总收入"
@@ -6415,7 +6419,7 @@ msgstr "库存已分配"
 msgid "greater than or equal"
 msgstr "大于或等于"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:719
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:705
 msgid "Sets the stock level at which this variant is considered to be out of stock. Using a negative value enables backorder support."
 msgstr "设置将此变体视为缺货的库存水平。使用负值可启用延期交货支持。"
 
@@ -6482,7 +6486,7 @@ msgstr "搜索订单..."
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:82
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:167
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:584
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:570
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:292
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:197
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:188
@@ -6578,7 +6582,7 @@ msgstr "税基"
 msgid "Load more"
 msgstr "加载更多"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:705
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:691
 msgid "When enabled, this variant uses the global out-of-stock threshold configured in Settings instead of its own value."
 msgstr ""
 
@@ -6683,7 +6687,7 @@ msgstr "您查找的页面不存在或可能已被移动。"
 msgid "Failed to delete {failed} {entityName}"
 msgstr "删除 {failed} {entityName} 失败"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:717
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:703
 msgid "Out-of-stock threshold"
 msgstr "缺货阈值"
 

@@ -1143,7 +1143,7 @@ msgstr "Kunne ikke kansellere ordrevarer"
 msgid "Transaction ID"
 msgstr "Transaksjons-ID"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:766
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:752
 msgid "Allocated"
 msgstr "Allokert"
 
@@ -1174,7 +1174,7 @@ msgstr "Samling opprettet"
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:88
 #: src/app/routes/_authenticated/_orders/components/shipping-method-selector.tsx:49
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:611
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:597
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:298
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:191
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:196
@@ -1402,7 +1402,7 @@ msgstr "Tilleggsgebyr"
 msgid "Payment Methods"
 msgstr "Betalingsmetoder"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:664
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:650
 msgid "Stock"
 msgstr "Lager"
 
@@ -1414,7 +1414,7 @@ msgstr "Ingen salg i denne perioden"
 msgid "No customers found"
 msgstr "Ingen kunder funnet"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:703
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:689
 msgid "Use global out-of-stock threshold"
 msgstr "Bruk global utsolgt-terskel"
 
@@ -2196,7 +2196,7 @@ msgstr "Viser {shown} av {total} • {selected} valgt"
 msgid "Test Shipping Method"
 msgstr "Test fraktmetode"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:781
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:767
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:348
 msgid "Facet Values"
 msgstr "Fasettverdier"
@@ -2886,7 +2886,7 @@ msgstr "Beregn frakt på nytt"
 #: src/app/routes/_authenticated/_assets/assets.tsx:17
 #: src/app/routes/_authenticated/_assets/assets.tsx:40
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:229
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:791
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:777
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:381
 msgid "Assets"
 msgstr "Ressurser"
@@ -3060,7 +3060,7 @@ msgstr "Bruksgrense per kunde"
 msgid "Billing address changed"
 msgstr "Fakturaadresse endret"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:567
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:553
 msgid "Manage option groups"
 msgstr ""
 
@@ -3333,8 +3333,8 @@ msgstr "Ingen globale språk konfigurert"
 msgid "Removing {0} item(s)"
 msgstr "Fjerner {0} vare(r)"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:675
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:691
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:661
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:677
 msgid "Track"
 msgstr "Spor"
 
@@ -4225,7 +4225,7 @@ msgstr "Notat oppdatert"
 msgid "Failed to settle refund"
 msgstr "Kunne ikke gjennomføre refusjon"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:751
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:737
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:311
 msgid "Stock level"
 msgstr "Lagernivå"
@@ -4456,7 +4456,7 @@ msgid "Custom fields"
 msgstr "Egendefinerte felt"
 
 #. placeholder {0}: group.name
-#: src/app/routes/_authenticated/_product-variants/components/variant-option-select.tsx:66
+#: src/app/routes/_authenticated/_product-variants/components/variant-option-select.tsx:79
 msgid "Select or create {0}"
 msgstr ""
 
@@ -4696,7 +4696,7 @@ msgstr "Gjennomsnittlig ordreverdi"
 msgid "Failed to create zone"
 msgstr "Kunne ikke opprette sone"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:669
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:655
 msgid "Stock levels"
 msgstr "Lagernivåer"
 
@@ -5217,8 +5217,8 @@ msgstr "Kunne ikke angi adresse for bestillingen: {0}"
 msgid "State"
 msgstr "Tilstand"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:676
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:694
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:662
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:680
 msgid "Do not track"
 msgstr "Ikke spor"
 
@@ -5380,7 +5380,7 @@ msgstr "Velg en håndterer for ordreoppfyllelse"
 msgid "Failed to update collection"
 msgstr "Kunne ikke oppdatere samling"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:591
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:577
 msgid "Price and tax"
 msgstr "Pris og mva"
 
@@ -5495,7 +5495,7 @@ msgstr "Legg til betaling ({0})"
 msgid "System"
 msgstr "System"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:577
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:563
 #: src/app/routes/_authenticated/_products/components/product-variants-table.tsx:88
 msgid "Variant name"
 msgstr "Variantnavn"
@@ -5784,8 +5784,8 @@ msgid "Low Stock"
 msgstr "Lav lagerbeholdning"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:549
-msgid "Edit option group"
-msgstr ""
+#~ msgid "Edit option group"
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/price-display.tsx:17
 msgid "ex. tax:"
@@ -5945,7 +5945,7 @@ msgstr "Antall"
 #~ msgid "Add filter"
 #~ msgstr "Legg til filter"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:596
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:582
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:127
 msgid "Tax category"
 msgstr "Skattekategori"
@@ -6214,6 +6214,10 @@ msgstr "Alle mulige variantkombinasjoner finnes allerede."
 msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
 msgstr "{cancellableCount, plural, one {Er du sikker på at du vil avbryte {cancellableCount} jobb? Denne handlingen kan ikke angres.} other {Er du sikker på at du vil avbryte {cancellableCount} jobber? Denne handlingen kan ikke angres.}}"
 
+#: src/app/routes/_authenticated/_product-variants/components/variant-option-select.tsx:66
+msgid "Go to option group"
+msgstr ""
+
 #: src/lib/framework/dashboard-widget/orders-summary/index.tsx:101
 msgid "Total Revenue"
 msgstr "Totale inntekter"
@@ -6415,7 +6419,7 @@ msgstr "Lager allokert"
 msgid "greater than or equal"
 msgstr "større enn eller lik"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:719
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:705
 msgid "Sets the stock level at which this variant is considered to be out of stock. Using a negative value enables backorder support."
 msgstr "Setter lagernivået der denne varianten anses som utsolgt. Bruk av en negativ verdi aktiverer restordrestøtte."
 
@@ -6482,7 +6486,7 @@ msgstr "Søk etter bestillinger..."
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:82
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:167
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:584
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:570
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:292
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:197
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:188
@@ -6578,7 +6582,7 @@ msgstr "Skattegrunnlag"
 msgid "Load more"
 msgstr "Last mer"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:705
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:691
 msgid "When enabled, this variant uses the global out-of-stock threshold configured in Settings instead of its own value."
 msgstr ""
 
@@ -6683,7 +6687,7 @@ msgstr "Siden du leter etter finnes ikke, eller den kan ha blitt flyttet."
 msgid "Failed to delete {failed} {entityName}"
 msgstr "Kunne ikke slette {failed} {entityName}"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:717
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:703
 msgid "Out-of-stock threshold"
 msgstr "Utsolgt-terskel"
 

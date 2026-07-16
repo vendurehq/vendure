@@ -34,7 +34,7 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { VariablesOf } from 'gql.tada';
-import { Edit2, Settings2, Trash } from 'lucide-react';
+import { Settings2, Trash } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Controller } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -520,38 +520,24 @@ function ProductVariantDetailPage() {
                     <PageBlock column="side" blockId="options" title={<Trans>Options</Trans>}>
                         <div className="space-y-3">
                             {optionGroups.map(group => (
-                                <div key={group.id} className="flex items-end gap-1">
-                                    <div className="flex-1">
-                                        <VariantOptionSelect
-                                            group={group}
-                                            value={optionTextByGroup[group.id] ?? ''}
-                                            onValueChange={value => commitGroupText(group, value)}
-                                            onSelectOption={optionId => {
-                                                const option = group.options.find(o => o.id === optionId);
-                                                if (option) {
-                                                    commitGroupText(group, option.name);
-                                                }
-                                            }}
-                                            invalid={
-                                                !(optionTextByGroup[group.id] ?? '').trim() ||
-                                                (!canCreateOptions &&
-                                                    resolveGroupOption(
-                                                        group,
-                                                        optionTextByGroup[group.id] ?? '',
-                                                    ).kind === 'new')
-                                            }
-                                        />
-                                    </div>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="mb-0.5 h-9 w-9 p-0"
-                                        title={t`Edit option group`}
-                                        render={<Link to={`/option-groups/${group.id}`} />}
-                                    >
-                                        <Edit2 className="h-4 w-4" />
-                                    </Button>
-                                </div>
+                                <VariantOptionSelect
+                                    key={group.id}
+                                    group={group}
+                                    value={optionTextByGroup[group.id] ?? ''}
+                                    onValueChange={value => commitGroupText(group, value)}
+                                    onSelectOption={optionId => {
+                                        const option = group.options.find(o => o.id === optionId);
+                                        if (option) {
+                                            commitGroupText(group, option.name);
+                                        }
+                                    }}
+                                    invalid={
+                                        !(optionTextByGroup[group.id] ?? '').trim() ||
+                                        (!canCreateOptions &&
+                                            resolveGroupOption(group, optionTextByGroup[group.id] ?? '')
+                                                .kind === 'new')
+                                    }
+                                />
                             ))}
                             {duplicateOptionsError && (
                                 <p className="text-sm text-destructive">{duplicateOptionsError}</p>

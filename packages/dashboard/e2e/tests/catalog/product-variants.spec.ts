@@ -534,10 +534,10 @@ test.describe('force-remove an in-use option group (#4703)', () => {
     });
 });
 
-// Regression: the per-group edit link on the variant detail Options block should
-// navigate to the option group detail page, not a broken route.
-test.describe('variant option group edit link', () => {
-    test('should navigate to option group detail when clicking the edit link on variant page', async ({
+// Regression: each option group's label on the variant detail Options block is a link to
+// the option group detail page (not a broken route, and no longer a separate pencil button).
+test.describe('variant option group label link', () => {
+    test('should navigate to option group detail when clicking the group label on variant page', async ({
         page,
     }) => {
         // Navigate to product variants list and click a Laptop variant (seed data, has options)
@@ -560,7 +560,7 @@ test.describe('variant option group edit link', () => {
             timeout: 10_000,
         });
 
-        // Click the per-group edit link (pencil icon) — it points to the option group detail
+        // The option group label itself is the link to the option group detail
         await optionsBlock.locator('a[href*="/option-groups/"]').first().click();
 
         // Should navigate to the option group detail page

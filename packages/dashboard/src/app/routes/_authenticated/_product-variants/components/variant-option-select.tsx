@@ -1,6 +1,8 @@
 import { ComboboxFreeText, ComboboxFreeTextItem } from '@/vdb/components/ui/combobox-free-text.js';
 import { Field, FieldLabel } from '@/vdb/components/ui/field.js';
 import { useLingui } from '@lingui/react/macro';
+import { Link } from '@tanstack/react-router';
+import { ExternalLink } from 'lucide-react';
 
 interface VariantOption {
     id: string;
@@ -55,7 +57,18 @@ export function VariantOptionSelect({
 
     return (
         <Field>
-            <FieldLabel htmlFor={fieldId}>{group.name}</FieldLabel>
+            {/* The label doubles as a navigation link to the option group detail page —
+                the option value is edited in the combobox below, not here. */}
+            <FieldLabel htmlFor={fieldId}>
+                <Link
+                    to={`/option-groups/${group.id}`}
+                    className="inline-flex items-center gap-1 hover:underline"
+                    title={t`Go to option group`}
+                >
+                    {group.name}
+                    <ExternalLink className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
+                </Link>
+            </FieldLabel>
             <ComboboxFreeText<OptionItem>
                 id={fieldId}
                 value={value}

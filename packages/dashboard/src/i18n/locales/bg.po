@@ -1149,7 +1149,7 @@ msgstr "Неуспешно анулиране на артикули от пор�
 msgid "Transaction ID"
 msgstr "ID на транзакцията"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:766
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:752
 msgid "Allocated"
 msgstr "Разпределени"
 
@@ -1180,7 +1180,7 @@ msgstr "Успешно създадена колекция"
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:88
 #: src/app/routes/_authenticated/_orders/components/shipping-method-selector.tsx:49
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:611
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:597
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:298
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:191
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:196
@@ -1408,7 +1408,7 @@ msgstr "Доплащане"
 msgid "Payment Methods"
 msgstr "Начини на плащане"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:664
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:650
 msgid "Stock"
 msgstr "Наличност"
 
@@ -1420,7 +1420,7 @@ msgstr "Няма продажби за този период"
 msgid "No customers found"
 msgstr "Няма намерени клиенти"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:703
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:689
 msgid "Use global out-of-stock threshold"
 msgstr "Използвайте глобалния праг за изчерпване"
 
@@ -2214,7 +2214,7 @@ msgstr "Показани {shown} от {total} • избрани {selected}"
 msgid "Test Shipping Method"
 msgstr "Тестване на метод за доставка"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:781
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:767
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:348
 msgid "Facet Values"
 msgstr "Атрибутни стойности"
@@ -2903,7 +2903,7 @@ msgstr "Преизчисляване на доставката"
 #: src/app/routes/_authenticated/_assets/assets.tsx:17
 #: src/app/routes/_authenticated/_assets/assets.tsx:40
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:229
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:791
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:777
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:381
 msgid "Assets"
 msgstr "Медия"
@@ -3080,7 +3080,7 @@ msgstr "Лимит за използване на клиент"
 msgid "Billing address changed"
 msgstr "Адресът за фактуриране е променен"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:567
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:553
 msgid "Manage option groups"
 msgstr ""
 
@@ -3353,8 +3353,8 @@ msgstr "Няма конфигурирани глобални езици"
 msgid "Removing {0} item(s)"
 msgstr "Премахване на {0} елемент(а)"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:675
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:691
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:661
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:677
 msgid "Track"
 msgstr "Проследяване"
 
@@ -4245,7 +4245,7 @@ msgstr "Бележката е актуализирана успешно"
 msgid "Failed to settle refund"
 msgstr "Неуспешно възстановяване на сумата"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:751
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:737
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:311
 msgid "Stock level"
 msgstr "Ниво на склад"
@@ -4476,7 +4476,7 @@ msgid "Custom fields"
 msgstr "Персонализирани полета"
 
 #. placeholder {0}: group.name
-#: src/app/routes/_authenticated/_product-variants/components/variant-option-select.tsx:66
+#: src/app/routes/_authenticated/_product-variants/components/variant-option-select.tsx:79
 msgid "Select or create {0}"
 msgstr ""
 
@@ -4719,7 +4719,7 @@ msgstr "Средна стойност на поръчката"
 msgid "Failed to create zone"
 msgstr "Неуспешно създаване на зона"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:669
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:655
 msgid "Stock levels"
 msgstr "Нива на склад"
 
@@ -5243,8 +5243,8 @@ msgstr "Неуспешно задаване на адрес за поръчка�
 msgid "State"
 msgstr "Състояние"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:676
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:694
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:662
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:680
 msgid "Do not track"
 msgstr "Не проследявайте"
 
@@ -5409,7 +5409,7 @@ msgstr "Избери обработчик на изпълнение"
 msgid "Failed to update collection"
 msgstr "Неуспешно актуализиране на колекцията"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:591
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:577
 msgid "Price and tax"
 msgstr "Цена и данък"
 
@@ -5524,7 +5524,7 @@ msgstr "Добавяне на плащане ({0})"
 msgid "System"
 msgstr "Система"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:577
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:563
 #: src/app/routes/_authenticated/_products/components/product-variants-table.tsx:88
 msgid "Variant name"
 msgstr "Име на варианта"
@@ -5813,8 +5813,8 @@ msgid "Low Stock"
 msgstr "Ниска наличност"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:549
-msgid "Edit option group"
-msgstr ""
+#~ msgid "Edit option group"
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/price-display.tsx:17
 msgid "ex. tax:"
@@ -5977,7 +5977,7 @@ msgstr "Количество"
 #~ msgid "Add filter"
 #~ msgstr "Добавете филтър"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:596
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:582
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:127
 msgid "Tax category"
 msgstr "Данъчна категория"
@@ -6246,6 +6246,10 @@ msgstr "Всички възможни комбинации от варианти
 msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
 msgstr "{cancellableCount, plural, one {Сигурни ли сте, че искате да откажете {cancellableCount} задача? Това действие не може да бъде отменено.} other {Сигурни ли сте, че искате да откажете {cancellableCount} задачи? Това действие не може да бъде отменено.}}"
 
+#: src/app/routes/_authenticated/_product-variants/components/variant-option-select.tsx:66
+msgid "Go to option group"
+msgstr ""
+
 #: src/lib/framework/dashboard-widget/orders-summary/index.tsx:101
 msgid "Total Revenue"
 msgstr "Общи приходи"
@@ -6447,7 +6451,7 @@ msgstr "Разпределени запаси"
 msgid "greater than or equal"
 msgstr "по-голямо или равно"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:719
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:705
 msgid "Sets the stock level at which this variant is considered to be out of stock. Using a negative value enables backorder support."
 msgstr "Задава нивото на наличност, при което този вариант се счита за изчерпан. Използването на отрицателна стойност позволява поддръжка на резервни поръчки."
 
@@ -6516,7 +6520,7 @@ msgstr "Търсене на поръчки..."
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:82
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:167
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:584
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:570
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:292
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:197
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:188
@@ -6615,7 +6619,7 @@ msgstr "Данъчна основа"
 msgid "Load more"
 msgstr "Зареди още"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:705
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:691
 msgid "When enabled, this variant uses the global out-of-stock threshold configured in Settings instead of its own value."
 msgstr ""
 
@@ -6720,7 +6724,7 @@ msgstr "Страницата, която търсите, не съществув
 msgid "Failed to delete {failed} {entityName}"
 msgstr "Неуспешно изтриване на {failed} {entityName}"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:717
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:703
 msgid "Out-of-stock threshold"
 msgstr "Праг за изчерпани количества"
 
