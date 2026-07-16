@@ -170,7 +170,7 @@ msgstr "Успешно актуализирана данъчна ставка"
 msgid "Enter custom reason..."
 msgstr "Въведете персонализирана причина..."
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:744
+#: src/lib/components/shared/asset/asset-gallery.tsx:751
 msgid "Type"
 msgstr "Тип"
 
@@ -187,8 +187,8 @@ msgid "Add more ({0} selected)"
 msgstr "Добави още ({0} избрани)"
 
 #: src/app/routes/_authenticated/_facets/facets.tsx:71
-msgid "View values"
-msgstr "Виж стойности"
+#~ msgid "View values"
+#~ msgstr "Виж стойности"
 
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx:214
 msgid "Delete row"
@@ -287,6 +287,10 @@ msgstr "SKU:"
 msgid "Add payment"
 msgstr "Добавяне на плащане"
 
+#: src/app/routes/_authenticated/_collections/collections.tsx:404
+msgid "Expand"
+msgstr "Разгъване"
+
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-shipping-method-sheet.tsx:40
 msgid "Test this shipping method by simulating an order to see if it's eligible and what the shipping cost would be."
 msgstr "Тествайте този метод на доставка, като симулирате поръчка, за да видите дали отговаря на условията и каква ще бъде цената за доставка."
@@ -335,7 +339,7 @@ msgstr "Сигурни ли сте, че искате да изтриете то
 #~ msgid "All resources are up and running"
 #~ msgstr "Всички ресурси работят"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:87
 msgid "Failed to create administrator"
 msgstr "Неуспешно създаване на администратор"
 
@@ -364,9 +368,9 @@ msgstr "Неуспешно актуализиране на държавата"
 msgid "Type at least 2 characters to search..."
 msgstr "Въведете поне 2 знака за търсене..."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:121
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:122
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:182
-#: src/app/routes/_authenticated/_profile/profile.tsx:108
+#: src/app/routes/_authenticated/_profile/profile.tsx:109
 msgid "Last name"
 msgstr "Фамилия"
 
@@ -526,8 +530,8 @@ msgstr "Данъчна ставка"
 msgid "Order draft isn't ready to be completed"
 msgstr "Черновата на поръчката не е готова за завършване"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:48
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:137
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:52
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:156
 msgid "New collection"
 msgstr "Нова колекция"
 
@@ -568,7 +572,7 @@ msgstr "Не успяхме да заредим складовите налич�
 msgid "City"
 msgstr "Град"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:37
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:15
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:23
 msgid "Administrators"
@@ -609,7 +613,7 @@ msgstr "Брой поръчки"
 msgid "Successfully updated order"
 msgstr "Успешно актуализирана поръчка"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:203
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:222
 msgid "Inherit filters"
 msgstr "Наследяване на филтри"
 
@@ -682,7 +686,7 @@ msgstr "Добавяне..."
 msgid "Move Collections"
 msgstr "Преместване на колекции"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:139
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:140
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:57
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:170
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
@@ -789,8 +793,8 @@ msgstr "Неуспешно задаване на начин на доставк�
 msgid "Filter..."
 msgstr "Филтър..."
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:40
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:102
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:41
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:103
 msgid "New facet value"
 msgstr "Нова стойност на атрибут"
 
@@ -851,11 +855,11 @@ msgstr "Приключи черновата"
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:47
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:165
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:173
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:192
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:104
 #: src/app/routes/_authenticated/_customers/customers.tsx:73
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:131
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:136
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:121
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:202
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:173
@@ -869,7 +873,7 @@ msgstr "Приключи черновата"
 #: src/app/routes/_authenticated/_tax-categories/tax-categories_.$id.tsx:106
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:113
 #: src/app/routes/_authenticated/_zones/zones_.$id.tsx:93
-#: src/lib/components/shared/asset/asset-gallery.tsx:743
+#: src/lib/components/shared/asset/asset-gallery.tsx:750
 msgid "Name"
 msgstr "Име"
 
@@ -909,7 +913,7 @@ msgstr "Създадено изпълнение"
 msgid "Found {0} eligible shipping method{1}"
 msgstr "Намерен е {0} отговарящ на условията метод за доставка{1}"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:746
+#: src/lib/components/shared/asset/asset-gallery.tsx:753
 #: src/lib/components/shared/asset/asset-properties.tsx:39
 msgid "Dimensions"
 msgstr "Размери"
@@ -970,7 +974,7 @@ msgstr "Потвърдете"
 msgid "Failed to complete draft order: {0}"
 msgstr "Неуспешно завършване на черновата на поръчка: {0}"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:119
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:138
 msgid "Failed to create collection"
 msgstr "Неуспешно създаване на колекция"
 
@@ -1065,9 +1069,9 @@ msgstr "Приходи"
 msgid "Failed to update zone"
 msgstr "Неуспешно актуализиране на зоната"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:133
-#: src/app/routes/_authenticated/_profile/profile.tsx:120
-#: src/app/routes/_authenticated/_profile/profile.tsx:137
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:134
+#: src/app/routes/_authenticated/_profile/profile.tsx:121
+#: src/app/routes/_authenticated/_profile/profile.tsx:138
 #: src/lib/components/login/login-form.tsx:94
 msgid "Password"
 msgstr "Парола"
@@ -1164,7 +1168,7 @@ msgstr "Разгледайте Platform & Cloud"
 msgid "Every 5 seconds"
 msgstr "На всеки 5 секунди"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:105
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:124
 msgid "Successfully created collection"
 msgstr "Успешно създадена колекция"
 
@@ -1293,7 +1297,7 @@ msgstr "Регенерирайте slug от изходното поле"
 msgid "Inherit from global settings"
 msgstr "Наследяване от глобалните настройки"
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:79
+#: src/app/routes/_authenticated/_facets/facets.tsx:77
 msgid "Search facets..."
 msgstr "Търсене на атрибути..."
 
@@ -1371,7 +1375,7 @@ msgid "No items selected"
 msgstr "Няма избрани елементи"
 
 #. placeholder {0}: selected.length
-#: src/lib/components/shared/asset/asset-gallery.tsx:469
+#: src/lib/components/shared/asset/asset-gallery.tsx:476
 msgid ", {0} selected"
 msgstr ", {0} избрани"
 
@@ -1603,7 +1607,7 @@ msgstr "преди"
 msgid "Failed to set customer for order: {0}"
 msgstr "Неуспешно задаване на клиент за поръчката: {0}"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:745
+#: src/lib/components/shared/asset/asset-gallery.tsx:752
 msgid "Size"
 msgstr "Размер"
 
@@ -1624,7 +1628,7 @@ msgstr "Последни поръчки"
 msgid "Go back"
 msgstr "Назад"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:452
+#: src/app/routes/_authenticated/_collections/collections.tsx:478
 msgid "+ {leftOver} more"
 msgstr "+ още {leftOver}"
 
@@ -1684,7 +1688,7 @@ msgstr "Налично"
 msgid "Normal"
 msgstr "Нормално"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:199
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:218
 msgid "Filters"
 msgstr "Филтри"
 
@@ -1719,7 +1723,7 @@ msgstr "Нова опция"
 msgid "Usage limit"
 msgstr "Ограничение за използване"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:547
+#: src/app/routes/_authenticated/_collections/collections.tsx:577
 msgid "Create your first collection"
 msgstr "Създайте първата си колекция"
 
@@ -1733,7 +1737,7 @@ msgstr "Адресът е актуализиран успешно"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:126
-#: src/lib/components/shared/asset/asset-gallery.tsx:747
+#: src/lib/components/shared/asset/asset-gallery.tsx:754
 #: src/lib/framework/layout-engine/page-layout.tsx:746
 msgid "Created"
 msgstr "Създаден"
@@ -1852,9 +1856,9 @@ msgstr "Частичното възстановяване е завършено"
 msgid "Set custom fields"
 msgstr "Задайте потребителски полета"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:47
-#: src/app/routes/_authenticated/_collections/collections.tsx:51
-#: src/app/routes/_authenticated/_collections/collections.tsx:362
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:49
+#: src/app/routes/_authenticated/_collections/collections.tsx:53
+#: src/app/routes/_authenticated/_collections/collections.tsx:365
 msgid "Collections"
 msgstr "Колекции"
 
@@ -1899,7 +1903,7 @@ msgstr "Преход към {0}"
 msgid "Tax Categories"
 msgstr "Данъчни категории"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:162
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:181
 msgid "Private collections are not visible in the shop"
 msgstr "В магазина не се виждат частни колекции"
 
@@ -1991,15 +1995,15 @@ msgstr "Неуспешно актуализиране на данъчната к
 msgid "Refund settled successfully"
 msgstr "Възстановяването е приключено успешно"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:152
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:102
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
@@ -2009,7 +2013,7 @@ msgstr "Възстановяването е приключено успешно"
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:278
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:242
-#: src/app/routes/_authenticated/_profile/profile.tsx:92
+#: src/app/routes/_authenticated/_profile/profile.tsx:93
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
@@ -2030,7 +2034,7 @@ msgstr "Заглавие 2"
 msgid "Order placed"
 msgstr "Поръчката е направена"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:71
+#: src/app/routes/_authenticated/_profile/profile.tsx:72
 msgid "Successfully updated profile"
 msgstr "Профилът е актуализиран успешно"
 
@@ -2094,7 +2098,7 @@ msgstr "Настройки на колони"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:132
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:142
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:127
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:208
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:179
@@ -2582,7 +2586,7 @@ msgstr "Данъчно резюме"
 msgid "Sets the languages that are available for all channels. Individual channels can then support a subset of these languages."
 msgstr "Задава езиците, които са налични за всички канали. След това отделните канали могат да поддържат подгрупа от тези езици."
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:119
+#: src/app/routes/_authenticated/_facets/facets.tsx:117
 msgid "Create your first facet"
 msgstr "Създайте първия си атрибут"
 
@@ -2696,7 +2700,7 @@ msgstr "Стойности"
 msgid "Customer set for order"
 msgstr "Клиентът е настроен за поръчка"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:38
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:39
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:36
 #: src/app/routes/_authenticated/_facets/facets.tsx:22
 #: src/app/routes/_authenticated/_facets/facets.tsx:30
@@ -2772,7 +2776,7 @@ msgstr "Канал по подразбиране"
 msgid "Insert a new image with source, title, and dimensions"
 msgstr "Вмъкване на ново изображение с източник, заглавие и размери"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:93
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:94
 msgid "Failed to create facet value"
 msgstr "Неуспешно създаване на стойност на аспекта"
 
@@ -2808,7 +2812,7 @@ msgstr "Забравена парола?"
 msgid "Schedule"
 msgstr "График"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:304
+#: src/app/routes/_authenticated/_collections/collections.tsx:307
 msgid "Cannot move a collection into its own descendant"
 msgstr "Не може да се премести колекция в собствен наследник"
 
@@ -2883,7 +2887,7 @@ msgstr "Преизчисляване на доставката"
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:39
 #: src/app/routes/_authenticated/_assets/assets.tsx:17
 #: src/app/routes/_authenticated/_assets/assets.tsx:40
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:229
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:248
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:508
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:381
 msgid "Assets"
@@ -2899,7 +2903,7 @@ msgstr "Това ще премахне всички групи опции от �
 msgid "Billing address"
 msgstr "Адрес за фактуриране"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:64
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:65
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:173
 msgid "Add facet value"
 msgstr "Добавете стойност на аспекта"
@@ -2942,6 +2946,10 @@ msgstr "Топ продукти"
 #: src/lib/components/shared/asset/asset-gallery.tsx:379
 msgid "All types"
 msgstr "Всички типове"
+
+#: src/app/routes/_authenticated/_collections/collections.tsx:404
+msgid "Collapse"
+msgstr "Свиване"
 
 #: src/app/routes/_authenticated/_orders/components/draft-order-status.tsx:29
 msgid "Only draft orders can be completed"
@@ -3002,7 +3010,7 @@ msgstr "Нов клиент"
 msgid "Image"
 msgstr "Изображение"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:77
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:78
 msgid "Successfully created administrator"
 msgstr "Успешно създаден администратор"
 
@@ -3031,7 +3039,7 @@ msgstr "Принудително премахване на група опции
 #~ msgid "Current"
 #~ msgstr "Текущ"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:140
+#: src/app/routes/_authenticated/_profile/profile.tsx:141
 msgid "Added"
 msgstr "Добавено"
 
@@ -3078,14 +3086,14 @@ msgstr "Общата сума за възстановяване надвишав
 msgid "Delete Global View"
 msgstr "Изтриване на глобалния изглед"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:152
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:163
@@ -3308,7 +3316,7 @@ msgstr "{0}"
 msgid "New Zone"
 msgstr "Нова зона"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:353
+#: src/app/routes/_authenticated/_collections/collections.tsx:356
 msgid "Failed to update collection position"
 msgstr "Неуспешно актуализиране на позицията на колекцията"
 
@@ -3478,7 +3486,7 @@ msgstr "Избери обработчик на плащания"
 msgid "Password reset links are only valid for a limited time. Request a new one to reset your password."
 msgstr "Връзките за нулиране на паролата са валидни само за ограничено време. Заявете нова, за да нулирате паролата си."
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:128
+#: src/app/routes/_authenticated/_profile/profile.tsx:129
 msgid "Authentication methods"
 msgstr "Методи за удостоверяване"
 
@@ -3522,7 +3530,7 @@ msgid "Processing..."
 msgstr "Обработка..."
 
 #. placeholder {0}: totalItems === 1 ? 'asset' : 'assets'
-#: src/lib/components/shared/asset/asset-gallery.tsx:465
+#: src/lib/components/shared/asset/asset-gallery.tsx:472
 msgid "{totalItems} {0} found"
 msgstr "Намерени {totalItems} {0}"
 
@@ -3587,7 +3595,7 @@ msgstr "Плъзнете, за да пренаредите"
 msgid "Zones"
 msgstr "Зони"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:111
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:112
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:151
 #: src/lib/components/shared/facet-value-selector.tsx:124
 msgid "Search facet values..."
@@ -3612,7 +3620,7 @@ msgid "{saleable} in stock"
 msgstr "{saleable} в наличност"
 
 #. placeholder {0}: Math.min(remaining, CHILDREN_PAGE_SIZE)
-#: src/app/routes/_authenticated/_collections/collections.tsx:503
+#: src/app/routes/_authenticated/_collections/collections.tsx:532
 msgid "Load {0} more ({remaining} remaining)"
 msgstr "Зареди още {0} ({remaining} оставащи)"
 
@@ -3703,7 +3711,7 @@ msgstr "Изберете адрес"
 msgid "Yes"
 msgstr "Да"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:179
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:198
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:259
 msgid "Slug"
 msgstr "Slug"
@@ -3906,8 +3914,8 @@ msgstr "Данък общо"
 msgid "Draft order status"
 msgstr "Статус на чернова на поръчка"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:147
-#: src/app/routes/_authenticated/_collections/components/collection-contents-table.tsx:79
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:167
+#: src/app/routes/_authenticated/_collections/components/collection-contents-table.tsx:80
 msgid "Search variants..."
 msgstr "Търсене на варианти..."
 
@@ -3919,7 +3927,7 @@ msgstr "Търсене на варианти..."
 msgid "Failed to create payment method"
 msgstr "Неуспешно създаване на метод на плащане"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:84
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:85
 msgid "Successfully created facet value"
 msgstr "Успешно създадена стойност на аспекта"
 
@@ -3983,8 +3991,8 @@ msgstr "Атрибутът е създаден успешно"
 msgid "No widgets to display. Use \"Edit Layout\" to add widgets."
 msgstr "Няма уиджети за показване. Използвайте „Редактирай оформлението“, за да добавите уиджети."
 
-#. placeholder {0}: row.original.productVariantCount
-#: src/app/routes/_authenticated/_collections/collections.tsx:432
+#. placeholder {0}: formatNumber(row.original.productVariantCount as number)
+#: src/app/routes/_authenticated/_collections/collections.tsx:456
 msgid "{0} variants"
 msgstr "{0} варианта"
 
@@ -3997,7 +4005,7 @@ msgstr "Неуспешно плащане"
 msgid "No billing address"
 msgstr "Няма адрес за фактуриране"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:119
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:120
 msgid "Facet"
 msgstr "Атрибут"
 
@@ -4130,8 +4138,8 @@ msgstr "Филтриране на варианти..."
 msgid "Add a price in another currency"
 msgstr "Добавете цена в друга валута"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
-#: src/app/routes/_authenticated/_profile/profile.tsx:114
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:128
+#: src/app/routes/_authenticated/_profile/profile.tsx:115
 msgid "Email Address or identifier"
 msgstr "Имейл адрес или идентификатор"
 
@@ -4246,7 +4254,7 @@ msgstr "Прегледът е дублиран успешно"
 msgid "Remove option group"
 msgstr "Премахване на група опции"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:194
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:213
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:76
 #: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:14
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
@@ -4320,7 +4328,7 @@ msgstr "Имейл"
 msgid "Filter"
 msgstr "Филтър"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:87
 msgid "Failed to update administrator"
 msgstr "Неуспешно актуализиране на администратора"
 
@@ -4600,7 +4608,7 @@ msgstr "Тази връзка е невалидна или е изтекла"
 #~ msgid "Insert link"
 #~ msgstr "Вмъкване на връзка"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:205
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:224
 msgid "If enabled, the filters will be inherited from the parent collection and combined with the filters set on this collection."
 msgstr "Ако е разрешено, филтрите ще бъдат наследени от родителската колекция и комбинирани с филтрите, зададени в тази колекция."
 
@@ -4864,7 +4872,7 @@ msgstr "Зареждане…"
 msgid "e.g., Red, Large, Cotton"
 msgstr "напр. Червено, Голямо, Памук"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:75
+#: src/app/routes/_authenticated/_profile/profile.tsx:76
 msgid "Failed to update profile"
 msgstr "Неуспешно актуализиране на профила"
 
@@ -4885,7 +4893,7 @@ msgstr "Изчистване на филтъра"
 msgid "Regions"
 msgstr "Региони"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:438
+#: src/lib/components/shared/asset/asset-gallery.tsx:445
 msgid "Drop files here to upload"
 msgstr "Пуснете файлове тук за качване"
 
@@ -4925,7 +4933,7 @@ msgstr "Неуспешно актуализиране на ролята"
 msgid "This is the only time the full API key will be displayed. Copy or download it now — it cannot be retrieved later."
 msgstr "Това е единственият път, в който пълният API key ще бъде показан. Копирайте го или го изтеглете сега — по-късно няма да може да бъде извлечен."
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:105
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:124
 msgid "Successfully updated collection"
 msgstr "Успешно актуализирана колекция"
 
@@ -4960,7 +4968,7 @@ msgstr "Кодът на купона е премахнат от поръчкат
 msgid "Never"
 msgstr "Никога"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:93
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:94
 msgid "Failed to update facet value"
 msgstr "Неуспешно актуализиране на стойността на аспекта"
 
@@ -5051,8 +5059,8 @@ msgstr "Нов метод на доставка"
 msgid "is greater than or equal to"
 msgstr "е по-голямо или равно на"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:81
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:92
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:99
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:113
 #: src/lib/components/shared/entity-assets.tsx:151
 msgid "Preview"
 msgstr "Преглед"
@@ -5252,7 +5260,7 @@ msgstr "Област / провинция"
 msgid "Enabled"
 msgstr "Активирано"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:476
+#: src/lib/components/shared/asset/asset-gallery.tsx:483
 msgid "Items per page"
 msgstr "Елементи на страница"
 
@@ -5367,7 +5375,7 @@ msgstr "Идентификатор"
 msgid "Select a fulfillment handler"
 msgstr "Избери обработчик на изпълнение"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:119
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:138
 msgid "Failed to update collection"
 msgstr "Неуспешно актуализиране на колекцията"
 
@@ -5453,9 +5461,9 @@ msgstr "Неуспешно актуализиране на варианта"
 msgid "Go to previous page"
 msgstr "Към предишната страница"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:255
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:258
-#: src/app/routes/_authenticated/_collections/collections.tsx:425
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278
+#: src/app/routes/_authenticated/_collections/collections.tsx:449
 msgid "Contents"
 msgstr "Съдържание"
 
@@ -5505,7 +5513,7 @@ msgstr "Неуспешно актуализиране на клиента"
 msgid "Remove option groups?"
 msgstr "Премахване на групи опции?"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:95
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:102
 msgid "This is a preview of the collection contents based on the current filter settings. Once you save the collection, the contents will be updated to reflect the new filter settings."
 msgstr "Това е визуализация на съдържанието на колекцията въз основа на текущите настройки на филтъра. След като запазите колекцията, съдържанието ще бъде актуализирано, за да отрази новите настройки на филтъра."
 
@@ -5582,7 +5590,7 @@ msgstr "Без повече аспекти"
 msgid "Search index rebuild started"
 msgstr "Стартира възстановяването на индекса за търсене"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:346
+#: src/app/routes/_authenticated/_collections/collections.tsx:349
 msgid "Collection position updated"
 msgstr "Позицията на колекцията е актуализирана"
 
@@ -5636,7 +5644,7 @@ msgstr "Токен"
 msgid "Fulfilling..."
 msgstr "Изпълнение..."
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:524
+#: src/app/routes/_authenticated/_collections/collections.tsx:554
 msgid "Search collections..."
 msgstr "Търсене на колекции..."
 
@@ -5691,7 +5699,7 @@ msgstr "Напишете и натиснете Enter или запетая за 
 msgid "Edit Note"
 msgstr "Редакция на бележка"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:628
+#: src/lib/components/shared/asset/asset-gallery.tsx:635
 msgid "No assets found. Try adjusting your filters."
 msgstr "Няма намерени ресурси. Опитайте да промените филтрите."
 
@@ -5711,7 +5719,7 @@ msgstr "Запазете група опции"
 msgid "Click \"Run Test\" to test this shipping method."
 msgstr "Щракнете върху „Изпълни тест“, за да тествате този метод на доставка."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:78
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:79
 msgid "Successfully updated administrator"
 msgstr "Успешно актуализиран администратор"
 
@@ -5781,7 +5789,7 @@ msgstr "пр. данък:"
 msgid "Successfully added option value"
 msgstr "Успешно добавена стойност на опцията"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:348
+#: src/app/routes/_authenticated/_collections/collections.tsx:351
 msgid "Collection moved to new parent"
 msgstr "Колекцията е преместена в нов родител"
 
@@ -5858,9 +5866,9 @@ msgstr "Нови стойности на аспекти за добавяне:"
 msgid "Failed to process refund"
 msgstr "Неуспешна обработка на възстановяване"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:115
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:116
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:176
-#: src/app/routes/_authenticated/_profile/profile.tsx:102
+#: src/app/routes/_authenticated/_profile/profile.tsx:103
 msgid "First name"
 msgstr "Първо име"
 
@@ -5931,8 +5939,8 @@ msgstr "Количество"
 msgid "Tax category"
 msgstr "Данъчна категория"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:38
-#: src/app/routes/_authenticated/_profile/profile.tsx:84
+#: src/app/routes/_authenticated/_profile/profile.tsx:39
+#: src/app/routes/_authenticated/_profile/profile.tsx:85
 #: src/lib/components/layout/nav-user.tsx:108
 msgid "Profile"
 msgstr "Профил"
@@ -6043,7 +6051,7 @@ msgstr "Метрики"
 msgid "Language"
 msgstr "Език"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:555
+#: src/app/routes/_authenticated/_collections/collections.tsx:585
 msgid "New Collection"
 msgstr "Нова колекция"
 
@@ -6088,8 +6096,8 @@ msgstr "{entityIdsLength} {entityType} успешно присвоен на ка
 msgid "Global Languages"
 msgstr "Глобални езици"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:97
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:39
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:98
 msgid "New administrator"
 msgstr "Нов администратор"
 
@@ -6199,6 +6207,10 @@ msgstr "{cancellableCount, plural, one {Сигурни ли сте, че иск�
 msgid "Total Revenue"
 msgstr "Общи приходи"
 
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:89
+msgid "Applying filters…"
+msgstr "Прилагане на филтрите…"
+
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:163
 msgid "Next Execution"
 msgstr "Следващо изпълнение"
@@ -6210,6 +6222,10 @@ msgstr "Продаваема наличност на или под {threshold} �
 #: src/lib/components/shared/history-timeline/history-note-checkbox.tsx:21
 msgid "Note is private"
 msgstr "Бележката е лична"
+
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:92
+msgid "The collection contents will refresh once the update has finished."
+msgstr "Съдържанието на колекцията ще се обнови, след като актуализацията приключи."
 
 #: src/lib/components/layout/language-dialog.tsx:124
 msgid "Medium date"
@@ -6244,7 +6260,7 @@ msgstr "Използвайте като адрес за доставка по п
 msgid "Edit slug manually"
 msgstr "Редактирайте slug ръчно"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:84
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:116
 msgid "Add filters to preview the collection contents."
 msgstr "Добавете филтри, за да прегледате съдържанието на колекцията."
 
@@ -6305,7 +6321,7 @@ msgstr "Търсене на складови местоположения..."
 msgid "Search assets..."
 msgstr "Търсене на ресурси..."
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:127
+#: src/app/routes/_authenticated/_facets/facets.tsx:125
 msgid "New Facet"
 msgstr "Нов аспект"
 
@@ -6427,7 +6443,7 @@ msgstr "Редове на страница"
 msgid "Loading collections..."
 msgstr "Колекциите се зареждат..."
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:84
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:85
 msgid "Successfully updated facet value"
 msgstr "Успешно актуализирана стойност на аспекта"
 
@@ -6732,7 +6748,7 @@ msgstr "Процес на поръчката"
 msgid "Phone number"
 msgstr "Телефонен номер"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:161
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:180
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:109
 #: src/lib/components/data-input/default-relation-input.tsx:247
 #: src/lib/components/data-input/default-relation-input.tsx:277

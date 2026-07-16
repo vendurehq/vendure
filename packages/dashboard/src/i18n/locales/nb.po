@@ -170,7 +170,7 @@ msgstr "Skattesats oppdatert"
 msgid "Enter custom reason..."
 msgstr "Skriv inn egendefinert grunn..."
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:744
+#: src/lib/components/shared/asset/asset-gallery.tsx:751
 msgid "Type"
 msgstr "Type"
 
@@ -187,8 +187,8 @@ msgid "Add more ({0} selected)"
 msgstr "Legg til flere ({0} valgt)"
 
 #: src/app/routes/_authenticated/_facets/facets.tsx:71
-msgid "View values"
-msgstr "Vis verdier"
+#~ msgid "View values"
+#~ msgstr "Vis verdier"
 
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx:214
 msgid "Delete row"
@@ -287,6 +287,10 @@ msgstr "Varenr.:"
 msgid "Add payment"
 msgstr "Legg til betaling"
 
+#: src/app/routes/_authenticated/_collections/collections.tsx:404
+msgid "Expand"
+msgstr "Utvid"
+
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-shipping-method-sheet.tsx:40
 msgid "Test this shipping method by simulating an order to see if it's eligible and what the shipping cost would be."
 msgstr "Test denne fraktmetoden ved å simulere en bestilling for å se om den er kvalifisert og hva fraktkostnaden ville være."
@@ -332,7 +336,7 @@ msgstr "Er du sikker på at du vil slette denne varianten?"
 #~ msgid "All resources are up and running"
 #~ msgstr "Alle ressurser er oppe og kjører"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:87
 msgid "Failed to create administrator"
 msgstr "Kunne ikke opprette administrator"
 
@@ -361,9 +365,9 @@ msgstr "Kunne ikke oppdatere land"
 msgid "Type at least 2 characters to search..."
 msgstr "Skriv minst 2 tegn for å søke..."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:121
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:122
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:182
-#: src/app/routes/_authenticated/_profile/profile.tsx:108
+#: src/app/routes/_authenticated/_profile/profile.tsx:109
 msgid "Last name"
 msgstr "Etternavn"
 
@@ -520,8 +524,8 @@ msgstr "Skattesats"
 msgid "Order draft isn't ready to be completed"
 msgstr "Ordreutkastet er ikke klart til å fullføres"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:48
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:137
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:52
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:156
 msgid "New collection"
 msgstr "Ny samling"
 
@@ -562,7 +566,7 @@ msgstr "Vi kunne ikke laste lagernivåene"
 msgid "City"
 msgstr "By"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:37
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:15
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:23
 msgid "Administrators"
@@ -603,7 +607,7 @@ msgstr "Antall bestillinger"
 msgid "Successfully updated order"
 msgstr "Bestilling oppdatert"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:203
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:222
 msgid "Inherit filters"
 msgstr "Arv filtre"
 
@@ -676,7 +680,7 @@ msgstr "Legger til..."
 msgid "Move Collections"
 msgstr "Flytt samlinger"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:139
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:140
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:57
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:170
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
@@ -783,8 +787,8 @@ msgstr "Kunne ikke angi fraktmetode for bestillingen: {0}"
 msgid "Filter..."
 msgstr "Filtrer..."
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:40
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:102
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:41
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:103
 msgid "New facet value"
 msgstr "Ny fasettverdi"
 
@@ -845,11 +849,11 @@ msgstr "Fullfør utkast"
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:47
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:165
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:173
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:192
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:104
 #: src/app/routes/_authenticated/_customers/customers.tsx:73
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:131
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:136
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:121
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:202
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:173
@@ -863,7 +867,7 @@ msgstr "Fullfør utkast"
 #: src/app/routes/_authenticated/_tax-categories/tax-categories_.$id.tsx:106
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:113
 #: src/app/routes/_authenticated/_zones/zones_.$id.tsx:93
-#: src/lib/components/shared/asset/asset-gallery.tsx:743
+#: src/lib/components/shared/asset/asset-gallery.tsx:750
 msgid "Name"
 msgstr "Navn"
 
@@ -903,7 +907,7 @@ msgstr "Oppfyllelse opprettet"
 msgid "Found {0} eligible shipping method{1}"
 msgstr "Fant {0} kvalifiserte fraktmetode(r)"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:746
+#: src/lib/components/shared/asset/asset-gallery.tsx:753
 #: src/lib/components/shared/asset/asset-properties.tsx:39
 msgid "Dimensions"
 msgstr "Dimensjoner"
@@ -964,7 +968,7 @@ msgstr "Bekreft"
 msgid "Failed to complete draft order: {0}"
 msgstr "Kunne ikke fullføre bestillingsutkastet: {0}"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:119
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:138
 msgid "Failed to create collection"
 msgstr "Kunne ikke opprette samling"
 
@@ -1059,9 +1063,9 @@ msgstr "Omsetning"
 msgid "Failed to update zone"
 msgstr "Kunne ikke oppdatere sone"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:133
-#: src/app/routes/_authenticated/_profile/profile.tsx:120
-#: src/app/routes/_authenticated/_profile/profile.tsx:137
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:134
+#: src/app/routes/_authenticated/_profile/profile.tsx:121
+#: src/app/routes/_authenticated/_profile/profile.tsx:138
 #: src/lib/components/login/login-form.tsx:94
 msgid "Password"
 msgstr "Passord"
@@ -1158,7 +1162,7 @@ msgstr "Utforsk Platform & Cloud"
 msgid "Every 5 seconds"
 msgstr "Hvert 5. sekund"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:105
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:124
 msgid "Successfully created collection"
 msgstr "Samling opprettet"
 
@@ -1287,7 +1291,7 @@ msgstr "Regenerer slug fra kildefelt"
 msgid "Inherit from global settings"
 msgstr "Arv fra globale innstillinger"
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:79
+#: src/app/routes/_authenticated/_facets/facets.tsx:77
 msgid "Search facets..."
 msgstr "Søk etter fasetter..."
 
@@ -1365,7 +1369,7 @@ msgid "No items selected"
 msgstr "Ingen varer valgt"
 
 #. placeholder {0}: selected.length
-#: src/lib/components/shared/asset/asset-gallery.tsx:469
+#: src/lib/components/shared/asset/asset-gallery.tsx:476
 msgid ", {0} selected"
 msgstr ", {0} valgt"
 
@@ -1597,7 +1601,7 @@ msgstr "før"
 msgid "Failed to set customer for order: {0}"
 msgstr "Kunne ikke angi kunde for bestillingen: {0}"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:745
+#: src/lib/components/shared/asset/asset-gallery.tsx:752
 msgid "Size"
 msgstr "Størrelse"
 
@@ -1618,7 +1622,7 @@ msgstr "Siste bestillinger"
 msgid "Go back"
 msgstr "Gå tilbake"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:452
+#: src/app/routes/_authenticated/_collections/collections.tsx:478
 msgid "+ {leftOver} more"
 msgstr "+ {leftOver} flere"
 
@@ -1678,7 +1682,7 @@ msgstr "Tilgjengelig"
 msgid "Normal"
 msgstr "Normal"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:199
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:218
 msgid "Filters"
 msgstr "Filtre"
 
@@ -1710,7 +1714,7 @@ msgstr "Ny opsjon"
 msgid "Usage limit"
 msgstr "Bruksgrense"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:547
+#: src/app/routes/_authenticated/_collections/collections.tsx:577
 msgid "Create your first collection"
 msgstr "Opprett din første samling"
 
@@ -1724,7 +1728,7 @@ msgstr "Adresse oppdatert"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:126
-#: src/lib/components/shared/asset/asset-gallery.tsx:747
+#: src/lib/components/shared/asset/asset-gallery.tsx:754
 #: src/lib/framework/layout-engine/page-layout.tsx:746
 msgid "Created"
 msgstr "Opprettet"
@@ -1840,9 +1844,9 @@ msgstr "Delvis refusjon fullført"
 msgid "Set custom fields"
 msgstr "Sett egendefinerte felt"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:47
-#: src/app/routes/_authenticated/_collections/collections.tsx:51
-#: src/app/routes/_authenticated/_collections/collections.tsx:362
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:49
+#: src/app/routes/_authenticated/_collections/collections.tsx:53
+#: src/app/routes/_authenticated/_collections/collections.tsx:365
 msgid "Collections"
 msgstr "Samlinger"
 
@@ -1887,7 +1891,7 @@ msgstr "Gå over til {0}"
 msgid "Tax Categories"
 msgstr "Skattekategorier"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:162
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:181
 msgid "Private collections are not visible in the shop"
 msgstr "Private samlinger er ikke synlige i butikken"
 
@@ -1976,15 +1980,15 @@ msgstr "Kunne ikke oppdatere skattekategori"
 msgid "Refund settled successfully"
 msgstr "Refusjon gjennomført"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:152
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:102
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
@@ -1994,7 +1998,7 @@ msgstr "Refusjon gjennomført"
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:278
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:242
-#: src/app/routes/_authenticated/_profile/profile.tsx:92
+#: src/app/routes/_authenticated/_profile/profile.tsx:93
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
@@ -2015,7 +2019,7 @@ msgstr "Overskrift 2"
 msgid "Order placed"
 msgstr "Bestilling lagt inn"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:71
+#: src/app/routes/_authenticated/_profile/profile.tsx:72
 msgid "Successfully updated profile"
 msgstr "Profil oppdatert"
 
@@ -2079,7 +2083,7 @@ msgstr "Kolonneinnstillinger"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:132
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:142
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:127
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:208
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:179
@@ -2564,7 +2568,7 @@ msgstr "Skatteoppsummering"
 msgid "Sets the languages that are available for all channels. Individual channels can then support a subset of these languages."
 msgstr "Setter språkene som er tilgjengelige for alle kanaler. Individuelle kanaler kan deretter støtte en delmengde av disse språkene."
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:119
+#: src/app/routes/_authenticated/_facets/facets.tsx:117
 msgid "Create your first facet"
 msgstr "Opprett din første fasett"
 
@@ -2678,7 +2682,7 @@ msgstr "Verdier"
 msgid "Customer set for order"
 msgstr "Kunde satt for bestilling"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:38
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:39
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:36
 #: src/app/routes/_authenticated/_facets/facets.tsx:22
 #: src/app/routes/_authenticated/_facets/facets.tsx:30
@@ -2754,7 +2758,7 @@ msgstr "Standardkanal"
 msgid "Insert a new image with source, title, and dimensions"
 msgstr "Sett inn et nytt bilde med kilde, tittel og dimensjoner"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:93
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:94
 msgid "Failed to create facet value"
 msgstr "Kunne ikke opprette fasettverdi"
 
@@ -2791,7 +2795,7 @@ msgstr "Glemt passordet ditt?"
 msgid "Schedule"
 msgstr "Tidsplan"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:304
+#: src/app/routes/_authenticated/_collections/collections.tsx:307
 msgid "Cannot move a collection into its own descendant"
 msgstr "Kan ikke flytte en samling til sin egen undergruppe"
 
@@ -2866,7 +2870,7 @@ msgstr "Beregn frakt på nytt"
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:39
 #: src/app/routes/_authenticated/_assets/assets.tsx:17
 #: src/app/routes/_authenticated/_assets/assets.tsx:40
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:229
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:248
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:508
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:381
 msgid "Assets"
@@ -2882,7 +2886,7 @@ msgstr "Dette vil fjerne alle opsjonsgrupper fra dette produktet og returnere ti
 msgid "Billing address"
 msgstr "Fakturaadresse"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:64
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:65
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:173
 msgid "Add facet value"
 msgstr "Legg til fasettverdi"
@@ -2925,6 +2929,10 @@ msgstr "Topprodukter"
 #: src/lib/components/shared/asset/asset-gallery.tsx:379
 msgid "All types"
 msgstr "Alle typer"
+
+#: src/app/routes/_authenticated/_collections/collections.tsx:404
+msgid "Collapse"
+msgstr "Skjul"
 
 #: src/app/routes/_authenticated/_orders/components/draft-order-status.tsx:29
 msgid "Only draft orders can be completed"
@@ -2985,7 +2993,7 @@ msgstr "Ny kunde"
 msgid "Image"
 msgstr "Bilde"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:77
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:78
 msgid "Successfully created administrator"
 msgstr "Administrator opprettet"
 
@@ -3011,7 +3019,7 @@ msgstr "Er du sikker på at du vil slette denne globale visningen? Denne handlin
 msgid "Force remove option group"
 msgstr "Tving fjerning av alternativgruppe"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:140
+#: src/app/routes/_authenticated/_profile/profile.tsx:141
 msgid "Added"
 msgstr "Lagt til"
 
@@ -3058,14 +3066,14 @@ msgstr "Total refusjon overstiger maksimalt refunderbart beløp på {0}"
 msgid "Delete Global View"
 msgstr "Slett global visning"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:152
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:163
@@ -3288,7 +3296,7 @@ msgstr "{0}"
 msgid "New Zone"
 msgstr "Ny sone"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:353
+#: src/app/routes/_authenticated/_collections/collections.tsx:356
 msgid "Failed to update collection position"
 msgstr "Kunne ikke oppdatere samlingsposisjon"
 
@@ -3458,7 +3466,7 @@ msgstr "Velg betalingshåndterer"
 msgid "Password reset links are only valid for a limited time. Request a new one to reset your password."
 msgstr "Lenker for tilbakestilling av passord er bare gyldige i en begrenset periode. Be om en ny for å tilbakestille passordet ditt."
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:128
+#: src/app/routes/_authenticated/_profile/profile.tsx:129
 msgid "Authentication methods"
 msgstr "Autentiseringsmetoder"
 
@@ -3502,7 +3510,7 @@ msgid "Processing..."
 msgstr "Behandler..."
 
 #. placeholder {0}: totalItems === 1 ? 'asset' : 'assets'
-#: src/lib/components/shared/asset/asset-gallery.tsx:465
+#: src/lib/components/shared/asset/asset-gallery.tsx:472
 msgid "{totalItems} {0} found"
 msgstr "{totalItems} {0} funnet"
 
@@ -3567,7 +3575,7 @@ msgstr "Dra for å endre rekkefølge"
 msgid "Zones"
 msgstr "Soner"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:111
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:112
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:151
 #: src/lib/components/shared/facet-value-selector.tsx:124
 msgid "Search facet values..."
@@ -3592,7 +3600,7 @@ msgid "{saleable} in stock"
 msgstr "{saleable} på lager"
 
 #. placeholder {0}: Math.min(remaining, CHILDREN_PAGE_SIZE)
-#: src/app/routes/_authenticated/_collections/collections.tsx:503
+#: src/app/routes/_authenticated/_collections/collections.tsx:532
 msgid "Load {0} more ({remaining} remaining)"
 msgstr "Last {0} flere ({remaining} gjenstår)"
 
@@ -3683,7 +3691,7 @@ msgstr "Velg en adresse"
 msgid "Yes"
 msgstr "Ja"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:179
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:198
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:259
 msgid "Slug"
 msgstr "Slug"
@@ -3886,8 +3894,8 @@ msgstr "Mva totalt"
 msgid "Draft order status"
 msgstr "Utkast til ordrestatus"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:147
-#: src/app/routes/_authenticated/_collections/components/collection-contents-table.tsx:79
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:167
+#: src/app/routes/_authenticated/_collections/components/collection-contents-table.tsx:80
 msgid "Search variants..."
 msgstr "Søk etter varianter..."
 
@@ -3899,7 +3907,7 @@ msgstr "Søk etter varianter..."
 msgid "Failed to create payment method"
 msgstr "Kunne ikke opprette betalingsmetode"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:84
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:85
 msgid "Successfully created facet value"
 msgstr "Fasettverdi opprettet"
 
@@ -3963,8 +3971,8 @@ msgstr "Fasett opprettet"
 msgid "No widgets to display. Use \"Edit Layout\" to add widgets."
 msgstr "Ingen widgeter å vise. Bruk «Rediger oppsett» for å legge til widgeter."
 
-#. placeholder {0}: row.original.productVariantCount
-#: src/app/routes/_authenticated/_collections/collections.tsx:432
+#. placeholder {0}: formatNumber(row.original.productVariantCount as number)
+#: src/app/routes/_authenticated/_collections/collections.tsx:456
 msgid "{0} variants"
 msgstr "{0} varianter"
 
@@ -3977,7 +3985,7 @@ msgstr "Kunne ikke gjennomføre betaling"
 msgid "No billing address"
 msgstr "Ingen fakturaadresse"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:119
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:120
 msgid "Facet"
 msgstr "Fasett"
 
@@ -4110,8 +4118,8 @@ msgstr "Filtrer varianter..."
 msgid "Add a price in another currency"
 msgstr "Legg til en pris i en annen valuta"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
-#: src/app/routes/_authenticated/_profile/profile.tsx:114
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:128
+#: src/app/routes/_authenticated/_profile/profile.tsx:115
 msgid "Email Address or identifier"
 msgstr "E-postadresse eller identifikator"
 
@@ -4226,7 +4234,7 @@ msgstr "Visning duplisert"
 msgid "Remove option group"
 msgstr "Fjern alternativgruppe"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:194
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:213
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:76
 #: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:14
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
@@ -4300,7 +4308,7 @@ msgstr "E-post"
 msgid "Filter"
 msgstr "Filtrer"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:87
 msgid "Failed to update administrator"
 msgstr "Kunne ikke oppdatere administrator"
 
@@ -4577,7 +4585,7 @@ msgstr "Denne lenken er ugyldig eller har utløpt"
 #~ msgid "Insert link"
 #~ msgstr "Sett inn lenke"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:205
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:224
 msgid "If enabled, the filters will be inherited from the parent collection and combined with the filters set on this collection."
 msgstr "Hvis aktivert, vil filtrene arves fra overordnet samling og kombineres med filtrene satt på denne samlingen."
 
@@ -4838,7 +4846,7 @@ msgstr "Laster…"
 msgid "e.g., Red, Large, Cotton"
 msgstr "f.eks. Rød, Stor, Bomull"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:75
+#: src/app/routes/_authenticated/_profile/profile.tsx:76
 msgid "Failed to update profile"
 msgstr "Kunne ikke oppdatere profil"
 
@@ -4859,7 +4867,7 @@ msgstr "Tøm filter"
 msgid "Regions"
 msgstr "Regioner"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:438
+#: src/lib/components/shared/asset/asset-gallery.tsx:445
 msgid "Drop files here to upload"
 msgstr "Slipp filer her for å laste opp"
 
@@ -4899,7 +4907,7 @@ msgstr "Kunne ikke oppdatere rolle"
 msgid "This is the only time the full API key will be displayed. Copy or download it now — it cannot be retrieved later."
 msgstr "Dette er den eneste gangen den fullstendige API-nøkkelen vil vises. Kopier eller last den ned nå — den kan ikke hentes frem igjen senere."
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:105
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:124
 msgid "Successfully updated collection"
 msgstr "Samling oppdatert"
 
@@ -4934,7 +4942,7 @@ msgstr "Kupongkode fjernet fra bestilling"
 msgid "Never"
 msgstr "Aldri"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:93
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:94
 msgid "Failed to update facet value"
 msgstr "Kunne ikke oppdatere fasettverdi"
 
@@ -5025,8 +5033,8 @@ msgstr "Ny fraktmetode"
 msgid "is greater than or equal to"
 msgstr "er større enn eller lik"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:81
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:92
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:99
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:113
 #: src/lib/components/shared/entity-assets.tsx:151
 msgid "Preview"
 msgstr "Forhåndsvisning"
@@ -5223,7 +5231,7 @@ msgstr "Stat / Fylke"
 msgid "Enabled"
 msgstr "Aktivert"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:476
+#: src/lib/components/shared/asset/asset-gallery.tsx:483
 msgid "Items per page"
 msgstr "Elementer per side"
 
@@ -5338,7 +5346,7 @@ msgstr "Identifikator"
 msgid "Select a fulfillment handler"
 msgstr "Velg en håndterer for ordreoppfyllelse"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:119
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:138
 msgid "Failed to update collection"
 msgstr "Kunne ikke oppdatere samling"
 
@@ -5424,9 +5432,9 @@ msgstr "Kunne ikke oppdatere varianten"
 msgid "Go to previous page"
 msgstr "Gå til forrige side"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:255
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:258
-#: src/app/routes/_authenticated/_collections/collections.tsx:425
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278
+#: src/app/routes/_authenticated/_collections/collections.tsx:449
 msgid "Contents"
 msgstr "Innhold"
 
@@ -5476,7 +5484,7 @@ msgstr "Kunne ikke oppdatere kunde"
 msgid "Remove option groups?"
 msgstr "Fjerne opsjonsgrupper?"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:95
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:102
 msgid "This is a preview of the collection contents based on the current filter settings. Once you save the collection, the contents will be updated to reflect the new filter settings."
 msgstr "Dette er en forhåndsvisning av samlingens innhold basert på gjeldende filterinnstillinger. Når du lagrer samlingen, vil innholdet bli oppdatert for å gjenspeile de nye filterinnstillingene."
 
@@ -5553,7 +5561,7 @@ msgstr "Ingen flere fasetter"
 msgid "Search index rebuild started"
 msgstr "Gjenoppbygging av søkeindeks startet"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:346
+#: src/app/routes/_authenticated/_collections/collections.tsx:349
 msgid "Collection position updated"
 msgstr "Samlingsposisjon oppdatert"
 
@@ -5607,7 +5615,7 @@ msgstr "Token"
 msgid "Fulfilling..."
 msgstr "Oppfyller..."
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:524
+#: src/app/routes/_authenticated/_collections/collections.tsx:554
 msgid "Search collections..."
 msgstr "Søk etter samlinger..."
 
@@ -5662,7 +5670,7 @@ msgstr "Skriv og trykk Enter eller komma for å legge til..."
 msgid "Edit Note"
 msgstr "Rediger notat"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:628
+#: src/lib/components/shared/asset/asset-gallery.tsx:635
 msgid "No assets found. Try adjusting your filters."
 msgstr "Ingen ressurser funnet. Prøv å justere filtrene dine."
 
@@ -5682,7 +5690,7 @@ msgstr "Lagre opsjonsgruppe"
 msgid "Click \"Run Test\" to test this shipping method."
 msgstr "Klikk \"Kjør test\" for å teste denne fraktmetoden."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:78
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:79
 msgid "Successfully updated administrator"
 msgstr "Administrator oppdatert"
 
@@ -5752,7 +5760,7 @@ msgstr "ekskl. mva:"
 msgid "Successfully added option value"
 msgstr "Opsjonsverdi lagt til"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:348
+#: src/app/routes/_authenticated/_collections/collections.tsx:351
 msgid "Collection moved to new parent"
 msgstr "Samling flyttet til ny overordnet"
 
@@ -5826,9 +5834,9 @@ msgstr "Nye fasettverdier å legge til:"
 msgid "Failed to process refund"
 msgstr "Kunne ikke behandle refusjon"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:115
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:116
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:176
-#: src/app/routes/_authenticated/_profile/profile.tsx:102
+#: src/app/routes/_authenticated/_profile/profile.tsx:103
 msgid "First name"
 msgstr "Fornavn"
 
@@ -5899,8 +5907,8 @@ msgstr "Antall"
 msgid "Tax category"
 msgstr "Skattekategori"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:38
-#: src/app/routes/_authenticated/_profile/profile.tsx:84
+#: src/app/routes/_authenticated/_profile/profile.tsx:39
+#: src/app/routes/_authenticated/_profile/profile.tsx:85
 #: src/lib/components/layout/nav-user.tsx:108
 msgid "Profile"
 msgstr "Profil"
@@ -6011,7 +6019,7 @@ msgstr "Beregninger"
 msgid "Language"
 msgstr "Språk"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:555
+#: src/app/routes/_authenticated/_collections/collections.tsx:585
 msgid "New Collection"
 msgstr "Ny samling"
 
@@ -6056,8 +6064,8 @@ msgstr "Tildelte {entityIdsLength} {entityType} til kanal"
 msgid "Global Languages"
 msgstr "Globale språk"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:97
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:39
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:98
 msgid "New administrator"
 msgstr "Ny administrator"
 
@@ -6167,6 +6175,10 @@ msgstr "{cancellableCount, plural, one {Er du sikker på at du vil avbryte {canc
 msgid "Total Revenue"
 msgstr "Totale inntekter"
 
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:89
+msgid "Applying filters…"
+msgstr "Bruker filtre…"
+
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:163
 msgid "Next Execution"
 msgstr "Neste utførelse"
@@ -6178,6 +6190,10 @@ msgstr "Salgbar lagerbeholdning på eller under {threshold}, fra et utvalg på {
 #: src/lib/components/shared/history-timeline/history-note-checkbox.tsx:21
 msgid "Note is private"
 msgstr "Notat er privat"
+
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:92
+msgid "The collection contents will refresh once the update has finished."
+msgstr "Innholdet i kolleksjonen oppdateres når oppdateringen er fullført."
 
 #: src/lib/components/layout/language-dialog.tsx:124
 msgid "Medium date"
@@ -6212,7 +6228,7 @@ msgstr "Bruk som standard leveringsadresse"
 msgid "Edit slug manually"
 msgstr "Rediger slug manuelt"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:84
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:116
 msgid "Add filters to preview the collection contents."
 msgstr "Legg til filtre for å forhåndsvise samlingens innhold."
 
@@ -6273,7 +6289,7 @@ msgstr "Søk etter lagerlokasjoner..."
 msgid "Search assets..."
 msgstr "Søk etter ressurser..."
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:127
+#: src/app/routes/_authenticated/_facets/facets.tsx:125
 msgid "New Facet"
 msgstr "Ny fasett"
 
@@ -6392,7 +6408,7 @@ msgstr "Rader per side"
 msgid "Loading collections..."
 msgstr "Laster samlinger..."
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:84
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:85
 msgid "Successfully updated facet value"
 msgstr "Fasettverdi oppdatert"
 
@@ -6695,7 +6711,7 @@ msgstr "Ordreprosess"
 msgid "Phone number"
 msgstr "Telefonnummer"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:161
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:180
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:109
 #: src/lib/components/data-input/default-relation-input.tsx:247
 #: src/lib/components/data-input/default-relation-input.tsx:277

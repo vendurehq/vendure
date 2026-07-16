@@ -170,7 +170,7 @@ msgstr "税率を更新しました"
 msgid "Enter custom reason..."
 msgstr "カスタム理由を入力..."
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:744
+#: src/lib/components/shared/asset/asset-gallery.tsx:751
 msgid "Type"
 msgstr "タイプ"
 
@@ -187,8 +187,8 @@ msgid "Add more ({0} selected)"
 msgstr "さらに追加（{0}件選択中）"
 
 #: src/app/routes/_authenticated/_facets/facets.tsx:71
-msgid "View values"
-msgstr "値を表示"
+#~ msgid "View values"
+#~ msgstr "値を表示"
 
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx:214
 msgid "Delete row"
@@ -287,6 +287,10 @@ msgstr "SKU:"
 msgid "Add payment"
 msgstr "支払いを追加"
 
+#: src/app/routes/_authenticated/_collections/collections.tsx:404
+msgid "Expand"
+msgstr "展開"
+
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-shipping-method-sheet.tsx:40
 msgid "Test this shipping method by simulating an order to see if it's eligible and what the shipping cost would be."
 msgstr "注文をシミュレートしてこの配送方法が適格かどうか、配送料がいくらになるかをテストします。"
@@ -332,7 +336,7 @@ msgstr "このバリエーションを削除してもよろしいですか？"
 #~ msgid "All resources are up and running"
 #~ msgstr "すべてのリソースが稼働中です"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:87
 msgid "Failed to create administrator"
 msgstr "管理者の作成に失敗しました"
 
@@ -361,9 +365,9 @@ msgstr "国の更新に失敗しました"
 msgid "Type at least 2 characters to search..."
 msgstr "検索するには少なくとも2文字を入力してください..."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:121
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:122
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:182
-#: src/app/routes/_authenticated/_profile/profile.tsx:108
+#: src/app/routes/_authenticated/_profile/profile.tsx:109
 msgid "Last name"
 msgstr "姓"
 
@@ -520,8 +524,8 @@ msgstr "税率"
 msgid "Order draft isn't ready to be completed"
 msgstr "注文の下書きは完了準備ができていません"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:48
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:137
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:52
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:156
 msgid "New collection"
 msgstr "新しいコレクション"
 
@@ -562,7 +566,7 @@ msgstr "在庫レベルを読み込めませんでした"
 msgid "City"
 msgstr "市区町村"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:37
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:15
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:23
 msgid "Administrators"
@@ -603,7 +607,7 @@ msgstr "注文数"
 msgid "Successfully updated order"
 msgstr "注文を更新しました"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:203
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:222
 msgid "Inherit filters"
 msgstr "フィルターを継承"
 
@@ -676,7 +680,7 @@ msgstr "追加中..."
 msgid "Move Collections"
 msgstr "コレクションを移動"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:139
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:140
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:57
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:170
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
@@ -783,8 +787,8 @@ msgstr "注文の配送方法の設定に失敗しました: {0}"
 msgid "Filter..."
 msgstr "フィルター..."
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:40
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:102
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:41
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:103
 msgid "New facet value"
 msgstr "新しいファセット値"
 
@@ -845,11 +849,11 @@ msgstr "下書きを完了"
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:47
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:165
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:173
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:192
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:104
 #: src/app/routes/_authenticated/_customers/customers.tsx:73
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:131
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:136
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:121
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:202
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:173
@@ -863,7 +867,7 @@ msgstr "下書きを完了"
 #: src/app/routes/_authenticated/_tax-categories/tax-categories_.$id.tsx:106
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:113
 #: src/app/routes/_authenticated/_zones/zones_.$id.tsx:93
-#: src/lib/components/shared/asset/asset-gallery.tsx:743
+#: src/lib/components/shared/asset/asset-gallery.tsx:750
 msgid "Name"
 msgstr "名前"
 
@@ -903,7 +907,7 @@ msgstr "フルフィルメントを作成しました"
 msgid "Found {0} eligible shipping method{1}"
 msgstr "{0}個の適格な配送方法が見つかりました"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:746
+#: src/lib/components/shared/asset/asset-gallery.tsx:753
 #: src/lib/components/shared/asset/asset-properties.tsx:39
 msgid "Dimensions"
 msgstr "サイズ"
@@ -964,7 +968,7 @@ msgstr "確認"
 msgid "Failed to complete draft order: {0}"
 msgstr "下書き注文の完了に失敗しました: {0}"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:119
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:138
 msgid "Failed to create collection"
 msgstr "コレクションの作成に失敗しました"
 
@@ -1059,9 +1063,9 @@ msgstr "売上"
 msgid "Failed to update zone"
 msgstr "ゾーンの更新に失敗しました"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:133
-#: src/app/routes/_authenticated/_profile/profile.tsx:120
-#: src/app/routes/_authenticated/_profile/profile.tsx:137
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:134
+#: src/app/routes/_authenticated/_profile/profile.tsx:121
+#: src/app/routes/_authenticated/_profile/profile.tsx:138
 #: src/lib/components/login/login-form.tsx:94
 msgid "Password"
 msgstr "パスワード"
@@ -1158,7 +1162,7 @@ msgstr "Platform & Cloud を探索"
 msgid "Every 5 seconds"
 msgstr "5秒ごと"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:105
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:124
 msgid "Successfully created collection"
 msgstr "コレクションを作成しました"
 
@@ -1287,7 +1291,7 @@ msgstr "ソースフィールドからスラッグを再生成"
 msgid "Inherit from global settings"
 msgstr "グローバル設定から継承"
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:79
+#: src/app/routes/_authenticated/_facets/facets.tsx:77
 msgid "Search facets..."
 msgstr "ファセットを検索..."
 
@@ -1365,7 +1369,7 @@ msgid "No items selected"
 msgstr "アイテムが選択されていません"
 
 #. placeholder {0}: selected.length
-#: src/lib/components/shared/asset/asset-gallery.tsx:469
+#: src/lib/components/shared/asset/asset-gallery.tsx:476
 msgid ", {0} selected"
 msgstr "、{0} 件選択中"
 
@@ -1597,7 +1601,7 @@ msgstr "以前"
 msgid "Failed to set customer for order: {0}"
 msgstr "注文の顧客の設定に失敗しました: {0}"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:745
+#: src/lib/components/shared/asset/asset-gallery.tsx:752
 msgid "Size"
 msgstr "サイズ"
 
@@ -1618,7 +1622,7 @@ msgstr "最新の注文"
 msgid "Go back"
 msgstr "戻る"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:452
+#: src/app/routes/_authenticated/_collections/collections.tsx:478
 msgid "+ {leftOver} more"
 msgstr "+ {leftOver} 件"
 
@@ -1678,7 +1682,7 @@ msgstr "利用可能"
 msgid "Normal"
 msgstr "通常"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:199
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:218
 msgid "Filters"
 msgstr "フィルター"
 
@@ -1710,7 +1714,7 @@ msgstr "新しいオプション"
 msgid "Usage limit"
 msgstr "使用制限"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:547
+#: src/app/routes/_authenticated/_collections/collections.tsx:577
 msgid "Create your first collection"
 msgstr "最初のコレクションを作成しましょう"
 
@@ -1724,7 +1728,7 @@ msgstr "住所を更新しました"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:126
-#: src/lib/components/shared/asset/asset-gallery.tsx:747
+#: src/lib/components/shared/asset/asset-gallery.tsx:754
 #: src/lib/framework/layout-engine/page-layout.tsx:746
 msgid "Created"
 msgstr "作成日時"
@@ -1840,9 +1844,9 @@ msgstr "一部返金が完了しました"
 msgid "Set custom fields"
 msgstr "カスタムフィールドを設定"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:47
-#: src/app/routes/_authenticated/_collections/collections.tsx:51
-#: src/app/routes/_authenticated/_collections/collections.tsx:362
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:49
+#: src/app/routes/_authenticated/_collections/collections.tsx:53
+#: src/app/routes/_authenticated/_collections/collections.tsx:365
 msgid "Collections"
 msgstr "コレクション"
 
@@ -1887,7 +1891,7 @@ msgstr "{0}に遷移"
 msgid "Tax Categories"
 msgstr "税カテゴリ"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:162
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:181
 msgid "Private collections are not visible in the shop"
 msgstr "非公開コレクションはショップに表示されません"
 
@@ -1976,15 +1980,15 @@ msgstr "税カテゴリの更新に失敗しました"
 msgid "Refund settled successfully"
 msgstr "返金を決済しました"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:152
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:102
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
@@ -1994,7 +1998,7 @@ msgstr "返金を決済しました"
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:278
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:242
-#: src/app/routes/_authenticated/_profile/profile.tsx:92
+#: src/app/routes/_authenticated/_profile/profile.tsx:93
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
@@ -2015,7 +2019,7 @@ msgstr "見出し2"
 msgid "Order placed"
 msgstr "注文を確定しました"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:71
+#: src/app/routes/_authenticated/_profile/profile.tsx:72
 msgid "Successfully updated profile"
 msgstr "プロフィールを更新しました"
 
@@ -2079,7 +2083,7 @@ msgstr "列の設定"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:132
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:142
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:127
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:208
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:179
@@ -2564,7 +2568,7 @@ msgstr "税の概要"
 msgid "Sets the languages that are available for all channels. Individual channels can then support a subset of these languages."
 msgstr "すべてのチャネルで利用可能な言語を設定します。個々のチャネルは、これらの言語のサブセットをサポートできます。"
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:119
+#: src/app/routes/_authenticated/_facets/facets.tsx:117
 msgid "Create your first facet"
 msgstr "最初のファセットを作成しましょう"
 
@@ -2678,7 +2682,7 @@ msgstr "値"
 msgid "Customer set for order"
 msgstr "注文に顧客を設定しました"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:38
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:39
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:36
 #: src/app/routes/_authenticated/_facets/facets.tsx:22
 #: src/app/routes/_authenticated/_facets/facets.tsx:30
@@ -2754,7 +2758,7 @@ msgstr "デフォルトチャネル"
 msgid "Insert a new image with source, title, and dimensions"
 msgstr "ソース、タイトル、サイズを指定して新しい画像を挿入"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:93
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:94
 msgid "Failed to create facet value"
 msgstr "ファセット値の作成に失敗しました"
 
@@ -2791,7 +2795,7 @@ msgstr "パスワードをお忘れですか？"
 msgid "Schedule"
 msgstr "スケジュール"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:304
+#: src/app/routes/_authenticated/_collections/collections.tsx:307
 msgid "Cannot move a collection into its own descendant"
 msgstr "コレクションを自身の子孫に移動することはできません"
 
@@ -2866,7 +2870,7 @@ msgstr "送料を再計算"
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:39
 #: src/app/routes/_authenticated/_assets/assets.tsx:17
 #: src/app/routes/_authenticated/_assets/assets.tsx:40
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:229
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:248
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:508
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:381
 msgid "Assets"
@@ -2882,7 +2886,7 @@ msgstr "この商品からすべてのオプショングループが削除され
 msgid "Billing address"
 msgstr "請求先住所"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:64
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:65
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:173
 msgid "Add facet value"
 msgstr "ファセット値を追加"
@@ -2925,6 +2929,10 @@ msgstr "人気商品"
 #: src/lib/components/shared/asset/asset-gallery.tsx:379
 msgid "All types"
 msgstr "すべてのタイプ"
+
+#: src/app/routes/_authenticated/_collections/collections.tsx:404
+msgid "Collapse"
+msgstr "折りたたむ"
 
 #: src/app/routes/_authenticated/_orders/components/draft-order-status.tsx:29
 msgid "Only draft orders can be completed"
@@ -2985,7 +2993,7 @@ msgstr "新しい顧客"
 msgid "Image"
 msgstr "画像"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:77
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:78
 msgid "Successfully created administrator"
 msgstr "管理者を正常に作成しました"
 
@@ -3011,7 +3019,7 @@ msgstr "このグローバルビューを削除してもよろしいですか？
 msgid "Force remove option group"
 msgstr "オプショングループを強制削除"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:140
+#: src/app/routes/_authenticated/_profile/profile.tsx:141
 msgid "Added"
 msgstr "追加済み"
 
@@ -3058,14 +3066,14 @@ msgstr "返金合計が最大返金可能額{0}を超えています"
 msgid "Delete Global View"
 msgstr "グローバルビューを削除"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:152
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:163
@@ -3288,7 +3296,7 @@ msgstr "{0}"
 msgid "New Zone"
 msgstr "新しいゾーン"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:353
+#: src/app/routes/_authenticated/_collections/collections.tsx:356
 msgid "Failed to update collection position"
 msgstr "コレクションの位置の更新に失敗しました"
 
@@ -3458,7 +3466,7 @@ msgstr "支払いハンドラーを選択"
 msgid "Password reset links are only valid for a limited time. Request a new one to reset your password."
 msgstr "パスワードリセットリンクの有効期限は限られています。パスワードをリセットするには新しいリンクをリクエストしてください。"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:128
+#: src/app/routes/_authenticated/_profile/profile.tsx:129
 msgid "Authentication methods"
 msgstr "認証方法"
 
@@ -3502,7 +3510,7 @@ msgid "Processing..."
 msgstr "処理中..."
 
 #. placeholder {0}: totalItems === 1 ? 'asset' : 'assets'
-#: src/lib/components/shared/asset/asset-gallery.tsx:465
+#: src/lib/components/shared/asset/asset-gallery.tsx:472
 msgid "{totalItems} {0} found"
 msgstr "{totalItems} 件の{0}が見つかりました"
 
@@ -3567,7 +3575,7 @@ msgstr "ドラッグして並べ替え"
 msgid "Zones"
 msgstr "ゾーン"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:111
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:112
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:151
 #: src/lib/components/shared/facet-value-selector.tsx:124
 msgid "Search facet values..."
@@ -3592,7 +3600,7 @@ msgid "{saleable} in stock"
 msgstr "在庫{saleable}件"
 
 #. placeholder {0}: Math.min(remaining, CHILDREN_PAGE_SIZE)
-#: src/app/routes/_authenticated/_collections/collections.tsx:503
+#: src/app/routes/_authenticated/_collections/collections.tsx:532
 msgid "Load {0} more ({remaining} remaining)"
 msgstr "さらに{0}件読み込む (残り{remaining}件)"
 
@@ -3683,7 +3691,7 @@ msgstr "住所を選択"
 msgid "Yes"
 msgstr "はい"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:179
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:198
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:259
 msgid "Slug"
 msgstr "スラッグ"
@@ -3886,8 +3894,8 @@ msgstr "税合計"
 msgid "Draft order status"
 msgstr "下書き注文のステータス"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:147
-#: src/app/routes/_authenticated/_collections/components/collection-contents-table.tsx:79
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:167
+#: src/app/routes/_authenticated/_collections/components/collection-contents-table.tsx:80
 msgid "Search variants..."
 msgstr "バリエーションを検索..."
 
@@ -3899,7 +3907,7 @@ msgstr "バリエーションを検索..."
 msgid "Failed to create payment method"
 msgstr "支払い方法の作成に失敗しました"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:84
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:85
 msgid "Successfully created facet value"
 msgstr "ファセット値を作成しました"
 
@@ -3963,8 +3971,8 @@ msgstr "ファセットを作成しました"
 msgid "No widgets to display. Use \"Edit Layout\" to add widgets."
 msgstr "表示するウィジェットがありません。「レイアウトを編集」からウィジェットを追加してください。"
 
-#. placeholder {0}: row.original.productVariantCount
-#: src/app/routes/_authenticated/_collections/collections.tsx:432
+#. placeholder {0}: formatNumber(row.original.productVariantCount as number)
+#: src/app/routes/_authenticated/_collections/collections.tsx:456
 msgid "{0} variants"
 msgstr "{0} 件のバリエーション"
 
@@ -3977,7 +3985,7 @@ msgstr "支払いの決済に失敗しました"
 msgid "No billing address"
 msgstr "請求先住所なし"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:119
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:120
 msgid "Facet"
 msgstr "ファセット"
 
@@ -4110,8 +4118,8 @@ msgstr "バリアントを絞り込む..."
 msgid "Add a price in another currency"
 msgstr "別の通貨で価格を追加"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
-#: src/app/routes/_authenticated/_profile/profile.tsx:114
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:128
+#: src/app/routes/_authenticated/_profile/profile.tsx:115
 msgid "Email Address or identifier"
 msgstr "メールアドレスまたは識別子"
 
@@ -4226,7 +4234,7 @@ msgstr "ビューを複製しました"
 msgid "Remove option group"
 msgstr "オプショングループを削除"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:194
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:213
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:76
 #: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:14
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
@@ -4300,7 +4308,7 @@ msgstr "メールアドレス"
 msgid "Filter"
 msgstr "フィルター"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:87
 msgid "Failed to update administrator"
 msgstr "管理者の更新に失敗しました"
 
@@ -4577,7 +4585,7 @@ msgstr "このリンクは無効か、有効期限が切れています"
 #~ msgid "Insert link"
 #~ msgstr "リンクを挿入"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:205
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:224
 msgid "If enabled, the filters will be inherited from the parent collection and combined with the filters set on this collection."
 msgstr "有効にすると、親コレクションからフィルターが継承され、このコレクションに設定されたフィルターと組み合わされます。"
 
@@ -4838,7 +4846,7 @@ msgstr "読み込み中…"
 msgid "e.g., Red, Large, Cotton"
 msgstr "例：赤、L、コットン"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:75
+#: src/app/routes/_authenticated/_profile/profile.tsx:76
 msgid "Failed to update profile"
 msgstr "プロフィールの更新に失敗しました"
 
@@ -4859,7 +4867,7 @@ msgstr "フィルターをクリア"
 msgid "Regions"
 msgstr "地域"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:438
+#: src/lib/components/shared/asset/asset-gallery.tsx:445
 msgid "Drop files here to upload"
 msgstr "ここにファイルをドロップしてアップロード"
 
@@ -4899,7 +4907,7 @@ msgstr "ロールの更新に失敗しました"
 msgid "This is the only time the full API key will be displayed. Copy or download it now — it cannot be retrieved later."
 msgstr "完全な API Key が表示されるのはこの1回のみです。今すぐコピーまたはダウンロードしてください。後から取得することはできません。"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:105
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:124
 msgid "Successfully updated collection"
 msgstr "コレクションを更新しました"
 
@@ -4934,7 +4942,7 @@ msgstr "クーポンコードが注文から削除されました"
 msgid "Never"
 msgstr "なし"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:93
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:94
 msgid "Failed to update facet value"
 msgstr "ファセット値の更新に失敗しました"
 
@@ -5025,8 +5033,8 @@ msgstr "新しい配送方法"
 msgid "is greater than or equal to"
 msgstr "以上"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:81
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:92
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:99
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:113
 #: src/lib/components/shared/entity-assets.tsx:151
 msgid "Preview"
 msgstr "プレビュー"
@@ -5223,7 +5231,7 @@ msgstr "都道府県"
 msgid "Enabled"
 msgstr "有効"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:476
+#: src/lib/components/shared/asset/asset-gallery.tsx:483
 msgid "Items per page"
 msgstr "ページあたりの件数"
 
@@ -5338,7 +5346,7 @@ msgstr "識別子"
 msgid "Select a fulfillment handler"
 msgstr "フルフィルメントハンドラーを選択"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:119
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:138
 msgid "Failed to update collection"
 msgstr "コレクションの更新に失敗しました"
 
@@ -5424,9 +5432,9 @@ msgstr "バリアントの更新に失敗しました"
 msgid "Go to previous page"
 msgstr "前のページへ"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:255
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:258
-#: src/app/routes/_authenticated/_collections/collections.tsx:425
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278
+#: src/app/routes/_authenticated/_collections/collections.tsx:449
 msgid "Contents"
 msgstr "内容"
 
@@ -5476,7 +5484,7 @@ msgstr "顧客の更新に失敗しました"
 msgid "Remove option groups?"
 msgstr "オプショングループを削除しますか？"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:95
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:102
 msgid "This is a preview of the collection contents based on the current filter settings. Once you save the collection, the contents will be updated to reflect the new filter settings."
 msgstr "これは現在のフィルタ設定に基づくコレクション内容のプレビューです。コレクションを保存すると、新しいフィルタ設定を反映するように内容が更新されます。"
 
@@ -5553,7 +5561,7 @@ msgstr "これ以上ファセットはありません"
 msgid "Search index rebuild started"
 msgstr "検索インデックスの再構築を開始しました"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:346
+#: src/app/routes/_authenticated/_collections/collections.tsx:349
 msgid "Collection position updated"
 msgstr "コレクションの位置を更新しました"
 
@@ -5607,7 +5615,7 @@ msgstr "トークン"
 msgid "Fulfilling..."
 msgstr "フルフィルメント中..."
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:524
+#: src/app/routes/_authenticated/_collections/collections.tsx:554
 msgid "Search collections..."
 msgstr "コレクションを検索..."
 
@@ -5662,7 +5670,7 @@ msgstr "入力してEnterまたはカンマで追加..."
 msgid "Edit Note"
 msgstr "メモを編集"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:628
+#: src/lib/components/shared/asset/asset-gallery.tsx:635
 msgid "No assets found. Try adjusting your filters."
 msgstr "アセットが見つかりません。フィルターを調整してみてください。"
 
@@ -5682,7 +5690,7 @@ msgstr "オプショングループを保存"
 msgid "Click \"Run Test\" to test this shipping method."
 msgstr "「テストを実行」をクリックして、この配送方法をテストしてください。"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:78
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:79
 msgid "Successfully updated administrator"
 msgstr "管理者を正常に更新しました"
 
@@ -5752,7 +5760,7 @@ msgstr "税抜："
 msgid "Successfully added option value"
 msgstr "オプション値を追加しました"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:348
+#: src/app/routes/_authenticated/_collections/collections.tsx:351
 msgid "Collection moved to new parent"
 msgstr "コレクションを新しい親に移動しました"
 
@@ -5826,9 +5834,9 @@ msgstr "追加する新しいファセット値："
 msgid "Failed to process refund"
 msgstr "返金の処理に失敗しました"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:115
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:116
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:176
-#: src/app/routes/_authenticated/_profile/profile.tsx:102
+#: src/app/routes/_authenticated/_profile/profile.tsx:103
 msgid "First name"
 msgstr "名"
 
@@ -5899,8 +5907,8 @@ msgstr "数量"
 msgid "Tax category"
 msgstr "税カテゴリ"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:38
-#: src/app/routes/_authenticated/_profile/profile.tsx:84
+#: src/app/routes/_authenticated/_profile/profile.tsx:39
+#: src/app/routes/_authenticated/_profile/profile.tsx:85
 #: src/lib/components/layout/nav-user.tsx:108
 msgid "Profile"
 msgstr "プロフィール"
@@ -6011,7 +6019,7 @@ msgstr "指標"
 msgid "Language"
 msgstr "言語"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:555
+#: src/app/routes/_authenticated/_collections/collections.tsx:585
 msgid "New Collection"
 msgstr "新しいコレクション"
 
@@ -6056,8 +6064,8 @@ msgstr "{entityIdsLength}個の{entityType}をチャネルに割り当てまし�
 msgid "Global Languages"
 msgstr "グローバル言語"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:97
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:39
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:98
 msgid "New administrator"
 msgstr "新しい管理者"
 
@@ -6167,6 +6175,10 @@ msgstr "{cancellableCount, plural, one {{cancellableCount}件のジョブをキ�
 msgid "Total Revenue"
 msgstr "総収益"
 
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:89
+msgid "Applying filters…"
+msgstr "フィルターを適用中…"
+
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:163
 msgid "Next Execution"
 msgstr "次回実行"
@@ -6178,6 +6190,10 @@ msgstr "{CANDIDATE_POOL_SIZE}件のバリエーションのサンプルのうち
 #: src/lib/components/shared/history-timeline/history-note-checkbox.tsx:21
 msgid "Note is private"
 msgstr "メモは非公開です"
+
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:92
+msgid "The collection contents will refresh once the update has finished."
+msgstr "更新が完了すると、コレクションの内容が更新されます。"
 
 #: src/lib/components/layout/language-dialog.tsx:124
 msgid "Medium date"
@@ -6212,7 +6228,7 @@ msgstr "デフォルトの配送先住所として使用"
 msgid "Edit slug manually"
 msgstr "スラッグを手動で編集"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:84
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:116
 msgid "Add filters to preview the collection contents."
 msgstr "コレクションの内容をプレビューするにはフィルタを追加してください。"
 
@@ -6273,7 +6289,7 @@ msgstr "在庫ロケーションを検索..."
 msgid "Search assets..."
 msgstr "アセットを検索..."
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:127
+#: src/app/routes/_authenticated/_facets/facets.tsx:125
 msgid "New Facet"
 msgstr "新しいファセット"
 
@@ -6392,7 +6408,7 @@ msgstr "ページあたりの行数"
 msgid "Loading collections..."
 msgstr "コレクションを読み込み中..."
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:84
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:85
 msgid "Successfully updated facet value"
 msgstr "ファセット値を更新しました"
 
@@ -6695,7 +6711,7 @@ msgstr "注文プロセス"
 msgid "Phone number"
 msgstr "電話番号"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:161
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:180
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:109
 #: src/lib/components/data-input/default-relation-input.tsx:247
 #: src/lib/components/data-input/default-relation-input.tsx:277

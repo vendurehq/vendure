@@ -166,7 +166,7 @@ msgstr "Soliq stavkasi yangilandi"
 msgid "Enter custom reason..."
 msgstr "Maxsus sababni kiriting..."
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:744
+#: src/lib/components/shared/asset/asset-gallery.tsx:751
 msgid "Type"
 msgstr "Turi"
 
@@ -183,8 +183,8 @@ msgid "Add more ({0} selected)"
 msgstr "Yana qo'shish ({0} tanlandi)"
 
 #: src/app/routes/_authenticated/_facets/facets.tsx:71
-msgid "View values"
-msgstr "Qiymatlarni ko'rish"
+#~ msgid "View values"
+#~ msgstr "Qiymatlarni ko'rish"
 
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx:214
 msgid "Delete row"
@@ -271,6 +271,10 @@ msgstr "SKU:"
 msgid "Add payment"
 msgstr "To'lov qo'shish"
 
+#: src/app/routes/_authenticated/_collections/collections.tsx:404
+msgid "Expand"
+msgstr "Kengaytirish"
+
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-shipping-method-sheet.tsx:40
 msgid "Test this shipping method by simulating an order to see if it's eligible and what the shipping cost would be."
 msgstr "Buyurtmani simulyatsiya qilib, ushbu yetkazib berish usuli mosligini va narxini sinab ko'ring."
@@ -308,7 +312,7 @@ msgstr "Rol yaratildi"
 msgid "Are you sure you want to delete this variant?"
 msgstr "Ushbu variant o'chirilsinmi?"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:87
 msgid "Failed to create administrator"
 msgstr "Administrator yaratib bo'lmadi"
 
@@ -337,9 +341,9 @@ msgstr "Mamlakatni yangilab bo'lmadi"
 msgid "Type at least 2 characters to search..."
 msgstr "Qidirish uchun kamida 2 ta belgi kiriting..."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:121
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:122
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:182
-#: src/app/routes/_authenticated/_profile/profile.tsx:108
+#: src/app/routes/_authenticated/_profile/profile.tsx:109
 msgid "Last name"
 msgstr "Familiya"
 
@@ -492,8 +496,8 @@ msgstr "Soliq stavkasi"
 msgid "Order draft isn't ready to be completed"
 msgstr "Buyurtma qoralamasi yakunlanishga tayyor emas"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:48
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:137
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:52
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:156
 msgid "New collection"
 msgstr "Yangi to'plam"
 
@@ -534,7 +538,7 @@ msgstr "Zaxira darajalarini yuklab bo'lmadi"
 msgid "City"
 msgstr "Shahar"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:37
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:15
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:23
 msgid "Administrators"
@@ -575,7 +579,7 @@ msgstr "Buyurtmalar soni"
 msgid "Successfully updated order"
 msgstr "Buyurtma yangilandi"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:203
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:222
 msgid "Inherit filters"
 msgstr "Filtrlarni meros qilib olish"
 
@@ -648,7 +652,7 @@ msgstr "Qo'shilmoqda..."
 msgid "Move Collections"
 msgstr "To'plamlarni ko'chirish"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:139
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:140
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:57
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:170
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
@@ -755,8 +759,8 @@ msgstr "Yetkazib berish usulini o'rnatib bo'lmadi: {0}"
 msgid "Filter..."
 msgstr "Filtrlash..."
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:40
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:102
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:41
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:103
 msgid "New facet value"
 msgstr "Yangi faset qiymati"
 
@@ -817,11 +821,11 @@ msgstr "Qoralamani yakunlash"
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:47
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:165
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:173
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:192
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:104
 #: src/app/routes/_authenticated/_customers/customers.tsx:73
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:131
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:136
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:121
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:202
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:173
@@ -835,7 +839,7 @@ msgstr "Qoralamani yakunlash"
 #: src/app/routes/_authenticated/_tax-categories/tax-categories_.$id.tsx:106
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:113
 #: src/app/routes/_authenticated/_zones/zones_.$id.tsx:93
-#: src/lib/components/shared/asset/asset-gallery.tsx:743
+#: src/lib/components/shared/asset/asset-gallery.tsx:750
 msgid "Name"
 msgstr "Nomi"
 
@@ -875,7 +879,7 @@ msgstr "Bajarish yaratildi"
 msgid "Found {0} eligible shipping method{1}"
 msgstr "{0} ta mos yetkazib berish usuli{1} topildi"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:746
+#: src/lib/components/shared/asset/asset-gallery.tsx:753
 #: src/lib/components/shared/asset/asset-properties.tsx:39
 msgid "Dimensions"
 msgstr "O'lchamlar"
@@ -936,7 +940,7 @@ msgstr "Tasdiqlash"
 msgid "Failed to complete draft order: {0}"
 msgstr "Qoralama buyurtmani yakunlab bo'lmadi: {0}"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:119
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:138
 msgid "Failed to create collection"
 msgstr "To'plamni yaratib bo'lmadi"
 
@@ -1031,9 +1035,9 @@ msgstr "Daromad"
 msgid "Failed to update zone"
 msgstr "Hududni yangilab bo'lmadi"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:133
-#: src/app/routes/_authenticated/_profile/profile.tsx:120
-#: src/app/routes/_authenticated/_profile/profile.tsx:137
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:134
+#: src/app/routes/_authenticated/_profile/profile.tsx:121
+#: src/app/routes/_authenticated/_profile/profile.tsx:138
 #: src/lib/components/login/login-form.tsx:94
 msgid "Password"
 msgstr "Parol"
@@ -1126,7 +1130,7 @@ msgstr "Platforma va Cloudni o'rganing"
 msgid "Every 5 seconds"
 msgstr "Har 5 soniyada"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:105
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:124
 msgid "Successfully created collection"
 msgstr "To'plam yaratildi"
 
@@ -1255,7 +1259,7 @@ msgstr "Manba maydonidan Slugni qayta yaratish"
 msgid "Inherit from global settings"
 msgstr "Global sozlamalardan meros olish"
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:79
+#: src/app/routes/_authenticated/_facets/facets.tsx:77
 msgid "Search facets..."
 msgstr "Fasetlarni qidirish..."
 
@@ -1329,7 +1333,7 @@ msgid "No items selected"
 msgstr "Hech qanday element tanlanmagan"
 
 #. placeholder {0}: selected.length
-#: src/lib/components/shared/asset/asset-gallery.tsx:469
+#: src/lib/components/shared/asset/asset-gallery.tsx:476
 msgid ", {0} selected"
 msgstr ", {0} ta tanlangan"
 
@@ -1549,7 +1553,7 @@ msgstr "oldin"
 msgid "Failed to set customer for order: {0}"
 msgstr "Buyurtmaga mijozni o'rnatib bo'lmadi: {0}"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:745
+#: src/lib/components/shared/asset/asset-gallery.tsx:752
 msgid "Size"
 msgstr "O'lcham"
 
@@ -1570,7 +1574,7 @@ msgstr "So'nggi buyurtmalar"
 msgid "Go back"
 msgstr "Orqaga"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:452
+#: src/app/routes/_authenticated/_collections/collections.tsx:478
 msgid "+ {leftOver} more"
 msgstr "+ yana {leftOver} ta"
 
@@ -1625,7 +1629,7 @@ msgstr "Mavjud"
 msgid "Normal"
 msgstr "Oddiy"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:199
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:218
 msgid "Filters"
 msgstr "Filtrlar"
 
@@ -1657,7 +1661,7 @@ msgstr "Yangi parametr"
 msgid "Usage limit"
 msgstr "Foydalanish chegarasi"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:547
+#: src/app/routes/_authenticated/_collections/collections.tsx:577
 msgid "Create your first collection"
 msgstr "Birinchi to'plamingizni yarating"
 
@@ -1671,7 +1675,7 @@ msgstr "Manzil yangilandi"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:126
-#: src/lib/components/shared/asset/asset-gallery.tsx:747
+#: src/lib/components/shared/asset/asset-gallery.tsx:754
 #: src/lib/framework/layout-engine/page-layout.tsx:746
 msgid "Created"
 msgstr "Yaratilgan"
@@ -1779,9 +1783,9 @@ msgstr "Qisman pul qaytarish bajarildi"
 msgid "Set custom fields"
 msgstr "Maxsus maydonlarni o'rnatish"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:47
-#: src/app/routes/_authenticated/_collections/collections.tsx:51
-#: src/app/routes/_authenticated/_collections/collections.tsx:362
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:49
+#: src/app/routes/_authenticated/_collections/collections.tsx:53
+#: src/app/routes/_authenticated/_collections/collections.tsx:365
 msgid "Collections"
 msgstr "To'plamlar"
 
@@ -1826,7 +1830,7 @@ msgstr "{0}ga o'tkazish"
 msgid "Tax Categories"
 msgstr "Soliq toifalari"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:162
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:181
 msgid "Private collections are not visible in the shop"
 msgstr "Maxfiy to'plamlar do'konda ko'rinmaydi"
 
@@ -1915,15 +1919,15 @@ msgstr "Soliq toifasini yangilab bo'lmadi"
 msgid "Refund settled successfully"
 msgstr "Pul qaytarish muvaffaqiyatli hisoblashildi"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:152
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:102
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
@@ -1933,7 +1937,7 @@ msgstr "Pul qaytarish muvaffaqiyatli hisoblashildi"
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:278
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:242
-#: src/app/routes/_authenticated/_profile/profile.tsx:92
+#: src/app/routes/_authenticated/_profile/profile.tsx:93
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
@@ -1954,7 +1958,7 @@ msgstr "2-sarlavha"
 msgid "Order placed"
 msgstr "Buyurtma berildi"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:71
+#: src/app/routes/_authenticated/_profile/profile.tsx:72
 msgid "Successfully updated profile"
 msgstr "Profil muvaffaqiyatli yangilandi"
 
@@ -2012,7 +2016,7 @@ msgstr "Ustun sozlamalari"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:132
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:142
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:127
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:208
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:179
@@ -2497,7 +2501,7 @@ msgstr "Soliq xulosasi"
 msgid "Sets the languages that are available for all channels. Individual channels can then support a subset of these languages."
 msgstr "Barcha kanallar uchun mavjud tillarni belgilaydi. Alohida kanallar bu tillarning bir qismini qo'llab-quvvatlashi mumkin."
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:119
+#: src/app/routes/_authenticated/_facets/facets.tsx:117
 msgid "Create your first facet"
 msgstr "Birinchi fasetingizni yarating"
 
@@ -2611,7 +2615,7 @@ msgstr "Qiymatlar"
 msgid "Customer set for order"
 msgstr "Buyurtma uchun mijoz o'rnatildi"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:38
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:39
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:36
 #: src/app/routes/_authenticated/_facets/facets.tsx:22
 #: src/app/routes/_authenticated/_facets/facets.tsx:30
@@ -2687,7 +2691,7 @@ msgstr "Standart kanal"
 msgid "Insert a new image with source, title, and dimensions"
 msgstr "Manba, sarlavha va oʻlchamlar bilan yangi rasm qoʻshish"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:93
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:94
 msgid "Failed to create facet value"
 msgstr "Faset qiymatini yaratib boʻlmadi"
 
@@ -2720,7 +2724,7 @@ msgstr "Parolingizni unutdingizmi?"
 msgid "Schedule"
 msgstr "Jadval"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:304
+#: src/app/routes/_authenticated/_collections/collections.tsx:307
 msgid "Cannot move a collection into its own descendant"
 msgstr "Toʻplamni oʻzining avlodiga koʻchirib boʻlmaydi"
 
@@ -2787,7 +2791,7 @@ msgstr "Yetkazib berishni qayta hisoblash"
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:39
 #: src/app/routes/_authenticated/_assets/assets.tsx:17
 #: src/app/routes/_authenticated/_assets/assets.tsx:40
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:229
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:248
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:508
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:381
 msgid "Assets"
@@ -2803,7 +2807,7 @@ msgstr "Bu mahsulotdagi barcha optsiya guruhlarini olib tashlaydi va variant soz
 msgid "Billing address"
 msgstr "Hisob-faktura manzili"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:64
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:65
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:173
 msgid "Add facet value"
 msgstr "Faset qiymatini qoʻshish"
@@ -2846,6 +2850,10 @@ msgstr "Eng ko'p sotilgan mahsulotlar"
 #: src/lib/components/shared/asset/asset-gallery.tsx:379
 msgid "All types"
 msgstr "Barcha turlar"
+
+#: src/app/routes/_authenticated/_collections/collections.tsx:404
+msgid "Collapse"
+msgstr "Yigʻish"
 
 #: src/app/routes/_authenticated/_orders/components/draft-order-status.tsx:29
 msgid "Only draft orders can be completed"
@@ -2901,7 +2909,7 @@ msgstr "Yangi mijoz"
 msgid "Image"
 msgstr "Rasm"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:77
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:78
 msgid "Successfully created administrator"
 msgstr "Administrator yaratildi"
 
@@ -2927,7 +2935,7 @@ msgstr "Ushbu global koʻrinishni oʻchirasizmi? Bu amalni bekor qilib boʻlmayd
 msgid "Force remove option group"
 msgstr "Optsiya guruhini majburan olib tashlash"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:140
+#: src/app/routes/_authenticated/_profile/profile.tsx:141
 msgid "Added"
 msgstr "Qoʻshildi"
 
@@ -2974,14 +2982,14 @@ msgstr "Pul qaytarish jami {0} maksimal qaytariladigan miqdordan oshib ketadi"
 msgid "Delete Global View"
 msgstr "Global koʻrinishni oʻchirish"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:152
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:163
@@ -3196,7 +3204,7 @@ msgstr "{0}"
 msgid "New Zone"
 msgstr "Yangi hudud"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:353
+#: src/app/routes/_authenticated/_collections/collections.tsx:356
 msgid "Failed to update collection position"
 msgstr "Toʻplam holatini yangilab boʻlmadi"
 
@@ -3366,7 +3374,7 @@ msgstr "To'lov ishlovchisini tanlang"
 msgid "Password reset links are only valid for a limited time. Request a new one to reset your password."
 msgstr "Parolni tiklash havolalari faqat cheklangan vaqt davomida amal qiladi. Parolingizni tiklash uchun yangisini so'rang."
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:128
+#: src/app/routes/_authenticated/_profile/profile.tsx:129
 msgid "Authentication methods"
 msgstr "Autentifikatsiya usullari"
 
@@ -3410,7 +3418,7 @@ msgid "Processing..."
 msgstr "Qayta ishlanmoqda..."
 
 #. placeholder {0}: totalItems === 1 ? 'asset' : 'assets'
-#: src/lib/components/shared/asset/asset-gallery.tsx:465
+#: src/lib/components/shared/asset/asset-gallery.tsx:472
 msgid "{totalItems} {0} found"
 msgstr "{totalItems} {0} topildi"
 
@@ -3475,7 +3483,7 @@ msgstr "Qayta tartiblash uchun torting"
 msgid "Zones"
 msgstr "Hududlar"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:111
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:112
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:151
 #: src/lib/components/shared/facet-value-selector.tsx:124
 msgid "Search facet values..."
@@ -3500,7 +3508,7 @@ msgid "{saleable} in stock"
 msgstr "Zaxirada {saleable} ta"
 
 #. placeholder {0}: Math.min(remaining, CHILDREN_PAGE_SIZE)
-#: src/app/routes/_authenticated/_collections/collections.tsx:503
+#: src/app/routes/_authenticated/_collections/collections.tsx:532
 msgid "Load {0} more ({remaining} remaining)"
 msgstr "Yana {0} ta yuklash ({remaining} ta qoldi)"
 
@@ -3591,7 +3599,7 @@ msgstr "Manzilni tanlang"
 msgid "Yes"
 msgstr "Ha"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:179
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:198
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:259
 msgid "Slug"
 msgstr "Slug"
@@ -3783,8 +3791,8 @@ msgstr "Jami soliq"
 msgid "Draft order status"
 msgstr "Qoralama buyurtma holati"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:147
-#: src/app/routes/_authenticated/_collections/components/collection-contents-table.tsx:79
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:167
+#: src/app/routes/_authenticated/_collections/components/collection-contents-table.tsx:80
 msgid "Search variants..."
 msgstr "Variantlarni qidirish..."
 
@@ -3792,7 +3800,7 @@ msgstr "Variantlarni qidirish..."
 msgid "Failed to create payment method"
 msgstr "To'lov usulini yaratib bo'lmadi"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:84
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:85
 msgid "Successfully created facet value"
 msgstr "Faset qiymati yaratildi"
 
@@ -3856,8 +3864,8 @@ msgstr "Faset yaratildi"
 msgid "No widgets to display. Use \"Edit Layout\" to add widgets."
 msgstr "Ko'rsatiladigan vidjetlar yo'q. Vidjet qo'shish uchun \"Tartibni tahrirlash\" dan foydalaning."
 
-#. placeholder {0}: row.original.productVariantCount
-#: src/app/routes/_authenticated/_collections/collections.tsx:432
+#. placeholder {0}: formatNumber(row.original.productVariantCount as number)
+#: src/app/routes/_authenticated/_collections/collections.tsx:456
 msgid "{0} variants"
 msgstr "{0} ta variant"
 
@@ -3870,7 +3878,7 @@ msgstr "To'lovni yakunlab bo'lmadi"
 msgid "No billing address"
 msgstr "Hisob-kitob manzili yo'q"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:119
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:120
 msgid "Facet"
 msgstr "Faset"
 
@@ -3999,8 +4007,8 @@ msgstr "Variantlarni filtrlash..."
 msgid "Add a price in another currency"
 msgstr "Boshqa valyutada narx qo'shish"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
-#: src/app/routes/_authenticated/_profile/profile.tsx:114
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:128
+#: src/app/routes/_authenticated/_profile/profile.tsx:115
 msgid "Email Address or identifier"
 msgstr "Email manzili yoki identifikator"
 
@@ -4115,7 +4123,7 @@ msgstr "Ko'rinish nusxalandi"
 msgid "Remove option group"
 msgstr "Optsiya guruhini olib tashlash"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:194
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:213
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:76
 #: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:14
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
@@ -4185,7 +4193,7 @@ msgstr "Email"
 msgid "Filter"
 msgstr "Filtr"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:87
 msgid "Failed to update administrator"
 msgstr "Administratorni yangilab bo'lmadi"
 
@@ -4445,7 +4453,7 @@ msgstr "Bu havola yaroqsiz yoki muddati o'tgan"
 #~ msgid "Insert link"
 #~ msgstr "Havola qo'shish"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:205
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:224
 msgid "If enabled, the filters will be inherited from the parent collection and combined with the filters set on this collection."
 msgstr "Yoqilgan bo'lsa, filtrlar asosiy to'plamdan meros qilinadi va ushbu to'plamdagi filtrlar bilan birlashtiriladi."
 
@@ -4698,7 +4706,7 @@ msgstr "Yuklanmoqda…"
 msgid "e.g., Red, Large, Cotton"
 msgstr "masalan, Qizil, Katta, Paxta"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:75
+#: src/app/routes/_authenticated/_profile/profile.tsx:76
 msgid "Failed to update profile"
 msgstr "Profilni yangilab bo'lmadi"
 
@@ -4719,7 +4727,7 @@ msgstr "Filtrni tozalash"
 msgid "Regions"
 msgstr "Hududlar"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:438
+#: src/lib/components/shared/asset/asset-gallery.tsx:445
 msgid "Drop files here to upload"
 msgstr "Yuklash uchun fayllarni shu yerga tashlang"
 
@@ -4755,7 +4763,7 @@ msgstr "Rolni yangilab bo'lmadi"
 msgid "This is the only time the full API key will be displayed. Copy or download it now — it cannot be retrieved later."
 msgstr "To'liq API kaliti faqat hozir ko'rsatiladi. Hozir nusxalang yoki yuklab oling — keyin uni qayta olib bo'lmaydi."
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:105
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:124
 msgid "Successfully updated collection"
 msgstr "To'plam yangilandi"
 
@@ -4786,7 +4794,7 @@ msgstr "Buyurtmadan kupon kodi olib tashlandi"
 msgid "Never"
 msgstr "Hech qachon"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:93
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:94
 msgid "Failed to update facet value"
 msgstr "Faset qiymatini yangilab bo'lmadi"
 
@@ -4873,8 +4881,8 @@ msgstr "Yangi yetkazib berish usuli"
 msgid "is greater than or equal to"
 msgstr "katta yoki teng"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:81
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:92
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:99
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:113
 #: src/lib/components/shared/entity-assets.tsx:151
 msgid "Preview"
 msgstr "Oldindan ko'rish"
@@ -5071,7 +5079,7 @@ msgstr "Shtat / Viloyat"
 msgid "Enabled"
 msgstr "Yoqilgan"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:476
+#: src/lib/components/shared/asset/asset-gallery.tsx:483
 msgid "Items per page"
 msgstr "Sahifaga elementlar"
 
@@ -5186,7 +5194,7 @@ msgstr "Identifikator"
 msgid "Select a fulfillment handler"
 msgstr "Buyurtmani bajarish ishlovchisini tanlang"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:119
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:138
 msgid "Failed to update collection"
 msgstr "To'plamni yangilab bo'lmadi"
 
@@ -5264,9 +5272,9 @@ msgstr "Variantni yangilab bo‘lmadi"
 msgid "Go to previous page"
 msgstr "Oldingi sahifaga o'tish"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:255
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:258
-#: src/app/routes/_authenticated/_collections/collections.tsx:425
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278
+#: src/app/routes/_authenticated/_collections/collections.tsx:449
 msgid "Contents"
 msgstr "Tarkib"
 
@@ -5312,7 +5320,7 @@ msgstr "Mijozni yangilab bo'lmadi"
 msgid "Remove option groups?"
 msgstr "Optsiya guruhlari olib tashlansinmi?"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:95
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:102
 msgid "This is a preview of the collection contents based on the current filter settings. Once you save the collection, the contents will be updated to reflect the new filter settings."
 msgstr "Bu joriy filtr sozlamalariga asoslangan to'plam tarkibi. To'plamni saqlagach, tarkib yangi sozlamalar bo'yicha yangilanadi."
 
@@ -5381,7 +5389,7 @@ msgstr "Boshqa fasetlar yo'q"
 msgid "Search index rebuild started"
 msgstr "Qidiruv indeksini qayta qurish boshlandi"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:346
+#: src/app/routes/_authenticated/_collections/collections.tsx:349
 msgid "Collection position updated"
 msgstr "To'plam pozitsiyasi yangilandi"
 
@@ -5431,7 +5439,7 @@ msgstr "Token"
 msgid "Fulfilling..."
 msgstr "Bajarilmoqda..."
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:524
+#: src/app/routes/_authenticated/_collections/collections.tsx:554
 msgid "Search collections..."
 msgstr "To'plamlarni qidirish..."
 
@@ -5486,7 +5494,7 @@ msgstr "Yozing va qo'shish uchun Enter yoki vergul bosing..."
 msgid "Edit Note"
 msgstr "Eslatmani tahrirlash"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:628
+#: src/lib/components/shared/asset/asset-gallery.tsx:635
 msgid "No assets found. Try adjusting your filters."
 msgstr "Asset topilmadi. Filtrlarni o'zgartirib ko'ring."
 
@@ -5502,7 +5510,7 @@ msgstr "Optsiya guruhini saqlash"
 msgid "Click \"Run Test\" to test this shipping method."
 msgstr "Bu yetkazib berish usulini sinash uchun \"Testni ishga tushirish\" tugmasini bosing."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:78
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:79
 msgid "Successfully updated administrator"
 msgstr "Administrator muvaffaqiyatli yangilandi"
 
@@ -5568,7 +5576,7 @@ msgstr "soliqsiz:"
 msgid "Successfully added option value"
 msgstr "Optsiya qiymati muvaffaqiyatli qo'shildi"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:348
+#: src/app/routes/_authenticated/_collections/collections.tsx:351
 msgid "Collection moved to new parent"
 msgstr "To'plam yangi ota-elementga ko'chirildi"
 
@@ -5642,9 +5650,9 @@ msgstr "Qo'shish uchun yangi faset qiymatlari:"
 msgid "Failed to process refund"
 msgstr "Pul qaytarishni qayta ishlab bo'lmadi"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:115
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:116
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:176
-#: src/app/routes/_authenticated/_profile/profile.tsx:102
+#: src/app/routes/_authenticated/_profile/profile.tsx:103
 msgid "First name"
 msgstr "Ismi"
 
@@ -5715,8 +5723,8 @@ msgstr "Miqdor"
 msgid "Tax category"
 msgstr "Soliq toifasi"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:38
-#: src/app/routes/_authenticated/_profile/profile.tsx:84
+#: src/app/routes/_authenticated/_profile/profile.tsx:39
+#: src/app/routes/_authenticated/_profile/profile.tsx:85
 #: src/lib/components/layout/nav-user.tsx:108
 msgid "Profile"
 msgstr "Profil"
@@ -5823,7 +5831,7 @@ msgstr "Metrikalar"
 msgid "Language"
 msgstr "Til"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:555
+#: src/app/routes/_authenticated/_collections/collections.tsx:585
 msgid "New Collection"
 msgstr "Yangi to'plam"
 
@@ -5868,8 +5876,8 @@ msgstr "{entityIdsLength} ta {entityType} kanalga muvaffaqiyatli biriktirildi"
 msgid "Global Languages"
 msgstr "Global tillar"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:97
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:39
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:98
 msgid "New administrator"
 msgstr "Yangi administrator"
 
@@ -5975,6 +5983,10 @@ msgstr "{cancellableCount, plural, one {{cancellableCount} ta vazifani bekor qil
 msgid "Total Revenue"
 msgstr "Jami daromad"
 
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:89
+msgid "Applying filters…"
+msgstr "Filtrlar qoʻllanmoqda…"
+
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:163
 msgid "Next Execution"
 msgstr "Keyingi bajarilish"
@@ -5986,6 +5998,10 @@ msgstr "{CANDIDATE_POOL_SIZE} variantdan olingan namunada {threshold} yoki undan
 #: src/lib/components/shared/history-timeline/history-note-checkbox.tsx:21
 msgid "Note is private"
 msgstr "Eslatma maxfiy"
+
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:92
+msgid "The collection contents will refresh once the update has finished."
+msgstr "Yangilash tugagach, toʻplam tarkibi yangilanadi."
 
 #: src/lib/components/layout/language-dialog.tsx:124
 msgid "Medium date"
@@ -6020,7 +6036,7 @@ msgstr "Standart yetkazib berish manzili sifatida ishlatish"
 msgid "Edit slug manually"
 msgstr "Slug'ni qo'lda tahrirlash"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:84
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:116
 msgid "Add filters to preview the collection contents."
 msgstr "To'plam tarkibini ko'rish uchun filtrlar qo'shing."
 
@@ -6077,7 +6093,7 @@ msgstr "Zaxira joylarini qidirish..."
 msgid "Search assets..."
 msgstr "Assetlarni qidirish..."
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:127
+#: src/app/routes/_authenticated/_facets/facets.tsx:125
 msgid "New Facet"
 msgstr "Yangi faset"
 
@@ -6192,7 +6208,7 @@ msgstr "Sahifadagi qatorlar"
 msgid "Loading collections..."
 msgstr "To'plamlar yuklanmoqda..."
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:84
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:85
 msgid "Successfully updated facet value"
 msgstr "Faset qiymati muvaffaqiyatli yangilandi"
 
@@ -6487,7 +6503,7 @@ msgstr "Buyurtma jarayoni"
 msgid "Phone number"
 msgstr "Telefon raqami"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:161
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:180
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:109
 #: src/lib/components/data-input/default-relation-input.tsx:247
 #: src/lib/components/data-input/default-relation-input.tsx:277

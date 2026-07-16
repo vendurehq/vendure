@@ -170,7 +170,7 @@ msgstr "कर दर सफलतापूर्वक अपडेट गर�
 msgid "Enter custom reason..."
 msgstr "अनुकूलित कारण लेख्नुहोस्..."
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:744
+#: src/lib/components/shared/asset/asset-gallery.tsx:751
 msgid "Type"
 msgstr "प्रकार"
 
@@ -187,8 +187,8 @@ msgid "Add more ({0} selected)"
 msgstr "थप थप्नुहोस् ({0} चयन गरिएको)"
 
 #: src/app/routes/_authenticated/_facets/facets.tsx:71
-msgid "View values"
-msgstr "मानहरू हेर्नुहोस्"
+#~ msgid "View values"
+#~ msgstr "मानहरू हेर्नुहोस्"
 
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx:214
 msgid "Delete row"
@@ -287,6 +287,10 @@ msgstr "SKU:"
 msgid "Add payment"
 msgstr "भुक्तानी थप्नुहोस्"
 
+#: src/app/routes/_authenticated/_collections/collections.tsx:404
+msgid "Expand"
+msgstr "विस्तार गर्नुहोस्"
+
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-shipping-method-sheet.tsx:40
 msgid "Test this shipping method by simulating an order to see if it's eligible and what the shipping cost would be."
 msgstr "यो ढुवानी विधि योग्य छ कि छैन र ढुवानी लागत के हुनेछ भनेर हेर्न अर्डर सिमुलेट गरेर परीक्षण गर्नुहोस्।"
@@ -332,7 +336,7 @@ msgstr "के तपाईं निश्चित हुनुहुन्छ
 #~ msgid "All resources are up and running"
 #~ msgstr "सबै स्रोतहरू चलिरहेका छन्"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:87
 msgid "Failed to create administrator"
 msgstr "प्रशासक सिर्जना गर्न असफल"
 
@@ -361,9 +365,9 @@ msgstr "देश अपडेट गर्न असफल"
 msgid "Type at least 2 characters to search..."
 msgstr "खोज्न कम्तिमा २ वर्णहरू टाइप गर्नुहोस्..."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:121
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:122
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:182
-#: src/app/routes/_authenticated/_profile/profile.tsx:108
+#: src/app/routes/_authenticated/_profile/profile.tsx:109
 msgid "Last name"
 msgstr "थर"
 
@@ -520,8 +524,8 @@ msgstr "कर दर"
 msgid "Order draft isn't ready to be completed"
 msgstr "अर्डर ड्राफ्ट पूरा गर्न तयार छैन"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:48
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:137
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:52
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:156
 msgid "New collection"
 msgstr "नयाँ संग्रह"
 
@@ -562,7 +566,7 @@ msgstr "हामीले स्टक स्तरहरू लोड गर�
 msgid "City"
 msgstr "शहर"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:37
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:15
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:23
 msgid "Administrators"
@@ -603,7 +607,7 @@ msgstr "अर्डर संख्या"
 msgid "Successfully updated order"
 msgstr "अर्डर सफलतापूर्वक अपडेट गरियो"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:203
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:222
 msgid "Inherit filters"
 msgstr "फिल्टरहरू विरासतमा प्राप्त गर्नुहोस्"
 
@@ -676,7 +680,7 @@ msgstr "थप्दै..."
 msgid "Move Collections"
 msgstr "संग्रहहरू सार्नुहोस्"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:139
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:140
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:57
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:170
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
@@ -783,8 +787,8 @@ msgstr "अर्डरका लागि ढुवानी विधि स�
 msgid "Filter..."
 msgstr "फिल्टर..."
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:40
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:102
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:41
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:103
 msgid "New facet value"
 msgstr "नयाँ विशेषता मान"
 
@@ -845,11 +849,11 @@ msgstr "मस्यौदा पूरा गर्नुहोस्"
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:47
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:165
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:173
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:192
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:104
 #: src/app/routes/_authenticated/_customers/customers.tsx:73
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:131
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:136
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:121
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:202
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:173
@@ -863,7 +867,7 @@ msgstr "मस्यौदा पूरा गर्नुहोस्"
 #: src/app/routes/_authenticated/_tax-categories/tax-categories_.$id.tsx:106
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:113
 #: src/app/routes/_authenticated/_zones/zones_.$id.tsx:93
-#: src/lib/components/shared/asset/asset-gallery.tsx:743
+#: src/lib/components/shared/asset/asset-gallery.tsx:750
 msgid "Name"
 msgstr "नाम"
 
@@ -903,7 +907,7 @@ msgstr "पूर्ति सिर्जना गरियो"
 msgid "Found {0} eligible shipping method{1}"
 msgstr "{0} योग्य ढुवानी विधि फेला पर्यो"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:746
+#: src/lib/components/shared/asset/asset-gallery.tsx:753
 #: src/lib/components/shared/asset/asset-properties.tsx:39
 msgid "Dimensions"
 msgstr "आयाम"
@@ -964,7 +968,7 @@ msgstr "पुष्टि गर्नुहोस्"
 msgid "Failed to complete draft order: {0}"
 msgstr "ड्राफ्ट अर्डर पूरा गर्न असफल भयो: {0}"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:119
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:138
 msgid "Failed to create collection"
 msgstr "संग्रह सिर्जना गर्न असफल"
 
@@ -1059,9 +1063,9 @@ msgstr "राजस्व"
 msgid "Failed to update zone"
 msgstr "क्षेत्र अपडेट गर्न असफल"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:133
-#: src/app/routes/_authenticated/_profile/profile.tsx:120
-#: src/app/routes/_authenticated/_profile/profile.tsx:137
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:134
+#: src/app/routes/_authenticated/_profile/profile.tsx:121
+#: src/app/routes/_authenticated/_profile/profile.tsx:138
 #: src/lib/components/login/login-form.tsx:94
 msgid "Password"
 msgstr "पासवर्ड"
@@ -1158,7 +1162,7 @@ msgstr "Platform & Cloud अन्वेषण गर्नुहोस्"
 msgid "Every 5 seconds"
 msgstr "प्रत्येक ५ सेकेन्ड"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:105
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:124
 msgid "Successfully created collection"
 msgstr "संग्रह सफलतापूर्वक सिर्जना गरियो"
 
@@ -1287,7 +1291,7 @@ msgstr "स्रोत फिल्डबाट स्लग पुन: उत�
 msgid "Inherit from global settings"
 msgstr "ग्लोबल सेटिङहरूबाट विरासतमा प्राप्त गर्नुहोस्"
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:79
+#: src/app/routes/_authenticated/_facets/facets.tsx:77
 msgid "Search facets..."
 msgstr "विशेषताहरू खोज्नुहोस्..."
 
@@ -1365,7 +1369,7 @@ msgid "No items selected"
 msgstr "कुनै वस्तुहरू चयन गरिएको छैन"
 
 #. placeholder {0}: selected.length
-#: src/lib/components/shared/asset/asset-gallery.tsx:469
+#: src/lib/components/shared/asset/asset-gallery.tsx:476
 msgid ", {0} selected"
 msgstr ", {0} चयन गरिएको"
 
@@ -1597,7 +1601,7 @@ msgstr "अघि"
 msgid "Failed to set customer for order: {0}"
 msgstr "अर्डरका लागि ग्राहक सेट गर्न असफल भयो: {0}"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:745
+#: src/lib/components/shared/asset/asset-gallery.tsx:752
 msgid "Size"
 msgstr "आकार"
 
@@ -1618,7 +1622,7 @@ msgstr "नवीनतम अर्डरहरू"
 msgid "Go back"
 msgstr "पछाडि जानुहोस्"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:452
+#: src/app/routes/_authenticated/_collections/collections.tsx:478
 msgid "+ {leftOver} more"
 msgstr "+ {leftOver} थप"
 
@@ -1678,7 +1682,7 @@ msgstr "उपलब्ध"
 msgid "Normal"
 msgstr "सामान्य"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:199
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:218
 msgid "Filters"
 msgstr "फिल्टरहरू"
 
@@ -1710,7 +1714,7 @@ msgstr "नयाँ विकल्प"
 msgid "Usage limit"
 msgstr "प्रयोग सीमा"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:547
+#: src/app/routes/_authenticated/_collections/collections.tsx:577
 msgid "Create your first collection"
 msgstr "आफ्नो पहिलो संग्रह सिर्जना गर्नुहोस्"
 
@@ -1724,7 +1728,7 @@ msgstr "ठेगाना सफलतापूर्वक अपडेट ग
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:126
-#: src/lib/components/shared/asset/asset-gallery.tsx:747
+#: src/lib/components/shared/asset/asset-gallery.tsx:754
 #: src/lib/framework/layout-engine/page-layout.tsx:746
 msgid "Created"
 msgstr "सिर्जना गरिएको"
@@ -1840,9 +1844,9 @@ msgstr "आंशिक फिर्ता सम्पन्न"
 msgid "Set custom fields"
 msgstr "कस्टम फिल्डहरू सेट गर्नुहोस्"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:47
-#: src/app/routes/_authenticated/_collections/collections.tsx:51
-#: src/app/routes/_authenticated/_collections/collections.tsx:362
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:49
+#: src/app/routes/_authenticated/_collections/collections.tsx:53
+#: src/app/routes/_authenticated/_collections/collections.tsx:365
 msgid "Collections"
 msgstr "संग्रहहरू"
 
@@ -1887,7 +1891,7 @@ msgstr "{0} मा संक्रमण गर्नुहोस्"
 msgid "Tax Categories"
 msgstr "कर वर्गहरू"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:162
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:181
 msgid "Private collections are not visible in the shop"
 msgstr "निजी संग्रहहरू पसलमा देखिँदैनन्"
 
@@ -1976,15 +1980,15 @@ msgstr "कर वर्ग अपडेट गर्न असफल"
 msgid "Refund settled successfully"
 msgstr "रिफन्ड सफलतापूर्वक सम्पन्न भयो"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:152
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:102
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
@@ -1994,7 +1998,7 @@ msgstr "रिफन्ड सफलतापूर्वक सम्पन्�
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:278
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:242
-#: src/app/routes/_authenticated/_profile/profile.tsx:92
+#: src/app/routes/_authenticated/_profile/profile.tsx:93
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
@@ -2015,7 +2019,7 @@ msgstr "शीर्षक २"
 msgid "Order placed"
 msgstr "अर्डर राखियो"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:71
+#: src/app/routes/_authenticated/_profile/profile.tsx:72
 msgid "Successfully updated profile"
 msgstr "प्रोफाइल सफलतापूर्वक अपडेट गरियो"
 
@@ -2079,7 +2083,7 @@ msgstr "स्तम्भ सेटिङहरू"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:132
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:142
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:127
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:208
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:179
@@ -2564,7 +2568,7 @@ msgstr "कर सारांश"
 msgid "Sets the languages that are available for all channels. Individual channels can then support a subset of these languages."
 msgstr "सबै च्यानलहरूको लागि उपलब्ध भाषाहरू सेट गर्दछ। व्यक्तिगत च्यानलहरूले त्यसपछि यी भाषाहरूको उपसमूहलाई समर्थन गर्न सक्छन्।"
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:119
+#: src/app/routes/_authenticated/_facets/facets.tsx:117
 msgid "Create your first facet"
 msgstr "आफ्नो पहिलो विशेषता सिर्जना गर्नुहोस्"
 
@@ -2678,7 +2682,7 @@ msgstr "मानहरू"
 msgid "Customer set for order"
 msgstr "अर्डरको लागि ग्राहक सेट गरियो"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:38
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:39
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:36
 #: src/app/routes/_authenticated/_facets/facets.tsx:22
 #: src/app/routes/_authenticated/_facets/facets.tsx:30
@@ -2754,7 +2758,7 @@ msgstr "पूर्वनिर्धारित च्यानल"
 msgid "Insert a new image with source, title, and dimensions"
 msgstr "स्रोत, शीर्षक, र आयामसहित नयाँ छवि सम्मिलित गर्नुहोस्"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:93
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:94
 msgid "Failed to create facet value"
 msgstr "विशेषता मान सिर्जना गर्न असफल"
 
@@ -2791,7 +2795,7 @@ msgstr "पासवर्ड बिर्सनुभयो?"
 msgid "Schedule"
 msgstr "तालिका"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:304
+#: src/app/routes/_authenticated/_collections/collections.tsx:307
 msgid "Cannot move a collection into its own descendant"
 msgstr "संग्रहलाई आफ्नै उत्तराधिकारीमा सार्न सकिँदैन"
 
@@ -2866,7 +2870,7 @@ msgstr "ढुवानी पुन: गणना गर्नुहोस्"
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:39
 #: src/app/routes/_authenticated/_assets/assets.tsx:17
 #: src/app/routes/_authenticated/_assets/assets.tsx:40
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:229
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:248
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:508
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:381
 msgid "Assets"
@@ -2882,7 +2886,7 @@ msgstr "यसले यो उत्पादनबाट सबै विक�
 msgid "Billing address"
 msgstr "बिलिङ ठेगाना"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:64
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:65
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:173
 msgid "Add facet value"
 msgstr "विशेषता मान थप्नुहोस्"
@@ -2925,6 +2929,10 @@ msgstr "शीर्ष उत्पादनहरू"
 #: src/lib/components/shared/asset/asset-gallery.tsx:379
 msgid "All types"
 msgstr "सबै प्रकारहरू"
+
+#: src/app/routes/_authenticated/_collections/collections.tsx:404
+msgid "Collapse"
+msgstr "संक्षिप्त गर्नुहोस्"
 
 #: src/app/routes/_authenticated/_orders/components/draft-order-status.tsx:29
 msgid "Only draft orders can be completed"
@@ -2985,7 +2993,7 @@ msgstr "नयाँ ग्राहक"
 msgid "Image"
 msgstr "छवि"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:77
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:78
 msgid "Successfully created administrator"
 msgstr "प्रशासक सफलतापूर्वक सिर्जना गरियो"
 
@@ -3011,7 +3019,7 @@ msgstr "के तपाईं निश्चित हुनुहुन्छ
 msgid "Force remove option group"
 msgstr "विकल्प समूह बलपूर्वक हटाउनुहोस्"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:140
+#: src/app/routes/_authenticated/_profile/profile.tsx:141
 msgid "Added"
 msgstr "थपियो"
 
@@ -3058,14 +3066,14 @@ msgstr "फिर्ता कुल अधिकतम फिर्ता य�
 msgid "Delete Global View"
 msgstr "ग्लोबल दृश्य मेट्नुहोस्"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:152
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:163
@@ -3288,7 +3296,7 @@ msgstr "{0}"
 msgid "New Zone"
 msgstr "नयाँ क्षेत्र"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:353
+#: src/app/routes/_authenticated/_collections/collections.tsx:356
 msgid "Failed to update collection position"
 msgstr "संग्रह स्थिति अपडेट गर्न असफल"
 
@@ -3458,7 +3466,7 @@ msgstr "भुक्तानी ह्यान्डलर चयन गर्
 msgid "Password reset links are only valid for a limited time. Request a new one to reset your password."
 msgstr "पासवर्ड रिसेट लिङ्कहरू सीमित समयका लागि मात्र मान्य हुन्छन्। पासवर्ड रिसेट गर्न नयाँ लिङ्क अनुरोध गर्नुहोस्।"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:128
+#: src/app/routes/_authenticated/_profile/profile.tsx:129
 msgid "Authentication methods"
 msgstr "प्रमाणीकरण विधिहरू"
 
@@ -3502,7 +3510,7 @@ msgid "Processing..."
 msgstr "प्रशोधन गर्दै..."
 
 #. placeholder {0}: totalItems === 1 ? 'asset' : 'assets'
-#: src/lib/components/shared/asset/asset-gallery.tsx:465
+#: src/lib/components/shared/asset/asset-gallery.tsx:472
 msgid "{totalItems} {0} found"
 msgstr "{totalItems} {0} भेटियो"
 
@@ -3567,7 +3575,7 @@ msgstr "पुनः क्रम गर्न तान्नुहोस्"
 msgid "Zones"
 msgstr "क्षेत्रहरू"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:111
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:112
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:151
 #: src/lib/components/shared/facet-value-selector.tsx:124
 msgid "Search facet values..."
@@ -3592,7 +3600,7 @@ msgid "{saleable} in stock"
 msgstr "{saleable} स्टकमा"
 
 #. placeholder {0}: Math.min(remaining, CHILDREN_PAGE_SIZE)
-#: src/app/routes/_authenticated/_collections/collections.tsx:503
+#: src/app/routes/_authenticated/_collections/collections.tsx:532
 msgid "Load {0} more ({remaining} remaining)"
 msgstr "थप {0} लोड गर्नुहोस् ({remaining} बाँकी)"
 
@@ -3683,7 +3691,7 @@ msgstr "ठेगाना चयन गर्नुहोस्"
 msgid "Yes"
 msgstr "हो"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:179
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:198
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:259
 msgid "Slug"
 msgstr "स्लग"
@@ -3886,8 +3894,8 @@ msgstr "कर कुल"
 msgid "Draft order status"
 msgstr "ड्राफ्ट अर्डर स्थिति"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:147
-#: src/app/routes/_authenticated/_collections/components/collection-contents-table.tsx:79
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:167
+#: src/app/routes/_authenticated/_collections/components/collection-contents-table.tsx:80
 msgid "Search variants..."
 msgstr "भेरियन्टहरू खोज्नुहोस्..."
 
@@ -3899,7 +3907,7 @@ msgstr "भेरियन्टहरू खोज्नुहोस्..."
 msgid "Failed to create payment method"
 msgstr "भुक्तानी विधि सिर्जना गर्न असफल"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:84
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:85
 msgid "Successfully created facet value"
 msgstr "विशेषता मान सफलतापूर्वक सिर्जना गरियो"
 
@@ -3963,8 +3971,8 @@ msgstr "विशेषता सफलतापूर्वक सिर्ज�
 msgid "No widgets to display. Use \"Edit Layout\" to add widgets."
 msgstr "प्रदर्शन गर्न कुनै विजेटहरू छैनन्। विजेटहरू थप्न \"लेआउट सम्पादन गर्नुहोस्\" प्रयोग गर्नुहोस्।"
 
-#. placeholder {0}: row.original.productVariantCount
-#: src/app/routes/_authenticated/_collections/collections.tsx:432
+#. placeholder {0}: formatNumber(row.original.productVariantCount as number)
+#: src/app/routes/_authenticated/_collections/collections.tsx:456
 msgid "{0} variants"
 msgstr "{0} प्रकारहरू"
 
@@ -3977,7 +3985,7 @@ msgstr "भुक्तानी सम्पन्न गर्न असफल
 msgid "No billing address"
 msgstr "कुनै बिलिङ ठेगाना छैन"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:119
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:120
 msgid "Facet"
 msgstr "विशेषता"
 
@@ -4110,8 +4118,8 @@ msgstr "भेरियन्टहरू फिल्टर गर्नुह�
 msgid "Add a price in another currency"
 msgstr "अर्को मुद्रामा मूल्य थप्नुहोस्"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
-#: src/app/routes/_authenticated/_profile/profile.tsx:114
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:128
+#: src/app/routes/_authenticated/_profile/profile.tsx:115
 msgid "Email Address or identifier"
 msgstr "इमेल ठेगाना वा पहिचानकर्ता"
 
@@ -4226,7 +4234,7 @@ msgstr "दृश्य सफलतापूर्वक नक्कल गर
 msgid "Remove option group"
 msgstr "विकल्प समूह हटाउनुहोस्"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:194
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:213
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:76
 #: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:14
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
@@ -4300,7 +4308,7 @@ msgstr "इमेल"
 msgid "Filter"
 msgstr "फिल्टर"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:87
 msgid "Failed to update administrator"
 msgstr "प्रशासक अपडेट गर्न असफल"
 
@@ -4577,7 +4585,7 @@ msgstr "यो लिङ्क अमान्य छ वा म्याद स
 #~ msgid "Insert link"
 #~ msgstr "लिङ्क घुसाउनुहोस्"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:205
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:224
 msgid "If enabled, the filters will be inherited from the parent collection and combined with the filters set on this collection."
 msgstr "यदि सक्षम गरिएको छ भने, फिल्टरहरू अभिभावक संग्रहबाट विरासतमा प्राप्त हुनेछन् र यो संग्रहमा सेट गरिएका फिल्टरहरूसँग संयुक्त हुनेछन्।"
 
@@ -4838,7 +4846,7 @@ msgstr "लोड हुँदै…"
 msgid "e.g., Red, Large, Cotton"
 msgstr "जस्तै रातो, ठूलो, कपास"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:75
+#: src/app/routes/_authenticated/_profile/profile.tsx:76
 msgid "Failed to update profile"
 msgstr "प्रोफाइल अपडेट गर्न असफल"
 
@@ -4859,7 +4867,7 @@ msgstr "फिल्टर खाली गर्नुहोस्"
 msgid "Regions"
 msgstr "क्षेत्रहरू"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:438
+#: src/lib/components/shared/asset/asset-gallery.tsx:445
 msgid "Drop files here to upload"
 msgstr "अपलोड गर्न यहाँ फाइलहरू छोड्नुहोस्"
 
@@ -4899,7 +4907,7 @@ msgstr "भूमिका अपडेट गर्न असफल"
 msgid "This is the only time the full API key will be displayed. Copy or download it now — it cannot be retrieved later."
 msgstr "पूर्ण API Key प्रदर्शन हुने यो एक मात्र पटक हो। अहिले नै कपी वा डाउनलोड गर्नुहोस् — पछि पुनःप्राप्त गर्न सकिँदैन।"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:105
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:124
 msgid "Successfully updated collection"
 msgstr "संग्रह सफलतापूर्वक अपडेट गरियो"
 
@@ -4934,7 +4942,7 @@ msgstr "अर्डरबाट कुपन कोड हटाइएको"
 msgid "Never"
 msgstr "कहिल्यै पनि"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:93
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:94
 msgid "Failed to update facet value"
 msgstr "विशेषता मान अपडेट गर्न असफल"
 
@@ -5025,8 +5033,8 @@ msgstr "नयाँ ढुवानी विधि"
 msgid "is greater than or equal to"
 msgstr "बराबर वा बढी छ"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:81
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:92
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:99
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:113
 #: src/lib/components/shared/entity-assets.tsx:151
 msgid "Preview"
 msgstr "पूर्वावलोकन"
@@ -5223,7 +5231,7 @@ msgstr "राज्य / प्रान्त"
 msgid "Enabled"
 msgstr "सक्षम"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:476
+#: src/lib/components/shared/asset/asset-gallery.tsx:483
 msgid "Items per page"
 msgstr "प्रति पृष्ठ वस्तुहरू"
 
@@ -5338,7 +5346,7 @@ msgstr "पहिचानकर्ता"
 msgid "Select a fulfillment handler"
 msgstr "फुलफिलमेन्ट ह्यान्डलर चयन गर्नुहोस्"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:119
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:138
 msgid "Failed to update collection"
 msgstr "संग्रह अपडेट गर्न असफल"
 
@@ -5424,9 +5432,9 @@ msgstr "भेरियन्ट अद्यावधिक गर्न अस
 msgid "Go to previous page"
 msgstr "अघिल्लो पृष्ठमा जानुहोस्"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:255
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:258
-#: src/app/routes/_authenticated/_collections/collections.tsx:425
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278
+#: src/app/routes/_authenticated/_collections/collections.tsx:449
 msgid "Contents"
 msgstr "सामग्रीहरू"
 
@@ -5476,7 +5484,7 @@ msgstr "ग्राहक अपडेट गर्न असफल"
 msgid "Remove option groups?"
 msgstr "विकल्प समूहहरू हटाउने हो?"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:95
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:102
 msgid "This is a preview of the collection contents based on the current filter settings. Once you save the collection, the contents will be updated to reflect the new filter settings."
 msgstr "यो हालको फिल्टर सेटिङहरूमा आधारित सङ्ग्रह सामग्रीहरूको पूर्वावलोकन हो। तपाईंले सङ्ग्रह सुरक्षित गरेपछि, नयाँ फिल्टर सेटिङहरू प्रतिबिम्बित गर्न सामग्रीहरू अपडेट गरिनेछ।"
 
@@ -5553,7 +5561,7 @@ msgstr "थप फासेटहरू छैनन्"
 msgid "Search index rebuild started"
 msgstr "खोज सूचकांक पुनर्निर्माण सुरु भयो"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:346
+#: src/app/routes/_authenticated/_collections/collections.tsx:349
 msgid "Collection position updated"
 msgstr "संग्रह स्थिति अपडेट गरियो"
 
@@ -5607,7 +5615,7 @@ msgstr "टोकन"
 msgid "Fulfilling..."
 msgstr "पूरा गर्दै..."
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:524
+#: src/app/routes/_authenticated/_collections/collections.tsx:554
 msgid "Search collections..."
 msgstr "संग्रहहरू खोज्नुहोस्..."
 
@@ -5662,7 +5670,7 @@ msgstr "टाइप गर्नुहोस् र थप्न Enter वा �
 msgid "Edit Note"
 msgstr "टिप्पणी सम्पादन गर्नुहोस्"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:628
+#: src/lib/components/shared/asset/asset-gallery.tsx:635
 msgid "No assets found. Try adjusting your filters."
 msgstr "कुनै एसेट भेटिएन। कृपया फिल्टरहरू समायोजन गर्नुहोस्।"
 
@@ -5682,7 +5690,7 @@ msgstr "विकल्प समूह सुरक्षित गर्नु
 msgid "Click \"Run Test\" to test this shipping method."
 msgstr "यो ढुवानी विधि परीक्षण गर्न \"परीक्षण चलाउनुहोस्\" क्लिक गर्नुहोस्।"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:78
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:79
 msgid "Successfully updated administrator"
 msgstr "प्रशासक सफलतापूर्वक अपडेट गरियो"
 
@@ -5752,7 +5760,7 @@ msgstr "कर बाहेक:"
 msgid "Successfully added option value"
 msgstr "विकल्प मान सफलतापूर्वक थपियो"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:348
+#: src/app/routes/_authenticated/_collections/collections.tsx:351
 msgid "Collection moved to new parent"
 msgstr "संग्रह नयाँ अभिभावकमा सारियो"
 
@@ -5826,9 +5834,9 @@ msgstr "थप्नको लागि नयाँ विशेषता म�
 msgid "Failed to process refund"
 msgstr "फिर्ता प्रक्रिया गर्न असफल"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:115
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:116
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:176
-#: src/app/routes/_authenticated/_profile/profile.tsx:102
+#: src/app/routes/_authenticated/_profile/profile.tsx:103
 msgid "First name"
 msgstr "पहिलो नाम"
 
@@ -5899,8 +5907,8 @@ msgstr "मात्रा"
 msgid "Tax category"
 msgstr "कर वर्ग"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:38
-#: src/app/routes/_authenticated/_profile/profile.tsx:84
+#: src/app/routes/_authenticated/_profile/profile.tsx:39
+#: src/app/routes/_authenticated/_profile/profile.tsx:85
 #: src/lib/components/layout/nav-user.tsx:108
 msgid "Profile"
 msgstr "प्रोफाइल"
@@ -6011,7 +6019,7 @@ msgstr "मेट्रिक्स"
 msgid "Language"
 msgstr "भाषा"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:555
+#: src/app/routes/_authenticated/_collections/collections.tsx:585
 msgid "New Collection"
 msgstr "नयाँ संग्रह"
 
@@ -6056,8 +6064,8 @@ msgstr "च्यानलमा {entityIdsLength} {entityType} सफलता�
 msgid "Global Languages"
 msgstr "ग्लोबल भाषाहरू"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:97
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:39
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:98
 msgid "New administrator"
 msgstr "नयाँ प्रशासक"
 
@@ -6167,6 +6175,10 @@ msgstr "{cancellableCount, plural, one {के तपाईं {cancellableCount
 msgid "Total Revenue"
 msgstr "कुल राजस्व"
 
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:89
+msgid "Applying filters…"
+msgstr "फिल्टरहरू लागू गर्दै…"
+
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:163
 msgid "Next Execution"
 msgstr "अर्को कार्यान्वयन"
@@ -6178,6 +6190,10 @@ msgstr "{CANDIDATE_POOL_SIZE} भेरियन्टहरूको नमू�
 #: src/lib/components/shared/history-timeline/history-note-checkbox.tsx:21
 msgid "Note is private"
 msgstr "टिप्पणी निजी छ"
+
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:92
+msgid "The collection contents will refresh once the update has finished."
+msgstr "अद्यावधिक सकिएपछि सङ्ग्रहको सामग्री ताजा हुनेछ।"
 
 #: src/lib/components/layout/language-dialog.tsx:124
 msgid "Medium date"
@@ -6212,7 +6228,7 @@ msgstr "पूर्वनिर्धारित ढुवानी ठेग�
 msgid "Edit slug manually"
 msgstr "स्लग म्यानुअल रूपमा सम्पादन गर्नुहोस्"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:84
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:116
 msgid "Add filters to preview the collection contents."
 msgstr "सङ्ग्रह सामग्रीहरूको पूर्वावलोकन गर्न फिल्टरहरू थप्नुहोस्।"
 
@@ -6273,7 +6289,7 @@ msgstr "स्टक स्थानहरू खोज्नुहोस्..."
 msgid "Search assets..."
 msgstr "एसेटहरू खोज्नुहोस्..."
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:127
+#: src/app/routes/_authenticated/_facets/facets.tsx:125
 msgid "New Facet"
 msgstr "नयाँ विशेषता"
 
@@ -6392,7 +6408,7 @@ msgstr "प्रति पृष्ठ पङ्क्तिहरू"
 msgid "Loading collections..."
 msgstr "संग्रहहरू लोड गर्दै..."
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:84
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:85
 msgid "Successfully updated facet value"
 msgstr "विशेषता मान सफलतापूर्वक अपडेट गरियो"
 
@@ -6695,7 +6711,7 @@ msgstr "अर्डर प्रक्रिया"
 msgid "Phone number"
 msgstr "फोन नम्बर"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:161
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:180
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:109
 #: src/lib/components/data-input/default-relation-input.tsx:247
 #: src/lib/components/data-input/default-relation-input.tsx:277

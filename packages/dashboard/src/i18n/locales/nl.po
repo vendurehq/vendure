@@ -170,7 +170,7 @@ msgstr "Belastingtarief succesvol bijgewerkt"
 msgid "Enter custom reason..."
 msgstr "Voer een aangepaste reden in..."
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:744
+#: src/lib/components/shared/asset/asset-gallery.tsx:751
 msgid "Type"
 msgstr "Type"
 
@@ -187,8 +187,8 @@ msgid "Add more ({0} selected)"
 msgstr "Meer toevoegen ({0} geselecteerd)"
 
 #: src/app/routes/_authenticated/_facets/facets.tsx:71
-msgid "View values"
-msgstr "Waarden bekijken"
+#~ msgid "View values"
+#~ msgstr "Waarden bekijken"
 
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx:214
 msgid "Delete row"
@@ -287,6 +287,10 @@ msgstr "SKU:"
 msgid "Add payment"
 msgstr "Betaling toevoegen"
 
+#: src/app/routes/_authenticated/_collections/collections.tsx:404
+msgid "Expand"
+msgstr "Uitklappen"
+
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-shipping-method-sheet.tsx:40
 msgid "Test this shipping method by simulating an order to see if it's eligible and what the shipping cost would be."
 msgstr "Test deze verzendmethode door een bestelling te simuleren om te zien of deze geschikt is en wat de verzendkosten zouden zijn."
@@ -332,7 +336,7 @@ msgstr "Weet u zeker dat u deze variant wilt verwijderen?"
 #~ msgid "All resources are up and running"
 #~ msgstr "Alle resources zijn operationeel"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:87
 msgid "Failed to create administrator"
 msgstr "Aanmaken van beheerder mislukt"
 
@@ -361,9 +365,9 @@ msgstr "Land bijwerken mislukt"
 msgid "Type at least 2 characters to search..."
 msgstr "Typ minstens 2 tekens om te zoeken..."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:121
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:122
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:182
-#: src/app/routes/_authenticated/_profile/profile.tsx:108
+#: src/app/routes/_authenticated/_profile/profile.tsx:109
 msgid "Last name"
 msgstr "Achternaam"
 
@@ -520,8 +524,8 @@ msgstr "Belastingtarief"
 msgid "Order draft isn't ready to be completed"
 msgstr "Conceptbestelling is nog niet klaar om te worden voltooid"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:48
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:137
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:52
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:156
 msgid "New collection"
 msgstr "Nieuwe collectie"
 
@@ -562,7 +566,7 @@ msgstr "We konden de voorraadniveaus niet laden"
 msgid "City"
 msgstr "Plaats"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:37
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:15
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:23
 msgid "Administrators"
@@ -603,7 +607,7 @@ msgstr "Aantal bestellingen"
 msgid "Successfully updated order"
 msgstr "Bestelling succesvol bijgewerkt"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:203
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:222
 msgid "Inherit filters"
 msgstr "Filters overnemen"
 
@@ -676,7 +680,7 @@ msgstr "Toevoegen..."
 msgid "Move Collections"
 msgstr "Collecties verplaatsen"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:139
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:140
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:57
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:170
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
@@ -783,8 +787,8 @@ msgstr "Instellen van verzendmethode voor bestelling mislukt: {0}"
 msgid "Filter..."
 msgstr "Filteren..."
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:40
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:102
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:41
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:103
 msgid "New facet value"
 msgstr "Nieuwe facetwaarde"
 
@@ -845,11 +849,11 @@ msgstr "Concept voltooien"
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:47
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:165
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:173
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:192
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:104
 #: src/app/routes/_authenticated/_customers/customers.tsx:73
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:131
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:136
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:121
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:202
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:173
@@ -863,7 +867,7 @@ msgstr "Concept voltooien"
 #: src/app/routes/_authenticated/_tax-categories/tax-categories_.$id.tsx:106
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:113
 #: src/app/routes/_authenticated/_zones/zones_.$id.tsx:93
-#: src/lib/components/shared/asset/asset-gallery.tsx:743
+#: src/lib/components/shared/asset/asset-gallery.tsx:750
 msgid "Name"
 msgstr "Naam"
 
@@ -903,7 +907,7 @@ msgstr "Afhandeling aangemaakt"
 msgid "Found {0} eligible shipping method{1}"
 msgstr "{0} geschikte verzendmethode(n) gevonden"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:746
+#: src/lib/components/shared/asset/asset-gallery.tsx:753
 #: src/lib/components/shared/asset/asset-properties.tsx:39
 msgid "Dimensions"
 msgstr "Afmetingen"
@@ -968,7 +972,7 @@ msgstr "Bevestigen"
 msgid "Failed to complete draft order: {0}"
 msgstr "Voltooien van conceptbestelling mislukt: {0}"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:119
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:138
 msgid "Failed to create collection"
 msgstr "Collectie aanmaken mislukt"
 
@@ -1063,9 +1067,9 @@ msgstr "Omzet"
 msgid "Failed to update zone"
 msgstr "Zone bijwerken mislukt"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:133
-#: src/app/routes/_authenticated/_profile/profile.tsx:120
-#: src/app/routes/_authenticated/_profile/profile.tsx:137
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:134
+#: src/app/routes/_authenticated/_profile/profile.tsx:121
+#: src/app/routes/_authenticated/_profile/profile.tsx:138
 #: src/lib/components/login/login-form.tsx:94
 msgid "Password"
 msgstr "Wachtwoord"
@@ -1162,7 +1166,7 @@ msgstr "Platform en Cloud verkennen"
 msgid "Every 5 seconds"
 msgstr "Elke 5 seconden"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:105
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:124
 msgid "Successfully created collection"
 msgstr "Collectie succesvol aangemaakt"
 
@@ -1291,7 +1295,7 @@ msgstr "Slug opnieuw genereren vanuit bronveld"
 msgid "Inherit from global settings"
 msgstr "Overnemen van globale instellingen"
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:79
+#: src/app/routes/_authenticated/_facets/facets.tsx:77
 msgid "Search facets..."
 msgstr "Facetten zoeken..."
 
@@ -1369,7 +1373,7 @@ msgid "No items selected"
 msgstr "Geen items geselecteerd"
 
 #. placeholder {0}: selected.length
-#: src/lib/components/shared/asset/asset-gallery.tsx:469
+#: src/lib/components/shared/asset/asset-gallery.tsx:476
 msgid ", {0} selected"
 msgstr ", {0} geselecteerd"
 
@@ -1601,7 +1605,7 @@ msgstr "voor"
 msgid "Failed to set customer for order: {0}"
 msgstr "Instellen van klant voor bestelling mislukt: {0}"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:745
+#: src/lib/components/shared/asset/asset-gallery.tsx:752
 msgid "Size"
 msgstr "Maat"
 
@@ -1622,7 +1626,7 @@ msgstr "Laatste bestellingen"
 msgid "Go back"
 msgstr "Ga terug"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:452
+#: src/app/routes/_authenticated/_collections/collections.tsx:478
 msgid "+ {leftOver} more"
 msgstr "+ {leftOver} meer"
 
@@ -1682,7 +1686,7 @@ msgstr "Beschikbaar"
 msgid "Normal"
 msgstr "Normaal"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:199
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:218
 msgid "Filters"
 msgstr "Filters"
 
@@ -1714,7 +1718,7 @@ msgstr "Nieuwe optie"
 msgid "Usage limit"
 msgstr "Gebruikslimiet"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:547
+#: src/app/routes/_authenticated/_collections/collections.tsx:577
 msgid "Create your first collection"
 msgstr "Maak uw eerste collectie aan"
 
@@ -1728,7 +1732,7 @@ msgstr "Adres succesvol bijgewerkt"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:126
-#: src/lib/components/shared/asset/asset-gallery.tsx:747
+#: src/lib/components/shared/asset/asset-gallery.tsx:754
 #: src/lib/framework/layout-engine/page-layout.tsx:746
 msgid "Created"
 msgstr "Aangemaakt"
@@ -1844,9 +1848,9 @@ msgstr "Gedeeltelijke restitutie voltooid"
 msgid "Set custom fields"
 msgstr "Aangepaste velden instellen"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:47
-#: src/app/routes/_authenticated/_collections/collections.tsx:51
-#: src/app/routes/_authenticated/_collections/collections.tsx:362
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:49
+#: src/app/routes/_authenticated/_collections/collections.tsx:53
+#: src/app/routes/_authenticated/_collections/collections.tsx:365
 msgid "Collections"
 msgstr "Collecties"
 
@@ -1891,7 +1895,7 @@ msgstr "Overgaan naar {0}"
 msgid "Tax Categories"
 msgstr "Belastingcategorieën"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:162
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:181
 msgid "Private collections are not visible in the shop"
 msgstr "Privécollecties zijn niet zichtbaar in de winkel"
 
@@ -1980,15 +1984,15 @@ msgstr "Belastingcategorie bijwerken mislukt"
 msgid "Refund settled successfully"
 msgstr "Terugbetaling succesvol afgehandeld"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:152
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:102
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
@@ -1998,7 +2002,7 @@ msgstr "Terugbetaling succesvol afgehandeld"
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:278
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:242
-#: src/app/routes/_authenticated/_profile/profile.tsx:92
+#: src/app/routes/_authenticated/_profile/profile.tsx:93
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
@@ -2019,7 +2023,7 @@ msgstr "Kop 2"
 msgid "Order placed"
 msgstr "Bestelling geplaatst"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:71
+#: src/app/routes/_authenticated/_profile/profile.tsx:72
 msgid "Successfully updated profile"
 msgstr "Profiel succesvol bijgewerkt"
 
@@ -2077,7 +2081,7 @@ msgstr "Kolominstellingen"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:132
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:142
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:127
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:208
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:179
@@ -2562,7 +2566,7 @@ msgstr "Belastingsamenvatting"
 msgid "Sets the languages that are available for all channels. Individual channels can then support a subset of these languages."
 msgstr "Stelt de talen in die beschikbaar zijn voor alle kanalen. Individuele kanalen kunnen vervolgens een subset van deze talen ondersteunen."
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:119
+#: src/app/routes/_authenticated/_facets/facets.tsx:117
 msgid "Create your first facet"
 msgstr "Maak uw eerste facet aan"
 
@@ -2676,7 +2680,7 @@ msgstr "Waarden"
 msgid "Customer set for order"
 msgstr "Klant ingesteld voor bestelling"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:38
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:39
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:36
 #: src/app/routes/_authenticated/_facets/facets.tsx:22
 #: src/app/routes/_authenticated/_facets/facets.tsx:30
@@ -2752,7 +2756,7 @@ msgstr "Standaardkanaal"
 msgid "Insert a new image with source, title, and dimensions"
 msgstr "Een nieuwe afbeelding invoegen met bron, titel en afmetingen"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:93
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:94
 msgid "Failed to create facet value"
 msgstr "Facetwaarde aanmaken mislukt"
 
@@ -2785,7 +2789,7 @@ msgstr "Wachtwoord vergeten?"
 msgid "Schedule"
 msgstr "Planning"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:304
+#: src/app/routes/_authenticated/_collections/collections.tsx:307
 msgid "Cannot move a collection into its own descendant"
 msgstr "Een collectie kan niet naar een eigen subniveau worden verplaatst"
 
@@ -2860,7 +2864,7 @@ msgstr "Verzendkosten herberekenen"
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:39
 #: src/app/routes/_authenticated/_assets/assets.tsx:17
 #: src/app/routes/_authenticated/_assets/assets.tsx:40
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:229
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:248
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:508
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:381
 msgid "Assets"
@@ -2876,7 +2880,7 @@ msgstr "Dit verwijdert alle optiegroepen van dit product en keert terug naar de 
 msgid "Billing address"
 msgstr "Factuuradres"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:64
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:65
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:173
 msgid "Add facet value"
 msgstr "Facetwaarde toevoegen"
@@ -2919,6 +2923,10 @@ msgstr "Topproducten"
 #: src/lib/components/shared/asset/asset-gallery.tsx:379
 msgid "All types"
 msgstr "Alle typen"
+
+#: src/app/routes/_authenticated/_collections/collections.tsx:404
+msgid "Collapse"
+msgstr "Inklappen"
 
 #: src/app/routes/_authenticated/_orders/components/draft-order-status.tsx:29
 msgid "Only draft orders can be completed"
@@ -2979,7 +2987,7 @@ msgstr "Nieuwe klant"
 msgid "Image"
 msgstr "Afbeelding"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:77
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:78
 msgid "Successfully created administrator"
 msgstr "Beheerder succesvol aangemaakt"
 
@@ -3005,7 +3013,7 @@ msgstr "Weet u zeker dat u deze globale weergave wilt verwijderen? Deze actie ka
 msgid "Force remove option group"
 msgstr "Optiegroep geforceerd verwijderen"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:140
+#: src/app/routes/_authenticated/_profile/profile.tsx:141
 msgid "Added"
 msgstr "Toegevoegd"
 
@@ -3052,14 +3060,14 @@ msgstr "Restitutietotaal overschrijdt het maximaal restitueerbare bedrag van {0}
 msgid "Delete Global View"
 msgstr "Globale weergave verwijderen"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:152
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:163
@@ -3282,7 +3290,7 @@ msgstr "{0}"
 msgid "New Zone"
 msgstr "Nieuwe zone"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:353
+#: src/app/routes/_authenticated/_collections/collections.tsx:356
 msgid "Failed to update collection position"
 msgstr "Bijwerken van collectiepositie mislukt"
 
@@ -3452,7 +3460,7 @@ msgstr "Betalingshandler selecteren"
 msgid "Password reset links are only valid for a limited time. Request a new one to reset your password."
 msgstr "Herstellinks voor wachtwoorden zijn slechts beperkt geldig. Vraag een nieuwe aan om uw wachtwoord opnieuw in te stellen."
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:128
+#: src/app/routes/_authenticated/_profile/profile.tsx:129
 msgid "Authentication methods"
 msgstr "Authenticatiemethoden"
 
@@ -3496,7 +3504,7 @@ msgid "Processing..."
 msgstr "Bezig met verwerken..."
 
 #. placeholder {0}: totalItems === 1 ? 'asset' : 'assets'
-#: src/lib/components/shared/asset/asset-gallery.tsx:465
+#: src/lib/components/shared/asset/asset-gallery.tsx:472
 msgid "{totalItems} {0} found"
 msgstr "{totalItems} {0} gevonden"
 
@@ -3561,7 +3569,7 @@ msgstr "Slepen om opnieuw te ordenen"
 msgid "Zones"
 msgstr "Zones"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:111
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:112
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:151
 #: src/lib/components/shared/facet-value-selector.tsx:124
 msgid "Search facet values..."
@@ -3586,7 +3594,7 @@ msgid "{saleable} in stock"
 msgstr "{saleable} op voorraad"
 
 #. placeholder {0}: Math.min(remaining, CHILDREN_PAGE_SIZE)
-#: src/app/routes/_authenticated/_collections/collections.tsx:503
+#: src/app/routes/_authenticated/_collections/collections.tsx:532
 msgid "Load {0} more ({remaining} remaining)"
 msgstr "{0} meer laden ({remaining} resterend)"
 
@@ -3677,7 +3685,7 @@ msgstr "Selecteer een adres"
 msgid "Yes"
 msgstr "Ja"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:179
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:198
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:259
 msgid "Slug"
 msgstr "Slug"
@@ -3877,8 +3885,8 @@ msgstr "Totale belasting"
 msgid "Draft order status"
 msgstr "Status conceptbestelling"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:147
-#: src/app/routes/_authenticated/_collections/components/collection-contents-table.tsx:79
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:167
+#: src/app/routes/_authenticated/_collections/components/collection-contents-table.tsx:80
 msgid "Search variants..."
 msgstr "Varianten zoeken..."
 
@@ -3890,7 +3898,7 @@ msgstr "Varianten zoeken..."
 msgid "Failed to create payment method"
 msgstr "Betaalmethode aanmaken mislukt"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:84
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:85
 msgid "Successfully created facet value"
 msgstr "Facetwaarde succesvol aangemaakt"
 
@@ -3954,8 +3962,8 @@ msgstr "Facet succesvol aangemaakt"
 msgid "No widgets to display. Use \"Edit Layout\" to add widgets."
 msgstr "Geen widgets om weer te geven. Gebruik 'Lay-out bewerken' om widgets toe te voegen."
 
-#. placeholder {0}: row.original.productVariantCount
-#: src/app/routes/_authenticated/_collections/collections.tsx:432
+#. placeholder {0}: formatNumber(row.original.productVariantCount as number)
+#: src/app/routes/_authenticated/_collections/collections.tsx:456
 msgid "{0} variants"
 msgstr "{0} varianten"
 
@@ -3968,7 +3976,7 @@ msgstr "Betaling afhandelen mislukt"
 msgid "No billing address"
 msgstr "Geen factuuradres"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:119
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:120
 msgid "Facet"
 msgstr "Facet"
 
@@ -4101,8 +4109,8 @@ msgstr "Varianten filteren..."
 msgid "Add a price in another currency"
 msgstr "Prijs in een andere valuta toevoegen"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
-#: src/app/routes/_authenticated/_profile/profile.tsx:114
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:128
+#: src/app/routes/_authenticated/_profile/profile.tsx:115
 msgid "Email Address or identifier"
 msgstr "E-mailadres of identificatie"
 
@@ -4217,7 +4225,7 @@ msgstr "Weergave succesvol gedupliceerd"
 msgid "Remove option group"
 msgstr "Optiegroep verwijderen"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:194
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:213
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:76
 #: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:14
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
@@ -4291,7 +4299,7 @@ msgstr "E-mail"
 msgid "Filter"
 msgstr "Filter"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:87
 msgid "Failed to update administrator"
 msgstr "Bijwerken van beheerder mislukt"
 
@@ -4568,7 +4576,7 @@ msgstr "Deze link is ongeldig of verlopen"
 #~ msgid "Insert link"
 #~ msgstr "Link invoegen"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:205
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:224
 msgid "If enabled, the filters will be inherited from the parent collection and combined with the filters set on this collection."
 msgstr "Indien ingeschakeld, worden de filters overgenomen van de bovenliggende collectie en gecombineerd met de filters die op deze collectie zijn ingesteld."
 
@@ -4829,7 +4837,7 @@ msgstr "Laden…"
 msgid "e.g., Red, Large, Cotton"
 msgstr "bijv. Rood, Groot, Katoen"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:75
+#: src/app/routes/_authenticated/_profile/profile.tsx:76
 msgid "Failed to update profile"
 msgstr "Profiel bijwerken mislukt"
 
@@ -4850,7 +4858,7 @@ msgstr "Filter wissen"
 msgid "Regions"
 msgstr "Regio's"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:438
+#: src/lib/components/shared/asset/asset-gallery.tsx:445
 msgid "Drop files here to upload"
 msgstr "Sleep bestanden hierheen om te uploaden"
 
@@ -4890,7 +4898,7 @@ msgstr "Rol bijwerken mislukt"
 msgid "This is the only time the full API key will be displayed. Copy or download it now — it cannot be retrieved later."
 msgstr "Dit is de enige keer dat de volledige API Key wordt weergegeven. Kopieer of download deze nu — later kan deze niet meer worden opgehaald."
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:105
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:124
 msgid "Successfully updated collection"
 msgstr "Collectie succesvol bijgewerkt"
 
@@ -4925,7 +4933,7 @@ msgstr "Couponcode verwijderd van bestelling"
 msgid "Never"
 msgstr "Nooit"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:93
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:94
 msgid "Failed to update facet value"
 msgstr "Facetwaarde bijwerken mislukt"
 
@@ -5016,8 +5024,8 @@ msgstr "Nieuwe verzendmethode"
 msgid "is greater than or equal to"
 msgstr "is groter dan of gelijk aan"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:81
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:92
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:99
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:113
 #: src/lib/components/shared/entity-assets.tsx:151
 msgid "Preview"
 msgstr "Voorbeeld"
@@ -5218,7 +5226,7 @@ msgstr "Staat / Provincie"
 msgid "Enabled"
 msgstr "Ingeschakeld"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:476
+#: src/lib/components/shared/asset/asset-gallery.tsx:483
 msgid "Items per page"
 msgstr "Items per pagina"
 
@@ -5333,7 +5341,7 @@ msgstr "Identificatie"
 msgid "Select a fulfillment handler"
 msgstr "Selecteer een fulfilmenthandler"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:119
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:138
 msgid "Failed to update collection"
 msgstr "Collectie bijwerken mislukt"
 
@@ -5419,9 +5427,9 @@ msgstr "Variant bijwerken mislukt"
 msgid "Go to previous page"
 msgstr "Ga naar vorige pagina"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:255
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:258
-#: src/app/routes/_authenticated/_collections/collections.tsx:425
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278
+#: src/app/routes/_authenticated/_collections/collections.tsx:449
 msgid "Contents"
 msgstr "Inhoud"
 
@@ -5471,7 +5479,7 @@ msgstr "Klant bijwerken mislukt"
 msgid "Remove option groups?"
 msgstr "Optiegroepen verwijderen?"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:95
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:102
 msgid "This is a preview of the collection contents based on the current filter settings. Once you save the collection, the contents will be updated to reflect the new filter settings."
 msgstr "Dit is een voorbeeld van de collectie-inhoud op basis van de huidige filterinstellingen. Zodra u de collectie opslaat, wordt de inhoud bijgewerkt volgens de nieuwe filterinstellingen."
 
@@ -5548,7 +5556,7 @@ msgstr "Geen facetten meer"
 msgid "Search index rebuild started"
 msgstr "Opnieuw opbouwen van zoekindex gestart"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:346
+#: src/app/routes/_authenticated/_collections/collections.tsx:349
 msgid "Collection position updated"
 msgstr "Collectiepositie bijgewerkt"
 
@@ -5602,7 +5610,7 @@ msgstr "Token"
 msgid "Fulfilling..."
 msgstr "Afhandelen..."
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:524
+#: src/app/routes/_authenticated/_collections/collections.tsx:554
 msgid "Search collections..."
 msgstr "Collecties zoeken..."
 
@@ -5657,7 +5665,7 @@ msgstr "Typ en druk op Enter of komma om toe te voegen..."
 msgid "Edit Note"
 msgstr "Notitie bewerken"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:628
+#: src/lib/components/shared/asset/asset-gallery.tsx:635
 msgid "No assets found. Try adjusting your filters."
 msgstr "Geen bestanden gevonden. Probeer uw filters aan te passen."
 
@@ -5677,7 +5685,7 @@ msgstr "Optiegroep opslaan"
 msgid "Click \"Run Test\" to test this shipping method."
 msgstr "Klik op \"Test uitvoeren\" om deze verzendmethode te testen."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:78
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:79
 msgid "Successfully updated administrator"
 msgstr "Beheerder succesvol bijgewerkt"
 
@@ -5747,7 +5755,7 @@ msgstr "excl. BTW:"
 msgid "Successfully added option value"
 msgstr "Optiewaarde succesvol toegevoegd"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:348
+#: src/app/routes/_authenticated/_collections/collections.tsx:351
 msgid "Collection moved to new parent"
 msgstr "Collectie naar nieuw bovenliggend niveau verplaatst"
 
@@ -5821,9 +5829,9 @@ msgstr "Nieuwe facetwaarden om toe te voegen:"
 msgid "Failed to process refund"
 msgstr "Verwerking van restitutie mislukt"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:115
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:116
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:176
-#: src/app/routes/_authenticated/_profile/profile.tsx:102
+#: src/app/routes/_authenticated/_profile/profile.tsx:103
 msgid "First name"
 msgstr "Voornaam"
 
@@ -5894,8 +5902,8 @@ msgstr "Aantal"
 msgid "Tax category"
 msgstr "Belastingcategorie"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:38
-#: src/app/routes/_authenticated/_profile/profile.tsx:84
+#: src/app/routes/_authenticated/_profile/profile.tsx:39
+#: src/app/routes/_authenticated/_profile/profile.tsx:85
 #: src/lib/components/layout/nav-user.tsx:108
 msgid "Profile"
 msgstr "Profiel"
@@ -6006,7 +6014,7 @@ msgstr "Statistieken"
 msgid "Language"
 msgstr "Taal"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:555
+#: src/app/routes/_authenticated/_collections/collections.tsx:585
 msgid "New Collection"
 msgstr "Nieuwe collectie"
 
@@ -6051,8 +6059,8 @@ msgstr "{entityIdsLength} {entityType} succesvol toegewezen aan kanaal"
 msgid "Global Languages"
 msgstr "Globale talen"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:97
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:39
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:98
 msgid "New administrator"
 msgstr "Nieuwe beheerder"
 
@@ -6162,6 +6170,10 @@ msgstr "{cancellableCount, plural, one {Weet u zeker dat u {cancellableCount} ta
 msgid "Total Revenue"
 msgstr "Totale omzet"
 
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:89
+msgid "Applying filters…"
+msgstr "Filters worden toegepast…"
+
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:163
 msgid "Next Execution"
 msgstr "Volgende uitvoering"
@@ -6173,6 +6185,10 @@ msgstr "Verkoopbare voorraad op of onder {threshold}, uit een steekproef van {CA
 #: src/lib/components/shared/history-timeline/history-note-checkbox.tsx:21
 msgid "Note is private"
 msgstr "Notitie is privé"
+
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:92
+msgid "The collection contents will refresh once the update has finished."
+msgstr "De inhoud van de collectie wordt vernieuwd zodra de update is voltooid."
 
 #: src/lib/components/layout/language-dialog.tsx:124
 msgid "Medium date"
@@ -6207,7 +6223,7 @@ msgstr "Gebruiken als standaard verzendadres"
 msgid "Edit slug manually"
 msgstr "Slug handmatig bewerken"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:84
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:116
 msgid "Add filters to preview the collection contents."
 msgstr "Voeg filters toe om een voorbeeld van de collectie-inhoud te bekijken."
 
@@ -6268,7 +6284,7 @@ msgstr "Voorraadlocaties zoeken..."
 msgid "Search assets..."
 msgstr "Bestanden zoeken..."
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:127
+#: src/app/routes/_authenticated/_facets/facets.tsx:125
 msgid "New Facet"
 msgstr "Nieuw facet"
 
@@ -6387,7 +6403,7 @@ msgstr "Rijen per pagina"
 msgid "Loading collections..."
 msgstr "Collecties laden..."
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:84
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:85
 msgid "Successfully updated facet value"
 msgstr "Facetwaarde succesvol bijgewerkt"
 
@@ -6690,7 +6706,7 @@ msgstr "Bestelproces"
 msgid "Phone number"
 msgstr "Telefoonnummer"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:161
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:180
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:109
 #: src/lib/components/data-input/default-relation-input.tsx:247
 #: src/lib/components/data-input/default-relation-input.tsx:277
