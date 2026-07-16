@@ -43,6 +43,18 @@ const getStoredState = (storageKey: string) => {
 const setStoredState = (storageKey: string, state: StoredPollingState) =>
     sessionStorage.setItem(storageKey, JSON.stringify(state));
 const clearStoredState = (storageKey: string) => sessionStorage.removeItem(storageKey);
+/**
+ * Clears the stored entry only if it was written by the polling run identified by `startTime`.
+ * The storage key is shared per queue, so an unconditional clear could delete an entry written
+ * by a different scope's polling run.
+ */
+const clearStoredStateIfOwned = (storageKey: string, startTime: string | null) => {
+    if (startTime == null) return;
+    const stored = getStoredState(storageKey);
+    if (stored?.startTime === startTime) {
+        clearStoredState(storageKey);
+    }
+};
 
 /**
  * Hook to poll a job queue until jobs complete.
@@ -61,16 +73,19 @@ const clearStoredState = (storageKey: string) => sessionStorage.removeItem(stora
  * entity-creation page: polling then stays purely in-memory — it is never written to
  * sessionStorage and never resumed — so a later visit to the same page cannot resurrect it.
  *
- * Note: because the state is bound to a scopeKey, polling does NOT resume across a scopeKey
- * change. In particular, the create -> real-id navigation after creating an entity starts under
- * the (unscoped) create page and does not carry over to the newly-created id. This is an
- * accepted trade-off for correct per-entity isolation.
+ * Note: because the state is bound to a scopeKey, polling does NOT resume across a change
+ * between two different scopes. The one exception is the transition from unscoped to a scope
+ * while polling is in flight — that can only be the create -> created navigation (any real
+ * entity has a scope), so the in-flight polling is adopted into the new scope and persisted
+ * under it, preserving the in-progress indicator and completion callback for the new entity.
  */
 export function useJobQueuePolling(queueName: string, onComplete: () => void, scopeKey?: string) {
     const storageKey = `${STORAGE_KEY_PREFIX}${queueName}`;
     const [isPolling, setIsPolling] = useState(false);
     const [pollCount, setPollCount] = useState(0);
     const startTimeRef = useRef<string | null>(null);
+    const expiresAtRef = useRef<number | null>(null);
+    const prevScopeKeyRef = useRef(scopeKey);
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const onCompleteRef = useRef(onComplete);
 
@@ -81,11 +96,30 @@ export function useJobQueuePolling(queueName: string, onComplete: () => void, sc
     // Reset polling state whenever the scope changes (e.g. navigating between entities without
     // a remount), then resume from persisted state only if it belongs to the current scope.
     useEffect(() => {
+        const prevScopeKey = prevScopeKeyRef.current;
+        prevScopeKeyRef.current = scopeKey;
+
+        // Adopt in-flight unscoped polling into the new scope. A transition from unscoped to a
+        // scope while polling is in flight can only be the create -> created navigation (any
+        // real entity has a scope), so keep the polling running and persist it under the new
+        // scope so a refresh can also resume it.
+        if (prevScopeKey == null && scopeKey != null && startTimeRef.current != null) {
+            if (expiresAtRef.current != null) {
+                setStoredState(storageKey, {
+                    startTime: startTimeRef.current,
+                    expiresAt: expiresAtRef.current,
+                    scopeKey,
+                });
+            }
+            return;
+        }
+
         if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
             timeoutRef.current = null;
         }
         startTimeRef.current = null;
+        expiresAtRef.current = null;
         setIsPolling(false);
 
         // Unscoped (transient) usage is in-memory only — never resume from storage.
@@ -105,6 +139,7 @@ export function useJobQueuePolling(queueName: string, onComplete: () => void, sc
         }
 
         startTimeRef.current = stored.startTime;
+        expiresAtRef.current = stored.expiresAt;
         setPollCount(0);
         setIsPolling(true);
 
@@ -112,7 +147,8 @@ export function useJobQueuePolling(queueName: string, onComplete: () => void, sc
         timeoutRef.current = setTimeout(() => {
             setIsPolling(false);
             startTimeRef.current = null;
-            clearStoredState(storageKey);
+            expiresAtRef.current = null;
+            clearStoredStateIfOwned(storageKey, stored.startTime);
             onCompleteRef.current();
         }, remainingTime);
     }, [storageKey, scopeKey]);
@@ -151,7 +187,8 @@ export function useJobQueuePolling(queueName: string, onComplete: () => void, sc
         if (hasSettledJob) {
             setIsPolling(false);
             startTimeRef.current = null;
-            clearStoredState(storageKey);
+            expiresAtRef.current = null;
+            clearStoredStateIfOwned(storageKey, startTime);
             if (timeoutRef.current) {
                 clearTimeout(timeoutRef.current);
                 timeoutRef.current = null;
@@ -179,13 +216,15 @@ export function useJobQueuePolling(queueName: string, onComplete: () => void, sc
         }
 
         startTimeRef.current = startTime;
+        expiresAtRef.current = expiresAt;
         setPollCount(0);
         setIsPolling(true);
 
         timeoutRef.current = setTimeout(() => {
             setIsPolling(false);
             startTimeRef.current = null;
-            clearStoredState(storageKey);
+            expiresAtRef.current = null;
+            clearStoredStateIfOwned(storageKey, startTime);
             onCompleteRef.current();
         }, MAX_POLLING_TIMEOUT_MS);
     }, [storageKey, scopeKey]);
