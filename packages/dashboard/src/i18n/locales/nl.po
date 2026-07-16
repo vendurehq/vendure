@@ -170,7 +170,7 @@ msgstr "Belastingtarief succesvol bijgewerkt"
 msgid "Enter custom reason..."
 msgstr "Voer een aangepaste reden in..."
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:744
+#: src/lib/components/shared/asset/asset-gallery.tsx:751
 msgid "Type"
 msgstr "Type"
 
@@ -259,7 +259,8 @@ msgstr "Bestandsgrootte"
 msgid "Sellers"
 msgstr "Verkopers"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:269
+#: src/app/routes/_authenticated/_option-groups/option-groups.tsx:40
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:472
 msgid "Options"
 msgstr "Opties"
 
@@ -332,7 +333,7 @@ msgstr "Weet u zeker dat u deze variant wilt verwijderen?"
 #~ msgid "All resources are up and running"
 #~ msgstr "Alle resources zijn operationeel"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:87
 msgid "Failed to create administrator"
 msgstr "Aanmaken van beheerder mislukt"
 
@@ -341,7 +342,7 @@ msgstr "Aanmaken van beheerder mislukt"
 msgid "No"
 msgstr "Nee"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:147
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:163
 msgid "Successfully updated product variant"
 msgstr "Productvariant succesvol bijgewerkt"
 
@@ -361,9 +362,9 @@ msgstr "Land bijwerken mislukt"
 msgid "Type at least 2 characters to search..."
 msgstr "Typ minstens 2 tekens om te zoeken..."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:121
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:122
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:182
-#: src/app/routes/_authenticated/_profile/profile.tsx:108
+#: src/app/routes/_authenticated/_profile/profile.tsx:109
 msgid "Last name"
 msgstr "Achternaam"
 
@@ -389,6 +390,7 @@ msgstr "Geen widgets om toe te voegen"
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx:109
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts:303
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:262
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:79
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:121
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:166
@@ -550,8 +552,8 @@ msgid "Successfully created product option"
 msgstr "Productoptie succesvol aangemaakt"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:501
-msgid "Parent product"
-msgstr "Hoofdproduct"
+#~ msgid "Parent product"
+#~ msgstr "Hoofdproduct"
 
 #: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:78
 msgid "We couldn't load the stock levels"
@@ -562,15 +564,15 @@ msgstr "We konden de voorraadniveaus niet laden"
 msgid "City"
 msgstr "Plaats"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:37
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:15
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:23
 msgid "Administrators"
 msgstr "Beheerders"
 
 #: src/app/routes/_authenticated/_product-variants/components/variant-price-detail.tsx:86
-msgid "Gross price: <0/>"
-msgstr "Brutoprijs: <0/>"
+#~ msgid "Gross price: <0/>"
+#~ msgstr "Brutoprijs: <0/>"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:82
 #: src/lib/components/data-table/data-table.tsx:718
@@ -676,7 +678,7 @@ msgstr "Toevoegen..."
 msgid "Move Collections"
 msgstr "Collecties verplaatsen"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:139
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:140
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:57
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:170
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
@@ -717,6 +719,10 @@ msgstr "Inloggen"
 msgid "List view"
 msgstr "Lijstweergave"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:436
+msgid "When enabled, this variant is available in the shop"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/test-order-builder.tsx:164
 msgid "Test Order"
 msgstr "Testbestelling"
@@ -734,8 +740,8 @@ msgid "Run Test"
 msgstr "Test uitvoeren"
 
 #: src/app/routes/_authenticated/_product-variants/components/variant-price-detail.tsx:83
-msgid "Tax rate: {taxRate}%"
-msgstr "Belastingtarief: {taxRate}%"
+#~ msgid "Tax rate: {taxRate}%"
+#~ msgstr "Belastingtarief: {taxRate}%"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx:58
 msgid "Please add products and complete the shipping address to run the test."
@@ -851,7 +857,7 @@ msgstr "Concept voltooien"
 #: src/app/routes/_authenticated/_customers/customers.tsx:73
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:131
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:121
-#: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:202
+#: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:187
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:173
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:158
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:286
@@ -863,7 +869,7 @@ msgstr "Concept voltooien"
 #: src/app/routes/_authenticated/_tax-categories/tax-categories_.$id.tsx:106
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:113
 #: src/app/routes/_authenticated/_zones/zones_.$id.tsx:93
-#: src/lib/components/shared/asset/asset-gallery.tsx:743
+#: src/lib/components/shared/asset/asset-gallery.tsx:750
 msgid "Name"
 msgstr "Naam"
 
@@ -903,7 +909,7 @@ msgstr "Afhandeling aangemaakt"
 msgid "Found {0} eligible shipping method{1}"
 msgstr "{0} geschikte verzendmethode(n) gevonden"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:746
+#: src/lib/components/shared/asset/asset-gallery.tsx:753
 #: src/lib/components/shared/asset/asset-properties.tsx:39
 msgid "Dimensions"
 msgstr "Afmetingen"
@@ -1063,9 +1069,9 @@ msgstr "Omzet"
 msgid "Failed to update zone"
 msgstr "Zone bijwerken mislukt"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:133
-#: src/app/routes/_authenticated/_profile/profile.tsx:120
-#: src/app/routes/_authenticated/_profile/profile.tsx:137
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:134
+#: src/app/routes/_authenticated/_profile/profile.tsx:121
+#: src/app/routes/_authenticated/_profile/profile.tsx:138
 #: src/lib/components/login/login-form.tsx:94
 msgid "Password"
 msgstr "Wachtwoord"
@@ -1137,7 +1143,7 @@ msgstr "Annuleren van bestelartikelen mislukt"
 msgid "Transaction ID"
 msgstr "Transactie-ID"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:476
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:708
 msgid "Allocated"
 msgstr "Toegewezen"
 
@@ -1168,7 +1174,7 @@ msgstr "Collectie succesvol aangemaakt"
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:88
 #: src/app/routes/_authenticated/_orders/components/shipping-method-selector.tsx:49
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:324
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:553
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:298
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:191
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:196
@@ -1286,8 +1292,7 @@ msgstr "Verwijderen van couponcode uit bestelling mislukt: {0}"
 msgid "Regenerate slug from source field"
 msgstr "Slug opnieuw genereren vanuit bronveld"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:387
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:403
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:350
 msgid "Inherit from global settings"
 msgstr "Overnemen van globale instellingen"
 
@@ -1322,7 +1327,7 @@ msgstr "Afbeeldingsgrootte vanaf rechts aanpassen"
 msgid "Settings Store"
 msgstr "Instellingenopslag"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants.tsx:86
+#: src/app/routes/_authenticated/_product-variants/product-variants.tsx:97
 msgid "Search product variants..."
 msgstr "Productvarianten zoeken..."
 
@@ -1369,7 +1374,7 @@ msgid "No items selected"
 msgstr "Geen items geselecteerd"
 
 #. placeholder {0}: selected.length
-#: src/lib/components/shared/asset/asset-gallery.tsx:469
+#: src/lib/components/shared/asset/asset-gallery.tsx:476
 msgid ", {0} selected"
 msgstr ", {0} geselecteerd"
 
@@ -1397,7 +1402,7 @@ msgstr "Toeslag"
 msgid "Payment Methods"
 msgstr "Betaalmethoden"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:377
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:606
 msgid "Stock"
 msgstr "Voorraad"
 
@@ -1409,7 +1414,7 @@ msgstr "Geen verkopen in deze periode"
 msgid "No customers found"
 msgstr "Geen klanten gevonden"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:436
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:645
 msgid "Use global out-of-stock threshold"
 msgstr "Globale uitverkocht-drempelwaarde gebruiken"
 
@@ -1601,7 +1606,7 @@ msgstr "voor"
 msgid "Failed to set customer for order: {0}"
 msgstr "Instellen van klant voor bestelling mislukt: {0}"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:745
+#: src/lib/components/shared/asset/asset-gallery.tsx:752
 msgid "Size"
 msgstr "Maat"
 
@@ -1623,6 +1628,7 @@ msgid "Go back"
 msgstr "Ga terug"
 
 #: src/app/routes/_authenticated/_collections/collections.tsx:452
+#: src/app/routes/_authenticated/_option-groups/option-groups.tsx:54
 msgid "+ {leftOver} more"
 msgstr "+ {leftOver} meer"
 
@@ -1728,7 +1734,7 @@ msgstr "Adres succesvol bijgewerkt"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:126
-#: src/lib/components/shared/asset/asset-gallery.tsx:747
+#: src/lib/components/shared/asset/asset-gallery.tsx:754
 #: src/lib/framework/layout-engine/page-layout.tsx:746
 msgid "Created"
 msgstr "Aangemaakt"
@@ -1767,6 +1773,12 @@ msgstr "Belastingtarieven zoeken..."
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:163
 msgid "New product option"
 msgstr "Nieuwe productoptie"
+
+#. placeholder {0}: conflict.name
+#. placeholder {1}: conflict.sku
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:299
+msgid "A variant with these options already exists: {0} ({1})"
+msgstr ""
 
 #: src/lib/components/data-table/data-table-pagination.tsx:94
 msgid "Go to last page"
@@ -1809,7 +1821,7 @@ msgstr "Annuleren"
 msgid "Failed to update order custom fields: {0}"
 msgstr "Bijwerken van aangepaste velden van bestelling mislukt: {0}"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:146
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:162
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:160
 msgid "Successfully created product variant"
 msgstr "Productvariant succesvol aangemaakt"
@@ -1895,7 +1907,6 @@ msgstr "Belastingcategorieën"
 msgid "Private collections are not visible in the shop"
 msgstr "Privécollecties zijn niet zichtbaar in de winkel"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:262
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:221
 msgid "When enabled, a product is available in the shop"
 msgstr "Wanneer ingeschakeld, is een product beschikbaar in de winkel"
@@ -1980,7 +1991,7 @@ msgstr "Belastingcategorie bijwerken mislukt"
 msgid "Refund settled successfully"
 msgstr "Terugbetaling succesvol afgehandeld"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
@@ -1995,10 +2006,10 @@ msgstr "Terugbetaling succesvol afgehandeld"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:163
 #: src/app/routes/_authenticated/_orders/components/order-line-custom-fields-form.tsx:51
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:138
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:465
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:278
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:242
-#: src/app/routes/_authenticated/_profile/profile.tsx:92
+#: src/app/routes/_authenticated/_profile/profile.tsx:93
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
@@ -2019,7 +2030,7 @@ msgstr "Kop 2"
 msgid "Order placed"
 msgstr "Bestelling geplaatst"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:71
+#: src/app/routes/_authenticated/_profile/profile.tsx:72
 msgid "Successfully updated profile"
 msgstr "Profiel succesvol bijgewerkt"
 
@@ -2079,7 +2090,7 @@ msgstr "Kolominstellingen"
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:127
-#: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:208
+#: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:193
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:179
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:164
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:100
@@ -2179,7 +2190,7 @@ msgstr "{shown} van {total} weergegeven • {selected} geselecteerd"
 msgid "Test Shipping Method"
 msgstr "Verzendmethode testen"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:491
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:723
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:348
 msgid "Facet Values"
 msgstr "Facetwaarden"
@@ -2825,6 +2836,10 @@ msgstr "Voeg een nieuw adres toe aan de klant."
 msgid "More views"
 msgstr "Meer weergaven"
 
+#: src/app/routes/_authenticated/_product-variants/components/variant-price-detail.tsx:86
+msgid "(incl. {taxRate}% tax)"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:109
 msgid "Edit the selected image properties"
 msgstr "De eigenschappen van de geselecteerde afbeelding bewerken"
@@ -2861,7 +2876,7 @@ msgstr "Verzendkosten herberekenen"
 #: src/app/routes/_authenticated/_assets/assets.tsx:17
 #: src/app/routes/_authenticated/_assets/assets.tsx:40
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:229
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:508
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:733
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:381
 msgid "Assets"
 msgstr "Middelen"
@@ -2979,7 +2994,7 @@ msgstr "Nieuwe klant"
 msgid "Image"
 msgstr "Afbeelding"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:77
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:78
 msgid "Successfully created administrator"
 msgstr "Beheerder succesvol aangemaakt"
 
@@ -3005,7 +3020,7 @@ msgstr "Weet u zeker dat u deze globale weergave wilt verwijderen? Deze actie ka
 msgid "Force remove option group"
 msgstr "Optiegroep geforceerd verwijderen"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:140
+#: src/app/routes/_authenticated/_profile/profile.tsx:141
 msgid "Added"
 msgstr "Toegevoegd"
 
@@ -3035,6 +3050,10 @@ msgstr "Gebruikslimiet per klant"
 msgid "Billing address changed"
 msgstr "Factuuradres gewijzigd"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:509
+msgid "Manage option groups"
+msgstr ""
+
 #: src/lib/components/data-input/select-with-options.tsx:107
 msgid "Select an option"
 msgstr "Selecteer een optie"
@@ -3052,7 +3071,7 @@ msgstr "Restitutietotaal overschrijdt het maximaal restitueerbare bedrag van {0}
 msgid "Delete Global View"
 msgstr "Globale weergave verwijderen"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:152
@@ -3064,7 +3083,7 @@ msgstr "Globale weergave verwijderen"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:163
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:138
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:465
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:242
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
@@ -3304,8 +3323,8 @@ msgstr "Geen globale talen geconfigureerd"
 msgid "Removing {0} item(s)"
 msgstr "{0} item(s) verwijderen"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:388
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:406
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:617
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:633
 msgid "Track"
 msgstr "Volgen"
 
@@ -3452,7 +3471,7 @@ msgstr "Betalingshandler selecteren"
 msgid "Password reset links are only valid for a limited time. Request a new one to reset your password."
 msgstr "Herstellinks voor wachtwoorden zijn slechts beperkt geldig. Vraag een nieuwe aan om uw wachtwoord opnieuw in te stellen."
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:128
+#: src/app/routes/_authenticated/_profile/profile.tsx:129
 msgid "Authentication methods"
 msgstr "Authenticatiemethoden"
 
@@ -3481,7 +3500,6 @@ msgstr "Rollen zoeken..."
 msgid "None of the {CANDIDATE_POOL_SIZE} sampled variants are at or below {threshold}. Others may still be low."
 msgstr "Geen van de {CANDIDATE_POOL_SIZE} gecontroleerde varianten zit op of onder {threshold}. Andere kunnen alsnog laag zijn."
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:71
 #: src/app/routes/_authenticated/_product-variants/product-variants.tsx:19
 #: src/app/routes/_authenticated/_product-variants/product-variants.tsx:28
 msgid "Product Variants"
@@ -3496,7 +3514,7 @@ msgid "Processing..."
 msgstr "Bezig met verwerken..."
 
 #. placeholder {0}: totalItems === 1 ? 'asset' : 'assets'
-#: src/lib/components/shared/asset/asset-gallery.tsx:465
+#: src/lib/components/shared/asset/asset-gallery.tsx:472
 msgid "{totalItems} {0} found"
 msgstr "{totalItems} {0} gevonden"
 
@@ -3507,6 +3525,7 @@ msgstr "Datumbereik selecteren"
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:158
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:44
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:97
+#: src/app/routes/_authenticated/_product-variants/product-variants.tsx:54
 msgid "Product"
 msgstr "Product"
 
@@ -3547,7 +3566,7 @@ msgstr "Probeer opnieuw"
 msgid "Successfully updated shipping method"
 msgstr "Verzendmethode succesvol bijgewerkt"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:156
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:172
 msgid "Failed to update product variant"
 msgstr "Productvariant bijwerken mislukt"
 
@@ -3595,7 +3614,7 @@ msgid "Not found"
 msgstr "Niet gevonden"
 
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:143
-#: src/app/routes/_authenticated/_product-variants/product-variants.tsx:82
+#: src/app/routes/_authenticated/_product-variants/product-variants.tsx:93
 #: src/app/routes/_authenticated/_products/products.tsx:93
 msgid "Facet values"
 msgstr "Facetwaarden"
@@ -4024,8 +4043,8 @@ msgstr "Afhandelingsstatus succesvol bijgewerkt"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:79
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:79
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:205
-#: src/app/routes/_authenticated/_option-groups/option-groups.tsx:38
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:66
+#: src/app/routes/_authenticated/_option-groups/option-groups.tsx:62
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:71
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:61
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:57
 #: src/app/routes/_authenticated/_products/products.tsx:27
@@ -4101,8 +4120,8 @@ msgstr "Varianten filteren..."
 msgid "Add a price in another currency"
 msgstr "Prijs in een andere valuta toevoegen"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
-#: src/app/routes/_authenticated/_profile/profile.tsx:114
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:128
+#: src/app/routes/_authenticated/_profile/profile.tsx:115
 msgid "Email Address or identifier"
 msgstr "E-mailadres of identificatie"
 
@@ -4187,7 +4206,7 @@ msgstr "Notitie succesvol bijgewerkt"
 msgid "Failed to settle refund"
 msgstr "Terugbetaling afhandelen mislukt"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:461
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:693
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:311
 msgid "Stock level"
 msgstr "Voorraadniveau"
@@ -4291,7 +4310,7 @@ msgstr "E-mail"
 msgid "Filter"
 msgstr "Filter"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:87
 msgid "Failed to update administrator"
 msgstr "Bijwerken van beheerder mislukt"
 
@@ -4352,8 +4371,8 @@ msgid "does not contain"
 msgstr "bevat niet"
 
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:186
-msgid "Option Group"
-msgstr "Optiegroep"
+#~ msgid "Option Group"
+#~ msgstr "Optiegroep"
 
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx:132
 msgid "Edit the address details below."
@@ -4416,6 +4435,11 @@ msgstr "Optiegroepen"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:472
 msgid "Custom fields"
 msgstr "Aangepaste velden"
+
+#. placeholder {0}: group.name
+#: src/app/routes/_authenticated/_product-variants/components/variant-option-select.tsx:62
+msgid "Select or create {0}"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-process-dialog.tsx:98
 msgid "All possible order states and their transitions. The current state is highlighted."
@@ -4564,6 +4588,10 @@ msgstr "Lay-out bewerken"
 msgid "This link is invalid or has expired"
 msgstr "Deze link is ongeldig of verlopen"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:261
+msgid "Failed to create option"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:84
 #~ msgid "Insert link"
 #~ msgstr "Link invoegen"
@@ -4649,7 +4677,7 @@ msgstr "Gemiddelde bestelwaarde"
 msgid "Failed to create zone"
 msgstr "Zone aanmaken mislukt"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:382
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:611
 msgid "Stock levels"
 msgstr "Voorraadniveaus"
 
@@ -4829,7 +4857,7 @@ msgstr "Laden…"
 msgid "e.g., Red, Large, Cotton"
 msgstr "bijv. Rood, Groot, Katoen"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:75
+#: src/app/routes/_authenticated/_profile/profile.tsx:76
 msgid "Failed to update profile"
 msgstr "Profiel bijwerken mislukt"
 
@@ -4850,7 +4878,7 @@ msgstr "Filter wissen"
 msgid "Regions"
 msgstr "Regio's"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:438
+#: src/lib/components/shared/asset/asset-gallery.tsx:445
 msgid "Drop files here to upload"
 msgstr "Sleep bestanden hierheen om te uploaden"
 
@@ -5170,8 +5198,8 @@ msgstr "Instellen van adres voor bestelling mislukt: {0}"
 msgid "State"
 msgstr "Staat"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:389
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:409
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:618
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:636
 msgid "Do not track"
 msgstr "Niet volgen"
 
@@ -5204,7 +5232,7 @@ msgstr "Staat / Provincie"
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:92
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:147
 #: src/app/routes/_authenticated/_payment-methods/payment-methods.tsx:43
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:261
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:443
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:228
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:153
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:131
@@ -5218,7 +5246,7 @@ msgstr "Staat / Provincie"
 msgid "Enabled"
 msgstr "Ingeschakeld"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:476
+#: src/lib/components/shared/asset/asset-gallery.tsx:483
 msgid "Items per page"
 msgstr "Items per pagina"
 
@@ -5337,7 +5365,7 @@ msgstr "Selecteer een fulfilmenthandler"
 msgid "Failed to update collection"
 msgstr "Collectie bijwerken mislukt"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:304
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:533
 msgid "Price and tax"
 msgstr "Prijs en belasting"
 
@@ -5452,7 +5480,7 @@ msgstr "Betaling toevoegen ({0})"
 msgid "System"
 msgstr "Systeem"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:290
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:519
 #: src/app/routes/_authenticated/_products/components/product-variants-table.tsx:88
 msgid "Variant name"
 msgstr "Variantnaam"
@@ -5560,7 +5588,7 @@ msgstr "Collectiepositie bijgewerkt"
 msgid "Add \"{newOptionInput}\""
 msgstr "Voeg \"{newOptionInput}\" toe"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:244
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:425
 msgid "New product variant"
 msgstr "Nieuwe productvariant"
 
@@ -5657,7 +5685,7 @@ msgstr "Typ en druk op Enter of komma om toe te voegen..."
 msgid "Edit Note"
 msgstr "Notitie bewerken"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:628
+#: src/lib/components/shared/asset/asset-gallery.tsx:635
 msgid "No assets found. Try adjusting your filters."
 msgstr "Geen bestanden gevonden. Probeer uw filters aan te passen."
 
@@ -5677,7 +5705,11 @@ msgstr "Optiegroep opslaan"
 msgid "Click \"Run Test\" to test this shipping method."
 msgstr "Klik op \"Test uitvoeren\" om deze verzendmethode te testen."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:78
+#: src/app/routes/_authenticated/_product-variants/components/variant-price-detail.tsx:84
+msgid "Gross price"
+msgstr ""
+
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:79
 msgid "Successfully updated administrator"
 msgstr "Beheerder succesvol bijgewerkt"
 
@@ -5734,6 +5766,10 @@ msgstr "Elke 10 seconden"
 #: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:53
 msgid "Low Stock"
 msgstr "Lage voorraad"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:494
+msgid "Edit option group"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/price-display.tsx:17
 msgid "ex. tax:"
@@ -5807,6 +5843,10 @@ msgstr "Slug wordt automatisch gegenereerd..."
 msgid "Customer not found"
 msgstr "Klant niet gevonden"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:352
+msgid "Inherit from global settings (Track)"
+msgstr ""
+
 #. placeholder {0}: entityName.toLowerCase()
 #: src/lib/components/data-input/default-relation-input.tsx:658
 msgid "Select {0}s"
@@ -5821,9 +5861,9 @@ msgstr "Nieuwe facetwaarden om toe te voegen:"
 msgid "Failed to process refund"
 msgstr "Verwerking van restitutie mislukt"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:115
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:116
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:176
-#: src/app/routes/_authenticated/_profile/profile.tsx:102
+#: src/app/routes/_authenticated/_profile/profile.tsx:103
 msgid "First name"
 msgstr "Voornaam"
 
@@ -5889,13 +5929,13 @@ msgstr "Aantal"
 #~ msgid "Add filter"
 #~ msgstr "Filter toevoegen"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:309
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:538
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:127
 msgid "Tax category"
 msgstr "Belastingcategorie"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:38
-#: src/app/routes/_authenticated/_profile/profile.tsx:84
+#: src/app/routes/_authenticated/_profile/profile.tsx:39
+#: src/app/routes/_authenticated/_profile/profile.tsx:85
 #: src/lib/components/layout/nav-user.tsx:108
 msgid "Profile"
 msgstr "Profiel"
@@ -5941,8 +5981,8 @@ msgstr "{entityType} succesvol verwijderd uit kanaal"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:90
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:81
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:89
-#: src/app/routes/_authenticated/_option-groups/option-groups.tsx:17
-#: src/app/routes/_authenticated/_option-groups/option-groups.tsx:24
+#: src/app/routes/_authenticated/_option-groups/option-groups.tsx:18
+#: src/app/routes/_authenticated/_option-groups/option-groups.tsx:25
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:341
 msgid "Option Groups"
 msgstr "Optiegroepen"
@@ -6051,8 +6091,8 @@ msgstr "{entityIdsLength} {entityType} succesvol toegewezen aan kanaal"
 msgid "Global Languages"
 msgstr "Globale talen"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:97
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:39
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:98
 msgid "New administrator"
 msgstr "Nieuwe beheerder"
 
@@ -6359,8 +6399,7 @@ msgstr "Voorraad toegewezen"
 msgid "greater than or equal"
 msgstr "groter dan of gelijk aan"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:420
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:438
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:661
 msgid "Sets the stock level at which this variant is considered to be out of stock. Using a negative value enables backorder support."
 msgstr "Stelt het voorraadniveau in waarbij deze variant als uitverkocht wordt beschouwd. Het gebruik van een negatieve waarde schakelt ondersteuning voor nabestellingen in."
 
@@ -6427,7 +6466,7 @@ msgstr "Bestellingen zoeken..."
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:82
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:167
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:297
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:526
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:292
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:197
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:188
@@ -6470,7 +6509,7 @@ msgstr "Beschikbaar:"
 msgid "Created at"
 msgstr "Aangemaakt op"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:156
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:172
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:165
 msgid "Failed to create product variant"
 msgstr "Productvariant aanmaken mislukt"
@@ -6492,6 +6531,10 @@ msgstr "U heeft geen toestemming om globale taalinstellingen te bekijken"
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:70
 msgid "Successfully created tax rate"
 msgstr "Belastingtarief succesvol aangemaakt"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:353
+msgid "Inherit from global settings (Do not track)"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:46
 msgid "Remove option group {name}"
@@ -6519,6 +6562,10 @@ msgstr "Belastinggrondslag"
 msgid "Load more"
 msgstr "Meer laden"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:647
+msgid "When enabled, this variant uses the global out-of-stock threshold configured in Settings instead of its own value."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:72
 msgid "Refund settled"
 msgstr "Terugbetaling afgehandeld"
@@ -6531,7 +6578,7 @@ msgstr "API Key"
 msgid "Successfully duplicated {count} {entityName}"
 msgstr "{count} {entityName} succesvol gedupliceerd"
 
-#: src/app/routes/_authenticated/_option-groups/option-groups.tsx:71
+#: src/app/routes/_authenticated/_option-groups/option-groups.tsx:95
 msgid "New Option Group"
 msgstr "Nieuwe Optiegroep"
 
@@ -6620,7 +6667,7 @@ msgstr "De pagina die u zoekt bestaat niet of is mogelijk verplaatst."
 msgid "Failed to delete {failed} {entityName}"
 msgstr "{failed} {entityName} verwijderen mislukt"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:418
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:659
 msgid "Out-of-stock threshold"
 msgstr "Uitverkocht-drempelwaarde"
 

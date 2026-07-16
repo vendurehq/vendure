@@ -30,6 +30,7 @@ function ProductListPage() {
             defaultVisibility={{
                 featuredAsset: true,
                 name: true,
+                product: true,
                 sku: true,
                 priceWithTax: true,
                 enabled: true,
@@ -47,6 +48,16 @@ function ProductListPage() {
                 name: {
                     cell: ({ row: { original } }) => (
                         <DetailPageButton id={original.id} label={original.name} />
+                    ),
+                },
+                product: {
+                    header: t`Product`,
+                    enableSorting: false,
+                    cell: ({ row: { original } }) => (
+                        <DetailPageButton
+                            href={`/products/${original.product.id}`}
+                            label={original.product.name}
+                        />
                     ),
                 },
                 currencyCode: {

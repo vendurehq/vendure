@@ -170,7 +170,7 @@ msgstr "Vergi oranı başarıyla güncellendi"
 msgid "Enter custom reason..."
 msgstr "Özel neden girin..."
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:744
+#: src/lib/components/shared/asset/asset-gallery.tsx:751
 msgid "Type"
 msgstr "Tür"
 
@@ -259,7 +259,8 @@ msgstr "Dosya boyutu"
 msgid "Sellers"
 msgstr "Satıcılar"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:269
+#: src/app/routes/_authenticated/_option-groups/option-groups.tsx:40
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:472
 msgid "Options"
 msgstr "Seçenekler"
 
@@ -332,7 +333,7 @@ msgstr "Bu varyantı silmek istediğinizden emin misiniz?"
 #~ msgid "All resources are up and running"
 #~ msgstr "Tüm kaynaklar çalışıyor"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:87
 msgid "Failed to create administrator"
 msgstr "Yönetici oluşturulamadı"
 
@@ -341,7 +342,7 @@ msgstr "Yönetici oluşturulamadı"
 msgid "No"
 msgstr "Hayır"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:147
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:163
 msgid "Successfully updated product variant"
 msgstr "Ürün varyantı başarıyla güncellendi"
 
@@ -361,9 +362,9 @@ msgstr "Ülke güncellenemedi"
 msgid "Type at least 2 characters to search..."
 msgstr "Aramak için en az 2 karakter yazın..."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:121
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:122
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:182
-#: src/app/routes/_authenticated/_profile/profile.tsx:108
+#: src/app/routes/_authenticated/_profile/profile.tsx:109
 msgid "Last name"
 msgstr "Soyad"
 
@@ -389,6 +390,7 @@ msgstr "Eklenecek widget yok"
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx:109
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts:303
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:262
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:79
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:121
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:166
@@ -550,8 +552,8 @@ msgid "Successfully created product option"
 msgstr "Ürün seçeneği başarıyla oluşturuldu"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:501
-msgid "Parent product"
-msgstr "Üst ürün"
+#~ msgid "Parent product"
+#~ msgstr "Üst ürün"
 
 #: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:78
 msgid "We couldn't load the stock levels"
@@ -562,15 +564,15 @@ msgstr "Stok seviyeleri yüklenemedi"
 msgid "City"
 msgstr "Şehir"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:37
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:15
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:23
 msgid "Administrators"
 msgstr "Yöneticiler"
 
 #: src/app/routes/_authenticated/_product-variants/components/variant-price-detail.tsx:86
-msgid "Gross price: <0/>"
-msgstr "Brüt fiyat: <0/>"
+#~ msgid "Gross price: <0/>"
+#~ msgstr "Brüt fiyat: <0/>"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:82
 #: src/lib/components/data-table/data-table.tsx:718
@@ -676,7 +678,7 @@ msgstr "Ekleniyor..."
 msgid "Move Collections"
 msgstr "Koleksiyonları Taşı"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:139
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:140
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:57
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:170
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
@@ -717,6 +719,10 @@ msgstr "Oturum aç"
 msgid "List view"
 msgstr "Liste görünümü"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:436
+msgid "When enabled, this variant is available in the shop"
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/test-order-builder.tsx:164
 msgid "Test Order"
 msgstr "Test Siparişi"
@@ -734,8 +740,8 @@ msgid "Run Test"
 msgstr "Testi Çalıştır"
 
 #: src/app/routes/_authenticated/_product-variants/components/variant-price-detail.tsx:83
-msgid "Tax rate: {taxRate}%"
-msgstr "Vergi oranı: {taxRate}%"
+#~ msgid "Tax rate: {taxRate}%"
+#~ msgstr "Vergi oranı: {taxRate}%"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx:58
 msgid "Please add products and complete the shipping address to run the test."
@@ -851,7 +857,7 @@ msgstr "Taslağı tamamla"
 #: src/app/routes/_authenticated/_customers/customers.tsx:73
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:131
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:121
-#: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:202
+#: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:187
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:173
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:158
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:286
@@ -863,7 +869,7 @@ msgstr "Taslağı tamamla"
 #: src/app/routes/_authenticated/_tax-categories/tax-categories_.$id.tsx:106
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:113
 #: src/app/routes/_authenticated/_zones/zones_.$id.tsx:93
-#: src/lib/components/shared/asset/asset-gallery.tsx:743
+#: src/lib/components/shared/asset/asset-gallery.tsx:750
 msgid "Name"
 msgstr "Ad"
 
@@ -903,7 +909,7 @@ msgstr "Teslimat oluşturuldu"
 msgid "Found {0} eligible shipping method{1}"
 msgstr "{0} uygun kargo yöntemi bulundu"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:746
+#: src/lib/components/shared/asset/asset-gallery.tsx:753
 #: src/lib/components/shared/asset/asset-properties.tsx:39
 msgid "Dimensions"
 msgstr "Boyutlar"
@@ -1059,9 +1065,9 @@ msgstr "Gelir"
 msgid "Failed to update zone"
 msgstr "Bölge güncellenemedi"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:133
-#: src/app/routes/_authenticated/_profile/profile.tsx:120
-#: src/app/routes/_authenticated/_profile/profile.tsx:137
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:134
+#: src/app/routes/_authenticated/_profile/profile.tsx:121
+#: src/app/routes/_authenticated/_profile/profile.tsx:138
 #: src/lib/components/login/login-form.tsx:94
 msgid "Password"
 msgstr "Şifre"
@@ -1133,7 +1139,7 @@ msgstr "Sipariş öğeleri iptal edilemedi"
 msgid "Transaction ID"
 msgstr "İşlem ID"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:476
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:708
 msgid "Allocated"
 msgstr "Tahsis edildi"
 
@@ -1164,7 +1170,7 @@ msgstr "Koleksiyon başarıyla oluşturuldu"
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:88
 #: src/app/routes/_authenticated/_orders/components/shipping-method-selector.tsx:49
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:324
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:553
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:298
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:191
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:196
@@ -1282,8 +1288,7 @@ msgstr "Kupon kodu siparişten kaldırılamadı: {0}"
 msgid "Regenerate slug from source field"
 msgstr "Kaynak alandan slug'ı yeniden oluştur"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:387
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:403
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:350
 msgid "Inherit from global settings"
 msgstr "Genel ayarlardan miras al"
 
@@ -1318,7 +1323,7 @@ msgstr "Görseli sağdan boyutlandır"
 msgid "Settings Store"
 msgstr "Ayarlar Deposu"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants.tsx:86
+#: src/app/routes/_authenticated/_product-variants/product-variants.tsx:97
 msgid "Search product variants..."
 msgstr "Ürün varyantı ara..."
 
@@ -1365,7 +1370,7 @@ msgid "No items selected"
 msgstr "Öğe seçilmedi"
 
 #. placeholder {0}: selected.length
-#: src/lib/components/shared/asset/asset-gallery.tsx:469
+#: src/lib/components/shared/asset/asset-gallery.tsx:476
 msgid ", {0} selected"
 msgstr ", {0} seçildi"
 
@@ -1393,7 +1398,7 @@ msgstr "Ek ücret"
 msgid "Payment Methods"
 msgstr "Ödeme Yöntemleri"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:377
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:606
 msgid "Stock"
 msgstr "Stok"
 
@@ -1405,7 +1410,7 @@ msgstr "Bu dönemde satış yok"
 msgid "No customers found"
 msgstr "Müşteri bulunamadı"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:436
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:645
 msgid "Use global out-of-stock threshold"
 msgstr "Genel stok tükenmesi eşiğini kullan"
 
@@ -1597,7 +1602,7 @@ msgstr "önce"
 msgid "Failed to set customer for order: {0}"
 msgstr "Sipariş için müşteri ayarlanamadı: {0}"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:745
+#: src/lib/components/shared/asset/asset-gallery.tsx:752
 msgid "Size"
 msgstr "Boyut"
 
@@ -1619,6 +1624,7 @@ msgid "Go back"
 msgstr "Geri dön"
 
 #: src/app/routes/_authenticated/_collections/collections.tsx:452
+#: src/app/routes/_authenticated/_option-groups/option-groups.tsx:54
 msgid "+ {leftOver} more"
 msgstr "+ {leftOver} daha"
 
@@ -1724,7 +1730,7 @@ msgstr "Adres başarıyla güncellendi"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:126
-#: src/lib/components/shared/asset/asset-gallery.tsx:747
+#: src/lib/components/shared/asset/asset-gallery.tsx:754
 #: src/lib/framework/layout-engine/page-layout.tsx:746
 msgid "Created"
 msgstr "Oluşturuldu"
@@ -1763,6 +1769,12 @@ msgstr "Vergi oranı ara..."
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:163
 msgid "New product option"
 msgstr "Yeni ürün seçeneği"
+
+#. placeholder {0}: conflict.name
+#. placeholder {1}: conflict.sku
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:299
+msgid "A variant with these options already exists: {0} ({1})"
+msgstr ""
 
 #: src/lib/components/data-table/data-table-pagination.tsx:94
 msgid "Go to last page"
@@ -1805,7 +1817,7 @@ msgstr "İptal"
 msgid "Failed to update order custom fields: {0}"
 msgstr "Siparişin özel alanları güncellenemedi: {0}"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:146
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:162
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:160
 msgid "Successfully created product variant"
 msgstr "Ürün varyantı başarıyla oluşturuldu"
@@ -1891,7 +1903,6 @@ msgstr "Vergi Kategorileri"
 msgid "Private collections are not visible in the shop"
 msgstr "Özel koleksiyonlar mağazada görünmez"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:262
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:221
 msgid "When enabled, a product is available in the shop"
 msgstr "Etkinleştirildiğinde ürün mağazada satışa sunulur"
@@ -1976,7 +1987,7 @@ msgstr "Vergi kategorisi güncellenemedi"
 msgid "Refund settled successfully"
 msgstr "İade başarıyla tamamlandı"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
@@ -1991,10 +2002,10 @@ msgstr "İade başarıyla tamamlandı"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:163
 #: src/app/routes/_authenticated/_orders/components/order-line-custom-fields-form.tsx:51
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:138
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:465
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:278
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:242
-#: src/app/routes/_authenticated/_profile/profile.tsx:92
+#: src/app/routes/_authenticated/_profile/profile.tsx:93
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
@@ -2015,7 +2026,7 @@ msgstr "Başlık 2"
 msgid "Order placed"
 msgstr "Sipariş verildi"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:71
+#: src/app/routes/_authenticated/_profile/profile.tsx:72
 msgid "Successfully updated profile"
 msgstr "Profil başarıyla güncellendi"
 
@@ -2081,7 +2092,7 @@ msgstr "Sütun ayarları"
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:127
-#: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:208
+#: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:193
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:179
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:164
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:100
@@ -2181,7 +2192,7 @@ msgstr "{total} öğeden {shown} gösteriliyor • {selected} seçili"
 msgid "Test Shipping Method"
 msgstr "Kargo Yöntemini Test Et"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:491
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:723
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:348
 msgid "Facet Values"
 msgstr "Özellik Değerleri"
@@ -2831,6 +2842,10 @@ msgstr "Müşteriye yeni bir adres ekleyin."
 msgid "More views"
 msgstr "Daha fazla görünüm"
 
+#: src/app/routes/_authenticated/_product-variants/components/variant-price-detail.tsx:86
+msgid "(incl. {taxRate}% tax)"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:109
 msgid "Edit the selected image properties"
 msgstr "Seçili görselin özelliklerini düzenleyin"
@@ -2867,7 +2882,7 @@ msgstr "Kargoyu yeniden hesapla"
 #: src/app/routes/_authenticated/_assets/assets.tsx:17
 #: src/app/routes/_authenticated/_assets/assets.tsx:40
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:229
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:508
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:733
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:381
 msgid "Assets"
 msgstr "Varlıklar"
@@ -2985,7 +3000,7 @@ msgstr "Yeni müşteri"
 msgid "Image"
 msgstr "Görsel"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:77
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:78
 msgid "Successfully created administrator"
 msgstr "Yönetici başarıyla oluşturuldu"
 
@@ -3011,7 +3026,7 @@ msgstr "Bu genel görünümü silmek istediğinizden emin misiniz? Bu işlem ger
 msgid "Force remove option group"
 msgstr "Seçenek grubunu zorla kaldır"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:140
+#: src/app/routes/_authenticated/_profile/profile.tsx:141
 msgid "Added"
 msgstr "Eklendi"
 
@@ -3041,6 +3056,10 @@ msgstr "Müşteri başına kullanım sınırı"
 msgid "Billing address changed"
 msgstr "Fatura adresi değiştirildi"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:509
+msgid "Manage option groups"
+msgstr ""
+
 #: src/lib/components/data-input/select-with-options.tsx:107
 msgid "Select an option"
 msgstr "Bir seçenek seçin"
@@ -3058,7 +3077,7 @@ msgstr "İade toplamı maksimum iade edilebilir tutar olan {0} tutarını aşıy
 msgid "Delete Global View"
 msgstr "Genel Görünümü Sil"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:152
@@ -3070,7 +3089,7 @@ msgstr "Genel Görünümü Sil"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:163
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:138
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:465
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:242
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
@@ -3310,8 +3329,8 @@ msgstr "Genel dil yapılandırılmamış"
 msgid "Removing {0} item(s)"
 msgstr "{0} öğe kaldırılıyor"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:388
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:406
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:617
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:633
 msgid "Track"
 msgstr "İzle"
 
@@ -3458,7 +3477,7 @@ msgstr "Ödeme işleyici seçin"
 msgid "Password reset links are only valid for a limited time. Request a new one to reset your password."
 msgstr "Şifre sıfırlama bağlantıları yalnızca sınırlı bir süre geçerlidir. Şifrenizi sıfırlamak için yeni bir bağlantı isteyin."
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:128
+#: src/app/routes/_authenticated/_profile/profile.tsx:129
 msgid "Authentication methods"
 msgstr "Kimlik doğrulama yöntemleri"
 
@@ -3487,7 +3506,6 @@ msgstr "Rolleri ara..."
 msgid "None of the {CANDIDATE_POOL_SIZE} sampled variants are at or below {threshold}. Others may still be low."
 msgstr "Örneklenen {CANDIDATE_POOL_SIZE} varyantın hiçbiri {threshold} veya altında değil. Diğerlerinin stoğu yine de düşük olabilir."
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:71
 #: src/app/routes/_authenticated/_product-variants/product-variants.tsx:19
 #: src/app/routes/_authenticated/_product-variants/product-variants.tsx:28
 msgid "Product Variants"
@@ -3502,7 +3520,7 @@ msgid "Processing..."
 msgstr "İşleniyor..."
 
 #. placeholder {0}: totalItems === 1 ? 'asset' : 'assets'
-#: src/lib/components/shared/asset/asset-gallery.tsx:465
+#: src/lib/components/shared/asset/asset-gallery.tsx:472
 msgid "{totalItems} {0} found"
 msgstr "{totalItems} {0} bulundu"
 
@@ -3513,6 +3531,7 @@ msgstr "Tarih aralığı seçin"
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:158
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:44
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:97
+#: src/app/routes/_authenticated/_product-variants/product-variants.tsx:54
 msgid "Product"
 msgstr "Ürün"
 
@@ -3553,7 +3572,7 @@ msgstr "Tekrar deneyin"
 msgid "Successfully updated shipping method"
 msgstr "Kargo yöntemi başarıyla güncellendi"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:156
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:172
 msgid "Failed to update product variant"
 msgstr "Ürün varyantı güncellenemedi"
 
@@ -3601,7 +3620,7 @@ msgid "Not found"
 msgstr "Bulunamadı"
 
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:143
-#: src/app/routes/_authenticated/_product-variants/product-variants.tsx:82
+#: src/app/routes/_authenticated/_product-variants/product-variants.tsx:93
 #: src/app/routes/_authenticated/_products/products.tsx:93
 msgid "Facet values"
 msgstr "Özellik değerleri"
@@ -4033,8 +4052,8 @@ msgstr "Teslimat durumu başarıyla güncellendi"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:79
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:79
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:205
-#: src/app/routes/_authenticated/_option-groups/option-groups.tsx:38
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:66
+#: src/app/routes/_authenticated/_option-groups/option-groups.tsx:62
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:71
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:61
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:57
 #: src/app/routes/_authenticated/_products/products.tsx:27
@@ -4110,8 +4129,8 @@ msgstr "Varyantları filtrele..."
 msgid "Add a price in another currency"
 msgstr "Başka bir para biriminde fiyat ekle"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
-#: src/app/routes/_authenticated/_profile/profile.tsx:114
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:128
+#: src/app/routes/_authenticated/_profile/profile.tsx:115
 msgid "Email Address or identifier"
 msgstr "E-posta Adresi veya tanımlayıcı"
 
@@ -4196,7 +4215,7 @@ msgstr "Not başarıyla güncellendi"
 msgid "Failed to settle refund"
 msgstr "İade tamamlanamadı"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:461
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:693
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:311
 msgid "Stock level"
 msgstr "Stok seviyesi"
@@ -4300,7 +4319,7 @@ msgstr "E-posta"
 msgid "Filter"
 msgstr "Filtre"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:87
 msgid "Failed to update administrator"
 msgstr "Yönetici güncellenemedi"
 
@@ -4361,8 +4380,8 @@ msgid "does not contain"
 msgstr "içermez"
 
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:186
-msgid "Option Group"
-msgstr "Seçenek Grubu"
+#~ msgid "Option Group"
+#~ msgstr "Seçenek Grubu"
 
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx:132
 msgid "Edit the address details below."
@@ -4425,6 +4444,11 @@ msgstr "Seçenek Grupları"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:472
 msgid "Custom fields"
 msgstr "Özel alanlar"
+
+#. placeholder {0}: group.name
+#: src/app/routes/_authenticated/_product-variants/components/variant-option-select.tsx:62
+msgid "Select or create {0}"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-process-dialog.tsx:98
 msgid "All possible order states and their transitions. The current state is highlighted."
@@ -4573,6 +4597,10 @@ msgstr "Düzeni düzenle"
 msgid "This link is invalid or has expired"
 msgstr "Bu bağlantı geçersiz veya süresi dolmuş"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:261
+msgid "Failed to create option"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:84
 #~ msgid "Insert link"
 #~ msgstr "Bağlantı ekle"
@@ -4658,7 +4686,7 @@ msgstr "Ortalama Sipariş Değeri"
 msgid "Failed to create zone"
 msgstr "Bölge oluşturulamadı"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:382
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:611
 msgid "Stock levels"
 msgstr "Stok seviyeleri"
 
@@ -4838,7 +4866,7 @@ msgstr "Yükleniyor…"
 msgid "e.g., Red, Large, Cotton"
 msgstr "örn. Kırmızı, Büyük, Pamuk"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:75
+#: src/app/routes/_authenticated/_profile/profile.tsx:76
 msgid "Failed to update profile"
 msgstr "Profil güncellenemedi"
 
@@ -4859,7 +4887,7 @@ msgstr "Filtreyi temizle"
 msgid "Regions"
 msgstr "Bölgeler"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:438
+#: src/lib/components/shared/asset/asset-gallery.tsx:445
 msgid "Drop files here to upload"
 msgstr "Yüklemek için dosyaları buraya bırakın"
 
@@ -5179,8 +5207,8 @@ msgstr "Sipariş için adres ayarlanamadı: {0}"
 msgid "State"
 msgstr "İl"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:389
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:409
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:618
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:636
 msgid "Do not track"
 msgstr "İzleme"
 
@@ -5209,7 +5237,7 @@ msgstr "İl / Bölge"
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:92
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:147
 #: src/app/routes/_authenticated/_payment-methods/payment-methods.tsx:43
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:261
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:443
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:228
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:153
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:131
@@ -5223,7 +5251,7 @@ msgstr "İl / Bölge"
 msgid "Enabled"
 msgstr "Etkin"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:476
+#: src/lib/components/shared/asset/asset-gallery.tsx:483
 msgid "Items per page"
 msgstr "Sayfa başına öğe"
 
@@ -5342,7 +5370,7 @@ msgstr "Bir gönderim işleyici seçin"
 msgid "Failed to update collection"
 msgstr "Koleksiyon güncellenemedi"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:304
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:533
 msgid "Price and tax"
 msgstr "Fiyat ve vergi"
 
@@ -5457,7 +5485,7 @@ msgstr "Ödeme ekle ({0})"
 msgid "System"
 msgstr "Sistem"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:290
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:519
 #: src/app/routes/_authenticated/_products/components/product-variants-table.tsx:88
 msgid "Variant name"
 msgstr "Varyant adı"
@@ -5565,7 +5593,7 @@ msgstr "Koleksiyon konumu güncellendi"
 msgid "Add \"{newOptionInput}\""
 msgstr "「{newOptionInput}」ekle"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:244
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:425
 msgid "New product variant"
 msgstr "Yeni ürün varyantı"
 
@@ -5662,7 +5690,7 @@ msgstr "Yazın ve eklemek için Enter veya virgül tuşuna basın..."
 msgid "Edit Note"
 msgstr "Notu Düzenle"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:628
+#: src/lib/components/shared/asset/asset-gallery.tsx:635
 msgid "No assets found. Try adjusting your filters."
 msgstr "Varlık bulunamadı. Filtrelerinizi ayarlamayı deneyin."
 
@@ -5682,7 +5710,11 @@ msgstr "Seçenek grubunu kaydet"
 msgid "Click \"Run Test\" to test this shipping method."
 msgstr "Bu kargo yöntemini test etmek için \"Testi Çalıştır\"a tıklayın."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:78
+#: src/app/routes/_authenticated/_product-variants/components/variant-price-detail.tsx:84
+msgid "Gross price"
+msgstr ""
+
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:79
 msgid "Successfully updated administrator"
 msgstr "Yönetici başarıyla güncellendi"
 
@@ -5739,6 +5771,10 @@ msgstr "Her 10 saniyede"
 #: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:53
 msgid "Low Stock"
 msgstr "Düşük stok"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:494
+msgid "Edit option group"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/price-display.tsx:17
 msgid "ex. tax:"
@@ -5812,6 +5848,10 @@ msgstr "Slug otomatik oluşturulacak..."
 msgid "Customer not found"
 msgstr "Müşteri bulunamadı"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:352
+msgid "Inherit from global settings (Track)"
+msgstr ""
+
 #. placeholder {0}: entityName.toLowerCase()
 #: src/lib/components/data-input/default-relation-input.tsx:658
 msgid "Select {0}s"
@@ -5826,9 +5866,9 @@ msgstr "Eklenecek yeni özellik değerleri:"
 msgid "Failed to process refund"
 msgstr "İade işlenemedi"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:115
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:116
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:176
-#: src/app/routes/_authenticated/_profile/profile.tsx:102
+#: src/app/routes/_authenticated/_profile/profile.tsx:103
 msgid "First name"
 msgstr "Ad"
 
@@ -5894,13 +5934,13 @@ msgstr "Miktar"
 #~ msgid "Add filter"
 #~ msgstr "Filtre ekle"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:309
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:538
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:127
 msgid "Tax category"
 msgstr "Vergi kategorisi"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:38
-#: src/app/routes/_authenticated/_profile/profile.tsx:84
+#: src/app/routes/_authenticated/_profile/profile.tsx:39
+#: src/app/routes/_authenticated/_profile/profile.tsx:85
 #: src/lib/components/layout/nav-user.tsx:108
 msgid "Profile"
 msgstr "Profil"
@@ -5946,8 +5986,8 @@ msgstr "{entityType} kanaldan başarıyla kaldırıldı"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:90
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:81
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:89
-#: src/app/routes/_authenticated/_option-groups/option-groups.tsx:17
-#: src/app/routes/_authenticated/_option-groups/option-groups.tsx:24
+#: src/app/routes/_authenticated/_option-groups/option-groups.tsx:18
+#: src/app/routes/_authenticated/_option-groups/option-groups.tsx:25
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:341
 msgid "Option Groups"
 msgstr "Seçenek Grupları"
@@ -6056,8 +6096,8 @@ msgstr "{entityIdsLength} {entityType} kanala başarıyla atandı"
 msgid "Global Languages"
 msgstr "Genel Diller"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:97
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:39
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:98
 msgid "New administrator"
 msgstr "Yeni yönetici"
 
@@ -6364,8 +6404,7 @@ msgstr "Stok tahsis edildi"
 msgid "greater than or equal"
 msgstr "büyük eşittir"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:420
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:438
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:661
 msgid "Sets the stock level at which this variant is considered to be out of stock. Using a negative value enables backorder support."
 msgstr "Bu varyantın stokta olmadığı kabul edilen stok seviyesini ayarlar. Negatif değer kullanmak sipariş öncesi desteğini etkinleştirir."
 
@@ -6432,7 +6471,7 @@ msgstr "Sipariş ara..."
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:82
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:167
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:297
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:526
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:292
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:197
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:188
@@ -6475,7 +6514,7 @@ msgstr "Mevcut:"
 msgid "Created at"
 msgstr "Oluşturulma tarihi"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:156
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:172
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:165
 msgid "Failed to create product variant"
 msgstr "Ürün varyantı oluşturulamadı"
@@ -6497,6 +6536,10 @@ msgstr "Genel dil ayarlarını görüntüleme izniniz yok"
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:70
 msgid "Successfully created tax rate"
 msgstr "Vergi oranı başarıyla oluşturuldu"
+
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:353
+msgid "Inherit from global settings (Do not track)"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:46
 msgid "Remove option group {name}"
@@ -6524,6 +6567,10 @@ msgstr "Vergi matrahı"
 msgid "Load more"
 msgstr "Daha fazla yükle"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:647
+msgid "When enabled, this variant uses the global out-of-stock threshold configured in Settings instead of its own value."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:72
 msgid "Refund settled"
 msgstr "İade tamamlandı"
@@ -6536,7 +6583,7 @@ msgstr "API Key"
 msgid "Successfully duplicated {count} {entityName}"
 msgstr "{count} {entityName} başarıyla çoğaltıldı"
 
-#: src/app/routes/_authenticated/_option-groups/option-groups.tsx:71
+#: src/app/routes/_authenticated/_option-groups/option-groups.tsx:95
 msgid "New Option Group"
 msgstr "Yeni Seçenek Grubu"
 
@@ -6625,7 +6672,7 @@ msgstr "Aradığınız sayfa mevcut değil veya taşınmış olabilir."
 msgid "Failed to delete {failed} {entityName}"
 msgstr "{failed} {entityName} silinemedi"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:418
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:659
 msgid "Out-of-stock threshold"
 msgstr "Stok tükenmesi eşiği"
 
