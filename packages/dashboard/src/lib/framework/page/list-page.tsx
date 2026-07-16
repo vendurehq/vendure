@@ -19,6 +19,7 @@ import { TableOptions } from '@tanstack/table-core';
 import { BulkActionsInput } from '@/vdb/framework/extension-api/types/index.js';
 import {
     FullWidthPageBlock,
+    InlineDropdownItem,
     Page,
     PageActionBar,
     PageLayout,
@@ -297,6 +298,12 @@ export interface ListPageProps<
     children?: React.ReactNode;
     /**
      * @description
+     * Optional dropdown menu items to display in the action bar's overflow (⋮) menu.
+     * These are forwarded to the {@link PageActionBar}.
+     */
+    dropdownMenuItems?: InlineDropdownItem[];
+    /**
+     * @description
      * Allows you to define pre-set filters based on an array of possible selections
      *
      * @example
@@ -514,6 +521,7 @@ export function ListPage<
     searchPlaceholder,
     facetedFilters,
     children,
+    dropdownMenuItems,
     rowActions,
     transformData,
     setTableOptions,
@@ -624,7 +632,7 @@ export function ListPage<
     return (
         <Page pageId={pageId}>
             <PageTitle>{title}</PageTitle>
-            <PageActionBar>{children}</PageActionBar>
+            <PageActionBar dropdownMenuItems={dropdownMenuItems}>{children}</PageActionBar>
             <PageLayout>
                 <FullWidthPageBlock blockId="list-table">
                     <PaginatedListDataTable
