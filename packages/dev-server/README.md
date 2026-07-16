@@ -55,6 +55,71 @@ application changes continue to use Vite HMR.
 The server's `/dashboard` route remains available using the clean static build. For active Dashboard
 development, use the Portless Dashboard URL above.
 
+### Agent-driven development
+
+Agents should use the status-aware launcher:
+
+```bash
+cd packages/dev-server
+bun run dev:agent
+```
+
+This runs the same Portless workflow as `bun run dev` and writes its lifecycle state to the current
+worktree's ignored `.vendure/dev-server.json` file. It also emits `VENDURE_DEV_EVENT=<json>` lines for
+agents that retain the process output.
+
+The lifecycle progresses through `building`, `starting`, and `ready`, with `failed` and `stopping`
+events when applicable. `ready` is only published after all package watchers complete their initial
+compilation and these endpoints respond successfully:
+
+- the API health endpoint;
+- the Dashboard Vite URL;
+- the server-served `/dashboard` URL.
+
+An agent can wait for readiness and discover every URL without parsing human-oriented logs:
+
+```bash
+bun run dev:status --wait --json
+```
+
+The output has this shape:
+
+```json
+{
+    "status": "ready",
+    "pid": 12345,
+    "worktreePath": "/path/to/worktree",
+    "apiUrl": "https://fix-order-list.vendure.localhost",
+    "dashboardUrl": "https://fix-order-list.dashboard.vendure.localhost/dashboard/",
+    "serverDashboardUrl": "https://fix-order-list.vendure.localhost/dashboard/"
+}
+```
+
+The default readiness timeout is 300 seconds. Override it when needed:
+
+```bash
+bun run dev:status --wait --json --timeout 600
+```
+
+Stop only the current worktree's agent-managed supervisor with:
+
+```bash
+bun run dev:stop
+```
+
+The supervisor removes its status file on shutdown. Status and startup commands automatically remove
+stale files whose PID is no longer alive, and a second `dev:agent` invocation in the same worktree
+fails with the active supervisor PID.
+
+Agent rules:
+
+- reuse shared Docker services and do not shut them down after an individual task;
+- use `dev:agent`, not `dev:direct`, when worktrees may run in parallel;
+- start `dev:worker` only when worker behavior is part of the test;
+- stop only the current worktree's supervisor with `dev:stop`;
+- treat the database as shared mutable state and prefer unique test data;
+- do not populate, reset, or destructively migrate shared data without checking other active work.
+
 ### Worker
 
 The worker is deliberately not started by `bun run dev`, because all worktrees share the same job

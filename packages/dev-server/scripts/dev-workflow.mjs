@@ -1,8 +1,12 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { rmSync } from 'node:fs';
+import { get as httpGet } from 'node:http';
+import { get as httpsGet } from 'node:https';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { claimDevStatus } from './dev-state.mjs';
 
 const require = createRequire(import.meta.url);
 const devServerDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -13,6 +17,7 @@ const typescriptCliPath = require.resolve('typescript/bin/tsc');
 const packageManager = process.env.npm_execpath || 'bun';
 const mode = process.argv[2] ?? 'portless';
 const usePortless = mode !== 'direct';
+const agentMode = process.argv.includes('--agent');
 
 if (!['portless', 'direct'].includes(mode)) {
     console.error(`Unknown development mode "${mode}". Expected "portless" or "direct".`);
@@ -22,6 +27,7 @@ if (!['portless', 'direct'].includes(mode)) {
 const apiOrigin = usePortless ? getPortlessUrl('vendure') : 'http://localhost:3000';
 const dashboardOrigin = usePortless ? getPortlessUrl('dashboard.vendure') : 'http://localhost:5173';
 const dashboardUrl = `${dashboardOrigin}/dashboard`;
+const serverDashboardUrl = `${apiOrigin}/dashboard/`;
 const sharedDevelopmentEnv = {
     VENDURE_DASHBOARD_URL: dashboardUrl,
     ...(usePortless
@@ -36,14 +42,51 @@ const sharedDevelopmentEnv = {
           }),
 };
 
-await buildPrerequisites(sharedDevelopmentEnv);
+let shuttingDown = false;
+const processes = new Set();
+let lifecycle;
+
+if (agentMode) {
+    try {
+        lifecycle = claimDevStatus({
+            cwd: devServerDir,
+            initialStatus: {
+                status: 'building',
+                mode,
+                apiUrl: apiOrigin,
+                dashboardUrl: `${dashboardUrl}/`,
+                serverDashboardUrl,
+                ...(process.env.DB ? { database: process.env.DB } : {}),
+            },
+        });
+    } catch (error) {
+        console.error(error instanceof Error ? error.message : error);
+        process.exit(1);
+    }
+}
+
+process.once('exit', () => lifecycle?.remove());
+process.once('SIGINT', () => shutdown(130, 'SIGINT'));
+process.once('SIGTERM', () => shutdown(143, 'SIGTERM'));
+
+emitAgentEvent(lifecycle?.status);
+
+try {
+    await buildPrerequisites(sharedDevelopmentEnv);
+} catch (error) {
+    if (shuttingDown) {
+        process.exit(process.exitCode ?? 1);
+    }
+    recordFailure(error);
+    console.error(error);
+    process.exit(1);
+}
 
 console.log('\nStarting development processes...');
 console.log(`API:       ${apiOrigin}`);
 console.log(`Dashboard: ${dashboardUrl}/\n`);
-
-let shuttingDown = false;
-const processes = new Set();
+lifecycle?.update({ status: 'starting' });
+emitAgentEvent(lifecycle?.status);
 
 function onUnexpectedExit(label, code, signal) {
     if (shuttingDown) {
@@ -51,6 +94,7 @@ function onUnexpectedExit(label, code, signal) {
     }
     const exitDescription = signal ? `signal ${signal}` : `code ${code ?? 1}`;
     console.error(`\n[${label}] exited unexpectedly with ${exitDescription}.`);
+    recordFailure(new Error(`${label} exited unexpectedly with ${exitDescription}`));
     shutdown(signal === 'SIGINT' ? 130 : 1);
 }
 
@@ -197,8 +241,28 @@ processes.add(dashboard);
 server.start();
 dashboard.start();
 
-process.once('SIGINT', () => shutdown(130, 'SIGINT'));
-process.once('SIGTERM', () => shutdown(143, 'SIGTERM'));
+if (lifecycle) {
+    waitForReadiness(watchers)
+        .then(() => {
+            lifecycle.update({
+                status: 'ready',
+                readyAt: new Date().toISOString(),
+            });
+            emitAgentEvent(lifecycle.status);
+        })
+        .catch(error => {
+            if (shuttingDown) {
+                return;
+            }
+            recordFailure(error);
+            console.error(`[readiness] ${error.message}`);
+            shutdown(1);
+        });
+} else {
+    for (const watcher of watchers) {
+        watcher.ready.catch(() => undefined);
+    }
+}
 
 function getPortlessUrl(name) {
     const result = spawnSync(process.execPath, [portlessCliPath, 'get', name], {
@@ -242,8 +306,20 @@ function runForeground(command, args, env = {}) {
             env: { ...process.env, ...env },
             stdio: 'inherit',
         });
-        child.once('error', reject);
+        const runningProcess = {
+            stop(signal = 'SIGTERM') {
+                if (child.exitCode === null && child.signalCode === null) {
+                    child.kill(signal);
+                }
+            },
+        };
+        processes.add(runningProcess);
+        child.once('error', error => {
+            processes.delete(runningProcess);
+            reject(error);
+        });
         child.once('close', (code, signal) => {
+            processes.delete(runningProcess);
             if (code === 0) {
                 resolve();
             } else {
@@ -261,6 +337,13 @@ function runForeground(command, args, env = {}) {
 
 function startWatcher({ label, command, args, onSuccessfulRebuild }) {
     let successfulBuildCount = 0;
+    let ready = false;
+    let resolveReady;
+    let rejectReady;
+    const readyPromise = new Promise((resolve, reject) => {
+        resolveReady = resolve;
+        rejectReady = reject;
+    });
     const child = spawn(command, args, {
         cwd: devServerDir,
         env: process.env,
@@ -269,6 +352,10 @@ function startWatcher({ label, command, args, onSuccessfulRebuild }) {
     const handleLine = line => {
         if (line.includes('Found 0 errors. Watching for file changes.')) {
             successfulBuildCount++;
+            if (!ready) {
+                ready = true;
+                resolveReady();
+            }
             if (successfulBuildCount > 1) {
                 onSuccessfulRebuild();
             }
@@ -277,11 +364,20 @@ function startWatcher({ label, command, args, onSuccessfulRebuild }) {
     pipePrefixed(child.stdout, label, handleLine);
     pipePrefixed(child.stderr, label, handleLine);
     child.once('error', error => {
+        if (!ready) {
+            rejectReady(error);
+        }
         console.error(`[${label}] ${error.message}`);
         onUnexpectedExit(label, 1);
     });
-    child.once('close', (code, signal) => onUnexpectedExit(label, code, signal));
+    child.once('close', (code, signal) => {
+        if (!ready) {
+            rejectReady(new Error(`${label} exited before its initial build completed`));
+        }
+        onUnexpectedExit(label, code, signal);
+    });
     return {
+        ready: readyPromise,
         stop(signal = 'SIGTERM') {
             if (child.exitCode === null && child.signalCode === null) {
                 child.kill(signal);
@@ -314,10 +410,83 @@ function shutdown(exitCode, signal = 'SIGTERM') {
         return;
     }
     shuttingDown = true;
+    if (lifecycle?.status.status !== 'failed') {
+        lifecycle?.update({ status: 'stopping' });
+        emitAgentEvent(lifecycle?.status);
+    }
     for (const runningProcess of processes) {
         runningProcess.stop(signal);
     }
     process.exitCode = exitCode;
+}
+
+async function waitForReadiness(watchers) {
+    await Promise.all([
+        ...watchers.map(watcher => watcher.ready),
+        waitForHttp(`${apiOrigin}/health`, 'API health endpoint'),
+        waitForHttp(`${dashboardUrl}/`, 'Dashboard Vite server'),
+        waitForHttp(serverDashboardUrl, 'server-served Dashboard'),
+    ]);
+}
+
+function waitForHttp(url, label, timeoutMs = 180_000) {
+    const deadline = Date.now() + timeoutMs;
+
+    return new Promise((resolve, reject) => {
+        const check = () => {
+            if (shuttingDown) {
+                reject(new Error(`Stopped while waiting for ${label}`));
+                return;
+            }
+
+            const client = url.startsWith('https:') ? httpsGet : httpGet;
+            const request = client(
+                url,
+                {
+                    rejectUnauthorized: false,
+                    timeout: 2_000,
+                },
+                response => {
+                    response.resume();
+                    if (response.statusCode && response.statusCode >= 200 && response.statusCode < 400) {
+                        resolve();
+                    } else {
+                        retry(`${label} returned HTTP ${response.statusCode ?? 'unknown'}`);
+                    }
+                },
+            );
+            request.once('timeout', () => request.destroy(new Error(`${label} request timed out`)));
+            request.once('error', error => retry(error.message));
+        };
+
+        const retry = lastError => {
+            if (Date.now() >= deadline) {
+                reject(new Error(`Timed out waiting for ${label}: ${lastError}`));
+                return;
+            }
+            setTimeout(check, 500);
+        };
+
+        check();
+    });
+}
+
+function recordFailure(error) {
+    if (!lifecycle || lifecycle.status.status === 'failed') {
+        return;
+    }
+    lifecycle.update({
+        status: 'failed',
+        error: error instanceof Error ? error.message : String(error),
+        failedAt: new Date().toISOString(),
+    });
+    emitAgentEvent(lifecycle.status);
+}
+
+function emitAgentEvent(status) {
+    if (status) {
+        console.log(`VENDURE_DEV_EVENT=${JSON.stringify(status)}`);
+    }
 }
 
 function spawnPrefixed({ label, command, args, env, onClose }) {
