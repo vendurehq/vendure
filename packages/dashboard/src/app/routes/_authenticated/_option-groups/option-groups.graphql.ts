@@ -10,6 +10,10 @@ export const optionGroupListDocument = graphql(`
                 name
                 code
                 productCount
+                options {
+                    id
+                    name
+                }
             }
             totalItems
         }
