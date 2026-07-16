@@ -31,7 +31,7 @@ msgstr "Visa ändringar"
 msgid "Tracking code"
 msgstr "Spårningskod"
 
-#: src/lib/components/data-table/data-table.tsx:701
+#: src/lib/components/data-table/data-table.tsx:713
 #: src/lib/components/data-table/use-generated-columns.tsx:226
 msgid "Select all rows"
 msgstr "Markera alla rader"
@@ -237,7 +237,7 @@ msgstr "Automatisk uppdatering: {0}"
 msgid "Deleted {deleted} {entityName}"
 msgstr "Tog bort {deleted} {entityName}"
 
-#: src/lib/components/data-table/data-table.tsx:590
+#: src/lib/components/data-table/data-table.tsx:602
 msgid "There are no items to display yet."
 msgstr "Det finns inga objekt att visa ännu."
 
@@ -263,7 +263,7 @@ msgstr "Säljare"
 msgid "Options"
 msgstr "Alternativ"
 
-#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:118
+#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:114
 msgid "Loading top products…"
 msgstr "Läser in topprodukter…"
 
@@ -324,7 +324,7 @@ msgstr "Välj roller"
 msgid "Successfully created role"
 msgstr "Roll skapad"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:435
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:418
 msgid "Are you sure you want to delete this variant?"
 msgstr "Är du säker på att du vill ta bort denna variant?"
 
@@ -349,7 +349,7 @@ msgstr "Produktvariant uppdaterad"
 msgid "Failed to delete {failed} {entityName}: {allErrors}"
 msgstr "Misslyckades att ta bort {failed} {entityName}: {allErrors}"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:164
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:165
 msgid "Successfully updated product"
 msgstr "Produkt uppdaterad"
 
@@ -383,7 +383,7 @@ msgstr "Anpassade fält ändrade"
 msgid "Successfully created stock location"
 msgstr "Lagerplats skapad"
 
-#: src/app/routes/_authenticated/index.tsx:393
+#: src/app/routes/_authenticated/index.tsx:364
 msgid "No widgets to add"
 msgstr "Inga widgetar att lägga till"
 
@@ -392,11 +392,13 @@ msgstr "Inga widgetar att lägga till"
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:79
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:121
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:166
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:185
+#: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:155
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:91
 #: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:55
 #: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:73
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:105
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:202
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:106
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:237
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:203
 #: src/lib/components/shared/asset/asset-preview.tsx:127
 msgid "Unknown error"
 msgstr "Okänt fel"
@@ -457,8 +459,8 @@ msgstr "Returnera till lager"
 msgid "Visibility"
 msgstr "Synlighet"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:273
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:287
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:288
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:302
 msgid "Product variants"
 msgstr "Produktvarianter"
 
@@ -473,7 +475,7 @@ msgstr "Ny kundgrupp"
 msgid "Create \"{0}\""
 msgstr "Skapa \"{0}\""
 
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:137
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:136
 msgid "Could not load orders"
 msgstr "Kunde inte läsa in beställningar"
 
@@ -523,7 +525,7 @@ msgstr "Beställningsutkastet är inte redo att slutföras"
 msgid "New collection"
 msgstr "Ny kollektion"
 
-#: src/app/routes/_authenticated/index.tsx:336
+#: src/app/routes/_authenticated/index.tsx:307
 msgid "Insights"
 msgstr "Insikter"
 
@@ -551,7 +553,7 @@ msgstr "Produktalternativ skapades"
 msgid "Parent product"
 msgstr "Överordnad produkt"
 
-#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:80
+#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:78
 msgid "We couldn't load the stock levels"
 msgstr "Vi kunde inte läsa in lagernivåerna"
 
@@ -571,7 +573,7 @@ msgid "Gross price: <0/>"
 msgstr "Bruttopris: <0/>"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:82
-#: src/lib/components/data-table/data-table.tsx:706
+#: src/lib/components/data-table/data-table.tsx:718
 msgid "Go to next page"
 msgstr "Gå till nästa sida"
 
@@ -605,7 +607,7 @@ msgstr "Beställning uppdaterad"
 msgid "Inherit filters"
 msgstr "Ärv filter"
 
-#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:99
+#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:95
 msgid "Best sellers from the most recent {ORDER_SAMPLE_SIZE} orders in {currencyCode} for the selected period"
 msgstr "Bästsäljare från de senaste {ORDER_SAMPLE_SIZE} beställningarna i {currencyCode} för den valda perioden"
 
@@ -622,7 +624,8 @@ msgstr "Sök betalningsmetoder..."
 msgid "Shipping address unset for order"
 msgstr "Leveransadress borttagen för beställning"
 
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:432
+#: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:258
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:284
 msgid "Create {enabledCount} variants"
 msgstr "Skapa {enabledCount} varianter"
 
@@ -641,7 +644,7 @@ msgstr "Fel vid laddning av kundhistorik: {0}"
 msgid "Successfully removed {selectionLength} {entityType} from channel"
 msgstr "{selectionLength} {entityType} borttagen från kanal"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:151
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:152
 msgid "Add option value"
 msgstr "Lägg till alternativvärde"
 
@@ -742,7 +745,7 @@ msgstr "Lägg till produkter och fyll i leveransadress för att köra testet."
 msgid "Toggle header row"
 msgstr "Växla rubrikrad"
 
-#: src/lib/hooks/use-widget-config.ts:45
+#: src/lib/hooks/use-widget-config.ts:44
 msgid "useWidgetConfig must be used within an Insights page widget"
 msgstr "useWidgetConfig måste användas inom en widget på Insights-sidan"
 
@@ -811,7 +814,7 @@ msgstr "Sök kunder..."
 msgid "Select {0} Items"
 msgstr "Välj {0} artiklar"
 
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:108
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:107
 msgid "Placed At"
 msgstr "Placerad"
 
@@ -852,7 +855,7 @@ msgstr "Slutför utkast"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:173
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:158
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:286
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:329
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:349
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:165
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:89
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:148
@@ -874,7 +877,7 @@ msgstr "Misslyckades att leverera beställning"
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:88
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:106
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:226
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:121
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:120
 msgid "Total"
 msgstr "Totalt"
 
@@ -923,6 +926,7 @@ msgstr "Företag"
 msgid "Add column after"
 msgstr "Lägg till kolumn efter"
 
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:359
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:241
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:209
 #: src/lib/components/data-table/data-table-bulk-actions.tsx:82
@@ -968,7 +972,7 @@ msgstr "Misslyckades att skapa kollektion"
 msgid "Go to first page"
 msgstr "Gå till första sidan"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:172
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:173
 msgid "Failed to create product"
 msgstr "Misslyckades att skapa produkt"
 
@@ -997,7 +1001,7 @@ msgstr "Leveransadress angiven för beställning"
 msgid "Focal Point"
 msgstr "Fokuspunkt"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:101
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:102
 msgid "Single variant, no options"
 msgstr "En variant, inga alternativ"
 
@@ -1026,7 +1030,7 @@ msgstr "Ange transaktions-ID"
 msgid "Refresh data"
 msgstr "Uppdatera data"
 
-#: src/app/routes/_authenticated/index.tsx:366
+#: src/app/routes/_authenticated/index.tsx:337
 msgid "Add widget"
 msgstr "Lägg till widget"
 
@@ -1047,7 +1051,7 @@ msgstr "Betalning tillagd till beställning"
 msgid "Billing address set for order"
 msgstr "Faktureringsadress inställd för beställning"
 
-#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:110
+#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:106
 msgid "Revenue"
 msgstr "Intäkter"
 
@@ -1076,7 +1080,7 @@ msgstr "Schemalagd uppgift kommer köras"
 msgid "New stock location"
 msgstr "Ny lagerplats"
 
-#: src/lib/components/data-table/data-table.tsx:702
+#: src/lib/components/data-table/data-table.tsx:714
 #: src/lib/components/data-table/use-generated-columns.tsx:238
 msgid "Select row"
 msgstr "Markera rad"
@@ -1162,7 +1166,8 @@ msgstr "Kollektion skapad"
 #: src/app/routes/_authenticated/_orders/components/shipping-method-selector.tsx:49
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:324
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:298
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:290
+#: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:191
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:196
 #: src/lib/components/layout/language-dialog.tsx:136
 msgid "Price"
 msgstr "Pris"
@@ -1368,7 +1373,8 @@ msgstr ", {0} valda"
 msgid "No countries found"
 msgstr "Inga länder hittades"
 
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:181
+#: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:151
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:87
 msgid "Successfully created variants"
 msgstr "Varianter skapade"
 
@@ -1391,7 +1397,7 @@ msgstr "Betalningsmetoder"
 msgid "Stock"
 msgstr "Lager"
 
-#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:157
+#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:153
 msgid "No sales for this period"
 msgstr "Ingen försäljning under denna period"
 
@@ -1474,7 +1480,7 @@ msgstr "Misslyckades att skapa säljare"
 msgid "Configure duplication settings for {0}s"
 msgstr "Konfigurera dupliceringsinställningar för {0}"
 
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:304
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:210
 msgid "No variants match the current filter."
 msgstr "Inga varianter matchar det aktuella filtret."
 
@@ -1483,7 +1489,7 @@ msgstr "Inga varianter matchar det aktuella filtret."
 msgid "Addresses"
 msgstr "Adresser"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:136
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:137
 msgid "Add a new option value to the {groupName} option group"
 msgstr "Lägg till ett nytt alternativvärde i alternativgruppen {groupName}"
 
@@ -1617,7 +1623,6 @@ msgstr "Använd som standardfakturaadress"
 
 #: src/app/common/delete-bulk-action.tsx:139
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:41
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:338
 #: src/lib/components/data-table/use-generated-columns.tsx:419
 #: src/lib/components/data-table/use-generated-columns.tsx:449
 #: src/lib/components/data-table/views-sheet.tsx:270
@@ -1840,7 +1845,7 @@ msgstr "Kollektioner"
 msgid "Select Shipping Eligibility Checker"
 msgstr "Välj behörighetskontroll för frakt"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:434
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:417
 msgid "Delete variant"
 msgstr "Radera variant"
 
@@ -1882,7 +1887,7 @@ msgid "Private collections are not visible in the shop"
 msgstr "Privata kollektioner är inte synliga i butiken"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:262
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:227
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:221
 msgid "When enabled, a product is available in the shop"
 msgstr "När aktiverad är produkten tillgänglig i butiken"
 
@@ -1954,7 +1959,7 @@ msgstr "Inga facettvärden"
 msgid "A reason for the refund is required"
 msgstr "En anledning för återbetalningen krävs"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:192
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:193
 msgid "Could not remove option group"
 msgstr "Kunde inte ta bort alternativgrupp"
 
@@ -1983,7 +1988,7 @@ msgstr "Återbetalning genomförd"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:278
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:217
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:242
 #: src/app/routes/_authenticated/_profile/profile.tsx:92
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
@@ -2027,8 +2032,8 @@ msgid "Edit"
 msgstr "Redigera"
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:180
-msgid "Variant updated successfully"
-msgstr "Variant uppdaterad"
+#~ msgid "Variant updated successfully"
+#~ msgstr "Variant uppdaterad"
 
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx:370
 msgid "Filter by collection name"
@@ -2057,8 +2062,8 @@ msgstr "Börjar"
 msgid "Duplicate"
 msgstr "Duplicera"
 
-#: src/lib/components/data-table/data-table.tsx:578
-#: src/lib/components/data-table/data-table.tsx:589
+#: src/lib/components/data-table/data-table.tsx:590
+#: src/lib/components/data-table/data-table.tsx:601
 #: src/lib/components/shared/customer-group-selector.tsx:60
 msgid "No results"
 msgstr "Inga resultat"
@@ -2077,11 +2082,11 @@ msgstr "Kolumninställningar"
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:100
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:154
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:63
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:95
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:94
 msgid "Code"
 msgstr "Kod"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:201
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:202
 msgid "Failed to remove option groups"
 msgstr "Misslyckades med att ta bort alternativgrupper"
 
@@ -2163,7 +2168,7 @@ msgstr "Skrivskyddad"
 msgid "Failed to duplicate global view"
 msgstr "Misslyckades att duplicera global vy"
 
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:254
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:160
 msgid "Showing {shown} of {total} • {selected} selected"
 msgstr "Visar {shown} av {total} • {selected} valda"
 
@@ -2172,7 +2177,7 @@ msgid "Test Shipping Method"
 msgstr "Testa fraktmetod"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:491
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:333
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:348
 msgid "Facet Values"
 msgstr "Facettvärden"
 
@@ -2593,7 +2598,7 @@ msgstr "Sida {0} av {1}"
 msgid "Rate"
 msgstr "Sats"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:118
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:119
 msgid "Size, colour, etc."
 msgstr "Storlek, färg etc."
 
@@ -2685,11 +2690,12 @@ msgstr "{count, plural, one {Är du säker på att du vill ta bort {count} kund 
 msgid "Search countries..."
 msgstr "Sök länder..."
 
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:293
+#: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:194
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:199
 msgid "Stock on Hand"
 msgstr "Lager tillgängligt"
 
-#: src/app/routes/_authenticated/_products/products.tsx:36
+#: src/app/routes/_authenticated/_products/products.tsx:38
 msgid "Search index rebuild could not be started"
 msgstr "Återuppbyggnad av sökindex kunde inte startas"
 
@@ -2715,6 +2721,11 @@ msgstr "Ta bort kolumn"
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:158
 msgid "Assign existing"
 msgstr "Tilldela befintlig"
+
+#: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:62
+#: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:68
+msgid "Generate variants"
+msgstr "Generera varianter"
 
 #: src/lib/components/data-table/filters/data-table-enum-filter.tsx:19
 #: src/lib/components/data-table/human-readable-operator.tsx:36
@@ -2827,7 +2838,7 @@ msgstr "Tillämpade vy \"{viewName}\""
 msgid "Successfully removed {successCount} facets from channel"
 msgstr "{successCount} facetter borttagna från kanal"
 
-#: src/app/routes/_authenticated/_products/products.tsx:125
+#: src/app/routes/_authenticated/_products/products.tsx:134
 msgid "New Product"
 msgstr "Ny produkt"
 
@@ -2835,7 +2846,7 @@ msgstr "Ny produkt"
 msgid "New asset"
 msgstr "Ny tillgång"
 
-#: src/app/routes/_authenticated/index.tsx:409
+#: src/app/routes/_authenticated/index.tsx:380
 msgid "Tidy"
 msgstr "Städa upp"
 
@@ -2852,11 +2863,11 @@ msgstr "Beräkna om frakt"
 #: src/app/routes/_authenticated/_assets/assets.tsx:40
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:229
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:508
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:366
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:381
 msgid "Assets"
 msgstr "Tillgångar"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:306
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:321
 msgid "This will remove all option groups from this product and return to the variant setup choice."
 msgstr "Detta tar bort alla alternativgrupper från produkten och återgår till variantval."
 
@@ -2901,7 +2912,7 @@ msgstr "Beställning avbruten"
 msgid "Discount"
 msgstr "Rabatt"
 
-#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:98
+#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:94
 msgid "Top Products"
 msgstr "Topprodukter"
 
@@ -2914,7 +2925,7 @@ msgstr "Alla typer"
 msgid "Only draft orders can be completed"
 msgstr "Endast utkastbeställningar kan slutföras"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:172
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:173
 msgid "Failed to update product"
 msgstr "Misslyckades att uppdatera produkt"
 
@@ -2974,7 +2985,7 @@ msgid "Successfully created administrator"
 msgstr "Administratör har skapats"
 
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:196
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:314
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:329
 msgid "Product Options"
 msgstr "Produktalternativ"
 
@@ -2982,7 +2993,8 @@ msgstr "Produktalternativ"
 msgid "Select country"
 msgstr "Välj land"
 
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:427
+#: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:253
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:279
 msgid "Creating..."
 msgstr "Skapar..."
 
@@ -3054,7 +3066,7 @@ msgstr "Ta bort global vy"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:163
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:217
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:242
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
@@ -3090,7 +3102,7 @@ msgstr "Misslyckades att skapa kund"
 msgid "Focal point updated"
 msgstr "Fokuspunkt uppdaterad"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:279
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:299
 msgid "Option values"
 msgstr "Alternativvärden"
 
@@ -3170,8 +3182,8 @@ msgstr "Global vy namnändrad"
 msgid "No tags selected"
 msgstr "Inga taggar valda"
 
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:408
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:417
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:260
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:269
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:186
 msgid "Back"
 msgstr "Tillbaka"
@@ -3236,7 +3248,7 @@ msgstr "Lägg till kund"
 msgid "Save Changes"
 msgstr "Spara ändringar"
 
-#: src/app/routes/_authenticated/_products/products.tsx:57
+#: src/app/routes/_authenticated/_products/products.tsx:72
 msgid "Search products..."
 msgstr "Sök produkter..."
 
@@ -3299,7 +3311,8 @@ msgid "Track"
 msgstr "Spåra"
 
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:322
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:429
+#: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:255
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:281
 msgid "Create variant"
 msgstr "Skapa variant"
 
@@ -3307,7 +3320,7 @@ msgstr "Skapa variant"
 msgid "Facet values for {facetName}"
 msgstr "Facettvärden för {facetName}"
 
-#: src/app/routes/_authenticated/index.tsx:431
+#: src/app/routes/_authenticated/index.tsx:402
 msgid "Save Layout"
 msgstr "Spara layout"
 
@@ -3344,7 +3357,7 @@ msgstr "Kolumner"
 msgid "Failed to upload image"
 msgstr "Kunde inte ladda upp bilden"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:144
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:145
 msgid "Option value name"
 msgstr "Alternativvärdesnamn"
 
@@ -3395,7 +3408,7 @@ msgstr "Ange filterkriterier för kolumnen {columnId}"
 msgid "Country"
 msgstr "Land"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:98
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:99
 msgid "Simple product"
 msgstr "Enkel produkt"
 
@@ -3465,7 +3478,7 @@ msgstr "Sök roller..."
 #~ msgid "Successfully cancelled {fulfilled} jobs"
 #~ msgstr ""
 
-#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:117
+#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:115
 msgid "None of the {CANDIDATE_POOL_SIZE} sampled variants are at or below {threshold}. Others may still be low."
 msgstr "Ingen av de {CANDIDATE_POOL_SIZE} kontrollerade varianterna ligger på eller under {threshold}. Andra kan ändå ha lågt lager."
 
@@ -3525,9 +3538,9 @@ msgid "Successfully created seller"
 msgstr "Säljare skapad"
 
 #: src/lib/framework/dashboard-widget/latest-customers-widget/index.tsx:58
-#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:82
+#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:80
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:105
-#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:126
+#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:122
 msgid "Try again"
 msgstr "Försök igen"
 
@@ -3569,7 +3582,7 @@ msgstr "Fet"
 msgid "Available languages"
 msgstr "Tillgängliga språk"
 
-#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:102
+#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:100
 msgid "{saleable} in stock"
 msgstr "{saleable} i lager"
 
@@ -3584,11 +3597,11 @@ msgstr "Hittades inte"
 
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:143
 #: src/app/routes/_authenticated/_product-variants/product-variants.tsx:82
-#: src/app/routes/_authenticated/_products/products.tsx:78
+#: src/app/routes/_authenticated/_products/products.tsx:93
 msgid "Facet values"
 msgstr "Facettvärden"
 
-#: src/lib/components/data-table/data-table.tsx:300
+#: src/lib/components/data-table/data-table.tsx:312
 msgid "Failed to reorder items"
 msgstr "Misslyckades med att ändra ordning på artiklar"
 
@@ -3666,7 +3679,7 @@ msgid "Yes"
 msgstr "Ja"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:179
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:244
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:259
 msgid "Slug"
 msgstr "Slug"
 
@@ -3696,7 +3709,7 @@ msgstr "Widgeten 'Senaste kunder'"
 msgid "Latest Orders Widget"
 msgstr "Senaste beställningar-widget"
 
-#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:74
+#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:72
 msgid "Loading stock levels…"
 msgstr "Läser in lagernivåer…"
 
@@ -3721,7 +3734,7 @@ msgstr "är mindre än eller lika med"
 msgid "is not equal to"
 msgstr "är inte lika med"
 
-#: src/app/routes/_authenticated/index.tsx:424
+#: src/app/routes/_authenticated/index.tsx:395
 #: src/lib/components/data-table/data-table-settings-menu.tsx:72
 msgid "Refresh"
 msgstr "Uppdatera"
@@ -3742,7 +3755,7 @@ msgstr "Genomför betalning"
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:24
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:210
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:343
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:358
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:111
 #: src/lib/components/layout/channel-switcher.tsx:146
 msgid "Channels"
@@ -3768,8 +3781,8 @@ msgstr "{successfulRefundCount} betalning(ar) återbetalades före felet. Kontro
 msgid "Select item"
 msgstr "Välj artikel"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:57
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:210
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:58
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:211
 msgid "New product"
 msgstr "Ny produkt"
 
@@ -3941,7 +3954,7 @@ msgstr "Laddar taggar..."
 msgid "Successfully created facet"
 msgstr "Facett skapad"
 
-#: src/app/routes/_authenticated/index.tsx:489
+#: src/app/routes/_authenticated/index.tsx:460
 msgid "No widgets to display. Use \"Edit Layout\" to add widgets."
 msgstr "Inga widgetar att visa. Använd \"Redigera layout\" för att lägga till widgetar."
 
@@ -4004,7 +4017,7 @@ msgstr "Misslyckades att skapa kundgrupp"
 msgid "Failed to create role"
 msgstr "Misslyckades att skapa roll"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:238
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:253
 msgid "Product name"
 msgstr "Produktnamn"
 
@@ -4017,10 +4030,10 @@ msgstr "Leveransstatus uppdaterad"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:205
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:38
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:66
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:59
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:56
-#: src/app/routes/_authenticated/_products/products.tsx:25
-#: src/app/routes/_authenticated/_products/products.tsx:48
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:60
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:57
+#: src/app/routes/_authenticated/_products/products.tsx:27
+#: src/app/routes/_authenticated/_products/products.tsx:56
 msgid "Products"
 msgstr "Produkter"
 
@@ -4080,11 +4093,11 @@ msgstr "Sök administratörer..."
 msgid "Created by"
 msgstr "Skapad av"
 
-#: src/lib/components/data-table/data-table.tsx:579
+#: src/lib/components/data-table/data-table.tsx:591
 msgid "No items match your current filters. Try clearing them to see more."
 msgstr "Inga objekt matchar dina nuvarande filter. Prova att rensa dem för att se fler."
 
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:240
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:146
 msgid "Filter variants..."
 msgstr "Filtrera varianter..."
 
@@ -4204,7 +4217,7 @@ msgid "View duplicated successfully"
 msgstr "Vy duplicerad"
 
 #: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:62
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:297
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:317
 msgid "Remove option group"
 msgstr "Ta bort alternativgrupp"
 
@@ -4212,7 +4225,7 @@ msgstr "Ta bort alternativgrupp"
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:76
 #: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:14
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:260
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:275
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:174
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:94
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:162
@@ -4379,7 +4392,7 @@ msgstr "Översikt över dina beställningar"
 msgid "Upload"
 msgstr "Ladda upp"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:115
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:116
 msgid "Product with options"
 msgstr "Produkt med alternativ"
 
@@ -4546,8 +4559,8 @@ msgstr "Tillgängliga åtgärder"
 msgid "Failed to update order line: {0}"
 msgstr "Kunde inte uppdatera orderraden: {0}"
 
-#: src/app/routes/_authenticated/index.tsx:440
-#: src/app/routes/_authenticated/index.tsx:448
+#: src/app/routes/_authenticated/index.tsx:411
+#: src/app/routes/_authenticated/index.tsx:419
 msgid "Edit layout"
 msgstr "Redigera layout"
 
@@ -4777,7 +4790,8 @@ msgstr "Gammal e-post:"
 msgid "Save a view as \"Global\" to make it available to all users."
 msgstr "Spara en vy som \"Global\" för att göra den tillgänglig för alla användare."
 
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:184
+#: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:154
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:90
 msgid "Failed to create variants"
 msgstr "Misslyckades med att skapa varianter"
 
@@ -4815,7 +4829,7 @@ msgstr "Ny säljare"
 msgid "Loading…"
 msgstr "Läser in…"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:146
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:147
 msgid "e.g., Red, Large, Cotton"
 msgstr "t.ex. Röd, Stor, Bomull"
 
@@ -4844,7 +4858,7 @@ msgstr "Regioner"
 msgid "Drop files here to upload"
 msgstr "Släpp filer här för att ladda upp"
 
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:276
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:182
 msgid "Toggle all visible variants"
 msgstr "Växla alla synliga varianter"
 
@@ -5056,6 +5070,10 @@ msgstr "Sammanfattning av ändringar"
 msgid "Reset password"
 msgstr "Återställ lösenord"
 
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:395
+msgid "Select"
+msgstr "Välj"
+
 #. placeholder {0}: payment.refunds.length
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:206
 msgid "Refunds ({0})"
@@ -5069,7 +5087,7 @@ msgstr "Senast kördes"
 msgid "Payment details"
 msgstr "Betalningsdetaljer"
 
-#: src/app/routes/_authenticated/_products/products.tsx:119
+#: src/app/routes/_authenticated/_products/products.tsx:46
 msgid "Rebuild search index"
 msgstr "Återuppbygg sökindex"
 
@@ -5086,7 +5104,7 @@ msgstr "Var 60:e sekund"
 msgid "Failed to update customer group"
 msgstr "Misslyckades att uppdatera kundgrupp"
 
-#: src/app/routes/_authenticated/index.tsx:298
+#: src/app/routes/_authenticated/index.tsx:270
 msgid "Remove widget"
 msgstr "Ta bort widget"
 
@@ -5187,7 +5205,7 @@ msgstr "Region / Provins"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:147
 #: src/app/routes/_authenticated/_payment-methods/payment-methods.tsx:43
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:261
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:226
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:228
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:153
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:131
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:139
@@ -5241,7 +5259,7 @@ msgstr "Förhandsgranska ändringar"
 msgid "Failed to remove {entityType} from channel"
 msgstr "Misslyckades med att ta bort {entityType} från kanal"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:188
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:190
 msgid "Variant deleted successfully"
 msgstr "Variant borttagen"
 
@@ -5271,7 +5289,7 @@ msgstr "Schemalagda uppgifter"
 msgid "Are you sure you want to delete this item? This action cannot be undone."
 msgstr "Är du säker på att du vill ta bort denna artikel? Denna åtgärd kan inte ångras."
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:323
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:343
 msgid "Variants"
 msgstr "Varianter"
 
@@ -5323,7 +5341,7 @@ msgstr "Misslyckades att uppdatera kollektion"
 msgid "Price and tax"
 msgstr "Pris och skatt"
 
-#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:124
+#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:120
 msgid "We couldn't load the top products"
 msgstr "Vi kunde inte läsa in topprodukterna"
 
@@ -5378,7 +5396,7 @@ msgstr "Lägg till taggar..."
 msgid "{0} items selected"
 msgstr "{0} artiklar valda"
 
-#: src/app/routes/_authenticated/index.tsx:484
+#: src/app/routes/_authenticated/index.tsx:455
 msgid "All widgets are hidden. Use the \"Add widget\" button to add them back."
 msgstr "Alla widgetar är dolda. Använd knappen \"Lägg till widget\" för att lägga till dem igen."
 
@@ -5391,8 +5409,12 @@ msgstr "Sök språk..."
 msgid "Stock Locations"
 msgstr "Lagerplatser"
 
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:236
+msgid "Failed to update variant"
+msgstr "Det gick inte att uppdatera varianten"
+
 #: src/lib/components/data-table/data-table-pagination.tsx:69
-#: src/lib/components/data-table/data-table.tsx:705
+#: src/lib/components/data-table/data-table.tsx:717
 msgid "Go to previous page"
 msgstr "Gå till föregående sida"
 
@@ -5430,7 +5452,7 @@ msgid "System"
 msgstr "System"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:290
-#: src/app/routes/_authenticated/_products/components/product-variants-table.tsx:87
+#: src/app/routes/_authenticated/_products/components/product-variants-table.tsx:88
 msgid "Variant name"
 msgstr "Variantnamn"
 
@@ -5444,7 +5466,7 @@ msgstr "Ta bort"
 msgid "Failed to update customer"
 msgstr "Misslyckades att uppdatera kund"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:305
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:320
 msgid "Remove option groups?"
 msgstr "Ta bort alternativgrupper?"
 
@@ -5513,7 +5535,7 @@ msgstr "Sidan kommer fortsätta med standardfrågan."
 msgid "Street Address"
 msgstr "Gatuadress"
 
-#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:115
+#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:113
 msgid "No low stock in this sample"
 msgstr "Inget lågt lager i detta urval"
 
@@ -5521,7 +5543,7 @@ msgstr "Inget lågt lager i detta urval"
 msgid "No more facets"
 msgstr "Inga fler fasetter"
 
-#: src/app/routes/_authenticated/_products/products.tsx:33
+#: src/app/routes/_authenticated/_products/products.tsx:35
 msgid "Search index rebuild started"
 msgstr "Återuppbyggnad av sökindex startad"
 
@@ -5548,6 +5570,10 @@ msgstr "Återbetalning övergick"
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx:13
 msgid "Using native authentication strategy"
 msgstr "Använder inbyggd autentiseringsstrategi"
+
+#: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:212
+msgid "Exists"
+msgstr "Finns"
 
 #: src/lib/components/login/forgot-password-form.tsx:136
 #: src/lib/components/login/reset-password-form.tsx:188
@@ -5613,7 +5639,7 @@ msgstr "Jag har sparat denna API-nyckel"
 msgid "Configure available languages for your store and channels"
 msgstr "Konfigurera tillgängliga språk för din butik och kanaler"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:164
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:165
 msgid "Successfully created product"
 msgstr "Produkt skapad"
 
@@ -5656,7 +5682,7 @@ msgstr "Administratör har uppdaterats"
 
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:263
 #: src/lib/components/data-table/data-table-faceted-filter.tsx:225
-#: src/lib/components/data-table/data-table.tsx:582
+#: src/lib/components/data-table/data-table.tsx:594
 #: src/lib/components/shared/asset/asset-gallery.tsx:361
 msgid "Clear filters"
 msgstr "Rensa filter"
@@ -5704,7 +5730,7 @@ msgstr "Ny fraktmetod"
 msgid "Every 10 seconds"
 msgstr "Var 10:e sekund"
 
-#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:55
+#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:53
 msgid "Low Stock"
 msgstr "Lågt lager"
 
@@ -5716,7 +5742,7 @@ msgstr "exkl. skatt:"
 #~ msgid "Add Stock to Location"
 #~ msgstr "Lägg till lager till plats"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:98
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:99
 msgid "Successfully added option value"
 msgstr "Alternativvärde tillagt"
 
@@ -5745,7 +5771,7 @@ msgstr "En ytterligare betalning på {formattedDiff} kommer krävas."
 msgid "Track inventory by default"
 msgstr "Spåra lager som standard"
 
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:258
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:164
 msgid "{selected} of {total} selected"
 msgstr "{selected} av {total} valda"
 
@@ -5838,7 +5864,7 @@ msgstr "Delsumma"
 msgid "Fulfilled items ({0})"
 msgstr "Levererade artiklar ({0})"
 
-#: src/app/routes/_authenticated/_products/products.tsx:102
+#: src/app/routes/_authenticated/_products/products.tsx:117
 msgid "Create your first product"
 msgstr "Skapa din första produkt"
 
@@ -5854,7 +5880,7 @@ msgstr "Overifierad"
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:182
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:268
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:78
-#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:107
+#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:103
 msgid "Quantity"
 msgstr "Antal"
 
@@ -5916,7 +5942,7 @@ msgstr "{entityType} togs bort från kanal"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:89
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:17
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:24
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:259
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:279
 msgid "Option Groups"
 msgstr "Alternativgrupper"
 
@@ -6071,7 +6097,7 @@ msgstr "Genomstruken"
 
 #: src/lib/framework/dashboard-widget/latest-customers-widget/index.tsx:92
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:127
-#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:158
+#: src/lib/framework/dashboard-widget/top-products-widget/index.tsx:154
 msgid "Try selecting a different date range."
 msgstr "Prova att välja ett annat datumintervall."
 
@@ -6101,7 +6127,7 @@ msgid "New facet"
 msgstr "Ny facett"
 
 #: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:63
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:298
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:318
 msgid "Are you sure you want to remove this option group from the product?"
 msgstr "Är du säker på att du vill ta bort denna alternativgrupp från produkten?"
 
@@ -6123,6 +6149,10 @@ msgstr "Standardvaluta"
 msgid "No payment or refund is required for these changes."
 msgstr "Ingen betalning eller återbetalning krävs för dessa ändringar."
 
+#: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:169
+msgid "All possible variant combinations already exist."
+msgstr "Alla möjliga variantkombinationer finns redan."
+
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:72
 msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
 msgstr "{cancellableCount, plural, one {Är du säker på att du vill avbryta {cancellableCount} jobb? Denna åtgärd kan inte ångras.} other {Är du säker på att du vill avbryta {cancellableCount} jobb? Denna åtgärd kan inte ångras.}}"
@@ -6135,7 +6165,7 @@ msgstr "Total omsättning"
 msgid "Next Execution"
 msgstr "Nästa körning"
 
-#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:56
+#: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:54
 msgid "Saleable stock at or below {threshold}, from a sample of {CANDIDATE_POOL_SIZE} variants"
 msgstr "Säljbart lager på eller under {threshold}, från ett urval av {CANDIDATE_POOL_SIZE} varianter"
 
@@ -6296,7 +6326,7 @@ msgstr "Misslyckades att ta bort facett från kanal: {message}"
 #~ msgid "Set link"
 #~ msgstr "Ange länk"
 
-#: src/lib/components/data-table/data-table.tsx:704
+#: src/lib/components/data-table/data-table.tsx:716
 msgid "Pagination"
 msgstr "Paginering"
 
@@ -6312,11 +6342,11 @@ msgstr "Sök skattekategorier..."
 msgid "Edit image"
 msgstr "Redigera bild"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:61
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:62
 msgid "Manage Variants"
 msgstr "Hantera varianter"
 
-#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:138
+#: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:137
 msgid "There was a problem loading your latest orders."
 msgstr "Det uppstod ett problem vid inläsningen av dina senaste beställningar."
 
@@ -6348,7 +6378,7 @@ msgid "View result"
 msgstr "Visa resultat"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:20
-#: src/lib/components/data-table/data-table.tsx:707
+#: src/lib/components/data-table/data-table.tsx:719
 msgid "Rows per page"
 msgstr "Rader per sida"
 
@@ -6377,11 +6407,11 @@ msgstr "Kund tillagd i grupp"
 msgid "Seller orders"
 msgstr "Säljarordrar"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:104
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:105
 msgid "Failed to add option value"
 msgstr "Misslyckades att lägga till alternativvärde"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:133
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:134
 msgid "Add option value to {groupName}"
 msgstr "Lägg till alternativvärde till {groupName}"
 
@@ -6399,8 +6429,10 @@ msgstr "Sök beställningar..."
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:297
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:292
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:197
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:287
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:332
+#: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:188
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:193
+#: src/app/routes/_authenticated/_products/components/variant-generation-fields.tsx:100
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:352
 msgid "SKU"
 msgstr "SKU"
 
@@ -6416,7 +6448,7 @@ msgstr "Fler formateringsalternativ"
 msgid "{totalQuantity} item(s) refunded"
 msgstr "{totalQuantity} artikel/artiklar återbetalade"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:263
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:283
 msgid "No option groups defined yet. Add option groups to create different variants of your product (e.g., Size, Color, Material)"
 msgstr "Inga alternativgrupper definierade ännu. Lägg till alternativgrupper för att skapa olika varianter av din produkt (t.ex. Storlek, Färg, Material)"
 
@@ -6443,7 +6475,7 @@ msgid "Failed to create product variant"
 msgstr "Misslyckades att skapa produktvariant"
 
 #: src/lib/components/data-input/relation-selector.tsx:418
-#: src/lib/components/data-table/data-table.tsx:489
+#: src/lib/components/data-table/data-table.tsx:501
 msgid "Search..."
 msgstr "Sök..."
 
@@ -6521,7 +6553,7 @@ msgstr "Aktiva filter"
 
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:176
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx:54
-#: src/lib/components/data-table/data-table.tsx:565
+#: src/lib/components/data-table/data-table.tsx:577
 msgid "Clear all"
 msgstr "Rensa alla"
 
@@ -6558,6 +6590,10 @@ msgstr "Lägg till betalning till beställning"
 #: src/lib/components/shared/facet-value-selector.tsx:159
 #~ msgid "Loading..."
 #~ msgstr "Laddar..."
+
+#: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:71
+msgid "Create variants for the option combinations that don't exist yet. Combinations that already exist are shown for context and can't be edited."
+msgstr "Skapa varianter för de alternativkombinationer som inte finns ännu. Kombinationer som redan finns visas som referens och kan inte redigeras."
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:143
 msgid "The token is used to specify the channel when making API requests."
@@ -6614,8 +6650,8 @@ msgstr "Betalningsmetod krävs"
 msgid "Failed to add customer to group"
 msgstr "Misslyckades att lägga till kund i grupp"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:256
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:277
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:276
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:292
 msgid "Manage variants"
 msgstr "Hantera varianter"
 
@@ -6641,7 +6677,7 @@ msgstr "Sök säljare..."
 msgid "Successfully created promotion"
 msgstr "Kampanj skapad"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:273
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:293
 msgid "Option"
 msgstr "Alternativ"
 
@@ -6660,7 +6696,8 @@ msgstr "Telefonnummer"
 msgid "Private"
 msgstr "Privat"
 
-#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:283
+#: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:185
+#: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:189
 msgid "Variant"
 msgstr "Variant"
 
