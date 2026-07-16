@@ -324,7 +324,7 @@ msgstr "Вибрати ролі"
 msgid "Successfully created role"
 msgstr "Роль успішно створено"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:418
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:480
 msgid "Are you sure you want to delete this variant?"
 msgstr "Ви впевнені, що хочете видалити цей варіант?"
 
@@ -396,8 +396,8 @@ msgstr "Немає віджетів для додавання"
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:91
 #: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:55
 #: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:73
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:106
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:237
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:107
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:290
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:203
 #: src/lib/components/shared/asset/asset-preview.tsx:127
 msgid "Unknown error"
@@ -644,7 +644,7 @@ msgstr "Помилка завантаження історії клієнта: {
 msgid "Successfully removed {selectionLength} {entityType} from channel"
 msgstr "{selectionLength} {entityType} успішно видалено з каналу"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:152
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:153
 msgid "Add option value"
 msgstr "Додати значення опції"
 
@@ -855,7 +855,7 @@ msgstr "Завершити чернетку"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:173
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:158
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:286
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:349
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:411
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:165
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:89
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:148
@@ -926,7 +926,7 @@ msgstr "Компанія"
 msgid "Add column after"
 msgstr "Додати стовпець після"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:359
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:421
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:241
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:209
 #: src/lib/components/data-table/data-table-bulk-actions.tsx:82
@@ -1489,7 +1489,7 @@ msgstr "Немає варіантів, що відповідають поточ�
 msgid "Addresses"
 msgstr "Адреси"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:137
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:138
 msgid "Add a new option value to the {groupName} option group"
 msgstr "Додати нове значення опції до групи опцій {groupName}"
 
@@ -1530,6 +1530,11 @@ msgstr "Замовлення переведено"
 #: src/lib/components/data-table/human-readable-operator.tsx:30
 msgid "is before"
 msgstr "до"
+
+#. placeholder {0}: collision.name
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:277
+msgid "This option combination is already used by \"{0}\""
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:388
 msgid "Delete draft order"
@@ -1845,7 +1850,7 @@ msgstr "Колекції"
 msgid "Select Shipping Eligibility Checker"
 msgstr "Виберіть перевірку доступності доставки"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:417
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:479
 msgid "Delete variant"
 msgstr "Видалити варіант"
 
@@ -3102,7 +3107,7 @@ msgstr "Не вдалося створити клієнта"
 msgid "Focal point updated"
 msgstr "Фокусну точку оновлено"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:299
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:361
 msgid "Option values"
 msgstr "Значення опцій"
 
@@ -3357,7 +3362,7 @@ msgstr "Стовпці"
 msgid "Failed to upload image"
 msgstr "Не вдалося завантажити зображення"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:145
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:146
 msgid "Option value name"
 msgstr "Назва значення опції"
 
@@ -4030,7 +4035,7 @@ msgstr "Стан виконання успішно оновлено"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:205
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:38
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:66
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:60
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:61
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:57
 #: src/app/routes/_authenticated/_products/products.tsx:27
 #: src/app/routes/_authenticated/_products/products.tsx:56
@@ -4217,7 +4222,7 @@ msgid "View duplicated successfully"
 msgstr "Подання успішно дубльовано"
 
 #: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:62
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:317
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:379
 msgid "Remove option group"
 msgstr "Видалити групу опцій"
 
@@ -4829,7 +4834,7 @@ msgstr "Новий продавець"
 msgid "Loading…"
 msgstr "Завантаження…"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:147
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:148
 msgid "e.g., Red, Large, Cotton"
 msgstr "наприклад, Червоний, Великий, Бавовна"
 
@@ -5070,7 +5075,7 @@ msgstr "Зведення змін"
 msgid "Reset password"
 msgstr "Скинути пароль"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:395
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:457
 msgid "Select"
 msgstr "Вибрати"
 
@@ -5259,7 +5264,7 @@ msgstr "Попередній перегляд змін"
 msgid "Failed to remove {entityType} from channel"
 msgstr "Не вдалося видалити {entityType} з каналу"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:190
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:214
 msgid "Variant deleted successfully"
 msgstr "Варіант успішно видалено"
 
@@ -5289,7 +5294,7 @@ msgstr "Заплановані завдання"
 msgid "Are you sure you want to delete this item? This action cannot be undone."
 msgstr "Ви впевнені, що хочете видалити цей елемент? Цю дію неможливо скасувати."
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:343
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:405
 msgid "Variants"
 msgstr "Варіанти"
 
@@ -5409,7 +5414,8 @@ msgstr "Пошук мов..."
 msgid "Stock Locations"
 msgstr "Місця зберігання"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:236
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:276
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:289
 msgid "Failed to update variant"
 msgstr "Не вдалося оновити варіант"
 
@@ -5742,7 +5748,7 @@ msgstr "без податку:"
 #~ msgid "Add Stock to Location"
 #~ msgstr "Додати запас до місця зберігання"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:99
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:100
 msgid "Successfully added option value"
 msgstr "Значення опції успішно додано"
 
@@ -5942,7 +5948,7 @@ msgstr "{entityType} успішно видалено з каналу"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:89
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:17
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:24
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:279
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:341
 msgid "Option Groups"
 msgstr "Групи опцій"
 
@@ -6127,7 +6133,7 @@ msgid "New facet"
 msgstr "Новий фасет"
 
 #: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:63
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:318
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:380
 msgid "Are you sure you want to remove this option group from the product?"
 msgstr "Ви впевнені, що хочете видалити цю групу опцій з товару?"
 
@@ -6342,7 +6348,7 @@ msgstr "Пошук податкових категорій..."
 msgid "Edit image"
 msgstr "Редагувати зображення"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:62
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:63
 msgid "Manage Variants"
 msgstr "Керування варіантами"
 
@@ -6407,11 +6413,11 @@ msgstr "Клієнта додано до групи"
 msgid "Seller orders"
 msgstr "Замовлення продавця"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:105
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:106
 msgid "Failed to add option value"
 msgstr "Не вдалося додати значення опції"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:134
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:135
 msgid "Add option value to {groupName}"
 msgstr "Додати значення опції до {groupName}"
 
@@ -6432,7 +6438,7 @@ msgstr "Пошук замовлень..."
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:188
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:193
 #: src/app/routes/_authenticated/_products/components/variant-generation-fields.tsx:100
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:352
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:414
 msgid "SKU"
 msgstr "SKU"
 
@@ -6448,7 +6454,7 @@ msgstr "Більше параметрів форматування"
 msgid "{totalQuantity} item(s) refunded"
 msgstr "{totalQuantity} товар(ів) повернено"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:283
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:345
 msgid "No option groups defined yet. Add option groups to create different variants of your product (e.g., Size, Color, Material)"
 msgstr "Групи опцій ще не визначено. Додайте групи опцій для створення різних варіантів вашого товару (наприклад, Розмір, Колір, Матеріал)"
 
@@ -6650,7 +6656,7 @@ msgstr "Спосіб оплати обов'язковий"
 msgid "Failed to add customer to group"
 msgstr "Не вдалося додати клієнта до групи"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:276
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:338
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:292
 msgid "Manage variants"
 msgstr "Керування варіантами"
@@ -6677,7 +6683,7 @@ msgstr "Пошук продавців..."
 msgid "Successfully created promotion"
 msgstr "Акцію успішно створено"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:293
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:355
 msgid "Option"
 msgstr "Опція"
 

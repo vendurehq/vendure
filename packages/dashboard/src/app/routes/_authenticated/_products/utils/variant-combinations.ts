@@ -66,7 +66,7 @@ export function generateVariantCombinations(optionGroups: OptionGroup[]): Genera
  * combination when they reference the same set of option ids, regardless of the
  * order in which those ids happen to be stored.
  */
-function optionIdSetKey(optionIds: readonly string[]): string {
+export function optionIdSetKey(optionIds: readonly string[]): string {
     // Explicit locale-independent comparator: both sides of a key comparison must
     // produce the same ordering regardless of runtime locale.
     return [...optionIds].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)).join('::');

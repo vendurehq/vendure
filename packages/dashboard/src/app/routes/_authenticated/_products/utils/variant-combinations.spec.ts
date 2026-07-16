@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { generateVariantCombinations, OptionGroup, partitionVariantCombinations } from './variant-combinations.js';
+import {
+    generateVariantCombinations,
+    optionIdSetKey,
+    OptionGroup,
+    partitionVariantCombinations,
+} from './variant-combinations.js';
 
 const size: OptionGroup = {
     id: 'g-size',
@@ -117,5 +122,15 @@ describe('partitionVariantCombinations', () => {
         const { existing, missing } = partitionVariantCombinations([], [[]]);
         expect(existing.map(c => c.id)).toEqual(['default']);
         expect(missing).toEqual([]);
+    });
+});
+
+describe('optionIdSetKey', () => {
+    it('produces the same key regardless of option-id order', () => {
+        expect(optionIdSetKey(['o-red', 'o-s'])).toBe(optionIdSetKey(['o-s', 'o-red']));
+    });
+
+    it('produces different keys for different option-id sets', () => {
+        expect(optionIdSetKey(['o-s', 'o-red'])).not.toBe(optionIdSetKey(['o-s', 'o-blue']));
     });
 });

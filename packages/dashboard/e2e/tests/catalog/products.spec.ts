@@ -225,87 +225,116 @@ test.describe('Product detail features', () => {
     });
 });
 
+// Provisions a throwaway product with a single "Size" option group (Small/Large) via the
+// admin API, so the cached seed DB is never mutated. Returns the ids the inline-editor
+// tests need; callers add variants and must clean up with `cleanupVariantEditorProduct`.
+async function createVariantEditorProduct(
+    client: VendureAdminClient,
+    unique: number,
+): Promise<{ productId: string; optionGroupId: string; smallOptionId: string; largeOptionId: string }> {
+    const { createProduct } = await client.gql(
+        `mutation ($input: CreateProductInput!) { createProduct(input: $input) { id } }`,
+        {
+            input: {
+                translations: [
+                    {
+                        languageCode: 'en',
+                        name: `E2E Inline Variant ${unique}`,
+                        slug: `e2e-inline-variant-${unique}`,
+                        description: '',
+                    },
+                ],
+            },
+        },
+    );
+    const productId = createProduct.id as string;
+
+    const { createProductOptionGroup } = await client.gql(
+        `mutation ($input: CreateProductOptionGroupInput!) {
+            createProductOptionGroup(input: $input) { id options { id name } }
+        }`,
+        {
+            input: {
+                code: `size-${unique}`,
+                translations: [{ languageCode: 'en', name: 'Size' }],
+                options: [
+                    { code: `small-${unique}`, translations: [{ languageCode: 'en', name: 'Small' }] },
+                    { code: `large-${unique}`, translations: [{ languageCode: 'en', name: 'Large' }] },
+                ],
+            },
+        },
+    );
+    const optionGroupId = createProductOptionGroup.id as string;
+    const options = createProductOptionGroup.options as Array<{ id: string; name: string }>;
+
+    await client.gql(
+        `mutation ($productId: ID!, $optionGroupId: ID!) {
+            addOptionGroupToProduct(productId: $productId, optionGroupId: $optionGroupId) { id }
+        }`,
+        { productId, optionGroupId },
+    );
+
+    return {
+        productId,
+        optionGroupId,
+        smallOptionId: options.find(o => o.name === 'Small')!.id,
+        largeOptionId: options.find(o => o.name === 'Large')!.id,
+    };
+}
+
+async function createVariantEditorVariant(
+    client: VendureAdminClient,
+    productId: string,
+    name: string,
+    sku: string,
+    optionIds: string[],
+): Promise<string> {
+    const { createProductVariants } = await client.gql(
+        `mutation ($input: [CreateProductVariantInput!]!) {
+            createProductVariants(input: $input) { id }
+        }`,
+        {
+            input: [{ productId, translations: [{ languageCode: 'en', name }], sku, optionIds, price: 1000 }],
+        },
+    );
+    return (createProductVariants as Array<{ id: string }>)[0].id;
+}
+
+async function cleanupVariantEditorProduct(
+    client: VendureAdminClient,
+    productId: string,
+    optionGroupId: string,
+) {
+    await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, { id: productId });
+    await client.gql(
+        `mutation ($id: ID!) { deleteProductOptionGroup(id: $id, force: true) { result } }`,
+        { id: optionGroupId },
+    );
+}
+
 // The Manage variants page is now an inline editor: every option cell renders as an
 // always-editable select (no read-only badges, no per-row Save button), and picking a
-// value auto-saves immediately and survives a reload. This test provisions a throwaway
-// product with its own option group + variant via the admin API so the cached seed DB is
-// never mutated, and cleans everything up unconditionally in `finally`.
+// value auto-saves immediately and survives a reload. These tests provision a throwaway
+// product via the admin API so the cached seed DB is never mutated, and clean up
+// unconditionally in `finally`.
 test.describe('Manage variants inline editing', () => {
     test('option cells are editable selects that auto-save on change', async ({ page }) => {
         const client = new VendureAdminClient(page);
         await client.login();
         const unique = Date.now();
-        const productName = `E2E Inline Variant ${unique}`;
-
-        const { createProduct } = await client.gql(
-            `mutation ($input: CreateProductInput!) { createProduct(input: $input) { id } }`,
-            {
-                input: {
-                    translations: [
-                        {
-                            languageCode: 'en',
-                            name: productName,
-                            slug: `e2e-inline-variant-${unique}`,
-                            description: '',
-                        },
-                    ],
-                },
-            },
+        const { productId, optionGroupId, smallOptionId } = await createVariantEditorProduct(
+            client,
+            unique,
         );
-        const productId = createProduct.id as string;
-        let optionGroupId: string | undefined;
 
         try {
-            const { createProductOptionGroup } = await client.gql(
-                `mutation ($input: CreateProductOptionGroupInput!) {
-                    createProductOptionGroup(input: $input) { id options { id name } }
-                }`,
-                {
-                    input: {
-                        code: `size-${unique}`,
-                        translations: [{ languageCode: 'en', name: 'Size' }],
-                        options: [
-                            {
-                                code: `small-${unique}`,
-                                translations: [{ languageCode: 'en', name: 'Small' }],
-                            },
-                            {
-                                code: `large-${unique}`,
-                                translations: [{ languageCode: 'en', name: 'Large' }],
-                            },
-                        ],
-                    },
-                },
+            const variantId = await createVariantEditorVariant(
+                client,
+                productId,
+                `Small ${unique}`,
+                `e2e-inline-${unique}`,
+                [smallOptionId],
             );
-            optionGroupId = createProductOptionGroup.id as string;
-            const smallOption = (
-                createProductOptionGroup.options as Array<{ id: string; name: string }>
-            ).find(o => o.name === 'Small')!;
-
-            await client.gql(
-                `mutation ($productId: ID!, $optionGroupId: ID!) {
-                    addOptionGroupToProduct(productId: $productId, optionGroupId: $optionGroupId) { id }
-                }`,
-                { productId, optionGroupId },
-            );
-
-            const { createProductVariants } = await client.gql(
-                `mutation ($input: [CreateProductVariantInput!]!) {
-                    createProductVariants(input: $input) { id }
-                }`,
-                {
-                    input: [
-                        {
-                            productId,
-                            translations: [{ languageCode: 'en', name: `${productName} Small` }],
-                            sku: `e2e-inline-${unique}`,
-                            optionIds: [smallOption.id],
-                            price: 1000,
-                        },
-                    ],
-                },
-            );
-            const variantId = (createProductVariants as Array<{ id: string }>)[0].id;
             const selectTestId = `variant-option-select-${variantId}-${optionGroupId}`;
 
             await page.goto(`/products/${productId}/variants`);
@@ -337,15 +366,73 @@ test.describe('Manage variants inline editing', () => {
             await expect(reloadedSelect).toBeVisible({ timeout: 10_000 });
             await expect(reloadedSelect).toContainText('Large');
         } finally {
-            await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, {
-                id: productId,
-            });
-            if (optionGroupId) {
-                await client.gql(
-                    `mutation ($id: ID!) { deleteProductOptionGroup(id: $id, force: true) { result } }`,
-                    { id: optionGroupId },
-                );
+            await cleanupVariantEditorProduct(client, productId, optionGroupId);
+        }
+    });
+
+    // The duplicate pre-check is client-side (core skips combination-uniqueness on variant
+    // UPDATE), so changing one variant onto another variant's combination must be blocked
+    // before any mutation: an error toast naming the colliding variant, the select reverts,
+    // and no UpdateProductVariant request is ever sent.
+    test('blocks a change that collides with another variant without calling the server', async ({
+        page,
+    }) => {
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const unique = Date.now();
+        const { productId, optionGroupId, smallOptionId, largeOptionId } =
+            await createVariantEditorProduct(client, unique);
+
+        try {
+            const smallVariantId = await createVariantEditorVariant(
+                client,
+                productId,
+                `Small ${unique}`,
+                `e2e-dup-small-${unique}`,
+                [smallOptionId],
+            );
+            // A second variant already owns the "Large" combination.
+            await createVariantEditorVariant(
+                client,
+                productId,
+                `Large ${unique}`,
+                `e2e-dup-large-${unique}`,
+                [largeOptionId],
+            );
+            const smallSelectTestId = `variant-option-select-${smallVariantId}-${optionGroupId}`;
+
+            await page.goto(`/products/${productId}/variants`);
+            const smallSelect = page.getByTestId(smallSelectTestId);
+            await expect(smallSelect).toBeVisible({ timeout: 10_000 });
+            await expect(smallSelect).toContainText('Small');
+
+            // Track any update mutation sent while we attempt the colliding change.
+            let updateRequested = false;
+            const onRequest = (req: import('@playwright/test').Request) => {
+                if (
+                    req.url().includes('/admin-api') &&
+                    req.postData()?.includes('UpdateProductVariant') === true
+                ) {
+                    updateRequested = true;
+                }
+            };
+            page.on('request', onRequest);
+            try {
+                await smallSelect.click();
+                await page.getByRole('option', { name: 'Large', exact: true }).click();
+                // The error toast names the colliding variant.
+                await expect(
+                    page.locator('[data-sonner-toast]').filter({ hasText: /already used by/i }),
+                ).toBeVisible({ timeout: 10_000 });
+            } finally {
+                page.off('request', onRequest);
             }
+
+            // No mutation was sent, and the select reverted to its original value.
+            expect(updateRequested).toBe(false);
+            await expect(smallSelect).toContainText('Small');
+        } finally {
+            await cleanupVariantEditorProduct(client, productId, optionGroupId);
         }
     });
 

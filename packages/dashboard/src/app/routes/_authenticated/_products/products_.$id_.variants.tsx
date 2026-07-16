@@ -27,7 +27,7 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { Check, Loader2, Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { AddOptionGroupDialog } from './components/add-option-group-dialog.js';
@@ -35,6 +35,7 @@ import { AddProductVariantDialog } from './components/add-product-variant-dialog
 import { ForceRemoveOptionGroupDialog } from './components/force-remove-option-group-dialog.js';
 import { GenerateMissingVariantsDialog } from './components/generate-missing-variants-dialog.js';
 import { useRemoveOptionGroup } from './hooks/use-remove-option-group.js';
+import { optionIdSetKey } from './utils/variant-combinations.js';
 import {
     createProductOptionDocument,
     deleteProductVariantDocument,
@@ -170,6 +171,29 @@ function ManageProductVariants() {
     const { id } = Route.useParams();
     const { t } = useLingui();
     const [optionCellState, setOptionCellState] = useState<Record<string, OptionCellState>>({});
+    // Synchronous mirror of `optionCellState`: reads inside an event handler (building
+    // the payload, the duplicate pre-check) must see in-flight overlays set earlier in
+    // the same tick, before React has re-rendered with the new state.
+    const optionCellStateRef = useRef<Record<string, OptionCellState>>({});
+    // Monotonic request token per cell. A handler only applies its state changes while
+    // its token is still the latest for that cell, so an older overlapping request can
+    // never revert or overwrite a newer selection.
+    const requestTokenRef = useRef<Record<string, number>>({});
+
+    // Single writer for both the ref mirror and React state so they never diverge.
+    const updateCellState = (
+        updater: (prev: Record<string, OptionCellState>) => Record<string, OptionCellState>,
+    ) => {
+        optionCellStateRef.current = updater(optionCellStateRef.current);
+        setOptionCellState(optionCellStateRef.current);
+    };
+
+    const clearCell = (cellKey: string) =>
+        updateCellState(prev => {
+            const updated = { ...prev };
+            delete updated[cellKey];
+            return updated;
+        });
 
     const { data: productData, refetch, isFetching } = useQuery({
         queryFn: () => api.query(productDetailWithVariantsDocument, { id }),
@@ -200,61 +224,99 @@ function ManageProductVariants() {
         isPending: isRemovingOptionGroup,
     } = useRemoveOptionGroup(id, { onRemoved: refetch });
 
-    // Auto-save an option-value assignment for a single cell. Fires the update
-    // immediately. On error the optimistic value is dropped so the select reverts
-    // to the server value and the server message is surfaced.
-    const assignOptionToVariant = async (variant: Variant, groupId: string, optionId: string) => {
-        const cellKey = getCellKey(variant.id, groupId);
-        setOptionCellState(prev => ({ ...prev, [cellKey]: { value: optionId, status: 'saving' } }));
-
-        // Build the full option-id set from every group's effective value: a pending
-        // cell value (a save in flight or just completed for that group) takes
-        // precedence over the server value, then the group being changed wins. This
-        // prevents a concurrent save in another group from being reverted by this
-        // one's click-time snapshot of `variant.options`.
-        const optionIdsByGroup = new Map<string, string>();
+    // A variant's effective option-id set: its server-assigned options overlaid with any
+    // in-flight/just-saved cell values (read from the synchronous ref), optionally with a
+    // single group override applied. Used both to build the update payload and to compare
+    // combinations in the duplicate pre-check, so the two always agree.
+    const getEffectiveOptionIds = (
+        variant: Variant,
+        override?: { groupId: string; optionId: string },
+    ): string[] => {
+        const byGroup = new Map<string, string>();
         for (const option of variant.options) {
-            optionIdsByGroup.set(option.groupId, option.id);
+            byGroup.set(option.groupId, option.id);
         }
         for (const group of productData?.product?.optionGroups ?? []) {
-            const pending = optionCellState[getCellKey(variant.id, group.id)];
+            const pending = optionCellStateRef.current[getCellKey(variant.id, group.id)];
             if (pending) {
-                optionIdsByGroup.set(group.id, pending.value);
+                byGroup.set(group.id, pending.value);
             }
         }
-        optionIdsByGroup.set(groupId, optionId);
-        const optionIds = [...optionIdsByGroup.values()];
+        if (override) {
+            byGroup.set(override.groupId, override.optionId);
+        }
+        return [...byGroup.values()];
+    };
 
-        try {
-            await updateVariantMutation.mutateAsync({ input: { id: variant.id, optionIds } });
-        } catch (error) {
-            setOptionCellState(prev => {
-                const updated = { ...prev };
-                delete updated[cellKey];
-                return updated;
-            });
+    // Auto-save an option-value assignment for a single cell. Fires the update
+    // immediately. On error (or a client-detected duplicate) the optimistic value is
+    // dropped so the select reverts to the server value and the reason is surfaced.
+    const assignOptionToVariant = async (variant: Variant, groupId: string, optionId: string) => {
+        const cellKey = getCellKey(variant.id, groupId);
+        const token = (requestTokenRef.current[cellKey] ?? 0) + 1;
+        requestTokenRef.current[cellKey] = token;
+        const isCurrent = () => requestTokenRef.current[cellKey] === token;
+
+        // Optimistically show the pending selection.
+        updateCellState(prev => ({ ...prev, [cellKey]: { value: optionId, status: 'saving' } }));
+
+        const optionIds = getEffectiveOptionIds(variant, { groupId, optionId });
+
+        // Client-side duplicate pre-check: core skips the combination-uniqueness check
+        // for variant updates, so a colliding change would silently persist. Compare the
+        // would-be effective set against every OTHER variant's effective set and refuse.
+        const wouldBeKey = optionIdSetKey(optionIds);
+        const collision = (productData?.product?.variants ?? []).find(
+            other => other.id !== variant.id && optionIdSetKey(getEffectiveOptionIds(other)) === wouldBeKey,
+        );
+        if (collision) {
+            if (isCurrent()) {
+                clearCell(cellKey);
+            }
             toast.error(t`Failed to update variant`, {
-                description: error instanceof Error ? error.message : t`Unknown error`,
+                description: t`This option combination is already used by "${collision.name}"`,
             });
             return;
         }
 
-        setOptionCellState(prev => ({ ...prev, [cellKey]: { value: optionId, status: 'success' } }));
-        // Refetch is intentionally outside the try/catch: a failed background refetch
-        // must not surface the save-failed toast or revert the just-saved value.
-        refetch();
+        try {
+            await updateVariantMutation.mutateAsync({ input: { id: variant.id, optionIds } });
+        } catch (error) {
+            // Only revert if this request is still the latest for the cell; a newer
+            // selection must not be clobbered by an older request's failure.
+            if (isCurrent()) {
+                clearCell(cellKey);
+                toast.error(t`Failed to update variant`, {
+                    description: error instanceof Error ? error.message : t`Unknown error`,
+                });
+            }
+            return;
+        }
+
+        // A newer selection superseded this one while it was in flight — leave its state.
+        if (!isCurrent()) {
+            return;
+        }
+        updateCellState(prev => ({ ...prev, [cellKey]: { value: optionId, status: 'success' } }));
+
+        // Clear the overlay only after the refetch confirms the server state, so the
+        // select never briefly reverts to stale cached data. If the refetch fails, keep
+        // the confirmed optimistic value rather than reverting.
+        let refetchOk = true;
+        try {
+            const result = await refetch();
+            refetchOk = !result.isError;
+        } catch {
+            refetchOk = false;
+        }
+        if (!refetchOk || !isCurrent()) {
+            return;
+        }
         setTimeout(() => {
-            setOptionCellState(prev => {
-                const current = prev[cellKey];
-                // Only clear if this exact success is still showing; a newer change to
-                // the same cell owns the state and must not be wiped by this timeout.
-                if (current?.status === 'success' && current.value === optionId) {
-                    const updated = { ...prev };
-                    delete updated[cellKey];
-                    return updated;
-                }
-                return prev;
-            });
+            const current = optionCellStateRef.current[cellKey];
+            if (isCurrent() && current?.status === 'success' && current.value === optionId) {
+                clearCell(cellKey);
+            }
         }, 1500);
     };
 
