@@ -6,6 +6,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { resolveDevelopmentNetwork } from './dev-network-config.mjs';
 import { claimDevStatus } from './dev-state.mjs';
 
 const require = createRequire(import.meta.url);
@@ -16,7 +17,6 @@ const portlessCliPath = path.join(path.dirname(fileURLToPath(import.meta.resolve
 const typescriptCliPath = require.resolve('typescript/bin/tsc');
 const packageManager = process.env.npm_execpath || 'bun';
 const mode = process.argv[2] ?? 'portless';
-const usePortless = mode !== 'direct';
 const agentMode = process.argv.includes('--agent');
 
 if (!['portless', 'direct'].includes(mode)) {
@@ -24,23 +24,19 @@ if (!['portless', 'direct'].includes(mode)) {
     process.exit(1);
 }
 
-const apiOrigin = usePortless ? getPortlessUrl('vendure') : 'http://localhost:3000';
-const dashboardOrigin = usePortless ? getPortlessUrl('dashboard.vendure') : 'http://localhost:5173';
-const dashboardUrl = `${dashboardOrigin}/dashboard`;
-const serverDashboardUrl = `${apiOrigin}/dashboard/`;
-const sharedDevelopmentEnv = {
-    VENDURE_DASHBOARD_URL: dashboardUrl,
-    ...(usePortless
-        ? {
-              VENDURE_TRUST_PROXY: 'true',
-              VITE_ADMIN_API_HOST: apiOrigin,
-              VITE_ADMIN_API_PORT: 'auto',
-          }
-        : {
-              VITE_ADMIN_API_HOST: 'http://localhost',
-              VITE_ADMIN_API_PORT: '3000',
-          }),
-};
+const {
+    usePortless,
+    apiOrigin,
+    dashboardUrl,
+    serverDashboardUrl,
+    sharedEnv: sharedDevelopmentEnv,
+    serverEnv,
+    dashboardEnv,
+} = resolveDevelopmentNetwork({
+    mode,
+    ensurePortlessProxy,
+    getPortlessUrl,
+});
 
 let shuttingDown = false;
 const processes = new Set();
@@ -168,7 +164,7 @@ const server = new RestartableProcess({
               './index.ts',
           ]
         : [cliPath, 'dev', 'server', '--server-entry', './index.ts'],
-    env: sharedDevelopmentEnv,
+    env: { ...sharedDevelopmentEnv, ...serverEnv },
     onUnexpectedExit,
 });
 
@@ -189,7 +185,7 @@ const dashboard = new RestartableProcess({
               './vite.config.mts',
           ]
         : [cliPath, 'dev', 'dashboard', '--vite-config', './vite.config.mts'],
-    env: sharedDevelopmentEnv,
+    env: { ...sharedDevelopmentEnv, ...dashboardEnv },
     onUnexpectedExit,
 });
 
@@ -274,6 +270,17 @@ function getPortlessUrl(name) {
         throw new Error(result.stderr.trim() || `Could not resolve the Portless URL for ${name}`);
     }
     return result.stdout.trim().replace(/\/$/, '');
+}
+
+function ensurePortlessProxy() {
+    const result = spawnSync(process.execPath, [portlessCliPath, 'proxy', 'start'], {
+        cwd: devServerDir,
+        env: process.env,
+        stdio: 'inherit',
+    });
+    if (result.status !== 0) {
+        throw new Error('Could not start the Portless proxy');
+    }
 }
 
 async function buildPrerequisites(env) {
