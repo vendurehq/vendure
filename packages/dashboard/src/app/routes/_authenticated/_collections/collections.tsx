@@ -9,7 +9,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ExpandedState, getExpandedRowModel } from '@tanstack/react-table';
 import { TableOptions } from '@tanstack/table-core';
 import { ResultOf } from 'gql.tada';
-import { Folder, FolderOpen, PlusIcon } from 'lucide-react';
+import { ChevronRight, PlusIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -22,6 +22,8 @@ import {
 import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { RichTextDescriptionCell } from '@/vdb/components/shared/table-cell/order-table-cell-components.js';
 import { Badge } from '@/vdb/components/ui/badge.js';
+import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
+import { cn } from '@/vdb/lib/utils.js';
 import { collectionListDocument, moveCollectionDocument } from './collections.graphql.js';
 import {
     AssignCollectionsToChannelBulkAction,
@@ -78,6 +80,7 @@ function isLoadMoreRow(row: CollectionOrLoadMore): row is LoadMoreRow {
 
 function CollectionListPage() {
     const { t } = useLingui();
+    const { formatNumber } = useLocalFormat();
     const queryClient = useQueryClient();
     const routeSearch = Route.useSearch();
     const navigate = useNavigate({ from: Route.fullPath });
@@ -382,22 +385,43 @@ function CollectionListPage() {
                         const original = row.original as Collection;
                         const isExpanded = row.getIsExpanded();
                         const hasChildren = !!original.children?.length;
+                        const isSearching = searchTerm.length > 0;
+                        const ancestors = (original.breadcrumbs ?? []).slice(1, -1);
                         return (
                             <div
-                                style={{ marginLeft: (original.breadcrumbs?.length - 2) * 20 + 'px' }}
+                                style={
+                                    isSearching
+                                        ? undefined
+                                        : { marginLeft: (original.breadcrumbs?.length - 2) * 20 + 'px' }
+                                }
                                 className="flex gap-2 items-center"
                             >
-                                <Button
-                                    size="icon"
-                                    variant="secondary"
-                                    aria-label={isExpanded ? 'Collapse' : 'Expand'}
-                                    onClick={row.getToggleExpandedHandler()}
-                                    disabled={!hasChildren}
-                                    className={!hasChildren ? 'opacity-20' : ''}
-                                >
-                                    {isExpanded ? <FolderOpen /> : <Folder />}
-                                </Button>
-                                <DetailPageButton id={original.id} label={original.name} />
+                                {hasChildren && !isSearching ? (
+                                    <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-6 w-6 p-0 shrink-0 text-muted-foreground"
+                                        aria-label={isExpanded ? t`Collapse` : t`Expand`}
+                                        onClick={row.getToggleExpandedHandler()}
+                                    >
+                                        <ChevronRight
+                                            className={cn(
+                                                'h-4 w-4 transition-transform',
+                                                isExpanded && 'rotate-90',
+                                            )}
+                                        />
+                                    </Button>
+                                ) : (
+                                    <div className="h-6 w-6 shrink-0" />
+                                )}
+                                <div className="flex flex-col">
+                                    <DetailPageButton id={original.id} label={original.name} />
+                                    {isSearching && ancestors.length > 0 && (
+                                        <span className="text-xs text-muted-foreground">
+                                            {ancestors.map(breadcrumb => breadcrumb.name).join(' / ')}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         );
                     },
@@ -429,7 +453,9 @@ function CollectionListPage() {
                                 collectionId={row.original.id}
                                 collectionName={row.original.name}
                             >
-                                <Trans>{row.original.productVariantCount as number} variants</Trans>
+                                <Trans>
+                                    {formatNumber(row.original.productVariantCount as number)} variants
+                                </Trans>
                             </CollectionContentsSheet>
                         );
                     },
@@ -465,9 +491,7 @@ function CollectionListPage() {
                 'breadcrumbs',
                 'productVariantCount',
             ]}
-            transformData={data => {
-                return addSubCollections(data);
-            }}
+            transformData={data => (searchTerm ? data : addSubCollections(data))}
             setTableOptions={(options: TableOptions<any>) => {
                 options.state = {
                     ...options.state,
@@ -492,12 +516,17 @@ function CollectionListPage() {
                         const remaining = original._totalItems - original._loadedItems;
                         return (
                             <div
-                                style={{ paddingLeft: (original.breadcrumbs?.length - 1) * 20 + 'px' }}
-                                className="flex justify-center py-2"
+                                style={
+                                    searchTerm.length > 0
+                                        ? undefined
+                                        : { paddingLeft: (original.breadcrumbs?.length - 1) * 20 + 'px' }
+                                }
+                                className="flex py-1"
                             >
                                 <Button
                                     size="sm"
-                                    variant="outline"
+                                    variant="ghost"
+                                    className="h-7 text-muted-foreground"
                                     onClick={() => handleLoadMoreChildren(original._parentId)}
                                 >
                                     <Trans>
@@ -518,6 +547,7 @@ function CollectionListPage() {
                 position: false,
                 parentId: false,
                 children: false,
+                breadcrumbs: false,
                 description: false,
                 isPrivate: false,
             }}
