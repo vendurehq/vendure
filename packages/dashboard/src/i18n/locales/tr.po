@@ -1534,7 +1534,7 @@ msgstr "öncesinde"
 #. placeholder {0}: collision.name
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:277
 msgid "This option combination is already used by \"{0}\""
-msgstr ""
+msgstr "Bu seçenek kombinasyonu zaten \"{0}\" tarafından kullanılıyor"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:388
 msgid "Delete draft order"

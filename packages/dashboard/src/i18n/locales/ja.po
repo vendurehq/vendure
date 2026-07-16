@@ -1534,7 +1534,7 @@ msgstr "より前"
 #. placeholder {0}: collision.name
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:277
 msgid "This option combination is already used by \"{0}\""
-msgstr ""
+msgstr "このオプションの組み合わせは既に「{0}」で使用されています"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:388
 msgid "Delete draft order"
