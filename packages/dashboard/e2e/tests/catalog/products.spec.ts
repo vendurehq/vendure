@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { createCrudTestSuite } from '../../utils/crud-test-factory.js';
+import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
 createCrudTestSuite({
     entityName: 'product',
@@ -42,10 +43,11 @@ test.describe('Product detail features', () => {
             page.locator('[data-slot="field-label"]').getByText('Description', { exact: true }),
         ).toBeVisible();
 
-        // Enabled toggle
+        // Enabled switch lives in the action bar, not in a sidebar field
+        await expect(page.getByTestId('product-enabled-switch')).toBeVisible();
         await expect(
-            page.locator('[data-slot="field-label"]').getByText('Enabled', { exact: true }),
-        ).toBeVisible();
+            page.locator('[data-slot="field-label"]').filter({ hasText: /^Enabled$/ }),
+        ).toHaveCount(0);
 
         // Facet Values block
         await expect(
@@ -56,6 +58,70 @@ test.describe('Product detail features', () => {
         await expect(
             page.locator('[data-slot="card-title"]').getByText('Assets', { exact: true }),
         ).toBeVisible();
+    });
+
+    // The Enabled switch was moved from the sidebar into the action bar. Toggling it must
+    // mark the form dirty and persist only on Update (no instant mutation). Restores the
+    // original state at the end so other tests that rely on the seeded product are unaffected.
+    test('enabled switch in the action bar toggles the form dirty and persists on update', async ({
+        page,
+    }) => {
+        // Navigate to the seeded "Laptop" product via search to avoid race conditions
+        await page.goto('/products');
+        await expect(page.locator('table')).toBeVisible();
+        await Promise.all([
+            page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200),
+            page.getByRole('textbox', { name: 'Search products...' }).fill('Laptop'),
+        ]);
+        await page.locator('table tbody tr').first().getByRole('button').first().click();
+        await expect(page).toHaveURL(/\/products\/.+/);
+
+        const productId = page.url().split('/products/')[1].split(/[/?#]/)[0];
+        const enabledSwitch = page.getByTestId('product-enabled-switch').getByRole('switch');
+        await expect(enabledSwitch).toBeVisible();
+        const wasChecked = await enabledSwitch.isChecked();
+
+        try {
+            // The form is pristine on load, so Update is disabled (no instant mutation)
+            await expect(page.getByRole('button', { name: 'Update' })).toBeDisabled({ timeout: 10_000 });
+
+            // Toggling marks the form dirty, enabling Update — but does not persist yet
+            await enabledSwitch.click();
+            await expect(page.getByRole('button', { name: 'Update' })).toBeEnabled();
+
+            // Persist via Update
+            await Promise.all([
+                page.waitForResponse(
+                    response =>
+                        response.url().includes('/admin-api') &&
+                        response.request().postData()?.includes('UpdateProduct') === true &&
+                        response.status() === 200,
+                ),
+                page.getByRole('button', { name: 'Update' }).click(),
+            ]);
+            await expect(
+                page.locator('[data-sonner-toast]').filter({ hasNotText: /error/i }).first(),
+            ).toBeVisible({ timeout: 10_000 });
+
+            // Reload and verify the toggled state persisted
+            await page.reload();
+            await expect(page).toHaveURL(/\/products\/.+/);
+            const reloadedSwitch = page.getByTestId('product-enabled-switch').getByRole('switch');
+            if (wasChecked) {
+                await expect(reloadedSwitch).not.toBeChecked();
+            } else {
+                await expect(reloadedSwitch).toBeChecked();
+            }
+        } finally {
+            // Restore the original state directly via the admin API so downstream tests see the
+            // product unchanged even if an assertion above failed mid-test.
+            const client = new VendureAdminClient(page);
+            await client.login();
+            await client.gql(
+                `mutation ($input: UpdateProductInput!) { updateProduct(input: $input) { id enabled } }`,
+                { input: { id: productId, enabled: wasChecked } },
+            );
+        }
     });
 
     test('should display product variants table', async ({ page }) => {
