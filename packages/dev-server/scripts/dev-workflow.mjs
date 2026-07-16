@@ -8,16 +8,31 @@ import { fileURLToPath } from 'node:url';
 
 import { resolveDevelopmentNetwork } from './dev-network-config.mjs';
 import { claimDevStatus } from './dev-state.mjs';
+import {
+    createWatcherReadiness,
+    resolvePackageBin,
+    RestartableProcess,
+    RestartReadinessCoordinator,
+} from './dev-workflow-utils.mjs';
 
 const require = createRequire(import.meta.url);
 const devServerDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const repoRoot = path.resolve(devServerDir, '../..');
 const cliPath = path.resolve(devServerDir, '../cli/dist/cli.js');
-const portlessCliPath = path.join(path.dirname(fileURLToPath(import.meta.resolve('portless'))), 'cli.js');
+const portlessCliPath = resolvePackageBin(import.meta.resolve('portless'), 'portless', 'portless');
 const typescriptCliPath = require.resolve('typescript/bin/tsc');
 const packageManager = process.env.npm_execpath || 'bun';
 const mode = process.argv[2] ?? 'portless';
 const agentMode = process.argv.includes('--agent');
+const watcherEnvironment = {
+    ...process.env,
+    // The readiness detector consumes a stable TypeScript watch message. Force English and also
+    // enforce a deadline below so an upstream output change fails clearly instead of hanging.
+    LC_ALL: 'C',
+    LANG: 'C',
+};
+const HTTP_READINESS_TIMEOUT_MS = 180_000;
+const HTTP_RETRY_INTERVAL_MS = 500;
 
 if (!['portless', 'direct'].includes(mode)) {
     console.error(`Unknown development mode "${mode}". Expected "portless" or "direct".`);
@@ -61,6 +76,15 @@ if (agentMode) {
     }
 }
 
+const restartReadiness = lifecycle
+    ? new RestartReadinessCoordinator({
+          updateStatus(changes) {
+              lifecycle.update(changes);
+              emitAgentEvent(lifecycle.status);
+          },
+      })
+    : undefined;
+
 process.once('exit', () => lifecycle?.remove());
 process.once('SIGINT', () => shutdown(130, 'SIGINT'));
 process.once('SIGTERM', () => shutdown(143, 'SIGTERM'));
@@ -94,99 +118,73 @@ function onUnexpectedExit(label, code, signal) {
     shutdown(signal === 'SIGINT' ? 130 : 1);
 }
 
-class RestartableProcess {
-    constructor({ label, command, args, env, onUnexpectedExit }) {
-        this.label = label;
-        this.command = command;
-        this.args = args;
-        this.env = env;
-        this.onUnexpectedExit = onUnexpectedExit;
-    }
-
-    start() {
-        if (shuttingDown) {
-            return;
-        }
-        this.child = spawnPrefixed({
-            label: this.label,
-            command: this.command,
-            args: this.args,
-            env: this.env,
-            onClose: (code, signal) => {
-                if (this.restarting && !shuttingDown) {
-                    this.restarting = false;
-                    this.start();
-                } else {
-                    this.onUnexpectedExit(this.label, code, signal);
-                }
-            },
-        });
-    }
-
-    restart() {
-        clearTimeout(this.restartTimer);
-        this.restartTimer = setTimeout(() => {
-            if (shuttingDown) {
-                return;
-            }
-            console.log(`[${this.label}] Dependency rebuild complete. Restarting...`);
-            if (!this.child || this.child.exitCode !== null || this.child.signalCode !== null) {
-                this.start();
-                return;
-            }
-            this.restarting = true;
-            this.child.kill('SIGTERM');
-        }, 200);
-    }
-
-    stop(signal = 'SIGTERM') {
-        clearTimeout(this.restartTimer);
-        if (this.child && this.child.exitCode === null && this.child.signalCode === null) {
-            this.child.kill(signal);
-        }
-    }
-}
-
 const server = new RestartableProcess({
     label: 'server',
-    command: process.execPath,
-    args: usePortless
-        ? [
-              portlessCliPath,
-              'run',
-              '--name',
-              'vendure',
-              process.execPath,
-              cliPath,
-              'dev',
-              'server',
-              '--server-entry',
-              './index.ts',
-          ]
-        : [cliPath, 'dev', 'server', '--server-entry', './index.ts'],
-    env: { ...sharedDevelopmentEnv, ...serverEnv },
+    spawnProcess: onClose =>
+        spawnPrefixed({
+            label: 'server',
+            command: process.execPath,
+            args: usePortless
+                ? [
+                      portlessCliPath,
+                      'run',
+                      '--name',
+                      'vendure',
+                      process.execPath,
+                      cliPath,
+                      'dev',
+                      'server',
+                      '--server-entry',
+                      './index.ts',
+                  ]
+                : [cliPath, 'dev', 'server', '--server-entry', './index.ts'],
+            env: { ...sharedDevelopmentEnv, ...serverEnv },
+            onClose,
+        }),
     onUnexpectedExit,
+    shouldRestart: () => !shuttingDown,
+    onRestarting: beginRestart,
+    onRestarted: (_label, token) =>
+        restartReadiness?.complete('server', token, () =>
+            Promise.all([
+                waitForHttp(`${apiOrigin}/health`, 'API health endpoint'),
+                waitForHttp(serverDashboardUrl, 'server-served Dashboard'),
+            ]),
+        ),
+    onRestartFailure: handleReadinessFailure,
 });
 
 const dashboard = new RestartableProcess({
     label: 'dashboard',
-    command: process.execPath,
-    args: usePortless
-        ? [
-              portlessCliPath,
-              'run',
-              '--name',
-              'dashboard.vendure',
-              process.execPath,
-              cliPath,
-              'dev',
-              'dashboard',
-              '--vite-config',
-              './vite.config.mts',
-          ]
-        : [cliPath, 'dev', 'dashboard', '--vite-config', './vite.config.mts'],
-    env: { ...sharedDevelopmentEnv, ...dashboardEnv },
+    spawnProcess: onClose =>
+        spawnPrefixed({
+            label: 'dashboard',
+            command: process.execPath,
+            args: usePortless
+                ? [
+                      portlessCliPath,
+                      'run',
+                      '--name',
+                      'dashboard.vendure',
+                      process.execPath,
+                      cliPath,
+                      'dev',
+                      'dashboard',
+                      '--vite-config',
+                      './vite.config.mts',
+                  ]
+                : [cliPath, 'dev', 'dashboard', '--vite-config', './vite.config.mts'],
+            env: { ...sharedDevelopmentEnv, ...dashboardEnv },
+            onClose,
+        }),
     onUnexpectedExit,
+    shouldRestart: () => !shuttingDown,
+    onRestarting: beginRestart,
+    onRestarted: (_label, token) =>
+        restartReadiness?.complete('dashboard', token, () =>
+            waitForHttp(`${dashboardUrl}/`, 'Dashboard Vite server'),
+        ),
+    onRestartFailure: handleReadinessFailure,
 });
 
 const watchers = [
@@ -194,12 +192,14 @@ const watchers = [
         label: 'common',
         command: packageManager,
         args: ['run', '--cwd', path.join(repoRoot, 'packages/common'), 'watch'],
+        env: watcherEnvironment,
         onSuccessfulRebuild: () => server.restart(),
     }),
     startWatcher({
         label: 'core',
         command: packageManager,
         args: ['run', '--cwd', path.join(repoRoot, 'packages/core'), 'watch'],
+        env: watcherEnvironment,
         onSuccessfulRebuild: () => server.restart(),
     }),
     startWatcher({
@@ -211,7 +211,10 @@ const watchers = [
             path.join(repoRoot, 'packages/dashboard/tsconfig.vite.json'),
             '--watch',
             '--preserveWatchOutput',
+            '--locale',
+            'en',
         ],
+        env: watcherEnvironment,
         onSuccessfulRebuild: () => dashboard.restart(),
     }),
     startWatcher({
@@ -223,7 +226,10 @@ const watchers = [
             path.join(repoRoot, 'packages/dashboard/tsconfig.plugin.json'),
             '--watch',
             '--preserveWatchOutput',
+            '--locale',
+            'en',
         ],
+        env: watcherEnvironment,
         onSuccessfulRebuild: () => server.restart(),
     }),
 ];
@@ -238,22 +244,10 @@ server.start();
 dashboard.start();
 
 if (lifecycle) {
-    waitForReadiness(watchers)
-        .then(() => {
-            lifecycle.update({
-                status: 'ready',
-                readyAt: new Date().toISOString(),
-            });
-            emitAgentEvent(lifecycle.status);
-        })
-        .catch(error => {
-            if (shuttingDown) {
-                return;
-            }
-            recordFailure(error);
-            console.error(`[readiness] ${error.message}`);
-            shutdown(1);
-        });
+    const initialReadinessToken = restartReadiness.begin('initial');
+    restartReadiness
+        .complete('initial', initialReadinessToken, () => waitForReadiness(watchers))
+        .catch(handleReadinessFailure);
 } else {
     for (const watcher of watchers) {
         watcher.ready.catch(() => undefined);
@@ -342,49 +336,31 @@ function runForeground(command, args, env = {}) {
     });
 }
 
-function startWatcher({ label, command, args, onSuccessfulRebuild }) {
-    let successfulBuildCount = 0;
-    let ready = false;
-    let resolveReady;
-    let rejectReady;
-    const readyPromise = new Promise((resolve, reject) => {
-        resolveReady = resolve;
-        rejectReady = reject;
-    });
+function startWatcher({ label, command, args, env, onSuccessfulRebuild }) {
     const child = spawn(command, args, {
         cwd: devServerDir,
-        env: process.env,
+        env,
         stdio: ['ignore', 'pipe', 'pipe'],
     });
-    const handleLine = line => {
-        if (line.includes('Found 0 errors. Watching for file changes.')) {
-            successfulBuildCount++;
-            if (!ready) {
-                ready = true;
-                resolveReady();
-            }
-            if (successfulBuildCount > 1) {
-                onSuccessfulRebuild();
-            }
-        }
-    };
-    pipePrefixed(child.stdout, label, handleLine);
-    pipePrefixed(child.stderr, label, handleLine);
+    const readiness = createWatcherReadiness({
+        label,
+        onSuccessfulRebuild,
+    });
+    pipePrefixed(child.stdout, label, readiness.handleLine);
+    pipePrefixed(child.stderr, label, readiness.handleLine);
     child.once('error', error => {
-        if (!ready) {
-            rejectReady(error);
-        }
+        readiness.fail(error);
         console.error(`[${label}] ${error.message}`);
         onUnexpectedExit(label, 1);
     });
     child.once('close', (code, signal) => {
-        if (!ready) {
-            rejectReady(new Error(`${label} exited before its initial build completed`));
+        if (!readiness.isReady) {
+            readiness.fail(new Error(`${label} exited before its initial build completed`));
         }
         onUnexpectedExit(label, code, signal);
     });
     return {
-        ready: readyPromise,
+        ready: readiness.ready,
         stop(signal = 'SIGTERM') {
             if (child.exitCode === null && child.signalCode === null) {
                 child.kill(signal);
@@ -427,16 +403,16 @@ function shutdown(exitCode, signal = 'SIGTERM') {
     process.exitCode = exitCode;
 }
 
-async function waitForReadiness(watchers) {
+async function waitForReadiness(activeWatchers) {
     await Promise.all([
-        ...watchers.map(watcher => watcher.ready),
+        ...activeWatchers.map(watcher => watcher.ready),
         waitForHttp(`${apiOrigin}/health`, 'API health endpoint'),
         waitForHttp(`${dashboardUrl}/`, 'Dashboard Vite server'),
         waitForHttp(serverDashboardUrl, 'server-served Dashboard'),
     ]);
 }
 
-function waitForHttp(url, label, timeoutMs = 180_000) {
+function waitForHttp(url, label, timeoutMs = HTTP_READINESS_TIMEOUT_MS) {
     const deadline = Date.now() + timeoutMs;
 
     return new Promise((resolve, reject) => {
@@ -471,7 +447,7 @@ function waitForHttp(url, label, timeoutMs = 180_000) {
                 reject(new Error(`Timed out waiting for ${label}: ${lastError}`));
                 return;
             }
-            setTimeout(check, 500);
+            setTimeout(check, HTTP_RETRY_INTERVAL_MS);
         };
 
         check();
@@ -494,6 +470,23 @@ function emitAgentEvent(status) {
     if (status) {
         console.log(`VENDURE_DEV_EVENT=${JSON.stringify(status)}`);
     }
+}
+
+function beginRestart(label) {
+    if (shuttingDown) {
+        return undefined;
+    }
+    console.log(`[${label}] Dependency rebuild complete. Restarting...`);
+    return restartReadiness?.begin(label);
+}
+
+function handleReadinessFailure(error) {
+    if (shuttingDown) {
+        return;
+    }
+    recordFailure(error);
+    console.error(`[readiness] ${error.message}`);
+    shutdown(1);
 }
 
 function spawnPrefixed({ label, command, args, env, onClose }) {

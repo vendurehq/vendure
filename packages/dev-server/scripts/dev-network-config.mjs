@@ -1,3 +1,5 @@
+export const DASHBOARD_API_PORT_FROM_PAGE = 'auto';
+
 export function resolveDevelopmentNetwork({ mode, ensurePortlessProxy, getPortlessUrl }) {
     const usePortless = mode !== 'direct';
     if (usePortless) {
@@ -17,7 +19,7 @@ export function resolveDevelopmentNetwork({ mode, ensurePortlessProxy, getPortle
         sharedEnv: {
             VENDURE_DASHBOARD_URL: dashboardUrl,
             VITE_ADMIN_API_HOST: usePortless ? `${apiUrl.protocol}//${apiUrl.hostname}` : 'http://localhost',
-            VITE_ADMIN_API_PORT: usePortless ? 'auto' : '3000',
+            VITE_ADMIN_API_PORT: usePortless ? DASHBOARD_API_PORT_FROM_PAGE : '3000',
             ...(usePortless ? { VENDURE_TRUST_PROXY: 'true' } : {}),
         },
         serverEnv: usePortless ? {} : { API_PORT: '3000', PORT: '3000' },

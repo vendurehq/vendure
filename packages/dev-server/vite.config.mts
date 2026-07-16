@@ -3,13 +3,15 @@ import path from 'path';
 import { pathToFileURL } from 'url';
 import { defineConfig } from 'vite';
 
+import { DASHBOARD_API_PORT_FROM_PAGE } from './scripts/dev-network-config.mjs';
+
 const adminApiHost = process.env.VITE_ADMIN_API_HOST || 'http://localhost';
 const adminApiPort = process.env.VITE_ADMIN_API_PORT
-    ? process.env.VITE_ADMIN_API_PORT === 'auto'
-        ? 'auto'
+    ? process.env.VITE_ADMIN_API_PORT === DASHBOARD_API_PORT_FROM_PAGE
+        ? DASHBOARD_API_PORT_FROM_PAGE
         : Number(process.env.VITE_ADMIN_API_PORT)
     : process.env.VITE_ADMIN_API_HOST
-      ? 'auto'
+      ? DASHBOARD_API_PORT_FROM_PAGE
       : Number(process.env.API_PORT) || 3000;
 
 export default defineConfig({

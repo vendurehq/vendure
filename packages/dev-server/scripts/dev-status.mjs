@@ -1,9 +1,13 @@
 import { getActiveDevStatus, getDevStatusPath } from './dev-state.mjs';
 
+const DEFAULT_STATUS_TIMEOUT_SECONDS = 300;
+const STATUS_STARTUP_DEADLINE_MS = 5_000;
+const STATUS_POLL_INTERVAL_MS = 250;
 const json = process.argv.includes('--json');
 const wait = process.argv.includes('--wait');
 const timeoutIndex = process.argv.indexOf('--timeout');
-const timeoutSeconds = timeoutIndex === -1 ? 300 : Number(process.argv[timeoutIndex + 1]);
+const timeoutSeconds =
+    timeoutIndex === -1 ? DEFAULT_STATUS_TIMEOUT_SECONDS : Number(process.argv[timeoutIndex + 1]);
 
 if (!Number.isFinite(timeoutSeconds) || timeoutSeconds <= 0) {
     console.error('--timeout must be a positive number of seconds.');
@@ -12,7 +16,7 @@ if (!Number.isFinite(timeoutSeconds) || timeoutSeconds <= 0) {
 
 const statusPath = getDevStatusPath();
 const deadline = Date.now() + timeoutSeconds * 1000;
-const startupDeadline = Math.min(deadline, Date.now() + 5_000);
+const startupDeadline = Math.min(deadline, Date.now() + STATUS_STARTUP_DEADLINE_MS);
 let status;
 let observedActiveProcess = false;
 
@@ -30,7 +34,7 @@ do {
     ) {
         break;
     }
-    await new Promise(resolve => setTimeout(resolve, 250));
+    await new Promise(resolve => setTimeout(resolve, STATUS_POLL_INTERVAL_MS));
 } while (Date.now() < deadline);
 
 if (!status) {

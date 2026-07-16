@@ -94,3 +94,23 @@ test('removes stale state when checking status', () => {
         assert.equal(readDevStatus(statusPath), undefined);
     });
 });
+
+test('does not delete a status file that is still being initialized', () => {
+    withTempDir(dir => {
+        const statusPath = path.join(dir, 'dev-server.json');
+        writeFileSync(statusPath, '');
+
+        assert.throws(
+            () =>
+                claimDevStatus({
+                    cwd: dir,
+                    statusPath,
+                    pid: 123,
+                    worktreePath: dir,
+                    processIsAlive: () => false,
+                }),
+            /currently being initialized/,
+        );
+        assert.equal(readDevStatus(statusPath), undefined);
+    });
+});

@@ -1,6 +1,8 @@
 import { execFileSync } from 'node:child_process';
-import { closeSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { renameSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+
+import { claimExclusiveLock, isProcessAlive, readJsonFile } from './exclusive-lock.mjs';
 
 export function getWorktreeRoot(cwd = process.cwd()) {
     return execFileSync('git', ['rev-parse', '--show-toplevel'], {
@@ -13,24 +15,8 @@ export function getDevStatusPath(cwd = process.cwd()) {
     return path.join(getWorktreeRoot(cwd), '.vendure', 'dev-server.json');
 }
 
-export function isProcessAlive(pid) {
-    if (!Number.isInteger(pid) || pid <= 0) {
-        return false;
-    }
-    try {
-        process.kill(pid, 0);
-        return true;
-    } catch (error) {
-        return error?.code === 'EPERM';
-    }
-}
-
 export function readDevStatus(statusPath) {
-    try {
-        return JSON.parse(readFileSync(statusPath, 'utf8'));
-    } catch {
-        return undefined;
-    }
+    return readJsonFile(statusPath);
 }
 
 export function removeDevStatus(statusPath) {
@@ -51,59 +37,39 @@ export function claimDevStatus({
     processIsAlive = isProcessAlive,
     initialStatus,
 } = {}) {
-    mkdirSync(path.dirname(statusPath), { recursive: true });
+    const status = {
+        version: 1,
+        pid,
+        worktreePath,
+        startedAt: new Date().toISOString(),
+        ...initialStatus,
+    };
+    const claim = claimExclusiveLock({
+        filePath: statusPath,
+        value: status,
+        processIsAlive,
+        getActiveError: existingStatus =>
+            new Error(
+                `An agent dev server is already running for this worktree (PID ${existingStatus.pid}).\n` +
+                    `Status: ${statusPath}`,
+            ),
+        getInitializingError: () =>
+            new Error(`The agent dev status file is currently being initialized.\nStatus: ${statusPath}`),
+        getClaimError: () => new Error(`Could not claim the agent dev status file at ${statusPath}`),
+    });
 
-    for (let attempt = 0; attempt < 2; attempt++) {
-        let fileDescriptor;
-        try {
-            fileDescriptor = openSync(statusPath, 'wx');
-            const status = {
-                version: 1,
-                pid,
-                worktreePath,
-                startedAt: new Date().toISOString(),
-                ...initialStatus,
-            };
-            writeFileSync(fileDescriptor, `${JSON.stringify(status, null, 2)}\n`);
-            closeSync(fileDescriptor);
-
-            return {
-                statusPath,
-                get status() {
-                    return status;
-                },
-                update(changes) {
-                    Object.assign(status, changes);
-                    writeDevStatus(statusPath, status);
-                    return status;
-                },
-                remove() {
-                    const currentStatus = readDevStatus(statusPath);
-                    if (currentStatus?.pid === pid) {
-                        removeDevStatus(statusPath);
-                    }
-                },
-            };
-        } catch (error) {
-            if (fileDescriptor !== undefined) {
-                closeSync(fileDescriptor);
-            }
-            if (error?.code !== 'EEXIST') {
-                throw error;
-            }
-
-            const existingStatus = readDevStatus(statusPath);
-            if (existingStatus && processIsAlive(existingStatus.pid)) {
-                throw new Error(
-                    `An agent dev server is already running for this worktree (PID ${existingStatus.pid}).\n` +
-                        `Status: ${statusPath}`,
-                );
-            }
-            removeDevStatus(statusPath);
-        }
-    }
-
-    throw new Error(`Could not claim the agent dev status file at ${statusPath}`);
+    return {
+        statusPath,
+        get status() {
+            return status;
+        },
+        update(changes) {
+            Object.assign(status, changes);
+            writeDevStatus(statusPath, status);
+            return status;
+        },
+        remove: () => claim.release(),
+    };
 }
 
 export function getActiveDevStatus({
@@ -121,3 +87,5 @@ export function getActiveDevStatus({
     }
     return status;
 }
+
+export { isProcessAlive };

@@ -17,11 +17,11 @@ stable URLs without reserving fixed ports:
 
 ```bash
 cd packages/dev-server
-[DB=mysql|postgres|sqlite] bun run dev
+DB=postgres bun run dev
 ```
 
 The default database is MySQL, although most local development uses Postgres. The database can be
-overridden with `DB=mysql`, `DB=postgres`, or `DB=sqlite`.
+changed to `DB=mysql` or `DB=sqlite` when needed.
 
 On its first run, Portless may ask to install and trust its local HTTPS certificate. If the Portless
 proxy cannot start, `dev` fails with the Portless setup instructions rather than falling back to
@@ -76,6 +76,9 @@ compilation and these endpoints respond successfully:
 - the Dashboard Vite URL;
 - the server-served `/dashboard` URL.
 
+Watcher-triggered process restarts move the lifecycle back to `starting` until the restarted
+endpoint is accepting requests again.
+
 An agent can wait for readiness and discover every URL without parsing human-oriented logs:
 
 ```bash
@@ -91,9 +94,12 @@ The output has this shape:
     "worktreePath": "/path/to/worktree",
     "apiUrl": "https://fix-order-list.vendure.localhost",
     "dashboardUrl": "https://fix-order-list.dashboard.vendure.localhost/dashboard/",
-    "serverDashboardUrl": "https://fix-order-list.vendure.localhost/dashboard/"
+    "serverDashboardUrl": "https://fix-order-list.vendure.localhost/dashboard/",
+    "statusFile": "/path/to/worktree/.vendure/dev-server.json"
 }
 ```
+
+Failed or timed-out status responses also include an `error` field.
 
 The default readiness timeout is 300 seconds. Override it when needed:
 

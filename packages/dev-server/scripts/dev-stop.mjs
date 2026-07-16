@@ -1,4 +1,5 @@
 import { getActiveDevStatus, getDevStatusPath, isProcessAlive } from './dev-state.mjs';
+import { terminateProcess } from './process-termination.mjs';
 
 const statusPath = getDevStatusPath();
 const status = getActiveDevStatus({ statusPath });
@@ -10,7 +11,14 @@ if (!status) {
 
 console.log(`Stopping agent dev server (PID ${status.pid})...`);
 try {
-    process.kill(status.pid, 'SIGTERM');
+    const result = await terminateProcess({
+        pid: status.pid,
+        processIsAlive: isProcessAlive,
+    });
+    if (result.forced) {
+        console.error(`Agent dev server PID ${status.pid} required SIGKILL after 15 seconds.`);
+        process.exit(1);
+    }
 } catch (error) {
     if (error?.code === 'ESRCH') {
         console.log('Agent dev server was already stopped.');
@@ -23,16 +31,6 @@ try {
         process.exit(1);
     }
     throw error;
-}
-
-const deadline = Date.now() + 15_000;
-while (isProcessAlive(status.pid) && Date.now() < deadline) {
-    await new Promise(resolve => setTimeout(resolve, 250));
-}
-
-if (isProcessAlive(status.pid)) {
-    console.error(`Agent dev server PID ${status.pid} did not stop within 15 seconds.`);
-    process.exit(1);
 }
 
 console.log('Agent dev server stopped.');

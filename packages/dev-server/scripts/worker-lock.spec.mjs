@@ -74,3 +74,22 @@ test('automatically reclaims a stale worker lock', () => {
         lock.release();
     });
 });
+
+test('does not delete a worker lock that is still being initialized', () => {
+    withTempDir(dir => {
+        const lockPath = path.join(dir, 'worker.lock');
+        writeFileSync(lockPath, '');
+
+        assert.throws(
+            () =>
+                acquireWorkerLock({
+                    cwd: dir,
+                    lockPath,
+                    pid: 123,
+                    processIsAlive: () => false,
+                }),
+            /currently being initialized/,
+        );
+        assert.equal(readFileSync(lockPath, 'utf8'), '');
+    });
+});

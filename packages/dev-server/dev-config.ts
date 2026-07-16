@@ -146,9 +146,9 @@ export const devConfig: VendureConfig = {
             templateLoader: new FileBasedTemplateLoader(path.join(__dirname, '../email-plugin/templates')),
             outputPath: path.join(__dirname, 'test-emails'),
             globalTemplateVars: {
-                verifyEmailAddressUrl: 'http://localhost:4201/verify',
+                verifyEmailAddressUrl: `${dashboardUrl}/verify`,
                 passwordResetUrl: `${dashboardUrl}/reset-password`,
-                changeEmailAddressUrl: 'http://localhost:4201/change-email-address',
+                changeEmailAddressUrl: `${dashboardUrl}/change-email-address`,
             },
         }),
         ...(IS_INSTRUMENTED ? [TelemetryPlugin.init({})] : []),

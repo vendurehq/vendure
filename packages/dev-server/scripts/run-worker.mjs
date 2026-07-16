@@ -7,7 +7,13 @@ import { acquireWorkerLock } from './worker-lock.mjs';
 const devServerDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const cliPath = path.resolve(devServerDir, '../cli/dist/cli.js');
 const instrumented = process.argv.includes('--instrumented');
-const lock = acquireWorkerLock({ cwd: devServerDir });
+let lock;
+try {
+    lock = acquireWorkerLock({ cwd: devServerDir });
+} catch (error) {
+    console.error(error instanceof Error ? error.message : error);
+    process.exit(1);
+}
 
 const args = instrumented
     ? [
