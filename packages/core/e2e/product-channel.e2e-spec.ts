@@ -643,6 +643,17 @@ describe('ChannelAware Products and ProductVariants', () => {
                     priceFactor: 1,
                 },
             });
+
+            // Assign the default stock location to the third channel so that
+            // ensureStockLevelsForChannel has a location to seed StockLevels at when the
+            // new variant is created (new channels do not get a stock location by default).
+            const { stockLocations } = await adminClient.query(getStockLocationsDocument);
+            await adminClient.query(assignStockLocationToChannelDocument, {
+                input: {
+                    channelId: 'T_3',
+                    stockLocationIds: [stockLocations.items[0].id],
+                },
+            });
         });
 
         it('new variant is automatically assigned to the same channels as the product', async () => {
@@ -705,8 +716,8 @@ describe('ChannelAware Products and ProductVariants', () => {
             const blueVariant = product.variants.find(v => v.sku === 'CHAN-VAR-BLUE');
             expect(blueVariant).toBeDefined();
             // Third channel has pricesIncludeTax: true and uses EUR.
-            // assignProductVariantsToChannel writes the variant's priceWithTax (2000)
-            // as the channel price. With 20% tax applied, priceWithTax = 2000 * 1.2 = 2400.
+            // assignProductVariantsToChannel writes the variant's net price (2000) as the
+            // channel price; with 20% tax applied the gross priceWithTax is 2000 * 1.2 = 2400.
             expect(blueVariant!.priceWithTax).toBe(2400);
             expect(blueVariant!.currencyCode).toBe(CurrencyCode.EUR);
         });
@@ -718,11 +729,19 @@ describe('ChannelAware Products and ProductVariants', () => {
                 id: testProduct.id,
             });
             productGuard.assertSuccess(product);
-
             const blueVariant = product.variants.find(v => v.sku === 'CHAN-VAR-BLUE');
             expect(blueVariant).toBeDefined();
-            // Stock should be initialized (default 0) via ensureStockLevelsForChannel
-            expect(blueVariant!.stockOnHand).toBe(0);
+
+            // Assert on the channel-filtered `stockLevels` array (queried from the third
+            // channel) rather than `stockOnHand` — this proves ensureStockLevelsForChannel
+            // actually seeded a StockLevel row for the third channel's stock location,
+            // which a `stockOnHand === 0` check alone could not distinguish from "no row".
+            const { productVariants } = await adminClient.query(getVariantStockLevelsDocument, {
+                options: { filter: { id: { eq: blueVariant!.id } } },
+            });
+            const stockLevels = productVariants.items[0]?.stockLevels ?? [];
+            expect(stockLevels.length).toBeGreaterThan(0);
+            expect(stockLevels[0].stockOnHand).toBe(0);
         });
 
         it('new variant assets are assigned to the assigned channel', async () => {
@@ -816,6 +835,20 @@ describe('ChannelAware Products and ProductVariants', () => {
                 });
             }, 'You are not currently authorized to perform this action'),
         );
+
+        it('does not leave an orphaned variant after a permission-denied create', async () => {
+            // The create above runs inside a @Transaction(), so the ForbiddenError thrown
+            // by assignProductVariantsToChannel must roll back the whole operation — no
+            // partially-created CHAN-VAR-GREEN variant should remain.
+            await adminClient.asSuperAdmin();
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+
+            const { product } = await adminClient.query(getProductWithVariantsDocument, {
+                id: testProduct.id,
+            });
+            productGuard.assertSuccess(product);
+            expect(product.variants.some(v => v.sku === 'CHAN-VAR-GREEN')).toBe(false);
+        });
 
         afterAll(async () => {
             // Reset to super admin for subsequent test suites
@@ -1003,6 +1036,41 @@ const createProductOptionDocument = graphql(`
             code
             name
             groupId
+        }
+    }
+`);
+
+const getVariantStockLevelsDocument = graphql(`
+    query GetVariantStockLevels($options: ProductVariantListOptions) {
+        productVariants(options: $options) {
+            items {
+                id
+                stockLevels {
+                    stockLocationId
+                    stockOnHand
+                    stockAllocated
+                }
+            }
+        }
+    }
+`);
+
+const getStockLocationsDocument = graphql(`
+    query GetStockLocations {
+        stockLocations {
+            items {
+                id
+                name
+            }
+        }
+    }
+`);
+
+const assignStockLocationToChannelDocument = graphql(`
+    mutation AssignStockLocationToChannel($input: AssignStockLocationsToChannelInput!) {
+        assignStockLocationsToChannel(input: $input) {
+            id
+            name
         }
     }
 `);
