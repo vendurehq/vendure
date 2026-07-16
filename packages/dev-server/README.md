@@ -2,25 +2,94 @@
 
 This package is not published to npm. It is used in development of the Vendure server and plugins.
 
-### Running
+## Running
 
-Ensure you have a database running. From the root directory, run:
+Start the Docker-backed services you need separately before starting the dev server. The development
+command does not manage Docker, and all worktrees use the same configured database and other shared
+services.
 
 ```bash
-docker-compose up -d mariadb
+docker compose up -d postgres_16
 ```
 
-To run the server, run the `dev` script. The database configuration can be specified by the `DB=<type>` environment variable:
+The standard development command uses [Portless](https://portless.sh/) to give the API and Dashboard
+stable URLs without reserving fixed ports:
 
 ```bash
 cd packages/dev-server
-
 [DB=mysql|postgres|sqlite] bun run dev
 ```
 
-The default if no db is specified is mysql.
+The default database is MySQL, although most local development uses Postgres. The database can be
+overridden with `DB=mysql`, `DB=postgres`, or `DB=sqlite`.
 
-### Populating data
+On its first run, Portless may ask to install and trust its local HTTPS certificate. If the Portless
+proxy cannot start, `dev` fails with the Portless setup instructions rather than falling back to
+fixed ports.
+
+The main checkout uses:
+
+- API: `https://vendure.localhost`
+- Dashboard: `https://dashboard.vendure.localhost/dashboard/`
+
+Linked worktrees are automatically prefixed with their branch name. A worktree for `fix-order-list`
+uses:
+
+- API: `https://fix-order-list.vendure.localhost`
+- Dashboard: `https://fix-order-list.dashboard.vendure.localhost/dashboard/`
+
+The Dashboard calls its matching worktree API directly. Browser sessions are isolated by the
+worktree-specific API hostname, while Docker resources and database data remain shared.
+
+Before starting any long-running process, `dev` builds the packages required by the dev server and
+creates a clean static Dashboard build in `packages/dev-server/dist/dashboard`. It then supervises:
+
+- the Vendure API server;
+- the Dashboard Vite development server;
+- the `@vendure/common` and `@vendure/core` watchers;
+- the Dashboard Vite-plugin and backend-plugin watchers.
+
+Successful dependency rebuilds restart the process that loaded those compiled modules. Dashboard
+application changes continue to use Vite HMR.
+
+The server's `/dashboard` route remains available using the clean static build. For active Dashboard
+development, use the Portless Dashboard URL above.
+
+### Worker
+
+The worker is deliberately not started by `bun run dev`, because all worktrees share the same job
+queue and database. Start it explicitly only when the work needs worker behavior:
+
+```bash
+bun run dev:worker
+```
+
+Only one worker may run for this repository. The command stores an advisory lock at
+`<primary-repository-root>/.vendure/worker.lock`. If another worktree owns the lock, startup fails and
+reports its path and PID. Locks whose process is no longer alive are reclaimed automatically.
+
+### Fixed-port escape hatch
+
+Use the direct workflow when debugging Portless itself or when named local URLs are unsuitable:
+
+```bash
+bun run dev:direct
+```
+
+This uses the traditional API port `3000` and Dashboard Vite port `5173`, so it is not safe to run
+from multiple worktrees simultaneously.
+
+### Manual worktree smoke test
+
+1. Run `bun run dev` in the main checkout and a linked worktree.
+2. Confirm both printed Dashboard URLs load and call their matching API hostname.
+3. Change a file in `@vendure/core` and confirm that only that worktree's server restarts after the
+   successful rebuild.
+4. Change Dashboard application code and confirm HMR updates the matching Dashboard.
+5. Start `bun run dev:worker` in one checkout and confirm a second checkout reports the lock owner.
+6. Stop the first worker and confirm the second checkout can start it.
+
+## Populating data
 
 Test data can be populated by running the `populate` script. This uses the same sample data as is used by the Vendure CLI when running `init`, albeit with the additional step of populating some sample customer & address data too.
 
