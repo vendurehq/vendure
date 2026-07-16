@@ -13,6 +13,10 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:267
+msgid "You do not have permission to create new options. Choose an existing option."
+msgstr ""
+
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:159
 #: src/lib/components/shared/customer-address-form.tsx:103
 msgid "Full Name"
@@ -260,7 +264,7 @@ msgid "Sellers"
 msgstr "販売者"
 
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:40
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:472
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:520
 msgid "Options"
 msgstr "オプション"
 
@@ -342,7 +346,7 @@ msgstr "管理者の作成に失敗しました"
 msgid "No"
 msgstr "いいえ"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:163
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:176
 msgid "Successfully updated product variant"
 msgstr "商品バリエーションを更新しました"
 
@@ -390,7 +394,7 @@ msgstr "追加できるウィジェットがありません"
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx:109
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts:303
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:262
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:291
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:79
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:121
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:166
@@ -719,7 +723,7 @@ msgstr "ログイン"
 msgid "List view"
 msgstr "リスト表示"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:436
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:484
 msgid "When enabled, this variant is available in the shop"
 msgstr ""
 
@@ -1139,7 +1143,7 @@ msgstr "注文アイテムのキャンセルに失敗しました"
 msgid "Transaction ID"
 msgstr "取引ID"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:708
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:766
 msgid "Allocated"
 msgstr "割り当て済み"
 
@@ -1170,7 +1174,7 @@ msgstr "コレクションを作成しました"
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:88
 #: src/app/routes/_authenticated/_orders/components/shipping-method-selector.tsx:49
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:553
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:611
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:298
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:191
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:196
@@ -1288,7 +1292,7 @@ msgstr "注文からのクーポンコードの削除に失敗しました: {0}"
 msgid "Regenerate slug from source field"
 msgstr "ソースフィールドからスラッグを再生成"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:350
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:398
 msgid "Inherit from global settings"
 msgstr "グローバル設定から継承"
 
@@ -1398,7 +1402,7 @@ msgstr "追加料金"
 msgid "Payment Methods"
 msgstr "支払い方法"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:606
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:664
 msgid "Stock"
 msgstr "在庫"
 
@@ -1410,7 +1414,7 @@ msgstr "この期間の売上はありません"
 msgid "No customers found"
 msgstr "顧客が見つかりません"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:645
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:703
 msgid "Use global out-of-stock threshold"
 msgstr "グローバル在庫切れしきい値を使用"
 
@@ -1772,7 +1776,7 @@ msgstr "新しい商品オプション"
 
 #. placeholder {0}: conflict.name
 #. placeholder {1}: conflict.sku
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:299
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:328
 msgid "A variant with these options already exists: {0} ({1})"
 msgstr ""
 
@@ -1817,7 +1821,7 @@ msgstr "キャンセル"
 msgid "Failed to update order custom fields: {0}"
 msgstr "注文のカスタムフィールドの更新に失敗しました: {0}"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:162
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:175
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:160
 msgid "Successfully created product variant"
 msgstr "商品バリエーションを作成しました"
@@ -2002,7 +2006,7 @@ msgstr "返金を決済しました"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:163
 #: src/app/routes/_authenticated/_orders/components/order-line-custom-fields-form.tsx:51
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:138
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:465
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:513
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:278
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:242
 #: src/app/routes/_authenticated/_profile/profile.tsx:93
@@ -2192,7 +2196,7 @@ msgstr "{total} 件中 {shown} 件を表示 • {selected} 件選択中"
 msgid "Test Shipping Method"
 msgstr "配送方法をテスト"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:723
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:781
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:348
 msgid "Facet Values"
 msgstr "ファセット値"
@@ -2882,7 +2886,7 @@ msgstr "送料を再計算"
 #: src/app/routes/_authenticated/_assets/assets.tsx:17
 #: src/app/routes/_authenticated/_assets/assets.tsx:40
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:229
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:733
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:791
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:381
 msgid "Assets"
 msgstr "アセット"
@@ -3056,7 +3060,7 @@ msgstr "顧客ごとの使用制限"
 msgid "Billing address changed"
 msgstr "請求先住所を変更しました"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:509
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:567
 msgid "Manage option groups"
 msgstr ""
 
@@ -3089,7 +3093,7 @@ msgstr "グローバルビューを削除"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:163
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:138
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:465
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:513
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:242
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
@@ -3329,8 +3333,8 @@ msgstr "グローバル言語が設定されていません"
 msgid "Removing {0} item(s)"
 msgstr "{0}個のアイテムを削除中"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:617
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:633
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:675
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:691
 msgid "Track"
 msgstr "追跡"
 
@@ -3506,6 +3510,7 @@ msgstr "ロールを検索..."
 msgid "None of the {CANDIDATE_POOL_SIZE} sampled variants are at or below {threshold}. Others may still be low."
 msgstr "サンプリングした{CANDIDATE_POOL_SIZE}件のバリエーションの中に{threshold}以下のものはありません。その他のバリエーションは在庫が少ない可能性があります。"
 
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:73
 #: src/app/routes/_authenticated/_product-variants/product-variants.tsx:19
 #: src/app/routes/_authenticated/_product-variants/product-variants.tsx:28
 msgid "Product Variants"
@@ -3572,7 +3577,7 @@ msgstr "再試行"
 msgid "Successfully updated shipping method"
 msgstr "配送方法を正常に更新しました"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:172
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:185
 msgid "Failed to update product variant"
 msgstr "商品バリエーションの更新に失敗しました"
 
@@ -3788,6 +3793,11 @@ msgstr "チャネル"
 #: src/app/routes/_authenticated/_orders/components/order-history/default-order-history-components.tsx:122
 msgid "Shipping refunded"
 msgstr "送料返金済み"
+
+#. placeholder {0}: group.name
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:290
+msgid "Failed to create option in group \"{0}\""
+msgstr ""
 
 #: src/lib/components/shared/asset/asset-gallery.tsx:376
 msgid "Asset type"
@@ -4053,7 +4063,7 @@ msgstr "フルフィルメント状態を更新しました"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:79
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:205
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:62
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:71
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:80
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:61
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:57
 #: src/app/routes/_authenticated/_products/products.tsx:27
@@ -4215,7 +4225,7 @@ msgstr "メモを更新しました"
 msgid "Failed to settle refund"
 msgstr "返金の決済に失敗しました"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:693
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:751
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:311
 msgid "Stock level"
 msgstr "在庫レベル"
@@ -4446,7 +4456,7 @@ msgid "Custom fields"
 msgstr "カスタムフィールド"
 
 #. placeholder {0}: group.name
-#: src/app/routes/_authenticated/_product-variants/components/variant-option-select.tsx:62
+#: src/app/routes/_authenticated/_product-variants/components/variant-option-select.tsx:66
 msgid "Select or create {0}"
 msgstr ""
 
@@ -4597,9 +4607,9 @@ msgstr "レイアウトを編集"
 msgid "This link is invalid or has expired"
 msgstr "このリンクは無効か、有効期限が切れています"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:261
-msgid "Failed to create option"
-msgstr ""
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:268
+#~ msgid "Failed to create option"
+#~ msgstr ""
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:84
 #~ msgid "Insert link"
@@ -4686,7 +4696,7 @@ msgstr "平均注文額"
 msgid "Failed to create zone"
 msgstr "ゾーンの作成に失敗しました"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:611
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:669
 msgid "Stock levels"
 msgstr "在庫レベル"
 
@@ -5207,8 +5217,8 @@ msgstr "注文の住所の設定に失敗しました: {0}"
 msgid "State"
 msgstr "状態"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:618
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:636
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:676
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:694
 msgid "Do not track"
 msgstr "追跡しない"
 
@@ -5237,7 +5247,7 @@ msgstr "都道府県"
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:92
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:147
 #: src/app/routes/_authenticated/_payment-methods/payment-methods.tsx:43
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:443
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:491
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:228
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:153
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:131
@@ -5370,7 +5380,7 @@ msgstr "フルフィルメントハンドラーを選択"
 msgid "Failed to update collection"
 msgstr "コレクションの更新に失敗しました"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:533
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:591
 msgid "Price and tax"
 msgstr "価格と税"
 
@@ -5485,7 +5495,7 @@ msgstr "支払いを追加（{0}）"
 msgid "System"
 msgstr "システム"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:519
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:577
 #: src/app/routes/_authenticated/_products/components/product-variants-table.tsx:88
 msgid "Variant name"
 msgstr "バリエーション名"
@@ -5593,7 +5603,8 @@ msgstr "コレクションの位置を更新しました"
 msgid "Add \"{newOptionInput}\""
 msgstr "「{newOptionInput}」を追加"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:425
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:74
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:473
 msgid "New product variant"
 msgstr "新しい商品バリエーション"
 
@@ -5772,7 +5783,7 @@ msgstr "10秒ごと"
 msgid "Low Stock"
 msgstr "低在庫"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:494
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:549
 msgid "Edit option group"
 msgstr ""
 
@@ -5848,7 +5859,7 @@ msgstr "スラッグは自動的に生成されます..."
 msgid "Customer not found"
 msgstr "顧客が見つかりません"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:352
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:400
 msgid "Inherit from global settings (Track)"
 msgstr ""
 
@@ -5934,7 +5945,7 @@ msgstr "数量"
 #~ msgid "Add filter"
 #~ msgstr "フィルターを追加"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:538
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:596
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:127
 msgid "Tax category"
 msgstr "税カテゴリ"
@@ -6404,7 +6415,7 @@ msgstr "在庫割り当て済み"
 msgid "greater than or equal"
 msgstr "以上"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:661
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:719
 msgid "Sets the stock level at which this variant is considered to be out of stock. Using a negative value enables backorder support."
 msgstr "このバリエーションが在庫切れと見なされる在庫レベルを設定します。負の値を使用すると、バックオーダーサポートが有効になります。"
 
@@ -6471,7 +6482,7 @@ msgstr "注文を検索..."
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:82
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:167
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:526
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:584
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:292
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:197
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:188
@@ -6514,7 +6525,7 @@ msgstr "利用可能："
 msgid "Created at"
 msgstr "作成日時"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:172
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:185
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:165
 msgid "Failed to create product variant"
 msgstr "商品バリエーションの作成に失敗しました"
@@ -6537,7 +6548,7 @@ msgstr "グローバル言語設定を表示する権限がありません"
 msgid "Successfully created tax rate"
 msgstr "税率を作成しました"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:353
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:401
 msgid "Inherit from global settings (Do not track)"
 msgstr ""
 
@@ -6567,7 +6578,7 @@ msgstr "課税標準"
 msgid "Load more"
 msgstr "さらに読み込む"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:647
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:705
 msgid "When enabled, this variant uses the global out-of-stock threshold configured in Settings instead of its own value."
 msgstr ""
 
@@ -6672,7 +6683,7 @@ msgstr "お探しのページは存在しないか、移動された可能性が
 msgid "Failed to delete {failed} {entityName}"
 msgstr "{failed}{entityName}の削除に失敗しました"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:659
+#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:717
 msgid "Out-of-stock threshold"
 msgstr "在庫切れしきい値"
 

@@ -157,6 +157,12 @@ export const createProductOptionDocument = graphql(`
     }
 `);
 
+export const productOptionSlugForEntityDocument = graphql(`
+    query ProductOptionSlugForEntity($input: SlugForEntityInput!) {
+        slugForEntity(input: $input)
+    }
+`);
+
 export const createProductVariantDocument = graphql(`
     mutation CreateProductVariant($input: [CreateProductVariantInput!]!) {
         createProductVariants(input: $input) {

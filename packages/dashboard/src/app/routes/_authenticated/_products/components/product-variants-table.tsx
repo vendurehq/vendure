@@ -90,7 +90,6 @@ export function ProductVariantsTable({
                         <DetailPageButton
                             href={`../../product-variants/${original.id}`}
                             label={original.name}
-                            search={fromProductDetailPage ? { from: 'product' } : undefined}
                         />
                     ),
                 },

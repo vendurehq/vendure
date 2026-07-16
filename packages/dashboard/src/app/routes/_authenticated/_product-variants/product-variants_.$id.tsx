@@ -29,6 +29,7 @@ import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-lo
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { api } from '@/vdb/graphql/api.js';
 import { useChannel } from '@/vdb/hooks/use-channel.js';
+import { usePermissions } from '@/vdb/hooks/use-permissions.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
@@ -45,6 +46,7 @@ import { VariantPriceDetail } from './components/variant-price-detail.js';
 import {
     createProductOptionDocument,
     createProductVariantDocument,
+    productOptionSlugForEntityDocument,
     productVariantDetailDocument,
     productVariantGlobalSettingsDocument,
     stockLocationsQueryDocument,
@@ -64,9 +66,16 @@ export const Route = createFileRoute('/_authenticated/_product-variants/product-
             addCustomFields(productVariantDetailDocument, {
                 includeNestedFragments: ['ProductVariantPrice'],
             }),
-        breadcrumb(_isNew, entity) {
-            // Always link back to the parent product, regardless of entry point
-            // (?from=product or the standalone variants list).
+        breadcrumb(isNew, entity) {
+            // A new variant has no parent entity yet, so fall back to the variants list.
+            if (isNew) {
+                return [
+                    { path: '/product-variants', label: <Trans>Product Variants</Trans> },
+                    <Trans>New product variant</Trans>,
+                ];
+            }
+            // For existing variants always link back to the parent product, regardless of
+            // entry point (?from=product or the standalone variants list).
             return [
                 { path: '/products', label: <Trans>Products</Trans> },
                 { path: `/products/${entity?.product.id}`, label: entity?.product.name ?? '' },
@@ -85,6 +94,10 @@ function ProductVariantDetailPage() {
     const creatingNewEntity = params.id === NEW_ENTITY_PATH;
     const { t } = useLingui();
     const { activeChannel } = useChannel();
+    const { hasPermissions } = usePermissions();
+    // Inline option creation calls createProductOption, which requires create permissions
+    // server-side — gate the create-new path so it fails with a clear message, not a toast.
+    const canCreateOptions = hasPermissions(['CreateProduct', 'CreateCatalog']);
 
     const { data: stockLocationsData } = useQuery({
         queryKey: ['stockLocations'],
@@ -222,8 +235,9 @@ function ProductVariantDetailPage() {
     };
 
     // Commits a group's free text. An exact match to an existing option is written straight
-    // into the form's `optionIds` (so it is dirty-tracked and Enter-submits correctly); a new
-    // value leaves `optionIds` untouched and is resolved to a created option on save.
+    // into the form's `optionIds` to keep dirty-tracking accurate; a new value leaves
+    // `optionIds` untouched and is resolved to a created option on save. Either way the save
+    // path (button or Enter) re-resolves the text, so it is the single source of truth.
     const commitGroupText = (group: (typeof optionGroups)[number], text: string) => {
         setOptionTextByGroup(prev => ({ ...prev, [group.id]: text }));
         const resolution = resolveGroupOption(group, text);
@@ -243,22 +257,37 @@ function ProductVariantDetailPage() {
         return (optionTextByGroup[group.id] ?? '').trim() !== original.trim();
     });
 
+    // A typed value that matches no existing option would create a new one on save, which
+    // requires create permissions. Without them the save is blocked with a clear message.
+    const hasPendingNewOption = optionGroups.some(
+        group => resolveGroupOption(group, optionTextByGroup[group.id] ?? '').kind === 'new',
+    );
+    const optionCreatePermissionError =
+        hasPendingNewOption && !canCreateOptions
+            ? t`You do not have permission to create new options. Choose an existing option.`
+            : null;
+
     const createProductOptionMutation = useMutation({
         mutationFn: api.mutate(createProductOptionDocument),
     });
 
-    const createOption = async (groupId: string, name: string) => {
+    const createOption = async (group: (typeof optionGroups)[number], name: string) => {
         try {
+            // Generate the option code with the server's canonical, uniqueness-checked
+            // normalization instead of an ad-hoc slug that ignores punctuation/accents.
+            const slugResult = await api.query(productOptionSlugForEntityDocument, {
+                input: { entityName: 'ProductOption', fieldName: 'code', inputValue: name },
+            });
             const result = await createProductOptionMutation.mutateAsync({
                 input: {
-                    productOptionGroupId: groupId,
-                    code: name.toLowerCase().replace(/\s+/g, '-'),
+                    productOptionGroupId: group.id,
+                    code: slugResult.slugForEntity,
                     translations: [{ languageCode: activeChannel?.defaultLanguageCode ?? 'en', name }],
                 },
             });
             return result?.createProductOption ?? null;
         } catch (err) {
-            toast.error(t`Failed to create option`, {
+            toast.error(t`Failed to create option in group "${group.name}"`, {
                 description: err instanceof Error ? err.message : t`Unknown error`,
             });
             return null;
@@ -301,9 +330,12 @@ function ProductVariantDetailPage() {
         );
     }, [optionTextByGroup, siblingVariants, entity, t]);
 
-    // Update path that resolves the option comboboxes (creating any new options) before
-    // submitting the variant update.
-    const handleUpdate = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    // Single save path shared by the Update button and the form's native submit (Enter),
+    // so Enter can never persist a state the Update button would refuse. Resolves each
+    // option group to an id (creating any new options) after guarding against empty and
+    // duplicate combinations.
+    const saveVariant = async (event: React.SyntheticEvent) => {
+        event.preventDefault();
         // Creating a new variant has no options block to resolve; submit directly.
         if (creatingNewEntity) {
             submitHandler(event as unknown as React.FormEvent<HTMLFormElement>);
@@ -312,22 +344,39 @@ function ProductVariantDetailPage() {
         if (!entity) {
             return;
         }
+        const resolutions = optionGroups.map(group => ({
+            group,
+            resolution: resolveGroupOption(group, optionTextByGroup[group.id] ?? ''),
+        }));
+        // Enforce the same guards as the disabled Update button. Recomputed here (not read
+        // from state) so a submit fired before the validation effect settles is still safe.
+        if (resolutions.some(r => r.resolution.kind === 'empty')) {
+            return;
+        }
+        // Creating a new option requires create permissions.
+        if (!canCreateOptions && resolutions.some(r => r.resolution.kind === 'new')) {
+            return;
+        }
+        const allExisting =
+            resolutions.length > 0 && resolutions.every(r => r.resolution.kind === 'existing');
+        if (allExisting) {
+            const ids = resolutions.map(r => (r.resolution as { kind: 'existing'; id: string }).id);
+            if (findConflictingVariant(ids, siblingVariants, entity.id)) {
+                return;
+            }
+        }
         setIsSavingOptions(true);
         try {
             const finalOptionIds: string[] = [];
-            for (const group of optionGroups) {
-                const resolution = resolveGroupOption(group, optionTextByGroup[group.id] ?? '');
+            for (const { group, resolution } of resolutions) {
                 if (resolution.kind === 'existing') {
                     finalOptionIds.push(resolution.id);
                 } else if (resolution.kind === 'new') {
-                    const created = await createOption(group.id, resolution.name);
+                    const created = await createOption(group, resolution.name);
                     if (!created) {
                         return;
                     }
                     finalOptionIds.push(created.id);
-                } else {
-                    // An empty group blocks saving; the button is disabled in this state.
-                    return;
                 }
             }
             form.setValue('optionIds', finalOptionIds, { shouldDirty: true, shouldValidate: true });
@@ -419,7 +468,7 @@ function ProductVariantDetailPage() {
     };
 
     return (
-        <Page pageId={pageId} form={form} submitHandler={submitHandler} entity={entity}>
+        <Page pageId={pageId} form={form} submitHandler={saveVariant} entity={entity}>
             <PageTitle>
                 {creatingNewEntity ? <Trans>New product variant</Trans> : (entity?.name ?? '')}
             </PageTitle>
@@ -450,13 +499,13 @@ function ProductVariantDetailPage() {
                             )}
                         />
                         <Button
-                            type="button"
-                            onClick={handleUpdate}
+                            type="submit"
                             disabled={
                                 !(form.formState.isDirty || optionsDirty) ||
                                 !form.formState.isValid ||
                                 anyOptionEmpty ||
                                 !!duplicateOptionsError ||
+                                !!optionCreatePermissionError ||
                                 isPending ||
                                 isSavingOptions
                             }
@@ -483,7 +532,14 @@ function ProductVariantDetailPage() {
                                                     commitGroupText(group, option.name);
                                                 }
                                             }}
-                                            invalid={!(optionTextByGroup[group.id] ?? '').trim()}
+                                            invalid={
+                                                !(optionTextByGroup[group.id] ?? '').trim() ||
+                                                (!canCreateOptions &&
+                                                    resolveGroupOption(
+                                                        group,
+                                                        optionTextByGroup[group.id] ?? '',
+                                                    ).kind === 'new')
+                                            }
                                         />
                                     </div>
                                     <Button
@@ -499,6 +555,9 @@ function ProductVariantDetailPage() {
                             ))}
                             {duplicateOptionsError && (
                                 <p className="text-sm text-destructive">{duplicateOptionsError}</p>
+                            )}
+                            {optionCreatePermissionError && (
+                                <p className="text-sm text-destructive">{optionCreatePermissionError}</p>
                             )}
                             <Link
                                 to={`/products/${entity.product.id}/variants`}

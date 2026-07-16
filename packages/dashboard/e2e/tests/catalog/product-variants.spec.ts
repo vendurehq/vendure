@@ -589,6 +589,25 @@ test.describe('product variants list parent product column', () => {
     });
 });
 
+// product-variants-option-groups-ux PRD (Nigel review) — the new-variant breadcrumb has no
+// parent entity yet, so it must fall back to the variants list rather than linking a broken
+// /products/undefined.
+test.describe('new variant breadcrumb', () => {
+    test('falls back to the variants list, with no broken parent-product link', async ({ page }) => {
+        await page.goto('/product-variants/new');
+        await expect(page.getByRole('heading', { name: 'New product variant' })).toBeVisible({
+            timeout: 10_000,
+        });
+
+        // The pre-fix breadcrumb linked the (undefined) parent product — assert no such
+        // broken link exists anywhere on the page.
+        await expect(page.locator('a[href*="/products/undefined"]')).toHaveCount(0);
+
+        // The breadcrumb falls back to a link to the variants list.
+        await expect(page.locator('a[href$="/product-variants"]').first()).toBeVisible();
+    });
+});
+
 // product-variants-option-groups-ux PRD — in-place option editing (reassign + inline
 // create + duplicate-combination rejection) and inherited global stock settings on the
 // variant detail page.
@@ -709,6 +728,34 @@ test.describe('variant detail option & stock editing (PRD)', () => {
         await expect(page.getByRole('button', { name: 'Update' })).toBeDisabled();
     });
 
+    // product-variants-option-groups-ux PRD (Codex review) — a real Enter keypress in a text
+    // field triggers the native form submit, which must go through the same guards as the
+    // Update button and must NOT persist a duplicate combination the button refuses.
+    test('does not persist a duplicate combination when pressing Enter', async ({ page }) => {
+        await page.goto(`/product-variants/${smallVariantId}`);
+        const sizeInput = page.getByLabel('Size', { exact: true });
+        await expect(sizeInput).toHaveValue('Small', { timeout: 10_000 });
+
+        // Set a duplicate combination (Medium is used by the sibling variant).
+        await sizeInput.fill('Medium');
+        await page.keyboard.press('Escape');
+        await expect(page.getByText(/already exists/i)).toBeVisible();
+
+        // Press Enter from a plain text field (SKU) — the guard must block the submit.
+        const skuInput = fieldByLabel(page, 'SKU').getByRole('textbox');
+        await skuInput.click();
+        await skuInput.press('Enter');
+
+        // No success toast, and a reload shows the option unchanged.
+        await expect(
+            page.locator('[data-sonner-toast]').filter({ hasText: /updated/i }),
+        ).toHaveCount(0);
+        await page.reload();
+        await expect(page.getByLabel('Size', { exact: true })).toHaveValue('Small', {
+            timeout: 10_000,
+        });
+    });
+
     // product-variants-option-groups-ux PRD — reassigning to a free option persists.
     test('reassigns a variant option to a different existing option', async ({ page }) => {
         await page.goto(`/product-variants/${smallVariantId}`);
@@ -728,6 +775,34 @@ test.describe('variant detail option & stock editing (PRD)', () => {
                 .filter({ hasText: /updated/i })
                 .first(),
         ).toBeVisible({ timeout: 10_000 });
+    });
+
+    // product-variants-option-groups-ux PRD (Codex review) — a real Enter keypress persists a
+    // valid change through the guarded save path.
+    test('persists a valid change when pressing Enter', async ({ page }) => {
+        await page.goto(`/product-variants/${smallVariantId}`);
+        const sizeInput = page.getByLabel('Size', { exact: true });
+        // The reassign test left this variant on "Large"; move it back to "Small" via Enter.
+        await expect(sizeInput).toHaveValue('Large', { timeout: 10_000 });
+        await sizeInput.fill('Small');
+        await page.keyboard.press('Escape');
+        await expect(sizeInput).toHaveValue('Small');
+
+        // Press Enter from a plain text field (SKU) — the native submit must save.
+        const skuInput = fieldByLabel(page, 'SKU').getByRole('textbox');
+        await skuInput.click();
+        await skuInput.press('Enter');
+
+        await expect(
+            page
+                .locator('[data-sonner-toast]')
+                .filter({ hasText: /updated/i })
+                .first(),
+        ).toBeVisible({ timeout: 10_000 });
+        await page.reload();
+        await expect(page.getByLabel('Size', { exact: true })).toHaveValue('Small', {
+            timeout: 10_000,
+        });
     });
 
     // product-variants-option-groups-ux PRD — creating a new option inline assigns it to
@@ -781,6 +856,88 @@ test.describe('variant detail option & stock editing (PRD)', () => {
         await globalSwitch.click();
         await expect(thresholdInput).toBeEnabled();
         await expect(thresholdInput).toHaveValue('7');
+    });
+
+    test.afterAll(async ({ browser }) => {
+        if (!productId) return;
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, { id: productId });
+        await page.close();
+    });
+});
+
+// product-variants-option-groups-ux PRD (Codex review) — a variant on a product with no
+// option groups must not render a broken Options block and must still save.
+test.describe('variant with no option groups', () => {
+    test.describe.configure({ mode: 'serial' });
+
+    let productId: string;
+    let variantId: string;
+
+    test.beforeAll(async ({ browser }) => {
+        const page = await browser.newPage();
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const product = await client.gql(
+            `mutation ($input: CreateProductInput!) { createProduct(input: $input) { id } }`,
+            {
+                input: {
+                    translations: [
+                        {
+                            languageCode: 'en',
+                            name: 'E2E No Option Groups Product',
+                            slug: 'e2e-no-option-groups-product',
+                            description: '',
+                        },
+                    ],
+                },
+            },
+        );
+        productId = product.createProduct.id;
+        const variants = await client.gql(
+            `mutation ($input: [CreateProductVariantInput!]!) {
+                createProductVariants(input: $input) { id }
+            }`,
+            {
+                input: [
+                    {
+                        productId,
+                        sku: 'E2E-NOG-1',
+                        price: 1000,
+                        optionIds: [],
+                        translations: [{ languageCode: 'en', name: 'E2E No Option Groups Variant' }],
+                    },
+                ],
+            },
+        );
+        variantId = variants.createProductVariants[0].id;
+        await page.close();
+    });
+
+    test('does not render an Options block and can still be saved', async ({ page }) => {
+        await page.goto(`/product-variants/${variantId}`);
+        await expect(page.getByRole('heading', { name: 'E2E No Option Groups Variant' })).toBeVisible({
+            timeout: 10_000,
+        });
+
+        // No Options block renders for a variant without option groups.
+        await expect(page.getByRole('main').getByText('Options', { exact: true })).toHaveCount(0);
+
+        // A simple field change still saves — the empty options state must not block it.
+        const skuInput = page
+            .locator('[data-slot="field"]')
+            .filter({ has: page.getByText('SKU', { exact: true }) })
+            .getByRole('textbox');
+        await skuInput.fill('E2E-NOG-1-EDITED');
+        await page.getByRole('button', { name: 'Update' }).click();
+        await expect(
+            page
+                .locator('[data-sonner-toast]')
+                .filter({ hasText: /updated/i })
+                .first(),
+        ).toBeVisible({ timeout: 10_000 });
     });
 
     test.afterAll(async ({ browser }) => {
