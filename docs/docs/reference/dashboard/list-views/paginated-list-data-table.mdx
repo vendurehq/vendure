@@ -4,7 +4,7 @@ generated: true
 ---
 ## PaginatedListDataTable
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/paginated-list-data-table.tsx" sourceLine="434" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/paginated-list-data-table.tsx" sourceLine="438" packageName="@vendure/dashboard" since="3.4.0" />
 
 A wrapper around the [DataTable](/reference/dashboard/list-views/data-table#datatable) component, which automatically configures functionality common to
 list queries that implement the `PaginatedList` interface, which is the common way of representing lists
@@ -147,7 +147,7 @@ interface PaginatedListDataTableProps<T extends TypedDocumentNode<U, V>, U exten
     onColumnVisibilityChange?: (table: Table<any>, columnVisibility: VisibilityState) => void;
     facetedFilters?: FacetedFilterConfig<T>;
     rowActions?: RowAction<PaginatedListItemFields<T>>[];
-    bulkActions?: BulkActionsInput;
+    bulkActions?: BulkActionsInput | false;
     selectedItems?: PaginatedListItemFields<T>[];
     onSelectionChange?: (selection: PaginatedListItemFields<T>[]) => void;
     disableViewOptions?: boolean;
@@ -284,7 +284,7 @@ widgets) that apply preset filters via `transformVariables`.
 
 ### bulkActions
 
-<MemberInfo kind="property" type={`<a href='/reference/dashboard/list-views/bulk-actions#bulkactionsinput'>BulkActionsInput</a>`}   />
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/list-views/bulk-actions#bulkactionsinput'>BulkActionsInput</a> | false`}   />
 
 
 ### selectedItems

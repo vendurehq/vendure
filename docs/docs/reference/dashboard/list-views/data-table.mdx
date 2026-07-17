@@ -4,7 +4,7 @@ generated: true
 ---
 ## DataTable
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-table/data-table.tsx" sourceLine="253" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-table/data-table.tsx" sourceLine="258" packageName="@vendure/dashboard" since="3.4.0" />
 
 A data table which includes sorting, filtering, pagination, bulk actions, column controls etc.
 
@@ -21,7 +21,7 @@ Parameters
 
 ## DataTableProps
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-table/data-table.tsx" sourceLine="128" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-table/data-table.tsx" sourceLine="129" packageName="@vendure/dashboard" since="3.4.0" />
 
 Props for configuring the [DataTable](/reference/dashboard/list-views/data-table#datatable).
 
@@ -46,7 +46,7 @@ interface DataTableProps<TData> {
     facetedFilters?: { [key: string]: FacetedFilter | undefined };
     disableViewOptions?: boolean;
     hideViewsControls?: boolean;
-    bulkActions?: BulkActionsInput;
+    bulkActions?: BulkActionsInput | false;
     selectedItems?: TData[];
     onSelectionChange?: (selection: TData[]) => void;
     setTableOptions?: (table: TableOptions<TData>) => TableOptions<TData>;
@@ -165,7 +165,7 @@ shared across every entity showing that block. Filtering and column
 customization are unaffected.
 ### bulkActions
 
-<MemberInfo kind="property" type={`<a href='/reference/dashboard/list-views/bulk-actions#bulkactionsinput'>BulkActionsInput</a>`}   />
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/list-views/bulk-actions#bulkactionsinput'>BulkActionsInput</a> | false`}   />
 
 
 ### selectedItems

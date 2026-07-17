@@ -32,15 +32,15 @@ import { ColumnFiltersState, SortingState } from '@tanstack/react-table';
 import { Link } from '@tanstack/react-router';
 import { useDebounce } from '@uidotdev/usehooks';
 import { ChevronRight, LayoutGrid, LayoutList, Loader2, Search, Upload, X } from 'lucide-react';
-import { DragEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { DragEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { toast } from 'sonner';
 import {
     AssetGridTagFilter,
     AssetTagFacetedFilter,
 } from '../../../../app/routes/_authenticated/_assets/components/asset-tag-filter.js';
-import { AssetBulkActions } from './asset-bulk-actions.js';
-import type { BulkActionsInput } from './asset-bulk-actions.js';
+import { adaptAssetBulkActions, AssetBulkActions } from './asset-bulk-actions.js';
+import type { AssetBulkActionsInput, BulkActionsInput } from './asset-bulk-actions.js';
 
 const getAssetListDocument = graphql(
     `
@@ -154,7 +154,7 @@ export interface AssetGalleryProps {
      * @description
      * The bulk actions to display in the gallery.
      */
-    bulkActions?: BulkActionsInput;
+    bulkActions?: AssetBulkActionsInput;
     /**
      * @description
      * Whether the gallery should display bulk actions.
@@ -227,6 +227,17 @@ export function AssetGallery({
     const [sorting, setSorting] = useState<SortingState>([{ id: 'createdAt', desc: true }]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const queryClient = useQueryClient();
+
+    const refetchAssets = useCallback(() => {
+        setSelected([]);
+        onSelect?.([]);
+        void queryClient.invalidateQueries({ queryKey: ['AssetGallery'] });
+        void queryClient.invalidateQueries({ queryKey: [PaginatedListDataTableKey] });
+    }, [onSelect, queryClient]);
+    const adaptedBulkActions = useMemo(
+        () => adaptAssetBulkActions(bulkActions, refetchAssets),
+        [bulkActions, refetchAssets],
+    );
 
     if (lastPageSizeProp !== pageSize) {
         setLastPageSizeProp(pageSize);
@@ -539,7 +550,7 @@ export function AssetGallery({
             {viewMode === 'grid' && displayBulkActions ? (
                 <AssetBulkActions
                     selection={selected}
-                    bulkActions={bulkActions}
+                    bulkActions={adaptedBulkActions}
                     clearSelection={() => {
                         setSelected([]);
                         onSelect?.([]);
@@ -575,7 +586,7 @@ export function AssetGallery({
                     <AssetListDataTable
                         selectable={selectable}
                         displayBulkActions={displayBulkActions}
-                        bulkActions={bulkActions}
+                        bulkActions={adaptedBulkActions}
                         page={page}
                         itemsPerPage={itemsPerPage}
                         sorting={sorting}

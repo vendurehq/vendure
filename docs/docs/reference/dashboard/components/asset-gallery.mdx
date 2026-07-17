@@ -46,7 +46,7 @@ interface AssetGalleryProps {
     showHeader?: boolean;
     className?: string;
     onFilesDropped?: (files: File[]) => void;
-    bulkActions?: BulkActionsInput;
+    bulkActions?: AssetBulkActionsInput;
     displayBulkActions?: boolean;
     onPageSizeChange?: (pageSize: number) => void;
     viewMode?: AssetViewMode;
@@ -106,7 +106,7 @@ The class name to apply to the gallery.
 The function to call when files are dropped.
 ### bulkActions
 
-<MemberInfo kind="property" type={`<a href='/reference/dashboard/list-views/bulk-actions#bulkactionsinput'>BulkActionsInput</a>`}   />
+<MemberInfo kind="property" type={`AssetBulkActionsInput`}   />
 
 The bulk actions to display in the gallery.
 ### displayBulkActions
