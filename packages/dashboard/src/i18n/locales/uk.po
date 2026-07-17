@@ -191,8 +191,8 @@ msgid "Add more ({0} selected)"
 msgstr "Додати ще (вибрано: {0})"
 
 #: src/app/routes/_authenticated/_facets/facets.tsx:71
-msgid "View values"
-msgstr "Переглянути значення"
+#~ msgid "View values"
+#~ msgstr "Переглянути значення"
 
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx:214
 msgid "Delete row"
@@ -291,6 +291,10 @@ msgstr "Артикул:"
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:121
 msgid "Add payment"
 msgstr "Додати платіж"
+
+#: src/app/routes/_authenticated/_collections/collections.tsx:403
+msgid "Expand"
+msgstr "Розгорнути"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-shipping-method-sheet.tsx:40
 msgid "Test this shipping method by simulating an order to see if it's eligible and what the shipping cost would be."
@@ -526,8 +530,8 @@ msgstr "Податкова ставка"
 msgid "Order draft isn't ready to be completed"
 msgstr "Чернетка замовлення не готова до завершення"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:48
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:137
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:52
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:156
 msgid "New collection"
 msgstr "Нова колекція"
 
@@ -609,7 +613,7 @@ msgstr "Кількість замовлень"
 msgid "Successfully updated order"
 msgstr "Замовлення успішно оновлено"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:203
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:222
 msgid "Inherit filters"
 msgstr "Успадкувати фільтри"
 
@@ -793,8 +797,8 @@ msgstr "Не вдалося встановити спосіб доставки �
 msgid "Filter..."
 msgstr "Фільтрувати..."
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:40
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:102
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:41
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:103
 msgid "New facet value"
 msgstr "Нове значення фасету"
 
@@ -855,11 +859,11 @@ msgstr "Завершити чернетку"
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:47
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:165
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:173
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:192
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:104
 #: src/app/routes/_authenticated/_customers/customers.tsx:73
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:131
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:121
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:121
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:187
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:173
@@ -974,7 +978,7 @@ msgstr "Підтвердити"
 msgid "Failed to complete draft order: {0}"
 msgstr "Не вдалося завершити чернетку замовлення: {0}"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:119
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:138
 msgid "Failed to create collection"
 msgstr "Не вдалося створити колекцію"
 
@@ -1168,7 +1172,7 @@ msgstr "Огляд Platform & Cloud"
 msgid "Every 5 seconds"
 msgstr "Кожні 5 секунд"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:105
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:124
 msgid "Successfully created collection"
 msgstr "Колекцію успішно створено"
 
@@ -1296,7 +1300,7 @@ msgstr "Перегенерувати slug з вихідного поля"
 msgid "Inherit from global settings"
 msgstr "Успадкувати з глобальних налаштувань"
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:79
+#: src/app/routes/_authenticated/_facets/facets.tsx:77
 msgid "Search facets..."
 msgstr "Пошук фасетів..."
 
@@ -1627,7 +1631,7 @@ msgstr "Останні замовлення"
 msgid "Go back"
 msgstr "Назад"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:452
+#: src/app/routes/_authenticated/_collections/collections.tsx:476
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:54
 msgid "+ {leftOver} more"
 msgstr "+ ще {leftOver}"
@@ -1688,7 +1692,7 @@ msgstr "Доступно"
 msgid "Normal"
 msgstr "Звичайний"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:199
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:218
 msgid "Filters"
 msgstr "Фільтри"
 
@@ -1720,7 +1724,7 @@ msgstr "Нова опція"
 msgid "Usage limit"
 msgstr "Ліміт використання"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:547
+#: src/app/routes/_authenticated/_collections/collections.tsx:575
 msgid "Create your first collection"
 msgstr "Створіть свою першу колекцію"
 
@@ -1856,9 +1860,9 @@ msgstr "Часткове повернення завершено"
 msgid "Set custom fields"
 msgstr "Встановити користувацькі поля"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:47
-#: src/app/routes/_authenticated/_collections/collections.tsx:51
-#: src/app/routes/_authenticated/_collections/collections.tsx:362
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:49
+#: src/app/routes/_authenticated/_collections/collections.tsx:52
+#: src/app/routes/_authenticated/_collections/collections.tsx:364
 msgid "Collections"
 msgstr "Колекції"
 
@@ -1903,7 +1907,7 @@ msgstr "Перейти до {0}"
 msgid "Tax Categories"
 msgstr "Податкові категорії"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:162
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:181
 msgid "Private collections are not visible in the shop"
 msgstr "Приватні колекції не видимі в магазині"
 
@@ -1995,11 +1999,11 @@ msgstr "Повернення успішно проведено"
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:152
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:102
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
@@ -2094,7 +2098,7 @@ msgstr "Налаштування стовпців"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:132
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:127
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:127
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:193
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:179
@@ -2579,7 +2583,7 @@ msgstr "Податкове зведення"
 msgid "Sets the languages that are available for all channels. Individual channels can then support a subset of these languages."
 msgstr "Встановлює мови, доступні для всіх каналів. Окремі канали потім можуть підтримувати підмножину цих мов."
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:119
+#: src/app/routes/_authenticated/_facets/facets.tsx:117
 msgid "Create your first facet"
 msgstr "Створіть свій перший фасет"
 
@@ -2693,7 +2697,7 @@ msgstr "Значення"
 msgid "Customer set for order"
 msgstr "Клієнта встановлено для замовлення"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:38
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:39
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:36
 #: src/app/routes/_authenticated/_facets/facets.tsx:22
 #: src/app/routes/_authenticated/_facets/facets.tsx:30
@@ -2769,7 +2773,7 @@ msgstr "Канал за замовчуванням"
 msgid "Insert a new image with source, title, and dimensions"
 msgstr "Вставити нове зображення з джерелом, заголовком та розмірами"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:93
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:94
 msgid "Failed to create facet value"
 msgstr "Не вдалося створити значення фасету"
 
@@ -2806,7 +2810,7 @@ msgstr "Забули пароль?"
 msgid "Schedule"
 msgstr "Розклад"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:304
+#: src/app/routes/_authenticated/_collections/collections.tsx:306
 msgid "Cannot move a collection into its own descendant"
 msgstr "Неможливо перемістити колекцію в її власного нащадка"
 
@@ -2885,7 +2889,7 @@ msgstr "Перерахувати доставку"
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:39
 #: src/app/routes/_authenticated/_assets/assets.tsx:17
 #: src/app/routes/_authenticated/_assets/assets.tsx:40
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:229
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:248
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:777
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:381
 msgid "Assets"
@@ -2901,7 +2905,7 @@ msgstr "Це видалить усі групи опцій з цього тов�
 msgid "Billing address"
 msgstr "Адреса виставлення рахунку"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:64
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:65
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:173
 msgid "Add facet value"
 msgstr "Додати значення фасету"
@@ -2944,6 +2948,10 @@ msgstr "Топ товарів"
 #: src/lib/components/shared/asset/asset-gallery.tsx:379
 msgid "All types"
 msgstr "Усі типи"
+
+#: src/app/routes/_authenticated/_collections/collections.tsx:403
+msgid "Collapse"
+msgstr "Згорнути"
 
 #: src/app/routes/_authenticated/_orders/components/draft-order-status.tsx:29
 msgid "Only draft orders can be completed"
@@ -3084,11 +3092,11 @@ msgstr "Видалити глобальне подання"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:152
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:163
@@ -3311,7 +3319,7 @@ msgstr "{0}"
 msgid "New Zone"
 msgstr "Нова зона"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:353
+#: src/app/routes/_authenticated/_collections/collections.tsx:355
 msgid "Failed to update collection position"
 msgstr "Не вдалося оновити позицію колекції"
 
@@ -3591,7 +3599,7 @@ msgstr "Перетягніть для зміни порядку"
 msgid "Zones"
 msgstr "Зони"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:111
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:112
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:151
 #: src/lib/components/shared/facet-value-selector.tsx:124
 msgid "Search facet values..."
@@ -3616,7 +3624,7 @@ msgid "{saleable} in stock"
 msgstr "{saleable} в наявності"
 
 #. placeholder {0}: Math.min(remaining, CHILDREN_PAGE_SIZE)
-#: src/app/routes/_authenticated/_collections/collections.tsx:503
+#: src/app/routes/_authenticated/_collections/collections.tsx:530
 msgid "Load {0} more ({remaining} remaining)"
 msgstr "Завантажити ще {0} (залишилось {remaining})"
 
@@ -3707,7 +3715,7 @@ msgstr "Виберіть адресу"
 msgid "Yes"
 msgstr "Так"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:179
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:198
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:259
 msgid "Slug"
 msgstr "Slug"
@@ -3915,8 +3923,8 @@ msgstr "Разом податок"
 msgid "Draft order status"
 msgstr "Статус чернетки замовлення"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:147
-#: src/app/routes/_authenticated/_collections/components/collection-contents-table.tsx:79
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:167
+#: src/app/routes/_authenticated/_collections/components/collection-contents-table.tsx:80
 msgid "Search variants..."
 msgstr "Пошук варіантів..."
 
@@ -3928,7 +3936,7 @@ msgstr "Пошук варіантів..."
 msgid "Failed to create payment method"
 msgstr "Не вдалося створити спосіб оплати"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:84
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:85
 msgid "Successfully created facet value"
 msgstr "Значення фасету успішно створено"
 
@@ -3992,8 +4000,8 @@ msgstr "Фасет успішно створено"
 msgid "No widgets to display. Use \"Edit Layout\" to add widgets."
 msgstr "Немає віджетів для відображення. Використовуйте «Редагувати макет», щоб додати віджети."
 
-#. placeholder {0}: row.original.productVariantCount
-#: src/app/routes/_authenticated/_collections/collections.tsx:432
+#. placeholder {0}: formatNumber(row.original.productVariantCount as number)
+#: src/app/routes/_authenticated/_collections/collections.tsx:454
 msgid "{0} variants"
 msgstr "{0} варіантів"
 
@@ -4006,9 +4014,9 @@ msgstr "Не вдалося провести платіж"
 msgid "No billing address"
 msgstr "Немає адреси виставлення рахунку"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:119
-msgid "Facet"
-msgstr "Фасет"
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:120
+#~ msgid "Facet"
+#~ msgstr "Фасет"
 
 #: src/lib/components/data-table/data-table-views-tabs.tsx:124
 msgid "Unsaved view"
@@ -4255,7 +4263,7 @@ msgstr "Подання успішно дубльовано"
 msgid "Remove option group"
 msgstr "Видалити групу опцій"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:194
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:213
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:76
 #: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:14
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
@@ -4607,15 +4615,11 @@ msgstr "Редагувати макет"
 msgid "This link is invalid or has expired"
 msgstr "Це посилання недійсне або його термін дії минув"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:268
-#~ msgid "Failed to create option"
-#~ msgstr ""
-
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:84
 #~ msgid "Insert link"
 #~ msgstr "Вставити посилання"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:205
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:224
 msgid "If enabled, the filters will be inherited from the parent collection and combined with the filters set on this collection."
 msgstr "Якщо увімкнено, фільтри будуть успадковані від батьківської колекції та об'єднані з фільтрами, встановленими для цієї колекції."
 
@@ -4937,7 +4941,7 @@ msgstr "Не вдалося оновити роль"
 msgid "This is the only time the full API key will be displayed. Copy or download it now — it cannot be retrieved later."
 msgstr "Це єдиний раз, коли повний API key буде відображено. Скопіюйте або завантажте його зараз — пізніше його не можна буде отримати."
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:105
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:124
 msgid "Successfully updated collection"
 msgstr "Колекцію успішно оновлено"
 
@@ -4972,7 +4976,7 @@ msgstr "Код купона видалено із замовлення"
 msgid "Never"
 msgstr "Ніколи"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:93
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:94
 msgid "Failed to update facet value"
 msgstr "Не вдалося оновити значення фасету"
 
@@ -5063,8 +5067,8 @@ msgstr "Новий спосіб доставки"
 msgid "is greater than or equal to"
 msgstr "більше або дорівнює"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:81
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:92
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:99
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:113
 #: src/lib/components/shared/entity-assets.tsx:151
 msgid "Preview"
 msgstr "Попередній перегляд"
@@ -5376,7 +5380,7 @@ msgstr "Ідентифікатор"
 msgid "Select a fulfillment handler"
 msgstr "Виберіть обробник виконання замовлення"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:119
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:138
 msgid "Failed to update collection"
 msgstr "Не вдалося оновити колекцію"
 
@@ -5462,9 +5466,9 @@ msgstr "Не вдалося оновити варіант"
 msgid "Go to previous page"
 msgstr "Перейти на попередню сторінку"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:255
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:258
-#: src/app/routes/_authenticated/_collections/collections.tsx:425
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278
+#: src/app/routes/_authenticated/_collections/collections.tsx:447
 msgid "Contents"
 msgstr "Вміст"
 
@@ -5514,7 +5518,7 @@ msgstr "Не вдалося оновити клієнта"
 msgid "Remove option groups?"
 msgstr "Видалити групи опцій?"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:95
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:102
 msgid "This is a preview of the collection contents based on the current filter settings. Once you save the collection, the contents will be updated to reflect the new filter settings."
 msgstr "Це попередній перегляд вмісту колекції на основі поточних налаштувань фільтра. Після збереження колекції вміст буде оновлено, щоб відобразити нові налаштування фільтра."
 
@@ -5591,7 +5595,7 @@ msgstr "Більше немає фасетів"
 msgid "Search index rebuild started"
 msgstr "Розпочато перебудову пошукового індексу"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:346
+#: src/app/routes/_authenticated/_collections/collections.tsx:348
 msgid "Collection position updated"
 msgstr "Позицію колекції оновлено"
 
@@ -5646,7 +5650,7 @@ msgstr "Токен"
 msgid "Fulfilling..."
 msgstr "Виконання..."
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:524
+#: src/app/routes/_authenticated/_collections/collections.tsx:552
 msgid "Search collections..."
 msgstr "Пошук колекцій..."
 
@@ -5783,10 +5787,6 @@ msgstr "Кожні 10 секунд"
 msgid "Low Stock"
 msgstr "Низький запас"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:549
-#~ msgid "Edit option group"
-#~ msgstr ""
-
 #: src/app/routes/_authenticated/_shipping-methods/components/price-display.tsx:17
 msgid "ex. tax:"
 msgstr "без податку:"
@@ -5799,7 +5799,7 @@ msgstr "без податку:"
 msgid "Successfully added option value"
 msgstr "Значення опції успішно додано"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:348
+#: src/app/routes/_authenticated/_collections/collections.tsx:350
 msgid "Collection moved to new parent"
 msgstr "Колекцію переміщено до нового батьківського елемента"
 
@@ -6062,7 +6062,7 @@ msgstr "Метрики"
 msgid "Language"
 msgstr "Мова"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:555
+#: src/app/routes/_authenticated/_collections/collections.tsx:583
 msgid "New Collection"
 msgstr "Нова колекція"
 
@@ -6222,6 +6222,10 @@ msgstr ""
 msgid "Total Revenue"
 msgstr "Загальний дохід"
 
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:89
+msgid "Applying filters…"
+msgstr "Застосування фільтрів…"
+
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:163
 msgid "Next Execution"
 msgstr "Наступне виконання"
@@ -6233,6 +6237,10 @@ msgstr "Доступний для продажу запас на рівні {thr
 #: src/lib/components/shared/history-timeline/history-note-checkbox.tsx:21
 msgid "Note is private"
 msgstr "Примітка приватна"
+
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:92
+msgid "The collection contents will refresh once the update has finished."
+msgstr "Вміст колекції оновиться після завершення оновлення."
 
 #: src/lib/components/layout/language-dialog.tsx:124
 msgid "Medium date"
@@ -6267,7 +6275,7 @@ msgstr "Використовувати як адресу доставки за �
 msgid "Edit slug manually"
 msgstr "Редагувати slug вручну"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:84
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:116
 msgid "Add filters to preview the collection contents."
 msgstr "Додайте фільтри для попереднього перегляду вмісту колекції."
 
@@ -6328,7 +6336,7 @@ msgstr "Пошук місць зберігання..."
 msgid "Search assets..."
 msgstr "Пошук ресурсів..."
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:127
+#: src/app/routes/_authenticated/_facets/facets.tsx:125
 msgid "New Facet"
 msgstr "Новий фасет"
 
@@ -6446,7 +6454,7 @@ msgstr "Рядків на сторінці"
 msgid "Loading collections..."
 msgstr "Завантаження колекцій..."
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:84
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:85
 msgid "Successfully updated facet value"
 msgstr "Значення фасету успішно оновлено"
 
@@ -6757,7 +6765,7 @@ msgstr "Процес замовлення"
 msgid "Phone number"
 msgstr "Номер телефону"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:161
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:180
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:109
 #: src/lib/components/data-input/default-relation-input.tsx:247
 #: src/lib/components/data-input/default-relation-input.tsx:277

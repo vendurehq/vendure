@@ -191,8 +191,8 @@ msgid "Add more ({0} selected)"
 msgstr "افزودن موارد بیشتر ({0} انتخاب شده)"
 
 #: src/app/routes/_authenticated/_facets/facets.tsx:71
-msgid "View values"
-msgstr "مشاهده مقادیر"
+#~ msgid "View values"
+#~ msgstr "مشاهده مقادیر"
 
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx:214
 msgid "Delete row"
@@ -291,6 +291,10 @@ msgstr "کد کالا:"
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:121
 msgid "Add payment"
 msgstr "افزودن پرداخت"
+
+#: src/app/routes/_authenticated/_collections/collections.tsx:403
+msgid "Expand"
+msgstr "گسترش"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-shipping-method-sheet.tsx:40
 msgid "Test this shipping method by simulating an order to see if it's eligible and what the shipping cost would be."
@@ -526,8 +530,8 @@ msgstr "نرخ مالیات"
 msgid "Order draft isn't ready to be completed"
 msgstr "پیش‌نویس سفارش آماده تکمیل نیست"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:48
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:137
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:52
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:156
 msgid "New collection"
 msgstr "مجموعه جدید"
 
@@ -609,7 +613,7 @@ msgstr "تعداد سفارش"
 msgid "Successfully updated order"
 msgstr "سفارش با موفقیت به‌روزرسانی شد"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:203
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:222
 msgid "Inherit filters"
 msgstr "وراثت فیلترها"
 
@@ -793,8 +797,8 @@ msgstr "تنظیم روش ارسال برای سفارش ناموفق بود: {0
 msgid "Filter..."
 msgstr "فیلتر..."
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:40
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:102
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:41
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:103
 msgid "New facet value"
 msgstr "مقدار ویژگی جدید"
 
@@ -855,11 +859,11 @@ msgstr "تکمیل پیش‌نویس"
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:47
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:165
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:173
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:192
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:104
 #: src/app/routes/_authenticated/_customers/customers.tsx:73
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:131
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:121
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:121
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:187
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:173
@@ -974,7 +978,7 @@ msgstr "تایید"
 msgid "Failed to complete draft order: {0}"
 msgstr "تکمیل سفارش پیش‌نویس ناموفق بود: {0}"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:119
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:138
 msgid "Failed to create collection"
 msgstr "ایجاد مجموعه ناموفق بود"
 
@@ -1168,7 +1172,7 @@ msgstr "کاوش پلتفرم و ابر"
 msgid "Every 5 seconds"
 msgstr "هر ۵ ثانیه"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:105
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:124
 msgid "Successfully created collection"
 msgstr "مجموعه با موفقیت ایجاد شد"
 
@@ -1296,7 +1300,7 @@ msgstr "بازسازی نامک از فیلد منبع"
 msgid "Inherit from global settings"
 msgstr "وراثت از تنظیمات عمومی"
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:79
+#: src/app/routes/_authenticated/_facets/facets.tsx:77
 msgid "Search facets..."
 msgstr "جستجوی ویژگی‌ها..."
 
@@ -1627,7 +1631,7 @@ msgstr "آخرین سفارش‌ها"
 msgid "Go back"
 msgstr "بازگشت"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:452
+#: src/app/routes/_authenticated/_collections/collections.tsx:476
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:54
 msgid "+ {leftOver} more"
 msgstr "+ {leftOver} بیشتر"
@@ -1688,7 +1692,7 @@ msgstr "موجود"
 msgid "Normal"
 msgstr "عادی"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:199
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:218
 msgid "Filters"
 msgstr "فیلترها"
 
@@ -1720,7 +1724,7 @@ msgstr "گزینه جدید"
 msgid "Usage limit"
 msgstr "محدودیت استفاده"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:547
+#: src/app/routes/_authenticated/_collections/collections.tsx:575
 msgid "Create your first collection"
 msgstr "اولین مجموعه خود را ایجاد کنید"
 
@@ -1856,9 +1860,9 @@ msgstr "بازپرداخت جزئی تکمیل شد"
 msgid "Set custom fields"
 msgstr "تنظیم فیلدهای سفارشی"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:47
-#: src/app/routes/_authenticated/_collections/collections.tsx:51
-#: src/app/routes/_authenticated/_collections/collections.tsx:362
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:49
+#: src/app/routes/_authenticated/_collections/collections.tsx:52
+#: src/app/routes/_authenticated/_collections/collections.tsx:364
 msgid "Collections"
 msgstr "مجموعه‌ها"
 
@@ -1903,7 +1907,7 @@ msgstr "انتقال به {0}"
 msgid "Tax Categories"
 msgstr "دسته‌بندی‌های مالیاتی"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:162
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:181
 msgid "Private collections are not visible in the shop"
 msgstr "مجموعه‌های خصوصی در فروشگاه قابل مشاهده نیستند"
 
@@ -1995,11 +1999,11 @@ msgstr "بازپرداخت با موفقیت تسویه شد"
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:152
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:102
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
@@ -2094,7 +2098,7 @@ msgstr "تنظیمات ستون"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:132
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:127
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:127
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:193
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:179
@@ -2579,7 +2583,7 @@ msgstr "خلاصه مالیات"
 msgid "Sets the languages that are available for all channels. Individual channels can then support a subset of these languages."
 msgstr "زبان‌هایی را که برای همه کانال‌ها موجود است تنظیم می‌کند. کانال‌های منفرد سپس می‌توانند زیرمجموعه‌ای از این زبان‌ها را پشتیبانی کنند."
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:119
+#: src/app/routes/_authenticated/_facets/facets.tsx:117
 msgid "Create your first facet"
 msgstr "اولین ویژگی خود را ایجاد کنید"
 
@@ -2693,7 +2697,7 @@ msgstr "مقادیر"
 msgid "Customer set for order"
 msgstr "مشتری برای سفارش تنظیم شد"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:38
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:39
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:36
 #: src/app/routes/_authenticated/_facets/facets.tsx:22
 #: src/app/routes/_authenticated/_facets/facets.tsx:30
@@ -2769,7 +2773,7 @@ msgstr "کانال پیش‌فرض"
 msgid "Insert a new image with source, title, and dimensions"
 msgstr "درج تصویر جدید با منبع، عنوان و ابعاد"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:93
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:94
 msgid "Failed to create facet value"
 msgstr "ایجاد مقدار ویژگی ناموفق بود"
 
@@ -2806,7 +2810,7 @@ msgstr "رمز عبور خود را فراموش کرده‌اید؟"
 msgid "Schedule"
 msgstr "برنامه"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:304
+#: src/app/routes/_authenticated/_collections/collections.tsx:306
 msgid "Cannot move a collection into its own descendant"
 msgstr "نمی‌توان یک مجموعه را به زیرمجموعه خودش منتقل کرد"
 
@@ -2885,7 +2889,7 @@ msgstr "محاسبه مجدد هزینه ارسال"
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:39
 #: src/app/routes/_authenticated/_assets/assets.tsx:17
 #: src/app/routes/_authenticated/_assets/assets.tsx:40
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:229
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:248
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:777
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:381
 msgid "Assets"
@@ -2901,7 +2905,7 @@ msgstr "این عمل تمام گروه‌های گزینه را از این م�
 msgid "Billing address"
 msgstr "آدرس صورتحساب"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:64
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:65
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:173
 msgid "Add facet value"
 msgstr "افزودن مقدار ویژگی"
@@ -2944,6 +2948,10 @@ msgstr "محصولات برتر"
 #: src/lib/components/shared/asset/asset-gallery.tsx:379
 msgid "All types"
 msgstr "همه انواع"
+
+#: src/app/routes/_authenticated/_collections/collections.tsx:403
+msgid "Collapse"
+msgstr "جمع کردن"
 
 #: src/app/routes/_authenticated/_orders/components/draft-order-status.tsx:29
 msgid "Only draft orders can be completed"
@@ -3084,11 +3092,11 @@ msgstr "حذف نمای عمومی"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:152
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:163
@@ -3311,7 +3319,7 @@ msgstr "{0}"
 msgid "New Zone"
 msgstr "منطقه جدید"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:353
+#: src/app/routes/_authenticated/_collections/collections.tsx:355
 msgid "Failed to update collection position"
 msgstr "به‌روزرسانی موقعیت مجموعه ناموفق بود"
 
@@ -3591,7 +3599,7 @@ msgstr "برای مرتب‌سازی بکشید"
 msgid "Zones"
 msgstr "مناطق"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:111
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:112
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:151
 #: src/lib/components/shared/facet-value-selector.tsx:124
 msgid "Search facet values..."
@@ -3616,7 +3624,7 @@ msgid "{saleable} in stock"
 msgstr "{saleable} در انبار"
 
 #. placeholder {0}: Math.min(remaining, CHILDREN_PAGE_SIZE)
-#: src/app/routes/_authenticated/_collections/collections.tsx:503
+#: src/app/routes/_authenticated/_collections/collections.tsx:530
 msgid "Load {0} more ({remaining} remaining)"
 msgstr "بارگذاری {0} مورد دیگر ({remaining} باقی‌مانده)"
 
@@ -3707,7 +3715,7 @@ msgstr "یک آدرس انتخاب کنید"
 msgid "Yes"
 msgstr "بله"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:179
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:198
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:259
 msgid "Slug"
 msgstr "نامک"
@@ -3915,8 +3923,8 @@ msgstr "مجموع مالیات"
 msgid "Draft order status"
 msgstr "وضعیت پیش‌نویس سفارش"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:147
-#: src/app/routes/_authenticated/_collections/components/collection-contents-table.tsx:79
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:167
+#: src/app/routes/_authenticated/_collections/components/collection-contents-table.tsx:80
 msgid "Search variants..."
 msgstr "جستجوی انواع..."
 
@@ -3928,7 +3936,7 @@ msgstr "جستجوی انواع..."
 msgid "Failed to create payment method"
 msgstr "ایجاد روش پرداخت ناموفق بود"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:84
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:85
 msgid "Successfully created facet value"
 msgstr "مقدار ویژگی با موفقیت ایجاد شد"
 
@@ -3992,8 +4000,8 @@ msgstr "ویژگی با موفقیت ایجاد شد"
 msgid "No widgets to display. Use \"Edit Layout\" to add widgets."
 msgstr "ابزارکی برای نمایش وجود ندارد. برای افزودن ابزارک‌ها از «ویرایش چیدمان» استفاده کنید."
 
-#. placeholder {0}: row.original.productVariantCount
-#: src/app/routes/_authenticated/_collections/collections.tsx:432
+#. placeholder {0}: formatNumber(row.original.productVariantCount as number)
+#: src/app/routes/_authenticated/_collections/collections.tsx:454
 msgid "{0} variants"
 msgstr "{0} نوع"
 
@@ -4006,9 +4014,9 @@ msgstr "تسویه پرداخت ناموفق بود"
 msgid "No billing address"
 msgstr "آدرس صورتحساب وجود ندارد"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:119
-msgid "Facet"
-msgstr "ویژگی"
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:120
+#~ msgid "Facet"
+#~ msgstr "ویژگی"
 
 #: src/lib/components/data-table/data-table-views-tabs.tsx:124
 msgid "Unsaved view"
@@ -4255,7 +4263,7 @@ msgstr "نما با موفقیت تکثیر شد"
 msgid "Remove option group"
 msgstr "حذف گروه گزینه"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:194
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:213
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:76
 #: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:14
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
@@ -4607,15 +4615,11 @@ msgstr "ویرایش چیدمان"
 msgid "This link is invalid or has expired"
 msgstr "این لینک نامعتبر است یا منقضی شده است"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:268
-#~ msgid "Failed to create option"
-#~ msgstr ""
-
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:84
 #~ msgid "Insert link"
 #~ msgstr "درج پیوند"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:205
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:224
 msgid "If enabled, the filters will be inherited from the parent collection and combined with the filters set on this collection."
 msgstr "اگر فعال باشد، فیلترها از مجموعه والد به ارث برده می‌شوند و با فیلترهای تنظیم شده در این مجموعه ترکیب می‌شوند."
 
@@ -4937,7 +4941,7 @@ msgstr "به‌روزرسانی نقش ناموفق بود"
 msgid "This is the only time the full API key will be displayed. Copy or download it now — it cannot be retrieved later."
 msgstr "این تنها باری است که کلید API کامل نمایش داده می‌شود. اکنون آن را کپی یا دانلود کنید — بعداً قابل بازیابی نیست."
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:105
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:124
 msgid "Successfully updated collection"
 msgstr "مجموعه با موفقیت به‌روزرسانی شد"
 
@@ -4972,7 +4976,7 @@ msgstr "کد کوپن از سفارش حذف شد"
 msgid "Never"
 msgstr "هرگز"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:93
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:94
 msgid "Failed to update facet value"
 msgstr "به‌روزرسانی مقدار ویژگی ناموفق بود"
 
@@ -5063,8 +5067,8 @@ msgstr "روش ارسال جدید"
 msgid "is greater than or equal to"
 msgstr "بزرگتر یا مساوی است با"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:81
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:92
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:99
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:113
 #: src/lib/components/shared/entity-assets.tsx:151
 msgid "Preview"
 msgstr "پیش‌نمایش"
@@ -5376,7 +5380,7 @@ msgstr "شناسه"
 msgid "Select a fulfillment handler"
 msgstr "انتخاب مدیریت تحویل"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:119
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:138
 msgid "Failed to update collection"
 msgstr "به‌روزرسانی مجموعه ناموفق بود"
 
@@ -5462,9 +5466,9 @@ msgstr "به‌روزرسانی متغیر ناموفق بود"
 msgid "Go to previous page"
 msgstr "رفتن به صفحه قبلی"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:255
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:258
-#: src/app/routes/_authenticated/_collections/collections.tsx:425
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278
+#: src/app/routes/_authenticated/_collections/collections.tsx:447
 msgid "Contents"
 msgstr "محتویات"
 
@@ -5514,7 +5518,7 @@ msgstr "به‌روزرسانی مشتری ناموفق بود"
 msgid "Remove option groups?"
 msgstr "حذف گروه‌های گزینه؟"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:95
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:102
 msgid "This is a preview of the collection contents based on the current filter settings. Once you save the collection, the contents will be updated to reflect the new filter settings."
 msgstr "این پیش‌نمایشی از محتویات مجموعه بر اساس تنظیمات فیلتر فعلی است. پس از ذخیره مجموعه، محتویات به‌روزرسانی خواهند شد تا تنظیمات فیلتر جدید را منعکس کنند."
 
@@ -5591,7 +5595,7 @@ msgstr "فاست دیگری وجود ندارد"
 msgid "Search index rebuild started"
 msgstr "بازسازی فهرست جستجو شروع شد"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:346
+#: src/app/routes/_authenticated/_collections/collections.tsx:348
 msgid "Collection position updated"
 msgstr "موقعیت مجموعه به‌روزرسانی شد"
 
@@ -5646,7 +5650,7 @@ msgstr "توکن"
 msgid "Fulfilling..."
 msgstr "در حال تحویل..."
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:524
+#: src/app/routes/_authenticated/_collections/collections.tsx:552
 msgid "Search collections..."
 msgstr "جستجوی مجموعه‌ها..."
 
@@ -5783,10 +5787,6 @@ msgstr "هر ۱۰ ثانیه"
 msgid "Low Stock"
 msgstr "موجودی کم"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:549
-#~ msgid "Edit option group"
-#~ msgstr ""
-
 #: src/app/routes/_authenticated/_shipping-methods/components/price-display.tsx:17
 msgid "ex. tax:"
 msgstr "بدون مالیات:"
@@ -5799,7 +5799,7 @@ msgstr "بدون مالیات:"
 msgid "Successfully added option value"
 msgstr "مقدار گزینه با موفقیت اضافه شد"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:348
+#: src/app/routes/_authenticated/_collections/collections.tsx:350
 msgid "Collection moved to new parent"
 msgstr "مجموعه به والد جدید منتقل شد"
 
@@ -6062,7 +6062,7 @@ msgstr "معیارها"
 msgid "Language"
 msgstr "زبان"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:555
+#: src/app/routes/_authenticated/_collections/collections.tsx:583
 msgid "New Collection"
 msgstr "مجموعه جدید"
 
@@ -6222,6 +6222,10 @@ msgstr ""
 msgid "Total Revenue"
 msgstr "کل درآمد"
 
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:89
+msgid "Applying filters…"
+msgstr "در حال اعمال فیلترها…"
+
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:163
 msgid "Next Execution"
 msgstr "اجرای بعدی"
@@ -6233,6 +6237,10 @@ msgstr "موجودی قابل فروش در حد {threshold} یا کمتر، ا�
 #: src/lib/components/shared/history-timeline/history-note-checkbox.tsx:21
 msgid "Note is private"
 msgstr "یادداشت خصوصی است"
+
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:92
+msgid "The collection contents will refresh once the update has finished."
+msgstr "محتوای مجموعه پس از پایان به‌روزرسانی تازه‌سازی می‌شود."
 
 #: src/lib/components/layout/language-dialog.tsx:124
 msgid "Medium date"
@@ -6267,7 +6275,7 @@ msgstr "استفاده به عنوان آدرس ارسال پیش‌فرض"
 msgid "Edit slug manually"
 msgstr "ویرایش دستی نامک"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:84
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:116
 msgid "Add filters to preview the collection contents."
 msgstr "فیلترها را برای پیش‌نمایش محتویات مجموعه اضافه کنید."
 
@@ -6328,7 +6336,7 @@ msgstr "جستجوی محل‌های انبار..."
 msgid "Search assets..."
 msgstr "جستجوی فایل‌ها..."
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:127
+#: src/app/routes/_authenticated/_facets/facets.tsx:125
 msgid "New Facet"
 msgstr "ویژگی جدید"
 
@@ -6446,7 +6454,7 @@ msgstr "ردیف در هر صفحه"
 msgid "Loading collections..."
 msgstr "در حال بارگذاری مجموعه‌ها..."
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:84
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:85
 msgid "Successfully updated facet value"
 msgstr "مقدار ویژگی با موفقیت به‌روزرسانی شد"
 
@@ -6757,7 +6765,7 @@ msgstr "فرآیند سفارش"
 msgid "Phone number"
 msgstr "شماره تلفن"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:161
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:180
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:109
 #: src/lib/components/data-input/default-relation-input.tsx:247
 #: src/lib/components/data-input/default-relation-input.tsx:277

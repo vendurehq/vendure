@@ -187,8 +187,8 @@ msgid "Add more ({0} selected)"
 msgstr "Adaugă mai multe ({0} selectate)"
 
 #: src/app/routes/_authenticated/_facets/facets.tsx:71
-msgid "View values"
-msgstr "Vizualizează valorile"
+#~ msgid "View values"
+#~ msgstr "Vizualizează valorile"
 
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx:214
 msgid "Delete row"
@@ -275,6 +275,10 @@ msgstr "SKU:"
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:121
 msgid "Add payment"
 msgstr "Adaugă plată"
+
+#: src/app/routes/_authenticated/_collections/collections.tsx:403
+msgid "Expand"
+msgstr "Extindere"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-shipping-method-sheet.tsx:40
 msgid "Test this shipping method by simulating an order to see if it's eligible and what the shipping cost would be."
@@ -498,8 +502,8 @@ msgstr "Cota de taxă"
 msgid "Order draft isn't ready to be completed"
 msgstr "Ciorna comenzii nu este gata pentru finalizare"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:48
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:137
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:52
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:156
 msgid "New collection"
 msgstr "Colecție nouă"
 
@@ -581,7 +585,7 @@ msgstr "Număr comenzi"
 msgid "Successfully updated order"
 msgstr "Comanda a fost actualizată cu succes"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:203
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:222
 msgid "Inherit filters"
 msgstr "Moștenește filtre"
 
@@ -765,8 +769,8 @@ msgstr "Nu s-a putut seta metoda de livrare pentru comandă: {0}"
 msgid "Filter..."
 msgstr "Filtrează..."
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:40
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:102
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:41
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:103
 msgid "New facet value"
 msgstr "Valoare atribut nouă"
 
@@ -827,11 +831,11 @@ msgstr "Finalizează ciorna"
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:47
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:165
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:173
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:192
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:104
 #: src/app/routes/_authenticated/_customers/customers.tsx:73
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:131
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:121
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:121
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:187
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:173
@@ -946,7 +950,7 @@ msgstr "Confirmă"
 msgid "Failed to complete draft order: {0}"
 msgstr "Nu s-a putut finaliza comanda ciornă: {0}"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:119
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:138
 msgid "Failed to create collection"
 msgstr "Nu s-a putut crea colecția"
 
@@ -1136,7 +1140,7 @@ msgstr "Explorează Platforma și Cloud"
 msgid "Every 5 seconds"
 msgstr "La fiecare 5 secunde"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:105
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:124
 msgid "Successfully created collection"
 msgstr "Colecția a fost creată cu succes"
 
@@ -1264,7 +1268,7 @@ msgstr "Regenerează identificator URL din câmpul sursă"
 msgid "Inherit from global settings"
 msgstr "Moștenește de la setările globale"
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:79
+#: src/app/routes/_authenticated/_facets/facets.tsx:77
 msgid "Search facets..."
 msgstr "Caută atribute..."
 
@@ -1579,7 +1583,7 @@ msgstr "Comenzi recente"
 msgid "Go back"
 msgstr "Înapoi"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:452
+#: src/app/routes/_authenticated/_collections/collections.tsx:476
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:54
 msgid "+ {leftOver} more"
 msgstr "+ încă {leftOver}"
@@ -1635,7 +1639,7 @@ msgstr "Disponibil"
 msgid "Normal"
 msgstr "Normal"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:199
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:218
 msgid "Filters"
 msgstr "Filtre"
 
@@ -1667,7 +1671,7 @@ msgstr "Opțiune nouă"
 msgid "Usage limit"
 msgstr "Limită de utilizare"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:547
+#: src/app/routes/_authenticated/_collections/collections.tsx:575
 msgid "Create your first collection"
 msgstr "Creează prima ta colecție"
 
@@ -1795,9 +1799,9 @@ msgstr "Rambursare parțială finalizată"
 msgid "Set custom fields"
 msgstr "Setează câmpuri personalizate"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:47
-#: src/app/routes/_authenticated/_collections/collections.tsx:51
-#: src/app/routes/_authenticated/_collections/collections.tsx:362
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:49
+#: src/app/routes/_authenticated/_collections/collections.tsx:52
+#: src/app/routes/_authenticated/_collections/collections.tsx:364
 msgid "Collections"
 msgstr "Colecții"
 
@@ -1842,7 +1846,7 @@ msgstr "Tranziție la {0}"
 msgid "Tax Categories"
 msgstr "Categorii de taxă"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:162
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:181
 msgid "Private collections are not visible in the shop"
 msgstr "Colecțiile private nu sunt vizibile în magazin"
 
@@ -1934,11 +1938,11 @@ msgstr "Rambursare soluționată cu succes"
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:152
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:102
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
@@ -2027,7 +2031,7 @@ msgstr "Setări coloane"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:132
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:127
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:127
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:193
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:179
@@ -2512,7 +2516,7 @@ msgstr "Rezumat taxe"
 msgid "Sets the languages that are available for all channels. Individual channels can then support a subset of these languages."
 msgstr "Setează limbile care sunt disponibile pentru toate canalele. Canalele individuale pot apoi suporta un subset din aceste limbi."
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:119
+#: src/app/routes/_authenticated/_facets/facets.tsx:117
 msgid "Create your first facet"
 msgstr "Creează primul tău atribut"
 
@@ -2626,7 +2630,7 @@ msgstr "Valori"
 msgid "Customer set for order"
 msgstr "Client setat pentru comandă"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:38
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:39
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:36
 #: src/app/routes/_authenticated/_facets/facets.tsx:22
 #: src/app/routes/_authenticated/_facets/facets.tsx:30
@@ -2702,7 +2706,7 @@ msgstr "Canal implicit"
 msgid "Insert a new image with source, title, and dimensions"
 msgstr "Inserează o imagine nouă cu sursa, titlul și dimensiunile"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:93
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:94
 msgid "Failed to create facet value"
 msgstr "Nu s-a putut crea valoarea atributului"
 
@@ -2735,7 +2739,7 @@ msgstr "Ți-ai uitat parola?"
 msgid "Schedule"
 msgstr "Program"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:304
+#: src/app/routes/_authenticated/_collections/collections.tsx:306
 msgid "Cannot move a collection into its own descendant"
 msgstr "Nu poți muta o colecție în propriul descendent"
 
@@ -2806,7 +2810,7 @@ msgstr "Recalculează livrarea"
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:39
 #: src/app/routes/_authenticated/_assets/assets.tsx:17
 #: src/app/routes/_authenticated/_assets/assets.tsx:40
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:229
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:248
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:777
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:381
 msgid "Assets"
@@ -2822,7 +2826,7 @@ msgstr "Se vor elimina toate grupurile de opțiuni de pe acest produs și veți 
 msgid "Billing address"
 msgstr "Adresă de facturare"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:64
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:65
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:173
 msgid "Add facet value"
 msgstr "Adaugă valoare pentru atribut"
@@ -2865,6 +2869,10 @@ msgstr "Cele mai vândute produse"
 #: src/lib/components/shared/asset/asset-gallery.tsx:379
 msgid "All types"
 msgstr "Toate tipurile"
+
+#: src/app/routes/_authenticated/_collections/collections.tsx:403
+msgid "Collapse"
+msgstr "Restrângere"
 
 #: src/app/routes/_authenticated/_orders/components/draft-order-status.tsx:29
 msgid "Only draft orders can be completed"
@@ -3000,11 +3008,11 @@ msgstr "Șterge vizualizarea globală"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:152
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:163
@@ -3219,7 +3227,7 @@ msgstr "{0}"
 msgid "New Zone"
 msgstr "Zonă Nouă"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:353
+#: src/app/routes/_authenticated/_collections/collections.tsx:355
 msgid "Failed to update collection position"
 msgstr "Nu s-a putut actualiza poziția colecției"
 
@@ -3499,7 +3507,7 @@ msgstr "Trage pentru a reordona"
 msgid "Zones"
 msgstr "Zone"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:111
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:112
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:151
 #: src/lib/components/shared/facet-value-selector.tsx:124
 msgid "Search facet values..."
@@ -3524,7 +3532,7 @@ msgid "{saleable} in stock"
 msgstr "{saleable} în stoc"
 
 #. placeholder {0}: Math.min(remaining, CHILDREN_PAGE_SIZE)
-#: src/app/routes/_authenticated/_collections/collections.tsx:503
+#: src/app/routes/_authenticated/_collections/collections.tsx:530
 msgid "Load {0} more ({remaining} remaining)"
 msgstr "Încarcă încă {0} ({remaining} rămase)"
 
@@ -3615,7 +3623,7 @@ msgstr "Selectează o adresă"
 msgid "Yes"
 msgstr "Da"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:179
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:198
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:259
 msgid "Slug"
 msgstr "Identificator URL"
@@ -3812,8 +3820,8 @@ msgstr "Total taxe"
 msgid "Draft order status"
 msgstr "Starea ciornei comenzii"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:147
-#: src/app/routes/_authenticated/_collections/components/collection-contents-table.tsx:79
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:167
+#: src/app/routes/_authenticated/_collections/components/collection-contents-table.tsx:80
 msgid "Search variants..."
 msgstr "Caută variante..."
 
@@ -3821,7 +3829,7 @@ msgstr "Caută variante..."
 msgid "Failed to create payment method"
 msgstr "Nu s-a putut crea metoda de plată"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:84
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:85
 msgid "Successfully created facet value"
 msgstr "Valoarea atributului a fost creată cu succes"
 
@@ -3885,8 +3893,8 @@ msgstr "Atributul a fost creat cu succes"
 msgid "No widgets to display. Use \"Edit Layout\" to add widgets."
 msgstr "Niciun widget de afișat. Folosește „Editează aspectul” pentru a adăuga widgeturi."
 
-#. placeholder {0}: row.original.productVariantCount
-#: src/app/routes/_authenticated/_collections/collections.tsx:432
+#. placeholder {0}: formatNumber(row.original.productVariantCount as number)
+#: src/app/routes/_authenticated/_collections/collections.tsx:454
 msgid "{0} variants"
 msgstr "{0} variante"
 
@@ -3899,9 +3907,9 @@ msgstr "Nu s-a putut soluționa plata"
 msgid "No billing address"
 msgstr "Fără adresă de facturare"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:119
-msgid "Facet"
-msgstr "Atribut"
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:120
+#~ msgid "Facet"
+#~ msgstr "Atribut"
 
 #: src/lib/components/data-table/data-table-views-tabs.tsx:124
 msgid "Unsaved view"
@@ -4144,7 +4152,7 @@ msgstr "Vizualizare duplicată cu succes"
 msgid "Remove option group"
 msgstr "Elimină grupul de opțiuni"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:194
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:213
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:76
 #: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:14
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
@@ -4475,15 +4483,11 @@ msgstr "Editează aspectul"
 msgid "This link is invalid or has expired"
 msgstr "Acest link este invalid sau a expirat"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:268
-#~ msgid "Failed to create option"
-#~ msgstr ""
-
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:84
 #~ msgid "Insert link"
 #~ msgstr "Inserează link"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:205
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:224
 msgid "If enabled, the filters will be inherited from the parent collection and combined with the filters set on this collection."
 msgstr "Dacă este activat, filtrele vor fi moștenite de la colecția părinte și combinate cu filtrele setate pe această colecție."
 
@@ -4793,7 +4797,7 @@ msgstr "Nu s-a putut actualiza rolul"
 msgid "This is the only time the full API key will be displayed. Copy or download it now — it cannot be retrieved later."
 msgstr "Aceasta este singura dată când cheia API completă va fi afișată. Copiaz-o sau descarc-o acum — nu va putea fi recuperată ulterior."
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:105
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:124
 msgid "Successfully updated collection"
 msgstr "Colecția a fost actualizată cu succes"
 
@@ -4824,7 +4828,7 @@ msgstr "Cod cupon eliminat din comandă"
 msgid "Never"
 msgstr "Niciodată"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:93
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:94
 msgid "Failed to update facet value"
 msgstr "Nu s-a putut actualiza valoarea atributului"
 
@@ -4911,8 +4915,8 @@ msgstr "Metodă de Livrare Nouă"
 msgid "is greater than or equal to"
 msgstr "este mai mare sau egal cu"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:81
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:92
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:99
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:113
 #: src/lib/components/shared/entity-assets.tsx:151
 msgid "Preview"
 msgstr "Previzualizare"
@@ -5224,7 +5228,7 @@ msgstr "Identificator"
 msgid "Select a fulfillment handler"
 msgstr "Selectează un gestionar de expediere"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:119
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:138
 msgid "Failed to update collection"
 msgstr "Nu s-a putut actualiza colecția"
 
@@ -5302,9 +5306,9 @@ msgstr "Actualizarea variantei a eșuat"
 msgid "Go to previous page"
 msgstr "Mergi la pagina anterioară"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:255
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:258
-#: src/app/routes/_authenticated/_collections/collections.tsx:425
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278
+#: src/app/routes/_authenticated/_collections/collections.tsx:447
 msgid "Contents"
 msgstr "Conținut"
 
@@ -5350,7 +5354,7 @@ msgstr "Nu s-a putut actualiza clientul"
 msgid "Remove option groups?"
 msgstr "Eliminați grupurile de opțiuni?"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:95
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:102
 msgid "This is a preview of the collection contents based on the current filter settings. Once you save the collection, the contents will be updated to reflect the new filter settings."
 msgstr "Acesta este o previzualizare a conținutului colecției bazată pe setările curente de filtrare. După ce salvați colecția, conținutul va fi actualizat pentru a reflecta noile setări de filtrare."
 
@@ -5419,7 +5423,7 @@ msgstr "Nu mai sunt atribute"
 msgid "Search index rebuild started"
 msgstr "Reconstrucția indexului de căutare a fost pornită"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:346
+#: src/app/routes/_authenticated/_collections/collections.tsx:348
 msgid "Collection position updated"
 msgstr "Poziția colecției a fost actualizată"
 
@@ -5470,7 +5474,7 @@ msgstr "Token"
 msgid "Fulfilling..."
 msgstr "Se livrează..."
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:524
+#: src/app/routes/_authenticated/_collections/collections.tsx:552
 msgid "Search collections..."
 msgstr "Caută colecții..."
 
@@ -5603,10 +5607,6 @@ msgstr "La fiecare 10 secunde"
 msgid "Low Stock"
 msgstr "Stoc scăzut"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:549
-#~ msgid "Edit option group"
-#~ msgstr ""
-
 #: src/app/routes/_authenticated/_shipping-methods/components/price-display.tsx:17
 msgid "ex. tax:"
 msgstr "fără taxă:"
@@ -5615,7 +5615,7 @@ msgstr "fără taxă:"
 msgid "Successfully added option value"
 msgstr "Valoarea opțiunii a fost adăugată cu succes"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:348
+#: src/app/routes/_authenticated/_collections/collections.tsx:350
 msgid "Collection moved to new parent"
 msgstr "Colecția a fost mutată la un părinte nou"
 
@@ -5874,7 +5874,7 @@ msgstr "Metrici"
 msgid "Language"
 msgstr "Limbă"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:555
+#: src/app/routes/_authenticated/_collections/collections.tsx:583
 msgid "New Collection"
 msgstr "Colecție Nouă"
 
@@ -6030,6 +6030,10 @@ msgstr ""
 msgid "Total Revenue"
 msgstr "Venit Total"
 
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:89
+msgid "Applying filters…"
+msgstr "Se aplică filtrele…"
+
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:163
 msgid "Next Execution"
 msgstr "Următoarea execuție"
@@ -6041,6 +6045,10 @@ msgstr "Stoc vandabil la sau sub {threshold}, dintr-un eșantion de {CANDIDATE_P
 #: src/lib/components/shared/history-timeline/history-note-checkbox.tsx:21
 msgid "Note is private"
 msgstr "Nota este privată"
+
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:92
+msgid "The collection contents will refresh once the update has finished."
+msgstr "Conținutul colecției se va actualiza după finalizarea actualizării."
 
 #: src/lib/components/layout/language-dialog.tsx:124
 msgid "Medium date"
@@ -6075,7 +6083,7 @@ msgstr "Folosește ca adresă de livrare implicită"
 msgid "Edit slug manually"
 msgstr "Editează identificator URL manual"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:84
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:116
 msgid "Add filters to preview the collection contents."
 msgstr "Adaugă filtre pentru a previzualiza conținutul colecției."
 
@@ -6132,7 +6140,7 @@ msgstr "Caută locații de stoc..."
 msgid "Search assets..."
 msgstr "Caută resurse..."
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:127
+#: src/app/routes/_authenticated/_facets/facets.tsx:125
 msgid "New Facet"
 msgstr "Atribut Nou"
 
@@ -6246,7 +6254,7 @@ msgstr "Rânduri pe pagină"
 msgid "Loading collections..."
 msgstr "Se încarcă colecțiile..."
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:84
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:85
 msgid "Successfully updated facet value"
 msgstr "Valoarea atributului a fost actualizată cu succes"
 
@@ -6549,7 +6557,7 @@ msgstr "Procesul comenzii"
 msgid "Phone number"
 msgstr "Număr de telefon"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:161
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:180
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:109
 #: src/lib/components/data-input/default-relation-input.tsx:247
 #: src/lib/components/data-input/default-relation-input.tsx:277

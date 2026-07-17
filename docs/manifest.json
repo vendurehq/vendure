@@ -2910,7 +2910,7 @@
                   "title": "ChannelService",
                   "slug": "channel-service",
                   "file": "docs/reference/typescript-api/services/channel-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-07-16T15:34:42+02:00"
                 },
                 {
                   "title": "CollectionService",
@@ -3867,7 +3867,7 @@
                   "title": "FacetValueChip",
                   "slug": "facet-value-chip",
                   "file": "docs/reference/dashboard/components/facet-value-chip.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-07-17T08:49:34+02:00"
                 },
                 {
                   "title": "FacetValueFacetedFilter",

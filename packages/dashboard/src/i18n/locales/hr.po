@@ -191,8 +191,8 @@ msgid "Add more ({0} selected)"
 msgstr "Dodaj još ({0} odabrano)"
 
 #: src/app/routes/_authenticated/_facets/facets.tsx:71
-msgid "View values"
-msgstr "Pregled vrijednosti"
+#~ msgid "View values"
+#~ msgstr "Pregled vrijednosti"
 
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx:214
 msgid "Delete row"
@@ -291,6 +291,10 @@ msgstr "Šifra:"
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:121
 msgid "Add payment"
 msgstr "Dodaj plaćanje"
+
+#: src/app/routes/_authenticated/_collections/collections.tsx:403
+msgid "Expand"
+msgstr "Proširi"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-shipping-method-sheet.tsx:40
 msgid "Test this shipping method by simulating an order to see if it's eligible and what the shipping cost would be."
@@ -526,8 +530,8 @@ msgstr "Porezna stopa"
 msgid "Order draft isn't ready to be completed"
 msgstr "Nacrt narudžbe nije spreman za dovršenje"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:48
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:137
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:52
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:156
 msgid "New collection"
 msgstr "Nova kolekcija"
 
@@ -609,7 +613,7 @@ msgstr "Broj narudžbi"
 msgid "Successfully updated order"
 msgstr "Narudžba uspješno ažurirana"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:203
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:222
 msgid "Inherit filters"
 msgstr "Naslijedi filtere"
 
@@ -793,8 +797,8 @@ msgstr "Nije uspjelo postavljanje načina dostave za narudžbu: {0}"
 msgid "Filter..."
 msgstr "Filtriraj..."
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:40
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:102
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:41
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:103
 msgid "New facet value"
 msgstr "Nova vrijednost svojstva"
 
@@ -855,11 +859,11 @@ msgstr "Dovrši skicu"
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:47
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:165
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:173
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:192
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:104
 #: src/app/routes/_authenticated/_customers/customers.tsx:73
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:131
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:121
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:121
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:187
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:173
@@ -974,7 +978,7 @@ msgstr "Potvrdi"
 msgid "Failed to complete draft order: {0}"
 msgstr "Nije uspjelo dovršavanje skice narudžbe: {0}"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:119
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:138
 msgid "Failed to create collection"
 msgstr "Stvaranje kolekcije nije uspjelo"
 
@@ -1168,7 +1172,7 @@ msgstr "Istražite platformu i Cloud"
 msgid "Every 5 seconds"
 msgstr "Svakih 5 sekundi"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:105
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:124
 msgid "Successfully created collection"
 msgstr "Kolekcija uspješno stvorena"
 
@@ -1296,7 +1300,7 @@ msgstr "Ponovno generiraj URL naziv iz izvornog polja"
 msgid "Inherit from global settings"
 msgstr "Naslijedi iz globalnih postavki"
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:79
+#: src/app/routes/_authenticated/_facets/facets.tsx:77
 msgid "Search facets..."
 msgstr "Pretraži svojstva..."
 
@@ -1627,7 +1631,7 @@ msgstr "Najnovije narudžbe"
 msgid "Go back"
 msgstr "Natrag"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:452
+#: src/app/routes/_authenticated/_collections/collections.tsx:476
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:54
 msgid "+ {leftOver} more"
 msgstr "+ {leftOver} više"
@@ -1688,7 +1692,7 @@ msgstr "Dostupno"
 msgid "Normal"
 msgstr "Normalno"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:199
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:218
 msgid "Filters"
 msgstr "Filteri"
 
@@ -1720,7 +1724,7 @@ msgstr "Nova opcija"
 msgid "Usage limit"
 msgstr "Ograničenje korištenja"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:547
+#: src/app/routes/_authenticated/_collections/collections.tsx:575
 msgid "Create your first collection"
 msgstr "Stvorite svoju prvu kolekciju"
 
@@ -1856,9 +1860,9 @@ msgstr "Djelomični povrat završen"
 msgid "Set custom fields"
 msgstr "Postavi prilagođena polja"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:47
-#: src/app/routes/_authenticated/_collections/collections.tsx:51
-#: src/app/routes/_authenticated/_collections/collections.tsx:362
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:49
+#: src/app/routes/_authenticated/_collections/collections.tsx:52
+#: src/app/routes/_authenticated/_collections/collections.tsx:364
 msgid "Collections"
 msgstr "Kolekcije"
 
@@ -1903,7 +1907,7 @@ msgstr "Prijelaz u {0}"
 msgid "Tax Categories"
 msgstr "Porezne kategorije"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:162
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:181
 msgid "Private collections are not visible in the shop"
 msgstr "Privatne kolekcije nisu vidljive u trgovini"
 
@@ -1995,11 +1999,11 @@ msgstr "Povrat uspješno izvršen"
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:152
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:102
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
@@ -2094,7 +2098,7 @@ msgstr "Postavke stupaca"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:132
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:127
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:127
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:193
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:179
@@ -2579,7 +2583,7 @@ msgstr "Sažetak poreza"
 msgid "Sets the languages that are available for all channels. Individual channels can then support a subset of these languages."
 msgstr "Postavlja jezike koji su dostupni za sve kanale. Pojedinačni kanali tada mogu podržavati podskup ovih jezika."
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:119
+#: src/app/routes/_authenticated/_facets/facets.tsx:117
 msgid "Create your first facet"
 msgstr "Stvorite svoje prvo svojstvo"
 
@@ -2693,7 +2697,7 @@ msgstr "Vrijednosti"
 msgid "Customer set for order"
 msgstr "Kupac postavljen za narudžbu"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:38
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:39
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:36
 #: src/app/routes/_authenticated/_facets/facets.tsx:22
 #: src/app/routes/_authenticated/_facets/facets.tsx:30
@@ -2769,7 +2773,7 @@ msgstr "Zadani kanal"
 msgid "Insert a new image with source, title, and dimensions"
 msgstr "Umetni novu sliku s izvorom, naslovom i dimenzijama"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:93
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:94
 msgid "Failed to create facet value"
 msgstr "Stvaranje vrijednosti svojstva nije uspjelo"
 
@@ -2806,7 +2810,7 @@ msgstr "Zaboravili ste lozinku?"
 msgid "Schedule"
 msgstr "Raspored"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:304
+#: src/app/routes/_authenticated/_collections/collections.tsx:306
 msgid "Cannot move a collection into its own descendant"
 msgstr "Nije moguće premjestiti kolekciju u vlastiti podskup"
 
@@ -2885,7 +2889,7 @@ msgstr "Preračunaj dostavu"
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:39
 #: src/app/routes/_authenticated/_assets/assets.tsx:17
 #: src/app/routes/_authenticated/_assets/assets.tsx:40
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:229
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:248
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:777
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:381
 msgid "Assets"
@@ -2901,7 +2905,7 @@ msgstr "Ovo će ukloniti sve grupe opcija s ovog proizvoda i vratiti se na izbor
 msgid "Billing address"
 msgstr "Adresa za naplatu"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:64
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:65
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:173
 msgid "Add facet value"
 msgstr "Dodaj vrijednost svojstva"
@@ -2944,6 +2948,10 @@ msgstr "Najprodavaniji proizvodi"
 #: src/lib/components/shared/asset/asset-gallery.tsx:379
 msgid "All types"
 msgstr "Sve vrste"
+
+#: src/app/routes/_authenticated/_collections/collections.tsx:403
+msgid "Collapse"
+msgstr "Sažmi"
 
 #: src/app/routes/_authenticated/_orders/components/draft-order-status.tsx:29
 msgid "Only draft orders can be completed"
@@ -3084,11 +3092,11 @@ msgstr "Obriši globalni prikaz"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:152
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:163
@@ -3311,7 +3319,7 @@ msgstr "{0}"
 msgid "New Zone"
 msgstr "Nova zona"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:353
+#: src/app/routes/_authenticated/_collections/collections.tsx:355
 msgid "Failed to update collection position"
 msgstr "Nije uspjelo ažurirati poziciju kolekcije"
 
@@ -3591,7 +3599,7 @@ msgstr "Povucite za promjenu redoslijeda"
 msgid "Zones"
 msgstr "Zone"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:111
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:112
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:151
 #: src/lib/components/shared/facet-value-selector.tsx:124
 msgid "Search facet values..."
@@ -3616,7 +3624,7 @@ msgid "{saleable} in stock"
 msgstr "{saleable} na zalihi"
 
 #. placeholder {0}: Math.min(remaining, CHILDREN_PAGE_SIZE)
-#: src/app/routes/_authenticated/_collections/collections.tsx:503
+#: src/app/routes/_authenticated/_collections/collections.tsx:530
 msgid "Load {0} more ({remaining} remaining)"
 msgstr "Učitaj još {0} ({remaining} preostalo)"
 
@@ -3707,7 +3715,7 @@ msgstr "Odaberite adresu"
 msgid "Yes"
 msgstr "Da"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:179
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:198
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:259
 msgid "Slug"
 msgstr "URL naziv"
@@ -3915,8 +3923,8 @@ msgstr "Ukupno poreza"
 msgid "Draft order status"
 msgstr "Status nacrta narudžbe"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:147
-#: src/app/routes/_authenticated/_collections/components/collection-contents-table.tsx:79
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:167
+#: src/app/routes/_authenticated/_collections/components/collection-contents-table.tsx:80
 msgid "Search variants..."
 msgstr "Pretraži varijante..."
 
@@ -3928,7 +3936,7 @@ msgstr "Pretraži varijante..."
 msgid "Failed to create payment method"
 msgstr "Stvaranje načina plaćanja nije uspjelo"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:84
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:85
 msgid "Successfully created facet value"
 msgstr "Vrijednost svojstva uspješno stvorena"
 
@@ -3992,8 +4000,8 @@ msgstr "Svojstvo uspješno stvoreno"
 msgid "No widgets to display. Use \"Edit Layout\" to add widgets."
 msgstr "Nema widgeta za prikaz. Za dodavanje widgeta upotrijebite „Uredi raspored“."
 
-#. placeholder {0}: row.original.productVariantCount
-#: src/app/routes/_authenticated/_collections/collections.tsx:432
+#. placeholder {0}: formatNumber(row.original.productVariantCount as number)
+#: src/app/routes/_authenticated/_collections/collections.tsx:454
 msgid "{0} variants"
 msgstr "{0} varijanti"
 
@@ -4006,9 +4014,9 @@ msgstr "Izvršenje plaćanja nije uspjelo"
 msgid "No billing address"
 msgstr "Nema adrese za naplatu"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:119
-msgid "Facet"
-msgstr "Svojstvo"
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:120
+#~ msgid "Facet"
+#~ msgstr "Svojstvo"
 
 #: src/lib/components/data-table/data-table-views-tabs.tsx:124
 msgid "Unsaved view"
@@ -4255,7 +4263,7 @@ msgstr "Prikaz uspješno dupliciran"
 msgid "Remove option group"
 msgstr "Ukloni grupu opcija"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:194
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:213
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:76
 #: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:14
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
@@ -4607,15 +4615,11 @@ msgstr "Uredi raspored"
 msgid "This link is invalid or has expired"
 msgstr "Ova poveznica nije valjana ili je istekla"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:268
-#~ msgid "Failed to create option"
-#~ msgstr ""
-
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:84
 #~ msgid "Insert link"
 #~ msgstr "Umetni poveznicu"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:205
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:224
 msgid "If enabled, the filters will be inherited from the parent collection and combined with the filters set on this collection."
 msgstr "Ako je omogućeno, filteri će se naslijediti iz nadređene kolekcije i kombinirati s filterima postavljenim na ovoj kolekciji."
 
@@ -4937,7 +4941,7 @@ msgstr "Ažuriranje uloge nije uspjelo"
 msgid "This is the only time the full API key will be displayed. Copy or download it now — it cannot be retrieved later."
 msgstr "Ovo je jedini put kada će se prikazati cijeli API ključ. Kopirajte ga ili preuzmite sada — kasnije ga neće biti moguće dohvatiti."
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:105
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:124
 msgid "Successfully updated collection"
 msgstr "Kolekcija uspješno ažurirana"
 
@@ -4972,7 +4976,7 @@ msgstr "Kod kupona uklonjen s narudžbe"
 msgid "Never"
 msgstr "Nikada"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:93
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:94
 msgid "Failed to update facet value"
 msgstr "Ažuriranje vrijednosti svojstva nije uspjelo"
 
@@ -5063,8 +5067,8 @@ msgstr "Novi način dostave"
 msgid "is greater than or equal to"
 msgstr "veće je ili jednako"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:81
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:92
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:99
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:113
 #: src/lib/components/shared/entity-assets.tsx:151
 msgid "Preview"
 msgstr "Pregled"
@@ -5376,7 +5380,7 @@ msgstr "Identifikator"
 msgid "Select a fulfillment handler"
 msgstr "Odaberite obrađivač isporuke"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:119
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:138
 msgid "Failed to update collection"
 msgstr "Ažuriranje kolekcije nije uspjelo"
 
@@ -5462,9 +5466,9 @@ msgstr "Ažuriranje varijante nije uspjelo"
 msgid "Go to previous page"
 msgstr "Idi na prethodnu stranicu"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:255
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:258
-#: src/app/routes/_authenticated/_collections/collections.tsx:425
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278
+#: src/app/routes/_authenticated/_collections/collections.tsx:447
 msgid "Contents"
 msgstr "Sadržaj"
 
@@ -5514,7 +5518,7 @@ msgstr "Ažuriranje kupca nije uspjelo"
 msgid "Remove option groups?"
 msgstr "Ukloniti grupe opcija?"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:95
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:102
 msgid "This is a preview of the collection contents based on the current filter settings. Once you save the collection, the contents will be updated to reflect the new filter settings."
 msgstr "Ovo je pregled sadržaja kolekcije temeljen na trenutnim postavkama filtra. Nakon što spremite kolekciju, sadržaj će biti ažuriran kako bi odražavao nove postavke filtra."
 
@@ -5591,7 +5595,7 @@ msgstr "Nema više faceta"
 msgid "Search index rebuild started"
 msgstr "Ponovna izgradnja indeksa pretraživanja započela"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:346
+#: src/app/routes/_authenticated/_collections/collections.tsx:348
 msgid "Collection position updated"
 msgstr "Pozicija kolekcije ažurirana"
 
@@ -5646,7 +5650,7 @@ msgstr "Token"
 msgid "Fulfilling..."
 msgstr "Izvršavanje..."
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:524
+#: src/app/routes/_authenticated/_collections/collections.tsx:552
 msgid "Search collections..."
 msgstr "Pretraži kolekcije..."
 
@@ -5783,10 +5787,6 @@ msgstr "Svakih 10 sekundi"
 msgid "Low Stock"
 msgstr "Niska zaliha"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:549
-#~ msgid "Edit option group"
-#~ msgstr ""
-
 #: src/app/routes/_authenticated/_shipping-methods/components/price-display.tsx:17
 msgid "ex. tax:"
 msgstr "bez PDV-a:"
@@ -5799,7 +5799,7 @@ msgstr "bez PDV-a:"
 msgid "Successfully added option value"
 msgstr "Vrijednost opcije uspješno dodana"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:348
+#: src/app/routes/_authenticated/_collections/collections.tsx:350
 msgid "Collection moved to new parent"
 msgstr "Kolekcija premještena u novi nadređeni element"
 
@@ -6062,7 +6062,7 @@ msgstr "Metrike"
 msgid "Language"
 msgstr "Jezik"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:555
+#: src/app/routes/_authenticated/_collections/collections.tsx:583
 msgid "New Collection"
 msgstr "Nova kolekcija"
 
@@ -6222,6 +6222,10 @@ msgstr ""
 msgid "Total Revenue"
 msgstr "Ukupni prihod"
 
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:89
+msgid "Applying filters…"
+msgstr "Primjena filtara…"
+
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:163
 msgid "Next Execution"
 msgstr "Sljedeće izvršenje"
@@ -6233,6 +6237,10 @@ msgstr "Prodajna zaliha na razini {threshold} ili ispod nje, iz uzorka od {CANDI
 #: src/lib/components/shared/history-timeline/history-note-checkbox.tsx:21
 msgid "Note is private"
 msgstr "Bilješka je privatna"
+
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:92
+msgid "The collection contents will refresh once the update has finished."
+msgstr "Sadržaj kolekcije osvježit će se nakon završetka ažuriranja."
 
 #: src/lib/components/layout/language-dialog.tsx:124
 msgid "Medium date"
@@ -6267,7 +6275,7 @@ msgstr "Koristi kao zadanu adresu za dostavu"
 msgid "Edit slug manually"
 msgstr "Ručno uredi URL naziv"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:84
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:116
 msgid "Add filters to preview the collection contents."
 msgstr "Dodajte filtre za pregled sadržaja kolekcije."
 
@@ -6328,7 +6336,7 @@ msgstr "Pretraži lokacije zaliha..."
 msgid "Search assets..."
 msgstr "Pretraži datoteke..."
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:127
+#: src/app/routes/_authenticated/_facets/facets.tsx:125
 msgid "New Facet"
 msgstr "Novo svojstvo"
 
@@ -6446,7 +6454,7 @@ msgstr "Redaka po stranici"
 msgid "Loading collections..."
 msgstr "Učitavanje kolekcija..."
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:84
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:85
 msgid "Successfully updated facet value"
 msgstr "Vrijednost svojstva uspješno ažurirana"
 
@@ -6757,7 +6765,7 @@ msgstr "Proces narudžbe"
 msgid "Phone number"
 msgstr "Telefonski broj"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:161
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:180
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:109
 #: src/lib/components/data-input/default-relation-input.tsx:247
 #: src/lib/components/data-input/default-relation-input.tsx:277

@@ -191,8 +191,8 @@ msgid "Add more ({0} selected)"
 msgstr "Přidat další ({0} vybráno)"
 
 #: src/app/routes/_authenticated/_facets/facets.tsx:71
-msgid "View values"
-msgstr "Zobrazit hodnoty"
+#~ msgid "View values"
+#~ msgstr "Zobrazit hodnoty"
 
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx:214
 msgid "Delete row"
@@ -291,6 +291,10 @@ msgstr "SKU:"
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:121
 msgid "Add payment"
 msgstr "Přidat platbu"
+
+#: src/app/routes/_authenticated/_collections/collections.tsx:403
+msgid "Expand"
+msgstr "Rozbalit"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-shipping-method-sheet.tsx:40
 msgid "Test this shipping method by simulating an order to see if it's eligible and what the shipping cost would be."
@@ -526,8 +530,8 @@ msgstr "Daňová sazba"
 msgid "Order draft isn't ready to be completed"
 msgstr "Koncept objednávky není připraven k dokončení"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:48
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:137
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:52
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:156
 msgid "New collection"
 msgstr "Nová kolekce"
 
@@ -609,7 +613,7 @@ msgstr "Počet objednávek"
 msgid "Successfully updated order"
 msgstr "Objednávka úspěšně aktualizována"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:203
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:222
 msgid "Inherit filters"
 msgstr "Zdědit filtry"
 
@@ -793,8 +797,8 @@ msgstr "Nepodařilo se nastavit způsob dopravy pro objednávku: {0}"
 msgid "Filter..."
 msgstr "Filtrovat..."
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:40
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:102
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:41
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:103
 msgid "New facet value"
 msgstr "Nová hodnota vlastnosti"
 
@@ -855,11 +859,11 @@ msgstr "Dokončit koncept"
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:47
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:165
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:173
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:192
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:104
 #: src/app/routes/_authenticated/_customers/customers.tsx:73
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:131
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:121
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:121
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:187
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:173
@@ -974,7 +978,7 @@ msgstr "Potvrdit"
 msgid "Failed to complete draft order: {0}"
 msgstr "Nepodařilo se dokončit koncept objednávky: {0}"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:119
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:138
 msgid "Failed to create collection"
 msgstr "Nepodařilo se vytvořit kolekci"
 
@@ -1168,7 +1172,7 @@ msgstr "Prozkoumat Platform & Cloud"
 msgid "Every 5 seconds"
 msgstr "Každých 5 sekund"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:105
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:124
 msgid "Successfully created collection"
 msgstr "Kolekce úspěšně vytvořena"
 
@@ -1296,7 +1300,7 @@ msgstr "Obnovit URL segment ze zdrojového pole"
 msgid "Inherit from global settings"
 msgstr "Zdědit z globálních nastavení"
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:79
+#: src/app/routes/_authenticated/_facets/facets.tsx:77
 msgid "Search facets..."
 msgstr "Hledat vlastnosti..."
 
@@ -1627,7 +1631,7 @@ msgstr "Poslední objednávky"
 msgid "Go back"
 msgstr "Vrátit se zpět"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:452
+#: src/app/routes/_authenticated/_collections/collections.tsx:476
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:54
 msgid "+ {leftOver} more"
 msgstr "+ {leftOver} dalších"
@@ -1688,7 +1692,7 @@ msgstr "Dostupné"
 msgid "Normal"
 msgstr "Normální"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:199
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:218
 msgid "Filters"
 msgstr "Filtry"
 
@@ -1720,7 +1724,7 @@ msgstr "Nová volba"
 msgid "Usage limit"
 msgstr "Limit použití"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:547
+#: src/app/routes/_authenticated/_collections/collections.tsx:575
 msgid "Create your first collection"
 msgstr "Vytvořte svou první kolekci"
 
@@ -1856,9 +1860,9 @@ msgstr "Částečné vrácení dokončeno"
 msgid "Set custom fields"
 msgstr "Nastavit vlastní pole"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:47
-#: src/app/routes/_authenticated/_collections/collections.tsx:51
-#: src/app/routes/_authenticated/_collections/collections.tsx:362
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:49
+#: src/app/routes/_authenticated/_collections/collections.tsx:52
+#: src/app/routes/_authenticated/_collections/collections.tsx:364
 msgid "Collections"
 msgstr "Kolekce"
 
@@ -1903,7 +1907,7 @@ msgstr "Převést na {0}"
 msgid "Tax Categories"
 msgstr "Daňové kategorie"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:162
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:181
 msgid "Private collections are not visible in the shop"
 msgstr "Soukromé kolekce nejsou viditelné v obchodě"
 
@@ -1995,11 +1999,11 @@ msgstr "Refund úspěšně vypořádán"
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:152
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:102
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
@@ -2094,7 +2098,7 @@ msgstr "Nastavení sloupců"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:132
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:127
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:127
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:193
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:179
@@ -2579,7 +2583,7 @@ msgstr "Souhrn daní"
 msgid "Sets the languages that are available for all channels. Individual channels can then support a subset of these languages."
 msgstr "Nastavuje jazyky dostupné pro všechny kanály. Jednotlivé kanály pak mohou podporovat podmnožinu těchto jazyků."
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:119
+#: src/app/routes/_authenticated/_facets/facets.tsx:117
 msgid "Create your first facet"
 msgstr "Vytvořte svou první vlastnost"
 
@@ -2693,7 +2697,7 @@ msgstr "Hodnoty"
 msgid "Customer set for order"
 msgstr "Zákazník nastaven pro objednávku"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:38
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:39
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:36
 #: src/app/routes/_authenticated/_facets/facets.tsx:22
 #: src/app/routes/_authenticated/_facets/facets.tsx:30
@@ -2769,7 +2773,7 @@ msgstr "Výchozí kanál"
 msgid "Insert a new image with source, title, and dimensions"
 msgstr "Vložit nový obrázek se zdrojem, názvem a rozměry"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:93
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:94
 msgid "Failed to create facet value"
 msgstr "Nepodařilo se vytvořit hodnotu vlastnosti"
 
@@ -2806,7 +2810,7 @@ msgstr "Zapomněli jste heslo?"
 msgid "Schedule"
 msgstr "Plán"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:304
+#: src/app/routes/_authenticated/_collections/collections.tsx:306
 msgid "Cannot move a collection into its own descendant"
 msgstr "Nelze přesunout kolekci do jejího vlastního potomka"
 
@@ -2885,7 +2889,7 @@ msgstr "Přepočítat dopravu"
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:39
 #: src/app/routes/_authenticated/_assets/assets.tsx:17
 #: src/app/routes/_authenticated/_assets/assets.tsx:40
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:229
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:248
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:777
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:381
 msgid "Assets"
@@ -2901,7 +2905,7 @@ msgstr "Tímto se odeberou všechny skupiny voleb z tohoto produktu a vrátíte 
 msgid "Billing address"
 msgstr "Fakturační adresa"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:64
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:65
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:173
 msgid "Add facet value"
 msgstr "Přidat hodnotu vlastnosti"
@@ -2944,6 +2948,10 @@ msgstr "Nejprodávanější produkty"
 #: src/lib/components/shared/asset/asset-gallery.tsx:379
 msgid "All types"
 msgstr "Všechny typy"
+
+#: src/app/routes/_authenticated/_collections/collections.tsx:403
+msgid "Collapse"
+msgstr "Sbalit"
 
 #: src/app/routes/_authenticated/_orders/components/draft-order-status.tsx:29
 msgid "Only draft orders can be completed"
@@ -3084,11 +3092,11 @@ msgstr "Smazat globální pohled"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:152
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:163
@@ -3311,7 +3319,7 @@ msgstr "{0}"
 msgid "New Zone"
 msgstr "Nová zóna"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:353
+#: src/app/routes/_authenticated/_collections/collections.tsx:355
 msgid "Failed to update collection position"
 msgstr "Nepodařilo se aktualizovat pozici kolekce"
 
@@ -3591,7 +3599,7 @@ msgstr "Přetažením změnit pořadí"
 msgid "Zones"
 msgstr "Zóny"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:111
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:112
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:151
 #: src/lib/components/shared/facet-value-selector.tsx:124
 msgid "Search facet values..."
@@ -3616,7 +3624,7 @@ msgid "{saleable} in stock"
 msgstr "{saleable} skladem"
 
 #. placeholder {0}: Math.min(remaining, CHILDREN_PAGE_SIZE)
-#: src/app/routes/_authenticated/_collections/collections.tsx:503
+#: src/app/routes/_authenticated/_collections/collections.tsx:530
 msgid "Load {0} more ({remaining} remaining)"
 msgstr "Načíst dalších {0} ({remaining} zbývá)"
 
@@ -3707,7 +3715,7 @@ msgstr "Vyberte adresu"
 msgid "Yes"
 msgstr "Ano"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:179
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:198
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:259
 msgid "Slug"
 msgstr "URL segment"
@@ -3915,8 +3923,8 @@ msgstr "Celková daň"
 msgid "Draft order status"
 msgstr "Stav konceptu objednávky"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:147
-#: src/app/routes/_authenticated/_collections/components/collection-contents-table.tsx:79
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:167
+#: src/app/routes/_authenticated/_collections/components/collection-contents-table.tsx:80
 msgid "Search variants..."
 msgstr "Hledat varianty..."
 
@@ -3928,7 +3936,7 @@ msgstr "Hledat varianty..."
 msgid "Failed to create payment method"
 msgstr "Nepodařilo se vytvořit způsob platby"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:84
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:85
 msgid "Successfully created facet value"
 msgstr "Hodnota vlastnosti úspěšně vytvořena"
 
@@ -3992,8 +4000,8 @@ msgstr "Vlastnost úspěšně vytvořena"
 msgid "No widgets to display. Use \"Edit Layout\" to add widgets."
 msgstr "Žádné widgety k zobrazení. Pro přidání widgetů použijte „Upravit rozložení“."
 
-#. placeholder {0}: row.original.productVariantCount
-#: src/app/routes/_authenticated/_collections/collections.tsx:432
+#. placeholder {0}: formatNumber(row.original.productVariantCount as number)
+#: src/app/routes/_authenticated/_collections/collections.tsx:454
 msgid "{0} variants"
 msgstr "{0} variant"
 
@@ -4006,9 +4014,9 @@ msgstr "Nepodařilo se vypořádat platbu"
 msgid "No billing address"
 msgstr "Žádná fakturační adresa"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:119
-msgid "Facet"
-msgstr "Vlastnost"
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:120
+#~ msgid "Facet"
+#~ msgstr "Vlastnost"
 
 #: src/lib/components/data-table/data-table-views-tabs.tsx:124
 msgid "Unsaved view"
@@ -4255,7 +4263,7 @@ msgstr "Pohled úspěšně duplikován"
 msgid "Remove option group"
 msgstr "Odebrat skupinu možností"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:194
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:213
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:76
 #: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:14
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
@@ -4607,15 +4615,11 @@ msgstr "Upravit rozložení"
 msgid "This link is invalid or has expired"
 msgstr "Tento odkaz je neplatný nebo jeho platnost vypršela"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:268
-#~ msgid "Failed to create option"
-#~ msgstr ""
-
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:84
 #~ msgid "Insert link"
 #~ msgstr "Vložit odkaz"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:205
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:224
 msgid "If enabled, the filters will be inherited from the parent collection and combined with the filters set on this collection."
 msgstr "Pokud je povoleno, filtry budou zděděny z nadřazené kolekce a sloučeny s filtry nastavenými pro tuto kolekci."
 
@@ -4937,7 +4941,7 @@ msgstr "Nepodařilo se aktualizovat roli"
 msgid "This is the only time the full API key will be displayed. Copy or download it now — it cannot be retrieved later."
 msgstr "Toto je jediná příležitost, kdy bude celý API key zobrazen. Zkopírujte si jej nebo stáhněte nyní — později jej nebude možné získat."
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:105
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:124
 msgid "Successfully updated collection"
 msgstr "Kolekce úspěšně aktualizována"
 
@@ -4972,7 +4976,7 @@ msgstr "Kód kupónu odebrán z objednávky"
 msgid "Never"
 msgstr "Nikdy"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:93
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:94
 msgid "Failed to update facet value"
 msgstr "Nepodařilo se aktualizovat hodnotu vlastnosti"
 
@@ -5063,8 +5067,8 @@ msgstr "Nový způsob dopravy"
 msgid "is greater than or equal to"
 msgstr "je větší nebo rovno"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:81
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:92
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:99
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:113
 #: src/lib/components/shared/entity-assets.tsx:151
 msgid "Preview"
 msgstr "Náhled"
@@ -5376,7 +5380,7 @@ msgstr "Identifikátor"
 msgid "Select a fulfillment handler"
 msgstr "Vyberte zpracovatele vyřízení"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:119
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:138
 msgid "Failed to update collection"
 msgstr "Nepodařilo se aktualizovat kolekci"
 
@@ -5462,9 +5466,9 @@ msgstr "Nepodařilo se aktualizovat variantu"
 msgid "Go to previous page"
 msgstr "Přejít na předchozí stránku"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:255
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:258
-#: src/app/routes/_authenticated/_collections/collections.tsx:425
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278
+#: src/app/routes/_authenticated/_collections/collections.tsx:447
 msgid "Contents"
 msgstr "Obsah"
 
@@ -5514,7 +5518,7 @@ msgstr "Nepodařilo se aktualizovat zákazníka"
 msgid "Remove option groups?"
 msgstr "Odebrat skupiny voleb?"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:95
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:102
 msgid "This is a preview of the collection contents based on the current filter settings. Once you save the collection, the contents will be updated to reflect the new filter settings."
 msgstr "Toto je náhled obsahu kolekce na základě aktuálních nastavení filtru. Jakmile kolekci uložíte, obsah bude aktualizován tak, aby odrážel nová nastavení filtru."
 
@@ -5591,7 +5595,7 @@ msgstr "Žádné další fasety"
 msgid "Search index rebuild started"
 msgstr "Přebudování vyhledávacího indexu spuštěno"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:346
+#: src/app/routes/_authenticated/_collections/collections.tsx:348
 msgid "Collection position updated"
 msgstr "Pozice kolekce aktualizována"
 
@@ -5646,7 +5650,7 @@ msgstr "Token"
 msgid "Fulfilling..."
 msgstr "Expedování..."
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:524
+#: src/app/routes/_authenticated/_collections/collections.tsx:552
 msgid "Search collections..."
 msgstr "Hledat kolekce..."
 
@@ -5783,10 +5787,6 @@ msgstr "Každých 10 sekund"
 msgid "Low Stock"
 msgstr "Nízké zásoby"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:549
-#~ msgid "Edit option group"
-#~ msgstr ""
-
 #: src/app/routes/_authenticated/_shipping-methods/components/price-display.tsx:17
 msgid "ex. tax:"
 msgstr "bez DPH:"
@@ -5799,7 +5799,7 @@ msgstr "bez DPH:"
 msgid "Successfully added option value"
 msgstr "Hodnota volby úspěšně přidána"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:348
+#: src/app/routes/_authenticated/_collections/collections.tsx:350
 msgid "Collection moved to new parent"
 msgstr "Kolekce přesunuta do nového rodiče"
 
@@ -6062,7 +6062,7 @@ msgstr "Metriky"
 msgid "Language"
 msgstr "Jazyk"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:555
+#: src/app/routes/_authenticated/_collections/collections.tsx:583
 msgid "New Collection"
 msgstr "Nová kolekce"
 
@@ -6222,6 +6222,10 @@ msgstr ""
 msgid "Total Revenue"
 msgstr "Celkové tržby"
 
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:89
+msgid "Applying filters…"
+msgstr "Aplikují se filtry…"
+
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:163
 msgid "Next Execution"
 msgstr "Další provedení"
@@ -6233,6 +6237,10 @@ msgstr "Prodejná zásoba na úrovni {threshold} nebo pod ní, ze vzorku {CANDID
 #: src/lib/components/shared/history-timeline/history-note-checkbox.tsx:21
 msgid "Note is private"
 msgstr "Poznámka je soukromá"
+
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:92
+msgid "The collection contents will refresh once the update has finished."
+msgstr "Obsah kolekce se obnoví po dokončení aktualizace."
 
 #: src/lib/components/layout/language-dialog.tsx:124
 msgid "Medium date"
@@ -6267,7 +6275,7 @@ msgstr "Použít jako výchozí doručovací adresu"
 msgid "Edit slug manually"
 msgstr "Upravit URL segment ručně"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:84
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:116
 msgid "Add filters to preview the collection contents."
 msgstr "Přidejte filtry pro náhled obsahu kolekce."
 
@@ -6328,7 +6336,7 @@ msgstr "Hledat sklady..."
 msgid "Search assets..."
 msgstr "Hledat soubory..."
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:127
+#: src/app/routes/_authenticated/_facets/facets.tsx:125
 msgid "New Facet"
 msgstr "Nová vlastnost"
 
@@ -6446,7 +6454,7 @@ msgstr "Řádků na stránku"
 msgid "Loading collections..."
 msgstr "Načítání kolekcí..."
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:84
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:85
 msgid "Successfully updated facet value"
 msgstr "Hodnota vlastnosti úspěšně aktualizována"
 
@@ -6757,7 +6765,7 @@ msgstr "Proces objednávky"
 msgid "Phone number"
 msgstr "Telefonní číslo"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:161
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:180
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:109
 #: src/lib/components/data-input/default-relation-input.tsx:247
 #: src/lib/components/data-input/default-relation-input.tsx:277

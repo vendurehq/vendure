@@ -8,10 +8,14 @@ import {
     UpdateChannelInput,
     UpdateChannelResult,
 } from '@vendure/common/lib/generated-types';
-import { DEFAULT_CHANNEL_CODE } from '@vendure/common/lib/shared-constants';
+import {
+    CUSTOMER_ROLE_CODE,
+    DEFAULT_CHANNEL_CODE,
+    SUPER_ADMIN_ROLE_CODE,
+} from '@vendure/common/lib/shared-constants';
 import { ID, PaginatedList, Type } from '@vendure/common/lib/shared-types';
 import { unique } from '@vendure/common/lib/unique';
-import { FindOptionsWhere } from 'typeorm';
+import { FindOptionsWhere, In } from 'typeorm';
 
 import { RelationPaths } from '../../api';
 import { RequestContext } from '../../api/common/request-context';
@@ -34,6 +38,7 @@ import { Channel } from '../../entity/channel/channel.entity';
 import { Order } from '../../entity/order/order.entity';
 import { ProductVariantPrice } from '../../entity/product-variant/product-variant-price.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
+import { Role } from '../../entity/role/role.entity';
 import { Seller } from '../../entity/seller/seller.entity';
 import { Session } from '../../entity/session/session.entity';
 import { Zone } from '../../entity/zone/zone.entity';
@@ -324,6 +329,16 @@ export class ChannelService {
             .then(result => result ?? undefined);
     }
 
+    /**
+     * @description
+     * Creates a new Channel from the given input, validating the default language code and
+     * resolving the default tax and shipping Zones and the Seller if provided.
+     *
+     * Since v3.8.0, the new Channel is automatically assigned to the SuperAdmin and Customer
+     * roles. Without these assignments a Channel is not administrable (it does not appear in the
+     * Dashboard) and cannot support customer accounts, so callers no longer need to assign these
+     * roles themselves.
+     */
     async create(
         ctx: RequestContext,
         input: CreateChannelInput,
@@ -364,6 +379,23 @@ export class ChannelService {
             await this.connection.getRepository(ctx, Channel).save(newChannel);
         }
         await this.customFieldRelationService.updateRelations(ctx, Channel, input, newChannel);
+        // RoleService depends on ChannelService, so it cannot be injected here without creating a
+        // circular dependency; the default roles are therefore looked up directly.
+        const defaultRoleCodes = [SUPER_ADMIN_ROLE_CODE, CUSTOMER_ROLE_CODE];
+        const defaultRoles = await this.connection.getRepository(ctx, Role).find({
+            where: { code: In(defaultRoleCodes) },
+        });
+        for (const code of defaultRoleCodes) {
+            const role = defaultRoles.find(r => r.code === code);
+            if (!role) {
+                throw new InternalServerError(
+                    code === SUPER_ADMIN_ROLE_CODE
+                        ? 'error.super-admin-role-not-found'
+                        : 'error.customer-role-not-found',
+                );
+            }
+            await this.assignToChannels(ctx, Role, role.id, [newChannel.id]);
+        }
         await this.allChannels.refresh(ctx);
         await this.eventBus.publish(new ChannelEvent(ctx, newChannel, 'created', input));
         return newChannel;

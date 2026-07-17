@@ -2,7 +2,7 @@
 title: "ChannelService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/channel.service.ts" sourceLine="54" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/channel.service.ts" sourceLine="59" packageName="@vendure/core" />
 
 Contains methods relating to [Channel](/reference/typescript-api/entities/channel#channel) entities.
 
@@ -79,7 +79,13 @@ Returns the default Channel.
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: CreateChannelInput) => Promise<<a href='/reference/typescript-api/errors/error-result-union#errorresultunion'>ErrorResultUnion</a><CreateChannelResult, <a href='/reference/typescript-api/entities/channel#channel'>Channel</a>>>`}   />
 
+Creates a new Channel from the given input, validating the default language code and
+resolving the default tax and shipping Zones and the Seller if provided.
 
+Since v3.8.0, the new Channel is automatically assigned to the SuperAdmin and Customer
+roles. Without these assignments a Channel is not administrable (it does not appear in the
+Dashboard) and cannot support customer accounts, so callers no longer need to assign these
+roles themselves.
 ### update
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: UpdateChannelInput) => Promise<<a href='/reference/typescript-api/errors/error-result-union#errorresultunion'>ErrorResultUnion</a><UpdateChannelResult, <a href='/reference/typescript-api/entities/channel#channel'>Channel</a>>>`}   />

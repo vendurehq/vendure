@@ -191,8 +191,8 @@ msgid "Add more ({0} selected)"
 msgstr "إضافة المزيد (تم تحديد {0})"
 
 #: src/app/routes/_authenticated/_facets/facets.tsx:71
-msgid "View values"
-msgstr "عرض القيم"
+#~ msgid "View values"
+#~ msgstr "عرض القيم"
 
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx:214
 msgid "Delete row"
@@ -291,6 +291,10 @@ msgstr "رمز المنتج:"
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:121
 msgid "Add payment"
 msgstr "إضافة دفعة"
+
+#: src/app/routes/_authenticated/_collections/collections.tsx:403
+msgid "Expand"
+msgstr "توسيع"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-shipping-method-sheet.tsx:40
 msgid "Test this shipping method by simulating an order to see if it's eligible and what the shipping cost would be."
@@ -526,8 +530,8 @@ msgstr "معدل الضريبة"
 msgid "Order draft isn't ready to be completed"
 msgstr "طلب المسودة غير جاهز للإكمال"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:48
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:137
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:52
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:156
 msgid "New collection"
 msgstr "مجموعة جديدة"
 
@@ -609,7 +613,7 @@ msgstr "عدد الطلبات"
 msgid "Successfully updated order"
 msgstr "تم تحديث الطلب بنجاح"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:203
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:222
 msgid "Inherit filters"
 msgstr "وراثة الفلاتر"
 
@@ -793,8 +797,8 @@ msgstr "فشل تعيين طريقة الشحن للطلب: {0}"
 msgid "Filter..."
 msgstr "تصفية..."
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:40
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:102
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:41
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:103
 msgid "New facet value"
 msgstr "قيمة خاصية جديدة"
 
@@ -855,11 +859,11 @@ msgstr "إكمال المسودة"
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:47
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:165
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:173
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:192
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:104
 #: src/app/routes/_authenticated/_customers/customers.tsx:73
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:131
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:121
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:121
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:187
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:173
@@ -974,7 +978,7 @@ msgstr "تأكيد"
 msgid "Failed to complete draft order: {0}"
 msgstr "فشل إكمال الطلب المسودة: {0}"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:119
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:138
 msgid "Failed to create collection"
 msgstr "فشل إنشاء المجموعة"
 
@@ -1168,7 +1172,7 @@ msgstr "استكشاف المنصة والسحابة"
 msgid "Every 5 seconds"
 msgstr "كل 5 ثوانٍ"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:105
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:124
 msgid "Successfully created collection"
 msgstr "تم إنشاء المجموعة بنجاح"
 
@@ -1296,7 +1300,7 @@ msgstr "إعادة إنشاء الرابط المختصر من الحقل الم
 msgid "Inherit from global settings"
 msgstr "الوراثة من الإعدادات العامة"
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:79
+#: src/app/routes/_authenticated/_facets/facets.tsx:77
 msgid "Search facets..."
 msgstr "البحث في الخصائص..."
 
@@ -1627,7 +1631,7 @@ msgstr "أحدث الطلبات"
 msgid "Go back"
 msgstr "العودة"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:452
+#: src/app/routes/_authenticated/_collections/collections.tsx:476
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:54
 msgid "+ {leftOver} more"
 msgstr "+ {leftOver} المزيد"
@@ -1688,7 +1692,7 @@ msgstr "متاح"
 msgid "Normal"
 msgstr "عادي"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:199
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:218
 msgid "Filters"
 msgstr "الفلاتر"
 
@@ -1720,7 +1724,7 @@ msgstr "خيار جديد"
 msgid "Usage limit"
 msgstr "حد الاستخدام"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:547
+#: src/app/routes/_authenticated/_collections/collections.tsx:575
 msgid "Create your first collection"
 msgstr "أنشئ مجموعتك الأولى"
 
@@ -1856,9 +1860,9 @@ msgstr "تم استكمال الاسترداد الجزئي"
 msgid "Set custom fields"
 msgstr "تعيين الحقول المخصصة"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:47
-#: src/app/routes/_authenticated/_collections/collections.tsx:51
-#: src/app/routes/_authenticated/_collections/collections.tsx:362
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:49
+#: src/app/routes/_authenticated/_collections/collections.tsx:52
+#: src/app/routes/_authenticated/_collections/collections.tsx:364
 msgid "Collections"
 msgstr "المجموعات"
 
@@ -1903,7 +1907,7 @@ msgstr "الانتقال إلى {0}"
 msgid "Tax Categories"
 msgstr "فئات الضرائب"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:162
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:181
 msgid "Private collections are not visible in the shop"
 msgstr "المجموعات الخاصة غير مرئية في المتجر"
 
@@ -1995,11 +1999,11 @@ msgstr "تم تسوية الاسترداد بنجاح"
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:152
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:102
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
@@ -2094,7 +2098,7 @@ msgstr "إعدادات الأعمدة"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:132
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:127
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:127
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:193
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:179
@@ -2579,7 +2583,7 @@ msgstr "ملخص الضرائب"
 msgid "Sets the languages that are available for all channels. Individual channels can then support a subset of these languages."
 msgstr "يعين اللغات المتاحة لجميع القنوات. يمكن للقنوات الفردية بعد ذلك دعم مجموعة فرعية من هذه اللغات."
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:119
+#: src/app/routes/_authenticated/_facets/facets.tsx:117
 msgid "Create your first facet"
 msgstr "أنشئ خاصيتك الأولى"
 
@@ -2693,7 +2697,7 @@ msgstr "القيم"
 msgid "Customer set for order"
 msgstr "تم تعيين العميل للطلب"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:38
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:39
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:36
 #: src/app/routes/_authenticated/_facets/facets.tsx:22
 #: src/app/routes/_authenticated/_facets/facets.tsx:30
@@ -2769,7 +2773,7 @@ msgstr "القناة الافتراضية"
 msgid "Insert a new image with source, title, and dimensions"
 msgstr "إدراج صورة جديدة بالمصدر والعنوان والأبعاد"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:93
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:94
 msgid "Failed to create facet value"
 msgstr "فشل إنشاء قيمة الخاصية"
 
@@ -2806,7 +2810,7 @@ msgstr "هل نسيت كلمة المرور؟"
 msgid "Schedule"
 msgstr "الجدول الزمني"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:304
+#: src/app/routes/_authenticated/_collections/collections.tsx:306
 msgid "Cannot move a collection into its own descendant"
 msgstr "لا يمكن نقل مجموعة إلى فرع تابع لها"
 
@@ -2885,7 +2889,7 @@ msgstr "إعادة حساب الشحن"
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:39
 #: src/app/routes/_authenticated/_assets/assets.tsx:17
 #: src/app/routes/_authenticated/_assets/assets.tsx:40
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:229
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:248
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:777
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:381
 msgid "Assets"
@@ -2901,7 +2905,7 @@ msgstr "سيؤدي هذا إلى إزالة جميع مجموعات الخيار
 msgid "Billing address"
 msgstr "عنوان الفوترة"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:64
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:65
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:173
 msgid "Add facet value"
 msgstr "إضافة قيمة خاصية"
@@ -2944,6 +2948,10 @@ msgstr "أفضل المنتجات"
 #: src/lib/components/shared/asset/asset-gallery.tsx:379
 msgid "All types"
 msgstr "جميع الأنواع"
+
+#: src/app/routes/_authenticated/_collections/collections.tsx:403
+msgid "Collapse"
+msgstr "طي"
 
 #: src/app/routes/_authenticated/_orders/components/draft-order-status.tsx:29
 msgid "Only draft orders can be completed"
@@ -3084,11 +3092,11 @@ msgstr "حذف العرض العام"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:152
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:163
@@ -3311,7 +3319,7 @@ msgstr "{0}"
 msgid "New Zone"
 msgstr "منطقة جديدة"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:353
+#: src/app/routes/_authenticated/_collections/collections.tsx:355
 msgid "Failed to update collection position"
 msgstr "فشل في تحديث موضع المجموعة"
 
@@ -3591,7 +3599,7 @@ msgstr "اسحب لإعادة الترتيب"
 msgid "Zones"
 msgstr "المناطق"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:111
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:112
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:151
 #: src/lib/components/shared/facet-value-selector.tsx:124
 msgid "Search facet values..."
@@ -3616,7 +3624,7 @@ msgid "{saleable} in stock"
 msgstr "{saleable} في المخزون"
 
 #. placeholder {0}: Math.min(remaining, CHILDREN_PAGE_SIZE)
-#: src/app/routes/_authenticated/_collections/collections.tsx:503
+#: src/app/routes/_authenticated/_collections/collections.tsx:530
 msgid "Load {0} more ({remaining} remaining)"
 msgstr "تحميل {0} إضافية ({remaining} متبقية)"
 
@@ -3707,7 +3715,7 @@ msgstr "حدد عنوانًا"
 msgid "Yes"
 msgstr "نعم"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:179
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:198
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:259
 msgid "Slug"
 msgstr "الرابط المختصر"
@@ -3915,8 +3923,8 @@ msgstr "إجمالي الضريبة"
 msgid "Draft order status"
 msgstr "حالة طلب المسودة"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:147
-#: src/app/routes/_authenticated/_collections/components/collection-contents-table.tsx:79
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:167
+#: src/app/routes/_authenticated/_collections/components/collection-contents-table.tsx:80
 msgid "Search variants..."
 msgstr "البحث في الأشكال..."
 
@@ -3928,7 +3936,7 @@ msgstr "البحث في الأشكال..."
 msgid "Failed to create payment method"
 msgstr "فشل إنشاء طريقة الدفع"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:84
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:85
 msgid "Successfully created facet value"
 msgstr "تم إنشاء قيمة الخاصية بنجاح"
 
@@ -3992,8 +4000,8 @@ msgstr "تم إنشاء الخاصية بنجاح"
 msgid "No widgets to display. Use \"Edit Layout\" to add widgets."
 msgstr "لا توجد أدوات للعرض. استخدم \"تعديل التخطيط\" لإضافة أدوات."
 
-#. placeholder {0}: row.original.productVariantCount
-#: src/app/routes/_authenticated/_collections/collections.tsx:432
+#. placeholder {0}: formatNumber(row.original.productVariantCount as number)
+#: src/app/routes/_authenticated/_collections/collections.tsx:454
 msgid "{0} variants"
 msgstr "{0} متغير"
 
@@ -4006,9 +4014,9 @@ msgstr "فشل تسوية الدفع"
 msgid "No billing address"
 msgstr "لا يوجد عنوان فوترة"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:119
-msgid "Facet"
-msgstr "الخاصية"
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:120
+#~ msgid "Facet"
+#~ msgstr "الخاصية"
 
 #: src/lib/components/data-table/data-table-views-tabs.tsx:124
 msgid "Unsaved view"
@@ -4255,7 +4263,7 @@ msgstr "تم نسخ العرض بنجاح"
 msgid "Remove option group"
 msgstr "إزالة مجموعة الخيارات"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:194
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:213
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:76
 #: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:14
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
@@ -4607,15 +4615,11 @@ msgstr "تعديل التخطيط"
 msgid "This link is invalid or has expired"
 msgstr "هذا الرابط غير صالح أو انتهت صلاحيته"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:268
-#~ msgid "Failed to create option"
-#~ msgstr ""
-
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:84
 #~ msgid "Insert link"
 #~ msgstr "إدراج رابط"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:205
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:224
 msgid "If enabled, the filters will be inherited from the parent collection and combined with the filters set on this collection."
 msgstr "إذا تم التمكين، سيتم وراثة الفلاتر من المجموعة الأصل ودمجها مع الفلاتر المعينة على هذه المجموعة."
 
@@ -4937,7 +4941,7 @@ msgstr "فشل تحديث الدور"
 msgid "This is the only time the full API key will be displayed. Copy or download it now — it cannot be retrieved later."
 msgstr "هذه هي المرة الوحيدة التي سيتم فيها عرض مفتاح API الكامل. انسخه أو قم بتنزيله الآن — لا يمكن استرجاعه لاحقًا."
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:105
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:124
 msgid "Successfully updated collection"
 msgstr "تم تحديث المجموعة بنجاح"
 
@@ -4972,7 +4976,7 @@ msgstr "تم حذف رمز القسيمة من الطلب"
 msgid "Never"
 msgstr "أبدًا"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:93
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:94
 msgid "Failed to update facet value"
 msgstr "فشل تحديث قيمة الخاصية"
 
@@ -5063,8 +5067,8 @@ msgstr "طريقة شحن جديدة"
 msgid "is greater than or equal to"
 msgstr "أكبر من أو يساوي"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:81
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:92
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:99
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:113
 #: src/lib/components/shared/entity-assets.tsx:151
 msgid "Preview"
 msgstr "معاينة"
@@ -5376,7 +5380,7 @@ msgstr "المعرف"
 msgid "Select a fulfillment handler"
 msgstr "اختيار معالج التنفيذ"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:119
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:138
 msgid "Failed to update collection"
 msgstr "فشل تحديث المجموعة"
 
@@ -5462,9 +5466,9 @@ msgstr "فشل تحديث المتغير"
 msgid "Go to previous page"
 msgstr "الانتقال إلى الصفحة السابقة"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:255
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:258
-#: src/app/routes/_authenticated/_collections/collections.tsx:425
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278
+#: src/app/routes/_authenticated/_collections/collections.tsx:447
 msgid "Contents"
 msgstr "المحتويات"
 
@@ -5514,7 +5518,7 @@ msgstr "فشل تحديث العميل"
 msgid "Remove option groups?"
 msgstr "إزالة مجموعات الخيارات؟"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:95
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:102
 msgid "This is a preview of the collection contents based on the current filter settings. Once you save the collection, the contents will be updated to reflect the new filter settings."
 msgstr "هذه معاينة لمحتويات المجموعة بناءً على إعدادات المرشح الحالية. بمجرد حفظ المجموعة، سيتم تحديث المحتويات لتعكس إعدادات المرشح الجديدة."
 
@@ -5591,7 +5595,7 @@ msgstr "لا توجد فئات أخرى"
 msgid "Search index rebuild started"
 msgstr "بدأت إعادة بناء فهرس البحث"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:346
+#: src/app/routes/_authenticated/_collections/collections.tsx:348
 msgid "Collection position updated"
 msgstr "تم تحديث موضع المجموعة"
 
@@ -5646,7 +5650,7 @@ msgstr "الرمز المميز"
 msgid "Fulfilling..."
 msgstr "جارٍ التنفيذ..."
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:524
+#: src/app/routes/_authenticated/_collections/collections.tsx:552
 msgid "Search collections..."
 msgstr "البحث في المجموعات..."
 
@@ -5783,10 +5787,6 @@ msgstr "كل 10 ثوانٍ"
 msgid "Low Stock"
 msgstr "مخزون منخفض"
 
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:549
-#~ msgid "Edit option group"
-#~ msgstr ""
-
 #: src/app/routes/_authenticated/_shipping-methods/components/price-display.tsx:17
 msgid "ex. tax:"
 msgstr "بدون ضريبة:"
@@ -5799,7 +5799,7 @@ msgstr "بدون ضريبة:"
 msgid "Successfully added option value"
 msgstr "تمت إضافة قيمة الخيار بنجاح"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:348
+#: src/app/routes/_authenticated/_collections/collections.tsx:350
 msgid "Collection moved to new parent"
 msgstr "تم نقل المجموعة إلى مجموعة أصل جديدة"
 
@@ -6062,7 +6062,7 @@ msgstr "المقاييس"
 msgid "Language"
 msgstr "اللغة"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:555
+#: src/app/routes/_authenticated/_collections/collections.tsx:583
 msgid "New Collection"
 msgstr "مجموعة جديدة"
 
@@ -6222,6 +6222,10 @@ msgstr ""
 msgid "Total Revenue"
 msgstr "إجمالي الإيرادات"
 
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:89
+msgid "Applying filters…"
+msgstr "جارٍ تطبيق عوامل التصفية…"
+
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:163
 msgid "Next Execution"
 msgstr "التنفيذ التالي"
@@ -6233,6 +6237,10 @@ msgstr "المخزون القابل للبيع عند {threshold} أو أقل، 
 #: src/lib/components/shared/history-timeline/history-note-checkbox.tsx:21
 msgid "Note is private"
 msgstr "الملاحظة خاصة"
+
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:92
+msgid "The collection contents will refresh once the update has finished."
+msgstr "سيتم تحديث محتويات المجموعة بمجرد انتهاء التحديث."
 
 #: src/lib/components/layout/language-dialog.tsx:124
 msgid "Medium date"
@@ -6267,7 +6275,7 @@ msgstr "استخدام كعنوان شحن افتراضي"
 msgid "Edit slug manually"
 msgstr "تحرير الرابط المختصر يدويًا"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:84
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:116
 msgid "Add filters to preview the collection contents."
 msgstr "أضف مرشحات لمعاينة محتويات المجموعة."
 
@@ -6328,7 +6336,7 @@ msgstr "البحث في مواقع المخزون..."
 msgid "Search assets..."
 msgstr "البحث في الملفات..."
 
-#: src/app/routes/_authenticated/_facets/facets.tsx:127
+#: src/app/routes/_authenticated/_facets/facets.tsx:125
 msgid "New Facet"
 msgstr "خاصية جديدة"
 
@@ -6446,7 +6454,7 @@ msgstr "صفوف لكل صفحة"
 msgid "Loading collections..."
 msgstr "جارٍ تحميل المجموعات..."
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:84
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:85
 msgid "Successfully updated facet value"
 msgstr "تم تحديث قيمة الخاصية بنجاح"
 
@@ -6757,7 +6765,7 @@ msgstr "عملية الطلب"
 msgid "Phone number"
 msgstr "رقم الهاتف"
 
-#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:161
+#: src/app/routes/_authenticated/_collections/collections_.$id.tsx:180
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:109
 #: src/lib/components/data-input/default-relation-input.tsx:247
 #: src/lib/components/data-input/default-relation-input.tsx:277
