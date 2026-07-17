@@ -1,5 +1,4 @@
 import { spawn, spawnSync } from 'node:child_process';
-import { rmSync } from 'node:fs';
 import { get as httpGet } from 'node:http';
 import { get as httpsGet } from 'node:https';
 import { createRequire } from 'node:module';
@@ -43,7 +42,6 @@ const {
     usePortless,
     apiOrigin,
     dashboardUrl,
-    serverDashboardUrl,
     sharedEnv: sharedDevelopmentEnv,
     serverEnv,
     dashboardEnv,
@@ -66,7 +64,6 @@ if (agentMode) {
                 mode,
                 apiUrl: apiOrigin,
                 dashboardUrl: `${dashboardUrl}/`,
-                serverDashboardUrl,
                 ...(process.env.DB ? { database: process.env.DB } : {}),
             },
         });
@@ -146,10 +143,7 @@ const server = new RestartableProcess({
     onRestarting: beginRestart,
     onRestarted: (_label, token) =>
         restartReadiness?.complete('server', token, () =>
-            Promise.all([
-                waitForHttp(`${apiOrigin}/health`, 'API health endpoint'),
-                waitForHttp(serverDashboardUrl, 'server-served Dashboard'),
-            ]),
+            waitForHttp(`${apiOrigin}/health`, 'API health endpoint'),
         ),
     onRestartFailure: handleReadinessFailure,
 });
@@ -284,9 +278,6 @@ async function buildPrerequisites(env) {
         ['@vendure/cli', path.join(repoRoot, 'packages/cli')],
         ['@vendure/asset-server-plugin', path.join(repoRoot, 'packages/asset-server-plugin')],
         ['@vendure/email-plugin', path.join(repoRoot, 'packages/email-plugin')],
-        ['@vendure/graphiql-plugin', path.join(repoRoot, 'packages/graphiql-plugin')],
-        ['@vendure/telemetry-plugin', path.join(repoRoot, 'packages/telemetry-plugin')],
-        ['@vendure/dashboard', path.join(repoRoot, 'packages/dashboard')],
     ];
 
     console.log('Building dev-server prerequisites...');
@@ -295,9 +286,19 @@ async function buildPrerequisites(env) {
         await runForeground(packageManager, ['run', '--cwd', cwd, 'build']);
     }
 
-    console.log('\nBuilding a clean server-served Dashboard...');
-    rmSync(path.join(devServerDir, 'dist'), { recursive: true, force: true });
-    await runForeground(packageManager, ['run', 'build:dashboard'], env);
+    console.log('\nBuilding the Dashboard Vite plugin...');
+    await runForeground(
+        packageManager,
+        ['run', '--cwd', path.join(repoRoot, 'packages/dashboard'), 'build:vite'],
+        env,
+    );
+
+    console.log('\nBuilding the Dashboard server plugin...');
+    await runForeground(
+        packageManager,
+        ['run', '--cwd', path.join(repoRoot, 'packages/dashboard'), 'build:plugin'],
+        env,
+    );
 }
 
 function runForeground(command, args, env = {}) {
@@ -408,7 +409,6 @@ async function waitForReadiness(activeWatchers) {
         ...activeWatchers.map(watcher => watcher.ready),
         waitForHttp(`${apiOrigin}/health`, 'API health endpoint'),
         waitForHttp(`${dashboardUrl}/`, 'Dashboard Vite server'),
-        waitForHttp(serverDashboardUrl, 'server-served Dashboard'),
     ]);
 }
 

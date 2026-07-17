@@ -15,8 +15,9 @@ export function resolveDevelopmentNetwork({ mode, ensurePortlessProxy, getPortle
         apiOrigin,
         dashboardOrigin,
         dashboardUrl,
-        serverDashboardUrl: `${apiOrigin}/dashboard/`,
         sharedEnv: {
+            VENDURE_SERVE_GRAPHIQL: 'false',
+            VENDURE_SERVE_STATIC_DASHBOARD: 'false',
             VENDURE_DASHBOARD_URL: dashboardUrl,
             VITE_ADMIN_API_HOST: usePortless ? `${apiUrl.protocol}//${apiUrl.hostname}` : 'http://localhost',
             VITE_ADMIN_API_PORT: usePortless ? DASHBOARD_API_PORT_FROM_PAGE : '3000',
