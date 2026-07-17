@@ -420,7 +420,7 @@ msgstr "Завантаження зображення..."
 #. placeholder {0}: fulfillment.lines.reduce((acc, line) => acc + line.quantity, 0)
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:146
 msgid "View fulfilled items ({0})"
-msgstr ""
+msgstr "Показати виконані товари ({0})"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts:200
 msgid "Refund total cannot be negative"
@@ -614,7 +614,7 @@ msgstr "Кількість замовлень"
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:154
 msgid "Fulfilled items"
-msgstr ""
+msgstr "Виконані товари"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:95
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:59
@@ -1007,7 +1007,7 @@ msgstr "Клієнт"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:223
 msgid "Metadata returned by the payment handler."
-msgstr ""
+msgstr "Метадані, повернуті обробником платежу."
 
 #: src/lib/components/shared/error-page.tsx:98
 msgid "Page not found"
@@ -3302,7 +3302,7 @@ msgstr "Пошук товарів..."
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:163
 msgid "Unknown product"
-msgstr ""
+msgstr "Невідомий товар"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:53
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx:78
@@ -4127,7 +4127,7 @@ msgstr "Введіть slug вручну"
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:157
 msgid "Items included in this fulfillment."
-msgstr ""
+msgstr "Товари, включені до цього виконання."
 
 #: src/app/routes/_authenticated/index.tsx:230
 #~ msgid "No widgets available"
@@ -4926,7 +4926,7 @@ msgstr "Перетягніть файли сюди для завантаженн
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:215
 msgid "View payment metadata"
-msgstr ""
+msgstr "Показати метадані платежу"
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:182
 msgid "Toggle all visible variants"
@@ -5491,7 +5491,7 @@ msgstr "Перейти на попередню сторінку"
 #. placeholder {0}: line.quantity
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:171
 msgid "Quantity: {0}"
-msgstr ""
+msgstr "Кількість: {0}"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278

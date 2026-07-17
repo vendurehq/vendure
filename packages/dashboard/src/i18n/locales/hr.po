@@ -420,7 +420,7 @@ msgstr "Prijenos slike..."
 #. placeholder {0}: fulfillment.lines.reduce((acc, line) => acc + line.quantity, 0)
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:146
 msgid "View fulfilled items ({0})"
-msgstr ""
+msgstr "Prikaži izvršene stavke ({0})"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts:200
 msgid "Refund total cannot be negative"
@@ -614,7 +614,7 @@ msgstr "Broj narudžbi"
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:154
 msgid "Fulfilled items"
-msgstr ""
+msgstr "Izvršene stavke"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:95
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:59
@@ -1007,7 +1007,7 @@ msgstr "Kupac"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:223
 msgid "Metadata returned by the payment handler."
-msgstr ""
+msgstr "Metapodaci koje je vratio obrađivač plaćanja."
 
 #: src/lib/components/shared/error-page.tsx:98
 msgid "Page not found"
@@ -3302,7 +3302,7 @@ msgstr "Pretraži proizvode..."
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:163
 msgid "Unknown product"
-msgstr ""
+msgstr "Nepoznat proizvod"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:53
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx:78
@@ -4127,7 +4127,7 @@ msgstr "Ručno unesite URL naziv"
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:157
 msgid "Items included in this fulfillment."
-msgstr ""
+msgstr "Stavke uključene u ovo izvršenje."
 
 #: src/app/routes/_authenticated/index.tsx:230
 #~ msgid "No widgets available"
@@ -4926,7 +4926,7 @@ msgstr "Ispustite datoteke ovdje za prijenos"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:215
 msgid "View payment metadata"
-msgstr ""
+msgstr "Prikaži metapodatke plaćanja"
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:182
 msgid "Toggle all visible variants"
@@ -5491,7 +5491,7 @@ msgstr "Idi na prethodnu stranicu"
 #. placeholder {0}: line.quantity
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:171
 msgid "Quantity: {0}"
-msgstr ""
+msgstr "Količina: {0}"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278

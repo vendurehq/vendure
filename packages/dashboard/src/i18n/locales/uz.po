@@ -396,7 +396,7 @@ msgstr "Rasm yuklanmoqda..."
 #. placeholder {0}: fulfillment.lines.reduce((acc, line) => acc + line.quantity, 0)
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:146
 msgid "View fulfilled items ({0})"
-msgstr ""
+msgstr "Bajarilgan elementlarni ko'rish ({0})"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts:200
 msgid "Refund total cannot be negative"
@@ -586,7 +586,7 @@ msgstr "Buyurtmalar soni"
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:154
 msgid "Fulfilled items"
-msgstr ""
+msgstr "Bajarilgan elementlar"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:95
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:59
@@ -979,7 +979,7 @@ msgstr "Mijoz"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:223
 msgid "Metadata returned by the payment handler."
-msgstr ""
+msgstr "To'lov ishlovchisi qaytargan metama'lumotlar."
 
 #: src/lib/components/shared/error-page.tsx:98
 msgid "Page not found"
@@ -3210,7 +3210,7 @@ msgstr "Mahsulotlarni qidirish..."
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:163
 msgid "Unknown product"
-msgstr ""
+msgstr "Noma'lum mahsulot"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:53
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx:78
@@ -4016,7 +4016,7 @@ msgstr "Slug'ni qo'lda kiriting"
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:157
 msgid "Items included in this fulfillment."
-msgstr ""
+msgstr "Ushbu bajarishga kiritilgan elementlar."
 
 #: src/app/routes/_authenticated/index.tsx:230
 #~ msgid "No widgets available"
@@ -4786,7 +4786,7 @@ msgstr "Yuklash uchun fayllarni shu yerga tashlang"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:215
 msgid "View payment metadata"
-msgstr ""
+msgstr "To'lov metama'lumotlarini ko'rish"
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:182
 msgid "Toggle all visible variants"
@@ -5331,7 +5331,7 @@ msgstr "Oldingi sahifaga o'tish"
 #. placeholder {0}: line.quantity
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:171
 msgid "Quantity: {0}"
-msgstr ""
+msgstr "Miqdor: {0}"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278

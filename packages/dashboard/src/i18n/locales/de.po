@@ -420,7 +420,7 @@ msgstr "Bild wird hochgeladen..."
 #. placeholder {0}: fulfillment.lines.reduce((acc, line) => acc + line.quantity, 0)
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:146
 msgid "View fulfilled items ({0})"
-msgstr ""
+msgstr "Erfüllte Artikel anzeigen ({0})"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts:200
 msgid "Refund total cannot be negative"
@@ -614,7 +614,7 @@ msgstr "Anzahl Bestellungen"
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:154
 msgid "Fulfilled items"
-msgstr ""
+msgstr "Erfüllte Artikel"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:95
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:59
@@ -1007,7 +1007,7 @@ msgstr "Kunde"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:223
 msgid "Metadata returned by the payment handler."
-msgstr ""
+msgstr "Vom Zahlungs-Handler zurückgegebene Metadaten."
 
 #: src/lib/components/shared/error-page.tsx:98
 msgid "Page not found"
@@ -3302,7 +3302,7 @@ msgstr "Produkte suchen..."
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:163
 msgid "Unknown product"
-msgstr ""
+msgstr "Unbekanntes Produkt"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:53
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx:78
@@ -4127,7 +4127,7 @@ msgstr "Slug manuell eingeben"
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:157
 msgid "Items included in this fulfillment."
-msgstr ""
+msgstr "In dieser Erfüllung enthaltene Artikel."
 
 #: src/app/routes/_authenticated/index.tsx:230
 #~ msgid "No widgets available"
@@ -4926,7 +4926,7 @@ msgstr "Dateien zum Hochladen hier ablegen"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:215
 msgid "View payment metadata"
-msgstr ""
+msgstr "Zahlungsmetadaten anzeigen"
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:182
 msgid "Toggle all visible variants"
@@ -5491,7 +5491,7 @@ msgstr "Zur vorherigen Seite"
 #. placeholder {0}: line.quantity
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:171
 msgid "Quantity: {0}"
-msgstr ""
+msgstr "Menge: {0}"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278
