@@ -75,7 +75,6 @@ function output(value) {
     if (value.apiUrl) {
         console.log(`API:              ${value.apiUrl}`);
         console.log(`Dashboard:        ${value.dashboardUrl}`);
-        console.log(`Server Dashboard: ${value.serverDashboardUrl}`);
     }
     console.log(`Status file:      ${value.statusFile}`);
     if (value.error) {

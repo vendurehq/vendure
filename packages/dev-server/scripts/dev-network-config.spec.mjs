@@ -27,6 +27,8 @@ test('does not duplicate a custom Portless proxy port in Dashboard API URLs', ()
 
     assert.equal(network.sharedEnv.VITE_ADMIN_API_HOST, 'https://vendure.localhost');
     assert.equal(network.sharedEnv.VITE_ADMIN_API_PORT, DASHBOARD_API_PORT_FROM_PAGE);
+    assert.equal(network.sharedEnv.VENDURE_SERVE_GRAPHIQL, 'false');
+    assert.equal(network.sharedEnv.VENDURE_SERVE_STATIC_DASHBOARD, 'false');
     assert.equal(
         getDashboardApiBaseUrl(network.sharedEnv, 'https://dashboard.vendure.localhost:1355'),
         'https://vendure.localhost:1355',
