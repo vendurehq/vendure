@@ -34,7 +34,7 @@ import { GripVertical } from 'lucide-react';
 import React, { Suspense, useEffect, useMemo, useRef } from 'react';
 import { AddFilterMenu } from './add-filter-menu.js';
 import { ActiveFiltersPopover } from './data-table-active-filters-popover.js';
-import { DataTableBulkActions } from './data-table-bulk-actions.js';
+import { DataTableBulkActions, getRowItemId } from './data-table-bulk-actions.js';
 import { DataTableProvider } from './data-table-context.js';
 import { createPaginationState, syncPaginationState } from './data-table-pagination-state.js';
 import {
@@ -326,15 +326,15 @@ export function DataTable<TData>({
         setTableInstance(table);
     };
 
-    const selectedItemIds = selectedItems?.map(item => String((item as { id: string }).id)).join(',');
+    const selectedItemIds = selectedItems?.map(item => getRowItemId(item)).join(',');
 
     useEffect(() => {
         if (!selectedItems) return;
 
         selectedItems.forEach(item => {
-            selectedItemsCache.current.set(String((item as { id: string }).id), item);
+            selectedItemsCache.current.set(getRowItemId(item), item);
         });
-        const nextSelection = Object.fromEntries(selectedItems.map(item => [String((item as { id: string }).id), true]));
+        const nextSelection = Object.fromEntries(selectedItems.map(item => [getRowItemId(item), true]));
         rowSelectionRef.current = nextSelection;
         setRowSelection(nextSelection);
     }, [selectedItemIds]);
@@ -343,7 +343,7 @@ export function DataTable<TData>({
         const nextSelection = typeof updater === 'function' ? updater(rowSelectionRef.current) : updater;
 
         data.forEach(item => {
-            const id = String((item as { id: string }).id);
+            const id = getRowItemId(item);
             if (nextSelection[id]) {
                 selectedItemsCache.current.set(id, item);
             }

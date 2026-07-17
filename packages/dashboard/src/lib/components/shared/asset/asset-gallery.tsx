@@ -32,7 +32,7 @@ import { ColumnFiltersState, SortingState } from '@tanstack/react-table';
 import { Link } from '@tanstack/react-router';
 import { useDebounce } from '@uidotdev/usehooks';
 import { ChevronRight, LayoutGrid, LayoutList, Loader2, Search, Upload, X } from 'lucide-react';
-import { DragEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { DragEvent, memo, useCallback, useMemo, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { toast } from 'sonner';
 import {
@@ -157,7 +157,9 @@ export interface AssetGalleryProps {
     bulkActions?: AssetBulkActionsInput;
     /**
      * @description
-     * Whether the gallery should display bulk actions.
+     * Whether the gallery should display the bulk-action toolbar. Asset
+     * selection stays enabled when this is `false` — in list view this maps
+     * to the data table's `bulkActions={false}` mode.
      */
     displayBulkActions?: boolean;
     /**
@@ -228,12 +230,25 @@ export function AssetGallery({
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const queryClient = useQueryClient();
 
+    // Latest-value refs keep the selection callbacks below referentially stable,
+    // so the adapted bulk actions and memoized asset cards don't churn when a
+    // consumer passes inline props.
+    const onSelectRef = useRef(onSelect);
+    onSelectRef.current = onSelect;
+    const selectedRef = useRef(selected);
+    selectedRef.current = selected;
+
+    const handleSelectionChange = useCallback((nextSelected: Asset[]) => {
+        setSelected(nextSelected);
+        onSelectRef.current?.(nextSelected);
+    }, []);
+    const clearSelection = useCallback(() => handleSelectionChange([]), [handleSelectionChange]);
+
     const refetchAssets = useCallback(() => {
-        setSelected([]);
-        onSelect?.([]);
+        clearSelection();
         void queryClient.invalidateQueries({ queryKey: ['AssetGallery'] });
         void queryClient.invalidateQueries({ queryKey: [PaginatedListDataTableKey] });
-    }, [onSelect, queryClient]);
+    }, [clearSelection, queryClient]);
     const adaptedBulkActions = useMemo(
         () => adaptAssetBulkActions(bulkActions, refetchAssets),
         [bulkActions, refetchAssets],
@@ -363,37 +378,38 @@ export function AssetGallery({
     // Toggle a single asset in the selection
     const toggleAssetSelection = useCallback(
         (asset: Asset) => {
-            const isCurrentlySelected = selected.some(a => a.id === asset.id);
+            const current = selectedRef.current;
+            const isCurrentlySelected = current.some(a => a.id === asset.id);
             const newSelected = isCurrentlySelected
-                ? selected.filter(a => a.id !== asset.id)
-                : [...selected, asset];
-            setSelected(newSelected);
-            onSelect?.(newSelected);
+                ? current.filter(a => a.id !== asset.id)
+                : [...current, asset];
+            handleSelectionChange(newSelected);
         },
-        [selected, onSelect],
+        [handleSelectionChange],
     );
 
     // Handle selection
-    const handleSelect = (asset: Asset, event: React.MouseEvent | React.KeyboardEvent) => {
-        if (multiSelect === 'auto') {
-            toggleAssetSelection(asset);
-            return;
-        }
+    const handleSelect = useCallback(
+        (asset: Asset, event: React.MouseEvent | React.KeyboardEvent) => {
+            if (multiSelect === 'auto') {
+                toggleAssetSelection(asset);
+                return;
+            }
 
-        // Manual mode - check for modifier key
-        const isModifierKeyPressed = event.metaKey || event.ctrlKey;
+            // Manual mode - check for modifier key
+            const isModifierKeyPressed = event.metaKey || event.ctrlKey;
 
-        if (multiSelect === 'manual' && isModifierKeyPressed) {
-            toggleAssetSelection(asset);
-        } else {
-            // No modifier key - single select
-            setSelected([asset]);
-            onSelect?.([asset]);
-        }
-    };
+            if (multiSelect === 'manual' && isModifierKeyPressed) {
+                toggleAssetSelection(asset);
+            } else {
+                // No modifier key - single select
+                handleSelectionChange([asset]);
+            }
+        },
+        [multiSelect, toggleAssetSelection, handleSelectionChange],
+    );
 
-    // Check if an asset is selected
-    const isSelected = (asset: Asset) => selected.some(a => a.id === asset.id);
+    const selectedIds = useMemo(() => new Set(selected.map(a => a.id)), [selected]);
 
     // Clear filters
     const clearFilters = () => {
@@ -551,10 +567,7 @@ export function AssetGallery({
                 <AssetBulkActions
                     selection={selected}
                     bulkActions={adaptedBulkActions}
-                    clearSelection={() => {
-                        setSelected([]);
-                        onSelect?.([]);
-                    }}
+                    clearSelection={clearSelection}
                 />
             ) : null}
 
@@ -601,10 +614,7 @@ export function AssetGallery({
                         }}
                         onSortChange={setSorting}
                         onFilterChange={setColumnFilters}
-                        onSelectionChange={nextSelected => {
-                            setSelected(nextSelected);
-                            onSelect?.(nextSelected);
-                        }}
+                        onSelectionChange={handleSelectionChange}
                     />
                 ) : (
                     <AssetGridView
@@ -617,9 +627,9 @@ export function AssetGallery({
                         hasActiveFilters={hasActiveFilters}
                         clearFilters={clearFilters}
                         openFileDialog={openFileDialog}
-                        isSelected={isSelected}
-                        handleSelect={handleSelect}
-                        toggleAssetSelection={toggleAssetSelection}
+                        selectedIds={selectedIds}
+                        onSelectAsset={handleSelect}
+                        onToggleAsset={toggleAssetSelection}
                     />
                 )}
             </div>
@@ -792,9 +802,9 @@ interface AssetViewProps {
     hasActiveFilters: boolean;
     clearFilters: () => void;
     openFileDialog: () => void;
-    isSelected: (asset: Asset) => boolean;
-    handleSelect: (asset: Asset, event: React.MouseEvent | React.KeyboardEvent) => void;
-    toggleAssetSelection: (asset: Asset) => void;
+    selectedIds: Set<string>;
+    onSelectAsset: (asset: Asset, event: React.MouseEvent | React.KeyboardEvent) => void;
+    onToggleAsset: (asset: Asset) => void;
 }
 
 function AssetEmptyState({
@@ -840,12 +850,10 @@ function AssetGridView({
     hasActiveFilters,
     clearFilters,
     openFileDialog,
-    isSelected,
-    handleSelect,
-    toggleAssetSelection,
+    selectedIds,
+    onSelectAsset,
+    onToggleAsset,
 }: Readonly<AssetViewProps>) {
-    const { t } = useLingui();
-
     if (isLoading) {
         return (
             <div data-asset-gallery className="py-12">
@@ -886,67 +894,97 @@ function AssetGridView({
             className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] gap-3 p-1"
         >
             {assets.map(asset => (
-                <div
+                <AssetCard
                     key={asset.id}
-                    className={`
-                        group relative transition-all overflow-hidden rounded-lg
-                        bg-card text-card-foreground ring-1 text-left
-                        hover:ring-primary/40
-                        ${isSelected(asset) ? 'ring-2 ring-primary' : 'ring-foreground/10'}
-                    `}
-                >
-                    <button
-                        type="button"
-                        className="absolute inset-0 z-10 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                        aria-label={t`Select ${asset.name}`}
-                        onClick={e => handleSelect(asset, e)}
-                    />
-                    <div className="relative aspect-square bg-muted/30 overflow-hidden">
-                        <VendureImage
-                            asset={asset}
-                            preset="thumb"
-                            className="w-full h-full object-cover"
-                        />
-                        {selectable && (
-                            <div className="absolute top-1.5 left-1.5 z-20">
-                                <Checkbox
-                                    checked={isSelected(asset)}
-                                    aria-label={t`Toggle selection for ${asset.name}`}
-                                    onClick={e => {
-                                        e.stopPropagation();
-                                        toggleAssetSelection(asset);
-                                    }}
-                                />
-                            </div>
-                        )}
-                    </div>
-                    <div className="px-2 py-1.5">
-                        <p
-                            className="text-sm font-medium leading-tight line-clamp-1"
-                            title={asset.name}
-                        >
-                            {asset.name}
-                        </p>
-                        <div className="flex items-center justify-between mt-0.5">
-                            <span className="text-xs text-muted-foreground">
-                                {asset.fileSize ? formatFileSize(asset.fileSize) : ''}
-                            </span>
-                            <Link
-                                to={`/assets/${asset.id}`}
-                                onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                                aria-label={t`Open ${asset.name}`}
-                                className="relative z-20 inline-flex items-center gap-1 rounded-sm px-1 py-0.5 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                            >
-                                <Trans>Open</Trans>
-                                <ChevronRight className="h-3 w-3" />
-                            </Link>
-                        </div>
-                    </div>
-                </div>
+                    asset={asset}
+                    isSelected={selectedIds.has(asset.id)}
+                    selectable={selectable}
+                    onSelectAsset={onSelectAsset}
+                    onToggleAsset={onToggleAsset}
+                />
             ))}
         </div>
     );
 }
+
+interface AssetCardProps {
+    asset: Asset;
+    isSelected: boolean;
+    selectable: boolean;
+    onSelectAsset: AssetViewProps['onSelectAsset'];
+    onToggleAsset: AssetViewProps['onToggleAsset'];
+}
+
+// Memoized so a selection change only re-renders the cards whose selected
+// state changed, not every thumbnail in the grid.
+const AssetCard = memo(function AssetCard({
+    asset,
+    isSelected,
+    selectable,
+    onSelectAsset,
+    onToggleAsset,
+}: Readonly<AssetCardProps>) {
+    const { t } = useLingui();
+
+    return (
+        <div
+            className={`
+                group relative transition-all overflow-hidden rounded-lg
+                bg-card text-card-foreground ring-1 text-left
+                hover:ring-primary/40
+                ${isSelected ? 'ring-2 ring-primary' : 'ring-foreground/10'}
+            `}
+        >
+            <button
+                type="button"
+                className="absolute inset-0 z-10 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                aria-label={t`Select ${asset.name}`}
+                onClick={e => onSelectAsset(asset, e)}
+            />
+            <div className="relative aspect-square bg-muted/30 overflow-hidden">
+                <VendureImage
+                    asset={asset}
+                    preset="thumb"
+                    className="w-full h-full object-cover"
+                />
+                {selectable && (
+                    <div className="absolute top-1.5 left-1.5 z-20">
+                        <Checkbox
+                            checked={isSelected}
+                            aria-label={t`Toggle selection for ${asset.name}`}
+                            onClick={e => {
+                                e.stopPropagation();
+                                onToggleAsset(asset);
+                            }}
+                        />
+                    </div>
+                )}
+            </div>
+            <div className="px-2 py-1.5">
+                <p
+                    className="text-sm font-medium leading-tight line-clamp-1"
+                    title={asset.name}
+                >
+                    {asset.name}
+                </p>
+                <div className="flex items-center justify-between mt-0.5">
+                    <span className="text-xs text-muted-foreground">
+                        {asset.fileSize ? formatFileSize(asset.fileSize) : ''}
+                    </span>
+                    <Link
+                        to={`/assets/${asset.id}`}
+                        onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                        aria-label={t`Open ${asset.name}`}
+                        className="relative z-20 inline-flex items-center gap-1 rounded-sm px-1 py-0.5 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    >
+                        <Trans>Open</Trans>
+                        <ChevronRight className="h-3 w-3" />
+                    </Link>
+                </div>
+            </div>
+        </div>
+    );
+});
 
 interface AssetListDataTableProps {
     selectable: boolean;

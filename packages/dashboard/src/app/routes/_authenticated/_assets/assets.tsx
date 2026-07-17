@@ -11,6 +11,9 @@ import {
 
 type AssetSearch = ReturnType<typeof parseAssetSearch>;
 
+// Hoisted so the gallery receives a stable bulkActions identity across renders.
+const assetBulkActions = [{ component: DeleteAssetsBulkAction }];
+
 export const Route = createFileRoute('/_authenticated/_assets/assets')({
     component: RouteComponent,
     loader: () => ({ breadcrumb: () => <Trans>Assets</Trans> }),
@@ -49,11 +52,7 @@ function RouteComponent() {
                     onPageSizeChange={handlePageSizeChange}
                     viewMode={viewMode}
                     onViewModeChange={handleViewModeChange}
-                    bulkActions={[
-                        {
-                            component: DeleteAssetsBulkAction,
-                        },
-                    ]}
+                    bulkActions={assetBulkActions}
                 />
             </PageBlock>
         </Page>

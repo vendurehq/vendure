@@ -21,13 +21,19 @@ interface DataTableBulkActionsProps<TData> {
     selectedItems?: TData[];
 }
 
+// The data-table components assume row data carries an `id`; this keeps that
+// assumption (and its cast) in one place.
+export function getRowItemId(item: unknown): string {
+    return String((item as { id: string | number }).id);
+}
+
 export function resolveSelectedItems<TData>(
     table: Table<TData>,
     selectedItemsCache: Map<string, TData>,
     selectedItems?: TData[],
 ) {
     selectedItems?.forEach(item => {
-        selectedItemsCache.set(String((item as { id: string }).id), item);
+        selectedItemsCache.set(getRowItemId(item), item);
     });
 
     return Object.keys(table.getState().rowSelection)

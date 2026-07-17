@@ -32,9 +32,28 @@ export type AssetBulkActionsInput =
     | AssetBulkAction[]
     | Array<AssetBulkAction[] | AssetBulkActionGroup>;
 
+// Adapted components are cached per (action component, refetch) pair so that
+// re-running the adaptation (e.g. when a caller passes an inline `bulkActions`
+// array) yields the same component identity. A fresh identity each time would
+// make React unmount and remount the rendered action components, discarding
+// their state (e.g. an in-flight useMutation).
+const adaptedComponentCache = new WeakMap<
+    AssetBulkActionComponent,
+    WeakMap<() => void, BulkActionComponent<Asset>>
+>();
+
 function adaptAssetBulkAction(action: AssetBulkAction, refetch: () => void): BulkAction {
     const AssetAction = action.component;
-    const component: BulkActionComponent<Asset> = props => <AssetAction {...props} refetch={refetch} />;
+    let byRefetch = adaptedComponentCache.get(AssetAction);
+    if (!byRefetch) {
+        byRefetch = new WeakMap();
+        adaptedComponentCache.set(AssetAction, byRefetch);
+    }
+    let component = byRefetch.get(refetch);
+    if (!component) {
+        component = props => <AssetAction {...props} refetch={refetch} />;
+        byRefetch.set(refetch, component);
+    }
     return { ...action, component };
 }
 
@@ -72,7 +91,7 @@ interface AssetBulkActionsProps {
 export function AssetBulkActions({ selection, bulkActions = [], clearSelection }: Readonly<AssetBulkActionsProps>) {
     const table = useMemo(() => {
         const selectedById = new Map(selection.map(asset => [asset.id, asset]));
-        return {
+        const supported = {
             getState: () => ({
                 rowSelection: Object.fromEntries(selection.map(asset => [asset.id, true])),
             }),
@@ -84,7 +103,24 @@ export function AssetBulkActions({ selection, bulkActions = [], clearSelection }
                 return { original };
             },
             resetRowSelection: clearSelection,
-        } as unknown as Table<Asset>;
+        };
+        // Bulk actions are typed as receiving a full TanStack `Table`, but the
+        // gallery grid has no table instance. The proxy turns access to any
+        // unimplemented member into a descriptive error rather than a cryptic
+        // "x is not a function" inside the action component.
+        return new Proxy(supported, {
+            get(target, property, receiver) {
+                if (property in target) {
+                    return Reflect.get(target, property, receiver);
+                }
+                if (typeof property === 'symbol') {
+                    return undefined;
+                }
+                throw new Error(
+                    `The asset gallery selection table only supports ${Object.keys(supported).join(', ')} — "${property}" is not available.`,
+                );
+            },
+        }) as unknown as Table<Asset>;
     }, [clearSelection, selection]);
 
     if (selection.length === 0) {
