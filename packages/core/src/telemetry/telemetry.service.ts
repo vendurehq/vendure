@@ -62,6 +62,7 @@ const HEARTBEAT_MAX_JITTER_MS = 60 * 60 * 1000;
 export class TelemetryService implements OnApplicationBootstrap, OnApplicationShutdown {
     private delayTimeout: ReturnType<typeof setTimeout> | undefined;
     private heartbeatTimeout: ReturnType<typeof setTimeout> | undefined;
+    private hasBootstrapped = false;
 
     constructor(
         private readonly processContext: ProcessContext,
@@ -75,6 +76,10 @@ export class TelemetryService implements OnApplicationBootstrap, OnApplicationSh
     ) {}
 
     onApplicationBootstrap() {
+        if (this.hasBootstrapped) {
+            return;
+        }
+
         // Skip if worker process - only run from server
         if (this.processContext.isWorker) {
             return;
@@ -84,6 +89,8 @@ export class TelemetryService implements OnApplicationBootstrap, OnApplicationSh
         if (isTelemetryDisabled()) {
             return;
         }
+
+        this.hasBootstrapped = true;
 
         // Delay telemetry collection to allow user bootstrap code to complete
         // This ensures JobQueueService.start() has been called (if it will be)
@@ -106,6 +113,7 @@ export class TelemetryService implements OnApplicationBootstrap, OnApplicationSh
             clearTimeout(this.heartbeatTimeout);
             this.heartbeatTimeout = undefined;
         }
+        this.hasBootstrapped = false;
     }
 
     /**
@@ -142,8 +150,12 @@ export class TelemetryService implements OnApplicationBootstrap, OnApplicationSh
      * Collects all telemetry data from the various collectors.
      */
     private async collectPayload(sendReason: SendReason): Promise<TelemetryPayload> {
+        // Both collectors may access the database. Keep them sequential so the
+        // telemetry sweep does not increase peak database concurrency.
         const installationId = await this.installationIdCollector.collect();
-        const databaseInfo = await this.databaseCollector.collect();
+        const databaseInfo = await this.databaseCollector.collect({
+            includeOrderMetrics: sendReason === 'heartbeat',
+        });
 
         const systemInfo = this.systemInfoCollector.collect();
         const plugins = this.pluginCollector.collect();

@@ -6,12 +6,11 @@ import { getStrategyName } from '../helpers/strategy-name.helper';
 import { TelemetryConfig } from '../telemetry.types';
 
 /**
- * Single-strategy (non-array) VendureConfig fields whose live strategy class is
- * compared against `defaultConfig` to detect customization. Grouped by the
- * options key they live under. Array-valued strategy fields are intentionally
- * excluded — they are reported elsewhere.
+ * VendureConfig fields whose live strategy classes are compared against
+ * `defaultConfig` to detect customization. Most are scalar strategies;
+ * activeOrderStrategy also supports an ordered array.
  */
-const SINGLE_STRATEGY_PATHS: Record<string, string[]> = {
+const CUSTOMIZABLE_STRATEGY_PATHS: Record<string, string[]> = {
     authOptions: [
         'sessionCacheStrategy',
         'passwordHashingStrategy',
@@ -19,6 +18,7 @@ const SINGLE_STRATEGY_PATHS: Record<string, string[]> = {
         'verificationTokenStrategy',
         'adminApiKeyStrategy',
         'shopApiKeyStrategy',
+        'entityAccessControlStrategy',
         'customerChannelAssignmentStrategy',
     ],
     assetOptions: ['assetNamingStrategy', 'assetStorageStrategy', 'assetPreviewStrategy'],
@@ -39,6 +39,7 @@ const SINGLE_STRATEGY_PATHS: Record<string, string[]> = {
         'changedPriceHandlingStrategy',
         'orderLineDiscountDistributionStrategy',
         'orderPlacedStrategy',
+        'activeOrderStrategy',
         'orderSellerStrategy',
         'guestCheckoutStrategy',
     ],
@@ -220,14 +221,14 @@ export class ConfigCollector {
     }
 
     /**
-     * Compares the live strategy class of each single-strategy field against the
-     * default config and returns the dotted paths that differ. Emits paths only,
-     * never class names, so custom project vocabulary cannot leak.
+     * Compares the live strategy classes of each field against the default config
+     * and returns the dotted paths that differ. Emits paths only, never class
+     * names, so custom project vocabulary cannot leak.
      */
     private getCustomizedStrategies(): string[] | undefined {
         try {
             const result: string[] = [];
-            for (const [optionsKey, fields] of Object.entries(SINGLE_STRATEGY_PATHS)) {
+            for (const [optionsKey, fields] of Object.entries(CUSTOMIZABLE_STRATEGY_PATHS)) {
                 const liveOptions = (this.configService as any)[optionsKey];
                 const defaultOptions = (defaultConfig as any)[optionsKey];
                 const isEntityIdStrategy = optionsKey === 'entityOptions';
@@ -248,12 +249,15 @@ export class ConfigCollector {
                         if (liveStrategy == null || defaultStrategy == null) {
                             continue;
                         }
-                        const liveName = getStrategyName(liveStrategy);
-                        const defaultName = getStrategyName(defaultStrategy);
-                        if (liveName === 'unknown' || defaultName === 'unknown') {
+                        const liveNames = this.getStrategyNames(liveStrategy);
+                        const defaultNames = this.getStrategyNames(defaultStrategy);
+                        if (liveNames == null || defaultNames == null) {
                             continue;
                         }
-                        if (liveName !== defaultName) {
+                        if (
+                            liveNames.length !== defaultNames.length ||
+                            liveNames.some((name, index) => name !== defaultNames[index])
+                        ) {
                             result.push(`${optionsKey}.${field}`);
                         }
                     } catch {
@@ -265,6 +269,12 @@ export class ConfigCollector {
         } catch {
             return undefined;
         }
+    }
+
+    private getStrategyNames(strategy: object | object[]): string[] | undefined {
+        const strategies = Array.isArray(strategy) ? strategy : [strategy];
+        const names = strategies.map(item => getStrategyName(item));
+        return names.some(name => name === 'unknown') ? undefined : names;
     }
 
     private getDefaultLanguage(): string | undefined {

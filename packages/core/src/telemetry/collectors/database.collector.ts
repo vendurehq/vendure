@@ -27,6 +27,19 @@ export interface DatabaseInfo {
     metrics: TelemetryEntityMetrics;
 }
 
+export interface DatabaseCollectionOptions {
+    /**
+     * Order lifecycle metrics require several filtered counts on the Order table.
+     * Keep them opt-in so startup telemetry and other callers avoid those scans.
+     */
+    includeOrderMetrics?: boolean;
+}
+
+interface EntityMetricsCollection {
+    metrics: TelemetryEntityMetrics;
+    orderCountAvailable: boolean;
+}
+
 /**
  * Collects database type and entity metrics for telemetry.
  */
@@ -37,20 +50,27 @@ export class DatabaseCollector {
         private readonly connection: TransactionalConnection,
     ) {}
 
-    async collect(): Promise<DatabaseInfo> {
+    async collect(options: DatabaseCollectionOptions = {}): Promise<DatabaseInfo> {
         const databaseType = this.getDatabaseType();
         let metrics: TelemetryEntityMetrics;
+        let orderCountAvailable = false;
 
         try {
-            metrics = await this.collectEntityMetrics();
+            const collected = await this.collectEntityMetrics();
+            metrics = collected.metrics;
+            orderCountAvailable = collected.orderCountAvailable;
         } catch {
             metrics = { entities: {}, custom: { entityCount: 0 } };
         }
 
-        // Order and i18n metrics are collected independently (and concurrently)
-        // so that a failure in either never affects the already-collected entity
-        // metrics.
-        const [orders, i18n] = await Promise.all([this.collectOrderMetrics(), this.collectI18nMetrics()]);
+        // Order metrics are heartbeat-only and are skipped for large Order tables.
+        // The filtered active/state/type counts are not indexed, so this protects
+        // startup and high-volume installations from expensive full-table scans.
+        const shouldCollectOrderMetrics =
+            options.includeOrderMetrics === true && orderCountAvailable && metrics.entities.Order !== '100k+';
+        const orders = shouldCollectOrderMetrics ? await this.collectOrderMetrics() : undefined;
+        // Keep DB work sequential to minimize peak load from telemetry collection.
+        const i18n = await this.collectI18nMetrics();
         if (orders) {
             metrics.orders = orders;
         }
@@ -78,15 +98,17 @@ export class DatabaseCollector {
             const repo = rawConnection.getRepository(Order);
             const since = new Date(Date.now() - THIRTY_DAYS_MS);
 
-            // A handful of small, indexed queries — run them in parallel (unlike
-            // the larger entity-count sweep).
-            const [placed, active, draft, placedLast30d, byType] = await Promise.all([
-                this.safeBucket(() => repo.count({ where: { orderPlacedAt: Not(IsNull()) } })),
-                this.safeBucket(() => repo.count({ where: { active: true } })),
-                this.safeBucket(() => repo.count({ where: { state: 'Draft' as any } })),
-                this.safeBucket(() => repo.count({ where: { orderPlacedAt: MoreThanOrEqual(since) } })),
-                this.collectOrdersByType(repo),
-            ]);
+            // Run one query at a time to avoid stacking several counts against the
+            // largest table in a production shop.
+            const placed = await this.safeBucket(() =>
+                repo.count({ where: { orderPlacedAt: Not(IsNull()) } }),
+            );
+            const active = await this.safeBucket(() => repo.count({ where: { active: true } }));
+            const draft = await this.safeBucket(() => repo.count({ where: { state: 'Draft' } }));
+            const placedLast30d = await this.safeBucket(() =>
+                repo.count({ where: { orderPlacedAt: MoreThanOrEqual(since) } }),
+            );
+            const byType = await this.collectOrdersByType(repo);
 
             const orders: TelemetryOrderMetrics = {};
             if (placed) orders.placed = placed;
@@ -189,19 +211,23 @@ export class DatabaseCollector {
         return 'other';
     }
 
-    private async collectEntityMetrics(): Promise<TelemetryEntityMetrics> {
+    private async collectEntityMetrics(): Promise<EntityMetricsCollection> {
         // Check if connection is ready before attempting to collect metrics
         const rawConnection = this.connection.rawConnection;
         if (!rawConnection?.isInitialized) {
-            return { entities: {}, custom: { entityCount: 0 } };
+            return {
+                metrics: { entities: {}, custom: { entityCount: 0 } },
+                orderCountAvailable: false,
+            };
         }
 
         const coreEntityEntries = Object.entries(coreEntitiesMap);
         const counts = await this.countInChunks(coreEntityEntries.map(([, entity]) => entity));
+        const orderIndex = coreEntityEntries.findIndex(([name]) => name === 'Order');
 
         const entities: Partial<Record<string, RangeBucket>> = {};
         coreEntityEntries.forEach(([name], index) => {
-            entities[name] = toRangeBucket(counts[index]);
+            entities[name] = toRangeBucket(counts[index] ?? 0);
         });
 
         const customEntities = this.getCustomEntities();
@@ -211,15 +237,20 @@ export class DatabaseCollector {
         let totalCustomRecords: number | undefined;
         if (customEntityCount > 0) {
             const customCounts = await this.countInChunks(customEntities);
-            totalCustomRecords = customCounts.reduce((sum, count) => sum + count, 0);
+            totalCustomRecords = customCounts.reduce<number>((sum, count) => sum + (count ?? 0), 0);
         }
 
         return {
-            entities,
-            custom: {
-                entityCount: customEntityCount,
-                ...(totalCustomRecords !== undefined && { totalRecords: toRangeBucket(totalCustomRecords) }),
+            metrics: {
+                entities,
+                custom: {
+                    entityCount: customEntityCount,
+                    ...(totalCustomRecords !== undefined && {
+                        totalRecords: toRangeBucket(totalCustomRecords),
+                    }),
+                },
             },
+            orderCountAvailable: orderIndex !== -1 && counts[orderIndex] !== undefined,
         };
     }
 
@@ -228,8 +259,8 @@ export class DatabaseCollector {
      * connection pool during the daily heartbeat sweep.
      */
     // eslint-disable-next-line @typescript-eslint/ban-types
-    private async countInChunks(entities: Function[]): Promise<number[]> {
-        const counts: number[] = [];
+    private async countInChunks(entities: Function[]): Promise<Array<number | undefined>> {
+        const counts: Array<number | undefined> = [];
         for (let i = 0; i < entities.length; i += ENTITY_COUNT_CHUNK_SIZE) {
             const chunk = entities.slice(i, i + ENTITY_COUNT_CHUNK_SIZE);
             counts.push(...(await Promise.all(chunk.map(entity => this.safeCount(entity)))));
@@ -238,15 +269,15 @@ export class DatabaseCollector {
     }
 
     // eslint-disable-next-line @typescript-eslint/ban-types
-    private async safeCount(entity: Function): Promise<number> {
+    private async safeCount(entity: Function): Promise<number | undefined> {
         try {
             const rawConnection = this.connection.rawConnection;
             if (!rawConnection?.isInitialized) {
-                return 0;
+                return undefined;
             }
             return await rawConnection.getRepository(entity).count();
         } catch {
-            return 0;
+            return undefined;
         }
     }
 

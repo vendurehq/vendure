@@ -220,6 +220,7 @@ describe('DatabaseCollector', () => {
             draft: number | Error;
             placedLast30d: number;
         };
+        let totalOrders: number | Error;
         let getRawMany: ReturnType<typeof vi.fn>;
         let orderRepo: { count: ReturnType<typeof vi.fn>; createQueryBuilder: ReturnType<typeof vi.fn> };
 
@@ -227,7 +228,9 @@ describe('DatabaseCollector', () => {
             const where = options?.where;
             if (!where) {
                 // Core entity-count pass (repo.count() with no options)
-                return Promise.resolve(50);
+                return totalOrders instanceof Error
+                    ? Promise.reject(totalOrders)
+                    : Promise.resolve(totalOrders);
             }
             let value: number | Error;
             if ('active' in where) {
@@ -246,6 +249,7 @@ describe('DatabaseCollector', () => {
 
         beforeEach(() => {
             counts = { placed: 0, active: 0, draft: 0, placedLast30d: 0 };
+            totalOrders = 50;
             getRawMany = vi.fn().mockResolvedValue([]);
             const queryBuilder: any = {
                 select: vi.fn().mockReturnThis(),
@@ -271,7 +275,7 @@ describe('DatabaseCollector', () => {
         it('buckets placed / active / draft / placedLast30d counts', async () => {
             counts = { placed: 250, active: 3, draft: 0, placedLast30d: 120 };
 
-            const result = await collector.collect();
+            const result = await collector.collect({ includeOrderMetrics: true });
 
             expect(result.metrics.orders?.placed).toBe('101-1k');
             expect(result.metrics.orders?.active).toBe('1-100');
@@ -286,7 +290,7 @@ describe('DatabaseCollector', () => {
                 { type: 'Aggregate', count: '0' },
             ]);
 
-            const result = await collector.collect();
+            const result = await collector.collect({ includeOrderMetrics: true });
 
             expect(result.metrics.orders?.byType).toEqual({
                 Regular: '1k-10k',
@@ -302,7 +306,7 @@ describe('DatabaseCollector', () => {
                 { type: '', count: '5' },
             ]);
 
-            const result = await collector.collect();
+            const result = await collector.collect({ includeOrderMetrics: true });
 
             expect(result.metrics.orders?.byType).toEqual({ Regular: '1-100' });
         });
@@ -310,7 +314,7 @@ describe('DatabaseCollector', () => {
         it('leaves byType undefined when only unknown types are present', async () => {
             getRawMany.mockResolvedValue([{ type: 'not-a-real-type', count: '42' }]);
 
-            const result = await collector.collect();
+            const result = await collector.collect({ includeOrderMetrics: true });
 
             expect(result.metrics.orders?.byType).toBeUndefined();
         });
@@ -318,7 +322,7 @@ describe('DatabaseCollector', () => {
         it('leaves a single field undefined when its query fails, keeping the others', async () => {
             counts = { placed: 10, active: new Error('boom'), draft: 2, placedLast30d: 5 };
 
-            const result = await collector.collect();
+            const result = await collector.collect({ includeOrderMetrics: true });
 
             expect(result.metrics.orders?.placed).toBe('1-100');
             expect(result.metrics.orders?.active).toBeUndefined();
@@ -328,9 +332,39 @@ describe('DatabaseCollector', () => {
         it('omits orders entirely when the DB is not initialized', async () => {
             (mockConnection.rawConnection as any).isInitialized = false;
 
+            const result = await collector.collect({ includeOrderMetrics: true });
+
+            expect(result.metrics.orders).toBeUndefined();
+        });
+
+        it('does not collect order metrics unless explicitly requested', async () => {
             const result = await collector.collect();
 
             expect(result.metrics.orders).toBeUndefined();
+            expect(orderRepo.count).toHaveBeenCalledTimes(1);
+            expect(getRawMany).not.toHaveBeenCalled();
+        });
+
+        it('skips order metrics for Order tables in the 100k+ bucket', async () => {
+            totalOrders = 100_001;
+
+            const result = await collector.collect({ includeOrderMetrics: true });
+
+            expect(result.metrics.entities.Order).toBe('100k+');
+            expect(result.metrics.orders).toBeUndefined();
+            expect(orderRepo.count).toHaveBeenCalledTimes(1);
+            expect(getRawMany).not.toHaveBeenCalled();
+        });
+
+        it('skips order metrics when the total Order count fails', async () => {
+            totalOrders = new Error('count failed');
+
+            const result = await collector.collect({ includeOrderMetrics: true });
+
+            expect(result.metrics.entities.Order).toBe('0');
+            expect(result.metrics.orders).toBeUndefined();
+            expect(orderRepo.count).toHaveBeenCalledTimes(1);
+            expect(getRawMany).not.toHaveBeenCalled();
         });
     });
 

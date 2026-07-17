@@ -401,10 +401,16 @@ describe('TelemetryService', () => {
                 service.onApplicationBootstrap();
                 await flushPromises();
                 expect(mockFetch).toHaveBeenCalledTimes(1);
+                expect(mockDatabaseCollector.collect).toHaveBeenNthCalledWith(1, {
+                    includeOrderMetrics: false,
+                });
 
                 await vi.advanceTimersByTimeAsync(HEARTBEAT_INTERVAL_MS);
 
                 expect(mockFetch).toHaveBeenCalledTimes(2);
+                expect(mockDatabaseCollector.collect).toHaveBeenNthCalledWith(2, {
+                    includeOrderMetrics: true,
+                });
                 const startupBody = JSON.parse(mockFetch.mock.calls[0][1].body);
                 const heartbeatBody = JSON.parse(mockFetch.mock.calls[1][1].body);
                 expect(startupBody.sendReason).toBe('startup');
@@ -464,6 +470,21 @@ describe('TelemetryService', () => {
                 await vi.advanceTimersByTimeAsync(HEARTBEAT_INTERVAL_MS * 3);
 
                 expect(mockFetch).not.toHaveBeenCalled();
+            });
+
+            it('creates only one startup send and heartbeat chain when bootstrapped twice', async () => {
+                service.onApplicationBootstrap();
+                service.onApplicationBootstrap();
+                await flushPromises();
+
+                expect(mockFetch).toHaveBeenCalledTimes(1);
+
+                await vi.advanceTimersByTimeAsync(HEARTBEAT_INTERVAL_MS);
+                expect(mockFetch).toHaveBeenCalledTimes(2);
+
+                service.onApplicationShutdown();
+                await vi.advanceTimersByTimeAsync(HEARTBEAT_INTERVAL_MS * 2);
+                expect(mockFetch).toHaveBeenCalledTimes(2);
             });
 
             it('does not schedule a heartbeat when disabled at bootstrap', async () => {
@@ -664,8 +685,8 @@ describe('TelemetryService', () => {
                 service.onApplicationBootstrap();
                 service.onApplicationBootstrap();
                 await flushPromises();
-                // At least one fetch call should succeed
-                expect(mockFetch).toHaveBeenCalled();
+
+                expect(mockFetch).toHaveBeenCalledTimes(1);
             });
 
             it('onApplicationShutdown is safe after telemetry already sent', async () => {

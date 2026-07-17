@@ -802,6 +802,44 @@ describe('ConfigCollector', () => {
                 }
             });
 
+            it('detects a customized entity access control strategy', () => {
+                mockConfigService.authOptions = {
+                    ...mockConfigService.authOptions,
+                    entityAccessControlStrategy: {
+                        constructor: { name: 'CustomEntityAccessControlStrategy' },
+                    },
+                };
+
+                expect(collector.collect().customizedStrategies).toContain(
+                    'authOptions.entityAccessControlStrategy',
+                );
+            });
+
+            it('detects a customized active order strategy array', () => {
+                mockConfigService.orderOptions = {
+                    ...mockConfigService.orderOptions,
+                    activeOrderStrategy: [
+                        { constructor: { name: 'DefaultActiveOrderStrategy' } },
+                        { constructor: { name: 'CustomActiveOrderStrategy' } },
+                    ],
+                };
+
+                expect(collector.collect().customizedStrategies).toContain(
+                    'orderOptions.activeOrderStrategy',
+                );
+            });
+
+            it('treats a default-equivalent active order strategy array as unchanged', () => {
+                mockConfigService.orderOptions = {
+                    ...mockConfigService.orderOptions,
+                    activeOrderStrategy: [{ constructor: { name: 'DefaultActiveOrderStrategy' } }],
+                };
+
+                expect(collector.collect().customizedStrategies).not.toContain(
+                    'orderOptions.activeOrderStrategy',
+                );
+            });
+
             it('detects a customized strategy set via the deprecated root-level entityIdStrategy', () => {
                 // entityOptions.entityIdStrategy is unset; the project configured the
                 // deprecated root-level entityIdStrategy instead. The fallback should
