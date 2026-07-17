@@ -40,8 +40,12 @@ import {
     AssetGridTagFilter,
     AssetTagFacetedFilter,
 } from '../../../../app/routes/_authenticated/_assets/components/asset-tag-filter.js';
-import { adaptAssetBulkActions, AssetBulkActions } from './asset-bulk-actions.js';
-import type { AssetBulkActionsInput, BulkActionsInput } from './asset-bulk-actions.js';
+import {
+    adaptAssetBulkActions,
+    AssetBulkActions,
+    type AssetBulkActionsInput,
+    type BulkActionsInput,
+} from './asset-bulk-actions.js';
 
 const getAssetListDocument = graphql(
     `
@@ -683,7 +687,7 @@ export function AssetGallery({
                     <div className="flex items-center gap-2">
                         <span className="text-sm text-muted-foreground"><Trans>Items per page</Trans></span>
                         <Select
-                            items={Object.fromEntries([12, 24, 48, 96].map(size => [`${size}`, size]))}
+                            items={Object.fromEntries([12, 24, 48, 96].map(size => [`${size}`, `${size}`]))}
                             value={itemsPerPage.toString()}
                             onValueChange={value => {
                                 if (value == null) return;
@@ -1063,12 +1067,12 @@ function AssetListDataTable({
                     const tags = tagFilter.assetTags.in ?? [];
                     const remainingConditions = conditions.filter((condition: Record<string, any>) => !condition.assetTags);
                     const { _and, ...filterWithoutConditions } = filter;
-                    const nextFilter =
-                        remainingConditions.length > 0
-                            ? { ...filterWithoutConditions, _and: remainingConditions }
-                            : Object.keys(filterWithoutConditions).length > 0
-                              ? filterWithoutConditions
-                              : undefined;
+                    let nextFilter;
+                    if (remainingConditions.length > 0) {
+                        nextFilter = { ...filterWithoutConditions, _and: remainingConditions };
+                    } else if (Object.keys(filterWithoutConditions).length > 0) {
+                        nextFilter = filterWithoutConditions;
+                    }
 
                     return {
                         ...variables,

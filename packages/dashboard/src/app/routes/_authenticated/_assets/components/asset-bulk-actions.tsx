@@ -1,4 +1,3 @@
-import { useMutation } from '@tanstack/react-query';
 import { TrashIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -9,7 +8,7 @@ import { api } from '@/vdb/graphql/api.js';
 import { AssetFragment } from '@/vdb/graphql/fragments.js';
 import { ResultOf } from '@/vdb/graphql/graphql.js';
 import { Trans, useLingui } from '@lingui/react/macro';
-import { useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { deleteAssetsDocument } from '../assets.graphql.js';
 
 export const DeleteAssetsBulkAction: BulkActionComponent<AssetFragment> = ({ selection, table }) => {

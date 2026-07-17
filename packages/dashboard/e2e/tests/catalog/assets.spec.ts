@@ -16,9 +16,10 @@ test.describe('Assets', () => {
         await expect(page.getByPlaceholder(/Search assets/i)).toBeVisible();
     });
 
-    // Grid-view bulk actions: selecting assets swaps the search bar for the
-    // bulk bar; clearing the selection (unselect / reset) swaps the search bar
-    // back in, and the view toggle keeps working while a selection exists.
+    // #4992 — grid-view bulk actions: selecting assets swaps the search bar
+    // for the bulk bar; clearing the selection (unselect / reset) swaps the
+    // search bar back in, and the view toggle keeps working while a selection
+    // exists.
     test('should swap search for bulk bar on grid selection and clear it again', async ({ page }) => {
         await page.goto('/assets');
         await expect(page.getByTestId('page-heading')).toBeVisible();

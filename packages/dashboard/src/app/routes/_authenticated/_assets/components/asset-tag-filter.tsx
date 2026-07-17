@@ -33,7 +33,7 @@ export function AssetTagFacetedFilter<TData, TValue>({
     title,
     defaultOpen,
     onOpenChange,
-}: DataTableFacetedFilterProps<TData, TValue>) {
+}: Readonly<DataTableFacetedFilterProps<TData, TValue>>) {
     const { t } = useLingui();
     const filterValue = column?.getFilterValue();
     const selectedTags = Array.isArray(filterValue) ? filterValue.map(String) : [];
