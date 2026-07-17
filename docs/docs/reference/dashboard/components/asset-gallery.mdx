@@ -4,7 +4,7 @@ generated: true
 ---
 ## AssetGallery
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/asset/asset-gallery.tsx" sourceLine="200" packageName="@vendure/dashboard" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/asset/asset-gallery.tsx" sourceLine="202" packageName="@vendure/dashboard" />
 
 A component for displaying a gallery of assets.
 
@@ -113,7 +113,9 @@ The bulk actions to display in the gallery.
 
 <MemberInfo kind="property" type={`boolean`}   />
 
-Whether the gallery should display bulk actions.
+Whether the gallery should display the bulk-action toolbar. Asset
+selection stays enabled when this is `false` — in list view this maps
+to the data table's `bulkActions={false}` mode.
 ### onPageSizeChange
 
 <MemberInfo kind="property" type={`(pageSize: number) => void`}   />
