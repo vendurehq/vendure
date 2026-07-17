@@ -35,7 +35,7 @@ msgstr "変更を表示"
 msgid "Tracking code"
 msgstr "追跡コード"
 
-#: src/lib/components/data-table/data-table.tsx:713
+#: src/lib/components/data-table/data-table.tsx:719
 #: src/lib/components/data-table/use-generated-columns.tsx:226
 msgid "Select all rows"
 msgstr "すべての行を選択"
@@ -162,7 +162,7 @@ msgstr "削除しました"
 #~ msgid "Remove from current channel"
 #~ msgstr "現在のチャネルから削除"
 
-#: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:25
+#: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:23
 msgid "Deleted {selectionLength} assets"
 msgstr "{selectionLength}個のアセットを削除しました"
 
@@ -174,7 +174,7 @@ msgstr "税率を更新しました"
 msgid "Enter custom reason..."
 msgstr "カスタム理由を入力..."
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:751
+#: src/lib/components/shared/asset/asset-gallery.tsx:960
 msgid "Type"
 msgstr "タイプ"
 
@@ -241,7 +241,7 @@ msgstr "自動更新：{0}"
 msgid "Deleted {deleted} {entityName}"
 msgstr "{deleted}{entityName}を削除しました"
 
-#: src/lib/components/data-table/data-table.tsx:602
+#: src/lib/components/data-table/data-table.tsx:608
 msgid "There are no items to display yet."
 msgstr "まだ表示する項目がありません。"
 
@@ -341,6 +341,11 @@ msgstr "このバリエーションを削除してもよろしいですか？"
 #~ msgid "All resources are up and running"
 #~ msgstr "すべてのリソースが稼働中です"
 
+#: src/lib/components/shared/asset/asset-gallery.tsx:877
+#: src/lib/components/shared/asset/asset-gallery.tsx:1015
+msgid "Open"
+msgstr ""
+
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:87
 msgid "Failed to create administrator"
 msgstr "管理者の作成に失敗しました"
@@ -353,6 +358,10 @@ msgstr "いいえ"
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:176
 msgid "Successfully updated product variant"
 msgstr "商品バリエーションを更新しました"
+
+#: src/lib/components/shared/asset/asset-gallery.tsx:766
+msgid "Upload images, videos, or files to start building your asset library."
+msgstr ""
 
 #: src/app/common/delete-bulk-action.tsx:114
 msgid "Failed to delete {failed} {entityName}: {allErrors}"
@@ -409,6 +418,7 @@ msgstr "追加できるウィジェットがありません"
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:107
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:290
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:203
+#: src/lib/components/shared/asset/asset-gallery.tsx:277
 #: src/lib/components/shared/asset/asset-preview.tsx:127
 msgid "Unknown error"
 msgstr "不明なエラー"
@@ -457,7 +467,7 @@ msgstr "開発モード"
 msgid "New Role"
 msgstr "新しいロール"
 
-#: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:28
+#: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:26
 msgid "Failed to delete assets: {message}"
 msgstr "アセットの削除に失敗しました：{message}"
 
@@ -539,6 +549,10 @@ msgstr "新しいコレクション"
 msgid "Insights"
 msgstr "インサイト"
 
+#: src/lib/components/shared/asset/asset-gallery.tsx:276
+msgid "Failed to upload assets"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:226
 msgid "Run"
 msgstr "実行"
@@ -583,7 +597,7 @@ msgstr "管理者"
 #~ msgstr "総額：<0/>"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:82
-#: src/lib/components/data-table/data-table.tsx:718
+#: src/lib/components/data-table/data-table.tsx:724
 msgid "Go to next page"
 msgstr "次のページへ"
 
@@ -695,7 +709,7 @@ msgstr "コレクションを移動"
 msgid "Roles"
 msgstr "ロール"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:395
+#: src/lib/components/shared/asset/asset-gallery.tsx:484
 msgid "Grid view"
 msgstr "グリッド表示"
 
@@ -723,7 +737,7 @@ msgstr "{selectionLength}個のアセットを削除してもよろしいです�
 msgid "Sign in"
 msgstr "ログイン"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:398
+#: src/lib/components/shared/asset/asset-gallery.tsx:487
 msgid "List view"
 msgstr "リスト表示"
 
@@ -858,7 +872,6 @@ msgstr "下書きを完了"
 
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:47
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:165
-#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:192
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:104
@@ -877,7 +890,7 @@ msgstr "下書きを完了"
 #: src/app/routes/_authenticated/_tax-categories/tax-categories_.$id.tsx:106
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:113
 #: src/app/routes/_authenticated/_zones/zones_.$id.tsx:93
-#: src/lib/components/shared/asset/asset-gallery.tsx:750
+#: src/lib/components/shared/asset/asset-gallery.tsx:948
 msgid "Name"
 msgstr "名前"
 
@@ -917,7 +930,7 @@ msgstr "フルフィルメントを作成しました"
 msgid "Found {0} eligible shipping method{1}"
 msgstr "{0}個の適格な配送方法が見つかりました"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:753
+#: src/lib/components/shared/asset/asset-gallery.tsx:988
 #: src/lib/components/shared/asset/asset-properties.tsx:39
 msgid "Dimensions"
 msgstr "サイズ"
@@ -1010,7 +1023,7 @@ msgstr "注文履歴の読み込みエラー：{0}"
 msgid "Shipping address set for order"
 msgstr "注文の配送先住所が設定されました"
 
-#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:173
+#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:219
 #: src/lib/components/shared/asset/asset-preview.tsx:153
 msgid "Focal Point"
 msgstr "フォーカルポイント"
@@ -1094,7 +1107,7 @@ msgstr "スケジュールされたタスクが実行されます"
 msgid "New stock location"
 msgstr "新しい在庫ロケーション"
 
-#: src/lib/components/data-table/data-table.tsx:714
+#: src/lib/components/data-table/data-table.tsx:720
 #: src/lib/components/data-table/use-generated-columns.tsx:238
 msgid "Select row"
 msgstr "行を選択"
@@ -1250,8 +1263,8 @@ msgstr "新しいタブで開く"
 msgid "Failed to update promotion"
 msgstr "プロモーションの更新に失敗しました"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:368
-#: src/lib/components/shared/asset/asset-gallery.tsx:380
+#: src/lib/components/shared/asset/asset-gallery.tsx:447
+#: src/lib/components/shared/asset/asset-gallery.tsx:459
 msgid "Images"
 msgstr "画像"
 
@@ -1264,7 +1277,7 @@ msgstr "API Keys"
 msgid "Search {name}..."
 msgstr "{name}を検索..."
 
-#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:110
+#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:151
 msgid "Edit asset"
 msgstr "アセットを編集"
 
@@ -1378,7 +1391,7 @@ msgid "No items selected"
 msgstr "アイテムが選択されていません"
 
 #. placeholder {0}: selected.length
-#: src/lib/components/shared/asset/asset-gallery.tsx:476
+#: src/lib/components/shared/asset/asset-gallery.tsx:591
 msgid ", {0} selected"
 msgstr "、{0} 件選択中"
 
@@ -1584,6 +1597,10 @@ msgstr "チャネルを選択"
 msgid "Display language"
 msgstr "表示言語"
 
+#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:195
+msgid "The source file remains unchanged. Keep the original extension or omit it."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:312
 msgid "Fulfillment details"
 msgstr "フルフィルメント詳細"
@@ -1610,7 +1627,7 @@ msgstr "以前"
 msgid "Failed to set customer for order: {0}"
 msgstr "注文の顧客の設定に失敗しました: {0}"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:752
+#: src/lib/components/shared/asset/asset-gallery.tsx:965
 msgid "Size"
 msgstr "サイズ"
 
@@ -1622,6 +1639,10 @@ msgstr "{0}の翻訳が見つかりません"
 #: src/app/routes/_authenticated/_customers/customers.tsx:103
 msgid "New Customer"
 msgstr "新しい顧客"
+
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:76
+msgid "Filter assets by tags"
+msgstr ""
 
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:54
 msgid "Latest Orders"
@@ -1738,7 +1759,7 @@ msgstr "住所を更新しました"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:126
-#: src/lib/components/shared/asset/asset-gallery.tsx:754
+#: src/lib/components/shared/asset/asset-gallery.tsx:972
 #: src/lib/framework/layout-engine/page-layout.tsx:746
 msgid "Created"
 msgstr "作成日時"
@@ -1997,7 +2018,7 @@ msgstr "返金を決済しました"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
-#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
+#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:156
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
@@ -2086,8 +2107,8 @@ msgstr "開始日時"
 msgid "Duplicate"
 msgstr "複製"
 
-#: src/lib/components/data-table/data-table.tsx:590
-#: src/lib/components/data-table/data-table.tsx:601
+#: src/lib/components/data-table/data-table.tsx:596
+#: src/lib/components/data-table/data-table.tsx:607
 #: src/lib/components/shared/customer-group-selector.tsx:60
 msgid "No results"
 msgstr "結果なし"
@@ -2134,7 +2155,7 @@ msgstr "この住所を削除してもよろしいですか？"
 msgid "Failed to assign option group"
 msgstr "オプショングループの割り当てに失敗しました"
 
-#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:89
+#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:104
 msgid "Failed to update asset"
 msgstr "アセットの更新に失敗しました"
 
@@ -2205,7 +2226,7 @@ msgstr "配送方法をテスト"
 msgid "Facet Values"
 msgstr "ファセット値"
 
-#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:85
+#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:100
 msgid "Successfully updated asset"
 msgstr "アセットを更新しました"
 
@@ -2608,6 +2629,10 @@ msgstr "注文の配送先住所の設定に失敗しました: {0}"
 msgid "Cancel Job"
 msgstr "ジョブをキャンセル"
 
+#: src/lib/components/shared/asset/asset-gallery.tsx:761
+msgid "No assets yet"
+msgstr ""
+
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:194
 msgid "Ends at"
 msgstr "終了日時"
@@ -2667,12 +2692,12 @@ msgid "Save View"
 msgstr "ビューを保存"
 
 #. placeholder {0}: selectedIds.size
+#. placeholder {0}: selectedTags.length
 #. placeholder {0}: selectedValues.size
-#. placeholder {0}: selection.length
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:48
 #: src/lib/components/data-table/data-table-bulk-actions.tsx:76
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:137
 #: src/lib/components/data-table/data-table-faceted-filter.tsx:139
-#: src/lib/components/shared/asset/asset-bulk-actions.tsx:80
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx:67
 msgid "{0} selected"
 msgstr "{0} 件選択中"
@@ -2870,7 +2895,7 @@ msgstr "チャネルから{successCount}個のファセットを削除しまし�
 msgid "New Product"
 msgstr "新しい商品"
 
-#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:40
+#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:55
 msgid "New asset"
 msgstr "新しいアセット"
 
@@ -2886,7 +2911,7 @@ msgstr "送料を再計算"
 #~ msgid "Select which options should apply to the existing variant \"{0}\""
 #~ msgstr "既存のバリエーション「{0}」に適用するオプションを選択"
 
-#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:39
+#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:54
 #: src/app/routes/_authenticated/_assets/assets.tsx:17
 #: src/app/routes/_authenticated/_assets/assets.tsx:40
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:248
@@ -2944,8 +2969,8 @@ msgstr "割引"
 msgid "Top Products"
 msgstr "人気商品"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:367
-#: src/lib/components/shared/asset/asset-gallery.tsx:379
+#: src/lib/components/shared/asset/asset-gallery.tsx:446
+#: src/lib/components/shared/asset/asset-gallery.tsx:458
 msgid "All types"
 msgstr "すべてのタイプ"
 
@@ -3075,6 +3100,13 @@ msgstr ""
 #: src/lib/components/data-input/select-with-options.tsx:107
 msgid "Select an option"
 msgstr "オプションを選択"
+
+#. placeholder {0}: asset.name
+#. placeholder {0}: row.original.name
+#: src/lib/components/shared/asset/asset-gallery.tsx:874
+#: src/lib/components/shared/asset/asset-gallery.tsx:1012
+msgid "Open {0}"
+msgstr ""
 
 #: src/lib/components/data-table/views-sheet.tsx:251
 msgid "Copy to Personal"
@@ -3393,6 +3425,10 @@ msgstr "列"
 msgid "Failed to upload image"
 msgstr "画像のアップロードに失敗しました"
 
+#: src/lib/components/shared/asset/asset-gallery.tsx:761
+msgid "No assets match these filters"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:146
 msgid "Option value name"
 msgstr "オプション値名"
@@ -3533,7 +3569,7 @@ msgid "Processing..."
 msgstr "処理中..."
 
 #. placeholder {0}: totalItems === 1 ? 'asset' : 'assets'
-#: src/lib/components/shared/asset/asset-gallery.tsx:472
+#: src/lib/components/shared/asset/asset-gallery.tsx:587
 msgid "{totalItems} {0} found"
 msgstr "{totalItems} 件の{0}が見つかりました"
 
@@ -3638,7 +3674,7 @@ msgstr "見つかりません"
 msgid "Facet values"
 msgstr "ファセット値"
 
-#: src/lib/components/data-table/data-table.tsx:312
+#: src/lib/components/data-table/data-table.tsx:318
 msgid "Failed to reorder items"
 msgstr "アイテムの並び替えに失敗しました"
 
@@ -3691,6 +3727,10 @@ msgstr "支払いを承認しました"
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:62
 msgid "Successfully updated role"
 msgstr "ロールを更新しました"
+
+#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:136
+msgid "The display name can omit the extension or keep {sourceExtensionLabel}. It cannot use a different file extension."
+msgstr ""
 
 #: src/lib/components/shared/customer-address-form.tsx:184
 msgid "Select a country"
@@ -3807,7 +3847,7 @@ msgstr "送料返金済み"
 msgid "Failed to create option in group \"{0}\""
 msgstr ""
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:376
+#: src/lib/components/shared/asset/asset-gallery.tsx:455
 msgid "Asset type"
 msgstr "アセットタイプ"
 
@@ -4030,7 +4070,7 @@ msgstr "未保存のビュー"
 msgid "Cannot remove from active channel"
 msgstr "アクティブなチャネルからは削除できません"
 
-#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:179
+#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:226
 #: src/lib/components/shared/asset/asset-preview.tsx:162
 msgid "Not set"
 msgstr "設定されていません"
@@ -4135,7 +4175,7 @@ msgstr "管理者を検索..."
 msgid "Created by"
 msgstr "作成者"
 
-#: src/lib/components/data-table/data-table.tsx:591
+#: src/lib/components/data-table/data-table.tsx:597
 msgid "No items match your current filters. Try clearing them to see more."
 msgstr "現在のフィルターに一致する項目がありません。フィルターをクリアしてお試しください。"
 
@@ -4333,6 +4373,7 @@ msgstr "に含まれる"
 msgid "Email"
 msgstr "メールアドレス"
 
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:80
 #: src/lib/components/data-table/add-filter-menu.tsx:47
 msgid "Filter"
 msgstr "フィルター"
@@ -4350,8 +4391,8 @@ msgid "Loading customers…"
 msgstr "顧客を読み込み中…"
 
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:104
-msgid "Filter by tags"
-msgstr "タグでフィルター"
+#~ msgid "Filter by tags"
+#~ msgstr "タグでフィルター"
 
 #: src/lib/components/login/login-form.tsx:74
 msgid "Sign in to access the admin dashboard"
@@ -4364,6 +4405,10 @@ msgstr "管理ダッシュボードにアクセスするにはログインして
 #: src/lib/components/data-table/filters/data-table-boolean-filter.tsx:57
 msgid "False"
 msgstr "偽"
+
+#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:139
+msgid "Asset name extension does not match the source file"
+msgstr ""
 
 #: src/lib/components/layout/nav-user.tsx:127
 msgctxt "theme"
@@ -4430,7 +4475,7 @@ msgstr "支払い状態の更新に失敗しました"
 msgid "Your orders summary"
 msgstr "注文サマリー"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:406
+#: src/lib/components/shared/asset/asset-gallery.tsx:505
 msgid "Upload"
 msgstr "アップロード"
 
@@ -4439,7 +4484,7 @@ msgid "Product with options"
 msgstr "オプション付き商品"
 
 #. placeholder {0}: filteredTags.length
-#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:163
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:195
 msgid "Showing all {0} results"
 msgstr "{0}件の結果をすべて表示"
 
@@ -4581,7 +4626,9 @@ msgstr "数量"
 msgid "Inline code"
 msgstr "インラインコード"
 
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:45
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx:104
+#: src/lib/components/shared/asset/asset-gallery.tsx:1055
 msgid "Tags"
 msgstr "タグ"
 
@@ -4726,6 +4773,10 @@ msgstr "グローバルビューの名前変更に失敗しました"
 #~ msgid "Insert a new hyperlink with URL and target options"
 #~ msgstr "URL とターゲットオプションを指定して新しいハイパーリンクを挿入"
 
+#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:193
+msgid "Display name"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:194
 msgid "Height"
 msgstr "高さ"
@@ -4739,6 +4790,10 @@ msgstr "{formattedDiff} の返金が必要です。支払い金額を選択し�
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:100
 msgid "Unit price"
 msgstr "単価"
+
+#: src/lib/components/shared/asset/asset-gallery.tsx:764
+msgid "Try changing your search, asset type, or selected tags."
+msgstr ""
 
 #: src/lib/components/login/forgot-password-form.tsx:87
 msgid "If an account exists for {submittedEmailAddress}, you will receive an email with a link to reset your password."
@@ -4901,7 +4956,7 @@ msgstr "フィルターをクリア"
 msgid "Regions"
 msgstr "地域"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:445
+#: src/lib/components/shared/asset/asset-gallery.tsx:546
 msgid "Drop files here to upload"
 msgstr "ここにファイルをドロップしてアップロード"
 
@@ -5190,8 +5245,8 @@ msgid "Failed to update order"
 msgstr "注文の更新に失敗しました"
 
 #: src/lib/components/shared/asset/asset-bulk-actions.tsx:84
-msgid "With selected..."
-msgstr "選択した項目で..."
+#~ msgid "With selected..."
+#~ msgstr "選択した項目で..."
 
 #: src/lib/components/login/reset-password-form.tsx:146
 msgid "Choose a new password for your account"
@@ -5265,7 +5320,7 @@ msgstr "都道府県"
 msgid "Enabled"
 msgstr "有効"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:483
+#: src/lib/components/shared/asset/asset-gallery.tsx:598
 msgid "Items per page"
 msgstr "ページあたりの件数"
 
@@ -5331,6 +5386,10 @@ msgstr "最新の注文"
 #: src/lib/framework/defaults.ts:147
 msgid "Scheduled Tasks"
 msgstr "スケジュールされたタスク"
+
+#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:140
+msgid "Use {sourceExtensionLabel} or remove the extension from the display name."
+msgstr ""
 
 #: src/lib/components/data-table/use-generated-columns.tsx:428
 msgid "Are you sure you want to delete this item? This action cannot be undone."
@@ -5462,7 +5521,7 @@ msgid "Failed to update variant"
 msgstr "バリアントの更新に失敗しました"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:69
-#: src/lib/components/data-table/data-table.tsx:717
+#: src/lib/components/data-table/data-table.tsx:723
 msgid "Go to previous page"
 msgstr "前のページへ"
 
@@ -5539,6 +5598,11 @@ msgstr "税率"
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx:40
 msgid "Failed to remove customers from group"
 msgstr "グループからの顧客の削除に失敗しました"
+
+#. placeholder {0}: failedAssets.length
+#: src/lib/components/shared/asset/asset-gallery.tsx:268
+msgid "Failed to upload {0} assets"
+msgstr ""
 
 #: src/lib/framework/dashboard-widget/latest-customers-widget/index.tsx:56
 msgid "We couldn't load the latest customers"
@@ -5706,8 +5770,8 @@ msgid "Edit Note"
 msgstr "メモを編集"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx:635
-msgid "No assets found. Try adjusting your filters."
-msgstr "アセットが見つかりません。フィルターを調整してみてください。"
+#~ msgid "No assets found. Try adjusting your filters."
+#~ msgstr "アセットが見つかりません。フィルターを調整してみてください。"
 
 #: src/app/routes/_authenticated/_products/components/option-groups-editor.tsx:161
 msgid "Add Option"
@@ -5735,8 +5799,10 @@ msgstr "管理者を正常に更新しました"
 
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:263
 #: src/lib/components/data-table/data-table-faceted-filter.tsx:225
-#: src/lib/components/data-table/data-table.tsx:594
-#: src/lib/components/shared/asset/asset-gallery.tsx:361
+#: src/lib/components/data-table/data-table.tsx:600
+#: src/lib/components/shared/asset/asset-gallery.tsx:428
+#: src/lib/components/shared/asset/asset-gallery.tsx:435
+#: src/lib/components/shared/asset/asset-gallery.tsx:773
 msgid "Clear filters"
 msgstr "フィルターをクリア"
 
@@ -5765,8 +5831,12 @@ msgstr "ステータス"
 msgid "No options found"
 msgstr "オプションが見つかりません"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:370
-#: src/lib/components/shared/asset/asset-gallery.tsx:382
+#: src/lib/components/shared/asset/asset-gallery.tsx:778
+msgid "Upload assets"
+msgstr ""
+
+#: src/lib/components/shared/asset/asset-gallery.tsx:449
+#: src/lib/components/shared/asset/asset-gallery.tsx:461
 msgid "Binary"
 msgstr "バイナリ"
 
@@ -6037,8 +6107,8 @@ msgstr "最初のプロモーションを作成しましょう"
 msgid "Remove item"
 msgstr "アイテムを削除"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:369
-#: src/lib/components/shared/asset/asset-gallery.tsx:381
+#: src/lib/components/shared/asset/asset-gallery.tsx:448
+#: src/lib/components/shared/asset/asset-gallery.tsx:460
 msgid "Video"
 msgstr "動画"
 
@@ -6121,7 +6191,6 @@ msgid "Source"
 msgstr "ソース"
 
 #: src/lib/components/data-table/data-table-bulk-actions.tsx:107
-#: src/lib/components/shared/asset/asset-bulk-actions.tsx:98
 msgid "No actions available"
 msgstr "利用可能なアクションがありません"
 
@@ -6151,6 +6220,11 @@ msgstr "ファセットを更新しました"
 #: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx:83
 msgid "Strikethrough"
 msgstr "取り消し線"
+
+#. placeholder {0}: createdAssets.length
+#: src/lib/components/shared/asset/asset-gallery.tsx:265
+msgid "Uploaded {0} assets"
+msgstr ""
 
 #: src/lib/framework/dashboard-widget/latest-customers-widget/index.tsx:92
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:127
@@ -6192,7 +6266,7 @@ msgstr "この商品からオプショングループを削除してもよろし
 msgid "Description (alt)"
 msgstr "説明（代替テキスト）"
 
-#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:124
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:153
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx:164
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx:99
 msgid "No tags found"
@@ -6332,7 +6406,8 @@ msgstr "注文サマリー"
 msgid "Search stock locations..."
 msgstr "在庫ロケーションを検索..."
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:349
+#: src/lib/components/shared/asset/asset-gallery.tsx:413
+#: src/lib/components/shared/asset/asset-gallery.tsx:1052
 msgid "Search assets..."
 msgstr "アセットを検索..."
 
@@ -6395,7 +6470,7 @@ msgstr "チャネルからのファセットの削除に失敗しました：{me
 #~ msgid "Set link"
 #~ msgstr "リンクを設定"
 
-#: src/lib/components/data-table/data-table.tsx:716
+#: src/lib/components/data-table/data-table.tsx:722
 msgid "Pagination"
 msgstr "ページネーション"
 
@@ -6446,7 +6521,7 @@ msgid "View result"
 msgstr "結果を表示"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:20
-#: src/lib/components/data-table/data-table.tsx:719
+#: src/lib/components/data-table/data-table.tsx:725
 msgid "Rows per page"
 msgstr "ページあたりの行数"
 
@@ -6543,7 +6618,7 @@ msgid "Failed to create product variant"
 msgstr "商品バリエーションの作成に失敗しました"
 
 #: src/lib/components/data-input/relation-selector.tsx:418
-#: src/lib/components/data-table/data-table.tsx:501
+#: src/lib/components/data-table/data-table.tsx:507
 msgid "Search..."
 msgstr "検索..."
 
@@ -6627,9 +6702,8 @@ msgstr "利用可能な条件"
 msgid "Active filters"
 msgstr "アクティブなフィルター"
 
-#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:176
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx:54
-#: src/lib/components/data-table/data-table.tsx:577
+#: src/lib/components/data-table/data-table.tsx:583
 msgid "Clear all"
 msgstr "すべてクリア"
 

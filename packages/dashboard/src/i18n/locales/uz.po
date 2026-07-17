@@ -35,7 +35,7 @@ msgstr "O'zgarishlarni ko'rish"
 msgid "Tracking code"
 msgstr "Kuzatuv kodi"
 
-#: src/lib/components/data-table/data-table.tsx:713
+#: src/lib/components/data-table/data-table.tsx:719
 #: src/lib/components/data-table/use-generated-columns.tsx:226
 msgid "Select all rows"
 msgstr "Barcha qatorlarni tanlash"
@@ -158,7 +158,7 @@ msgstr "Nusxalanmoqda... ({0}/{1})"
 msgid "Deleted successfully"
 msgstr "Muvaffaqiyatli o'chirildi"
 
-#: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:25
+#: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:23
 msgid "Deleted {selectionLength} assets"
 msgstr "{selectionLength} ta asset o'chirildi"
 
@@ -170,7 +170,7 @@ msgstr "Soliq stavkasi yangilandi"
 msgid "Enter custom reason..."
 msgstr "Maxsus sababni kiriting..."
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:751
+#: src/lib/components/shared/asset/asset-gallery.tsx:960
 msgid "Type"
 msgstr "Turi"
 
@@ -229,7 +229,7 @@ msgstr "Avtomatik yangilash: {0}"
 msgid "Deleted {deleted} {entityName}"
 msgstr "{deleted} {entityName} o'chirildi"
 
-#: src/lib/components/data-table/data-table.tsx:602
+#: src/lib/components/data-table/data-table.tsx:608
 msgid "There are no items to display yet."
 msgstr "Hozircha ko'rsatiladigan elementlar yo'q."
 
@@ -317,6 +317,11 @@ msgstr "Rol yaratildi"
 msgid "Are you sure you want to delete this variant?"
 msgstr "Ushbu variant o'chirilsinmi?"
 
+#: src/lib/components/shared/asset/asset-gallery.tsx:877
+#: src/lib/components/shared/asset/asset-gallery.tsx:1015
+msgid "Open"
+msgstr ""
+
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:87
 msgid "Failed to create administrator"
 msgstr "Administrator yaratib bo'lmadi"
@@ -329,6 +334,10 @@ msgstr "Yo'q"
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:176
 msgid "Successfully updated product variant"
 msgstr "Mahsulot varianti yangilandi"
+
+#: src/lib/components/shared/asset/asset-gallery.tsx:766
+msgid "Upload images, videos, or files to start building your asset library."
+msgstr ""
 
 #: src/app/common/delete-bulk-action.tsx:114
 msgid "Failed to delete {failed} {entityName}: {allErrors}"
@@ -385,6 +394,7 @@ msgstr "Qo'shish uchun vidjetlar yo'q"
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:107
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:290
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:203
+#: src/lib/components/shared/asset/asset-gallery.tsx:277
 #: src/lib/components/shared/asset/asset-preview.tsx:127
 msgid "Unknown error"
 msgstr "Noma'lum xato"
@@ -433,7 +443,7 @@ msgstr "Dasturchi rejimi"
 msgid "New Role"
 msgstr "Yangi rol"
 
-#: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:28
+#: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:26
 msgid "Failed to delete assets: {message}"
 msgstr "Assetlarni o'chirib bo'lmadi: {message}"
 
@@ -511,6 +521,10 @@ msgstr "Yangi to'plam"
 msgid "Insights"
 msgstr "Tahlillar"
 
+#: src/lib/components/shared/asset/asset-gallery.tsx:276
+msgid "Failed to upload assets"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:226
 msgid "Run"
 msgstr "Ishga tushirish"
@@ -555,7 +569,7 @@ msgstr "Administratorlar"
 #~ msgstr "Yalpi narx: <0/>"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:82
-#: src/lib/components/data-table/data-table.tsx:718
+#: src/lib/components/data-table/data-table.tsx:724
 msgid "Go to next page"
 msgstr "Keyingi sahifaga o'tish"
 
@@ -667,7 +681,7 @@ msgstr "To'plamlarni ko'chirish"
 msgid "Roles"
 msgstr "Rollar"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:395
+#: src/lib/components/shared/asset/asset-gallery.tsx:484
 msgid "Grid view"
 msgstr "Jadval ko'rinishi"
 
@@ -695,7 +709,7 @@ msgstr "{selectionLength} ta asset o'chirilsinmi?"
 msgid "Sign in"
 msgstr "Kirish"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:398
+#: src/lib/components/shared/asset/asset-gallery.tsx:487
 msgid "List view"
 msgstr "Ro'yxat ko'rinishi"
 
@@ -830,7 +844,6 @@ msgstr "Qoralamani yakunlash"
 
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:47
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:165
-#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:152
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:192
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:104
@@ -849,7 +862,7 @@ msgstr "Qoralamani yakunlash"
 #: src/app/routes/_authenticated/_tax-categories/tax-categories_.$id.tsx:106
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:113
 #: src/app/routes/_authenticated/_zones/zones_.$id.tsx:93
-#: src/lib/components/shared/asset/asset-gallery.tsx:750
+#: src/lib/components/shared/asset/asset-gallery.tsx:948
 msgid "Name"
 msgstr "Nomi"
 
@@ -889,7 +902,7 @@ msgstr "Bajarish yaratildi"
 msgid "Found {0} eligible shipping method{1}"
 msgstr "{0} ta mos yetkazib berish usuli{1} topildi"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:753
+#: src/lib/components/shared/asset/asset-gallery.tsx:988
 #: src/lib/components/shared/asset/asset-properties.tsx:39
 msgid "Dimensions"
 msgstr "O'lchamlar"
@@ -982,7 +995,7 @@ msgstr "Buyurtma tarixini yuklashda xatolik: {0}"
 msgid "Shipping address set for order"
 msgstr "Buyurtma uchun yetkazib berish manzili o'rnatildi"
 
-#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:173
+#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:219
 #: src/lib/components/shared/asset/asset-preview.tsx:153
 msgid "Focal Point"
 msgstr "Fokus nuqtasi"
@@ -1066,7 +1079,7 @@ msgstr "Rejalashtirilgan vazifa bajariladi"
 msgid "New stock location"
 msgstr "Yangi zaxira joylashuvi"
 
-#: src/lib/components/data-table/data-table.tsx:714
+#: src/lib/components/data-table/data-table.tsx:720
 #: src/lib/components/data-table/use-generated-columns.tsx:238
 msgid "Select row"
 msgstr "Qatorni tanlash"
@@ -1218,8 +1231,8 @@ msgstr "Yangi varaqda ochish"
 msgid "Failed to update promotion"
 msgstr "Aksiyani yangilab bo'lmadi"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:368
-#: src/lib/components/shared/asset/asset-gallery.tsx:380
+#: src/lib/components/shared/asset/asset-gallery.tsx:447
+#: src/lib/components/shared/asset/asset-gallery.tsx:459
 msgid "Images"
 msgstr "Rasmlar"
 
@@ -1232,7 +1245,7 @@ msgstr "API kalitlari"
 msgid "Search {name}..."
 msgstr "{name} qidirish..."
 
-#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:110
+#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:151
 msgid "Edit asset"
 msgstr "Assetni tahrirlash"
 
@@ -1342,7 +1355,7 @@ msgid "No items selected"
 msgstr "Hech qanday element tanlanmagan"
 
 #. placeholder {0}: selected.length
-#: src/lib/components/shared/asset/asset-gallery.tsx:476
+#: src/lib/components/shared/asset/asset-gallery.tsx:591
 msgid ", {0} selected"
 msgstr ", {0} ta tanlangan"
 
@@ -1536,6 +1549,10 @@ msgstr "Kanalni tanlang"
 msgid "Display language"
 msgstr "Ko'rsatish tili"
 
+#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:195
+msgid "The source file remains unchanged. Keep the original extension or omit it."
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:312
 msgid "Fulfillment details"
 msgstr "Bajarish tafsilotlari"
@@ -1562,7 +1579,7 @@ msgstr "oldin"
 msgid "Failed to set customer for order: {0}"
 msgstr "Buyurtmaga mijozni o'rnatib bo'lmadi: {0}"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:752
+#: src/lib/components/shared/asset/asset-gallery.tsx:965
 msgid "Size"
 msgstr "O'lcham"
 
@@ -1574,6 +1591,10 @@ msgstr "{0} uchun tarjima topilmadi"
 #: src/app/routes/_authenticated/_customers/customers.tsx:103
 msgid "New Customer"
 msgstr "Yangi mijoz"
+
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:76
+msgid "Filter assets by tags"
+msgstr ""
 
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:54
 msgid "Latest Orders"
@@ -1685,7 +1706,7 @@ msgstr "Manzil yangilandi"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:126
-#: src/lib/components/shared/asset/asset-gallery.tsx:754
+#: src/lib/components/shared/asset/asset-gallery.tsx:972
 #: src/lib/framework/layout-engine/page-layout.tsx:746
 msgid "Created"
 msgstr "Yaratilgan"
@@ -1936,7 +1957,7 @@ msgstr "Pul qaytarish muvaffaqiyatli hisoblashildi"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
-#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
+#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:156
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
@@ -2019,8 +2040,8 @@ msgstr "Boshlanadi"
 msgid "Duplicate"
 msgstr "Nusxalash"
 
-#: src/lib/components/data-table/data-table.tsx:590
-#: src/lib/components/data-table/data-table.tsx:601
+#: src/lib/components/data-table/data-table.tsx:596
+#: src/lib/components/data-table/data-table.tsx:607
 #: src/lib/components/shared/customer-group-selector.tsx:60
 msgid "No results"
 msgstr "Natijalar yo'q"
@@ -2067,7 +2088,7 @@ msgstr "Ushbu manzilni o'chirishni xohlaysizmi?"
 msgid "Failed to assign option group"
 msgstr "Optsiya guruhini biriktirib bo'lmadi"
 
-#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:89
+#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:104
 msgid "Failed to update asset"
 msgstr "Assetni yangilab bo'lmadi"
 
@@ -2138,7 +2159,7 @@ msgstr "Yetkazib berish usulini sinash"
 msgid "Facet Values"
 msgstr "Faset qiymatlari"
 
-#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:85
+#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:100
 msgid "Successfully updated asset"
 msgstr "Asset yangilandi"
 
@@ -2541,6 +2562,10 @@ msgstr "Buyurtma uchun yetkazib berish manzilini o'rnatib bo'lmadi: {0}"
 msgid "Cancel Job"
 msgstr "Ishni bekor qilish"
 
+#: src/lib/components/shared/asset/asset-gallery.tsx:761
+msgid "No assets yet"
+msgstr ""
+
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:194
 msgid "Ends at"
 msgstr "Tugaydi"
@@ -2600,12 +2625,12 @@ msgid "Save View"
 msgstr "Ko'rinishni saqlash"
 
 #. placeholder {0}: selectedIds.size
+#. placeholder {0}: selectedTags.length
 #. placeholder {0}: selectedValues.size
-#. placeholder {0}: selection.length
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:48
 #: src/lib/components/data-table/data-table-bulk-actions.tsx:76
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:137
 #: src/lib/components/data-table/data-table-faceted-filter.tsx:139
-#: src/lib/components/shared/asset/asset-bulk-actions.tsx:80
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx:67
 msgid "{0} selected"
 msgstr "{0} tanlangan"
@@ -2795,7 +2820,7 @@ msgstr "Kanaldan {successCount} faset olib tashlandi"
 msgid "New Product"
 msgstr "Yangi mahsulot"
 
-#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:40
+#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:55
 msgid "New asset"
 msgstr "Yangi asset"
 
@@ -2807,7 +2832,7 @@ msgstr "Tartiblash"
 msgid "Recalculate shipping"
 msgstr "Yetkazib berishni qayta hisoblash"
 
-#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:39
+#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:54
 #: src/app/routes/_authenticated/_assets/assets.tsx:17
 #: src/app/routes/_authenticated/_assets/assets.tsx:40
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:248
@@ -2865,8 +2890,8 @@ msgstr "Chegirma"
 msgid "Top Products"
 msgstr "Eng ko'p sotilgan mahsulotlar"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:367
-#: src/lib/components/shared/asset/asset-gallery.tsx:379
+#: src/lib/components/shared/asset/asset-gallery.tsx:446
+#: src/lib/components/shared/asset/asset-gallery.tsx:458
 msgid "All types"
 msgstr "Barcha turlar"
 
@@ -2991,6 +3016,13 @@ msgstr ""
 #: src/lib/components/data-input/select-with-options.tsx:107
 msgid "Select an option"
 msgstr "Opsiyani tanlang"
+
+#. placeholder {0}: asset.name
+#. placeholder {0}: row.original.name
+#: src/lib/components/shared/asset/asset-gallery.tsx:874
+#: src/lib/components/shared/asset/asset-gallery.tsx:1012
+msgid "Open {0}"
+msgstr ""
 
 #: src/lib/components/data-table/views-sheet.tsx:251
 msgid "Copy to Personal"
@@ -3301,6 +3333,10 @@ msgstr "Ustunlar"
 msgid "Failed to upload image"
 msgstr "Rasmni yuklab bo'lmadi"
 
+#: src/lib/components/shared/asset/asset-gallery.tsx:761
+msgid "No assets match these filters"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:146
 msgid "Option value name"
 msgstr "Optsiya qiymati nomi"
@@ -3441,7 +3477,7 @@ msgid "Processing..."
 msgstr "Qayta ishlanmoqda..."
 
 #. placeholder {0}: totalItems === 1 ? 'asset' : 'assets'
-#: src/lib/components/shared/asset/asset-gallery.tsx:472
+#: src/lib/components/shared/asset/asset-gallery.tsx:587
 msgid "{totalItems} {0} found"
 msgstr "{totalItems} {0} topildi"
 
@@ -3546,7 +3582,7 @@ msgstr "Topilmadi"
 msgid "Facet values"
 msgstr "Faset qiymatlari"
 
-#: src/lib/components/data-table/data-table.tsx:312
+#: src/lib/components/data-table/data-table.tsx:318
 msgid "Failed to reorder items"
 msgstr "Elementlarni qayta tartiblab bo'lmadi"
 
@@ -3599,6 +3635,10 @@ msgstr "To'lov tasdiqlandi"
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:62
 msgid "Successfully updated role"
 msgstr "Rol yangilandi"
+
+#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:136
+msgid "The display name can omit the extension or keep {sourceExtensionLabel}. It cannot use a different file extension."
+msgstr ""
 
 #: src/lib/components/shared/customer-address-form.tsx:184
 msgid "Select a country"
@@ -3711,7 +3751,7 @@ msgstr "Yetkazib berish puli qaytarildi"
 msgid "Failed to create option in group \"{0}\""
 msgstr ""
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:376
+#: src/lib/components/shared/asset/asset-gallery.tsx:455
 msgid "Asset type"
 msgstr "Asset turi"
 
@@ -3923,7 +3963,7 @@ msgstr "Saqlanmagan ko'rinish"
 msgid "Cannot remove from active channel"
 msgstr "Faol kanaldan olib tashlab bo'lmaydi"
 
-#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:179
+#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:226
 #: src/lib/components/shared/asset/asset-preview.tsx:162
 msgid "Not set"
 msgstr "Belgilanmagan"
@@ -4024,7 +4064,7 @@ msgstr "Administratorlarni qidirish..."
 msgid "Created by"
 msgstr "Yaratgan"
 
-#: src/lib/components/data-table/data-table.tsx:591
+#: src/lib/components/data-table/data-table.tsx:597
 msgid "No items match your current filters. Try clearing them to see more."
 msgstr "Joriy filtrlarga mos elementlar yo'q. Ko'proq ko'rish uchun ularni tozalab ko'ring."
 
@@ -4218,6 +4258,7 @@ msgstr "ichida"
 msgid "Email"
 msgstr "Email"
 
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:80
 #: src/lib/components/data-table/add-filter-menu.tsx:47
 msgid "Filter"
 msgstr "Filtr"
@@ -4235,8 +4276,8 @@ msgid "Loading customers…"
 msgstr "Mijozlar yuklanmoqda…"
 
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:104
-msgid "Filter by tags"
-msgstr "Teglar bo'yicha filtrlash"
+#~ msgid "Filter by tags"
+#~ msgstr "Teglar bo'yicha filtrlash"
 
 #: src/lib/components/login/login-form.tsx:74
 msgid "Sign in to access the admin dashboard"
@@ -4245,6 +4286,10 @@ msgstr "Admin dashboard'ga kirish uchun tizimga kiring"
 #: src/lib/components/data-table/filters/data-table-boolean-filter.tsx:57
 msgid "False"
 msgstr "Yolg'on"
+
+#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:139
+msgid "Asset name extension does not match the source file"
+msgstr ""
 
 #: src/lib/components/layout/nav-user.tsx:127
 msgctxt "theme"
@@ -4306,7 +4351,7 @@ msgstr "To'lov holatini yangilab bo'lmadi"
 msgid "Your orders summary"
 msgstr "Buyurtmalaringiz xulosasi"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:406
+#: src/lib/components/shared/asset/asset-gallery.tsx:505
 msgid "Upload"
 msgstr "Yuklash"
 
@@ -4315,7 +4360,7 @@ msgid "Product with options"
 msgstr "Variantli mahsulot"
 
 #. placeholder {0}: filteredTags.length
-#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:163
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:195
 msgid "Showing all {0} results"
 msgstr "Barcha {0} ta natija ko'rsatilmoqda"
 
@@ -4453,7 +4498,9 @@ msgstr "Miqdor"
 msgid "Inline code"
 msgstr "Qator ichidagi kod"
 
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:45
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx:104
+#: src/lib/components/shared/asset/asset-gallery.tsx:1055
 msgid "Tags"
 msgstr "Teglar"
 
@@ -4594,6 +4641,10 @@ msgstr "Global ko'rinish nomini o'zgartirib bo'lmadi"
 #~ msgid "Insert a new hyperlink with URL and target options"
 #~ msgstr "URL va maqsad parametrlari bilan yangi havola qo'shish"
 
+#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:193
+msgid "Display name"
+msgstr ""
+
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:194
 msgid "Height"
 msgstr "Balandlik"
@@ -4607,6 +4658,10 @@ msgstr "{formattedDiff} miqdorida pul qaytarish talab qilinadi. To'lov summalari
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:100
 msgid "Unit price"
 msgstr "Birlik narxi"
+
+#: src/lib/components/shared/asset/asset-gallery.tsx:764
+msgid "Try changing your search, asset type, or selected tags."
+msgstr ""
 
 #: src/lib/components/login/forgot-password-form.tsx:87
 msgid "If an account exists for {submittedEmailAddress}, you will receive an email with a link to reset your password."
@@ -4761,7 +4816,7 @@ msgstr "Filtrni tozalash"
 msgid "Regions"
 msgstr "Hududlar"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:445
+#: src/lib/components/shared/asset/asset-gallery.tsx:546
 msgid "Drop files here to upload"
 msgstr "Yuklash uchun fayllarni shu yerga tashlang"
 
@@ -5038,8 +5093,8 @@ msgid "Failed to update order"
 msgstr "Buyurtmani yangilab bo'lmadi"
 
 #: src/lib/components/shared/asset/asset-bulk-actions.tsx:84
-msgid "With selected..."
-msgstr "Tanlangan bilan..."
+#~ msgid "With selected..."
+#~ msgstr "Tanlangan bilan..."
 
 #: src/lib/components/login/reset-password-form.tsx:146
 msgid "Choose a new password for your account"
@@ -5113,7 +5168,7 @@ msgstr "Shtat / Viloyat"
 msgid "Enabled"
 msgstr "Yoqilgan"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:483
+#: src/lib/components/shared/asset/asset-gallery.tsx:598
 msgid "Items per page"
 msgstr "Sahifaga elementlar"
 
@@ -5179,6 +5234,10 @@ msgstr "So'nggi buyurtmalaringiz"
 #: src/lib/framework/defaults.ts:147
 msgid "Scheduled Tasks"
 msgstr "Rejalashtirilgan vazifalar"
+
+#: src/app/routes/_authenticated/_assets/assets_.$id.tsx:140
+msgid "Use {sourceExtensionLabel} or remove the extension from the display name."
+msgstr ""
 
 #: src/lib/components/data-table/use-generated-columns.tsx:428
 msgid "Are you sure you want to delete this item? This action cannot be undone."
@@ -5302,7 +5361,7 @@ msgid "Failed to update variant"
 msgstr "Variantni yangilab bo‘lmadi"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:69
-#: src/lib/components/data-table/data-table.tsx:717
+#: src/lib/components/data-table/data-table.tsx:723
 msgid "Go to previous page"
 msgstr "Oldingi sahifaga o'tish"
 
@@ -5375,6 +5434,11 @@ msgstr "Soliq stavkalari"
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx:40
 msgid "Failed to remove customers from group"
 msgstr "Mijozlarni guruhdan olib tashlab bolmadi"
+
+#. placeholder {0}: failedAssets.length
+#: src/lib/components/shared/asset/asset-gallery.tsx:268
+msgid "Failed to upload {0} assets"
+msgstr ""
 
 #: src/lib/framework/dashboard-widget/latest-customers-widget/index.tsx:56
 msgid "We couldn't load the latest customers"
@@ -5530,8 +5594,8 @@ msgid "Edit Note"
 msgstr "Eslatmani tahrirlash"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx:635
-msgid "No assets found. Try adjusting your filters."
-msgstr "Asset topilmadi. Filtrlarni o'zgartirib ko'ring."
+#~ msgid "No assets found. Try adjusting your filters."
+#~ msgstr "Asset topilmadi. Filtrlarni o'zgartirib ko'ring."
 
 #: src/app/routes/_authenticated/_products/components/option-groups-editor.tsx:161
 msgid "Add Option"
@@ -5555,8 +5619,10 @@ msgstr "Administrator muvaffaqiyatli yangilandi"
 
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:263
 #: src/lib/components/data-table/data-table-faceted-filter.tsx:225
-#: src/lib/components/data-table/data-table.tsx:594
-#: src/lib/components/shared/asset/asset-gallery.tsx:361
+#: src/lib/components/data-table/data-table.tsx:600
+#: src/lib/components/shared/asset/asset-gallery.tsx:428
+#: src/lib/components/shared/asset/asset-gallery.tsx:435
+#: src/lib/components/shared/asset/asset-gallery.tsx:773
 msgid "Clear filters"
 msgstr "Filtrlarni tozalash"
 
@@ -5585,8 +5651,12 @@ msgstr "Holat"
 msgid "No options found"
 msgstr "Variantlar topilmadi"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:370
-#: src/lib/components/shared/asset/asset-gallery.tsx:382
+#: src/lib/components/shared/asset/asset-gallery.tsx:778
+msgid "Upload assets"
+msgstr ""
+
+#: src/lib/components/shared/asset/asset-gallery.tsx:449
+#: src/lib/components/shared/asset/asset-gallery.tsx:461
 msgid "Binary"
 msgstr "Ikkilik"
 
@@ -5853,8 +5923,8 @@ msgstr "Birinchi aksiyangizni yarating"
 msgid "Remove item"
 msgstr "Elementni olib tashlash"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:369
-#: src/lib/components/shared/asset/asset-gallery.tsx:381
+#: src/lib/components/shared/asset/asset-gallery.tsx:448
+#: src/lib/components/shared/asset/asset-gallery.tsx:460
 msgid "Video"
 msgstr "Video"
 
@@ -5933,7 +6003,6 @@ msgid "Source"
 msgstr "Manba"
 
 #: src/lib/components/data-table/data-table-bulk-actions.tsx:107
-#: src/lib/components/shared/asset/asset-bulk-actions.tsx:98
 msgid "No actions available"
 msgstr "Mavjud amallar yo'q"
 
@@ -5959,6 +6028,11 @@ msgstr "Faset muvaffaqiyatli yangilandi"
 #: src/lib/components/shared/rich-text-editor/selection-bubble-menu.tsx:83
 msgid "Strikethrough"
 msgstr "Ustiga chizilgan"
+
+#. placeholder {0}: createdAssets.length
+#: src/lib/components/shared/asset/asset-gallery.tsx:265
+msgid "Uploaded {0} assets"
+msgstr ""
 
 #: src/lib/framework/dashboard-widget/latest-customers-widget/index.tsx:92
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:127
@@ -6000,7 +6074,7 @@ msgstr "Ushbu optsiya guruhini mahsulotdan olib tashlamoqchimisiz?"
 msgid "Description (alt)"
 msgstr "Tavsif (muqobil)"
 
-#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:124
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:153
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx:164
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx:99
 msgid "No tags found"
@@ -6136,7 +6210,8 @@ msgstr "Buyurtmalar xulosasi"
 msgid "Search stock locations..."
 msgstr "Zaxira joylarini qidirish..."
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:349
+#: src/lib/components/shared/asset/asset-gallery.tsx:413
+#: src/lib/components/shared/asset/asset-gallery.tsx:1052
 msgid "Search assets..."
 msgstr "Assetlarni qidirish..."
 
@@ -6199,7 +6274,7 @@ msgstr "Fasetni kanaldan olib tashlash amalga oshmadi: {message}"
 #~ msgid "Set link"
 #~ msgstr "Havolani o'rnatish"
 
-#: src/lib/components/data-table/data-table.tsx:716
+#: src/lib/components/data-table/data-table.tsx:722
 msgid "Pagination"
 msgstr "Sahifalash"
 
@@ -6246,7 +6321,7 @@ msgid "View result"
 msgstr "Natijani ko'rish"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:20
-#: src/lib/components/data-table/data-table.tsx:719
+#: src/lib/components/data-table/data-table.tsx:725
 msgid "Rows per page"
 msgstr "Sahifadagi qatorlar"
 
@@ -6339,7 +6414,7 @@ msgid "Failed to create product variant"
 msgstr "Mahsulot variantini yaratish amalga oshmadi"
 
 #: src/lib/components/data-input/relation-selector.tsx:418
-#: src/lib/components/data-table/data-table.tsx:501
+#: src/lib/components/data-table/data-table.tsx:507
 msgid "Search..."
 msgstr "Qidirish..."
 
@@ -6423,9 +6498,8 @@ msgstr "Mavjud shartlar"
 msgid "Active filters"
 msgstr "Faol filtrlar"
 
-#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:176
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx:54
-#: src/lib/components/data-table/data-table.tsx:577
+#: src/lib/components/data-table/data-table.tsx:583
 msgid "Clear all"
 msgstr "Hammasini tozalash"
 
