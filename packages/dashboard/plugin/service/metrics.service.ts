@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { CacheService, Logger, Order, RequestContext, TransactionalConnection } from '@vendure/core';
-import { endOfDay, startOfDay } from 'date-fns';
-import { createHash } from 'node:crypto';
+import { Logger, Order, RequestContext, TransactionalConnection } from '@vendure/core';
+import { addDays, differenceInCalendarDays, endOfDay, format, startOfDay } from 'date-fns';
 
 import {
     AverageOrderValueMetric,
@@ -34,10 +33,7 @@ type RawMetricData = {
 export class MetricsService {
     metricCalculations: MetricCalculation[];
 
-    constructor(
-        private connection: TransactionalConnection,
-        private cacheService: CacheService,
-    ) {
+    constructor(private connection: TransactionalConnection) {
         this.metricCalculations = [
             new AverageOrderValueMetric(),
             new OrderCountMetric(),
@@ -47,30 +43,12 @@ export class MetricsService {
 
     async getMetrics(
         ctx: RequestContext,
-        { types, refresh, startDate, endDate }: DashboardMetricSummaryInput,
+        { types, startDate, endDate }: DashboardMetricSummaryInput,
     ): Promise<DashboardMetricSummary[]> {
         const calculatedStartDate = startOfDay(new Date(startDate));
         const calculatedEndDate = endOfDay(new Date(endDate));
-        // Check if we have cached result
-        const hash = createHash('sha1')
-            .update(
-                JSON.stringify({
-                    startDate: calculatedStartDate,
-                    endDate: calculatedEndDate,
-                    types: [...types].sort((a, b) => a.localeCompare(b)),
-                    channel: ctx.channel.token,
-                }),
-            )
-            .digest('base64');
-        const cacheKey = `MetricsService:${hash}`;
-        const cachedMetricList = await this.cacheService.get<DashboardMetricSummary[]>(cacheKey);
-        if (cachedMetricList && refresh !== true) {
-            Logger.verbose(`Returning cached metrics for channel ${ctx.channel.token}`, loggerCtx);
-            return cachedMetricList;
-        }
-        // No cache, calculating new metrics
         Logger.verbose(
-            `No cache hit, calculating metrics from ${calculatedStartDate.toISOString()} to ${calculatedEndDate.toISOString()} for channel ${
+            `Calculating metrics from ${calculatedStartDate.toISOString()} to ${calculatedEndDate.toISOString()} for channel ${
                 ctx.channel.token
             } for all orders`,
             loggerCtx,
@@ -94,18 +72,15 @@ export class MetricsService {
                 entries,
             });
         }
-        await this.cacheService.set(cacheKey, metrics, { ttl: 1000 * 60 * 60 * 2 }); // 2 hours
         return metrics;
     }
 
     async loadData(ctx: RequestContext, startDate: Date, endDate: Date): Promise<Map<string, MetricData>> {
         const orderRepo = this.connection.getRepository(ctx, Order);
 
-        // Calculate number of days between start and end
-        const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-        const nrOfDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        const nrOfDays = differenceInCalendarDays(endDate, startDate) + 1;
 
-        const dateExpression = 'DATE(order.orderPlacedAt)';
+        const dateExpression = this.getDateExpression();
         const rows: RawMetricData[] = await orderRepo
             .createQueryBuilder('order')
             .select(dateExpression, 'date')
@@ -142,9 +117,8 @@ export class MetricsService {
 
         // Create a map entry for each day in the range
         for (let i = 0; i < nrOfDays; i++) {
-            const currentDate = new Date(startDate);
-            currentDate.setDate(startDate.getDate() + i);
-            const dateKey = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+            const currentDate = addDays(startDate, i);
+            const dateKey = format(currentDate, 'yyyy-MM-dd');
 
             const data = metricsByDate.get(dateKey);
 
@@ -157,5 +131,21 @@ export class MetricsService {
         }
 
         return dataPerDay;
+    }
+
+    private getDateExpression(): string {
+        switch (this.connection.rawConnection.options.type) {
+            case 'postgres':
+                return `TO_CHAR(order.orderPlacedAt, 'YYYY-MM-DD')`;
+            case 'mysql':
+            case 'mariadb':
+                return `DATE_FORMAT(order.orderPlacedAt, '%Y-%m-%d')`;
+            case 'better-sqlite3':
+            case 'sqlite':
+            case 'sqljs':
+                return `STRFTIME('%Y-%m-%d', order.orderPlacedAt)`;
+            default:
+                return 'DATE(order.orderPlacedAt)';
+        }
     }
 }

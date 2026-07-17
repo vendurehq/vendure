@@ -64,7 +64,6 @@ export function OrdersSummaryWidget() {
             api.query(orderSummaryQuery, {
                 start: variables.start,
                 end: variables.end,
-                refresh: true,
             }),
     });
 
@@ -74,7 +73,6 @@ export function OrdersSummaryWidget() {
             api.query(orderSummaryQuery, {
                 start: variables.previousStart,
                 end: variables.previousEnd,
-                refresh: true,
             }),
     });
 

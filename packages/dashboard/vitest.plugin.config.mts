@@ -8,6 +8,7 @@ export default defineConfig({
         ...sharedTestConfig,
         environment: 'node',
         include: ['plugin/**/*.spec.ts'],
+        exclude: ['plugin/**/*.e2e-spec.ts'],
     },
     plugins: [swc.vite()],
 });
