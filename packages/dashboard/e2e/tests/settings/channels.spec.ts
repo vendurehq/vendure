@@ -181,12 +181,19 @@ test.describe('Channel required-field validation', () => {
         await dp.clickCreate();
 
         // Each missing required field is called out in place...
-        for (const label of ['Token', 'Default tax zone', 'Default shipping zone', 'Default currency']) {
+        for (const label of ['Token', 'Default tax zone', 'Default shipping zone']) {
             await expect(dp.formItem(label).getByText('This field is required')).toBeVisible();
         }
 
-        // ...but the optional "available" lists are not flagged — the server derives them from
-        // the defaults, so demanding them would just be a second field to fill for no gain.
+        // ...the default currency among them, in the terms of the list it is picked from...
+        await expect(
+            dp
+                .formItem('Default currency')
+                .getByText('You must select a default currency from the list of available currencies'),
+        ).toBeVisible();
+
+        // ...but "Available currencies" is not flagged on its own: the message above already sends
+        // the user there, so a second error on the same problem would be noise.
         await expect(dp.formItem('Available currencies').getByText('This field is required')).toHaveCount(0);
 
         // ...and the mutation never leaves the client, so there is no raw GraphQL error toast.
@@ -194,67 +201,25 @@ test.describe('Channel required-field validation', () => {
         await expect(page).toHaveURL(/\/channels\/new$/);
     });
 
-    // The default-currency select must offer every currency when none have been marked available,
-    // otherwise "Default currency" is required but impossible to fill.
-    test('should create a channel without touching the available currency/language lists', async ({
-        page,
-    }) => {
+    // #4173 — the default currency used to be pickable from every currency there is while
+    // "Available currencies" was still empty, so it could be left out of the list chosen
+    // afterwards. The available currencies are now the only source of a default.
+    test('should offer no default currency until an available currency is chosen', async ({ page }) => {
         const dp = detailPage(page);
         await dp.gotoNew();
         await dp.expectNewPageLoaded();
 
-        await dp.fillInput('Code', 'e2e-derived-channel');
-        await dp.fillInput('Token', 'e2e-derived-token');
+        await dp.fillInput('Code', 'e2e-default-source-channel');
+        await dp.fillInput('Token', 'e2e-default-source-token');
 
-        // Default currency, with "Available currencies" left untouched.
+        // Nothing is available, so there is nothing to make the default. The popover has no search
+        // input either — MultiSelect only shows it above 10 items.
         await dp.formItem('Default currency').getByRole('combobox').click();
-        await page
-            .locator('[data-slot="popover-content"]')
-            .getByPlaceholder('Search currencies...')
-            .fill('Dollar');
-        await page
-            .locator('[data-slot="popover-content"]')
-            .getByRole('button', { name: /Dollar/ })
-            .first()
-            .click();
-
-        await dp.selectOption('Default tax zone', 'Europe');
-        await dp.selectOption('Default shipping zone', 'Europe');
-
-        await dp.clickCreate();
-        await dp.expectSuccessToast(/Successfully created channel/);
-        await dp.expectNavigatedToExisting();
-    });
-
-    // #4173 — a default picked while the available list was still empty could be left out of a
-    // non-empty list selected afterwards. `create` saves a supplied list verbatim, so the channel
-    // was saved with its default currency unavailable. The default is now always submitted as
-    // available, and never disappears from its own selector.
-    test('should keep a default chosen before a different non-empty available list', async ({ page }) => {
-        const dp = detailPage(page);
-        await dp.gotoNew();
-        await dp.expectNewPageLoaded();
-
-        await dp.fillInput('Code', 'e2e-default-sync-channel');
-        await dp.fillInput('Token', 'e2e-default-sync-token');
-
-        // Default currency first, while "Available currencies" is still empty and the selector is
-        // therefore unfiltered.
-        await dp.formItem('Default currency').getByRole('combobox').click();
-        await page
-            .locator('[data-slot="popover-content"]')
-            .getByPlaceholder('Search currencies...')
-            .fill('US Dollar');
-        await page
-            .locator('[data-slot="popover-content"]')
-            .getByRole('button', { name: /US Dollar/ })
-            .first()
-            .click();
-        // A single-select closes itself once a value is picked.
+        await expect(page.locator('[data-slot="popover-content"]').getByRole('button')).toHaveCount(0);
+        await page.locator('body').click({ position: { x: 0, y: 0 } });
         await expect(page.locator('[data-slot="popover-content"]')).not.toBeVisible();
-        await expect(dp.formItem('Default currency').getByRole('combobox')).toContainText('US Dollar');
 
-        // Now mark a *different* currency as the only explicitly available one.
+        // Marking one currency available makes it — and only it — a candidate default.
         await dp.formItem('Available currencies').getByRole('combobox').click();
         await page
             .locator('[data-slot="popover-content"]')
@@ -268,16 +233,12 @@ test.describe('Channel required-field validation', () => {
         await page.locator('body').click({ position: { x: 0, y: 0 } });
         await expect(page.locator('[data-slot="popover-content"]')).not.toBeVisible();
 
-        // The default survives the narrowing, and is still offered by its own selector. The
-        // popover has no search input here: it is down to two items (MultiSelect only shows the
-        // search once there are more than 10).
-        await expect(dp.formItem('Default currency').getByRole('combobox')).toContainText('US Dollar');
         await dp.formItem('Default currency').getByRole('combobox').click();
-        await expect(
-            page.locator('[data-slot="popover-content"]').getByRole('button', { name: /US Dollar/ }),
-        ).toBeVisible();
-        await page.locator('body').click({ position: { x: 0, y: 0 } });
+        await expect(page.locator('[data-slot="popover-content"]').getByRole('button')).toHaveCount(1);
+        await page.locator('[data-slot="popover-content"]').getByRole('button', { name: /Euro/ }).click();
+        // A single-select closes itself once a value is picked.
         await expect(page.locator('[data-slot="popover-content"]')).not.toBeVisible();
+        await expect(dp.formItem('Default currency').getByRole('combobox')).toContainText('Euro');
 
         await dp.selectOption('Default tax zone', 'Europe');
         await dp.selectOption('Default shipping zone', 'Europe');
@@ -286,11 +247,62 @@ test.describe('Channel required-field validation', () => {
         await dp.expectSuccessToast(/Successfully created channel/);
         await dp.expectNavigatedToExisting();
 
-        // The saved channel must have the default among its available currencies.
+        // The default is among the saved channel's available currencies, because it came from them.
         await page.reload();
-        await expect(dp.formItem('Available currencies').getByRole('combobox')).toContainText('US Dollar');
         await expect(dp.formItem('Available currencies').getByRole('combobox')).toContainText('Euro');
+        await expect(dp.formItem('Default currency').getByRole('combobox')).toContainText('Euro');
+    });
+
+    // #4173 — picking the default from the available list is not enough on its own: the list can
+    // still be narrowed afterwards. ChannelService.create saves a supplied list verbatim without
+    // checking that it contains the default, so this has to be caught here.
+    test('should reject a default currency dropped from the available currencies', async ({ page }) => {
+        const dp = detailPage(page);
+        await dp.gotoNew();
+        await dp.expectNewPageLoaded();
+
+        await dp.fillInput('Code', 'e2e-default-dropped-channel');
+        await dp.fillInput('Token', 'e2e-default-dropped-token');
+        await dp.selectOption('Default tax zone', 'Europe');
+        await dp.selectOption('Default shipping zone', 'Europe');
+
+        // Two available currencies...
+        await dp.formItem('Available currencies').getByRole('combobox').click();
+        for (const currency of ['US Dollar', 'Euro']) {
+            await page
+                .locator('[data-slot="popover-content"]')
+                .getByPlaceholder('Search currencies...')
+                .fill(currency);
+            await page
+                .locator('[data-slot="popover-content"]')
+                .getByRole('button', { name: new RegExp(currency) })
+                .first()
+                .click();
+        }
+        await page.locator('body').click({ position: { x: 0, y: 0 } });
+        await expect(page.locator('[data-slot="popover-content"]')).not.toBeVisible();
+
+        // ...one of which becomes the default...
+        await dp.formItem('Default currency').getByRole('combobox').click();
+        await page
+            .locator('[data-slot="popover-content"]')
+            .getByRole('button', { name: /US Dollar/ })
+            .click();
         await expect(dp.formItem('Default currency').getByRole('combobox')).toContainText('US Dollar');
+
+        // ...and is then taken back off the available list via its badge.
+        await dp
+            .formItem('Available currencies')
+            .getByRole('button', { name: /Remove US Dollar/ })
+            .click();
+
+        await dp.clickCreate();
+        await expect(
+            dp
+                .formItem('Default currency')
+                .getByText('You must select a default currency from the list of available currencies'),
+        ).toBeVisible();
+        await expect(page).toHaveURL(/\/channels\/new$/);
     });
 
     test('should clear the error once a required field is filled', async ({ page }) => {

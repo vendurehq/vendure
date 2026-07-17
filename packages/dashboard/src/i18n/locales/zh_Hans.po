@@ -161,6 +161,10 @@ msgstr "输入自定义原因..."
 msgid "Type"
 msgstr "类型"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:265
+msgid "The default currency is chosen from this list."
+msgstr ""
+
 #. placeholder {0}: entityName.toLowerCase()
 #. placeholder {0}: group.name
 #: src/app/routes/_authenticated/_products/components/product-option-select.tsx:57
@@ -195,7 +199,7 @@ msgstr "当前"
 msgid "No fulfillments"
 msgstr "无履行"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:287
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:338
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
 msgstr "启用后，商品目录中输入的价格将包含默认税务区域的税费。"
 
@@ -246,7 +250,7 @@ msgstr "选项"
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
 msgstr "{fulfilled, plural, other {成功取消 {fulfilled} 个任务}}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:198
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:243
 msgid "Seller"
 msgstr "卖家"
 
@@ -389,8 +393,8 @@ msgctxt "date-range"
 msgid "Last 7 days"
 msgstr "过去7天"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:134
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:140
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:179
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:185
 msgid "Failed to create channel"
 msgstr "创建渠道失败"
 
@@ -685,7 +689,7 @@ msgstr "选择地址"
 msgid "Payment eligibility checker"
 msgstr "支付资格检查器"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:269
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:320
 msgid "Default tax zone"
 msgstr "默认税务区域"
 
@@ -713,7 +717,7 @@ msgstr "筛选..."
 msgid "New facet value"
 msgstr "新属性值"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:127
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:172
 msgid "Successfully updated channel"
 msgstr "已成功更新渠道"
 
@@ -725,7 +729,7 @@ msgstr "显示更少"
 msgid "Short date"
 msgstr "短日期"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:219
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:264
 msgid "Available currencies"
 msgstr "可用货币"
 
@@ -789,7 +793,7 @@ msgstr "名称"
 msgid "Failed to fulfill order"
 msgstr "履行订单失败"
 
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:158
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:193
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:88
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:106
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:228
@@ -888,8 +892,8 @@ msgid "Go to first page"
 msgstr "转到首页"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:220
-msgid "Defaults to the default currency."
-msgstr ""
+#~ msgid "Defaults to the default currency."
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:167
 msgid "Failed to create product"
@@ -1208,17 +1212,14 @@ msgstr "剩余："
 msgid "No duplicator found with code \"{duplicatorCode}\" for {entityName}s"
 msgstr "未找到代码为\"{duplicatorCode}\"的 {entityName} 复制器"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:285
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:336
 msgid "Prices include tax for default tax zone"
 msgstr "价格包含默认税务区域的税费"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:102
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:103
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:106
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:107
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:117
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:118
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:120
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:130
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:131
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:134
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:135
 msgid "This field is required"
 msgstr ""
 
@@ -1336,8 +1337,8 @@ msgstr "{productCount, plural, one {此选项组被另一个产品使用。更�
 msgid "My Saved Views"
 msgstr "我的保存视图"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:41
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:155
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:66
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:200
 msgid "New channel"
 msgstr "新渠道"
 
@@ -1699,7 +1700,7 @@ msgstr "删除变体"
 msgid "No modifications made"
 msgstr "未进行修改"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:277
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:328
 msgid "Default shipping zone"
 msgstr "默认配送区域"
 
@@ -1809,7 +1810,7 @@ msgstr "退款已成功完成"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:168
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:213
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
@@ -1906,7 +1907,7 @@ msgstr "无结果"
 msgid "Column settings"
 msgstr "列设置"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:178
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:223
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:126
@@ -2604,7 +2605,7 @@ msgstr "新税务类别"
 #~ msgid "No stock locations available on current channel"
 #~ msgstr "当前渠道无可用库存位置"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:127
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:172
 msgid "Successfully created channel"
 msgstr "已成功创建渠道"
 
@@ -2835,7 +2836,7 @@ msgstr "删除全局视图"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:168
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:213
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
@@ -3147,7 +3148,7 @@ msgstr "州/省"
 msgid "Failed to update option group"
 msgstr "更新选项组失败"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:231
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:276
 msgid "Channel defaults"
 msgstr "渠道默认值"
 
@@ -3250,7 +3251,7 @@ msgstr "找到 {totalItems} 个{0}"
 msgid "Select date range"
 msgstr "选择日期范围"
 
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:87
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:158
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:44
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:97
 msgid "Product"
@@ -3303,7 +3304,7 @@ msgstr "搜索分面值..."
 msgid "Note"
 msgstr "备注"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:206
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:251
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:112
 msgid "Available languages"
 msgstr "可用语言"
@@ -3458,7 +3459,7 @@ msgstr ""
 msgid "Settle payment"
 msgstr "完成支付"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:40
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:65
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:216
@@ -4305,7 +4306,7 @@ msgstr "高度"
 msgid "A refund of {formattedDiff} is required. Select payment amounts and enter a note to proceed."
 msgstr "需要退款 {formattedDiff}。选择付款金额并输入备注以继续。"
 
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:100
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:171
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:57
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:100
 msgid "Unit price"
@@ -4499,6 +4500,13 @@ msgstr "视图已成功删除"
 msgid "OR"
 msgstr "或"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:145
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:146
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:149
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:165
+msgid "You must select a default currency from the list of available currencies"
+msgstr ""
+
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx:213
 msgid "Manage tags"
 msgstr "管理标签"
@@ -4585,7 +4593,7 @@ msgstr "编辑或删除现有标签"
 msgid "This shipping method's eligibility checker conditions are not met for the current order and shipping address."
 msgstr "此配送方式的资格检查器条件不符合当前订单和配送地址。"
 
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:273
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:308
 msgid "Add coupon code"
 msgstr "添加优惠券代码"
 
@@ -5111,7 +5119,7 @@ msgstr "无法将 {entityIdsLength} 个 {entityType} 分配到渠道"
 msgid "Default Language"
 msgstr "默认语言"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:187
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:232
 msgid "Token"
 msgstr "令牌"
 
@@ -5211,7 +5219,7 @@ msgstr "履行 #{0}，从 {1} 到 {2}"
 msgid "Failed to delete global view"
 msgstr "删除全局视图失败"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:236
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:281
 msgid "Default language"
 msgstr "默认语言"
 
@@ -5369,7 +5377,7 @@ msgstr "值已更新"
 msgid "Unverified"
 msgstr "未验证"
 
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:111
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:182
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:268
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:78
 msgid "Quantity"
@@ -5459,7 +5467,7 @@ msgstr "上个月"
 msgid "Add Country"
 msgstr "添加国家"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:207
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:252
 msgid "Defaults to the default language."
 msgstr ""
 
@@ -5551,8 +5559,8 @@ msgstr "来源"
 msgid "No actions available"
 msgstr "无可用操作"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:134
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:140
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:179
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:185
 msgid "Failed to update channel"
 msgstr "更新渠道失败"
 
@@ -5613,7 +5621,7 @@ msgstr "描述（替代文本）"
 msgid "No tags found"
 msgstr "未找到标签"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:254
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:303
 msgid "Default currency"
 msgstr "默认货币"
 
@@ -5856,7 +5864,7 @@ msgid "Failed to unset shipping address for order: {0}"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:82
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:96
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:167
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:297
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:292
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:198
@@ -5997,7 +6005,7 @@ msgstr "向订单添加支付"
 msgid "Loading..."
 msgstr "正在加载..."
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:189
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:234
 msgid "The token is used to specify the channel when making API requests."
 msgstr "在进行 API 请求时使用令牌来指定渠道。"
 

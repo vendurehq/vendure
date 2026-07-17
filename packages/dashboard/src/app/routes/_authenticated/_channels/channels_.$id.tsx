@@ -31,17 +31,21 @@ import { channelDetailDocument, createChannelDocument, updateChannelDocument } f
 const pageId = 'channel-detail';
 
 /**
- * The "available" list sent to the server, or `undefined` when the user selected nothing.
+ * The available language codes sent to the server, or `undefined` when the user selected none.
  *
  * Omitting an empty list lets ChannelService.create derive it from the default
- * (`input.availableCurrencyCodes ?? [defaultCurrencyCode]`), which is what an empty selection means
- * here — as opposed to `[]`, which would be saved as a channel with no available currencies at all.
+ * (`input.availableLanguageCodes ?? [defaultLanguageCode]`) — as opposed to `[]`, which would be
+ * saved as a channel with no available languages at all. `defaultLanguageCode` is pre-filled from
+ * the active channel, so an empty list here is the normal state of an untouched create form.
  *
- * A non-empty list must contain the default: `create` saves a supplied list verbatim without
- * checking, and neither `create` nor `update` checks it for languages, so a default outside the
- * list would be saved as an unusable channel.
+ * A non-empty list must contain the default: neither `create` nor `update` checks that it does for
+ * languages, so a default outside the list would be saved as an unusable channel.
+ *
+ * Currencies need none of this: the default currency can only be picked from the available
+ * currencies, and that pair is validated below, so the list is always non-empty and always
+ * contains the default by the time it is submitted.
  */
-function withDefault<T extends string>(
+function withDefaultLanguage<T extends string>(
     available: readonly T[] | null | undefined,
     defaultCode: T | null | undefined,
 ): T[] | undefined {
@@ -98,15 +102,19 @@ function ChannelDetailPage() {
             return {
                 ...input,
                 currencyCode: undefined,
-                availableCurrencyCodes: withDefault(input.availableCurrencyCodes, input.defaultCurrencyCode),
-                availableLanguageCodes: withDefault(input.availableLanguageCodes, input.defaultLanguageCode),
+                availableLanguageCodes: withDefaultLanguage(
+                    input.availableLanguageCodes,
+                    input.defaultLanguageCode,
+                ),
             };
         },
         transformUpdateInput: input => {
             return {
                 ...input,
-                availableCurrencyCodes: withDefault(input.availableCurrencyCodes, input.defaultCurrencyCode),
-                availableLanguageCodes: withDefault(input.availableLanguageCodes, input.defaultLanguageCode),
+                availableLanguageCodes: withDefaultLanguage(
+                    input.availableLanguageCodes,
+                    input.defaultLanguageCode,
+                ),
             };
         },
         // The generated schema is derived from the GraphQL input type, which only tells us about
@@ -117,29 +125,47 @@ function ChannelDetailPage() {
         // These are only enforced on create: `UpdateChannelInput` makes every field optional and
         // omits what isn't sent, so an update may legitimately touch just one field.
         extendSchema: schema =>
-            schema.extend({
-                code: z.string().min(1, { message: t`This field is required` }),
-                token: z.string().min(1, { message: t`This field is required` }),
-                ...(creatingNewEntity
-                    ? {
-                          defaultTaxZoneId: z.string().min(1, { message: t`This field is required` }),
-                          defaultShippingZoneId: z.string().min(1, { message: t`This field is required` }),
-                          // `defaultCurrencyCode` is nullable in the schema, but ChannelService.create
-                          // throws a raw UserInputError unless a defaultCurrencyCode or currencyCode is
-                          // given — and this page always sends `currencyCode: undefined`. It is a nullable
-                          // enum, so it is `null` (not '') until the user picks one; hence invalid_type_error.
-                          // `availableCurrencyCodes` is deliberately NOT required: the server derives it
-                          // from the default when omitted, so requiring it would just be a second field to
-                          // fill for no gain.
-                          defaultCurrencyCode: z
-                              .string({
-                                  required_error: t`This field is required`,
-                                  invalid_type_error: t`This field is required`,
-                              })
-                              .min(1, { message: t`This field is required` }),
-                      }
-                    : {}),
-            }),
+            schema
+                .extend({
+                    code: z.string().min(1, { message: t`This field is required` }),
+                    token: z.string().min(1, { message: t`This field is required` }),
+                    ...(creatingNewEntity
+                        ? {
+                              defaultTaxZoneId: z.string().min(1, { message: t`This field is required` }),
+                              defaultShippingZoneId: z.string().min(1, { message: t`This field is required` }),
+                              // `defaultCurrencyCode` is nullable in the schema, but ChannelService.create
+                              // throws a raw UserInputError unless a defaultCurrencyCode or currencyCode is
+                              // given — and this page always sends `currencyCode: undefined`. It is a
+                              // nullable enum, so it is `null` (not '') until the user picks one; hence
+                              // invalid_type_error. The message names the available currencies because
+                              // they are where a default comes from: with none chosen there is nothing to
+                              // pick here, so that is the field to go and fill in.
+                              defaultCurrencyCode: z
+                                  .string({
+                                      required_error: t`You must select a default currency from the list of available currencies`,
+                                      invalid_type_error: t`You must select a default currency from the list of available currencies`,
+                                  })
+                                  .min(1, {
+                                      message: t`You must select a default currency from the list of available currencies`,
+                                  }),
+                          }
+                        : {}),
+                })
+                // The default currency selector only offers the available currencies, so this can only
+                // fail when the available list changes after the default was picked: removing the
+                // default from it, or (on update, where no field is required) clearing it entirely.
+                // The server would not catch either — ChannelService.create saves a supplied list
+                // verbatim without checking that it contains the default.
+                .superRefine((values, ctx) => {
+                    const available: string[] = values.availableCurrencyCodes ?? [];
+                    if (available.length && !available.includes(values.defaultCurrencyCode as string)) {
+                        ctx.addIssue({
+                            code: z.ZodIssueCode.custom,
+                            path: ['defaultCurrencyCode'],
+                            message: t`You must select a default currency from the list of available currencies`,
+                        });
+                    }
+                }),
         params: { id: params.id },
         onSuccess: async data => {
             if (data.__typename === 'Channel') {
@@ -236,7 +262,7 @@ function ChannelDetailPage() {
                             control={form.control}
                             name="availableCurrencyCodes"
                             label={<Trans>Available currencies</Trans>}
-                            description={<Trans>Defaults to the default currency.</Trans>}
+                            description={<Trans>The default currency is chosen from this list.</Trans>}
                             render={({ field }) => (
                                 <CurrencySelector
                                     value={field.value ?? []}
@@ -258,13 +284,16 @@ function ChannelDetailPage() {
                                     value={field.value ?? ''}
                                     onChange={field.onChange}
                                     multiple={false}
-                                    // Narrow to the available languages only once some have been
-                                    // chosen. Passing `[]` would leave nothing to pick from, which
-                                    // is a dead end when this field is required. The current value
-                                    // is always included: it is submitted as available regardless,
-                                    // so it must not vanish from its own selector when the user
-                                    // narrows the list afterwards.
-                                    availableLanguageCodes={withDefault(availableLanguageCodes, field.value)}
+                                    // Unlike the currency below, this cannot narrow to an empty
+                                    // available list: `defaultLanguageCode` is non-nullable and
+                                    // pre-filled from the active channel, so an empty list would
+                                    // leave a required field showing a value its own selector no
+                                    // longer offers. The current value is always included for the
+                                    // same reason — it is submitted as available regardless.
+                                    availableLanguageCodes={withDefaultLanguage(
+                                        availableLanguageCodes,
+                                        field.value,
+                                    )}
                                 />
                             )}
                         />
@@ -277,7 +306,11 @@ function ChannelDetailPage() {
                                     value={field.value ?? ''}
                                     onChange={field.onChange}
                                     multiple={false}
-                                    availableCurrencyCodes={withDefault(availableCurrencyCodes, field.value)}
+                                    // The available currencies are the only currencies to pick
+                                    // from, including none at all: with an empty list this
+                                    // selector is deliberately empty, so a default cannot be
+                                    // chosen before the list it must belong to.
+                                    availableCurrencyCodes={availableCurrencyCodes ?? []}
                                 />
                             )}
                         />

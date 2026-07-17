@@ -161,6 +161,10 @@ msgstr "Введите свою причину..."
 msgid "Type"
 msgstr "Тип"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:265
+msgid "The default currency is chosen from this list."
+msgstr ""
+
 #. placeholder {0}: entityName.toLowerCase()
 #. placeholder {0}: group.name
 #: src/app/routes/_authenticated/_products/components/product-option-select.tsx:57
@@ -195,7 +199,7 @@ msgstr "Текущий"
 msgid "No fulfillments"
 msgstr "Нет выполнений"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:287
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:338
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
 msgstr "При включении цены, введённые в каталоге товаров, будут включать налог для зоны по умолчанию."
 
@@ -246,7 +250,7 @@ msgstr "Опции"
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
 msgstr "{fulfilled, plural, one {Успешно отменена {fulfilled} задача} few {Успешно отменены {fulfilled} задачи} many {Успешно отменено {fulfilled} задач} other {Успешно отменено {fulfilled} задач}}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:198
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:243
 msgid "Seller"
 msgstr "Продавец"
 
@@ -389,8 +393,8 @@ msgctxt "date-range"
 msgid "Last 7 days"
 msgstr "Последние 7 дней"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:134
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:140
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:179
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:185
 msgid "Failed to create channel"
 msgstr "Не удалось создать канал"
 
@@ -685,7 +689,7 @@ msgstr "Выбрать адрес"
 msgid "Payment eligibility checker"
 msgstr "Проверка соответствия платежа"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:269
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:320
 msgid "Default tax zone"
 msgstr "Налоговая зона по умолчанию"
 
@@ -713,7 +717,7 @@ msgstr "Фильтровать..."
 msgid "New facet value"
 msgstr "Новое значение фасета"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:127
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:172
 msgid "Successfully updated channel"
 msgstr "Канал успешно обновлён"
 
@@ -725,7 +729,7 @@ msgstr "Показать меньше"
 msgid "Short date"
 msgstr "Короткая дата"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:219
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:264
 msgid "Available currencies"
 msgstr "Доступные валюты"
 
@@ -789,7 +793,7 @@ msgstr "Название"
 msgid "Failed to fulfill order"
 msgstr "Не удалось выполнить заказ"
 
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:158
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:193
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:88
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:106
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:228
@@ -888,8 +892,8 @@ msgid "Go to first page"
 msgstr "Перейти на первую страницу"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:220
-msgid "Defaults to the default currency."
-msgstr ""
+#~ msgid "Defaults to the default currency."
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:167
 msgid "Failed to create product"
@@ -1208,17 +1212,14 @@ msgstr "Осталось:"
 msgid "No duplicator found with code \"{duplicatorCode}\" for {entityName}s"
 msgstr "Дупликатор с кодом «{duplicatorCode}» для {entityName} не найден"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:285
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:336
 msgid "Prices include tax for default tax zone"
 msgstr "Цены включают налог для зоны по умолчанию"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:102
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:103
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:106
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:107
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:117
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:118
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:120
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:130
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:131
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:134
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:135
 msgid "This field is required"
 msgstr ""
 
@@ -1336,8 +1337,8 @@ msgstr "{productCount, plural, one {Эта группа опций исполь�
 msgid "My Saved Views"
 msgstr "Мои сохранённые представления"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:41
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:155
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:66
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:200
 msgid "New channel"
 msgstr "Новый канал"
 
@@ -1699,7 +1700,7 @@ msgstr "Удалить вариант"
 msgid "No modifications made"
 msgstr "Изменения не внесены"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:277
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:328
 msgid "Default shipping zone"
 msgstr "Зона доставки по умолчанию"
 
@@ -1809,7 +1810,7 @@ msgstr "Возврат успешно проведён"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:168
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:213
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
@@ -1906,7 +1907,7 @@ msgstr "Нет результатов"
 msgid "Column settings"
 msgstr "Настройки столбцов"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:178
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:223
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:126
@@ -2604,7 +2605,7 @@ msgstr "Новая налоговая категория"
 #~ msgid "No stock locations available on current channel"
 #~ msgstr "В текущем канале нет доступных мест хранения"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:127
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:172
 msgid "Successfully created channel"
 msgstr "Канал успешно создан"
 
@@ -2835,7 +2836,7 @@ msgstr "Удалить глобальное представление"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:168
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:213
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
@@ -3147,7 +3148,7 @@ msgstr "Регион/Область"
 msgid "Failed to update option group"
 msgstr "Не удалось обновить группу опций"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:231
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:276
 msgid "Channel defaults"
 msgstr "Настройки канала по умолчанию"
 
@@ -3250,7 +3251,7 @@ msgstr "{totalItems} {0} найдено"
 msgid "Select date range"
 msgstr "Выберите период"
 
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:87
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:158
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:44
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:97
 msgid "Product"
@@ -3303,7 +3304,7 @@ msgstr "Поиск значений фасетов..."
 msgid "Note"
 msgstr "Примечание"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:206
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:251
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:112
 msgid "Available languages"
 msgstr "Доступные языки"
@@ -3458,7 +3459,7 @@ msgstr ""
 msgid "Settle payment"
 msgstr "Провести платёж"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:40
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:65
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:216
@@ -4305,7 +4306,7 @@ msgstr "Высота"
 msgid "A refund of {formattedDiff} is required. Select payment amounts and enter a note to proceed."
 msgstr "Требуется возврат в размере {formattedDiff}. Выберите суммы платежей и введите примечание для продолжения."
 
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:100
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:171
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:57
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:100
 msgid "Unit price"
@@ -4499,6 +4500,13 @@ msgstr "Представление успешно удалено"
 msgid "OR"
 msgstr "ИЛИ"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:145
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:146
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:149
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:165
+msgid "You must select a default currency from the list of available currencies"
+msgstr ""
+
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx:213
 msgid "Manage tags"
 msgstr "Управление тегами"
@@ -4585,7 +4593,7 @@ msgstr "Редактировать или удалить существующи�
 msgid "This shipping method's eligibility checker conditions are not met for the current order and shipping address."
 msgstr "Условия проверки соответствия этого способа доставки не выполнены для текущего заказа и адреса доставки."
 
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:273
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:308
 msgid "Add coupon code"
 msgstr "Добавить код купона"
 
@@ -5111,7 +5119,7 @@ msgstr "Не удалось назначить {entityIdsLength} {entityType} к
 msgid "Default Language"
 msgstr "Язык по умолчанию"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:187
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:232
 msgid "Token"
 msgstr "Токен"
 
@@ -5211,7 +5219,7 @@ msgstr "Выполнение #{0} с {1} по {2}"
 msgid "Failed to delete global view"
 msgstr "Не удалось удалить глобальное представление"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:236
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:281
 msgid "Default language"
 msgstr "Язык по умолчанию"
 
@@ -5369,7 +5377,7 @@ msgstr "Значение обновлено"
 msgid "Unverified"
 msgstr "Не верифицирован"
 
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:111
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:182
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:268
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:78
 msgid "Quantity"
@@ -5459,7 +5467,7 @@ msgstr "Прошлый месяц"
 msgid "Add Country"
 msgstr "Добавить страну"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:207
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:252
 msgid "Defaults to the default language."
 msgstr ""
 
@@ -5551,8 +5559,8 @@ msgstr "Источник"
 msgid "No actions available"
 msgstr "Нет доступных действий"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:134
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:140
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:179
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:185
 msgid "Failed to update channel"
 msgstr "Не удалось обновить канал"
 
@@ -5613,7 +5621,7 @@ msgstr "Описание (альтернативный текст)"
 msgid "No tags found"
 msgstr "Теги не найдены"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:254
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:303
 msgid "Default currency"
 msgstr "Валюта по умолчанию"
 
@@ -5856,7 +5864,7 @@ msgid "Failed to unset shipping address for order: {0}"
 msgstr "Не удалось удалить адрес доставки заказа: {0}"
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:82
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:96
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:167
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:297
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:292
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:198
@@ -5997,7 +6005,7 @@ msgstr "Добавить платёж к заказу"
 msgid "Loading..."
 msgstr "Загрузка..."
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:189
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:234
 msgid "The token is used to specify the channel when making API requests."
 msgstr "Токен используется для указания канала при выполнении API-запросов."
 
