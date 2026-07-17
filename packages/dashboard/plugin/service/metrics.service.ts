@@ -18,7 +18,16 @@ import {
 
 export type MetricData = {
     date: Date;
-    orders: Order[];
+    orderCount: number;
+    orderTotal: number;
+    averageOrderValue: number;
+};
+
+type RawMetricData = {
+    date: string;
+    orderCount: string | number;
+    orderTotal: string | number;
+    averageOrderValue: string | number;
 };
 
 @Injectable()
@@ -96,43 +105,40 @@ export class MetricsService {
         const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
         const nrOfDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
-        // Get orders in a loop until we have all
-        let skip = 0;
-        const take = 1000;
-        let hasMoreOrders = true;
-        const orders: Order[] = [];
-        while (hasMoreOrders) {
-            const query = orderRepo
-                .createQueryBuilder('order')
-                .leftJoin('order.channels', 'orderChannel')
-                .where('orderChannel.id=:channelId', { channelId: ctx.channelId })
-                .andWhere('order.orderPlacedAt >= :startDate', {
-                    startDate: startDate.toISOString(),
-                })
-                .andWhere('order.orderPlacedAt <= :endDate', {
-                    endDate: endDate.toISOString(),
-                })
-                .skip(skip)
-                .take(take);
-            const [items, nrOfOrders] = await query.getManyAndCount();
-            orders.push(...items);
-            Logger.verbose(
-                `Fetched orders ${skip}-${skip + take} for channel ${
-                    ctx.channel.token
-                } for date range metrics`,
-                loggerCtx,
-            );
-            skip += items.length;
-            if (orders.length >= nrOfOrders) {
-                hasMoreOrders = false;
-            }
-        }
+        const dateExpression = 'DATE(order.orderPlacedAt)';
+        const rows: RawMetricData[] = await orderRepo
+            .createQueryBuilder('order')
+            .select(dateExpression, 'date')
+            .addSelect('COUNT(order.id)', 'orderCount')
+            .addSelect('COALESCE(SUM(order.subTotalWithTax + order.shippingWithTax), 0)', 'orderTotal')
+            .addSelect(
+                'COALESCE(ROUND(AVG(order.subTotalWithTax + order.shippingWithTax)), 0)',
+                'averageOrderValue',
+            )
+            .innerJoin('order.channels', 'orderChannel')
+            .where('orderChannel.id = :channelId', { channelId: ctx.channelId })
+            .andWhere('order.orderPlacedAt >= :startDate', { startDate: startDate.toISOString() })
+            .andWhere('order.orderPlacedAt <= :endDate', { endDate: endDate.toISOString() })
+            .groupBy(dateExpression)
+            .orderBy(dateExpression, 'ASC')
+            .getRawMany();
+
         Logger.verbose(
-            `Finished fetching all ${orders.length} orders for channel ${ctx.channel.token} for date range metrics`,
+            `Finished aggregating order metrics for channel ${ctx.channel.token} for ${rows.length} days`,
             loggerCtx,
         );
 
         const dataPerDay = new Map<string, MetricData>();
+        const metricsByDate = new Map(
+            rows.map(row => [
+                row.date,
+                {
+                    orderCount: Number(row.orderCount),
+                    orderTotal: Number(row.orderTotal),
+                    averageOrderValue: Number(row.averageOrderValue),
+                },
+            ]),
+        );
 
         // Create a map entry for each day in the range
         for (let i = 0; i < nrOfDays; i++) {
@@ -140,16 +146,13 @@ export class MetricsService {
             currentDate.setDate(startDate.getDate() + i);
             const dateKey = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD format
 
-            // Filter orders for this specific day
-            const ordersForDay = orders.filter(order => {
-                if (!order.orderPlacedAt) return false;
-                const orderDate = new Date(order.orderPlacedAt).toISOString().split('T')[0];
-                return orderDate === dateKey;
-            });
+            const data = metricsByDate.get(dateKey);
 
             dataPerDay.set(dateKey, {
-                orders: ordersForDay,
                 date: currentDate,
+                orderCount: data?.orderCount ?? 0,
+                orderTotal: data?.orderTotal ?? 0,
+                averageOrderValue: data?.averageOrderValue ?? 0,
             });
         }
 

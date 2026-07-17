@@ -21,7 +21,7 @@
         "build:lib": "vite build --config vite.lib.config.mts",
         "build": "npm run check-types && npm run build:vite && npm run build:plugin && npm run build:lib",
         "watch": "tsc --project tsconfig.vite.json --watch",
-        "test": "vitest run",
+        "test": "vitest run && vitest --config vitest.plugin.config.mts --run",
         "audit:bundle": "cross-env RUN_BUNDLE_AUDIT=true vitest run vite/tests/bundle-singleton.spec.ts vite/tests/bundle-singleton-dev-serving.spec.ts",
         "lint": "eslint .",
         "preview": "vite preview",

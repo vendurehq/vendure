@@ -1,13 +1,18 @@
 import { graphql } from '@/vdb/graphql/graphql.js';
 
 export const orderSummaryQuery = graphql(`
-    query GetOrderSummary($start: DateTime!, $end: DateTime!) {
-        orders(options: { filter: { orderPlacedAt: { between: { start: $start, end: $end } } } }) {
-            totalItems
-            items {
-                id
-                totalWithTax
-                currencyCode
+    query GetOrderSummaryMetrics($start: DateTime!, $end: DateTime!, $refresh: Boolean) {
+        dashboardMetricSummary(
+            input: {
+                types: [OrderCount, OrderTotal]
+                startDate: $start
+                endDate: $end
+                refresh: $refresh
+            }
+        ) {
+            type
+            entries {
+                value
             }
         }
     }
