@@ -287,7 +287,7 @@ msgstr "SKU:"
 msgid "Add payment"
 msgstr "支払いを追加"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:404
+#: src/app/routes/_authenticated/_collections/collections.tsx:403
 msgid "Expand"
 msgstr "展開"
 
@@ -853,7 +853,7 @@ msgstr "下書きを完了"
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:104
 #: src/app/routes/_authenticated/_customers/customers.tsx:73
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:136
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:121
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:121
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:202
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:173
@@ -1622,7 +1622,7 @@ msgstr "最新の注文"
 msgid "Go back"
 msgstr "戻る"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:478
+#: src/app/routes/_authenticated/_collections/collections.tsx:476
 msgid "+ {leftOver} more"
 msgstr "+ {leftOver} 件"
 
@@ -1714,7 +1714,7 @@ msgstr "新しいオプション"
 msgid "Usage limit"
 msgstr "使用制限"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:577
+#: src/app/routes/_authenticated/_collections/collections.tsx:575
 msgid "Create your first collection"
 msgstr "最初のコレクションを作成しましょう"
 
@@ -1845,8 +1845,8 @@ msgid "Set custom fields"
 msgstr "カスタムフィールドを設定"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:49
-#: src/app/routes/_authenticated/_collections/collections.tsx:53
-#: src/app/routes/_authenticated/_collections/collections.tsx:365
+#: src/app/routes/_authenticated/_collections/collections.tsx:52
+#: src/app/routes/_authenticated/_collections/collections.tsx:364
 msgid "Collections"
 msgstr "コレクション"
 
@@ -2083,7 +2083,7 @@ msgstr "列の設定"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:132
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:142
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:127
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:127
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:208
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:179
@@ -2795,7 +2795,7 @@ msgstr "パスワードをお忘れですか？"
 msgid "Schedule"
 msgstr "スケジュール"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:307
+#: src/app/routes/_authenticated/_collections/collections.tsx:306
 msgid "Cannot move a collection into its own descendant"
 msgstr "コレクションを自身の子孫に移動することはできません"
 
@@ -2930,7 +2930,7 @@ msgstr "人気商品"
 msgid "All types"
 msgstr "すべてのタイプ"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:404
+#: src/app/routes/_authenticated/_collections/collections.tsx:403
 msgid "Collapse"
 msgstr "折りたたむ"
 
@@ -3296,7 +3296,7 @@ msgstr "{0}"
 msgid "New Zone"
 msgstr "新しいゾーン"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:356
+#: src/app/routes/_authenticated/_collections/collections.tsx:355
 msgid "Failed to update collection position"
 msgstr "コレクションの位置の更新に失敗しました"
 
@@ -3600,7 +3600,7 @@ msgid "{saleable} in stock"
 msgstr "在庫{saleable}件"
 
 #. placeholder {0}: Math.min(remaining, CHILDREN_PAGE_SIZE)
-#: src/app/routes/_authenticated/_collections/collections.tsx:532
+#: src/app/routes/_authenticated/_collections/collections.tsx:530
 msgid "Load {0} more ({remaining} remaining)"
 msgstr "さらに{0}件読み込む (残り{remaining}件)"
 
@@ -3972,7 +3972,7 @@ msgid "No widgets to display. Use \"Edit Layout\" to add widgets."
 msgstr "表示するウィジェットがありません。「レイアウトを編集」からウィジェットを追加してください。"
 
 #. placeholder {0}: formatNumber(row.original.productVariantCount as number)
-#: src/app/routes/_authenticated/_collections/collections.tsx:456
+#: src/app/routes/_authenticated/_collections/collections.tsx:454
 msgid "{0} variants"
 msgstr "{0} 件のバリエーション"
 
@@ -3986,8 +3986,8 @@ msgid "No billing address"
 msgstr "請求先住所なし"
 
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:120
-msgid "Facet"
-msgstr "ファセット"
+#~ msgid "Facet"
+#~ msgstr "ファセット"
 
 #: src/lib/components/data-table/data-table-views-tabs.tsx:124
 msgid "Unsaved view"
@@ -5434,7 +5434,7 @@ msgstr "前のページへ"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278
-#: src/app/routes/_authenticated/_collections/collections.tsx:449
+#: src/app/routes/_authenticated/_collections/collections.tsx:447
 msgid "Contents"
 msgstr "内容"
 
@@ -5561,7 +5561,7 @@ msgstr "これ以上ファセットはありません"
 msgid "Search index rebuild started"
 msgstr "検索インデックスの再構築を開始しました"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:349
+#: src/app/routes/_authenticated/_collections/collections.tsx:348
 msgid "Collection position updated"
 msgstr "コレクションの位置を更新しました"
 
@@ -5615,7 +5615,7 @@ msgstr "トークン"
 msgid "Fulfilling..."
 msgstr "フルフィルメント中..."
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:554
+#: src/app/routes/_authenticated/_collections/collections.tsx:552
 msgid "Search collections..."
 msgstr "コレクションを検索..."
 
@@ -5760,7 +5760,7 @@ msgstr "税抜："
 msgid "Successfully added option value"
 msgstr "オプション値を追加しました"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:351
+#: src/app/routes/_authenticated/_collections/collections.tsx:350
 msgid "Collection moved to new parent"
 msgstr "コレクションを新しい親に移動しました"
 
@@ -6019,7 +6019,7 @@ msgstr "指標"
 msgid "Language"
 msgstr "言語"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:585
+#: src/app/routes/_authenticated/_collections/collections.tsx:583
 msgid "New Collection"
 msgstr "新しいコレクション"
 

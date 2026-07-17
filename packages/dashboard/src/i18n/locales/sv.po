@@ -287,7 +287,7 @@ msgstr "Art.nr:"
 msgid "Add payment"
 msgstr "Lägg till betalning"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:404
+#: src/app/routes/_authenticated/_collections/collections.tsx:403
 msgid "Expand"
 msgstr "Expandera"
 
@@ -853,7 +853,7 @@ msgstr "Slutför utkast"
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:104
 #: src/app/routes/_authenticated/_customers/customers.tsx:73
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:136
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:121
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:121
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:202
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:173
@@ -1622,7 +1622,7 @@ msgstr "Senaste beställningar"
 msgid "Go back"
 msgstr "Gå tillbaka"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:478
+#: src/app/routes/_authenticated/_collections/collections.tsx:476
 msgid "+ {leftOver} more"
 msgstr "+ {leftOver} till"
 
@@ -1714,7 +1714,7 @@ msgstr "Nytt alternativ"
 msgid "Usage limit"
 msgstr "Användningsgräns"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:577
+#: src/app/routes/_authenticated/_collections/collections.tsx:575
 msgid "Create your first collection"
 msgstr "Skapa din första kollektion"
 
@@ -1845,8 +1845,8 @@ msgid "Set custom fields"
 msgstr "Ange anpassade fält"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:49
-#: src/app/routes/_authenticated/_collections/collections.tsx:53
-#: src/app/routes/_authenticated/_collections/collections.tsx:365
+#: src/app/routes/_authenticated/_collections/collections.tsx:52
+#: src/app/routes/_authenticated/_collections/collections.tsx:364
 msgid "Collections"
 msgstr "Kollektioner"
 
@@ -2083,7 +2083,7 @@ msgstr "Kolumninställningar"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:132
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:142
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:127
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:127
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:208
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:179
@@ -2795,7 +2795,7 @@ msgstr "Glömt ditt lösenord?"
 msgid "Schedule"
 msgstr "Schema"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:307
+#: src/app/routes/_authenticated/_collections/collections.tsx:306
 msgid "Cannot move a collection into its own descendant"
 msgstr "Kan inte flytta en samling till sin egen underordnade"
 
@@ -2930,7 +2930,7 @@ msgstr "Topprodukter"
 msgid "All types"
 msgstr "Alla typer"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:404
+#: src/app/routes/_authenticated/_collections/collections.tsx:403
 msgid "Collapse"
 msgstr "Fäll ihop"
 
@@ -3296,7 +3296,7 @@ msgstr "{0}"
 msgid "New Zone"
 msgstr "Ny zon"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:356
+#: src/app/routes/_authenticated/_collections/collections.tsx:355
 msgid "Failed to update collection position"
 msgstr "Misslyckades med att uppdatera samlingsposition"
 
@@ -3600,7 +3600,7 @@ msgid "{saleable} in stock"
 msgstr "{saleable} i lager"
 
 #. placeholder {0}: Math.min(remaining, CHILDREN_PAGE_SIZE)
-#: src/app/routes/_authenticated/_collections/collections.tsx:532
+#: src/app/routes/_authenticated/_collections/collections.tsx:530
 msgid "Load {0} more ({remaining} remaining)"
 msgstr "Ladda {0} fler ({remaining} kvar)"
 
@@ -3972,7 +3972,7 @@ msgid "No widgets to display. Use \"Edit Layout\" to add widgets."
 msgstr "Inga widgetar att visa. Använd \"Redigera layout\" för att lägga till widgetar."
 
 #. placeholder {0}: formatNumber(row.original.productVariantCount as number)
-#: src/app/routes/_authenticated/_collections/collections.tsx:456
+#: src/app/routes/_authenticated/_collections/collections.tsx:454
 msgid "{0} variants"
 msgstr "{0} varianter"
 
@@ -3986,8 +3986,8 @@ msgid "No billing address"
 msgstr "Ingen fakturaadress"
 
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:120
-msgid "Facet"
-msgstr "Facett"
+#~ msgid "Facet"
+#~ msgstr "Facett"
 
 #: src/lib/components/data-table/data-table-views-tabs.tsx:124
 msgid "Unsaved view"
@@ -5434,7 +5434,7 @@ msgstr "Gå till föregående sida"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278
-#: src/app/routes/_authenticated/_collections/collections.tsx:449
+#: src/app/routes/_authenticated/_collections/collections.tsx:447
 msgid "Contents"
 msgstr "Innehåll"
 
@@ -5561,7 +5561,7 @@ msgstr "Inga fler fasetter"
 msgid "Search index rebuild started"
 msgstr "Återuppbyggnad av sökindex startad"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:349
+#: src/app/routes/_authenticated/_collections/collections.tsx:348
 msgid "Collection position updated"
 msgstr "Samlingsposition uppdaterad"
 
@@ -5615,7 +5615,7 @@ msgstr "Token"
 msgid "Fulfilling..."
 msgstr "Levererar..."
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:554
+#: src/app/routes/_authenticated/_collections/collections.tsx:552
 msgid "Search collections..."
 msgstr "Sök kollektioner..."
 
@@ -5760,7 +5760,7 @@ msgstr "exkl. skatt:"
 msgid "Successfully added option value"
 msgstr "Alternativvärde tillagt"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:351
+#: src/app/routes/_authenticated/_collections/collections.tsx:350
 msgid "Collection moved to new parent"
 msgstr "Samling flyttad till ny förälder"
 
@@ -6019,7 +6019,7 @@ msgstr "Mätvärden"
 msgid "Language"
 msgstr "Språk"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:585
+#: src/app/routes/_authenticated/_collections/collections.tsx:583
 msgid "New Collection"
 msgstr "Ny kollektion"
 

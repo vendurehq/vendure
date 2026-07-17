@@ -287,7 +287,7 @@ msgstr "SKU:"
 msgid "Add payment"
 msgstr "भुक्तानी थप्नुहोस्"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:404
+#: src/app/routes/_authenticated/_collections/collections.tsx:403
 msgid "Expand"
 msgstr "विस्तार गर्नुहोस्"
 
@@ -853,7 +853,7 @@ msgstr "मस्यौदा पूरा गर्नुहोस्"
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:104
 #: src/app/routes/_authenticated/_customers/customers.tsx:73
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:136
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:121
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:121
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:202
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:173
@@ -1622,7 +1622,7 @@ msgstr "नवीनतम अर्डरहरू"
 msgid "Go back"
 msgstr "पछाडि जानुहोस्"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:478
+#: src/app/routes/_authenticated/_collections/collections.tsx:476
 msgid "+ {leftOver} more"
 msgstr "+ {leftOver} थप"
 
@@ -1714,7 +1714,7 @@ msgstr "नयाँ विकल्प"
 msgid "Usage limit"
 msgstr "प्रयोग सीमा"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:577
+#: src/app/routes/_authenticated/_collections/collections.tsx:575
 msgid "Create your first collection"
 msgstr "आफ्नो पहिलो संग्रह सिर्जना गर्नुहोस्"
 
@@ -1845,8 +1845,8 @@ msgid "Set custom fields"
 msgstr "कस्टम फिल्डहरू सेट गर्नुहोस्"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:49
-#: src/app/routes/_authenticated/_collections/collections.tsx:53
-#: src/app/routes/_authenticated/_collections/collections.tsx:365
+#: src/app/routes/_authenticated/_collections/collections.tsx:52
+#: src/app/routes/_authenticated/_collections/collections.tsx:364
 msgid "Collections"
 msgstr "संग्रहहरू"
 
@@ -2083,7 +2083,7 @@ msgstr "स्तम्भ सेटिङहरू"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:132
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:142
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:127
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:127
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:208
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:179
@@ -2795,7 +2795,7 @@ msgstr "पासवर्ड बिर्सनुभयो?"
 msgid "Schedule"
 msgstr "तालिका"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:307
+#: src/app/routes/_authenticated/_collections/collections.tsx:306
 msgid "Cannot move a collection into its own descendant"
 msgstr "संग्रहलाई आफ्नै उत्तराधिकारीमा सार्न सकिँदैन"
 
@@ -2930,7 +2930,7 @@ msgstr "शीर्ष उत्पादनहरू"
 msgid "All types"
 msgstr "सबै प्रकारहरू"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:404
+#: src/app/routes/_authenticated/_collections/collections.tsx:403
 msgid "Collapse"
 msgstr "संक्षिप्त गर्नुहोस्"
 
@@ -3296,7 +3296,7 @@ msgstr "{0}"
 msgid "New Zone"
 msgstr "नयाँ क्षेत्र"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:356
+#: src/app/routes/_authenticated/_collections/collections.tsx:355
 msgid "Failed to update collection position"
 msgstr "संग्रह स्थिति अपडेट गर्न असफल"
 
@@ -3600,7 +3600,7 @@ msgid "{saleable} in stock"
 msgstr "{saleable} स्टकमा"
 
 #. placeholder {0}: Math.min(remaining, CHILDREN_PAGE_SIZE)
-#: src/app/routes/_authenticated/_collections/collections.tsx:532
+#: src/app/routes/_authenticated/_collections/collections.tsx:530
 msgid "Load {0} more ({remaining} remaining)"
 msgstr "थप {0} लोड गर्नुहोस् ({remaining} बाँकी)"
 
@@ -3972,7 +3972,7 @@ msgid "No widgets to display. Use \"Edit Layout\" to add widgets."
 msgstr "प्रदर्शन गर्न कुनै विजेटहरू छैनन्। विजेटहरू थप्न \"लेआउट सम्पादन गर्नुहोस्\" प्रयोग गर्नुहोस्।"
 
 #. placeholder {0}: formatNumber(row.original.productVariantCount as number)
-#: src/app/routes/_authenticated/_collections/collections.tsx:456
+#: src/app/routes/_authenticated/_collections/collections.tsx:454
 msgid "{0} variants"
 msgstr "{0} प्रकारहरू"
 
@@ -3986,8 +3986,8 @@ msgid "No billing address"
 msgstr "कुनै बिलिङ ठेगाना छैन"
 
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:120
-msgid "Facet"
-msgstr "विशेषता"
+#~ msgid "Facet"
+#~ msgstr "विशेषता"
 
 #: src/lib/components/data-table/data-table-views-tabs.tsx:124
 msgid "Unsaved view"
@@ -5434,7 +5434,7 @@ msgstr "अघिल्लो पृष्ठमा जानुहोस्"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278
-#: src/app/routes/_authenticated/_collections/collections.tsx:449
+#: src/app/routes/_authenticated/_collections/collections.tsx:447
 msgid "Contents"
 msgstr "सामग्रीहरू"
 
@@ -5561,7 +5561,7 @@ msgstr "थप फासेटहरू छैनन्"
 msgid "Search index rebuild started"
 msgstr "खोज सूचकांक पुनर्निर्माण सुरु भयो"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:349
+#: src/app/routes/_authenticated/_collections/collections.tsx:348
 msgid "Collection position updated"
 msgstr "संग्रह स्थिति अपडेट गरियो"
 
@@ -5615,7 +5615,7 @@ msgstr "टोकन"
 msgid "Fulfilling..."
 msgstr "पूरा गर्दै..."
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:554
+#: src/app/routes/_authenticated/_collections/collections.tsx:552
 msgid "Search collections..."
 msgstr "संग्रहहरू खोज्नुहोस्..."
 
@@ -5760,7 +5760,7 @@ msgstr "कर बाहेक:"
 msgid "Successfully added option value"
 msgstr "विकल्प मान सफलतापूर्वक थपियो"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:351
+#: src/app/routes/_authenticated/_collections/collections.tsx:350
 msgid "Collection moved to new parent"
 msgstr "संग्रह नयाँ अभिभावकमा सारियो"
 
@@ -6019,7 +6019,7 @@ msgstr "मेट्रिक्स"
 msgid "Language"
 msgstr "भाषा"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:585
+#: src/app/routes/_authenticated/_collections/collections.tsx:583
 msgid "New Collection"
 msgstr "नयाँ संग्रह"
 

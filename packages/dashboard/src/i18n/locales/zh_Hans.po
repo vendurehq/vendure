@@ -287,7 +287,7 @@ msgstr "SKU:"
 msgid "Add payment"
 msgstr "添加付款"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:404
+#: src/app/routes/_authenticated/_collections/collections.tsx:403
 msgid "Expand"
 msgstr "展开"
 
@@ -853,7 +853,7 @@ msgstr "完成草稿"
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:104
 #: src/app/routes/_authenticated/_customers/customers.tsx:73
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:136
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:121
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:121
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:202
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:173
@@ -1622,7 +1622,7 @@ msgstr "最新订单"
 msgid "Go back"
 msgstr "返回"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:478
+#: src/app/routes/_authenticated/_collections/collections.tsx:476
 msgid "+ {leftOver} more"
 msgstr "+ {leftOver} 个更多"
 
@@ -1714,7 +1714,7 @@ msgstr "新选项"
 msgid "Usage limit"
 msgstr "使用限制"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:577
+#: src/app/routes/_authenticated/_collections/collections.tsx:575
 msgid "Create your first collection"
 msgstr "创建您的第一个集合"
 
@@ -1845,8 +1845,8 @@ msgid "Set custom fields"
 msgstr "设置自定义字段"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:49
-#: src/app/routes/_authenticated/_collections/collections.tsx:53
-#: src/app/routes/_authenticated/_collections/collections.tsx:365
+#: src/app/routes/_authenticated/_collections/collections.tsx:52
+#: src/app/routes/_authenticated/_collections/collections.tsx:364
 msgid "Collections"
 msgstr "集合"
 
@@ -2083,7 +2083,7 @@ msgstr "列设置"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:132
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:142
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:127
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:127
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:208
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:179
@@ -2795,7 +2795,7 @@ msgstr "忘记密码？"
 msgid "Schedule"
 msgstr "时间表"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:307
+#: src/app/routes/_authenticated/_collections/collections.tsx:306
 msgid "Cannot move a collection into its own descendant"
 msgstr "无法将集合移动到其自身的子集"
 
@@ -2930,7 +2930,7 @@ msgstr "热销商品"
 msgid "All types"
 msgstr "所有类型"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:404
+#: src/app/routes/_authenticated/_collections/collections.tsx:403
 msgid "Collapse"
 msgstr "折叠"
 
@@ -3296,7 +3296,7 @@ msgstr "{0}"
 msgid "New Zone"
 msgstr "新区域"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:356
+#: src/app/routes/_authenticated/_collections/collections.tsx:355
 msgid "Failed to update collection position"
 msgstr "更新集合位置失败"
 
@@ -3600,7 +3600,7 @@ msgid "{saleable} in stock"
 msgstr "库存 {saleable} 件"
 
 #. placeholder {0}: Math.min(remaining, CHILDREN_PAGE_SIZE)
-#: src/app/routes/_authenticated/_collections/collections.tsx:532
+#: src/app/routes/_authenticated/_collections/collections.tsx:530
 msgid "Load {0} more ({remaining} remaining)"
 msgstr "加载更多{0}个 (剩余{remaining}个)"
 
@@ -3972,7 +3972,7 @@ msgid "No widgets to display. Use \"Edit Layout\" to add widgets."
 msgstr "没有可显示的小部件。请使用“编辑布局”添加小部件。"
 
 #. placeholder {0}: formatNumber(row.original.productVariantCount as number)
-#: src/app/routes/_authenticated/_collections/collections.tsx:456
+#: src/app/routes/_authenticated/_collections/collections.tsx:454
 msgid "{0} variants"
 msgstr "{0} 个变体"
 
@@ -3986,8 +3986,8 @@ msgid "No billing address"
 msgstr "无账单地址"
 
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:120
-msgid "Facet"
-msgstr "属性"
+#~ msgid "Facet"
+#~ msgstr "属性"
 
 #: src/lib/components/data-table/data-table-views-tabs.tsx:124
 msgid "Unsaved view"
@@ -5434,7 +5434,7 @@ msgstr "转到上一页"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278
-#: src/app/routes/_authenticated/_collections/collections.tsx:449
+#: src/app/routes/_authenticated/_collections/collections.tsx:447
 msgid "Contents"
 msgstr "内容"
 
@@ -5561,7 +5561,7 @@ msgstr "没有更多分面"
 msgid "Search index rebuild started"
 msgstr "已开始重建搜索索引"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:349
+#: src/app/routes/_authenticated/_collections/collections.tsx:348
 msgid "Collection position updated"
 msgstr "集合位置已更新"
 
@@ -5615,7 +5615,7 @@ msgstr "令牌"
 msgid "Fulfilling..."
 msgstr "正在履行..."
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:554
+#: src/app/routes/_authenticated/_collections/collections.tsx:552
 msgid "Search collections..."
 msgstr "搜索集合..."
 
@@ -5760,7 +5760,7 @@ msgstr "不含税："
 msgid "Successfully added option value"
 msgstr "已成功添加选项值"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:351
+#: src/app/routes/_authenticated/_collections/collections.tsx:350
 msgid "Collection moved to new parent"
 msgstr "集合已移至新的父级"
 
@@ -6019,7 +6019,7 @@ msgstr "指标"
 msgid "Language"
 msgstr "语言"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:585
+#: src/app/routes/_authenticated/_collections/collections.tsx:583
 msgid "New Collection"
 msgstr "新集合"
 

@@ -287,7 +287,7 @@ msgstr "מק״ט:"
 msgid "Add payment"
 msgstr "הוספת תשלום"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:404
+#: src/app/routes/_authenticated/_collections/collections.tsx:403
 msgid "Expand"
 msgstr "הרחבה"
 
@@ -853,7 +853,7 @@ msgstr "השלם טיוטה"
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:104
 #: src/app/routes/_authenticated/_customers/customers.tsx:73
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:136
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:121
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:121
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:202
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:173
@@ -1622,7 +1622,7 @@ msgstr "הזמנות אחרונות"
 msgid "Go back"
 msgstr "חזור"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:478
+#: src/app/routes/_authenticated/_collections/collections.tsx:476
 msgid "+ {leftOver} more"
 msgstr "+ {leftOver} נוספים"
 
@@ -1714,7 +1714,7 @@ msgstr "אפשרות חדשה"
 msgid "Usage limit"
 msgstr "מגבלת שימוש"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:577
+#: src/app/routes/_authenticated/_collections/collections.tsx:575
 msgid "Create your first collection"
 msgstr "צור את האוסף הראשון שלך"
 
@@ -1845,8 +1845,8 @@ msgid "Set custom fields"
 msgstr "הגדר שדות מותאמים אישית"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:49
-#: src/app/routes/_authenticated/_collections/collections.tsx:53
-#: src/app/routes/_authenticated/_collections/collections.tsx:365
+#: src/app/routes/_authenticated/_collections/collections.tsx:52
+#: src/app/routes/_authenticated/_collections/collections.tsx:364
 msgid "Collections"
 msgstr "אוספים"
 
@@ -2083,7 +2083,7 @@ msgstr "הגדרות עמודות"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:132
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:142
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:127
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:127
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:208
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:179
@@ -2795,7 +2795,7 @@ msgstr "שכחת את הסיסמה?"
 msgid "Schedule"
 msgstr "לוח זמנים"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:307
+#: src/app/routes/_authenticated/_collections/collections.tsx:306
 msgid "Cannot move a collection into its own descendant"
 msgstr "לא ניתן להעביר אוסף לצאצא של עצמו"
 
@@ -2930,7 +2930,7 @@ msgstr "מוצרים מובילים"
 msgid "All types"
 msgstr "כל הסוגים"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:404
+#: src/app/routes/_authenticated/_collections/collections.tsx:403
 msgid "Collapse"
 msgstr "כיווץ"
 
@@ -3296,7 +3296,7 @@ msgstr "{0}"
 msgid "New Zone"
 msgstr "אזור חדש"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:356
+#: src/app/routes/_authenticated/_collections/collections.tsx:355
 msgid "Failed to update collection position"
 msgstr "נכשל בעדכון מיקום האוסף"
 
@@ -3600,7 +3600,7 @@ msgid "{saleable} in stock"
 msgstr "{saleable} במלאי"
 
 #. placeholder {0}: Math.min(remaining, CHILDREN_PAGE_SIZE)
-#: src/app/routes/_authenticated/_collections/collections.tsx:532
+#: src/app/routes/_authenticated/_collections/collections.tsx:530
 msgid "Load {0} more ({remaining} remaining)"
 msgstr "טען עוד {0} ({remaining} נותרו)"
 
@@ -3972,7 +3972,7 @@ msgid "No widgets to display. Use \"Edit Layout\" to add widgets."
 msgstr "אין ווידג'טים להצגה. השתמש ב\"עריכת פריסה\" כדי להוסיף ווידג'טים."
 
 #. placeholder {0}: formatNumber(row.original.productVariantCount as number)
-#: src/app/routes/_authenticated/_collections/collections.tsx:456
+#: src/app/routes/_authenticated/_collections/collections.tsx:454
 msgid "{0} variants"
 msgstr "{0} גרסאות"
 
@@ -3986,8 +3986,8 @@ msgid "No billing address"
 msgstr "אין כתובת חיוב"
 
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:120
-msgid "Facet"
-msgstr "מאפיין"
+#~ msgid "Facet"
+#~ msgstr "מאפיין"
 
 #: src/lib/components/data-table/data-table-views-tabs.tsx:124
 msgid "Unsaved view"
@@ -5434,7 +5434,7 @@ msgstr "עבור לעמוד הקודם"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278
-#: src/app/routes/_authenticated/_collections/collections.tsx:449
+#: src/app/routes/_authenticated/_collections/collections.tsx:447
 msgid "Contents"
 msgstr "תוכן"
 
@@ -5561,7 +5561,7 @@ msgstr "אין עוד פאספטים"
 msgid "Search index rebuild started"
 msgstr "החלה בניית מחדש של אינדקס החיפוש"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:349
+#: src/app/routes/_authenticated/_collections/collections.tsx:348
 msgid "Collection position updated"
 msgstr "מיקום האוסף עודכן"
 
@@ -5615,7 +5615,7 @@ msgstr "טוקן"
 msgid "Fulfilling..."
 msgstr "ממלא..."
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:554
+#: src/app/routes/_authenticated/_collections/collections.tsx:552
 msgid "Search collections..."
 msgstr "חיפוש אוספים..."
 
@@ -5760,7 +5760,7 @@ msgstr "ללא מע\"מ:"
 msgid "Successfully added option value"
 msgstr "ערך האפשרות נוסף בהצלחה"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:351
+#: src/app/routes/_authenticated/_collections/collections.tsx:350
 msgid "Collection moved to new parent"
 msgstr "האוסף הועבר להורה חדש"
 
@@ -6019,7 +6019,7 @@ msgstr "מדדים"
 msgid "Language"
 msgstr "שפה"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:585
+#: src/app/routes/_authenticated/_collections/collections.tsx:583
 msgid "New Collection"
 msgstr "אוסף חדש"
 

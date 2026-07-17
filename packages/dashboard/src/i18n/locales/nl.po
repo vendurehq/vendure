@@ -287,7 +287,7 @@ msgstr "SKU:"
 msgid "Add payment"
 msgstr "Betaling toevoegen"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:404
+#: src/app/routes/_authenticated/_collections/collections.tsx:403
 msgid "Expand"
 msgstr "Uitklappen"
 
@@ -853,7 +853,7 @@ msgstr "Concept voltooien"
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:104
 #: src/app/routes/_authenticated/_customers/customers.tsx:73
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:136
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:121
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:121
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:202
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:173
@@ -1626,7 +1626,7 @@ msgstr "Laatste bestellingen"
 msgid "Go back"
 msgstr "Ga terug"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:478
+#: src/app/routes/_authenticated/_collections/collections.tsx:476
 msgid "+ {leftOver} more"
 msgstr "+ {leftOver} meer"
 
@@ -1718,7 +1718,7 @@ msgstr "Nieuwe optie"
 msgid "Usage limit"
 msgstr "Gebruikslimiet"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:577
+#: src/app/routes/_authenticated/_collections/collections.tsx:575
 msgid "Create your first collection"
 msgstr "Maak uw eerste collectie aan"
 
@@ -1849,8 +1849,8 @@ msgid "Set custom fields"
 msgstr "Aangepaste velden instellen"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:49
-#: src/app/routes/_authenticated/_collections/collections.tsx:53
-#: src/app/routes/_authenticated/_collections/collections.tsx:365
+#: src/app/routes/_authenticated/_collections/collections.tsx:52
+#: src/app/routes/_authenticated/_collections/collections.tsx:364
 msgid "Collections"
 msgstr "Collecties"
 
@@ -2081,7 +2081,7 @@ msgstr "Kolominstellingen"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:132
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:142
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:127
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:127
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:208
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:179
@@ -2789,7 +2789,7 @@ msgstr "Wachtwoord vergeten?"
 msgid "Schedule"
 msgstr "Planning"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:307
+#: src/app/routes/_authenticated/_collections/collections.tsx:306
 msgid "Cannot move a collection into its own descendant"
 msgstr "Een collectie kan niet naar een eigen subniveau worden verplaatst"
 
@@ -2924,7 +2924,7 @@ msgstr "Topproducten"
 msgid "All types"
 msgstr "Alle typen"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:404
+#: src/app/routes/_authenticated/_collections/collections.tsx:403
 msgid "Collapse"
 msgstr "Inklappen"
 
@@ -3290,7 +3290,7 @@ msgstr "{0}"
 msgid "New Zone"
 msgstr "Nieuwe zone"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:356
+#: src/app/routes/_authenticated/_collections/collections.tsx:355
 msgid "Failed to update collection position"
 msgstr "Bijwerken van collectiepositie mislukt"
 
@@ -3594,7 +3594,7 @@ msgid "{saleable} in stock"
 msgstr "{saleable} op voorraad"
 
 #. placeholder {0}: Math.min(remaining, CHILDREN_PAGE_SIZE)
-#: src/app/routes/_authenticated/_collections/collections.tsx:532
+#: src/app/routes/_authenticated/_collections/collections.tsx:530
 msgid "Load {0} more ({remaining} remaining)"
 msgstr "{0} meer laden ({remaining} resterend)"
 
@@ -3963,7 +3963,7 @@ msgid "No widgets to display. Use \"Edit Layout\" to add widgets."
 msgstr "Geen widgets om weer te geven. Gebruik 'Lay-out bewerken' om widgets toe te voegen."
 
 #. placeholder {0}: formatNumber(row.original.productVariantCount as number)
-#: src/app/routes/_authenticated/_collections/collections.tsx:456
+#: src/app/routes/_authenticated/_collections/collections.tsx:454
 msgid "{0} variants"
 msgstr "{0} varianten"
 
@@ -3977,8 +3977,8 @@ msgid "No billing address"
 msgstr "Geen factuuradres"
 
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:120
-msgid "Facet"
-msgstr "Facet"
+#~ msgid "Facet"
+#~ msgstr "Facet"
 
 #: src/lib/components/data-table/data-table-views-tabs.tsx:124
 msgid "Unsaved view"
@@ -5429,7 +5429,7 @@ msgstr "Ga naar vorige pagina"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278
-#: src/app/routes/_authenticated/_collections/collections.tsx:449
+#: src/app/routes/_authenticated/_collections/collections.tsx:447
 msgid "Contents"
 msgstr "Inhoud"
 
@@ -5556,7 +5556,7 @@ msgstr "Geen facetten meer"
 msgid "Search index rebuild started"
 msgstr "Opnieuw opbouwen van zoekindex gestart"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:349
+#: src/app/routes/_authenticated/_collections/collections.tsx:348
 msgid "Collection position updated"
 msgstr "Collectiepositie bijgewerkt"
 
@@ -5610,7 +5610,7 @@ msgstr "Token"
 msgid "Fulfilling..."
 msgstr "Afhandelen..."
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:554
+#: src/app/routes/_authenticated/_collections/collections.tsx:552
 msgid "Search collections..."
 msgstr "Collecties zoeken..."
 
@@ -5755,7 +5755,7 @@ msgstr "excl. BTW:"
 msgid "Successfully added option value"
 msgstr "Optiewaarde succesvol toegevoegd"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:351
+#: src/app/routes/_authenticated/_collections/collections.tsx:350
 msgid "Collection moved to new parent"
 msgstr "Collectie naar nieuw bovenliggend niveau verplaatst"
 
@@ -6014,7 +6014,7 @@ msgstr "Statistieken"
 msgid "Language"
 msgstr "Taal"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:585
+#: src/app/routes/_authenticated/_collections/collections.tsx:583
 msgid "New Collection"
 msgstr "Nieuwe collectie"
 

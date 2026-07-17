@@ -271,7 +271,7 @@ msgstr "SKU:"
 msgid "Add payment"
 msgstr "To'lov qo'shish"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:404
+#: src/app/routes/_authenticated/_collections/collections.tsx:403
 msgid "Expand"
 msgstr "Kengaytirish"
 
@@ -825,7 +825,7 @@ msgstr "Qoralamani yakunlash"
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:104
 #: src/app/routes/_authenticated/_customers/customers.tsx:73
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:136
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:121
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:121
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:202
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:173
@@ -1574,7 +1574,7 @@ msgstr "So'nggi buyurtmalar"
 msgid "Go back"
 msgstr "Orqaga"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:478
+#: src/app/routes/_authenticated/_collections/collections.tsx:476
 msgid "+ {leftOver} more"
 msgstr "+ yana {leftOver} ta"
 
@@ -1661,7 +1661,7 @@ msgstr "Yangi parametr"
 msgid "Usage limit"
 msgstr "Foydalanish chegarasi"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:577
+#: src/app/routes/_authenticated/_collections/collections.tsx:575
 msgid "Create your first collection"
 msgstr "Birinchi to'plamingizni yarating"
 
@@ -1784,8 +1784,8 @@ msgid "Set custom fields"
 msgstr "Maxsus maydonlarni o'rnatish"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:49
-#: src/app/routes/_authenticated/_collections/collections.tsx:53
-#: src/app/routes/_authenticated/_collections/collections.tsx:365
+#: src/app/routes/_authenticated/_collections/collections.tsx:52
+#: src/app/routes/_authenticated/_collections/collections.tsx:364
 msgid "Collections"
 msgstr "To'plamlar"
 
@@ -2016,7 +2016,7 @@ msgstr "Ustun sozlamalari"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:132
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:142
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:127
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:127
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:208
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:179
@@ -2724,7 +2724,7 @@ msgstr "Parolingizni unutdingizmi?"
 msgid "Schedule"
 msgstr "Jadval"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:307
+#: src/app/routes/_authenticated/_collections/collections.tsx:306
 msgid "Cannot move a collection into its own descendant"
 msgstr "Toʻplamni oʻzining avlodiga koʻchirib boʻlmaydi"
 
@@ -2851,7 +2851,7 @@ msgstr "Eng ko'p sotilgan mahsulotlar"
 msgid "All types"
 msgstr "Barcha turlar"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:404
+#: src/app/routes/_authenticated/_collections/collections.tsx:403
 msgid "Collapse"
 msgstr "Yigʻish"
 
@@ -3204,7 +3204,7 @@ msgstr "{0}"
 msgid "New Zone"
 msgstr "Yangi hudud"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:356
+#: src/app/routes/_authenticated/_collections/collections.tsx:355
 msgid "Failed to update collection position"
 msgstr "Toʻplam holatini yangilab boʻlmadi"
 
@@ -3508,7 +3508,7 @@ msgid "{saleable} in stock"
 msgstr "Zaxirada {saleable} ta"
 
 #. placeholder {0}: Math.min(remaining, CHILDREN_PAGE_SIZE)
-#: src/app/routes/_authenticated/_collections/collections.tsx:532
+#: src/app/routes/_authenticated/_collections/collections.tsx:530
 msgid "Load {0} more ({remaining} remaining)"
 msgstr "Yana {0} ta yuklash ({remaining} ta qoldi)"
 
@@ -3865,7 +3865,7 @@ msgid "No widgets to display. Use \"Edit Layout\" to add widgets."
 msgstr "Ko'rsatiladigan vidjetlar yo'q. Vidjet qo'shish uchun \"Tartibni tahrirlash\" dan foydalaning."
 
 #. placeholder {0}: formatNumber(row.original.productVariantCount as number)
-#: src/app/routes/_authenticated/_collections/collections.tsx:456
+#: src/app/routes/_authenticated/_collections/collections.tsx:454
 msgid "{0} variants"
 msgstr "{0} ta variant"
 
@@ -3879,8 +3879,8 @@ msgid "No billing address"
 msgstr "Hisob-kitob manzili yo'q"
 
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:120
-msgid "Facet"
-msgstr "Faset"
+#~ msgid "Facet"
+#~ msgstr "Faset"
 
 #: src/lib/components/data-table/data-table-views-tabs.tsx:124
 msgid "Unsaved view"
@@ -5274,7 +5274,7 @@ msgstr "Oldingi sahifaga o'tish"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278
-#: src/app/routes/_authenticated/_collections/collections.tsx:449
+#: src/app/routes/_authenticated/_collections/collections.tsx:447
 msgid "Contents"
 msgstr "Tarkib"
 
@@ -5389,7 +5389,7 @@ msgstr "Boshqa fasetlar yo'q"
 msgid "Search index rebuild started"
 msgstr "Qidiruv indeksini qayta qurish boshlandi"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:349
+#: src/app/routes/_authenticated/_collections/collections.tsx:348
 msgid "Collection position updated"
 msgstr "To'plam pozitsiyasi yangilandi"
 
@@ -5439,7 +5439,7 @@ msgstr "Token"
 msgid "Fulfilling..."
 msgstr "Bajarilmoqda..."
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:554
+#: src/app/routes/_authenticated/_collections/collections.tsx:552
 msgid "Search collections..."
 msgstr "To'plamlarni qidirish..."
 
@@ -5576,7 +5576,7 @@ msgstr "soliqsiz:"
 msgid "Successfully added option value"
 msgstr "Optsiya qiymati muvaffaqiyatli qo'shildi"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:351
+#: src/app/routes/_authenticated/_collections/collections.tsx:350
 msgid "Collection moved to new parent"
 msgstr "To'plam yangi ota-elementga ko'chirildi"
 
@@ -5831,7 +5831,7 @@ msgstr "Metrikalar"
 msgid "Language"
 msgstr "Til"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:585
+#: src/app/routes/_authenticated/_collections/collections.tsx:583
 msgid "New Collection"
 msgstr "Yangi to'plam"
 

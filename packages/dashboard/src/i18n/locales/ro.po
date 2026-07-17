@@ -271,7 +271,7 @@ msgstr "SKU:"
 msgid "Add payment"
 msgstr "Adaugă plată"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:404
+#: src/app/routes/_authenticated/_collections/collections.tsx:403
 msgid "Expand"
 msgstr "Extindere"
 
@@ -825,7 +825,7 @@ msgstr "Finalizează ciorna"
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:104
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:104
 #: src/app/routes/_authenticated/_customers/customers.tsx:73
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:136
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:121
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:121
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:202
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:173
@@ -1574,7 +1574,7 @@ msgstr "Comenzi recente"
 msgid "Go back"
 msgstr "Înapoi"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:478
+#: src/app/routes/_authenticated/_collections/collections.tsx:476
 msgid "+ {leftOver} more"
 msgstr "+ încă {leftOver}"
 
@@ -1661,7 +1661,7 @@ msgstr "Opțiune nouă"
 msgid "Usage limit"
 msgstr "Limită de utilizare"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:577
+#: src/app/routes/_authenticated/_collections/collections.tsx:575
 msgid "Create your first collection"
 msgstr "Creează prima ta colecție"
 
@@ -1784,8 +1784,8 @@ msgid "Set custom fields"
 msgstr "Setează câmpuri personalizate"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:49
-#: src/app/routes/_authenticated/_collections/collections.tsx:53
-#: src/app/routes/_authenticated/_collections/collections.tsx:365
+#: src/app/routes/_authenticated/_collections/collections.tsx:52
+#: src/app/routes/_authenticated/_collections/collections.tsx:364
 msgid "Collections"
 msgstr "Colecții"
 
@@ -2016,7 +2016,7 @@ msgstr "Setări coloane"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:132
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:142
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:127
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:127
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:208
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:179
@@ -2724,7 +2724,7 @@ msgstr "Ți-ai uitat parola?"
 msgid "Schedule"
 msgstr "Program"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:307
+#: src/app/routes/_authenticated/_collections/collections.tsx:306
 msgid "Cannot move a collection into its own descendant"
 msgstr "Nu poți muta o colecție în propriul descendent"
 
@@ -2851,7 +2851,7 @@ msgstr "Cele mai vândute produse"
 msgid "All types"
 msgstr "Toate tipurile"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:404
+#: src/app/routes/_authenticated/_collections/collections.tsx:403
 msgid "Collapse"
 msgstr "Restrângere"
 
@@ -3204,7 +3204,7 @@ msgstr "{0}"
 msgid "New Zone"
 msgstr "Zonă Nouă"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:356
+#: src/app/routes/_authenticated/_collections/collections.tsx:355
 msgid "Failed to update collection position"
 msgstr "Nu s-a putut actualiza poziția colecției"
 
@@ -3508,7 +3508,7 @@ msgid "{saleable} in stock"
 msgstr "{saleable} în stoc"
 
 #. placeholder {0}: Math.min(remaining, CHILDREN_PAGE_SIZE)
-#: src/app/routes/_authenticated/_collections/collections.tsx:532
+#: src/app/routes/_authenticated/_collections/collections.tsx:530
 msgid "Load {0} more ({remaining} remaining)"
 msgstr "Încarcă încă {0} ({remaining} rămase)"
 
@@ -3865,7 +3865,7 @@ msgid "No widgets to display. Use \"Edit Layout\" to add widgets."
 msgstr "Niciun widget de afișat. Folosește „Editează aspectul” pentru a adăuga widgeturi."
 
 #. placeholder {0}: formatNumber(row.original.productVariantCount as number)
-#: src/app/routes/_authenticated/_collections/collections.tsx:456
+#: src/app/routes/_authenticated/_collections/collections.tsx:454
 msgid "{0} variants"
 msgstr "{0} variante"
 
@@ -3879,8 +3879,8 @@ msgid "No billing address"
 msgstr "Fără adresă de facturare"
 
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:120
-msgid "Facet"
-msgstr "Atribut"
+#~ msgid "Facet"
+#~ msgstr "Atribut"
 
 #: src/lib/components/data-table/data-table-views-tabs.tsx:124
 msgid "Unsaved view"
@@ -5274,7 +5274,7 @@ msgstr "Mergi la pagina anterioară"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278
-#: src/app/routes/_authenticated/_collections/collections.tsx:449
+#: src/app/routes/_authenticated/_collections/collections.tsx:447
 msgid "Contents"
 msgstr "Conținut"
 
@@ -5389,7 +5389,7 @@ msgstr "Nu mai sunt atribute"
 msgid "Search index rebuild started"
 msgstr "Reconstrucția indexului de căutare a fost pornită"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:349
+#: src/app/routes/_authenticated/_collections/collections.tsx:348
 msgid "Collection position updated"
 msgstr "Poziția colecției a fost actualizată"
 
@@ -5439,7 +5439,7 @@ msgstr "Token"
 msgid "Fulfilling..."
 msgstr "Se livrează..."
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:554
+#: src/app/routes/_authenticated/_collections/collections.tsx:552
 msgid "Search collections..."
 msgstr "Caută colecții..."
 
@@ -5576,7 +5576,7 @@ msgstr "fără taxă:"
 msgid "Successfully added option value"
 msgstr "Valoarea opțiunii a fost adăugată cu succes"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:351
+#: src/app/routes/_authenticated/_collections/collections.tsx:350
 msgid "Collection moved to new parent"
 msgstr "Colecția a fost mutată la un părinte nou"
 
@@ -5831,7 +5831,7 @@ msgstr "Metrici"
 msgid "Language"
 msgstr "Limbă"
 
-#: src/app/routes/_authenticated/_collections/collections.tsx:585
+#: src/app/routes/_authenticated/_collections/collections.tsx:583
 msgid "New Collection"
 msgstr "Colecție Nouă"
 
