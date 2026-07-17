@@ -250,9 +250,7 @@ test.describe('Channel required-field validation', () => {
             .getByRole('button', { name: /US Dollar/ })
             .first()
             .click();
-        // Selecting does not close the popover, and a second open popover would make the search
-        // input ambiguous.
-        await page.locator('body').click({ position: { x: 0, y: 0 } });
+        // A single-select closes itself once a value is picked.
         await expect(page.locator('[data-slot="popover-content"]')).not.toBeVisible();
         await expect(dp.formItem('Default currency').getByRole('combobox')).toContainText('US Dollar');
 
