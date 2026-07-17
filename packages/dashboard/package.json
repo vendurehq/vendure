@@ -1,7 +1,7 @@
 {
     "name": "@vendure/dashboard",
     "private": false,
-    "version": "3.7.0",
+    "version": "3.7.1",
     "type": "module",
     "repository": {
         "type": "git",
@@ -22,6 +22,7 @@
         "build": "npm run check-types && npm run build:vite && npm run build:plugin && npm run build:lib",
         "watch": "tsc --project tsconfig.vite.json --watch",
         "test": "vitest run",
+        "audit:bundle": "cross-env RUN_BUNDLE_AUDIT=true vitest run vite/tests/bundle-singleton.spec.ts vite/tests/bundle-singleton-dev-serving.spec.ts",
         "lint": "eslint .",
         "preview": "vite preview",
         "generate-index": "node scripts/generate-index.js",
@@ -138,8 +139,8 @@
         "@storybook/addon-vitest": "^10.3.1",
         "@storybook/react-vite": "^10.3.1",
         "@types/node": "^22.19.0",
-        "@vendure/common": "3.7.0",
-        "@vendure/core": "3.7.0",
+        "@vendure/common": "3.7.1",
+        "@vendure/core": "3.7.1",
         "@vitest/browser": "^3.2.4",
         "@vitest/coverage-v8": "^3.2.4",
         "eslint": "^9.39.0",

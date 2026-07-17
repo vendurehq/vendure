@@ -184,7 +184,9 @@ export function NavMain({ items }: Readonly<{ items: Array<NavMenuSection | NavM
                 .map(section => {
                     if ('items' in section) {
                         // Filter items based on permissions
-                        const allowedItems = (section.items ?? []).filter(isItemAllowed).sort(sortByOrder);
+                        const allowedItems = (section.items ?? [])
+                            .filter(item => isItemAllowed(item))
+                            .sort(sortByOrder);
                         return { ...section, items: allowedItems };
                     }
                     return section;

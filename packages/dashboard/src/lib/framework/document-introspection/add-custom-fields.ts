@@ -50,11 +50,11 @@ function createOptionsKey(options?: {
     }
 
     if (options.includeCustomFields) {
-        parts.push(`include:${[...options.includeCustomFields].sort().join(',')}`);
+        parts.push(`include:${[...options.includeCustomFields].sort((a, b) => a.localeCompare(b)).join(',')}`);
     }
 
     if (options.includeNestedFragments) {
-        parts.push(`nested:${[...options.includeNestedFragments].sort().join(',')}`);
+        parts.push(`nested:${[...options.includeNestedFragments].sort((a, b) => a.localeCompare(b)).join(',')}`);
     }
 
     return parts.join('|') || 'default';

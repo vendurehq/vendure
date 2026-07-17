@@ -5,7 +5,7 @@
     "": {
       "name": "vendure",
       "dependencies": {
-        "@types/nodemailer": "^6.4.22",
+        "@types/nodemailer": "^8.0.1",
         "@typescript-eslint/eslint-plugin": "^5.54.1",
         "@typescript-eslint/parser": "^5.54.1",
         "eslint": "^8.41.0",
@@ -59,7 +59,7 @@
     },
     "packages/admin-ui": {
       "name": "@vendure/admin-ui",
-      "version": "3.7.0",
+      "version": "3.7.1",
       "dependencies": {
         "@angular/animations": "^19.2.4",
         "@angular/cdk": "^19.2.7",
@@ -148,7 +148,7 @@
     },
     "packages/admin-ui-plugin": {
       "name": "@vendure/admin-ui-plugin",
-      "version": "3.7.0",
+      "version": "3.7.1",
       "dependencies": {
         "date-fns": "^4.0.0",
         "express-rate-limit": "^7.5.0",
@@ -167,8 +167,10 @@
     },
     "packages/asset-server-plugin": {
       "name": "@vendure/asset-server-plugin",
-      "version": "3.7.0",
+      "version": "3.7.1",
       "dependencies": {
+        "@types/express": "^5.0.1",
+        "express": "^5.1.0",
         "file-type": "^19.0.0",
         "fs-extra": "^11.2.0",
         "mime-types": "^3.0.2",
@@ -177,19 +179,17 @@
       "devDependencies": {
         "@aws-sdk/client-s3": "^3.529.1",
         "@aws-sdk/lib-storage": "^3.529.1",
-        "@types/express": "^5.0.1",
         "@types/fs-extra": "^11.0.4",
         "@types/mime-types": "^3.0.1",
         "@vendure/common": "3.7.0",
         "@vendure/core": "3.7.0",
-        "express": "^5.1.0",
         "rimraf": "^5.0.5",
         "typescript": "5.8.2",
       },
     },
     "packages/cli": {
       "name": "@vendure/cli",
-      "version": "3.7.0",
+      "version": "3.7.1",
       "bin": {
         "vendure": "dist/cli.js",
       },
@@ -218,7 +218,7 @@
     },
     "packages/common": {
       "name": "@vendure/common",
-      "version": "3.7.0",
+      "version": "3.7.1",
       "devDependencies": {
         "rimraf": "^5.0.5",
         "typescript": "5.8.2",
@@ -226,7 +226,7 @@
     },
     "packages/core": {
       "name": "@vendure/core",
-      "version": "3.7.0",
+      "version": "3.7.1",
       "dependencies": {
         "@apollo/server": "^4.12.2",
         "@graphql-tools/stitch": "^10.1.16",
@@ -236,13 +236,15 @@
         "@nestjs/graphql": "~13.1.0",
         "@nestjs/platform-express": "^11.0.12",
         "@nestjs/typeorm": "^11.0.0",
-        "@vendure/common": "3.7.0",
+        "@types/express": "^5.0.1",
+        "@vendure/common": "3.7.1",
         "bcrypt": "^6.0.0",
         "cookie-session": "^2.1.0",
         "cron-time-generator": "^2.0.3",
         "croner": "^10.0.1",
         "cronstrue": "^3.14.0",
         "csv-parse": "^6.2.1",
+        "dataloader": "^2.2.3",
         "express": "^5.1.0",
         "file-type": "^19.0.0",
         "fs-extra": "^11.2.0",
@@ -270,7 +272,6 @@
         "@nestjs/testing": "^11.0.12",
         "@types/bcrypt": "^6.0.0",
         "@types/cookie-session": "^2.0.49",
-        "@types/express": "^5.0.1",
         "@types/fs-extra": "^11.0.4",
         "@types/graphql-upload": "^17.0.0",
         "@types/gulp": "^4.0.17",
@@ -281,7 +282,6 @@
         "@types/semver": "^7.5.8",
         "better-sqlite3": "^11.6.0",
         "chokidar": "^3.6.0",
-        "fs-extra": "^11.2.0",
         "glob": "^10.3.10",
         "ioredis": "^5.3.2",
         "mysql2": "^3.15.0",
@@ -299,7 +299,7 @@
     },
     "packages/create": {
       "name": "@vendure/create",
-      "version": "3.7.0",
+      "version": "3.7.1",
       "bin": {
         "create": "./index.js",
       },
@@ -329,7 +329,7 @@
     },
     "packages/dashboard": {
       "name": "@vendure/dashboard",
-      "version": "3.7.0",
+      "version": "3.7.1",
       "dependencies": {
         "@babel/core": "^7.29.0",
         "@babel/preset-react": "^7.28.5",
@@ -428,25 +428,26 @@
     },
     "packages/dev-server": {
       "name": "dev-server",
-      "version": "3.7.0",
+      "version": "3.7.1",
       "dependencies": {
         "@nestjs/axios": "^4.0.0",
-        "@vendure/admin-ui-plugin": "3.6.3",
-        "@vendure/asset-server-plugin": "3.6.3",
-        "@vendure/common": "3.6.3",
-        "@vendure/core": "3.6.3",
-        "@vendure/email-plugin": "3.6.3",
+        "@vendure/asset-server-plugin": "3.7.1",
+        "@vendure/common": "3.7.1",
+        "@vendure/core": "3.7.1",
+        "@vendure/email-plugin": "3.7.1",
       },
       "devDependencies": {
         "@typescript/native-preview": "7.0.0-dev.20260515.1",
-        "@vendure/cli": "3.6.3",
-        "@vendure/testing": "3.6.3",
-        "@vendure/ui-devkit": "3.6.3",
+        "@vendure/cli": "3.7.1",
+        "@vendure/dashboard": "3.7.1",
+        "@vendure/testing": "3.7.1",
+        "@vendure/ui-devkit": "3.7.1",
         "commander": "^12.0.0",
         "concurrently": "^9.2.0",
         "csv-stringify": "^6.4.6",
         "dayjs": "^1.11.10",
         "jsdom": "^26.0.0",
+        "portless": "0.13.0",
         "progress": "^2.0.3",
         "tsconfig-paths": "^4.2.0",
         "typescript": "5.8.2",
@@ -454,8 +455,9 @@
     },
     "packages/email-plugin": {
       "name": "@vendure/email-plugin",
-      "version": "3.7.0",
+      "version": "3.7.1",
       "dependencies": {
+        "@types/nodemailer": "^8.0.1",
         "dateformat": "^3.0.3",
         "express": "^5.1.0",
         "fs-extra": "^11.2.0",
@@ -468,7 +470,6 @@
         "@types/express": "^5.0.1",
         "@types/fs-extra": "^11.0.4",
         "@types/mjml": "^5.0.0",
-        "@types/nodemailer": "^8.0.1",
         "@vendure/common": "3.6.4",
         "@vendure/core": "3.6.4",
         "rimraf": "^5.0.5",
@@ -477,7 +478,7 @@
     },
     "packages/graphiql-plugin": {
       "name": "@vendure/graphiql-plugin",
-      "version": "3.7.0",
+      "version": "3.7.1",
       "dependencies": {
         "express": "^5.1.0",
       },
@@ -499,7 +500,7 @@
     },
     "packages/harden-plugin": {
       "name": "@vendure/harden-plugin",
-      "version": "3.7.0",
+      "version": "3.7.1",
       "dependencies": {
         "graphql-query-complexity": "^0.12.0",
       },
@@ -513,7 +514,7 @@
     },
     "packages/job-queue-plugin": {
       "name": "@vendure/job-queue-plugin",
-      "version": "3.7.0",
+      "version": "3.7.1",
       "devDependencies": {
         "@vendure/common": "3.6.3",
         "@vendure/core": "3.6.3",
@@ -533,7 +534,7 @@
     },
     "packages/telemetry-plugin": {
       "name": "@vendure/telemetry-plugin",
-      "version": "3.7.0",
+      "version": "3.7.1",
       "dependencies": {
         "@opentelemetry/api": "^1.9.0",
         "@opentelemetry/context-async-hooks": "^2.0.0",
@@ -560,7 +561,7 @@
     },
     "packages/testing": {
       "name": "@vendure/testing",
-      "version": "3.7.0",
+      "version": "3.7.1",
       "dependencies": {
         "@graphql-typed-document-node/core": "^3.2.0",
         "@vendure/common": "3.6.3",
@@ -584,7 +585,7 @@
     },
     "packages/ui-devkit": {
       "name": "@vendure/ui-devkit",
-      "version": "3.7.0",
+      "version": "3.7.1",
       "dependencies": {
         "@angular-devkit/build-angular": "^19.2.5",
         "@angular/cli": "^19.2.5",
@@ -2507,7 +2508,7 @@
 
     "@types/node-forge": ["@types/node-forge@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-mhVF2BnD4BO+jtOp7z1CdzaK4mbuK0LLQYAvdOLqHTavxFNq4zA1EmYkpnFjP8HOUzedfQkRnp0E2ulSAYSzAw=="],
 
-    "@types/nodemailer": ["@types/nodemailer@6.4.23", "", { "dependencies": { "@types/node": "*" } }, "sha512-aFV3/NsYFLSx9mbb5gtirBSXJnAlrusoKNuPbxsASWc7vrKLmIrTQRpdcxNcSFL3VW2A2XpeLEavwb2qMi6nlQ=="],
+    "@types/nodemailer": ["@types/nodemailer@8.0.1", "", { "dependencies": { "@types/node": "*" } }, "sha512-PxpaInm8V1JQDd4j0ds5HfvWQk8JupS1C0Picb96QJsrrRDjBH+DlK7L4ZdNSqNULhiZRQHc40nLVShaGxXAMw=="],
 
     "@types/normalize-package-data": ["@types/normalize-package-data@2.4.4", "", {}, "sha512-37i+OaWTh9qeK4LSHPsyRC7NahnGotNuZvjLSgcPzblpHB3rrCJxAOgI5gCdKm7coonsaX1Of0ILiTcnZjbfxA=="],
 
@@ -4691,6 +4692,8 @@
 
     "pofile": ["pofile@1.1.4", "", {}, "sha512-r6Q21sKsY1AjTVVjOuU02VYKVNQGJNQHjTIvs4dEbeuuYfxgYk/DGD2mqqq4RDaVkwdSq0VEtmQUOPe/wH8X3g=="],
 
+    "portless": ["portless@0.13.0", "", { "os": [ "linux", "win32", "darwin", ], "bin": { "portless": "dist/cli.js" } }, "sha512-PxMZ5BHH+ZZi9rTq4T8m003aZxh56qI0aBdNsxLn7jrTtvNJYBWYD3lc5PuQrom/aVh6z8iLb+tKUI6b7QNYQw=="],
+
     "possible-typed-array-names": ["possible-typed-array-names@1.1.0", "", {}, "sha512-/+5VFTchJDoVj3bhoqi6UeymcD00DAwb1nJwamzPvHEszJ4FpF6SNNbUbOS8yI56qHzdV8eK0qEfOSiodkTdxg=="],
 
     "postcss": ["postcss@8.5.6", "", { "dependencies": { "nanoid": "^3.3.11", "picocolors": "^1.1.1", "source-map-js": "^1.2.1" } }, "sha512-3Ybi1tAuwAP9s0r1UQ2J4n5Y0G05bJkpUIO0/bI9MhwmD70S5aTWbXGBwxHrelT+XM1k6dM0pk+SwNkpTRN7Pg=="],
@@ -6173,8 +6176,6 @@
 
     "@vendure/dashboard/eslint": ["eslint@9.39.4", "", { "dependencies": { "@eslint-community/eslint-utils": "^4.8.0", "@eslint-community/regexpp": "^4.12.1", "@eslint/config-array": "^0.21.2", "@eslint/config-helpers": "^0.4.2", "@eslint/core": "^0.17.0", "@eslint/eslintrc": "^3.3.5", "@eslint/js": "9.39.4", "@eslint/plugin-kit": "^0.4.1", "@humanfs/node": "^0.16.6", "@humanwhocodes/module-importer": "^1.0.1", "@humanwhocodes/retry": "^0.4.2", "@types/estree": "^1.0.6", "ajv": "^6.14.0", "chalk": "^4.0.0", "cross-spawn": "^7.0.6", "debug": "^4.3.2", "escape-string-regexp": "^4.0.0", "eslint-scope": "^8.4.0", "eslint-visitor-keys": "^4.2.1", "espree": "^10.4.0", "esquery": "^1.5.0", "esutils": "^2.0.2", "fast-deep-equal": "^3.1.3", "file-entry-cache": "^8.0.0", "find-up": "^5.0.0", "glob-parent": "^6.0.2", "ignore": "^5.2.0", "imurmurhash": "^0.1.4", "is-glob": "^4.0.0", "json-stable-stringify-without-jsonify": "^1.0.1", "lodash.merge": "^4.6.2", "minimatch": "^3.1.5", "natural-compare": "^1.4.0", "optionator": "^0.9.3" }, "peerDependencies": { "jiti": "*" }, "bin": "bin/eslint.js" }, "sha512-XoMjdBOwe/esVgEvLmNsD3IRHkm7fbKIUGvrleloJXUZgDHig2IPWNniv+GwjyJXzuNqVjlr5+4yVUZjycJwfQ=="],
 
-    "@vendure/email-plugin/@types/nodemailer": ["@types/nodemailer@8.0.1", "", { "dependencies": { "@types/node": "*" } }, "sha512-PxpaInm8V1JQDd4j0ds5HfvWQk8JupS1C0Picb96QJsrrRDjBH+DlK7L4ZdNSqNULhiZRQHc40nLVShaGxXAMw=="],
-
     "@vendure/graphiql-plugin/rimraf": ["rimraf@6.0.1", "", { "dependencies": { "glob": "^11.0.0", "package-json-from-dist": "^1.0.0" }, "bin": "dist/esm/bin.mjs" }, ""],
 
     "@vendure/testing/sql.js": ["sql.js@1.14.1", "", {}, "sha512-gcj8zBWU5cFsi9WUP+4bFNXAyF1iRpA3LLyS/DP5xlrNzGmPIizUeBggKa8DbDwdqaKwUcTEnChtd2grWo/x/A=="],
@@ -7536,8 +7537,6 @@
     "@vendure/dashboard/eslint/file-entry-cache": ["file-entry-cache@8.0.0", "", { "dependencies": { "flat-cache": "^4.0.0" } }, ""],
 
     "@vendure/dashboard/eslint/minimatch": ["minimatch@3.1.5", "", { "dependencies": { "brace-expansion": "^1.1.7" } }, "sha512-VgjWUsnnT6n+NUk6eZq77zeFdpW2LWDzP6zFGrCbHXiYNul5Dzqk2HHQ5uFH2DNW5Xbp8+jVzaeNt94ssEEl4w=="],
-
-    "@vendure/email-plugin/@types/nodemailer/@types/node": ["@types/node@22.19.15", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-F0R/h2+dsy5wJAUe3tAU6oqa2qbWY5TpNfL/RGmo1y38hiyO1w3x2jPtt76wmuaJI4DQnOBu21cNXQ2STIUUWg=="],
 
     "@vendure/graphiql-plugin/rimraf/glob": ["glob@11.1.0", "", { "dependencies": { "foreground-child": "^3.3.1", "jackspeak": "^4.1.1", "minimatch": "^10.1.1", "minipass": "^7.1.2", "package-json-from-dist": "^1.0.0", "path-scurry": "^2.0.0" }, "bin": "dist/esm/bin.mjs" }, "sha512-vuNwKSaKiqm7g0THUBu2x7ckSs3XJLXE+2ssL7/MfTGPLLcrJQ/4Uq1CjPTtO5cCIiRxqvN6Twy1qOwhL0Xjcw=="],
 

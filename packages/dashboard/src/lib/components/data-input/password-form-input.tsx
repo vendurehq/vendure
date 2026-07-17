@@ -1,6 +1,6 @@
 import { DashboardFormComponentProps } from '@/vdb/framework/form-engine/form-engine-types.js';
 import { isReadonlyField } from '@/vdb/framework/form-engine/utils.js';
-import { Input } from '../ui/input.js';
+import { PasswordInput } from '../ui/password-input.js';
 
 /**
  * @description
@@ -12,8 +12,7 @@ import { Input } from '../ui/input.js';
 export function PasswordFormInput(props: Readonly<DashboardFormComponentProps>) {
     const readOnly = props.disabled || isReadonlyField(props.fieldDef);
     return (
-        <Input
-            type="password"
+        <PasswordInput
             ref={props.ref}
             value={props.value}
             onChange={e => props.onChange(e.target.value)}

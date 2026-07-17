@@ -2,6 +2,7 @@ name: Generate Docs
 
 on:
     pull_request:
+        types: [opened, synchronize, reopened, ready_for_review]
         branches:
             - master
             - minor
@@ -17,8 +18,8 @@ concurrency:
 jobs:
     generate:
         name: Generate & commit docs
-        # Skip fork PRs — can't push back to fork branches
-        if: ${{ !github.event.pull_request.head.repo.fork }}
+        # Skip fork PRs (can't push back to fork branches) and draft PRs
+        if: ${{ !github.event.pull_request.head.repo.fork && !github.event.pull_request.draft }}
         runs-on: ubuntu-latest
         permissions:
             contents: write

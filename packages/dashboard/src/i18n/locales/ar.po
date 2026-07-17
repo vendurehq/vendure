@@ -295,7 +295,7 @@ msgstr "تحديد الأدوار"
 msgid "Successfully created role"
 msgstr "تم إنشاء الدور بنجاح"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:459
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:434
 msgid "Are you sure you want to delete this variant?"
 msgstr "هل أنت متأكد من حذف هذا الشكل؟"
 
@@ -319,7 +319,7 @@ msgstr "تم تحديث شكل المنتج بنجاح"
 msgid "Failed to delete {failed} {entityName}: {allErrors}"
 msgstr "فشل حذف {failed} {entityName}: {allErrors}"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:160
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:159
 msgid "Successfully updated product"
 msgstr "تم تحديث المنتج بنجاح"
 
@@ -359,8 +359,10 @@ msgstr "تم إنشاء موقع المخزون بنجاح"
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:120
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:166
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:185
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:113
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:204
+#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:55
+#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:73
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:105
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:197
 #: src/lib/components/shared/asset/asset-preview.tsx:127
 msgid "Unknown error"
 msgstr "خطأ غير معروف"
@@ -413,7 +415,7 @@ msgstr "إعادة للمخزون"
 msgid "Visibility"
 msgstr "الرؤية"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:288
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:281
 msgid "Product variants"
 msgstr "متغيرات المنتج"
 
@@ -574,7 +576,7 @@ msgstr "خطأ في تحميل سجل العميل: {0}"
 msgid "Successfully removed {selectionLength} {entityType} from channel"
 msgstr "تمت إزالة {selectionLength} {entityType} من القناة بنجاح"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:159
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:151
 msgid "Add option value"
 msgstr "إضافة قيمة خيار"
 
@@ -769,7 +771,7 @@ msgstr "إكمال المسودة"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:170
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:158
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:286
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:353
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:328
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:165
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:89
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:148
@@ -885,7 +887,7 @@ msgstr "فشل إنشاء المجموعة"
 msgid "Go to first page"
 msgstr "الانتقال إلى الصفحة الأولى"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:168
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:167
 msgid "Failed to create product"
 msgstr "فشل إنشاء المنتج"
 
@@ -910,7 +912,7 @@ msgstr "تم تعيين عنوان الشحن للطلب"
 msgid "Focal Point"
 msgstr "نقطة التركيز"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:99
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:98
 msgid "Single variant, no options"
 msgstr "متغير واحد، بدون خيارات"
 
@@ -1060,6 +1062,10 @@ msgstr "طلب مسودة"
 #: src/app/routes/_authenticated/_system/settings-store.tsx:314
 msgid "Scope"
 msgstr "النطاق"
+
+#: src/app/routes/_authenticated/_promotions/components/promotion-conditions-selector.tsx:37
+msgid "Add condition"
+msgstr "إضافة شرط"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-method-result.tsx:58
 msgid "Shipping method is eligible for this order"
@@ -1289,8 +1295,6 @@ msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Can
 msgstr ""
 
 #: src/lib/components/data-input/product-multi-selector-input.tsx:499
-#: src/lib/components/shared/configurable-operation-multi-selector.tsx:265
-#: src/lib/components/shared/configurable-operation-selector.tsx:140
 msgid "{buttonText}"
 msgstr "{buttonText}"
 
@@ -1341,7 +1345,7 @@ msgstr "لا توجد متغيرات تطابق عامل التصفية الحا
 msgid "Addresses"
 msgstr "العناوين"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:144
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:136
 msgid "Add a new option value to the {groupName} option group"
 msgstr "إضافة قيمة خيار جديدة إلى مجموعة الخيارات {groupName}"
 
@@ -1467,7 +1471,7 @@ msgstr "استخدام كعنوان فوترة افتراضي"
 
 #: src/app/common/delete-bulk-action.tsx:139
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:41
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:362
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:337
 #: src/lib/components/data-table/use-generated-columns.tsx:407
 #: src/lib/components/data-table/use-generated-columns.tsx:437
 #: src/lib/components/data-table/views-sheet.tsx:270
@@ -1605,7 +1609,7 @@ msgstr "الانتقال إلى الصفحة الأخيرة"
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:363
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:71
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:273
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:498
+#: src/app/routes/_authenticated/_products/components/force-remove-option-group-dialog.tsx:48
 #: src/app/routes/_authenticated/_system/settings-store.tsx:140
 #: src/lib/components/data-input/product-multi-selector-input.tsx:470
 #: src/lib/components/data-table/data-table-bulk-action-item.tsx:122
@@ -1673,7 +1677,7 @@ msgstr "المجموعات"
 msgid "Select Shipping Eligibility Checker"
 msgstr ""
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:458
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:433
 msgid "Delete variant"
 msgstr "حذف المتغير"
 
@@ -1715,7 +1719,7 @@ msgid "Private collections are not visible in the shop"
 msgstr "المجموعات الخاصة غير مرئية في المتجر"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:262
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:229
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:222
 msgid "When enabled, a product is available in the shop"
 msgstr "عند التمكين، يصبح المنتج متاحًا في المتجر"
 
@@ -1776,7 +1780,7 @@ msgstr "لا توجد قيم خصائص"
 msgid "A reason for the refund is required"
 msgstr "سبب الاسترداد مطلوب"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:194
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:187
 msgid "Could not remove option group"
 msgstr "تعذرت إزالة مجموعة الخيارات"
 
@@ -1805,7 +1809,7 @@ msgstr "تم تسوية الاسترداد بنجاح"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:279
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:219
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:212
 #: src/app/routes/_authenticated/_profile/profile.tsx:92
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
@@ -1848,7 +1852,7 @@ msgstr "طريقة الدفع"
 msgid "Edit"
 msgstr "تحرير"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:188
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:180
 msgid "Variant updated successfully"
 msgstr "تم تحديث الشكل بنجاح"
 
@@ -1902,7 +1906,7 @@ msgstr "إعدادات الأعمدة"
 msgid "Code"
 msgstr "الرمز"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:203
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:196
 msgid "Failed to remove option groups"
 msgstr "فشل في إزالة مجموعات الخيارات"
 
@@ -1993,7 +1997,7 @@ msgid "Test Shipping Method"
 msgstr "اختبار طريقة الشحن"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:491
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:333
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:327
 msgid "Facet Values"
 msgstr "قيم الخصائص"
 
@@ -2406,7 +2410,7 @@ msgstr "الصفحة {0} من {1}"
 msgid "Rate"
 msgstr "المعدل"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:114
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:113
 msgid "Size, colour, etc."
 msgstr "الحجم، اللون، إلخ."
 
@@ -2484,6 +2488,10 @@ msgstr "تم تعيين العميل للطلب"
 #: src/lib/components/shared/facet-value-selector.tsx:222
 msgid "Facets"
 msgstr "الخصائص"
+
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx:58
+msgid "{count, plural, one {Are you sure you want to remove {count} customer from this group?} other {Are you sure you want to remove {count} customers from this group?}}"
+msgstr "{count, plural, one {هل أنت متأكد أنك تريد إزالة عميل واحد من هذه المجموعة؟} two {هل أنت متأكد أنك تريد إزالة عميلين من هذه المجموعة؟} few {هل أنت متأكد أنك تريد إزالة {count} عملاء من هذه المجموعة؟} many {هل أنت متأكد أنك تريد إزالة {count} عميلاً من هذه المجموعة؟} other {هل أنت متأكد أنك تريد إزالة {count} عميل من هذه المجموعة؟}}"
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:293
 msgid "Stock on Hand"
@@ -2639,11 +2647,11 @@ msgstr "إعادة حساب الشحن"
 #: src/app/routes/_authenticated/_assets/assets.tsx:40
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:225
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:508
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:366
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:360
 msgid "Assets"
 msgstr "الملفات"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:307
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:300
 msgid "This will remove all option groups from this product and return to the variant setup choice."
 msgstr "سيؤدي هذا إلى إزالة جميع مجموعات الخيارات من هذا المنتج والعودة إلى اختيار إعداد المتغيرات."
 
@@ -2689,7 +2697,7 @@ msgstr "جميع الأنواع"
 msgid "Only draft orders can be completed"
 msgstr "يمكن إكمال طلبات المسودة فقط"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:168
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:167
 msgid "Failed to update product"
 msgstr "فشل تحديث المنتج"
 
@@ -2744,7 +2752,7 @@ msgid "Successfully created administrator"
 msgstr "تم إنشاء المسؤول بنجاح"
 
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:198
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:315
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:308
 msgid "Product Options"
 msgstr "خيارات المنتج"
 
@@ -2760,7 +2768,7 @@ msgstr "جارٍ الإنشاء..."
 msgid "Are you sure you want to delete this global view? This action cannot be undone and will affect all users."
 msgstr "هل أنت متأكد من حذف هذا العرض العام؟ لا يمكن التراجع عن هذا الإجراء وسيؤثر على جميع المستخدمين."
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:491
+#: src/app/routes/_authenticated/_products/components/force-remove-option-group-dialog.tsx:37
 msgid "Force remove option group"
 msgstr "إزالة مجموعة الخيارات إجبارياً"
 
@@ -2824,7 +2832,7 @@ msgstr "حذف العرض العام"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:160
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:219
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:212
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
@@ -2860,7 +2868,7 @@ msgstr "فشل إنشاء العميل"
 msgid "Focal point updated"
 msgstr "تم تحديث نقطة التركيز"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:303
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:279
 msgid "Option values"
 msgstr "قيم الخيارات"
 
@@ -2985,7 +2993,7 @@ msgstr "داكن"
 msgid "Test Results"
 msgstr "نتائج الاختبار"
 
-#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:127
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:137
 msgid "Add customer"
 msgstr "إضافة عميل"
 
@@ -3088,7 +3096,7 @@ msgstr "تبديل عمود الرأس"
 msgid "New Promotion"
 msgstr "عرض ترويجي جديد"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:152
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:144
 msgid "Option value name"
 msgstr "اسم قيمة الخيار"
 
@@ -3139,7 +3147,7 @@ msgstr "تعيين معايير التصفية لعمود {columnId}"
 msgid "Country"
 msgstr "البلد"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:97
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:96
 msgid "Simple product"
 msgstr "منتج بسيط"
 
@@ -3319,7 +3327,7 @@ msgstr "الشحن"
 msgid "useWidgetDimensions must be used within a DashboardBaseWidget"
 msgstr "يجب استخدام useWidgetDimensions داخل DashboardBaseWidget"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:493
+#: src/app/routes/_authenticated/_products/components/force-remove-option-group-dialog.tsx:40
 msgid "This option group is in use by existing variants. Force removing it may affect those variants. Are you sure?"
 msgstr "مجموعة الخيارات هذه مستخدمة من قبل متغيرات موجودة. قد تؤثر الإزالة الإجبارية على تلك المتغيرات. هل أنت متأكد؟"
 
@@ -3370,7 +3378,7 @@ msgid "Yes"
 msgstr "نعم"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:175
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:246
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:239
 msgid "Slug"
 msgstr "الرابط المختصر"
 
@@ -3436,7 +3444,7 @@ msgstr "تسوية الدفع"
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:216
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:343
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:337
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:111
 #: src/lib/components/layout/channel-switcher.tsx:146
 msgid "Channels"
@@ -3462,8 +3470,8 @@ msgstr "تم استرداد {successfulRefundCount} دفعة/دفعات قبل �
 msgid "Select item"
 msgstr "تحديد عنصر"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:57
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:212
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:56
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:205
 msgid "New product"
 msgstr "منتج جديد"
 
@@ -3475,6 +3483,10 @@ msgstr "إدارة العلامات"
 msgid "Items refunded"
 msgstr "العناصر المستردة"
 
+#: src/app/routes/_authenticated/_promotions/components/promotion-actions-selector.tsx:37
+msgid "Add action"
+msgstr "إضافة إجراء"
+
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:325
 #~ msgid "Assign options to existing variant"
 #~ msgstr "تعيين خيارات إلى الشكل الموجود"
@@ -3483,6 +3495,10 @@ msgstr "العناصر المستردة"
 #: src/app/common/duplicate-entity-dialog.tsx:85
 msgid "Duplicate {0}s"
 msgstr "نسخ {0}"
+
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx:56
+msgid "Remove from group"
+msgstr "إزالة من المجموعة"
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:52
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:56
@@ -3636,7 +3652,7 @@ msgstr "لا يمكن الإزالة من القناة النشطة"
 msgid "Not set"
 msgstr "غير معين"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:509
+#: src/app/routes/_authenticated/_products/components/force-remove-option-group-dialog.tsx:60
 msgid "Force remove"
 msgstr "إزالة إجبارية"
 
@@ -3660,7 +3676,7 @@ msgstr "فشل إنشاء مجموعة العملاء"
 msgid "Failed to create role"
 msgstr "فشل إنشاء الدور"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:240
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:233
 msgid "Product name"
 msgstr "اسم المنتج"
 
@@ -3673,8 +3689,8 @@ msgstr "تم تحديث حالة التنفيذ بنجاح"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:211
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:38
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:66
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:67
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:56
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:59
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:55
 #: src/app/routes/_authenticated/_products/products.tsx:24
 #: src/app/routes/_authenticated/_products/products.tsx:47
 msgid "Products"
@@ -3847,7 +3863,9 @@ msgstr "العودة إلى البحث"
 msgid "View duplicated successfully"
 msgstr "تم نسخ العرض بنجاح"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:320
+#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:50
+#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:56
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:297
 msgid "Remove option group"
 msgstr "إزالة مجموعة الخيارات"
 
@@ -3855,7 +3873,7 @@ msgstr "إزالة مجموعة الخيارات"
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:76
 #: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:14
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:262
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:255
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:174
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:94
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:162
@@ -4000,7 +4018,7 @@ msgstr "ملخص طلباتك"
 msgid "Upload"
 msgstr "رفع"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:112
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:111
 msgid "Product with options"
 msgstr "منتج بخيارات"
 
@@ -4140,6 +4158,10 @@ msgstr "مسؤول عام"
 #: src/app/routes/_authenticated/_system/healthchecks.tsx:74
 #~ msgid "Some resources are down"
 #~ msgstr "بعض الموارد معطلة"
+
+#: src/app/routes/_authenticated/_promotions/components/promotion-actions-selector.tsx:38
+msgid "Available Actions"
+msgstr "الإجراءات المتاحة"
 
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:143
@@ -4385,7 +4407,7 @@ msgstr "إخفاء كلمة المرور"
 msgid "New seller"
 msgstr "بائع جديد"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:154
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:146
 msgid "e.g., Red, Large, Cotton"
 msgstr "مثل أحمر، كبير، قطن"
 
@@ -4730,7 +4752,7 @@ msgstr "الولاية / المحافظة"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:147
 #: src/app/routes/_authenticated/_payment-methods/payment-methods.tsx:42
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:261
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:228
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:221
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:153
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:115
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:119
@@ -4779,7 +4801,7 @@ msgstr "معاينة التغييرات"
 msgid "Failed to remove {entityType} from channel"
 msgstr "فشل في إزالة {entityType} من القناة"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:196
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:188
 msgid "Variant deleted successfully"
 msgstr "تم حذف الشكل بنجاح"
 
@@ -4809,7 +4831,7 @@ msgstr "المهام المجدولة"
 msgid "Are you sure you want to delete this item? This action cannot be undone."
 msgstr "هل أنت متأكد من حذف هذا العنصر؟ لا يمكن التراجع عن هذا الإجراء."
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:347
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:322
 msgid "Variants"
 msgstr "الأشكال"
 
@@ -4967,13 +4989,17 @@ msgstr "إزالة"
 msgid "Failed to update customer"
 msgstr "فشل تحديث العميل"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:306
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:299
 msgid "Remove option groups?"
 msgstr "إزالة مجموعات الخيارات؟"
 
 #: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:91
 msgid "This is a preview of the collection contents based on the current filter settings. Once you save the collection, the contents will be updated to reflect the new filter settings."
 msgstr "هذه معاينة لمحتويات المجموعة بناءً على إعدادات المرشح الحالية. بمجرد حفظ المجموعة، سيتم تحديث المحتويات لتعكس إعدادات المرشح الجديدة."
+
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx:31
+msgid "{count, plural, one {Removed {count} customer from group} other {Removed {count} customers from group}}"
+msgstr "{count, plural, one {تمت إزالة عميل واحد من المجموعة} two {تمت إزالة عميلين من المجموعة} few {تمت إزالة {count} عملاء من المجموعة} many {تمت إزالة {count} عميلاً من المجموعة} other {تمت إزالة {count} عميل من المجموعة}}"
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts:223
@@ -4984,6 +5010,10 @@ msgstr "فئات الضرائب"
 #: src/lib/framework/defaults.ts:230
 msgid "Tax Rates"
 msgstr "معدلات الضرائب"
+
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx:40
+msgid "Failed to remove customers from group"
+msgstr "فشل في إزالة العملاء من المجموعة"
 
 #: src/lib/components/layout/manage-languages-dialog.tsx:273
 msgid "Failed to load global settings"
@@ -5105,7 +5135,7 @@ msgstr "لقد حفظت مفتاح API هذا"
 msgid "Configure available languages for your store and channels"
 msgstr "تكوين اللغات المتاحة لمتجرك وقنواتك"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:160
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:159
 msgid "Successfully created product"
 msgstr "تم إنشاء المنتج بنجاح"
 
@@ -5172,6 +5202,11 @@ msgstr "اللغة الافتراضية"
 msgid "Status"
 msgstr "الحالة"
 
+#: src/lib/components/shared/configurable-operation-multi-selector.tsx:298
+#: src/lib/components/shared/configurable-operation-selector.tsx:155
+msgid "No options found"
+msgstr "لم يتم العثور على خيارات"
+
 #: src/lib/components/shared/asset/asset-gallery.tsx:370
 #: src/lib/components/shared/asset/asset-gallery.tsx:382
 msgid "Binary"
@@ -5198,7 +5233,7 @@ msgstr "بدون ضريبة:"
 #~ msgid "Add Stock to Location"
 #~ msgstr "إضافة مخزون إلى الموقع"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:106
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:98
 msgid "Successfully added option value"
 msgstr "تمت إضافة قيمة الخيار بنجاح"
 
@@ -5206,8 +5241,8 @@ msgstr "تمت إضافة قيمة الخيار بنجاح"
 msgid "Collection moved to new parent"
 msgstr "تم نقل المجموعة إلى مجموعة أصل جديدة"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:211
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:220
+#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:51
+#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:67
 msgid "Option group removed"
 msgstr "تمت إزالة مجموعة الخيارات"
 
@@ -5294,6 +5329,11 @@ msgstr "لم يتم العثور على مجموعات خيارات"
 msgid "No items found"
 msgstr "لم يتم العثور على عناصر"
 
+#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:54
+#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:72
+msgid "Failed to remove option group"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:52
 msgid "Sub total"
 msgstr "المجموع الفرعي"
@@ -5371,7 +5411,7 @@ msgstr "تمت إزالة {entityType} من القناة بنجاح"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:81
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:17
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:24
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:283
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:259
 msgid "Option Groups"
 msgstr "مجموعات الخيارات"
 
@@ -5536,7 +5576,8 @@ msgstr "طلب البائع"
 msgid "New facet"
 msgstr "خاصية جديدة"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:321
+#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:51
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:298
 msgid "Are you sure you want to remove this option group from the product?"
 msgstr "هل أنت متأكد أنك تريد إزالة مجموعة الخيارات هذه من المنتج؟"
 
@@ -5719,7 +5760,7 @@ msgstr "بائع جديد"
 msgid "Edit image"
 msgstr "تحرير الصورة"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:69
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:61
 msgid "Manage Variants"
 msgstr "إدارة الأشكال"
 
@@ -5771,7 +5812,7 @@ msgstr "إضافة ملف"
 #~ msgid "Save changes"
 #~ msgstr "حفظ التغييرات"
 
-#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:55
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:61
 msgid "Customer added to group"
 msgstr "تمت إضافة العميل إلى المجموعة"
 
@@ -5779,11 +5820,11 @@ msgstr "تمت إضافة العميل إلى المجموعة"
 msgid "Seller orders"
 msgstr "طلبات البائعين"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:112
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:104
 msgid "Failed to add option value"
 msgstr "فشل إضافة قيمة الخيار"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:141
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:133
 msgid "Add option value to {groupName}"
 msgstr "إضافة قيمة خيار إلى {groupName}"
 
@@ -5798,7 +5839,7 @@ msgstr ""
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:292
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:198
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:287
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:356
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:331
 msgid "SKU"
 msgstr "SKU"
 
@@ -5806,7 +5847,7 @@ msgstr "SKU"
 msgid "{totalQuantity} item(s) refunded"
 msgstr "تم استرداد {totalQuantity} عنصر(عناصر)"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:287
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:263
 msgid "No option groups defined yet. Add option groups to create different variants of your product (e.g., Size, Color, Material)"
 msgstr "لم يتم تعريف مجموعات خيارات بعد. أضف مجموعات خيارات لإنشاء أشكال مختلفة من منتجك (مثل الحجم، اللون، المادة)"
 
@@ -5896,6 +5937,10 @@ msgstr "لا توجد نتيجة بعد"
 msgid "Payment settled"
 msgstr "تم تسوية الدفع"
 
+#: src/app/routes/_authenticated/_promotions/components/promotion-conditions-selector.tsx:38
+msgid "Available Conditions"
+msgstr "الشروط المتاحة"
+
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx:27
 msgid "Active filters"
 msgstr "عوامل التصفية النشطة"
@@ -5976,13 +6021,13 @@ msgstr "تسوية الاسترداد"
 msgid "Payment method is required"
 msgstr "طريقة الدفع مطلوبة"
 
-#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:61
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:67
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:134
 msgid "Failed to add customer to group"
 msgstr "فشل إضافة العميل إلى المجموعة"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:280
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:279
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:256
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:272
 msgid "Manage variants"
 msgstr "إدارة الأشكال"
 
@@ -6007,7 +6052,7 @@ msgstr "البحث في البائعين..."
 msgid "Successfully created promotion"
 msgstr "تم إنشاء العرض الترويجي بنجاح"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:297
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:273
 msgid "Option"
 msgstr "الخيار"
 

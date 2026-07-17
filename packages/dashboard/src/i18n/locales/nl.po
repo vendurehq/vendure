@@ -295,7 +295,7 @@ msgstr "Rollen selecteren"
 msgid "Successfully created role"
 msgstr "Rol succesvol aangemaakt"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:459
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:434
 msgid "Are you sure you want to delete this variant?"
 msgstr "Weet u zeker dat u deze variant wilt verwijderen?"
 
@@ -319,7 +319,7 @@ msgstr "Productvariant succesvol bijgewerkt"
 msgid "Failed to delete {failed} {entityName}: {allErrors}"
 msgstr "{failed} {entityName} verwijderen mislukt: {allErrors}"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:160
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:159
 msgid "Successfully updated product"
 msgstr "Product succesvol bijgewerkt"
 
@@ -359,8 +359,10 @@ msgstr "Voorraadlocatie succesvol aangemaakt"
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx:120
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:166
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:185
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:113
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:204
+#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:55
+#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:73
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:105
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:197
 #: src/lib/components/shared/asset/asset-preview.tsx:127
 msgid "Unknown error"
 msgstr "Onbekende fout"
@@ -413,7 +415,7 @@ msgstr "Terugbrengen naar voorraad"
 msgid "Visibility"
 msgstr "Zichtbaarheid"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:288
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:281
 msgid "Product variants"
 msgstr "Productvarianten"
 
@@ -574,7 +576,7 @@ msgstr "Fout bij laden klantgeschiedenis: {0}"
 msgid "Successfully removed {selectionLength} {entityType} from channel"
 msgstr "{selectionLength} {entityType} succesvol verwijderd uit kanaal"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:159
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:151
 msgid "Add option value"
 msgstr "Optiewaarde toevoegen"
 
@@ -769,7 +771,7 @@ msgstr "Concept voltooien"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:170
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:158
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:286
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:353
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:328
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:165
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:89
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:148
@@ -889,7 +891,7 @@ msgstr "Collectie aanmaken mislukt"
 msgid "Go to first page"
 msgstr "Ga naar eerste pagina"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:168
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:167
 msgid "Failed to create product"
 msgstr "Product aanmaken mislukt"
 
@@ -914,7 +916,7 @@ msgstr "Verzendadres ingesteld voor bestelling"
 msgid "Focal Point"
 msgstr "Focuspunt"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:99
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:98
 msgid "Single variant, no options"
 msgstr "Enkele variant, geen opties"
 
@@ -1064,6 +1066,10 @@ msgstr "Conceptbestelling"
 #: src/app/routes/_authenticated/_system/settings-store.tsx:314
 msgid "Scope"
 msgstr "Bereik"
+
+#: src/app/routes/_authenticated/_promotions/components/promotion-conditions-selector.tsx:37
+msgid "Add condition"
+msgstr "Voorwaarde toevoegen"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-method-result.tsx:58
 msgid "Shipping method is eligible for this order"
@@ -1293,8 +1299,6 @@ msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Can
 msgstr ""
 
 #: src/lib/components/data-input/product-multi-selector-input.tsx:499
-#: src/lib/components/shared/configurable-operation-multi-selector.tsx:265
-#: src/lib/components/shared/configurable-operation-selector.tsx:140
 msgid "{buttonText}"
 msgstr "{buttonText}"
 
@@ -1345,7 +1349,7 @@ msgstr "Geen varianten komen overeen met het huidige filter."
 msgid "Addresses"
 msgstr "Adressen"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:144
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:136
 msgid "Add a new option value to the {groupName} option group"
 msgstr "Een nieuwe optiewaarde toevoegen aan de optiegroep {groupName}"
 
@@ -1471,7 +1475,7 @@ msgstr "Gebruiken als standaard factuuradres"
 
 #: src/app/common/delete-bulk-action.tsx:139
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:41
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:362
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:337
 #: src/lib/components/data-table/use-generated-columns.tsx:407
 #: src/lib/components/data-table/use-generated-columns.tsx:437
 #: src/lib/components/data-table/views-sheet.tsx:270
@@ -1609,7 +1613,7 @@ msgstr "Ga naar laatste pagina"
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:363
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:71
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:273
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:498
+#: src/app/routes/_authenticated/_products/components/force-remove-option-group-dialog.tsx:48
 #: src/app/routes/_authenticated/_system/settings-store.tsx:140
 #: src/lib/components/data-input/product-multi-selector-input.tsx:470
 #: src/lib/components/data-table/data-table-bulk-action-item.tsx:122
@@ -1677,7 +1681,7 @@ msgstr "Collecties"
 msgid "Select Shipping Eligibility Checker"
 msgstr ""
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:458
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:433
 msgid "Delete variant"
 msgstr "Variant verwijderen"
 
@@ -1719,7 +1723,7 @@ msgid "Private collections are not visible in the shop"
 msgstr "Privécollecties zijn niet zichtbaar in de winkel"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:262
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:229
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:222
 msgid "When enabled, a product is available in the shop"
 msgstr "Wanneer ingeschakeld, is een product beschikbaar in de winkel"
 
@@ -1780,7 +1784,7 @@ msgstr "Geen facetwaarden"
 msgid "A reason for the refund is required"
 msgstr "Een reden voor de restitutie is vereist"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:194
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:187
 msgid "Could not remove option group"
 msgstr "Kon optiegroep niet verwijderen"
 
@@ -1809,7 +1813,7 @@ msgstr "Terugbetaling succesvol afgehandeld"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:279
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:219
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:212
 #: src/app/routes/_authenticated/_profile/profile.tsx:92
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
@@ -1846,7 +1850,7 @@ msgstr "Betaalmethode"
 msgid "Edit"
 msgstr "Bewerken"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:188
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:180
 msgid "Variant updated successfully"
 msgstr "Variant succesvol bijgewerkt"
 
@@ -1900,7 +1904,7 @@ msgstr "Kolominstellingen"
 msgid "Code"
 msgstr "Code"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:203
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:196
 msgid "Failed to remove option groups"
 msgstr "Verwijderen van optiegroepen mislukt"
 
@@ -1991,7 +1995,7 @@ msgid "Test Shipping Method"
 msgstr "Verzendmethode testen"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:491
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:333
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:327
 msgid "Facet Values"
 msgstr "Facetwaarden"
 
@@ -2404,7 +2408,7 @@ msgstr "Pagina {0} van {1}"
 msgid "Rate"
 msgstr "Tarief"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:114
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:113
 msgid "Size, colour, etc."
 msgstr "Maat, kleur, etc."
 
@@ -2482,6 +2486,10 @@ msgstr "Klant ingesteld voor bestelling"
 #: src/lib/components/shared/facet-value-selector.tsx:222
 msgid "Facets"
 msgstr "Facetten"
+
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx:58
+msgid "{count, plural, one {Are you sure you want to remove {count} customer from this group?} other {Are you sure you want to remove {count} customers from this group?}}"
+msgstr "{count, plural, one {Weet u zeker dat u {count} klant uit deze groep wilt verwijderen?} other {Weet u zeker dat u {count} klanten uit deze groep wilt verwijderen?}}"
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:293
 msgid "Stock on Hand"
@@ -2633,11 +2641,11 @@ msgstr "Verzendkosten herberekenen"
 #: src/app/routes/_authenticated/_assets/assets.tsx:40
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:225
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:508
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:366
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:360
 msgid "Assets"
 msgstr "Middelen"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:307
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:300
 msgid "This will remove all option groups from this product and return to the variant setup choice."
 msgstr "Dit verwijdert alle optiegroepen van dit product en keert terug naar de variantkeuze."
 
@@ -2683,7 +2691,7 @@ msgstr "Alle typen"
 msgid "Only draft orders can be completed"
 msgstr "Alleen conceptbestellingen kunnen worden voltooid"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:168
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:167
 msgid "Failed to update product"
 msgstr "Product bijwerken mislukt"
 
@@ -2738,7 +2746,7 @@ msgid "Successfully created administrator"
 msgstr "Beheerder succesvol aangemaakt"
 
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:198
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:315
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:308
 msgid "Product Options"
 msgstr "Productopties"
 
@@ -2754,7 +2762,7 @@ msgstr "Aanmaken..."
 msgid "Are you sure you want to delete this global view? This action cannot be undone and will affect all users."
 msgstr "Weet u zeker dat u deze globale weergave wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt en heeft invloed op alle gebruikers."
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:491
+#: src/app/routes/_authenticated/_products/components/force-remove-option-group-dialog.tsx:37
 msgid "Force remove option group"
 msgstr "Optiegroep geforceerd verwijderen"
 
@@ -2818,7 +2826,7 @@ msgstr "Globale weergave verwijderen"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:160
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:138
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:219
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:212
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
@@ -2854,7 +2862,7 @@ msgstr "Klant aanmaken mislukt"
 msgid "Focal point updated"
 msgstr "Focuspunt bijgewerkt"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:303
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:279
 msgid "Option values"
 msgstr "Optiewaarden"
 
@@ -2979,7 +2987,7 @@ msgstr "Donker"
 msgid "Test Results"
 msgstr "Testresultaten"
 
-#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:127
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:137
 msgid "Add customer"
 msgstr "Klant toevoegen"
 
@@ -3082,7 +3090,7 @@ msgstr "Kolomkop schakelen"
 msgid "New Promotion"
 msgstr "Nieuwe promotie"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:152
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:144
 msgid "Option value name"
 msgstr "Naam optiewaarde"
 
@@ -3133,7 +3141,7 @@ msgstr "Filtercriteria instellen voor de kolom {columnId}"
 msgid "Country"
 msgstr "Land"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:97
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:96
 msgid "Simple product"
 msgstr "Eenvoudig product"
 
@@ -3313,7 +3321,7 @@ msgstr "Verzending"
 msgid "useWidgetDimensions must be used within a DashboardBaseWidget"
 msgstr "useWidgetDimensions moet binnen een DashboardBaseWidget worden gebruikt"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:493
+#: src/app/routes/_authenticated/_products/components/force-remove-option-group-dialog.tsx:40
 msgid "This option group is in use by existing variants. Force removing it may affect those variants. Are you sure?"
 msgstr "Deze optiegroep wordt gebruikt door bestaande varianten. Geforceerd verwijderen kan deze varianten beïnvloeden. Weet u het zeker?"
 
@@ -3364,7 +3372,7 @@ msgid "Yes"
 msgstr "Ja"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:175
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:246
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:239
 msgid "Slug"
 msgstr "Slug"
 
@@ -3430,7 +3438,7 @@ msgstr "Betaling afhandelen"
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:216
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:343
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:337
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:111
 #: src/lib/components/layout/channel-switcher.tsx:146
 msgid "Channels"
@@ -3456,8 +3464,8 @@ msgstr "{successfulRefundCount} betaling(en) gerestitueerd voor de fout. Control
 msgid "Select item"
 msgstr "Selecteer item"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:57
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:212
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:56
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:205
 msgid "New product"
 msgstr "Nieuw product"
 
@@ -3469,6 +3477,10 @@ msgstr "Tags beheren"
 msgid "Items refunded"
 msgstr "Artikelen gerestitueerd"
 
+#: src/app/routes/_authenticated/_promotions/components/promotion-actions-selector.tsx:37
+msgid "Add action"
+msgstr "Actie toevoegen"
+
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx:325
 #~ msgid "Assign options to existing variant"
 #~ msgstr "Opties toewijzen aan bestaande variant"
@@ -3477,6 +3489,10 @@ msgstr "Artikelen gerestitueerd"
 #: src/app/common/duplicate-entity-dialog.tsx:85
 msgid "Duplicate {0}s"
 msgstr "{0} dupliceren"
+
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx:56
+msgid "Remove from group"
+msgstr "Verwijderen uit groep"
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:52
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:56
@@ -3627,7 +3643,7 @@ msgstr "Kan niet uit actief kanaal verwijderen"
 msgid "Not set"
 msgstr "Niet ingesteld"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:509
+#: src/app/routes/_authenticated/_products/components/force-remove-option-group-dialog.tsx:60
 msgid "Force remove"
 msgstr "Geforceerd verwijderen"
 
@@ -3651,7 +3667,7 @@ msgstr "Klantengroep aanmaken mislukt"
 msgid "Failed to create role"
 msgstr "Rol aanmaken mislukt"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:240
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:233
 msgid "Product name"
 msgstr "Productnaam"
 
@@ -3664,8 +3680,8 @@ msgstr "Afhandelingsstatus succesvol bijgewerkt"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:211
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:38
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:66
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:67
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:56
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:59
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:55
 #: src/app/routes/_authenticated/_products/products.tsx:24
 #: src/app/routes/_authenticated/_products/products.tsx:47
 msgid "Products"
@@ -3838,7 +3854,9 @@ msgstr "Terug naar zoeken"
 msgid "View duplicated successfully"
 msgstr "Weergave succesvol gedupliceerd"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:320
+#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:50
+#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:56
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:297
 msgid "Remove option group"
 msgstr "Optiegroep verwijderen"
 
@@ -3846,7 +3864,7 @@ msgstr "Optiegroep verwijderen"
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:76
 #: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:14
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:262
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:255
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:174
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:94
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:162
@@ -3991,7 +4009,7 @@ msgstr "Uw besteloverzicht"
 msgid "Upload"
 msgstr "Uploaden"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:112
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:111
 msgid "Product with options"
 msgstr "Product met opties"
 
@@ -4131,6 +4149,10 @@ msgstr "Superbeheerder"
 #: src/app/routes/_authenticated/_system/healthchecks.tsx:74
 #~ msgid "Some resources are down"
 #~ msgstr "Sommige bronnen zijn offline"
+
+#: src/app/routes/_authenticated/_promotions/components/promotion-actions-selector.tsx:38
+msgid "Available Actions"
+msgstr "Beschikbare acties"
 
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:143
@@ -4376,7 +4398,7 @@ msgstr "Wachtwoord verbergen"
 msgid "New seller"
 msgstr "Nieuwe verkoper"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:154
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:146
 msgid "e.g., Red, Large, Cotton"
 msgstr "bijv. Rood, Groot, Katoen"
 
@@ -4725,7 +4747,7 @@ msgstr "Staat / Provincie"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:147
 #: src/app/routes/_authenticated/_payment-methods/payment-methods.tsx:42
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:261
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:228
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:221
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:153
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:115
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:119
@@ -4774,7 +4796,7 @@ msgstr "Voorbeeld van wijzigingen"
 msgid "Failed to remove {entityType} from channel"
 msgstr "Verwijderen van {entityType} uit kanaal mislukt"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:196
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:188
 msgid "Variant deleted successfully"
 msgstr "Variant succesvol verwijderd"
 
@@ -4804,7 +4826,7 @@ msgstr "Geplande taken"
 msgid "Are you sure you want to delete this item? This action cannot be undone."
 msgstr "Weet u zeker dat u dit item wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt."
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:347
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:322
 msgid "Variants"
 msgstr "Varianten"
 
@@ -4962,13 +4984,17 @@ msgstr "Verwijderen"
 msgid "Failed to update customer"
 msgstr "Klant bijwerken mislukt"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:306
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:299
 msgid "Remove option groups?"
 msgstr "Optiegroepen verwijderen?"
 
 #: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:91
 msgid "This is a preview of the collection contents based on the current filter settings. Once you save the collection, the contents will be updated to reflect the new filter settings."
 msgstr "Dit is een voorbeeld van de collectie-inhoud op basis van de huidige filterinstellingen. Zodra u de collectie opslaat, wordt de inhoud bijgewerkt volgens de nieuwe filterinstellingen."
+
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx:31
+msgid "{count, plural, one {Removed {count} customer from group} other {Removed {count} customers from group}}"
+msgstr "{count, plural, one {{count} klant uit groep verwijderd} other {{count} klanten uit groep verwijderd}}"
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts:223
@@ -4979,6 +5005,10 @@ msgstr "Belastingcategorieën"
 #: src/lib/framework/defaults.ts:230
 msgid "Tax Rates"
 msgstr "Belastingtarieven"
+
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx:40
+msgid "Failed to remove customers from group"
+msgstr "Klanten konden niet uit de groep worden verwijderd"
 
 #: src/lib/components/layout/manage-languages-dialog.tsx:273
 msgid "Failed to load global settings"
@@ -5100,7 +5130,7 @@ msgstr "Ik heb deze API Key opgeslagen"
 msgid "Configure available languages for your store and channels"
 msgstr "Configureer beschikbare talen voor uw winkel en kanalen"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:160
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:159
 msgid "Successfully created product"
 msgstr "Product succesvol aangemaakt"
 
@@ -5167,6 +5197,11 @@ msgstr "Standaardtaal"
 msgid "Status"
 msgstr "Status"
 
+#: src/lib/components/shared/configurable-operation-multi-selector.tsx:298
+#: src/lib/components/shared/configurable-operation-selector.tsx:155
+msgid "No options found"
+msgstr "Geen opties gevonden"
+
 #: src/lib/components/shared/asset/asset-gallery.tsx:370
 #: src/lib/components/shared/asset/asset-gallery.tsx:382
 msgid "Binary"
@@ -5193,7 +5228,7 @@ msgstr "excl. BTW:"
 #~ msgid "Add Stock to Location"
 #~ msgstr "Voorraad toevoegen aan locatie"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:106
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:98
 msgid "Successfully added option value"
 msgstr "Optiewaarde succesvol toegevoegd"
 
@@ -5201,8 +5236,8 @@ msgstr "Optiewaarde succesvol toegevoegd"
 msgid "Collection moved to new parent"
 msgstr "Collectie naar nieuw bovenliggend niveau verplaatst"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:211
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:220
+#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:51
+#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:67
 msgid "Option group removed"
 msgstr "Optiegroep verwijderd"
 
@@ -5289,6 +5324,11 @@ msgstr "Geen optiegroepen gevonden"
 msgid "No items found"
 msgstr "Geen items gevonden"
 
+#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:54
+#: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts:72
+msgid "Failed to remove option group"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:52
 msgid "Sub total"
 msgstr "Subtotaal"
@@ -5366,7 +5406,7 @@ msgstr "{entityType} succesvol verwijderd uit kanaal"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:81
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:17
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx:24
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:283
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:259
 msgid "Option Groups"
 msgstr "Optiegroepen"
 
@@ -5531,7 +5571,8 @@ msgstr "Verkopersbestelling"
 msgid "New facet"
 msgstr "Nieuw facet"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:321
+#: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx:51
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:298
 msgid "Are you sure you want to remove this option group from the product?"
 msgstr "Weet u zeker dat u deze optiegroep van het product wilt verwijderen?"
 
@@ -5714,7 +5755,7 @@ msgstr "Nieuwe verkoper"
 msgid "Edit image"
 msgstr "Afbeelding bewerken"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:69
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:61
 msgid "Manage Variants"
 msgstr "Varianten beheren"
 
@@ -5766,7 +5807,7 @@ msgstr "Bestand toevoegen"
 #~ msgid "Save changes"
 #~ msgstr "Wijzigingen opslaan"
 
-#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:55
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:61
 msgid "Customer added to group"
 msgstr "Klant toegevoegd aan groep"
 
@@ -5774,11 +5815,11 @@ msgstr "Klant toegevoegd aan groep"
 msgid "Seller orders"
 msgstr "Verkopersbestellingen"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:112
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:104
 msgid "Failed to add option value"
 msgstr "Optiewaarde toevoegen mislukt"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:141
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:133
 msgid "Add option value to {groupName}"
 msgstr "Optiewaarde toevoegen aan {groupName}"
 
@@ -5793,7 +5834,7 @@ msgstr ""
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:292
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:198
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:287
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:356
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:331
 msgid "SKU"
 msgstr "SKU"
 
@@ -5801,7 +5842,7 @@ msgstr "SKU"
 msgid "{totalQuantity} item(s) refunded"
 msgstr "{totalQuantity} artikel(en) gerestitueerd"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:287
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:263
 msgid "No option groups defined yet. Add option groups to create different variants of your product (e.g., Size, Color, Material)"
 msgstr "Nog geen optiegroepen gedefinieerd. Voeg optiegroepen toe om verschillende varianten van uw product te maken (bijv. Maat, Kleur, Materiaal)"
 
@@ -5891,6 +5932,10 @@ msgstr "Nog geen resultaat"
 msgid "Payment settled"
 msgstr "Betaling afgehandeld"
 
+#: src/app/routes/_authenticated/_promotions/components/promotion-conditions-selector.tsx:38
+msgid "Available Conditions"
+msgstr "Beschikbare voorwaarden"
+
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx:27
 msgid "Active filters"
 msgstr "Actieve filters"
@@ -5971,13 +6016,13 @@ msgstr "Terugbetaling afhandelen"
 msgid "Payment method is required"
 msgstr "Betaalmethode is vereist"
 
-#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:61
+#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:67
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:134
 msgid "Failed to add customer to group"
 msgstr "Klant toevoegen aan groep mislukt"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:280
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:279
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:256
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:272
 msgid "Manage variants"
 msgstr "Varianten beheren"
 
@@ -6002,7 +6047,7 @@ msgstr "Verkopers zoeken..."
 msgid "Successfully created promotion"
 msgstr "Promotie succesvol aangemaakt"
 
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:297
+#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:273
 msgid "Option"
 msgstr "Optie"
 

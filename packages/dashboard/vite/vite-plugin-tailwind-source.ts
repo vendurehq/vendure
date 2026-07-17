@@ -1,11 +1,11 @@
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Plugin } from 'vite';
 
 import { CompileResult } from './utils/compiler.js';
 import { filterActivePluginInfo } from './utils/get-active-plugin-info.js';
 import { getDashboardPaths } from './utils/get-dashboard-paths.js';
 import { ConfigLoaderApi, getConfigLoaderApi } from './vite-plugin-config-loader.js';
-import { fixWindowsPath } from './vite-plugin-vendure-dashboard.js';
 
 /**
  * Resolve the absolute path to the `@vendure-io/ui` source directory.
@@ -16,7 +16,8 @@ import { fixWindowsPath } from './vite-plugin-vendure-dashboard.js';
 function resolveVendureUiSourcePath(): string | undefined {
     try {
         const resolved = import.meta.resolve('@vendure-io/ui/components/ui/button');
-        const filePath = resolved.startsWith('file:') ? fixWindowsPath(new URL(resolved).pathname) : resolved;
+        // fileURLToPath decodes percent-encoding (e.g. spaces) and handles Windows drive letters.
+        const filePath = resolved.startsWith('file:') ? fileURLToPath(resolved) : resolved;
         return path.resolve(filePath, '../../../');
     } catch (error) {
         // eslint-disable-next-line no-console

@@ -8,6 +8,7 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 
 import { getTasksDocument, runTaskDocument, updateTaskDocument } from './graphql/shared-definitions';
 import { awaitRunningJobs } from './utils/await-running-jobs';
+import { pollUntil } from './utils/poll-until';
 
 // Mirrors DEFAULT_MAX_LOCK_HOLD_MS in default-scheduler-plugin/constants.ts.
 const MAX_HOLD_MS = 5_000;
@@ -113,7 +114,7 @@ describe('Default scheduler plugin', () => {
         const { runScheduledTask } = await adminClient.query(runTaskDocument, { id: 'test-job' });
         expect(runScheduledTask.success).toBe(true);
 
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await pollUntil(() => taskSpy.mock.calls.length >= 1);
         expect(taskSpy).toHaveBeenCalledTimes(1);
     });
 

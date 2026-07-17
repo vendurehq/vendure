@@ -8,7 +8,7 @@ import {
 } from '@/vdb/components/ui/dropdown-menu.js';
 import { api } from '@/vdb/graphql/api.js';
 import { ConfigurableOperationDefFragment } from '@/vdb/graphql/fragments.js';
-import { Trans } from '@lingui/react/macro';
+import { useLingui } from '@lingui/react/macro';
 import { DefinedInitialDataOptions, useQuery, UseQueryOptions } from '@tanstack/react-query';
 import { ConfigurableOperationInput as ConfigurableOperationInputType } from '@vendure/common/lib/generated-types';
 import { Plus } from 'lucide-react';
@@ -32,7 +32,7 @@ export interface ConfigurableOperationMultiSelectorProps {
     queryKey: string;
     /** Dot-separated path to extract operations from query result (e.g., "promotionConditions") */
     dataPath: string;
-    /** Text to display on the add button */
+    /** Text to display on the add button. Must be pre-translated, e.g. with the `t` macro. */
     buttonText: string;
     /** Title to show at the top of the dropdown menu (only when showEnhancedDropdown is true) */
     dropdownTitle?: string;
@@ -80,8 +80,8 @@ type QueryData = {
  *   queryDocument={promotionConditionsDocument}
  *   queryKey="promotionConditions"
  *   dataPath="promotionConditions"
- *   buttonText="Add condition"
- *   dropdownTitle="Available Conditions"
+ *   buttonText={t`Add condition`}
+ *   dropdownTitle={t`Available Conditions`}
  *   showEnhancedDropdown={true}
  * />
  *
@@ -92,7 +92,7 @@ type QueryData = {
  *   queryOptions={getCollectionFiltersQueryOptions}
  *   queryKey="getCollectionFilters"
  *   dataPath="collectionFilters"
- *   buttonText="Add collection filter"
+ *   buttonText={t`Add collection filter`}
  *   showEnhancedDropdown={false}
  * />
  * ```
@@ -106,10 +106,11 @@ export function ConfigurableOperationMultiSelector({
     dataPath,
     buttonText,
     dropdownTitle,
-    emptyText = 'No options found',
+    emptyText,
     showEnhancedDropdown = true,
     onValidityChange,
 }: Readonly<ConfigurableOperationMultiSelectorProps>) {
+    const { t } = useLingui();
     // Track validity for each operation by code+index to handle reordering/removal.
     // When operations change, we clear and let each ConfigurableOperationInput re-report.
     const validityMapRef = useRef<Record<string, boolean>>({});
@@ -262,7 +263,7 @@ export function ConfigurableOperationMultiSelector({
                 <DropdownMenu>
                     <DropdownMenuTrigger render={<Button variant="outline" className="w-full sm:w-auto" />}>
                             <Plus className="h-4 w-4" />
-                            <Trans>{buttonText}</Trans>
+                            {buttonText}
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className={showEnhancedDropdown ? 'w-80 max-h-[min(600px,50vh)] overflow-y-auto' : 'w-96 max-h-[min(600px,50vh)] overflow-y-auto'} align="start">
                         {showEnhancedDropdown && dropdownTitle && (
@@ -294,7 +295,7 @@ export function ConfigurableOperationMultiSelector({
                                 </DropdownMenuItem>
                             ))
                         ) : (
-                            <DropdownMenuItem>{emptyText}</DropdownMenuItem>
+                            <DropdownMenuItem>{emptyText ?? t`No options found`}</DropdownMenuItem>
                         )}
                     </DropdownMenuContent>
                 </DropdownMenu>

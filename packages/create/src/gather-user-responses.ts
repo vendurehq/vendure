@@ -5,7 +5,7 @@ import fs from 'fs-extra';
 import Handlebars from 'handlebars';
 import path from 'path';
 
-import { checkCancel, isDockerAvailable } from './helpers';
+import { checkCancel, isDockerAvailable, toComposeProjectName } from './helpers';
 import { DbType, FileSources, PackageManager, UserResponses } from './types';
 
 interface PromptAnswers {
@@ -247,14 +247,19 @@ export async function getCiConfiguration(
     packageManager: PackageManager,
     port: number,
     includeStorefront: boolean = false,
+    dbType: 'sqlite' | 'postgres' = 'sqlite',
 ): Promise<UserResponses> {
+    // The postgres answers mirror the Quick Start flow, which starts the database
+    // in a Docker container mapped to host port 6543 (see docker-compose.hbs).
+    const usePostgres = dbType === 'postgres';
     const ciAnswers = {
-        dbType: 'sqlite' as const,
-        dbHost: '',
-        dbPort: '',
-        dbName: 'vendure',
-        dbUserName: '',
-        dbPassword: '',
+        dbType,
+        dbHost: usePostgres ? 'localhost' : '',
+        dbPort: usePostgres ? '6543' : '',
+        dbName: usePostgres ? 'vendure' : '',
+        dbUserName: usePostgres ? 'vendure' : '',
+        dbPassword: usePostgres ? randomBytes(16).toString('base64url') : '',
+        dbSchema: usePostgres ? 'public' : '',
         populateProducts: true,
         superadminIdentifier: SUPER_ADMIN_USER_IDENTIFIER,
         superadminPassword: SUPER_ADMIN_USER_PASSWORD,
@@ -282,19 +287,13 @@ async function generateSources(
 ): Promise<FileSources> {
     const assetPath = (fileName: string) => path.join(__dirname, '../assets', fileName);
 
-    /**
-     * Helper to escape single quotes only. Used when generating the config file since e.g. passwords
-     * might use special chars (`< > ' "` etc) which Handlebars would be default convert to HTML entities.
-     * Instead, we disable escaping and use this custom helper to escape only the single quote character.
-     */
-    Handlebars.registerHelper('escapeSingle', (aString: unknown) => {
-        return typeof aString === 'string' ? aString.replace(/'/g, "\\'") : aString;
-    });
+    registerEscapeSingleHelper();
 
     const templateContext = {
         ...answers,
         dbType: answers.dbType === 'sqlite' ? 'better-sqlite3' : answers.dbType,
         name: path.basename(root),
+        composeProjectName: toComposeProjectName(path.basename(root)),
         isSQLite: answers.dbType === 'sqlite',
         requiresConnection: answers.dbType !== 'sqlite',
         cookieSecret: randomBytes(16).toString('base64url'),
@@ -335,4 +334,16 @@ function defaultDBPort(dbType: DbType): number {
         default:
             return 3306;
     }
+}
+
+/**
+ * Registers the Handlebars helper used for values rendered inside single-quoted string
+ * literals (e.g. passwords in the generated config). Handlebars' default escaping would
+ * convert special chars (`< > ' "` etc.) to HTML entities, so templates render these
+ * values raw and this helper escapes backslashes and single quotes instead.
+ */
+export function registerEscapeSingleHelper(): void {
+    Handlebars.registerHelper('escapeSingle', (aString: unknown) => {
+        return typeof aString === 'string' ? aString.replace(/\\/g, '\\\\').replace(/'/g, "\\'") : aString;
+    });
 }

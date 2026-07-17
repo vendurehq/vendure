@@ -177,7 +177,7 @@ export class CollectionService implements OnModuleInit {
                         job.setProgress(Math.ceil((completed / collectionIds.length) * 100));
                         if (affectedVariantIds.length) {
                             // To avoid performance issues on huge collections we first split the affected variant ids into chunks
-                            this.chunkArray(affectedVariantIds, 50000).map(chunk =>
+                            this.chunkArray(affectedVariantIds, 50000).forEach(chunk =>
                                 this.eventBus.publish(
                                     new CollectionModificationEvent(ctx, collection, chunk),
                                 ),

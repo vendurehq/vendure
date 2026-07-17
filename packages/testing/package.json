@@ -1,6 +1,6 @@
 {
     "name": "@vendure/testing",
-    "version": "3.7.0",
+    "version": "3.7.1",
     "description": "End-to-end testing tools for Vendure projects",
     "keywords": [
         "vendure",
@@ -38,7 +38,7 @@
     },
     "dependencies": {
         "@graphql-typed-document-node/core": "^3.2.0",
-        "@vendure/common": "3.7.0",
+        "@vendure/common": "3.7.1",
         "faker": "^4.1.0",
         "graphql": "^16.11.0",
         "graphql-tag": "^2.12.6",
@@ -50,7 +50,7 @@
         "@types/mime-types": "^3.0.1",
         "@types/mysql": "^2.15.26",
         "@types/pg": "^8.11.2",
-        "@vendure/core": "3.7.0",
+        "@vendure/core": "3.7.1",
         "mysql2": "^3.15.0",
         "pg": "^8.11.3",
         "rimraf": "^5.0.5",

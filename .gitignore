@@ -397,3 +397,6 @@ __admin-ui/
 # Bun is the canonical package manager; package-lock.json is only generated
 # locally (e.g. for the dependency-tracker script) and must not be committed.
 package-lock.json
+
+# Agentic engineering
+plans/

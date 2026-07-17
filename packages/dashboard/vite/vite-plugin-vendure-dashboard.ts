@@ -3,6 +3,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { tanstackRouter } from '@tanstack/router-plugin/vite';
 import react from '@vitejs/plugin-react';
 import { randomUUID } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 import path from 'path';
 import { PluginOption } from 'vite';
 
@@ -390,9 +391,11 @@ export function vendureDashboardPlugin(options: VitePluginVendureDashboardOption
  * Returns the path to the root of the `@vendure/dashboard` package.
  */
 function getDashboardPackageRoot(): string {
+    // fileURLToPath (rather than URL.pathname) decodes percent-encoding, so paths
+    // containing e.g. spaces resolve correctly, and handles Windows drive letters.
     const fileUrl = import.meta.resolve('@vendure/dashboard');
-    const packagePath = fileUrl.startsWith('file:') ? new URL(fileUrl).pathname : fileUrl;
-    return fixWindowsPath(path.join(packagePath, '../../../'));
+    const packagePath = fileUrl.startsWith('file:') ? fileURLToPath(fileUrl) : fileUrl;
+    return path.join(packagePath, '../../../');
 }
 
 /**
@@ -401,7 +404,8 @@ function getDashboardPackageRoot(): string {
 export function getNormalizedVendureConfigPath(vendureConfigPath: string | URL): string {
     const stringPath = typeof vendureConfigPath === 'string' ? vendureConfigPath : vendureConfigPath.href;
     if (stringPath.startsWith('file:')) {
-        return fixWindowsPath(new URL(stringPath).pathname);
+        // fileURLToPath decodes percent-encoding (e.g. spaces) and handles Windows drive letters.
+        return fileURLToPath(stringPath);
     }
     return fixWindowsPath(stringPath);
 }
