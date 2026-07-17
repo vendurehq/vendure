@@ -28,7 +28,7 @@ import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-lo
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { api } from '@/vdb/graphql/api.js';
 import { Trans, useLingui } from '@lingui/react/macro';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
@@ -70,6 +70,7 @@ function CustomerDetailPage() {
     const navigate = useNavigate();
     const creatingNewEntity = params.id === NEW_ENTITY_PATH;
     const { t } = useLingui();
+    const queryClient = useQueryClient();
     const [newAddressOpen, setNewAddressOpen] = useState(false);
 
     const { form, submitHandler, entity, isPending, refreshEntity, resetForm } = useDetailPage({
@@ -100,6 +101,8 @@ function CustomerDetailPage() {
                 resetForm();
                 if (creatingNewEntity) {
                     await navigate({ to: `../$id`, params: { id: data.id } });
+                } else {
+                    await queryClient.invalidateQueries({ queryKey: ['CustomerHistory', data.id] });
                 }
             } else {
                 toast.error(creatingNewEntity ? t`Failed to create customer` : t`Failed to update customer`, {
