@@ -15,6 +15,7 @@ import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { api } from '@/vdb/graphql/api.js';
 import { useCustomFieldConfig } from '@/vdb/hooks/use-custom-field-config.js';
 import { useDynamicTranslations } from '@/vdb/hooks/use-dynamic-translations.js';
+import { useIsMobile } from '@/vdb/hooks/use-mobile.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
@@ -75,6 +76,7 @@ export function OrderDetailShared({
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { getTranslatedOrderState } = useDynamicTranslations();
+    const isMobile = useIsMobile();
 
     const { form, submitHandler, entity, refreshEntity } = useDetailPage({
         pageId,
@@ -185,6 +187,17 @@ export function OrderDetailShared({
     const showAddPaymentButton = shouldShowAddManualPaymentButton(entity);
     const showFulfillButton = canAddFulfillment(entity);
     const showRefundOption = canRefundOrder(entity);
+    const orderStateControl = (
+        <div className="flex items-center gap-1.5" data-testid="order-state-control">
+            <StateTransitionControl
+                currentState={entity.state}
+                statesTranslationFunction={getTranslatedOrderState}
+                actions={stateTransitionActions}
+                isLoading={transitionOrderToStateMutation.isPending}
+            />
+            <OrderProcessDialog currentState={entity.state} />
+        </div>
+    );
 
     return (
         <Page pageId={pageId} form={form} submitHandler={submitHandler} entity={entity}>
@@ -195,17 +208,7 @@ export function OrderDetailShared({
                     ...(showRefundOption ? [{ component: RefundMenuItem }] : []),
                 ]}
             >
-                <ActionBarItem itemId="order-state-control">
-                    <div className="flex items-center gap-1.5">
-                        <StateTransitionControl
-                            currentState={entity.state}
-                            statesTranslationFunction={getTranslatedOrderState}
-                            actions={stateTransitionActions}
-                            isLoading={transitionOrderToStateMutation.isPending}
-                        />
-                        <OrderProcessDialog currentState={entity.state} />
-                    </div>
-                </ActionBarItem>
+                {!isMobile && <ActionBarItem itemId="order-state-control">{orderStateControl}</ActionBarItem>}
                 {showAddPaymentButton && (
                     <ActionBarItem itemId="add-payment-button" requiresPermission={['UpdateOrder']}>
                         <AddManualPaymentDialog
@@ -237,6 +240,11 @@ export function OrderDetailShared({
                 )}
             </PageActionBar>
             <PageLayout>
+                {isMobile && (
+                    <PageBlock column="side" blockId="state">
+                        {orderStateControl}
+                    </PageBlock>
+                )}
                 {/* Main Column Blocks */}
                 {beforeOrderTable?.(entity)}
                 <PageBlock column="main" blockId="order-table" layout="bare">

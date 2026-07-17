@@ -426,12 +426,8 @@ test.describe('Orders', () => {
 
             await page.goto(`/orders/${orderId}`);
 
-            // The state transition control is a badge with a dropdown trigger
-            // Find the ellipsis button near the state badge
-            const stateSection = page
-                .locator('[data-slot="card"]')
-                .filter({ hasText: /Fulfilled/i })
-                .first();
+            // Scope to the order state control so payment and fulfillment transitions are excluded.
+            const stateSection = page.getByTestId('order-state-control');
             await expect(stateSection).toBeVisible({ timeout: 10_000 });
 
             // Click the ellipsis dropdown button next to the state badge
@@ -451,12 +447,9 @@ test.describe('Orders', () => {
 
             // Reload to get a clean page state, then verify the order is now "Shipped"
             await page.reload();
-            await expect(
-                page
-                    .locator('[data-slot="card"]')
-                    .filter({ hasText: /Shipped/i })
-                    .first(),
-            ).toBeVisible({ timeout: 10_000 });
+            await expect(page.getByTestId('order-state-control')).toContainText(/Shipped/i, {
+                timeout: 10_000,
+            });
         });
 
         test('should open refund dialog and show order lines', async ({ page }) => {
