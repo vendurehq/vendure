@@ -1042,7 +1042,6 @@ function AssetListDataTable({
                 }}
                 page={page}
                 itemsPerPage={itemsPerPage}
-                pageSizeOptions={[12, 24, 48, 96]}
                 sorting={sorting}
                 onPageChange={(_, nextPage, nextItemsPerPage) => onPageChange(nextPage, nextItemsPerPage)}
                 onSortChange={(_, nextSorting) => onSortChange(nextSorting)}
