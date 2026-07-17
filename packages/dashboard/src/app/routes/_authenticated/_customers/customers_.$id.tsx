@@ -36,6 +36,7 @@ import { toast } from 'sonner';
 import { CustomerAddressCard } from './components/customer-address-card.js';
 import { CustomerAddressForm } from './components/customer-address-form.js';
 import { CustomerHistoryContainer } from './components/customer-history/customer-history-container.js';
+import { customerHistoryQueryKey } from './components/customer-history/use-customer-history.js';
 import { CustomerOrderTable } from './components/customer-order-table.js';
 import { CustomerStatusBadge } from './components/customer-status-badge.js';
 import {
@@ -102,7 +103,7 @@ function CustomerDetailPage() {
                 if (creatingNewEntity) {
                     await navigate({ to: `../$id`, params: { id: data.id } });
                 } else {
-                    await queryClient.invalidateQueries({ queryKey: ['CustomerHistory', data.id] });
+                    await queryClient.invalidateQueries({ queryKey: customerHistoryQueryKey(data.id) });
                 }
             } else {
                 toast.error(creatingNewEntity ? t`Failed to create customer` : t`Failed to update customer`, {
