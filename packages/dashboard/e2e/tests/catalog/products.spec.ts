@@ -45,9 +45,9 @@ test.describe('Product detail features', () => {
 
         // Enabled switch lives in the action bar, not in a sidebar field
         await expect(page.getByTestId('product-enabled-switch')).toBeVisible();
-        await expect(
-            page.locator('[data-slot="field-label"]').filter({ hasText: /^Enabled$/ }),
-        ).toHaveCount(0);
+        await expect(page.locator('[data-slot="field-label"]').filter({ hasText: /^Enabled$/ })).toHaveCount(
+            0,
+        );
 
         // Facet Values block
         await expect(
@@ -223,6 +223,102 @@ test.describe('Product detail features', () => {
         }
         // If no custom fields configured in the fixture, this test passes silently
     });
+
+    // #4972 — localized edits should stay form-local and persist together
+    test('switches localized product content without refetching or losing unsaved values', async ({
+        page,
+    }) => {
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const unique = Date.now();
+        const englishName = `E2E Localized Product ${unique}`;
+        const englishSlug = `e2e-localized-product-${unique}`;
+        const { createProduct } = await client.gql(
+            `mutation ($input: CreateProductInput!) {
+                createProduct(input: $input) { id }
+            }`,
+            {
+                input: {
+                    translations: [
+                        {
+                            languageCode: 'en',
+                            name: englishName,
+                            slug: englishSlug,
+                            description: '',
+                        },
+                    ],
+                },
+            },
+        );
+        const productId = createProduct.id as string;
+
+        try {
+            await page.goto(`/products/${productId}`);
+            const nameField = page.locator('[data-slot="field"]').filter({
+                has: page.locator('[data-slot="field-label"]').getByText('Product name', { exact: true }),
+            });
+            const nameInput = nameField.getByRole('textbox');
+            await expect(nameInput).toHaveValue(englishName, { timeout: 10_000 });
+            const nameLanguageSelector = nameField.getByRole('combobox');
+            const slugField = page.locator('[data-slot="field"]').filter({
+                has: page.locator('[data-slot="field-label"]').getByText('Slug', { exact: true }),
+            });
+            const slugLanguageSelector = slugField.getByRole('combobox');
+            await expect(nameLanguageSelector).toContainText('EN');
+            await expect(slugLanguageSelector).toContainText('EN');
+
+            let adminApiRequests = 0;
+            page.on('request', request => {
+                if (request.url().includes('/admin-api')) {
+                    adminApiRequests++;
+                }
+            });
+
+            await nameLanguageSelector.click();
+            await page.getByRole('option', { name: /DE German/ }).click();
+            await expect(slugLanguageSelector).toContainText('DE');
+            await expect(nameInput).toHaveValue('');
+            await expect(nameInput).toHaveAttribute('placeholder', `Fallback: ${englishName}`);
+            const germanName = `Deutsches Produkt ${unique}`;
+            await nameInput.fill(germanName);
+
+            await nameLanguageSelector.click();
+            await page.getByRole('option', { name: /EN English/ }).click();
+            const revisedEnglishName = `${englishName} revised`;
+            await nameInput.fill(revisedEnglishName);
+            await nameLanguageSelector.click();
+            await page.getByRole('option', { name: /DE German/ }).click();
+            await expect(nameInput).toHaveValue(germanName);
+            expect(adminApiRequests).toBe(0);
+
+            await Promise.all([
+                page.waitForResponse(
+                    response =>
+                        response.url().includes('/admin-api') &&
+                        response.request().postData()?.includes('UpdateProduct') === true &&
+                        response.status() === 200,
+                ),
+                page.getByRole('button', { name: 'Update', exact: true }).click(),
+            ]);
+
+            const { product } = await client.gql(
+                `query ($id: ID!) {
+                    product(id: $id) { translations { languageCode name } }
+                }`,
+                { id: productId },
+            );
+            expect(product.translations).toEqual(
+                expect.arrayContaining([
+                    expect.objectContaining({ languageCode: 'en', name: revisedEnglishName }),
+                    expect.objectContaining({ languageCode: 'de', name: germanName }),
+                ]),
+            );
+        } finally {
+            await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, {
+                id: productId,
+            });
+        }
+    });
 });
 
 // Provisions a throwaway product with a single "Size" option group (Small/Large) via the
@@ -306,10 +402,9 @@ async function cleanupVariantEditorProduct(
     optionGroupId: string,
 ) {
     await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, { id: productId });
-    await client.gql(
-        `mutation ($id: ID!) { deleteProductOptionGroup(id: $id, force: true) { result } }`,
-        { id: optionGroupId },
-    );
+    await client.gql(`mutation ($id: ID!) { deleteProductOptionGroup(id: $id, force: true) { result } }`, {
+        id: optionGroupId,
+    });
 }
 
 // The Manage variants page is now an inline editor: every option cell renders as an
@@ -322,10 +417,7 @@ test.describe('Manage variants inline editing', () => {
         const client = new VendureAdminClient(page);
         await client.login();
         const unique = Date.now();
-        const { productId, optionGroupId, smallOptionId } = await createVariantEditorProduct(
-            client,
-            unique,
-        );
+        const { productId, optionGroupId, smallOptionId } = await createVariantEditorProduct(client, unique);
 
         try {
             const variantId = await createVariantEditorVariant(
@@ -380,8 +472,10 @@ test.describe('Manage variants inline editing', () => {
         const client = new VendureAdminClient(page);
         await client.login();
         const unique = Date.now();
-        const { productId, optionGroupId, smallOptionId, largeOptionId } =
-            await createVariantEditorProduct(client, unique);
+        const { productId, optionGroupId, smallOptionId, largeOptionId } = await createVariantEditorProduct(
+            client,
+            unique,
+        );
 
         try {
             const smallVariantId = await createVariantEditorVariant(
@@ -476,8 +570,14 @@ test.describe('Manage variants inline editing', () => {
                         code: `size-${unique}`,
                         translations: [{ languageCode: 'en', name: 'Size' }],
                         options: [
-                            { code: `small-${unique}`, translations: [{ languageCode: 'en', name: 'Small' }] },
-                            { code: `large-${unique}`, translations: [{ languageCode: 'en', name: 'Large' }] },
+                            {
+                                code: `small-${unique}`,
+                                translations: [{ languageCode: 'en', name: 'Small' }],
+                            },
+                            {
+                                code: `large-${unique}`,
+                                translations: [{ languageCode: 'en', name: 'Large' }],
+                            },
                         ],
                     },
                 },

@@ -1,5 +1,8 @@
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
-import { TranslatableFormFieldWrapper } from '@/vdb/components/shared/translatable-form-field.js';
+import {
+    TranslatableFormFieldWrapper,
+    TranslatableFormGroup,
+} from '@/vdb/components/shared/translatable-form-field.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { toast } from '@/vdb/components/ui/sonner.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
@@ -172,6 +175,40 @@ export function DetailPage<
 
     const updateFields = getOperationVariablesFields(updateDocument, 'input');
     const translations = updateFields.find(fieldInfo => fieldInfo.name === 'translations');
+    const formGrid = (
+        <DetailFormGrid>
+            {updateFields
+                .filter(fieldInfo => fieldInfo.name !== 'customFields')
+                .filter(fieldInfo => fieldInfo.name !== 'translations')
+                .map(fieldInfo => {
+                    if (fieldInfo.name === 'id' && fieldInfo.type === 'ID') {
+                        return null;
+                    }
+                    return (
+                        <FormFieldWrapper
+                            key={fieldInfo.name}
+                            control={form.control}
+                            name={fieldInfo.name as never}
+                            label={fieldInfo.name}
+                            render={({ field }) => <FieldInputRenderer fieldInfo={fieldInfo} field={field} />}
+                        />
+                    );
+                })}
+            {translations?.typeInfo
+                ?.filter(fieldInfo => !['customFields', 'id', 'languageCode'].includes(fieldInfo.name))
+                .map(fieldInfo => {
+                    return (
+                        <TranslatableFormFieldWrapper
+                            key={fieldInfo.name}
+                            control={form.control}
+                            name={fieldInfo.name as never}
+                            label={fieldInfo.name}
+                            render={({ field }) => <FieldInputRenderer fieldInfo={fieldInfo} field={field} />}
+                        />
+                    );
+                })}
+        </DetailFormGrid>
+    );
 
     return (
         <Page pageId={pageId} form={form} submitHandler={submitHandler} entity={entity}>
@@ -188,44 +225,7 @@ export function DetailPage<
             </PageActionBar>
             <PageLayout>
                 <PageBlock column="main" blockId="main-form">
-                    <DetailFormGrid>
-                        {updateFields
-                            .filter(fieldInfo => fieldInfo.name !== 'customFields')
-                            .filter(fieldInfo => fieldInfo.name !== 'translations')
-                            .map(fieldInfo => {
-                                if (fieldInfo.name === 'id' && fieldInfo.type === 'ID') {
-                                    return null;
-                                }
-                                return (
-                                    <FormFieldWrapper
-                                        key={fieldInfo.name}
-                                        control={form.control}
-                                        name={fieldInfo.name as never}
-                                        label={fieldInfo.name}
-                                        render={({ field }) => (
-                                            <FieldInputRenderer fieldInfo={fieldInfo} field={field} />
-                                        )}
-                                    />
-                                );
-                            })}
-                        {translations?.typeInfo
-                            ?.filter(
-                                fieldInfo => !['customFields', 'id', 'languageCode'].includes(fieldInfo.name),
-                            )
-                            .map(fieldInfo => {
-                                return (
-                                    <TranslatableFormFieldWrapper
-                                        key={fieldInfo.name}
-                                        control={form.control}
-                                        name={fieldInfo.name as never}
-                                        label={fieldInfo.name}
-                                        render={({ field }) => (
-                                            <FieldInputRenderer fieldInfo={fieldInfo} field={field} />
-                                        )}
-                                    />
-                                );
-                            })}
-                    </DetailFormGrid>
+                    {translations ? <TranslatableFormGroup>{formGrid}</TranslatableFormGroup> : formGrid}
                 </PageBlock>
                 {entityName && (
                     <CustomFieldsPageBlock column="main" entityType={entityName} control={form.control} />

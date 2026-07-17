@@ -3,11 +3,15 @@ import { AssetPreviewSelector } from '@/vdb/components/shared/asset/asset-previe
 import { PreviewPreset } from '@/vdb/components/shared/asset/asset-preview.js';
 import { AssetProperties } from '@/vdb/components/shared/asset/asset-properties.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
-import { TranslatableFormFieldWrapper } from '@/vdb/components/shared/translatable-form-field.js';
+import {
+    TranslatableFormFieldWrapper,
+    TranslatableFormGroup,
+} from '@/vdb/components/shared/translatable-form-field.js';
 import { VendureImage } from '@/vdb/components/shared/vendure-image.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { Label } from '@/vdb/components/ui/label.js';
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import {
     CustomFieldsPageBlock,
     Page,
@@ -16,7 +20,6 @@ import {
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
-import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { Trans, useLingui } from '@lingui/react/macro';
@@ -186,17 +189,19 @@ function AssetDetailPage() {
                 </PageBlock>
                 <CustomFieldsPageBlock column="main" entityType={'Asset'} control={form.control} />
                 <PageBlock column="side" blockId="asset-name">
-                    <TranslatableFormFieldWrapper
-                        control={form.control}
-                        name="name"
-                        label={<Trans>Display name</Trans>}
-                        description={
-                            <Trans>
-                                The source file remains unchanged. Keep the original extension or omit it.
-                            </Trans>
-                        }
-                        render={({ field }) => <Input {...field} />}
-                    />
+                    <TranslatableFormGroup>
+                        <TranslatableFormFieldWrapper
+                            control={form.control}
+                            name="name"
+                            label={<Trans>Display name</Trans>}
+                            description={
+                                <Trans>
+                                    The source file remains unchanged. Keep the original extension or omit it.
+                                </Trans>
+                            }
+                            render={({ field }) => <Input {...field} />}
+                        />
+                    </TranslatableFormGroup>
                 </PageBlock>
                 <PageBlock column="side" blockId="asset-properties">
                     <AssetProperties asset={entity} />

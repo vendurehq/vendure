@@ -2,6 +2,7 @@ import { type Locator, type Page, expect, test } from '@playwright/test';
 
 import { BaseDetailPage } from '../../page-objects/detail-page.base.js';
 import { BaseListPage } from '../../page-objects/list-page.base.js';
+import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
 // Custom fields are configured in global-setup.ts on the Product entity.
 // This suite verifies rendering of all custom field types: scalar, list, struct,
@@ -124,7 +125,9 @@ test.describe('Custom Fields', () => {
     test('should display custom field tabs', async ({ page }) => {
         await goToFirstProduct(page);
 
-        const tabList = page.locator('[data-slot="tabs-list"]');
+        const tabList = page.locator('[data-slot="tabs-list"]').filter({
+            has: page.getByRole('tab', { name: 'General', exact: true }),
+        });
         await expect(tabList).toBeVisible();
 
         // Verify all tab triggers are present
@@ -159,17 +162,93 @@ test.describe('Custom Fields', () => {
         await expect(dp.formItem('Weight').getByRole('spinbutton')).toBeVisible();
     });
 
-    test('should render locale fields with language selector', async ({ page }) => {
-        await goToFirstProduct(page);
+    // #4972 — localized custom fields use synchronized inline language selectors
+    test('switches and persists localized custom fields with an inline language selector', async ({
+        page,
+    }) => {
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const unique = Date.now();
+        const { createProduct } = await client.gql(
+            `mutation ($input: CreateProductInput!) {
+                createProduct(input: $input) { id }
+            }`,
+            {
+                input: {
+                    translations: [
+                        {
+                            languageCode: 'en',
+                            name: `E2E Localized Custom Fields ${unique}`,
+                            slug: `e2e-localized-custom-fields-${unique}`,
+                            description: '',
+                        },
+                    ],
+                },
+            },
+        );
+        const productId = createProduct.id as string;
 
-        // Switch to SEO tab
-        await page.locator('[data-slot="tabs-trigger"]', { hasText: 'SEO' }).click();
+        try {
+            await page.goto(`/products/${productId}`);
+            await expect(detailPage(page).formItem('Product name').getByRole('textbox')).toBeVisible({
+                timeout: 10_000,
+            });
+            const seoCategoryTab = page.getByRole('tab', { name: 'SEO', exact: true });
+            await seoCategoryTab.click();
 
-        const seoTitleItem = page.locator('[data-slot="field"]').filter({
-            has: page.locator('[data-slot="field-label"]').getByText('SEO Title', { exact: true }),
-        });
-        await expect(seoTitleItem).toBeVisible();
-        await expect(seoTitleItem.getByRole('textbox')).toBeVisible();
+            const seoTitleItem = page.locator('[data-slot="field"]').filter({
+                has: page.locator('[data-slot="field-label"]').getByText('SEO Title', { exact: true }),
+            });
+            const seoTitleInput = seoTitleItem.getByRole('textbox');
+            await expect(seoTitleInput).toBeVisible();
+            const languageSelector = seoTitleItem.getByRole('combobox');
+            await expect(languageSelector).toContainText('EN');
+
+            const englishTitle = `English SEO title ${unique}`;
+            const germanTitle = `Deutscher SEO-Titel ${unique}`;
+            await seoTitleInput.fill(englishTitle);
+            await languageSelector.click();
+            await page.getByRole('option', { name: /DE German/ }).click();
+            await seoTitleInput.fill(germanTitle);
+            await languageSelector.click();
+            await page.getByRole('option', { name: /EN English/ }).click();
+            await expect(seoTitleInput).toHaveValue(englishTitle);
+
+            await Promise.all([
+                page.waitForResponse(
+                    response =>
+                        response.url().includes('/admin-api') &&
+                        response.request().postData()?.includes('UpdateProduct') === true &&
+                        response.status() === 200,
+                ),
+                page.getByRole('button', { name: 'Update', exact: true }).click(),
+            ]);
+
+            const { product } = await client.gql(
+                `query ($id: ID!) {
+                    product(id: $id) {
+                        translations { languageCode customFields { seoTitle } }
+                    }
+                }`,
+                { id: productId },
+            );
+            expect(product.translations).toEqual(
+                expect.arrayContaining([
+                    expect.objectContaining({
+                        languageCode: 'en',
+                        customFields: expect.objectContaining({ seoTitle: englishTitle }),
+                    }),
+                    expect.objectContaining({
+                        languageCode: 'de',
+                        customFields: expect.objectContaining({ seoTitle: germanTitle }),
+                    }),
+                ]),
+            );
+        } finally {
+            await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, {
+                id: productId,
+            });
+        }
     });
 
     // ─── Scalar save & persist ───────────────────────────────────────────

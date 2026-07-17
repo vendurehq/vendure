@@ -2,7 +2,10 @@ import { SlugInput } from '@/vdb/components/data-input/index.js';
 import { AssignedChannels } from '@/vdb/components/shared/assigned-channels.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
-import { TranslatableFormFieldWrapper } from '@/vdb/components/shared/translatable-form-field.js';
+import {
+    TranslatableFormFieldWrapper,
+    TranslatableFormGroup,
+} from '@/vdb/components/shared/translatable-form-field.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
@@ -166,28 +169,30 @@ function OptionGroupDetailPage() {
             </PageActionBar>
             <PageLayout>
                 <PageBlock column="main" blockId="main-form">
-                    <DetailFormGrid>
-                        <TranslatableFormFieldWrapper
-                            control={form.control}
-                            name="name"
-                            label={<Trans>Name</Trans>}
-                            render={({ field }) => <Input {...field} />}
-                        />
-                        <FormFieldWrapper
-                            control={form.control}
-                            name="code"
-                            label={<Trans>Code</Trans>}
-                            render={({ field }) => (
-                                <SlugInput
-                                    fieldName="code"
-                                    watchFieldName="name"
-                                    entityName="ProductOptionGroup"
-                                    entityId={entity?.id}
-                                    {...field}
-                                />
-                            )}
-                        />
-                    </DetailFormGrid>
+                    <TranslatableFormGroup>
+                        <DetailFormGrid>
+                            <TranslatableFormFieldWrapper
+                                control={form.control}
+                                name="name"
+                                label={<Trans>Name</Trans>}
+                                render={({ field }) => <Input {...field} />}
+                            />
+                            <FormFieldWrapper
+                                control={form.control}
+                                name="code"
+                                label={<Trans>Code</Trans>}
+                                render={({ field }) => (
+                                    <SlugInput
+                                        fieldName="code"
+                                        watchFieldName="name"
+                                        entityName="ProductOptionGroup"
+                                        entityId={entity?.id}
+                                        {...field}
+                                    />
+                                )}
+                            />
+                        </DetailFormGrid>
+                    </TranslatableFormGroup>
                 </PageBlock>
                 <CustomFieldsPageBlock column="main" entityType="ProductOptionGroup" control={form.control} />
                 {entity && (

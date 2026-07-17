@@ -7,6 +7,7 @@ import { ConfigurableFieldDef } from './form-engine-types.js';
 import {
     convertEmptyStringsToNull,
     isFieldNullable,
+    removeEmptyDraftTranslations,
     removeEmptyIdFields,
     stripNullNullableFields,
     transformRelationFields,
@@ -40,6 +41,35 @@ describe('removeEmptyIdFields', () => {
         const fields = getOperationVariablesFields(createProductDocument);
         const result = removeEmptyIdFields(values, fields);
         expect(result).toEqual({ input: { translations: [] } });
+    });
+});
+
+describe('removeEmptyDraftTranslations', () => {
+    it('removes only empty no-ID drafts and preserves existing or populated translations', () => {
+        const values = {
+            translations: [
+                {
+                    id: 'existing-en',
+                    languageCode: 'en',
+                    name: '',
+                    description: null,
+                    customFields: {},
+                },
+                {
+                    languageCode: 'de',
+                    name: '   ',
+                    description: '',
+                    customFields: { seoTitle: null },
+                },
+                { languageCode: 'fr', name: 'Nom français', customFields: {} },
+                { languageCode: 'es', name: '', customFields: { seoTitle: 'Título' } },
+            ],
+        };
+
+        expect(removeEmptyDraftTranslations(values)).toEqual({
+            translations: [values.translations[0], values.translations[2], values.translations[3]],
+        });
+        expect(values.translations).toHaveLength(4);
     });
 });
 

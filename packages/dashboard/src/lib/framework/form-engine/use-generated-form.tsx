@@ -1,10 +1,9 @@
-import type { TypedDocumentNode } from '@graphql-typed-document-node/core';
 import { zodResolver } from '@/vdb/lib/zod.js';
+import type { TypedDocumentNode } from '@graphql-typed-document-node/core';
 import { VariablesOf } from 'gql.tada';
 import { FormEvent, useEffect, useMemo, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { useChannel } from '../../hooks/use-channel.js';
-import { useServerConfig } from '../../hooks/use-server-config.js';
 import { getOperationVariablesFields } from '../document-introspection/get-document-structure.js';
 import {
     applyNullableSelectCustomFieldDefaults,
@@ -13,14 +12,13 @@ import {
 } from './form-schema-tools.js';
 import {
     convertEmptyStringsToNull,
+    removeEmptyDraftTranslations,
     removeEmptyIdFields,
     stripNullNullableFields,
     transformRelationFields,
 } from './utils.js';
 
-// Stable empty array reference used as a fallback when the server config
-// (and therefore `availableLanguages`) has not yet loaded — keeps memo
-// dependencies stable across renders.
+// Stable empty array reference used while the active channel is loading.
 const EMPTY_LANGUAGES: string[] = [];
 
 export type WithLooseCustomFields<T> = T extends { customFields?: any }
@@ -104,7 +102,6 @@ export function useGeneratedForm<
 >(options: GeneratedFormOptions<T, VarName, E>) {
     const { document, entity, setValues, onSubmit, varName, customFieldConfig } = options;
     const { activeChannel } = useChannel();
-    const serverConfig = useServerConfig();
 
     // Callers typically pass `setValues` as an inline arrow function, which
     // would change identity every render. Hold it in a ref so the values
@@ -123,10 +120,7 @@ export function useGeneratedForm<
         [document, varName],
     );
 
-    // ServerConfigProvider memoises its value on the underlying query data,
-    // so this array has stable identity across renders when the server
-    // config hasn't changed.
-    const availableLanguages = serverConfig?.availableLanguages ?? EMPTY_LANGUAGES;
+    const availableLanguages = activeChannel?.availableLanguageCodes ?? EMPTY_LANGUAGES;
 
     // Without memoisation these objects/arrays are rebuilt on every render of
     // the parent route. When the schema changes identity, react-hook-form's
@@ -176,27 +170,22 @@ export function useGeneratedForm<
     if (onSubmit) {
         submitHandler = async (event: FormEvent) => {
             event.preventDefault();
-
-            // Trigger validation on ALL fields, not just dirty ones
-            const isValid = await form.trigger();
-
-            if (!isValid) {
-                console.log(`Form invalid!`);
-                event.stopPropagation();
-                return;
-            }
-
             const onSubmitWrapper = (values: any) => {
                 let processed = convertEmptyStringsToNull(
                     removeEmptyIdFields(values, updateFields),
                     updateFields,
                 );
+                processed = removeEmptyDraftTranslations(processed);
                 if (!entity) {
                     processed = stripNullNullableFields(processed, updateFields);
                 }
                 onSubmit(processed);
             };
-            form.handleSubmit(onSubmitWrapper)(event);
+            const onInvalid = () => {
+                console.log(`Form invalid!`);
+                event.stopPropagation();
+            };
+            await form.handleSubmit(onSubmitWrapper, onInvalid)(event);
         };
     }
 
@@ -208,7 +197,7 @@ export function useGeneratedForm<
  * If a language is missing, it creates an empty translation based on the structure of existing translations
  * and the expected form structure from defaultValues.
  */
-function ensureTranslationsForAllLanguages<E extends Record<string, any>>(
+export function ensureTranslationsForAllLanguages<E extends Record<string, any>>(
     entity: E | null | undefined,
     availableLanguages: string[] = [],
     expectedStructure?: Record<string, any>,

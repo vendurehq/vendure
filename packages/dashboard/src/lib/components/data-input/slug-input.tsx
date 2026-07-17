@@ -1,10 +1,10 @@
+import { useResolvedContentLanguage } from '@/vdb/components/shared/translatable-form-context.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { DashboardFormComponentProps } from '@/vdb/framework/form-engine/form-engine-types.js';
 import { isFieldDisabled } from '@/vdb/framework/form-engine/utils.js';
 import { api } from '@/vdb/graphql/api.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
-import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 import { cn } from '@/vdb/lib/utils.js';
 import { useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
@@ -151,7 +151,7 @@ export function SlugInput({
 }: SlugInputProps & { placeholder?: string }) {
     const { t } = useLingui();
     const form = useFormContext();
-    const { contentLanguage } = useUserSettings().settings;
+    const contentLanguage = useResolvedContentLanguage();
     const isFormReadonly = isFieldDisabled(disabled, fieldDef);
     const [isManuallyReadonly, setIsManuallyReadonly] = useState(defaultReadonly);
     const isReadonly = isFormReadonly || isManuallyReadonly;

@@ -105,7 +105,7 @@ export function removeEmptyIdFields<T extends Record<string, any>>(values: T, fi
     }
 
     // Create a deep copy to avoid mutating the original values
-    const result = structuredClone(values);
+    const result = structuredClone(values) as Record<string, any>;
 
     function recursiveRemove(obj: any, fieldDefs: FieldInfo[]) {
         if (Array.isArray(obj)) {
@@ -137,7 +137,46 @@ export function removeEmptyIdFields<T extends Record<string, any>>(values: T, fi
     }
 
     recursiveRemove(result, fields);
-    return result;
+    return result as T;
+}
+
+/**
+ * Removes newly-created translation drafts which contain no localized content. Existing translations are
+ * identified by a non-empty ID and are always preserved so that intentionally clearing their content is
+ * still submitted to the server.
+ */
+export function removeEmptyDraftTranslations<T extends Record<string, any>>(values: T): T {
+    if (!values || !Array.isArray(values.translations)) {
+        return values;
+    }
+    const result = structuredClone(values) as Record<string, any>;
+    result['translations'] = result['translations'].filter((translation: Record<string, any>) => {
+        const hasExistingId =
+            translation.id !== undefined && translation.id !== null && String(translation.id).length > 0;
+        return hasExistingId || hasMeaningfulTranslationValue(translation);
+    });
+    return result as T;
+}
+
+function hasMeaningfulTranslationValue(value: unknown, key?: string): boolean {
+    if (key === 'id' || key === 'languageCode') {
+        return false;
+    }
+    if (typeof value === 'string') {
+        return value.trim().length > 0;
+    }
+    if (value === null || value === undefined) {
+        return false;
+    }
+    if (Array.isArray(value)) {
+        return value.some(item => hasMeaningfulTranslationValue(item));
+    }
+    if (typeof value === 'object') {
+        return Object.entries(value).some(([nestedKey, nestedValue]) =>
+            hasMeaningfulTranslationValue(nestedValue, nestedKey),
+        );
+    }
+    return true;
 }
 
 /**

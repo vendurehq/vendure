@@ -16,6 +16,7 @@ import { e2eCustomFields, e2ePaymentMethodHandlers } from './fixtures/e2e-shared
 import { initialData } from './fixtures/initial-data.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ADMIN_API_URL = `http://localhost:${VENDURE_PORT}/admin-api`;
 
 registerInitializer('sqljs', new SqljsInitializer(path.join(__dirname, '__data__')));
 
@@ -79,6 +80,78 @@ async function importWithSwc<T>(fixturePath: string): Promise<T> {
     return import(pathToFileURL(outFile).href) as Promise<T>;
 }
 
+async function configureDashboardLanguages() {
+    const loginResponse = await fetch(ADMIN_API_URL, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+            query: `mutation { login(username: "superadmin", password: "superadmin") {
+                ... on CurrentUser { id }
+                ... on ErrorResult { errorCode message }
+            } }`,
+        }),
+    });
+    const authToken = loginResponse.headers.get('vendure-auth-token');
+    if (!authToken) {
+        throw new Error('Could not authenticate while configuring dashboard E2E languages');
+    }
+
+    const gql = async (query: string, variables?: Record<string, unknown>) => {
+        const response = await fetch(ADMIN_API_URL, {
+            method: 'POST',
+            headers: {
+                authorization: `Bearer ${authToken}`,
+                'content-type': 'application/json',
+            },
+            body: JSON.stringify({ query, variables }),
+        });
+        const body = (await response.json()) as { data?: any; errors?: Array<{ message: string }> };
+        if (body.errors?.length) {
+            throw new Error(`Could not configure dashboard E2E languages: ${body.errors[0].message}`);
+        }
+        return body.data;
+    };
+
+    const settings = await gql(`query {
+        globalSettings { availableLanguages }
+        activeChannel { id availableLanguageCodes }
+    }`);
+    const availableLanguages = Array.from(
+        new Set<string>([...settings.globalSettings.availableLanguages, 'de']),
+    );
+    if (availableLanguages.length !== settings.globalSettings.availableLanguages.length) {
+        await gql(
+            `mutation ($input: UpdateGlobalSettingsInput!) {
+                updateGlobalSettings(input: $input) {
+                    ... on GlobalSettings { id }
+                    ... on ErrorResult { errorCode message }
+                }
+            }`,
+            { input: { availableLanguages } },
+        );
+    }
+
+    const availableLanguageCodes = Array.from(
+        new Set<string>([...settings.activeChannel.availableLanguageCodes, 'de']),
+    );
+    if (availableLanguageCodes.length !== settings.activeChannel.availableLanguageCodes.length) {
+        await gql(
+            `mutation ($input: UpdateChannelInput!) {
+                updateChannel(input: $input) {
+                    ... on Channel { id }
+                    ... on LanguageNotAvailableError { errorCode message }
+                }
+            }`,
+            {
+                input: {
+                    id: settings.activeChannel.id,
+                    availableLanguageCodes,
+                },
+            },
+        );
+    }
+}
+
 export default async function globalSetup() {
     // CustomHistoryEntryPlugin uses NestJS constructor injection which requires
     // SWC compilation (emitDecoratorMetadata). It is loaded dynamically here
@@ -122,5 +195,6 @@ export default async function globalSetup() {
         productsCsvPath: path.join(__dirname, '../../core/e2e/fixtures/e2e-products-full.csv'),
         customerCount: 5,
     });
+    await configureDashboardLanguages();
     (globalThis as any).__VENDURE_SERVER__ = server;
 }

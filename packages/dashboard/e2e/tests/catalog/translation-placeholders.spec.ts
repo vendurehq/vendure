@@ -2,15 +2,13 @@ import { type Page, expect, test } from '@playwright/test';
 
 import { BaseDetailPage } from '../../page-objects/detail-page.base.js';
 import { BaseListPage } from '../../page-objects/list-page.base.js';
-import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
 
 // Translation fallback placeholder feature:
 // When switching to a non-default content language, translatable fields (name,
 // slug, description) show the default-language value as an HTML placeholder.
 // This suite verifies placeholder presence, absence, and behaviour.
 //
-// All tests share the same "Laptop" product and must run serially because
-// they mutate the channel's available languages and the content language state.
+// English and German are configured by the shared E2E fixture.
 
 const listPage = (page: Page) =>
     new BaseListPage(page, {
@@ -66,70 +64,6 @@ async function switchContentLanguage(page: Page, languageCode: string) {
 
 test.describe('Translation fallback placeholders', () => {
     test.describe.configure({ mode: 'serial' });
-
-    // ── Setup: add German to the channel's available languages ──────────
-
-    test.beforeAll(async ({ browser }) => {
-        const page = await browser.newPage();
-        const client = new VendureAdminClient(page);
-        await client.login();
-
-        // First, add German to the global available languages
-        const globalData = await client.gql(`
-            query {
-                globalSettings {
-                    id
-                    availableLanguages
-                }
-            }
-        `);
-        const globalLanguages: string[] = globalData.globalSettings.availableLanguages;
-        if (!globalLanguages.includes('de')) {
-            await client.gql(
-                `mutation UpdateGlobalSettings($input: UpdateGlobalSettingsInput!) {
-                    updateGlobalSettings(input: $input) {
-                        ... on GlobalSettings { id availableLanguages }
-                        ... on ErrorResult { errorCode message }
-                    }
-                }`,
-                {
-                    input: {
-                        availableLanguages: [...globalLanguages, 'de'],
-                    },
-                },
-            );
-        }
-
-        // Then add German to the channel's available languages
-        const channelData = await client.gql(`
-            query {
-                activeChannel {
-                    id
-                    availableLanguageCodes
-                }
-            }
-        `);
-        const channelId = channelData.activeChannel.id;
-        const currentLanguages: string[] = channelData.activeChannel.availableLanguageCodes;
-        if (!currentLanguages.includes('de')) {
-            await client.gql(
-                `mutation UpdateChannel($input: UpdateChannelInput!) {
-                    updateChannel(input: $input) {
-                        ... on Channel { id availableLanguageCodes }
-                        ... on LanguageNotAvailableError { errorCode message }
-                    }
-                }`,
-                {
-                    input: {
-                        id: channelId,
-                        availableLanguageCodes: [...currentLanguages, 'de'],
-                    },
-                },
-            );
-        }
-
-        await page.close();
-    });
 
     // ── Test 1: Name placeholder when switching to non-default language ─
 
@@ -222,53 +156,5 @@ test.describe('Translation fallback placeholders', () => {
         const placeholderValue = await emptyEditorNode.getAttribute('data-placeholder');
         expect(placeholderValue).toBeTruthy();
         expect(placeholderValue).toContain('Now equipped with seventh-generation');
-    });
-
-    // ── Cleanup: switch back to English ─────────────────────────────────
-
-    test.afterAll(async ({ browser }) => {
-        const page = await browser.newPage();
-        const client = new VendureAdminClient(page);
-        await client.login();
-
-        // Restore the channel to English only
-        const channelData = await client.gql(`
-            query {
-                activeChannel {
-                    id
-                }
-            }
-        `);
-        await client.gql(
-            `mutation UpdateChannel($input: UpdateChannelInput!) {
-                updateChannel(input: $input) {
-                    ... on Channel { id availableLanguageCodes }
-                    ... on LanguageNotAvailableError { errorCode message }
-                }
-            }`,
-            {
-                input: {
-                    id: channelData.activeChannel.id,
-                    availableLanguageCodes: ['en'],
-                },
-            },
-        );
-
-        // Restore global settings to English only
-        await client.gql(
-            `mutation UpdateGlobalSettings($input: UpdateGlobalSettingsInput!) {
-                updateGlobalSettings(input: $input) {
-                    ... on GlobalSettings { id availableLanguages }
-                    ... on ErrorResult { errorCode message }
-                }
-            }`,
-            {
-                input: {
-                    availableLanguages: ['en'],
-                },
-            },
-        );
-
-        await page.close();
     });
 });

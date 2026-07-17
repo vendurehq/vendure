@@ -3,12 +3,17 @@ import { NumberInput } from '@/vdb/components/data-input/number-input.js';
 import { RichTextInput } from '@/vdb/components/data-input/rich-text-input.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
-import { TranslatableFormFieldWrapper } from '@/vdb/components/shared/translatable-form-field.js';
+import {
+    TranslatableFormFieldWrapper,
+    TranslatableFormGroup,
+} from '@/vdb/components/shared/translatable-form-field.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { Switch } from '@/vdb/components/ui/switch.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
-import {    CustomFieldsPageBlock,
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
+import {
+    CustomFieldsPageBlock,
     DetailFormGrid,
     Page,
     PageActionBar,
@@ -16,7 +21,6 @@ import {    CustomFieldsPageBlock,
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
-import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { Trans, useLingui } from '@lingui/react/macro';
@@ -158,23 +162,25 @@ function PromotionDetailPage() {
                     />
                 </PageBlock>
                 <PageBlock column="main" blockId="main-form">
-                    <DetailFormGrid>
-                        <TranslatableFormFieldWrapper
-                            control={form.control}
-                            name="name"
-                            label={<Trans>Name</Trans>}
-                            render={({ field }) => <Input {...field} />}
-                        />
-                        <div></div>
-                    </DetailFormGrid>
-                    <div className="mb-4">
-                        <TranslatableFormFieldWrapper
-                            control={form.control}
-                            name="description"
-                            label={<Trans>Description</Trans>}
-                            render={({ field }) => <RichTextInput {...field} />}
-                        />
-                    </div>
+                    <TranslatableFormGroup>
+                        <DetailFormGrid>
+                            <TranslatableFormFieldWrapper
+                                control={form.control}
+                                name="name"
+                                label={<Trans>Name</Trans>}
+                                render={({ field }) => <Input {...field} />}
+                            />
+                            <div></div>
+                        </DetailFormGrid>
+                        <div className="mb-4">
+                            <TranslatableFormFieldWrapper
+                                control={form.control}
+                                name="description"
+                                label={<Trans>Description</Trans>}
+                                render={({ field }) => <RichTextInput {...field} />}
+                            />
+                        </div>
+                    </TranslatableFormGroup>
                     <DetailFormGrid>
                         <FormFieldWrapper
                             control={form.control}

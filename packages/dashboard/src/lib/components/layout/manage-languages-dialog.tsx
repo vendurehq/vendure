@@ -68,6 +68,15 @@ const updateChannelDocument = graphql(`
     }
 `);
 
+/**
+ * Order-insensitive comparison. Must not sort the inputs in place: `a` is often the
+ * cached activeChannel's `availableLanguageCodes`, and mutating it silently reorders
+ * every language selector that renders from it.
+ */
+function sameLanguages(a: string[], b: string[]): boolean {
+    return JSON.stringify([...a].sort()) === JSON.stringify([...b].sort());
+}
+
 interface ManageLanguagesDialogProps {
     open: boolean;
     onClose: () => void;
@@ -175,7 +184,7 @@ export function ManageLanguagesDialog({ open, onClose }: ManageLanguagesDialogPr
         // Update global settings if changed and permissions allow
         if (canUpdateGlobalSettings && globalSettingsData) {
             const currentGlobalLanguages = globalSettingsData.globalSettings.availableLanguages || [];
-            if (JSON.stringify(currentGlobalLanguages.sort()) !== JSON.stringify(globalLanguages.sort())) {
+            if (!sameLanguages(currentGlobalLanguages, globalLanguages)) {
                 promises.push(
                     updateGlobalSettingsMutation.mutateAsync({ availableLanguages: globalLanguages }),
                 );
@@ -187,8 +196,7 @@ export function ManageLanguagesDialog({ open, onClose }: ManageLanguagesDialogPr
             const currentChannelLanguages = displayChannel.availableLanguageCodes || [];
             const currentChannelDefault = displayChannel.defaultLanguageCode || '';
 
-            const languagesChanged =
-                JSON.stringify(currentChannelLanguages.sort()) !== JSON.stringify(channelLanguages.sort());
+            const languagesChanged = !sameLanguages(currentChannelLanguages, channelLanguages);
             const defaultChanged = currentChannelDefault !== channelDefaultLanguage;
 
             if (languagesChanged || defaultChanged) {
@@ -213,7 +221,7 @@ export function ManageLanguagesDialog({ open, onClose }: ManageLanguagesDialogPr
     const hasChanges = () => {
         if (globalSettingsData && canUpdateGlobalSettings) {
             const currentGlobal = globalSettingsData.globalSettings.availableLanguages || [];
-            if (JSON.stringify(currentGlobal.sort()) !== JSON.stringify(globalLanguages.sort())) {
+            if (!sameLanguages(currentGlobal, globalLanguages)) {
                 return true;
             }
         }
@@ -223,7 +231,7 @@ export function ManageLanguagesDialog({ open, onClose }: ManageLanguagesDialogPr
             const currentChannelDefault = displayChannel.defaultLanguageCode || '';
 
             return (
-                JSON.stringify(currentChannelLangs.sort()) !== JSON.stringify(channelLanguages.sort()) ||
+                !sameLanguages(currentChannelLangs, channelLanguages) ||
                 currentChannelDefault !== channelDefaultLanguage
             );
         }

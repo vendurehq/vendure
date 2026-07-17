@@ -6,7 +6,10 @@ import { AssignedFacetValues } from '@/vdb/components/shared/assigned-facet-valu
 import { EntityAssets } from '@/vdb/components/shared/entity-assets.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
-import { TranslatableFormFieldWrapper } from '@/vdb/components/shared/translatable-form-field.js';
+import {
+    TranslatableFormFieldWrapper,
+    TranslatableFormGroup,
+} from '@/vdb/components/shared/translatable-form-field.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Field } from '@/vdb/components/ui/field.js';
 import { Input } from '@/vdb/components/ui/input.js';
@@ -246,35 +249,37 @@ function ProductDetailPage() {
             </PageActionBar>
             <PageLayout>
                 <PageBlock column="main" blockId="main-form">
-                    <DetailFormGrid>
-                        <TranslatableFormFieldWrapper
-                            control={form.control}
-                            name="name"
-                            label={<Trans>Product name</Trans>}
-                            render={({ field }) => <Input {...field} />}
-                        />
-                        <TranslatableFormFieldWrapper
-                            control={form.control}
-                            name="slug"
-                            label={<Trans>Slug</Trans>}
-                            render={({ field }) => (
-                                <SlugInput
-                                    {...field}
-                                    entityName="Product"
-                                    fieldName="slug"
-                                    watchFieldName="name"
-                                    entityId={entity?.id}
-                                />
-                            )}
-                        />
-                    </DetailFormGrid>
+                    <TranslatableFormGroup>
+                        <DetailFormGrid>
+                            <TranslatableFormFieldWrapper
+                                control={form.control}
+                                name="name"
+                                label={<Trans>Product name</Trans>}
+                                render={({ field }) => <Input {...field} />}
+                            />
+                            <TranslatableFormFieldWrapper
+                                control={form.control}
+                                name="slug"
+                                label={<Trans>Slug</Trans>}
+                                render={({ field }) => (
+                                    <SlugInput
+                                        {...field}
+                                        entityName="Product"
+                                        fieldName="slug"
+                                        watchFieldName="name"
+                                        entityId={entity?.id}
+                                    />
+                                )}
+                            />
+                        </DetailFormGrid>
 
-                    <TranslatableFormFieldWrapper
-                        control={form.control}
-                        name="description"
-                        label={<Trans>Description</Trans>}
-                        render={({ field }) => <RichTextInput {...field} />}
-                    />
+                        <TranslatableFormFieldWrapper
+                            control={form.control}
+                            name="description"
+                            label={<Trans>Description</Trans>}
+                            render={({ field }) => <RichTextInput {...field} />}
+                        />
+                    </TranslatableFormGroup>
                 </PageBlock>
                 <CustomFieldsPageBlock column="main" entityType="Product" control={form.control} />
                 {entity && entity.variantList.totalItems > 0 && (

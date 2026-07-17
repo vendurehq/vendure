@@ -6,7 +6,10 @@ import { EntityAssets } from '@/vdb/components/shared/entity-assets.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
 import { TaxCategorySelector } from '@/vdb/components/shared/tax-category-selector.js';
-import { TranslatableFormFieldWrapper } from '@/vdb/components/shared/translatable-form-field.js';
+import {
+    TranslatableFormFieldWrapper,
+    TranslatableFormGroup,
+} from '@/vdb/components/shared/translatable-form-field.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Field, FieldLabel } from '@/vdb/components/ui/field.js';
 import { Input } from '@/vdb/components/ui/input.js';
@@ -556,21 +559,23 @@ function ProductVariantDetailPage() {
                     </PageBlock>
                 )}
                 <PageBlock column="main" blockId="main-form">
-                    <DetailFormGrid>
-                        <TranslatableFormFieldWrapper
-                            control={form.control}
-                            name="name"
-                            label={<Trans>Variant name</Trans>}
-                            render={({ field }) => <Input {...field} />}
-                        />
+                    <TranslatableFormGroup>
+                        <DetailFormGrid>
+                            <TranslatableFormFieldWrapper
+                                control={form.control}
+                                name="name"
+                                label={<Trans>Variant name</Trans>}
+                                render={({ field }) => <Input {...field} />}
+                            />
 
-                        <FormFieldWrapper
-                            control={form.control}
-                            name="sku"
-                            label={<Trans>SKU</Trans>}
-                            render={({ field }) => <Input {...field} />}
-                        />
-                    </DetailFormGrid>
+                            <FormFieldWrapper
+                                control={form.control}
+                                name="sku"
+                                label={<Trans>SKU</Trans>}
+                                render={({ field }) => <Input {...field} />}
+                            />
+                        </DetailFormGrid>
+                    </TranslatableFormGroup>
                 </PageBlock>
                 <CustomFieldsPageBlock column="main" entityType="ProductVariant" control={form.control} />
 
