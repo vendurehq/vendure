@@ -121,7 +121,10 @@ export function FulfillmentDetails({ order, fulfillment, onSuccess }: Readonly<F
     return (
         <div>
             <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
-                <div className="sm:col-start-2 sm:row-start-1 sm:justify-self-end">
+                <div
+                    className="sm:col-start-2 sm:row-start-1 sm:justify-self-end"
+                    data-testid="fulfillment-state-control"
+                >
                     <StateTransitionControl
                         currentState={fulfillment.state}
                         statesTranslationFunction={getTranslatedFulfillmentState}
