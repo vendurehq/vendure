@@ -161,7 +161,7 @@ msgstr "अनुकूलित कारण लेख्नुहोस्..."
 msgid "Type"
 msgstr "प्रकार"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:265
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:266
 msgid "The default currency is chosen from this list."
 msgstr ""
 
@@ -199,7 +199,7 @@ msgstr "हालको"
 msgid "No fulfillments"
 msgstr "कुनै पूर्तिहरू छैनन्"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:338
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:339
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
 msgstr "यो सक्षम पारिएको बेला, उत्पादन सूचीमा प्रविष्ट गरिएका मूल्यहरू पूर्वनिर्धारित कर क्षेत्रको लागि करमा समावेश हुनेछन्।"
 
@@ -250,7 +250,7 @@ msgstr "विकल्पहरू"
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
 msgstr "{fulfilled, plural, one {{fulfilled} कार्य सफलतापूर्वक रद्द गरियो} other {{fulfilled} कार्यहरू सफलतापूर्वक रद्द गरियो}}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:243
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:244
 msgid "Seller"
 msgstr "विक्रेता"
 
@@ -393,8 +393,8 @@ msgctxt "date-range"
 msgid "Last 7 days"
 msgstr "पछिल्लो 7 दिन"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:179
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:185
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:180
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:186
 msgid "Failed to create channel"
 msgstr "च्यानल सिर्जना गर्न असफल"
 
@@ -539,6 +539,10 @@ msgstr "यो फिल्ड पढ्न मात्र हो"
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:80
 msgid "Order Count"
 msgstr "अर्डर संख्या"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:159
+msgid "You must first select an available currency to set a default currency"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:92
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:59
@@ -689,7 +693,7 @@ msgstr "ठेगाना चयन गर्नुहोस्"
 msgid "Payment eligibility checker"
 msgstr "भुक्तानी योग्यता जाँचकर्ता"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:320
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:321
 msgid "Default tax zone"
 msgstr "पूर्वनिर्धारित कर क्षेत्र"
 
@@ -717,7 +721,7 @@ msgstr "फिल्टर..."
 msgid "New facet value"
 msgstr "नयाँ विशेषता मान"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:172
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:173
 msgid "Successfully updated channel"
 msgstr "च्यानल सफलतापूर्वक अपडेट गरियो"
 
@@ -729,7 +733,7 @@ msgstr "कम देखाउनुहोस्"
 msgid "Short date"
 msgstr "छोटो मिति"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:264
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:265
 msgid "Available currencies"
 msgstr "उपलब्ध मुद्राहरू"
 
@@ -1212,7 +1216,7 @@ msgstr "बाँकी:"
 msgid "No duplicator found with code \"{duplicatorCode}\" for {entityName}s"
 msgstr "{entityName} को लागि कोड \"{duplicatorCode}\" सँग कुनै डुप्लिकेटर फेला परेन"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:336
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:337
 msgid "Prices include tax for default tax zone"
 msgstr "मूल्यहरूमा पूर्वनिर्धारित कर क्षेत्रको लागि कर समावेश छ"
 
@@ -1338,7 +1342,7 @@ msgid "My Saved Views"
 msgstr "मेरो सुरक्षित दृश्यहरू"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:66
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:200
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:201
 msgid "New channel"
 msgstr "नयाँ च्यानल"
 
@@ -1700,7 +1704,7 @@ msgstr "भेरियन्ट मेटाउनुहोस्"
 msgid "No modifications made"
 msgstr "कुनै परिमार्जन गरिएको छैन"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:328
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:329
 msgid "Default shipping zone"
 msgstr "पूर्वनिर्धारित ढुवानी क्षेत्र"
 
@@ -1810,7 +1814,7 @@ msgstr "रिफन्ड सफलतापूर्वक सम्पन्�
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:213
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:214
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
@@ -1907,7 +1911,7 @@ msgstr "कुनै परिणामहरू छैनन्"
 msgid "Column settings"
 msgstr "स्तम्भ सेटिङहरू"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:223
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:224
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:126
@@ -2023,6 +2027,10 @@ msgstr "सम्पत्ति सफलतापूर्वक अपडे�
 #: src/lib/components/layout/nav-user.tsx:118
 msgid "Theme"
 msgstr "थीम"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:156
+msgid "You must select at least one available currency"
+msgstr ""
 
 #. placeholder {0}: value.totalItems
 #: src/app/routes/_authenticated/_customer-groups/customer-groups.tsx:40
@@ -2605,7 +2613,7 @@ msgstr "नयाँ कर वर्ग"
 #~ msgid "No stock locations available on current channel"
 #~ msgstr "हालको च्यानलमा कुनै स्टक स्थानहरू उपलब्ध छैनन्"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:172
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:173
 msgid "Successfully created channel"
 msgstr "च्यानल सफलतापूर्वक सिर्जना गरियो"
 
@@ -2836,7 +2844,7 @@ msgstr "ग्लोबल दृश्य मेट्नुहोस्"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:213
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:214
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
@@ -3148,7 +3156,7 @@ msgstr "राज्य/प्रान्त"
 msgid "Failed to update option group"
 msgstr "विकल्प समूह अपडेट गर्न असफल भयो"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:276
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:277
 msgid "Channel defaults"
 msgstr "च्यानल पूर्वनिर्धारित"
 
@@ -3304,7 +3312,7 @@ msgstr "फासेट मानहरू खोज्नुहोस्..."
 msgid "Note"
 msgstr "नोट"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:251
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:252
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:112
 msgid "Available languages"
 msgstr "उपलब्ध भाषाहरू"
@@ -4500,10 +4508,7 @@ msgstr "दृश्य सफलतापूर्वक मेटियो"
 msgid "OR"
 msgstr "वा"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:145
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:146
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:149
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:165
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:166
 msgid "You must select a default currency from the list of available currencies"
 msgstr ""
 
@@ -5119,7 +5124,7 @@ msgstr "च्यानलमा {entityIdsLength} {entityType} तोक्न 
 msgid "Default Language"
 msgstr "पूर्वनिर्धारित भाषा"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:232
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:233
 msgid "Token"
 msgstr "टोकन"
 
@@ -5219,7 +5224,7 @@ msgstr "{1} बाट {2} सम्म पूर्ति #{0}"
 msgid "Failed to delete global view"
 msgstr "ग्लोबल दृश्य मेट्न असफल"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:281
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:282
 msgid "Default language"
 msgstr "पूर्वनिर्धारित भाषा"
 
@@ -5467,7 +5472,7 @@ msgstr "गत महिना"
 msgid "Add Country"
 msgstr "देश थप्नुहोस्"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:252
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:253
 msgid "Defaults to the default language."
 msgstr ""
 
@@ -5559,8 +5564,8 @@ msgstr "स्रोत"
 msgid "No actions available"
 msgstr "कुनै कार्यहरू उपलब्ध छैनन्"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:179
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:185
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:180
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:186
 msgid "Failed to update channel"
 msgstr "च्यानल अपडेट गर्न असफल"
 
@@ -5621,7 +5626,7 @@ msgstr "विवरण (वैकल्पिक पाठ)"
 msgid "No tags found"
 msgstr "कुनै ट्यागहरू फेला परेन"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:303
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:304
 msgid "Default currency"
 msgstr "पूर्वनिर्धारित मुद्रा"
 
@@ -6005,7 +6010,7 @@ msgstr "अर्डरमा भुक्तानी थप्नुहोस�
 msgid "Loading..."
 msgstr "लोड गर्दै..."
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:234
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:235
 msgid "The token is used to specify the channel when making API requests."
 msgstr "API अनुरोधहरू गर्दा च्यानल निर्दिष्ट गर्न टोकन प्रयोग गरिन्छ।"
 

@@ -161,7 +161,7 @@ msgstr "Въведете персонализирана причина..."
 msgid "Type"
 msgstr "Тип"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:265
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:266
 msgid "The default currency is chosen from this list."
 msgstr ""
 
@@ -199,7 +199,7 @@ msgstr "Текущ"
 msgid "No fulfillments"
 msgstr "Без изпълнения"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:338
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:339
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
 msgstr "Когато това е разрешено, цените, въведени в продуктовия каталог, ще бъдат включени в данъка за данъчната зона по подразбиране."
 
@@ -250,7 +250,7 @@ msgstr "Опции"
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
 msgstr "{fulfilled, plural, one {Успешно е отменена {fulfilled} задача} other {Успешно са отменени {fulfilled} задачи}}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:243
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:244
 msgid "Seller"
 msgstr "Продавач"
 
@@ -399,8 +399,8 @@ msgctxt "date-range"
 msgid "Last 7 days"
 msgstr "Последните 7 дни"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:179
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:185
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:180
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:186
 msgid "Failed to create channel"
 msgstr "Неуспешно създаване на канал"
 
@@ -545,6 +545,10 @@ msgstr "Това поле е само за четене"
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:80
 msgid "Order Count"
 msgstr "Брой поръчки"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:159
+msgid "You must first select an available currency to set a default currency"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:92
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:59
@@ -695,7 +699,7 @@ msgstr "Изберете адрес"
 msgid "Payment eligibility checker"
 msgstr "Проверка на допустимостта на плащанията"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:320
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:321
 msgid "Default tax zone"
 msgstr "Данъчна зона по подразбиране"
 
@@ -723,7 +727,7 @@ msgstr "Филтър..."
 msgid "New facet value"
 msgstr "Нова стойност на атрибут"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:172
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:173
 msgid "Successfully updated channel"
 msgstr "Каналът е актуализиран успешно"
 
@@ -735,7 +739,7 @@ msgstr "Покажи по-малко"
 msgid "Short date"
 msgstr "Кратка дата"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:264
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:265
 msgid "Available currencies"
 msgstr "Налични валути"
 
@@ -1218,7 +1222,7 @@ msgstr "Остават:"
 msgid "No duplicator found with code \"{duplicatorCode}\" for {entityName}s"
 msgstr "Не е намерен дубликатор с код „{duplicatorCode}“ за {entityName}s"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:336
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:337
 msgid "Prices include tax for default tax zone"
 msgstr "Цените включват данък за данъчна зона по подразбиране"
 
@@ -1344,7 +1348,7 @@ msgid "My Saved Views"
 msgstr "Моите запазени изгледи"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:66
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:200
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:201
 msgid "New channel"
 msgstr "Нов канал"
 
@@ -1712,7 +1716,7 @@ msgstr "Изтриване на вариант"
 msgid "No modifications made"
 msgstr "Няма направени модификации"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:328
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:329
 msgid "Default shipping zone"
 msgstr "Зона за доставка по подразбиране"
 
@@ -1825,7 +1829,7 @@ msgstr "Възстановяването е приключено успешно"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:213
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:214
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
@@ -1922,7 +1926,7 @@ msgstr "Няма резултати"
 msgid "Column settings"
 msgstr "Настройки на колони"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:223
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:224
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:126
@@ -2041,6 +2045,10 @@ msgstr "Успешно актуализиран актив"
 #: src/lib/components/layout/nav-user.tsx:118
 msgid "Theme"
 msgstr "Тема"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:156
+msgid "You must select at least one available currency"
+msgstr ""
 
 #. placeholder {0}: value.totalItems
 #: src/app/routes/_authenticated/_customer-groups/customer-groups.tsx:40
@@ -2622,7 +2630,7 @@ msgstr "Нова данъчна категория"
 #~ msgid "No stock locations available on current channel"
 #~ msgstr "Няма налични складови местоположения за текущия канал"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:172
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:173
 msgid "Successfully created channel"
 msgstr "Успешно създаден канал"
 
@@ -2856,7 +2864,7 @@ msgstr "Изтриване на глобалния изглед"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:213
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:214
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
@@ -3168,7 +3176,7 @@ msgstr "Област/провинция"
 msgid "Failed to update option group"
 msgstr "Неуспешно актуализиране на група опции"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:276
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:277
 msgid "Channel defaults"
 msgstr "Стандартни настройки на канала"
 
@@ -3324,7 +3332,7 @@ msgstr "Търсене на стойности на аспекти..."
 msgid "Note"
 msgstr "Бележка"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:251
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:252
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:112
 msgid "Available languages"
 msgstr "Налични езици"
@@ -4526,10 +4534,7 @@ msgstr "Изгледът е изтрит успешно"
 msgid "OR"
 msgstr "ИЛИ"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:145
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:146
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:149
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:165
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:166
 msgid "You must select a default currency from the list of available currencies"
 msgstr ""
 
@@ -5148,7 +5153,7 @@ msgstr "Неуспешно присвояване на {entityIdsLength} {entity
 msgid "Default Language"
 msgstr "Език по подразбиране"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:232
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:233
 msgid "Token"
 msgstr "Токен"
 
@@ -5248,7 +5253,7 @@ msgstr "Изпълнение №{0} от {1} до {2}"
 msgid "Failed to delete global view"
 msgstr "Неуспешно изтриване на глобалния изглед"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:281
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:282
 msgid "Default language"
 msgstr "Език по подразбиране"
 
@@ -5499,7 +5504,7 @@ msgstr "Миналия месец"
 msgid "Add Country"
 msgstr "Добавете държава"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:252
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:253
 msgid "Defaults to the default language."
 msgstr ""
 
@@ -5591,8 +5596,8 @@ msgstr "Източник"
 msgid "No actions available"
 msgstr "Няма налични действия"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:179
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:185
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:180
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:186
 msgid "Failed to update channel"
 msgstr "Неуспешно актуализиране на канала"
 
@@ -5653,7 +5658,7 @@ msgstr "Описание (алт)"
 msgid "No tags found"
 msgstr "Няма намерени етикети"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:303
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:304
 msgid "Default currency"
 msgstr "Валута по подразбиране"
 
@@ -6042,7 +6047,7 @@ msgstr "Добавете плащане към поръчката"
 msgid "Loading..."
 msgstr "Зареждане..."
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:234
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:235
 msgid "The token is used to specify the channel when making API requests."
 msgstr "Токенът се използва за указване на канала, когато се правят заявки за API."
 

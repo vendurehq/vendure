@@ -133,37 +133,38 @@ function ChannelDetailPage() {
                         ? {
                               defaultTaxZoneId: z.string().min(1, { message: t`This field is required` }),
                               defaultShippingZoneId: z.string().min(1, { message: t`This field is required` }),
-                              // `defaultCurrencyCode` is nullable in the schema, but ChannelService.create
-                              // throws a raw UserInputError unless a defaultCurrencyCode or currencyCode is
-                              // given — and this page always sends `currencyCode: undefined`. It is a
-                              // nullable enum, so it is `null` (not '') until the user picks one; hence
-                              // invalid_type_error. The message names the available currencies because
-                              // they are where a default comes from: with none chosen there is nothing to
-                              // pick here, so that is the field to go and fill in.
-                              defaultCurrencyCode: z
-                                  .string({
-                                      required_error: t`You must select a default currency from the list of available currencies`,
-                                      invalid_type_error: t`You must select a default currency from the list of available currencies`,
-                                  })
-                                  .min(1, {
-                                      message: t`You must select a default currency from the list of available currencies`,
-                                  }),
                           }
                         : {}),
                 })
-                // The default currency selector only offers the available currencies, so this can only
-                // fail when the available list changes after the default was picked: removing the
-                // default from it, or (on update, where no field is required) clearing it entirely.
-                // The server would not catch either — ChannelService.create saves a supplied list
-                // verbatim without checking that it contains the default.
+                // The currency pair is checked together, because whether a default is valid depends
+                // entirely on the available list it has to come from. `defaultCurrencyCode` is
+                // nullable in the schema but ChannelService.create throws a raw UserInputError
+                // unless it is given (this page always sends `currencyCode: undefined`), and a
+                // supplied available list is saved verbatim without checking it contains the
+                // default — so both halves have to be caught here.
+                //
+                // Unlike the fields above this is not limited to create: an existing channel always
+                // has both, so an update can only reach these states by actively breaking them.
                 .superRefine((values, ctx) => {
                     const available: string[] = values.availableCurrencyCodes ?? [];
-                    if (available.length && !available.includes(values.defaultCurrencyCode as string)) {
-                        ctx.addIssue({
-                            code: z.ZodIssueCode.custom,
-                            path: ['defaultCurrencyCode'],
-                            message: t`You must select a default currency from the list of available currencies`,
-                        });
+                    const addIssue = (path: string, message: string) =>
+                        ctx.addIssue({ code: z.ZodIssueCode.custom, path: [path], message });
+
+                    if (!available.length) {
+                        // Nothing is available, so the default cannot be filled in yet — say so on
+                        // both fields rather than only on the one that happens to be required.
+                        addIssue('availableCurrencyCodes', t`You must select at least one available currency`);
+                        addIssue(
+                            'defaultCurrencyCode',
+                            t`You must first select an available currency to set a default currency`,
+                        );
+                    } else if (!available.includes(values.defaultCurrencyCode as string)) {
+                        // There is a list to pick from: either nothing was picked, or the list was
+                        // narrowed afterwards and dropped the default.
+                        addIssue(
+                            'defaultCurrencyCode',
+                            t`You must select a default currency from the list of available currencies`,
+                        );
                     }
                 }),
         params: { id: params.id },

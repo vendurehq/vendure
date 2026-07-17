@@ -157,7 +157,7 @@ msgstr "Introdu motiv personalizat..."
 msgid "Type"
 msgstr "Tip"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:265
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:266
 msgid "The default currency is chosen from this list."
 msgstr ""
 
@@ -195,7 +195,7 @@ msgstr "Curent"
 msgid "No fulfillments"
 msgstr "Fără livrări"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:338
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:339
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
 msgstr "Când este activat, prețurile introduse în catalogul de produse vor include taxa pentru zona de impozitare implicită."
 
@@ -234,7 +234,7 @@ msgstr "Opțiuni"
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
 msgstr "{fulfilled, plural, one {{fulfilled} job anulat cu succes} few {{fulfilled} joburi anulate cu succes} other {{fulfilled} de joburi anulate cu succes}}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:243
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:244
 msgid "Seller"
 msgstr "Vânzător"
 
@@ -369,8 +369,8 @@ msgctxt "date-range"
 msgid "Last 7 days"
 msgstr "Ultimele 7 zile"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:179
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:185
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:180
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:186
 msgid "Failed to create channel"
 msgstr "Nu s-a putut crea canalul"
 
@@ -511,6 +511,10 @@ msgstr "Acest câmp este doar în citire"
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:80
 msgid "Order Count"
 msgstr "Număr comenzi"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:159
+msgid "You must first select an available currency to set a default currency"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:92
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:59
@@ -661,7 +665,7 @@ msgstr "Selectează adresa"
 msgid "Payment eligibility checker"
 msgstr "Verificator eligibilitate plată"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:320
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:321
 msgid "Default tax zone"
 msgstr "Zonă de taxare implicită"
 
@@ -689,7 +693,7 @@ msgstr "Filtrează..."
 msgid "New facet value"
 msgstr "Valoare atribut nouă"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:172
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:173
 msgid "Successfully updated channel"
 msgstr "Canalul a fost actualizat cu succes"
 
@@ -701,7 +705,7 @@ msgstr "Afișează mai puțin"
 msgid "Short date"
 msgstr "Dată scurtă"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:264
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:265
 msgid "Available currencies"
 msgstr "Monede disponibile"
 
@@ -1176,7 +1180,7 @@ msgstr "Rămas:"
 msgid "No duplicator found with code \"{duplicatorCode}\" for {entityName}s"
 msgstr "Nu s-a găsit duplicator cu codul \"{duplicatorCode}\" pentru {entityName}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:336
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:337
 msgid "Prices include tax for default tax zone"
 msgstr "Prețurile includ taxa pentru zona de taxare implicită"
 
@@ -1294,7 +1298,7 @@ msgid "My Saved Views"
 msgstr "Vizualizările Mele Salvate"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:66
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:200
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:201
 msgid "New channel"
 msgstr "Canal nou"
 
@@ -1639,7 +1643,7 @@ msgstr "Șterge varianta"
 msgid "No modifications made"
 msgstr "Nu s-au făcut modificări"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:328
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:329
 msgid "Default shipping zone"
 msgstr "Zonă de livrare implicită"
 
@@ -1749,7 +1753,7 @@ msgstr "Rambursare soluționată cu succes"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:213
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:214
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
@@ -1840,7 +1844,7 @@ msgstr "Fără rezultate"
 msgid "Column settings"
 msgstr "Setări coloane"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:223
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:224
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:126
@@ -1956,6 +1960,10 @@ msgstr "Resursa a fost actualizată cu succes"
 #: src/lib/components/layout/nav-user.tsx:118
 msgid "Theme"
 msgstr "Temă"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:156
+msgid "You must select at least one available currency"
+msgstr ""
 
 #. placeholder {0}: value.totalItems
 #: src/app/routes/_authenticated/_customer-groups/customer-groups.tsx:40
@@ -2530,7 +2538,7 @@ msgstr "Nu poți muta o colecție în propriul descendent"
 msgid "New Tax Category"
 msgstr "Categorie de Taxă Nouă"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:172
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:173
 msgid "Successfully created channel"
 msgstr "Canalul a fost creat cu succes"
 
@@ -2752,7 +2760,7 @@ msgstr "Șterge vizualizarea globală"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:213
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:214
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
@@ -3056,7 +3064,7 @@ msgstr "Județ/Provincie"
 msgid "Failed to update option group"
 msgstr "Nu s-a putut actualiza grupul de opțiuni"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:276
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:277
 msgid "Channel defaults"
 msgstr "Valori implicite canal"
 
@@ -3212,7 +3220,7 @@ msgstr "Caută valori de atribute..."
 msgid "Note"
 msgstr "Notă"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:251
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:252
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:112
 msgid "Available languages"
 msgstr "Limbi disponibile"
@@ -4348,10 +4356,7 @@ msgstr "Vizualizare ștearsă cu succes"
 msgid "OR"
 msgstr "SAU"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:145
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:146
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:149
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:165
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:166
 msgid "You must select a default currency from the list of available currencies"
 msgstr ""
 
@@ -4939,7 +4944,7 @@ msgstr "Nu s-a putut atribui {entityIdsLength} {entityType} canalului"
 msgid "Default Language"
 msgstr "Limbă implicită"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:232
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:233
 msgid "Token"
 msgstr "Token"
 
@@ -5035,7 +5040,7 @@ msgstr "Livrare #{0} de la {1} la {2}"
 msgid "Failed to delete global view"
 msgstr "Nu s-a putut șterge vizualizarea globală"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:281
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:282
 msgid "Default language"
 msgstr "Limbă implicită"
 
@@ -5279,7 +5284,7 @@ msgstr "Luna trecută"
 msgid "Add Country"
 msgstr "Adaugă țară"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:252
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:253
 msgid "Defaults to the default language."
 msgstr ""
 
@@ -5367,8 +5372,8 @@ msgstr "Sursă"
 msgid "No actions available"
 msgstr "Nu sunt acțiuni disponibile"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:179
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:185
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:180
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:186
 msgid "Failed to update channel"
 msgstr "Nu s-a putut actualiza canalul"
 
@@ -5425,7 +5430,7 @@ msgstr "Descriere (alternativă)"
 msgid "No tags found"
 msgstr "Nu s-au găsit etichete"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:303
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:304
 msgid "Default currency"
 msgstr "Monedă implicită"
 
@@ -5797,7 +5802,7 @@ msgstr "Adaugă plată la comandă"
 msgid "Loading..."
 msgstr "Se încarcă..."
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:234
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:235
 msgid "The token is used to specify the channel when making API requests."
 msgstr "Token-ul este folosit pentru a specifica canalul la efectuarea cererilor API."
 

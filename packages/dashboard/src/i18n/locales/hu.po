@@ -161,7 +161,7 @@ msgstr "Adjon meg egyéni indokot..."
 msgid "Type"
 msgstr "Típus"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:265
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:266
 msgid "The default currency is chosen from this list."
 msgstr ""
 
@@ -199,7 +199,7 @@ msgstr "Jelenlegi"
 msgid "No fulfillments"
 msgstr "Nincsenek teljesítések"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:338
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:339
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
 msgstr "Ha ez engedélyezve van, a termékkatalógusban megadott árak tartalmazzák az alapértelmezett adózóna adóját."
 
@@ -250,7 +250,7 @@ msgstr "Opciók"
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
 msgstr "{fulfilled, plural, one {{fulfilled} feladat sikeresen megszakítva} other {{fulfilled} feladat sikeresen megszakítva}}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:243
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:244
 msgid "Seller"
 msgstr "Eladó"
 
@@ -393,8 +393,8 @@ msgctxt "date-range"
 msgid "Last 7 days"
 msgstr "Utolsó 7 nap"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:179
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:185
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:180
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:186
 msgid "Failed to create channel"
 msgstr "Csatorna létrehozása sikertelen"
 
@@ -539,6 +539,10 @@ msgstr "Ez a mező csak olvasható"
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:80
 msgid "Order Count"
 msgstr "Megrendelések száma"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:159
+msgid "You must first select an available currency to set a default currency"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:92
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:59
@@ -689,7 +693,7 @@ msgstr "Válasszon címet"
 msgid "Payment eligibility checker"
 msgstr "Fizetési jogosultság ellenőrző"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:320
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:321
 msgid "Default tax zone"
 msgstr "Alapértelmezett adózóna"
 
@@ -717,7 +721,7 @@ msgstr "Szűrés..."
 msgid "New facet value"
 msgstr "Új tulajdonságérték"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:172
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:173
 msgid "Successfully updated channel"
 msgstr "Csatorna sikeresen frissítve"
 
@@ -729,7 +733,7 @@ msgstr "Kevesebb megjelenítése"
 msgid "Short date"
 msgstr "Rövid dátum"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:264
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:265
 msgid "Available currencies"
 msgstr "Elérhető pénznemek"
 
@@ -1212,7 +1216,7 @@ msgstr "Fennmaradó:"
 msgid "No duplicator found with code \"{duplicatorCode}\" for {entityName}s"
 msgstr "Nem található duplikátor \"{duplicatorCode}\" kóddal a következőhöz: {entityName}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:336
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:337
 msgid "Prices include tax for default tax zone"
 msgstr "Az árak tartalmazzák az alapértelmezett adózóna adóját"
 
@@ -1338,7 +1342,7 @@ msgid "My Saved Views"
 msgstr "Saját mentett nézetek"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:66
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:200
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:201
 msgid "New channel"
 msgstr "Új csatorna"
 
@@ -1700,7 +1704,7 @@ msgstr "Variáns törlése"
 msgid "No modifications made"
 msgstr "Nem történt módosítás"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:328
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:329
 msgid "Default shipping zone"
 msgstr "Alapértelmezett szállítási zóna"
 
@@ -1810,7 +1814,7 @@ msgstr "A visszatérítés sikeresen rendezve"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:213
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:214
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
@@ -1901,7 +1905,7 @@ msgstr "Nincs eredmény"
 msgid "Column settings"
 msgstr "Oszlopbeállítások"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:223
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:224
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:126
@@ -2017,6 +2021,10 @@ msgstr "Média sikeresen frissítve"
 #: src/lib/components/layout/nav-user.tsx:118
 msgid "Theme"
 msgstr "Téma"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:156
+msgid "You must select at least one available currency"
+msgstr ""
 
 #. placeholder {0}: value.totalItems
 #: src/app/routes/_authenticated/_customer-groups/customer-groups.tsx:40
@@ -2595,7 +2603,7 @@ msgstr "Új adókategória"
 #~ msgid "No stock locations available on current channel"
 #~ msgstr "Nem érhető el raktárhely a jelenlegi csatornán"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:172
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:173
 msgid "Successfully created channel"
 msgstr "A csatorna sikeresen létrehozva"
 
@@ -2826,7 +2834,7 @@ msgstr "Globális nézet törlése"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:213
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:214
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
@@ -3138,7 +3146,7 @@ msgstr "Állam/Tartomány"
 msgid "Failed to update option group"
 msgstr "Nem sikerült frissíteni az opciócsoportot"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:276
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:277
 msgid "Channel defaults"
 msgstr "Csatorna alapértékei"
 
@@ -3294,7 +3302,7 @@ msgstr "Tulajdonságértékek keresése..."
 msgid "Note"
 msgstr "Megjegyzés"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:251
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:252
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:112
 msgid "Available languages"
 msgstr "Elérhető nyelvek"
@@ -4487,10 +4495,7 @@ msgstr "Nézet sikeresen törölve"
 msgid "OR"
 msgstr "VAGY"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:145
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:146
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:149
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:165
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:166
 msgid "You must select a default currency from the list of available currencies"
 msgstr ""
 
@@ -5106,7 +5111,7 @@ msgstr "{entityIdsLength} {entityType} csatornához rendelése sikertelen"
 msgid "Default Language"
 msgstr "Alapértelmezett nyelv"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:232
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:233
 msgid "Token"
 msgstr "Token"
 
@@ -5206,7 +5211,7 @@ msgstr "#{0} teljesítés: {1}-tól {2}-ig"
 msgid "Failed to delete global view"
 msgstr "Globális nézet törlése sikertelen"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:281
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:282
 msgid "Default language"
 msgstr "Alapértelmezett nyelv"
 
@@ -5454,7 +5459,7 @@ msgstr "Előző hónap"
 msgid "Add Country"
 msgstr "Ország hozzáadása"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:252
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:253
 msgid "Defaults to the default language."
 msgstr ""
 
@@ -5546,8 +5551,8 @@ msgstr "Forrás"
 msgid "No actions available"
 msgstr "Nincs elérhető művelet"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:179
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:185
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:180
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:186
 msgid "Failed to update channel"
 msgstr "Csatorna frissítése sikertelen"
 
@@ -5608,7 +5613,7 @@ msgstr "Leírás (alt)"
 msgid "No tags found"
 msgstr "Nem található címke"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:303
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:304
 msgid "Default currency"
 msgstr "Alapértelmezett pénznem"
 
@@ -5988,7 +5993,7 @@ msgstr "Fizetés hozzáadása a megrendeléshez"
 msgid "Loading..."
 msgstr "Betöltés..."
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:234
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:235
 msgid "The token is used to specify the channel when making API requests."
 msgstr "A token a csatorna megadására szolgál API kérések küldésekor."
 

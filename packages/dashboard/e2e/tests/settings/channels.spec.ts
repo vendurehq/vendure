@@ -185,16 +185,17 @@ test.describe('Channel required-field validation', () => {
             await expect(dp.formItem(label).getByText('This field is required')).toBeVisible();
         }
 
-        // ...the default currency among them, in the terms of the list it is picked from...
+        // ...including both halves of the currency pair: the default cannot be picked until a
+        // currency is available, so the error points at the field to fill in first, and the
+        // available list is flagged in its own right rather than left for the user to infer.
         await expect(
             dp
                 .formItem('Default currency')
-                .getByText('You must select a default currency from the list of available currencies'),
+                .getByText('You must first select an available currency to set a default currency'),
         ).toBeVisible();
-
-        // ...but "Available currencies" is not flagged on its own: the message above already sends
-        // the user there, so a second error on the same problem would be noise.
-        await expect(dp.formItem('Available currencies').getByText('This field is required')).toHaveCount(0);
+        await expect(
+            dp.formItem('Available currencies').getByText('You must select at least one available currency'),
+        ).toBeVisible();
 
         // ...and the mutation never leaves the client, so there is no raw GraphQL error toast.
         await expect(page.locator('[data-sonner-toast]')).toHaveCount(0);

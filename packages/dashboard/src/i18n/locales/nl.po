@@ -161,7 +161,7 @@ msgstr "Voer een aangepaste reden in..."
 msgid "Type"
 msgstr "Type"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:265
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:266
 msgid "The default currency is chosen from this list."
 msgstr ""
 
@@ -199,7 +199,7 @@ msgstr "Huidig"
 msgid "No fulfillments"
 msgstr "Geen afhandelingen"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:338
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:339
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
 msgstr "Wanneer dit is ingeschakeld, worden de prijzen die in de productcatalogus zijn ingevoerd, opgenomen in de belasting voor de standaard belastingzone."
 
@@ -250,7 +250,7 @@ msgstr "Opties"
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
 msgstr "{fulfilled, plural, one {{fulfilled} taak succesvol geannuleerd} other {{fulfilled} taken succesvol geannuleerd}}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:243
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:244
 msgid "Seller"
 msgstr "Verkoper"
 
@@ -393,8 +393,8 @@ msgctxt "date-range"
 msgid "Last 7 days"
 msgstr "Laatste 7 dagen"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:179
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:185
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:180
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:186
 msgid "Failed to create channel"
 msgstr "Kanaal aanmaken mislukt"
 
@@ -539,6 +539,10 @@ msgstr "Dit veld is alleen-lezen"
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:80
 msgid "Order Count"
 msgstr "Aantal bestellingen"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:159
+msgid "You must first select an available currency to set a default currency"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:92
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:59
@@ -689,7 +693,7 @@ msgstr "Selecteer adres"
 msgid "Payment eligibility checker"
 msgstr "Betalingsgeschiktheidscontrole"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:320
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:321
 msgid "Default tax zone"
 msgstr "Standaard belastingzone"
 
@@ -717,7 +721,7 @@ msgstr "Filteren..."
 msgid "New facet value"
 msgstr "Nieuwe facetwaarde"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:172
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:173
 msgid "Successfully updated channel"
 msgstr "Kanaal succesvol bijgewerkt"
 
@@ -729,7 +733,7 @@ msgstr "Minder tonen"
 msgid "Short date"
 msgstr "Korte datum"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:264
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:265
 msgid "Available currencies"
 msgstr "Beschikbare valuta's"
 
@@ -1216,7 +1220,7 @@ msgstr "Resterend:"
 msgid "No duplicator found with code \"{duplicatorCode}\" for {entityName}s"
 msgstr "Geen duplicator gevonden met code \"{duplicatorCode}\" voor {entityName}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:336
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:337
 msgid "Prices include tax for default tax zone"
 msgstr "Prijzen zijn inclusief belasting voor standaard belastingzone"
 
@@ -1342,7 +1346,7 @@ msgid "My Saved Views"
 msgstr "Mijn opgeslagen weergaven"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:66
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:200
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:201
 msgid "New channel"
 msgstr "Nieuw kanaal"
 
@@ -1704,7 +1708,7 @@ msgstr "Variant verwijderen"
 msgid "No modifications made"
 msgstr "Geen wijzigingen aangebracht"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:328
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:329
 msgid "Default shipping zone"
 msgstr "Standaard verzendzone"
 
@@ -1814,7 +1818,7 @@ msgstr "Terugbetaling succesvol afgehandeld"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:213
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:214
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
@@ -1905,7 +1909,7 @@ msgstr "Geen resultaten"
 msgid "Column settings"
 msgstr "Kolominstellingen"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:223
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:224
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:126
@@ -2021,6 +2025,10 @@ msgstr "Bestand succesvol bijgewerkt"
 #: src/lib/components/layout/nav-user.tsx:118
 msgid "Theme"
 msgstr "Thema"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:156
+msgid "You must select at least one available currency"
+msgstr ""
 
 #. placeholder {0}: value.totalItems
 #: src/app/routes/_authenticated/_customer-groups/customer-groups.tsx:40
@@ -2599,7 +2607,7 @@ msgstr "Nieuwe belastingcategorie"
 #~ msgid "No stock locations available on current channel"
 #~ msgstr "Geen voorraadlocaties beschikbaar op huidig kanaal"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:172
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:173
 msgid "Successfully created channel"
 msgstr "Kanaal succesvol aangemaakt"
 
@@ -2830,7 +2838,7 @@ msgstr "Globale weergave verwijderen"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:213
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:214
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
@@ -3142,7 +3150,7 @@ msgstr "Staat/Provincie"
 msgid "Failed to update option group"
 msgstr "Bijwerken van optiegroep mislukt"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:276
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:277
 msgid "Channel defaults"
 msgstr "Kanaalstandaarden"
 
@@ -3298,7 +3306,7 @@ msgstr "Facetwaarden zoeken..."
 msgid "Note"
 msgstr "Opmerking"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:251
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:252
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:112
 msgid "Available languages"
 msgstr "Beschikbare talen"
@@ -4491,10 +4499,7 @@ msgstr "Weergave succesvol verwijderd"
 msgid "OR"
 msgstr "OF"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:145
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:146
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:149
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:165
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:166
 msgid "You must select a default currency from the list of available currencies"
 msgstr ""
 
@@ -5114,7 +5119,7 @@ msgstr "Toewijzing van {entityIdsLength} {entityType} aan kanaal mislukt"
 msgid "Default Language"
 msgstr "Standaardtaal"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:232
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:233
 msgid "Token"
 msgstr "Token"
 
@@ -5214,7 +5219,7 @@ msgstr "Afhandeling #{0} van {1} naar {2}"
 msgid "Failed to delete global view"
 msgstr "Globale weergave verwijderen mislukt"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:281
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:282
 msgid "Default language"
 msgstr "Standaardtaal"
 
@@ -5462,7 +5467,7 @@ msgstr "Vorige maand"
 msgid "Add Country"
 msgstr "Land toevoegen"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:252
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:253
 msgid "Defaults to the default language."
 msgstr ""
 
@@ -5554,8 +5559,8 @@ msgstr "Bron"
 msgid "No actions available"
 msgstr "Geen acties beschikbaar"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:179
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:185
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:180
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:186
 msgid "Failed to update channel"
 msgstr "Kanaal bijwerken mislukt"
 
@@ -5616,7 +5621,7 @@ msgstr "Beschrijving (alt-tekst)"
 msgid "No tags found"
 msgstr "Geen tags gevonden"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:303
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:304
 msgid "Default currency"
 msgstr "Standaardvaluta"
 
@@ -6000,7 +6005,7 @@ msgstr "Betaling toevoegen aan bestelling"
 msgid "Loading..."
 msgstr "Laden..."
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:234
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:235
 msgid "The token is used to specify the channel when making API requests."
 msgstr "De token wordt gebruikt om het kanaal op te geven bij het doen van API-verzoeken."
 
