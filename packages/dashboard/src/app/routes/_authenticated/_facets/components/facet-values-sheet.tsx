@@ -21,9 +21,17 @@ export interface FacetValuesSheetProps {
 export function FacetValuesSheet({ facetName, facetId, children }: Readonly<FacetValuesSheetProps>) {
     return (
         <Sheet>
-            <SheetTrigger render={<Button variant="outline" size="sm" className="flex items-center gap-2" />}>
+            <SheetTrigger
+                render={
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex items-center gap-1.5 h-6 px-2 text-muted-foreground"
+                    />
+                }
+            >
                 {children}
-                <PanelLeftOpen className="w-4 h-4" />
+                <PanelLeftOpen className="w-3.5 h-3.5" />
             </SheetTrigger>
             <SheetContent className="min-w-[90vw] lg:min-w-[800px]">
                 <SheetHeader>

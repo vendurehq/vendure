@@ -1,6 +1,5 @@
 import { SlugInput } from '@/vdb/components/data-input/index.js';
 import { PageBreadcrumb } from '@/vdb/components/layout/generated-breadcrumbs.js';
-import { DetailPageButton } from '@/vdb/components/shared/detail-page-button.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
 import { TranslatableFormFieldWrapper } from '@/vdb/components/shared/translatable-form-field.js';
@@ -114,21 +113,6 @@ function FacetValueDetailPage() {
                 </ActionBarItem>
             </PageActionBar>
             <PageLayout>
-                {entity?.facet && (
-                    <PageBlock column="side" blockId="facet-info">
-                        <div className="space-y-2">
-                            <div className="text-sm font-medium">
-                                <Trans>Facet</Trans>
-                            </div>
-                            <DetailPageButton
-                                href={`/facets/${entity?.facet.id}`}
-                                label={entity?.facet.name}
-                                className="border"
-                            />
-                            <div className="text-xs text-muted-foreground">{entity?.facet.code}</div>
-                        </div>
-                    </PageBlock>
-                )}
                 <PageBlock column="main" blockId="main-form">
                     <DetailFormGrid>
                         <TranslatableFormFieldWrapper

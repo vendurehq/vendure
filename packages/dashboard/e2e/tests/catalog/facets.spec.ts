@@ -296,15 +296,15 @@ test.describe('Facet list & detail improvements', () => {
         const search = page.getByRole('textbox', { name: /Search facet values/i });
         await expect(search).toBeVisible();
         await search.fill('electronics');
-        await expect(
-            page.locator('table').getByRole('button', { name: 'electronics' }),
-        ).toBeVisible({ timeout: 10_000 });
+        await expect(page.locator('table').getByRole('button', { name: 'electronics' })).toBeVisible({
+            timeout: 10_000,
+        });
         await expect(page.locator('table tbody tr')).toHaveCount(1);
     });
 
-    // The facet value detail sidebar renders the parent facet name as a link that
-    // navigates back to the parent facet detail page.
-    test('facet value detail sidebar links back to the parent facet', async ({ page }) => {
+    // The facet value detail breadcrumb includes the parent facet as a link that
+    // navigates back to the parent facet detail page (there is no sidebar facet card).
+    test('facet value detail breadcrumb links back to the parent facet', async ({ page }) => {
         await page.goto(`/facets/${bigFacetId}`);
         await expect(page.getByText('Facet values', { exact: true })).toBeVisible({ timeout: 10_000 });
         await expect(page.locator('table tbody tr').first()).toBeVisible({ timeout: 10_000 });
@@ -313,10 +313,12 @@ test.describe('Facet list & detail improvements', () => {
         await page.locator('table tbody tr').first().getByRole('button').first().click();
         await expect(page).toHaveURL(new RegExp(`/facets/${bigFacetId}/values/[^/]+`));
 
-        // The sidebar "Facet" block links to the parent facet…
-        const facetLink = page.getByRole('button', { name: bigFacetName });
-        await expect(facetLink).toBeVisible({ timeout: 10_000 });
-        await facetLink.click();
+        // The breadcrumb links to the parent facet…
+        const breadcrumbLink = page
+            .locator('[data-slot="breadcrumb-link"]')
+            .filter({ hasText: bigFacetName });
+        await expect(breadcrumbLink).toBeVisible({ timeout: 10_000 });
+        await breadcrumbLink.click();
         // …and navigates back to the parent facet detail page.
         await expect(page).toHaveURL(new RegExp(`/facets/${bigFacetId}$`));
         await expect(page.getByTestId('page-heading')).toHaveText(bigFacetName);

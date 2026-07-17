@@ -9,7 +9,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ExpandedState, getExpandedRowModel } from '@tanstack/react-table';
 import { TableOptions } from '@tanstack/table-core';
 import { ResultOf } from 'gql.tada';
-import { ChevronRight, PlusIcon } from 'lucide-react';
+import { Folder, FolderOpen, PlusIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -23,7 +23,6 @@ import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { RichTextDescriptionCell } from '@/vdb/components/shared/table-cell/order-table-cell-components.js';
 import { Badge } from '@/vdb/components/ui/badge.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
-import { cn } from '@/vdb/lib/utils.js';
 import { collectionListDocument, moveCollectionDocument } from './collections.graphql.js';
 import {
     AssignCollectionsToChannelBulkAction,
@@ -404,12 +403,11 @@ function CollectionListPage() {
                                         aria-label={isExpanded ? t`Collapse` : t`Expand`}
                                         onClick={row.getToggleExpandedHandler()}
                                     >
-                                        <ChevronRight
-                                            className={cn(
-                                                'h-4 w-4 transition-transform',
-                                                isExpanded && 'rotate-90',
-                                            )}
-                                        />
+                                        {isExpanded ? (
+                                            <FolderOpen className="h-4 w-4" />
+                                        ) : (
+                                            <Folder className="h-4 w-4" />
+                                        )}
                                     </Button>
                                 ) : (
                                     <div className="h-6 w-6 shrink-0" />
