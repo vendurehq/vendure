@@ -32,6 +32,7 @@ import { ColumnFiltersState, SortingState } from '@tanstack/react-table';
 import { Link } from '@tanstack/react-router';
 import { useDebounce } from '@uidotdev/usehooks';
 import { ChevronRight, LayoutGrid, LayoutList, Loader2, Search, Upload, X } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import { DragEvent, memo, useCallback, useMemo, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { toast } from 'sonner';
@@ -77,6 +78,16 @@ export const createAssetsDocument = graphql(
     `,
     [assetFragment],
 );
+
+// Mirrors the @vendure-io/ui data-table band swap: while assets are selected
+// the bulk bar takes the search bar's place. Fade out then in, 100ms per
+// phase; mode="wait" keeps the rows sequential so they never stack.
+const headerRowFade = {
+    initial: { opacity: 0, y: 4 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -4 },
+    transition: { duration: 0.1, ease: 'easeOut' },
+} as const;
 
 const AssetType = {
     ALL: 'ALL',
@@ -450,38 +461,56 @@ export function AssetGallery({
                 <div className="space-y-4 mb-4 flex-shrink-0">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
                         {viewMode === 'grid' && (
-                            <div className="relative min-w-0 flex-1">
-                                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    placeholder={t`Search assets...`}
-                                    value={search}
-                                    onChange={e => {
-                                        setSearch(e.target.value);
-                                        setPage(1);
-                                    }}
-                                    className="pl-8 pr-9"
-                                />
-                                {hasActiveFilters && (
-                                    <Tooltip>
-                                        <TooltipTrigger
-                                            render={
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="icon-sm"
-                                                    onClick={clearFilters}
-                                                    className="absolute right-1 top-1"
-                                                    aria-label={t`Clear filters`}
-                                                />
-                                            }
-                                        >
-                                            <X className="h-4 w-4" />
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <Trans>Clear filters</Trans>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                )}
+                            <div className="min-w-0 flex-1">
+                                {/* Replace-on-select: while assets are selected the bulk
+                                    bar takes the search bar's place, matching the data
+                                    table's list-view treatment. */}
+                                <AnimatePresence initial={false} mode="wait">
+                                    {displayBulkActions && selected.length > 0 ? (
+                                        <motion.div key="bulk-actions" {...headerRowFade}>
+                                            <AssetBulkActions
+                                                selection={selected}
+                                                bulkActions={adaptedBulkActions}
+                                                clearSelection={clearSelection}
+                                                frame="plain"
+                                            />
+                                        </motion.div>
+                                    ) : (
+                                        <motion.div key="search" {...headerRowFade} className="relative">
+                                            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                            <Input
+                                                placeholder={t`Search assets...`}
+                                                value={search}
+                                                onChange={e => {
+                                                    setSearch(e.target.value);
+                                                    setPage(1);
+                                                }}
+                                                className="pl-8 pr-9"
+                                            />
+                                            {hasActiveFilters && (
+                                                <Tooltip>
+                                                    <TooltipTrigger
+                                                        render={
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="icon-sm"
+                                                                onClick={clearFilters}
+                                                                className="absolute right-1 top-1"
+                                                                aria-label={t`Clear filters`}
+                                                            />
+                                                        }
+                                                    >
+                                                        <X className="h-4 w-4" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <Trans>Clear filters</Trans>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            )}
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </div>
                         )}
 
@@ -562,8 +591,10 @@ export function AssetGallery({
                 </div>
             )}
 
-            {/* Grid selection is gallery-owned; list selection is owned by DataTable. */}
-            {viewMode === 'grid' && displayBulkActions ? (
+            {/* Grid selection is gallery-owned; list selection is owned by DataTable.
+                With the header shown, the bulk bar swaps into the search bar's slot
+                above; this standalone bar covers headerless galleries. */}
+            {viewMode === 'grid' && displayBulkActions && !showHeader ? (
                 <AssetBulkActions
                     selection={selected}
                     bulkActions={adaptedBulkActions}

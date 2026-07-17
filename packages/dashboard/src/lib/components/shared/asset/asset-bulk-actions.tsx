@@ -86,9 +86,19 @@ interface AssetBulkActionsProps {
     selection: Asset[];
     bulkActions?: BulkActionsInput;
     clearSelection: () => void;
+    /**
+     * `'card'` (default) renders the toolbar on its own bordered row; `'plain'`
+     * renders just the toolbar, for embedding in an existing header row.
+     */
+    frame?: 'card' | 'plain';
 }
 
-export function AssetBulkActions({ selection, bulkActions = [], clearSelection }: Readonly<AssetBulkActionsProps>) {
+export function AssetBulkActions({
+    selection,
+    bulkActions = [],
+    clearSelection,
+    frame = 'card',
+}: Readonly<AssetBulkActionsProps>) {
     const table = useMemo(() => {
         const selectedById = new Map(selection.map(asset => [asset.id, asset]));
         const supported = {
@@ -105,20 +115,25 @@ export function AssetBulkActions({ selection, bulkActions = [], clearSelection }
             resetRowSelection: clearSelection,
         };
         // Bulk actions are typed as receiving a full TanStack `Table`, but the
-        // gallery grid has no table instance. The proxy turns access to any
-        // unimplemented member into a descriptive error rather than a cryptic
-        // "x is not a function" inside the action component.
+        // gallery grid has no table instance. Unimplemented members raise a
+        // descriptive error rather than a cryptic "x is not a function" inside
+        // the action component — but only when *called*: property access must
+        // never throw, because infrastructure probes arbitrary props (e.g.
+        // React's dev-mode render logging reads `$$typeof` on every prop, and
+        // a throw there aborts React's commit phase).
         return new Proxy(supported, {
             get(target, property, receiver) {
                 if (property in target) {
                     return Reflect.get(target, property, receiver);
                 }
-                if (typeof property === 'symbol') {
+                if (typeof property === 'symbol' || property === 'then' || property === 'toJSON') {
                     return undefined;
                 }
-                throw new Error(
-                    `The asset gallery selection table only supports ${Object.keys(supported).join(', ')} — "${property}" is not available.`,
-                );
+                return () => {
+                    throw new Error(
+                        `The asset gallery selection table only supports ${Object.keys(supported).join(', ')} — "${property}" is not available.`,
+                    );
+                };
             },
         }) as unknown as Table<Asset>;
     }, [clearSelection, selection]);
@@ -127,11 +142,13 @@ export function AssetBulkActions({ selection, bulkActions = [], clearSelection }
         return null;
     }
 
-    return (
-        <div className="rounded-lg border bg-card px-3 py-2">
-            <DataTableBulkActions table={table} bulkActions={bulkActions} />
-        </div>
-    );
+    const toolbar = <DataTableBulkActions table={table} bulkActions={bulkActions} />;
+
+    if (frame === 'plain') {
+        return toolbar;
+    }
+
+    return <div className="rounded-lg border bg-card px-3 py-2">{toolbar}</div>;
 }
 
 export type { BulkAction, BulkActionsInput };
