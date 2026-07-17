@@ -123,7 +123,9 @@ export class TelemetryService implements OnApplicationBootstrap, OnApplicationSh
      * cleared on shutdown.
      */
     private scheduleHeartbeat(): void {
-        const delay = HEARTBEAT_INTERVAL_MS + Math.floor(Math.random() * HEARTBEAT_MAX_JITTER_MS);
+        // This jitter only spreads background telemetry load; it has no security purpose.
+        const jitter = Math.floor(Math.random() * HEARTBEAT_MAX_JITTER_MS); // NOSONAR
+        const delay = HEARTBEAT_INTERVAL_MS + jitter;
         this.heartbeatTimeout = setTimeout(() => {
             this.heartbeatTimeout = undefined;
             this.sendTelemetry('heartbeat').catch(() => {

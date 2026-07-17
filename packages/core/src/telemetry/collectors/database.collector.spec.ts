@@ -105,13 +105,12 @@ describe('DatabaseCollector', () => {
             expect(result.metrics.entities.Product).toBe('0');
         });
 
-        it('handles count failures gracefully (returns 0 bucket)', async () => {
+        it('omits entity metrics whose count fails', async () => {
             mockRepository.count.mockRejectedValue(new Error('Database error'));
 
             const result = await collector.collect();
 
-            // Should use '0' bucket for failed counts
-            expect(result.metrics.entities.Product).toBe('0');
+            expect(result.metrics.entities.Product).toBeUndefined();
         });
     });
 
@@ -207,6 +206,30 @@ describe('DatabaseCollector', () => {
             expect(result.metrics.custom.entityCount).toBe(3);
             // 100 + 200 + 300 = 600 falls into '101-1k' bucket
             expect(result.metrics.custom.totalRecords).toBe('101-1k');
+        });
+
+        it('omits totalRecords when any custom entity count fails', async () => {
+            class CustomEntity1 {}
+            class CustomEntity2 {}
+
+            const coreEntityCount = Object.keys(coreEntitiesMap).length;
+            let callCount = 0;
+            mockRepository.count.mockImplementation(() => {
+                callCount++;
+                if (callCount === coreEntityCount + 2) {
+                    return Promise.reject(new Error('Database error'));
+                }
+                return Promise.resolve(100);
+            });
+            mockConfigService.dbConnectionOptions = {
+                type: 'postgres',
+                entities: [...Object.values(coreEntitiesMap), CustomEntity1, CustomEntity2],
+            } as any;
+
+            const result = await collector.collect();
+
+            expect(result.metrics.custom.entityCount).toBe(2);
+            expect(result.metrics.custom.totalRecords).toBeUndefined();
         });
     });
 
@@ -361,7 +384,7 @@ describe('DatabaseCollector', () => {
 
             const result = await collector.collect({ includeOrderMetrics: true });
 
-            expect(result.metrics.entities.Order).toBe('0');
+            expect(result.metrics.entities.Order).toBeUndefined();
             expect(result.metrics.orders).toBeUndefined();
             expect(orderRepo.count).toHaveBeenCalledTimes(1);
             expect(getRawMany).not.toHaveBeenCalled();

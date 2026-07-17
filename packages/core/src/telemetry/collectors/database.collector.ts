@@ -227,7 +227,10 @@ export class DatabaseCollector {
 
         const entities: Partial<Record<string, RangeBucket>> = {};
         coreEntityEntries.forEach(([name], index) => {
-            entities[name] = toRangeBucket(counts[index] ?? 0);
+            const count = counts[index];
+            if (count !== undefined) {
+                entities[name] = toRangeBucket(count);
+            }
         });
 
         const customEntities = this.getCustomEntities();
@@ -237,7 +240,9 @@ export class DatabaseCollector {
         let totalCustomRecords: number | undefined;
         if (customEntityCount > 0) {
             const customCounts = await this.countInChunks(customEntities);
-            totalCustomRecords = customCounts.reduce<number>((sum, count) => sum + (count ?? 0), 0);
+            if (customCounts.every((count): count is number => count !== undefined)) {
+                totalCustomRecords = customCounts.reduce((sum, count) => sum + count, 0);
+            }
         }
 
         return {
