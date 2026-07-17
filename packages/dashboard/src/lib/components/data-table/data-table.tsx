@@ -36,6 +36,7 @@ import { AddFilterMenu } from './add-filter-menu.js';
 import { ActiveFiltersPopover } from './data-table-active-filters-popover.js';
 import { DataTableBulkActions } from './data-table-bulk-actions.js';
 import { DataTableProvider } from './data-table-context.js';
+import { createPaginationState, syncPaginationState } from './data-table-pagination-state.js';
 import {
     DataTableFacetedFilter,
     DataTableFacetedFilterOption,
@@ -162,7 +163,11 @@ interface DataTableProps<TData> {
      * @since 3.8.0
      */
     hideViewsControls?: boolean;
-    bulkActions?: BulkActionsInput;
+    /**
+     * Bulk actions to render for selected rows. Set to `false` to suppress the
+     * bulk-action toolbar while retaining row selection.
+     */
+    bulkActions?: BulkActionsInput | false;
     /**
      * The selected items, used to synchronize table selection with an owning component.
      */
@@ -289,10 +294,15 @@ export function DataTable<TData>({
     const { activeChannel } = useChannel();
     const { pageId } = usePage();
     const { t } = useLingui();
-    const [pagination, setPagination] = React.useState<PaginationState>({
-        pageIndex: (page ?? 1) - 1,
-        pageSize: itemsPerPage ?? 10,
-    });
+    const [pagination, setPagination] = React.useState<PaginationState>(() =>
+        createPaginationState(page, itemsPerPage),
+    );
+    const paginationPropsKey = `${page ?? ''}:${itemsPerPage ?? ''}`;
+    const [lastPaginationPropsKey, setLastPaginationPropsKey] = React.useState(paginationPropsKey);
+    if (lastPaginationPropsKey !== paginationPropsKey) {
+        setLastPaginationPropsKey(paginationPropsKey);
+        setPagination(current => syncPaginationState(current, page, itemsPerPage));
+    }
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(
         defaultColumnVisibility ?? {},
     );
@@ -720,11 +730,12 @@ export function DataTable<TData>({
                         }
                         toolbar={hasToolbarContent ? renderToolbar : undefined}
                         bulkActions={
-                            hasSelectionColumn
+                            hasSelectionColumn && bulkActions !== false
                                 ? ctx => (
                                       <DataTableBulkActions
                                           bulkActions={bulkActions ?? []}
                                           table={ctx.table}
+                                          selectedItems={selectedItems}
                                       />
                                   )
                                 : undefined

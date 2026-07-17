@@ -218,6 +218,7 @@ export function AssetGallery({
     // State
     const [page, setPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(pageSize);
+    const [lastPageSizeProp, setLastPageSizeProp] = useState(pageSize);
     const [search, setSearch] = useState('');
     const debouncedSearch = useDebounce(search, 500);
     const [assetType, setAssetType] = useState<string>(AssetType.ALL);
@@ -227,10 +228,11 @@ export function AssetGallery({
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const queryClient = useQueryClient();
 
-    useEffect(() => {
+    if (lastPageSizeProp !== pageSize) {
+        setLastPageSizeProp(pageSize);
         setItemsPerPage(pageSize);
         setPage(1);
-    }, [pageSize]);
+    }
 
     const queryKey = ['AssetGallery', page, itemsPerPage, debouncedSearch, assetType, gridSelectedTags, sorting];
 
@@ -874,24 +876,20 @@ function AssetGridView({
         >
             {assets.map(asset => (
                 <div
-                    role="button"
-                    tabIndex={0}
                     key={asset.id}
                     className={`
-                        group cursor-pointer transition-all overflow-hidden rounded-lg
+                        group relative transition-all overflow-hidden rounded-lg
                         bg-card text-card-foreground ring-1 text-left
-                        hover:ring-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
+                        hover:ring-primary/40
                         ${isSelected(asset) ? 'ring-2 ring-primary' : 'ring-foreground/10'}
                     `}
-                    onClick={e => handleSelect(asset, e)}
-                    onKeyDown={e => {
-                        if (e.currentTarget !== e.target) return;
-                        if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            handleSelect(asset, e);
-                        }
-                    }}
                 >
+                    <button
+                        type="button"
+                        className="absolute inset-0 z-10 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        aria-label={t`Select ${asset.name}`}
+                        onClick={e => handleSelect(asset, e)}
+                    />
                     <div className="relative aspect-square bg-muted/30 overflow-hidden">
                         <VendureImage
                             asset={asset}
@@ -899,9 +897,10 @@ function AssetGridView({
                             className="w-full h-full object-cover"
                         />
                         {selectable && (
-                            <div className="absolute top-1.5 left-1.5">
+                            <div className="absolute top-1.5 left-1.5 z-20">
                                 <Checkbox
                                     checked={isSelected(asset)}
+                                    aria-label={t`Toggle selection for ${asset.name}`}
                                     onClick={e => {
                                         e.stopPropagation();
                                         toggleAssetSelection(asset);
@@ -925,7 +924,7 @@ function AssetGridView({
                                 to={`/assets/${asset.id}`}
                                 onClick={(e: React.MouseEvent) => e.stopPropagation()}
                                 aria-label={t`Open ${asset.name}`}
-                                className="inline-flex items-center gap-1 rounded-sm px-1 py-0.5 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                                className="relative z-20 inline-flex items-center gap-1 rounded-sm px-1 py-0.5 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                             >
                                 <Trans>Open</Trans>
                                 <ChevronRight className="h-3 w-3" />
@@ -1118,7 +1117,7 @@ function AssetListDataTable({
                         component: AssetTagFacetedFilter,
                     },
                 }}
-                bulkActions={displayBulkActions ? bulkActions : undefined}
+                bulkActions={displayBulkActions ? bulkActions : false}
                 includeSelectionColumn={selectable}
             />
         </div>

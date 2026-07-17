@@ -224,7 +224,11 @@ export interface PaginatedListDataTableProps<
     onColumnVisibilityChange?: (table: Table<any>, columnVisibility: VisibilityState) => void;
     facetedFilters?: FacetedFilterConfig<T>;
     rowActions?: RowAction<PaginatedListItemFields<T>>[];
-    bulkActions?: BulkActionsInput;
+    /**
+     * Bulk actions to render for selected rows. Set to `false` to suppress the
+     * bulk-action toolbar while retaining row selection.
+     */
+    bulkActions?: BulkActionsInput | false;
     /**
      * The selected items, used to synchronize table selection with an owning component.
      */
@@ -510,7 +514,7 @@ export function PaginatedListDataTable<
         fields,
         customizeColumns,
         rowActions,
-        bulkActions,
+        bulkActions: bulkActions === false ? undefined : bulkActions,
         deleteMutation,
         additionalColumns,
         defaultColumnOrder: getStandardizedDefaultColumnOrder(defaultColumnOrder),

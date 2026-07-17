@@ -2,20 +2,22 @@ import { AssetGallery, AssetViewMode } from '@/vdb/components/shared/asset/asset
 import { Page, PageBlock, PageTitle } from '@/vdb/framework/layout-engine/page-layout.js';
 import { Trans } from '@lingui/react/macro';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { z } from '@/vdb/lib/zod.js';
 import { DeleteAssetsBulkAction } from './components/asset-bulk-actions.js';
+import {
+    getSearchForAssetView,
+    parseAssetSearch,
+    stripDefaultAssetSearchParams,
+} from './utils/assets-search.js';
 
-const assetSearchSchema = z.object({
-    perPage: z.coerce.number().int().positive().catch(24),
-    viewMode: z.enum(['grid', 'list']).catch('grid'),
-});
-
-type AssetSearch = z.infer<typeof assetSearchSchema>;
+type AssetSearch = ReturnType<typeof parseAssetSearch>;
 
 export const Route = createFileRoute('/_authenticated/_assets/assets')({
     component: RouteComponent,
     loader: () => ({ breadcrumb: () => <Trans>Assets</Trans> }),
-    validateSearch: (search: Record<string, unknown>) => assetSearchSchema.parse(search),
+    validateSearch: parseAssetSearch,
+    search: {
+        middlewares: [stripDefaultAssetSearchParams],
+    },
 });
 
 function RouteComponent() {
@@ -30,7 +32,7 @@ function RouteComponent() {
 
     const handleViewModeChange = (mode: AssetViewMode) => {
         navigate({
-            search: (prev: AssetSearch) => ({ ...prev, viewMode: mode }),
+            search: (previous: AssetSearch) => getSearchForAssetView(previous, mode),
         });
     };
 
