@@ -4,7 +4,7 @@ generated: true
 ---
 ## PaginatedListDataTable
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/paginated-list-data-table.tsx" sourceLine="428" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/paginated-list-data-table.tsx" sourceLine="426" packageName="@vendure/dashboard" since="3.4.0" />
 
 A wrapper around the [DataTable](/reference/dashboard/list-views/data-table#datatable) component, which automatically configures functionality common to
 list queries that implement the `PaginatedList` interface, which is the common way of representing lists
@@ -139,7 +139,6 @@ interface PaginatedListDataTableProps<T extends TypedDocumentNode<U, V>, U exten
     searchPlaceholder?: string;
     page: number;
     itemsPerPage: number;
-    pageSizeOptions?: number[];
     sorting: SortingState;
     columnFilters?: ColumnFiltersState;
     onPageChange: (table: Table<any>, page: number, perPage: number) => void;
@@ -236,11 +235,6 @@ e.g. "Search products...". Defaults to a generic "Search...".
 ### itemsPerPage
 
 <MemberInfo kind="property" type={`number`}   />
-
-
-### pageSizeOptions
-
-<MemberInfo kind="property" type={`number[]`}   />
 
 
 ### sorting
