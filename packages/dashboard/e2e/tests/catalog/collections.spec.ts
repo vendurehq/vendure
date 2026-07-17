@@ -555,9 +555,9 @@ test.describe('Collection tree toggles, search subtitles & detail breadcrumb', (
         await expect(page.locator('[data-slot="breadcrumb-link"][href^="/collections/"]')).toHaveCount(1);
     });
 
-    // The embedded contents table suppresses the saved-views tabs but keeps its
-    // own search control.
-    test('collection contents table hides saved-views tabs but keeps filtering', async ({ page }) => {
+    // The embedded contents table does not opt into saved views but keeps its own
+    // search control.
+    test('collection contents table omits saved-views tabs but keeps filtering', async ({ page }) => {
         await page.goto(`/collections/${parentId}`);
         await expect(page.getByRole('heading', { name: PARENT_NAME })).toBeVisible({ timeout: 10_000 });
 

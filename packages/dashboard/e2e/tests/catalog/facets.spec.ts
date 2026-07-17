@@ -283,14 +283,14 @@ test.describe('Facet list & detail improvements', () => {
         await expect(smallRow.getByRole('button', { name: /more/i })).toHaveCount(0);
     });
 
-    // The embedded facet-values table on the detail page suppresses the saved-views
-    // tabs but keeps its filter controls working.
-    test('facet detail values table hides saved-views tabs and still filters', async ({ page }) => {
+    // The embedded facet-values table on the detail page does not opt into saved
+    // views, but keeps its filter controls working.
+    test('facet detail values table omits saved-views tabs and still filters', async ({ page }) => {
         await page.goto(`/facets/${bigFacetId}`);
         await expect(page.getByText('Facet values', { exact: true })).toBeVisible({ timeout: 10_000 });
         await expect(page.locator('table tbody tr').first()).toBeVisible({ timeout: 10_000 });
 
-        // Embedded table suppresses the saved-views tabs…
+        // Embedded table does not render the opt-in saved-views tabs…
         await expect(page.getByTestId('dt-views-tabs')).toHaveCount(0);
         // …but keeps its search control: filtering narrows the rows.
         const search = page.getByRole('textbox', { name: /Search facet values/i });

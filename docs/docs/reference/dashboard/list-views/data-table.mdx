@@ -45,10 +45,10 @@ interface DataTableProps<TData> {
     defaultColumnVisibility?: VisibilityState;
     facetedFilters?: { [key: string]: FacetedFilter | undefined };
     disableViewOptions?: boolean;
-    hideViewsControls?: boolean;
     bulkActions?: BulkActionsInput | false;
     selectedItems?: TData[];
     onSelectionChange?: (selection: TData[]) => void;
+    enableViews?: boolean;
     setTableOptions?: (table: TableOptions<TData>) => TableOptions<TData>;
     onRefresh?: () => void;
     onReorder?: (oldIndex: number, newIndex: number, item: TData, allItems?: TData[]) => void | Promise<void>;
@@ -154,15 +154,6 @@ e.g. "Search products...". Defaults to a generic "Search...".
 <MemberInfo kind="property" type={`boolean`}   />
 
 
-### hideViewsControls
-
-<MemberInfo kind="property" type={`boolean`}  since="3.8.0"  />
-
-When true, suppresses the saved-views tabs even when a page context and
-filter handler are present. Useful for tables embedded in a detail page,
-where saved views (keyed only by page id and block id) would otherwise be
-shared across every entity showing that block. Filtering and column
-customization are unaffected.
 ### bulkActions
 
 <MemberInfo kind="property" type={`<a href='/reference/dashboard/list-views/bulk-actions#bulkactionsinput'>BulkActionsInput</a> | false`}   />
@@ -176,6 +167,11 @@ customization are unaffected.
 ### onSelectionChange
 
 <MemberInfo kind="property" type={`(selection: TData[]) => void`}   />
+
+
+### enableViews
+
+<MemberInfo kind="property" type={`boolean`}   />
 
 
 ### setTableOptions

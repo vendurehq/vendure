@@ -64,6 +64,7 @@ export const Playground: Story = {
                     <PageLayout>
                         <FullWidthPageBlock blockId="test-block">
                             <PaginatedListDataTable
+                                enableViews
                                 listQuery={productsListDocument}
                                 defaultVisibility={{
                                     id: false,

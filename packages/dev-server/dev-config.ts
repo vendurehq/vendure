@@ -18,17 +18,20 @@ import {
 } from '@vendure/core';
 import { DashboardPlugin } from '@vendure/dashboard/plugin';
 import { defaultEmailHandlers, EmailPlugin, FileBasedTemplateLoader } from '@vendure/email-plugin';
-import { GraphiqlPlugin } from '@vendure/graphiql-plugin';
-import { TelemetryPlugin } from '@vendure/telemetry-plugin';
 import 'dotenv/config';
+import { createRequire } from 'node:module';
 import path from 'path';
 import { DataSourceOptions } from 'typeorm';
+
 import { NavModifierPlugin } from './test-plugins/nav-modifier-plugin/nav-modifier-plugin';
 // import { FieldTestPlugin } from './test-plugins/field-test/field-test-plugin';
 import { InsightsTestPlugin } from './test-plugins/insights-test/insights-test-plugin';
 import { ReviewsPlugin } from './test-plugins/reviews/reviews-plugin';
 
 const IS_INSTRUMENTED = process.env.IS_INSTRUMENTED === 'true';
+const SERVE_GRAPHIQL = process.env.VENDURE_SERVE_GRAPHIQL !== 'false';
+const SERVE_STATIC_DASHBOARD = process.env.VENDURE_SERVE_STATIC_DASHBOARD !== 'false';
+const loadPackage = createRequire(__filename);
 const dashboardUrl = process.env.VENDURE_DASHBOARD_URL || 'http://localhost:3000/dashboard';
 const dashboardAppDir =
     path.basename(__dirname) === 'dist'
@@ -130,7 +133,7 @@ export const devConfig: VendureConfig = {
         InsightsTestPlugin,
         // FieldTestPlugin,
         NavModifierPlugin,
-        GraphiqlPlugin.init(),
+        ...(SERVE_GRAPHIQL ? [loadPackage('@vendure/graphiql-plugin').GraphiqlPlugin.init()] : []),
         AssetServerPlugin.init({
             route: 'assets',
             assetUploadDir: path.join(__dirname, 'assets'),
@@ -154,11 +157,13 @@ export const devConfig: VendureConfig = {
                 adminPasswordResetUrl: `${dashboardUrl}/reset-password`,
             },
         }),
-        ...(IS_INSTRUMENTED ? [TelemetryPlugin.init({})] : []),
-        DashboardPlugin.init({
-            route: 'dashboard',
-            appDir: dashboardAppDir,
-        }),
+        ...(IS_INSTRUMENTED ? [loadPackage('@vendure/telemetry-plugin').TelemetryPlugin.init({})] : []),
+        SERVE_STATIC_DASHBOARD
+            ? DashboardPlugin.init({
+                  route: 'dashboard',
+                  appDir: dashboardAppDir,
+              })
+            : DashboardPlugin,
     ],
 };
 

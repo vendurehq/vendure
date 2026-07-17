@@ -58,7 +58,6 @@ export function FacetValuesTable({ facetId, registerRefresher, title }: Readonly
     return (
         <PaginatedListDataTable
             title={title}
-            hideViewsControls
             actions={
                 <Button render={<Link to={`/facets/${facetId}/values/new`} />} variant="outline" size="sm">
                     <PlusIcon />

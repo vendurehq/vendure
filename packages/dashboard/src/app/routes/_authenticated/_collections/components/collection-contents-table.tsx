@@ -40,7 +40,6 @@ export function CollectionContentsTable({ collectionId, title }: Readonly<Collec
     return (
         <PaginatedListDataTable
             title={title}
-            hideViewsControls
             listQuery={addCustomFields(collectionContentsDocument)}
             transformVariables={variables => {
                 return {

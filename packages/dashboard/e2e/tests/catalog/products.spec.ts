@@ -169,13 +169,13 @@ test.describe('Product detail features', () => {
 
     // Saved views are keyed by page id + block id only, so a view saved on one
     // product's embedded variants table would leak onto every other product. The
-    // embedded table therefore hides the views tabs (via `hideViewsControls`)
-    // while keeping filtering and column customization intact.
+    // embedded table therefore does not opt into views, while keeping filtering
+    // and column customization intact.
     // Note: the e2e fixture doesn't register the DashboardPlugin settings-store
     // fields, so saved-views tabs never render in this environment regardless;
     // the observable guarantees here are that filtering and column customization
     // controls remain, and the views-tabs assertion guards against regressions.
-    test('embedded variants table hides views tabs but keeps filter and column controls', async ({
+    test('embedded variants table omits views tabs but keeps filter and column controls', async ({
         page,
     }) => {
         // Navigate to the seeded "Laptop" product which has variants

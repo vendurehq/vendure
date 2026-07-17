@@ -31,11 +31,11 @@ msgstr "Selecteer items"
 msgid "View changes"
 msgstr "Wijzigingen bekijken"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:139
 msgid "Tracking code"
 msgstr "Trackingcode"
 
-#: src/lib/components/data-table/data-table.tsx:761
+#: src/lib/components/data-table/data-table.tsx:772
 #: src/lib/components/data-table/use-generated-columns.tsx:226
 msgid "Select all rows"
 msgstr "Alle rijen selecteren"
@@ -174,14 +174,16 @@ msgstr "Belastingtarief succesvol bijgewerkt"
 msgid "Enter custom reason..."
 msgstr "Voer een aangepaste reden in..."
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:1017
+#: src/lib/components/shared/asset/asset-gallery.tsx:1027
 msgid "Type"
 msgstr "Type"
 
+#. placeholder {0}: asset.name
 #. placeholder {0}: entityName.toLowerCase()
 #. placeholder {0}: group.name
 #: src/app/routes/_authenticated/_products/components/product-option-select.tsx:57
 #: src/lib/components/data-input/default-relation-input.tsx:671
+#: src/lib/components/shared/asset/asset-gallery.tsx:901
 msgid "Select {0}"
 msgstr "Selecteer {0}"
 
@@ -208,7 +210,7 @@ msgctxt "current channel"
 msgid "Current"
 msgstr "Huidig"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:330
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:300
 msgid "No fulfillments"
 msgstr "Geen afhandelingen"
 
@@ -241,7 +243,7 @@ msgstr "Automatisch vernieuwen: {0}"
 msgid "Deleted {deleted} {entityName}"
 msgstr "{deleted} {entityName} verwijderd"
 
-#: src/lib/components/data-table/data-table.tsx:650
+#: src/lib/components/data-table/data-table.tsx:660
 msgid "There are no items to display yet."
 msgstr "Er zijn nog geen items om weer te geven."
 
@@ -341,16 +343,21 @@ msgstr "Weet u zeker dat u deze variant wilt verwijderen?"
 #~ msgid "All resources are up and running"
 #~ msgstr "Alle resources zijn operationeel"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:930
-#: src/lib/components/shared/asset/asset-gallery.tsx:1076
+#: src/lib/components/shared/asset/asset-gallery.tsx:940
+#: src/lib/components/shared/asset/asset-gallery.tsx:1086
 msgid "Open"
+msgstr ""
+
+#. placeholder {0}: asset.name
+#: src/lib/components/shared/asset/asset-gallery.tsx:914
+msgid "Toggle selection for {0}"
 msgstr ""
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:87
 msgid "Failed to create administrator"
 msgstr "Aanmaken van beheerder mislukt"
 
-#: src/app/routes/_authenticated/_system/settings-store.tsx:338
+#: src/app/routes/_authenticated/_system/settings-store.tsx:402
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx:71
 msgid "No"
 msgstr "Nee"
@@ -359,7 +366,7 @@ msgstr "Nee"
 msgid "Successfully updated product variant"
 msgstr "Productvariant succesvol bijgewerkt"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:801
+#: src/lib/components/shared/asset/asset-gallery.tsx:814
 msgid "Upload images, videos, or files to start building your asset library."
 msgstr ""
 
@@ -418,7 +425,7 @@ msgstr "Geen widgets om toe te voegen"
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:107
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:290
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:203
-#: src/lib/components/shared/asset/asset-gallery.tsx:291
+#: src/lib/components/shared/asset/asset-gallery.tsx:304
 #: src/lib/components/shared/asset/asset-preview.tsx:127
 msgid "Unknown error"
 msgstr "Onbekende fout"
@@ -426,6 +433,11 @@ msgstr "Onbekende fout"
 #: src/lib/components/shared/rich-text-editor/rich-text-editor.tsx:142
 msgid "Uploading image..."
 msgstr "Afbeelding uploaden..."
+
+#. placeholder {0}: fulfillment.lines.reduce((acc, line) => acc + line.quantity, 0)
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:149
+msgid "View fulfilled items ({0})"
+msgstr "Afgehandelde items bekijken ({0})"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts:200
 msgid "Refund total cannot be negative"
@@ -479,8 +491,8 @@ msgstr "Terugbrengen naar voorraad"
 msgid "Visibility"
 msgstr "Zichtbaarheid"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:288
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:302
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:287
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:301
 msgid "Product variants"
 msgstr "Productvarianten"
 
@@ -528,7 +540,6 @@ msgid "Address deleted successfully"
 msgstr "Adres succesvol verwijderd"
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:109
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:17
 msgid "Tax rate"
 msgstr "Belastingtarief"
 
@@ -549,7 +560,7 @@ msgstr "Nieuwe collectie"
 msgid "Insights"
 msgstr "Inzichten"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:290
+#: src/lib/components/shared/asset/asset-gallery.tsx:303
 msgid "Failed to upload assets"
 msgstr ""
 
@@ -597,7 +608,7 @@ msgstr "Beheerders"
 #~ msgstr "Brutoprijs: <0/>"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:82
-#: src/lib/components/data-table/data-table.tsx:766
+#: src/lib/components/data-table/data-table.tsx:777
 msgid "Go to next page"
 msgstr "Ga naar volgende pagina"
 
@@ -622,7 +633,11 @@ msgstr "Opties zoeken..."
 msgid "Order Count"
 msgstr "Aantal bestellingen"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:93
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:157
+msgid "Fulfilled items"
+msgstr "Afgehandelde items"
+
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:95
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:59
 msgid "Successfully updated order"
 msgstr "Bestelling succesvol bijgewerkt"
@@ -709,7 +724,7 @@ msgstr "Collecties verplaatsen"
 msgid "Roles"
 msgstr "Rollen"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:506
+#: src/lib/components/shared/asset/asset-gallery.tsx:519
 msgid "Grid view"
 msgstr "Rasterweergave"
 
@@ -737,7 +752,7 @@ msgstr "Weet u zeker dat u {selectionLength} bestanden wilt verwijderen?"
 msgid "Sign in"
 msgstr "Inloggen"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:509
+#: src/lib/components/shared/asset/asset-gallery.tsx:522
 msgid "List view"
 msgstr "Lijstweergave"
 
@@ -798,7 +813,7 @@ msgid "Order draft is ready to be completed"
 msgstr "Conceptbestelling is klaar om te worden voltooid"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:201
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:243
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:279
 msgid "Metadata"
 msgstr "Metadata"
 
@@ -890,7 +905,7 @@ msgstr "Concept voltooien"
 #: src/app/routes/_authenticated/_tax-categories/tax-categories_.$id.tsx:106
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:113
 #: src/app/routes/_authenticated/_zones/zones_.$id.tsx:93
-#: src/lib/components/shared/asset/asset-gallery.tsx:1005
+#: src/lib/components/shared/asset/asset-gallery.tsx:1015
 msgid "Name"
 msgstr "Naam"
 
@@ -903,7 +918,7 @@ msgstr "Bestelling afhandelen mislukt"
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:193
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:88
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:106
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:226
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:262
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:120
 msgid "Total"
 msgstr "Totaal"
@@ -930,7 +945,7 @@ msgstr "Afhandeling aangemaakt"
 msgid "Found {0} eligible shipping method{1}"
 msgstr "{0} geschikte verzendmethode(n) gevonden"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:1049
+#: src/lib/components/shared/asset/asset-gallery.tsx:1059
 #: src/lib/components/shared/asset/asset-properties.tsx:39
 msgid "Dimensions"
 msgstr "Afmetingen"
@@ -956,7 +971,7 @@ msgstr "Kolom toevoegen na"
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:421
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:241
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:209
-#: src/lib/components/data-table/data-table-bulk-actions.tsx:82
+#: src/lib/components/data-table/data-table-bulk-actions.tsx:91
 #: src/lib/components/data-table/use-generated-columns.tsx:262
 msgid "Actions"
 msgstr "Acties"
@@ -977,7 +992,7 @@ msgstr "Bestelregel verwijderd"
 msgid "Content:"
 msgstr "Inhoud:"
 
-#: src/app/routes/_authenticated/_system/settings-store.tsx:270
+#: src/app/routes/_authenticated/_system/settings-store.tsx:360
 msgid "Key"
 msgstr "Sleutel"
 
@@ -1007,12 +1022,16 @@ msgstr "Ga naar eerste pagina"
 msgid "Failed to create product"
 msgstr "Product aanmaken mislukt"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:279
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:308
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:233
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:498
 #: src/lib/components/shared/role-code-label.tsx:8
 msgid "Customer"
 msgstr "Klant"
+
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:223
+msgid "Metadata returned by the payment handler."
+msgstr "Metadata geretourneerd door de betalingshandler."
 
 #: src/lib/components/shared/error-page.tsx:98
 msgid "Page not found"
@@ -1111,7 +1130,7 @@ msgstr "Geplande taak wordt uitgevoerd"
 msgid "New stock location"
 msgstr "Nieuwe voorraadlocatie"
 
-#: src/lib/components/data-table/data-table.tsx:762
+#: src/lib/components/data-table/data-table.tsx:773
 #: src/lib/components/data-table/use-generated-columns.tsx:238
 msgid "Select row"
 msgstr "Rij selecteren"
@@ -1136,7 +1155,7 @@ msgstr "Geen producten gevonden"
 msgid "Add row before"
 msgstr "Rij toevoegen voor"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:95
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:102
 msgid "Transition to {suggestedState}"
 msgstr "Overgaan naar {suggestedState}"
 
@@ -1158,8 +1177,8 @@ msgid "Failed to cancel order items"
 msgstr "Annuleren van bestelartikelen mislukt"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:160
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:176
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:237
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:198
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:273
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:58
 msgid "Transaction ID"
 msgstr "Transactie-ID"
@@ -1212,8 +1231,8 @@ msgstr "Conceptbestelling"
 msgid "Enter your email address and we will send you a link to reset your password"
 msgstr "Voer uw e-mailadres in en we sturen u een link om uw wachtwoord opnieuw in te stellen"
 
-#: src/app/routes/_authenticated/_system/settings-store.tsx:291
-#: src/app/routes/_authenticated/_system/settings-store.tsx:325
+#: src/app/routes/_authenticated/_system/settings-store.tsx:362
+#: src/app/routes/_authenticated/_system/settings-store.tsx:389
 msgid "Scope"
 msgstr "Bereik"
 
@@ -1268,8 +1287,8 @@ msgid "Failed to update promotion"
 msgstr "Promotie bijwerken mislukt"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx:91
-#: src/lib/components/shared/asset/asset-gallery.tsx:464
-#: src/lib/components/shared/asset/asset-gallery.tsx:481
+#: src/lib/components/shared/asset/asset-gallery.tsx:477
+#: src/lib/components/shared/asset/asset-gallery.tsx:494
 msgid "Images"
 msgstr "Afbeeldingen"
 
@@ -1286,7 +1305,7 @@ msgstr "Zoeken {name}..."
 msgid "Edit asset"
 msgstr "Bestand bewerken"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:150
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:158
 msgid "Cancel payment"
 msgstr "Betaling annuleren"
 
@@ -1345,7 +1364,7 @@ msgid "Resize image from right"
 msgstr "Afbeeldingsgrootte vanaf rechts aanpassen"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:37
-#: src/app/routes/_authenticated/_system/settings-store.tsx:314
+#: src/app/routes/_authenticated/_system/settings-store.tsx:377
 msgid "Settings Store"
 msgstr "Instellingenopslag"
 
@@ -1396,7 +1415,7 @@ msgid "No items selected"
 msgstr "Geen items geselecteerd"
 
 #. placeholder {0}: selected.length
-#: src/lib/components/shared/asset/asset-gallery.tsx:623
+#: src/lib/components/shared/asset/asset-gallery.tsx:636
 msgid ", {0} selected"
 msgstr ", {0} geselecteerd"
 
@@ -1444,7 +1463,7 @@ msgstr "Globale uitverkocht-drempelwaarde gebruiken"
 #~ msgid "New product option group"
 #~ msgstr "Nieuwe productoptiegroep"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:57
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:65
 msgid "Payment state updated successfully"
 msgstr "Betalingsstatus succesvol bijgewerkt"
 
@@ -1606,7 +1625,7 @@ msgstr "Weergavetaal"
 msgid "The source file remains unchanged. Keep the original extension or omit it."
 msgstr ""
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:312
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:282
 msgid "Fulfillment details"
 msgstr "Afhandelingsdetails"
 
@@ -1632,7 +1651,7 @@ msgstr "voor"
 msgid "Failed to set customer for order: {0}"
 msgstr "Instellen van klant voor bestelling mislukt: {0}"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:1026
+#: src/lib/components/shared/asset/asset-gallery.tsx:1036
 msgid "Size"
 msgstr "Maat"
 
@@ -1763,8 +1782,8 @@ msgid "Address updated successfully"
 msgstr "Adres succesvol bijgewerkt"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:126
-#: src/lib/components/shared/asset/asset-gallery.tsx:1033
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:141
+#: src/lib/components/shared/asset/asset-gallery.tsx:1043
 #: src/lib/framework/layout-engine/page-layout.tsx:746
 msgid "Created"
 msgstr "Aangemaakt"
@@ -1912,7 +1931,7 @@ msgstr "Standaard verzendzone"
 msgid "Reason:"
 msgstr "Reden:"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:294
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:323
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:248
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:511
 msgid "Shipping address"
@@ -1921,9 +1940,9 @@ msgstr "Verzendadres"
 #. placeholder {0}: getTranslatedFulfillmentState(state)
 #. placeholder {0}: getTranslatedOrderState(state)
 #. placeholder {0}: getTranslatedPaymentState(state)
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:103
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:126
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:151
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:110
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:128
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:159
 msgid "Transition to {0}"
 msgstr "Overgaan naar {0}"
 
@@ -2017,7 +2036,7 @@ msgstr "Kon optiegroep niet verwijderen"
 msgid "Failed to update tax category"
 msgstr "Belastingcategorie bijwerken mislukt"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:87
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:95
 msgid "Refund settled successfully"
 msgstr "Terugbetaling succesvol afgehandeld"
 
@@ -2065,7 +2084,7 @@ msgid "Successfully updated profile"
 msgstr "Profiel succesvol bijgewerkt"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:146
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:166
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:187
 msgid "Payment method"
 msgstr "Betaalmethode"
 
@@ -2106,8 +2125,8 @@ msgstr "Begint op"
 msgid "Duplicate"
 msgstr "Dupliceren"
 
-#: src/lib/components/data-table/data-table.tsx:638
-#: src/lib/components/data-table/data-table.tsx:649
+#: src/lib/components/data-table/data-table.tsx:648
+#: src/lib/components/data-table/data-table.tsx:659
 #: src/lib/components/shared/customer-group-selector.tsx:60
 msgid "No results"
 msgstr "Geen resultaten"
@@ -2202,9 +2221,9 @@ msgstr "Notitie bijwerken mislukt"
 msgid "Refund shipping"
 msgstr "Verzendkosten restitueren"
 
-#: src/app/routes/_authenticated/_system/settings-store.tsx:299
-#: src/app/routes/_authenticated/_system/settings-store.tsx:303
-#: src/app/routes/_authenticated/_system/settings-store.tsx:335
+#: src/app/routes/_authenticated/_system/settings-store.tsx:321
+#: src/app/routes/_authenticated/_system/settings-store.tsx:363
+#: src/app/routes/_authenticated/_system/settings-store.tsx:399
 msgid "Readonly"
 msgstr "Alleen-lezen"
 
@@ -2221,7 +2240,7 @@ msgid "Test Shipping Method"
 msgstr "Verzendmethode testen"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:767
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:348
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:347
 msgid "Facet Values"
 msgstr "Facetwaarden"
 
@@ -2591,11 +2610,11 @@ msgstr "Zone"
 msgid "No metrics for this period"
 msgstr "Geen statistieken voor deze periode"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:118
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:137
 msgid "Method"
 msgstr "Methode"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:234
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:338
 msgid "Tax summary"
 msgstr "Belastingsamenvatting"
 
@@ -2628,7 +2647,7 @@ msgstr "Instellen van verzendadres voor bestelling mislukt: {0}"
 msgid "Cancel Job"
 msgstr "Taak annuleren"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:796
+#: src/lib/components/shared/asset/asset-gallery.tsx:809
 msgid "No assets yet"
 msgstr ""
 
@@ -2694,7 +2713,7 @@ msgstr "Weergave opslaan"
 #. placeholder {0}: selectedTags.length
 #. placeholder {0}: selectedValues.size
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:48
-#: src/lib/components/data-table/data-table-bulk-actions.tsx:76
+#: src/lib/components/data-table/data-table-bulk-actions.tsx:85
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:137
 #: src/lib/components/data-table/data-table-faceted-filter.tsx:139
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx:67
@@ -2907,25 +2926,25 @@ msgstr "Verzendkosten herberekenen"
 #~ msgstr "Selecteer welke opties van toepassing moeten zijn op de bestaande variant \"{0}\""
 
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:54
-#: src/app/routes/_authenticated/_assets/assets.tsx:17
-#: src/app/routes/_authenticated/_assets/assets.tsx:40
+#: src/app/routes/_authenticated/_assets/assets.tsx:16
+#: src/app/routes/_authenticated/_assets/assets.tsx:42
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:248
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:777
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:381
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:380
 msgid "Assets"
 msgstr "Middelen"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:321
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:320
 msgid "This will remove all option groups from this product and return to the variant setup choice."
 msgstr "Dit verwijdert alle optiegroepen van dit product en keert terug naar de variantkeuze."
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:302
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:331
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:277
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:533
 msgid "Billing address"
 msgstr "Factuuradres"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:65
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:64
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:173
 msgid "Add facet value"
 msgstr "Facetwaarde toevoegen"
@@ -2964,8 +2983,8 @@ msgstr "Korting"
 msgid "Top Products"
 msgstr "Topproducten"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:463
-#: src/lib/components/shared/asset/asset-gallery.tsx:480
+#: src/lib/components/shared/asset/asset-gallery.tsx:476
+#: src/lib/components/shared/asset/asset-gallery.tsx:493
 msgid "All types"
 msgstr "Alle typen"
 
@@ -3011,7 +3030,7 @@ msgstr "Kopiëren"
 #~ msgid "Healthchecks"
 #~ msgstr "Statuscontroles"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:168
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:189
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:322
 msgid "Amount"
 msgstr "Bedrag"
@@ -3037,7 +3056,7 @@ msgid "Successfully created administrator"
 msgstr "Beheerder succesvol aangemaakt"
 
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:196
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:329
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:328
 msgid "Product Options"
 msgstr "Productopties"
 
@@ -3098,8 +3117,8 @@ msgstr "Selecteer een optie"
 
 #. placeholder {0}: asset.name
 #. placeholder {0}: row.original.name
-#: src/lib/components/shared/asset/asset-gallery.tsx:927
-#: src/lib/components/shared/asset/asset-gallery.tsx:1073
+#: src/lib/components/shared/asset/asset-gallery.tsx:937
+#: src/lib/components/shared/asset/asset-gallery.tsx:1083
 msgid "Open {0}"
 msgstr ""
 
@@ -3173,7 +3192,7 @@ msgstr "Optiewaarden"
 msgid "Default Billing Address"
 msgstr "Standaard factuuradres"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:287
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:316
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:241
 msgid "No customer"
 msgstr "Geen klant"
@@ -3220,7 +3239,7 @@ msgstr "{0} toeslag(en) toevoegen"
 msgid "Fallback: {value}"
 msgstr "Fallback: {value}"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:263
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:304
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-container.tsx:30
 msgid "Order history"
 msgstr "Bestelgeschiedenis"
@@ -3315,6 +3334,10 @@ msgstr "Wijzigingen opslaan"
 msgid "Search products..."
 msgstr "Producten zoeken..."
 
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:166
+msgid "Unknown product"
+msgstr "Onbekend product"
+
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:53
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx:78
 msgid "Address updated"
@@ -3354,7 +3377,7 @@ msgstr "Bijwerken van collectiepositie mislukt"
 msgid "Refund"
 msgstr "Restitutie"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:162
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:164
 #: src/app/routes/_authenticated/_orders/utils/order-detail-loaders.tsx:78
 msgid "Modify"
 msgstr "Wijzigen"
@@ -3420,7 +3443,7 @@ msgstr "Kolommen"
 msgid "Failed to upload image"
 msgstr "Uploaden van afbeelding mislukt"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:796
+#: src/lib/components/shared/asset/asset-gallery.tsx:809
 msgid "No assets match these filters"
 msgstr ""
 
@@ -3492,7 +3515,7 @@ msgstr "Bevestig dat u de API Key hebt opgeslagen voordat u sluit."
 msgid "Confirm deletion"
 msgstr "Verwijdering bevestigen"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:152
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:154
 msgid "Failed to modify order"
 msgstr "Bestelling wijzigen mislukt"
 
@@ -3563,7 +3586,7 @@ msgstr "Globale weergaven beheren"
 msgid "Processing..."
 msgstr "Bezig met verwerken..."
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:587
+#: src/lib/components/shared/asset/asset-gallery.tsx:472
 #~ msgid "{totalItems} {0} found"
 #~ msgstr "{totalItems} {0} gevonden"
 
@@ -3604,7 +3627,7 @@ msgstr "Toewijzen"
 msgid "Successfully created seller"
 msgstr "Verkoper succesvol aangemaakt"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:850
+#: src/lib/components/shared/asset/asset-gallery.tsx:863
 msgid "We couldn't load assets"
 msgstr ""
 
@@ -3633,7 +3656,7 @@ msgstr "Slepen om opnieuw te ordenen"
 msgid "Zones"
 msgstr "Zones"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:112
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:111
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:151
 #: src/lib/components/shared/facet-value-selector.tsx:124
 msgid "Search facet values..."
@@ -3672,7 +3695,7 @@ msgstr "Niet gevonden"
 msgid "Facet values"
 msgstr "Facetwaarden"
 
-#: src/lib/components/data-table/data-table.tsx:360
+#: src/lib/components/data-table/data-table.tsx:370
 msgid "Failed to reorder items"
 msgstr "Opnieuw ordenen van artikelen mislukt"
 
@@ -3748,7 +3771,7 @@ msgstr "Verzendmethoden"
 msgid "Select an address"
 msgstr "Selecteer een adres"
 
-#: src/app/routes/_authenticated/_system/settings-store.tsx:337
+#: src/app/routes/_authenticated/_system/settings-store.tsx:401
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx:71
 msgid "Yes"
 msgstr "Ja"
@@ -3822,7 +3845,7 @@ msgstr "Vernieuwen"
 msgid "No checkers found"
 msgstr "Geen controles gevonden"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:139
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:147
 msgid "Settle payment"
 msgstr "Betaling afhandelen"
 
@@ -3830,7 +3853,7 @@ msgstr "Betaling afhandelen"
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:24
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:210
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:358
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:357
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:111
 #: src/lib/components/layout/channel-switcher.tsx:146
 msgid "Channels"
@@ -3845,7 +3868,7 @@ msgstr "Verzendkosten gerestitueerd"
 msgid "Failed to create option in group \"{0}\""
 msgstr ""
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:477
+#: src/lib/components/shared/asset/asset-gallery.tsx:490
 msgid "Asset type"
 msgstr "Bestandstype"
 
@@ -3908,8 +3931,8 @@ msgstr "Wachtwoorden komen niet overeen"
 msgid "Pick a date and time"
 msgstr "Kies een datum en tijd"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:53
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:57
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:60
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:64
 msgid "Failed to update fulfillment state"
 msgstr "Afhandelingsstatus bijwerken mislukt"
 
@@ -3950,7 +3973,7 @@ msgstr "{0} item(s) toevoegen"
 msgid "Add row after"
 msgstr "Rij toevoegen na"
 
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:23
+#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:30
 msgid "Tax total"
 msgstr "Totale belasting"
 
@@ -3958,8 +3981,8 @@ msgstr "Totale belasting"
 msgid "Draft order status"
 msgstr "Status conceptbestelling"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:167
-#: src/app/routes/_authenticated/_collections/components/collection-contents-table.tsx:80
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:166
+#: src/app/routes/_authenticated/_collections/components/collection-contents-table.tsx:79
 msgid "Search variants..."
 msgstr "Varianten zoeken..."
 
@@ -4040,8 +4063,8 @@ msgstr "Geen widgets om weer te geven. Gebruik 'Lay-out bewerken' om widgets toe
 msgid "{0} variants"
 msgstr "{0} varianten"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:45
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:49
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:53
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:57
 msgid "Failed to settle payment"
 msgstr "Betaling afhandelen mislukt"
 
@@ -4098,7 +4121,7 @@ msgstr "Rol aanmaken mislukt"
 msgid "Product name"
 msgstr "Productnaam"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:50
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:57
 msgid "Fulfillment state updated successfully"
 msgstr "Afhandelingsstatus succesvol bijgewerkt"
 
@@ -4144,16 +4167,20 @@ msgstr "Restitutie {0}"
 msgid "Enter slug manually"
 msgstr "Voer slug handmatig in"
 
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:160
+msgid "Items included in this fulfillment."
+msgstr "Artikelen die in deze afhandeling zijn opgenomen."
+
 #: src/app/routes/_authenticated/index.tsx:230
 #~ msgid "No widgets available"
 #~ msgstr "Geen widgets beschikbaar"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:75
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:79
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:83
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:87
 msgid "Failed to cancel payment"
 msgstr "Betaling annuleren mislukt"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:72
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:80
 msgid "Payment cancelled successfully"
 msgstr "Betaling succesvol geannuleerd"
 
@@ -4170,7 +4197,7 @@ msgstr "Beheerders zoeken..."
 msgid "Created by"
 msgstr "Aangemaakt door"
 
-#: src/lib/components/data-table/data-table.tsx:639
+#: src/lib/components/data-table/data-table.tsx:649
 msgid "No items match your current filters. Try clearing them to see more."
 msgstr "Geen items komen overeen met uw huidige filters. Wis ze om meer te zien."
 
@@ -4263,8 +4290,8 @@ msgstr "Notitie succesvol verwijderd"
 msgid "Note updated successfully"
 msgstr "Notitie succesvol bijgewerkt"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:91
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:95
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:99
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:103
 msgid "Failed to settle refund"
 msgstr "Terugbetaling afhandelen mislukt"
 
@@ -4300,7 +4327,6 @@ msgstr "Optiegroep verwijderen"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:213
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:76
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:14
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:275
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:174
@@ -4461,8 +4487,8 @@ msgstr "Citaat"
 msgid "Select table size"
 msgstr "Tabelgrootte selecteren"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:60
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:64
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:68
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:72
 msgid "Failed to update payment state"
 msgstr "Betalingsstatus bijwerken mislukt"
 
@@ -4470,7 +4496,7 @@ msgstr "Betalingsstatus bijwerken mislukt"
 msgid "Your orders summary"
 msgstr "Uw besteloverzicht"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:527
+#: src/lib/components/shared/asset/asset-gallery.tsx:540
 msgid "Upload"
 msgstr "Uploaden"
 
@@ -4623,7 +4649,7 @@ msgstr "Inline code"
 
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:45
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx:104
-#: src/lib/components/shared/asset/asset-gallery.tsx:1117
+#: src/lib/components/shared/asset/asset-gallery.tsx:1127
 msgid "Tags"
 msgstr "Tags"
 
@@ -4673,7 +4699,7 @@ msgstr "Selecteer een zone"
 msgid "Test shipping methods"
 msgstr "Verzendmethoden testen"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:42
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:50
 msgid "Payment settled successfully"
 msgstr "Betaling succesvol afgehandeld"
 
@@ -4786,7 +4812,7 @@ msgstr "Een terugbetaling van {formattedDiff} is vereist. Selecteer betalingsbed
 msgid "Unit price"
 msgstr "Stukprijs"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:799
+#: src/lib/components/shared/asset/asset-gallery.tsx:812
 msgid "Try changing your search, asset type, or selected tags."
 msgstr ""
 
@@ -4823,7 +4849,7 @@ msgstr "Klantengroepen toevoegen"
 msgid "Available Languages"
 msgstr "Beschikbare talen"
 
-#: src/lib/components/data-table/data-table-bulk-actions.tsx:114
+#: src/lib/components/data-table/data-table-bulk-actions.tsx:123
 msgid "Reset selection"
 msgstr "Selectie herstellen"
 
@@ -4917,7 +4943,7 @@ msgstr "Sleutel roteren"
 msgid "Hide password"
 msgstr "Wachtwoord verbergen"
 
-#: src/lib/components/data-table/data-table-bulk-actions.tsx:71
+#: src/lib/components/data-table/data-table-bulk-actions.tsx:80
 msgid "Bulk actions"
 msgstr "Bulkacties"
 
@@ -4955,9 +4981,13 @@ msgstr "Filter wissen"
 msgid "Regions"
 msgstr "Regio's"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:568
+#: src/lib/components/shared/asset/asset-gallery.tsx:581
 msgid "Drop files here to upload"
 msgstr "Sleep bestanden hierheen om te uploaden"
+
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:215
+msgid "View payment metadata"
+msgstr "Betalingsmetadata bekijken"
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:182
 msgid "Toggle all visible variants"
@@ -5176,7 +5206,7 @@ msgid "Select"
 msgstr "Selecteren"
 
 #. placeholder {0}: payment.refunds.length
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:206
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:242
 msgid "Refunds ({0})"
 msgstr "Terugbetalingen ({0})"
 
@@ -5184,7 +5214,7 @@ msgstr "Terugbetalingen ({0})"
 msgid "Last Executed"
 msgstr "Laatst uitgevoerd"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:250
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:266
 msgid "Payment details"
 msgstr "Betalingsdetails"
 
@@ -5209,7 +5239,7 @@ msgstr "Klantengroep bijwerken mislukt"
 msgid "Remove widget"
 msgstr "Widget verwijderen"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:189
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:220
 msgid "Payment metadata"
 msgstr "Betalingsmetadata"
 
@@ -5238,7 +5268,7 @@ msgstr "Rollen"
 msgid "Additional payment required"
 msgstr "Extra betaling vereist"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:97
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:99
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:63
 msgid "Failed to update order"
 msgstr "Bestelling bijwerken mislukt"
@@ -5268,8 +5298,7 @@ msgstr "Klantengroepleden voor {customerGroupName}"
 msgid "Failed to set address for order: {0}"
 msgstr "Instellen van adres voor bestelling mislukt: {0}"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:120
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:215
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:251
 #: src/app/routes/_authenticated/_orders/orders.tsx:102
 #: src/app/routes/_authenticated/_system/job-queue.tsx:265
 msgid "State"
@@ -5323,7 +5352,7 @@ msgstr "Staat / Provincie"
 msgid "Enabled"
 msgstr "Ingeschakeld"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:630
+#: src/lib/components/shared/asset/asset-gallery.tsx:643
 msgid "Items per page"
 msgstr "Items per pagina"
 
@@ -5524,9 +5553,14 @@ msgid "Failed to update variant"
 msgstr "Variant bijwerken mislukt"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:69
-#: src/lib/components/data-table/data-table.tsx:765
+#: src/lib/components/data-table/data-table.tsx:776
 msgid "Go to previous page"
 msgstr "Ga naar vorige pagina"
+
+#. placeholder {0}: line.quantity
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:174
+msgid "Quantity: {0}"
+msgstr "Aantal: {0}"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278
@@ -5562,7 +5596,7 @@ msgid "System"
 msgstr "Systeem"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:563
-#: src/app/routes/_authenticated/_products/components/product-variants-table.tsx:88
+#: src/app/routes/_authenticated/_products/components/product-variants-table.tsx:85
 msgid "Variant name"
 msgstr "Variantnaam"
 
@@ -5576,7 +5610,7 @@ msgstr "Verwijderen"
 msgid "Failed to update customer"
 msgstr "Klant bijwerken mislukt"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:320
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:319
 msgid "Remove option groups?"
 msgstr "Optiegroepen verwijderen?"
 
@@ -5603,7 +5637,7 @@ msgid "Failed to remove customers from group"
 msgstr "Klanten konden niet uit de groep worden verwijderd"
 
 #. placeholder {0}: failedAssets.length
-#: src/lib/components/shared/asset/asset-gallery.tsx:282
+#: src/lib/components/shared/asset/asset-gallery.tsx:295
 msgid "Failed to upload {0} assets"
 msgstr ""
 
@@ -5619,7 +5653,7 @@ msgstr "Globale instellingen laden mislukt"
 msgid "Select items to refund and optionally return to stock"
 msgstr "Selecteer artikelen om te restitueren en optioneel terug te brengen naar voorraad"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:245
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:261
 #: src/app/routes/_authenticated/_system/settings-store.tsx:153
 #: src/lib/components/data-table/data-table-views-tabs.tsx:132
 #: src/lib/components/data-table/views-sheet.tsx:210
@@ -5734,7 +5768,7 @@ msgstr "Voorbeeld van {0}"
 msgid "Successfully updated seller"
 msgstr "Verkoper succesvol bijgewerkt"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:132
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:134
 msgid "Failed to transition order to state"
 msgstr "Bestelling overgaan naar status mislukt"
 
@@ -5802,10 +5836,10 @@ msgstr "Beheerder succesvol bijgewerkt"
 
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:263
 #: src/lib/components/data-table/data-table-faceted-filter.tsx:225
-#: src/lib/components/data-table/data-table.tsx:642
-#: src/lib/components/shared/asset/asset-gallery.tsx:445
-#: src/lib/components/shared/asset/asset-gallery.tsx:452
-#: src/lib/components/shared/asset/asset-gallery.tsx:808
+#: src/lib/components/data-table/data-table.tsx:652
+#: src/lib/components/shared/asset/asset-gallery.tsx:458
+#: src/lib/components/shared/asset/asset-gallery.tsx:465
+#: src/lib/components/shared/asset/asset-gallery.tsx:821
 msgid "Clear filters"
 msgstr "Filters wissen"
 
@@ -5834,13 +5868,13 @@ msgstr "Status"
 msgid "No options found"
 msgstr "Geen opties gevonden"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:813
+#: src/lib/components/shared/asset/asset-gallery.tsx:826
 msgid "Upload assets"
 msgstr ""
 
 #: src/lib/components/shared/asset/asset-gallery.tsx:95
-#: src/lib/components/shared/asset/asset-gallery.tsx:466
-#: src/lib/components/shared/asset/asset-gallery.tsx:483
+#: src/lib/components/shared/asset/asset-gallery.tsx:479
+#: src/lib/components/shared/asset/asset-gallery.tsx:496
 msgid "Binary"
 msgstr "Binair"
 
@@ -5990,16 +6024,15 @@ msgstr "Verwijderen van optiegroep mislukt"
 msgid "Sub total"
 msgstr "Subtotaal"
 
-#. placeholder {0}: fulfillment.lines.reduce((acc, line) => acc + line.quantity, 0)
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:133
-msgid "Fulfilled items ({0})"
-msgstr "Afgehandelde items ({0})"
+#~ msgid "Fulfilled items ({0})"
+#~ msgstr "Afgehandelde items ({0})"
 
 #: src/app/routes/_authenticated/_products/products.tsx:117
 msgid "Create your first product"
 msgstr "Maak uw eerste product aan"
 
-#: src/app/routes/_authenticated/_system/settings-store.tsx:246
+#: src/app/routes/_authenticated/_system/settings-store.tsx:345
 msgid "Value updated"
 msgstr "Waarde bijgewerkt"
 
@@ -6054,7 +6087,7 @@ msgstr "Dubbele waarde \"{trimmed}\" bestaat al"
 msgid "Create your first customer"
 msgstr "Maak uw eerste klant aan"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:231
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:267
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:222
 msgid "Reason"
 msgstr "Reden"
@@ -6112,8 +6145,8 @@ msgid "Remove item"
 msgstr "Item verwijderen"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx:93
-#: src/lib/components/shared/asset/asset-gallery.tsx:465
-#: src/lib/components/shared/asset/asset-gallery.tsx:482
+#: src/lib/components/shared/asset/asset-gallery.tsx:478
+#: src/lib/components/shared/asset/asset-gallery.tsx:495
 msgid "Video"
 msgstr "Video"
 
@@ -6153,7 +6186,7 @@ msgstr "E-mailupdate geverifieerd"
 msgid "is between"
 msgstr "is tussen"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:173
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:175
 msgid "Refund & Cancel"
 msgstr "Restitueren en annuleren"
 
@@ -6195,7 +6228,7 @@ msgstr "Concept verwijderen"
 msgid "Source"
 msgstr "Bron"
 
-#: src/lib/components/data-table/data-table-bulk-actions.tsx:107
+#: src/lib/components/data-table/data-table-bulk-actions.tsx:116
 msgid "No actions available"
 msgstr "Geen acties beschikbaar"
 
@@ -6227,7 +6260,7 @@ msgid "Strikethrough"
 msgstr "Doorhalen"
 
 #. placeholder {0}: createdAssets.length
-#: src/lib/components/shared/asset/asset-gallery.tsx:279
+#: src/lib/components/shared/asset/asset-gallery.tsx:292
 msgid "Uploaded {0} assets"
 msgstr ""
 
@@ -6241,7 +6274,7 @@ msgstr "Probeer een ander datumbereik te selecteren."
 msgid "Successfully created zone"
 msgstr "Zone succesvol aangemaakt"
 
-#: src/app/routes/_authenticated/_system/settings-store.tsx:278
+#: src/app/routes/_authenticated/_system/settings-store.tsx:361
 msgid "Value"
 msgstr "Waarde"
 
@@ -6370,7 +6403,7 @@ msgstr "Subtotaal"
 msgid "is less than"
 msgstr "is kleiner dan"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:213
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:249
 msgid "Refund ID"
 msgstr "Terugbetalings-ID"
 
@@ -6378,7 +6411,7 @@ msgstr "Terugbetalings-ID"
 msgid "Order custom fields updated"
 msgstr "Aangepaste velden van bestelling bijgewerkt"
 
-#: src/app/routes/_authenticated/_system/settings-store.tsx:320
+#: src/app/routes/_authenticated/_system/settings-store.tsx:384
 msgid "Search entries..."
 msgstr "Items zoeken..."
 
@@ -6411,8 +6444,8 @@ msgstr "Besteloverzicht"
 msgid "Search stock locations..."
 msgstr "Voorraadlocaties zoeken..."
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:427
-#: src/lib/components/shared/asset/asset-gallery.tsx:1114
+#: src/lib/components/shared/asset/asset-gallery.tsx:440
+#: src/lib/components/shared/asset/asset-gallery.tsx:1124
 msgid "Search assets..."
 msgstr "Bestanden zoeken..."
 
@@ -6435,7 +6468,7 @@ msgstr "Doorgaan"
 msgid "Promotions"
 msgstr "Promoties"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:181
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:205
 msgid "Error message"
 msgstr "Foutmelding"
 
@@ -6475,7 +6508,7 @@ msgstr "Facet uit kanaal verwijderen mislukt: {message}"
 #~ msgid "Set link"
 #~ msgstr "Link instellen"
 
-#: src/lib/components/data-table/data-table.tsx:764
+#: src/lib/components/data-table/data-table.tsx:775
 msgid "Pagination"
 msgstr "Paginering"
 
@@ -6526,7 +6559,7 @@ msgid "View result"
 msgstr "Resultaat bekijken"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:20
-#: src/lib/components/data-table/data-table.tsx:767
+#: src/lib/components/data-table/data-table.tsx:778
 msgid "Rows per page"
 msgstr "Rijen per pagina"
 
@@ -6612,8 +6645,8 @@ msgstr "Betaalmethode bijwerken mislukt"
 msgid "Available:"
 msgstr "Beschikbaar:"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:172
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:219
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:193
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:255
 msgid "Created at"
 msgstr "Aangemaakt op"
 
@@ -6623,7 +6656,7 @@ msgid "Failed to create product variant"
 msgstr "Productvariant aanmaken mislukt"
 
 #: src/lib/components/data-input/relation-selector.tsx:418
-#: src/lib/components/data-table/data-table.tsx:549
+#: src/lib/components/data-table/data-table.tsx:559
 msgid "Search..."
 msgstr "Zoeken..."
 
@@ -6661,7 +6694,7 @@ msgctxt "active language"
 msgid "Active"
 msgstr "Actief"
 
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:20
+#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:22
 msgid "Tax base"
 msgstr "Belastinggrondslag"
 
@@ -6708,7 +6741,7 @@ msgid "Active filters"
 msgstr "Actieve filters"
 
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx:54
-#: src/lib/components/data-table/data-table.tsx:625
+#: src/lib/components/data-table/data-table.tsx:635
 msgid "Clear all"
 msgstr "Alles wissen"
 
@@ -6758,7 +6791,7 @@ msgstr "De token wordt gebruikt om het kanaal op te geven bij het doen van API-v
 msgid "No addresses found"
 msgstr "Geen adressen gevonden"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:117
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:136
 msgid "Fulfillment ID"
 msgstr "Afhandelings-ID"
 
@@ -6782,7 +6815,7 @@ msgstr "Uitverkocht-drempelwaarde"
 #~ msgid "Successfully removed product from channel"
 #~ msgstr "Product succesvol uit kanaal verwijderd"
 
-#: src/app/routes/_authenticated/_system/settings-store.tsx:249
+#: src/app/routes/_authenticated/_system/settings-store.tsx:348
 msgid "Failed to update value"
 msgstr "Bijwerken van waarde mislukt"
 
@@ -6790,7 +6823,7 @@ msgstr "Bijwerken van waarde mislukt"
 msgid "Failed to create API key"
 msgstr "Aanmaken van API Key mislukt"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:262
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:298
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:49
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:74
 msgid "Settle refund"
@@ -6805,12 +6838,12 @@ msgstr "Betaalmethode is vereist"
 msgid "Failed to add customer to group"
 msgstr "Klant toevoegen aan groep mislukt"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:617
+#: src/lib/components/shared/asset/asset-gallery.tsx:630
 msgid "{totalItems, plural, one {{totalItems} asset found} other {{totalItems} assets found}}"
 msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:338
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:292
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:291
 msgid "Manage variants"
 msgstr "Varianten beheren"
 

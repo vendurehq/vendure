@@ -226,6 +226,105 @@ function formatDisplayValue(value: any): string {
     return String(value);
 }
 
+function matchesStringFilter(value: string, filter: Record<string, unknown>): boolean {
+    return Object.entries(filter).every(([operator, operand]) => {
+        switch (operator) {
+            case 'eq':
+                return value === operand;
+            case 'notEq':
+                return value !== operand;
+            case 'contains':
+                return value.includes(String(operand));
+            case 'notContains':
+                return !value.includes(String(operand));
+            case 'in':
+                return Array.isArray(operand) && operand.includes(value);
+            case 'notIn':
+                return Array.isArray(operand) && !operand.includes(value);
+            case 'regex':
+                try {
+                    return new RegExp(String(operand)).test(value);
+                } catch {
+                    return false;
+                }
+            case 'isNull':
+                return operand === false;
+            default:
+                return true;
+        }
+    });
+}
+
+export function filterSettingsStoreFields(
+    fields: FieldDefinition[],
+    search: string,
+    columnFilters: ColumnFilter[],
+) {
+    return fields.filter(field => {
+        if (search && !field.key.toLowerCase().includes(search.toLowerCase())) return false;
+        for (const filter of columnFilters) {
+            if (
+                filter.id === 'key' &&
+                !matchesStringFilter(field.key, filter.value as Record<string, unknown>)
+            ) {
+                return false;
+            }
+            const values = filter.value as string[];
+            if (!values?.length) continue;
+            if (filter.id === 'scopeType' && !values.includes(field.scopeType)) return false;
+            if (filter.id === 'readonly' && !values.includes(String(field.readonly))) return false;
+        }
+        return true;
+    });
+}
+
+export function createSettingsStoreColumns(
+    labels: { key: string; value: string; scope: string; readonly: string },
+    onSetValue: (field: FieldDefinition, value: any) => void,
+) {
+    const columnHelper = createColumnHelper<FieldDefinition>();
+    return [
+        columnHelper.accessor('key', {
+            header: labels.key,
+            meta: { fieldInfo: { type: 'String' } },
+            cell: ({ row }) => (
+                <CopyableText value={row.original.key}>
+                    <code className="text-xs">{row.original.key}</code>
+                </CopyableText>
+            ),
+        }),
+        columnHelper.accessor('currentValue', {
+            header: labels.value,
+            enableColumnFilter: false,
+            cell: ({ row }) => (
+                <ValueCell
+                    field={row.original}
+                    onSave={newValue => onSetValue(row.original, newValue)}
+                />
+            ),
+        }),
+        columnHelper.accessor('scopeType', {
+            header: labels.scope,
+            enableColumnFilter: false,
+            cell: ({ row }) => (
+                <Badge variant={scopeBadgeVariant[row.original.scopeType] ?? 'outline'}>
+                    {row.original.scopeType}
+                </Badge>
+            ),
+        }),
+        columnHelper.accessor('readonly', {
+            header: labels.readonly,
+            enableColumnFilter: false,
+            cell: ({ row }) =>
+                row.original.readonly ? (
+                    <Badge variant="default">
+                        <Trans>Readonly</Trans>
+                    </Badge>
+                ) : null,
+        }),
+    ];
+}
+
 function SettingsStorePage() {
     const { t } = useLingui();
     const [search, setSearch] = useState('');
@@ -252,59 +351,23 @@ function SettingsStorePage() {
     });
 
     const allFields = data?.settingsStoreFieldDefinitions ?? [];
-    const filteredFields = allFields.filter(f => {
-        if (search && !f.key.toLowerCase().includes(search.toLowerCase())) return false;
-        for (const filter of columnFilters) {
-            const values = filter.value as string[];
-            if (!values?.length) continue;
-            if (filter.id === 'scopeType' && !values.includes(f.scopeType)) return false;
-            if (filter.id === 'readonly' && !values.includes(String(f.readonly))) return false;
-        }
-        return true;
-    });
+    const filteredFields = filterSettingsStoreFields(allFields, search, columnFilters);
 
-    const columnHelper = createColumnHelper<FieldDefinition>();
     const columns = useMemo(
-        () => [
-            columnHelper.accessor('key', {
-                header: t`Key`,
-                cell: ({ row }) => (
-                    <CopyableText value={row.original.key}>
-                        <code className="text-xs">{row.original.key}</code>
-                    </CopyableText>
-                ),
-            }),
-            columnHelper.accessor('currentValue', {
-                header: t`Value`,
-                cell: ({ row }) => (
-                    <ValueCell
-                        field={row.original}
-                        onSave={newValue =>
-                            setValue({
-                                input: { key: row.original.key, value: newValue },
-                            })
-                        }
-                    />
-                ),
-            }),
-            columnHelper.accessor('scopeType', {
-                header: t`Scope`,
-                cell: ({ row }) => (
-                    <Badge variant={scopeBadgeVariant[row.original.scopeType] ?? 'outline'}>
-                        {row.original.scopeType}
-                    </Badge>
-                ),
-            }),
-            columnHelper.accessor('readonly', {
-                header: t`Readonly`,
-                cell: ({ row }) =>
-                    row.original.readonly ? (
-                        <Badge variant="default">
-                            <Trans>Readonly</Trans>
-                        </Badge>
-                    ) : null,
-            }),
-        ],
+        () =>
+            createSettingsStoreColumns(
+                {
+                    key: t`Key`,
+                    value: t`Value`,
+                    scope: t`Scope`,
+                    readonly: t`Readonly`,
+                },
+                (field, newValue) => {
+                    setValue({
+                        input: { key: field.key, value: newValue },
+                    });
+                },
+            ),
         [t, setValue],
     );
 
@@ -316,6 +379,7 @@ function SettingsStorePage() {
             <PageLayout>
                 <FullWidthPageBlock blockId="list-table">
                     <DataTable
+                        enableViews
                         onRefresh={invalidateFieldDefinitions}
                         searchPlaceholder={t`Search entries...`}
                         onSearchTermChange={setSearch}

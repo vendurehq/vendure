@@ -31,11 +31,11 @@ msgstr "انتخاب موارد"
 msgid "View changes"
 msgstr "مشاهده تغییرات"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:139
 msgid "Tracking code"
 msgstr "کد پیگیری"
 
-#: src/lib/components/data-table/data-table.tsx:761
+#: src/lib/components/data-table/data-table.tsx:772
 #: src/lib/components/data-table/use-generated-columns.tsx:226
 msgid "Select all rows"
 msgstr "انتخاب همه ردیف‌ها"
@@ -174,14 +174,16 @@ msgstr "نرخ مالیات با موفقیت به‌روزرسانی شد"
 msgid "Enter custom reason..."
 msgstr "دلیل سفارشی را وارد کنید..."
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:1017
+#: src/lib/components/shared/asset/asset-gallery.tsx:1027
 msgid "Type"
 msgstr "نوع"
 
+#. placeholder {0}: asset.name
 #. placeholder {0}: entityName.toLowerCase()
 #. placeholder {0}: group.name
 #: src/app/routes/_authenticated/_products/components/product-option-select.tsx:57
 #: src/lib/components/data-input/default-relation-input.tsx:671
+#: src/lib/components/shared/asset/asset-gallery.tsx:901
 msgid "Select {0}"
 msgstr "انتخاب {0}"
 
@@ -208,7 +210,7 @@ msgctxt "current channel"
 msgid "Current"
 msgstr "فعلی"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:330
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:300
 msgid "No fulfillments"
 msgstr "هیچ تحویلی وجود ندارد"
 
@@ -241,7 +243,7 @@ msgstr "تازه‌سازی خودکار: {0}"
 msgid "Deleted {deleted} {entityName}"
 msgstr "{deleted} {entityName} حذف شد"
 
-#: src/lib/components/data-table/data-table.tsx:650
+#: src/lib/components/data-table/data-table.tsx:660
 msgid "There are no items to display yet."
 msgstr "هنوز موردی برای نمایش وجود ندارد."
 
@@ -341,16 +343,21 @@ msgstr "آیا مطمئن هستید که می‌خواهید این نوع را
 #~ msgid "All resources are up and running"
 #~ msgstr "تمام منابع در حال اجرا هستند"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:930
-#: src/lib/components/shared/asset/asset-gallery.tsx:1076
+#: src/lib/components/shared/asset/asset-gallery.tsx:940
+#: src/lib/components/shared/asset/asset-gallery.tsx:1086
 msgid "Open"
+msgstr ""
+
+#. placeholder {0}: asset.name
+#: src/lib/components/shared/asset/asset-gallery.tsx:914
+msgid "Toggle selection for {0}"
 msgstr ""
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:87
 msgid "Failed to create administrator"
 msgstr "ایجاد مدیر ناموفق بود"
 
-#: src/app/routes/_authenticated/_system/settings-store.tsx:338
+#: src/app/routes/_authenticated/_system/settings-store.tsx:402
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx:71
 msgid "No"
 msgstr "خیر"
@@ -359,7 +366,7 @@ msgstr "خیر"
 msgid "Successfully updated product variant"
 msgstr "نوع محصول با موفقیت به‌روزرسانی شد"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:801
+#: src/lib/components/shared/asset/asset-gallery.tsx:814
 msgid "Upload images, videos, or files to start building your asset library."
 msgstr ""
 
@@ -418,7 +425,7 @@ msgstr "ابزارکی برای افزودن وجود ندارد"
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:107
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:290
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:203
-#: src/lib/components/shared/asset/asset-gallery.tsx:291
+#: src/lib/components/shared/asset/asset-gallery.tsx:304
 #: src/lib/components/shared/asset/asset-preview.tsx:127
 msgid "Unknown error"
 msgstr "خطای ناشناخته"
@@ -426,6 +433,11 @@ msgstr "خطای ناشناخته"
 #: src/lib/components/shared/rich-text-editor/rich-text-editor.tsx:142
 msgid "Uploading image..."
 msgstr "در حال بارگذاری تصویر..."
+
+#. placeholder {0}: fulfillment.lines.reduce((acc, line) => acc + line.quantity, 0)
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:149
+msgid "View fulfilled items ({0})"
+msgstr "مشاهده اقلام تحویل‌شده ({0})"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts:200
 msgid "Refund total cannot be negative"
@@ -479,8 +491,8 @@ msgstr "بازگشت به انبار"
 msgid "Visibility"
 msgstr "قابلیت مشاهده"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:288
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:302
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:287
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:301
 msgid "Product variants"
 msgstr "گونه‌های محصول"
 
@@ -528,7 +540,6 @@ msgid "Address deleted successfully"
 msgstr "آدرس با موفقیت حذف شد"
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:109
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:17
 msgid "Tax rate"
 msgstr "نرخ مالیات"
 
@@ -549,7 +560,7 @@ msgstr "مجموعه جدید"
 msgid "Insights"
 msgstr "بینش‌ها"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:290
+#: src/lib/components/shared/asset/asset-gallery.tsx:303
 msgid "Failed to upload assets"
 msgstr ""
 
@@ -597,7 +608,7 @@ msgstr "مدیران"
 #~ msgstr "قیمت ناخالص: <0/>"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:82
-#: src/lib/components/data-table/data-table.tsx:766
+#: src/lib/components/data-table/data-table.tsx:777
 msgid "Go to next page"
 msgstr "رفتن به صفحه بعدی"
 
@@ -622,7 +633,11 @@ msgstr "جستجوی گزینه‌ها..."
 msgid "Order Count"
 msgstr "تعداد سفارش"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:93
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:157
+msgid "Fulfilled items"
+msgstr "اقلام تحویل‌شده"
+
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:95
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:59
 msgid "Successfully updated order"
 msgstr "سفارش با موفقیت به‌روزرسانی شد"
@@ -709,7 +724,7 @@ msgstr "جابجایی مجموعه‌ها"
 msgid "Roles"
 msgstr "نقش‌ها"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:506
+#: src/lib/components/shared/asset/asset-gallery.tsx:519
 msgid "Grid view"
 msgstr "نمای شبکه‌ای"
 
@@ -737,7 +752,7 @@ msgstr "آیا مطمئن هستید که می‌خواهید {selectionLength} 
 msgid "Sign in"
 msgstr "ورود"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:509
+#: src/lib/components/shared/asset/asset-gallery.tsx:522
 msgid "List view"
 msgstr "نمای فهرست"
 
@@ -798,7 +813,7 @@ msgid "Order draft is ready to be completed"
 msgstr "پیش‌نویس سفارش آماده تکمیل است"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:201
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:243
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:279
 msgid "Metadata"
 msgstr "فراداده"
 
@@ -890,7 +905,7 @@ msgstr "تکمیل پیش‌نویس"
 #: src/app/routes/_authenticated/_tax-categories/tax-categories_.$id.tsx:106
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:113
 #: src/app/routes/_authenticated/_zones/zones_.$id.tsx:93
-#: src/lib/components/shared/asset/asset-gallery.tsx:1005
+#: src/lib/components/shared/asset/asset-gallery.tsx:1015
 msgid "Name"
 msgstr "نام"
 
@@ -903,7 +918,7 @@ msgstr "تحویل سفارش ناموفق بود"
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:193
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:88
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:106
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:226
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:262
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:120
 msgid "Total"
 msgstr "مجموع"
@@ -930,7 +945,7 @@ msgstr "تحویل ایجاد شد"
 msgid "Found {0} eligible shipping method{1}"
 msgstr "{0} روش ارسال واجد شرایط یافت شد"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:1049
+#: src/lib/components/shared/asset/asset-gallery.tsx:1059
 #: src/lib/components/shared/asset/asset-properties.tsx:39
 msgid "Dimensions"
 msgstr "ابعاد"
@@ -956,7 +971,7 @@ msgstr "افزودن ستون بعد از"
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:421
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:241
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:209
-#: src/lib/components/data-table/data-table-bulk-actions.tsx:82
+#: src/lib/components/data-table/data-table-bulk-actions.tsx:91
 #: src/lib/components/data-table/use-generated-columns.tsx:262
 msgid "Actions"
 msgstr "اقدامات"
@@ -977,7 +992,7 @@ msgstr "خط سفارش حذف شد"
 msgid "Content:"
 msgstr "محتوا:"
 
-#: src/app/routes/_authenticated/_system/settings-store.tsx:270
+#: src/app/routes/_authenticated/_system/settings-store.tsx:360
 msgid "Key"
 msgstr "کلید"
 
@@ -1003,12 +1018,16 @@ msgstr "رفتن به صفحه اول"
 msgid "Failed to create product"
 msgstr "ایجاد محصول ناموفق بود"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:279
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:308
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:233
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:498
 #: src/lib/components/shared/role-code-label.tsx:8
 msgid "Customer"
 msgstr "مشتری"
+
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:223
+msgid "Metadata returned by the payment handler."
+msgstr "فراداده بازگردانده‌شده توسط پردازشگر پرداخت."
 
 #: src/lib/components/shared/error-page.tsx:98
 msgid "Page not found"
@@ -1107,7 +1126,7 @@ msgstr "وظیفه زمان‌بندی شده اجرا خواهد شد"
 msgid "New stock location"
 msgstr "محل انبار جدید"
 
-#: src/lib/components/data-table/data-table.tsx:762
+#: src/lib/components/data-table/data-table.tsx:773
 #: src/lib/components/data-table/use-generated-columns.tsx:238
 msgid "Select row"
 msgstr "انتخاب ردیف"
@@ -1132,7 +1151,7 @@ msgstr "محصولی یافت نشد"
 msgid "Add row before"
 msgstr "افزودن سطر قبل از"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:95
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:102
 msgid "Transition to {suggestedState}"
 msgstr "انتقال به {suggestedState}"
 
@@ -1154,8 +1173,8 @@ msgid "Failed to cancel order items"
 msgstr "لغو اقلام سفارش ناموفق بود"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:160
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:176
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:237
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:198
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:273
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:58
 msgid "Transaction ID"
 msgstr "شناسه تراکنش"
@@ -1208,8 +1227,8 @@ msgstr "سفارش پیش‌نویس"
 msgid "Enter your email address and we will send you a link to reset your password"
 msgstr "آدرس ایمیل خود را وارد کنید تا لینکی برای بازنشانی رمز عبور برایتان ارسال کنیم"
 
-#: src/app/routes/_authenticated/_system/settings-store.tsx:291
-#: src/app/routes/_authenticated/_system/settings-store.tsx:325
+#: src/app/routes/_authenticated/_system/settings-store.tsx:362
+#: src/app/routes/_authenticated/_system/settings-store.tsx:389
 msgid "Scope"
 msgstr "دامنه"
 
@@ -1264,8 +1283,8 @@ msgid "Failed to update promotion"
 msgstr "به‌روزرسانی تبلیغات ناموفق بود"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx:91
-#: src/lib/components/shared/asset/asset-gallery.tsx:464
-#: src/lib/components/shared/asset/asset-gallery.tsx:481
+#: src/lib/components/shared/asset/asset-gallery.tsx:477
+#: src/lib/components/shared/asset/asset-gallery.tsx:494
 msgid "Images"
 msgstr "تصاویر"
 
@@ -1282,7 +1301,7 @@ msgstr "جستجوی {name}..."
 msgid "Edit asset"
 msgstr "ویرایش فایل"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:150
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:158
 msgid "Cancel payment"
 msgstr "لغو پرداخت"
 
@@ -1341,7 +1360,7 @@ msgid "Resize image from right"
 msgstr "تغییر اندازه تصویر از راست"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:37
-#: src/app/routes/_authenticated/_system/settings-store.tsx:314
+#: src/app/routes/_authenticated/_system/settings-store.tsx:377
 msgid "Settings Store"
 msgstr "فروشگاه تنظیمات"
 
@@ -1392,7 +1411,7 @@ msgid "No items selected"
 msgstr "هیچ موردی انتخاب نشده است"
 
 #. placeholder {0}: selected.length
-#: src/lib/components/shared/asset/asset-gallery.tsx:623
+#: src/lib/components/shared/asset/asset-gallery.tsx:636
 msgid ", {0} selected"
 msgstr "، {0} انتخاب شده"
 
@@ -1440,7 +1459,7 @@ msgstr "استفاده از آستانه عمومی اتمام موجودی"
 #~ msgid "New product option group"
 #~ msgstr "گروه گزینه محصول جدید"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:57
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:65
 msgid "Payment state updated successfully"
 msgstr "وضعیت پرداخت با موفقیت به‌روزرسانی شد"
 
@@ -1602,7 +1621,7 @@ msgstr "زبان نمایش"
 msgid "The source file remains unchanged. Keep the original extension or omit it."
 msgstr ""
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:312
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:282
 msgid "Fulfillment details"
 msgstr "جزئیات تحویل"
 
@@ -1628,7 +1647,7 @@ msgstr "قبل از"
 msgid "Failed to set customer for order: {0}"
 msgstr "تنظیم مشتری برای سفارش ناموفق بود: {0}"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:1026
+#: src/lib/components/shared/asset/asset-gallery.tsx:1036
 msgid "Size"
 msgstr "اندازه"
 
@@ -1759,8 +1778,8 @@ msgid "Address updated successfully"
 msgstr "آدرس با موفقیت به‌روزرسانی شد"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:126
-#: src/lib/components/shared/asset/asset-gallery.tsx:1033
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:141
+#: src/lib/components/shared/asset/asset-gallery.tsx:1043
 #: src/lib/framework/layout-engine/page-layout.tsx:746
 msgid "Created"
 msgstr "ایجاد شد"
@@ -1908,7 +1927,7 @@ msgstr "منطقه ارسال پیش‌فرض"
 msgid "Reason:"
 msgstr "دلیل:"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:294
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:323
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:248
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:511
 msgid "Shipping address"
@@ -1917,9 +1936,9 @@ msgstr "آدرس ارسال"
 #. placeholder {0}: getTranslatedFulfillmentState(state)
 #. placeholder {0}: getTranslatedOrderState(state)
 #. placeholder {0}: getTranslatedPaymentState(state)
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:103
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:126
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:151
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:110
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:128
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:159
 msgid "Transition to {0}"
 msgstr "انتقال به {0}"
 
@@ -2013,7 +2032,7 @@ msgstr "حذف گروه گزینه امکان‌پذیر نبود"
 msgid "Failed to update tax category"
 msgstr "به‌روزرسانی دسته‌بندی مالیاتی ناموفق بود"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:87
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:95
 msgid "Refund settled successfully"
 msgstr "بازپرداخت با موفقیت تسویه شد"
 
@@ -2067,7 +2086,7 @@ msgstr "پروفایل با موفقیت به‌روزرسانی شد"
 #~ msgstr "پایان"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:146
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:166
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:187
 msgid "Payment method"
 msgstr "روش پرداخت"
 
@@ -2108,8 +2127,8 @@ msgstr "شروع در"
 msgid "Duplicate"
 msgstr "تکثیر"
 
-#: src/lib/components/data-table/data-table.tsx:638
-#: src/lib/components/data-table/data-table.tsx:649
+#: src/lib/components/data-table/data-table.tsx:648
+#: src/lib/components/data-table/data-table.tsx:659
 #: src/lib/components/shared/customer-group-selector.tsx:60
 msgid "No results"
 msgstr "نتیجه‌ای وجود ندارد"
@@ -2204,9 +2223,9 @@ msgstr "به‌روزرسانی یادداشت ناموفق بود"
 msgid "Refund shipping"
 msgstr "بازپرداخت هزینه ارسال"
 
-#: src/app/routes/_authenticated/_system/settings-store.tsx:299
-#: src/app/routes/_authenticated/_system/settings-store.tsx:303
-#: src/app/routes/_authenticated/_system/settings-store.tsx:335
+#: src/app/routes/_authenticated/_system/settings-store.tsx:321
+#: src/app/routes/_authenticated/_system/settings-store.tsx:363
+#: src/app/routes/_authenticated/_system/settings-store.tsx:399
 msgid "Readonly"
 msgstr "فقط خواندنی"
 
@@ -2223,7 +2242,7 @@ msgid "Test Shipping Method"
 msgstr "آزمون روش ارسال"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:767
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:348
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:347
 msgid "Facet Values"
 msgstr "مقادیر ویژگی"
 
@@ -2593,11 +2612,11 @@ msgstr "منطقه"
 msgid "No metrics for this period"
 msgstr "معیاری برای این دوره وجود ندارد"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:118
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:137
 msgid "Method"
 msgstr "روش"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:234
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:338
 msgid "Tax summary"
 msgstr "خلاصه مالیات"
 
@@ -2630,7 +2649,7 @@ msgstr "تنظیم آدرس ارسال برای سفارش ناموفق بود: 
 msgid "Cancel Job"
 msgstr "لغو کار"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:796
+#: src/lib/components/shared/asset/asset-gallery.tsx:809
 msgid "No assets yet"
 msgstr ""
 
@@ -2696,7 +2715,7 @@ msgstr "ذخیره نما"
 #. placeholder {0}: selectedTags.length
 #. placeholder {0}: selectedValues.size
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:48
-#: src/lib/components/data-table/data-table-bulk-actions.tsx:76
+#: src/lib/components/data-table/data-table-bulk-actions.tsx:85
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:137
 #: src/lib/components/data-table/data-table-faceted-filter.tsx:139
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx:67
@@ -2913,25 +2932,25 @@ msgstr "محاسبه مجدد هزینه ارسال"
 #~ msgstr "انتخاب کنید که کدام گزینه‌ها باید برای نوع موجود \"{0}\" اعمال شود"
 
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:54
-#: src/app/routes/_authenticated/_assets/assets.tsx:17
-#: src/app/routes/_authenticated/_assets/assets.tsx:40
+#: src/app/routes/_authenticated/_assets/assets.tsx:16
+#: src/app/routes/_authenticated/_assets/assets.tsx:42
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:248
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:777
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:381
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:380
 msgid "Assets"
 msgstr "فایل‌ها"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:321
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:320
 msgid "This will remove all option groups from this product and return to the variant setup choice."
 msgstr "این عمل تمام گروه‌های گزینه را از این محصول حذف کرده و به انتخاب تنظیم گونه بازمی‌گردد."
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:302
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:331
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:277
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:533
 msgid "Billing address"
 msgstr "آدرس صورتحساب"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:65
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:64
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:173
 msgid "Add facet value"
 msgstr "افزودن مقدار ویژگی"
@@ -2970,8 +2989,8 @@ msgstr "تخفیف"
 msgid "Top Products"
 msgstr "محصولات برتر"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:463
-#: src/lib/components/shared/asset/asset-gallery.tsx:480
+#: src/lib/components/shared/asset/asset-gallery.tsx:476
+#: src/lib/components/shared/asset/asset-gallery.tsx:493
 msgid "All types"
 msgstr "همه انواع"
 
@@ -3017,7 +3036,7 @@ msgstr "کپی"
 #~ msgid "Healthchecks"
 #~ msgstr "بررسی سلامت"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:168
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:189
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:322
 msgid "Amount"
 msgstr "مقدار"
@@ -3043,7 +3062,7 @@ msgid "Successfully created administrator"
 msgstr "مدیر با موفقیت ایجاد شد"
 
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:196
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:329
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:328
 msgid "Product Options"
 msgstr "گزینه‌های محصول"
 
@@ -3104,8 +3123,8 @@ msgstr "یک گزینه انتخاب کنید"
 
 #. placeholder {0}: asset.name
 #. placeholder {0}: row.original.name
-#: src/lib/components/shared/asset/asset-gallery.tsx:927
-#: src/lib/components/shared/asset/asset-gallery.tsx:1073
+#: src/lib/components/shared/asset/asset-gallery.tsx:937
+#: src/lib/components/shared/asset/asset-gallery.tsx:1083
 msgid "Open {0}"
 msgstr ""
 
@@ -3179,7 +3198,7 @@ msgstr "مقادیر گزینه"
 msgid "Default Billing Address"
 msgstr "آدرس صورتحساب پیش‌فرض"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:287
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:316
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:241
 msgid "No customer"
 msgstr "مشتری وجود ندارد"
@@ -3226,7 +3245,7 @@ msgstr "در حال افزودن {0} هزینه اضافی"
 msgid "Fallback: {value}"
 msgstr "مقدار پیش‌فرض: {value}"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:263
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:304
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-container.tsx:30
 msgid "Order history"
 msgstr "تاریخچه سفارش"
@@ -3321,6 +3340,10 @@ msgstr "ذخیره تغییرات"
 msgid "Search products..."
 msgstr "جستجوی محصولات..."
 
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:166
+msgid "Unknown product"
+msgstr "محصول ناشناخته"
+
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:53
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx:78
 msgid "Address updated"
@@ -3360,7 +3383,7 @@ msgstr "به‌روزرسانی موقعیت مجموعه ناموفق بود"
 msgid "Refund"
 msgstr "بازپرداخت"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:162
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:164
 #: src/app/routes/_authenticated/_orders/utils/order-detail-loaders.tsx:78
 msgid "Modify"
 msgstr "تغییر"
@@ -3426,7 +3449,7 @@ msgstr "ستون‌ها"
 msgid "Failed to upload image"
 msgstr "بارگذاری تصویر ناموفق بود"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:796
+#: src/lib/components/shared/asset/asset-gallery.tsx:809
 msgid "No assets match these filters"
 msgstr ""
 
@@ -3498,7 +3521,7 @@ msgstr "لطفاً قبل از بستن، ذخیره کلید API را تأیی�
 msgid "Confirm deletion"
 msgstr "تایید حذف"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:152
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:154
 msgid "Failed to modify order"
 msgstr "تغییر سفارش ناموفق بود"
 
@@ -3569,7 +3592,7 @@ msgstr "مدیریت نماهای عمومی"
 msgid "Processing..."
 msgstr "در حال پردازش..."
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:587
+#: src/lib/components/shared/asset/asset-gallery.tsx:472
 #~ msgid "{totalItems} {0} found"
 #~ msgstr "{totalItems} {0} یافت شد"
 
@@ -3610,7 +3633,7 @@ msgstr "اختصاص دادن"
 msgid "Successfully created seller"
 msgstr "فروشنده با موفقیت ایجاد شد"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:850
+#: src/lib/components/shared/asset/asset-gallery.tsx:863
 msgid "We couldn't load assets"
 msgstr ""
 
@@ -3639,7 +3662,7 @@ msgstr "برای مرتب‌سازی بکشید"
 msgid "Zones"
 msgstr "مناطق"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:112
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:111
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:151
 #: src/lib/components/shared/facet-value-selector.tsx:124
 msgid "Search facet values..."
@@ -3678,7 +3701,7 @@ msgstr "یافت نشد"
 msgid "Facet values"
 msgstr "مقادیر ویژگی"
 
-#: src/lib/components/data-table/data-table.tsx:360
+#: src/lib/components/data-table/data-table.tsx:370
 msgid "Failed to reorder items"
 msgstr "مرتب‌سازی مجدد اقلام ناموفق بود"
 
@@ -3754,7 +3777,7 @@ msgstr "روش‌های ارسال"
 msgid "Select an address"
 msgstr "یک آدرس انتخاب کنید"
 
-#: src/app/routes/_authenticated/_system/settings-store.tsx:337
+#: src/app/routes/_authenticated/_system/settings-store.tsx:401
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx:71
 msgid "Yes"
 msgstr "بله"
@@ -3828,7 +3851,7 @@ msgstr "تازه‌سازی"
 msgid "No checkers found"
 msgstr "بررسی‌کننده‌ای یافت نشد"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:139
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:147
 msgid "Settle payment"
 msgstr "تسویه پرداخت"
 
@@ -3836,7 +3859,7 @@ msgstr "تسویه پرداخت"
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:24
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:210
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:358
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:357
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:111
 #: src/lib/components/layout/channel-switcher.tsx:146
 msgid "Channels"
@@ -3851,7 +3874,7 @@ msgstr "هزینه ارسال بازپرداخت شد"
 msgid "Failed to create option in group \"{0}\""
 msgstr ""
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:477
+#: src/lib/components/shared/asset/asset-gallery.tsx:490
 msgid "Asset type"
 msgstr "نوع فایل"
 
@@ -3914,8 +3937,8 @@ msgstr "رمزهای عبور مطابقت ندارند"
 msgid "Pick a date and time"
 msgstr "تاریخ و زمان را انتخاب کنید"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:53
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:57
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:60
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:64
 msgid "Failed to update fulfillment state"
 msgstr "به‌روزرسانی وضعیت تحویل ناموفق بود"
 
@@ -3959,7 +3982,7 @@ msgstr "افزودن {0} مورد"
 msgid "Add row after"
 msgstr "افزودن سطر بعد از"
 
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:23
+#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:30
 msgid "Tax total"
 msgstr "مجموع مالیات"
 
@@ -3967,8 +3990,8 @@ msgstr "مجموع مالیات"
 msgid "Draft order status"
 msgstr "وضعیت پیش‌نویس سفارش"
 
-#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:167
-#: src/app/routes/_authenticated/_collections/components/collection-contents-table.tsx:80
+#: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx:166
+#: src/app/routes/_authenticated/_collections/components/collection-contents-table.tsx:79
 msgid "Search variants..."
 msgstr "جستجوی انواع..."
 
@@ -4049,8 +4072,8 @@ msgstr "ابزارکی برای نمایش وجود ندارد. برای افز�
 msgid "{0} variants"
 msgstr "{0} نوع"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:45
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:49
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:53
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:57
 msgid "Failed to settle payment"
 msgstr "تسویه پرداخت ناموفق بود"
 
@@ -4107,7 +4130,7 @@ msgstr "ایجاد نقش ناموفق بود"
 msgid "Product name"
 msgstr "نام محصول"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:50
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:57
 msgid "Fulfillment state updated successfully"
 msgstr "وضعیت تحویل با موفقیت به‌روزرسانی شد"
 
@@ -4153,16 +4176,20 @@ msgstr "بازپرداخت {0}"
 msgid "Enter slug manually"
 msgstr "نامک را به صورت دستی وارد کنید"
 
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:160
+msgid "Items included in this fulfillment."
+msgstr "اقلام موجود در این تحویل."
+
 #: src/app/routes/_authenticated/index.tsx:230
 #~ msgid "No widgets available"
 #~ msgstr "هیچ ابزارکی در دسترس نیست"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:75
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:79
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:83
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:87
 msgid "Failed to cancel payment"
 msgstr "لغو پرداخت ناموفق بود"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:72
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:80
 msgid "Payment cancelled successfully"
 msgstr "پرداخت با موفقیت لغو شد"
 
@@ -4179,7 +4206,7 @@ msgstr "جستجوی مدیران..."
 msgid "Created by"
 msgstr "ایجاد شده توسط"
 
-#: src/lib/components/data-table/data-table.tsx:639
+#: src/lib/components/data-table/data-table.tsx:649
 msgid "No items match your current filters. Try clearing them to see more."
 msgstr "هیچ موردی با فیلترهای فعلی شما مطابقت ندارد. برای دیدن موارد بیشتر آن‌ها را پاک کنید."
 
@@ -4272,8 +4299,8 @@ msgstr "یادداشت با موفقیت حذف شد"
 msgid "Note updated successfully"
 msgstr "یادداشت با موفقیت به‌روزرسانی شد"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:91
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:95
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:99
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:103
 msgid "Failed to settle refund"
 msgstr "تسویه بازپرداخت ناموفق بود"
 
@@ -4309,7 +4336,6 @@ msgstr "حذف گروه گزینه"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:213
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:76
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:14
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:275
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:174
@@ -4470,8 +4496,8 @@ msgstr "نقل‌قول"
 msgid "Select table size"
 msgstr "انتخاب اندازه جدول"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:60
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:64
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:68
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:72
 msgid "Failed to update payment state"
 msgstr "به‌روزرسانی وضعیت پرداخت ناموفق بود"
 
@@ -4479,7 +4505,7 @@ msgstr "به‌روزرسانی وضعیت پرداخت ناموفق بود"
 msgid "Your orders summary"
 msgstr "خلاصه سفارش‌های شما"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:527
+#: src/lib/components/shared/asset/asset-gallery.tsx:540
 msgid "Upload"
 msgstr "آپلود"
 
@@ -4632,7 +4658,7 @@ msgstr "کد درون‌خطی"
 
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:45
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx:104
-#: src/lib/components/shared/asset/asset-gallery.tsx:1117
+#: src/lib/components/shared/asset/asset-gallery.tsx:1127
 msgid "Tags"
 msgstr "برچسب‌ها"
 
@@ -4682,7 +4708,7 @@ msgstr "یک منطقه انتخاب کنید"
 msgid "Test shipping methods"
 msgstr "آزمون روش‌های ارسال"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:42
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:50
 msgid "Payment settled successfully"
 msgstr "پرداخت با موفقیت تسویه شد"
 
@@ -4795,7 +4821,7 @@ msgstr "استرداد به مبلغ {formattedDiff} مورد نیاز است. �
 msgid "Unit price"
 msgstr "قیمت واحد"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:799
+#: src/lib/components/shared/asset/asset-gallery.tsx:812
 msgid "Try changing your search, asset type, or selected tags."
 msgstr ""
 
@@ -4832,7 +4858,7 @@ msgstr "افزودن گروه‌های مشتری"
 msgid "Available Languages"
 msgstr "زبان‌های موجود"
 
-#: src/lib/components/data-table/data-table-bulk-actions.tsx:114
+#: src/lib/components/data-table/data-table-bulk-actions.tsx:123
 msgid "Reset selection"
 msgstr "بازنشانی انتخاب"
 
@@ -4926,7 +4952,7 @@ msgstr "چرخش کلید"
 msgid "Hide password"
 msgstr "مخفی کردن رمز عبور"
 
-#: src/lib/components/data-table/data-table-bulk-actions.tsx:71
+#: src/lib/components/data-table/data-table-bulk-actions.tsx:80
 msgid "Bulk actions"
 msgstr "اقدامات گروهی"
 
@@ -4964,9 +4990,13 @@ msgstr "پاک کردن فیلتر"
 msgid "Regions"
 msgstr "مناطق"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:568
+#: src/lib/components/shared/asset/asset-gallery.tsx:581
 msgid "Drop files here to upload"
 msgstr "فایل‌ها را برای آپلود اینجا رها کنید"
+
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:215
+msgid "View payment metadata"
+msgstr "مشاهده فراداده پرداخت"
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:182
 msgid "Toggle all visible variants"
@@ -5185,7 +5215,7 @@ msgid "Select"
 msgstr "انتخاب"
 
 #. placeholder {0}: payment.refunds.length
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:206
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:242
 msgid "Refunds ({0})"
 msgstr "بازپرداخت‌ها ({0})"
 
@@ -5193,7 +5223,7 @@ msgstr "بازپرداخت‌ها ({0})"
 msgid "Last Executed"
 msgstr "آخرین اجرا"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:250
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:266
 msgid "Payment details"
 msgstr "جزئیات پرداخت"
 
@@ -5218,7 +5248,7 @@ msgstr "به‌روزرسانی گروه مشتری ناموفق بود"
 msgid "Remove widget"
 msgstr "حذف ابزارک"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:189
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:220
 msgid "Payment metadata"
 msgstr "فراداده پرداخت"
 
@@ -5247,7 +5277,7 @@ msgstr "نقش‌ها"
 msgid "Additional payment required"
 msgstr "پرداخت اضافی مورد نیاز است"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:97
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:99
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:63
 msgid "Failed to update order"
 msgstr "به‌روزرسانی سفارش ناموفق بود"
@@ -5277,8 +5307,7 @@ msgstr "اعضای گروه مشتری {customerGroupName}"
 msgid "Failed to set address for order: {0}"
 msgstr "تنظیم آدرس برای سفارش ناموفق بود: {0}"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:120
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:215
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:251
 #: src/app/routes/_authenticated/_orders/orders.tsx:102
 #: src/app/routes/_authenticated/_system/job-queue.tsx:265
 msgid "State"
@@ -5328,7 +5357,7 @@ msgstr "ایالت / استان"
 msgid "Enabled"
 msgstr "فعال"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:630
+#: src/lib/components/shared/asset/asset-gallery.tsx:643
 msgid "Items per page"
 msgstr "موارد در هر صفحه"
 
@@ -5529,9 +5558,14 @@ msgid "Failed to update variant"
 msgstr "به‌روزرسانی متغیر ناموفق بود"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:69
-#: src/lib/components/data-table/data-table.tsx:765
+#: src/lib/components/data-table/data-table.tsx:776
 msgid "Go to previous page"
 msgstr "رفتن به صفحه قبلی"
+
+#. placeholder {0}: line.quantity
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:174
+msgid "Quantity: {0}"
+msgstr "تعداد: {0}"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278
@@ -5567,7 +5601,7 @@ msgid "System"
 msgstr "سیستم"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:563
-#: src/app/routes/_authenticated/_products/components/product-variants-table.tsx:88
+#: src/app/routes/_authenticated/_products/components/product-variants-table.tsx:85
 msgid "Variant name"
 msgstr "نام نوع"
 
@@ -5581,7 +5615,7 @@ msgstr "حذف"
 msgid "Failed to update customer"
 msgstr "به‌روزرسانی مشتری ناموفق بود"
 
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:320
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:319
 msgid "Remove option groups?"
 msgstr "حذف گروه‌های گزینه؟"
 
@@ -5608,7 +5642,7 @@ msgid "Failed to remove customers from group"
 msgstr "حذف مشتریان از گروه با خطا مواجه شد"
 
 #. placeholder {0}: failedAssets.length
-#: src/lib/components/shared/asset/asset-gallery.tsx:282
+#: src/lib/components/shared/asset/asset-gallery.tsx:295
 msgid "Failed to upload {0} assets"
 msgstr ""
 
@@ -5624,7 +5658,7 @@ msgstr "بارگذاری تنظیمات عمومی ناموفق بود"
 msgid "Select items to refund and optionally return to stock"
 msgstr "اقلام را برای بازپرداخت انتخاب کنید و به صورت اختیاری به انبار برگردانید"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:245
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:261
 #: src/app/routes/_authenticated/_system/settings-store.tsx:153
 #: src/lib/components/data-table/data-table-views-tabs.tsx:132
 #: src/lib/components/data-table/views-sheet.tsx:210
@@ -5739,7 +5773,7 @@ msgstr "پیش‌نمایش {0}"
 msgid "Successfully updated seller"
 msgstr "فروشنده با موفقیت به‌روزرسانی شد"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:132
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:134
 msgid "Failed to transition order to state"
 msgstr "انتقال سفارش به وضعیت ناموفق بود"
 
@@ -5807,10 +5841,10 @@ msgstr "مدیر با موفقیت به‌روزرسانی شد"
 
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:263
 #: src/lib/components/data-table/data-table-faceted-filter.tsx:225
-#: src/lib/components/data-table/data-table.tsx:642
-#: src/lib/components/shared/asset/asset-gallery.tsx:445
-#: src/lib/components/shared/asset/asset-gallery.tsx:452
-#: src/lib/components/shared/asset/asset-gallery.tsx:808
+#: src/lib/components/data-table/data-table.tsx:652
+#: src/lib/components/shared/asset/asset-gallery.tsx:458
+#: src/lib/components/shared/asset/asset-gallery.tsx:465
+#: src/lib/components/shared/asset/asset-gallery.tsx:821
 msgid "Clear filters"
 msgstr "پاک کردن فیلترها"
 
@@ -5839,13 +5873,13 @@ msgstr "وضعیت"
 msgid "No options found"
 msgstr "هیچ گزینه‌ای یافت نشد"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:813
+#: src/lib/components/shared/asset/asset-gallery.tsx:826
 msgid "Upload assets"
 msgstr ""
 
 #: src/lib/components/shared/asset/asset-gallery.tsx:95
-#: src/lib/components/shared/asset/asset-gallery.tsx:466
-#: src/lib/components/shared/asset/asset-gallery.tsx:483
+#: src/lib/components/shared/asset/asset-gallery.tsx:479
+#: src/lib/components/shared/asset/asset-gallery.tsx:496
 msgid "Binary"
 msgstr "باینری"
 
@@ -5995,16 +6029,15 @@ msgstr "حذف گروه گزینه‌ها ناموفق بود"
 msgid "Sub total"
 msgstr "جمع جزء"
 
-#. placeholder {0}: fulfillment.lines.reduce((acc, line) => acc + line.quantity, 0)
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:133
-msgid "Fulfilled items ({0})"
-msgstr "اقلام تحویل شده ({0})"
+#~ msgid "Fulfilled items ({0})"
+#~ msgstr "اقلام تحویل شده ({0})"
 
 #: src/app/routes/_authenticated/_products/products.tsx:117
 msgid "Create your first product"
 msgstr "اولین محصول خود را ایجاد کنید"
 
-#: src/app/routes/_authenticated/_system/settings-store.tsx:246
+#: src/app/routes/_authenticated/_system/settings-store.tsx:345
 msgid "Value updated"
 msgstr "مقدار به‌روزرسانی شد"
 
@@ -6059,7 +6092,7 @@ msgstr "مقدار تکراری \"{trimmed}\" از قبل وجود دارد"
 msgid "Create your first customer"
 msgstr "اولین مشتری خود را ایجاد کنید"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:231
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:267
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:222
 msgid "Reason"
 msgstr "دلیل"
@@ -6117,8 +6150,8 @@ msgid "Remove item"
 msgstr "حذف مورد"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx:93
-#: src/lib/components/shared/asset/asset-gallery.tsx:465
-#: src/lib/components/shared/asset/asset-gallery.tsx:482
+#: src/lib/components/shared/asset/asset-gallery.tsx:478
+#: src/lib/components/shared/asset/asset-gallery.tsx:495
 msgid "Video"
 msgstr "ویدیو"
 
@@ -6158,7 +6191,7 @@ msgstr "به‌روزرسانی ایمیل تایید شد"
 msgid "is between"
 msgstr "بین است"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:173
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:175
 msgid "Refund & Cancel"
 msgstr "بازپرداخت و لغو"
 
@@ -6200,7 +6233,7 @@ msgstr "حذف پیش‌نویس"
 msgid "Source"
 msgstr "منبع"
 
-#: src/lib/components/data-table/data-table-bulk-actions.tsx:107
+#: src/lib/components/data-table/data-table-bulk-actions.tsx:116
 msgid "No actions available"
 msgstr "عملیاتی موجود نیست"
 
@@ -6232,7 +6265,7 @@ msgid "Strikethrough"
 msgstr "خط‌خورده"
 
 #. placeholder {0}: createdAssets.length
-#: src/lib/components/shared/asset/asset-gallery.tsx:279
+#: src/lib/components/shared/asset/asset-gallery.tsx:292
 msgid "Uploaded {0} assets"
 msgstr ""
 
@@ -6246,7 +6279,7 @@ msgstr "بازه تاریخ دیگری را انتخاب کنید."
 msgid "Successfully created zone"
 msgstr "منطقه با موفقیت ایجاد شد"
 
-#: src/app/routes/_authenticated/_system/settings-store.tsx:278
+#: src/app/routes/_authenticated/_system/settings-store.tsx:361
 msgid "Value"
 msgstr "مقدار"
 
@@ -6375,7 +6408,7 @@ msgstr "جمع جزء"
 msgid "is less than"
 msgstr "کوچکتر از است"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:213
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:249
 msgid "Refund ID"
 msgstr "شناسه بازپرداخت"
 
@@ -6383,7 +6416,7 @@ msgstr "شناسه بازپرداخت"
 msgid "Order custom fields updated"
 msgstr "فیلدهای سفارشی سفارش به‌روزرسانی شد"
 
-#: src/app/routes/_authenticated/_system/settings-store.tsx:320
+#: src/app/routes/_authenticated/_system/settings-store.tsx:384
 msgid "Search entries..."
 msgstr "جستجوی ورودی‌ها..."
 
@@ -6416,8 +6449,8 @@ msgstr "خلاصه سفارش‌ها"
 msgid "Search stock locations..."
 msgstr "جستجوی محل‌های انبار..."
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:427
-#: src/lib/components/shared/asset/asset-gallery.tsx:1114
+#: src/lib/components/shared/asset/asset-gallery.tsx:440
+#: src/lib/components/shared/asset/asset-gallery.tsx:1124
 msgid "Search assets..."
 msgstr "جستجوی فایل‌ها..."
 
@@ -6440,7 +6473,7 @@ msgstr "ادامه"
 msgid "Promotions"
 msgstr "تبلیغات"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:181
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:205
 msgid "Error message"
 msgstr "پیام خطا"
 
@@ -6480,7 +6513,7 @@ msgstr "حذف ویژگی از کانال ناموفق بود: {message}"
 #~ msgid "Set link"
 #~ msgstr "تنظیم پیوند"
 
-#: src/lib/components/data-table/data-table.tsx:764
+#: src/lib/components/data-table/data-table.tsx:775
 msgid "Pagination"
 msgstr "صفحه‌بندی"
 
@@ -6531,7 +6564,7 @@ msgid "View result"
 msgstr "مشاهده نتیجه"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:20
-#: src/lib/components/data-table/data-table.tsx:767
+#: src/lib/components/data-table/data-table.tsx:778
 msgid "Rows per page"
 msgstr "ردیف در هر صفحه"
 
@@ -6617,8 +6650,8 @@ msgstr "به‌روزرسانی روش پرداخت ناموفق بود"
 msgid "Available:"
 msgstr "موجود:"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:172
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:219
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:193
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:255
 msgid "Created at"
 msgstr "ایجاد شده در"
 
@@ -6628,7 +6661,7 @@ msgid "Failed to create product variant"
 msgstr "ایجاد نوع محصول ناموفق بود"
 
 #: src/lib/components/data-input/relation-selector.tsx:418
-#: src/lib/components/data-table/data-table.tsx:549
+#: src/lib/components/data-table/data-table.tsx:559
 msgid "Search..."
 msgstr "جستجو..."
 
@@ -6666,7 +6699,7 @@ msgctxt "active language"
 msgid "Active"
 msgstr "فعال"
 
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:20
+#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:22
 msgid "Tax base"
 msgstr "پایه مالیاتی"
 
@@ -6713,7 +6746,7 @@ msgid "Active filters"
 msgstr "فیلترهای فعال"
 
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx:54
-#: src/lib/components/data-table/data-table.tsx:625
+#: src/lib/components/data-table/data-table.tsx:635
 msgid "Clear all"
 msgstr "پاک کردن همه"
 
@@ -6763,7 +6796,7 @@ msgstr "توکن برای مشخص کردن کانال هنگام انجام د�
 msgid "No addresses found"
 msgstr "هیچ آدرسی یافت نشد"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:117
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:136
 msgid "Fulfillment ID"
 msgstr "شناسه تحویل"
 
@@ -6787,7 +6820,7 @@ msgstr "آستانه اتمام موجودی"
 #~ msgid "Successfully removed product from channel"
 #~ msgstr "محصول با موفقیت از کانال حذف شد"
 
-#: src/app/routes/_authenticated/_system/settings-store.tsx:249
+#: src/app/routes/_authenticated/_system/settings-store.tsx:348
 msgid "Failed to update value"
 msgstr "به‌روزرسانی مقدار ناموفق بود"
 
@@ -6795,7 +6828,7 @@ msgstr "به‌روزرسانی مقدار ناموفق بود"
 msgid "Failed to create API key"
 msgstr "ایجاد کلید API ناموفق بود"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:262
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:298
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:49
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:74
 msgid "Settle refund"
@@ -6810,12 +6843,12 @@ msgstr "روش پرداخت الزامی است"
 msgid "Failed to add customer to group"
 msgstr "افزودن مشتری به گروه ناموفق بود"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:617
+#: src/lib/components/shared/asset/asset-gallery.tsx:630
 msgid "{totalItems, plural, one {{totalItems} asset found} other {{totalItems} assets found}}"
 msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:338
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:292
+#: src/app/routes/_authenticated/_products/products_.$id.tsx:291
 msgid "Manage variants"
 msgstr "مدیریت انواع"
 

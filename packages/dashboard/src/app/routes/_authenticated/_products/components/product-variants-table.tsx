@@ -22,7 +22,6 @@ import { productVariantListDocument } from '../products.graphql.js';
 interface ProductVariantsTableProps {
     productId: string;
     registerRefresher?: PaginatedListRefresherRegisterFn;
-    fromProductDetailPage?: boolean;
     title?: ReactNode;
     actions?: ReactNode;
 }
@@ -30,7 +29,6 @@ interface ProductVariantsTableProps {
 export function ProductVariantsTable({
     productId,
     registerRefresher,
-    fromProductDetailPage,
     title,
     actions,
 }: ProductVariantsTableProps) {
@@ -47,7 +45,6 @@ export function ProductVariantsTable({
         <PaginatedListDataTable
             title={title}
             actions={actions}
-            hideViewsControls={fromProductDetailPage}
             registerRefresher={registerRefresher}
             listQuery={productVariantListDocument}
             transformVariables={variables => ({

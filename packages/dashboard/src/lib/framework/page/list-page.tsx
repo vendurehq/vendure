@@ -637,6 +637,7 @@ export function ListPage<
                 <FullWidthPageBlock blockId="list-table">
                     <PaginatedListDataTable
                         {...commonTableProps}
+                        enableViews
                         onReorder={onReorder}
                         disableDragAndDrop={disableDragAndDrop}
                     />

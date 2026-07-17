@@ -417,7 +417,7 @@ test.describe('Orders', () => {
             ).toBeVisible({ timeout: 10_000 });
         });
 
-        test('should transition order state', async ({ page }) => {
+        test('should transition fulfillment and update order state', async ({ page }) => {
             test.setTimeout(60_000);
 
             const client = new VendureAdminClient(page);
@@ -426,37 +426,24 @@ test.describe('Orders', () => {
 
             await page.goto(`/orders/${orderId}`);
 
-            // The state transition control is a badge with a dropdown trigger
-            // Find the ellipsis button near the state badge
-            const stateSection = page
-                .locator('[data-slot="card"]')
-                .filter({ hasText: /Fulfilled/i })
-                .first();
-            await expect(stateSection).toBeVisible({ timeout: 10_000 });
+            const fulfillmentStateControl = page.getByTestId('fulfillment-state-control');
+            await expect(fulfillmentStateControl).toContainText(/Pending/i, { timeout: 10_000 });
 
-            // Click the ellipsis dropdown button next to the state badge
-            const dropdownTrigger = stateSection.getByTestId('state-transition-trigger');
+            const dropdownTrigger = fulfillmentStateControl.getByTestId('state-transition-trigger');
             await dropdownTrigger.click();
 
-            // Select "Transition to Shipped" from the dropdown
             const menu = page.locator('[data-slot="dropdown-menu-content"]');
             await expect(menu).toBeVisible();
-            await menu
-                .getByText(/Shipped/i)
-                .first()
-                .click();
+            await menu.getByRole('menuitem', { name: /Transition to Shipped/i }).click();
 
-            // Wait for the mutation and page to update
-            await page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);
+            await expect(page.getByText(/Fulfillment state updated successfully/i)).toBeVisible({
+                timeout: 10_000,
+            });
 
-            // Reload to get a clean page state, then verify the order is now "Shipped"
             await page.reload();
-            await expect(
-                page
-                    .locator('[data-slot="card"]')
-                    .filter({ hasText: /Shipped/i })
-                    .first(),
-            ).toBeVisible({ timeout: 10_000 });
+            await expect(page.getByTestId('order-state-control')).toContainText(/Shipped/i, {
+                timeout: 10_000,
+            });
         });
 
         test('should open refund dialog and show order lines', async ({ page }) => {

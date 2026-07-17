@@ -169,6 +169,7 @@ export const Playground: Story = {
                     <PageLayout>
                         <FullWidthPageBlock blockId="test-block">
                             <DataTable
+                                enableViews
                                 columns={columns}
                                 data={paginatedData}
                                 totalItems={totalItems}

@@ -284,7 +284,6 @@ function ProductDetailPage() {
                             registerRefresher={refresher => {
                                 refreshRef.current = refresher;
                             }}
-                            fromProductDetailPage={true}
                             title={<Trans>Product variants</Trans>}
                             actions={
                                 <Button render={<Link to="./variants" />} variant="outline" size="sm">

@@ -41,8 +41,8 @@ uses:
 The Dashboard calls its matching worktree API directly. Browser sessions are isolated by the
 worktree-specific API hostname, while Docker resources and database data remain shared.
 
-Before starting any long-running process, `dev` builds the packages required by the dev server and
-creates a clean static Dashboard build in `packages/dev-server/dist/dashboard`. It then supervises:
+Before starting any long-running process, `dev` builds the package entry points required by the API
+and Dashboard Vite server. It then supervises:
 
 - the Vendure API server;
 - the Dashboard Vite development server;
@@ -52,8 +52,10 @@ creates a clean static Dashboard build in `packages/dev-server/dist/dashboard`. 
 Successful dependency rebuilds restart the process that loaded those compiled modules. Dashboard
 application changes continue to use Vite HMR.
 
-The server's `/dashboard` route remains available using the clean static build. For active Dashboard
-development, use the Portless Dashboard URL above.
+The workflow keeps the Dashboard backend plugin active for its API and settings features, but does
+not build or serve a second static Dashboard. Use the Portless Dashboard URL above. It also skips
+the standalone GraphiQL frontend. Running `dev:server` directly retains static Dashboard and
+GraphiQL serving for workflows that have already built their frontend assets.
 
 ### Agent-driven development
 
@@ -74,7 +76,6 @@ compilation and these endpoints respond successfully:
 
 - the API health endpoint;
 - the Dashboard Vite URL;
-- the server-served `/dashboard` URL.
 
 Watcher-triggered process restarts move the lifecycle back to `starting` until the restarted
 endpoint is accepting requests again.
@@ -94,7 +95,6 @@ The output has this shape:
     "worktreePath": "/path/to/worktree",
     "apiUrl": "https://fix-order-list.vendure.localhost",
     "dashboardUrl": "https://fix-order-list.dashboard.vendure.localhost/dashboard/",
-    "serverDashboardUrl": "https://fix-order-list.vendure.localhost/dashboard/",
     "statusFile": "/path/to/worktree/.vendure/dev-server.json"
 }
 ```

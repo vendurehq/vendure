@@ -120,7 +120,6 @@ export function CollectionContentsPreviewTable({
             {hasFilters && (
                 <PaginatedListDataTable
                     title={title}
-                    hideViewsControls
                     listQuery={addCustomFields(previewCollectionContentsDocument)}
                     transformQueryKey={queryKey => {
                         return [...queryKey, JSON.stringify(effectiveFilters), inheritFilters];
