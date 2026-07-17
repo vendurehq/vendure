@@ -164,6 +164,14 @@ interface DataTableProps<TData> {
     hideViewsControls?: boolean;
     bulkActions?: BulkActionsInput;
     /**
+     * The selected items, used to synchronize table selection with an owning component.
+     */
+    selectedItems?: TData[];
+    /**
+     * Called when row selection changes, including selections retained across pages.
+     */
+    onSelectionChange?: (selection: TData[]) => void;
+    /**
      * @description
      * This property allows full control over _all_ features of TanStack Table
      * when needed.
@@ -263,6 +271,8 @@ export function DataTable<TData>({
     disableViewOptions,
     hideViewsControls,
     bulkActions,
+    selectedItems,
+    onSelectionChange,
     setTableOptions,
     onRefresh,
     onReorder,
@@ -287,6 +297,8 @@ export function DataTable<TData>({
         defaultColumnVisibility ?? {},
     );
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+    const rowSelectionRef = useRef<RowSelectionState>(rowSelection);
+    const selectedItemsCache = useRef<Map<string, TData>>(new Map());
     // The faceted filter the user is currently interacting with — launched from
     // the unified Filter menu or reopened from its chip. Keeps the chip mounted
     // while its popover is open even when no values are selected yet.
@@ -302,6 +314,42 @@ export function DataTable<TData>({
     const handleTableReady = (table: TableType<TData>) => {
         tableRef.current = table;
         setTableInstance(table);
+    };
+
+    const selectedItemIds = selectedItems?.map(item => String((item as { id: string }).id)).join(',');
+
+    useEffect(() => {
+        if (!selectedItems) return;
+
+        selectedItems.forEach(item => {
+            selectedItemsCache.current.set(String((item as { id: string }).id), item);
+        });
+        const nextSelection = Object.fromEntries(selectedItems.map(item => [String((item as { id: string }).id), true]));
+        rowSelectionRef.current = nextSelection;
+        setRowSelection(nextSelection);
+    }, [selectedItemIds]);
+
+    const handleRowSelectionChange = (updater: RowSelectionState | ((previous: RowSelectionState) => RowSelectionState)) => {
+        const nextSelection = typeof updater === 'function' ? updater(rowSelectionRef.current) : updater;
+
+        data.forEach(item => {
+            const id = String((item as { id: string }).id);
+            if (nextSelection[id]) {
+                selectedItemsCache.current.set(id, item);
+            }
+        });
+        for (const id of selectedItemsCache.current.keys()) {
+            if (!nextSelection[id]) {
+                selectedItemsCache.current.delete(id);
+            }
+        }
+        rowSelectionRef.current = nextSelection;
+        setRowSelection(nextSelection);
+        onSelectionChange?.(
+            Object.keys(nextSelection)
+                .map(id => selectedItemsCache.current.get(id))
+                .filter((item): item is TData => item !== undefined),
+        );
     };
 
     const { sensors, localData, handleDragEnd, itemIds } = useDragAndDrop({
@@ -657,7 +705,7 @@ export function DataTable<TData>({
                             hasSelectionColumn
                                 ? {
                                       value: rowSelection,
-                                      onChange: setRowSelection,
+                                      onChange: handleRowSelectionChange,
                                       selectColumnId: 'selection',
                                   }
                                 : undefined

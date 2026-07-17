@@ -5,7 +5,7 @@ import {
 } from '@/vdb/components/shared/paginated-list-data-table.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import { Checkbox } from '@/vdb/components/ui/checkbox.js';
-import { EmptyMediaIllustration, NoResultsIllustration } from '@/vdb/components/ui/illustrations.js';
+import { EmptyMediaIllustration, ErrorIllustration, NoResultsIllustration } from '@/vdb/components/ui/illustrations.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import {
     Pagination,
@@ -17,7 +17,7 @@ import {
     PaginationPrevious,
 } from '@/vdb/components/ui/pagination.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/vdb/components/ui/select.js';
-import { EmptyState, LoadingState } from '@/vdb/components/ui/state-views.js';
+import { EmptyState, ErrorState, LoadingState } from '@/vdb/components/ui/state-views.js';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/vdb/components/ui/tooltip.js';
 import { ToggleGroup, ToggleGroupItem } from '@/vdb/components/ui/toggle-group.js';
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
@@ -26,7 +26,7 @@ import { api } from '@/vdb/graphql/api.js';
 import { assetFragment, AssetFragment } from '@/vdb/graphql/fragments.js';
 import { graphql, ResultOf } from '@/vdb/graphql/graphql.js';
 import { formatFileSize } from '@/vdb/lib/utils.js';
-import { Trans, useLingui } from '@lingui/react/macro';
+import { Plural, Trans, useLingui } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ColumnFiltersState, SortingState } from '@tanstack/react-table';
 import { Link } from '@tanstack/react-router';
@@ -84,6 +84,19 @@ const AssetType = {
     VIDEO: 'VIDEO',
     BINARY: 'BINARY',
 } as const;
+
+function AssetTypeLabel({ type }: Readonly<{ type: string }>) {
+    switch (type) {
+        case AssetType.IMAGE:
+            return <Trans>Images</Trans>;
+        case AssetType.VIDEO:
+            return <Trans>Video</Trans>;
+        case AssetType.BINARY:
+            return <Trans>Binary</Trans>;
+        default:
+            return type;
+    }
+}
 
 export type Asset = AssetFragment;
 
@@ -216,12 +229,13 @@ export function AssetGallery({
 
     useEffect(() => {
         setItemsPerPage(pageSize);
+        setPage(1);
     }, [pageSize]);
 
     const queryKey = ['AssetGallery', page, itemsPerPage, debouncedSearch, assetType, gridSelectedTags, sorting];
 
     // Query for assets
-    const { data, isLoading } = useQuery({
+    const { data, isLoading, isError, error, refetch } = useQuery({
         queryKey,
         enabled: viewMode === 'grid',
         queryFn: () => {
@@ -412,7 +426,10 @@ export function AssetGallery({
                                 <Input
                                     placeholder={t`Search assets...`}
                                     value={search}
-                                    onChange={e => setSearch(e.target.value)}
+                                    onChange={e => {
+                                        setSearch(e.target.value);
+                                        setPage(1);
+                                    }}
                                     className="pl-8 pr-9"
                                 />
                                 {hasActiveFilters && (
@@ -449,7 +466,12 @@ export function AssetGallery({
                                         [AssetType.BINARY]: t`Binary`,
                                     }}
                                     value={assetType}
-                                    onValueChange={value => value != null && setAssetType(value)}
+                                    onValueChange={value => {
+                                        if (value != null) {
+                                            setAssetType(value);
+                                            setPage(1);
+                                        }
+                                    }}
                                 >
                                     <SelectTrigger className="w-[150px]">
                                         <SelectValue placeholder={t`Asset type`} />
@@ -556,6 +578,7 @@ export function AssetGallery({
                         itemsPerPage={itemsPerPage}
                         sorting={sorting}
                         columnFilters={columnFilters}
+                        selectedItems={selected}
                         onPageChange={(nextPage, nextPageSize) => {
                             setPage(nextPage);
                             if (nextPageSize !== itemsPerPage) {
@@ -565,11 +588,18 @@ export function AssetGallery({
                         }}
                         onSortChange={setSorting}
                         onFilterChange={setColumnFilters}
+                        onSelectionChange={nextSelected => {
+                            setSelected(nextSelected);
+                            onSelect?.(nextSelected);
+                        }}
                     />
                 ) : (
                     <AssetGridView
                         assets={assets}
                         isLoading={isLoading}
+                        isError={isError}
+                        error={error}
+                        retry={refetch}
                         selectable={selectable}
                         hasActiveFilters={hasActiveFilters}
                         clearFilters={clearFilters}
@@ -584,9 +614,11 @@ export function AssetGallery({
             {viewMode === 'grid' && (
                 <div className="flex flex-col md:flex-row items-center md:justify-between gap-4 mt-4 flex-shrink-0">
                 <div className="mt-2 text-xs text-muted-foreground flex-shrink-0">
-                    <Trans>
-                        {totalItems} {totalItems === 1 ? 'asset' : 'assets'} found
-                    </Trans>
+                    <Plural
+                        value={totalItems}
+                        one={`${totalItems} asset found`}
+                        other={`${totalItems} assets found`}
+                    />
                     {selected.length > 0 && (
                         <Trans>, {selected.length} selected</Trans>
                     )}
@@ -740,6 +772,9 @@ export function AssetGallery({
 interface AssetViewProps {
     assets: Asset[];
     isLoading: boolean;
+    isError: boolean;
+    error: Error | null;
+    retry: () => void;
     selectable: boolean;
     hasActiveFilters: boolean;
     clearFilters: () => void;
@@ -785,6 +820,9 @@ function AssetEmptyState({
 function AssetGridView({
     assets,
     isLoading,
+    isError,
+    error,
+    retry,
     selectable,
     hasActiveFilters,
     clearFilters,
@@ -799,6 +837,20 @@ function AssetGridView({
         return (
             <div data-asset-gallery className="py-12">
                 <LoadingState variant="spinner" />
+            </div>
+        );
+    }
+
+    if (isError) {
+        return (
+            <div data-asset-gallery>
+                <ErrorState
+                    className="border-0 bg-transparent py-16"
+                    illustration={<ErrorIllustration />}
+                    title={<Trans>We couldn't load assets</Trans>}
+                    description={error?.message}
+                    onRetry={retry}
+                />
             </div>
         );
     }
@@ -833,6 +885,7 @@ function AssetGridView({
                     `}
                     onClick={e => handleSelect(asset, e)}
                     onKeyDown={e => {
+                        if (e.currentTarget !== e.target) return;
                         if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault();
                             handleSelect(asset, e);
@@ -889,6 +942,7 @@ interface AssetListDataTableProps {
     selectable: boolean;
     displayBulkActions: boolean;
     bulkActions?: BulkActionsInput;
+    selectedItems: Asset[];
     page: number;
     itemsPerPage: number;
     sorting: SortingState;
@@ -896,12 +950,14 @@ interface AssetListDataTableProps {
     onPageChange: (page: number, itemsPerPage: number) => void;
     onSortChange: (sorting: SortingState) => void;
     onFilterChange: (filters: ColumnFiltersState) => void;
+    onSelectionChange: (selection: Asset[]) => void;
 }
 
 function AssetListDataTable({
     selectable,
     displayBulkActions,
     bulkActions,
+    selectedItems,
     page,
     itemsPerPage,
     sorting,
@@ -909,6 +965,7 @@ function AssetListDataTable({
     onPageChange,
     onSortChange,
     onFilterChange,
+    onSelectionChange,
 }: Readonly<AssetListDataTableProps>) {
     const { t } = useLingui();
 
@@ -959,7 +1016,11 @@ function AssetListDataTable({
                     type: {
                         header: t`Type`,
                         enableSorting: false,
-                        cell: ({ row }) => <span className="text-muted-foreground">{row.original.type.toLowerCase()}</span>,
+                        cell: ({ row }) => (
+                            <span className="text-muted-foreground">
+                                <AssetTypeLabel type={row.original.type} />
+                            </span>
+                        ),
                     },
                     fileSize: {
                         header: t`Size`,
@@ -1047,6 +1108,8 @@ function AssetListDataTable({
                 onSortChange={(_, nextSorting) => onSortChange(nextSorting)}
                 columnFilters={columnFilters}
                 onFilterChange={(_, nextColumnFilters) => onFilterChange(nextColumnFilters)}
+                selectedItems={selectedItems}
+                onSelectionChange={onSelectionChange}
                 onSearchTermChange={searchTerm => ({ name: { contains: searchTerm } })}
                 searchPlaceholder={t`Search assets...`}
                 facetedFilters={{

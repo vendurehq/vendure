@@ -35,7 +35,7 @@ msgstr "परिवर्तनहरू हेर्नुहोस्"
 msgid "Tracking code"
 msgstr "ट्र्याकिङ कोड"
 
-#: src/lib/components/data-table/data-table.tsx:719
+#: src/lib/components/data-table/data-table.tsx:761
 #: src/lib/components/data-table/use-generated-columns.tsx:226
 msgid "Select all rows"
 msgstr "सबै पङ्क्तिहरू चयन गर्नुहोस्"
@@ -174,7 +174,7 @@ msgstr "कर दर सफलतापूर्वक अपडेट गर�
 msgid "Enter custom reason..."
 msgstr "अनुकूलित कारण लेख्नुहोस्..."
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:960
+#: src/lib/components/shared/asset/asset-gallery.tsx:1017
 msgid "Type"
 msgstr "प्रकार"
 
@@ -241,7 +241,7 @@ msgstr "स्वत: रिफ्रेस: {0}"
 msgid "Deleted {deleted} {entityName}"
 msgstr "{deleted} {entityName} मेटियो"
 
-#: src/lib/components/data-table/data-table.tsx:608
+#: src/lib/components/data-table/data-table.tsx:650
 msgid "There are no items to display yet."
 msgstr "प्रदर्शन गर्न अहिलेसम्म कुनै वस्तुहरू छैनन्।"
 
@@ -341,8 +341,8 @@ msgstr "के तपाईं निश्चित हुनुहुन्छ
 #~ msgid "All resources are up and running"
 #~ msgstr "सबै स्रोतहरू चलिरहेका छन्"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:877
-#: src/lib/components/shared/asset/asset-gallery.tsx:1015
+#: src/lib/components/shared/asset/asset-gallery.tsx:930
+#: src/lib/components/shared/asset/asset-gallery.tsx:1076
 msgid "Open"
 msgstr ""
 
@@ -359,7 +359,7 @@ msgstr "होइन"
 msgid "Successfully updated product variant"
 msgstr "उत्पादन भेरियन्ट सफलतापूर्वक अपडेट गरियो"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:766
+#: src/lib/components/shared/asset/asset-gallery.tsx:801
 msgid "Upload images, videos, or files to start building your asset library."
 msgstr ""
 
@@ -418,7 +418,7 @@ msgstr "थप्नका लागि कुनै विजेटहरू �
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:107
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:290
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:203
-#: src/lib/components/shared/asset/asset-gallery.tsx:277
+#: src/lib/components/shared/asset/asset-gallery.tsx:291
 #: src/lib/components/shared/asset/asset-preview.tsx:127
 msgid "Unknown error"
 msgstr "अज्ञात त्रुटि"
@@ -549,7 +549,7 @@ msgstr "नयाँ संग्रह"
 msgid "Insights"
 msgstr "अन्तर्दृष्टि"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:276
+#: src/lib/components/shared/asset/asset-gallery.tsx:290
 msgid "Failed to upload assets"
 msgstr ""
 
@@ -597,7 +597,7 @@ msgstr "प्रशासकहरू"
 #~ msgstr "सकल मूल्य: <0/>"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:82
-#: src/lib/components/data-table/data-table.tsx:724
+#: src/lib/components/data-table/data-table.tsx:766
 msgid "Go to next page"
 msgstr "अर्को पृष्ठमा जानुहोस्"
 
@@ -709,7 +709,7 @@ msgstr "संग्रहहरू सार्नुहोस्"
 msgid "Roles"
 msgstr "भूमिकाहरू"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:484
+#: src/lib/components/shared/asset/asset-gallery.tsx:506
 msgid "Grid view"
 msgstr "ग्रिड दृश्य"
 
@@ -737,7 +737,7 @@ msgstr "के तपाईं निश्चित हुनुहुन्छ
 msgid "Sign in"
 msgstr "साइन इन गर्नुहोस्"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:487
+#: src/lib/components/shared/asset/asset-gallery.tsx:509
 msgid "List view"
 msgstr "सूची दृश्य"
 
@@ -890,7 +890,7 @@ msgstr "मस्यौदा पूरा गर्नुहोस्"
 #: src/app/routes/_authenticated/_tax-categories/tax-categories_.$id.tsx:106
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:113
 #: src/app/routes/_authenticated/_zones/zones_.$id.tsx:93
-#: src/lib/components/shared/asset/asset-gallery.tsx:948
+#: src/lib/components/shared/asset/asset-gallery.tsx:1005
 msgid "Name"
 msgstr "नाम"
 
@@ -930,7 +930,7 @@ msgstr "पूर्ति सिर्जना गरियो"
 msgid "Found {0} eligible shipping method{1}"
 msgstr "{0} योग्य ढुवानी विधि फेला पर्यो"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:988
+#: src/lib/components/shared/asset/asset-gallery.tsx:1049
 #: src/lib/components/shared/asset/asset-properties.tsx:39
 msgid "Dimensions"
 msgstr "आयाम"
@@ -1107,7 +1107,7 @@ msgstr "अनुसूचित कार्य कार्यान्वय�
 msgid "New stock location"
 msgstr "नयाँ स्टक स्थान"
 
-#: src/lib/components/data-table/data-table.tsx:720
+#: src/lib/components/data-table/data-table.tsx:762
 #: src/lib/components/data-table/use-generated-columns.tsx:238
 msgid "Select row"
 msgstr "पङ्क्ति चयन गर्नुहोस्"
@@ -1263,8 +1263,9 @@ msgstr "नयाँ ट्याबमा खोल्नुहोस्"
 msgid "Failed to update promotion"
 msgstr "प्रमोशन अपडेट गर्न असफल"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:447
-#: src/lib/components/shared/asset/asset-gallery.tsx:459
+#: src/lib/components/shared/asset/asset-gallery.tsx:91
+#: src/lib/components/shared/asset/asset-gallery.tsx:464
+#: src/lib/components/shared/asset/asset-gallery.tsx:481
 msgid "Images"
 msgstr "छविहरू"
 
@@ -1391,7 +1392,7 @@ msgid "No items selected"
 msgstr "कुनै वस्तुहरू चयन गरिएको छैन"
 
 #. placeholder {0}: selected.length
-#: src/lib/components/shared/asset/asset-gallery.tsx:591
+#: src/lib/components/shared/asset/asset-gallery.tsx:623
 msgid ", {0} selected"
 msgstr ", {0} चयन गरिएको"
 
@@ -1627,7 +1628,7 @@ msgstr "अघि"
 msgid "Failed to set customer for order: {0}"
 msgstr "अर्डरका लागि ग्राहक सेट गर्न असफल भयो: {0}"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:965
+#: src/lib/components/shared/asset/asset-gallery.tsx:1026
 msgid "Size"
 msgstr "आकार"
 
@@ -1759,7 +1760,7 @@ msgstr "ठेगाना सफलतापूर्वक अपडेट ग
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:126
-#: src/lib/components/shared/asset/asset-gallery.tsx:972
+#: src/lib/components/shared/asset/asset-gallery.tsx:1033
 #: src/lib/framework/layout-engine/page-layout.tsx:746
 msgid "Created"
 msgstr "सिर्जना गरिएको"
@@ -2107,8 +2108,8 @@ msgstr "सुरु हुन्छ"
 msgid "Duplicate"
 msgstr "नक्कल गर्नुहोस्"
 
-#: src/lib/components/data-table/data-table.tsx:596
-#: src/lib/components/data-table/data-table.tsx:607
+#: src/lib/components/data-table/data-table.tsx:638
+#: src/lib/components/data-table/data-table.tsx:649
 #: src/lib/components/shared/customer-group-selector.tsx:60
 msgid "No results"
 msgstr "कुनै परिणामहरू छैनन्"
@@ -2629,7 +2630,7 @@ msgstr "अर्डरका लागि ढुवानी ठेगाना
 msgid "Cancel Job"
 msgstr "कार्य रद्द गर्नुहोस्"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:761
+#: src/lib/components/shared/asset/asset-gallery.tsx:796
 msgid "No assets yet"
 msgstr ""
 
@@ -2969,8 +2970,8 @@ msgstr "छुट"
 msgid "Top Products"
 msgstr "शीर्ष उत्पादनहरू"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:446
-#: src/lib/components/shared/asset/asset-gallery.tsx:458
+#: src/lib/components/shared/asset/asset-gallery.tsx:463
+#: src/lib/components/shared/asset/asset-gallery.tsx:480
 msgid "All types"
 msgstr "सबै प्रकारहरू"
 
@@ -3103,8 +3104,8 @@ msgstr "विकल्प चयन गर्नुहोस्"
 
 #. placeholder {0}: asset.name
 #. placeholder {0}: row.original.name
-#: src/lib/components/shared/asset/asset-gallery.tsx:874
-#: src/lib/components/shared/asset/asset-gallery.tsx:1012
+#: src/lib/components/shared/asset/asset-gallery.tsx:927
+#: src/lib/components/shared/asset/asset-gallery.tsx:1073
 msgid "Open {0}"
 msgstr ""
 
@@ -3425,7 +3426,7 @@ msgstr "स्तम्भहरू"
 msgid "Failed to upload image"
 msgstr "छवि अपलोड गर्न असफल भयो"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:761
+#: src/lib/components/shared/asset/asset-gallery.tsx:796
 msgid "No assets match these filters"
 msgstr ""
 
@@ -3568,10 +3569,9 @@ msgstr "ग्लोबल दृश्यहरू व्यवस्थाप�
 msgid "Processing..."
 msgstr "प्रशोधन गर्दै..."
 
-#. placeholder {0}: totalItems === 1 ? 'asset' : 'assets'
 #: src/lib/components/shared/asset/asset-gallery.tsx:587
-msgid "{totalItems} {0} found"
-msgstr "{totalItems} {0} भेटियो"
+#~ msgid "{totalItems} {0} found"
+#~ msgstr "{totalItems} {0} भेटियो"
 
 #: src/lib/components/date-range-picker.tsx:122
 msgid "Select date range"
@@ -3609,6 +3609,10 @@ msgstr "असाइन गर्नुहोस्"
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:56
 msgid "Successfully created seller"
 msgstr "विक्रेता सफलतापूर्वक सिर्जना गरियो"
+
+#: src/lib/components/shared/asset/asset-gallery.tsx:850
+msgid "We couldn't load assets"
+msgstr ""
 
 #: src/lib/framework/dashboard-widget/latest-customers-widget/index.tsx:58
 #: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:80
@@ -3674,7 +3678,7 @@ msgstr "फेला परेन"
 msgid "Facet values"
 msgstr "विशेषता मानहरू"
 
-#: src/lib/components/data-table/data-table.tsx:318
+#: src/lib/components/data-table/data-table.tsx:360
 msgid "Failed to reorder items"
 msgstr "वस्तुहरू पुनः क्रमबद्ध गर्न असफल"
 
@@ -3847,7 +3851,7 @@ msgstr "शिपिङ फिर्ता गरियो"
 msgid "Failed to create option in group \"{0}\""
 msgstr ""
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:455
+#: src/lib/components/shared/asset/asset-gallery.tsx:477
 msgid "Asset type"
 msgstr "एसेट प्रकार"
 
@@ -4175,7 +4179,7 @@ msgstr "प्रशासकहरू खोज्नुहोस्..."
 msgid "Created by"
 msgstr "द्वारा सिर्जित"
 
-#: src/lib/components/data-table/data-table.tsx:597
+#: src/lib/components/data-table/data-table.tsx:639
 msgid "No items match your current filters. Try clearing them to see more."
 msgstr "तपाईंका हालका फिल्टरहरूसँग कुनै वस्तु मेल खाँदैन। थप हेर्न तिनीहरूलाई हटाउने प्रयास गर्नुहोस्।"
 
@@ -4475,7 +4479,7 @@ msgstr "भुक्तानी स्थिति अपडेट गर्न
 msgid "Your orders summary"
 msgstr "तपाईंको अर्डर सारांश"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:505
+#: src/lib/components/shared/asset/asset-gallery.tsx:527
 msgid "Upload"
 msgstr "अपलोड गर्नुहोस्"
 
@@ -4484,7 +4488,7 @@ msgid "Product with options"
 msgstr "विकल्पहरू सहितको उत्पादन"
 
 #. placeholder {0}: filteredTags.length
-#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:195
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:196
 msgid "Showing all {0} results"
 msgstr "सबै {0} परिणामहरू देखाउँदै"
 
@@ -4628,7 +4632,7 @@ msgstr "इनलाइन कोड"
 
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:45
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx:104
-#: src/lib/components/shared/asset/asset-gallery.tsx:1055
+#: src/lib/components/shared/asset/asset-gallery.tsx:1117
 msgid "Tags"
 msgstr "ट्यागहरू"
 
@@ -4791,7 +4795,7 @@ msgstr "{formattedDiff} को फिर्ता आवश्यक छ। भ�
 msgid "Unit price"
 msgstr "एकाइ मूल्य"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:764
+#: src/lib/components/shared/asset/asset-gallery.tsx:799
 msgid "Try changing your search, asset type, or selected tags."
 msgstr ""
 
@@ -4892,6 +4896,10 @@ msgstr "पुरानो इमेल:"
 msgid "Save a view as \"Global\" to make it available to all users."
 msgstr "सबै प्रयोगकर्ताहरूलाई उपलब्ध गराउन दृश्यलाई \"ग्लोबल\" को रूपमा सुरक्षित गर्नुहोस्।"
 
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:147
+msgid "Search tags..."
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:154
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:90
 msgid "Failed to create variants"
@@ -4956,7 +4964,7 @@ msgstr "फिल्टर खाली गर्नुहोस्"
 msgid "Regions"
 msgstr "क्षेत्रहरू"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:546
+#: src/lib/components/shared/asset/asset-gallery.tsx:568
 msgid "Drop files here to upload"
 msgstr "अपलोड गर्न यहाँ फाइलहरू छोड्नुहोस्"
 
@@ -5320,7 +5328,7 @@ msgstr "राज्य / प्रान्त"
 msgid "Enabled"
 msgstr "सक्षम"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:598
+#: src/lib/components/shared/asset/asset-gallery.tsx:630
 msgid "Items per page"
 msgstr "प्रति पृष्ठ वस्तुहरू"
 
@@ -5521,7 +5529,7 @@ msgid "Failed to update variant"
 msgstr "भेरियन्ट अद्यावधिक गर्न असफल भयो"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:69
-#: src/lib/components/data-table/data-table.tsx:723
+#: src/lib/components/data-table/data-table.tsx:765
 msgid "Go to previous page"
 msgstr "अघिल्लो पृष्ठमा जानुहोस्"
 
@@ -5600,7 +5608,7 @@ msgid "Failed to remove customers from group"
 msgstr "समूहबाट ग्राहकहरू हटाउन असफल भयो"
 
 #. placeholder {0}: failedAssets.length
-#: src/lib/components/shared/asset/asset-gallery.tsx:268
+#: src/lib/components/shared/asset/asset-gallery.tsx:282
 msgid "Failed to upload {0} assets"
 msgstr ""
 
@@ -5799,10 +5807,10 @@ msgstr "प्रशासक सफलतापूर्वक अपडेट 
 
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:263
 #: src/lib/components/data-table/data-table-faceted-filter.tsx:225
-#: src/lib/components/data-table/data-table.tsx:600
-#: src/lib/components/shared/asset/asset-gallery.tsx:428
-#: src/lib/components/shared/asset/asset-gallery.tsx:435
-#: src/lib/components/shared/asset/asset-gallery.tsx:773
+#: src/lib/components/data-table/data-table.tsx:642
+#: src/lib/components/shared/asset/asset-gallery.tsx:445
+#: src/lib/components/shared/asset/asset-gallery.tsx:452
+#: src/lib/components/shared/asset/asset-gallery.tsx:808
 msgid "Clear filters"
 msgstr "फिल्टरहरू खाली गर्नुहोस्"
 
@@ -5831,12 +5839,13 @@ msgstr "स्थिति"
 msgid "No options found"
 msgstr "कुनै विकल्प फेला परेन"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:778
+#: src/lib/components/shared/asset/asset-gallery.tsx:813
 msgid "Upload assets"
 msgstr ""
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:449
-#: src/lib/components/shared/asset/asset-gallery.tsx:461
+#: src/lib/components/shared/asset/asset-gallery.tsx:95
+#: src/lib/components/shared/asset/asset-gallery.tsx:466
+#: src/lib/components/shared/asset/asset-gallery.tsx:483
 msgid "Binary"
 msgstr "बाइनरी"
 
@@ -6107,8 +6116,9 @@ msgstr "आफ्नो पहिलो प्रमोशन सिर्जन
 msgid "Remove item"
 msgstr "वस्तु हटाउनुहोस्"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:448
-#: src/lib/components/shared/asset/asset-gallery.tsx:460
+#: src/lib/components/shared/asset/asset-gallery.tsx:93
+#: src/lib/components/shared/asset/asset-gallery.tsx:465
+#: src/lib/components/shared/asset/asset-gallery.tsx:482
 msgid "Video"
 msgstr "भिडियो"
 
@@ -6222,7 +6232,7 @@ msgid "Strikethrough"
 msgstr "स्ट्राइकथ्रु"
 
 #. placeholder {0}: createdAssets.length
-#: src/lib/components/shared/asset/asset-gallery.tsx:265
+#: src/lib/components/shared/asset/asset-gallery.tsx:279
 msgid "Uploaded {0} assets"
 msgstr ""
 
@@ -6266,7 +6276,7 @@ msgstr "के तपाईं यो विकल्प समूहलाई �
 msgid "Description (alt)"
 msgstr "विवरण (वैकल्पिक पाठ)"
 
-#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:153
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:154
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx:164
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx:99
 msgid "No tags found"
@@ -6406,8 +6416,8 @@ msgstr "अर्डर सारांश"
 msgid "Search stock locations..."
 msgstr "स्टक स्थानहरू खोज्नुहोस्..."
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:413
-#: src/lib/components/shared/asset/asset-gallery.tsx:1052
+#: src/lib/components/shared/asset/asset-gallery.tsx:427
+#: src/lib/components/shared/asset/asset-gallery.tsx:1114
 msgid "Search assets..."
 msgstr "एसेटहरू खोज्नुहोस्..."
 
@@ -6470,7 +6480,7 @@ msgstr "च्यानलबाट विशेषता हटाउन अस
 #~ msgid "Set link"
 #~ msgstr "लिङ्क सेट गर्नुहोस्"
 
-#: src/lib/components/data-table/data-table.tsx:722
+#: src/lib/components/data-table/data-table.tsx:764
 msgid "Pagination"
 msgstr "पृष्ठाङ्कन"
 
@@ -6521,7 +6531,7 @@ msgid "View result"
 msgstr "परिणाम हेर्नुहोस्"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:20
-#: src/lib/components/data-table/data-table.tsx:725
+#: src/lib/components/data-table/data-table.tsx:767
 msgid "Rows per page"
 msgstr "प्रति पृष्ठ पङ्क्तिहरू"
 
@@ -6618,7 +6628,7 @@ msgid "Failed to create product variant"
 msgstr "उत्पादन भेरियन्ट सिर्जना गर्न असफल"
 
 #: src/lib/components/data-input/relation-selector.tsx:418
-#: src/lib/components/data-table/data-table.tsx:507
+#: src/lib/components/data-table/data-table.tsx:549
 msgid "Search..."
 msgstr "खोज्नुहोस्..."
 
@@ -6703,7 +6713,7 @@ msgid "Active filters"
 msgstr "सक्रिय फिल्टरहरू"
 
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx:54
-#: src/lib/components/data-table/data-table.tsx:583
+#: src/lib/components/data-table/data-table.tsx:625
 msgid "Clear all"
 msgstr "सबै खाली गर्नुहोस्"
 
@@ -6799,6 +6809,10 @@ msgstr "भुक्तानी विधि आवश्यक छ"
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:134
 msgid "Failed to add customer to group"
 msgstr "समूहमा ग्राहक थप्न असफल"
+
+#: src/lib/components/shared/asset/asset-gallery.tsx:617
+msgid "{totalItems, plural, one {{totalItems} asset found} other {{totalItems} assets found}}"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:338
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:292

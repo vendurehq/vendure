@@ -35,7 +35,7 @@ msgstr "Változások megtekintése"
 msgid "Tracking code"
 msgstr "Nyomkövetési kód"
 
-#: src/lib/components/data-table/data-table.tsx:719
+#: src/lib/components/data-table/data-table.tsx:761
 #: src/lib/components/data-table/use-generated-columns.tsx:226
 msgid "Select all rows"
 msgstr "Összes sor kijelölése"
@@ -174,7 +174,7 @@ msgstr "Adókulcs sikeresen frissítve"
 msgid "Enter custom reason..."
 msgstr "Adjon meg egyéni indokot..."
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:960
+#: src/lib/components/shared/asset/asset-gallery.tsx:1017
 msgid "Type"
 msgstr "Típus"
 
@@ -241,7 +241,7 @@ msgstr "Automatikus frissítés: {0}"
 msgid "Deleted {deleted} {entityName}"
 msgstr "{deleted} {entityName} törölve"
 
-#: src/lib/components/data-table/data-table.tsx:608
+#: src/lib/components/data-table/data-table.tsx:650
 msgid "There are no items to display yet."
 msgstr "Még nincsenek megjeleníthető elemek."
 
@@ -341,8 +341,8 @@ msgstr "Biztosan törli ezt a termékváltozatot?"
 #~ msgid "All resources are up and running"
 #~ msgstr "Minden erőforrás működik"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:877
-#: src/lib/components/shared/asset/asset-gallery.tsx:1015
+#: src/lib/components/shared/asset/asset-gallery.tsx:930
+#: src/lib/components/shared/asset/asset-gallery.tsx:1076
 msgid "Open"
 msgstr ""
 
@@ -359,7 +359,7 @@ msgstr "Nem"
 msgid "Successfully updated product variant"
 msgstr "Termékváltozat sikeresen frissítve"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:766
+#: src/lib/components/shared/asset/asset-gallery.tsx:801
 msgid "Upload images, videos, or files to start building your asset library."
 msgstr ""
 
@@ -418,7 +418,7 @@ msgstr "Nincs hozzáadható widget"
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:107
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:290
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:203
-#: src/lib/components/shared/asset/asset-gallery.tsx:277
+#: src/lib/components/shared/asset/asset-gallery.tsx:291
 #: src/lib/components/shared/asset/asset-preview.tsx:127
 msgid "Unknown error"
 msgstr "Ismeretlen hiba"
@@ -549,7 +549,7 @@ msgstr "Új gyűjtemény"
 msgid "Insights"
 msgstr "Elemzések"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:276
+#: src/lib/components/shared/asset/asset-gallery.tsx:290
 msgid "Failed to upload assets"
 msgstr ""
 
@@ -597,7 +597,7 @@ msgstr "Adminisztrátorok"
 #~ msgstr "Bruttó ár: <0/>"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:82
-#: src/lib/components/data-table/data-table.tsx:724
+#: src/lib/components/data-table/data-table.tsx:766
 msgid "Go to next page"
 msgstr "Ugrás a következő oldalra"
 
@@ -709,7 +709,7 @@ msgstr "Gyűjtemények áthelyezése"
 msgid "Roles"
 msgstr "Szerepkörök"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:484
+#: src/lib/components/shared/asset/asset-gallery.tsx:506
 msgid "Grid view"
 msgstr "Rácsnézet"
 
@@ -737,7 +737,7 @@ msgstr "Biztosan törli a kiválasztott {selectionLength} médiafájlt?"
 msgid "Sign in"
 msgstr "Bejelentkezés"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:487
+#: src/lib/components/shared/asset/asset-gallery.tsx:509
 msgid "List view"
 msgstr "Listanézet"
 
@@ -890,7 +890,7 @@ msgstr "Piszkozat véglegesítése"
 #: src/app/routes/_authenticated/_tax-categories/tax-categories_.$id.tsx:106
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:113
 #: src/app/routes/_authenticated/_zones/zones_.$id.tsx:93
-#: src/lib/components/shared/asset/asset-gallery.tsx:948
+#: src/lib/components/shared/asset/asset-gallery.tsx:1005
 msgid "Name"
 msgstr "Név"
 
@@ -930,7 +930,7 @@ msgstr "Teljesítés létrehozva"
 msgid "Found {0} eligible shipping method{1}"
 msgstr "{0} alkalmas szállítási mód{1} található"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:988
+#: src/lib/components/shared/asset/asset-gallery.tsx:1049
 #: src/lib/components/shared/asset/asset-properties.tsx:39
 msgid "Dimensions"
 msgstr "Méretek"
@@ -1107,7 +1107,7 @@ msgstr "Az ütemezett feladat végre lesz hajtva"
 msgid "New stock location"
 msgstr "Új raktárhely"
 
-#: src/lib/components/data-table/data-table.tsx:720
+#: src/lib/components/data-table/data-table.tsx:762
 #: src/lib/components/data-table/use-generated-columns.tsx:238
 msgid "Select row"
 msgstr "Sor kijelölése"
@@ -1263,8 +1263,9 @@ msgstr "Megnyitás új lapon"
 msgid "Failed to update promotion"
 msgstr "Promóció frissítése sikertelen"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:447
-#: src/lib/components/shared/asset/asset-gallery.tsx:459
+#: src/lib/components/shared/asset/asset-gallery.tsx:91
+#: src/lib/components/shared/asset/asset-gallery.tsx:464
+#: src/lib/components/shared/asset/asset-gallery.tsx:481
 msgid "Images"
 msgstr "Képek"
 
@@ -1391,7 +1392,7 @@ msgid "No items selected"
 msgstr "Nincs kijelölt elem"
 
 #. placeholder {0}: selected.length
-#: src/lib/components/shared/asset/asset-gallery.tsx:591
+#: src/lib/components/shared/asset/asset-gallery.tsx:623
 msgid ", {0} selected"
 msgstr ", {0} kiválasztva"
 
@@ -1627,7 +1628,7 @@ msgstr "előtt"
 msgid "Failed to set customer for order: {0}"
 msgstr "Nem sikerült beállítani a vásárlót a megrendeléshez: {0}"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:965
+#: src/lib/components/shared/asset/asset-gallery.tsx:1026
 msgid "Size"
 msgstr "Méret"
 
@@ -1759,7 +1760,7 @@ msgstr "Cím sikeresen frissítve"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:126
-#: src/lib/components/shared/asset/asset-gallery.tsx:972
+#: src/lib/components/shared/asset/asset-gallery.tsx:1033
 #: src/lib/framework/layout-engine/page-layout.tsx:746
 msgid "Created"
 msgstr "Létrehozva"
@@ -2101,8 +2102,8 @@ msgstr "Kezdés időpontja"
 msgid "Duplicate"
 msgstr "Duplikálás"
 
-#: src/lib/components/data-table/data-table.tsx:596
-#: src/lib/components/data-table/data-table.tsx:607
+#: src/lib/components/data-table/data-table.tsx:638
+#: src/lib/components/data-table/data-table.tsx:649
 #: src/lib/components/shared/customer-group-selector.tsx:60
 msgid "No results"
 msgstr "Nincs eredmény"
@@ -2623,7 +2624,7 @@ msgstr "Nem sikerült beállítani a szállítási címet a megrendeléshez: {0}
 msgid "Cancel Job"
 msgstr "Feladat megszakítása"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:761
+#: src/lib/components/shared/asset/asset-gallery.tsx:796
 msgid "No assets yet"
 msgstr ""
 
@@ -2959,8 +2960,8 @@ msgstr "Kedvezmény"
 msgid "Top Products"
 msgstr "Legnépszerűbb termékek"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:446
-#: src/lib/components/shared/asset/asset-gallery.tsx:458
+#: src/lib/components/shared/asset/asset-gallery.tsx:463
+#: src/lib/components/shared/asset/asset-gallery.tsx:480
 msgid "All types"
 msgstr "Minden típus"
 
@@ -3093,8 +3094,8 @@ msgstr "Válasszon egy lehetőséget"
 
 #. placeholder {0}: asset.name
 #. placeholder {0}: row.original.name
-#: src/lib/components/shared/asset/asset-gallery.tsx:874
-#: src/lib/components/shared/asset/asset-gallery.tsx:1012
+#: src/lib/components/shared/asset/asset-gallery.tsx:927
+#: src/lib/components/shared/asset/asset-gallery.tsx:1073
 msgid "Open {0}"
 msgstr ""
 
@@ -3415,7 +3416,7 @@ msgstr "Oszlopok"
 msgid "Failed to upload image"
 msgstr "Nem sikerült feltölteni a képet"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:761
+#: src/lib/components/shared/asset/asset-gallery.tsx:796
 msgid "No assets match these filters"
 msgstr ""
 
@@ -3558,10 +3559,9 @@ msgstr "Globális nézetek kezelése"
 msgid "Processing..."
 msgstr "Feldolgozás..."
 
-#. placeholder {0}: totalItems === 1 ? 'asset' : 'assets'
 #: src/lib/components/shared/asset/asset-gallery.tsx:587
-msgid "{totalItems} {0} found"
-msgstr "{totalItems} {0} találat"
+#~ msgid "{totalItems} {0} found"
+#~ msgstr "{totalItems} {0} találat"
 
 #: src/lib/components/date-range-picker.tsx:122
 msgid "Select date range"
@@ -3599,6 +3599,10 @@ msgstr "Hozzárendelés"
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:56
 msgid "Successfully created seller"
 msgstr "Az eladó sikeresen létrehozva"
+
+#: src/lib/components/shared/asset/asset-gallery.tsx:850
+msgid "We couldn't load assets"
+msgstr ""
 
 #: src/lib/framework/dashboard-widget/latest-customers-widget/index.tsx:58
 #: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:80
@@ -3664,7 +3668,7 @@ msgstr "Nem található"
 msgid "Facet values"
 msgstr "Tulajdonságértékek"
 
-#: src/lib/components/data-table/data-table.tsx:318
+#: src/lib/components/data-table/data-table.tsx:360
 msgid "Failed to reorder items"
 msgstr "Elemek átrendezése sikertelen"
 
@@ -3837,7 +3841,7 @@ msgstr "Szállítás visszatérítve"
 msgid "Failed to create option in group \"{0}\""
 msgstr ""
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:455
+#: src/lib/components/shared/asset/asset-gallery.tsx:477
 msgid "Asset type"
 msgstr "Eszköztípus"
 
@@ -4162,7 +4166,7 @@ msgstr "Adminisztrátorok keresése..."
 msgid "Created by"
 msgstr "Létrehozta"
 
-#: src/lib/components/data-table/data-table.tsx:597
+#: src/lib/components/data-table/data-table.tsx:639
 msgid "No items match your current filters. Try clearing them to see more."
 msgstr "Nincs a jelenlegi szűrőknek megfelelő elem. Törölje a szűrőket, hogy több elemet lásson."
 
@@ -4462,7 +4466,7 @@ msgstr "Fizetési állapot frissítése sikertelen"
 msgid "Your orders summary"
 msgstr "Megrendelései összesítése"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:505
+#: src/lib/components/shared/asset/asset-gallery.tsx:527
 msgid "Upload"
 msgstr "Feltöltés"
 
@@ -4471,7 +4475,7 @@ msgid "Product with options"
 msgstr "Termék opciókkal"
 
 #. placeholder {0}: filteredTags.length
-#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:195
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:196
 msgid "Showing all {0} results"
 msgstr "Összes {0} találat megjelenítve"
 
@@ -4615,7 +4619,7 @@ msgstr "Soron belüli kód"
 
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:45
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx:104
-#: src/lib/components/shared/asset/asset-gallery.tsx:1055
+#: src/lib/components/shared/asset/asset-gallery.tsx:1117
 msgid "Tags"
 msgstr "Címkék"
 
@@ -4778,7 +4782,7 @@ msgstr "{formattedDiff} összegű visszatérítés szükséges. A folytatáshoz 
 msgid "Unit price"
 msgstr "Egységár"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:764
+#: src/lib/components/shared/asset/asset-gallery.tsx:799
 msgid "Try changing your search, asset type, or selected tags."
 msgstr ""
 
@@ -4879,6 +4883,10 @@ msgstr "Régi e-mail cím:"
 msgid "Save a view as \"Global\" to make it available to all users."
 msgstr "Mentsen egy nézetet \"Globális\"-ként, hogy az összes felhasználó számára elérhető legyen."
 
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:147
+msgid "Search tags..."
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:154
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:90
 msgid "Failed to create variants"
@@ -4943,7 +4951,7 @@ msgstr "Szűrő törlése"
 msgid "Regions"
 msgstr "Régiók"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:546
+#: src/lib/components/shared/asset/asset-gallery.tsx:568
 msgid "Drop files here to upload"
 msgstr "Húzza ide a fájlokat a feltöltéshez"
 
@@ -5307,7 +5315,7 @@ msgstr "Állam / Tartomány"
 msgid "Enabled"
 msgstr "Engedélyezve"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:598
+#: src/lib/components/shared/asset/asset-gallery.tsx:630
 msgid "Items per page"
 msgstr "Elemek oldalanként"
 
@@ -5508,7 +5516,7 @@ msgid "Failed to update variant"
 msgstr "Nem sikerült frissíteni a variánst"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:69
-#: src/lib/components/data-table/data-table.tsx:723
+#: src/lib/components/data-table/data-table.tsx:765
 msgid "Go to previous page"
 msgstr "Ugrás az előző oldalra"
 
@@ -5587,7 +5595,7 @@ msgid "Failed to remove customers from group"
 msgstr "Nem sikerült eltávolítani az ügyfeleket a csoportból"
 
 #. placeholder {0}: failedAssets.length
-#: src/lib/components/shared/asset/asset-gallery.tsx:268
+#: src/lib/components/shared/asset/asset-gallery.tsx:282
 msgid "Failed to upload {0} assets"
 msgstr ""
 
@@ -5786,10 +5794,10 @@ msgstr "Rendszergazda sikeresen frissítve"
 
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:263
 #: src/lib/components/data-table/data-table-faceted-filter.tsx:225
-#: src/lib/components/data-table/data-table.tsx:600
-#: src/lib/components/shared/asset/asset-gallery.tsx:428
-#: src/lib/components/shared/asset/asset-gallery.tsx:435
-#: src/lib/components/shared/asset/asset-gallery.tsx:773
+#: src/lib/components/data-table/data-table.tsx:642
+#: src/lib/components/shared/asset/asset-gallery.tsx:445
+#: src/lib/components/shared/asset/asset-gallery.tsx:452
+#: src/lib/components/shared/asset/asset-gallery.tsx:808
 msgid "Clear filters"
 msgstr "Szűrők törlése"
 
@@ -5818,12 +5826,13 @@ msgstr "Státusz"
 msgid "No options found"
 msgstr "Nincs találat"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:778
+#: src/lib/components/shared/asset/asset-gallery.tsx:813
 msgid "Upload assets"
 msgstr ""
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:449
-#: src/lib/components/shared/asset/asset-gallery.tsx:461
+#: src/lib/components/shared/asset/asset-gallery.tsx:95
+#: src/lib/components/shared/asset/asset-gallery.tsx:466
+#: src/lib/components/shared/asset/asset-gallery.tsx:483
 msgid "Binary"
 msgstr "Bináris"
 
@@ -6094,8 +6103,9 @@ msgstr "Hozza létre első promócióját"
 msgid "Remove item"
 msgstr "Elem eltávolítása"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:448
-#: src/lib/components/shared/asset/asset-gallery.tsx:460
+#: src/lib/components/shared/asset/asset-gallery.tsx:93
+#: src/lib/components/shared/asset/asset-gallery.tsx:465
+#: src/lib/components/shared/asset/asset-gallery.tsx:482
 msgid "Video"
 msgstr "Videó"
 
@@ -6209,7 +6219,7 @@ msgid "Strikethrough"
 msgstr "Áthúzott"
 
 #. placeholder {0}: createdAssets.length
-#: src/lib/components/shared/asset/asset-gallery.tsx:265
+#: src/lib/components/shared/asset/asset-gallery.tsx:279
 msgid "Uploaded {0} assets"
 msgstr ""
 
@@ -6253,7 +6263,7 @@ msgstr "Biztosan el szeretné távolítani ezt az opciócsoportot a termékből?
 msgid "Description (alt)"
 msgstr "Leírás (alt)"
 
-#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:153
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:154
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx:164
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx:99
 msgid "No tags found"
@@ -6393,8 +6403,8 @@ msgstr "Megrendelések összesítése"
 msgid "Search stock locations..."
 msgstr "Készlethelyek keresése..."
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:413
-#: src/lib/components/shared/asset/asset-gallery.tsx:1052
+#: src/lib/components/shared/asset/asset-gallery.tsx:427
+#: src/lib/components/shared/asset/asset-gallery.tsx:1114
 msgid "Search assets..."
 msgstr "Eszközök keresése..."
 
@@ -6457,7 +6467,7 @@ msgstr "Tulajdonság eltávolítása a csatornából sikertelen: {message}"
 #~ msgid "Set link"
 #~ msgstr "Hivatkozás beállítása"
 
-#: src/lib/components/data-table/data-table.tsx:722
+#: src/lib/components/data-table/data-table.tsx:764
 msgid "Pagination"
 msgstr "Lapozás"
 
@@ -6508,7 +6518,7 @@ msgid "View result"
 msgstr "Eredmény megtekintése"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:20
-#: src/lib/components/data-table/data-table.tsx:725
+#: src/lib/components/data-table/data-table.tsx:767
 msgid "Rows per page"
 msgstr "Sorok oldalanként"
 
@@ -6601,7 +6611,7 @@ msgid "Failed to create product variant"
 msgstr "Termékváltozat létrehozása sikertelen"
 
 #: src/lib/components/data-input/relation-selector.tsx:418
-#: src/lib/components/data-table/data-table.tsx:507
+#: src/lib/components/data-table/data-table.tsx:549
 msgid "Search..."
 msgstr "Keresés..."
 
@@ -6686,7 +6696,7 @@ msgid "Active filters"
 msgstr "Aktív szűrők"
 
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx:54
-#: src/lib/components/data-table/data-table.tsx:583
+#: src/lib/components/data-table/data-table.tsx:625
 msgid "Clear all"
 msgstr "Összes törlése"
 
@@ -6782,6 +6792,10 @@ msgstr "Fizetési mód megadása kötelező"
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:134
 msgid "Failed to add customer to group"
 msgstr "Vásárló csoporthoz adása sikertelen"
+
+#: src/lib/components/shared/asset/asset-gallery.tsx:617
+msgid "{totalItems, plural, one {{totalItems} asset found} other {{totalItems} assets found}}"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:338
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:292

@@ -35,7 +35,7 @@ msgstr "مشاهده تغییرات"
 msgid "Tracking code"
 msgstr "کد پیگیری"
 
-#: src/lib/components/data-table/data-table.tsx:719
+#: src/lib/components/data-table/data-table.tsx:761
 #: src/lib/components/data-table/use-generated-columns.tsx:226
 msgid "Select all rows"
 msgstr "انتخاب همه ردیف‌ها"
@@ -174,7 +174,7 @@ msgstr "نرخ مالیات با موفقیت به‌روزرسانی شد"
 msgid "Enter custom reason..."
 msgstr "دلیل سفارشی را وارد کنید..."
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:960
+#: src/lib/components/shared/asset/asset-gallery.tsx:1017
 msgid "Type"
 msgstr "نوع"
 
@@ -241,7 +241,7 @@ msgstr "تازه‌سازی خودکار: {0}"
 msgid "Deleted {deleted} {entityName}"
 msgstr "{deleted} {entityName} حذف شد"
 
-#: src/lib/components/data-table/data-table.tsx:608
+#: src/lib/components/data-table/data-table.tsx:650
 msgid "There are no items to display yet."
 msgstr "هنوز موردی برای نمایش وجود ندارد."
 
@@ -341,8 +341,8 @@ msgstr "آیا مطمئن هستید که می‌خواهید این نوع را
 #~ msgid "All resources are up and running"
 #~ msgstr "تمام منابع در حال اجرا هستند"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:877
-#: src/lib/components/shared/asset/asset-gallery.tsx:1015
+#: src/lib/components/shared/asset/asset-gallery.tsx:930
+#: src/lib/components/shared/asset/asset-gallery.tsx:1076
 msgid "Open"
 msgstr ""
 
@@ -359,7 +359,7 @@ msgstr "خیر"
 msgid "Successfully updated product variant"
 msgstr "نوع محصول با موفقیت به‌روزرسانی شد"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:766
+#: src/lib/components/shared/asset/asset-gallery.tsx:801
 msgid "Upload images, videos, or files to start building your asset library."
 msgstr ""
 
@@ -418,7 +418,7 @@ msgstr "ابزارکی برای افزودن وجود ندارد"
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:107
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:290
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:203
-#: src/lib/components/shared/asset/asset-gallery.tsx:277
+#: src/lib/components/shared/asset/asset-gallery.tsx:291
 #: src/lib/components/shared/asset/asset-preview.tsx:127
 msgid "Unknown error"
 msgstr "خطای ناشناخته"
@@ -549,7 +549,7 @@ msgstr "مجموعه جدید"
 msgid "Insights"
 msgstr "بینش‌ها"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:276
+#: src/lib/components/shared/asset/asset-gallery.tsx:290
 msgid "Failed to upload assets"
 msgstr ""
 
@@ -597,7 +597,7 @@ msgstr "مدیران"
 #~ msgstr "قیمت ناخالص: <0/>"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:82
-#: src/lib/components/data-table/data-table.tsx:724
+#: src/lib/components/data-table/data-table.tsx:766
 msgid "Go to next page"
 msgstr "رفتن به صفحه بعدی"
 
@@ -709,7 +709,7 @@ msgstr "جابجایی مجموعه‌ها"
 msgid "Roles"
 msgstr "نقش‌ها"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:484
+#: src/lib/components/shared/asset/asset-gallery.tsx:506
 msgid "Grid view"
 msgstr "نمای شبکه‌ای"
 
@@ -737,7 +737,7 @@ msgstr "آیا مطمئن هستید که می‌خواهید {selectionLength} 
 msgid "Sign in"
 msgstr "ورود"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:487
+#: src/lib/components/shared/asset/asset-gallery.tsx:509
 msgid "List view"
 msgstr "نمای فهرست"
 
@@ -890,7 +890,7 @@ msgstr "تکمیل پیش‌نویس"
 #: src/app/routes/_authenticated/_tax-categories/tax-categories_.$id.tsx:106
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:113
 #: src/app/routes/_authenticated/_zones/zones_.$id.tsx:93
-#: src/lib/components/shared/asset/asset-gallery.tsx:948
+#: src/lib/components/shared/asset/asset-gallery.tsx:1005
 msgid "Name"
 msgstr "نام"
 
@@ -930,7 +930,7 @@ msgstr "تحویل ایجاد شد"
 msgid "Found {0} eligible shipping method{1}"
 msgstr "{0} روش ارسال واجد شرایط یافت شد"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:988
+#: src/lib/components/shared/asset/asset-gallery.tsx:1049
 #: src/lib/components/shared/asset/asset-properties.tsx:39
 msgid "Dimensions"
 msgstr "ابعاد"
@@ -1107,7 +1107,7 @@ msgstr "وظیفه زمان‌بندی شده اجرا خواهد شد"
 msgid "New stock location"
 msgstr "محل انبار جدید"
 
-#: src/lib/components/data-table/data-table.tsx:720
+#: src/lib/components/data-table/data-table.tsx:762
 #: src/lib/components/data-table/use-generated-columns.tsx:238
 msgid "Select row"
 msgstr "انتخاب ردیف"
@@ -1263,8 +1263,9 @@ msgstr "باز کردن در برگه جدید"
 msgid "Failed to update promotion"
 msgstr "به‌روزرسانی تبلیغات ناموفق بود"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:447
-#: src/lib/components/shared/asset/asset-gallery.tsx:459
+#: src/lib/components/shared/asset/asset-gallery.tsx:91
+#: src/lib/components/shared/asset/asset-gallery.tsx:464
+#: src/lib/components/shared/asset/asset-gallery.tsx:481
 msgid "Images"
 msgstr "تصاویر"
 
@@ -1391,7 +1392,7 @@ msgid "No items selected"
 msgstr "هیچ موردی انتخاب نشده است"
 
 #. placeholder {0}: selected.length
-#: src/lib/components/shared/asset/asset-gallery.tsx:591
+#: src/lib/components/shared/asset/asset-gallery.tsx:623
 msgid ", {0} selected"
 msgstr "، {0} انتخاب شده"
 
@@ -1627,7 +1628,7 @@ msgstr "قبل از"
 msgid "Failed to set customer for order: {0}"
 msgstr "تنظیم مشتری برای سفارش ناموفق بود: {0}"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:965
+#: src/lib/components/shared/asset/asset-gallery.tsx:1026
 msgid "Size"
 msgstr "اندازه"
 
@@ -1759,7 +1760,7 @@ msgstr "آدرس با موفقیت به‌روزرسانی شد"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:126
-#: src/lib/components/shared/asset/asset-gallery.tsx:972
+#: src/lib/components/shared/asset/asset-gallery.tsx:1033
 #: src/lib/framework/layout-engine/page-layout.tsx:746
 msgid "Created"
 msgstr "ایجاد شد"
@@ -2107,8 +2108,8 @@ msgstr "شروع در"
 msgid "Duplicate"
 msgstr "تکثیر"
 
-#: src/lib/components/data-table/data-table.tsx:596
-#: src/lib/components/data-table/data-table.tsx:607
+#: src/lib/components/data-table/data-table.tsx:638
+#: src/lib/components/data-table/data-table.tsx:649
 #: src/lib/components/shared/customer-group-selector.tsx:60
 msgid "No results"
 msgstr "نتیجه‌ای وجود ندارد"
@@ -2629,7 +2630,7 @@ msgstr "تنظیم آدرس ارسال برای سفارش ناموفق بود: 
 msgid "Cancel Job"
 msgstr "لغو کار"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:761
+#: src/lib/components/shared/asset/asset-gallery.tsx:796
 msgid "No assets yet"
 msgstr ""
 
@@ -2969,8 +2970,8 @@ msgstr "تخفیف"
 msgid "Top Products"
 msgstr "محصولات برتر"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:446
-#: src/lib/components/shared/asset/asset-gallery.tsx:458
+#: src/lib/components/shared/asset/asset-gallery.tsx:463
+#: src/lib/components/shared/asset/asset-gallery.tsx:480
 msgid "All types"
 msgstr "همه انواع"
 
@@ -3103,8 +3104,8 @@ msgstr "یک گزینه انتخاب کنید"
 
 #. placeholder {0}: asset.name
 #. placeholder {0}: row.original.name
-#: src/lib/components/shared/asset/asset-gallery.tsx:874
-#: src/lib/components/shared/asset/asset-gallery.tsx:1012
+#: src/lib/components/shared/asset/asset-gallery.tsx:927
+#: src/lib/components/shared/asset/asset-gallery.tsx:1073
 msgid "Open {0}"
 msgstr ""
 
@@ -3425,7 +3426,7 @@ msgstr "ستون‌ها"
 msgid "Failed to upload image"
 msgstr "بارگذاری تصویر ناموفق بود"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:761
+#: src/lib/components/shared/asset/asset-gallery.tsx:796
 msgid "No assets match these filters"
 msgstr ""
 
@@ -3568,10 +3569,9 @@ msgstr "مدیریت نماهای عمومی"
 msgid "Processing..."
 msgstr "در حال پردازش..."
 
-#. placeholder {0}: totalItems === 1 ? 'asset' : 'assets'
 #: src/lib/components/shared/asset/asset-gallery.tsx:587
-msgid "{totalItems} {0} found"
-msgstr "{totalItems} {0} یافت شد"
+#~ msgid "{totalItems} {0} found"
+#~ msgstr "{totalItems} {0} یافت شد"
 
 #: src/lib/components/date-range-picker.tsx:122
 msgid "Select date range"
@@ -3609,6 +3609,10 @@ msgstr "اختصاص دادن"
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:56
 msgid "Successfully created seller"
 msgstr "فروشنده با موفقیت ایجاد شد"
+
+#: src/lib/components/shared/asset/asset-gallery.tsx:850
+msgid "We couldn't load assets"
+msgstr ""
 
 #: src/lib/framework/dashboard-widget/latest-customers-widget/index.tsx:58
 #: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:80
@@ -3674,7 +3678,7 @@ msgstr "یافت نشد"
 msgid "Facet values"
 msgstr "مقادیر ویژگی"
 
-#: src/lib/components/data-table/data-table.tsx:318
+#: src/lib/components/data-table/data-table.tsx:360
 msgid "Failed to reorder items"
 msgstr "مرتب‌سازی مجدد اقلام ناموفق بود"
 
@@ -3847,7 +3851,7 @@ msgstr "هزینه ارسال بازپرداخت شد"
 msgid "Failed to create option in group \"{0}\""
 msgstr ""
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:455
+#: src/lib/components/shared/asset/asset-gallery.tsx:477
 msgid "Asset type"
 msgstr "نوع فایل"
 
@@ -4175,7 +4179,7 @@ msgstr "جستجوی مدیران..."
 msgid "Created by"
 msgstr "ایجاد شده توسط"
 
-#: src/lib/components/data-table/data-table.tsx:597
+#: src/lib/components/data-table/data-table.tsx:639
 msgid "No items match your current filters. Try clearing them to see more."
 msgstr "هیچ موردی با فیلترهای فعلی شما مطابقت ندارد. برای دیدن موارد بیشتر آن‌ها را پاک کنید."
 
@@ -4475,7 +4479,7 @@ msgstr "به‌روزرسانی وضعیت پرداخت ناموفق بود"
 msgid "Your orders summary"
 msgstr "خلاصه سفارش‌های شما"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:505
+#: src/lib/components/shared/asset/asset-gallery.tsx:527
 msgid "Upload"
 msgstr "آپلود"
 
@@ -4484,7 +4488,7 @@ msgid "Product with options"
 msgstr "محصول با گزینه‌ها"
 
 #. placeholder {0}: filteredTags.length
-#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:195
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:196
 msgid "Showing all {0} results"
 msgstr "نمایش همه {0} نتیجه"
 
@@ -4628,7 +4632,7 @@ msgstr "کد درون‌خطی"
 
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:45
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx:104
-#: src/lib/components/shared/asset/asset-gallery.tsx:1055
+#: src/lib/components/shared/asset/asset-gallery.tsx:1117
 msgid "Tags"
 msgstr "برچسب‌ها"
 
@@ -4791,7 +4795,7 @@ msgstr "استرداد به مبلغ {formattedDiff} مورد نیاز است. �
 msgid "Unit price"
 msgstr "قیمت واحد"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:764
+#: src/lib/components/shared/asset/asset-gallery.tsx:799
 msgid "Try changing your search, asset type, or selected tags."
 msgstr ""
 
@@ -4892,6 +4896,10 @@ msgstr "ایمیل قدیمی:"
 msgid "Save a view as \"Global\" to make it available to all users."
 msgstr "نما را به عنوان \"عمومی\" ذخیره کنید تا برای همه کاربران در دسترس باشد."
 
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:147
+msgid "Search tags..."
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:154
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:90
 msgid "Failed to create variants"
@@ -4956,7 +4964,7 @@ msgstr "پاک کردن فیلتر"
 msgid "Regions"
 msgstr "مناطق"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:546
+#: src/lib/components/shared/asset/asset-gallery.tsx:568
 msgid "Drop files here to upload"
 msgstr "فایل‌ها را برای آپلود اینجا رها کنید"
 
@@ -5320,7 +5328,7 @@ msgstr "ایالت / استان"
 msgid "Enabled"
 msgstr "فعال"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:598
+#: src/lib/components/shared/asset/asset-gallery.tsx:630
 msgid "Items per page"
 msgstr "موارد در هر صفحه"
 
@@ -5521,7 +5529,7 @@ msgid "Failed to update variant"
 msgstr "به‌روزرسانی متغیر ناموفق بود"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:69
-#: src/lib/components/data-table/data-table.tsx:723
+#: src/lib/components/data-table/data-table.tsx:765
 msgid "Go to previous page"
 msgstr "رفتن به صفحه قبلی"
 
@@ -5600,7 +5608,7 @@ msgid "Failed to remove customers from group"
 msgstr "حذف مشتریان از گروه با خطا مواجه شد"
 
 #. placeholder {0}: failedAssets.length
-#: src/lib/components/shared/asset/asset-gallery.tsx:268
+#: src/lib/components/shared/asset/asset-gallery.tsx:282
 msgid "Failed to upload {0} assets"
 msgstr ""
 
@@ -5799,10 +5807,10 @@ msgstr "مدیر با موفقیت به‌روزرسانی شد"
 
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:263
 #: src/lib/components/data-table/data-table-faceted-filter.tsx:225
-#: src/lib/components/data-table/data-table.tsx:600
-#: src/lib/components/shared/asset/asset-gallery.tsx:428
-#: src/lib/components/shared/asset/asset-gallery.tsx:435
-#: src/lib/components/shared/asset/asset-gallery.tsx:773
+#: src/lib/components/data-table/data-table.tsx:642
+#: src/lib/components/shared/asset/asset-gallery.tsx:445
+#: src/lib/components/shared/asset/asset-gallery.tsx:452
+#: src/lib/components/shared/asset/asset-gallery.tsx:808
 msgid "Clear filters"
 msgstr "پاک کردن فیلترها"
 
@@ -5831,12 +5839,13 @@ msgstr "وضعیت"
 msgid "No options found"
 msgstr "هیچ گزینه‌ای یافت نشد"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:778
+#: src/lib/components/shared/asset/asset-gallery.tsx:813
 msgid "Upload assets"
 msgstr ""
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:449
-#: src/lib/components/shared/asset/asset-gallery.tsx:461
+#: src/lib/components/shared/asset/asset-gallery.tsx:95
+#: src/lib/components/shared/asset/asset-gallery.tsx:466
+#: src/lib/components/shared/asset/asset-gallery.tsx:483
 msgid "Binary"
 msgstr "باینری"
 
@@ -6107,8 +6116,9 @@ msgstr "اولین تبلیغ خود را ایجاد کنید"
 msgid "Remove item"
 msgstr "حذف مورد"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:448
-#: src/lib/components/shared/asset/asset-gallery.tsx:460
+#: src/lib/components/shared/asset/asset-gallery.tsx:93
+#: src/lib/components/shared/asset/asset-gallery.tsx:465
+#: src/lib/components/shared/asset/asset-gallery.tsx:482
 msgid "Video"
 msgstr "ویدیو"
 
@@ -6222,7 +6232,7 @@ msgid "Strikethrough"
 msgstr "خط‌خورده"
 
 #. placeholder {0}: createdAssets.length
-#: src/lib/components/shared/asset/asset-gallery.tsx:265
+#: src/lib/components/shared/asset/asset-gallery.tsx:279
 msgid "Uploaded {0} assets"
 msgstr ""
 
@@ -6266,7 +6276,7 @@ msgstr "آیا مطمئن هستید که می‌خواهید این گروه گ
 msgid "Description (alt)"
 msgstr "توضیحات (متن جایگزین)"
 
-#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:153
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:154
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx:164
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx:99
 msgid "No tags found"
@@ -6406,8 +6416,8 @@ msgstr "خلاصه سفارش‌ها"
 msgid "Search stock locations..."
 msgstr "جستجوی محل‌های انبار..."
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:413
-#: src/lib/components/shared/asset/asset-gallery.tsx:1052
+#: src/lib/components/shared/asset/asset-gallery.tsx:427
+#: src/lib/components/shared/asset/asset-gallery.tsx:1114
 msgid "Search assets..."
 msgstr "جستجوی فایل‌ها..."
 
@@ -6470,7 +6480,7 @@ msgstr "حذف ویژگی از کانال ناموفق بود: {message}"
 #~ msgid "Set link"
 #~ msgstr "تنظیم پیوند"
 
-#: src/lib/components/data-table/data-table.tsx:722
+#: src/lib/components/data-table/data-table.tsx:764
 msgid "Pagination"
 msgstr "صفحه‌بندی"
 
@@ -6521,7 +6531,7 @@ msgid "View result"
 msgstr "مشاهده نتیجه"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:20
-#: src/lib/components/data-table/data-table.tsx:725
+#: src/lib/components/data-table/data-table.tsx:767
 msgid "Rows per page"
 msgstr "ردیف در هر صفحه"
 
@@ -6618,7 +6628,7 @@ msgid "Failed to create product variant"
 msgstr "ایجاد نوع محصول ناموفق بود"
 
 #: src/lib/components/data-input/relation-selector.tsx:418
-#: src/lib/components/data-table/data-table.tsx:507
+#: src/lib/components/data-table/data-table.tsx:549
 msgid "Search..."
 msgstr "جستجو..."
 
@@ -6703,7 +6713,7 @@ msgid "Active filters"
 msgstr "فیلترهای فعال"
 
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx:54
-#: src/lib/components/data-table/data-table.tsx:583
+#: src/lib/components/data-table/data-table.tsx:625
 msgid "Clear all"
 msgstr "پاک کردن همه"
 
@@ -6799,6 +6809,10 @@ msgstr "روش پرداخت الزامی است"
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:134
 msgid "Failed to add customer to group"
 msgstr "افزودن مشتری به گروه ناموفق بود"
+
+#: src/lib/components/shared/asset/asset-gallery.tsx:617
+msgid "{totalItems, plural, one {{totalItems} asset found} other {{totalItems} assets found}}"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:338
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:292

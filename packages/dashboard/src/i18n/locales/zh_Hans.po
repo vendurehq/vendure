@@ -35,7 +35,7 @@ msgstr "查看更改"
 msgid "Tracking code"
 msgstr "跟踪代码"
 
-#: src/lib/components/data-table/data-table.tsx:719
+#: src/lib/components/data-table/data-table.tsx:761
 #: src/lib/components/data-table/use-generated-columns.tsx:226
 msgid "Select all rows"
 msgstr "选择所有行"
@@ -174,7 +174,7 @@ msgstr "已成功更新税率"
 msgid "Enter custom reason..."
 msgstr "输入自定义原因..."
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:960
+#: src/lib/components/shared/asset/asset-gallery.tsx:1017
 msgid "Type"
 msgstr "类型"
 
@@ -241,7 +241,7 @@ msgstr "自动刷新：{0}"
 msgid "Deleted {deleted} {entityName}"
 msgstr "已删除 {deleted} {entityName}"
 
-#: src/lib/components/data-table/data-table.tsx:608
+#: src/lib/components/data-table/data-table.tsx:650
 msgid "There are no items to display yet."
 msgstr "暂无可显示的项目。"
 
@@ -341,8 +341,8 @@ msgstr "确定要删除此变体吗？"
 #~ msgid "All resources are up and running"
 #~ msgstr "所有资源正在运行"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:877
-#: src/lib/components/shared/asset/asset-gallery.tsx:1015
+#: src/lib/components/shared/asset/asset-gallery.tsx:930
+#: src/lib/components/shared/asset/asset-gallery.tsx:1076
 msgid "Open"
 msgstr ""
 
@@ -359,7 +359,7 @@ msgstr "否"
 msgid "Successfully updated product variant"
 msgstr "已成功更新商品变体"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:766
+#: src/lib/components/shared/asset/asset-gallery.tsx:801
 msgid "Upload images, videos, or files to start building your asset library."
 msgstr ""
 
@@ -418,7 +418,7 @@ msgstr "没有可添加的小部件"
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:107
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:290
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:203
-#: src/lib/components/shared/asset/asset-gallery.tsx:277
+#: src/lib/components/shared/asset/asset-gallery.tsx:291
 #: src/lib/components/shared/asset/asset-preview.tsx:127
 msgid "Unknown error"
 msgstr "未知错误"
@@ -549,7 +549,7 @@ msgstr "新集合"
 msgid "Insights"
 msgstr "洞察"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:276
+#: src/lib/components/shared/asset/asset-gallery.tsx:290
 msgid "Failed to upload assets"
 msgstr ""
 
@@ -597,7 +597,7 @@ msgstr "管理员"
 #~ msgstr "总价：<0/>"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:82
-#: src/lib/components/data-table/data-table.tsx:724
+#: src/lib/components/data-table/data-table.tsx:766
 msgid "Go to next page"
 msgstr "转到下一页"
 
@@ -709,7 +709,7 @@ msgstr "移动集合"
 msgid "Roles"
 msgstr "角色"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:484
+#: src/lib/components/shared/asset/asset-gallery.tsx:506
 msgid "Grid view"
 msgstr "网格视图"
 
@@ -737,7 +737,7 @@ msgstr "确定要删除 {selectionLength} 个资源吗？"
 msgid "Sign in"
 msgstr "登录"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:487
+#: src/lib/components/shared/asset/asset-gallery.tsx:509
 msgid "List view"
 msgstr "列表视图"
 
@@ -890,7 +890,7 @@ msgstr "完成草稿"
 #: src/app/routes/_authenticated/_tax-categories/tax-categories_.$id.tsx:106
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:113
 #: src/app/routes/_authenticated/_zones/zones_.$id.tsx:93
-#: src/lib/components/shared/asset/asset-gallery.tsx:948
+#: src/lib/components/shared/asset/asset-gallery.tsx:1005
 msgid "Name"
 msgstr "名称"
 
@@ -930,7 +930,7 @@ msgstr "履行已创建"
 msgid "Found {0} eligible shipping method{1}"
 msgstr "找到 {0} 个符合条件的配送方式"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:988
+#: src/lib/components/shared/asset/asset-gallery.tsx:1049
 #: src/lib/components/shared/asset/asset-properties.tsx:39
 msgid "Dimensions"
 msgstr "尺寸"
@@ -1107,7 +1107,7 @@ msgstr "将执行计划任务"
 msgid "New stock location"
 msgstr "新库存位置"
 
-#: src/lib/components/data-table/data-table.tsx:720
+#: src/lib/components/data-table/data-table.tsx:762
 #: src/lib/components/data-table/use-generated-columns.tsx:238
 msgid "Select row"
 msgstr "选择行"
@@ -1263,8 +1263,9 @@ msgstr "在新标签页中打开"
 msgid "Failed to update promotion"
 msgstr "更新促销失败"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:447
-#: src/lib/components/shared/asset/asset-gallery.tsx:459
+#: src/lib/components/shared/asset/asset-gallery.tsx:91
+#: src/lib/components/shared/asset/asset-gallery.tsx:464
+#: src/lib/components/shared/asset/asset-gallery.tsx:481
 msgid "Images"
 msgstr "图片"
 
@@ -1391,7 +1392,7 @@ msgid "No items selected"
 msgstr "未选择项目"
 
 #. placeholder {0}: selected.length
-#: src/lib/components/shared/asset/asset-gallery.tsx:591
+#: src/lib/components/shared/asset/asset-gallery.tsx:623
 msgid ", {0} selected"
 msgstr "，已选择 {0} 项"
 
@@ -1627,7 +1628,7 @@ msgstr "之前"
 msgid "Failed to set customer for order: {0}"
 msgstr "为订单设置客户失败：{0}"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:965
+#: src/lib/components/shared/asset/asset-gallery.tsx:1026
 msgid "Size"
 msgstr "大小"
 
@@ -1759,7 +1760,7 @@ msgstr "地址已成功更新"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:126
-#: src/lib/components/shared/asset/asset-gallery.tsx:972
+#: src/lib/components/shared/asset/asset-gallery.tsx:1033
 #: src/lib/framework/layout-engine/page-layout.tsx:746
 msgid "Created"
 msgstr "已创建"
@@ -2107,8 +2108,8 @@ msgstr "开始于"
 msgid "Duplicate"
 msgstr "复制"
 
-#: src/lib/components/data-table/data-table.tsx:596
-#: src/lib/components/data-table/data-table.tsx:607
+#: src/lib/components/data-table/data-table.tsx:638
+#: src/lib/components/data-table/data-table.tsx:649
 #: src/lib/components/shared/customer-group-selector.tsx:60
 msgid "No results"
 msgstr "无结果"
@@ -2629,7 +2630,7 @@ msgstr "设置订单配送地址失败：{0}"
 msgid "Cancel Job"
 msgstr "取消作业"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:761
+#: src/lib/components/shared/asset/asset-gallery.tsx:796
 msgid "No assets yet"
 msgstr ""
 
@@ -2969,8 +2970,8 @@ msgstr "折扣"
 msgid "Top Products"
 msgstr "热销商品"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:446
-#: src/lib/components/shared/asset/asset-gallery.tsx:458
+#: src/lib/components/shared/asset/asset-gallery.tsx:463
+#: src/lib/components/shared/asset/asset-gallery.tsx:480
 msgid "All types"
 msgstr "所有类型"
 
@@ -3103,8 +3104,8 @@ msgstr "选择一个选项"
 
 #. placeholder {0}: asset.name
 #. placeholder {0}: row.original.name
-#: src/lib/components/shared/asset/asset-gallery.tsx:874
-#: src/lib/components/shared/asset/asset-gallery.tsx:1012
+#: src/lib/components/shared/asset/asset-gallery.tsx:927
+#: src/lib/components/shared/asset/asset-gallery.tsx:1073
 msgid "Open {0}"
 msgstr ""
 
@@ -3425,7 +3426,7 @@ msgstr "列"
 msgid "Failed to upload image"
 msgstr "图片上传失败"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:761
+#: src/lib/components/shared/asset/asset-gallery.tsx:796
 msgid "No assets match these filters"
 msgstr ""
 
@@ -3568,10 +3569,9 @@ msgstr "管理全局视图"
 msgid "Processing..."
 msgstr "处理中..."
 
-#. placeholder {0}: totalItems === 1 ? 'asset' : 'assets'
 #: src/lib/components/shared/asset/asset-gallery.tsx:587
-msgid "{totalItems} {0} found"
-msgstr "找到 {totalItems} 个{0}"
+#~ msgid "{totalItems} {0} found"
+#~ msgstr "找到 {totalItems} 个{0}"
 
 #: src/lib/components/date-range-picker.tsx:122
 msgid "Select date range"
@@ -3609,6 +3609,10 @@ msgstr "分配"
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:56
 msgid "Successfully created seller"
 msgstr "已成功创建卖家"
+
+#: src/lib/components/shared/asset/asset-gallery.tsx:850
+msgid "We couldn't load assets"
+msgstr ""
 
 #: src/lib/framework/dashboard-widget/latest-customers-widget/index.tsx:58
 #: src/lib/framework/dashboard-widget/low-stock-widget/index.tsx:80
@@ -3674,7 +3678,7 @@ msgstr "未找到"
 msgid "Facet values"
 msgstr "属性值"
 
-#: src/lib/components/data-table/data-table.tsx:318
+#: src/lib/components/data-table/data-table.tsx:360
 msgid "Failed to reorder items"
 msgstr "重新排序商品失败"
 
@@ -3847,7 +3851,7 @@ msgstr "运费已退款"
 msgid "Failed to create option in group \"{0}\""
 msgstr ""
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:455
+#: src/lib/components/shared/asset/asset-gallery.tsx:477
 msgid "Asset type"
 msgstr "资源类型"
 
@@ -4175,7 +4179,7 @@ msgstr "搜索管理员..."
 msgid "Created by"
 msgstr "创建者"
 
-#: src/lib/components/data-table/data-table.tsx:597
+#: src/lib/components/data-table/data-table.tsx:639
 msgid "No items match your current filters. Try clearing them to see more."
 msgstr "没有符合当前筛选条件的项目。请尝试清除筛选条件以查看更多。"
 
@@ -4475,7 +4479,7 @@ msgstr "更新支付状态失败"
 msgid "Your orders summary"
 msgstr "您的订单摘要"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:505
+#: src/lib/components/shared/asset/asset-gallery.tsx:527
 msgid "Upload"
 msgstr "上传"
 
@@ -4484,7 +4488,7 @@ msgid "Product with options"
 msgstr "带选项的产品"
 
 #. placeholder {0}: filteredTags.length
-#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:195
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:196
 msgid "Showing all {0} results"
 msgstr "显示所有 {0} 个结果"
 
@@ -4628,7 +4632,7 @@ msgstr "行内代码"
 
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:45
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx:104
-#: src/lib/components/shared/asset/asset-gallery.tsx:1055
+#: src/lib/components/shared/asset/asset-gallery.tsx:1117
 msgid "Tags"
 msgstr "标签"
 
@@ -4791,7 +4795,7 @@ msgstr "需要退款 {formattedDiff}。选择付款金额并输入备注以继�
 msgid "Unit price"
 msgstr "单价"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:764
+#: src/lib/components/shared/asset/asset-gallery.tsx:799
 msgid "Try changing your search, asset type, or selected tags."
 msgstr ""
 
@@ -4892,6 +4896,10 @@ msgstr "旧电子邮件："
 msgid "Save a view as \"Global\" to make it available to all users."
 msgstr "将视图保存为\"全局\"以使其对所有用户可用。"
 
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:147
+msgid "Search tags..."
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-missing-variants-dialog.tsx:154
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:90
 msgid "Failed to create variants"
@@ -4956,7 +4964,7 @@ msgstr "清除筛选器"
 msgid "Regions"
 msgstr "地区"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:546
+#: src/lib/components/shared/asset/asset-gallery.tsx:568
 msgid "Drop files here to upload"
 msgstr "将文件拖放到此处上传"
 
@@ -5320,7 +5328,7 @@ msgstr "州/省"
 msgid "Enabled"
 msgstr "已启用"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:598
+#: src/lib/components/shared/asset/asset-gallery.tsx:630
 msgid "Items per page"
 msgstr "每页条数"
 
@@ -5521,7 +5529,7 @@ msgid "Failed to update variant"
 msgstr "更新变体失败"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:69
-#: src/lib/components/data-table/data-table.tsx:723
+#: src/lib/components/data-table/data-table.tsx:765
 msgid "Go to previous page"
 msgstr "转到上一页"
 
@@ -5600,7 +5608,7 @@ msgid "Failed to remove customers from group"
 msgstr "从组中移除客户失败"
 
 #. placeholder {0}: failedAssets.length
-#: src/lib/components/shared/asset/asset-gallery.tsx:268
+#: src/lib/components/shared/asset/asset-gallery.tsx:282
 msgid "Failed to upload {0} assets"
 msgstr ""
 
@@ -5799,10 +5807,10 @@ msgstr "成功更新管理员"
 
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:263
 #: src/lib/components/data-table/data-table-faceted-filter.tsx:225
-#: src/lib/components/data-table/data-table.tsx:600
-#: src/lib/components/shared/asset/asset-gallery.tsx:428
-#: src/lib/components/shared/asset/asset-gallery.tsx:435
-#: src/lib/components/shared/asset/asset-gallery.tsx:773
+#: src/lib/components/data-table/data-table.tsx:642
+#: src/lib/components/shared/asset/asset-gallery.tsx:445
+#: src/lib/components/shared/asset/asset-gallery.tsx:452
+#: src/lib/components/shared/asset/asset-gallery.tsx:808
 msgid "Clear filters"
 msgstr "清除筛选器"
 
@@ -5831,12 +5839,13 @@ msgstr "状态"
 msgid "No options found"
 msgstr "未找到选项"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:778
+#: src/lib/components/shared/asset/asset-gallery.tsx:813
 msgid "Upload assets"
 msgstr ""
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:449
-#: src/lib/components/shared/asset/asset-gallery.tsx:461
+#: src/lib/components/shared/asset/asset-gallery.tsx:95
+#: src/lib/components/shared/asset/asset-gallery.tsx:466
+#: src/lib/components/shared/asset/asset-gallery.tsx:483
 msgid "Binary"
 msgstr "二进制"
 
@@ -6107,8 +6116,9 @@ msgstr "创建您的第一个促销"
 msgid "Remove item"
 msgstr "删除项目"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:448
-#: src/lib/components/shared/asset/asset-gallery.tsx:460
+#: src/lib/components/shared/asset/asset-gallery.tsx:93
+#: src/lib/components/shared/asset/asset-gallery.tsx:465
+#: src/lib/components/shared/asset/asset-gallery.tsx:482
 msgid "Video"
 msgstr "视频"
 
@@ -6222,7 +6232,7 @@ msgid "Strikethrough"
 msgstr "删除线"
 
 #. placeholder {0}: createdAssets.length
-#: src/lib/components/shared/asset/asset-gallery.tsx:265
+#: src/lib/components/shared/asset/asset-gallery.tsx:279
 msgid "Uploaded {0} assets"
 msgstr ""
 
@@ -6266,7 +6276,7 @@ msgstr "您确定要从产品中移除此选项组吗？"
 msgid "Description (alt)"
 msgstr "描述（替代文本）"
 
-#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:153
+#: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx:154
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx:164
 #: src/app/routes/_authenticated/_assets/components/manage-tags-dialog.tsx:99
 msgid "No tags found"
@@ -6406,8 +6416,8 @@ msgstr "订单摘要"
 msgid "Search stock locations..."
 msgstr "搜索库存位置..."
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:413
-#: src/lib/components/shared/asset/asset-gallery.tsx:1052
+#: src/lib/components/shared/asset/asset-gallery.tsx:427
+#: src/lib/components/shared/asset/asset-gallery.tsx:1114
 msgid "Search assets..."
 msgstr "搜索资源..."
 
@@ -6470,7 +6480,7 @@ msgstr "从渠道中删除属性失败：{message}"
 #~ msgid "Set link"
 #~ msgstr "设置链接"
 
-#: src/lib/components/data-table/data-table.tsx:722
+#: src/lib/components/data-table/data-table.tsx:764
 msgid "Pagination"
 msgstr "分页"
 
@@ -6521,7 +6531,7 @@ msgid "View result"
 msgstr "查看结果"
 
 #: src/lib/components/data-table/data-table-pagination.tsx:20
-#: src/lib/components/data-table/data-table.tsx:725
+#: src/lib/components/data-table/data-table.tsx:767
 msgid "Rows per page"
 msgstr "每页行数"
 
@@ -6618,7 +6628,7 @@ msgid "Failed to create product variant"
 msgstr "创建商品变体失败"
 
 #: src/lib/components/data-input/relation-selector.tsx:418
-#: src/lib/components/data-table/data-table.tsx:507
+#: src/lib/components/data-table/data-table.tsx:549
 msgid "Search..."
 msgstr "搜索..."
 
@@ -6703,7 +6713,7 @@ msgid "Active filters"
 msgstr "活动筛选条件"
 
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx:54
-#: src/lib/components/data-table/data-table.tsx:583
+#: src/lib/components/data-table/data-table.tsx:625
 msgid "Clear all"
 msgstr "全部清除"
 
@@ -6799,6 +6809,10 @@ msgstr "支付方式为必填项"
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:134
 msgid "Failed to add customer to group"
 msgstr "将客户添加到组失败"
+
+#: src/lib/components/shared/asset/asset-gallery.tsx:617
+msgid "{totalItems, plural, one {{totalItems} asset found} other {{totalItems} assets found}}"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:338
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:292

@@ -225,6 +225,14 @@ export interface PaginatedListDataTableProps<
     facetedFilters?: FacetedFilterConfig<T>;
     rowActions?: RowAction<PaginatedListItemFields<T>>[];
     bulkActions?: BulkActionsInput;
+    /**
+     * The selected items, used to synchronize table selection with an owning component.
+     */
+    selectedItems?: PaginatedListItemFields<T>[];
+    /**
+     * Called when row selection changes, including selections retained across pages.
+     */
+    onSelectionChange?: (selection: PaginatedListItemFields<T>[]) => void;
     disableViewOptions?: boolean;
     /**
      * @description
@@ -450,6 +458,8 @@ export function PaginatedListDataTable<
     facetedFilters,
     rowActions,
     bulkActions,
+    selectedItems,
+    onSelectionChange,
     disableViewOptions,
     hideViewsControls,
     setTableOptions,
@@ -601,6 +611,8 @@ export function PaginatedListDataTable<
                     disableViewOptions={disableViewOptions}
                     hideViewsControls={hideViewsControls}
                     bulkActions={bulkActions}
+                    selectedItems={selectedItems}
+                    onSelectionChange={onSelectionChange}
                     setTableOptions={setTableOptions}
                     onRefresh={refetchPaginatedList}
                     onReorder={onReorder}

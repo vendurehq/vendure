@@ -94,6 +94,7 @@ function AssetTagFilterOptions({
     selectedTags: string[];
     onTagsChange: (tags: string[]) => void;
 }>) {
+    const { t } = useLingui();
     const [searchValue, setSearchValue] = useState('');
     const debouncedSearch = useDebounce(searchValue, 300);
     const pageSize = 25;
@@ -143,7 +144,7 @@ function AssetTagFilterOptions({
 
     return (
         <Command shouldFilter={false}>
-            <CommandInput placeholder="Search tags..." value={searchValue} onValueChange={setSearchValue} />
+            <CommandInput placeholder={t`Search tags...`} value={searchValue} onValueChange={setSearchValue} />
             <CommandList className="max-h-[300px] overflow-y-auto" onScroll={handleScroll}>
                 <CommandEmpty>
                     {isLoading ? (
