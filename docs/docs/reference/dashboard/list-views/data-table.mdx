@@ -4,7 +4,7 @@ generated: true
 ---
 ## DataTable
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-table/data-table.tsx" sourceLine="245" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-table/data-table.tsx" sourceLine="253" packageName="@vendure/dashboard" since="3.4.0" />
 
 A data table which includes sorting, filtering, pagination, bulk actions, column controls etc.
 
@@ -47,6 +47,8 @@ interface DataTableProps<TData> {
     disableViewOptions?: boolean;
     hideViewsControls?: boolean;
     bulkActions?: BulkActionsInput;
+    selectedItems?: TData[];
+    onSelectionChange?: (selection: TData[]) => void;
     setTableOptions?: (table: TableOptions<TData>) => TableOptions<TData>;
     onRefresh?: () => void;
     onReorder?: (oldIndex: number, newIndex: number, item: TData, allItems?: TData[]) => void | Promise<void>;
@@ -164,6 +166,16 @@ customization are unaffected.
 ### bulkActions
 
 <MemberInfo kind="property" type={`<a href='/reference/dashboard/list-views/bulk-actions#bulkactionsinput'>BulkActionsInput</a>`}   />
+
+
+### selectedItems
+
+<MemberInfo kind="property" type={`TData[]`}   />
+
+
+### onSelectionChange
+
+<MemberInfo kind="property" type={`(selection: TData[]) => void`}   />
 
 
 ### setTableOptions
