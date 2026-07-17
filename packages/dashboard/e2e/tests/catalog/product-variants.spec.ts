@@ -713,6 +713,39 @@ test.describe('variant detail option & stock editing (PRD)', () => {
         await page.close();
     });
 
+    // product-variants-option-groups-ux PRD (user decision) — Enter pressed inside an option
+    // combobox must NOT submit the page form; it only keeps the typed value locally. (Enter in
+    // a plain field like SKU still saves — covered by the tests below.)
+    test('pressing Enter in an option field does not submit the form', async ({ page }) => {
+        await page.goto(`/product-variants/${smallVariantId}`);
+        const sizeInput = page.getByLabel('Size', { exact: true });
+        await expect(sizeInput).toHaveValue('Small', { timeout: 10_000 });
+
+        // Free text + Enter: the value is kept in the field and the form is not submitted.
+        await sizeInput.click();
+        await sizeInput.fill('ZZZ');
+        await sizeInput.press('Enter');
+        await expect(sizeInput).toHaveValue('ZZZ');
+        await expect(
+            page.locator('[data-sonner-toast]').filter({ hasText: /updated/i }),
+        ).toHaveCount(0);
+
+        // Picking a suggestion with Enter (popup open) still works — and still no submit.
+        await sizeInput.fill('La');
+        await sizeInput.press('ArrowDown');
+        await sizeInput.press('Enter');
+        await expect(sizeInput).toHaveValue('Large');
+        await expect(
+            page.locator('[data-sonner-toast]').filter({ hasText: /updated/i }),
+        ).toHaveCount(0);
+
+        // Definitive: a reload shows the original option — nothing was persisted.
+        await page.reload();
+        await expect(page.getByLabel('Size', { exact: true })).toHaveValue('Small', {
+            timeout: 10_000,
+        });
+    });
+
     // product-variants-option-groups-ux PRD — reassigning to an option combination that a
     // sibling variant already uses is rejected client-side and blocks saving.
     test('rejects a duplicate option combination', async ({ page }) => {

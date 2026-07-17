@@ -69,15 +69,28 @@ export function VariantOptionSelect({
                     <ExternalLink className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
                 </Link>
             </FieldLabel>
-            <ComboboxFreeText<OptionItem>
-                id={fieldId}
-                value={value}
-                onValueChange={onValueChange}
-                onSelectItem={item => onSelectOption(item.id)}
-                items={items}
-                invalid={invalid}
-                placeholder={t`Select or create ${group.name}`}
-            />
+            {/* Swallow Enter so typing an option value never triggers the page form submit.
+                ComboboxFreeText has no onKeyDown, so intercept on this wrapper: React's
+                bubble-phase handler runs after Base UI's own input handling (so picking a
+                suggestion with the popup open still works) and preventDefault only cancels
+                the browser's implicit form submission. */}
+            <div
+                onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                    }
+                }}
+            >
+                <ComboboxFreeText<OptionItem>
+                    id={fieldId}
+                    value={value}
+                    onValueChange={onValueChange}
+                    onSelectItem={item => onSelectOption(item.id)}
+                    items={items}
+                    invalid={invalid}
+                    placeholder={t`Select or create ${group.name}`}
+                />
+            </div>
         </Field>
     );
 }
