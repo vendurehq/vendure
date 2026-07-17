@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-// Assets use a gallery (grid) layout rather than a standard data table.
-// The AssetGallery component displays images in a grid with pagination.
+// Assets support both a gallery grid and a standard data table list view.
 // Test data has no asset-server-plugin, so the gallery starts empty.
 
 test.describe('Assets', () => {

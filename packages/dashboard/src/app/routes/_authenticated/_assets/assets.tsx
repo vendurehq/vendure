@@ -39,7 +39,7 @@ function RouteComponent() {
             <PageTitle>
                 <Trans>Assets</Trans>
             </PageTitle>
-            <PageBlock blockId="asset-gallery" column="main">
+            <PageBlock blockId="asset-gallery" column="main" layout="bare">
                 <AssetGallery
                     selectable={true}
                     multiSelect="auto"

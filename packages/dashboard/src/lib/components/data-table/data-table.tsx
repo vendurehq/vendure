@@ -133,6 +133,11 @@ interface DataTableProps<TData> {
     isLoading?: boolean;
     page?: number;
     itemsPerPage?: number;
+    /**
+     * The page-size choices shown in the table footer. Defaults to the
+     * dashboard-wide list values when omitted.
+     */
+    pageSizeOptions?: number[];
     sorting?: SortingState;
     columnFilters?: ColumnFiltersState;
     onPageChange?: (table: TableType<TData>, page: number, itemsPerPage: number) => void;
@@ -250,6 +255,7 @@ export function DataTable<TData>({
     isLoading,
     page,
     itemsPerPage,
+    pageSizeOptions,
     sorting: sortingInitialState,
     columnFilters: filtersInitialState,
     onPageChange,
@@ -646,10 +652,10 @@ export function DataTable<TData>({
                                           setPagination(old => ({ ...old, pageIndex: nextPage - 1 })),
                                       onPageSizeChange: nextSize =>
                                           setPagination(old => ({ ...old, pageSize: nextSize })),
-                                      // The dashboard's established options (not the molecule's
-                                      // [10, 25, 50, 100] default) — stored page sizes like 20
-                                      // must stay selectable.
-                                      pageSizeOptions: [10, 20, 30, 40, 50],
+                                      // Most lists use the dashboard's established options rather
+                                      // than the molecule's [10, 25, 50, 100] default. Consumers
+                                      // with a domain-specific page size can override them.
+                                      pageSizeOptions: pageSizeOptions ?? [10, 20, 30, 40, 50],
                                   }
                                 : undefined
                         }

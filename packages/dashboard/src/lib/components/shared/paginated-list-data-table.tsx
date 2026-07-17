@@ -187,7 +187,7 @@ export interface PaginatedListDataTableProps<
     customizeColumns?: CustomizeColumnConfig<T>;
     additionalColumns?: AC;
     defaultColumnOrder?: (keyof ListQueryFields<T> | keyof AC | CustomFieldKeysOfItem<ListQueryFields<T>>)[];
-    defaultVisibility?: Partial<Record<AllItemFieldKeys<T>, boolean>>;
+    defaultVisibility?: Partial<Record<AllItemFieldKeys<T> | keyof AC, boolean>>;
     /**
      * @description
      * Called whenever the debounced search term changes (including when it
@@ -209,6 +209,8 @@ export interface PaginatedListDataTableProps<
     searchPlaceholder?: string;
     page: number;
     itemsPerPage: number;
+    /** Overrides the dashboard-default footer page-size choices for this list. */
+    pageSizeOptions?: number[];
     sorting: SortingState;
     columnFilters?: ColumnFiltersState;
     onPageChange: (table: Table<any>, page: number, perPage: number) => void;
@@ -441,6 +443,7 @@ export function PaginatedListDataTable<
     searchPlaceholder,
     page,
     itemsPerPage,
+    pageSizeOptions,
     sorting,
     columnFilters,
     onPageChange,
@@ -587,6 +590,7 @@ export function PaginatedListDataTable<
                     isLoading={isFetching}
                     page={page}
                     itemsPerPage={itemsPerPage}
+                    pageSizeOptions={pageSizeOptions}
                     sorting={sorting}
                     columnFilters={columnFilters}
                     totalItems={listData?.totalItems ?? 0}
