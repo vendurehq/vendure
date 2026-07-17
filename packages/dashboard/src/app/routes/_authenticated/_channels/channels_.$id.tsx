@@ -30,6 +30,27 @@ import { channelDetailDocument, createChannelDocument, updateChannelDocument } f
 
 const pageId = 'channel-detail';
 
+/**
+ * The "available" list sent to the server, or `undefined` when the user selected nothing.
+ *
+ * Omitting an empty list lets ChannelService.create derive it from the default
+ * (`input.availableCurrencyCodes ?? [defaultCurrencyCode]`), which is what an empty selection means
+ * here — as opposed to `[]`, which would be saved as a channel with no available currencies at all.
+ *
+ * A non-empty list must contain the default: `create` saves a supplied list verbatim without
+ * checking, and neither `create` nor `update` checks it for languages, so a default outside the
+ * list would be saved as an unusable channel.
+ */
+function withDefault<T extends string>(
+    available: readonly T[] | null | undefined,
+    defaultCode: T | null | undefined,
+): T[] | undefined {
+    if (!available?.length) {
+        return undefined;
+    }
+    return [...new Set(defaultCode ? [...available, defaultCode] : available)];
+}
+
 export const Route = createFileRoute('/_authenticated/_channels/channels_/$id')({
     component: ChannelDetailPage,
     loader: detailPageRouteLoader({
@@ -77,17 +98,15 @@ function ChannelDetailPage() {
             return {
                 ...input,
                 currencyCode: undefined,
-                // Omit the "available" lists when the user has left them empty, rather than
-                // sending `[]`. ChannelService.create then derives them from the defaults
-                // (`input.availableCurrencyCodes ?? [defaultCurrencyCode]`), which is what an
-                // empty selection means here — as opposed to `[]`, which would be saved as a
-                // channel with no available currencies/languages at all.
-                availableCurrencyCodes: input.availableCurrencyCodes?.length
-                    ? input.availableCurrencyCodes
-                    : undefined,
-                availableLanguageCodes: input.availableLanguageCodes?.length
-                    ? input.availableLanguageCodes
-                    : undefined,
+                availableCurrencyCodes: withDefault(input.availableCurrencyCodes, input.defaultCurrencyCode),
+                availableLanguageCodes: withDefault(input.availableLanguageCodes, input.defaultLanguageCode),
+            };
+        },
+        transformUpdateInput: input => {
+            return {
+                ...input,
+                availableCurrencyCodes: withDefault(input.availableCurrencyCodes, input.defaultCurrencyCode),
+                availableLanguageCodes: withDefault(input.availableLanguageCodes, input.defaultLanguageCode),
             };
         },
         // The generated schema is derived from the GraphQL input type, which only tells us about
@@ -241,10 +260,11 @@ function ChannelDetailPage() {
                                     multiple={false}
                                     // Narrow to the available languages only once some have been
                                     // chosen. Passing `[]` would leave nothing to pick from, which
-                                    // is a dead end when this field is required.
-                                    availableLanguageCodes={
-                                        availableLanguageCodes?.length ? availableLanguageCodes : undefined
-                                    }
+                                    // is a dead end when this field is required. The current value
+                                    // is always included: it is submitted as available regardless,
+                                    // so it must not vanish from its own selector when the user
+                                    // narrows the list afterwards.
+                                    availableLanguageCodes={withDefault(availableLanguageCodes, field.value)}
                                 />
                             )}
                         />
@@ -257,9 +277,7 @@ function ChannelDetailPage() {
                                     value={field.value ?? ''}
                                     onChange={field.onChange}
                                     multiple={false}
-                                    availableCurrencyCodes={
-                                        availableCurrencyCodes?.length ? availableCurrencyCodes : undefined
-                                    }
+                                    availableCurrencyCodes={withDefault(availableCurrencyCodes, field.value)}
                                 />
                             )}
                         />

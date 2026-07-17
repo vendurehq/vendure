@@ -226,6 +226,75 @@ test.describe('Channel required-field validation', () => {
         await dp.expectNavigatedToExisting();
     });
 
+    // #4173 — a default picked while the available list was still empty could be left out of a
+    // non-empty list selected afterwards. `create` saves a supplied list verbatim, so the channel
+    // was saved with its default currency unavailable. The default is now always submitted as
+    // available, and never disappears from its own selector.
+    test('should keep a default chosen before a different non-empty available list', async ({ page }) => {
+        const dp = detailPage(page);
+        await dp.gotoNew();
+        await dp.expectNewPageLoaded();
+
+        await dp.fillInput('Code', 'e2e-default-sync-channel');
+        await dp.fillInput('Token', 'e2e-default-sync-token');
+
+        // Default currency first, while "Available currencies" is still empty and the selector is
+        // therefore unfiltered.
+        await dp.formItem('Default currency').getByRole('combobox').click();
+        await page
+            .locator('[data-slot="popover-content"]')
+            .getByPlaceholder('Search currencies...')
+            .fill('US Dollar');
+        await page
+            .locator('[data-slot="popover-content"]')
+            .getByRole('button', { name: /US Dollar/ })
+            .first()
+            .click();
+        // Selecting does not close the popover, and a second open popover would make the search
+        // input ambiguous.
+        await page.locator('body').click({ position: { x: 0, y: 0 } });
+        await expect(page.locator('[data-slot="popover-content"]')).not.toBeVisible();
+        await expect(dp.formItem('Default currency').getByRole('combobox')).toContainText('US Dollar');
+
+        // Now mark a *different* currency as the only explicitly available one.
+        await dp.formItem('Available currencies').getByRole('combobox').click();
+        await page
+            .locator('[data-slot="popover-content"]')
+            .getByPlaceholder('Search currencies...')
+            .fill('Euro');
+        await page
+            .locator('[data-slot="popover-content"]')
+            .getByRole('button', { name: /Euro/ })
+            .first()
+            .click();
+        await page.locator('body').click({ position: { x: 0, y: 0 } });
+        await expect(page.locator('[data-slot="popover-content"]')).not.toBeVisible();
+
+        // The default survives the narrowing, and is still offered by its own selector. The
+        // popover has no search input here: it is down to two items (MultiSelect only shows the
+        // search once there are more than 10).
+        await expect(dp.formItem('Default currency').getByRole('combobox')).toContainText('US Dollar');
+        await dp.formItem('Default currency').getByRole('combobox').click();
+        await expect(
+            page.locator('[data-slot="popover-content"]').getByRole('button', { name: /US Dollar/ }),
+        ).toBeVisible();
+        await page.locator('body').click({ position: { x: 0, y: 0 } });
+        await expect(page.locator('[data-slot="popover-content"]')).not.toBeVisible();
+
+        await dp.selectOption('Default tax zone', 'Europe');
+        await dp.selectOption('Default shipping zone', 'Europe');
+
+        await dp.clickCreate();
+        await dp.expectSuccessToast(/Successfully created channel/);
+        await dp.expectNavigatedToExisting();
+
+        // The saved channel must have the default among its available currencies.
+        await page.reload();
+        await expect(dp.formItem('Available currencies').getByRole('combobox')).toContainText('US Dollar');
+        await expect(dp.formItem('Available currencies').getByRole('combobox')).toContainText('Euro');
+        await expect(dp.formItem('Default currency').getByRole('combobox')).toContainText('US Dollar');
+    });
+
     test('should clear the error once a required field is filled', async ({ page }) => {
         const dp = detailPage(page);
         await dp.gotoNew();
