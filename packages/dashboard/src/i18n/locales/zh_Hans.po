@@ -31,7 +31,7 @@ msgstr "选择项目"
 msgid "View changes"
 msgstr "查看更改"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:136
 msgid "Tracking code"
 msgstr "跟踪代码"
 
@@ -208,7 +208,7 @@ msgctxt "current channel"
 msgid "Current"
 msgstr "当前"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:330
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:300
 msgid "No fulfillments"
 msgstr "无履行"
 
@@ -417,6 +417,11 @@ msgstr "未知错误"
 msgid "Uploading image..."
 msgstr "正在上传图片..."
 
+#. placeholder {0}: fulfillment.lines.reduce((acc, line) => acc + line.quantity, 0)
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:146
+msgid "View fulfilled items ({0})"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts:200
 msgid "Refund total cannot be negative"
 msgstr "退款总额不能为负数"
@@ -518,7 +523,6 @@ msgid "Address deleted successfully"
 msgstr "地址已成功删除"
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:109
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:17
 msgid "Tax rate"
 msgstr "税率"
 
@@ -608,7 +612,11 @@ msgstr "搜索选项..."
 msgid "Order Count"
 msgstr "订单数量"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:93
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:154
+msgid "Fulfilled items"
+msgstr ""
+
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:95
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:59
 msgid "Successfully updated order"
 msgstr "已成功更新订单"
@@ -784,7 +792,7 @@ msgid "Order draft is ready to be completed"
 msgstr "订单草稿已准备就绪可以完成"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:201
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:243
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:279
 msgid "Metadata"
 msgstr "元数据"
 
@@ -890,7 +898,7 @@ msgstr "履行订单失败"
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:193
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:88
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:106
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:226
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:262
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:120
 msgid "Total"
 msgstr "总计"
@@ -990,12 +998,16 @@ msgstr "转到首页"
 msgid "Failed to create product"
 msgstr "创建商品失败"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:279
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:308
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:233
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:498
 #: src/lib/components/shared/role-code-label.tsx:8
 msgid "Customer"
 msgstr "客户"
+
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:223
+msgid "Metadata returned by the payment handler."
+msgstr ""
 
 #: src/lib/components/shared/error-page.tsx:98
 msgid "Page not found"
@@ -1119,7 +1131,7 @@ msgstr "未找到产品"
 msgid "Add row before"
 msgstr "在前面添加行"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:95
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:102
 msgid "Transition to {suggestedState}"
 msgstr "转换到 {suggestedState}"
 
@@ -1141,8 +1153,8 @@ msgid "Failed to cancel order items"
 msgstr "取消订单商品失败"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:160
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:176
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:237
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:198
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:273
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:58
 msgid "Transaction ID"
 msgstr "交易 ID"
@@ -1268,7 +1280,7 @@ msgstr "搜索 {name}..."
 msgid "Edit asset"
 msgstr "编辑资源"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:150
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:158
 msgid "Cancel payment"
 msgstr "取消付款"
 
@@ -1426,7 +1438,7 @@ msgstr "使用全局缺货阈值"
 #~ msgid "New product option group"
 #~ msgstr "新商品选项组"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:57
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:65
 msgid "Payment state updated successfully"
 msgstr "支付状态已成功更新"
 
@@ -1584,7 +1596,7 @@ msgstr "选择一个渠道"
 msgid "Display language"
 msgstr "显示语言"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:312
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:282
 msgid "Fulfillment details"
 msgstr "履行详情"
 
@@ -1737,7 +1749,7 @@ msgid "Address updated successfully"
 msgstr "地址已成功更新"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:126
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:138
 #: src/lib/components/shared/asset/asset-gallery.tsx:754
 #: src/lib/framework/layout-engine/page-layout.tsx:746
 msgid "Created"
@@ -1886,7 +1898,7 @@ msgstr "默认配送区域"
 msgid "Reason:"
 msgstr "原因:"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:294
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:323
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:248
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:511
 msgid "Shipping address"
@@ -1895,9 +1907,9 @@ msgstr "配送地址"
 #. placeholder {0}: getTranslatedFulfillmentState(state)
 #. placeholder {0}: getTranslatedOrderState(state)
 #. placeholder {0}: getTranslatedPaymentState(state)
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:103
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:126
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:151
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:110
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:128
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:159
 msgid "Transition to {0}"
 msgstr "转换到 {0}"
 
@@ -1991,7 +2003,7 @@ msgstr "无法移除选项组"
 msgid "Failed to update tax category"
 msgstr "更新税务类别失败"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:87
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:95
 msgid "Refund settled successfully"
 msgstr "退款已成功完成"
 
@@ -2045,7 +2057,7 @@ msgstr "已成功更新个人资料"
 #~ msgstr "结束"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:146
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:166
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:187
 msgid "Payment method"
 msgstr "支付方式"
 
@@ -2571,11 +2583,11 @@ msgstr "区域"
 msgid "No metrics for this period"
 msgstr "此时间段内没有指标"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:118
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:134
 msgid "Method"
 msgstr "方法"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:234
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:338
 msgid "Tax summary"
 msgstr "税费摘要"
 
@@ -2899,7 +2911,7 @@ msgstr "资源"
 msgid "This will remove all option groups from this product and return to the variant setup choice."
 msgstr "这将移除此产品的所有选项组并返回变体设置选择。"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:302
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:331
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:277
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:533
 msgid "Billing address"
@@ -2991,7 +3003,7 @@ msgstr "复制"
 #~ msgid "Healthchecks"
 #~ msgstr "健康检查"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:168
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:189
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:322
 msgid "Amount"
 msgstr "金额"
@@ -3146,7 +3158,7 @@ msgstr "选项值"
 msgid "Default Billing Address"
 msgstr "默认账单地址"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:287
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:316
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:241
 msgid "No customer"
 msgstr "无客户"
@@ -3193,7 +3205,7 @@ msgstr "正在添加 {0} 项附加费"
 msgid "Fallback: {value}"
 msgstr "回退值: {value}"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:263
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:304
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-container.tsx:30
 msgid "Order history"
 msgstr "订单历史"
@@ -3288,6 +3300,10 @@ msgstr "保存更改"
 msgid "Search products..."
 msgstr "搜索商品..."
 
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:163
+msgid "Unknown product"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:53
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx:78
 msgid "Address updated"
@@ -3327,7 +3343,7 @@ msgstr "更新集合位置失败"
 msgid "Refund"
 msgstr "退款"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:162
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:164
 #: src/app/routes/_authenticated/_orders/utils/order-detail-loaders.tsx:78
 msgid "Modify"
 msgstr "修改"
@@ -3461,7 +3477,7 @@ msgstr "请在关闭前确认您已保存 API Key。"
 msgid "Confirm deletion"
 msgstr "确认删除"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:152
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:154
 msgid "Failed to modify order"
 msgstr "修改订单失败"
 
@@ -3784,7 +3800,7 @@ msgstr "刷新"
 msgid "No checkers found"
 msgstr "未找到检查器"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:139
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:147
 msgid "Settle payment"
 msgstr "完成支付"
 
@@ -3870,8 +3886,8 @@ msgstr "密码不匹配"
 msgid "Pick a date and time"
 msgstr "选择日期和时间"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:53
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:57
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:60
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:64
 msgid "Failed to update fulfillment state"
 msgstr "更新履行状态失败"
 
@@ -3915,7 +3931,7 @@ msgstr "正在添加 {0} 个项目"
 msgid "Add row after"
 msgstr "在后面添加行"
 
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:23
+#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:30
 msgid "Tax total"
 msgstr "税费总计"
 
@@ -4005,8 +4021,8 @@ msgstr "没有可显示的小部件。请使用“编辑布局”添加小部件
 msgid "{0} variants"
 msgstr "{0} 个变体"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:45
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:49
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:53
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:57
 msgid "Failed to settle payment"
 msgstr "完成支付失败"
 
@@ -4063,7 +4079,7 @@ msgstr "创建角色失败"
 msgid "Product name"
 msgstr "商品名称"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:50
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:57
 msgid "Fulfillment state updated successfully"
 msgstr "履行状态已成功更新"
 
@@ -4109,16 +4125,20 @@ msgstr "退款 {0}"
 msgid "Enter slug manually"
 msgstr "手动输入 slug"
 
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:157
+msgid "Items included in this fulfillment."
+msgstr ""
+
 #: src/app/routes/_authenticated/index.tsx:230
 #~ msgid "No widgets available"
 #~ msgstr "无可用小组件"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:75
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:79
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:83
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:87
 msgid "Failed to cancel payment"
 msgstr "取消支付失败"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:72
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:80
 msgid "Payment cancelled successfully"
 msgstr "支付已成功取消"
 
@@ -4228,8 +4248,8 @@ msgstr "备注已成功删除"
 msgid "Note updated successfully"
 msgstr "备注已成功更新"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:91
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:95
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:99
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:103
 msgid "Failed to settle refund"
 msgstr "完成退款失败"
 
@@ -4265,7 +4285,6 @@ msgstr "移除选项组"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:213
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:76
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:14
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:275
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:174
@@ -4421,8 +4440,8 @@ msgstr "引用块"
 msgid "Select table size"
 msgstr "选择表格大小"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:60
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:64
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:68
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:72
 msgid "Failed to update payment state"
 msgstr "更新支付状态失败"
 
@@ -4631,7 +4650,7 @@ msgstr "选择一个区域"
 msgid "Test shipping methods"
 msgstr "测试配送方式"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:42
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:50
 msgid "Payment settled successfully"
 msgstr "支付已成功完成"
 
@@ -4905,6 +4924,10 @@ msgstr "地区"
 msgid "Drop files here to upload"
 msgstr "将文件拖放到此处上传"
 
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:215
+msgid "View payment metadata"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:182
 msgid "Toggle all visible variants"
 msgstr "切换所有可见变体"
@@ -5122,7 +5145,7 @@ msgid "Select"
 msgstr "选择"
 
 #. placeholder {0}: payment.refunds.length
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:206
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:242
 msgid "Refunds ({0})"
 msgstr "退款 ({0})"
 
@@ -5130,7 +5153,7 @@ msgstr "退款 ({0})"
 msgid "Last Executed"
 msgstr "上次执行"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:250
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:266
 msgid "Payment details"
 msgstr "支付详情"
 
@@ -5155,7 +5178,7 @@ msgstr "更新客户组失败"
 msgid "Remove widget"
 msgstr "移除小部件"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:189
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:220
 msgid "Payment metadata"
 msgstr "支付元数据"
 
@@ -5184,7 +5207,7 @@ msgstr "角色"
 msgid "Additional payment required"
 msgstr "需要额外支付"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:97
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:99
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:63
 msgid "Failed to update order"
 msgstr "更新订单失败"
@@ -5214,8 +5237,7 @@ msgstr "{customerGroupName} 的客户组成员"
 msgid "Failed to set address for order: {0}"
 msgstr "设置订单地址失败：{0}"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:120
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:215
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:251
 #: src/app/routes/_authenticated/_orders/orders.tsx:102
 #: src/app/routes/_authenticated/_system/job-queue.tsx:265
 msgid "State"
@@ -5466,6 +5488,11 @@ msgstr "更新变体失败"
 msgid "Go to previous page"
 msgstr "转到上一页"
 
+#. placeholder {0}: line.quantity
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:171
+msgid "Quantity: {0}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278
 #: src/app/routes/_authenticated/_collections/collections.tsx:447
@@ -5552,7 +5579,7 @@ msgstr "加载全局设置失败"
 msgid "Select items to refund and optionally return to stock"
 msgstr "选择要退款的商品，可选择退回库存"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:245
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:261
 #: src/app/routes/_authenticated/_system/settings-store.tsx:153
 #: src/lib/components/data-table/data-table-views-tabs.tsx:132
 #: src/lib/components/data-table/views-sheet.tsx:210
@@ -5667,7 +5694,7 @@ msgstr "{0} 的预览"
 msgid "Successfully updated seller"
 msgstr "已成功更新卖家"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:132
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:134
 msgid "Failed to transition order to state"
 msgstr "将订单转换到状态失败"
 
@@ -5916,10 +5943,9 @@ msgstr "移除选项组失败"
 msgid "Sub total"
 msgstr "小计"
 
-#. placeholder {0}: fulfillment.lines.reduce((acc, line) => acc + line.quantity, 0)
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:133
-msgid "Fulfilled items ({0})"
-msgstr "已履行的项目 ({0})"
+#~ msgid "Fulfilled items ({0})"
+#~ msgstr "已履行的项目 ({0})"
 
 #: src/app/routes/_authenticated/_products/products.tsx:117
 msgid "Create your first product"
@@ -5980,7 +6006,7 @@ msgstr "重复值\"{trimmed}\"已存在"
 msgid "Create your first customer"
 msgstr "创建您的第一个客户"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:231
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:267
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:222
 msgid "Reason"
 msgstr "原因"
@@ -6078,7 +6104,7 @@ msgstr "电子邮件更新已验证"
 msgid "is between"
 msgstr "在之间"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:173
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:175
 msgid "Refund & Cancel"
 msgstr "退款并取消"
 
@@ -6291,7 +6317,7 @@ msgstr "小计"
 msgid "is less than"
 msgstr "小于"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:213
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:249
 msgid "Refund ID"
 msgstr "退款 ID"
 
@@ -6355,7 +6381,7 @@ msgstr "继续"
 msgid "Promotions"
 msgstr "促销"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:181
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:205
 msgid "Error message"
 msgstr "错误消息"
 
@@ -6532,8 +6558,8 @@ msgstr "更新支付方式失败"
 msgid "Available:"
 msgstr "可用："
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:172
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:219
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:193
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:255
 msgid "Created at"
 msgstr "创建于"
 
@@ -6581,7 +6607,7 @@ msgctxt "active language"
 msgid "Active"
 msgstr "活跃"
 
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:20
+#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:22
 msgid "Tax base"
 msgstr "税基"
 
@@ -6679,7 +6705,7 @@ msgstr "在进行 API 请求时使用令牌来指定渠道。"
 msgid "No addresses found"
 msgstr "未找到地址"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:117
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:133
 msgid "Fulfillment ID"
 msgstr "履行 ID"
 
@@ -6711,7 +6737,7 @@ msgstr "更新值失败"
 msgid "Failed to create API key"
 msgstr "创建 API Key 失败"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:262
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:298
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:49
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:74
 msgid "Settle refund"

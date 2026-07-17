@@ -31,7 +31,7 @@ msgstr "वस्तुहरू चयन गर्नुहोस्"
 msgid "View changes"
 msgstr "परिवर्तनहरू हेर्नुहोस्"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:136
 msgid "Tracking code"
 msgstr "ट्र्याकिङ कोड"
 
@@ -208,7 +208,7 @@ msgctxt "current channel"
 msgid "Current"
 msgstr "हालको"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:330
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:300
 msgid "No fulfillments"
 msgstr "कुनै पूर्तिहरू छैनन्"
 
@@ -417,6 +417,11 @@ msgstr "अज्ञात त्रुटि"
 msgid "Uploading image..."
 msgstr "छवि अपलोड हुँदै..."
 
+#. placeholder {0}: fulfillment.lines.reduce((acc, line) => acc + line.quantity, 0)
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:146
+msgid "View fulfilled items ({0})"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts:200
 msgid "Refund total cannot be negative"
 msgstr "फिर्ता कुल नकारात्मक हुन सक्दैन"
@@ -518,7 +523,6 @@ msgid "Address deleted successfully"
 msgstr "ठेगाना सफलतापूर्वक मेटियो"
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:109
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:17
 msgid "Tax rate"
 msgstr "कर दर"
 
@@ -608,7 +612,11 @@ msgstr "विकल्पहरू खोज्नुहोस्..."
 msgid "Order Count"
 msgstr "अर्डर संख्या"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:93
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:154
+msgid "Fulfilled items"
+msgstr ""
+
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:95
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:59
 msgid "Successfully updated order"
 msgstr "अर्डर सफलतापूर्वक अपडेट गरियो"
@@ -784,7 +792,7 @@ msgid "Order draft is ready to be completed"
 msgstr "अर्डर ड्राफ्ट पूरा गर्न तयार छ"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:201
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:243
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:279
 msgid "Metadata"
 msgstr "मेटाडेटा"
 
@@ -890,7 +898,7 @@ msgstr "अर्डर पूरा गर्न असफल"
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:193
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:88
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:106
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:226
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:262
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:120
 msgid "Total"
 msgstr "कुल"
@@ -990,12 +998,16 @@ msgstr "पहिलो पृष्ठमा जानुहोस्"
 msgid "Failed to create product"
 msgstr "उत्पादन सिर्जना गर्न असफल"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:279
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:308
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:233
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:498
 #: src/lib/components/shared/role-code-label.tsx:8
 msgid "Customer"
 msgstr "ग्राहक"
+
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:223
+msgid "Metadata returned by the payment handler."
+msgstr ""
 
 #: src/lib/components/shared/error-page.tsx:98
 msgid "Page not found"
@@ -1119,7 +1131,7 @@ msgstr "कुनै उत्पादन भेटिएन"
 msgid "Add row before"
 msgstr "अघि पङ्क्ति थप्नुहोस्"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:95
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:102
 msgid "Transition to {suggestedState}"
 msgstr "{suggestedState} मा संक्रमण गर्नुहोस्"
 
@@ -1141,8 +1153,8 @@ msgid "Failed to cancel order items"
 msgstr "अर्डर वस्तुहरू रद्द गर्न असफल"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:160
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:176
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:237
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:198
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:273
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:58
 msgid "Transaction ID"
 msgstr "लेनदेन ID"
@@ -1268,7 +1280,7 @@ msgstr "{name} खोज्नुहोस्..."
 msgid "Edit asset"
 msgstr "सम्पत्ति सम्पादन गर्नुहोस्"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:150
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:158
 msgid "Cancel payment"
 msgstr "भुक्तानी रद्द गर्नुहोस्"
 
@@ -1426,7 +1438,7 @@ msgstr "ग्लोबल स्टक बाहिर थ्रेसहोल
 #~ msgid "New product option group"
 #~ msgstr "नयाँ उत्पादन विकल्प समूह"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:57
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:65
 msgid "Payment state updated successfully"
 msgstr "भुक्तानी स्थिति सफलतापूर्वक अपडेट गरियो"
 
@@ -1584,7 +1596,7 @@ msgstr "च्यानल चयन गर्नुहोस्"
 msgid "Display language"
 msgstr "प्रदर्शन भाषा"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:312
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:282
 msgid "Fulfillment details"
 msgstr "पूर्ति विवरणहरू"
 
@@ -1737,7 +1749,7 @@ msgid "Address updated successfully"
 msgstr "ठेगाना सफलतापूर्वक अपडेट गरियो"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:126
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:138
 #: src/lib/components/shared/asset/asset-gallery.tsx:754
 #: src/lib/framework/layout-engine/page-layout.tsx:746
 msgid "Created"
@@ -1886,7 +1898,7 @@ msgstr "पूर्वनिर्धारित ढुवानी क्ष�
 msgid "Reason:"
 msgstr "कारण:"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:294
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:323
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:248
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:511
 msgid "Shipping address"
@@ -1895,9 +1907,9 @@ msgstr "ढुवानी ठेगाना"
 #. placeholder {0}: getTranslatedFulfillmentState(state)
 #. placeholder {0}: getTranslatedOrderState(state)
 #. placeholder {0}: getTranslatedPaymentState(state)
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:103
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:126
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:151
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:110
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:128
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:159
 msgid "Transition to {0}"
 msgstr "{0} मा संक्रमण गर्नुहोस्"
 
@@ -1991,7 +2003,7 @@ msgstr "विकल्प समूह हटाउन सकिएन"
 msgid "Failed to update tax category"
 msgstr "कर वर्ग अपडेट गर्न असफल"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:87
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:95
 msgid "Refund settled successfully"
 msgstr "रिफन्ड सफलतापूर्वक सम्पन्न भयो"
 
@@ -2045,7 +2057,7 @@ msgstr "प्रोफाइल सफलतापूर्वक अपडे�
 #~ msgstr "अन्त्य"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:146
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:166
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:187
 msgid "Payment method"
 msgstr "भुक्तानी विधि"
 
@@ -2571,11 +2583,11 @@ msgstr "क्षेत्र"
 msgid "No metrics for this period"
 msgstr "यस अवधिका लागि कुनै मेट्रिक्स छैनन्"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:118
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:134
 msgid "Method"
 msgstr "विधि"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:234
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:338
 msgid "Tax summary"
 msgstr "कर सारांश"
 
@@ -2899,7 +2911,7 @@ msgstr "सम्पत्तिहरू"
 msgid "This will remove all option groups from this product and return to the variant setup choice."
 msgstr "यसले यो उत्पादनबाट सबै विकल्प समूहहरू हटाउनेछ र भेरियन्ट सेटअप छनोटमा फर्काउनेछ।"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:302
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:331
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:277
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:533
 msgid "Billing address"
@@ -2991,7 +3003,7 @@ msgstr "प्रतिलिपि गर्नुहोस्"
 #~ msgid "Healthchecks"
 #~ msgstr "स्वास्थ्य जाँच"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:168
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:189
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:322
 msgid "Amount"
 msgstr "रकम"
@@ -3146,7 +3158,7 @@ msgstr "विकल्प मानहरू"
 msgid "Default Billing Address"
 msgstr "पूर्वनिर्धारित बिलिङ ठेगाना"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:287
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:316
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:241
 msgid "No customer"
 msgstr "कुनै ग्राहक छैन"
@@ -3193,7 +3205,7 @@ msgstr "{0} अतिरिक्त शुल्क(हरू) थप्दै"
 msgid "Fallback: {value}"
 msgstr "फलब्याक: {value}"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:263
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:304
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-container.tsx:30
 msgid "Order history"
 msgstr "अर्डर इतिहास"
@@ -3288,6 +3300,10 @@ msgstr "परिवर्तनहरू सुरक्षित गर्न�
 msgid "Search products..."
 msgstr "उत्पादनहरू खोज्नुहोस्..."
 
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:163
+msgid "Unknown product"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:53
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx:78
 msgid "Address updated"
@@ -3327,7 +3343,7 @@ msgstr "संग्रह स्थिति अपडेट गर्न अ�
 msgid "Refund"
 msgstr "फिर्ता"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:162
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:164
 #: src/app/routes/_authenticated/_orders/utils/order-detail-loaders.tsx:78
 msgid "Modify"
 msgstr "परिमार्जन गर्नुहोस्"
@@ -3461,7 +3477,7 @@ msgstr "कृपया बन्द गर्नुअघि API Key सुर�
 msgid "Confirm deletion"
 msgstr "मेटाउने पुष्टि गर्नुहोस्"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:152
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:154
 msgid "Failed to modify order"
 msgstr "अर्डर परिमार्जन गर्न असफल"
 
@@ -3784,7 +3800,7 @@ msgstr "रिफ्रेस गर्नुहोस्"
 msgid "No checkers found"
 msgstr "कुनै जाँचकर्ताहरू फेला परेनन्"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:139
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:147
 msgid "Settle payment"
 msgstr "भुक्तानी सम्पन्न गर्नुहोस्"
 
@@ -3870,8 +3886,8 @@ msgstr "पासवर्डहरू मेल खाँदैनन्"
 msgid "Pick a date and time"
 msgstr "मिति र समय छान्नुहोस्"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:53
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:57
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:60
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:64
 msgid "Failed to update fulfillment state"
 msgstr "पूर्ति स्थिति अपडेट गर्न असफल"
 
@@ -3915,7 +3931,7 @@ msgstr "{0} वस्तु(हरू) थप्दै"
 msgid "Add row after"
 msgstr "पछि पङ्क्ति थप्नुहोस्"
 
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:23
+#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:30
 msgid "Tax total"
 msgstr "कर कुल"
 
@@ -4005,8 +4021,8 @@ msgstr "प्रदर्शन गर्न कुनै विजेटहर
 msgid "{0} variants"
 msgstr "{0} प्रकारहरू"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:45
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:49
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:53
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:57
 msgid "Failed to settle payment"
 msgstr "भुक्तानी सम्पन्न गर्न असफल"
 
@@ -4063,7 +4079,7 @@ msgstr "भूमिका सिर्जना गर्न असफल"
 msgid "Product name"
 msgstr "उत्पादन नाम"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:50
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:57
 msgid "Fulfillment state updated successfully"
 msgstr "पूर्ति स्थिति सफलतापूर्वक अपडेट गरियो"
 
@@ -4109,16 +4125,20 @@ msgstr "{0} फिर्ता"
 msgid "Enter slug manually"
 msgstr "स्लग म्यानुअल रूपमा प्रविष्ट गर्नुहोस्"
 
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:157
+msgid "Items included in this fulfillment."
+msgstr ""
+
 #: src/app/routes/_authenticated/index.tsx:230
 #~ msgid "No widgets available"
 #~ msgstr "कुनै विजेटहरू उपलब्ध छैनन्"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:75
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:79
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:83
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:87
 msgid "Failed to cancel payment"
 msgstr "भुक्तानी रद्द गर्न असफल"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:72
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:80
 msgid "Payment cancelled successfully"
 msgstr "भुक्तानी सफलतापूर्वक रद्द गरियो"
 
@@ -4228,8 +4248,8 @@ msgstr "टिप्पणी सफलतापूर्वक मेटिय�
 msgid "Note updated successfully"
 msgstr "टिप्पणी सफलतापूर्वक अपडेट गरियो"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:91
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:95
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:99
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:103
 msgid "Failed to settle refund"
 msgstr "रिफन्ड सम्पन्न गर्न असफल"
 
@@ -4265,7 +4285,6 @@ msgstr "विकल्प समूह हटाउनुहोस्"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:213
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:76
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:14
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:275
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:174
@@ -4421,8 +4440,8 @@ msgstr "ब्लककोट"
 msgid "Select table size"
 msgstr "तालिका आकार चयन गर्नुहोस्"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:60
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:64
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:68
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:72
 msgid "Failed to update payment state"
 msgstr "भुक्तानी स्थिति अपडेट गर्न असफल"
 
@@ -4631,7 +4650,7 @@ msgstr "क्षेत्र चयन गर्नुहोस्"
 msgid "Test shipping methods"
 msgstr "ढुवानी विधिहरू परीक्षण गर्नुहोस्"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:42
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:50
 msgid "Payment settled successfully"
 msgstr "भुक्तानी सफलतापूर्वक सम्पन्न भयो"
 
@@ -4905,6 +4924,10 @@ msgstr "क्षेत्रहरू"
 msgid "Drop files here to upload"
 msgstr "अपलोड गर्न यहाँ फाइलहरू छोड्नुहोस्"
 
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:215
+msgid "View payment metadata"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:182
 msgid "Toggle all visible variants"
 msgstr "सबै देखिने भेरियन्टहरू टगल गर्नुहोस्"
@@ -5122,7 +5145,7 @@ msgid "Select"
 msgstr "चयन गर्नुहोस्"
 
 #. placeholder {0}: payment.refunds.length
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:206
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:242
 msgid "Refunds ({0})"
 msgstr "रिफन्डहरू ({0})"
 
@@ -5130,7 +5153,7 @@ msgstr "रिफन्डहरू ({0})"
 msgid "Last Executed"
 msgstr "अन्तिम कार्यान्वयन"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:250
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:266
 msgid "Payment details"
 msgstr "भुक्तानी विवरणहरू"
 
@@ -5155,7 +5178,7 @@ msgstr "ग्राहक समूह अपडेट गर्न असफ�
 msgid "Remove widget"
 msgstr "विजेट हटाउनुहोस्"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:189
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:220
 msgid "Payment metadata"
 msgstr "भुक्तानी मेटाडेटा"
 
@@ -5184,7 +5207,7 @@ msgstr "भूमिकाहरू"
 msgid "Additional payment required"
 msgstr "थप भुक्तानी आवश्यक"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:97
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:99
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:63
 msgid "Failed to update order"
 msgstr "अर्डर अपडेट गर्न असफल"
@@ -5214,8 +5237,7 @@ msgstr "{customerGroupName} को ग्राहक समूह सदस्�
 msgid "Failed to set address for order: {0}"
 msgstr "अर्डरका लागि ठेगाना सेट गर्न असफल भयो: {0}"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:120
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:215
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:251
 #: src/app/routes/_authenticated/_orders/orders.tsx:102
 #: src/app/routes/_authenticated/_system/job-queue.tsx:265
 msgid "State"
@@ -5466,6 +5488,11 @@ msgstr "भेरियन्ट अद्यावधिक गर्न अस
 msgid "Go to previous page"
 msgstr "अघिल्लो पृष्ठमा जानुहोस्"
 
+#. placeholder {0}: line.quantity
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:171
+msgid "Quantity: {0}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278
 #: src/app/routes/_authenticated/_collections/collections.tsx:447
@@ -5552,7 +5579,7 @@ msgstr "ग्लोबल सेटिङहरू लोड गर्न अ�
 msgid "Select items to refund and optionally return to stock"
 msgstr "फिर्ताको लागि वस्तुहरू छान्नुहोस् र वैकल्पिक रूपमा स्टकमा फिर्ता गर्नुहोस्"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:245
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:261
 #: src/app/routes/_authenticated/_system/settings-store.tsx:153
 #: src/lib/components/data-table/data-table-views-tabs.tsx:132
 #: src/lib/components/data-table/views-sheet.tsx:210
@@ -5667,7 +5694,7 @@ msgstr "{0} को पूर्वावलोकन"
 msgid "Successfully updated seller"
 msgstr "विक्रेता सफलतापूर्वक अपडेट गरियो"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:132
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:134
 msgid "Failed to transition order to state"
 msgstr "अर्डरलाई स्थितिमा संक्रमण गर्न असफल"
 
@@ -5916,10 +5943,9 @@ msgstr "विकल्प समूह हटाउन असफल भयो"
 msgid "Sub total"
 msgstr "उप योग"
 
-#. placeholder {0}: fulfillment.lines.reduce((acc, line) => acc + line.quantity, 0)
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:133
-msgid "Fulfilled items ({0})"
-msgstr "पूरा गरिएका वस्तुहरू ({0})"
+#~ msgid "Fulfilled items ({0})"
+#~ msgstr "पूरा गरिएका वस्तुहरू ({0})"
 
 #: src/app/routes/_authenticated/_products/products.tsx:117
 msgid "Create your first product"
@@ -5980,7 +6006,7 @@ msgstr "नक्कल मान \"{trimmed}\" पहिले नै अवस
 msgid "Create your first customer"
 msgstr "आफ्नो पहिलो ग्राहक सिर्जना गर्नुहोस्"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:231
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:267
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:222
 msgid "Reason"
 msgstr "कारण"
@@ -6078,7 +6104,7 @@ msgstr "इमेल अपडेट प्रमाणित गरियो"
 msgid "is between"
 msgstr "बीचमा छ"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:173
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:175
 msgid "Refund & Cancel"
 msgstr "फिर्ता र रद्द"
 
@@ -6291,7 +6317,7 @@ msgstr "उप योग"
 msgid "is less than"
 msgstr "भन्दा सानो छ"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:213
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:249
 msgid "Refund ID"
 msgstr "रिफन्ड ID"
 
@@ -6355,7 +6381,7 @@ msgstr "जारी राख्नुहोस्"
 msgid "Promotions"
 msgstr "प्रमोशनहरू"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:181
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:205
 msgid "Error message"
 msgstr "त्रुटि सन्देश"
 
@@ -6532,8 +6558,8 @@ msgstr "भुक्तानी विधि अपडेट गर्न अ�
 msgid "Available:"
 msgstr "उपलब्ध:"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:172
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:219
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:193
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:255
 msgid "Created at"
 msgstr "सिर्जना मिति"
 
@@ -6581,7 +6607,7 @@ msgctxt "active language"
 msgid "Active"
 msgstr "सक्रिय"
 
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:20
+#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:22
 msgid "Tax base"
 msgstr "कर आधार"
 
@@ -6679,7 +6705,7 @@ msgstr "API अनुरोधहरू गर्दा च्यानल न�
 msgid "No addresses found"
 msgstr "कुनै ठेगानाहरू फेला परेन"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:117
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:133
 msgid "Fulfillment ID"
 msgstr "पूर्ति ID"
 
@@ -6711,7 +6737,7 @@ msgstr "मान अपडेट गर्न असफल भयो"
 msgid "Failed to create API key"
 msgstr "API Key सिर्जना गर्न असफल भयो"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:262
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:298
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:49
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:74
 msgid "Settle refund"

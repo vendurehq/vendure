@@ -31,7 +31,7 @@ msgstr "Odaberi stavke"
 msgid "View changes"
 msgstr "Pregled izmjena"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:136
 msgid "Tracking code"
 msgstr "Kod praćenja"
 
@@ -208,7 +208,7 @@ msgctxt "current channel"
 msgid "Current"
 msgstr "Trenutno"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:330
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:300
 msgid "No fulfillments"
 msgstr "Nema izvršenja"
 
@@ -417,6 +417,11 @@ msgstr "Nepoznata greška"
 msgid "Uploading image..."
 msgstr "Prijenos slike..."
 
+#. placeholder {0}: fulfillment.lines.reduce((acc, line) => acc + line.quantity, 0)
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:146
+msgid "View fulfilled items ({0})"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts:200
 msgid "Refund total cannot be negative"
 msgstr "Ukupni povrat ne može biti negativan"
@@ -518,7 +523,6 @@ msgid "Address deleted successfully"
 msgstr "Adresa uspješno obrisana"
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:109
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:17
 msgid "Tax rate"
 msgstr "Porezna stopa"
 
@@ -608,7 +612,11 @@ msgstr "Pretraži opcije..."
 msgid "Order Count"
 msgstr "Broj narudžbi"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:93
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:154
+msgid "Fulfilled items"
+msgstr ""
+
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:95
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:59
 msgid "Successfully updated order"
 msgstr "Narudžba uspješno ažurirana"
@@ -784,7 +792,7 @@ msgid "Order draft is ready to be completed"
 msgstr "Nacrt narudžbe je spreman za dovršenje"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:201
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:243
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:279
 msgid "Metadata"
 msgstr "Metapodaci"
 
@@ -890,7 +898,7 @@ msgstr "Izvršenje narudžbe nije uspjelo"
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:193
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:88
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:106
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:226
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:262
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:120
 msgid "Total"
 msgstr "Ukupno"
@@ -990,12 +998,16 @@ msgstr "Idi na prvu stranicu"
 msgid "Failed to create product"
 msgstr "Stvaranje proizvoda nije uspjelo"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:279
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:308
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:233
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:498
 #: src/lib/components/shared/role-code-label.tsx:8
 msgid "Customer"
 msgstr "Kupac"
+
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:223
+msgid "Metadata returned by the payment handler."
+msgstr ""
 
 #: src/lib/components/shared/error-page.tsx:98
 msgid "Page not found"
@@ -1119,7 +1131,7 @@ msgstr "Nisu pronađeni proizvodi"
 msgid "Add row before"
 msgstr "Dodaj redak prije"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:95
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:102
 msgid "Transition to {suggestedState}"
 msgstr "Prijelaz u {suggestedState}"
 
@@ -1141,8 +1153,8 @@ msgid "Failed to cancel order items"
 msgstr "Nije uspjelo otkazati stavke narudžbe"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:160
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:176
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:237
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:198
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:273
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:58
 msgid "Transaction ID"
 msgstr "ID transakcije"
@@ -1268,7 +1280,7 @@ msgstr "Pretraži {name}..."
 msgid "Edit asset"
 msgstr "Uredi datoteku"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:150
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:158
 msgid "Cancel payment"
 msgstr "Otkaži uplatu"
 
@@ -1426,7 +1438,7 @@ msgstr "Koristi globalni prag zaliha"
 #~ msgid "New product option group"
 #~ msgstr "Nova grupa opcija proizvoda"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:57
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:65
 msgid "Payment state updated successfully"
 msgstr "Stanje plaćanja uspješno ažurirano"
 
@@ -1584,7 +1596,7 @@ msgstr "Odaberite kanal"
 msgid "Display language"
 msgstr "Jezik prikaza"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:312
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:282
 msgid "Fulfillment details"
 msgstr "Detalji izvršenja"
 
@@ -1737,7 +1749,7 @@ msgid "Address updated successfully"
 msgstr "Adresa uspješno ažurirana"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:126
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:138
 #: src/lib/components/shared/asset/asset-gallery.tsx:754
 #: src/lib/framework/layout-engine/page-layout.tsx:746
 msgid "Created"
@@ -1886,7 +1898,7 @@ msgstr "Zadana zona dostave"
 msgid "Reason:"
 msgstr "Razlog:"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:294
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:323
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:248
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:511
 msgid "Shipping address"
@@ -1895,9 +1907,9 @@ msgstr "Adresa za dostavu"
 #. placeholder {0}: getTranslatedFulfillmentState(state)
 #. placeholder {0}: getTranslatedOrderState(state)
 #. placeholder {0}: getTranslatedPaymentState(state)
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:103
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:126
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:151
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:110
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:128
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:159
 msgid "Transition to {0}"
 msgstr "Prijelaz u {0}"
 
@@ -1991,7 +2003,7 @@ msgstr "Nije moguće ukloniti grupu opcija"
 msgid "Failed to update tax category"
 msgstr "Ažuriranje porezne kategorije nije uspjelo"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:87
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:95
 msgid "Refund settled successfully"
 msgstr "Povrat uspješno izvršen"
 
@@ -2045,7 +2057,7 @@ msgstr "Profil uspješno ažuriran"
 #~ msgstr "kraj"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:146
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:166
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:187
 msgid "Payment method"
 msgstr "Način plaćanja"
 
@@ -2571,11 +2583,11 @@ msgstr "Zona"
 msgid "No metrics for this period"
 msgstr "Nema metrika za ovo razdoblje"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:118
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:134
 msgid "Method"
 msgstr "Metoda"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:234
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:338
 msgid "Tax summary"
 msgstr "Sažetak poreza"
 
@@ -2899,7 +2911,7 @@ msgstr "Datoteke"
 msgid "This will remove all option groups from this product and return to the variant setup choice."
 msgstr "Ovo će ukloniti sve grupe opcija s ovog proizvoda i vratiti se na izbor postavljanja varijanti."
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:302
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:331
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:277
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:533
 msgid "Billing address"
@@ -2991,7 +3003,7 @@ msgstr "Kopiraj"
 #~ msgid "Healthchecks"
 #~ msgstr "Provjere zdravlja"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:168
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:189
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:322
 msgid "Amount"
 msgstr "Iznos"
@@ -3146,7 +3158,7 @@ msgstr "Vrijednosti opcija"
 msgid "Default Billing Address"
 msgstr "Zadana adresa za naplatu"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:287
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:316
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:241
 msgid "No customer"
 msgstr "Nema kupca"
@@ -3193,7 +3205,7 @@ msgstr "Dodavanje {0} doplata(e)"
 msgid "Fallback: {value}"
 msgstr "Zamjenska vrijednost: {value}"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:263
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:304
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-container.tsx:30
 msgid "Order history"
 msgstr "Povijest narudžbe"
@@ -3288,6 +3300,10 @@ msgstr "Spremi izmjene"
 msgid "Search products..."
 msgstr "Pretraži proizvode..."
 
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:163
+msgid "Unknown product"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:53
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx:78
 msgid "Address updated"
@@ -3327,7 +3343,7 @@ msgstr "Nije uspjelo ažurirati poziciju kolekcije"
 msgid "Refund"
 msgstr "Povrat"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:162
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:164
 #: src/app/routes/_authenticated/_orders/utils/order-detail-loaders.tsx:78
 msgid "Modify"
 msgstr "Izmijeni"
@@ -3461,7 +3477,7 @@ msgstr "Potvrdite da ste spremili API ključ prije zatvaranja."
 msgid "Confirm deletion"
 msgstr "Potvrdi brisanje"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:152
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:154
 msgid "Failed to modify order"
 msgstr "Izmjena narudžbe nije uspjela"
 
@@ -3784,7 +3800,7 @@ msgstr "Osvježi"
 msgid "No checkers found"
 msgstr "Nisu pronađene provjere"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:139
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:147
 msgid "Settle payment"
 msgstr "Izvrši plaćanje"
 
@@ -3870,8 +3886,8 @@ msgstr "Lozinke se ne podudaraju"
 msgid "Pick a date and time"
 msgstr "Odaberite datum i vrijeme"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:53
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:57
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:60
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:64
 msgid "Failed to update fulfillment state"
 msgstr "Ažuriranje stanja izvršenja nije uspjelo"
 
@@ -3915,7 +3931,7 @@ msgstr "Dodavanje {0} stavki"
 msgid "Add row after"
 msgstr "Dodaj redak nakon"
 
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:23
+#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:30
 msgid "Tax total"
 msgstr "Ukupno poreza"
 
@@ -4005,8 +4021,8 @@ msgstr "Nema widgeta za prikaz. Za dodavanje widgeta upotrijebite „Uredi raspo
 msgid "{0} variants"
 msgstr "{0} varijanti"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:45
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:49
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:53
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:57
 msgid "Failed to settle payment"
 msgstr "Izvršenje plaćanja nije uspjelo"
 
@@ -4063,7 +4079,7 @@ msgstr "Stvaranje uloge nije uspjelo"
 msgid "Product name"
 msgstr "Naziv proizvoda"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:50
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:57
 msgid "Fulfillment state updated successfully"
 msgstr "Stanje izvršenja uspješno ažurirano"
 
@@ -4109,16 +4125,20 @@ msgstr "Povrat {0}"
 msgid "Enter slug manually"
 msgstr "Ručno unesite URL naziv"
 
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:157
+msgid "Items included in this fulfillment."
+msgstr ""
+
 #: src/app/routes/_authenticated/index.tsx:230
 #~ msgid "No widgets available"
 #~ msgstr "Nema dostupnih widgeta"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:75
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:79
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:83
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:87
 msgid "Failed to cancel payment"
 msgstr "Otkazivanje plaćanja nije uspjelo"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:72
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:80
 msgid "Payment cancelled successfully"
 msgstr "Plaćanje uspješno otkazano"
 
@@ -4228,8 +4248,8 @@ msgstr "Bilješka uspješno obrisana"
 msgid "Note updated successfully"
 msgstr "Bilješka uspješno ažurirana"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:91
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:95
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:99
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:103
 msgid "Failed to settle refund"
 msgstr "Izvršenje povrata nije uspjelo"
 
@@ -4265,7 +4285,6 @@ msgstr "Ukloni grupu opcija"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:213
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:76
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:14
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:275
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:174
@@ -4421,8 +4440,8 @@ msgstr "Citat"
 msgid "Select table size"
 msgstr "Odaberite veličinu tablice"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:60
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:64
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:68
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:72
 msgid "Failed to update payment state"
 msgstr "Ažuriranje stanja plaćanja nije uspjelo"
 
@@ -4631,7 +4650,7 @@ msgstr "Odaberite zonu"
 msgid "Test shipping methods"
 msgstr "Testiraj načine dostave"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:42
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:50
 msgid "Payment settled successfully"
 msgstr "Plaćanje uspješno izvršeno"
 
@@ -4905,6 +4924,10 @@ msgstr "Regije"
 msgid "Drop files here to upload"
 msgstr "Ispustite datoteke ovdje za prijenos"
 
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:215
+msgid "View payment metadata"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:182
 msgid "Toggle all visible variants"
 msgstr "Uključi/isključi sve vidljive varijante"
@@ -5122,7 +5145,7 @@ msgid "Select"
 msgstr "Odaberi"
 
 #. placeholder {0}: payment.refunds.length
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:206
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:242
 msgid "Refunds ({0})"
 msgstr "Povrati ({0})"
 
@@ -5130,7 +5153,7 @@ msgstr "Povrati ({0})"
 msgid "Last Executed"
 msgstr "Posljednje izvršeno"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:250
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:266
 msgid "Payment details"
 msgstr "Detalji plaćanja"
 
@@ -5155,7 +5178,7 @@ msgstr "Ažuriranje grupe kupaca nije uspjelo"
 msgid "Remove widget"
 msgstr "Ukloni widget"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:189
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:220
 msgid "Payment metadata"
 msgstr "Metapodaci plaćanja"
 
@@ -5184,7 +5207,7 @@ msgstr "Uloge"
 msgid "Additional payment required"
 msgstr "Potrebno dodatno plaćanje"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:97
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:99
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:63
 msgid "Failed to update order"
 msgstr "Ažuriranje narudžbe nije uspjelo"
@@ -5214,8 +5237,7 @@ msgstr "Članovi grupe kupaca {customerGroupName}"
 msgid "Failed to set address for order: {0}"
 msgstr "Nije uspjelo postavljanje adrese za narudžbu: {0}"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:120
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:215
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:251
 #: src/app/routes/_authenticated/_orders/orders.tsx:102
 #: src/app/routes/_authenticated/_system/job-queue.tsx:265
 msgid "State"
@@ -5466,6 +5488,11 @@ msgstr "Ažuriranje varijante nije uspjelo"
 msgid "Go to previous page"
 msgstr "Idi na prethodnu stranicu"
 
+#. placeholder {0}: line.quantity
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:171
+msgid "Quantity: {0}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278
 #: src/app/routes/_authenticated/_collections/collections.tsx:447
@@ -5552,7 +5579,7 @@ msgstr "Učitavanje globalnih postavki nije uspjelo"
 msgid "Select items to refund and optionally return to stock"
 msgstr "Odaberite stavke za povrat i po želji vratite na zalihu"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:245
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:261
 #: src/app/routes/_authenticated/_system/settings-store.tsx:153
 #: src/lib/components/data-table/data-table-views-tabs.tsx:132
 #: src/lib/components/data-table/views-sheet.tsx:210
@@ -5667,7 +5694,7 @@ msgstr "Pregled {0}"
 msgid "Successfully updated seller"
 msgstr "Prodavač uspješno ažuriran"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:132
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:134
 msgid "Failed to transition order to state"
 msgstr "Prijelaz narudžbe u stanje nije uspio"
 
@@ -5916,10 +5943,9 @@ msgstr "Nije uspjelo uklanjanje grupe opcija"
 msgid "Sub total"
 msgstr "Međuzbroj"
 
-#. placeholder {0}: fulfillment.lines.reduce((acc, line) => acc + line.quantity, 0)
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:133
-msgid "Fulfilled items ({0})"
-msgstr "Izvršene stavke ({0})"
+#~ msgid "Fulfilled items ({0})"
+#~ msgstr "Izvršene stavke ({0})"
 
 #: src/app/routes/_authenticated/_products/products.tsx:117
 msgid "Create your first product"
@@ -5980,7 +6006,7 @@ msgstr "Duplicirana vrijednost \"{trimmed}\" već postoji"
 msgid "Create your first customer"
 msgstr "Stvorite svog prvog kupca"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:231
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:267
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:222
 msgid "Reason"
 msgstr "Razlog"
@@ -6078,7 +6104,7 @@ msgstr "Ažuriranje e-pošte verificirano"
 msgid "is between"
 msgstr "je između"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:173
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:175
 msgid "Refund & Cancel"
 msgstr "Povrat i otkazivanje"
 
@@ -6291,7 +6317,7 @@ msgstr "Međuzbroj"
 msgid "is less than"
 msgstr "manje je od"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:213
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:249
 msgid "Refund ID"
 msgstr "ID povrata"
 
@@ -6355,7 +6381,7 @@ msgstr "Nastavi"
 msgid "Promotions"
 msgstr "Promocije"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:181
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:205
 msgid "Error message"
 msgstr "Poruka greške"
 
@@ -6532,8 +6558,8 @@ msgstr "Ažuriranje načina plaćanja nije uspjelo"
 msgid "Available:"
 msgstr "Dostupno:"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:172
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:219
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:193
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:255
 msgid "Created at"
 msgstr "Stvoreno u"
 
@@ -6581,7 +6607,7 @@ msgctxt "active language"
 msgid "Active"
 msgstr "Aktivan"
 
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:20
+#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:22
 msgid "Tax base"
 msgstr "Porezna osnovica"
 
@@ -6679,7 +6705,7 @@ msgstr "Token se koristi za specificiranje kanala pri slanju API zahtjeva."
 msgid "No addresses found"
 msgstr "Nisu pronađene adrese"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:117
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:133
 msgid "Fulfillment ID"
 msgstr "ID izvršenja"
 
@@ -6711,7 +6737,7 @@ msgstr "Ažuriranje vrijednosti nije uspjelo"
 msgid "Failed to create API key"
 msgstr "Stvaranje API ključa nije uspjelo"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:262
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:298
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:49
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:74
 msgid "Settle refund"

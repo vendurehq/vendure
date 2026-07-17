@@ -31,7 +31,7 @@ msgstr "Selecionar itens"
 msgid "View changes"
 msgstr "Ver alterações"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:136
 msgid "Tracking code"
 msgstr "Código de rastreamento"
 
@@ -208,7 +208,7 @@ msgctxt "current channel"
 msgid "Current"
 msgstr "Atual"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:330
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:300
 msgid "No fulfillments"
 msgstr "Nenhum atendimento"
 
@@ -417,6 +417,11 @@ msgstr "Erro desconhecido"
 msgid "Uploading image..."
 msgstr "A carregar imagem..."
 
+#. placeholder {0}: fulfillment.lines.reduce((acc, line) => acc + line.quantity, 0)
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:146
+msgid "View fulfilled items ({0})"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts:200
 msgid "Refund total cannot be negative"
 msgstr "O total do reembolso não pode ser negativo"
@@ -518,7 +523,6 @@ msgid "Address deleted successfully"
 msgstr "Morada eliminada com sucesso"
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:109
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:17
 msgid "Tax rate"
 msgstr "Taxa fiscal"
 
@@ -608,7 +612,11 @@ msgstr "Pesquisar opções..."
 msgid "Order Count"
 msgstr "Número de encomendas"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:93
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:154
+msgid "Fulfilled items"
+msgstr ""
+
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:95
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:59
 msgid "Successfully updated order"
 msgstr "Encomenda atualizada com sucesso"
@@ -784,7 +792,7 @@ msgid "Order draft is ready to be completed"
 msgstr "O rascunho da encomenda está pronto para ser concluído"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:201
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:243
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:279
 msgid "Metadata"
 msgstr "Metadados"
 
@@ -890,7 +898,7 @@ msgstr "Falha ao atender encomenda"
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:193
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:88
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:106
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:226
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:262
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:120
 msgid "Total"
 msgstr "Total"
@@ -990,12 +998,16 @@ msgstr "Ir para a primeira página"
 msgid "Failed to create product"
 msgstr "Falha ao criar produto"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:279
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:308
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:233
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:498
 #: src/lib/components/shared/role-code-label.tsx:8
 msgid "Customer"
 msgstr "Cliente"
+
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:223
+msgid "Metadata returned by the payment handler."
+msgstr ""
 
 #: src/lib/components/shared/error-page.tsx:98
 msgid "Page not found"
@@ -1119,7 +1131,7 @@ msgstr "Nenhum produto encontrado"
 msgid "Add row before"
 msgstr "Adicionar linha antes"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:95
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:102
 msgid "Transition to {suggestedState}"
 msgstr "Transitar para {suggestedState}"
 
@@ -1141,8 +1153,8 @@ msgid "Failed to cancel order items"
 msgstr "Falha ao cancelar artigos da encomenda"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:160
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:176
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:237
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:198
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:273
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:58
 msgid "Transaction ID"
 msgstr "ID da transação"
@@ -1268,7 +1280,7 @@ msgstr "Pesquisar {name}..."
 msgid "Edit asset"
 msgstr "Editar recurso"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:150
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:158
 msgid "Cancel payment"
 msgstr "Cancelar pagamento"
 
@@ -1426,7 +1438,7 @@ msgstr "Usar limite global de esgotado"
 #~ msgid "New product option group"
 #~ msgstr "Novo grupo de opções de produto"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:57
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:65
 msgid "Payment state updated successfully"
 msgstr "Estado de pagamento atualizado com sucesso"
 
@@ -1584,7 +1596,7 @@ msgstr "Selecione um canal"
 msgid "Display language"
 msgstr "Idioma de apresentação"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:312
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:282
 msgid "Fulfillment details"
 msgstr "Detalhes do atendimento"
 
@@ -1737,7 +1749,7 @@ msgid "Address updated successfully"
 msgstr "Morada atualizada com sucesso"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:126
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:138
 #: src/lib/components/shared/asset/asset-gallery.tsx:754
 #: src/lib/framework/layout-engine/page-layout.tsx:746
 msgid "Created"
@@ -1886,7 +1898,7 @@ msgstr "Zona de envio predefinida"
 msgid "Reason:"
 msgstr "Motivo:"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:294
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:323
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:248
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:511
 msgid "Shipping address"
@@ -1895,9 +1907,9 @@ msgstr "Morada de envio"
 #. placeholder {0}: getTranslatedFulfillmentState(state)
 #. placeholder {0}: getTranslatedOrderState(state)
 #. placeholder {0}: getTranslatedPaymentState(state)
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:103
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:126
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:151
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:110
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:128
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:159
 msgid "Transition to {0}"
 msgstr "Transitar para {0}"
 
@@ -1991,7 +2003,7 @@ msgstr "Nao foi possivel remover o grupo de opcoes"
 msgid "Failed to update tax category"
 msgstr "Falha ao atualizar categoria fiscal"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:87
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:95
 msgid "Refund settled successfully"
 msgstr "Reembolso liquidado com sucesso"
 
@@ -2045,7 +2057,7 @@ msgstr "Perfil atualizado com sucesso"
 #~ msgstr "fim"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:146
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:166
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:187
 msgid "Payment method"
 msgstr "Método de pagamento"
 
@@ -2571,11 +2583,11 @@ msgstr "Zona"
 msgid "No metrics for this period"
 msgstr "Nenhuma métrica para este período"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:118
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:134
 msgid "Method"
 msgstr "Método"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:234
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:338
 msgid "Tax summary"
 msgstr "Resumo fiscal"
 
@@ -2899,7 +2911,7 @@ msgstr "Recursos"
 msgid "This will remove all option groups from this product and return to the variant setup choice."
 msgstr "Isto removera todos os grupos de opcoes deste produto e regressara a escolha de configuracao de variantes."
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:302
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:331
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:277
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:533
 msgid "Billing address"
@@ -2991,7 +3003,7 @@ msgstr "Copiar"
 #~ msgid "Healthchecks"
 #~ msgstr "Verificações de saúde"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:168
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:189
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:322
 msgid "Amount"
 msgstr "Valor"
@@ -3146,7 +3158,7 @@ msgstr "Valores de opção"
 msgid "Default Billing Address"
 msgstr "Morada de faturação predefinida"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:287
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:316
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:241
 msgid "No customer"
 msgstr "Nenhum cliente"
@@ -3193,7 +3205,7 @@ msgstr "A adicionar {0} sobretaxa(s)"
 msgid "Fallback: {value}"
 msgstr "Fallback: {value}"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:263
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:304
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-container.tsx:30
 msgid "Order history"
 msgstr "Histórico de encomendas"
@@ -3288,6 +3300,10 @@ msgstr "Guardar alterações"
 msgid "Search products..."
 msgstr "Pesquisar produtos..."
 
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:163
+msgid "Unknown product"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:53
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx:78
 msgid "Address updated"
@@ -3327,7 +3343,7 @@ msgstr "Falha ao atualizar posição da coleção"
 msgid "Refund"
 msgstr "Reembolso"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:162
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:164
 #: src/app/routes/_authenticated/_orders/utils/order-detail-loaders.tsx:78
 msgid "Modify"
 msgstr "Modificar"
@@ -3461,7 +3477,7 @@ msgstr "Por favor, confirme que guardou a API Key antes de fechar."
 msgid "Confirm deletion"
 msgstr "Confirmar eliminação"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:152
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:154
 msgid "Failed to modify order"
 msgstr "Falha ao modificar encomenda"
 
@@ -3784,7 +3800,7 @@ msgstr "Atualizar"
 msgid "No checkers found"
 msgstr "Nenhum verificador encontrado"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:139
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:147
 msgid "Settle payment"
 msgstr "Liquidar pagamento"
 
@@ -3870,8 +3886,8 @@ msgstr "As palavras-passe não coincidem"
 msgid "Pick a date and time"
 msgstr "Escolha uma data e hora"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:53
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:57
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:60
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:64
 msgid "Failed to update fulfillment state"
 msgstr "Falha ao atualizar estado de atendimento"
 
@@ -3915,7 +3931,7 @@ msgstr "A adicionar {0} item(ns)"
 msgid "Add row after"
 msgstr "Adicionar linha depois"
 
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:23
+#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:30
 msgid "Tax total"
 msgstr "Total de IVA"
 
@@ -4005,8 +4021,8 @@ msgstr "Nenhum widget para apresentar. Use \"Editar layout\" para adicionar widg
 msgid "{0} variants"
 msgstr "{0} variantes"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:45
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:49
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:53
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:57
 msgid "Failed to settle payment"
 msgstr "Falha ao liquidar pagamento"
 
@@ -4063,7 +4079,7 @@ msgstr "Falha ao criar função"
 msgid "Product name"
 msgstr "Nome do produto"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:50
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:57
 msgid "Fulfillment state updated successfully"
 msgstr "Estado de atendimento atualizado com sucesso"
 
@@ -4109,16 +4125,20 @@ msgstr "Reembolsar {0}"
 msgid "Enter slug manually"
 msgstr "Introduza slug manualmente"
 
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:157
+msgid "Items included in this fulfillment."
+msgstr ""
+
 #: src/app/routes/_authenticated/index.tsx:230
 #~ msgid "No widgets available"
 #~ msgstr "Nenhum widget disponível"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:75
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:79
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:83
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:87
 msgid "Failed to cancel payment"
 msgstr "Falha ao cancelar pagamento"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:72
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:80
 msgid "Payment cancelled successfully"
 msgstr "Pagamento cancelado com sucesso"
 
@@ -4228,8 +4248,8 @@ msgstr "Nota eliminada com sucesso"
 msgid "Note updated successfully"
 msgstr "Nota atualizada com sucesso"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:91
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:95
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:99
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:103
 msgid "Failed to settle refund"
 msgstr "Falha ao liquidar reembolso"
 
@@ -4265,7 +4285,6 @@ msgstr "Remover grupo de opções"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:213
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:76
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:14
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:275
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:174
@@ -4421,8 +4440,8 @@ msgstr "Citação"
 msgid "Select table size"
 msgstr "Selecionar tamanho da tabela"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:60
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:64
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:68
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:72
 msgid "Failed to update payment state"
 msgstr "Falha ao atualizar estado de pagamento"
 
@@ -4631,7 +4650,7 @@ msgstr "Selecione uma zona"
 msgid "Test shipping methods"
 msgstr "Testar métodos de envio"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:42
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:50
 msgid "Payment settled successfully"
 msgstr "Pagamento liquidado com sucesso"
 
@@ -4905,6 +4924,10 @@ msgstr "Regiões"
 msgid "Drop files here to upload"
 msgstr "Largue os ficheiros aqui para carregar"
 
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:215
+msgid "View payment metadata"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:182
 msgid "Toggle all visible variants"
 msgstr "Alternar todas as variantes visíveis"
@@ -5122,7 +5145,7 @@ msgid "Select"
 msgstr "Selecionar"
 
 #. placeholder {0}: payment.refunds.length
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:206
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:242
 msgid "Refunds ({0})"
 msgstr "Reembolsos ({0})"
 
@@ -5130,7 +5153,7 @@ msgstr "Reembolsos ({0})"
 msgid "Last Executed"
 msgstr "Última execução"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:250
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:266
 msgid "Payment details"
 msgstr "Detalhes do pagamento"
 
@@ -5155,7 +5178,7 @@ msgstr "Falha ao atualizar grupo de clientes"
 msgid "Remove widget"
 msgstr "Remover widget"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:189
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:220
 msgid "Payment metadata"
 msgstr "Metadados do pagamento"
 
@@ -5184,7 +5207,7 @@ msgstr "Funções"
 msgid "Additional payment required"
 msgstr "Pagamento adicional necessário"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:97
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:99
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:63
 msgid "Failed to update order"
 msgstr "Falha ao atualizar encomenda"
@@ -5214,8 +5237,7 @@ msgstr "Membros do grupo de clientes {customerGroupName}"
 msgid "Failed to set address for order: {0}"
 msgstr "Falha ao definir a morada para a encomenda: {0}"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:120
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:215
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:251
 #: src/app/routes/_authenticated/_orders/orders.tsx:102
 #: src/app/routes/_authenticated/_system/job-queue.tsx:265
 msgid "State"
@@ -5466,6 +5488,11 @@ msgstr "Falha ao atualizar a variante"
 msgid "Go to previous page"
 msgstr "Ir para a página anterior"
 
+#. placeholder {0}: line.quantity
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:171
+msgid "Quantity: {0}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278
 #: src/app/routes/_authenticated/_collections/collections.tsx:447
@@ -5552,7 +5579,7 @@ msgstr "Falha ao carregar definições globais"
 msgid "Select items to refund and optionally return to stock"
 msgstr "Selecione artigos para reembolso e opcionalmente devolva ao stock"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:245
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:261
 #: src/app/routes/_authenticated/_system/settings-store.tsx:153
 #: src/lib/components/data-table/data-table-views-tabs.tsx:132
 #: src/lib/components/data-table/views-sheet.tsx:210
@@ -5667,7 +5694,7 @@ msgstr "Pré-visualização de {0}"
 msgid "Successfully updated seller"
 msgstr "Vendedor atualizado com sucesso"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:132
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:134
 msgid "Failed to transition order to state"
 msgstr "Falha ao fazer transição da encomenda para estado"
 
@@ -5916,10 +5943,9 @@ msgstr "Falha ao remover o grupo de opções"
 msgid "Sub total"
 msgstr "Subtotal"
 
-#. placeholder {0}: fulfillment.lines.reduce((acc, line) => acc + line.quantity, 0)
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:133
-msgid "Fulfilled items ({0})"
-msgstr "Itens atendidos ({0})"
+#~ msgid "Fulfilled items ({0})"
+#~ msgstr "Itens atendidos ({0})"
 
 #: src/app/routes/_authenticated/_products/products.tsx:117
 msgid "Create your first product"
@@ -5980,7 +6006,7 @@ msgstr "O valor duplicado \"{trimmed}\" já existe"
 msgid "Create your first customer"
 msgstr "Crie o seu primeiro cliente"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:231
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:267
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:222
 msgid "Reason"
 msgstr "Motivo"
@@ -6078,7 +6104,7 @@ msgstr "Atualização de e-mail verificada"
 msgid "is between"
 msgstr "está entre"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:173
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:175
 msgid "Refund & Cancel"
 msgstr "Reembolsar e cancelar"
 
@@ -6291,7 +6317,7 @@ msgstr "Subtotal"
 msgid "is less than"
 msgstr "é menor que"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:213
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:249
 msgid "Refund ID"
 msgstr "ID de reembolso"
 
@@ -6355,7 +6381,7 @@ msgstr "Continuar"
 msgid "Promotions"
 msgstr "Promoções"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:181
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:205
 msgid "Error message"
 msgstr "Mensagem de erro"
 
@@ -6532,8 +6558,8 @@ msgstr "Falha ao atualizar método de pagamento"
 msgid "Available:"
 msgstr "Disponível:"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:172
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:219
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:193
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:255
 msgid "Created at"
 msgstr "Criada em"
 
@@ -6581,7 +6607,7 @@ msgctxt "active language"
 msgid "Active"
 msgstr "Ativo"
 
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:20
+#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:22
 msgid "Tax base"
 msgstr "Base fiscal"
 
@@ -6679,7 +6705,7 @@ msgstr "O token é usado para especificar o canal ao fazer pedidos de API."
 msgid "No addresses found"
 msgstr "Nenhuma morada encontrada"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:117
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:133
 msgid "Fulfillment ID"
 msgstr "ID de atendimento"
 
@@ -6711,7 +6737,7 @@ msgstr "Falha ao atualizar valor"
 msgid "Failed to create API key"
 msgstr "Falha ao criar API Key"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:262
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:298
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:49
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:74
 msgid "Settle refund"

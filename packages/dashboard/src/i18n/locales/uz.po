@@ -31,7 +31,7 @@ msgstr "Elementlarni tanlang"
 msgid "View changes"
 msgstr "O'zgarishlarni ko'rish"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:136
 msgid "Tracking code"
 msgstr "Kuzatuv kodi"
 
@@ -204,7 +204,7 @@ msgctxt "current channel"
 msgid "Current"
 msgstr "Joriy"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:330
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:300
 msgid "No fulfillments"
 msgstr "Bajarishlar yo'q"
 
@@ -393,6 +393,11 @@ msgstr "Noma'lum xato"
 msgid "Uploading image..."
 msgstr "Rasm yuklanmoqda..."
 
+#. placeholder {0}: fulfillment.lines.reduce((acc, line) => acc + line.quantity, 0)
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:146
+msgid "View fulfilled items ({0})"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts:200
 msgid "Refund total cannot be negative"
 msgstr "Pul qaytarish jami manfiy bo'lishi mumkin emas"
@@ -490,7 +495,6 @@ msgid "Address deleted successfully"
 msgstr "Manzil o'chirildi"
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:109
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:17
 msgid "Tax rate"
 msgstr "Soliq stavkasi"
 
@@ -580,7 +584,11 @@ msgstr "Optsiyalarni qidirish..."
 msgid "Order Count"
 msgstr "Buyurtmalar soni"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:93
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:154
+msgid "Fulfilled items"
+msgstr ""
+
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:95
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:59
 msgid "Successfully updated order"
 msgstr "Buyurtma yangilandi"
@@ -756,7 +764,7 @@ msgid "Order draft is ready to be completed"
 msgstr "Buyurtma qoralamasi yakunlashga tayyor"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:201
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:243
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:279
 msgid "Metadata"
 msgstr "Metama'lumotlar"
 
@@ -862,7 +870,7 @@ msgstr "Buyurtmani bajarib bo'lmadi"
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:193
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:88
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:106
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:226
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:262
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:120
 msgid "Total"
 msgstr "Jami"
@@ -962,12 +970,16 @@ msgstr "Birinchi sahifaga o'tish"
 msgid "Failed to create product"
 msgstr "Mahsulotni yaratib bo'lmadi"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:279
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:308
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:233
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:498
 #: src/lib/components/shared/role-code-label.tsx:8
 msgid "Customer"
 msgstr "Mijoz"
+
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:223
+msgid "Metadata returned by the payment handler."
+msgstr ""
 
 #: src/lib/components/shared/error-page.tsx:98
 msgid "Page not found"
@@ -1091,7 +1103,7 @@ msgstr "Mahsulotlar topilmadi"
 msgid "Add row before"
 msgstr "Oldin qator qo'shish"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:95
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:102
 msgid "Transition to {suggestedState}"
 msgstr "{suggestedState} holatiga o'tkazish"
 
@@ -1113,8 +1125,8 @@ msgid "Failed to cancel order items"
 msgstr "Buyurtma elementlarini bekor qilib bo'lmadi"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:160
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:176
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:237
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:198
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:273
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:58
 msgid "Transaction ID"
 msgstr "Tranzaksiya ID"
@@ -1236,7 +1248,7 @@ msgstr "{name} qidirish..."
 msgid "Edit asset"
 msgstr "Assetni tahrirlash"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:150
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:158
 msgid "Cancel payment"
 msgstr "To'lovni bekor qilish"
 
@@ -1386,7 +1398,7 @@ msgstr "Mijozlar topilmadi"
 msgid "Use global out-of-stock threshold"
 msgstr "Global zaxira tugashi chegarasidan foydalanish"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:57
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:65
 msgid "Payment state updated successfully"
 msgstr "To'lov holati yangilandi"
 
@@ -1536,7 +1548,7 @@ msgstr "Kanalni tanlang"
 msgid "Display language"
 msgstr "Ko'rsatish tili"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:312
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:282
 msgid "Fulfillment details"
 msgstr "Bajarish tafsilotlari"
 
@@ -1684,7 +1696,7 @@ msgid "Address updated successfully"
 msgstr "Manzil yangilandi"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:126
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:138
 #: src/lib/components/shared/asset/asset-gallery.tsx:754
 #: src/lib/framework/layout-engine/page-layout.tsx:746
 msgid "Created"
@@ -1825,7 +1837,7 @@ msgstr "Standart yetkazib berish hududi"
 msgid "Reason:"
 msgstr "Sabab:"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:294
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:323
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:248
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:511
 msgid "Shipping address"
@@ -1834,9 +1846,9 @@ msgstr "Yetkazib berish manzili"
 #. placeholder {0}: getTranslatedFulfillmentState(state)
 #. placeholder {0}: getTranslatedOrderState(state)
 #. placeholder {0}: getTranslatedPaymentState(state)
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:103
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:126
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:151
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:110
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:128
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:159
 msgid "Transition to {0}"
 msgstr "{0}ga o'tkazish"
 
@@ -1930,7 +1942,7 @@ msgstr "Optsiya guruhini olib tashlab bo'lmadi"
 msgid "Failed to update tax category"
 msgstr "Soliq toifasini yangilab bo'lmadi"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:87
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:95
 msgid "Refund settled successfully"
 msgstr "Pul qaytarish muvaffaqiyatli hisoblashildi"
 
@@ -1978,7 +1990,7 @@ msgid "Successfully updated profile"
 msgstr "Profil muvaffaqiyatli yangilandi"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:146
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:166
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:187
 msgid "Payment method"
 msgstr "To'lov usuli"
 
@@ -2504,11 +2516,11 @@ msgstr "Hudud"
 msgid "No metrics for this period"
 msgstr "Bu davr uchun ko'rsatkichlar yo'q"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:118
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:134
 msgid "Method"
 msgstr "Usul"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:234
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:338
 msgid "Tax summary"
 msgstr "Soliq xulosasi"
 
@@ -2820,7 +2832,7 @@ msgstr "Assetlar"
 msgid "This will remove all option groups from this product and return to the variant setup choice."
 msgstr "Bu mahsulotdagi barcha optsiya guruhlarini olib tashlaydi va variant sozlash tanloviga qaytaradi."
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:302
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:331
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:277
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:533
 msgid "Billing address"
@@ -2907,7 +2919,7 @@ msgstr "Kanal"
 msgid "Copy"
 msgstr "Nusxalash"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:168
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:189
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:322
 msgid "Amount"
 msgstr "Miqdor"
@@ -3062,7 +3074,7 @@ msgstr "Optsiya qiymatlari"
 msgid "Default Billing Address"
 msgstr "Standart hisob-faktura manzili"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:287
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:316
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:241
 msgid "No customer"
 msgstr "Mijoz yoʻq"
@@ -3105,7 +3117,7 @@ msgstr "{0} ustama qoʻshilmoqda"
 msgid "Fallback: {value}"
 msgstr "Zaxira: {value}"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:263
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:304
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-container.tsx:30
 msgid "Order history"
 msgstr "Buyurtma tarixi"
@@ -3196,6 +3208,10 @@ msgstr "Oʻzgarishlarni saqlash"
 msgid "Search products..."
 msgstr "Mahsulotlarni qidirish..."
 
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:163
+msgid "Unknown product"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:53
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx:78
 msgid "Address updated"
@@ -3235,7 +3251,7 @@ msgstr "Toʻplam holatini yangilab boʻlmadi"
 msgid "Refund"
 msgstr "Pul qaytarish"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:162
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:164
 #: src/app/routes/_authenticated/_orders/utils/order-detail-loaders.tsx:78
 msgid "Modify"
 msgstr "Oʻzgartirish"
@@ -3369,7 +3385,7 @@ msgstr "Yopishdan oldin API kalitini saqlaganingizni tasdiqlang."
 msgid "Confirm deletion"
 msgstr "O'chirishni tasdiqlang"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:152
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:154
 msgid "Failed to modify order"
 msgstr "Buyurtmani o'zgartirib bo'lmadi"
 
@@ -3688,7 +3704,7 @@ msgstr "Yangilash"
 msgid "No checkers found"
 msgstr "Tekshiruvchilar topilmadi"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:139
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:147
 msgid "Settle payment"
 msgstr "To'lovni yakunlash"
 
@@ -3770,8 +3786,8 @@ msgstr "Parollar mos kelmaydi"
 msgid "Pick a date and time"
 msgstr "Sana va vaqtni tanlang"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:53
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:57
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:60
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:64
 msgid "Failed to update fulfillment state"
 msgstr "Bajarish holatini yangilab bo'lmadi"
 
@@ -3812,7 +3828,7 @@ msgstr "{0} ta element qo'shilmoqda"
 msgid "Add row after"
 msgstr "Keyin qator qo'shish"
 
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:23
+#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:30
 msgid "Tax total"
 msgstr "Jami soliq"
 
@@ -3898,8 +3914,8 @@ msgstr "Ko'rsatiladigan vidjetlar yo'q. Vidjet qo'shish uchun \"Tartibni tahrirl
 msgid "{0} variants"
 msgstr "{0} ta variant"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:45
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:49
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:53
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:57
 msgid "Failed to settle payment"
 msgstr "To'lovni yakunlab bo'lmadi"
 
@@ -3956,7 +3972,7 @@ msgstr "Rolni yaratib bo'lmadi"
 msgid "Product name"
 msgstr "Mahsulot nomi"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:50
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:57
 msgid "Fulfillment state updated successfully"
 msgstr "Bajarish holati yangilandi"
 
@@ -3998,16 +4014,20 @@ msgstr "{0} pul qaytarish"
 msgid "Enter slug manually"
 msgstr "Slug'ni qo'lda kiriting"
 
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:157
+msgid "Items included in this fulfillment."
+msgstr ""
+
 #: src/app/routes/_authenticated/index.tsx:230
 #~ msgid "No widgets available"
 #~ msgstr "Mavjud vidjetlar yo'q"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:75
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:79
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:83
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:87
 msgid "Failed to cancel payment"
 msgstr "To'lovni bekor qilib bo'lmadi"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:72
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:80
 msgid "Payment cancelled successfully"
 msgstr "To'lov bekor qilindi"
 
@@ -4117,8 +4137,8 @@ msgstr "Eslatma o'chirildi"
 msgid "Note updated successfully"
 msgstr "Eslatma yangilandi"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:91
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:95
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:99
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:103
 msgid "Failed to settle refund"
 msgstr "Pul qaytarishni yakunlab bo'lmadi"
 
@@ -4154,7 +4174,6 @@ msgstr "Optsiya guruhini olib tashlash"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:213
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:76
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:14
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:275
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:174
@@ -4297,8 +4316,8 @@ msgstr "Iqtibos bloki"
 msgid "Select table size"
 msgstr "Jadval o'lchamini tanlang"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:60
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:64
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:68
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:72
 msgid "Failed to update payment state"
 msgstr "To'lov holatini yangilab bo'lmadi"
 
@@ -4499,7 +4518,7 @@ msgstr "Hududni tanlang"
 msgid "Test shipping methods"
 msgstr "Yetkazib berish usullarini sinash"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:42
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:50
 msgid "Payment settled successfully"
 msgstr "To'lov yakunlandi"
 
@@ -4765,6 +4784,10 @@ msgstr "Hududlar"
 msgid "Drop files here to upload"
 msgstr "Yuklash uchun fayllarni shu yerga tashlang"
 
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:215
+msgid "View payment metadata"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:182
 msgid "Toggle all visible variants"
 msgstr "Barcha ko'rinadigan variantlarni almashtirish"
@@ -4970,7 +4993,7 @@ msgid "Select"
 msgstr "Tanlash"
 
 #. placeholder {0}: payment.refunds.length
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:206
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:242
 msgid "Refunds ({0})"
 msgstr "Pul qaytarishlar ({0})"
 
@@ -4978,7 +5001,7 @@ msgstr "Pul qaytarishlar ({0})"
 msgid "Last Executed"
 msgstr "Oxirgi bajarilgan"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:250
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:266
 msgid "Payment details"
 msgstr "To'lov tafsilotlari"
 
@@ -5003,7 +5026,7 @@ msgstr "Mijozlar guruhini yangilab bo'lmadi"
 msgid "Remove widget"
 msgstr "Vidjetni olib tashlash"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:189
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:220
 msgid "Payment metadata"
 msgstr "To'lov metama'lumotlari"
 
@@ -5032,7 +5055,7 @@ msgstr "Rollar"
 msgid "Additional payment required"
 msgstr "Qo'shimcha to'lov talab qilinadi"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:97
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:99
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:63
 msgid "Failed to update order"
 msgstr "Buyurtmani yangilab bo'lmadi"
@@ -5062,8 +5085,7 @@ msgstr "{customerGroupName} uchun mijozlar guruhi a'zolari"
 msgid "Failed to set address for order: {0}"
 msgstr "Buyurtma uchun manzilni o'rnatib bo'lmadi: {0}"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:120
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:215
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:251
 #: src/app/routes/_authenticated/_orders/orders.tsx:102
 #: src/app/routes/_authenticated/_system/job-queue.tsx:265
 msgid "State"
@@ -5306,6 +5328,11 @@ msgstr "Variantni yangilab bo‘lmadi"
 msgid "Go to previous page"
 msgstr "Oldingi sahifaga o'tish"
 
+#. placeholder {0}: line.quantity
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:171
+msgid "Quantity: {0}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278
 #: src/app/routes/_authenticated/_collections/collections.tsx:447
@@ -5388,7 +5415,7 @@ msgstr "Global sozlamalarni yuklab bo'lmadi"
 msgid "Select items to refund and optionally return to stock"
 msgstr "Pul qaytarish va zaxiraga qaytarish uchun elementlarni tanlang"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:245
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:261
 #: src/app/routes/_authenticated/_system/settings-store.tsx:153
 #: src/lib/components/data-table/data-table-views-tabs.tsx:132
 #: src/lib/components/data-table/views-sheet.tsx:210
@@ -5491,7 +5518,7 @@ msgstr "{0} oldindan ko'rinishi"
 msgid "Successfully updated seller"
 msgstr "Sotuvchi muvaffaqiyatli yangilandi"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:132
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:134
 msgid "Failed to transition order to state"
 msgstr "Buyurtmani holatga o'tkazib bo'lmadi"
 
@@ -5732,10 +5759,9 @@ msgstr "Optsiyalar guruhini olib tashlab bo'lmadi"
 msgid "Sub total"
 msgstr "Oraliq jami"
 
-#. placeholder {0}: fulfillment.lines.reduce((acc, line) => acc + line.quantity, 0)
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:133
-msgid "Fulfilled items ({0})"
-msgstr "Bajarilgan elementlar ({0})"
+#~ msgid "Fulfilled items ({0})"
+#~ msgstr "Bajarilgan elementlar ({0})"
 
 #: src/app/routes/_authenticated/_products/products.tsx:117
 msgid "Create your first product"
@@ -5796,7 +5822,7 @@ msgstr "\"{trimmed}\" takroriy qiymati allaqachon mavjud"
 msgid "Create your first customer"
 msgstr "Birinchi mijozingizni yarating"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:231
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:267
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:222
 msgid "Reason"
 msgstr "Sabab"
@@ -5890,7 +5916,7 @@ msgstr "Elektron pochta yangilanishi tasdiqlandi"
 msgid "is between"
 msgstr "oralig'ida"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:173
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:175
 msgid "Refund & Cancel"
 msgstr "Pul qaytarish va bekor qilish"
 
@@ -6095,7 +6121,7 @@ msgstr "Oraliq jami"
 msgid "is less than"
 msgstr "dan kichik"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:213
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:249
 msgid "Refund ID"
 msgstr "Pul qaytarish ID"
 
@@ -6159,7 +6185,7 @@ msgstr "Davom etish"
 msgid "Promotions"
 msgstr "Aksiyalar"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:181
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:205
 msgid "Error message"
 msgstr "Xatolik xabari"
 
@@ -6328,8 +6354,8 @@ msgstr "To'lov usulini yangilash amalga oshmadi"
 msgid "Available:"
 msgstr "Mavjud:"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:172
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:219
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:193
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:255
 msgid "Created at"
 msgstr "Yaratilgan sana"
 
@@ -6377,7 +6403,7 @@ msgctxt "active language"
 msgid "Active"
 msgstr "Faol"
 
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:20
+#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:22
 msgid "Tax base"
 msgstr "Soliq asosi"
 
@@ -6475,7 +6501,7 @@ msgstr "Token API so'rovlarini yuborishda kanalni belgilash uchun ishlatiladi."
 msgid "No addresses found"
 msgstr "Manzillar topilmadi"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:117
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:133
 msgid "Fulfillment ID"
 msgstr "Bajarish ID"
 
@@ -6503,7 +6529,7 @@ msgstr "Qiymatni yangilash amalga oshmadi"
 msgid "Failed to create API key"
 msgstr "API kalitini yaratish amalga oshmadi"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:262
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:298
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:49
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:74
 msgid "Settle refund"

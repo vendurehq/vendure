@@ -31,7 +31,7 @@ msgstr "Vybrat položky"
 msgid "View changes"
 msgstr "Zobrazit změny"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:136
 msgid "Tracking code"
 msgstr "Sledovací kód"
 
@@ -208,7 +208,7 @@ msgctxt "current channel"
 msgid "Current"
 msgstr "Aktuální"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:330
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:300
 msgid "No fulfillments"
 msgstr "Žádné expedice"
 
@@ -417,6 +417,11 @@ msgstr "Neznámá chyba"
 msgid "Uploading image..."
 msgstr "Nahrávání obrázku..."
 
+#. placeholder {0}: fulfillment.lines.reduce((acc, line) => acc + line.quantity, 0)
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:146
+msgid "View fulfilled items ({0})"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts:200
 msgid "Refund total cannot be negative"
 msgstr "Celková částka k vrácení nemůže být záporná"
@@ -518,7 +523,6 @@ msgid "Address deleted successfully"
 msgstr "Adresa úspěšně smazána"
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:109
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:17
 msgid "Tax rate"
 msgstr "Daňová sazba"
 
@@ -608,7 +612,11 @@ msgstr "Hledat možnosti..."
 msgid "Order Count"
 msgstr "Počet objednávek"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:93
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:154
+msgid "Fulfilled items"
+msgstr ""
+
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:95
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:59
 msgid "Successfully updated order"
 msgstr "Objednávka úspěšně aktualizována"
@@ -784,7 +792,7 @@ msgid "Order draft is ready to be completed"
 msgstr "Koncept objednávky je připraven k dokončení"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:201
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:243
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:279
 msgid "Metadata"
 msgstr "Metadata"
 
@@ -890,7 +898,7 @@ msgstr "Nepodařilo se expedovat objednávku"
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:193
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:88
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:106
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:226
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:262
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx:120
 msgid "Total"
 msgstr "Celkem"
@@ -990,12 +998,16 @@ msgstr "Přejít na první stránku"
 msgid "Failed to create product"
 msgstr "Nepodařilo se vytvořit produkt"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:279
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:308
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:233
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:498
 #: src/lib/components/shared/role-code-label.tsx:8
 msgid "Customer"
 msgstr "Zákazník"
+
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:223
+msgid "Metadata returned by the payment handler."
+msgstr ""
 
 #: src/lib/components/shared/error-page.tsx:98
 msgid "Page not found"
@@ -1119,7 +1131,7 @@ msgstr "Nebyly nalezeny žádné produkty"
 msgid "Add row before"
 msgstr "Přidat řádek před"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:95
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:102
 msgid "Transition to {suggestedState}"
 msgstr "Převést na {suggestedState}"
 
@@ -1141,8 +1153,8 @@ msgid "Failed to cancel order items"
 msgstr "Nepodařilo se zrušit položky objednávky"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:160
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:176
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:237
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:198
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:273
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:58
 msgid "Transaction ID"
 msgstr "ID transakce"
@@ -1268,7 +1280,7 @@ msgstr "Hledat {name}..."
 msgid "Edit asset"
 msgstr "Upravit soubor"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:150
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:158
 msgid "Cancel payment"
 msgstr "Zrušit platbu"
 
@@ -1426,7 +1438,7 @@ msgstr "Použít globální práh vyprodání"
 #~ msgid "New product option group"
 #~ msgstr "Nová skupina voleb produktu"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:57
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:65
 msgid "Payment state updated successfully"
 msgstr "Stav platby úspěšně aktualizován"
 
@@ -1584,7 +1596,7 @@ msgstr "Vyberte kanál"
 msgid "Display language"
 msgstr "Jazyk rozhraní"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:312
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:282
 msgid "Fulfillment details"
 msgstr "Detaily expedice"
 
@@ -1737,7 +1749,7 @@ msgid "Address updated successfully"
 msgstr "Adresa úspěšně aktualizována"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:126
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:138
 #: src/lib/components/shared/asset/asset-gallery.tsx:754
 #: src/lib/framework/layout-engine/page-layout.tsx:746
 msgid "Created"
@@ -1886,7 +1898,7 @@ msgstr "Výchozí dopravní zóna"
 msgid "Reason:"
 msgstr "Důvod:"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:294
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:323
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:248
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:511
 msgid "Shipping address"
@@ -1895,9 +1907,9 @@ msgstr "Doručovací adresa"
 #. placeholder {0}: getTranslatedFulfillmentState(state)
 #. placeholder {0}: getTranslatedOrderState(state)
 #. placeholder {0}: getTranslatedPaymentState(state)
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:103
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:126
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:151
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:110
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:128
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:159
 msgid "Transition to {0}"
 msgstr "Převést na {0}"
 
@@ -1991,7 +2003,7 @@ msgstr "Nepodařilo se odebrat skupinu voleb"
 msgid "Failed to update tax category"
 msgstr "Nepodařilo se aktualizovat daňovou kategorii"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:87
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:95
 msgid "Refund settled successfully"
 msgstr "Refund úspěšně vypořádán"
 
@@ -2045,7 +2057,7 @@ msgstr "Profil úspěšně aktualizován"
 #~ msgstr "konec"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx:146
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:166
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:187
 msgid "Payment method"
 msgstr "Způsob platby"
 
@@ -2571,11 +2583,11 @@ msgstr "Zóna"
 msgid "No metrics for this period"
 msgstr "Za toto období nejsou žádné metriky"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:118
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:134
 msgid "Method"
 msgstr "Metoda"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:234
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:338
 msgid "Tax summary"
 msgstr "Souhrn daní"
 
@@ -2899,7 +2911,7 @@ msgstr "Soubory"
 msgid "This will remove all option groups from this product and return to the variant setup choice."
 msgstr "Tímto se odeberou všechny skupiny voleb z tohoto produktu a vrátíte se k výběru nastavení variant."
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:302
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:331
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:277
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:533
 msgid "Billing address"
@@ -2991,7 +3003,7 @@ msgstr "Kopírovat"
 #~ msgid "Healthchecks"
 #~ msgstr "Kontroly stavu"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:168
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:189
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:322
 msgid "Amount"
 msgstr "Částka"
@@ -3146,7 +3158,7 @@ msgstr "Hodnoty voleb"
 msgid "Default Billing Address"
 msgstr "Výchozí fakturační adresa"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:287
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:316
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:241
 msgid "No customer"
 msgstr "Žádný zákazník"
@@ -3193,7 +3205,7 @@ msgstr "Přidávání {0} příplatků"
 msgid "Fallback: {value}"
 msgstr "Náhradní hodnota: {value}"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:263
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:304
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-container.tsx:30
 msgid "Order history"
 msgstr "Historie objednávky"
@@ -3288,6 +3300,10 @@ msgstr "Uložit změny"
 msgid "Search products..."
 msgstr "Hledat produkty..."
 
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:163
+msgid "Unknown product"
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx:53
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx:78
 msgid "Address updated"
@@ -3327,7 +3343,7 @@ msgstr "Nepodařilo se aktualizovat pozici kolekce"
 msgid "Refund"
 msgstr "Vrácení"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:162
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:164
 #: src/app/routes/_authenticated/_orders/utils/order-detail-loaders.tsx:78
 msgid "Modify"
 msgstr "Upravit"
@@ -3461,7 +3477,7 @@ msgstr "Potvrďte prosím, že jste si API key uložili, než zavřete."
 msgid "Confirm deletion"
 msgstr "Potvrdit smazání"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:152
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:154
 msgid "Failed to modify order"
 msgstr "Nepodařilo se upravit objednávku"
 
@@ -3784,7 +3800,7 @@ msgstr "Obnovit"
 msgid "No checkers found"
 msgstr "Nebyly nalezeny žádné kontroly"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:139
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:147
 msgid "Settle payment"
 msgstr "Vypořádat platbu"
 
@@ -3870,8 +3886,8 @@ msgstr "Hesla se neshodují"
 msgid "Pick a date and time"
 msgstr "Vyberte datum a čas"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:53
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:57
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:60
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:64
 msgid "Failed to update fulfillment state"
 msgstr "Nepodařilo se aktualizovat stav expedice"
 
@@ -3915,7 +3931,7 @@ msgstr "Přidávání {0} položek"
 msgid "Add row after"
 msgstr "Přidat řádek za"
 
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:23
+#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:30
 msgid "Tax total"
 msgstr "Celková daň"
 
@@ -4005,8 +4021,8 @@ msgstr "Žádné widgety k zobrazení. Pro přidání widgetů použijte „Upra
 msgid "{0} variants"
 msgstr "{0} variant"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:45
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:49
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:53
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:57
 msgid "Failed to settle payment"
 msgstr "Nepodařilo se vypořádat platbu"
 
@@ -4063,7 +4079,7 @@ msgstr "Nepodařilo se vytvořit roli"
 msgid "Product name"
 msgstr "Název produktu"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:50
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:57
 msgid "Fulfillment state updated successfully"
 msgstr "Stav expedice úspěšně aktualizován"
 
@@ -4109,16 +4125,20 @@ msgstr "Vrátit {0}"
 msgid "Enter slug manually"
 msgstr "Zadat URL segment ručně"
 
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:157
+msgid "Items included in this fulfillment."
+msgstr ""
+
 #: src/app/routes/_authenticated/index.tsx:230
 #~ msgid "No widgets available"
 #~ msgstr "Žádné widgety nejsou k dispozici"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:75
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:79
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:83
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:87
 msgid "Failed to cancel payment"
 msgstr "Nepodařilo se zrušit platbu"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:72
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:80
 msgid "Payment cancelled successfully"
 msgstr "Platba úspěšně zrušena"
 
@@ -4228,8 +4248,8 @@ msgstr "Poznámka úspěšně smazána"
 msgid "Note updated successfully"
 msgstr "Poznámka úspěšně aktualizována"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:91
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:95
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:99
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:103
 msgid "Failed to settle refund"
 msgstr "Nepodařilo se vypořádat refund"
 
@@ -4265,7 +4285,6 @@ msgstr "Odebrat skupinu možností"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:213
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:76
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:14
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:171
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:275
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:174
@@ -4421,8 +4440,8 @@ msgstr "Citace"
 msgid "Select table size"
 msgstr "Vyberte velikost tabulky"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:60
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:64
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:68
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:72
 msgid "Failed to update payment state"
 msgstr "Nepodařilo se aktualizovat stav platby"
 
@@ -4631,7 +4650,7 @@ msgstr "Vyberte zónu"
 msgid "Test shipping methods"
 msgstr "Testovat způsoby dopravy"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:42
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:50
 msgid "Payment settled successfully"
 msgstr "Platba úspěšně vypořádána"
 
@@ -4905,6 +4924,10 @@ msgstr "Regiony"
 msgid "Drop files here to upload"
 msgstr "Přetáhněte sem soubory pro nahrání"
 
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:215
+msgid "View payment metadata"
+msgstr ""
+
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx:182
 msgid "Toggle all visible variants"
 msgstr "Přepnout všechny viditelné varianty"
@@ -5122,7 +5145,7 @@ msgid "Select"
 msgstr "Vybrat"
 
 #. placeholder {0}: payment.refunds.length
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:206
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:242
 msgid "Refunds ({0})"
 msgstr "Refundy ({0})"
 
@@ -5130,7 +5153,7 @@ msgstr "Refundy ({0})"
 msgid "Last Executed"
 msgstr "Naposledy provedeno"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:250
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:266
 msgid "Payment details"
 msgstr "Detaily platby"
 
@@ -5155,7 +5178,7 @@ msgstr "Nepodařilo se aktualizovat skupinu zákazníků"
 msgid "Remove widget"
 msgstr "Odebrat widget"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:189
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:220
 msgid "Payment metadata"
 msgstr "Metadata platby"
 
@@ -5184,7 +5207,7 @@ msgstr "Role"
 msgid "Additional payment required"
 msgstr "Vyžadována dodatečná platba"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:97
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:99
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:63
 msgid "Failed to update order"
 msgstr "Nepodařilo se aktualizovat objednávku"
@@ -5214,8 +5237,7 @@ msgstr "Členové skupiny zákazníků {customerGroupName}"
 msgid "Failed to set address for order: {0}"
 msgstr "Nepodařilo se nastavit adresu objednávky: {0}"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:120
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:215
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:251
 #: src/app/routes/_authenticated/_orders/orders.tsx:102
 #: src/app/routes/_authenticated/_system/job-queue.tsx:265
 msgid "State"
@@ -5466,6 +5488,11 @@ msgstr "Nepodařilo se aktualizovat variantu"
 msgid "Go to previous page"
 msgstr "Přejít na předchozí stránku"
 
+#. placeholder {0}: line.quantity
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:171
+msgid "Quantity: {0}"
+msgstr ""
+
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:275
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:278
 #: src/app/routes/_authenticated/_collections/collections.tsx:447
@@ -5552,7 +5579,7 @@ msgstr "Nepodařilo se načíst globální nastavení"
 msgid "Select items to refund and optionally return to stock"
 msgstr "Vyberte položky k vrácení a volitelně vraťte na sklad"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:245
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:261
 #: src/app/routes/_authenticated/_system/settings-store.tsx:153
 #: src/lib/components/data-table/data-table-views-tabs.tsx:132
 #: src/lib/components/data-table/views-sheet.tsx:210
@@ -5667,7 +5694,7 @@ msgstr "Náhled {0}"
 msgid "Successfully updated seller"
 msgstr "Prodejce úspěšně aktualizován"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:132
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:134
 msgid "Failed to transition order to state"
 msgstr "Nepodařilo se převést objednávku do stavu"
 
@@ -5916,10 +5943,9 @@ msgstr "Nepodařilo se odebrat skupinu voleb"
 msgid "Sub total"
 msgstr "Mezisoučet"
 
-#. placeholder {0}: fulfillment.lines.reduce((acc, line) => acc + line.quantity, 0)
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:133
-msgid "Fulfilled items ({0})"
-msgstr "Expedované položky ({0})"
+#~ msgid "Fulfilled items ({0})"
+#~ msgstr "Expedované položky ({0})"
 
 #: src/app/routes/_authenticated/_products/products.tsx:117
 msgid "Create your first product"
@@ -5980,7 +6006,7 @@ msgstr "Duplicitní hodnota \"{trimmed}\" již existuje"
 msgid "Create your first customer"
 msgstr "Vytvořte svého prvního zákazníka"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:231
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:267
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:222
 msgid "Reason"
 msgstr "Důvod"
@@ -6078,7 +6104,7 @@ msgstr "Aktualizace e-mailu ověřena"
 msgid "is between"
 msgstr "je mezi"
 
-#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:173
+#: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:175
 msgid "Refund & Cancel"
 msgstr "Vrátit a zrušit"
 
@@ -6291,7 +6317,7 @@ msgstr "Mezisoučet"
 msgid "is less than"
 msgstr "je menší než"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:213
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:249
 msgid "Refund ID"
 msgstr "ID refundu"
 
@@ -6355,7 +6381,7 @@ msgstr "Pokračovat"
 msgid "Promotions"
 msgstr "Akce"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:181
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:205
 msgid "Error message"
 msgstr "Chybová zpráva"
 
@@ -6532,8 +6558,8 @@ msgstr "Nepodařilo se aktualizovat způsob platby"
 msgid "Available:"
 msgstr "Dostupné:"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:172
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:219
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:193
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:255
 msgid "Created at"
 msgstr "Vytvořeno"
 
@@ -6581,7 +6607,7 @@ msgctxt "active language"
 msgid "Active"
 msgstr "Aktivní"
 
-#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:20
+#: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx:22
 msgid "Tax base"
 msgstr "Základ daně"
 
@@ -6679,7 +6705,7 @@ msgstr "Token se používá k určení kanálu při provádění API požadavků
 msgid "No addresses found"
 msgstr "Nenalezeny žádné adresy"
 
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:117
+#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:133
 msgid "Fulfillment ID"
 msgstr "ID expedice"
 
@@ -6711,7 +6737,7 @@ msgstr "Nepodařilo se aktualizovat hodnotu"
 msgid "Failed to create API key"
 msgstr "Nepodařilo se vytvořit API key"
 
-#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:262
+#: src/app/routes/_authenticated/_orders/components/payment-details.tsx:298
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:49
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:74
 msgid "Settle refund"
