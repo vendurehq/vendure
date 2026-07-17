@@ -4,7 +4,7 @@ generated: true
 ---
 ## DataTable
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-table/data-table.tsx" sourceLine="245" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-table/data-table.tsx" sourceLine="250" packageName="@vendure/dashboard" since="3.4.0" />
 
 A data table which includes sorting, filtering, pagination, bulk actions, column controls etc.
 
@@ -34,6 +34,7 @@ interface DataTableProps<TData> {
     isLoading?: boolean;
     page?: number;
     itemsPerPage?: number;
+    pageSizeOptions?: number[];
     sorting?: SortingState;
     columnFilters?: ColumnFiltersState;
     onPageChange?: (table: TableType<TData>, page: number, itemsPerPage: number) => void;
@@ -94,6 +95,11 @@ interface DataTableProps<TData> {
 ### itemsPerPage
 
 <MemberInfo kind="property" type={`number`}   />
+
+
+### pageSizeOptions
+
+<MemberInfo kind="property" type={`number[]`}   />
 
 
 ### sorting
