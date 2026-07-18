@@ -8,10 +8,11 @@ import {
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 
 import { RequestContextCacheService } from '../../../cache/request-context-cache.service';
-import { CacheKey } from '../../../common/constants';
+import { CacheKey, COLLECTION_VARIANTS_CACHE_RELATIONS } from '../../../common/constants';
 import { ListQueryOptions } from '../../../common/types/common-types';
 import { Translated } from '../../../common/types/locale-types';
 import { CollectionFilter } from '../../../config/catalog/collection-filter';
+import { ConfigService } from '../../../config/config.service';
 import { Asset, Collection, Product, ProductVariant } from '../../../entity';
 import { LocaleStringHydrator } from '../../../service/helpers/locale-string-hydrator/locale-string-hydrator';
 import { AssetService } from '../../../service/services/asset.service';
@@ -33,6 +34,7 @@ export class CollectionEntityResolver {
         private localeStringHydrator: LocaleStringHydrator,
         private configurableOperationCodec: ConfigurableOperationCodec,
         private requestContextCache: RequestContextCacheService,
+        private configService: ConfigService,
     ) {}
 
     @ResolveField()
@@ -63,6 +65,40 @@ export class CollectionEntityResolver {
         @Api() apiType: ApiType,
         @Relations({ entity: ProductVariant, omit: ['assets'] }) relations: RelationPaths<ProductVariant>,
     ): Promise<PaginatedList<Translated<ProductVariant>>> {
+        const isDefaultOptions = !args.options || Object.keys(args.options).length === 0;
+        if (isDefaultOptions && apiType === 'admin') {
+            const cachedVariantsPromise = this.requestContextCache.get<
+                Promise<Map<string, ProductVariant[]>>
+            >(ctx, CacheKey.CollectionVariants);
+            if (cachedVariantsPromise) {
+                const variantsMap = await cachedVariantsPromise;
+                const variants = variantsMap.get(String(collection.id));
+                if (variants) {
+                    // Check if the requested relations are compatible with the cached data.
+                    // The cache was populated with default relations defined by COLLECTION_VARIANTS_CACHE_RELATIONS.
+                    // We can use the cache ONLY if the requested relations are a subset of or equal to the default relations.
+                    const isCacheCompatible = relations.every(rel =>
+                        (COLLECTION_VARIANTS_CACHE_RELATIONS as readonly string[]).includes(rel),
+                    );
+
+                    if (isCacheCompatible) {
+                        // Cache is compatible, use it.
+                        const { adminListQueryLimit } = this.configService.apiOptions;
+                        const skip = args.options?.skip ?? 0;
+                        const take = args.options?.take ?? adminListQueryLimit;
+                        const items = await this.productVariantService.applyPricesAndTranslateVariants(
+                            ctx,
+                            variants.slice(skip, skip + take),
+                        );
+                        return {
+                            items,
+                            totalItems: variants.length,
+                        };
+                    }
+                }
+            }
+        }
+
         let options: ListQueryOptions<Product> = args.options;
         if (apiType === 'shop') {
             options = {

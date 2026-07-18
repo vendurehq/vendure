@@ -85,6 +85,12 @@ export const CacheKey = {
     ActiveTaxZone: (channelId: ID) => `ActiveTaxZone:${channelId}`,
     ActiveTaxZone_PPA: (channelId: ID) => `ActiveTaxZone_PPA:${channelId}`,
     CollectionVariantCounts: 'CollectionService.getProductVariantCounts',
+    CollectionVariants: 'CollectionService.getProductVariantsForCollections',
     ExhaustedPromotions: (channelId: ID, customerId: ID | undefined) =>
         `ExhaustedPromotions:${channelId}:${customerId ?? 'guest'}`,
 };
+
+/**
+ * The default relations used when pre-caching product variants for collections.
+ */
+export const COLLECTION_VARIANTS_CACHE_RELATIONS = ['taxCategory'] as const;

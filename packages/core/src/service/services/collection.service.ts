@@ -323,7 +323,7 @@ export class CollectionService implements OnModuleInit {
      * This performs a single bulk query to get counts for all provided collection IDs,
      * avoiding N+1 query issues when resolving productVariantCount on multiple collections.
      */
-    async getProductVariantCounts(ctx: RequestContext, collectionIds: ID[]): Promise<Map<ID, number>> {
+    async getProductVariantCounts(ctx: RequestContext, collectionIds: ID[]): Promise<Map<string, number>> {
         if (collectionIds.length === 0) {
             return new Map();
         }
@@ -344,9 +344,7 @@ export class CollectionService implements OnModuleInit {
             .groupBy('collection.id')
             .getRawMany<{ collectionId: string; count: string }>();
 
-        const countMap = new Map<ID, number>();
-        // Normalize IDs to strings to ensure consistent Map key types,
-        // since raw query results return collectionId as string
+        const countMap = new Map<string, number>();
         for (const id of collectionIds) {
             countMap.set(String(id), 0);
         }
@@ -490,7 +488,7 @@ export class CollectionService implements OnModuleInit {
         ctx: RequestContext,
         input: PreviewCollectionVariantsInput,
         options?: ListQueryOptions<ProductVariant>,
-        relations?: RelationPaths<Collection>,
+        relations?: RelationPaths<ProductVariant>,
     ): Promise<PaginatedList<ProductVariant>> {
         const applicableFilters = this.getCollectionFiltersFromInput(input);
         if (input.parentId && input.inheritFilters) {
@@ -503,13 +501,18 @@ export class CollectionService implements OnModuleInit {
             );
             applicableFilters.push(...parentFilters, ...ancestorFilters);
         }
-        let qb = this.listQueryBuilder.build(ProductVariant, options, {
-            relations: relations ?? ['taxCategory'],
-            channelId: ctx.channelId,
-            where: { deletedAt: IsNull() },
-            ctx,
-            entityAlias: 'productVariant',
-        });
+
+        let qb = this.listQueryBuilder.build(
+            ProductVariant,
+            options || { take: undefined, skip: undefined },
+            {
+                relations: relations ?? ['taxCategory'],
+                channelId: ctx.channelId,
+                where: { deletedAt: IsNull() },
+                ctx,
+                entityAlias: 'productVariant',
+            },
+        );
 
         const { collectionFilters } = this.configService.catalogOptions;
         for (const filterType of collectionFilters) {
@@ -711,6 +714,86 @@ export class CollectionService implements OnModuleInit {
             }
         }
         return filters;
+    }
+
+    /**
+     * Returns a Map of collection IDs to their associated product variants.
+     * This performs a single bulk query to get all variants for all provided collection IDs,
+     * avoiding N+1 query issues when resolving variants on multiple collections.
+     */
+    async getProductVariantsForCollections(
+        ctx: RequestContext,
+        collectionIds: ID[],
+        options?: ListQueryOptions<ProductVariant>,
+        relations?: RelationPaths<ProductVariant>,
+    ): Promise<Map<string, ProductVariant[]>> {
+        if (collectionIds.length === 0) {
+            return new Map();
+        }
+
+        // Note: This method intentionally returns ALL matching variants without applying
+        // the default admin/shop list query limit. This is safe because it is used only
+        // for batch pre-caching in the admin collection list, where the number of requested
+        // collections is small and controlled by the UI page size.
+        //
+        // Risk: For catalogs with a very large number of product variants per collection,
+        // this query can become expensive. If that becomes a real issue, per-collection
+        // pagination (Option B) should be implemented in a follow-up PR.
+        const qb = this.listQueryBuilder.build(ProductVariant, options ?? {}, {
+            relations: relations ?? ['taxCategory'],
+            channelId: ctx.channelId,
+            where: { deletedAt: IsNull() },
+            ctx,
+            entityAlias: 'productVariant',
+        });
+
+        if (options?.take === undefined) {
+            qb.take(undefined);
+        }
+        if (options?.skip === undefined) {
+            qb.skip(undefined);
+        }
+
+        // We explicitly join with the product to ensure we filter out soft-deleted products,
+        // matching the behavior of other collection-related variant queries.
+        qb.innerJoin('productvariant.collections', 'collection', 'collection.id IN (:...collectionIds)', {
+            collectionIds,
+        })
+            .andWhere('product.deletedAt IS NULL')
+            .addSelect('collection.id', 'collectionId')
+            // Explicitly select `productvariant.id` so we can reliably read the join result key
+            // without depending on TypeORM's auto-generated aliases for raw queries.
+            .addSelect('productvariant.id', 'variantId');
+
+        const { entities: allVariants, raw: rawResults } = await qb.getRawAndEntities();
+
+        const variantsById = new Map<string, ProductVariant>(allVariants.map(v => [String(v.id), v]));
+
+        const variantsByCollectionId = new Map<string, ProductVariant[]>();
+        const seenInCollection = new Map<string, Set<string>>();
+
+        for (const id of collectionIds) {
+            const idStr = String(id);
+            variantsByCollectionId.set(idStr, []);
+            seenInCollection.set(idStr, new Set());
+        }
+
+        for (const raw of rawResults) {
+            const variantId = String(raw.variantId);
+            const collectionId = String(raw.collectionId);
+            const variant = variantsById.get(variantId);
+
+            if (variant) {
+                const collectionVariants = variantsByCollectionId.get(collectionId);
+                const seenSet = seenInCollection.get(collectionId);
+                if (collectionVariants && seenSet && !seenSet.has(variantId)) {
+                    seenSet.add(variantId);
+                    collectionVariants.push(variant);
+                }
+            }
+        }
+
+        return variantsByCollectionId;
     }
 
     private chunkArray = <T>(array: T[], chunkSize: number): T[][] => {

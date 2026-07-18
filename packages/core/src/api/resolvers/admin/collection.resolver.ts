@@ -18,7 +18,7 @@ import { PaginatedList } from '@vendure/common/lib/shared-types';
 import { GraphQLResolveInfo } from 'graphql';
 
 import { RequestContextCacheService } from '../../../cache/request-context-cache.service';
-import { CacheKey } from '../../../common/constants';
+import { CacheKey, COLLECTION_VARIANTS_CACHE_RELATIONS } from '../../../common/constants';
 import { UserInputError } from '../../../common/error/errors';
 import { Translated } from '../../../common/types/locale-types';
 import { CollectionFilter } from '../../../config/catalog/collection-filter';
@@ -66,10 +66,19 @@ export class CollectionResolver {
         const collections = await this.collectionService.findAll(ctx, args.options || undefined, relations);
         // Cache the variant counts query promise if productVariantCount is requested,
         // allowing the DB query to start before the field resolvers are called
+        const collectionIds = collections.items.map(c => c.id);
         if (isFieldInSelection(info, 'productVariantCount')) {
-            const collectionIds = collections.items.map(c => c.id);
             const countsPromise = this.collectionService.getProductVariantCounts(ctx, collectionIds);
             this.requestContextCache.set(ctx, CacheKey.CollectionVariantCounts, countsPromise);
+        }
+        if (isFieldInSelection(info, 'productVariants')) {
+            const variantsPromise = this.collectionService.getProductVariantsForCollections(
+                ctx,
+                collectionIds,
+                undefined,
+                [...COLLECTION_VARIANTS_CACHE_RELATIONS],
+            );
+            this.requestContextCache.set(ctx, CacheKey.CollectionVariants, variantsPromise);
         }
         return collections;
     }

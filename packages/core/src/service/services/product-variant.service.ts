@@ -766,11 +766,12 @@ export class ProductVariantService {
     }
 
     /**
-     * @description
-     * Given an array of ProductVariants from the database, this method will apply the correct price and tax
-     * and translate each item.
-     */
-    private async applyPricesAndTranslateVariants(
+     /**
+      * @description
+      * Given an array of ProductVariants from the database, this method will apply the correct price and tax
+      * and translate each item.
+      */
+    async applyPricesAndTranslateVariants(
         ctx: RequestContext,
         variants: ProductVariant[],
     ): Promise<Array<Translated<ProductVariant>>> {

@@ -437,7 +437,11 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         const { customPropertyPath } = condition.isExistsCondition;
         const pathParts = customPropertyPath.split('.');
 
-        if (pathParts.length < 2) {
+        // Only handle single-hop paths (e.g., 'facetValues.id'). Multi-hop paths like
+        // 'facetValues.term.id' cannot be expressed as a simple EXISTS subquery
+        // because the column being filtered is on a table reachable only through
+        // the related entity, not on the related entity itself.
+        if (pathParts.length !== 2) {
             return null;
         }
 
@@ -480,7 +484,10 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         // Helper to escape identifiers for the current database driver (handles PostgreSQL quoting)
         const escapeId = (name: string) => mainQb.connection.driver.escape(name);
         const escapeTablePath = (path: string) =>
-            path.split('.').map(segment => mainQb.connection.driver.escape(segment)).join('.');
+            path
+                .split('.')
+                .map(segment => mainQb.connection.driver.escape(segment))
+                .join('.');
 
         let existsQuery: string;
 

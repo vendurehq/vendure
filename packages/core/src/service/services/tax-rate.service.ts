@@ -82,7 +82,7 @@ export class TaxRateService {
         }
         if (hasCategoryIdFilter) {
             effectiveRelations.push('category');
-            customPropertyMap.zoneId = 'category.id';
+            customPropertyMap.categoryId = 'category.id';
         }
         return this.listQueryBuilder
             .build(TaxRate, options, {
