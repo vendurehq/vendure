@@ -28,6 +28,7 @@ import {
     Type,
     UiComponentConfig,
 } from '@vendure/common/lib/shared-types';
+import { RelationOptions } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
 import { Injector } from '../../common/injector';
@@ -114,9 +115,10 @@ export type TypedCustomSingleFieldConfig<
 export type TypedCustomListFieldConfig<
     T extends CustomFieldType,
     C extends CustomField,
-> = BaseTypedCustomFieldConfig<T, C> & {
+> = Omit<BaseTypedCustomFieldConfig<T, C>, 'nullable'> & {
     list?: true;
     defaultValue?: Array<DefaultValueType<T>>;
+    nullable?: never;
     validate?: (
         value: Array<DefaultValueType<T>>,
     ) => string | LocalizedString[] | void | Promise<string | LocalizedString[] | void>;
@@ -149,9 +151,8 @@ export type RelationCustomFieldConfig = TypedCustomFieldConfig<
 > & {
     entity: Type<VendureEntity>;
     graphQLType?: string;
-    eager?: boolean;
     inverseSide?: string | ((object: any) => any);
-};
+} & Pick<RelationOptions, 'cascade' | 'onDelete' | 'onUpdate' | 'eager'>;
 
 // Struct field definitions
 export type BaseTypedStructFieldConfig<T extends StructFieldType, C extends GraphQLStructField> = Omit<

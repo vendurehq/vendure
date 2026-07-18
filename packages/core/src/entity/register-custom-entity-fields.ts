@@ -20,6 +20,8 @@ import { CustomFieldConfig, CustomFields } from '../config/custom-field/custom-f
 import { Logger } from '../config/logger/vendure-logger';
 import { VendureConfig } from '../config/vendure-config';
 
+import { coreEntitiesMap } from './entities';
+
 /**
  * The maximum length of the "length" argument of a MySQL varchar column.
  */
@@ -39,18 +41,52 @@ function registerCustomFieldsForEntity(
     const dbEngine = config.dbConnectionOptions.type;
     if (customFields) {
         for (const customField of customFields) {
-            const { name, list, defaultValue, nullable } = customField;
+            const { name, list, nullable } = customField;
             const instance = new ctor();
             const registerColumn = () => {
                 if (customField.type === 'relation') {
+                    const { cascade, onDelete, onUpdate, eager } = customField;
+                    const relatedEntityName = customField.entity.name;
+
+                    if (onDelete === 'CASCADE' && relatedEntityName in coreEntitiesMap && list !== true) {
+                        Logger.warn(
+                            [
+                                `WARNING: You have set "onDelete: 'CASCADE'" on a custom field relation to the "${relatedEntityName}" entity.`,
+                                `With this FK behavior, deleting a "${relatedEntityName}" row can delete owning rows that reference it.`,
+                                `Please verify this is intended, especially when targeting core Vendure entities.`,
+                            ].join('\n'),
+                        );
+                    }
+                    if (
+                        (cascade === true ||
+                            (Array.isArray(cascade) && (cascade.includes('remove') || cascade.includes('soft-remove')))) &&
+                        relatedEntityName in coreEntitiesMap &&
+                        list !== true
+
+                    ) {
+                        Logger.warn(
+                            [
+                                `WARNING: You have set "cascade: ['remove' | 'soft-remove']" on a custom field relation to the "${relatedEntityName}" entity.`,
+                                `With this behavior, deleting a "${relatedEntityName}" row can delete owning rows that reference it.`,
+                                `Please verify this is intended, especially when targeting core Vendure entities.`,
+                            ].join('\n'),
+                        );
+                    }
                     if (customField.list) {
                         ManyToMany(type => customField.entity, customField.inverseSide, {
-                            eager: customField.eager,
+                            cascade,
+                            onDelete,
+                            onUpdate,
+                            eager,
                         })(instance, name);
                         JoinTable()(instance, name);
                     } else {
                         ManyToOne(type => customField.entity, customField.inverseSide, {
-                            eager: customField.eager,
+                            cascade,
+                            onDelete,
+                            onUpdate,
+                            eager,
+                            nullable,
                         })(instance, name);
                         JoinColumn()(instance, name);
                     }

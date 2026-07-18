@@ -988,6 +988,9 @@ In addition to the common properties, the `relation` custom fields have some typ
 - [`eager`](#eager)
 - [`graphQLType`](#graphqltype)
 - [`inverseSide`](#inverseside)
+- [`cascade`](#cascade)
+- [`onDelete`](#ondelete)
+- [`onUpdate`](#onupdate)
 
 #### entity
 
@@ -1100,6 +1103,94 @@ const { productReviews } = await this.connection.getRepository(ProductReview).fi
     where: { id: 1 },
     relations: ['product'],
 });
+```
+
+#### cascade
+
+<CustomFieldProperty required={false} type="boolean | ('insert' | 'update' | 'remove' | 'soft-remove' | 'recover')[]" />
+
+Whether to [cascade](https://typeorm.io/docs/relations/relations#cascade-options) operations on the relation. Defaults to `false`.
+
+```ts title="src/vendure-config.ts"
+import { Product } from '\@vendure/core';
+import { ProductReview } from './entities/product-review.entity';
+
+const config = {
+    // ...
+    customFields: {
+        Product: [
+            {
+                name: 'reviews',
+                list: true,
+                type: 'relation',
+                entity: ProductReview,
+                cascade: ['insert', 'update'], // [!code highlight]
+            },
+        ]
+    }
+};
+```
+
+#### onDelete
+<CustomFieldProperty required={false} type="'RESTRICT' | 'CASCADE' | 'SET NULL' | 'NO ACTION' | 'SET DEFAULT'" />
+
+The [onDelete](https://typeorm.io/docs/relations/relations/) behavior for the relation. Defaults to `NO ACTION`.
+
+:::note
+
+Setting `onDelete` to `CASCADE` or `cascade: ['remove']` means that if the referenced entity is deleted, rows owning this relation may also be deleted.
+This can have unintended consequences, especially when referencing core Vendure entities.
+For example, if you have a relation to `ProductVariant` and set `onDelete: 'CASCADE'`, deleting that `ProductVariant` can cascade to rows that reference it.
+Use with caution.
+
+Setting `onDelete` on a `ManyToMany` (`list: true`) relation will affect the join table, but not the related entity.
+
+```ts title="src/vendure-config.ts"
+import { Product } from '\@vendure/core';
+import { ProductReview } from './entities/product-review.entity';
+
+const config = {
+    // ...
+    customFields: {
+        Product: [
+            {
+                name: 'reviews',
+                list: false,
+                type: 'relation',
+                entity: ProductReview,
+                onDelete: 'SET NULL', // [!code highlight]
+            },
+        ]
+    }
+};
+```
+
+#### onUpdate
+<CustomFieldProperty required={false} type="'RESTRICT' | 'CASCADE' | 'SET NULL' | 'NO ACTION' | 'SET DEFAULT'" />
+
+The [onUpdate](https://typeorm.io/docs/relations/relations/) behavior for the relation. If not set, the database default (`NO ACTION`) applies.
+`onUpdate` is not supported by SQLite and will be ignored if you are using SQLite as your database.
+
+Setting `onUpdate` on a `ManyToMany` (`list: true`) relation will affect the join table, but not the related entity.
+
+```ts title="src/vendure-config.ts"
+import { Product } from '\@vendure/core';
+import { ProductReview } from './entities/product-review.entity';
+
+const config = {
+    // ...
+    customFields: {
+        Product: [
+            {
+                name: 'reviews',
+                list: false,
+                type: 'relation',
+                entity: ProductReview,
+                onUpdate: 'CASCADE', // [!code highlight]
+            },
+        ]
+    }
+};
 ```
 
 ## Custom Field UI
