@@ -16,7 +16,7 @@ import { RequestContext } from './request-context';
 
 export interface ResolveRelationConfig {
     ctx: RequestContext;
-    entityId: ID;
+    entityId: ID | undefined;
     entityName: string;
     fieldDef: RelationCustomFieldConfig;
 }
@@ -39,6 +39,15 @@ export class CustomFieldRelationResolverService {
      */
     async resolveRelation(config: ResolveRelationConfig): Promise<VendureEntity | VendureEntity[] | null> {
         const { ctx, entityId, entityName, fieldDef } = config;
+
+        // Embedded value objects such as OrderAddress (Order.shippingAddress / billingAddress) have
+        // no `id`, so `entityId` can be undefined. Passing it to DataLoader.load() would throw
+        // ("The loader.load() function must be called with a value, but got: undefined"); there is
+        // nothing to resolve by id, so return an empty result, matching the behaviour before
+        // relation custom fields were resolved via DataLoader.
+        if (entityId == null) {
+            return fieldDef.list ? [] : null;
+        }
 
         const loader = this.getLoader(ctx, entityName, fieldDef);
         const batchResult = await loader.load(entityId);
