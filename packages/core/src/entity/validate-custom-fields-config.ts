@@ -1,4 +1,5 @@
 import { Type } from '@vendure/common/lib/shared-types';
+import { getGraphQlInputName } from '@vendure/common/lib/shared-utils';
 import { getMetadataArgsStorage } from 'typeorm';
 
 import { CustomFieldConfig, CustomFields } from '../config/custom-field/custom-field-types';
@@ -13,6 +14,7 @@ function validateCustomFieldsForEntity(
         ...assertValidFieldNames(entity.name, customFields),
         ...assertNoNameConflictsWithEntity(entity, customFields),
         ...assertNoDuplicatedCustomFieldNames(entity.name, customFields),
+        ...assertNoRelationIdNameConflicts(entity.name, customFields),
         ...assetNonNullablesHaveDefaults(entity.name, customFields),
         ...(isTranslatable(entity) ? [] : assertNoLocaleStringFields(entity.name, customFields)),
     ];
@@ -66,6 +68,27 @@ function assertNoDuplicatedCustomFieldNames(entityName: string, customFields: Cu
     return Object.entries(nameCounts)
         .filter(([name, count]) => 1 < count)
         .map(([name, count]) => `${entityName} entity has duplicated custom field name: "${name}"`);
+}
+
+/**
+ * Relation custom fields are represented by an id property (`ownerId`/`ownerIds`) in GraphQL
+ * input types and, for non-list relations, as an id column on the entity. Assert that no other
+ * custom field is named in a way that would collide with those properties.
+ */
+function assertNoRelationIdNameConflicts(entityName: string, customFields: CustomFieldConfig[]): string[] {
+    const errors: string[] = [];
+    for (const field of customFields) {
+        if (field.type === 'relation') {
+            const idPropertyName = getGraphQlInputName(field);
+            if (customFields.some(f => f !== field && f.name === idPropertyName)) {
+                errors.push(
+                    `${entityName} entity has a custom field "${idPropertyName}" which conflicts with the ` +
+                        `id property of the relation custom field "${field.name}"`,
+                );
+            }
+        }
+    }
+    return errors;
 }
 
 /**

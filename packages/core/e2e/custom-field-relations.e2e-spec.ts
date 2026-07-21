@@ -1485,6 +1485,139 @@ describe('Custom field relations', () => {
         });
     });
 
+    // https://github.com/vendurehq/vendure/issues/2031
+    describe('relation id columns', () => {
+        it('id columns map to the existing join columns rather than creating new ones', () => {
+            const connection = server.app.get(TransactionalConnection);
+            const productMetadata = connection.rawConnection.getMetadata(Product);
+            const relationCustomFieldNames = [
+                'single',
+                'cfCollection',
+                'cfCountry',
+                'cfFacetValue',
+                'cfFacet',
+                'cfProductOptionGroup',
+                'cfProductOption',
+                'cfProductVariant',
+                'cfProduct',
+                'cfShippingMethod',
+                'cfInternalAsset',
+            ];
+            for (const name of relationCustomFieldNames) {
+                const idColumns = productMetadata.columns.filter(
+                    c => c.propertyPath === `customFields.${name}Id`,
+                );
+                // The explicit id property must exist as a column, and it must be the
+                // join column itself (same database column), not an additional column.
+                expect(idColumns.length).toBe(1);
+                expect(idColumns[0].relationMetadata?.propertyPath).toBe(`customFields.${name}`);
+                const columnsWithSameDbName = productMetadata.columns.filter(
+                    c => c.databaseName === idColumns[0].databaseName,
+                );
+                expect(columnsWithSameDbName.length).toBe(1);
+            }
+        });
+
+        it('relation id is available without joining the relation', async () => {
+            await adminClient.query(gql`
+                mutation {
+                    updateProduct(input: { id: "T_1", customFields: { singleId: "T_2" } }) {
+                        id
+                    }
+                }
+            `);
+
+            const connection = server.app.get(TransactionalConnection);
+            const product = await connection.rawConnection.getRepository(Product).findOne({
+                where: { id: 1 },
+                loadEagerRelations: false,
+            });
+
+            expect((product?.customFields as any).single).toBeUndefined();
+            expect((product?.customFields as any).singleId).toBe(2);
+        });
+
+        it('updating the relation updates the id column', async () => {
+            await adminClient.query(gql`
+                mutation {
+                    updateProduct(input: { id: "T_1", customFields: { singleId: "T_3" } }) {
+                        id
+                    }
+                }
+            `);
+
+            const connection = server.app.get(TransactionalConnection);
+            const product = await connection.rawConnection.getRepository(Product).findOne({
+                where: { id: 1 },
+                loadEagerRelations: false,
+            });
+
+            expect((product?.customFields as any).singleId).toBe(3);
+        });
+
+        it('setting the relation to null clears the id column', async () => {
+            await adminClient.query(gql`
+                mutation {
+                    updateProduct(input: { id: "T_1", customFields: { singleId: null } }) {
+                        id
+                    }
+                }
+            `);
+
+            const connection = server.app.get(TransactionalConnection);
+            const product = await connection.rawConnection.getRepository(Product).findOne({
+                where: { id: 1 },
+                loadEagerRelations: false,
+            });
+
+            expect((product?.customFields as any).singleId).toBeNull();
+        });
+
+        // The following tests cover the ways in which plugin code may directly assign
+        // relation custom field values on an entity before saving it.
+        it('assigning a relation object directly persists the relation', async () => {
+            const connection = server.app.get(TransactionalConnection);
+            const repository = connection.rawConnection.getRepository(Product);
+            const product = await repository.findOneOrFail({ where: { id: 1 }, loadEagerRelations: false });
+
+            (product.customFields as any).single = { id: 2 };
+            await repository.save(product, { reload: false });
+
+            const result = await repository.findOne({ where: { id: 1 }, loadEagerRelations: false });
+            expect((result?.customFields as any).singleId).toBe(2);
+        });
+
+        it('assigning null to the relation clears it, even with a stale id value', async () => {
+            const connection = server.app.get(TransactionalConnection);
+            const repository = connection.rawConnection.getRepository(Product);
+            const product = await repository.findOneOrFail({ where: { id: 1 }, loadEagerRelations: false });
+            expect((product.customFields as any).singleId).toBe(2);
+
+            (product.customFields as any).single = null;
+            await repository.save(product, { reload: false });
+
+            const result = await repository.findOne({ where: { id: 1 }, loadEagerRelations: false });
+            expect((result?.customFields as any).singleId).toBeNull();
+        });
+
+        it('assigning to the id column directly persists the relation', async () => {
+            const connection = server.app.get(TransactionalConnection);
+            const repository = connection.rawConnection.getRepository(Product);
+            const product = await repository.findOneOrFail({ where: { id: 1 }, loadEagerRelations: false });
+
+            (product.customFields as any).singleId = 3;
+            await repository.save(product, { reload: false });
+
+            const result = await repository.findOne({
+                where: { id: 1 },
+                loadEagerRelations: false,
+                relations: { customFields: { single: true } } as any,
+            });
+            expect((result?.customFields as any).singleId).toBe(3);
+            expect((result?.customFields as any).single?.id).toBe(3);
+        });
+    });
+
     it('null values', async () => {
         const { updateCustomerAddress } = await adminClient.query(gql`
             mutation {

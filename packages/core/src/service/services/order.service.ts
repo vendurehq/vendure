@@ -852,12 +852,6 @@ export class OrderService {
                 }
 
                 orderLine.customFields = mergedCustomFields;
-                await this.customFieldRelationService.updateRelations(
-                    ctx,
-                    OrderLine,
-                    { customFields: mergedCustomFields },
-                    orderLine,
-                );
             }
             const existingQuantityInOtherLines = summate(
                 order.lines.filter(
@@ -881,6 +875,16 @@ export class OrderService {
                 await this.eventBus.publish(new OrderLineEvent(ctx, order, deletedOrderLine, 'deleted'));
             } else {
                 await this.orderModifier.updateOrderLineQuantity(ctx, orderLine, correctedQuantity, order);
+                if (customFields != null) {
+                    // This must run after the OrderLine has been saved with the merged custom field
+                    // values, since it re-loads the entity from the database to resolve the relations.
+                    await this.customFieldRelationService.updateRelations(
+                        ctx,
+                        OrderLine,
+                        { customFields },
+                        orderLine,
+                    );
+                }
                 updatedOrderLines.push(orderLine);
             }
             const quantityWasAdjustedDown = correctedQuantity < quantity;

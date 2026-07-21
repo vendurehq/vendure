@@ -20,6 +20,8 @@ import { CustomFieldConfig, CustomFields } from '../config/custom-field/custom-f
 import { Logger } from '../config/logger/vendure-logger';
 import { VendureConfig } from '../config/vendure-config';
 
+import { EntityId } from './entity-id.decorator';
+
 /**
  * The maximum length of the "length" argument of a MySQL varchar column.
  */
@@ -53,6 +55,9 @@ function registerCustomFieldsForEntity(
                             eager: customField.eager,
                         })(instance, name);
                         JoinColumn()(instance, name);
+                        // Expose the foreign key as an id property (e.g. "ownerId"), which maps
+                        // to the same database column as the relation's join column.
+                        EntityId({ nullable: true })(instance, `${name}Id`);
                     }
                 } else {
                     const options: ColumnOptions = {
