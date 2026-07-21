@@ -18,9 +18,9 @@ let patchApplied = false;
  * `entity.customFields.owner` is ignored when TypeORM computes the value of the join column,
  * and the assignment is silently not persisted.
  *
- * See https://github.com/typeorm/typeorm/blob/master/src/metadata/ColumnMetadata.ts
- * (`getEntityValue`, the `if (this.relationMetadata && this.referencedColumn)` branch inside
- * the embedded case).
+ * Reported upstream as https://github.com/typeorm/typeorm/issues/12725, with a fix submitted
+ * in https://github.com/typeorm/typeorm/pull/12726. This workaround can be removed once the
+ * minimum supported TypeORM version contains that fix.
  *
  * The override below only takes effect for columns which are both embedded and merged with a
  * relation join column. All other columns are handled by the original implementation.
