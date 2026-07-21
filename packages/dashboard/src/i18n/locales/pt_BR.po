@@ -161,6 +161,10 @@ msgstr "Digite um motivo personalizado..."
 msgid "Type"
 msgstr "Tipo"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:266
+msgid "The default currency is chosen from this list."
+msgstr ""
+
 #. placeholder {0}: entityName.toLowerCase()
 #. placeholder {0}: group.name
 #: src/app/routes/_authenticated/_products/components/product-option-select.tsx:57
@@ -195,7 +199,7 @@ msgstr "Atual"
 msgid "No fulfillments"
 msgstr "Nenhum atendimento"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:232
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:339
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
 msgstr "Quando isto estiver habilitado, os preços inseridos no catálogo de produtos incluirão o imposto para a zona fiscal padrão."
 
@@ -246,7 +250,7 @@ msgstr "Opções"
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
 msgstr "{fulfilled, plural, one {{fulfilled} tarefa cancelada com sucesso} other {{fulfilled} tarefas canceladas com sucesso}}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:152
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:244
 msgid "Seller"
 msgstr "Vendedor"
 
@@ -389,8 +393,8 @@ msgctxt "date-range"
 msgid "Last 7 days"
 msgstr "Últimos 7 dias"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:90
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:96
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:180
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:186
 msgid "Failed to create channel"
 msgstr "Falha ao criar canal"
 
@@ -535,6 +539,10 @@ msgstr "Este campo e somente leitura"
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:80
 msgid "Order Count"
 msgstr "Quantidade de pedidos"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:159
+msgid "You must first select an available currency to set a default currency"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:92
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:59
@@ -685,7 +693,7 @@ msgstr "Selecionar endereço"
 msgid "Payment eligibility checker"
 msgstr "Verificador de elegibilidade de pagamento"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:214
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:321
 msgid "Default tax zone"
 msgstr "Zona fiscal padrão"
 
@@ -713,7 +721,7 @@ msgstr "Filtrar..."
 msgid "New facet value"
 msgstr "Novo valor de faceta"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:83
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:173
 msgid "Successfully updated channel"
 msgstr "Canal atualizado com sucesso"
 
@@ -725,7 +733,7 @@ msgstr "Mostrar menos"
 msgid "Short date"
 msgstr "Data curta"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:172
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:265
 msgid "Available currencies"
 msgstr "Moedas disponíveis"
 
@@ -789,7 +797,7 @@ msgstr "Nome"
 msgid "Failed to fulfill order"
 msgstr "Falha ao atender pedido"
 
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:158
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:193
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:88
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:106
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:228
@@ -886,6 +894,10 @@ msgstr "Falha ao criar coleção"
 #: src/lib/components/data-table/data-table-pagination.tsx:57
 msgid "Go to first page"
 msgstr "Ir para a primeira página"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:220
+#~ msgid "Defaults to the default currency."
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:167
 msgid "Failed to create product"
@@ -1204,9 +1216,16 @@ msgstr "Restante:"
 msgid "No duplicator found with code \"{duplicatorCode}\" for {entityName}s"
 msgstr "Nenhum duplicador encontrado com código \"{duplicatorCode}\" para {entityName}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:230
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:337
 msgid "Prices include tax for default tax zone"
 msgstr "Preços incluem imposto para zona fiscal padrão"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:130
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:131
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:134
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:135
+msgid "This field is required"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx:276
 msgid "Total refund:"
@@ -1322,8 +1341,8 @@ msgstr "{productCount, plural, one {Este grupo de opcoes e utilizado por outro p
 msgid "My Saved Views"
 msgstr "Minhas visões salvas"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:39
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:111
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:66
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:201
 msgid "New channel"
 msgstr "Novo canal"
 
@@ -1685,7 +1704,7 @@ msgstr "Excluir variante"
 msgid "No modifications made"
 msgstr "Nenhuma modificação feita"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:222
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:329
 msgid "Default shipping zone"
 msgstr "Zona de envio padrão"
 
@@ -1795,7 +1814,7 @@ msgstr "Reembolso liquidado com sucesso"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:214
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
@@ -1892,7 +1911,7 @@ msgstr "Nenhum resultado"
 msgid "Column settings"
 msgstr "Configurações de coluna"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:132
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:224
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:126
@@ -2008,6 +2027,10 @@ msgstr "Arquivo atualizado com sucesso"
 #: src/lib/components/layout/nav-user.tsx:118
 msgid "Theme"
 msgstr "Tema"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:156
+msgid "You must select at least one available currency"
+msgstr ""
 
 #. placeholder {0}: value.totalItems
 #: src/app/routes/_authenticated/_customer-groups/customer-groups.tsx:40
@@ -2590,7 +2613,7 @@ msgstr "Nova categoria fiscal"
 #~ msgid "No stock locations available on current channel"
 #~ msgstr "Nenhum local de estoque disponível no canal atual"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:83
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:173
 msgid "Successfully created channel"
 msgstr "Canal criado com sucesso"
 
@@ -2821,7 +2844,7 @@ msgstr "Excluir visão global"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:214
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
@@ -2953,6 +2976,10 @@ msgstr "Nenhuma tag selecionada"
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:205
 msgid "Back"
 msgstr "Voltar"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:111
+#~ msgid "Select at least one currency"
+#~ msgstr ""
 
 #: src/lib/components/data-table/views-sheet.tsx:63
 msgid "View renamed successfully"
@@ -3129,7 +3156,7 @@ msgstr "Estado/Província"
 msgid "Failed to update option group"
 msgstr "Falha ao atualizar grupo de opcoes"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:183
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:277
 msgid "Channel defaults"
 msgstr "Padrões do canal"
 
@@ -3232,7 +3259,7 @@ msgstr "{totalItems} {0} encontrado(s)"
 msgid "Select date range"
 msgstr "Selecionar período"
 
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:87
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:158
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:44
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:97
 msgid "Product"
@@ -3285,7 +3312,7 @@ msgstr "Pesquisar valores de facetas..."
 msgid "Note"
 msgstr "Nota"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:160
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:252
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:112
 msgid "Available languages"
 msgstr "Idiomas disponíveis"
@@ -3440,7 +3467,7 @@ msgstr ""
 msgid "Settle payment"
 msgstr "Liquidar pagamento"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:38
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:65
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:216
@@ -4287,7 +4314,7 @@ msgstr "Altura"
 msgid "A refund of {formattedDiff} is required. Select payment amounts and enter a note to proceed."
 msgstr "Um reembolso de {formattedDiff} é necessário. Selecione os valores de pagamento e insira uma nota para prosseguir."
 
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:100
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:171
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:57
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:100
 msgid "Unit price"
@@ -4481,6 +4508,10 @@ msgstr "Visão excluída com sucesso"
 msgid "OR"
 msgstr "OU"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:166
+msgid "You must select a default currency from the list of available currencies"
+msgstr ""
+
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx:213
 msgid "Manage tags"
 msgstr "Gerenciar tags"
@@ -4567,7 +4598,7 @@ msgstr "Editar ou excluir tags existentes"
 msgid "This shipping method's eligibility checker conditions are not met for the current order and shipping address."
 msgstr "As condições do verificador de elegibilidade deste método de envio não são atendidas para o pedido atual e endereço de entrega."
 
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:273
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:308
 msgid "Add coupon code"
 msgstr "Adicionar código de cupom"
 
@@ -5093,7 +5124,7 @@ msgstr "Falha ao atribuir {entityIdsLength} {entityType} ao canal"
 msgid "Default Language"
 msgstr "Idioma padrão"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:141
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:233
 msgid "Token"
 msgstr "Token"
 
@@ -5193,7 +5224,7 @@ msgstr "Atendimento #{0} de {1} para {2}"
 msgid "Failed to delete global view"
 msgstr "Falha ao excluir visão global"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:188
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:282
 msgid "Default language"
 msgstr "Idioma padrão"
 
@@ -5351,7 +5382,7 @@ msgstr "Valor atualizado"
 msgid "Unverified"
 msgstr "Não verificado"
 
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:111
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:182
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:268
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:78
 msgid "Quantity"
@@ -5441,6 +5472,10 @@ msgstr "Mês passado"
 msgid "Add Country"
 msgstr "Adicionar país"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:253
+msgid "Defaults to the default language."
+msgstr ""
+
 #: src/lib/components/data-input/custom-field-list-input.tsx:85
 msgid "Remove item"
 msgstr "Remover item"
@@ -5529,8 +5564,8 @@ msgstr "Origem"
 msgid "No actions available"
 msgstr "Nenhuma ação disponível"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:90
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:96
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:180
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:186
 msgid "Failed to update channel"
 msgstr "Falha ao atualizar canal"
 
@@ -5591,7 +5626,7 @@ msgstr "Descrição (texto alternativo)"
 msgid "No tags found"
 msgstr "Nenhuma tag encontrada"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:201
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:304
 msgid "Default currency"
 msgstr "Moeda padrão"
 
@@ -5834,7 +5869,7 @@ msgid "Failed to unset shipping address for order: {0}"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:82
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:96
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:167
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:297
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:292
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:198
@@ -5975,7 +6010,7 @@ msgstr "Adicionar pagamento ao pedido"
 msgid "Loading..."
 msgstr "Carregando..."
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:143
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:235
 msgid "The token is used to specify the channel when making API requests."
 msgstr "O token é usado para especificar o canal ao fazer solicitações de API."
 

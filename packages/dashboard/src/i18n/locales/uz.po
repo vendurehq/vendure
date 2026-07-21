@@ -157,6 +157,10 @@ msgstr "Maxsus sababni kiriting..."
 msgid "Type"
 msgstr "Turi"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:266
+msgid "The default currency is chosen from this list."
+msgstr ""
+
 #. placeholder {0}: entityName.toLowerCase()
 #. placeholder {0}: group.name
 #: src/app/routes/_authenticated/_products/components/product-option-select.tsx:57
@@ -191,7 +195,7 @@ msgstr "Joriy"
 msgid "No fulfillments"
 msgstr "Bajarishlar yo'q"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:232
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:339
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
 msgstr "Bu yoqilganda, mahsulot katalogidagi narxlar standart soliq hududi solig'iga kiritiladi."
 
@@ -230,7 +234,7 @@ msgstr "Optsiyalar"
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
 msgstr "{fulfilled, plural, one {{fulfilled} ta vazifa muvaffaqiyatli bekor qilindi} other {{fulfilled} ta vazifa muvaffaqiyatli bekor qilindi}}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:152
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:244
 msgid "Seller"
 msgstr "Sotuvchi"
 
@@ -365,8 +369,8 @@ msgctxt "date-range"
 msgid "Last 7 days"
 msgstr "So'nggi 7 kun"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:90
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:96
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:180
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:186
 msgid "Failed to create channel"
 msgstr "Kanal yaratib bo'lmadi"
 
@@ -507,6 +511,10 @@ msgstr "Bu maydon faqat o'qish uchun"
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:80
 msgid "Order Count"
 msgstr "Buyurtmalar soni"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:159
+msgid "You must first select an available currency to set a default currency"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:92
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:59
@@ -657,7 +665,7 @@ msgstr "Manzilni tanlang"
 msgid "Payment eligibility checker"
 msgstr "To'lov muvofiqligi tekshiruvchisi"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:214
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:321
 msgid "Default tax zone"
 msgstr "Standart soliq hududi"
 
@@ -685,7 +693,7 @@ msgstr "Filtrlash..."
 msgid "New facet value"
 msgstr "Yangi faset qiymati"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:83
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:173
 msgid "Successfully updated channel"
 msgstr "Kanal yangilandi"
 
@@ -697,7 +705,7 @@ msgstr "Kamroq ko'rsatish"
 msgid "Short date"
 msgstr "Qisqa sana"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:172
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:265
 msgid "Available currencies"
 msgstr "Mavjud valyutalar"
 
@@ -761,7 +769,7 @@ msgstr "Nomi"
 msgid "Failed to fulfill order"
 msgstr "Buyurtmani bajarib bo'lmadi"
 
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:158
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:193
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:88
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:106
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:228
@@ -858,6 +866,10 @@ msgstr "To'plamni yaratib bo'lmadi"
 #: src/lib/components/data-table/data-table-pagination.tsx:57
 msgid "Go to first page"
 msgstr "Birinchi sahifaga o'tish"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:220
+#~ msgid "Defaults to the default currency."
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:167
 msgid "Failed to create product"
@@ -1168,9 +1180,16 @@ msgstr "Qolgan:"
 msgid "No duplicator found with code \"{duplicatorCode}\" for {entityName}s"
 msgstr "{entityName}lar uchun \"{duplicatorCode}\" kodli dublikator topilmadi"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:230
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:337
 msgid "Prices include tax for default tax zone"
 msgstr "Narxlar standart soliq hududi uchun soliqni o'z ichiga oladi"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:130
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:131
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:134
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:135
+msgid "This field is required"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx:276
 msgid "Total refund:"
@@ -1278,8 +1297,8 @@ msgstr "{productCount, plural, one {Ushbu optsiya guruhidan yana bitta mahsulot 
 msgid "My Saved Views"
 msgstr "Saqlangan ko'rinishlarim"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:39
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:111
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:66
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:201
 msgid "New channel"
 msgstr "Yangi kanal"
 
@@ -1624,7 +1643,7 @@ msgstr "Variantni o'chirish"
 msgid "No modifications made"
 msgstr "Hech qanday o'zgartirish kiritilmadi"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:222
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:329
 msgid "Default shipping zone"
 msgstr "Standart yetkazib berish hududi"
 
@@ -1734,7 +1753,7 @@ msgstr "Pul qaytarish muvaffaqiyatli hisoblashildi"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:214
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
@@ -1825,7 +1844,7 @@ msgstr "Natijalar yo'q"
 msgid "Column settings"
 msgstr "Ustun sozlamalari"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:132
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:224
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:126
@@ -1941,6 +1960,10 @@ msgstr "Asset yangilandi"
 #: src/lib/components/layout/nav-user.tsx:118
 msgid "Theme"
 msgstr "Mavzu"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:156
+msgid "You must select at least one available currency"
+msgstr ""
 
 #. placeholder {0}: value.totalItems
 #: src/app/routes/_authenticated/_customer-groups/customer-groups.tsx:40
@@ -2515,7 +2538,7 @@ msgstr "Toʻplamni oʻzining avlodiga koʻchirib boʻlmaydi"
 msgid "New Tax Category"
 msgstr "Yangi soliq toifasi"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:83
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:173
 msgid "Successfully created channel"
 msgstr "Kanal yaratildi"
 
@@ -2737,7 +2760,7 @@ msgstr "Global koʻrinishni oʻchirish"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:214
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
@@ -2865,6 +2888,10 @@ msgstr "Hech qanday teg tanlanmagan"
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:205
 msgid "Back"
 msgstr "Orqaga"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:111
+#~ msgid "Select at least one currency"
+#~ msgstr ""
 
 #: src/lib/components/data-table/views-sheet.tsx:63
 msgid "View renamed successfully"
@@ -3037,7 +3064,7 @@ msgstr "Shtat/Viloyat"
 msgid "Failed to update option group"
 msgstr "Optsiya guruhini yangilab bo'lmadi"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:183
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:277
 msgid "Channel defaults"
 msgstr "Kanal standartlari"
 
@@ -3140,7 +3167,7 @@ msgstr "{totalItems} {0} topildi"
 msgid "Select date range"
 msgstr "Sana oralig'ini tanlang"
 
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:87
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:158
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:44
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:97
 msgid "Product"
@@ -3193,7 +3220,7 @@ msgstr "Faset qiymatlarini qidirish..."
 msgid "Note"
 msgstr "Eslatma"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:160
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:252
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:112
 msgid "Available languages"
 msgstr "Mavjud tillar"
@@ -3340,7 +3367,7 @@ msgstr ""
 msgid "Settle payment"
 msgstr "To'lovni yakunlash"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:38
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:65
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:216
@@ -4151,7 +4178,7 @@ msgstr "Balandlik"
 msgid "A refund of {formattedDiff} is required. Select payment amounts and enter a note to proceed."
 msgstr "{formattedDiff} miqdorida pul qaytarish talab qilinadi. To'lov summalarini tanlang va davom etish uchun eslatma kiriting."
 
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:100
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:171
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:57
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:100
 msgid "Unit price"
@@ -4329,6 +4356,10 @@ msgstr "Ko'rinish o'chirildi"
 msgid "OR"
 msgstr "YOKI"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:166
+msgid "You must select a default currency from the list of available currencies"
+msgstr ""
+
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx:213
 msgid "Manage tags"
 msgstr "Teglarni boshqarish"
@@ -4411,7 +4442,7 @@ msgstr "Mavjud teglarni tahrirlash yoki o'chirish"
 msgid "This shipping method's eligibility checker conditions are not met for the current order and shipping address."
 msgstr "Bu yetkazib berish usulining muvofiqlik shartlari joriy buyurtma va manzil uchun bajarilmagan."
 
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:273
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:308
 msgid "Add coupon code"
 msgstr "Kupon kodini qo'shish"
 
@@ -4913,7 +4944,7 @@ msgstr "{entityIdsLength} ta {entityType} kanalga biriktirib bo'lmadi"
 msgid "Default Language"
 msgstr "Standart til"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:141
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:233
 msgid "Token"
 msgstr "Token"
 
@@ -5009,7 +5040,7 @@ msgstr "{1} dan {2} ga bajarish #{0}"
 msgid "Failed to delete global view"
 msgstr "Global ko'rinishni o'chirib bo'lmadi"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:188
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:282
 msgid "Default language"
 msgstr "Standart til"
 
@@ -5163,7 +5194,7 @@ msgstr "Qiymat yangilandi"
 msgid "Unverified"
 msgstr "Tasdiqlanmagan"
 
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:111
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:182
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:268
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:78
 msgid "Quantity"
@@ -5253,6 +5284,10 @@ msgstr "O'tgan oy"
 msgid "Add Country"
 msgstr "Mamlakat qo'shish"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:253
+msgid "Defaults to the default language."
+msgstr ""
+
 #: src/lib/components/data-input/custom-field-list-input.tsx:85
 msgid "Remove item"
 msgstr "Elementni olib tashlash"
@@ -5337,8 +5372,8 @@ msgstr "Manba"
 msgid "No actions available"
 msgstr "Mavjud amallar yo'q"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:90
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:96
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:180
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:186
 msgid "Failed to update channel"
 msgstr "Kanalni yangilab bo'lmadi"
 
@@ -5395,7 +5430,7 @@ msgstr "Tavsif (muqobil)"
 msgid "No tags found"
 msgstr "Teglar topilmadi"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:201
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:304
 msgid "Default currency"
 msgstr "Standart valyuta"
 
@@ -5626,7 +5661,7 @@ msgid "Failed to unset shipping address for order: {0}"
 msgstr "Buyurtma uchun yetkazib berish manzilini bekor qilish amalga oshmadi: {0}"
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:82
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:96
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:167
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:297
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:292
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:198
@@ -5767,7 +5802,7 @@ msgstr "Buyurtmaga to'lov qo'shish"
 msgid "Loading..."
 msgstr "Yuklanmoqda..."
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:143
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:235
 msgid "The token is used to specify the channel when making API requests."
 msgstr "Token API so'rovlarini yuborishda kanalni belgilash uchun ishlatiladi."
 

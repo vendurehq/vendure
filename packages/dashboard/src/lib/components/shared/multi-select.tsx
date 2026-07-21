@@ -39,6 +39,7 @@ export function MultiSelect<T extends boolean>(props: MultiSelectProps<T>) {
         className,
     } = props;
     const [search, setSearch] = useState('');
+    const [open, setOpen] = useState(false);
 
     const filteredItems = items.filter(item => item.label.toLowerCase().includes(search.toLowerCase()));
 
@@ -51,6 +52,9 @@ export function MultiSelect<T extends boolean>(props: MultiSelectProps<T>) {
             onChange(newValue as T extends true ? string[] : string);
         } else {
             onChange(selectedValue as T extends true ? string[] : string);
+            // A single-select has nothing left to choose once a value is picked, so close. A
+            // multiple select stays open to take further selections.
+            setOpen(false);
         }
     };
 
@@ -125,7 +129,7 @@ export function MultiSelect<T extends boolean>(props: MultiSelectProps<T>) {
     };
 
     return (
-        <Popover>
+        <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger render={renderTrigger()}></PopoverTrigger>
             <PopoverContent className="w-[200px] p-0" side="bottom" align="start" onWheel={(e) => e.stopPropagation()}>
                 {(showSearch === true || items.length > 10) && (

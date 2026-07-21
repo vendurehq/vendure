@@ -260,7 +260,7 @@
           "title": "Plugins",
           "slug": "plugins",
           "file": "docs/guides/developer-guide/plugins/index.mdx",
-          "lastModified": "2026-06-26T15:49:47+02:00"
+          "lastModified": "2026-07-20T16:45:15+02:00"
         },
         {
           "title": "Security",
@@ -392,7 +392,7 @@
           "title": "Stand-alone Scripts",
           "slug": "stand-alone-scripts",
           "file": "docs/guides/developer-guide/stand-alone-scripts/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-07-20T16:45:15+02:00"
         },
         {
           "title": "Translations",
@@ -416,7 +416,7 @@
           "title": "Telemetry",
           "slug": "telemetry",
           "file": "docs/guides/developer-guide/telemetry/index.mdx",
-          "lastModified": "2026-03-30T21:48:02+02:00"
+          "lastModified": "2026-07-17T15:06:45+02:00"
         }
       ]
     },
@@ -2772,7 +2772,7 @@
                   "title": "RequestContextService",
                   "slug": "request-context-service",
                   "file": "docs/reference/typescript-api/request/request-context-service.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-07-20T16:45:15+02:00"
                 },
                 {
                   "title": "Transaction Decorator",
@@ -3352,7 +3352,7 @@
                   "title": "TelemetryService",
                   "slug": "telemetry-service",
                   "file": "docs/reference/typescript-api/telemetry/telemetry-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-07-17T15:06:45+02:00"
                 },
                 {
                   "title": "WrappedMethodArgs",
@@ -3905,13 +3905,13 @@
                   "title": "UseDetailPage",
                   "slug": "use-detail-page",
                   "file": "docs/reference/dashboard/detail-views/use-detail-page.mdx",
-                  "lastModified": "2026-06-25T20:38:20+02:00"
+                  "lastModified": "2026-07-17T13:10:11+02:00"
                 },
                 {
                   "title": "UseGeneratedForm",
                   "slug": "use-generated-form",
                   "file": "docs/reference/dashboard/detail-views/use-generated-form.mdx",
-                  "lastModified": "2026-06-02T07:50:38+02:00"
+                  "lastModified": "2026-07-17T13:10:11+02:00"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"

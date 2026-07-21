@@ -161,6 +161,10 @@ msgstr "Özel neden girin..."
 msgid "Type"
 msgstr "Tür"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:266
+msgid "The default currency is chosen from this list."
+msgstr ""
+
 #. placeholder {0}: entityName.toLowerCase()
 #. placeholder {0}: group.name
 #: src/app/routes/_authenticated/_products/components/product-option-select.tsx:57
@@ -195,7 +199,7 @@ msgstr "Güncel"
 msgid "No fulfillments"
 msgstr "Teslimat yok"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:232
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:339
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
 msgstr "Bu etkinleştirildiğinde, ürün kataloğuna girilen fiyatlara varsayılan vergi bölgesi için vergi dahil edilecektir."
 
@@ -246,7 +250,7 @@ msgstr "Seçenekler"
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
 msgstr "{fulfilled, plural, one {{fulfilled} görev başarıyla iptal edildi} other {{fulfilled} görev başarıyla iptal edildi}}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:152
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:244
 msgid "Seller"
 msgstr "Satıcı"
 
@@ -389,8 +393,8 @@ msgctxt "date-range"
 msgid "Last 7 days"
 msgstr "Son 7 gün"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:90
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:96
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:180
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:186
 msgid "Failed to create channel"
 msgstr "Kanal oluşturulamadı"
 
@@ -535,6 +539,10 @@ msgstr "Bu alan salt okunurdur"
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:80
 msgid "Order Count"
 msgstr "Sipariş Sayısı"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:159
+msgid "You must first select an available currency to set a default currency"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:92
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:59
@@ -685,7 +693,7 @@ msgstr "Adres seç"
 msgid "Payment eligibility checker"
 msgstr "Ödeme uygunluk kontrolü"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:214
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:321
 msgid "Default tax zone"
 msgstr "Varsayılan vergi bölgesi"
 
@@ -713,7 +721,7 @@ msgstr "Filtrele..."
 msgid "New facet value"
 msgstr "Yeni özellik değeri"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:83
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:173
 msgid "Successfully updated channel"
 msgstr "Kanal başarıyla güncellendi"
 
@@ -725,7 +733,7 @@ msgstr "Daha az göster"
 msgid "Short date"
 msgstr "Kısa tarih"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:172
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:265
 msgid "Available currencies"
 msgstr "Mevcut para birimleri"
 
@@ -789,7 +797,7 @@ msgstr "Ad"
 msgid "Failed to fulfill order"
 msgstr "Sipariş teslim edilemedi"
 
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:158
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:193
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx:88
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:106
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx:228
@@ -886,6 +894,10 @@ msgstr "Koleksiyon oluşturulamadı"
 #: src/lib/components/data-table/data-table-pagination.tsx:57
 msgid "Go to first page"
 msgstr "İlk sayfaya git"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:220
+#~ msgid "Defaults to the default currency."
+#~ msgstr ""
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:167
 msgid "Failed to create product"
@@ -1204,9 +1216,16 @@ msgstr "Kalan:"
 msgid "No duplicator found with code \"{duplicatorCode}\" for {entityName}s"
 msgstr "{entityName} için \"{duplicatorCode}\" kodlu çoğaltıcı bulunamadı"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:230
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:337
 msgid "Prices include tax for default tax zone"
 msgstr "Fiyatlara varsayılan vergi bölgesi için vergi dahildir"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:130
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:131
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:134
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:135
+msgid "This field is required"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx:276
 msgid "Total refund:"
@@ -1322,8 +1341,8 @@ msgstr "{productCount, plural, one {Bu seçenek grubu başka bir ürün tarafın
 msgid "My Saved Views"
 msgstr "Kaydedilmiş Görünümlerim"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:39
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:111
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:66
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:201
 msgid "New channel"
 msgstr "Yeni kanal"
 
@@ -1685,7 +1704,7 @@ msgstr "Varyantı sil"
 msgid "No modifications made"
 msgstr "Değişiklik yapılmadı"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:222
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:329
 msgid "Default shipping zone"
 msgstr "Varsayılan kargo bölgesi"
 
@@ -1795,7 +1814,7 @@ msgstr "İade başarıyla tamamlandı"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:214
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
@@ -1892,7 +1911,7 @@ msgstr "Sonuç yok"
 msgid "Column settings"
 msgstr "Sütun ayarları"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:132
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:224
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:126
@@ -2008,6 +2027,10 @@ msgstr "Varlık başarıyla güncellendi"
 #: src/lib/components/layout/nav-user.tsx:118
 msgid "Theme"
 msgstr "Tema"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:156
+msgid "You must select at least one available currency"
+msgstr ""
 
 #. placeholder {0}: value.totalItems
 #: src/app/routes/_authenticated/_customer-groups/customer-groups.tsx:40
@@ -2590,7 +2613,7 @@ msgstr "Yeni Vergi Kategorisi"
 #~ msgid "No stock locations available on current channel"
 #~ msgstr "Mevcut kanalda kullanılabilir stok konumu yok"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:83
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:173
 msgid "Successfully created channel"
 msgstr "Kanal başarıyla oluşturuldu"
 
@@ -2821,7 +2844,7 @@ msgstr "Genel Görünümü Sil"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:122
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:214
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
@@ -2953,6 +2976,10 @@ msgstr "Etiket seçilmedi"
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:205
 msgid "Back"
 msgstr "Geri"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:111
+#~ msgid "Select at least one currency"
+#~ msgstr ""
 
 #: src/lib/components/data-table/views-sheet.tsx:63
 msgid "View renamed successfully"
@@ -3129,7 +3156,7 @@ msgstr "İl/Bölge"
 msgid "Failed to update option group"
 msgstr "Seçenek grubu güncellenemedi"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:183
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:277
 msgid "Channel defaults"
 msgstr "Kanal varsayılanları"
 
@@ -3232,7 +3259,7 @@ msgstr "{totalItems} {0} bulundu"
 msgid "Select date range"
 msgstr "Tarih aralığı seçin"
 
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:87
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:158
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:44
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:97
 msgid "Product"
@@ -3285,7 +3312,7 @@ msgstr "Faset değerlerini ara..."
 msgid "Note"
 msgstr "Not"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:160
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:252
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:112
 msgid "Available languages"
 msgstr "Mevcut diller"
@@ -3440,7 +3467,7 @@ msgstr ""
 msgid "Settle payment"
 msgstr "Ödemeyi tamamla"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:38
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:65
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:23
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:216
@@ -4287,7 +4314,7 @@ msgstr "Yükseklik"
 msgid "A refund of {formattedDiff} is required. Select payment amounts and enter a note to proceed."
 msgstr "{formattedDiff} tutarında iade gerekiyor. Ödeme tutarlarını seçin ve devam etmek için not girin."
 
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:100
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:171
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:57
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:100
 msgid "Unit price"
@@ -4481,6 +4508,10 @@ msgstr "Görünüm başarıyla silindi"
 msgid "OR"
 msgstr "VEYA"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:166
+msgid "You must select a default currency from the list of available currencies"
+msgstr ""
+
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx:213
 msgid "Manage tags"
 msgstr "Etiketleri yönet"
@@ -4567,7 +4598,7 @@ msgstr "Mevcut etiketleri düzenle veya sil"
 msgid "This shipping method's eligibility checker conditions are not met for the current order and shipping address."
 msgstr "Bu kargo yönteminin uygunluk kontrolü koşulları mevcut sipariş ve kargo adresi için karşılanmamaktadır."
 
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:273
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:308
 msgid "Add coupon code"
 msgstr "Kupon kodu ekle"
 
@@ -5093,7 +5124,7 @@ msgstr "{entityIdsLength} {entityType} kanala atanamadı"
 msgid "Default Language"
 msgstr "Varsayılan Dil"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:141
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:233
 msgid "Token"
 msgstr "Token"
 
@@ -5193,7 +5224,7 @@ msgstr "{1} ile {2} arası teslimat #{0}"
 msgid "Failed to delete global view"
 msgstr "Genel görünüm silinemedi"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:188
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:282
 msgid "Default language"
 msgstr "Varsayılan dil"
 
@@ -5351,7 +5382,7 @@ msgstr "Değer güncellendi"
 msgid "Unverified"
 msgstr "Doğrulanmamış"
 
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:111
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:182
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:268
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx:78
 msgid "Quantity"
@@ -5441,6 +5472,10 @@ msgstr "Geçen ay"
 msgid "Add Country"
 msgstr "Ülke Ekle"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:253
+msgid "Defaults to the default language."
+msgstr ""
+
 #: src/lib/components/data-input/custom-field-list-input.tsx:85
 msgid "Remove item"
 msgstr "Öğeyi kaldır"
@@ -5529,8 +5564,8 @@ msgstr "Kaynak"
 msgid "No actions available"
 msgstr "Kullanılabilir işlem yok"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:90
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:96
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:180
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:186
 msgid "Failed to update channel"
 msgstr "Kanal güncellenemedi"
 
@@ -5591,7 +5626,7 @@ msgstr "Açıklama (alt)"
 msgid "No tags found"
 msgstr "Etiket bulunamadı"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:201
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:304
 msgid "Default currency"
 msgstr "Varsayılan para birimi"
 
@@ -5834,7 +5869,7 @@ msgid "Failed to unset shipping address for order: {0}"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:82
-#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:96
+#: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx:167
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:297
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx:292
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:198
@@ -5975,7 +6010,7 @@ msgstr "Siparişe ödeme ekle"
 msgid "Loading..."
 msgstr "Yükleniyor..."
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:143
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:235
 msgid "The token is used to specify the channel when making API requests."
 msgstr "Token, API istekleri yaparken kanalı belirtmek için kullanılır."
 

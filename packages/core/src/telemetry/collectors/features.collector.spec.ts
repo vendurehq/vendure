@@ -355,4 +355,26 @@ describe('FeaturesCollector', () => {
             expect(result.multiVendor).toBe(false);
         });
     });
+
+    describe('multiCurrency', () => {
+        it('is true when more than one currency is configured', async () => {
+            const result = await collector.collect(baseConfig, 3);
+            expect(result.multiCurrency).toBe(true);
+        });
+
+        it('is false for a single currency', async () => {
+            const result = await collector.collect(baseConfig, 1);
+            expect(result.multiCurrency).toBe(false);
+        });
+
+        it('is false for zero currencies', async () => {
+            const result = await collector.collect(baseConfig, 0);
+            expect(result.multiCurrency).toBe(false);
+        });
+
+        it('is undefined when the currency count is unavailable', async () => {
+            const result = await collector.collect(baseConfig);
+            expect(result.multiCurrency).toBeUndefined();
+        });
+    });
 });
