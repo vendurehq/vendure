@@ -9,17 +9,6 @@ import { LocaleString } from './locale-types';
 
 /**
  * @description
- * Controls whether an {@link Asset} is discoverable through ordinary Asset queries.
- *
- * @docsCategory entities
- */
-export enum AssetVisibility {
-    PUBLIC = 'PUBLIC',
-    PRIVATE = 'PRIVATE',
-}
-
-/**
- * @description
  * Entities which can be assigned to Channels should implement this interface.
  *
  * @docsCategory entities

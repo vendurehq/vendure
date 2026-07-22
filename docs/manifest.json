@@ -1635,12 +1635,6 @@
                   "lastModified": "2026-07-17T14:48:59Z"
                 },
                 {
-                  "title": "AssetVisibility",
-                  "slug": "asset-visibility",
-                  "file": "docs/reference/typescript-api/entities/asset-visibility.mdx",
-                  "lastModified": "2026-07-17T14:48:59Z"
-                },
-                {
                   "title": "AuthenticatedSession",
                   "slug": "authenticated-session",
                   "file": "docs/reference/typescript-api/entities/authenticated-session.mdx",

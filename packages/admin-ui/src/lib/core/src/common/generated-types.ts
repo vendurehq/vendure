@@ -266,7 +266,6 @@ export type Asset = Node & {
   translations: Array<AssetTranslation>;
   type: AssetType;
   updatedAt: Scalars['DateTime']['output'];
-  visibility: AssetVisibility;
   width: Scalars['Int']['output'];
 };
 
@@ -284,7 +283,6 @@ export type AssetFilterParameter = {
   source?: InputMaybe<StringOperators>;
   type?: InputMaybe<StringOperators>;
   updatedAt?: InputMaybe<DateOperators>;
-  visibility?: InputMaybe<StringOperators>;
   width?: InputMaybe<NumberOperators>;
 };
 
@@ -342,11 +340,6 @@ export enum AssetType {
   BINARY = 'BINARY',
   IMAGE = 'IMAGE',
   VIDEO = 'VIDEO'
-}
-
-export enum AssetVisibility {
-  PRIVATE = 'PRIVATE',
-  PUBLIC = 'PUBLIC'
 }
 
 export type AssignAssetsToChannelInput = {

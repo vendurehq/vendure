@@ -5,7 +5,6 @@ type Asset implements Node {
     languageCode: LanguageCode!
     name: String!
     type: AssetType!
-    visibility: AssetVisibility!
     fileSize: Int!
     mimeType: String!
     width: Int!
@@ -39,9 +38,4 @@ enum AssetType {
     IMAGE
     VIDEO
     BINARY
-}
-
-enum AssetVisibility {
-    PUBLIC
-    PRIVATE
 }

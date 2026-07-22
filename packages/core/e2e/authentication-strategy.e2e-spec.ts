@@ -299,7 +299,6 @@ describe('AuthenticationStrategy', () => {
 
             const { activeAdministrator } = await adminClient.query(getActiveAdministratorAvatarDocument);
             expect(activeAdministrator?.avatar).toMatchObject({
-                visibility: 'PRIVATE',
                 mimeType: 'image/png',
             });
             expect(activeAdministrator?.avatar?.source).toContain('external-profile.png');

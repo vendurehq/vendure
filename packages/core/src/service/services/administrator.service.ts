@@ -85,12 +85,12 @@ export class AdministratorService {
             administrator.avatar = null;
             await this.connection.getRepository(ctx, Administrator).save(administrator, { reload: false });
             if (previousAvatar) {
-                await this.assetService.deletePrivate(ctx, previousAvatar);
+                await this.assetService.deleteSystemAsset(ctx, previousAvatar);
             }
             return administrator;
         }
 
-        const avatar = await this.assetService.createPrivate(ctx, upload, { imageOnly: true });
+        const avatar = await this.assetService.createSystemAsset(ctx, upload, { imageOnly: true });
         if (isGraphQlErrorResult(avatar)) {
             throw new UserInputError('error.mime-type-not-permitted', {
                 fileName: avatar.fileName,
@@ -101,11 +101,11 @@ export class AdministratorService {
         try {
             await this.connection.getRepository(ctx, Administrator).save(administrator, { reload: false });
         } catch (error) {
-            await this.assetService.deletePrivate(ctx, avatar);
+            await this.assetService.deleteSystemAsset(ctx, avatar);
             throw error;
         }
         if (previousAvatar) {
-            await this.assetService.deletePrivate(ctx, previousAvatar);
+            await this.assetService.deleteSystemAsset(ctx, previousAvatar);
         }
         return administrator;
     }

@@ -235,7 +235,7 @@ export class ExternalAuthenticationService {
      * @description
      * Sets or removes the avatar belonging to an externally-authenticated Administrator.
      * This allows an authentication strategy to synchronize a provider profile image without
-     * needing to look up the Administrator or manage the underlying private Asset.
+     * needing to look up the Administrator or manage the underlying system Asset.
      *
      * @example
      * ```ts

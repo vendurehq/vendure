@@ -149,7 +149,6 @@ describe('Custom field relations', () => {
             'languageCode',
             'name',
             'type',
-            'visibility',
             'fileSize',
             'mimeType',
             'width',

@@ -29,18 +29,19 @@ import { Instrument } from '../../common';
 import { isGraphQlErrorResult } from '../../common/error/error-result';
 import { EntityNotFoundError, ForbiddenError, InternalServerError } from '../../common/error/errors';
 import { MimeTypeError } from '../../common/error/generated-graphql-admin-errors';
-import { AssetVisibility, ChannelAware } from '../../common/types/common-types';
+import { ChannelAware } from '../../common/types/common-types';
 import { Translated } from '../../common/types/locale-types';
 import { idsAreEqual } from '../../common/utils';
 import { ConfigService } from '../../config/config.service';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { AssetTranslation } from '../../entity/asset/asset-translation.entity';
+import { AssetUsage } from '../../entity/asset/asset-usage';
 import { Asset } from '../../entity/asset/asset.entity';
 import { OrderableAsset } from '../../entity/asset/orderable-asset.entity';
 import { VendureEntity } from '../../entity/base/base.entity';
 import { Collection } from '../../entity/collection/collection.entity';
-import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
 import { Product } from '../../entity/product/product.entity';
+import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
 import { EventBus } from '../../event-bus/event-bus';
 import { AssetChannelEvent } from '../../event-bus/events/asset-channel-event';
 import { AssetEvent } from '../../event-bus/events/asset-event';
@@ -114,7 +115,7 @@ export class AssetService {
                 relations: relations ?? [],
             })
             .then(result =>
-                result?.visibility === AssetVisibility.PUBLIC
+                result?.usage === AssetUsage.LIBRARY
                     ? this.translator.translate(result, ctx)
                     : undefined,
             );
@@ -130,7 +131,7 @@ export class AssetService {
             relations: [...(relations ?? []), 'tags'],
             channelId: ctx.channelId,
         });
-        qb.andWhere('asset.visibility = :visibility', { visibility: AssetVisibility.PUBLIC });
+        qb.andWhere('asset.usage = :usage', { usage: AssetUsage.LIBRARY });
         const tags = options?.tags;
         if (tags && tags.length) {
             const operator = options?.tagsOperator ?? LogicalOperator.AND;
@@ -276,7 +277,7 @@ export class AssetService {
             const assets = await this.connection.findByIdsInChannel(ctx, Asset, assetIds, ctx.channelId, {});
             const sortedAssets = assetIds
                 .map(id => assets.find(a => idsAreEqual(a.id, id)))
-                .filter(asset => asset?.visibility === AssetVisibility.PUBLIC)
+                .filter(asset => asset?.usage === AssetUsage.LIBRARY)
                 .filter(notNullOrUndefined);
             await this.removeExistingOrderableAssets(ctx, entity);
             if (sortedAssets.length > 0) {
@@ -323,12 +324,12 @@ export class AssetService {
     }
 
     /**
-     * Creates an Asset owned by another domain object. Private Assets are excluded from
+     * Creates an Asset used by an internal system feature. System Assets are excluded from
      * ordinary Asset queries and are managed through their owning domain operation.
      *
      * @internal
      */
-    async createPrivate(
+    async createSystemAsset(
         ctx: RequestContext,
         uploadInput: CreateAssetInput['file'],
         options: { imageOnly?: boolean } = {},
@@ -344,7 +345,7 @@ export class AssetService {
             upload.filename,
             undefined,
             undefined,
-            AssetVisibility.PRIVATE,
+            AssetUsage.SYSTEM,
         );
         const translatedAsset = this.translator.translate(result, ctx);
         await this.eventBus.publish(new AssetEvent(ctx, translatedAsset, 'created', { file: uploadInput }));
@@ -352,9 +353,9 @@ export class AssetService {
     }
 
     /** @internal */
-    async deletePrivate(ctx: RequestContext, asset: Asset): Promise<void> {
-        if (asset.visibility !== AssetVisibility.PRIVATE) {
-            throw new InternalServerError('Cannot delete a public Asset through a private owner');
+    async deleteSystemAsset(ctx: RequestContext, asset: Asset): Promise<void> {
+        if (asset.usage !== AssetUsage.SYSTEM) {
+            throw new InternalServerError('Cannot delete a library Asset through a system owner');
         }
         await this.deleteUnconditional(ctx, [asset]);
     }
@@ -365,7 +366,7 @@ export class AssetService {
      */
     async update(ctx: RequestContext, input: UpdateAssetInput): Promise<Translated<Asset>> {
         const asset = await this.connection.getEntityOrThrow(ctx, Asset, input.id);
-        if (asset.visibility !== AssetVisibility.PUBLIC) {
+        if (asset.usage !== AssetUsage.LIBRARY) {
             throw new EntityNotFoundError('Asset', input.id);
         }
         if (input.focalPoint) {
@@ -419,7 +420,7 @@ export class AssetService {
             await this.connection.findByIdsInChannel(ctx, Asset, ids, ctx.channelId, {
                 relations: ['channels'],
             })
-        ).filter(asset => asset.visibility === AssetVisibility.PUBLIC);
+        ).filter(asset => asset.usage === AssetUsage.LIBRARY);
         let channelsOfAssets: ID[] = [];
         assets.forEach(a => a.channels.forEach(c => channelsOfAssets.push(c.id)));
         channelsOfAssets = unique(channelsOfAssets);
@@ -429,10 +430,10 @@ export class AssetService {
             collections: 0,
         };
         for (const asset of assets) {
-            const usages = await this.findAssetUsages(ctx, asset);
-            usageCount.products += usages.products.length;
-            usageCount.variants += usages.variants.length;
-            usageCount.collections += usages.collections.length;
+            const references = await this.findAssetReferences(ctx, asset);
+            usageCount.products += references.products.length;
+            usageCount.variants += references.variants.length;
+            usageCount.collections += references.collections.length;
         }
         const hasUsages = !!(usageCount.products || usageCount.variants || usageCount.collections);
         if (hasUsages && !force) {
@@ -490,7 +491,7 @@ export class AssetService {
         }
         const assets = (
             await this.connection.findByIdsInChannel(ctx, Asset, input.assetIds, ctx.channelId, {})
-        ).filter(asset => asset.visibility === AssetVisibility.PUBLIC);
+        ).filter(asset => asset.usage === AssetUsage.LIBRARY);
         await Promise.all(
             assets.map(async asset => {
                 await this.channelService.assignToChannels(ctx, Asset, asset.id, [input.channelId]);
@@ -598,16 +599,16 @@ export class AssetService {
         filename: string,
         customFields?: { [key: string]: any },
         translations?: Array<{ languageCode: LanguageCode; name?: string | null; customFields?: any }>,
-        visibility: AssetVisibility = AssetVisibility.PUBLIC,
+        usage: AssetUsage = AssetUsage.LIBRARY,
     ): Promise<Asset> {
         // Save asset first
         const asset = new Asset({
             ...storedMedia,
-            visibility,
+            usage,
             focalPoint: null,
             customFields,
         });
-        if (visibility === AssetVisibility.PUBLIC) {
+        if (usage === AssetUsage.LIBRARY) {
             await this.channelService.assignToCurrentChannel(asset, ctx);
         }
         const savedAsset = await this.connection.getRepository(ctx, Asset).save(asset);
@@ -706,7 +707,7 @@ export class AssetService {
     /**
      * Find the entities which reference the given Asset as a featuredAsset.
      */
-    private async findAssetUsages(
+    private async findAssetReferences(
         ctx: RequestContext,
         asset: Asset,
     ): Promise<{ products: Product[]; variants: ProductVariant[]; collections: Collection[] }> {

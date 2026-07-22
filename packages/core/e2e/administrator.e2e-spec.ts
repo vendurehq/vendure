@@ -517,7 +517,7 @@ describe('Administrator resolver', () => {
             }
         }
 
-        it('allows the owner to upload, replace and remove private profile media', async () => {
+        it('allows the owner to upload, replace and remove system profile media', async () => {
             await loginAsCurrentSuperAdmin();
             const assetsBefore = await adminClient.query(getAssetListDocument, {});
             const { createRole } = await adminClient.query(createRoleDocument, {
@@ -550,7 +550,6 @@ describe('Administrator resolver', () => {
             });
             expect(firstUpload.setActiveAdministratorAvatar.avatar).toMatchObject({
                 id: expect.any(String),
-                visibility: 'PRIVATE',
                 mimeType: 'image/jpeg',
                 width: expect.any(Number),
                 height: expect.any(Number),
@@ -574,10 +573,10 @@ describe('Administrator resolver', () => {
             await loginAsCurrentSuperAdmin();
             const assetsWhileAvatarExists = await adminClient.query(getAssetListDocument, {});
             expect(assetsWhileAvatarExists.assets.totalItems).toBe(assetsBefore.assets.totalItems);
-            const privateAssetLookup = await adminClient.query(getAssetDocument, {
+            const systemAssetLookup = await adminClient.query(getAssetDocument, {
                 id: secondUpload.setActiveAdministratorAvatar.avatar.id,
             });
-            expect(privateAssetLookup.asset).toBeNull();
+            expect(systemAssetLookup.asset).toBeNull();
 
             await adminClient.asAnonymousUser();
             await adminClient.query(attemptLoginDocument, {
