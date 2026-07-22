@@ -1,7 +1,7 @@
 name: Lint PR title
 
 on:
-    pull_request_target:
+    pull_request:
         types: [opened, edited, reopened, synchronize]
 
 permissions:
@@ -13,8 +13,6 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
-              with:
-                  ref: ${{ github.event.pull_request.base.sha }}
             - uses: ./.github/actions/setup
             - name: Lint pull request title
               env:
