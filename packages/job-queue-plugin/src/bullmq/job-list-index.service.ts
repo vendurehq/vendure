@@ -73,38 +73,28 @@ export class JobListIndexService {
         if (this.processContext.isServer) return;
         if (!this.queueEvents || !this.queue) return;
 
-        // When a job is added to the queue
-        this.queueEvents.on('waiting', ({ jobId }) => {
-            this.enqueueIndexOperation(jobId, () => this.updateJobIndex(jobId, 'wait'));
-        });
-
-        this.queueEvents.on('waiting-children', ({ jobId }) => {
-            this.enqueueIndexOperation(jobId, () => this.updateJobIndex(jobId, 'waiting-children'));
-        });
-
-        // When a job starts processing
-        this.queueEvents.on('active', ({ jobId }) => {
-            this.enqueueIndexOperation(jobId, () => this.updateJobIndex(jobId, 'active'));
-        });
-
-        // When a job completes successfully
-        this.queueEvents.on('completed', ({ jobId }) => {
-            this.enqueueIndexOperation(jobId, () => this.updateJobIndex(jobId, 'completed'));
-        });
-
-        // When a job fails
-        this.queueEvents.on('failed', ({ jobId }) => {
-            this.enqueueIndexOperation(jobId, () => this.updateJobIndex(jobId, 'failed'));
-        });
-
-        // When a job is delayed
-        this.queueEvents.on('delayed', ({ jobId }) => {
-            this.enqueueIndexOperation(jobId, () => this.updateJobIndex(jobId, 'delayed'));
-        });
+        this.indexOnEvent('waiting', 'wait');
+        this.indexOnEvent('waiting-children', 'waiting-children');
+        this.indexOnEvent('active', 'active');
+        this.indexOnEvent('completed', 'completed');
+        this.indexOnEvent('failed', 'failed');
+        this.indexOnEvent('delayed', 'delayed');
 
         // When a job is removed
         this.queueEvents.on('removed', ({ jobId }) => {
             this.enqueueIndexOperation(jobId, () => this.removeJobFromAllIndices(jobId));
+        });
+    }
+
+    /**
+     * Registers a QueueEvents listener which re-indexes the job under the given state.
+     */
+    private indexOnEvent(
+        event: 'waiting' | 'waiting-children' | 'active' | 'completed' | 'failed' | 'delayed',
+        state: JobType,
+    ) {
+        this.queueEvents?.on(event, ({ jobId }: { jobId: string }) => {
+            this.enqueueIndexOperation(jobId, () => this.updateJobIndex(jobId, state));
         });
     }
 

@@ -204,6 +204,29 @@ export class BullMQJobQueueStrategy implements InspectableJobQueueStrategy {
         }
     }
 
+    /**
+     * Maps a Vendure JobState to the BullMQ job types which hold jobs in that state.
+     * Jobs awaiting a retry after failure are stored in the 'delayed' state, and
+     * cancelled jobs are stored as 'failed'.
+     */
+    private jobStateToJobTypes(state: string): JobType[] {
+        switch (state) {
+            case 'PENDING':
+                return ['wait', 'waiting-children', 'prioritized'];
+            case 'RUNNING':
+                return ['active'];
+            case 'COMPLETED':
+                return ['completed'];
+            case 'RETRYING':
+                return ['delayed'];
+            case 'FAILED':
+            case 'CANCELLED':
+                return ['failed'];
+            default:
+                return [];
+        }
+    }
+
     async findMany(options?: JobListOptions): Promise<PaginatedList<Job>> {
         const skip = options?.skip ?? 0;
         const take = options?.take ?? 10;
@@ -213,52 +236,13 @@ export class BullMQJobQueueStrategy implements InspectableJobQueueStrategy {
 
         const stateFilter = flatFilter.state;
         if (stateFilter?.eq) {
-            switch (stateFilter.eq) {
-                case 'PENDING':
-                    jobTypes = ['wait', 'waiting-children', 'prioritized'];
-                    break;
-                case 'RUNNING':
-                    jobTypes = ['active'];
-                    break;
-                case 'COMPLETED':
-                    jobTypes = ['completed'];
-                    break;
-                case 'RETRYING':
-                    // Jobs awaiting a retry after failure are stored in the 'delayed' state
-                    jobTypes = ['delayed'];
-                    break;
-                case 'FAILED':
-                    jobTypes = ['failed'];
-                    break;
-                case 'CANCELLED':
-                    jobTypes = ['failed'];
-                    break;
+            const mapped = this.jobStateToJobTypes(stateFilter.eq);
+            if (mapped.length) {
+                jobTypes = mapped;
             }
         }
         if (stateFilter?.in?.length) {
-            const stateJobTypes: JobType[] = [];
-            for (const state of stateFilter.in) {
-                switch (state) {
-                    case 'PENDING':
-                        stateJobTypes.push('wait', 'waiting-children', 'prioritized');
-                        break;
-                    case 'RUNNING':
-                        stateJobTypes.push('active');
-                        break;
-                    case 'COMPLETED':
-                        stateJobTypes.push('completed');
-                        break;
-                    case 'RETRYING':
-                        stateJobTypes.push('delayed');
-                        break;
-                    case 'FAILED':
-                        stateJobTypes.push('failed');
-                        break;
-                    case 'CANCELLED':
-                        stateJobTypes.push('failed');
-                        break;
-                }
-            }
+            const stateJobTypes = stateFilter.in.flatMap(state => this.jobStateToJobTypes(state));
             if (stateJobTypes.length) {
                 jobTypes = [...new Set(stateJobTypes)];
             }
