@@ -326,6 +326,28 @@ function generateCustomFieldResolvers(
                     [fieldDef.name]: resolver,
                 } as any;
             }
+
+            if (isRelationalType(fieldDef) && fieldDef.list !== true) {
+                // Non-list relation custom fields also expose a `<name>Id` field, which is
+                // subject to the same permissions as the relation field itself.
+                const idResolver: IFieldResolver<any, any> = (source: any, args: any, context: any) => {
+                    const ctx = internal_getRequestContext(context.req);
+                    if (!userHasPermissionsOnCustomField(ctx, fieldDef)) {
+                        return null;
+                    }
+                    return source[`${fieldDef.name}Id`];
+                };
+                adminResolvers[customFieldTypeName] = {
+                    ...adminResolvers[customFieldTypeName],
+                    [`${fieldDef.name}Id`]: idResolver,
+                } as any;
+                if (fieldDef.public !== false && !excludeFromShopApi) {
+                    shopResolvers[customFieldTypeName] = {
+                        ...shopResolvers[customFieldTypeName],
+                        [`${fieldDef.name}Id`]: idResolver,
+                    } as any;
+                }
+            }
         }
         const allCustomFieldsAreNonPublic =
             customFields.length && customFields.every(f => f.public === false || f.internal === true);

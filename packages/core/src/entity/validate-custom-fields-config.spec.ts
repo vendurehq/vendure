@@ -128,6 +128,36 @@ describe('validateCustomFieldsConfig()', () => {
         expect(result.errors).toEqual(['Product entity already has a field named "name"']);
     });
 
+    it('name conflict with relation id property', () => {
+        const config: CustomFields = {
+            Product: [
+                { name: 'owner', type: 'relation', entity: coreEntitiesMap.User, list: false },
+                { name: 'ownerId', type: 'string' },
+            ],
+        };
+        const result = validateCustomFieldsConfig(config, allEntities);
+
+        expect(result.valid).toBe(false);
+        expect(result.errors).toEqual([
+            'Product entity has a custom field "ownerId" which conflicts with the id property of the relation custom field "owner"',
+        ]);
+    });
+
+    it('name conflict with list relation id property', () => {
+        const config: CustomFields = {
+            Product: [
+                { name: 'owner', type: 'relation', entity: coreEntitiesMap.User, list: true },
+                { name: 'ownerIds', type: 'string' },
+            ],
+        };
+        const result = validateCustomFieldsConfig(config, allEntities);
+
+        expect(result.valid).toBe(false);
+        expect(result.errors).toEqual([
+            'Product entity has a custom field "ownerIds" which conflicts with the id property of the relation custom field "owner"',
+        ]);
+    });
+
     it('non-nullable must have defaultValue', () => {
         const config: CustomFields = {
             Product: [{ name: 'foo', type: 'string', nullable: false }],

@@ -47,6 +47,7 @@ import { defaultOrderProcess } from './order/default-order-process';
 import { DefaultOrderSellerStrategy } from './order/default-order-seller-strategy';
 import { DefaultStockAllocationStrategy } from './order/default-stock-allocation-strategy';
 import { MergeOrdersStrategy } from './order/merge-orders-strategy';
+import { NoOrderRecalculationStrategy } from './order/no-order-recalculation-strategy';
 import { DefaultOrderByCodeAccessStrategy } from './order/order-by-code-access-strategy';
 import { DefaultOrderCodeStrategy } from './order/order-code-strategy';
 import { UseGuestStrategy } from './order/use-guest-strategy';
@@ -189,6 +190,7 @@ export const defaultConfig: RuntimeVendureConfig = {
         orderSellerStrategy: new DefaultOrderSellerStrategy(),
         guestCheckoutStrategy: new DefaultGuestCheckoutStrategy(),
         orderInterceptors: [],
+        orderRecalculationStrategy: new NoOrderRecalculationStrategy(),
     },
     paymentOptions: {
         paymentMethodEligibilityCheckers: [],

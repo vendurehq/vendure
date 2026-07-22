@@ -90,7 +90,7 @@ msgstr "Voeg ten minste één artikel aan de bestelling toe"
 msgid "Add products to create a test order"
 msgstr "Voeg producten toe om een testbestelling te maken"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:124
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:128
 msgid "Failed to create address"
 msgstr "Adres aanmaken mislukt"
 
@@ -178,6 +178,10 @@ msgstr "Voer een aangepaste reden in..."
 msgid "Type"
 msgstr "Type"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:269
+msgid "The default currency is chosen from this list."
+msgstr ""
+
 #. placeholder {0}: asset.name
 #. placeholder {0}: entityName.toLowerCase()
 #. placeholder {0}: group.name
@@ -214,7 +218,7 @@ msgstr "Huidig"
 msgid "No fulfillments"
 msgstr "Geen afhandelingen"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:236
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:342
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
 msgstr "Wanneer dit is ingeschakeld, worden de prijzen die in de productcatalogus zijn ingevoerd, opgenomen in de belasting voor de standaard belastingzone."
 
@@ -282,7 +286,7 @@ msgstr "Ga naar dashboard"
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
 msgstr "{fulfilled, plural, one {{fulfilled} taak succesvol geannuleerd} other {{fulfilled} taken succesvol geannuleerd}}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:156
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:247
 msgid "Seller"
 msgstr "Verkoper"
 
@@ -317,7 +321,7 @@ msgstr "Voorraadlocaties"
 msgid "Fulfillment handler"
 msgstr "Afhandelingshandler"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:248
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:252
 #: src/app/routes/_authenticated/_orders/orders.tsx:21
 #: src/app/routes/_authenticated/_orders/orders.tsx:37
 #: src/app/routes/_authenticated/_orders/utils/order-detail-loaders.tsx:48
@@ -387,7 +391,7 @@ msgid "Type at least 2 characters to search..."
 msgstr "Typ minstens 2 tekens om te zoeken..."
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:122
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:182
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:186
 #: src/app/routes/_authenticated/_profile/profile.tsx:151
 msgid "Last name"
 msgstr "Achternaam"
@@ -453,7 +457,7 @@ msgstr "Details bekijken"
 msgid "Select a channel to assign {0} {entityType} to"
 msgstr "Selecteer een kanaal om {0} {entityType} aan toe te wijzen"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:98
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:100
 msgid "Successfully created customer"
 msgstr "Klant succesvol aangemaakt"
 
@@ -466,8 +470,8 @@ msgctxt "date-range"
 msgid "Last 7 days"
 msgstr "Laatste 7 dagen"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:94
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:100
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:183
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:189
 msgid "Failed to create channel"
 msgstr "Kanaal aanmaken mislukt"
 
@@ -633,6 +637,10 @@ msgstr "Opties zoeken..."
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:85
 msgid "Order Count"
 msgstr "Aantal bestellingen"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:162
+msgid "You must first select an available currency to set a default currency"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:157
 msgid "Fulfilled items"
@@ -805,7 +813,7 @@ msgstr "Selecteer adres"
 msgid "Payment eligibility checker"
 msgstr "Betalingsgeschiktheidscontrole"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:218
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:324
 msgid "Default tax zone"
 msgstr "Standaard belastingzone"
 
@@ -836,11 +844,11 @@ msgstr "Filteren..."
 msgid "New facet value"
 msgstr "Nieuwe facetwaarde"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:250
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:356
 msgid "Choose the shared marker color used for this channel."
 msgstr ""
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:87
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:176
 msgid "Successfully updated channel"
 msgstr "Kanaal succesvol bijgewerkt"
 
@@ -852,7 +860,7 @@ msgstr "Minder tonen"
 msgid "Short date"
 msgstr "Korte datum"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:176
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:268
 msgid "Available currencies"
 msgstr "Beschikbare valuta's"
 
@@ -1240,7 +1248,7 @@ msgstr "Conceptbestelling"
 msgid "Enter your email address and we will send you a link to reset your password"
 msgstr "Voer uw e-mailadres in en we sturen u een link om uw wachtwoord opnieuw in te stellen"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:248
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:354
 msgid "Appearance"
 msgstr ""
 
@@ -1332,7 +1340,7 @@ msgstr "Taakwachtrij"
 msgid "Assets"
 msgstr "Middelen"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:188
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:192
 msgid "Email address"
 msgstr "E-mailadres"
 
@@ -1406,9 +1414,16 @@ msgstr "Resterend:"
 msgid "No duplicator found with code \"{duplicatorCode}\" for {entityName}s"
 msgstr "Geen duplicator gevonden met code \"{duplicatorCode}\" voor {entityName}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:234
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:340
 msgid "Prices include tax for default tax zone"
 msgstr "Prijzen zijn inclusief belasting voor standaard belastingzone"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:133
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:134
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:137
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:138
+msgid "This field is required"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx:276
 msgid "Total refund:"
@@ -1529,8 +1544,8 @@ msgstr "{productCount, plural, one {Deze optiegroep wordt door een ander product
 msgid "My Saved Views"
 msgstr "Mijn opgeslagen weergaven"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:42
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:115
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:68
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:204
 msgid "New channel"
 msgstr "Nieuw kanaal"
 
@@ -1547,7 +1562,7 @@ msgstr "Duplicatie-instellingen configureren voor {0}s"
 msgid "No variants match the current filter."
 msgstr "Geen varianten komen overeen met het huidige filter."
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:203
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:207
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:245
 msgid "Addresses"
 msgstr "Adressen"
@@ -1940,7 +1955,7 @@ msgstr "Variant verwijderen"
 msgid "No modifications made"
 msgstr "Geen wijzigingen aangebracht"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:226
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:332
 msgid "Default shipping zone"
 msgstr "Standaard verzendzone"
 
@@ -2060,11 +2075,11 @@ msgstr "Terugbetaling succesvol afgehandeld"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:155
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:126
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:217
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:163
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:102
@@ -2152,7 +2167,7 @@ msgstr "Geen resultaten"
 msgid "Column settings"
 msgstr "Kolominstellingen"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:136
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:227
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:127
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:127
@@ -2212,13 +2227,13 @@ msgid "Facets"
 msgstr "Facetten"
 
 #. js-lingui-explicit-id
-#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:103
+#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:107
 #: src/app/routes/_authenticated/_orders/components/order-history/use-order-history.ts:108
 msgid "Failed to add note"
 msgstr "Notitie toevoegen mislukt"
 
 #. js-lingui-explicit-id
-#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:144
+#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:148
 #: src/app/routes/_authenticated/_orders/components/order-history/use-order-history.ts:150
 msgid "Failed to delete note"
 msgstr "Notitie verwijderen mislukt"
@@ -2229,7 +2244,7 @@ msgid "Failed to extend query document"
 msgstr "Kon query document niet uitbreiden"
 
 #. js-lingui-explicit-id
-#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:124
+#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:128
 #: src/app/routes/_authenticated/_orders/components/order-history/use-order-history.ts:129
 msgid "Failed to update note"
 msgstr "Notitie bijwerken mislukt"
@@ -2268,6 +2283,10 @@ msgstr "Bestand succesvol bijgewerkt"
 #: src/lib/components/layout/nav-user.tsx:112
 msgid "Theme"
 msgstr "Thema"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:159
+msgid "You must select at least one available currency"
+msgstr ""
 
 #. placeholder {0}: value.totalItems
 #: src/app/routes/_authenticated/_customer-groups/customer-groups.tsx:41
@@ -2882,11 +2901,11 @@ msgstr "Nieuwe belastingcategorie"
 #~ msgid "No stock locations available on current channel"
 #~ msgstr "Geen voorraadlocaties beschikbaar op huidig kanaal"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:87
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:176
 msgid "Successfully created channel"
 msgstr "Kanaal succesvol aangemaakt"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:98
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:100
 msgid "Successfully updated customer"
 msgstr "Klant succesvol bijgewerkt"
 
@@ -2902,7 +2921,7 @@ msgstr "Gegevens bekijken"
 msgid "Delete View"
 msgstr "Weergave verwijderen"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:231
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:235
 msgid "Add a new address to the customer."
 msgstr "Voeg een nieuw adres toe aan de klant."
 
@@ -3061,8 +3080,8 @@ msgstr "Bedrag"
 msgid "Phone Number"
 msgstr "Telefoonnummer"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:62
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:152
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:63
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:156
 msgid "New customer"
 msgstr "Nieuwe klant"
 
@@ -3103,7 +3122,7 @@ msgid "Added"
 msgstr "Toegevoegd"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-container.tsx:30
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:250
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:254
 msgid "Customer history"
 msgstr "Klantgeschiedenis"
 
@@ -3111,7 +3130,7 @@ msgstr "Klantgeschiedenis"
 msgid "Successfully updated facet values for {entityIdsLength} {entityType}"
 msgstr "Facetwaarden succesvol bijgewerkt voor {entityIdsLength} {entityType}"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:144
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:148
 msgid "Failed to remove customer from group"
 msgstr "Klant uit groep verwijderen mislukt"
 
@@ -3158,11 +3177,11 @@ msgstr "Globale weergave verwijderen"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:126
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:217
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:163
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
@@ -3196,8 +3215,8 @@ msgstr "Nieuw land"
 msgid "From {0} to {1}"
 msgstr "Van {0} tot {1}"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:105
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:111
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:109
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:115
 msgid "Failed to create customer"
 msgstr "Klant aanmaken mislukt"
 
@@ -3505,7 +3524,7 @@ msgstr "Staat/Provincie"
 msgid "Failed to update option group"
 msgstr "Bijwerken van optiegroep mislukt"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:187
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:280
 msgid "Channel defaults"
 msgstr "Kanaalstandaarden"
 
@@ -3700,7 +3719,7 @@ msgstr "Opmerking"
 msgid "Bold"
 msgstr "Vet"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:164
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:255
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:112
 msgid "Available languages"
 msgstr "Beschikbare talen"
@@ -3882,7 +3901,7 @@ msgstr "Geen controles gevonden"
 msgid "Settle payment"
 msgstr "Betaling afhandelen"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:41
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:67
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:24
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:210
@@ -4057,7 +4076,7 @@ msgstr "Valuta's zoeken..."
 msgid "Remove from channel"
 msgstr "Verwijderen uit kanaal"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:169
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:173
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:157
 msgid "Title"
 msgstr "Titel"
@@ -4258,7 +4277,7 @@ msgid "Refund #{0} transitioned to {1}"
 msgstr "Terugbetaling #{0} overgegaan naar {1}"
 
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:114
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:61
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:62
 #: src/app/routes/_authenticated/_customers/customers.tsx:16
 #: src/app/routes/_authenticated/_customers/customers.tsx:23
 msgid "Customers"
@@ -4310,19 +4329,19 @@ msgid "between"
 msgstr "tussen"
 
 #. js-lingui-explicit-id
-#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:99
+#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:103
 #: src/app/routes/_authenticated/_orders/components/order-history/use-order-history.ts:104
 msgid "Note added successfully"
 msgstr "Notitie succesvol toegevoegd"
 
 #. js-lingui-explicit-id
-#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:140
+#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:144
 #: src/app/routes/_authenticated/_orders/components/order-history/use-order-history.ts:146
 msgid "Note deleted successfully"
 msgstr "Notitie succesvol verwijderd"
 
 #. js-lingui-explicit-id
-#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:120
+#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:124
 #: src/app/routes/_authenticated/_orders/components/order-history/use-order-history.ts:125
 msgid "Note updated successfully"
 msgstr "Notitie succesvol bijgewerkt"
@@ -5091,6 +5110,10 @@ msgstr "Weergave succesvol verwijderd"
 msgid "OR"
 msgstr "OF"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:169
+msgid "You must select a default currency from the list of available currencies"
+msgstr ""
+
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx:213
 msgid "Manage tags"
 msgstr "Tags beheren"
@@ -5652,8 +5675,8 @@ msgstr "Variantnaam"
 msgid "Remove"
 msgstr "Verwijderen"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:105
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:111
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:109
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:115
 msgid "Failed to update customer"
 msgstr "Klant bijwerken mislukt"
 
@@ -5790,7 +5813,7 @@ msgstr "Standaardtaal"
 msgid "Top Products Widget"
 msgstr "Widget 'Topproducten'"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:145
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:236
 msgid "Token"
 msgstr "Token"
 
@@ -5901,11 +5924,11 @@ msgstr "Afhandeling #{0} van {1} naar {2}"
 msgid "Failed to delete global view"
 msgstr "Globale weergave verwijderen mislukt"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:192
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:285
 msgid "Default language"
 msgstr "Standaardtaal"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:253
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:257
 #: src/app/routes/_authenticated/_customers/customers.tsx:47
 msgid "Status"
 msgstr "Status"
@@ -6033,7 +6056,7 @@ msgid "Failed to process refund"
 msgstr "Verwerking van restitutie mislukt"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:116
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:176
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:180
 #: src/app/routes/_authenticated/_profile/profile.tsx:145
 msgid "First name"
 msgstr "Voornaam"
@@ -6143,7 +6166,7 @@ msgstr ""
 msgid "Reason"
 msgstr "Reden"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:256
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:260
 msgid "Customer groups"
 msgstr "Klantengroepen"
 
@@ -6190,6 +6213,10 @@ msgstr "Land toevoegen"
 #: src/app/routes/_authenticated/_promotions/promotions.tsx:72
 msgid "Create your first promotion"
 msgstr "Maak uw eerste promotie aan"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:256
+msgid "Defaults to the default language."
+msgstr ""
 
 #: src/lib/components/data-input/custom-field-list-input.tsx:85
 msgid "Remove item"
@@ -6288,8 +6315,8 @@ msgstr "Geen acties beschikbaar"
 msgid "Customize channel colors"
 msgstr ""
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:94
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:100
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:183
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:189
 msgid "Failed to update channel"
 msgstr "Kanaal bijwerken mislukt"
 
@@ -6301,8 +6328,8 @@ msgstr "Algemeen"
 #~ msgid "Failed to remove product from channel"
 #~ msgstr "Verwijderen van product uit kanaal mislukt"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:223
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:228
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:227
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:232
 msgid "Add new address"
 msgstr "Nieuw adres toevoegen"
 
@@ -6370,7 +6397,7 @@ msgstr "Beschrijving (alt-tekst)"
 msgid "No tags found"
 msgstr "Geen tags gevonden"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:205
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:307
 msgid "Default currency"
 msgstr "Standaardvaluta"
 
@@ -6843,7 +6870,7 @@ msgstr "Betaling toevoegen aan bestelling"
 msgid "Create variants for the option combinations that don't exist yet. Combinations that already exist are shown for context and can't be edited."
 msgstr "Maak varianten voor de optiecombinaties die nog niet bestaan. Combinaties die al bestaan worden ter referentie getoond en kunnen niet worden bewerkt."
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:147
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:238
 msgid "The token is used to specify the channel when making API requests."
 msgstr "De token wordt gebruikt om het kanaal op te geven bij het doen van API-verzoeken."
 
@@ -6894,7 +6921,7 @@ msgid "Payment method is required"
 msgstr "Betaalmethode is vereist"
 
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:69
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:134
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:138
 msgid "Failed to add customer to group"
 msgstr "Klant toevoegen aan groep mislukt"
 
@@ -6937,7 +6964,7 @@ msgstr "Optie"
 msgid "Order process"
 msgstr "Bestelproces"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:194
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:198
 msgid "Phone number"
 msgstr "Telefoonnummer"
 

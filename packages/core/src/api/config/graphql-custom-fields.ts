@@ -13,6 +13,7 @@ import {
     BaseTypedCustomFieldConfig,
     CustomFieldConfig,
     CustomFields,
+    isNonListRelationCustomField,
     StructCustomFieldConfig,
     StructFieldConfig,
 } from '../../config/custom-field/custom-field-types';
@@ -115,6 +116,7 @@ export function addGraphQLCustomFields(
                 customFieldTypeDefs += `
                     type ${entityName}CustomFields {
                         ${mapToFields(customEntityFields, wrapListType(getGraphQlType(entityName)))}
+                        ${mapToRelationIdFields(customEntityFields, 'ID')}
                     }
 
                     extend type ${entityName} {
@@ -239,14 +241,20 @@ export function addGraphQLCustomFields(
             customFieldTypeDefs += `
                     extend input ${entityName}SortParameter {
                          ${mapToFields(sortableFields, () => 'SortOrder')}
+                         ${mapToRelationIdFields(sortableFields, 'SortOrder')}
                     }
                 `;
         }
 
-        if (filterableFields.length && schema.getType(`${entityName}FilterParameter`)) {
+        const relationIdFilterFields = customEntityFields.filter(isNonListRelationCustomField);
+        if (
+            (filterableFields.length || relationIdFilterFields.length) &&
+            schema.getType(`${entityName}FilterParameter`)
+        ) {
             customFieldTypeDefs += `
                     extend input ${entityName}FilterParameter {
                          ${mapToFields(filterableFields, getFilterOperator)}
+                         ${mapToRelationIdFields(relationIdFilterFields, 'IDOperators')}
                     }
                 `;
         }
@@ -295,6 +303,7 @@ export function addGraphQLCustomFields(
                 customFieldTypeDefs += `
                     type ${publicEntityName}CustomFields {
                         ${mapToFields(customEntityFields, wrapListType(getGraphQlType(entityName)))}
+                        ${mapToRelationIdFields(customEntityFields, 'ID')}
                     }
 
                     extend type ${publicEntityName} {
@@ -652,6 +661,18 @@ function mapToFields(
         })
         .filter(x => x != null);
     return res.join('\n');
+}
+
+/**
+ * Non-list relation custom fields also expose the id of the related entity as a `<name>Id`
+ * field, mirroring the id column on the entity itself. Maps such fields to a string of
+ * SDL fields of the given type.
+ */
+function mapToRelationIdFields(fieldDefs: CustomFieldConfig[], graphQlType: string): string {
+    return fieldDefs
+        .filter(isNonListRelationCustomField)
+        .map(field => `${field.name}Id: ${graphQlType} ${getDeprecationDirective(field)}`)
+        .join('\n');
 }
 
 /**

@@ -108,7 +108,7 @@ import { RefundStateTransitionEvent } from '../../event-bus/events/refund-state-
 import { CustomFieldRelationService } from '../helpers/custom-field-relation/custom-field-relation.service';
 import { FulfillmentState } from '../helpers/fulfillment-state-machine/fulfillment-state';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
-import { OrderCalculator } from '../helpers/order-calculator/order-calculator';
+import { ApplyPriceAdjustmentsOptions, OrderCalculator } from '../helpers/order-calculator/order-calculator';
 import { OrderMerger } from '../helpers/order-merger/order-merger';
 import { OrderModifier } from '../helpers/order-modifier/order-modifier';
 import { OrderState } from '../helpers/order-state-machine/order-state';
@@ -852,12 +852,6 @@ export class OrderService {
                 }
 
                 orderLine.customFields = mergedCustomFields;
-                await this.customFieldRelationService.updateRelations(
-                    ctx,
-                    OrderLine,
-                    { customFields: mergedCustomFields },
-                    orderLine,
-                );
             }
             const existingQuantityInOtherLines = summate(
                 order.lines.filter(
@@ -881,6 +875,16 @@ export class OrderService {
                 await this.eventBus.publish(new OrderLineEvent(ctx, order, deletedOrderLine, 'deleted'));
             } else {
                 await this.orderModifier.updateOrderLineQuantity(ctx, orderLine, correctedQuantity, order);
+                if (customFields != null) {
+                    // This must run after the OrderLine has been saved with the merged custom field
+                    // values, since it re-loads the entity from the database to resolve the relations.
+                    await this.customFieldRelationService.updateRelations(
+                        ctx,
+                        OrderLine,
+                        { customFields },
+                        orderLine,
+                    );
+                }
                 updatedOrderLines.push(orderLine);
             }
             const quantityWasAdjustedDown = correctedQuantity < quantity;
@@ -2313,6 +2317,7 @@ export class OrderService {
         order: Order,
         updatedOrderLines?: OrderLine[],
         relations?: RelationPaths<Order>,
+        options?: ApplyPriceAdjustmentsOptions,
     ): Promise<Order> {
         const allPromotions = await this.promotionService.getActivePromotionsInChannel(ctx);
         const activePromotionsPre = await this.promotionService.getActivePromotionsOnOrder(ctx, order.id);
@@ -2379,6 +2384,7 @@ export class OrderService {
             order,
             promotions,
             updatedOrderLines ?? [],
+            options,
         );
 
         const shippingLineIdsPost = updatedOrder.shippingLines.map(l => l.id);
@@ -2388,6 +2394,7 @@ export class OrderService {
         // a race condition where changing one or the other in parallel can
         // overwrite the other's changes. The other omissions prevent the save
         // function from doing more work than necessary.
+        updatedOrder.pricingUpdatedAt = new Date();
         await this.connection
             .getRepository(ctx, Order)
             .save(
@@ -2411,6 +2418,67 @@ export class OrderService {
         await this.connection.getRepository(ctx, ShippingLine).save(order.shippingLines, { reload: false });
 
         return assertFound(this.findOne(ctx, order.id, relations));
+    }
+
+    /**
+     * @description
+     * Recalculates the given active Order's prices, promotions, taxes and shipping promotions if the
+     * configured {@link OrderRecalculationStrategy} reports it as stale. The shipping *method* and
+     * *rate* are deliberately NOT re-evaluated on this read path — the customer's chosen method is
+     * never silently swapped; those are re-evaluated when the Order transitions to `ArrangingPayment`.
+     * Only Orders in the `AddingItems` state are eligible; no-ops (returning the Order unchanged)
+     * otherwise. Invoked on the active-order read path.
+     *
+     * @since 3.8.0
+     */
+    async applyPriceAdjustmentsIfStale(ctx: RequestContext, order: Order): Promise<Order> {
+        if (!order.active || order.state !== 'AddingItems') {
+            return order;
+        }
+        const { orderRecalculationStrategy } = this.configService.orderOptions;
+        const stale = await orderRecalculationStrategy.shouldRecalculate(ctx, order);
+        if (!stale) {
+            return order;
+        }
+        return this.connection.withTransaction(ctx, async txCtx => {
+            // Acquire a pessimistic write lock on the Order row to serialize concurrent reads.
+            // On SQLite the lock is not supported; SQLite serializes writes at the engine level.
+            let lockedOrder: Order | null = null;
+            try {
+                lockedOrder = await this.connection
+                    .getRepository(txCtx, Order)
+                    .createQueryBuilder('order')
+                    .setLock('pessimistic_write')
+                    .where('order.id = :id', { id: order.id })
+                    .getOne();
+            } catch (e) {
+                if (!(e instanceof LockNotSupportedOnGivenDriverError)) {
+                    throw e;
+                }
+                // Lock not supported (e.g. SQLite) — continue without it
+                lockedOrder = await this.connection.getRepository(txCtx, Order).findOne({
+                    where: { id: order.id },
+                });
+            }
+            if (!lockedOrder) {
+                return order;
+            }
+            // Double-checked locking: re-evaluate staleness after acquiring the lock.
+            // Another concurrent request may have already recalculated the order.
+            const stillStale = await orderRecalculationStrategy.shouldRecalculate(ctx, lockedOrder);
+            if (!stillStale) {
+                return assertFound(this.findOne(txCtx, order.id));
+            }
+            // Load full relations required for recalculation.
+            const fullOrder = await this.getOrderOrThrow(txCtx, order.id);
+            return this.applyPriceAdjustments(txCtx, fullOrder, fullOrder.lines, undefined, {
+                // Freeze the chosen shipping method/rate on read (never swap it silently),
+                // but still re-test shipping promotions so a disabled promotion's discount
+                // is cleared instead of surviving on the order.
+                recalculateShipping: false,
+                recalculateShippingPromotions: true,
+            });
+        });
     }
 
     /**

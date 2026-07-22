@@ -111,6 +111,34 @@ If you have code that should only run either in the server context or worker con
 you can inject the [ProcessContext provider](/reference/typescript-api/common/process-context/).
 :::
 
+A plugin can implement these hooks directly, rather than only on the providers it defines:
+
+```ts title="src/plugins/my-plugin/my.plugin.ts"
+import { OnApplicationBootstrap } from '@nestjs/common';
+import { PluginCommonModule, ProcessContext, VendurePlugin } from '@vendure/core';
+
+@VendurePlugin({
+    imports: [PluginCommonModule],
+})
+export class MyPlugin implements OnApplicationBootstrap {
+    constructor(private processContext: ProcessContext) {}
+
+    async onApplicationBootstrap() {
+        // Without this guard the work below would run twice: once in the
+        // server and once in the worker.
+        if (this.processContext.isWorker) {
+            return;
+        }
+        // Do something on the server only
+    }
+}
+```
+
+If that startup work needs to call Vendure's services, it will need a `RequestContext`, which
+outside of the request-response cycle you create yourself — see
+[Creating a RequestContext](/guides/developer-guide/stand-alone-scripts/#creating-a-requestcontext),
+including how to give it a user so that permission checks pass.
+
 ### Configure
 
 Another hook that is not strictly a lifecycle hook, but which can be useful to know is the [`configure` method](https://docs.nestjs.com/middleware#applying-middleware) which is

@@ -90,7 +90,7 @@ msgstr "Adjon hozzá legalább egy tételt a megrendeléshez"
 msgid "Add products to create a test order"
 msgstr "Termékek hozzáadása tesztmegrendelés létrehozásához"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:124
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:128
 msgid "Failed to create address"
 msgstr "Cím létrehozása sikertelen"
 
@@ -178,6 +178,10 @@ msgstr "Adjon meg egyéni indokot..."
 msgid "Type"
 msgstr "Típus"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:269
+msgid "The default currency is chosen from this list."
+msgstr ""
+
 #. placeholder {0}: asset.name
 #. placeholder {0}: entityName.toLowerCase()
 #. placeholder {0}: group.name
@@ -214,7 +218,7 @@ msgstr "Jelenlegi"
 msgid "No fulfillments"
 msgstr "Nincsenek teljesítések"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:236
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:342
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
 msgstr "Ha ez engedélyezve van, a termékkatalógusban megadott árak tartalmazzák az alapértelmezett adózóna adóját."
 
@@ -282,7 +286,7 @@ msgstr "Ugrás az irányítópultra"
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
 msgstr "{fulfilled, plural, one {{fulfilled} feladat sikeresen megszakítva} other {{fulfilled} feladat sikeresen megszakítva}}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:156
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:247
 msgid "Seller"
 msgstr "Eladó"
 
@@ -317,7 +321,7 @@ msgstr "Raktárhelyek"
 msgid "Fulfillment handler"
 msgstr "Teljesítési kezelő"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:248
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:252
 #: src/app/routes/_authenticated/_orders/orders.tsx:21
 #: src/app/routes/_authenticated/_orders/orders.tsx:37
 #: src/app/routes/_authenticated/_orders/utils/order-detail-loaders.tsx:48
@@ -387,7 +391,7 @@ msgid "Type at least 2 characters to search..."
 msgstr "Írjon be legalább 2 karaktert a kereséshez..."
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:122
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:182
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:186
 #: src/app/routes/_authenticated/_profile/profile.tsx:151
 msgid "Last name"
 msgstr "Vezetéknév"
@@ -453,7 +457,7 @@ msgstr "Részletek megtekintése"
 msgid "Select a channel to assign {0} {entityType} to"
 msgstr "Válasszon csatornát, amelyhez hozzárendeli a következőt: {0} {entityType}"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:98
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:100
 msgid "Successfully created customer"
 msgstr "A vásárló sikeresen létrehozva"
 
@@ -466,8 +470,8 @@ msgctxt "date-range"
 msgid "Last 7 days"
 msgstr "Utolsó 7 nap"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:94
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:100
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:183
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:189
 msgid "Failed to create channel"
 msgstr "Csatorna létrehozása sikertelen"
 
@@ -633,6 +637,10 @@ msgstr "Opciók keresése..."
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:85
 msgid "Order Count"
 msgstr "Megrendelések száma"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:162
+msgid "You must first select an available currency to set a default currency"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:157
 msgid "Fulfilled items"
@@ -805,7 +813,7 @@ msgstr "Válasszon címet"
 msgid "Payment eligibility checker"
 msgstr "Fizetési jogosultság ellenőrző"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:218
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:324
 msgid "Default tax zone"
 msgstr "Alapértelmezett adózóna"
 
@@ -836,11 +844,11 @@ msgstr "Szűrés..."
 msgid "New facet value"
 msgstr "Új tulajdonságérték"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:250
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:356
 msgid "Choose the shared marker color used for this channel."
 msgstr ""
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:87
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:176
 msgid "Successfully updated channel"
 msgstr "Csatorna sikeresen frissítve"
 
@@ -852,7 +860,7 @@ msgstr "Kevesebb megjelenítése"
 msgid "Short date"
 msgstr "Rövid dátum"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:176
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:268
 msgid "Available currencies"
 msgstr "Elérhető pénznemek"
 
@@ -1236,7 +1244,7 @@ msgstr "Piszkozat megrendelés"
 msgid "Enter your email address and we will send you a link to reset your password"
 msgstr "Adja meg az e-mail címét, és küldünk egy linket a jelszava visszaállításához"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:248
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:354
 msgid "Appearance"
 msgstr ""
 
@@ -1328,7 +1336,7 @@ msgstr "Feladatsor"
 msgid "Assets"
 msgstr "Média"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:188
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:192
 msgid "Email address"
 msgstr "E-mail cím"
 
@@ -1402,9 +1410,16 @@ msgstr "Fennmaradó:"
 msgid "No duplicator found with code \"{duplicatorCode}\" for {entityName}s"
 msgstr "Nem található duplikátor \"{duplicatorCode}\" kóddal a következőhöz: {entityName}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:234
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:340
 msgid "Prices include tax for default tax zone"
 msgstr "Az árak tartalmazzák az alapértelmezett adózóna adóját"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:133
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:134
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:137
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:138
+msgid "This field is required"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx:276
 msgid "Total refund:"
@@ -1525,8 +1540,8 @@ msgstr "{productCount, plural, one {Ezt az opciócsoportot egy másik termék is
 msgid "My Saved Views"
 msgstr "Saját mentett nézetek"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:42
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:115
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:68
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:204
 msgid "New channel"
 msgstr "Új csatorna"
 
@@ -1543,7 +1558,7 @@ msgstr "Duplikálási beállítások konfigurálása a(z) {0}s számára"
 msgid "No variants match the current filter."
 msgstr "Egyetlen változat sem felel meg az aktuális szűrőnek."
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:203
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:207
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:245
 msgid "Addresses"
 msgstr "Címek"
@@ -1936,7 +1951,7 @@ msgstr "Variáns törlése"
 msgid "No modifications made"
 msgstr "Nem történt módosítás"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:226
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:332
 msgid "Default shipping zone"
 msgstr "Alapértelmezett szállítási zóna"
 
@@ -2056,11 +2071,11 @@ msgstr "A visszatérítés sikeresen rendezve"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:155
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:126
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:217
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:163
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:102
@@ -2148,7 +2163,7 @@ msgstr "Nincs eredmény"
 msgid "Column settings"
 msgstr "Oszlopbeállítások"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:136
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:227
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:127
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:127
@@ -2208,13 +2223,13 @@ msgid "Facets"
 msgstr "Tulajdonságok"
 
 #. js-lingui-explicit-id
-#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:103
+#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:107
 #: src/app/routes/_authenticated/_orders/components/order-history/use-order-history.ts:108
 msgid "Failed to add note"
 msgstr "Megjegyzés hozzáadása sikertelen"
 
 #. js-lingui-explicit-id
-#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:144
+#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:148
 #: src/app/routes/_authenticated/_orders/components/order-history/use-order-history.ts:150
 msgid "Failed to delete note"
 msgstr "Megjegyzés törlése sikertelen"
@@ -2225,7 +2240,7 @@ msgid "Failed to extend query document"
 msgstr "A lekérdezési dokumentum kiterjesztése sikertelen"
 
 #. js-lingui-explicit-id
-#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:124
+#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:128
 #: src/app/routes/_authenticated/_orders/components/order-history/use-order-history.ts:129
 msgid "Failed to update note"
 msgstr "Megjegyzés frissítése sikertelen"
@@ -2264,6 +2279,10 @@ msgstr "Média sikeresen frissítve"
 #: src/lib/components/layout/nav-user.tsx:112
 msgid "Theme"
 msgstr "Téma"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:159
+msgid "You must select at least one available currency"
+msgstr ""
 
 #. placeholder {0}: value.totalItems
 #: src/app/routes/_authenticated/_customer-groups/customer-groups.tsx:41
@@ -2878,11 +2897,11 @@ msgstr "Új adókategória"
 #~ msgid "No stock locations available on current channel"
 #~ msgstr "Nem érhető el raktárhely a jelenlegi csatornán"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:87
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:176
 msgid "Successfully created channel"
 msgstr "A csatorna sikeresen létrehozva"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:98
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:100
 msgid "Successfully updated customer"
 msgstr "Vásárló sikeresen frissítve"
 
@@ -2898,7 +2917,7 @@ msgstr "Adatok megtekintése"
 msgid "Delete View"
 msgstr "Nézet törlése"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:231
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:235
 msgid "Add a new address to the customer."
 msgstr "Új cím hozzáadása a vásárlóhoz."
 
@@ -3057,8 +3076,8 @@ msgstr "Összeg"
 msgid "Phone Number"
 msgstr "Telefonszám"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:62
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:152
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:63
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:156
 msgid "New customer"
 msgstr "Új vásárló"
 
@@ -3099,7 +3118,7 @@ msgid "Added"
 msgstr "Hozzáadva"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-container.tsx:30
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:250
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:254
 msgid "Customer history"
 msgstr "Vásárló előzményei"
 
@@ -3107,7 +3126,7 @@ msgstr "Vásárló előzményei"
 msgid "Successfully updated facet values for {entityIdsLength} {entityType}"
 msgstr "{entityIdsLength} {entityType} tulajdonságértékei sikeresen frissítve"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:144
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:148
 msgid "Failed to remove customer from group"
 msgstr "Vásárló eltávolítása a csoportból sikertelen"
 
@@ -3154,11 +3173,11 @@ msgstr "Globális nézet törlése"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:126
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:217
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:163
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
@@ -3192,8 +3211,8 @@ msgstr "Új ország"
 msgid "From {0} to {1}"
 msgstr "{0}-tól {1}-ig"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:105
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:111
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:109
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:115
 msgid "Failed to create customer"
 msgstr "Vásárló létrehozása sikertelen"
 
@@ -3501,7 +3520,7 @@ msgstr "Állam/Tartomány"
 msgid "Failed to update option group"
 msgstr "Nem sikerült frissíteni az opciócsoportot"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:187
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:280
 msgid "Channel defaults"
 msgstr "Csatorna alapértékei"
 
@@ -3696,7 +3715,7 @@ msgstr "Megjegyzés"
 msgid "Bold"
 msgstr "Félkövér"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:164
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:255
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:112
 msgid "Available languages"
 msgstr "Elérhető nyelvek"
@@ -3878,7 +3897,7 @@ msgstr "Nem található ellenőrző"
 msgid "Settle payment"
 msgstr "Fizetés rendezése"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:41
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:67
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:24
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:210
@@ -4053,7 +4072,7 @@ msgstr "Pénznemek keresése..."
 msgid "Remove from channel"
 msgstr "Eltávolítás a csatornából"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:169
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:173
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:157
 msgid "Title"
 msgstr "Cím"
@@ -4254,7 +4273,7 @@ msgid "Refund #{0} transitioned to {1}"
 msgstr "#{0} visszatérítés állapota {1} értékre változott"
 
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:114
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:61
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:62
 #: src/app/routes/_authenticated/_customers/customers.tsx:16
 #: src/app/routes/_authenticated/_customers/customers.tsx:23
 msgid "Customers"
@@ -4306,19 +4325,19 @@ msgid "between"
 msgstr "között"
 
 #. js-lingui-explicit-id
-#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:99
+#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:103
 #: src/app/routes/_authenticated/_orders/components/order-history/use-order-history.ts:104
 msgid "Note added successfully"
 msgstr "Megjegyzés sikeresen hozzáadva"
 
 #. js-lingui-explicit-id
-#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:140
+#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:144
 #: src/app/routes/_authenticated/_orders/components/order-history/use-order-history.ts:146
 msgid "Note deleted successfully"
 msgstr "Megjegyzés sikeresen törölve"
 
 #. js-lingui-explicit-id
-#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:120
+#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:124
 #: src/app/routes/_authenticated/_orders/components/order-history/use-order-history.ts:125
 msgid "Note updated successfully"
 msgstr "Megjegyzés sikeresen frissítve"
@@ -5087,6 +5106,10 @@ msgstr "Nézet sikeresen törölve"
 msgid "OR"
 msgstr "VAGY"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:169
+msgid "You must select a default currency from the list of available currencies"
+msgstr ""
+
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx:213
 msgid "Manage tags"
 msgstr "Címkék kezelése"
@@ -5644,8 +5667,8 @@ msgstr "Termékváltozat neve"
 msgid "Remove"
 msgstr "Eltávolítás"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:105
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:111
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:109
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:115
 msgid "Failed to update customer"
 msgstr "Vásárló frissítése sikertelen"
 
@@ -5782,7 +5805,7 @@ msgstr "Alapértelmezett nyelv"
 msgid "Top Products Widget"
 msgstr "Legnépszerűbb termékek widget"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:145
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:236
 msgid "Token"
 msgstr "Token"
 
@@ -5893,11 +5916,11 @@ msgstr "#{0} teljesítés: {1}-tól {2}-ig"
 msgid "Failed to delete global view"
 msgstr "Globális nézet törlése sikertelen"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:192
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:285
 msgid "Default language"
 msgstr "Alapértelmezett nyelv"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:253
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:257
 #: src/app/routes/_authenticated/_customers/customers.tsx:47
 msgid "Status"
 msgstr "Státusz"
@@ -6025,7 +6048,7 @@ msgid "Failed to process refund"
 msgstr "Visszatérítés feldolgozása sikertelen"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:116
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:176
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:180
 #: src/app/routes/_authenticated/_profile/profile.tsx:145
 msgid "First name"
 msgstr "Keresztnév"
@@ -6135,7 +6158,7 @@ msgstr ""
 msgid "Reason"
 msgstr "Ok"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:256
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:260
 msgid "Customer groups"
 msgstr "Vásárlói csoportok"
 
@@ -6182,6 +6205,10 @@ msgstr "Ország hozzáadása"
 #: src/app/routes/_authenticated/_promotions/promotions.tsx:72
 msgid "Create your first promotion"
 msgstr "Hozza létre első promócióját"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:256
+msgid "Defaults to the default language."
+msgstr ""
 
 #: src/lib/components/data-input/custom-field-list-input.tsx:85
 msgid "Remove item"
@@ -6280,8 +6307,8 @@ msgstr "Nincs elérhető művelet"
 msgid "Customize channel colors"
 msgstr ""
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:94
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:100
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:183
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:189
 msgid "Failed to update channel"
 msgstr "Csatorna frissítése sikertelen"
 
@@ -6293,8 +6320,8 @@ msgstr "Általános"
 #~ msgid "Failed to remove product from channel"
 #~ msgstr "Termék eltávolítása a csatornából sikertelen"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:223
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:228
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:227
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:232
 msgid "Add new address"
 msgstr "Új cím hozzáadása"
 
@@ -6362,7 +6389,7 @@ msgstr "Leírás (alt)"
 msgid "No tags found"
 msgstr "Nem található címke"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:205
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:307
 msgid "Default currency"
 msgstr "Alapértelmezett pénznem"
 
@@ -6831,7 +6858,7 @@ msgstr "Fizetés hozzáadása a megrendeléshez"
 msgid "Create variants for the option combinations that don't exist yet. Combinations that already exist are shown for context and can't be edited."
 msgstr "Hozzon létre variánsokat a még nem létező opciókombinációkhoz. A már létező kombinációk tájékoztatásul jelennek meg, és nem szerkeszthetők."
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:147
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:238
 msgid "The token is used to specify the channel when making API requests."
 msgstr "A token a csatorna megadására szolgál API kérések küldésekor."
 
@@ -6882,7 +6909,7 @@ msgid "Payment method is required"
 msgstr "Fizetési mód megadása kötelező"
 
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:69
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:134
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:138
 msgid "Failed to add customer to group"
 msgstr "Vásárló csoporthoz adása sikertelen"
 
@@ -6925,7 +6952,7 @@ msgstr "Opció"
 msgid "Order process"
 msgstr "Rendelési folyamat"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:194
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:198
 msgid "Phone number"
 msgstr "Telefonszám"
 

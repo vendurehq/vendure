@@ -90,7 +90,7 @@ msgstr "Adaugă cel puțin un articol la comandă"
 msgid "Add products to create a test order"
 msgstr "Adaugă produse pentru a crea o comandă de test"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:124
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:128
 msgid "Failed to create address"
 msgstr "Nu s-a putut crea adresa"
 
@@ -174,6 +174,10 @@ msgstr "Introdu motiv personalizat..."
 msgid "Type"
 msgstr "Tip"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:269
+msgid "The default currency is chosen from this list."
+msgstr ""
+
 #. placeholder {0}: asset.name
 #. placeholder {0}: entityName.toLowerCase()
 #. placeholder {0}: group.name
@@ -210,7 +214,7 @@ msgstr "Curent"
 msgid "No fulfillments"
 msgstr "Fără livrări"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:236
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:342
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
 msgstr "Când este activat, prețurile introduse în catalogul de produse vor include taxa pentru zona de impozitare implicită."
 
@@ -266,7 +270,7 @@ msgstr "Mergi la panoul de control"
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
 msgstr "{fulfilled, plural, one {{fulfilled} job anulat cu succes} few {{fulfilled} joburi anulate cu succes} other {{fulfilled} de joburi anulate cu succes}}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:156
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:247
 msgid "Seller"
 msgstr "Vânzător"
 
@@ -297,7 +301,7 @@ msgstr "Locații Stoc"
 msgid "Fulfillment handler"
 msgstr "Procesator livrare"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:248
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:252
 #: src/app/routes/_authenticated/_orders/orders.tsx:21
 #: src/app/routes/_authenticated/_orders/orders.tsx:37
 #: src/app/routes/_authenticated/_orders/utils/order-detail-loaders.tsx:48
@@ -363,7 +367,7 @@ msgid "Type at least 2 characters to search..."
 msgstr "Introduceți cel puțin 2 caractere pentru căutare..."
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:122
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:182
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:186
 #: src/app/routes/_authenticated/_profile/profile.tsx:151
 msgid "Last name"
 msgstr "Nume"
@@ -429,7 +433,7 @@ msgstr "Vizualizează detaliile"
 msgid "Select a channel to assign {0} {entityType} to"
 msgstr "Selectează un canal pentru a atribui {0} {entityType}"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:98
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:100
 msgid "Successfully created customer"
 msgstr "Clientul a fost creat cu succes"
 
@@ -442,8 +446,8 @@ msgctxt "date-range"
 msgid "Last 7 days"
 msgstr "Ultimele 7 zile"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:94
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:100
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:183
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:189
 msgid "Failed to create channel"
 msgstr "Nu s-a putut crea canalul"
 
@@ -605,6 +609,10 @@ msgstr "Caută opțiuni..."
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx:85
 msgid "Order Count"
 msgstr "Număr comenzi"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:162
+msgid "You must first select an available currency to set a default currency"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:157
 msgid "Fulfilled items"
@@ -777,7 +785,7 @@ msgstr "Selectează adresa"
 msgid "Payment eligibility checker"
 msgstr "Verificator eligibilitate plată"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:218
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:324
 msgid "Default tax zone"
 msgstr "Zonă de taxare implicită"
 
@@ -808,11 +816,11 @@ msgstr "Filtrează..."
 msgid "New facet value"
 msgstr "Valoare atribut nouă"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:250
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:356
 msgid "Choose the shared marker color used for this channel."
 msgstr ""
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:87
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:176
 msgid "Successfully updated channel"
 msgstr "Canalul a fost actualizat cu succes"
 
@@ -824,7 +832,7 @@ msgstr "Afișează mai puțin"
 msgid "Short date"
 msgstr "Dată scurtă"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:176
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:268
 msgid "Available currencies"
 msgstr "Monede disponibile"
 
@@ -1204,7 +1212,7 @@ msgstr "Comandă ciornă"
 msgid "Enter your email address and we will send you a link to reset your password"
 msgstr "Introdu adresa ta de email și îți vom trimite un link pentru a-ți reseta parola"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:248
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:354
 msgid "Appearance"
 msgstr ""
 
@@ -1296,7 +1304,7 @@ msgstr "Coadă de joburi"
 msgid "Assets"
 msgstr "Resurse"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:188
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:192
 msgid "Email address"
 msgstr "Adresă de email"
 
@@ -1366,9 +1374,16 @@ msgstr "Rămas:"
 msgid "No duplicator found with code \"{duplicatorCode}\" for {entityName}s"
 msgstr "Nu s-a găsit duplicator cu codul \"{duplicatorCode}\" pentru {entityName}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:234
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:340
 msgid "Prices include tax for default tax zone"
 msgstr "Prețurile includ taxa pentru zona de taxare implicită"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:133
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:134
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:137
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:138
+msgid "This field is required"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx:276
 msgid "Total refund:"
@@ -1481,8 +1496,8 @@ msgstr "{productCount, plural, one {Acest grup de opțiuni este folosit de înc�
 msgid "My Saved Views"
 msgstr "Vizualizările Mele Salvate"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:42
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:115
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:68
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:204
 msgid "New channel"
 msgstr "Canal nou"
 
@@ -1499,7 +1514,7 @@ msgstr "Configurează setările de duplicare pentru {0}"
 msgid "No variants match the current filter."
 msgstr "Nicio variantă nu corespunde filtrului curent."
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:203
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:207
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:245
 msgid "Addresses"
 msgstr "Adrese"
@@ -1875,7 +1890,7 @@ msgstr "Șterge varianta"
 msgid "No modifications made"
 msgstr "Nu s-au făcut modificări"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:226
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:332
 msgid "Default shipping zone"
 msgstr "Zonă de livrare implicită"
 
@@ -1995,11 +2010,11 @@ msgstr "Rambursare soluționată cu succes"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:155
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:126
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:217
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:163
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:102
@@ -2087,7 +2102,7 @@ msgstr "Fără rezultate"
 msgid "Column settings"
 msgstr "Setări coloane"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:136
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:227
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:127
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:127
@@ -2147,13 +2162,13 @@ msgid "Facets"
 msgstr "Atribute"
 
 #. js-lingui-explicit-id
-#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:103
+#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:107
 #: src/app/routes/_authenticated/_orders/components/order-history/use-order-history.ts:108
 msgid "Failed to add note"
 msgstr "Nu s-a putut adăuga nota"
 
 #. js-lingui-explicit-id
-#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:144
+#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:148
 #: src/app/routes/_authenticated/_orders/components/order-history/use-order-history.ts:150
 msgid "Failed to delete note"
 msgstr "Nu s-a putut șterge nota"
@@ -2164,7 +2179,7 @@ msgid "Failed to extend query document"
 msgstr "Nu s-a putut extinde query-ul"
 
 #. js-lingui-explicit-id
-#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:124
+#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:128
 #: src/app/routes/_authenticated/_orders/components/order-history/use-order-history.ts:129
 msgid "Failed to update note"
 msgstr "Nu s-a putut actualiza nota"
@@ -2203,6 +2218,10 @@ msgstr "Resursa a fost actualizată cu succes"
 #: src/lib/components/layout/nav-user.tsx:112
 msgid "Theme"
 msgstr "Temă"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:159
+msgid "You must select at least one available currency"
+msgstr ""
 
 #. placeholder {0}: value.totalItems
 #: src/app/routes/_authenticated/_customer-groups/customer-groups.tsx:41
@@ -2813,11 +2832,11 @@ msgstr "Nu poți muta o colecție în propriul descendent"
 msgid "New Tax Category"
 msgstr "Categorie de Taxă Nouă"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:87
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:176
 msgid "Successfully created channel"
 msgstr "Canalul a fost creat cu succes"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:98
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:100
 msgid "Successfully updated customer"
 msgstr "Clientul a fost actualizat cu succes"
 
@@ -2833,7 +2852,7 @@ msgstr "Vizualizează datele"
 msgid "Delete View"
 msgstr "Șterge vizualizarea"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:231
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:235
 msgid "Add a new address to the customer."
 msgstr "Adaugă o adresă nouă pentru client."
 
@@ -2983,8 +3002,8 @@ msgstr "Sumă"
 msgid "Phone Number"
 msgstr "Număr de Telefon"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:62
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:152
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:63
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:156
 msgid "New customer"
 msgstr "Client nou"
 
@@ -3025,7 +3044,7 @@ msgid "Added"
 msgstr "Adăugat"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-container.tsx:30
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:250
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:254
 msgid "Customer history"
 msgstr "Istoric client"
 
@@ -3033,7 +3052,7 @@ msgstr "Istoric client"
 msgid "Successfully updated facet values for {entityIdsLength} {entityType}"
 msgstr "Valorile atributului au fost actualizate cu succes pentru {entityIdsLength} {entityType}"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:144
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:148
 msgid "Failed to remove customer from group"
 msgstr "Nu s-a putut elimina clientul din grup"
 
@@ -3080,11 +3099,11 @@ msgstr "Șterge vizualizarea globală"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:126
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:217
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:171
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:94
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:163
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
@@ -3118,8 +3137,8 @@ msgstr "Țară nouă"
 msgid "From {0} to {1}"
 msgstr "De la {0} la {1}"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:105
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:111
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:109
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:115
 msgid "Failed to create customer"
 msgstr "Nu s-a putut crea clientul"
 
@@ -3419,7 +3438,7 @@ msgstr "Județ/Provincie"
 msgid "Failed to update option group"
 msgstr "Nu s-a putut actualiza grupul de opțiuni"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:187
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:280
 msgid "Channel defaults"
 msgstr "Valori implicite canal"
 
@@ -3614,7 +3633,7 @@ msgstr "Notă"
 msgid "Bold"
 msgstr "Aldin"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:164
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:255
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:112
 msgid "Available languages"
 msgstr "Limbi disponibile"
@@ -3792,7 +3811,7 @@ msgstr "Niciun verificator găsit"
 msgid "Settle payment"
 msgstr "Finalizează plata"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:41
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:67
 #: src/app/routes/_authenticated/_channels/channels.tsx:15
 #: src/app/routes/_authenticated/_channels/channels.tsx:24
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:210
@@ -3959,7 +3978,7 @@ msgstr "Caută monede..."
 msgid "Remove from channel"
 msgstr "Elimină din canal"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:169
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:173
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:157
 msgid "Title"
 msgstr "Titlu"
@@ -4156,7 +4175,7 @@ msgid "Refund #{0} transitioned to {1}"
 msgstr "Rambursarea #{0} a trecut la {1}"
 
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:114
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:61
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:62
 #: src/app/routes/_authenticated/_customers/customers.tsx:16
 #: src/app/routes/_authenticated/_customers/customers.tsx:23
 msgid "Customers"
@@ -4208,19 +4227,19 @@ msgid "between"
 msgstr "între"
 
 #. js-lingui-explicit-id
-#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:99
+#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:103
 #: src/app/routes/_authenticated/_orders/components/order-history/use-order-history.ts:104
 msgid "Note added successfully"
 msgstr "Notă adăugată cu succes"
 
 #. js-lingui-explicit-id
-#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:140
+#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:144
 #: src/app/routes/_authenticated/_orders/components/order-history/use-order-history.ts:146
 msgid "Note deleted successfully"
 msgstr "Notă ștearsă cu succes"
 
 #. js-lingui-explicit-id
-#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:120
+#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:124
 #: src/app/routes/_authenticated/_orders/components/order-history/use-order-history.ts:125
 msgid "Note updated successfully"
 msgstr "Notă actualizată cu succes"
@@ -4952,6 +4971,10 @@ msgstr "Vizualizare ștearsă cu succes"
 msgid "OR"
 msgstr "SAU"
 
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:169
+msgid "You must select a default currency from the list of available currencies"
+msgstr ""
+
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx:213
 msgid "Manage tags"
 msgstr "Gestionează etichete"
@@ -5493,8 +5516,8 @@ msgstr "Nume variantă"
 msgid "Remove"
 msgstr "Elimină"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:105
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:111
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:109
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:115
 msgid "Failed to update customer"
 msgstr "Nu s-a putut actualiza clientul"
 
@@ -5619,7 +5642,7 @@ msgstr "Limbă implicită"
 msgid "Top Products Widget"
 msgstr "Widgetul Cele mai vândute produse"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:145
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:236
 msgid "Token"
 msgstr "Token"
 
@@ -5726,11 +5749,11 @@ msgstr "Livrare #{0} de la {1} la {2}"
 msgid "Failed to delete global view"
 msgstr "Nu s-a putut șterge vizualizarea globală"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:192
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:285
 msgid "Default language"
 msgstr "Limbă implicită"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:253
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:257
 #: src/app/routes/_authenticated/_customers/customers.tsx:47
 msgid "Status"
 msgstr "Status"
@@ -5854,7 +5877,7 @@ msgid "Failed to process refund"
 msgstr "Nu s-a putut procesa rambursarea"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:116
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:176
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:180
 #: src/app/routes/_authenticated/_profile/profile.tsx:145
 msgid "First name"
 msgstr "Prenume"
@@ -5964,7 +5987,7 @@ msgstr ""
 msgid "Reason"
 msgstr "Motiv"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:256
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:260
 msgid "Customer groups"
 msgstr "Grupuri de clienți"
 
@@ -6011,6 +6034,10 @@ msgstr "Adaugă țară"
 #: src/app/routes/_authenticated/_promotions/promotions.tsx:72
 msgid "Create your first promotion"
 msgstr "Creează prima ta promoție"
+
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:256
+msgid "Defaults to the default language."
+msgstr ""
 
 #: src/lib/components/data-input/custom-field-list-input.tsx:85
 msgid "Remove item"
@@ -6105,8 +6132,8 @@ msgstr "Nu sunt acțiuni disponibile"
 msgid "Customize channel colors"
 msgstr ""
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:94
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:100
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:183
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:189
 msgid "Failed to update channel"
 msgstr "Nu s-a putut actualiza canalul"
 
@@ -6114,8 +6141,8 @@ msgstr "Nu s-a putut actualiza canalul"
 msgid "General"
 msgstr "General"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:223
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:228
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:227
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:232
 msgid "Add new address"
 msgstr "Adaugă adresă nouă"
 
@@ -6183,7 +6210,7 @@ msgstr "Descriere (alternativă)"
 msgid "No tags found"
 msgstr "Nu s-au găsit etichete"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:205
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:307
 msgid "Default currency"
 msgstr "Monedă implicită"
 
@@ -6644,7 +6671,7 @@ msgstr "Adaugă plată la comandă"
 msgid "Create variants for the option combinations that don't exist yet. Combinations that already exist are shown for context and can't be edited."
 msgstr "Creați variante pentru combinațiile de opțiuni care nu există încă. Combinațiile care există deja sunt afișate pentru context și nu pot fi editate."
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:147
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:238
 msgid "The token is used to specify the channel when making API requests."
 msgstr "Token-ul este folosit pentru a specifica canalul la efectuarea cererilor API."
 
@@ -6691,7 +6718,7 @@ msgid "Payment method is required"
 msgstr "Metoda de plată este obligatorie"
 
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:69
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:134
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:138
 msgid "Failed to add customer to group"
 msgstr "Nu s-a putut adăuga clientul la grup"
 
@@ -6734,7 +6761,7 @@ msgstr "Opțiune"
 msgid "Order process"
 msgstr "Procesul comenzii"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:194
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:198
 msgid "Phone number"
 msgstr "Număr de telefon"
 

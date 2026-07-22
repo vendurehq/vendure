@@ -50,6 +50,7 @@ import { OrderLineDiscountDistributionStrategy } from './order/order-line-discou
 import { OrderMergeStrategy } from './order/order-merge-strategy';
 import { OrderPlacedStrategy } from './order/order-placed-strategy';
 import { OrderProcess } from './order/order-process';
+import { OrderRecalculationStrategy } from './order/order-recalculation-strategy';
 import { OrderSellerStrategy } from './order/order-seller-strategy';
 import { StockAllocationStrategy } from './order/stock-allocation-strategy';
 import { PaymentMethodEligibilityChecker } from './payment/payment-method-eligibility-checker';
@@ -725,6 +726,19 @@ export interface OrderOptions {
      * @default []
      */
     orderInterceptors?: OrderInterceptor[];
+    /**
+     * @description
+     * Defines whether and when an active Order's prices, promotions and taxes are re-calculated
+     * when the Order is read (e.g. via the `activeOrder` query). By default no read-time
+     * recalculation occurs (prices only change on write mutations). Use
+     * {@link TtlOrderRecalculationStrategy} to keep long-lived carts in sync with changing prices
+     * and promotions. Shipping method eligibility and rates are NOT re-evaluated on read; they are
+     * re-evaluated when the order transitions to `ArrangingPayment`.
+     *
+     * @default NoOrderRecalculationStrategy
+     * @since 3.8.0
+     */
+    orderRecalculationStrategy?: OrderRecalculationStrategy;
 }
 
 /**

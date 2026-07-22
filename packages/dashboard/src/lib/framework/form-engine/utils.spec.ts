@@ -9,6 +9,7 @@ import {
     isFieldNullable,
     removeEmptyIdFields,
     stripNullNullableFields,
+    stripUntouchedTranslations,
     transformRelationFields,
 } from './utils.js';
 
@@ -21,6 +22,16 @@ const createProductDocument = graphql(`
 `);
 
 type CreateProductInput = VariablesOf<typeof createProductDocument>;
+
+const updateProductDocument = graphql(`
+    mutation UpdateProduct($input: UpdateProductInput!) {
+        updateProduct(input: $input) {
+            id
+        }
+    }
+`);
+
+type UpdateProductInput = VariablesOf<typeof updateProductDocument>;
 
 describe('removeEmptyIdFields', () => {
     it('should remove empty translation id field', () => {
@@ -40,6 +51,197 @@ describe('removeEmptyIdFields', () => {
         const fields = getOperationVariablesFields(createProductDocument);
         const result = removeEmptyIdFields(values, fields);
         expect(result).toEqual({ input: { translations: [] } });
+    });
+});
+
+// https://github.com/vendurehq/vendure/issues/4885 (OSS-579)
+// The form seeds a translation row per configured language; submitting the unfilled ones
+// persists empty translation rows that break language fallback. stripUntouchedTranslations
+// keeps a row when it is dirty OR persisted, and drops it otherwise.
+//
+// `dirtyFields` is react-hook-form's record of which fields differ from `defaultValues`; it is a
+// nested object of booleans (a field the user changed is `true`). These tests feed it directly.
+// On the create path dirty state carries the decision; on the update path nothing is dirty until
+// the user types (RHF's `values` prop resets the form), so a persisted row is kept by its `id`
+// instead. That the real form populates `dirtyFields` this way is covered by the e2e, not here.
+describe('stripUntouchedTranslations', () => {
+    const fields = () => getOperationVariablesFields(createProductDocument);
+
+    it('drops an untouched seeded translation and keeps the touched ones', () => {
+        const values: CreateProductInput = {
+            input: {
+                translations: [
+                    { languageCode: 'en', name: 'Test product', slug: 'test-product', description: '' },
+                    { languageCode: 'pl', name: '', slug: '', description: '' },
+                ],
+            },
+        };
+        const dirty = { input: { translations: [{ name: true, slug: true }, {}] } };
+        const result = stripUntouchedTranslations(values, fields(), dirty);
+        expect(result.input.translations).toEqual([
+            { languageCode: 'en', name: 'Test product', slug: 'test-product', description: '' },
+        ]);
+    });
+
+    it('keeps a row where any single field is dirty', () => {
+        const values: CreateProductInput = {
+            input: {
+                translations: [{ languageCode: 'pl', name: '', slug: 'polski-slug', description: '' }],
+            },
+        };
+        const dirty = { input: { translations: [{ slug: true }] } };
+        const result = stripUntouchedTranslations(values, fields(), dirty);
+        expect(result.input.translations).toEqual([
+            { languageCode: 'pl', name: '', slug: 'polski-slug', description: '' },
+        ]);
+    });
+
+    // The key advantage over a value-based check: a non-string field seeded with a filled-looking
+    // default (`false`, `0`, an enum member) is still correctly dropped when untouched, because
+    // dirty state doesn't care what the value is.
+    it('drops an untouched row even when its values look non-empty', () => {
+        const values: any = {
+            input: {
+                translations: [
+                    { languageCode: 'en', name: 'Filled', enabled: true, count: 5 },
+                    { languageCode: 'pl', name: '', enabled: false, count: 0 },
+                ],
+            },
+        };
+        const dirty = { input: { translations: [{ name: true, enabled: true, count: true }, {}] } };
+        const result = stripUntouchedTranslations(values, fields(), dirty);
+        expect(result.input.translations).toEqual([
+            { languageCode: 'en', name: 'Filled', enabled: true, count: 5 },
+        ]);
+    });
+
+    it('leaves values with no untouched translations unchanged', () => {
+        const values: CreateProductInput = {
+            input: {
+                translations: [
+                    { languageCode: 'en', name: 'Test product', slug: 'test-product', description: '' },
+                ],
+            },
+        };
+        const dirty = { input: { translations: [{ name: true, slug: true }] } };
+        const result = stripUntouchedTranslations(values, fields(), dirty);
+        expect(result).toEqual(values);
+    });
+
+    // If every row is untouched, dropping them all would submit `translations: []`. A blank create
+    // form is reachable (a non-nullable `String` maps to a bare `z.string()`), so keep the rows and
+    // let validation surface the empty required fields instead of silently sending none.
+    it('keeps all rows when every one is untouched', () => {
+        const values: CreateProductInput = {
+            input: {
+                translations: [
+                    { languageCode: 'en', name: '', slug: '', description: '' },
+                    { languageCode: 'pl', name: '', slug: '', description: '' },
+                ],
+            },
+        };
+        const dirty = { input: { translations: [{}, {}] } };
+        const result = stripUntouchedTranslations(values, fields(), dirty);
+        expect(result.input.translations).toEqual([
+            { languageCode: 'en', name: '', slug: '', description: '' },
+            { languageCode: 'pl', name: '', slug: '', description: '' },
+        ]);
+    });
+
+    // The #4885 update scenario Will identified: on an update, react-hook-form's `values` prop
+    // resets the form and promotes the entity to `defaultValues`, so *nothing* is dirty until the
+    // user types. Editing only a non-translation field (e.g. toggling Enabled) leaves every
+    // translation row untouched — the persisted `en` row is kept solely because it carries an `id`,
+    // and the seeded empty `pl` row is dropped. Dirty state alone cannot tell them apart here; the
+    // `id` is what separates them. (The old dirty-only version wrongly assumed the persisted row
+    // would be dirty, which masked this bug.)
+    it('on update, keeps the persisted (id-bearing) row and drops the seeded one when nothing is dirty', () => {
+        const values: UpdateProductInput = {
+            input: {
+                id: '1',
+                enabled: true,
+                translations: [
+                    { id: '10', languageCode: 'en', name: 'Laptop', slug: 'laptop', description: '' },
+                    { languageCode: 'pl', name: '', slug: '', description: '' },
+                ],
+            },
+        };
+        // Only the top-level `enabled` toggle is dirty; no translation row is.
+        const dirty = { input: { enabled: true, translations: [{}, {}] } };
+        const result = stripUntouchedTranslations(
+            values,
+            getOperationVariablesFields(updateProductDocument),
+            dirty,
+        );
+        expect(result.input.translations).toEqual([
+            { id: '10', languageCode: 'en', name: 'Laptop', slug: 'laptop', description: '' },
+        ]);
+    });
+
+    // Mixed update: the realistic multi-language edit — an untouched persisted row (kept by `id`),
+    // a newly-typed row the user just added (kept because it is dirty, no `id` yet), and a seeded
+    // untouched row (dropped). Exercises both keep-predicates together in one payload.
+    it('on update, keeps untouched-persisted and newly-typed rows while dropping the seeded one', () => {
+        const values: UpdateProductInput = {
+            input: {
+                id: '1',
+                translations: [
+                    { id: '10', languageCode: 'en', name: 'Laptop', slug: 'laptop', description: '' },
+                    { id: '20', languageCode: 'de', name: 'Laptop DE', slug: 'laptop-de', description: '' },
+                    { languageCode: 'fr', name: 'Ordinateur', slug: 'ordinateur', description: '' },
+                    { languageCode: 'es', name: '', slug: '', description: '' },
+                ],
+            },
+        };
+        // Only the newly-typed `fr` row is dirty; the two persisted rows and the seeded `es` are not.
+        const dirty = {
+            input: { translations: [{}, {}, { name: true, slug: true }, {}] },
+        };
+        const result = stripUntouchedTranslations(
+            values,
+            getOperationVariablesFields(updateProductDocument),
+            dirty,
+        );
+        expect(result.input.translations).toEqual([
+            { id: '10', languageCode: 'en', name: 'Laptop', slug: 'laptop', description: '' },
+            { id: '20', languageCode: 'de', name: 'Laptop DE', slug: 'laptop-de', description: '' },
+            { languageCode: 'fr', name: 'Ordinateur', slug: 'ordinateur', description: '' },
+        ]);
+    });
+
+    it('treats missing dirty info for a row as untouched', () => {
+        const values: CreateProductInput = {
+            input: {
+                translations: [
+                    { languageCode: 'en', name: 'Test product', slug: 'test-product', description: '' },
+                    { languageCode: 'pl', name: '', slug: '', description: '' },
+                ],
+            },
+        };
+        // dirtyFields only carries an entry for the touched row; the untouched row is absent.
+        const dirty = { input: { translations: [{ name: true }] } };
+        const result = stripUntouchedTranslations(values, fields(), dirty);
+        expect(result.input.translations).toEqual([
+            { languageCode: 'en', name: 'Test product', slug: 'test-product', description: '' },
+        ]);
+    });
+
+    it('does not mutate the input', () => {
+        const values: CreateProductInput = {
+            input: {
+                translations: [
+                    { languageCode: 'en', name: 'Test product', slug: 'test-product', description: '' },
+                    { languageCode: 'pl', name: '', slug: '', description: '' },
+                ],
+            },
+        };
+        const snapshot = structuredClone(values);
+        stripUntouchedTranslations(values, fields(), { input: { translations: [{ name: true }, {}] } });
+        expect(values).toEqual(snapshot);
+    });
+
+    it('returns null input unchanged', () => {
+        expect(stripUntouchedTranslations(null as any, fields(), {})).toBeNull();
     });
 });
 

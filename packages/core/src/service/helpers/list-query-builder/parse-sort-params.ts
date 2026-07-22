@@ -6,7 +6,10 @@ import { ColumnMetadata } from 'typeorm/metadata/ColumnMetadata';
 
 import { UserInputError } from '../../../common/error/errors';
 import { NullOptionals, SortParameter } from '../../../common/types/common-types';
-import { CustomFieldConfig } from '../../../config/custom-field/custom-field-types';
+import {
+    CustomFieldConfig,
+    isNonListRelationCustomField,
+} from '../../../config/custom-field/custom-field-types';
 import { VendureEntity } from '../../../entity/base/base.entity';
 
 import { escapeCalculatedColumnExpression, getColumnMetadata } from './connection-utils';
@@ -60,6 +63,9 @@ export function parseSortParams<T extends VendureEntity>(
             }
         } else if (customPropertyMap?.[key]) {
             output[customPropertyMap[key]] = order as any;
+        } else if (customFields?.some(f => f.name === key && isNonListRelationCustomField(f))) {
+            // Non-list relation custom fields are sorted by their id column
+            output[`${alias}.customFields.${key}Id`] = order as any;
         } else {
             throw new UserInputError('error.invalid-sort-field', {
                 fieldName: key,

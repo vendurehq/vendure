@@ -203,6 +203,91 @@ export function stripNullNullableFields<T extends Record<string, any>>(values: T
     return result;
 }
 
+/**
+ * @description
+ * Removes translation rows the form seeded but the user never edited. The form engine seeds a
+ * translation row for every configured language (so any language can be edited in the form), but
+ * submitting the untouched ones persists empty translation rows. Those empty rows break language
+ * fallback — a lookup for that language finds the empty row instead of falling back to the default
+ * language — most visibly in the search index, which shows an empty name. See #4885 / OSS-579.
+ *
+ * A row is kept when it is **dirty OR persisted**, and dropped otherwise. The two predicates are
+ * complementary, each covering what the other is blind to:
+ *
+ * - `dirty` (from react-hook-form's `dirtyFields`) carries the **create** path: no row has an `id`
+ *   yet, so a seeded row never typed into is not dirty and is dropped, while a filled one is kept.
+ * - `persisted` (the row carries an `id`) carries the **update** path: react-hook-form's `values`
+ *   prop resets the form and promotes the entity to `defaultValues`, so on an update nothing is
+ *   dirty until the user types — an untouched persisted row and an untouched seeded row look
+ *   identical to dirty state, and only the `id` separates them.
+ *
+ * Crucially there is no value inspection anywhere, so an untouched row seeded with a filled-looking
+ * default (`Boolean` → `false`, `Int`/`Money` → `0`, enum → first member) is still correctly
+ * dropped — a value-based "is it empty?" check would treat those as user input. Works at any
+ * nesting depth and for any translatable sub-entity (detected by a `languageCode` field).
+ *
+ * NOTE: `dirtyFields` must be read during render for react-hook-form to populate it (its
+ * `formState` is a lazily-tracked Proxy). Destructure it in the component/hook body, not only
+ * inside the submit handler — otherwise it comes back empty and, combined with the floor below,
+ * this silently keeps every row.
+ */
+export function stripUntouchedTranslations<T extends Record<string, any>>(
+    values: T,
+    fields: FieldInfo[],
+    dirtyFields: any,
+): T {
+    if (!values) {
+        return values;
+    }
+    const result = structuredClone(values);
+
+    function process(obj: any, dirty: any, fieldDefs: FieldInfo[]) {
+        for (const field of fieldDefs) {
+            const value = obj?.[field.name];
+            if (!value || typeof value !== 'object' || !field.typeInfo) {
+                continue;
+            }
+            const dirtyValue = dirty?.[field.name];
+            if (Array.isArray(value)) {
+                const isTranslationsArray = field.typeInfo.some(f => f.name === 'languageCode');
+                if (isTranslationsArray) {
+                    const kept = value.filter((entry, i) => isDirty(dirtyValue?.[i]) || isPersisted(entry));
+                    // Never strip every row: a fully-empty form (a non-nullable `String` maps to a
+                    // bare `z.string()`, so a blank create passes validation) would otherwise submit
+                    // `translations: []`. Leave the input untouched and let validation surface the
+                    // empty required fields instead.
+                    obj[field.name] = kept.length ? kept : value;
+                }
+                for (const [i, item] of obj[field.name].entries()) {
+                    process(item, dirtyValue?.[i], field.typeInfo);
+                }
+            } else {
+                process(value, dirtyValue, field.typeInfo);
+            }
+        }
+    }
+
+    process(result, dirtyFields, fields);
+    return result;
+}
+
+function isDirty(value: any): boolean {
+    if (value != null && typeof value === 'object') {
+        return Object.values(value).some(isDirty);
+    }
+    return value === true;
+}
+
+/**
+ * A row that already exists in the database carries an `id`. Dirty state alone cannot identify
+ * these: react-hook-form's `values` prop resets the form and promotes the entity to
+ * `defaultValues`, so on an update nothing is dirty until the user types — an untouched persisted
+ * row and an untouched seeded row look identical. The `id` is the only thing that separates them.
+ */
+function isPersisted(entry: any): boolean {
+    return !!entry && typeof entry === 'object' && entry.id != null && entry.id !== '';
+}
+
 // =============================================================================
 // TYPE GUARDS FOR CONFIGURABLE FIELD DEFINITIONS
 // =============================================================================

@@ -123,6 +123,7 @@
     "cannot-transition-to-payment-due-to-insufficient-stock": "Cannot transition Order to the \"ArrangingPayment\" state due to insufficient stock of { productVariantNames }",
     "cannot-transition-to-payment-without-customer": "Cannot transition Order to the \"ArrangingPayment\" state without Customer details",
     "cannot-transition-to-payment-without-shipping-method": "Cannot transition Order to the \"ArrangingPayment\" state without a ShippingMethod",
+    "cannot-transition-to-payment-with-ineligible-shipping-method": "Cannot transition Order to the \"ArrangingPayment\" state because the selected ShippingMethod is no longer eligible",
     "cannot-transition-unless-all-cancelled": "Cannot transition Order to the \"Cancelled\" state unless all OrderItems are cancelled",
     "cannot-transition-unless-all-order-items-delivered": "Cannot transition Order to the \"Delivered\" state unless all OrderItems are delivered",
     "cannot-transition-unless-some-order-items-delivered": "Cannot transition Order to the \"PartiallyDelivered\" state unless some OrderItems are delivered",

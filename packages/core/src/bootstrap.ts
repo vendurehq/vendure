@@ -21,6 +21,7 @@ import { registerCustomEntityFields } from './entity/register-custom-entity-fiel
 import { runEntityMetadataModifiers } from './entity/run-entity-metadata-modifiers';
 import { setEntityIdStrategy } from './entity/set-entity-id-strategy';
 import { setMoneyStrategy } from './entity/set-money-strategy';
+import { patchTypeOrmEmbeddedRelationColumns } from './entity/typeorm-embedded-relation-fix';
 import { validateCustomFieldsConfig } from './entity/validate-custom-fields-config';
 import { EventBus } from './event-bus';
 import { BootstrappedEvent } from './event-bus/events/bootstrapped-event';
@@ -311,6 +312,8 @@ export async function preBootstrapConfig(
     Logger.useLogger(config.logger);
     config = await runPluginConfigurations(config);
     const entityIdStrategy = config.entityOptions.entityIdStrategy ?? config.entityIdStrategy;
+    patchTypeOrmEmbeddedRelationColumns();
+    registerCustomEntityFields(config);
     setEntityIdStrategy(entityIdStrategy, entities);
     const moneyStrategy = config.entityOptions.moneyStrategy;
     setMoneyStrategy(moneyStrategy, entities);
@@ -319,7 +322,6 @@ export async function preBootstrapConfig(
         process.exitCode = 1;
         throw new Error('CustomFields config error:\n- ' + customFieldValidationResult.errors.join('\n- '));
     }
-    registerCustomEntityFields(config);
     await runEntityMetadataModifiers(config);
     setExposedHeaders(config);
     return config;
