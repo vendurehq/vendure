@@ -53,7 +53,8 @@ describe('getJobsByType Lua script', () => {
         filterName: string,
         states: string[] = ALL_JOB_TYPES,
     ): Promise<[number, string[]]> {
-        return (redis as any).getJobsByType(PREFIX, skip, take, filterName, ...states);
+        const names = filterName ? [filterName] : [];
+        return (redis as any).getJobsByType(PREFIX, skip, take, names.length, ...names, ...states);
     }
 
     async function deleteTestKeys() {

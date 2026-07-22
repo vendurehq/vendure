@@ -220,7 +220,8 @@ export class BullMQJobQueueStrategy implements InspectableJobQueueStrategy {
                     jobTypes = ['completed'];
                     break;
                 case 'RETRYING':
-                    jobTypes = ['repeat'];
+                    // Jobs awaiting a retry after failure are stored in the 'delayed' state
+                    jobTypes = ['delayed'];
                     break;
                 case 'FAILED':
                     jobTypes = ['failed'];
@@ -244,7 +245,7 @@ export class BullMQJobQueueStrategy implements InspectableJobQueueStrategy {
                         stateJobTypes.push('completed');
                         break;
                     case 'RETRYING':
-                        stateJobTypes.push('repeat');
+                        stateJobTypes.push('delayed');
                         break;
                     case 'FAILED':
                         stateJobTypes.push('failed');
@@ -263,20 +264,21 @@ export class BullMQJobQueueStrategy implements InspectableJobQueueStrategy {
             jobTypes =
                 settledFilter.eq === true
                     ? ['completed', 'failed']
-                    : ['wait', 'waiting-children', 'active', 'repeat', 'delayed', 'paused', 'prioritized'];
+                    : ['wait', 'waiting-children', 'active', 'delayed', 'paused', 'prioritized'];
         }
 
         let items: Bull.Job[] = [];
         let totalItems = 0;
 
         const queueNameFilter = flatFilter.queueName;
-        const queueName = queueNameFilter?.eq ?? queueNameFilter?.in?.[0] ?? '';
+        const queueNames = queueNameFilter?.eq ? [queueNameFilter.eq] : (queueNameFilter?.in ?? []);
 
         try {
             const [total, jobIds] = await this.callCustomScript(getJobsByType, [
                 skip,
                 take,
-                queueName,
+                queueNames.length,
+                ...queueNames,
                 ...jobTypes,
             ]);
             items = (
