@@ -162,7 +162,11 @@ export class BullMQJobQueueStrategy implements InspectableJobQueueStrategy {
 
     async destroy() {
         const workerClosePromises = Array.from(this.workers.values()).map(w => w.close());
-        await Promise.all([this.queue.close(), ...workerClosePromises]);
+        await Promise.all([
+            this.queue.close(),
+            this.jobListIndexService?.close(),
+            ...workerClosePromises,
+        ]);
     }
 
     async add<Data extends JobData<Data> = object>(job: Job<Data>): Promise<Job<Data>> {
