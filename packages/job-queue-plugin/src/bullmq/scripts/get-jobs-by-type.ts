@@ -14,10 +14,18 @@ const script = `--[[
     Output:
       { totalCount, { id1, id2, ... } }
 
-  The script is read-only: since Redis scripts execute atomically, candidates from
-  each state structure are merged and sorted in Lua memory rather than in temporary
-  Redis keys. Only the first (skip + take) entries of each structure are fetched, so
-  the cost is bounded by the page depth, not the queue length.
+  The query reads the indexed sorted sets maintained by the JobListIndexService
+  (one per queue name and state, uniformly scored by creation timestamp) rather
+  than BullMQ's native state structures. The native structures order by finish
+  time, encoded delay or priority depending on the state, so selecting the top
+  (skip + take) entries from them could cut a job from the page before a
+  creation-time sort ever saw it. When no queue names are given, the registry of
+  known queue names is used so that every indexed set is consulted.
+
+  The script is read-only: since Redis scripts execute atomically, candidates are
+  merged and sorted in Lua memory rather than in temporary Redis keys. Only the
+  first (skip + take) entries of each set are fetched, so the cost is bounded by
+  the page depth, not the queue length.
 ]]
 local rcall = redis.call
 local prefix = KEYS[1]
@@ -33,65 +41,30 @@ for i = 4 + numNames, #ARGV do
     table.insert(states, ARGV[i])
 end
 
+if numNames == 0 then
+    -- No explicit filter: consult the indexed sets of every known queue name
+    names = rcall('SMEMBERS', prefix .. 'queue-names')
+end
+
 local needed = skip + take
 local total = 0
 local candidates = {}
 local seen = {}
 
-local function addCandidate(id, timestamp)
-    if not seen[id] then
-        seen[id] = true
-        table.insert(candidates, { id = id, ts = timestamp })
-    end
-end
-
--- Reads the creation timestamp from the job's data hash. Returns nil for ids whose
--- job no longer exists (e.g. entries not yet cleaned from an indexed set).
-local function getJobTimestamp(id)
-    local ts = rcall('HGET', prefix .. id, 'timestamp')
-    if ts then
-        return tonumber(ts)
-    end
-    return nil
-end
-
-if numNames > 0 then
-    -- Name-filtered path: read the indexed sorted sets maintained by the
-    -- JobListIndexService, which are uniformly scored by creation timestamp.
-    for _, name in ipairs(names) do
-        for _, state in ipairs(states) do
-            local key = prefix .. 'queue:' .. name .. ':' .. state
-            if rcall('TYPE', key).ok == 'zset' then
-                total = total + rcall('ZCARD', key)
+for _, name in ipairs(names) do
+    for _, state in ipairs(states) do
+        local key = prefix .. 'queue:' .. name .. ':' .. state
+        if rcall('TYPE', key).ok == 'zset' then
+            total = total + rcall('ZCARD', key)
+            -- Guard against needed <= 0: a range end of -1 would fetch the whole set
+            if needed > 0 then
                 local elements = rcall('ZREVRANGE', key, 0, needed - 1, 'WITHSCORES')
                 for i = 1, #elements, 2 do
-                    addCandidate(elements[i], tonumber(elements[i + 1]))
-                end
-            end
-        end
-    end
-else
-    -- Unfiltered path: read BullMQ's native state structures. Their sorted-set
-    -- scores are not comparable across states (finish time vs. encoded delay
-    -- vs. priority), so each candidate's creation timestamp is read from its
-    -- job hash to give a single consistent ordering.
-    for _, state in ipairs(states) do
-        local key = prefix .. state
-        local keyType = rcall('TYPE', key).ok
-        local elements = nil
-        if keyType == 'zset' then
-            total = total + rcall('ZCARD', key)
-            elements = rcall('ZREVRANGE', key, 0, needed - 1)
-        elseif keyType == 'list' then
-            total = total + rcall('LLEN', key)
-            -- Lists hold the newest id at the head
-            elements = rcall('LRANGE', key, 0, needed - 1)
-        end
-        if elements then
-            for _, id in ipairs(elements) do
-                local ts = getJobTimestamp(id)
-                if ts then
-                    addCandidate(id, ts)
+                    local id = elements[i]
+                    if not seen[id] then
+                        seen[id] = true
+                        table.insert(candidates, { id = id, ts = tonumber(elements[i + 1]) })
+                    end
                 end
             end
         end
@@ -121,7 +94,7 @@ return { total, results }
 
 export const getJobsByType: CustomScriptDefinition<
     [totalItems: number, jobIds: string[]],
-    Array<string | number>
+    [skip: number, take: number, numQueueNames: number, ...namesAndStates: string[]]
 > = {
     script,
     numberOfKeys: 1,

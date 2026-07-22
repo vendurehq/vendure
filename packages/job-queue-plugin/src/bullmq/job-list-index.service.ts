@@ -138,15 +138,15 @@ export class JobListIndexService {
             // Atomically move the job to the target state index, and record the
             // queue name so that removeJobFromAllIndices() can find the indexed
             // sets without needing the (possibly deleted) job data.
-            const pipeline = this.redis.pipeline();
-            pipeline.sadd(this.createRegistryKey(), job.name);
+            const multi = this.redis.multi();
+            multi.sadd(this.createRegistryKey(), job.name);
             for (const otherState of this.allStates) {
                 if (otherState !== state) {
-                    pipeline.zrem(this.createSortedSetKey(job.name, otherState), jobId);
+                    multi.zrem(this.createSortedSetKey(job.name, otherState), jobId);
                 }
             }
-            pipeline.zadd(targetKey, job.timestamp, jobId);
-            await pipeline.exec();
+            multi.zadd(targetKey, job.timestamp, jobId);
+            await multi.exec();
             Logger.debug(`Added job ${jobId} to indexed key: ${targetKey}`, loggerCtx);
         } catch (err: unknown) {
             const error = err as Error;
@@ -166,15 +166,15 @@ export class JobListIndexService {
         try {
             const queueNames = await this.redis.smembers(this.createRegistryKey());
             if (queueNames.length === 0) return;
-            const pipeline = this.redis.pipeline();
+            const multi = this.redis.multi();
 
             for (const queueName of queueNames) {
                 for (const state of this.allStates) {
-                    pipeline.zrem(this.createSortedSetKey(queueName, state), jobId);
+                    multi.zrem(this.createSortedSetKey(queueName, state), jobId);
                 }
             }
 
-            await pipeline.exec();
+            await multi.exec();
         } catch (err: unknown) {
             const error = err as Error;
             Logger.error(`Failed to remove job from indices: ${error.message}`, loggerCtx);
@@ -231,28 +231,28 @@ export class JobListIndexService {
                         jobsByQueue.get(job.name)?.push(job);
                     }
 
-                    // Create sorted sets for each queue in this state
+                    // Merge each queue's jobs into its indexed set. The zadds are
+                    // idempotent (same score for the same member), so this also picks
+                    // up jobs which were added while no worker was listening for
+                    // queue events, without disturbing existing entries.
                     for (const [queueName, queueJobs] of jobsByQueue) {
                         await this.redis.sadd(this.createRegistryKey(), queueName);
                         const indexedKey = this.createSortedSetKey(queueName, state);
-                        const exists = await this.redis.exists(indexedKey);
-                        if (exists === 0) {
-                            Logger.info(
-                                `Creating indexed set for queue: ${queueName} in state: ${state}`,
-                                loggerCtx,
-                            );
-                            const pipeline = this.redis.pipeline();
-                            // Add jobs in batches
-                            for (let i = 0; i < queueJobs.length; i += this.BATCH_SIZE) {
-                                const batch = queueJobs.slice(i, i + this.BATCH_SIZE);
-                                const args = batch
-                                    .flatMap(job => [job.timestamp, job.id])
-                                    .filter((id): id is string | number => id != null);
-                                pipeline.zadd(indexedKey, ...args);
-                            }
-                            await pipeline.exec();
-                            totalMigrated += queueJobs.length;
+                        Logger.debug(
+                            `Merging ${queueJobs.length} jobs into indexed set for queue: ${queueName} in state: ${state}`,
+                            loggerCtx,
+                        );
+                        const pipeline = this.redis.pipeline();
+                        // Add jobs in batches
+                        for (let i = 0; i < queueJobs.length; i += this.BATCH_SIZE) {
+                            const batch = queueJobs.slice(i, i + this.BATCH_SIZE);
+                            const args = batch
+                                .flatMap(job => [job.timestamp, job.id])
+                                .filter((id): id is string | number => id != null);
+                            pipeline.zadd(indexedKey, ...args);
                         }
+                        await pipeline.exec();
+                        totalMigrated += queueJobs.length;
                     }
                 } catch (err: unknown) {
                     const error = err as Error;
@@ -367,8 +367,9 @@ export class JobListIndexService {
 
     /**
      * The registry is a Redis set holding all Vendure queue names which have been
-     * indexed, allowing removal of a job id from all indexed sets even when the
-     * job data (and with it the queue name) is no longer available.
+     * indexed. It allows removal of a job id from all indexed sets even when the
+     * job data (and with it the queue name) is no longer available, and lets the
+     * getJobsByType script enumerate every indexed set for unfiltered queries.
      */
     private createRegistryKey(): string {
         const prefix = getPrefix(this.options);

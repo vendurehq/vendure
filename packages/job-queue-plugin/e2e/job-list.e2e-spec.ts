@@ -218,6 +218,7 @@ describe('BullMQ job list query', () => {
      * the wrong Redis prefix.
      */
     async function seedIndexEntries(queueName: string, state: string, ids: string[]) {
+        await cleanupRedis.sadd(`${PREFIX}:vendure-job-queue:queue-names`, queueName);
         for (const id of ids) {
             const timestamp = await cleanupRedis.hget(`${PREFIX}:vendure-job-queue:${id}`, 'timestamp');
             await cleanupRedis.zadd(

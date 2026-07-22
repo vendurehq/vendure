@@ -36,6 +36,8 @@ interface SeedJob {
     settledAt?: number;
     /** For delayed jobs: the time at which the job becomes due */
     delayUntil?: number;
+    /** For prioritized jobs: lower value means higher priority */
+    priority?: number;
 }
 
 const LIST_STATES = ['wait', 'active', 'paused'];
@@ -85,11 +87,13 @@ describe('getJobsByType Lua script', () => {
                 pipeline.lpush(`${PREFIX}${listState}`, job.id);
             }
         }
+        let prioritizedCounter = 0;
         for (const job of jobs) {
             pipeline.hset(`${PREFIX}${job.id}`, {
                 name: job.queueName,
                 timestamp: job.createdAt.toString(),
             });
+            pipeline.sadd(`${PREFIX}queue-names`, job.queueName);
             pipeline.zadd(`${PREFIX}queue:${job.queueName}:${job.state}`, job.createdAt, job.id);
             if (job.state === 'completed' || job.state === 'failed') {
                 pipeline.zadd(`${PREFIX}${job.state}`, job.settledAt ?? job.createdAt, job.id);
@@ -99,7 +103,10 @@ describe('getJobsByType Lua script', () => {
                 pipeline.zadd(`${PREFIX}delayed`, (job.delayUntil ?? job.createdAt) * 4096, job.id);
             }
             if (job.state === 'prioritized') {
-                pipeline.zadd(`${PREFIX}prioritized`, 10, job.id);
+                // BullMQ scores the prioritized set as `priority * 2^32 + counter`,
+                // which has no relationship to creation time
+                const score = (job.priority ?? 10) * 2 ** 32 + prioritizedCounter++;
+                pipeline.zadd(`${PREFIX}prioritized`, score, job.id);
             }
         }
         await pipeline.exec();
@@ -250,6 +257,43 @@ describe('getJobsByType Lua script', () => {
         for (const id of ids) {
             expect(realIds).toContain(id);
         }
+    });
+
+    it('does not omit jobs when a state is larger than the page and natively ordered by priority', async () => {
+        // BullMQ's native prioritized set is scored by `priority * 2^32 + counter`,
+        // which has no relationship to creation time. If page candidates were
+        // selected from the native structure by its own ordering, the newest jobs
+        // (added here with the best priorities, so sorted last by ZREVRANGE) would
+        // be cut before the creation-time sort could consider them.
+        const prioritized: SeedJob[] = Array.from({ length: 30 }, (_, i) => ({
+            id: `prio-${i + 1}`,
+            queueName: 'default',
+            state: 'prioritized' as const,
+            createdAt: NOW + i * 10,
+            // The newest jobs get the numerically lowest (i.e. best) priority
+            priority: 30 - i,
+        }));
+        const completed = makeJobs(5, 'completed', 'default', 'completed-', NOW - 60_000);
+        await seedJobs([...prioritized, ...completed]);
+
+        const [total, ids] = await callScript(0, 10, '');
+
+        expect(total).toBe(35);
+        // Page 1 must hold the 10 newest jobs by creation time: prio-30 .. prio-21
+        expect(ids).toEqual(Array.from({ length: 10 }, (_, i) => `prio-${30 - i}`));
+    });
+
+    it('returns the total without fetching jobs when take is zero', async () => {
+        // A zero (or negative) page size must not translate into a full-range
+        // Redis read: a range end of `skip + take - 1 = -1` would mean "the whole
+        // structure" to Redis.
+        const completed = makeJobs(20, 'completed', 'default', 'completed-', NOW);
+        await seedJobs(completed);
+
+        const [total, ids] = await callScript(0, 0, '');
+
+        expect(total).toBe(20);
+        expect(ids).toEqual([]);
     });
 
     it('handles more than 8000 waiting jobs without erroring', async () => {
