@@ -179,6 +179,33 @@ export interface NavigationShortcutValidationResult {
     errors: string[];
 }
 
+function validateShortcutDeclaration(item: NavMenuItem): { error?: string; extensionShortcut?: string } {
+    const shortcut = item.shortcut as string | undefined;
+    if (!shortcut) {
+        return {};
+    }
+    if (!/^[a-fh-z0-9]$/.test(shortcut)) {
+        return {
+            error:
+                `Invalid navigation shortcut "${shortcut}" declared by "${item.id}". ` +
+                'Shortcuts must be one lowercase letter or digit other than "g".',
+        };
+    }
+    const builtInOwner =
+        BUILT_IN_NAVIGATION_SHORTCUTS[shortcut as keyof typeof BUILT_IN_NAVIGATION_SHORTCUTS];
+    if (!builtInOwner) {
+        return { extensionShortcut: shortcut };
+    }
+    if (item.id === builtInOwner) {
+        return {};
+    }
+    return {
+        error:
+            `Navigation shortcut collision: G → ${shortcut.toUpperCase()} is reserved by ` +
+            `the built-in navigation item "${builtInOwner}" and cannot be declared by "${item.id}".`,
+    };
+}
+
 /**
  * Validates the final, fully-composed navigation configuration and removes shortcuts which
  * cannot be activated safely. Keeping this at the navigation seam means extensions do not
@@ -191,33 +218,19 @@ export function validateNavigationShortcuts(config: NavMenuConfig): NavigationSh
     const extensionShortcuts = new Map<string, NavMenuItem[]>();
 
     for (const item of items) {
-        const shortcut = item.shortcut as string | undefined;
-        if (!shortcut) {
-            continue;
-        }
-        if (!/^[a-fh-z0-9]$/.test(shortcut)) {
+        const { error, extensionShortcut } = validateShortcutDeclaration(item);
+        if (error) {
             disabledItems.add(item);
-            errors.push(
-                `Invalid navigation shortcut "${shortcut}" declared by "${item.id}". ` +
-                    'Shortcuts must be one lowercase letter or digit other than "g".',
-            );
+            errors.push(error);
             continue;
         }
-
-        const builtInOwner =
-            BUILT_IN_NAVIGATION_SHORTCUTS[shortcut as keyof typeof BUILT_IN_NAVIGATION_SHORTCUTS];
-        if (builtInOwner) {
-            if (item.id !== builtInOwner) {
-                disabledItems.add(item);
-                errors.push(
-                    `Navigation shortcut collision: G → ${shortcut.toUpperCase()} is reserved by ` +
-                        `the built-in navigation item "${builtInOwner}" and cannot be declared by "${item.id}".`,
-                );
-            }
+        if (!extensionShortcut) {
             continue;
         }
-
-        extensionShortcuts.set(shortcut, [...(extensionShortcuts.get(shortcut) ?? []), item]);
+        extensionShortcuts.set(extensionShortcut, [
+            ...(extensionShortcuts.get(extensionShortcut) ?? []),
+            item,
+        ]);
     }
 
     for (const [shortcut, matches] of extensionShortcuts) {

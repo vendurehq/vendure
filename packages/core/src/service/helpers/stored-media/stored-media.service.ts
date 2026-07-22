@@ -4,12 +4,18 @@ import { notNullOrUndefined } from '@vendure/common/lib/shared-utils';
 import { imageSize } from 'image-size';
 import mime from 'mime-types';
 import { Readable } from 'stream';
+import { EntityManager } from 'typeorm';
 
 import { RequestContext } from '../../../api/common/request-context';
+import { TRANSACTION_MANAGER_KEY } from '../../../common/constants';
 import { MimeTypeError } from '../../../common/error/generated-graphql-admin-errors';
 import { getAssetType } from '../../../common/utils';
 import { ConfigService } from '../../../config/config.service';
 import { Logger } from '../../../config/logger/vendure-logger';
+import {
+    TransactionSubscriber,
+    TransactionSubscriberError,
+} from '../../../connection/transaction-subscriber';
 
 const CONTENT_DETECTION_SAMPLE_BYTES = 4100;
 
@@ -88,7 +94,10 @@ function peekStreamHead(stream: Readable, byteCount: number): Promise<{ head: Bu
 export class StoredMediaService {
     private readonly permittedMimeTypes: Array<{ type: string; subtype: string }>;
 
-    constructor(private readonly configService: ConfigService) {
+    constructor(
+        private readonly configService: ConfigService,
+        private readonly transactionSubscriber: TransactionSubscriber,
+    ) {
         this.permittedMimeTypes = this.configService.assetOptions.permittedFileTypes
             .map(value => (/\.[\w]+/.test(value) ? mime.lookup(value) || undefined : value))
             .filter(notNullOrUndefined)
@@ -121,6 +130,7 @@ export class StoredMediaService {
         if (mimeTypeError) {
             return mimeTypeError;
         }
+        const canonicalMimeType = this.getCanonicalMimeType(filename, mimetype, contentMimeType);
 
         const { assetPreviewStrategy, assetStorageStrategy } = this.configService.assetOptions;
         const sourceFileName = await this.getSourceFileName(ctx, filename);
@@ -133,9 +143,13 @@ export class StoredMediaService {
                 ? await assetStorageStrategy.writeFileFromBuffer(sourceFileName, head)
                 : await assetStorageStrategy.writeFileFromStream(sourceFileName, stream);
             const sourceFile = await assetStorageStrategy.readFileToBuffer(source);
-            const previewBuffer = await assetPreviewStrategy.generatePreviewImage(ctx, mimetype, sourceFile);
+            const previewBuffer = await assetPreviewStrategy.generatePreviewImage(
+                ctx,
+                canonicalMimeType,
+                sourceFile,
+            );
             preview = await assetStorageStrategy.writeFileFromBuffer(previewFileName, previewBuffer);
-            const type = getAssetType(mimetype);
+            const type = getAssetType(canonicalMimeType);
             const { width, height } = this.getDimensions(
                 type === AssetType.IMAGE ? sourceFile : previewBuffer,
             );
@@ -144,7 +158,7 @@ export class StoredMediaService {
                 width,
                 height,
                 fileSize: sourceFile.byteLength,
-                mimeType: mimetype,
+                mimeType: canonicalMimeType,
                 source,
                 preview,
             };
@@ -164,6 +178,45 @@ export class StoredMediaService {
                 Logger.error('error.could-not-delete-asset-file', undefined, error?.stack);
             }
         }
+    }
+
+    /** @internal */
+    registerRollbackCleanup(
+        ctx: RequestContext,
+        media: Pick<StoredMedia, 'source' | 'preview'>,
+    ): () => Promise<void> {
+        let cleanedUp = false;
+        const cleanup = async () => {
+            if (cleanedUp) {
+                return;
+            }
+            cleanedUp = true;
+            await this.delete(media);
+        };
+        const queryRunner = this.getActiveQueryRunner(ctx);
+        if (queryRunner) {
+            void this.transactionSubscriber
+                .awaitRollback(queryRunner)
+                .then(cleanup)
+                .catch(error => this.ignoreOppositeTransactionOutcome(error));
+        }
+        return cleanup;
+    }
+
+    /** @internal */
+    async deleteOnCommit(
+        ctx: RequestContext,
+        media: Pick<StoredMedia, 'source' | 'preview'>,
+    ): Promise<void> {
+        const queryRunner = this.getActiveQueryRunner(ctx);
+        if (!queryRunner) {
+            await this.delete(media);
+            return;
+        }
+        void this.transactionSubscriber
+            .awaitCommit(queryRunner)
+            .then(() => this.delete(media))
+            .catch(error => this.ignoreOppositeTransactionOutcome(error));
     }
 
     private getMimeTypeError(
@@ -191,6 +244,34 @@ export class StoredMediaService {
         }
         if (!contentMimeType && !extensionMimeType) {
             return new MimeTypeError({ fileName: filename, mimeType: 'application/octet-stream' });
+        }
+    }
+
+    private getCanonicalMimeType(
+        filename: string,
+        declaredMimeType: string,
+        contentMimeType: string | undefined,
+    ): string {
+        const extensionMimeType = mime.lookup(filename) || undefined;
+        const contentIsGenericXml =
+            contentMimeType === 'application/xml' || contentMimeType === 'text/xml';
+        const extensionIsXmlBased = !!extensionMimeType && extensionMimeType.endsWith('+xml');
+        if (contentMimeType && !(contentIsGenericXml && extensionIsXmlBased)) {
+            return contentMimeType;
+        }
+        return extensionMimeType || declaredMimeType;
+    }
+
+    private getActiveQueryRunner(ctx: RequestContext) {
+        const transactionManager = (ctx as any)[TRANSACTION_MANAGER_KEY] as EntityManager | undefined;
+        const queryRunner = transactionManager?.queryRunner;
+        return queryRunner?.isTransactionActive ? queryRunner : undefined;
+    }
+
+    private ignoreOppositeTransactionOutcome(error: unknown) {
+        if (!(error instanceof TransactionSubscriberError)) {
+            const trace = error instanceof Error ? error.stack : String(error);
+            Logger.error('Could not coordinate stored media with transaction outcome', undefined, trace);
         }
     }
 

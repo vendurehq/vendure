@@ -13,6 +13,16 @@ export type ChannelColor = (typeof channelColorValues)[number];
 export type ChannelColorMap = Record<string, ChannelColor>;
 
 const queryKey = ['settings-store', CHANNEL_COLOR_SETTINGS_KEY] as const;
+const channelColorMutationQueues = new WeakMap<object, Promise<void>>();
+
+function enqueueChannelColorMutation(owner: object, task: () => Promise<unknown>) {
+    const queue = channelColorMutationQueues.get(owner) ?? Promise.resolve();
+    const next = queue.then(task, task).then(
+        () => undefined,
+        () => undefined,
+    );
+    channelColorMutationQueues.set(owner, next);
+}
 
 function normalizeChannelColors(value: unknown): ChannelColorMap {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -34,9 +44,16 @@ export function useChannelColors() {
         retry: false,
     });
     const colors = normalizeChannelColors(query.data?.getSettingsStoreValue);
+    const getCachedColors = () =>
+        normalizeChannelColors(
+            queryClient.getQueryData<{ getSettingsStoreValue?: unknown }>(queryKey)
+                ?.getSettingsStoreValue,
+        );
 
     const mutation = useMutation({
-        mutationFn: async (nextColors: ChannelColorMap) => {
+        scope: { id: CHANNEL_COLOR_SETTINGS_KEY },
+        mutationFn: async ({ channelId, color }: { channelId: string; color: ChannelColor }) => {
+            const nextColors = { ...getCachedColors(), [channelId]: color };
             const result = await api.mutate(setSettingsStoreValueDocument, {
                 input: { key: CHANNEL_COLOR_SETTINGS_KEY, value: nextColors },
             });
@@ -45,13 +62,14 @@ export function useChannelColors() {
             }
             return result;
         },
-        onMutate: async nextColors => {
+        onMutate: async ({ channelId, color }) => {
             await queryClient.cancelQueries({ queryKey });
             const previous = queryClient.getQueryData(queryKey);
+            const nextColors = { ...getCachedColors(), [channelId]: color };
             queryClient.setQueryData(queryKey, { getSettingsStoreValue: nextColors });
             return { previous };
         },
-        onError: (error, _nextColors, context) => {
+        onError: (error, _update, context) => {
             queryClient.setQueryData(queryKey, context?.previous);
             toast.error('Failed to update channel color', {
                 description: error instanceof Error ? error.message : 'Unknown error',
@@ -61,7 +79,7 @@ export function useChannelColors() {
     });
 
     const setColor = (channelId: string, color: ChannelColor) => {
-        mutation.mutate({ ...colors, [channelId]: color });
+        enqueueChannelColorMutation(queryClient, () => mutation.mutateAsync({ channelId, color }));
     };
 
     return {

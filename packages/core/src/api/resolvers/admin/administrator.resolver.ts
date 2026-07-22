@@ -13,6 +13,7 @@ import {
 } from '@vendure/common/lib/generated-types';
 import { PaginatedList } from '@vendure/common/lib/shared-types';
 
+import { ForbiddenError } from '../../../common/error/errors';
 import { Administrator } from '../../../entity/administrator/administrator.entity';
 import { AdministratorService } from '../../../service/services/administrator.service';
 import { RequestContext } from '../../common/request-context';
@@ -102,14 +103,15 @@ export class AdministratorResolver {
     async setActiveAdministratorAvatar(
         @Ctx() ctx: RequestContext,
         @Args('file') file: any,
-    ): Promise<Administrator | undefined> {
+    ): Promise<Administrator> {
         if (!ctx.activeUserId) {
-            return;
+            throw new ForbiddenError();
         }
         const administrator = await this.administratorService.findOneByUserId(ctx, ctx.activeUserId);
-        if (administrator) {
-            return this.administratorService.setAvatar(ctx, administrator.id, file ?? null);
+        if (!administrator) {
+            throw new ForbiddenError();
         }
+        return this.administratorService.setAvatar(ctx, administrator.id, file ?? null);
     }
 
     @Transaction()

@@ -305,22 +305,28 @@ export class AssetService {
         if (isGraphQlErrorResult(storedMedia)) {
             return storedMedia;
         }
-        const result = await this.createAssetInternal(
-            ctx,
-            storedMedia,
-            upload.filename,
-            input.customFields,
-            input.translations,
-        );
-        await this.customFieldRelationService.updateRelations(ctx, Asset, input, result);
-        if (input.tags) {
-            const tags = await this.tagService.valuesToTags(ctx, input.tags);
-            result.tags = tags;
-            await this.connection.getRepository(ctx, Asset).save(result);
+        const cleanup = this.storedMediaService.registerRollbackCleanup(ctx, storedMedia);
+        try {
+            const result = await this.createAssetInternal(
+                ctx,
+                storedMedia,
+                upload.filename,
+                input.customFields,
+                input.translations,
+            );
+            await this.customFieldRelationService.updateRelations(ctx, Asset, input, result);
+            if (input.tags) {
+                const tags = await this.tagService.valuesToTags(ctx, input.tags);
+                result.tags = tags;
+                await this.connection.getRepository(ctx, Asset).save(result);
+            }
+            const translatedAsset = this.translator.translate(result, ctx);
+            await this.eventBus.publish(new AssetEvent(ctx, translatedAsset, 'created', input));
+            return translatedAsset;
+        } catch (error) {
+            await cleanup();
+            throw error;
         }
-        const translatedAsset = this.translator.translate(result, ctx);
-        await this.eventBus.publish(new AssetEvent(ctx, translatedAsset, 'created', input));
-        return translatedAsset;
     }
 
     /**
@@ -339,17 +345,25 @@ export class AssetService {
         if (isGraphQlErrorResult(storedMedia)) {
             return storedMedia;
         }
-        const result = await this.createAssetInternal(
-            ctx,
-            storedMedia,
-            upload.filename,
-            undefined,
-            undefined,
-            AssetUsage.SYSTEM,
-        );
-        const translatedAsset = this.translator.translate(result, ctx);
-        await this.eventBus.publish(new AssetEvent(ctx, translatedAsset, 'created', { file: uploadInput }));
-        return translatedAsset;
+        const cleanup = this.storedMediaService.registerRollbackCleanup(ctx, storedMedia);
+        try {
+            const result = await this.createAssetInternal(
+                ctx,
+                storedMedia,
+                upload.filename,
+                undefined,
+                undefined,
+                AssetUsage.SYSTEM,
+            );
+            const translatedAsset = this.translator.translate(result, ctx);
+            await this.eventBus.publish(
+                new AssetEvent(ctx, translatedAsset, 'created', { file: uploadInput }),
+            );
+            return translatedAsset;
+        } catch (error) {
+            await cleanup();
+            throw error;
+        }
     }
 
     /** @internal */
@@ -545,8 +559,14 @@ export class AssetService {
             if (isGraphQlErrorResult(storedMedia)) {
                 return storedMedia;
             }
-            const result = await this.createAssetInternal(ctx, storedMedia, filename);
-            return this.translator.translate(result, ctx);
+            const cleanup = this.storedMediaService.registerRollbackCleanup(ctx, storedMedia);
+            try {
+                const result = await this.createAssetInternal(ctx, storedMedia, filename);
+                return this.translator.translate(result, ctx);
+            } catch (error) {
+                await cleanup();
+                throw error;
+            }
         } else {
             throw new InternalServerError('error.path-should-be-a-string-got-buffer');
         }
@@ -573,7 +593,7 @@ export class AssetService {
             // after deletion (the .remove() method sets it to undefined)
             const deletedAsset = new Asset(asset);
             await this.connection.getRepository(ctx, Asset).remove(asset);
-            await this.storedMediaService.delete(asset);
+            await this.storedMediaService.deleteOnCommit(ctx, asset);
             await this.eventBus.publish(new AssetEvent(ctx, deletedAsset, 'deleted', deletedAsset.id));
         }
         return {
