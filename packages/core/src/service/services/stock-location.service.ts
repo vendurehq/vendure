@@ -96,7 +96,10 @@ export class StockLocationService {
     }
 
     async update(ctx: RequestContext, input: UpdateStockLocationInput): Promise<StockLocation> {
-        const stockLocation = await this.connection.getEntityOrThrow(ctx, StockLocation, input.id);
+        // Ensure the entity belongs to the active channel before updating.
+        const stockLocation = await this.connection.getEntityOrThrow(ctx, StockLocation, input.id, {
+            channelId: ctx.channelId,
+        });
         const updatedStockLocation = patchEntity(stockLocation, input);
         await this.connection.getRepository(ctx, StockLocation).save(updatedStockLocation);
         await this.customFieldRelationService.updateRelations(

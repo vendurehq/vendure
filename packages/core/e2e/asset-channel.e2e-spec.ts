@@ -16,6 +16,7 @@ import {
     deleteAssetDocument,
     getAssetDocument,
     getProductWithVariantsDocument,
+    updateAssetDocument,
     updateCollectionDocument,
     updateProductDocument,
 } from './graphql/shared-definitions';
@@ -306,5 +307,72 @@ describe('Collection related assets', () => {
             id: collectionFeaturedAssetId,
         });
         expect(asset?.id).toEqual(collectionFeaturedAssetId);
+    });
+});
+
+// Cross-channel update protection
+// Verifies that a channel-scoped admin cannot update an Asset belonging to
+// another channel. This is the guard that should use { channelId: ctx.channelId }
+// in asset.service.ts update().
+describe('cross-channel update protection', () => {
+    const CHANNEL_A_TOKEN = 'asset-cross-channel-a';
+    const CHANNEL_B_TOKEN = 'asset-cross-channel-b';
+    let targetAssetId: string;
+
+    beforeAll(async () => {
+        await adminClient.asSuperAdmin();
+        adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+        // Create two isolated channels
+        for (const [code, token] of [
+            ['asset-cross-a', CHANNEL_A_TOKEN],
+            ['asset-cross-b', CHANNEL_B_TOKEN],
+        ]) {
+            await adminClient.query(createChannelDocument, {
+                input: {
+                    code,
+                    token,
+                    defaultLanguageCode: LanguageCode.en,
+                    currencyCode: CurrencyCode.GBP,
+                    pricesIncludeTax: true,
+                    defaultShippingZoneId: 'T_1',
+                    defaultTaxZoneId: 'T_1',
+                },
+            });
+        }
+        // Create an Asset in Channel A via file upload
+        adminClient.setChannelToken(CHANNEL_A_TOKEN);
+        const filesToUpload = [path.join(__dirname, 'fixtures/assets/pps2.jpg')];
+        const { createAssets } = await adminClient.fileUploadMutation({
+            mutation: createAssetsDocument,
+            filePaths: filesToUpload,
+            mapVariables: filePaths => ({
+                input: filePaths.map(() => ({ file: null })),
+            }),
+        });
+        targetAssetId = createAssets[0].id;
+    });
+
+    afterAll(() => {
+        adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+    });
+
+    it('cannot update an Asset belonging to another channel', async () => {
+        // Channel B does not contain this Asset; the update must be rejected.
+        adminClient.setChannelToken(CHANNEL_B_TOKEN);
+        await expect(
+            adminClient.query(updateAssetDocument, {
+                input: {
+                    id: targetAssetId,
+                    name: 'PWNED-BY-CHANNEL-B',
+                },
+            }),
+        ).rejects.toThrow(/No Asset with the id .* could be found/);
+
+        // Verify the original Asset in Channel A is completely unchanged.
+        adminClient.setChannelToken(CHANNEL_A_TOKEN);
+        const { asset } = await adminClient.query(getAssetDocument, {
+            id: targetAssetId,
+        });
+        expect(asset?.name).toBe('pps2.jpg');
     });
 });
