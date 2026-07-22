@@ -13,12 +13,15 @@ type Asset {
 input ProductSortParameter {
   id: SortOrder
   owner: SortOrder
+  legacyOwner: SortOrder @deprecated(reason: "use owner instead")
   ownerId: SortOrder
+  legacyOwnerId: SortOrder @deprecated(reason: "use owner instead")
 }
 
 input ProductFilterParameter {
   id: IDOperators
   ownerId: IDOperators
+  legacyOwnerId: IDOperators @deprecated(reason: "use owner instead")
 }
 
 enum SortOrder {
@@ -37,7 +40,9 @@ scalar DateTime
 type ProductCustomFields {
   owner: Asset
   featured: [Asset!]
+  legacyOwner: Asset @deprecated(reason: "use owner instead")
   ownerId: ID
+  legacyOwnerId: ID @deprecated(reason: "use owner instead")
 }"
 `;
 

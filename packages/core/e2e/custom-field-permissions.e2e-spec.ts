@@ -277,6 +277,13 @@ describe('Custom field permissions', () => {
             const { product } = await adminClient.query(productWithRestrictedRelationIdQuery);
             expect(product.customFields.restrictedRelationId).toBeNull();
         });
+
+        it('non-public relation id field is not present in the Shop API schema', async () => {
+            await shopClient.asAnonymousUser();
+            await expect(shopClient.query(productWithRestrictedRelationIdQuery)).rejects.toThrowError(
+                /restrictedRelationId/,
+            );
+        });
     });
 });
 

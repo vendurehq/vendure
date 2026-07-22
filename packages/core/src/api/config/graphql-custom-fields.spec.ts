@@ -251,6 +251,13 @@ describe('addGraphQLCustomFields()', () => {
                     graphQLType: 'Asset',
                     list: true,
                 },
+                {
+                    name: 'legacyOwner',
+                    type: 'relation',
+                    entity: class {} as any,
+                    graphQLType: 'Asset',
+                    deprecated: 'use owner instead',
+                },
             ],
         };
         const result = addGraphQLCustomFields(input, customFieldConfig, false);

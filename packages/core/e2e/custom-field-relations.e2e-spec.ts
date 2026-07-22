@@ -1716,21 +1716,53 @@ describe('Custom field relations', () => {
                     }
                 }
             `);
+            expect(products.items.length).toBeGreaterThan(0);
             expect(products.items.map((i: { id: string }) => i.id)).not.toContain('T_1');
         });
 
         it('sorts by relation id', async () => {
+            // Give a second product a distinct relation id so that the ordering
+            // of non-null values can be asserted.
+            await adminClient.query(gql`
+                mutation {
+                    updateProduct(input: { id: "T_2", customFields: { singleId: "T_3" } }) {
+                        id
+                    }
+                }
+            `);
+
+            const values = await getProductsSortedBySingle('singleId');
+            const nonNullValues = values.filter((id): id is string => id != null);
+            expect(nonNullValues.length).toBeGreaterThanOrEqual(2);
+            // The database may sort nulls first or last, but the non-null values
+            // must form a single contiguous block, in ascending order.
+            expect(nonNullValues).toEqual([...nonNullValues].sort());
+            const firstNonNull = values.findIndex(v => v != null);
+            expect(values.slice(firstNonNull, firstNonNull + nonNullValues.length)).toEqual(nonNullValues);
+        });
+
+        it('sorting by the relation field name is equivalent to sorting by its id', async () => {
+            const sortedByName = await getProductsSortedBySingle('single');
+            const sortedById = await getProductsSortedBySingle('singleId');
+            expect(sortedByName).toEqual(sortedById);
+        });
+
+        async function getProductsSortedBySingle(sortField: 'single' | 'singleId') {
             const { products } = await adminClient.query(gql`
                 query {
-                    products(options: { sort: { singleId: DESC }, take: 3 }) {
+                    products(options: { sort: { ${sortField}: ASC }, take: 100 }) {
                         items {
-                            id
+                            customFields {
+                                singleId
+                            }
                         }
                     }
                 }
             `);
-            expect(products.items.length).toBe(3);
-        });
+            return products.items.map(
+                (i: { customFields: { singleId: string | null } }) => i.customFields.singleId,
+            ) as Array<string | null>;
+        }
     });
 
     it('null values', async () => {
