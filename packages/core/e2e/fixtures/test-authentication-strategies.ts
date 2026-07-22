@@ -8,8 +8,14 @@ import {
 } from '@vendure/core';
 import { DocumentNode } from 'graphql';
 import gql from 'graphql-tag';
+import { Readable } from 'stream';
 
 export const VALID_AUTH_TOKEN = 'valid-auth-token';
+
+const TEST_ADMIN_AVATAR = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+    'base64',
+);
 
 export type TestAuthPayload = {
     token: string;
@@ -99,6 +105,11 @@ export class TestSSOStrategyAdmin implements AuthenticationStrategy<{ email: str
             lastName: 'SSO Admin Last Name',
             identifier: email,
             roles: [superAdminRole],
+            avatar: {
+                filename: 'external-profile.png',
+                mimetype: 'image/png',
+                createReadStream: () => Readable.from([TEST_ADMIN_AVATAR]),
+            },
         });
     }
 }

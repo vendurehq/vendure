@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { AssetType } from '@vendure/common/lib/generated-types';
 import { notNullOrUndefined } from '@vendure/common/lib/shared-utils';
-import { ReadStream } from 'fs';
 import { imageSize } from 'image-size';
 import mime from 'mime-types';
 import { Readable } from 'stream';
@@ -24,8 +23,15 @@ export interface StoredMedia {
     preview: string;
 }
 
+/**
+ * @description
+ * A file supplied programmatically to Vendure's stored-media pipeline. The stream is validated,
+ * persisted and converted into an Asset preview in the same way as a GraphQL file upload.
+ *
+ * @docsCategory assets
+ */
 export interface StoredMediaUpload {
-    createReadStream: () => ReadStream;
+    createReadStream: () => Readable;
     filename: string;
     mimetype: string;
 }
@@ -228,7 +234,7 @@ export class StoredMediaService {
         }
     }
 
-    private makeStreamGuard(createReadStream: () => ReadStream) {
+    private makeStreamGuard(createReadStream: () => Readable) {
         let reject: (error: unknown) => void;
         const errorPromise = new Promise<never>((_, onReject) => {
             reject = onReject;
