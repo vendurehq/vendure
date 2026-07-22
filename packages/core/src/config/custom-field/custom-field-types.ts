@@ -333,3 +333,13 @@ export type CustomFields = {
 export interface HasCustomFields {
     customFields: CustomFieldsObject;
 }
+
+/**
+ * Returns true for non-list relation custom fields, i.e. those which also expose a
+ * `<name>Id` property on the entity and in the GraphQL APIs.
+ */
+export function isNonListRelationCustomField(
+    config: CustomFieldConfig,
+): config is RelationCustomFieldConfig {
+    return config.type === 'relation' && config.list !== true;
+}

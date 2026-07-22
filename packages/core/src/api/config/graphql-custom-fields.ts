@@ -13,6 +13,7 @@ import {
     BaseTypedCustomFieldConfig,
     CustomFieldConfig,
     CustomFields,
+    isNonListRelationCustomField,
     StructCustomFieldConfig,
     StructFieldConfig,
 } from '../../config/custom-field/custom-field-types';
@@ -245,9 +246,7 @@ export function addGraphQLCustomFields(
                 `;
         }
 
-        const relationIdFilterFields = customEntityFields.filter(
-            field => field.type === 'relation' && field.list !== true,
-        );
+        const relationIdFilterFields = customEntityFields.filter(isNonListRelationCustomField);
         if (
             (filterableFields.length || relationIdFilterFields.length) &&
             schema.getType(`${entityName}FilterParameter`)
@@ -671,7 +670,7 @@ function mapToFields(
  */
 function mapToRelationIdFields(fieldDefs: CustomFieldConfig[], graphQlType: string): string {
     return fieldDefs
-        .filter(field => field.type === 'relation' && field.list !== true)
+        .filter(isNonListRelationCustomField)
         .map(field => `${field.name}Id: ${graphQlType} ${getDeprecationDirective(field)}`)
         .join('\n');
 }
