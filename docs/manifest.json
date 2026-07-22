@@ -1062,7 +1062,7 @@
                   "title": "ExternalAuthenticationService",
                   "slug": "external-authentication-service",
                   "file": "docs/reference/typescript-api/auth/external-authentication-service.mdx",
-                  "lastModified": "2026-07-22T18:08:46+02:00"
+                  "lastModified": "2026-07-22T18:38:49+02:00"
                 },
                 {
                   "title": "InMemorySessionCacheStrategy",
@@ -1204,7 +1204,7 @@
                   "title": "CurrencyCode",
                   "slug": "currency-code",
                   "file": "docs/reference/typescript-api/common/currency-code.mdx",
-                  "lastModified": "2026-07-17T14:48:59Z"
+                  "lastModified": "2026-07-22T18:38:49+02:00"
                 },
                 {
                   "title": "EntityRelationPaths",
@@ -1240,7 +1240,7 @@
                   "title": "JobState",
                   "slug": "job-state",
                   "file": "docs/reference/typescript-api/common/job-state.mdx",
-                  "lastModified": "2026-07-17T14:48:59Z"
+                  "lastModified": "2026-07-22T18:38:49+02:00"
                 },
                 {
                   "title": "JsonCompatible",
@@ -1252,13 +1252,13 @@
                   "title": "LanguageCode",
                   "slug": "language-code",
                   "file": "docs/reference/typescript-api/common/language-code.mdx",
-                  "lastModified": "2026-07-17T14:48:59Z"
+                  "lastModified": "2026-07-22T18:38:49+02:00"
                 },
                 {
                   "title": "Middleware",
                   "slug": "middleware",
                   "file": "docs/reference/typescript-api/common/middleware.mdx",
-                  "lastModified": "2026-07-17T14:48:59Z"
+                  "lastModified": "2026-07-22T18:38:49+02:00"
                 },
                 {
                   "title": "PaginatedList",
@@ -1270,13 +1270,13 @@
                   "title": "Permission",
                   "slug": "permission",
                   "file": "docs/reference/typescript-api/common/permission.mdx",
-                  "lastModified": "2026-07-17T14:48:59Z"
+                  "lastModified": "2026-07-22T18:38:49+02:00"
                 },
                 {
                   "title": "PriceCalculationResult",
                   "slug": "price-calculation-result",
                   "file": "docs/reference/typescript-api/common/price-calculation-result.mdx",
-                  "lastModified": "2026-07-17T14:48:59Z"
+                  "lastModified": "2026-07-22T18:38:49+02:00"
                 },
                 {
                   "title": "ProcessContext",
@@ -1632,7 +1632,7 @@
                   "title": "Asset",
                   "slug": "asset",
                   "file": "docs/reference/typescript-api/entities/asset.mdx",
-                  "lastModified": "2026-07-17T14:48:59Z"
+                  "lastModified": "2026-07-22T18:38:49+02:00"
                 },
                 {
                   "title": "AuthenticatedSession",
@@ -1716,7 +1716,7 @@
                   "title": "Interfaces",
                   "slug": "interfaces",
                   "file": "docs/reference/typescript-api/entities/interfaces.mdx",
-                  "lastModified": "2026-07-17T14:48:59Z"
+                  "lastModified": "2026-07-22T18:38:49+02:00"
                 },
                 {
                   "title": "Order",
@@ -2910,7 +2910,7 @@
                   "title": "AssetService",
                   "slug": "asset-service",
                   "file": "docs/reference/typescript-api/services/asset-service.mdx",
-                  "lastModified": "2026-07-17T14:48:59Z"
+                  "lastModified": "2026-07-22T18:38:49+02:00"
                 },
                 {
                   "title": "AuthService",
@@ -3760,13 +3760,13 @@
                   "title": "Enums",
                   "slug": "enums",
                   "file": "docs/reference/graphql-api/admin/enums.mdx",
-                  "lastModified": "2026-07-17T14:48:59Z"
+                  "lastModified": "2026-07-22T18:38:49+02:00"
                 },
                 {
                   "title": "Input Objects",
                   "slug": "input-types",
                   "file": "docs/reference/graphql-api/admin/input-types.mdx",
-                  "lastModified": "2026-07-17T14:48:59Z"
+                  "lastModified": "2026-07-22T18:38:49+02:00"
                 },
                 {
                   "title": "Mutations",
@@ -3784,7 +3784,7 @@
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/admin/object-types.mdx",
-                  "lastModified": "2026-07-17T14:48:59Z"
+                  "lastModified": "2026-07-22T18:38:49+02:00"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -3798,7 +3798,7 @@
                   "title": "Enums",
                   "slug": "enums",
                   "file": "docs/reference/graphql-api/shop/enums.mdx",
-                  "lastModified": "2026-07-17T14:48:59Z"
+                  "lastModified": "2026-07-22T18:38:49+02:00"
                 },
                 {
                   "title": "Input Objects",
@@ -3822,7 +3822,7 @@
                   "title": "Types",
                   "slug": "object-types",
                   "file": "docs/reference/graphql-api/shop/object-types.mdx",
-                  "lastModified": "2026-07-17T14:48:59Z"
+                  "lastModified": "2026-07-22T18:38:49+02:00"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
