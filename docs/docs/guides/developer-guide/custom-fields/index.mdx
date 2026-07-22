@@ -276,6 +276,47 @@ it takes precedence over the id property when saving. To avoid surprises, do not
 to conflicting values on the same entity.
 :::
 
+The id is also exposed in the GraphQL APIs. Alongside the relation field itself, the generated
+`customFields` type contains a `'<field name>Id'` field, which can be selected without the cost of
+loading the full relation:
+
+```graphql
+query {
+    activeCustomer {
+        customFields {
+            avatar {
+                id
+                preview
+            }
+            # or, when only the id is needed:
+            avatarId
+        }
+    }
+}
+```
+
+The id field respects the same `public`, `internal` and `requiresPermission` settings as the
+relation field it belongs to.
+
+In list queries, the id field can also be used to filter and sort:
+
+```graphql
+query {
+    products(options: {
+        filter: {
+            ownerId: { eq: "42" }
+        }
+        sort: {
+            ownerId: ASC
+        }
+    }) {
+        items {
+            id
+        }
+    }
+}
+```
+
 ## Custom field config properties
 
 ### Common properties

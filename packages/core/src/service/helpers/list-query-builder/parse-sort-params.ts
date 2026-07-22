@@ -60,6 +60,9 @@ export function parseSortParams<T extends VendureEntity>(
             }
         } else if (customPropertyMap?.[key]) {
             output[customPropertyMap[key]] = order as any;
+        } else if (isNonListRelationCustomField(customFields, key)) {
+            // Non-list relation custom fields are sorted by their id column
+            output[`${alias}.customFields.${key}Id`] = order as any;
         } else {
             throw new UserInputError('error.invalid-sort-field', {
                 fieldName: key,
@@ -75,4 +78,11 @@ export function parseSortParams<T extends VendureEntity>(
 
 function getValidSortFields(columns: ColumnMetadata[]): string[] {
     return unique(columns.map(c => c.propertyName));
+}
+
+function isNonListRelationCustomField(
+    customFields: CustomFieldConfig[] | undefined,
+    fieldName: string,
+): boolean {
+    return !!customFields?.find(f => f.name === fieldName && f.type === 'relation' && f.list !== true);
 }

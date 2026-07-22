@@ -1616,6 +1616,121 @@ describe('Custom field relations', () => {
             expect((result?.customFields as any).singleId).toBe(3);
             expect((result?.customFields as any).single?.id).toBe(3);
         });
+
+        it('sorting by a relation custom field sorts by the id column', async () => {
+            const { products } = await adminClient.query(gql`
+                query {
+                    products(options: { sort: { single: ASC }, take: 5 }) {
+                        items {
+                            id
+                        }
+                    }
+                }
+            `);
+            expect(products.items.length).toBeGreaterThan(0);
+        });
+    });
+
+    // https://github.com/vendurehq/vendure/issues/2031
+    describe('relation id fields in the GraphQL APIs', () => {
+        beforeAll(async () => {
+            await adminClient.query(gql`
+                mutation {
+                    updateProduct(input: { id: "T_1", customFields: { singleId: "T_2" } }) {
+                        id
+                    }
+                }
+            `);
+        });
+
+        it('exposes the relation id in the Admin API', async () => {
+            const { product } = await adminClient.query(gql`
+                query {
+                    product(id: "T_1") {
+                        customFields {
+                            singleId
+                            single {
+                                id
+                            }
+                        }
+                    }
+                }
+            `);
+            expect(product.customFields.singleId).toBe('T_2');
+            expect(product.customFields.single.id).toBe('T_2');
+        });
+
+        it('exposes the relation id in the Shop API', async () => {
+            const { product } = await shopClient.query(gql`
+                query {
+                    product(id: "T_1") {
+                        customFields {
+                            singleId
+                        }
+                    }
+                }
+            `);
+            expect(product.customFields.singleId).toBe('T_2');
+        });
+
+        it('does not expose the id of internal relation custom fields', async () => {
+            await expect(
+                adminClient.query(gql`
+                    query {
+                        product(id: "T_1") {
+                            customFields {
+                                cfInternalAssetId
+                            }
+                        }
+                    }
+                `),
+            ).rejects.toThrowError(/cfInternalAssetId/);
+        });
+
+        it('filters by relation id', async () => {
+            const { products } = await adminClient.query(gql`
+                query {
+                    products(options: { filter: { singleId: { eq: "T_2" } } }) {
+                        items {
+                            id
+                            customFields {
+                                singleId
+                            }
+                        }
+                    }
+                }
+            `);
+            expect(products.items.map((i: { id: string }) => i.id)).toContain('T_1');
+            for (const item of products.items) {
+                expect(item.customFields.singleId).toBe('T_2');
+            }
+        });
+
+        it('filters by relation id isNull', async () => {
+            const { products } = await adminClient.query(gql`
+                query {
+                    products(options: { filter: { singleId: { isNull: true } } }) {
+                        items {
+                            id
+                        }
+                    }
+                }
+            `);
+            expect(products.items.map((i: { id: string }) => i.id)).not.toContain('T_1');
+        });
+
+        it('sorts by relation id', async () => {
+            const { products } = await adminClient.query(gql`
+                query {
+                    products(options: { sort: { singleId: DESC }, take: 3 }) {
+                        items {
+                            id
+                        }
+                    }
+                }
+            `);
+            expect(products.items.length).toBe(3);
+        });
     });
 
     it('null values', async () => {

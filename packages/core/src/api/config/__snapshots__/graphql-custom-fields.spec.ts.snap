@@ -1,5 +1,46 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`addGraphQLCustomFields() > adds relation id fields for non-list relation custom fields 1`] = `
+"type Product {
+  id: ID
+  customFields: ProductCustomFields
+}
+
+type Asset {
+  id: ID
+}
+
+input ProductSortParameter {
+  id: SortOrder
+  owner: SortOrder
+  ownerId: SortOrder
+}
+
+input ProductFilterParameter {
+  id: IDOperators
+  ownerId: IDOperators
+}
+
+enum SortOrder {
+  ASC
+  DESC
+}
+
+input IDOperators {
+  eq: String
+}
+
+scalar JSON
+
+scalar DateTime
+
+type ProductCustomFields {
+  owner: Asset
+  featured: [Asset!]
+  ownerId: ID
+}"
+`;
+
 exports[`addGraphQLCustomFields() > extends OrderAddress if Address custom fields defined 1`] = `
 "type Address {
   id: ID

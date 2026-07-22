@@ -213,6 +213,50 @@ describe('addGraphQLCustomFields()', () => {
         expect(printSchema(result)).toMatchSnapshot();
     });
 
+    // https://github.com/vendurehq/vendure/issues/2031
+    it('adds relation id fields for non-list relation custom fields', () => {
+        const input = `
+                    type Product {
+                        id: ID
+                    }
+
+                    type Asset {
+                        id: ID
+                    }
+
+                    input ProductSortParameter {
+                        id: SortOrder
+                    }
+
+                    input ProductFilterParameter {
+                        id: IDOperators
+                    }
+
+                    enum SortOrder {
+                        ASC
+                        DESC
+                    }
+
+                    input IDOperators {
+                        eq: String
+                    }
+                `;
+        const customFieldConfig: CustomFields = {
+            Product: [
+                { name: 'owner', type: 'relation', entity: class {} as any, graphQLType: 'Asset' },
+                {
+                    name: 'featured',
+                    type: 'relation',
+                    entity: class {} as any,
+                    graphQLType: 'Asset',
+                    list: true,
+                },
+            ],
+        };
+        const result = addGraphQLCustomFields(input, customFieldConfig, false);
+        expect(printSchema(result)).toMatchSnapshot();
+    });
+
     it('publicOnly = true', () => {
         const input = `
                  type Product {
