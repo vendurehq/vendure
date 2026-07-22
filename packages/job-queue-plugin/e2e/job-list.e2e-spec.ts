@@ -9,7 +9,6 @@ import {
     PluginCommonModule,
     VendurePlugin,
 } from '@vendure/core';
-import { setProcessContext } from '@vendure/core/dist/process-context/process-context';
 import { createTestEnvironment } from '@vendure/testing';
 import gql from 'graphql-tag';
 import Redis from 'ioredis';
@@ -193,6 +192,13 @@ describe('BullMQ job list query', () => {
         return id.replace(/^T_/, '');
     }
 
+    function requireJobId(job: { id?: string | number }): string {
+        if (job.id == null) {
+            throw new Error('Expected job to have an id');
+        }
+        return job.id.toString();
+    }
+
     async function getJobs(options: any) {
         const { jobs } = await adminClient.query(GET_JOBS, { options });
         return {
@@ -230,13 +236,6 @@ describe('BullMQ job list query', () => {
     }
 
     beforeAll(async () => {
-        // The JobListIndexService only maintains its indexed sets in the worker process.
-        // The test server runs everything in a single process which defaults to the
-        // 'server' context, so we explicitly set the 'worker' context to mirror a
-        // production deployment (where the worker maintains the index that the server
-        // then reads).
-        setProcessContext('worker');
-
         // Remove leftover keys from previous runs so counts are predictable
         let cursor = '0';
         do {
@@ -260,6 +259,15 @@ describe('BullMQ job list query', () => {
         });
         await adminClient.asSuperAdmin();
 
+        // The JobListIndexService only maintains its indexed sets in the worker
+        // process, but the test server runs as a single process in the 'server'
+        // context. To mirror a production deployment (where the worker maintains
+        // the index that the server then reads), we patch the process context and
+        // register the event listeners manually.
+        const indexService: any = server.app.get(JobListIndexService);
+        indexService.processContext = { isServer: false, isWorker: true };
+        indexService.setupEventListeners();
+
         const service = server.app.get(ListTestService);
 
         // 1. Completed jobs on two queues. Jobs are added with small gaps so that
@@ -267,12 +275,12 @@ describe('BullMQ job list query', () => {
         // deterministic.
         for (let i = 1; i <= 3; i++) {
             const job = await service.fastOne.add({ n: i });
-            fastOneIds.push(job.id!.toString());
+            fastOneIds.push(requireJobId(job));
             await sleep(20);
         }
         for (let i = 1; i <= 2; i++) {
             const job = await service.fastTwo.add({ n: i });
-            fastTwoIds.push(job.id!.toString());
+            fastTwoIds.push(requireJobId(job));
             await sleep(20);
         }
         await waitFor(
@@ -283,20 +291,20 @@ describe('BullMQ job list query', () => {
         // 2. A job which fails and awaits a retry in 5 minutes, i.e. sits in the
         // `delayed` state for the rest of the test run.
         const flakyJob = await service.flaky.add({ n: 1 }, { retries: 1 });
-        flakyId = flakyJob.id!.toString();
+        flakyId = requireJobId(flakyJob);
         await waitFor(() => jobsAreInState([flakyId], JobState.RETRYING), 'flaky job to await retry');
         await sleep(20);
 
         // 3. A job which blocks the single worker slot until released in afterAll.
         const blockerJob = await service.blocker.add({ n: 1 });
-        blockerId = blockerJob.id!.toString();
+        blockerId = requireJobId(blockerJob);
         await waitFor(() => jobsAreInState([blockerId], JobState.RUNNING), 'blocker job to start');
         await sleep(20);
 
         // 4. Jobs queued up behind the blocker, i.e. in the `wait` list.
         for (let i = 1; i <= 8; i++) {
             const job = await service.filler.add({ n: i });
-            fillerIds.push(job.id!.toString());
+            fillerIds.push(requireJobId(job));
             await sleep(20);
         }
         await waitFor(() => jobsAreInState(fillerIds, JobState.PENDING), 'filler jobs to be queued');
