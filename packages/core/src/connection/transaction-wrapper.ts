@@ -34,10 +34,11 @@ export class TransactionWrapper {
         const ctx = originalCtx.copy();
 
         const entityManager: EntityManager | undefined = (ctx as any)[TRANSACTION_MANAGER_KEY];
-        let queryRunner = entityManager?.queryRunner;
-        if (!queryRunner || queryRunner.isReleased) {
-            queryRunner = connection.createQueryRunner();
-        }
+        const inheritedQueryRunner =
+            entityManager?.queryRunner && !entityManager.queryRunner.isReleased
+                ? entityManager.queryRunner
+                : undefined;
+        const queryRunner = inheritedQueryRunner ?? connection.createQueryRunner();
         if (mode === 'auto') {
             await this.startTransaction(queryRunner, isolationLevel);
         }
@@ -69,10 +70,15 @@ export class TransactionWrapper {
             }
             throw error;
         } finally {
-            if (!queryRunner.isTransactionActive && queryRunner.isReleased === false) {
-                // There is a check for an active transaction
-                // because this could be a nested transaction (savepoint).
-
+            // Only release the QueryRunner if we created it ourselves. If it was inherited
+            // from an outer transaction (e.g. a @Transaction('manual') caller), releasing it
+            // would invalidate the caller's context. The active-transaction check additionally
+            // covers the nested-savepoint case where the parent transaction is still open.
+            if (
+                !inheritedQueryRunner &&
+                !queryRunner.isTransactionActive &&
+                queryRunner.isReleased === false
+            ) {
                 await queryRunner.release();
             }
         }

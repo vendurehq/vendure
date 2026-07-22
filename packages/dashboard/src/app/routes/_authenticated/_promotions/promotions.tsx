@@ -36,10 +36,12 @@ function PromotionListPage() {
                 endsAt: true,
             }}
             onSearchTermChange={searchTerm => {
-                return {
-                    name: { contains: searchTerm },
-                    couponCode: { contains: searchTerm },
-                };
+                return searchTerm
+                    ? {
+                          name: { contains: searchTerm },
+                          couponCode: { contains: searchTerm },
+                      }
+                    : {};
             }}
             transformVariables={variables => {
                 return {

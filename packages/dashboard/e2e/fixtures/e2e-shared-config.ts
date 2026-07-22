@@ -1,4 +1,4 @@
-import { CustomFields, dummyPaymentHandler, LanguageCode } from '@vendure/core';
+import { CollectionFilter, CustomFields, dummyPaymentHandler, LanguageCode } from '@vendure/core';
 
 /**
  * Custom fields and payment handlers used by global-setup.ts to configure
@@ -52,6 +52,13 @@ export const e2eCustomFields: CustomFields = {
             type: 'string',
             label: [{ languageCode: LanguageCode.en, value: 'Priority' }],
             options: [{ value: 'low' }, { value: 'medium' }, { value: 'high' }],
+        },
+        {
+            name: 'featureType',
+            type: 'string',
+            nullable: true,
+            label: [{ languageCode: LanguageCode.en, value: 'Feature Type' }],
+            options: [{ value: 'standard' }, { value: 'premium' }],
         },
         // ── SEO tab ──
         {
@@ -139,3 +146,18 @@ export const e2eCustomFields: CustomFields = {
 };
 
 export const e2ePaymentMethodHandlers = [dummyPaymentHandler];
+
+/**
+ * A collection filter with a string list argument, used to reproduce #4987:
+ * string list values in configurable-operation inputs (json-string value mode)
+ * dropped numeric-looking entries. The apply function is a no-op because the
+ * test only exercises the dashboard input UI.
+ */
+export const e2eCollectionFilters = [
+    new CollectionFilter({
+        code: 'string-list-test-filter',
+        description: [{ languageCode: LanguageCode.en, value: 'Filter by external IDs' }],
+        args: { externalIds: { type: 'string', list: true } },
+        apply: qb => qb,
+    }),
+];

@@ -1,6 +1,6 @@
 {
     "name": "@vendure/create",
-    "version": "3.6.3",
+    "version": "3.7.1",
     "license": "GPL-3.0-or-later",
     "bin": {
         "create": "./index.js"
@@ -19,7 +19,8 @@
         "copy-assets": "rimraf assets && ts-node ./build.ts",
         "build": "npm run copy-assets && rimraf lib && tsc -p ./tsconfig.build.json",
         "watch": "npm run copy-assets && rimraf lib && tsc -p ./tsconfig.build.json -w",
-        "lint": "eslint --fix ."
+        "lint": "eslint --fix .",
+        "test": "vitest --config vitest.config.mts --run"
     },
     "homepage": "https://www.vendure.io",
     "funding": "https://github.com/sponsors/michaelbromley",
@@ -31,22 +32,22 @@
         "@types/fs-extra": "^11.0.4",
         "@types/handlebars": "^4.1.0",
         "@types/semver": "^7.5.8",
-        "@vendure/core": "3.6.3",
+        "@vendure/core": "3.7.1",
         "rimraf": "^5.0.5",
         "ts-node": "^10.9.2",
-        "typescript": "5.8.2"
+        "typescript": "5.8.2",
+        "vitest": "^3.2.4"
     },
     "dependencies": {
         "@clack/prompts": "^0.11.0",
-        "@vendure/common": "3.6.3",
+        "@vendure/common": "3.7.1",
         "commander": "^14.0.1",
         "cross-spawn": "^7.0.6",
         "fs-extra": "^11.2.0",
-        "handlebars": "^4.7.8",
+        "handlebars": "^4.7.9",
         "open": "^10.2.0",
         "picocolors": "^1.1.1",
         "semver": "^7.7.2",
-        "tar": "^7.4.3",
-        "tcp-port-used": "^1.0.2"
+        "tar": "^7.4.3"
     }
 }

@@ -18,6 +18,7 @@ import { VendureEntity } from '../../../entity/base/base.entity';
 
 import { escapeCalculatedColumnExpression, getColumnMetadata } from './connection-utils';
 import { getCalculatedColumns } from './get-calculated-columns';
+import { assertSafeRegexFilter } from './validate-regex-filter';
 
 export interface WhereGroup {
     operator: LogicalOperator;
@@ -319,6 +320,7 @@ function buildWhereCondition(
             }
         }
         case 'regex':
+            assertSafeRegexFilter(operand);
             return {
                 clause: getRegexpClause(fieldName, argIndex, dbType),
                 parameters: { [`arg${argIndex}`]: operand },

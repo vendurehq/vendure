@@ -205,6 +205,16 @@ function isPageBlock(child: unknown): child is React.ReactElement<PageBlockProps
     return hasColumn || hasBlockId;
 }
 
+// Single source of truth for which column a block belongs to. `FullWidthPageBlock` is
+// identified by type since it doesn't declare a `column` prop; everything else is keyed
+// off the `column` prop. Keep all bucketing in `PageLayout` going through this.
+function getBlockColumn(child: React.ReactElement<PageBlockProps>): 'main' | 'side' | 'full' {
+    if (isOfType(child, FullWidthPageBlock)) {
+        return 'full';
+    }
+    return child.props.column;
+}
+
 /**
  * @description *
  * This component governs the layout of the contents of a {@link Page} component.
@@ -259,7 +269,9 @@ export function PageLayout({ children, className }: Readonly<PageLayoutProps>) {
             // using `hasPermissions` over `PermissionGuard` as this would defeat the `isPageBlock` typeguard
             const willBlockRender = (
                 block: ExtensionBlockEntry,
-            ): block is ExtensionBlockEntry & { component: NonNullable<ExtensionBlockEntry['component']> } => {
+            ): block is ExtensionBlockEntry & {
+                component: NonNullable<ExtensionBlockEntry['component']>;
+            } => {
                 if (!block.component) return false;
                 if (typeof block.shouldRender === 'function' && !block.shouldRender(page)) {
                     return false;
@@ -315,10 +327,14 @@ export function PageLayout({ children, className }: Readonly<PageLayoutProps>) {
     }
 
     const fullWidthBlocks = finalChildArray.filter(
-        child => isPageBlock(child) && isOfType(child, FullWidthPageBlock),
+        child => isPageBlock(child) && getBlockColumn(child) === 'full',
     );
-    const mainBlocks = finalChildArray.filter(child => isPageBlock(child) && child.props.column === 'main');
-    const sideBlocks = finalChildArray.filter(child => isPageBlock(child) && child.props.column === 'side');
+    const mainBlocks = finalChildArray.filter(
+        child => isPageBlock(child) && getBlockColumn(child) === 'main',
+    );
+    const sideBlocks = finalChildArray.filter(
+        child => isPageBlock(child) && getBlockColumn(child) === 'side',
+    );
 
     return (
         <div className={cn('w-full space-y-4', className, '@container/layout')}>
@@ -903,9 +919,7 @@ export function PageBlock({
     return (
         <PageBlockContext.Provider value={contextValue}>
             <LocationWrapper>
-                <Card
-                    className={cn('@container  w-full', className, 'animate-in fade-in duration-300')}
-                >
+                <Card className={cn('@container  w-full', className, 'animate-in fade-in duration-300')}>
                     {title || description ? (
                         <CardHeader>
                             {title && <CardTitle>{title}</CardTitle>}
@@ -935,7 +949,7 @@ export function FullWidthPageBlock({
     className,
     blockId,
 }: Readonly<Pick<PageBlockProps, 'children' | 'className' | 'blockId'>>) {
-    const contextValue = useMemo(() => ({ blockId, column: 'main' as const }), [blockId]);
+    const contextValue = useMemo(() => ({ blockId, column: 'full' as const }), [blockId]);
     return (
         <PageBlockContext.Provider value={contextValue}>
             <LocationWrapper>

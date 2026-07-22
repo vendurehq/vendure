@@ -72,8 +72,12 @@ export class ConfigurableOperationCodec {
                         const encodedIds = ids.map(id => this.idCodecService.encode(id));
                         arg.value = JSON.stringify(encodedIds);
                     } else {
-                        const encodedId = this.idCodecService.encode(arg.value);
-                        arg.value = JSON.stringify(encodedId);
+                        // Non-list IDs are stored raw (not JSON-stringified) to stay
+                        // symmetric with the decode branch, which reads them raw since
+                        // #2483 (47f606cc). Stringifying here re-quotes the id on a
+                        // read → save round-trip (e.g. `'T_1'` → `'"T_1"'`), which then
+                        // mis-decodes on the way back in — the root cause of #4856.
+                        arg.value = this.idCodecService.encode(arg.value);
                     }
                 }
             }

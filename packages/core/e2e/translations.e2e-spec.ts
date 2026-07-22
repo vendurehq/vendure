@@ -69,6 +69,18 @@ describe('Translation', () => {
             expect(newErrorMessage.message).toBe(DE.errorResult.NEW_ERROR);
         });
     });
+
+    // https://github.com/vendurehq/vendure/issues/4823
+    describe('unsupported language codes', () => {
+        it('falls back to English for arbitrary language codes', async () => {
+            const { customErrorMessage } = await adminClient.query(
+                gql(CUSTOM_ERROR),
+                {},
+                { languageCode: 'xx-unsupported' },
+            );
+            expect(customErrorMessage.message).toBe(CUSTOM_ERROR_MESSAGE_TRANSLATION);
+        });
+    });
 });
 
 const CUSTOM_ERROR = `

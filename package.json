@@ -52,7 +52,7 @@
     "cross-env": "^7.0.3",
     "find": "^0.3.0",
     "gql.tada": "^1.8.10",
-    "graphql": "~16.11.0",
+    "graphql": "^16.11.0",
     "husky": "^4.3.0",
     "lerna": "^9.0.3",
     "lint-staged": "^10.5.4",
@@ -76,10 +76,13 @@
     "@swc/core-darwin-arm64": "1.7.19",
     "@swc/core-linux-x64-gnu": "1.4.7"
   },
+  "//overrides": "Force a single graphql version across the monorepo install. Without this, transitive deps (e.g. @types/graphql-upload) keep a nested graphql@16.11.0 alongside the hoisted copy, which breaks TS type portability (TS2742) when building @vendure/core. Mirrors the ^16.11.0 dependency ranges. Relates to #4701.",
+  "overrides": {
+    "graphql": "^16.11.0"
+  },
   "trustedDependencies": [
     "husky",
-    "better-sqlite3",
-    "puppeteer"
+    "better-sqlite3"
   ],
   "workspaces": [
     "packages/*"
@@ -106,6 +109,7 @@
     }
   },
   "dependencies": {
+    "@types/nodemailer": "^8.0.1",
     "@typescript-eslint/eslint-plugin": "^5.54.1",
     "@typescript-eslint/parser": "^5.54.1",
     "eslint": "^8.41.0",

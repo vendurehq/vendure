@@ -1,5 +1,5 @@
 ---
-title: "Deploying to Digital Ocean"
+title: "Deploy Vendure to Digital Ocean"
 metaTitle: "Deploying Vendure to Digital Ocean App Platform"
 metaDescription: "Step-by-step guide to deploying a Vendure e-commerce server on Digital Ocean App Platform with Postgres, Spaces object storage, and a separate worker process."
 ---
@@ -57,7 +57,7 @@ export const config: VendureConfig = {
 ### Asset storage
 
 :::info
-The following is already pre-configured if you are using the one-click-deploy repo.
+The one-click-deploy repo already contains S3-compatible asset storage configuration. If you are using that repo, check the existing environment variable names before replacing the snippet below.
 :::
 
 Since App Platform services do not include any persistent storage, we need to configure Vendure to use Digital Ocean's
@@ -74,6 +74,7 @@ and set up your AssetServerPlugin like this:
 ```ts title="src/vendure-config.ts"
 import { VendureConfig } from '@vendure/core';
 import { AssetServerPlugin, configureS3AssetStorage } from '@vendure/asset-server-plugin';
+import path from 'path';
 
 export const config: VendureConfig = {
     // ...
@@ -81,24 +82,18 @@ export const config: VendureConfig = {
         AssetServerPlugin.init({
             route: 'assets',
             assetUploadDir: process.env.ASSET_UPLOAD_DIR || path.join(__dirname, '../static/assets'),
-            // If the MINIO_ENDPOINT environment variable is set, we'll use // [!code highlight]
-            // Minio as the asset storage provider. Otherwise, we'll use the // [!code highlight]
-            // default local provider. // [!code highlight]
-            storageStrategyFactory: process.env.MINIO_ENDPOINT ?  configureS3AssetStorage({ // [!code highlight]
-                bucket: 'vendure-assets', // [!code highlight]
+            storageStrategyFactory: configureS3AssetStorage({ // [!code highlight]
+                bucket: process.env.SPACES_BUCKET || 'vendure-assets', // [!code highlight]
                 credentials: { // [!code highlight]
-                    accessKeyId: process.env.MINIO_ACCESS_KEY, // [!code highlight]
-                    secretAccessKey: process.env.MINIO_SECRET_KEY, // [!code highlight]
+                    accessKeyId: process.env.SPACES_ACCESS_KEY_ID!, // [!code highlight]
+                    secretAccessKey: process.env.SPACES_SECRET_ACCESS_KEY!, // [!code highlight]
                 }, // [!code highlight]
                 nativeS3Configuration: { // [!code highlight]
-                    endpoint: process.env.MINIO_ENDPOINT, // [!code highlight]
-                    forcePathStyle: true, // [!code highlight]
+                    endpoint: process.env.SPACES_ENDPOINT!, // [!code highlight]
                     signatureVersion: 'v4', // [!code highlight]
-                    // The `region` is required by the AWS SDK even when using MinIO, // [!code highlight]
-                    // so we just use a dummy value here. // [!code highlight]
-                    region: 'eu-west-1', // [!code highlight]
+                    region: process.env.SPACES_REGION || 'nyc3', // [!code highlight]
                 }, // [!code highlight]
-            }) : undefined, // [!code highlight]
+            }), // [!code highlight]
         }),
     ],
     // ...
@@ -173,9 +168,11 @@ DB_CA_CERT=${db.CA_CERT}
 COOKIE_SECRET=<add some random characters> # [!code highlight]
 SUPERADMIN_USERNAME=superadmin
 SUPERADMIN_PASSWORD=<create some strong password> # [!code highlight]
-MINIO_ACCESS_KEY=<use the key generated earlier> # [!code highlight]
-MINIO_SECRET_KEY=<use the secret generated earlier> # [!code highlight]
-MINIO_ENDPOINT=<use the endpoint of your spaces bucket> # [!code highlight]
+SPACES_BUCKET=vendure-assets
+SPACES_REGION=<use the region of your Space, e.g. nyc3> # [!code highlight]
+SPACES_ENDPOINT=<use the endpoint of your Spaces region, e.g. https://nyc3.digitaloceanspaces.com> # [!code highlight]
+SPACES_ACCESS_KEY_ID=<use the key generated earlier> # [!code highlight]
+SPACES_SECRET_ACCESS_KEY=<use the secret generated earlier> # [!code highlight]
 ```
 
 :::note

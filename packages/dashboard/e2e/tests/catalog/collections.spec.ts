@@ -293,3 +293,154 @@ test.describe('Issue #4389: Collection form dirty state with filters', () => {
         await expect(dp.formItem('Name').getByRole('textbox')).toHaveValue('E2E Filter Test Saved');
     });
 });
+
+// #3548 — Collection facet filter boolean args
+test.describe('Issue #3548: Collection facet filter boolean args', () => {
+    let collectionId: string;
+
+    const detailPage = (page: Page) =>
+        new BaseDetailPage(page, {
+            newPath: '/collections/new',
+            pathPrefix: '/collections/',
+            newTitle: 'New collection',
+        });
+
+    test.afterEach(async ({ page }) => {
+        if (!collectionId) return;
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await client.gql(
+            `
+            mutation ($id: ID!) { deleteCollection(id: $id) { result } }
+        `,
+            { id: collectionId },
+        );
+        collectionId = '';
+    });
+
+    test('should initialize containsAny through the UI when adding a facet-value-filter', async ({
+        page,
+    }) => {
+        const client = new VendureAdminClient(page);
+        await client.login();
+        const { facetValues } = await client.gql(`
+            query { facetValues(options: { take: 1 }) { items { name } } }
+        `);
+        const facetValueName = facetValues.items[0].name as string;
+
+        const dp = detailPage(page);
+        await dp.gotoNew();
+        await dp.expectNewPageLoaded();
+
+        await dp.fillInput('Name', 'E2E Boolean Arg Filter');
+        await expect(dp.formItem('Slug').getByRole('textbox')).not.toHaveValue('', { timeout: 5_000 });
+
+        await page.getByRole('button', { name: /Add collection filter/i }).click();
+        await page.getByRole('menuitem', { name: /Filter by facet values/i }).click();
+        await page.getByRole('button', { name: /Add facet values/i }).click();
+        await page.getByPlaceholder('Search facet values...').fill(facetValueName);
+        await page.getByRole('option', { name: facetValueName, exact: true }).click();
+
+        await expect(
+            page.locator('[data-slot="field"]').filter({ hasText: 'Contains any' }).getByRole('switch'),
+        ).not.toBeChecked();
+        await expect(dp.createButton).toBeEnabled({ timeout: 5_000 });
+        await dp.clickCreate();
+        await dp.expectNavigatedToExisting();
+        collectionId = new URL(page.url()).pathname.split('/').pop() ?? '';
+
+        const { collection } = await client.gql(
+            `
+            query ($id: ID!) {
+                collection(id: $id) {
+                    filters {
+                        code
+                        args { name value }
+                    }
+                }
+            }
+        `,
+            { id: collectionId },
+        );
+        const facetFilter = collection.filters.find((filter: any) => filter.code === 'facet-value-filter');
+        expect(facetFilter?.args).toEqual(expect.arrayContaining([{ name: 'containsAny', value: 'false' }]));
+    });
+});
+
+// #4987 — String list values in configurable-operation inputs (json-string value
+// mode) dropped numeric-looking entries: "3249" either failed to render as a badge
+// or was overwritten when a second value was added. The fix routes string lists to
+// the tag-style StringListInput and stops parseArrayValue from re-serializing an
+// already-parsed array. Uses the `string-list-test-filter` registered in
+// e2e-shared-config.ts.
+test.describe('Issue #4987: String list filter args preserve numeric values', () => {
+    let collectionId: string;
+
+    const detailPage = (page: Page) =>
+        new BaseDetailPage(page, {
+            newPath: '/collections/new',
+            pathPrefix: '/collections/',
+            newTitle: 'New collection',
+        });
+
+    test.afterEach(async ({ page }) => {
+        if (!collectionId) return;
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await client.gql(`mutation ($id: ID!) { deleteCollection(id: $id) { result } }`, {
+            id: collectionId,
+        });
+        collectionId = '';
+    });
+
+    test('should keep numeric-looking values through add, save and reload', async ({ page }) => {
+        const client = new VendureAdminClient(page);
+        await client.login();
+
+        const dp = detailPage(page);
+        await dp.gotoNew();
+        await dp.expectNewPageLoaded();
+
+        await dp.fillInput('Name', 'E2E String List Filter');
+        await expect(dp.formItem('Slug').getByRole('textbox')).not.toHaveValue('', { timeout: 5_000 });
+
+        await page.getByRole('button', { name: /Add collection filter/i }).click();
+        await page.getByRole('menuitem', { name: /Filter by external IDs/i }).click();
+
+        const listInput = page.getByPlaceholder('Type and press Enter or comma to add...');
+        await expect(listInput).toBeVisible({ timeout: 5_000 });
+
+        // A single numeric value renders as a badge rather than being dropped.
+        await listInput.fill('3249');
+        await listInput.press('Enter');
+        await expect(page.getByLabel('Remove 3249')).toBeVisible({ timeout: 5_000 });
+
+        // Adding a second value keeps the first instead of overwriting it.
+        await listInput.fill('5');
+        await listInput.press('Enter');
+        await expect(page.getByLabel('Remove 3249')).toBeVisible();
+        await expect(page.getByLabel('Remove 5')).toBeVisible();
+
+        await expect(dp.createButton).toBeEnabled({ timeout: 5_000 });
+        await dp.clickCreate();
+        await dp.expectNavigatedToExisting();
+        collectionId = new URL(page.url()).pathname.split('/').pop() ?? '';
+
+        // Both values survive a reload.
+        await page.reload();
+        await expect(page.getByLabel('Remove 3249')).toBeVisible({ timeout: 10_000 });
+        await expect(page.getByLabel('Remove 5')).toBeVisible();
+
+        // ...and are stored verbatim, in order.
+        const { collection } = await client.gql(
+            `query ($id: ID!) {
+                collection(id: $id) { filters { code args { name value } } }
+            }`,
+            { id: collectionId },
+        );
+        const filter = collection.filters.find((f: any) => f.code === 'string-list-test-filter');
+        expect(filter?.args).toEqual(
+            expect.arrayContaining([{ name: 'externalIds', value: '["3249","5"]' }]),
+        );
+    });
+});

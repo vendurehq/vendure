@@ -26,7 +26,12 @@ import {
 import { channelFragment } from './graphql/fragments-admin';
 import { FragmentOf } from './graphql/graphql-admin';
 import { FragmentOf as ShopFragmentOf } from './graphql/graphql-shop';
-import { assignProductToChannelDocument, createChannelDocument } from './graphql/shared-definitions';
+import {
+    assignProductToChannelDocument,
+    createChannelDocument,
+    createProductDocument,
+    createProductVariantsDocument,
+} from './graphql/shared-definitions';
 import { localUpdatedOrderFragment, testOrderFragment } from './graphql/shop-definitions';
 
 describe('Stock location', () => {
@@ -230,6 +235,31 @@ describe('Stock location', () => {
             expect(stockLocations.items[0].name).toBe('Channel location');
         });
 
+        it('assigning a product to the channel seeds a StockLevel for the channel location (#4860)', async () => {
+            // Re-assign the product now that the channel has its own stock location: the assignment
+            // should create a `stockOnHand: 0` StockLevel for that location, so per-channel inventory
+            // is usable immediately (without manually setting any stock).
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            await adminClient.query(assignProductToChannelDocument, {
+                input: {
+                    channelId: secondChannelId,
+                    productIds: ['T_1'],
+                },
+            });
+
+            adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
+            const { productVariant } = await adminClient.query(testGetStockLevelsForVariantDocument, {
+                id: 'T_1',
+            });
+
+            expect(productVariant?.stockLevels.length).toBe(1);
+            expect(productVariant?.stockLevels[0]).toEqual({
+                stockOnHand: 0,
+                stockAllocated: 0,
+                stockLocationId: channelStockLocationId,
+            });
+        });
+
         it('assign stock to location in channel', async () => {
             adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
             const { updateProductVariants } = await adminClient.query(testSetStockLevelInLocationDocument, {
@@ -254,6 +284,53 @@ describe('Stock location', () => {
             expect(productVariant?.stockLevels.length).toBe(1);
             expect(productVariant?.stockLevels[0]).toEqual({
                 stockOnHand: 10,
+                stockAllocated: 0,
+                stockLocationId: channelStockLocationId,
+            });
+        });
+
+        it('variant created in a channel records numeric stockOnHand at the channel location (#4741)', async () => {
+            // Repro for OSS-645: creating a variant while operating in a non-default channel with a
+            // numeric `stockOnHand` (as the Dashboard's inline create-variant table does) must record
+            // that stock against the *active channel's* stock location, not the global default one.
+            adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
+            const { createProduct } = await adminClient.query(createProductDocument, {
+                input: {
+                    translations: [
+                        {
+                            languageCode: LanguageCode.en,
+                            name: 'Channel Stock Product',
+                            slug: 'channel-stock-product',
+                            description: 'Created in the second channel',
+                        },
+                    ],
+                },
+            });
+
+            const { createProductVariants } = await adminClient.query(createProductVariantsDocument, {
+                input: [
+                    {
+                        productId: createProduct.id,
+                        sku: 'CHANNEL-STOCK-1',
+                        optionIds: [],
+                        price: 1000,
+                        stockOnHand: 25,
+                        translations: [{ languageCode: LanguageCode.en, name: 'Channel Stock Variant' }],
+                    },
+                ],
+            });
+            const createdVariant = createProductVariants[0];
+            if (!createdVariant) {
+                throw new Error('Expected a variant to be created');
+            }
+
+            const { productVariant } = await adminClient.query(testGetStockLevelsForVariantDocument, {
+                id: createdVariant.id,
+            });
+
+            expect(productVariant?.stockLevels.length).toBe(1);
+            expect(productVariant?.stockLevels[0]).toEqual({
+                stockOnHand: 25,
                 stockAllocated: 0,
                 stockLocationId: channelStockLocationId,
             });

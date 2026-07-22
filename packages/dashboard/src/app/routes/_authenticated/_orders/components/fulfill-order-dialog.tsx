@@ -1,4 +1,5 @@
 import { ConfigurableOperationInput } from '@/vdb/components/shared/configurable-operation-input.js';
+import { getInitialConfigArgValue } from '@/vdb/components/shared/configurable-operation-utils.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import {
@@ -120,7 +121,7 @@ export function FulfillOrderDialog({ order, onSuccess }: Readonly<FulfillOrderDi
                 code: defaultHandler.code,
                 arguments: defaultHandler.args.map(arg => ({
                     name: arg.name,
-                    value: arg.defaultValue != null ? arg.defaultValue.toString() : '',
+                    value: getInitialConfigArgValue(arg),
                 })),
             });
         }

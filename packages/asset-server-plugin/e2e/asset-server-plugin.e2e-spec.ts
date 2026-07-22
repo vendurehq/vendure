@@ -4,7 +4,6 @@ import { ConfigService, mergeConfig } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import { exec } from 'child_process';
 import fs from 'fs-extra';
-import fetch from 'node-fetch';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -89,7 +88,7 @@ describe('AssetServerPlugin', () => {
 
     it('serves the source file', async () => {
         const res = await fetch(`${asset.source}`);
-        const responseBuffer = await res.buffer();
+        const responseBuffer = Buffer.from(await res.arrayBuffer());
         const sourceFile = await fs.readFile(sourceFilePath);
 
         expect(Buffer.compare(responseBuffer, sourceFile)).toBe(0);
@@ -97,7 +96,7 @@ describe('AssetServerPlugin', () => {
 
     it('serves the untransformed preview file', async () => {
         const res = await fetch(`${asset.preview}`);
-        const responseBuffer = await res.buffer();
+        const responseBuffer = Buffer.from(await res.arrayBuffer());
         const previewFile = await fs.readFile(previewFilePath);
 
         expect(Buffer.compare(responseBuffer, previewFile)).toBe(0);
@@ -127,7 +126,7 @@ describe('AssetServerPlugin', () => {
             `preview/3f/${FILE_NAME_ZH}__preview.jpg`,
         );
 
-        const responseBuffer = await res.buffer();
+        const responseBuffer = Buffer.from(await res.arrayBuffer());
         const previewFile = await fs.readFile(previewFilePathZH);
 
         expect(Buffer.compare(responseBuffer, previewFile)).toBe(0);
@@ -144,7 +143,7 @@ describe('AssetServerPlugin', () => {
 
         it('creates cached image on first request', async () => {
             const res = await fetch(`${asset.preview}?preset=thumb`);
-            const responseBuffer = await res.buffer();
+            const responseBuffer = Buffer.from(await res.arrayBuffer());
             expect(fs.existsSync(cacheFileDir)).toBe(true);
 
             const files = await fs.readdir(cacheFileDir);
@@ -178,7 +177,7 @@ describe('AssetServerPlugin', () => {
             expect(files.length).toBe(1);
 
             const previewFile = await fs.readFile(previewFilePath);
-            const responseBuffer = await res.buffer();
+            const responseBuffer = Buffer.from(await res.arrayBuffer());
             expect(Buffer.compare(responseBuffer, previewFile)).toBe(0);
         });
 
@@ -210,7 +209,7 @@ describe('AssetServerPlugin', () => {
         describe('path traversal', () => {
             function curlWithPathAsIs(url: string) {
                 return new Promise<string>((resolve, reject) => {
-                    // We use curl here rather than node-fetch or any other fetch-type function because
+                    // We use curl here rather than fetch or any other fetch-type function because
                     // those will automatically perform path normalization which will mask the path traversal
                     return exec(`curl --path-as-is ${url}`, (err, stdout, stderr) => {
                         if (err) {
@@ -264,15 +263,18 @@ describe('AssetServerPlugin', () => {
         let testImages: Array<FragmentOf<typeof assetFragment>> = [];
 
         async function testMimeTypeOfAssetWithExt(ext: string, expectedMimeType: string) {
-            const testImage = testImages.find(i => i.source.endsWith(ext))!;
-            const result = await fetch(testImage.source);
+            // Use optional chaining so a rejected upload (no `source`) does not throw here and
+            // cascade into false failures for the other formats; assert it was accepted instead.
+            const testImage = testImages.find(i => i.source?.endsWith(ext));
+            expect(testImage?.source, `Asset with extension ".${ext}" was not created`).toBeTruthy();
+            const result = await fetch(testImage!.source);
             const contentType = result.headers.get('Content-Type');
 
             expect(contentType).toBe(expectedMimeType);
         }
 
         beforeAll(async () => {
-            const formats = ['gif', 'jpg', 'png', 'svg', 'tiff', 'webp'];
+            const formats = ['gif', 'jpg', 'pdf', 'png', 'svg', 'tiff', 'webp'];
 
             const filesToUpload = formats.map(ext => path.join(__dirname, `fixtures/assets/test.${ext}`));
             const { createAssets } = await adminClient.fileUploadMutation({
@@ -292,6 +294,10 @@ describe('AssetServerPlugin', () => {
 
         it('jpg', async () => {
             await testMimeTypeOfAssetWithExt('jpg', 'image/jpeg');
+        });
+
+        it('pdf', async () => {
+            await testMimeTypeOfAssetWithExt('pdf', 'application/pdf');
         });
 
         it('png', async () => {

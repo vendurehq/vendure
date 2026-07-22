@@ -454,6 +454,51 @@ describe('Custom field relations', () => {
 
                 assertCustomFieldIds(updateCustomerAddress.customFields, 'T_3', ['T_2', 'T_4']);
             });
+
+            // Regression: an OrderAddress (Order.shippingAddress / billingAddress) is an embedded
+            // value object with no `id`, so its relation custom fields cannot be resolved by a parent
+            // entity id. Previously this threw "The loader.load() function must be called with a
+            // value, but got: undefined"; it must now resolve to null / [] instead of crashing.
+            it('order shippingAddress resolves relation custom fields without throwing', async () => {
+                await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
+                await shopClient.query(gql`
+                    mutation {
+                        addItemToOrder(productVariantId: "T_1", quantity: 1) {
+                            ... on Order {
+                                id
+                            }
+                        }
+                    }
+                `);
+                await shopClient.query(gql`
+                    mutation {
+                        setOrderShippingAddress(
+                            input: {
+                                countryCode: "GB"
+                                streetLine1: "Test Street"
+                                customFields: { singleId: "T_1", multiIds: ["T_1", "T_2"] }
+                            }
+                        ) {
+                            ... on Order {
+                                id
+                            }
+                        }
+                    }
+                `);
+
+                const { activeOrder } = await shopClient.query(gql`
+                    query {
+                        activeOrder {
+                            shippingAddress {
+                                ${customFieldsSelection}
+                            }
+                        }
+                    }
+                `);
+
+                expect(activeOrder.shippingAddress.customFields.single).toBeNull();
+                expect(activeOrder.shippingAddress.customFields.multi).toEqual([]);
+            });
         });
 
         describe('Collection entity', () => {
@@ -958,6 +1003,49 @@ describe('Custom field relations', () => {
                 `);
                 expect(updateProductVariants[0].customFields.single).toEqual({ id: 'T_3' });
                 expect(updateProductVariants[0].customFields.primitive).toBe('test');
+            });
+
+            // Regression test for the DataLoader-batched resolution introduced to fix the N+1
+            // query problem (#4796): when several products are resolved in the same list query,
+            // each product's relation custom field must map back to its own row, not a
+            // neighbor's, even though the batched queries fetch and group results out of order.
+            it('preserves per-row relation mapping when resolving a list of products', async () => {
+                const singleIdByName: Array<[string, string]> = [
+                    ['order-test-a', 'T_3'],
+                    ['order-test-b', 'T_1'],
+                    ['order-test-c', 'T_2'],
+                ];
+
+                for (const [name, singleId] of singleIdByName) {
+                    await adminClient.query(gql`
+                        mutation {
+                            createProduct(
+                                input: {
+                                    translations: [{ languageCode: en, name: "${name}", slug: "${name}", description: "" }]
+                                    customFields: { singleId: "${singleId}" }
+                                }
+                            ) {
+                                id
+                            }
+                        }
+                    `);
+                }
+
+                const { products } = await adminClient.query(gql`
+                    query {
+                        products(options: { filter: { name: { contains: "order-test" } }, sort: { name: ASC } }) {
+                            items {
+                                id
+                                name
+                                ${customFieldsSelection}
+                            }
+                        }
+                    }
+                `);
+
+                expect(products.items.map((p: any) => [p.name, p.customFields.single.id])).toEqual(
+                    singleIdByName,
+                );
             });
 
             describe('issue 1664', () => {

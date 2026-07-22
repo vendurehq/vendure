@@ -1,4 +1,5 @@
 import { removeReadonlyAndLocalizedCustomFields } from '@/vdb/lib/utils.js';
+import type { ZodObject, ZodTypeAny } from '@/vdb/lib/zod.js';
 import type { TypedDocumentNode } from '@graphql-typed-document-node/core';
 import {
     DefinedInitialDataOptions,
@@ -17,6 +18,7 @@ import { NEW_ENTITY_PATH } from '../../constants.js';
 import { api } from '../../graphql/api.js';
 import { useCustomFieldConfig } from '../../hooks/use-custom-field-config.js';
 import { useExtendedDetailQuery } from '../../hooks/use-extended-detail-query.js';
+import { useRedirectToListOnNotFound } from '../../hooks/use-redirect-to-list-on-not-found.js';
 import { addCustomFields } from '../document-introspection/add-custom-fields.js';
 import {
     getEntityName,
@@ -101,6 +103,34 @@ export interface DetailPageOptions<
     ) => WithLooseCustomFields<VariablesOf<U>[VarNameUpdate]>;
     transformCreateInput?: (input: VariablesOf<C>[VarNameCreate]) => VariablesOf<C>[VarNameCreate];
     transformUpdateInput?: (input: VariablesOf<U>[VarNameUpdate]) => VariablesOf<U>[VarNameUpdate];
+    /**
+     * @description
+     * Refines the auto-generated Zod schema for this page's form. Use this to declare the
+     * fields the user must actually fill in.
+     *
+     * The generated schema is derived from the GraphQL input type, which only expresses
+     * nullability — and nullability tells you nothing about whether a value is required:
+     *
+     * - A non-nullable field may still be legitimately empty. `String!` means "not null",
+     *   not "not empty", and a non-nullable `ID!` such as `CreateFacetValueInput.facetId`
+     *   may be supplied by the page in `transformCreateInput` rather than by the user.
+     * - A nullable field may still be required by the server. `CreateChannelInput.
+     *   defaultCurrencyCode` is nullable, yet `ChannelService.create` rejects the input
+     *   unless it is set.
+     *
+     * So required-ness is declared per page, here.
+     *
+     * @example
+     * ```ts
+     * extendSchema: schema =>
+     *     schema.extend({
+     *         code: z.string().min(1, { message: t`This field is required` }),
+     *     }),
+     * ```
+     *
+     * @since 3.7.0
+     */
+    extendSchema?: (schema: ZodObject<any>) => ZodTypeAny;
     /**
      * @description
      * The function to call when the update is successful.
@@ -256,6 +286,7 @@ export function useDetailPage<
         setValuesForUpdate,
         transformCreateInput,
         transformUpdateInput,
+        extendSchema,
         params,
         entityField,
         entityName,
@@ -277,6 +308,10 @@ export function useDetailPage<
     const entity = (detailQuery?.data as any)?.[entityQueryField] as
         | DetailPageEntity<T, EntityField>
         | undefined;
+
+    // Redirect to the list if the entity is no longer found in the active
+    // channel (e.g. after a channel switch).
+    useRedirectToListOnNotFound(entity, { isFetching: detailQuery.isFetching, skip: isNew });
 
     const resetForm = () => {
         form.reset(form.getValues());
@@ -312,6 +347,7 @@ export function useDetailPage<
         varName: 'input',
         entity,
         customFieldConfig,
+        extendSchema,
         setValues: setValuesForUpdate,
         onSubmit(values: any) {
             const filteredValues = removeReadonlyAndLocalizedCustomFields(values, customFieldConfig || []);

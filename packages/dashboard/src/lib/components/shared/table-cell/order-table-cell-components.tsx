@@ -31,6 +31,9 @@ export const CustomerCell: DataTableCellComponent<CustomerCellData> = ({ row }) 
 export const OrderStateCell: DataTableCellComponent<{ state: string }> = ({ row }) => {
     const { getTranslatedOrderState } = useDynamicTranslations();
     const value = row.original.state;
+    if (!value) {
+        return null;
+    }
     return <Badge variant={stateTypeToBadgeVariant(getTypeForState(value))}>{getTranslatedOrderState(value)}</Badge>;
 };
 
@@ -47,9 +50,10 @@ export const RichTextDescriptionCell: DataTableCellComponent<{ description: stri
     // Strip HTML tags and decode HTML entities
     const textContent = useMemo(() => {
         if (!value) return '';
-        const div = document.createElement('div');
-        div.innerHTML = value;
-        return div.textContent ?? '';
+        // Use an inert DOMParser document, which (unlike assigning to a live
+        // element's innerHTML) does not execute scripts or load resources such as
+        // <img src=x onerror=...>, so stripping HTML cannot trigger stored XSS.
+        return new DOMParser().parseFromString(value, 'text/html').body.textContent ?? '';
     }, [value]);
 
     const shortLength = 100;

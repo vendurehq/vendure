@@ -120,6 +120,8 @@ export class ProductOptionService {
     }
 
     async update(ctx: RequestContext, input: UpdateProductOptionInput): Promise<Translated<ProductOption>> {
+        // Ensure the entity belongs to the active channel before updating.
+        await this.connection.getEntityOrThrow(ctx, ProductOption, input.id, { channelId: ctx.channelId });
         const option = await this.translatableSaver.update({
             ctx,
             input,

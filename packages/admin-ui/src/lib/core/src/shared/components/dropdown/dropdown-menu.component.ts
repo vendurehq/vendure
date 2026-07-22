@@ -71,7 +71,7 @@ export class DropdownMenuComponent implements AfterViewInit, OnInit, OnDestroy {
         for (const entry of entries) {
             const contentWrapper = entry.target.querySelector('.dropdown-content-wrapper');
             if (contentWrapper) {
-                const { bottom, top } = contentWrapper?.getBoundingClientRect();
+                const { bottom, top } = contentWrapper.getBoundingClientRect();
                 if (bottom > window.innerHeight - margin) {
                     // dropdown is going off the bottom of the screen
                     this.maxHeight = window.innerHeight - top - margin;

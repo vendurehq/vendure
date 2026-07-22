@@ -1,5 +1,5 @@
 import { cn } from '@/vdb/lib/utils.js';
-import { AlertDialogPrimitive } from '@vendure-io/ui/lib/base-ui';
+import { AlertDialogTitle as AlertDialogTitleBase } from '@vendure-io/ui/components/ui/alert-dialog';
 
 export {
     AlertDialog,
@@ -15,19 +15,11 @@ export {
     AlertDialogTrigger,
 } from '@vendure-io/ui/components/ui/alert-dialog';
 
-// Override AlertDialogTitle to use the heading font (Public Sans)
+// Override AlertDialogTitle to use the heading font (Public Sans). Wrap the
+// base wrapper rather than the primitive — see dialog.tsx for the rationale.
 export function AlertDialogTitle({
     className,
     ...props
-}: React.ComponentProps<typeof AlertDialogPrimitive.Title>) {
-    return (
-        <AlertDialogPrimitive.Title
-            data-slot="alert-dialog-title"
-            className={cn(
-                'text-lg font-medium font-heading sm:group-data-[size=default]/alert-dialog-content:group-has-data-[slot=alert-dialog-media]/alert-dialog-content:col-start-2',
-                className,
-            )}
-            {...props}
-        />
-    );
+}: React.ComponentProps<typeof AlertDialogTitleBase>) {
+    return <AlertDialogTitleBase className={cn('font-heading', className)} {...props} />;
 }

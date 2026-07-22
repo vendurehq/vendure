@@ -25,6 +25,69 @@ test.describe('Orders', () => {
         await lp.expectLoaded();
     });
 
+    // #4748 — enum columns (e.g. Order.type / OrderType) must be offered in the
+    // "Add filter" menu, render a working enum filter input (not an empty dialog),
+    // and actually filter server-side (core maps every enum column to StringOperators,
+    // so `eq` is valid — this is the same path a custom-entity enum field uses).
+    test('should allow filtering the orders list by the enum "type" column', async ({ page }) => {
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await createPaidOrder(client); // a Regular-type order so the list is non-empty
+
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+        await lp.expectRowCountGreaterThan(0);
+
+        await lp.openAddFilterMenu();
+
+        // On master the enum column is not filterable, so it never appears here.
+        const typeFilterItem = page.getByRole('menuitem', { name: /^type$/i });
+        await expect(typeFilterItem).toBeVisible();
+        await typeFilterItem.click();
+
+        // The dialog renders the enum filter pre-populated with the first OrderType
+        // value — not the empty dialog you got from enabling the filter alone.
+        const dialog = page.getByRole('dialog');
+        await expect(dialog).toBeVisible();
+        await expect(dialog.getByText('Regular')).toBeVisible();
+
+        // Applying must send `type: { eq: "Regular" }` as a server-side filter — proving
+        // the enum filter is wired through, not silently dropped on the client.
+        const filteredRequest = page.waitForRequest(
+            req =>
+                req.url().includes('/admin-api') &&
+                req.method() === 'POST' &&
+                (req.postData() ?? '').replace(/\s/g, '').includes('"type":{"eq":"Regular"}'),
+        );
+        await dialog.getByRole('button', { name: /Apply filter/i }).click();
+        await expect(dialog).toBeHidden();
+        await filteredRequest;
+        // The Regular order survives the matching filter, and an active filter badge appears.
+        await lp.expectRowCountGreaterThan(0);
+        const filterBadge = page
+            .getByRole('button')
+            .filter({ hasText: 'type' })
+            .filter({ hasText: 'Regular' });
+        await expect(filterBadge).toBeVisible();
+        await expect(page.getByText(/An error occurred:/i)).toHaveCount(0);
+
+        // Negative case: switch the filter to an OrderType no order has (Seller/Aggregate
+        // only exist in multi-vendor setups). If the filter is genuinely applied
+        // server-side the list empties; if it were accepted-and-ignored the Regular order
+        // would wrongly remain. This is what the old `rowCount > 0` assertion couldn't catch.
+        await filterBadge.click();
+        const editDialog = page.getByRole('dialog');
+        await expect(editDialog).toBeVisible();
+        // Second combobox is the value select (the first is the operator select).
+        await editDialog.getByRole('combobox').nth(1).click();
+        await page.getByRole('option', { name: 'Aggregate', exact: true }).click();
+        await editDialog.getByRole('button', { name: /Apply filter/i }).click();
+        await expect(editDialog).toBeHidden();
+        await expect(lp.dataTable.getByText('No results')).toBeVisible();
+        await expect(page.getByText(/An error occurred:/i)).toHaveCount(0);
+    });
+
     test('should show "Draft order" button', async ({ page }) => {
         const lp = listPage(page);
         await lp.goto();
@@ -100,6 +163,46 @@ test.describe('Orders', () => {
         await lp.expectRowCountGreaterThan(0);
     });
 
+    // #4830 — toggling the State column must not crash the order list.
+    // The list query only fetches visible columns; re-enabling State refetches,
+    // but `placeholderData: keepPreviousData` first renders the previous rows
+    // (which no longer carry `state`) into the State column. Pre-fix this threw
+    // `Cannot read properties of undefined (reading 'toLowerCase')` in
+    // OrderStateCell and tripped the router error boundary.
+    test('should not crash when toggling the State column off and on', async ({ page }) => {
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await createPaidOrder(client);
+
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+        await lp.expectRowCountGreaterThan(0);
+
+        const stateHeader = lp.dataTable.locator('thead th').filter({ hasText: 'State' });
+        const stateToggle = page.getByRole('menuitemcheckbox', { name: /^state$/i });
+        await expect(stateHeader).toBeVisible();
+
+        // Hide State → the list refetches without the `state` field.
+        await lp.openColumnSettings();
+        await stateToggle.click();
+        await page.keyboard.press('Escape');
+        await expect(stateHeader).toBeHidden();
+
+        // Re-enable State → triggers the stale-placeholder render that used to crash.
+        await lp.openColumnSettings();
+        await stateToggle.click();
+        await page.keyboard.press('Escape');
+
+        // No crash: a crashed boundary unmounts the table, so the header + rows
+        // staying visible after the refetch is the real signal. The error-text
+        // assertion is belt-and-suspenders.
+        await expect(stateHeader).toBeVisible();
+        await lp.expectRowCountGreaterThan(0);
+        await expect(lp.getRows().first()).toBeVisible();
+        await expect(page.getByText(/An error occurred:/i)).toHaveCount(0);
+    });
+
     test('should create and delete a draft order', async ({ page }) => {
         // Create a new draft
         const lp = listPage(page);
@@ -115,6 +218,80 @@ test.describe('Orders', () => {
         // Should navigate back to the orders list (URL may include query params)
         await expect(page).not.toHaveURL(/\/draft\//, { timeout: 15_000 });
         await expect(page.getByTestId('page-heading')).toBeVisible();
+    });
+
+    // selecting a customer on a draft order should populate the order's addresses
+    // from the customer's default addresses (parity with the Angular admin-ui, see #3196)
+    test('should populate default addresses when selecting a customer', async ({ page }) => {
+        test.setTimeout(60_000);
+
+        const client = new VendureAdminClient(page);
+        await client.login();
+
+        // Create a customer whose address is flagged as default shipping & billing.
+        // The seeded e2e customers have addresses without default flags.
+        const { createCustomer } = await client.gql(
+            `mutation ($input: CreateCustomerInput!) {
+                createCustomer(input: $input) {
+                    ... on Customer { id }
+                    ... on ErrorResult { errorCode message }
+                }
+            }`,
+            {
+                input: {
+                    firstName: 'Daphne',
+                    lastName: 'Defaults',
+                    emailAddress: `daphne.defaults.${Date.now()}@test.com`,
+                },
+            },
+        );
+        await client.gql(
+            `mutation ($customerId: ID!, $input: CreateAddressInput!) {
+                createCustomerAddress(customerId: $customerId, input: $input) { id }
+            }`,
+            {
+                customerId: createCustomer.id,
+                input: {
+                    fullName: 'Daphne Defaults',
+                    streetLine1: '42 Default Lane',
+                    city: 'Defaultville',
+                    postalCode: 'D1 1AA',
+                    countryCode: 'GB',
+                    defaultShippingAddress: true,
+                    defaultBillingAddress: true,
+                },
+            },
+        );
+
+        // Create a draft order and select the customer
+        const lp = listPage(page);
+        await lp.goto();
+        await lp.expectLoaded();
+        await lp.newButton.click();
+        await expect(page).toHaveURL(/\/orders\/draft\//, { timeout: 10_000 });
+
+        await page.getByRole('button', { name: /Select customer/i }).click();
+        await page.getByPlaceholder('Search customers...').fill('daphne');
+        // The customer list is debounced, so wait for the matching option
+        // rather than clicking the first one (which may be from a stale list)
+        const daphneOption = page.getByRole('option').filter({ hasText: 'Daphne Defaults' });
+        await expect(daphneOption.first()).toBeVisible({ timeout: 5_000 });
+        await daphneOption.first().click();
+
+        // Both the shipping and billing address blocks should be populated
+        // from the customer's default address
+        await expect(page.getByText('42 Default Lane')).toHaveCount(2, { timeout: 10_000 });
+
+        // Switching to a customer without default addresses should clear them again
+        await page.getByRole('button', { name: /Select customer/i }).click();
+        await page.getByPlaceholder('Search customers...').fill('hayden');
+        const haydenOption = page.getByRole('option').filter({ hasText: /hayden/i });
+        await expect(haydenOption.first()).toBeVisible({ timeout: 5_000 });
+        await haydenOption.first().click();
+
+        await expect(page.getByText('42 Default Lane')).toHaveCount(0, { timeout: 10_000 });
+        // The manual address selectors should be offered again
+        await expect(page.getByRole('button', { name: /Select address/i })).toHaveCount(2);
     });
 
     // #4393 — custom order history entry types should be displayed with key-value data
@@ -195,6 +372,8 @@ test.describe('Orders', () => {
         // Make a modification (change quantity) to enable the checkbox
         const quantityInput = page.getByTestId('order-line-quantity').first();
         await quantityInput.fill('2');
+        // The quantity is only committed on Enter or blur
+        await quantityInput.press('Enter');
 
         await expect(recalculateCheckbox).toBeEnabled();
         await expect(recalculateCheckbox).toBeChecked();
@@ -318,6 +497,51 @@ test.describe('Orders', () => {
             await expect(dialog.getByText('Reason', { exact: true })).toBeVisible();
 
             // Close without submitting
+            await dialog.getByRole('button', { name: 'Cancel' }).click();
+        });
+
+        // #4728 — refund dialog must reflect line quantities changed during order modification.
+        // Increasing a line from 1→2 while Modifying keeps orderPlacedQuantity=1; the dialog
+        // previously capped the refundable quantity at orderPlacedQuantity, so only 1 of the
+        // 2 paid units could be refunded. It must now offer the full modified quantity.
+        test('should reflect a line quantity increased during modification in the refund dialog', async ({
+            page,
+        }) => {
+            test.setTimeout(60_000);
+
+            const client = new VendureAdminClient(page);
+            await client.login();
+            const orderId = await createOrderWithIncreasedLineQuantity(client);
+
+            await page.goto(`/orders/${orderId}`);
+            await expect(page.getByRole('button', { name: /Fulfill order/i })).toBeVisible({
+                timeout: 10_000,
+            });
+
+            // Open the refund dialog via action bar dropdown
+            const actionBarEllipsis = page.getByTestId('action-bar-dropdown-trigger');
+            await expect(actionBarEllipsis).toBeVisible({ timeout: 10_000 });
+            await actionBarEllipsis.click();
+
+            const menu = page.locator('[data-slot="dropdown-menu-content"]');
+            await expect(menu).toBeVisible();
+            await menu
+                .getByText(/Refund/i)
+                .first()
+                .click();
+
+            const dialog = page.locator('[role="dialog"]');
+            await expect(dialog).toBeVisible({ timeout: 5_000 });
+
+            // The line's refund input must allow the full modified quantity (2).
+            // Pre-fix, `max` was orderPlacedQuantity (1) and entering 2 was clamped to 1.
+            const quantityInput = dialog.getByTestId('refund-quantity').first();
+            await expect(quantityInput).toBeVisible();
+            await expect(quantityInput).toHaveAttribute('max', '2');
+
+            await quantityInput.fill('2');
+            await expect(quantityInput).toHaveValue('2');
+
             await dialog.getByRole('button', { name: 'Cancel' }).click();
         });
 
@@ -547,6 +771,88 @@ async function createPaidOrder(client: VendureAdminClient): Promise<string> {
     `,
         { orderId },
     );
+
+    return orderId;
+}
+
+/**
+ * Creates a paid order, then (while in "Modifying") increases its single line's
+ * quantity from 1 to 2 and settles the additional payment. Returns the order ID in
+ * "PaymentSettled" state with orderPlacedQuantity=1 and current quantity=2.
+ */
+async function createOrderWithIncreasedLineQuantity(client: VendureAdminClient): Promise<string> {
+    const orderId = await createPaidOrder(client);
+
+    // Transition helper that fails loudly at the real boundary, so a broken flow
+    // surfaces here rather than as a confusing later assertion failure.
+    const transition = async (state: string) => {
+        const { transitionOrderToState } = await client.gql(
+            `
+            mutation ($id: ID!, $state: String!) {
+                transitionOrderToState(id: $id, state: $state) {
+                    ... on Order { id state }
+                    ... on OrderStateTransitionError { errorCode message transitionError }
+                }
+            }
+        `,
+            { id: orderId, state },
+        );
+        if (transitionOrderToState?.errorCode) {
+            throw new Error(
+                `transition to ${state} failed: ${String(transitionOrderToState.errorCode)} ${String(transitionOrderToState.message)}`,
+            );
+        }
+    };
+
+    await transition('Modifying');
+
+    const { order } = await client.gql(`query ($id: ID!) { order(id: $id) { lines { id } } }`, {
+        id: orderId,
+    });
+
+    const { modifyOrder } = await client.gql(
+        `
+        mutation ($input: ModifyOrderInput!) {
+            modifyOrder(input: $input) {
+                ... on Order { id }
+                ... on ErrorResult { errorCode message }
+            }
+        }
+    `,
+        {
+            input: {
+                dryRun: false,
+                orderId,
+                adjustOrderLines: [{ orderLineId: order.lines[0].id, quantity: 2 }],
+            },
+        },
+    );
+    if (modifyOrder.errorCode) {
+        throw new Error(
+            `modifyOrder failed: ${String(modifyOrder.errorCode)} ${String(modifyOrder.message)}`,
+        );
+    }
+
+    await transition('ArrangingAdditionalPayment');
+
+    const { addManualPaymentToOrder } = await client.gql(
+        `
+        mutation ($orderId: ID!) {
+            addManualPaymentToOrder(input: {
+                orderId: $orderId, method: "test-payment",
+                transactionId: "e2e-additional-tx-${orderId}", metadata: {}
+            }) { ... on Order { id state } ... on ErrorResult { errorCode message } }
+        }
+    `,
+        { orderId },
+    );
+    if (addManualPaymentToOrder.errorCode) {
+        throw new Error(
+            `addManualPaymentToOrder failed: ${String(addManualPaymentToOrder.errorCode)} ${String(addManualPaymentToOrder.message)}`,
+        );
+    }
+
+    await transition('PaymentSettled');
 
     return orderId;
 }

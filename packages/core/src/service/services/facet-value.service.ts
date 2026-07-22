@@ -204,6 +204,8 @@ export class FacetValueService {
     }
 
     async update(ctx: RequestContext, input: UpdateFacetValueInput): Promise<Translated<FacetValue>> {
+        // Ensure the entity belongs to the active channel before updating.
+        await this.connection.getEntityOrThrow(ctx, FacetValue, input.id, { channelId: ctx.channelId });
         const facetValue = await this.translatableSaver.update({
             ctx,
             input,

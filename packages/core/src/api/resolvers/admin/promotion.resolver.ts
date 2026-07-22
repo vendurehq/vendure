@@ -76,8 +76,11 @@ export class PromotionResolver {
         @Ctx() ctx: RequestContext,
         @Args() args: MutationCreatePromotionArgs,
     ): Promise<ErrorResultUnion<CreatePromotionResult, Promotion>> {
+        // Note: PromotionItemAction and PromotionOrderAction share the same
+        // pool of action defs in getAvailableDefsOfType(), so a single call
+        // with either type will decode ID args for all promotion actions.
         this.configurableOperationCodec.decodeConfigurableOperationIds(
-            PromotionOrderAction,
+            PromotionItemAction,
             args.input.actions,
         );
         this.configurableOperationCodec.decodeConfigurableOperationIds(
@@ -94,10 +97,11 @@ export class PromotionResolver {
         @Ctx() ctx: RequestContext,
         @Args() args: MutationUpdatePromotionArgs,
     ): Promise<ErrorResultUnion<UpdatePromotionResult, Promotion>> {
-        this.configurableOperationCodec.decodeConfigurableOperationIds(
-            PromotionOrderAction,
-            args.input.actions || [],
-        );
+        // Note: PromotionItemAction and PromotionOrderAction share the same
+        // pool of action defs in getAvailableDefsOfType(), so a single call
+        // with either type will decode ID args for all promotion actions.
+        // Calling decode twice on the same input array would cause double-decoding,
+        // which breaks custom EntityIdStrategies (e.g. hashed IDs).
         this.configurableOperationCodec.decodeConfigurableOperationIds(
             PromotionItemAction,
             args.input.actions || [],

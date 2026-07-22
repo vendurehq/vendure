@@ -14,6 +14,7 @@ import {
     TestAuthenticationStrategy2,
     TestSSOStrategyAdmin,
     TestSSOStrategyShop,
+    TestUnverifiedEmailStrategy,
     VALID_AUTH_TOKEN,
 } from './fixtures/test-authentication-strategies';
 import { currentUserFragment, customerFragment } from './graphql/fragments-admin';
@@ -29,6 +30,7 @@ import {
     MeDocument,
 } from './graphql/shared-definitions';
 import { registerAccountDocument } from './graphql/shop-definitions';
+import { assertThrowsWithMessage } from './utils/assert-throws-with-message';
 
 type CurrentUserFragmentType = FragmentOf<typeof currentUserFragment>;
 const currentUserGuard: ErrorResultGuard<CurrentUserFragmentType> = createErrorResultGuard(
@@ -49,6 +51,7 @@ describe('AuthenticationStrategy', () => {
                     new TestAuthenticationStrategy(),
                     new TestAuthenticationStrategy2(),
                     new TestSSOStrategyShop(),
+                    new TestUnverifiedEmailStrategy(),
                 ],
                 adminAuthenticationStrategy: [new NativeAuthenticationStrategy(), new TestSSOStrategyAdmin()],
             },
@@ -303,6 +306,53 @@ describe('AuthenticationStrategy', () => {
             currentUserGuard.assertSuccess(shopAuth);
 
             expect(adminAuth.id).not.toBe(shopAuth.id);
+        });
+    });
+
+    // GHSA-6j36-r6pr-59x4 — an external auth strategy that forwards an unverified email must not be
+    // able to link to (and thereby take over) a pre-existing account with the same email address.
+    describe('account-takeover protection (GHSA-6j36-r6pr-59x4)', () => {
+        const victimEmail = 'victim-ghsa@test.com';
+        let victimCustomerId: string;
+
+        beforeAll(async () => {
+            const { createCustomer } = await adminClient.query(createCustomerDocument, {
+                input: { firstName: 'Victim', lastName: 'User', emailAddress: victimEmail },
+                password: 'victim-password',
+            });
+            customerGuard.assertSuccess(createCustomer);
+            victimCustomerId = createCustomer.id;
+        });
+
+        it(
+            'rejects linking an unverified external identity to an existing account',
+            assertThrowsWithMessage(
+                () =>
+                    shopClient.query(authenticateDocument, {
+                        input: { test_unverified_strategy: { email: victimEmail } },
+                    }),
+                'Cannot link an unverified external authentication method to an existing account',
+            ),
+        );
+
+        it('does not attach the external auth method to the victim account', async () => {
+            const { customer } = await adminClient.query(getCustomerUserAuthDocument, {
+                id: victimCustomerId,
+            });
+            const strategies = customer?.user?.authenticationMethods.map(m => m.strategy) ?? [];
+            expect(strategies).not.toContain('test_unverified_strategy');
+        });
+
+        it('still allows new-account creation from an unverified external email', async () => {
+            // The guard is scoped to the linking case only: a brand-new email (no pre-existing
+            // account) must still be able to create an account even when verified === false.
+            const newEmail = 'fresh-unverified-ghsa@test.com';
+            await shopClient.asAnonymousUser();
+            const { authenticate } = await shopClient.query(authenticateDocument, {
+                input: { test_unverified_strategy: { email: newEmail } },
+            });
+            currentUserGuard.assertSuccess(authenticate);
+            expect(authenticate.identifier).toBe(newEmail);
         });
     });
 

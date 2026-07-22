@@ -26,14 +26,12 @@ function CountryListPage() {
                 enabled: true,
             }}
             onSearchTermChange={searchTerm => {
-                return {
-                    name: {
-                        contains: searchTerm,
-                    },
-                    code: {
-                        contains: searchTerm,
-                    },
-                };
+                return searchTerm
+                    ? {
+                          name: { contains: searchTerm },
+                          code: { contains: searchTerm },
+                      }
+                    : {};
             }}
             transformVariables={variables => {
                 return {

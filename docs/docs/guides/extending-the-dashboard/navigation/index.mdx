@@ -1,7 +1,7 @@
 ---
 title: 'Navigation'
-metaTitle: "Dashboard Navigation and Sidebar Configuration in Vendure"
-metaDescription: "Configure sidebar navigation sections, menu items, ordering, placement, unauthenticated routes, and Lucide icons in the Vendure Dashboard."
+metaTitle: 'Dashboard Navigation and Sidebar Configuration in Vendure'
+metaDescription: 'Configure sidebar navigation sections, menu items, ordering, placement, unauthenticated routes, and Lucide icons in the Vendure Dashboard.'
 ---
 
 The dashboard provides a flexible navigation system that allows you to add custom navigation sections and menu items. Navigation items are organized into sections that can be placed in either the "Platform" (top) or "Administration" (bottom) areas of the sidebar.
@@ -35,13 +35,16 @@ defineDashboardExtension({
 
 ### Available Section IDs
 
-The dashboard comes with several built-in sections:
+The dashboard comes with several built-in sections that can receive route `navMenuItem` entries:
 
 - **`catalog`** - For product-related functionality
-- **`orders`** - For order management
+- **`sales`** - For order management
 - **`customers`** - For customer management
 - **`marketing`** - For promotions and marketing tools
 - **`settings`** - For configuration and admin settings
+- **`system`** - For system tools such as the job queue and scheduled tasks
+
+The Insights entry has the ID `insights`, but it is a top-level navigation item, not a section with child items. Do not use `insights` as a route `navMenuItem.sectionId`.
 
 ### Finding Section IDs & Ordering
 
@@ -65,7 +68,7 @@ defineDashboardExtension({
             title: 'Content',
             icon: FileTextIcon,
             placement: 'top', // Platform area
-            order: 350, // After Customers (400), before Marketing (500)
+            order: 350, // After Sales (300), before Customers (400)
         },
         {
             id: 'integrations',
@@ -143,11 +146,11 @@ Order values are scoped within each placement area. This means:
 - You can use the same order value in both top and bottom without conflict
   :::
 
-### Default Section Orders
+### Default Top-Level Orders
 
 **Top Placement (Platform):**
 
-- Dashboard: 100
+- Insights: 100
 - Catalog: 200
 - Sales: 300
 - Customers: 400
@@ -155,14 +158,93 @@ Order values are scoped within each placement area. This means:
 
 **Bottom Placement (Administration):**
 
-- System: 100
-- Settings: 200
+- Settings: 100
+- System: 200
 
-This means if you want to add a section between Catalog and Sales in the top area, you might use `order: 250`. If you want to add a section before Settings in the bottom area, you could use `order: 150`.
+This means if you want to add a section between Catalog and Sales in the top area, you might use `order: 250`. If you want to add a section between Settings and System in the bottom area, you could use `order: 150`.
 
 :::note[Default Placement]
 If you don't specify a `placement`, sections default to `'top'` placement.
 :::
+
+## Modifying Existing Navigation
+
+The `navSections` property can also be a function. Use this form when you need full control over the existing navigation structure, including moving, removing, renaming, or reordering built-in sections and items.
+
+The function receives the fully registered navigation config after all array-form `navSections` and route `navMenuItem` registrations have been applied. Return a new config object rather than mutating the input.
+
+### Remove a built-in item
+
+```tsx title="src/plugins/my-plugin/dashboard/index.tsx"
+import { defineDashboardExtension } from '@vendure/dashboard';
+
+defineDashboardExtension({
+    navSections: config => ({
+        sections: config.sections.map(section => {
+            if (section.id === 'settings' && 'items' in section) {
+                return {
+                    ...section,
+                    items: section.items?.filter(item => item.id !== 'administrators'),
+                };
+            }
+            return section;
+        }),
+    }),
+});
+```
+
+### Move items into a new section
+
+```tsx title="src/plugins/my-plugin/dashboard/index.tsx"
+import { defineDashboardExtension } from '@vendure/dashboard';
+import { KeyRoundIcon } from 'lucide-react';
+import type { NavMenuConfig } from '@vendure/dashboard';
+
+defineDashboardExtension({
+    navSections: (config: NavMenuConfig): NavMenuConfig => {
+        const idsToMove = ['administrators', 'roles'];
+        const settingsSection = config.sections.find(section => section.id === 'settings');
+        const settingsItems =
+            settingsSection && 'items' in settingsSection ? (settingsSection.items ?? []) : [];
+
+        return {
+            sections: [
+                ...config.sections.map(section => {
+                    if (section.id === 'settings' && 'items' in section) {
+                        return {
+                            ...section,
+                            items: section.items?.filter(item => !idsToMove.includes(item.id)),
+                        };
+                    }
+                    return section;
+                }),
+                {
+                    id: 'access',
+                    title: 'Access',
+                    icon: KeyRoundIcon,
+                    placement: 'bottom',
+                    order: 150,
+                    items: settingsItems.filter(item => idsToMove.includes(item.id)),
+                },
+            ],
+        };
+    },
+});
+```
+
+### Rename a section
+
+```tsx
+defineDashboardExtension({
+    navSections: config => ({
+        sections: config.sections.map(section =>
+            section.id === 'catalog' ? { ...section, title: 'Products' } : section,
+        ),
+    }),
+});
+```
+
+Use [Dev Mode](/extending-the-dashboard/extending-overview/#dev-mode) or the [Extension Targets reference](/extending-the-dashboard/customizing-pages/extension-targets/#navigation-section-ids) to find built-in navigation IDs.
 
 ## Unauthenticated Routes
 
@@ -182,11 +264,13 @@ defineDashboardExtension({
         {
             path: '/public',
             component: () => (
-                <div className="flex h-screen items-center justify-center text-2xl">This is a public page!</div>
+                <div className="flex h-screen items-center justify-center text-2xl">
+                    This is a public page!
+                </div>
             ),
-            authenticated: false // [!code highlight]
+            authenticated: false, // [!code highlight]
         },
-    ]
+    ],
 });
 ```
 

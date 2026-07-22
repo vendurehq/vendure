@@ -1,6 +1,5 @@
 import { DOMParser, DOMSerializer, Node } from 'prosemirror-model';
 import { Plugin } from 'prosemirror-state';
-import { Protocol } from 'puppeteer';
 
 import { ModalService } from '../../../../../providers/modal/modal.service';
 import { RawHtmlDialogComponent } from '../../raw-html-dialog/raw-html-dialog.component';

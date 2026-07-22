@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { TerminusModule } from '@nestjs/terminus';
 
 import { ConfigModule } from '../config/config.module';
 import { ConfigService } from '../config/config.service';
@@ -11,7 +10,7 @@ import { HealthController } from './health-check.controller';
 import { CustomHttpHealthIndicator } from './http-health-check-strategy';
 
 @Module({
-    imports: [TerminusModule, ConfigModule, JobQueueModule],
+    imports: [ConfigModule, JobQueueModule],
     controllers: [HealthController],
     providers: [HealthCheckRegistryService, CustomHttpHealthIndicator],
     exports: [HealthCheckRegistryService],
