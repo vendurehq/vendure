@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
+import type { ComponentType } from 'react';
 
 import { globalRegistry } from '../registry/global-registry.js';
 
@@ -117,6 +118,15 @@ export interface NavMenuItem {
      * Optional second key for the global `G` navigation chord.
      */
     shortcut?: NavigationShortcut;
+    /**
+     * @description
+     * An optional component rendered after the item's title, for example a
+     * count badge. It is rendered in every nav state: as a top-level item, as
+     * an expanded sub-item, and in the collapsed section's hover card.
+     *
+     * @since 3.8.0
+     */
+    badge?: ComponentType;
 }
 
 export interface NavMenuSection extends Omit<NavMenuItem, 'url' | 'shortcut'> {

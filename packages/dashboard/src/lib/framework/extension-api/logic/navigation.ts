@@ -50,6 +50,7 @@ function registerRoutes(routes?: DashboardRouteDefinition[]) {
                 icon: route.navMenuItem.icon,
                 placement: route.navMenuItem.placement,
                 shortcut: route.navMenuItem.shortcut,
+                badge: route.navMenuItem.badge,
             };
             addNavMenuItem(item, route.navMenuItem.sectionId);
         }

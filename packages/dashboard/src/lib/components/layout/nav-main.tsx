@@ -92,6 +92,7 @@ function CollapsedSectionMenu({
                             )}
                         >
                             {i18n.t(subItem.title)}
+                            {subItem.badge && <subItem.badge />}
                         </Link>
                     </NavItemWrapper>
                 ))}
@@ -364,6 +365,7 @@ export function NavMain({ items }: Readonly<{ items: Array<NavMenuSection | NavM
                         >
                             {item.icon && <item.icon />}
                             <span>{i18n.t(item.title)}</span>
+                            {item.badge && <item.badge />}
                             {navigationChordActive ? <ShortcutBadge shortcut={item.shortcut} /> : null}
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -409,6 +411,7 @@ export function NavMain({ items }: Readonly<{ items: Array<NavMenuSection | NavM
                                                 isActive={isPathActive(subItem.url)}
                                             >
                                                 <span>{i18n.t(subItem.title)}</span>
+                                                {subItem.badge && <subItem.badge />}
                                                 {navigationChordActive ? (
                                                     <ShortcutBadge shortcut={subItem.shortcut} />
                                                 ) : null}
