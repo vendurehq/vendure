@@ -170,14 +170,16 @@ export class StoredMediaService {
 
     async delete(media: Pick<StoredMedia, 'source' | 'preview'> | { source?: string; preview?: string }) {
         const { assetStorageStrategy } = this.configService.assetOptions;
-        for (const identifier of [media.source, media.preview]) {
-            if (!identifier) continue;
-            try {
-                await assetStorageStrategy.deleteFile(identifier);
-            } catch (error: any) {
-                Logger.error('error.could-not-delete-asset-file', undefined, error?.stack);
-            }
-        }
+        const identifiers = [media.source, media.preview].filter(notNullOrUndefined);
+        await Promise.all(
+            identifiers.map(async identifier => {
+                try {
+                    await assetStorageStrategy.deleteFile(identifier);
+                } catch (error: any) {
+                    Logger.error('error.could-not-delete-asset-file', undefined, error?.stack);
+                }
+            }),
+        );
     }
 
     /** @internal */
@@ -204,10 +206,7 @@ export class StoredMediaService {
     }
 
     /** @internal */
-    async deleteOnCommit(
-        ctx: RequestContext,
-        media: Pick<StoredMedia, 'source' | 'preview'>,
-    ): Promise<void> {
+    async deleteOnCommit(ctx: RequestContext, media: Pick<StoredMedia, 'source' | 'preview'>): Promise<void> {
         const queryRunner = this.getActiveQueryRunner(ctx);
         if (!queryRunner) {
             await this.delete(media);
@@ -253,8 +252,7 @@ export class StoredMediaService {
         contentMimeType: string | undefined,
     ): string {
         const extensionMimeType = mime.lookup(filename) || undefined;
-        const contentIsGenericXml =
-            contentMimeType === 'application/xml' || contentMimeType === 'text/xml';
+        const contentIsGenericXml = contentMimeType === 'application/xml' || contentMimeType === 'text/xml';
         const extensionIsXmlBased = !!extensionMimeType && extensionMimeType.endsWith('+xml');
         if (contentMimeType && !(contentIsGenericXml && extensionIsXmlBased)) {
             return contentMimeType;

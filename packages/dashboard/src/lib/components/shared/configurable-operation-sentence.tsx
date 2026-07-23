@@ -5,8 +5,8 @@ import { cn } from '@/vdb/lib/utils.js';
 import { ConfigurableOperationInput as ConfigurableOperationInputType } from '@vendure/common/lib/generated-types';
 import { useState } from 'react';
 import { Field, FieldLabel } from '../ui/field.js';
-import { ArgSummary, isEmptyArgValue } from './configurable-operation-arg-summary.js';
 import { ConfigurableOperationArgInput } from './configurable-operation-arg-input.js';
+import { ArgSummary, isEmptyArgValue } from './configurable-operation-arg-summary.js';
 import {
     OperationDescriptionSegment,
     parseOperationDescription,
@@ -20,7 +20,7 @@ export interface OperationSentenceProps {
     onArgChange: (name: string, value: string) => void;
     readonly?: boolean;
     /**
-     * When true, the chip of the first required arg with no value opens its
+     * When true, the chip of the first arg with no value opens its
      * editing popover on mount. Used for newly-added operations.
      */
     autoOpenFirstEmptyArg?: boolean;
@@ -46,10 +46,8 @@ export function OperationSentence({
     const segments = parseOperationDescription(operationDefinition);
     const argValueFor = (arg: ConfigurableOperationArgDef) =>
         value.arguments.find(a => a.name === arg.name)?.value ?? '';
-    const firstEmptyRequiredArg = autoOpenFirstEmptyArg
-        ? operationDefinition.args.find(
-              arg => arg.required && !arg.list && isEmptyArgValue(arg, argValueFor(arg)),
-          )
+    const firstEmptyArg = autoOpenFirstEmptyArg
+        ? operationDefinition.args.find(arg => isEmptyArgValue(arg, argValueFor(arg)))
         : undefined;
 
     const referenced = segments.filter(s => s.type === 'text' || s.referenced);
@@ -64,7 +62,7 @@ export function OperationSentence({
             value={argValueFor(arg)}
             onChange={newValue => onArgChange(arg.name, newValue)}
             readonly={readonly}
-            defaultOpen={firstEmptyRequiredArg?.name === arg.name}
+            defaultOpen={firstEmptyArg?.name === arg.name}
         />
     );
 
@@ -120,9 +118,7 @@ function ArgChip({ arg, value, onChange, readonly, defaultOpen }: Readonly<ArgCh
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger
-                render={<button type="button" className={chipClasses} aria-label={label} />}
-            >
+            <PopoverTrigger render={<button type="button" className={chipClasses} aria-label={label} />}>
                 {chipContent}
             </PopoverTrigger>
             <PopoverContent

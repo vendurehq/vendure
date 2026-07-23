@@ -403,7 +403,8 @@ BREAKING CHANGE: A DB migration will be required in order to add the new "foo" f
 
 #### Linting
 
-Commit messages are linted on commit, so you'll know if your message is not quite right.
+Commit messages are linted on commit, so you'll know if your message is not quite right. Pull request titles are
+checked against the same format when a pull request is opened or its title is edited.
 
 ## Advanced Topics
 

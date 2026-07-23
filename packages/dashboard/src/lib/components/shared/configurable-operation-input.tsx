@@ -1,4 +1,5 @@
 import { ConfigurableOperationDefFragment } from '@/vdb/graphql/fragments.js';
+import { cn } from '@/vdb/lib/utils.js';
 import { useLingui } from '@lingui/react/macro';
 import { ConfigurableOperationInput as ConfigurableOperationInputType } from '@vendure/common/lib/generated-types';
 import { ChevronDown, X } from 'lucide-react';
@@ -6,7 +7,6 @@ import { useEffect, useState } from 'react';
 import { Button } from '../ui/button.js';
 import { Card, CardContent, CardHeader } from '../ui/card.js';
 import { Field, FieldLabel } from '../ui/field.js';
-import { cn } from '@/vdb/lib/utils.js';
 import { ConfigurableOperationArgInput } from './configurable-operation-arg-input.js';
 import { OperationSentence } from './configurable-operation-sentence.js';
 
@@ -23,7 +23,7 @@ export interface ConfigurableOperationInputProps {
      */
     variant?: 'sentence' | 'form';
     /**
-     * When true (sentence variant only), the first required arg with no value
+     * When true (sentence variant only), the first arg with no value
      * opens its editing popover on mount. Used for newly-added operations.
      */
     autoOpenFirstEmptyArg?: boolean;
@@ -105,7 +105,10 @@ export function ConfigurableOperationInput({
                                 aria-expanded={expanded}
                             >
                                 <ChevronDown
-                                    className={cn('h-3.5 w-3.5 transition-transform', expanded && 'rotate-180')}
+                                    className={cn(
+                                        'h-3.5 w-3.5 transition-transform',
+                                        expanded && 'rotate-180',
+                                    )}
                                 />
                             </Button>
                             {removable !== false && (

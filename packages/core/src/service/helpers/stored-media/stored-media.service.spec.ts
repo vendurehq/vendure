@@ -102,13 +102,9 @@ describe('StoredMediaService', () => {
 
     it('uses the detected content type as the canonical media type', async () => {
         const ctx = RequestContext.empty();
-        const result = await service.storeStream(
-            ctx,
-            Readable.from(png),
-            'avatar.png',
-            'image/jpeg',
-            { imageOnly: true },
-        );
+        const result = await service.storeStream(ctx, Readable.from(png), 'avatar.png', 'image/jpeg', {
+            imageOnly: true,
+        });
 
         expect(result).toMatchObject({ type: AssetType.IMAGE, mimeType: 'image/png' });
         expect(generatePreviewImage).toHaveBeenCalledWith(ctx, 'image/png', png);
@@ -130,15 +126,33 @@ describe('StoredMediaService', () => {
     });
 
     it('attempts to delete both owned files when one deletion fails', async () => {
-        deleteFile
-            .mockRejectedValueOnce(new Error('source delete failed'))
-            .mockResolvedValueOnce(undefined);
+        deleteFile.mockRejectedValueOnce(new Error('source delete failed')).mockResolvedValueOnce(undefined);
 
         await expect(
             service.delete({ source: 'source.png', preview: 'preview.png' }),
         ).resolves.toBeUndefined();
         expect(deleteFile).toHaveBeenNthCalledWith(1, 'source.png');
         expect(deleteFile).toHaveBeenNthCalledWith(2, 'preview.png');
+    });
+
+    it('starts deleting both owned files before waiting for either deletion', async () => {
+        let resolveSourceDelete: (() => void) | undefined;
+        deleteFile.mockImplementationOnce(
+            () =>
+                new Promise<void>(resolve => {
+                    resolveSourceDelete = resolve;
+                }),
+        );
+
+        const deletion = service.delete({ source: 'source.png', preview: 'preview.png' });
+
+        expect(deleteFile).toHaveBeenNthCalledWith(1, 'source.png');
+        expect(deleteFile).toHaveBeenNthCalledWith(2, 'preview.png');
+        if (!resolveSourceDelete) {
+            throw new Error('Source deletion did not start');
+        }
+        resolveSourceDelete();
+        await deletion;
     });
 
     it('cleans up newly stored media after transaction rollback', async () => {

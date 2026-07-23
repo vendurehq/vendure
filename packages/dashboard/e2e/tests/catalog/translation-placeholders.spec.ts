@@ -280,13 +280,13 @@ test.describe('Translation fallback placeholders', () => {
 
         const dp = detailPage(page);
         // Toggle Enabled to make the form dirty *without* touching any translation field.
-        const enabledSwitch = dp.formItem('Enabled').getByRole('switch');
+        const enabledSwitch = page.getByTestId('product-enabled-switch').getByRole('switch');
         await expect(enabledSwitch).toBeVisible({ timeout: 10_000 });
         // Read via isChecked() (aria-checked), not a data-state attribute — the Base UI switch
         // doesn't expose data-state, so reading it would misdetect the state and make the toggle a
         // no-op, leaving the form pristine and the Update button disabled.
         const wasEnabled = await enabledSwitch.isChecked();
-        await dp.toggleSwitch('Enabled', !wasEnabled);
+        await enabledSwitch.setChecked(!wasEnabled);
         // The toggle must have dirtied the form, enabling the Update button.
         await expect(page.getByRole('button', { name: 'Update', exact: true })).toBeEnabled({
             timeout: 10_000,
@@ -296,7 +296,7 @@ test.describe('Translation fallback placeholders', () => {
             req => req.method() === 'POST' && (req.postData() ?? '').includes('mutation UpdateProduct('),
             { timeout: 15_000 },
         );
-        await dp.clickUpdate();
+        await page.getByRole('button', { name: 'Update', exact: true }).click();
         const input = (await updateRequest).postDataJSON()?.variables?.input;
 
         expect(input).toBeTruthy();
