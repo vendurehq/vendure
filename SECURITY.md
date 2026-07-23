@@ -11,4 +11,9 @@
 
 ## Reporting a Vulnerability
 
-To report a security vulnerability, email [contact@vendure.io](mailto:contact@vendure.io).
+Report suspected security vulnerabilities through
+[GitHub's private vulnerability reporting](https://github.com/vendurehq/vendure/security/advisories/new).
+This allows the Vendure maintainers to discuss and resolve the report securely before
+any details are made public.
+
+Please do not report security vulnerabilities through public GitHub issues or email.

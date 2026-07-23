@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Report a Security Vulnerability
+    url: https://github.com/vendurehq/vendure/security/advisories/new
+    about: Privately report a suspected security vulnerability to the Vendure maintainers
   - name: Feature Request
     url: https://github.com/vendurehq/vendure/discussions/new?category=feature-requests
     about: Suggest an idea or new feature for Vendure Core
