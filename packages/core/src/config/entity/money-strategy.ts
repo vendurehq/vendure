@@ -85,10 +85,19 @@ export interface MoneyStrategy extends InjectableStrategy {
     /**
      * @description
      * Defines the logic used to round monetary values. For instance, the default behavior
-     * in the {@link DefaultMoneyStrategy} is to multiply, then round the value.
+     * in the {@link DefaultMoneyStrategy} is to multiply the unit value by the
+     * quantity and then round the result:
      *
      * ```ts
      * return Math.round(value * quantity);
+     * ```
+     *
+     * However, it may be desirable to instead round the unit amount _before_
+     * multiplying (this was the default prior to v3.1). In this case you can
+     * define a custom strategy with logic like this:
+     *
+     * ```ts
+     * return Math.round(value) * quantity;
      * ```
      */
     round(value: number, quantity?: number): number;
