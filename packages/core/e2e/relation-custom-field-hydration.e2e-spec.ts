@@ -1,14 +1,14 @@
+import { Args, Query, Resolver } from '@nestjs/graphql';
 import {
     Asset,
+    Ctx,
     DeepPartial,
     EntityHydrator,
     EntityId,
     ID,
-    Injector,
     mergeConfig,
-    Order,
-    OrderInterceptor,
-    OrderLine,
+    PluginCommonModule,
+    Product,
     RequestContext,
     TransactionalConnection,
     VendureEntity,
@@ -23,12 +23,23 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
-// A plugin-defined custom entity used as the target of an OrderLine relation custom field. It
-// carries its own relation-id column (`@EntityId` alongside a `@ManyToOne`, mapping to the same
-// database column as the join column), the same arrangement relation custom fields themselves use.
+// Regression test for relation custom field hydration (relates to #5012, fixed in #5030).
+//
+// Since #5012, every relation custom field maps an id column onto the same database column as
+// the relation's join column. This activates an in-memory fast path in TypeORM's
+// `relationLoadStrategy: 'query'` implementation (used by the EntityHydrator) which builds its
+// result keys of the form `<TargetEntity>_customFields_<fieldName>_id` by plain string
+// concatenation, while the consuming code hashes any key longer than the driver's max alias
+// length (63 chars on postgres and mysql). When the key exceeds that limit the lookup misses and
+// the relation silently hydrates as `null`. See `typeorm-relation-id-loader-fix.ts`.
+//
+// The entity and field names below are chosen to place one lookup key on each side of the limit:
+//   TestProductConfigurationLine_customFields_testProductConfigurationLine_id  (73 chars, broken)
+//   TestProductConfigurationLine_customFields_shortRelation_id                 (58 chars, always worked)
+// SQLite imposes no alias length limit, so only the postgres and mysql runs exercise the bug.
 @Entity()
-class RelatedThing extends VendureEntity {
-    constructor(input?: DeepPartial<RelatedThing>) {
+class TestProductConfigurationLine extends VendureEntity {
+    constructor(input?: DeepPartial<TestProductConfigurationLine>) {
         super(input);
     }
 
@@ -42,54 +53,76 @@ class RelatedThing extends VendureEntity {
     assetId: ID;
 }
 
-@VendurePlugin({
-    entities: [RelatedThing],
-    configuration: config => {
-        config.customFields.OrderLine.push({
-            name: 'thing',
-            type: 'relation',
-            entity: RelatedThing,
-            nullable: true,
-            internal: true,
+@Resolver()
+class TestResolver {
+    constructor(
+        private connection: TransactionalConnection,
+        private entityHydrator: EntityHydrator,
+    ) {}
+
+    @Query()
+    async hydrateProductRelationCustomFields(@Ctx() ctx: RequestContext, @Args() args: { id: ID }) {
+        const product = await this.connection
+            .getRepository(ctx, Product)
+            .findOneOrFail({ where: { id: args.id } });
+        await this.entityHydrator.hydrate(ctx, product, {
+            relations: ['customFields.testProductConfigurationLine.asset', 'customFields.shortRelation'],
         });
+        const customFields = product.customFields as any;
+        return JSON.stringify({
+            longField: customFields.testProductConfigurationLine
+                ? {
+                      id: customFields.testProductConfigurationLine.id,
+                      assetId: customFields.testProductConfigurationLine.asset?.id ?? null,
+                  }
+                : null,
+            shortField: customFields.shortRelation ? { id: customFields.shortRelation.id } : null,
+        });
+    }
+}
+
+@VendurePlugin({
+    imports: [PluginCommonModule],
+    entities: [TestProductConfigurationLine],
+    adminApiExtensions: {
+        schema: gql`
+            extend type Query {
+                hydrateProductRelationCustomFields(id: ID!): String!
+            }
+        `,
+        resolvers: [TestResolver],
+    },
+    configuration: config => {
+        config.customFields.Product.push(
+            {
+                name: 'testProductConfigurationLine',
+                type: 'relation',
+                entity: TestProductConfigurationLine,
+                nullable: true,
+                internal: true,
+            },
+            {
+                name: 'shortRelation',
+                type: 'relation',
+                entity: TestProductConfigurationLine,
+                nullable: true,
+                internal: true,
+            },
+        );
         return config;
     },
 })
 class TestPlugin {}
 
-// An OrderInterceptor that hydrates the relation custom field on the OrderLine it is passed,
-// as a plugin would to inspect the line before allowing the mutation.
-class HydratingInterceptor implements OrderInterceptor {
-    private entityHydrator: EntityHydrator;
-    hydratedThing: unknown = 'NOT_CALLED';
-
-    init(injector: Injector) {
-        this.entityHydrator = injector.get(EntityHydrator);
-    }
-
-    async willRemoveItemFromOrder(
-        ctx: RequestContext,
-        order: Order,
-        orderLine: OrderLine,
-    ): Promise<void | string> {
-        await this.entityHydrator.hydrate(ctx, orderLine, { relations: ['customFields.thing'] });
-        this.hydratedThing = (orderLine.customFields as any).thing ?? null;
-    }
-}
-
 describe('Relation custom field hydration', () => {
-    const interceptor = new HydratingInterceptor();
-
-    const { server, shopClient } = createTestEnvironment(
+    const { server, adminClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
             plugins: [TestPlugin],
-            orderOptions: {
-                orderInterceptors: [interceptor],
-            },
         }),
     );
 
-    let thingId: number;
+    let lineId: number;
+    let assetId: number;
 
     beforeAll(async () => {
         await server.init({
@@ -97,57 +130,34 @@ describe('Relation custom field hydration', () => {
             productsCsvPath: path.join(__dirname, 'fixtures/e2e-products-full.csv'),
             customerCount: 1,
         });
+        await adminClient.asSuperAdmin();
         const connection = server.app.get(TransactionalConnection).rawConnection;
         const asset = await connection.getRepository(Asset).findOneOrFail({ where: {} });
-        const thing = await connection
-            .getRepository(RelatedThing)
-            .save(new RelatedThing({ label: 'test', asset }));
-        thingId = thing.id as number;
+        assetId = asset.id as number;
+        const line = await connection
+            .getRepository(TestProductConfigurationLine)
+            .save(new TestProductConfigurationLine({ label: 'test line', asset }));
+        lineId = line.id as number;
+        await connection.getRepository(Product).update(1, {
+            customFields: {
+                testProductConfigurationLineId: lineId,
+                shortRelationId: lineId,
+            } as any,
+        });
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
         await server.destroy();
     });
 
-    // The EntityHydrator must be able to resolve a relation custom field. Since #5012 gave
-    // relation custom fields an id column co-mapped with the relation's join column, TypeORM's
-    // 'query' relation load strategy can return null for such relations, so the hydrator loads
-    // them with the 'join' strategy.
-    it('resolves a relation custom field hydrated inside an OrderInterceptor', async () => {
-        const { addItemToOrder } = await shopClient.query(gql`
-            mutation {
-                addItemToOrder(productVariantId: "T_1", quantity: 1) {
-                    ... on Order {
-                        id
-                        lines {
-                            id
-                        }
-                    }
-                }
+    it('hydrates relation custom fields regardless of name length', async () => {
+        const { hydrateProductRelationCustomFields } = await adminClient.query(gql`
+            query {
+                hydrateProductRelationCustomFields(id: "T_1")
             }
         `);
-        const lineId = addItemToOrder.lines[0].id;
-        const internalLineId = +lineId.replace(/^\D+/g, '');
-
-        // Persist the relation-id column directly (the field is internal).
-        await server.app
-            .get(TransactionalConnection)
-            .rawConnection.query('update order_line set "customFieldsThingid" = $1 where id = $2', [
-                thingId,
-                internalLineId,
-            ]);
-
-        await shopClient.query(gql`
-            mutation {
-                removeOrderLine(orderLineId: "${lineId}") {
-                    ... on Order {
-                        id
-                    }
-                }
-            }
-        `);
-
-        expect(interceptor.hydratedThing).not.toBe('NOT_CALLED');
-        expect((interceptor.hydratedThing as any)?.id).toBe(thingId);
+        const result = JSON.parse(hydrateProductRelationCustomFields);
+        expect(result.shortField).toEqual({ id: lineId });
+        expect(result.longField).toEqual({ id: lineId, assetId });
     });
 });

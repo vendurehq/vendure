@@ -22,6 +22,7 @@ import { runEntityMetadataModifiers } from './entity/run-entity-metadata-modifie
 import { setEntityIdStrategy } from './entity/set-entity-id-strategy';
 import { setMoneyStrategy } from './entity/set-money-strategy';
 import { patchTypeOrmEmbeddedRelationColumns } from './entity/typeorm-embedded-relation-fix';
+import { patchTypeOrmRelationIdLoader } from './entity/typeorm-relation-id-loader-fix';
 import { validateCustomFieldsConfig } from './entity/validate-custom-fields-config';
 import { EventBus } from './event-bus';
 import { BootstrappedEvent } from './event-bus/events/bootstrapped-event';
@@ -313,6 +314,7 @@ export async function preBootstrapConfig(
     config = await runPluginConfigurations(config);
     const entityIdStrategy = config.entityOptions.entityIdStrategy ?? config.entityIdStrategy;
     patchTypeOrmEmbeddedRelationColumns();
+    patchTypeOrmRelationIdLoader();
     registerCustomEntityFields(config);
     setEntityIdStrategy(entityIdStrategy, entities);
     const moneyStrategy = config.entityOptions.moneyStrategy;
