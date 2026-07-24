@@ -2,6 +2,8 @@ import { NextFunction, Request, Response } from 'express';
 
 import { Middleware, MiddlewareHandler } from './common/types/common-types';
 
+type RequestHandlerLike = (req: Request, res: Response, next: NextFunction) => void;
+
 /**
  * The names NestJS's `ExpressAdapter` looks for when deciding whether a global body-parser is
  * already present on the middleware stack. Its `isMiddlewareApplied()` check matches purely on the
@@ -31,8 +33,8 @@ export function wrapEarlyMiddlewareHandler(mid: Middleware): MiddlewareHandler {
     const collidesWithNestParserName =
         typeof handler === 'function' && NEST_PARSER_MIDDLEWARE_NAMES.includes(handler.name);
     if (collidesWithNestParserName && !isGlobalRoute(route)) {
-        const scopedHandler = (req: Request, res: Response, next: NextFunction) =>
-            (handler as (req: Request, res: Response, next: NextFunction) => void)(req, res, next);
+        const parserHandler = handler as RequestHandlerLike;
+        const scopedHandler: RequestHandlerLike = (req, res, next) => parserHandler(req, res, next);
         return scopedHandler;
     }
     return handler;

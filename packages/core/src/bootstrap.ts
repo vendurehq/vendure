@@ -222,7 +222,7 @@ export async function bootstrap(
     earlyMiddlewares.forEach(mid => {
         const handler = wrapEarlyMiddlewareHandler(mid);
         if (handler !== mid.handler) {
-            Logger.debug(
+            Logger.info(
                 `Wrapped route-scoped "beforeListen" middleware on route "${mid.route}" to avoid ` +
                     'suppressing the global body-parser on other routes.',
             );
