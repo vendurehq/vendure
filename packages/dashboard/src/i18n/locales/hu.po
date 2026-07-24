@@ -186,7 +186,7 @@ msgstr ""
 #. placeholder {0}: entityName.toLowerCase()
 #. placeholder {0}: group.name
 #: src/app/routes/_authenticated/_products/components/product-option-select.tsx:57
-#: src/lib/components/data-input/default-relation-input.tsx:671
+#: src/lib/components/data-input/default-relation-input.tsx:674
 #: src/lib/components/shared/asset/asset-gallery.tsx:976
 msgid "Select {0}"
 msgstr "{0} kiválasztása"
@@ -362,7 +362,7 @@ msgid "Failed to create administrator"
 msgstr "Rendszergazda létrehozása sikertelen"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:402
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:71
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:98
 msgid "No"
 msgstr "Nem"
 
@@ -1072,7 +1072,7 @@ msgstr "Egyetlen variáns, opciók nélkül"
 msgid "Select the next state for the order"
 msgstr "Válassza ki a megrendelés következő állapotát"
 
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:200
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:334
 msgid "{count} selected"
 msgstr "{count} kijelölve"
 
@@ -2001,9 +2001,9 @@ msgstr "Vásárlói csoportok"
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:139
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:59
 #: src/lib/components/data-display/boolean.tsx:22
-#: src/lib/components/data-input/default-relation-input.tsx:214
-#: src/lib/components/data-input/default-relation-input.tsx:445
-#: src/lib/components/data-input/default-relation-input.tsx:536
+#: src/lib/components/data-input/default-relation-input.tsx:217
+#: src/lib/components/data-input/default-relation-input.tsx:448
+#: src/lib/components/data-input/default-relation-input.tsx:539
 #: src/lib/components/layout/nav-user.tsx:149
 msgid "Disabled"
 msgstr "Letiltva"
@@ -2710,6 +2710,11 @@ msgstr "Méret, szín stb."
 msgid "Browse facets"
 msgstr "Tulajdonságok böngészése"
 
+#. placeholder {0}: summary.count
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:178
+msgid "{0} items"
+msgstr ""
+
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:135
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:73
 msgid "Zone"
@@ -2752,7 +2757,7 @@ msgstr "Nézet mentése"
 #: src/lib/components/data-table/data-table-bulk-actions.tsx:91
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:137
 #: src/lib/components/data-table/data-table-faceted-filter.tsx:139
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:67
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:94
 msgid "{0} selected"
 msgstr "{0} kijelölve"
 
@@ -3129,6 +3134,10 @@ msgstr "{entityIdsLength} {entityType} tulajdonságértékei sikeresen frissítv
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:148
 msgid "Failed to remove customer from group"
 msgstr "Vásárló eltávolítása a csoportból sikertelen"
+
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:181
+msgid "1 property"
+msgstr ""
 
 #: src/lib/components/layout/nav-user.tsx:129
 msgctxt "theme"
@@ -3820,7 +3829,7 @@ msgid "Select an address"
 msgstr "Válasszon egy címet"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:401
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:71
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:98
 msgid "Yes"
 msgstr "Igen"
 
@@ -5425,6 +5434,11 @@ msgstr "Tagok szerkesztése"
 msgid "Stock on hand"
 msgstr "Aktuális készlet"
 
+#. placeholder {0}: summary.count
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:181
+msgid "{0} properties"
+msgstr ""
+
 #: src/lib/components/data-table/data-table-filter-dialog.tsx:55
 msgid "Filter by {columnId}"
 msgstr "Szűrés: {columnId}"
@@ -5663,7 +5677,7 @@ msgstr "Termékváltozat neve"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:580
 #: src/app/routes/_authenticated/_profile/profile.tsx:203
-#: src/lib/components/shared/configurable-operation-input.tsx:117
+#: src/lib/components/shared/configurable-operation-input.tsx:120
 msgid "Remove"
 msgstr "Eltávolítás"
 
@@ -5925,7 +5939,7 @@ msgstr "Alapértelmezett nyelv"
 msgid "Status"
 msgstr "Státusz"
 
-#: src/lib/components/shared/configurable-operation-multi-selector.tsx:320
+#: src/lib/components/shared/configurable-operation-multi-selector.tsx:327
 #: src/lib/components/shared/configurable-operation-selector.tsx:155
 msgid "No options found"
 msgstr "Nincs találat"
@@ -6034,7 +6048,7 @@ msgid "Inherit from global settings (Track)"
 msgstr ""
 
 #. placeholder {0}: entityName.toLowerCase()
-#: src/lib/components/data-input/default-relation-input.tsx:658
+#: src/lib/components/data-input/default-relation-input.tsx:661
 msgid "Select {0}s"
 msgstr "{0} kiválasztása"
 
@@ -6239,6 +6253,10 @@ msgstr "Mutatók"
 #: src/lib/components/layout/nav-user.tsx:106
 msgid "Language"
 msgstr "Nyelv"
+
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:178
+msgid "1 item"
+msgstr ""
 
 #: src/app/routes/_authenticated/_collections/collections.tsx:583
 msgid "New Collection"
@@ -6958,8 +6976,8 @@ msgstr "Telefonszám"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:180
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:109
-#: src/lib/components/data-input/default-relation-input.tsx:247
-#: src/lib/components/data-input/default-relation-input.tsx:277
+#: src/lib/components/data-input/default-relation-input.tsx:250
+#: src/lib/components/data-input/default-relation-input.tsx:280
 msgid "Private"
 msgstr "Privát"
 

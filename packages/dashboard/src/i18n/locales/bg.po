@@ -186,7 +186,7 @@ msgstr ""
 #. placeholder {0}: entityName.toLowerCase()
 #. placeholder {0}: group.name
 #: src/app/routes/_authenticated/_products/components/product-option-select.tsx:57
-#: src/lib/components/data-input/default-relation-input.tsx:671
+#: src/lib/components/data-input/default-relation-input.tsx:674
 #: src/lib/components/shared/asset/asset-gallery.tsx:976
 msgid "Select {0}"
 msgstr "Изберете {0}"
@@ -365,7 +365,7 @@ msgid "Failed to create administrator"
 msgstr "Неуспешно създаване на администратор"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:402
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:71
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:98
 msgid "No"
 msgstr "Не"
 
@@ -1078,7 +1078,7 @@ msgstr "Единичен вариант, без опции"
 msgid "Select the next state for the order"
 msgstr "Изберете следващото състояние за поръчката"
 
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:200
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:334
 msgid "{count} selected"
 msgstr "{count} избрани"
 
@@ -2013,9 +2013,9 @@ msgstr "Групи клиенти"
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:139
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:59
 #: src/lib/components/data-display/boolean.tsx:22
-#: src/lib/components/data-input/default-relation-input.tsx:214
-#: src/lib/components/data-input/default-relation-input.tsx:445
-#: src/lib/components/data-input/default-relation-input.tsx:536
+#: src/lib/components/data-input/default-relation-input.tsx:217
+#: src/lib/components/data-input/default-relation-input.tsx:448
+#: src/lib/components/data-input/default-relation-input.tsx:539
 #: src/lib/components/layout/nav-user.tsx:149
 msgid "Disabled"
 msgstr "Забранено"
@@ -2734,6 +2734,11 @@ msgstr "Размер, цвят и т.н."
 msgid "Browse facets"
 msgstr "Преглед на атрибути"
 
+#. placeholder {0}: summary.count
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:178
+msgid "{0} items"
+msgstr ""
+
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:135
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:73
 msgid "Zone"
@@ -2776,7 +2781,7 @@ msgstr "Запазване на изгледа"
 #: src/lib/components/data-table/data-table-bulk-actions.tsx:91
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:137
 #: src/lib/components/data-table/data-table-faceted-filter.tsx:139
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:67
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:94
 msgid "{0} selected"
 msgstr "{0} избрани"
 
@@ -3159,6 +3164,10 @@ msgstr "Успешно актуализирани стойности на атр
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:148
 msgid "Failed to remove customer from group"
 msgstr "Неуспешно премахване на клиент от групата"
+
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:181
+msgid "1 property"
+msgstr ""
 
 #: src/lib/components/layout/nav-user.tsx:129
 msgctxt "theme"
@@ -3850,7 +3859,7 @@ msgid "Select an address"
 msgstr "Изберете адрес"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:401
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:71
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:98
 msgid "Yes"
 msgstr "Да"
 
@@ -5467,6 +5476,11 @@ msgstr "Редакция на членове"
 msgid "Stock on hand"
 msgstr "Склад на ръка"
 
+#. placeholder {0}: summary.count
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:181
+msgid "{0} properties"
+msgstr ""
+
 #: src/lib/components/data-table/data-table-filter-dialog.tsx:55
 msgid "Filter by {columnId}"
 msgstr "Филтриране по {columnId}"
@@ -5705,7 +5719,7 @@ msgstr "Име на варианта"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:580
 #: src/app/routes/_authenticated/_profile/profile.tsx:203
-#: src/lib/components/shared/configurable-operation-input.tsx:117
+#: src/lib/components/shared/configurable-operation-input.tsx:120
 msgid "Remove"
 msgstr "Премахнете"
 
@@ -5967,7 +5981,7 @@ msgstr "Език по подразбиране"
 msgid "Status"
 msgstr "Статус"
 
-#: src/lib/components/shared/configurable-operation-multi-selector.tsx:320
+#: src/lib/components/shared/configurable-operation-multi-selector.tsx:327
 #: src/lib/components/shared/configurable-operation-selector.tsx:155
 msgid "No options found"
 msgstr "Не са намерени опции"
@@ -6079,7 +6093,7 @@ msgid "Inherit from global settings (Track)"
 msgstr ""
 
 #. placeholder {0}: entityName.toLowerCase()
-#: src/lib/components/data-input/default-relation-input.tsx:658
+#: src/lib/components/data-input/default-relation-input.tsx:661
 msgid "Select {0}s"
 msgstr "Изберете {0}s"
 
@@ -6284,6 +6298,10 @@ msgstr "Метрики"
 #: src/lib/components/layout/nav-user.tsx:106
 msgid "Language"
 msgstr "Език"
+
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:178
+msgid "1 item"
+msgstr ""
 
 #: src/app/routes/_authenticated/_collections/collections.tsx:583
 msgid "New Collection"
@@ -7012,8 +7030,8 @@ msgstr "Телефонен номер"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:180
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:109
-#: src/lib/components/data-input/default-relation-input.tsx:247
-#: src/lib/components/data-input/default-relation-input.tsx:277
+#: src/lib/components/data-input/default-relation-input.tsx:250
+#: src/lib/components/data-input/default-relation-input.tsx:280
 msgid "Private"
 msgstr "Частно"
 

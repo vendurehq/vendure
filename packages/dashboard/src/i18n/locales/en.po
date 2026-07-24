@@ -186,7 +186,7 @@ msgstr "The default currency is chosen from this list."
 #. placeholder {0}: entityName.toLowerCase()
 #. placeholder {0}: group.name
 #: src/app/routes/_authenticated/_products/components/product-option-select.tsx:57
-#: src/lib/components/data-input/default-relation-input.tsx:671
+#: src/lib/components/data-input/default-relation-input.tsx:674
 #: src/lib/components/shared/asset/asset-gallery.tsx:976
 msgid "Select {0}"
 msgstr "Select {0}"
@@ -362,7 +362,7 @@ msgid "Failed to create administrator"
 msgstr "Failed to create administrator"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:402
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:71
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:98
 msgid "No"
 msgstr "No"
 
@@ -1072,7 +1072,7 @@ msgstr "Single variant, no options"
 msgid "Select the next state for the order"
 msgstr "Select the next state for the order"
 
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:200
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:334
 msgid "{count} selected"
 msgstr "{count} selected"
 
@@ -2001,9 +2001,9 @@ msgstr "Customer Groups"
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:139
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:59
 #: src/lib/components/data-display/boolean.tsx:22
-#: src/lib/components/data-input/default-relation-input.tsx:214
-#: src/lib/components/data-input/default-relation-input.tsx:445
-#: src/lib/components/data-input/default-relation-input.tsx:536
+#: src/lib/components/data-input/default-relation-input.tsx:217
+#: src/lib/components/data-input/default-relation-input.tsx:448
+#: src/lib/components/data-input/default-relation-input.tsx:539
 #: src/lib/components/layout/nav-user.tsx:149
 msgid "Disabled"
 msgstr "Disabled"
@@ -2716,6 +2716,11 @@ msgstr "Size, colour, etc."
 msgid "Browse facets"
 msgstr "Browse facets"
 
+#. placeholder {0}: summary.count
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:178
+msgid "{0} items"
+msgstr "{0} items"
+
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:135
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:73
 msgid "Zone"
@@ -2758,7 +2763,7 @@ msgstr "Save View"
 #: src/lib/components/data-table/data-table-bulk-actions.tsx:91
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:137
 #: src/lib/components/data-table/data-table-faceted-filter.tsx:139
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:67
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:94
 msgid "{0} selected"
 msgstr "{0} selected"
 
@@ -3139,6 +3144,10 @@ msgstr "Successfully updated facet values for {entityIdsLength} {entityType}"
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:148
 msgid "Failed to remove customer from group"
 msgstr "Failed to remove customer from group"
+
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:181
+msgid "1 property"
+msgstr "1 property"
 
 #: src/lib/components/layout/nav-user.tsx:129
 msgctxt "theme"
@@ -3830,7 +3839,7 @@ msgid "Select an address"
 msgstr "Select an address"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:401
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:71
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:98
 msgid "Yes"
 msgstr "Yes"
 
@@ -5438,6 +5447,11 @@ msgstr "Edit members"
 msgid "Stock on hand"
 msgstr "Stock on hand"
 
+#. placeholder {0}: summary.count
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:181
+msgid "{0} properties"
+msgstr "{0} properties"
+
 #: src/lib/components/data-table/data-table-filter-dialog.tsx:55
 msgid "Filter by {columnId}"
 msgstr "Filter by {columnId}"
@@ -5676,7 +5690,7 @@ msgstr "Variant name"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:580
 #: src/app/routes/_authenticated/_profile/profile.tsx:203
-#: src/lib/components/shared/configurable-operation-input.tsx:117
+#: src/lib/components/shared/configurable-operation-input.tsx:120
 msgid "Remove"
 msgstr "Remove"
 
@@ -5938,7 +5952,7 @@ msgstr "Default language"
 msgid "Status"
 msgstr "Status"
 
-#: src/lib/components/shared/configurable-operation-multi-selector.tsx:320
+#: src/lib/components/shared/configurable-operation-multi-selector.tsx:327
 #: src/lib/components/shared/configurable-operation-selector.tsx:155
 msgid "No options found"
 msgstr "No options found"
@@ -6047,7 +6061,7 @@ msgid "Inherit from global settings (Track)"
 msgstr "Inherit from global settings (Track)"
 
 #. placeholder {0}: entityName.toLowerCase()
-#: src/lib/components/data-input/default-relation-input.tsx:658
+#: src/lib/components/data-input/default-relation-input.tsx:661
 msgid "Select {0}s"
 msgstr "Select {0}s"
 
@@ -6252,6 +6266,10 @@ msgstr "Metrics"
 #: src/lib/components/layout/nav-user.tsx:106
 msgid "Language"
 msgstr "Language"
+
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:178
+msgid "1 item"
+msgstr "1 item"
 
 #: src/app/routes/_authenticated/_collections/collections.tsx:583
 msgid "New Collection"
@@ -6975,8 +6993,8 @@ msgstr "Phone number"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:180
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:109
-#: src/lib/components/data-input/default-relation-input.tsx:247
-#: src/lib/components/data-input/default-relation-input.tsx:277
+#: src/lib/components/data-input/default-relation-input.tsx:250
+#: src/lib/components/data-input/default-relation-input.tsx:280
 msgid "Private"
 msgstr "Private"
 

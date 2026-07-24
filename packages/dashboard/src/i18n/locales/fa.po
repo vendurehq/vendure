@@ -186,7 +186,7 @@ msgstr ""
 #. placeholder {0}: entityName.toLowerCase()
 #. placeholder {0}: group.name
 #: src/app/routes/_authenticated/_products/components/product-option-select.tsx:57
-#: src/lib/components/data-input/default-relation-input.tsx:671
+#: src/lib/components/data-input/default-relation-input.tsx:674
 #: src/lib/components/shared/asset/asset-gallery.tsx:976
 msgid "Select {0}"
 msgstr "انتخاب {0}"
@@ -362,7 +362,7 @@ msgid "Failed to create administrator"
 msgstr "ایجاد مدیر ناموفق بود"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:402
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:71
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:98
 msgid "No"
 msgstr "خیر"
 
@@ -1072,7 +1072,7 @@ msgstr "یک گونه، بدون گزینه"
 msgid "Select the next state for the order"
 msgstr "وضعیت بعدی را برای سفارش انتخاب کنید"
 
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:200
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:334
 msgid "{count} selected"
 msgstr "{count} انتخاب شده"
 
@@ -2001,9 +2001,9 @@ msgstr "گروه‌های مشتری"
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:139
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:59
 #: src/lib/components/data-display/boolean.tsx:22
-#: src/lib/components/data-input/default-relation-input.tsx:214
-#: src/lib/components/data-input/default-relation-input.tsx:445
-#: src/lib/components/data-input/default-relation-input.tsx:536
+#: src/lib/components/data-input/default-relation-input.tsx:217
+#: src/lib/components/data-input/default-relation-input.tsx:448
+#: src/lib/components/data-input/default-relation-input.tsx:539
 #: src/lib/components/layout/nav-user.tsx:149
 msgid "Disabled"
 msgstr "غیرفعال"
@@ -2716,6 +2716,11 @@ msgstr "اندازه، رنگ و غیره"
 msgid "Browse facets"
 msgstr "مرور فاست‌ها"
 
+#. placeholder {0}: summary.count
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:178
+msgid "{0} items"
+msgstr ""
+
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:135
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:73
 msgid "Zone"
@@ -2758,7 +2763,7 @@ msgstr "ذخیره نما"
 #: src/lib/components/data-table/data-table-bulk-actions.tsx:91
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:137
 #: src/lib/components/data-table/data-table-faceted-filter.tsx:139
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:67
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:94
 msgid "{0} selected"
 msgstr "{0} انتخاب شده"
 
@@ -3139,6 +3144,10 @@ msgstr "مقادیر ویژگی برای {entityIdsLength} {entityType} با م�
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:148
 msgid "Failed to remove customer from group"
 msgstr "حذف مشتری از گروه ناموفق بود"
+
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:181
+msgid "1 property"
+msgstr ""
 
 #: src/lib/components/layout/nav-user.tsx:129
 msgctxt "theme"
@@ -3830,7 +3839,7 @@ msgid "Select an address"
 msgstr "یک آدرس انتخاب کنید"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:401
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:71
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:98
 msgid "Yes"
 msgstr "بله"
 
@@ -5438,6 +5447,11 @@ msgstr "ویرایش اعضا"
 msgid "Stock on hand"
 msgstr "موجودی در دست"
 
+#. placeholder {0}: summary.count
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:181
+msgid "{0} properties"
+msgstr ""
+
 #: src/lib/components/data-table/data-table-filter-dialog.tsx:55
 msgid "Filter by {columnId}"
 msgstr "فیلتر بر اساس {columnId}"
@@ -5676,7 +5690,7 @@ msgstr "نام نوع"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:580
 #: src/app/routes/_authenticated/_profile/profile.tsx:203
-#: src/lib/components/shared/configurable-operation-input.tsx:117
+#: src/lib/components/shared/configurable-operation-input.tsx:120
 msgid "Remove"
 msgstr "حذف"
 
@@ -5938,7 +5952,7 @@ msgstr "زبان پیش‌فرض"
 msgid "Status"
 msgstr "وضعیت"
 
-#: src/lib/components/shared/configurable-operation-multi-selector.tsx:320
+#: src/lib/components/shared/configurable-operation-multi-selector.tsx:327
 #: src/lib/components/shared/configurable-operation-selector.tsx:155
 msgid "No options found"
 msgstr "هیچ گزینه‌ای یافت نشد"
@@ -6047,7 +6061,7 @@ msgid "Inherit from global settings (Track)"
 msgstr ""
 
 #. placeholder {0}: entityName.toLowerCase()
-#: src/lib/components/data-input/default-relation-input.tsx:658
+#: src/lib/components/data-input/default-relation-input.tsx:661
 msgid "Select {0}s"
 msgstr "انتخاب {0}"
 
@@ -6252,6 +6266,10 @@ msgstr "معیارها"
 #: src/lib/components/layout/nav-user.tsx:106
 msgid "Language"
 msgstr "زبان"
+
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:178
+msgid "1 item"
+msgstr ""
 
 #: src/app/routes/_authenticated/_collections/collections.tsx:583
 msgid "New Collection"
@@ -6975,8 +6993,8 @@ msgstr "شماره تلفن"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:180
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:109
-#: src/lib/components/data-input/default-relation-input.tsx:247
-#: src/lib/components/data-input/default-relation-input.tsx:277
+#: src/lib/components/data-input/default-relation-input.tsx:250
+#: src/lib/components/data-input/default-relation-input.tsx:280
 msgid "Private"
 msgstr "خصوصی"
 
