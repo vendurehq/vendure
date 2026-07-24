@@ -63,7 +63,7 @@ describe('wrapEarlyMiddlewareHandler', () => {
         expect(wrapEarlyMiddlewareHandler(mid)).toBe(handler);
     });
 
-    it('does not wrap a class (NestJS middleware) handler', () => {
+    it('leaves a NestJS middleware class untouched (its name does not collide)', () => {
         class SomeNestMiddleware {}
         const mid: Middleware = { handler: SomeNestMiddleware, route: '/admin-api', beforeListen: true };
 

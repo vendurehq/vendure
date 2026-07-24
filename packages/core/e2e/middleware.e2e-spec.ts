@@ -16,19 +16,30 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 // Without the guard in `wrapEarlyMiddlewareHandler`, mounting `json()` on `/admin-api` makes NestJS
 // skip its global parser, leaving `/shop-api` unable to parse JSON request bodies.
 describe('route-scoped beforeListen middleware (#5028)', () => {
-    const { server, adminClient, shopClient } = createTestEnvironment(
-        mergeConfig(testConfig(), {
-            apiOptions: {
-                middleware: [
-                    {
-                        handler: json({ limit: '10mb' }),
-                        route: '/admin-api',
-                        beforeListen: true,
-                    },
-                ],
-            },
-        }),
-    );
+    const config = mergeConfig(testConfig(), {
+        apiOptions: {
+            middleware: [
+                {
+                    handler: json({ limit: '10mb' }),
+                    route: '/admin-api',
+                    beforeListen: true,
+                },
+            ],
+        },
+    });
+    const { server, adminClient, shopClient } = createTestEnvironment(config);
+
+    // A JSON body over Express's default 100kb limit but well under the scoped 10mb limit.
+    const oversizedBody = JSON.stringify({
+        query: '{ me { identifier } }',
+        padding: 'x'.repeat(200 * 1024),
+    });
+    const postJson = (apiPath: string) =>
+        fetch(`http://localhost:${config.apiOptions.port}${apiPath}`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: oversizedBody,
+        });
 
     beforeAll(async () => {
         await server.init({
@@ -64,5 +75,17 @@ describe('route-scoped beforeListen middleware (#5028)', () => {
             }
         `);
         expect(me.identifier).toBe('superadmin');
+    });
+
+    // The scoped 10mb parser must still take effect on its own route...
+    it('honours the raised body-size limit on the route-scoped admin API', async () => {
+        const response = await postJson('/admin-api');
+        expect(response.status).toBe(200);
+    });
+
+    // ...while the default 100kb global parser is registered for every other route.
+    it('applies the default body-size limit on other routes', async () => {
+        const response = await postJson('/shop-api');
+        expect(response.status).toBe(413);
     });
 });
