@@ -1198,7 +1198,7 @@
                   "title": "Bootstrap",
                   "slug": "bootstrap",
                   "file": "docs/reference/typescript-api/common/bootstrap.mdx",
-                  "lastModified": "2026-07-24T11:39:57+02:00"
+                  "lastModified": "2026-07-24T14:44:37+02:00"
                 },
                 {
                   "title": "CurrencyCode",
@@ -3464,7 +3464,7 @@
                   "title": "BootstrapWorker",
                   "slug": "bootstrap-worker",
                   "file": "docs/reference/typescript-api/worker/bootstrap-worker.mdx",
-                  "lastModified": "2026-07-24T11:39:57+02:00"
+                  "lastModified": "2026-07-24T14:44:37+02:00"
                 },
                 {
                   "title": "VendureWorker",
