@@ -31,6 +31,12 @@ let patchApplied = false;
  * The patch normalizes the affected keys in the results of the two fast-path methods, applying the
  * same `DriverUtils.buildAlias()` transformation the consumer uses. Keys within the alias length
  * limit are returned unchanged by `buildAlias()`, so the patch is a no-op for them.
+ *
+ * Reported upstream as https://github.com/typeorm/typeorm/issues/11227 and fixed by
+ * https://github.com/typeorm/typeorm/pull/11228, but that fix shipped only in TypeORM v1.0.0
+ * and was not backported to the 0.3.x line which Vendure depends on. If TypeORM is upgraded to
+ * a version containing the fix, the fast-path keys are already alias-normalized and this patch
+ * becomes a no-op, at which point it can be removed.
  */
 export function patchTypeOrmRelationIdLoader() {
     if (patchApplied) {
