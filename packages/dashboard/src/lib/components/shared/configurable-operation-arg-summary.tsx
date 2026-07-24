@@ -7,6 +7,7 @@ import { extractFieldOptions } from '@/vdb/framework/form-engine/utils.js';
 import { transformValue } from '@/vdb/framework/form-engine/value-transformers.js';
 import { api } from '@/vdb/graphql/api.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
+import { useChannel } from '@/vdb/hooks/use-channel.js';
 import { useLocalFormat } from '@/vdb/hooks/use-local-format.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 import { useLingui } from '@lingui/react/macro';
@@ -33,6 +34,17 @@ export interface ArgSummaryProps {
     fieldDef: ConfigurableFieldDef;
     /** The raw json-string encoded arg value */
     value: string;
+    omitPrefix?: boolean;
+    omitSuffix?: boolean;
+}
+
+export function shouldUseListCountSummary(
+    isListField: boolean,
+    value: unknown,
+    listInputMode: boolean | 'dynamic' | undefined,
+): boolean {
+    const componentHandlesList = listInputMode === true || listInputMode === 'dynamic';
+    return isListField && Array.isArray(value) && !componentHandlesList;
 }
 
 /**
@@ -47,17 +59,32 @@ export interface ArgSummaryProps {
  * 3. A default summary based on the arg type (boolean, datetime, list count,
  *    plain value)
  */
-export function ArgSummary({ fieldDef, value }: Readonly<ArgSummaryProps>) {
+export function ArgSummary({ fieldDef, value, omitPrefix, omitSuffix }: Readonly<ArgSummaryProps>) {
     const componentId = fieldDef.ui?.component as string | undefined;
     const CustomComponent = getInputComponent(componentId);
     const parsedValue = transformValue(value, fieldDef, 'json-string', 'parse');
+    const isListValue = fieldDef.list === true && Array.isArray(parsedValue);
+    const listInputMode = CustomComponent?.metadata?.isListInput;
+    const useListCountSummary = shouldUseListCountSummary(fieldDef.list, parsedValue, listInputMode);
 
-    const Summary =
-        CustomComponent?.metadata?.summary ??
-        (componentId ? BUILT_IN_SUMMARIES[componentId] : undefined) ??
-        DefaultArgSummary;
+    const Summary = useListCountSummary
+        ? DefaultArgSummary
+        : (CustomComponent?.metadata?.summary ??
+          (componentId ? BUILT_IN_SUMMARIES[componentId] : undefined) ??
+          DefaultArgSummary);
 
-    return <Summary value={parsedValue} fieldDef={fieldDef} />;
+    const isAffixedComponent =
+        !isListValue && (componentId === 'number-form-input' || componentId === 'text-form-input');
+    const prefix = isAffixedComponent && !omitPrefix ? fieldDef.ui?.prefix : undefined;
+    const suffix = isAffixedComponent && !omitSuffix ? fieldDef.ui?.suffix : undefined;
+
+    return (
+        <>
+            {prefix}
+            <Summary value={parsedValue} fieldDef={fieldDef} />
+            {suffix}
+        </>
+    );
 }
 
 function DefaultArgSummary({ value, fieldDef }: Readonly<DashboardFormComponentSummaryProps>) {
@@ -77,8 +104,83 @@ function DefaultArgSummary({ value, fieldDef }: Readonly<DashboardFormComponentS
 }
 
 function CurrencySummary({ value }: Readonly<DashboardFormComponentSummaryProps>) {
-    const { toMajorUnits, formatNumber } = useLocalFormat();
-    return <>{formatNumber(toMajorUnits(Number(value)))}</>;
+    const { activeChannel } = useChannel();
+    const { formatCurrency, toMajorUnits, formatNumber } = useLocalFormat();
+    const currencyCode = activeChannel?.defaultCurrencyCode;
+    return (
+        <>
+            {currencyCode
+                ? formatCurrency(Number(value), currencyCode)
+                : formatNumber(toMajorUnits(Number(value)))}
+        </>
+    );
+}
+
+function PasswordSummary() {
+    return <>{'\u2022'.repeat(8)}</>;
+}
+
+const MAX_TEXT_SUMMARY_LENGTH = 80;
+
+export function compactText(value: unknown): { full: string; compact: string } {
+    const raw = String(value ?? '')
+        .replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, '')
+        .replace(
+            /<\/(address|article|aside|blockquote|div|figcaption|figure|footer|header|h[1-6]|li|main|nav|ol|p|pre|section|table|tr|ul)>/gi,
+            ' ',
+        );
+    let plainText: string;
+    if (typeof DOMParser === 'undefined') {
+        plainText = raw.replace(/<[^>]*>/g, ' ');
+    } else {
+        plainText = new DOMParser().parseFromString(raw, 'text/html').body.textContent ?? '';
+    }
+    const full = plainText.replace(/\s+/g, ' ').trim();
+    const compact =
+        full.length > MAX_TEXT_SUMMARY_LENGTH
+            ? `${full.slice(0, MAX_TEXT_SUMMARY_LENGTH - 1).trimEnd()}\u2026`
+            : full;
+    return { full, compact };
+}
+
+function RichTextSummary({ value }: Readonly<DashboardFormComponentSummaryProps>) {
+    const { full, compact } = compactText(value);
+    return <span title={full}>{compact}</span>;
+}
+
+export type JsonSummary =
+    | { type: 'items'; count: number }
+    | { type: 'properties'; count: number }
+    | { type: 'text'; value: string };
+
+export function getJsonSummary(value: unknown): JsonSummary {
+    let parsed = value;
+    if (typeof value === 'string') {
+        try {
+            parsed = JSON.parse(value);
+        } catch {
+            return { type: 'text', value: compactText(value).compact };
+        }
+    }
+    if (Array.isArray(parsed)) {
+        return { type: 'items', count: parsed.length };
+    }
+    if (parsed !== null && typeof parsed === 'object') {
+        return { type: 'properties', count: Object.keys(parsed).length };
+    }
+    return { type: 'text', value: String(parsed) };
+}
+
+function JsonSummary({ value }: Readonly<DashboardFormComponentSummaryProps>) {
+    const { t } = useLingui();
+    const summary = getJsonSummary(value);
+    if (summary.type === 'items') {
+        return <>{summary.count === 1 ? t`1 item` : t`${summary.count} items`}</>;
+    }
+    if (summary.type === 'properties') {
+        return <>{summary.count === 1 ? t`1 property` : t`${summary.count} properties`}</>;
+    }
+    return <>{summary.value}</>;
 }
 
 function SelectOptionsSummary({ value, fieldDef }: Readonly<DashboardFormComponentSummaryProps>) {
@@ -143,8 +245,7 @@ function ProductVariantSummary({ value }: Readonly<DashboardFormComponentSummary
     const ids = toIdArray(value);
     const { data } = useQuery({
         queryKey: ['ProductVariantSummary', ids],
-        queryFn: () =>
-            api.query(productVariantSummaryDocument, { options: { filter: { id: { in: ids } } } }),
+        queryFn: () => api.query(productVariantSummaryDocument, { options: { filter: { id: { in: ids } } } }),
         enabled: ids.length > 0,
         placeholderData: undefined,
     });
@@ -153,6 +254,40 @@ function ProductVariantSummary({ value }: Readonly<DashboardFormComponentSummary
         return <EntityCountFallback count={ids.length} />;
     }
     return <NameList names={items.map(item => item.name)} />;
+}
+
+const productSummaryDocument = graphql(`
+    query ProductSummary($options: ProductListOptions) {
+        products(options: $options) {
+            items {
+                id
+                name
+            }
+        }
+    }
+`);
+
+function ProductSummary({ value }: Readonly<DashboardFormComponentSummaryProps>) {
+    const ids = toIdArray(value);
+    const { data } = useQuery({
+        queryKey: ['ProductSummary', ids],
+        queryFn: () => api.query(productSummaryDocument, { options: { filter: { id: { in: ids } } } }),
+        enabled: ids.length > 0,
+        placeholderData: undefined,
+    });
+    const items = data?.products.items;
+    if (!items) {
+        return <EntityCountFallback count={ids.length} />;
+    }
+    return <NameList names={items.map(item => item.name)} />;
+}
+
+function ProductMultiSummary({ value, fieldDef }: Readonly<DashboardFormComponentSummaryProps>) {
+    return fieldDef.ui?.selectionMode === 'variant' ? (
+        <ProductVariantSummary value={value} fieldDef={fieldDef} />
+    ) : (
+        <ProductSummary value={value} fieldDef={fieldDef} />
+    );
 }
 
 const customerGroupSummaryDocument = graphql(`
@@ -170,8 +305,7 @@ function CustomerGroupSummary({ value }: Readonly<DashboardFormComponentSummaryP
     const ids = toIdArray(value);
     const { data } = useQuery({
         queryKey: ['CustomerGroupSummary', ids],
-        queryFn: () =>
-            api.query(customerGroupSummaryDocument, { options: { filter: { id: { in: ids } } } }),
+        queryFn: () => api.query(customerGroupSummaryDocument, { options: { filter: { id: { in: ids } } } }),
         enabled: ids.length > 0,
         placeholderData: undefined,
     });
@@ -212,6 +346,12 @@ function toIdArray(value: any): string[] {
 
 const BUILT_IN_SUMMARIES: Record<string, ComponentType<DashboardFormComponentSummaryProps>> = {
     'currency-form-input': CurrencySummary,
+    'html-editor-form-input': RichTextSummary,
+    'json-editor-form-input': JsonSummary,
+    'password-form-input': PasswordSummary,
+    'product-multi-form-input': ProductMultiSummary,
+    'product-multi-input': ProductMultiSummary,
+    'rich-text-form-input': RichTextSummary,
     'select-form-input': SelectOptionsSummary,
     'facet-value-form-input': FacetValueSummary,
     'facet-value-input': FacetValueSummary,
