@@ -133,12 +133,39 @@ export class EntityHydrator {
                     target.constructor,
                     missingRelations,
                 );
+                const relationsToLoad = missingRelations.filter(
+                    relationPath => !joinedRelations.has(relationPath),
+                );
+                // A relation custom field exposes an id property (e.g. `customFields.ownerId`)
+                // that maps to the same database column as the relation's join column. TypeORM's
+                // 'query' relation load strategy cannot resolve such a relation — it returns null —
+                // so those paths are loaded with the 'join' strategy instead. All other relations
+                // keep using 'query', which avoids the row multiplication that 'join' causes when
+                // loading deeply-nested array relations.
+                const queryStrategyRelations = relationsToLoad.filter(
+                    relationPath => !isRelationCustomFieldPath(relationPath),
+                );
+                const joinStrategyRelations = relationsToLoad.filter(isRelationCustomFieldPath);
                 hydratedQb.setFindOptions({
                     relationLoadStrategy: 'query',
                     where: { id: target.id },
-                    relations: missingRelations.filter(relationPath => !joinedRelations.has(relationPath)),
+                    relations: queryStrategyRelations,
                 });
                 const hydrated = await hydratedQb.getOne();
+                if (joinStrategyRelations.length && hydrated) {
+                    const joinQb: SelectQueryBuilder<any> = this.connection
+                        .getRepository(ctx, target.constructor)
+                        .createQueryBuilder(target.constructor.name);
+                    joinQb.setFindOptions({
+                        relationLoadStrategy: 'join',
+                        where: { id: target.id },
+                        relations: joinStrategyRelations,
+                    });
+                    const joinHydrated = await joinQb.getOne();
+                    if (joinHydrated) {
+                        mergeDeep(hydrated, joinHydrated);
+                    }
+                }
                 const propertiesToAdd = unique(missingRelations.map(relation => relation.split('.')[0]));
                 for (const prop of propertiesToAdd) {
                     (target as any)[prop] = mergeDeep((target as any)[prop], hydrated[prop]);
@@ -346,4 +373,16 @@ export class EntityHydrator {
             ? (input[0]?.hasOwnProperty('translations') ?? false)
             : (input?.hasOwnProperty('translations') ?? false);
     }
+}
+
+/**
+ * Returns true if the relation path traverses into a `customFields` embedded relation, i.e. it
+ * targets a relation custom field (`customFields.owner`) or something nested below one. Such
+ * relations have an id column co-mapped with the join column and cannot be loaded via TypeORM's
+ * 'query' relation load strategy.
+ */
+function isRelationCustomFieldPath(relationPath: string): boolean {
+    const parts = relationPath.split('.');
+    const customFieldsIndex = parts.indexOf('customFields');
+    return customFieldsIndex !== -1 && customFieldsIndex < parts.length - 1;
 }
