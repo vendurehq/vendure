@@ -474,6 +474,38 @@ describe('Entity hydration', () => {
         expect(child.image1).toBeDefined();
         expect(child.image2).toBeDefined();
     });
+
+    /*
+     * Regression test for https://github.com/vendurehq/vendure/pull/5030
+     * TypeORM's query relation load strategy silently returns null for relations whose
+     * grouping key `<TargetEntity>_customFields_<fieldName>_id` exceeds the 63-char
+     * postgres/mysql alias limit. The long-named field below produces a 74-char key, while
+     * the short-named control field (49 chars) was never affected. SQLite imposes no alias
+     * limit, so only the postgres and mysql runs exercise the regression.
+     */
+    it('hydrates a relation custom field with a very long name', async () => {
+        await adminClient.query(updateChannelDocument, {
+            input: {
+                id: 'T_1',
+                customFields: {
+                    additionalConfigId: 'T_1',
+                    additionalConfigWithAVeryLongPropertyNameId: 'T_1',
+                },
+            },
+        });
+
+        const { hydrateChannelWithLongCustomFieldName } = await adminClient.query(
+            getHydratedChannelLongCustomFieldNameDocument,
+            {
+                id: 'T_1',
+            },
+        );
+
+        const customFields = hydrateChannelWithLongCustomFieldName.customFields;
+        expect(customFields.additionalConfig.id).toBe('T_1');
+        expect(customFields.additionalConfigWithAVeryLongPropertyName.id).toBe('T_1');
+        expect(customFields.additionalConfigWithAVeryLongPropertyName.backgroundImage).toBeDefined();
+    });
 });
 
 function getVariantWithName(product: Product, name: string) {
@@ -526,5 +558,11 @@ const getHydratedChannelNestedDocument = graphql(`
 const getHydratedChannelLongAliasDocument = graphql(`
     query GetHydratedChannelNested($id: ID!) {
         hydrateChannelWithVeryLongPropertyName(id: $id)
+    }
+`);
+
+const getHydratedChannelLongCustomFieldNameDocument = graphql(`
+    query GetHydratedChannelLongCustomFieldName($id: ID!) {
+        hydrateChannelWithLongCustomFieldName(id: $id)
     }
 `);
