@@ -93,11 +93,13 @@ export function addGraphQLCustomFields(
         );
         const writeableLocalizedFields = localizedFields.filter(field => !field.readonly);
         const writeableNonLocalizedFields = nonLocalizedFields.filter(field => !field.readonly);
+        // `secret` fields are stored encrypted, so filtering or sorting by them at the SQL level is
+        // meaningless — they are excluded from the generated filter/sort inputs.
         const sortableFields = customEntityFields.filter(
-            field => field.list !== true && field.type !== 'struct',
+            field => field.list !== true && field.type !== 'struct' && field.secret !== true,
         );
         const filterableFields = customEntityFields.filter(
-            field => field.type !== 'relation' && field.type !== 'struct',
+            field => field.type !== 'relation' && field.type !== 'struct' && field.secret !== true,
         );
         const structCustomFields = customEntityFields.filter(
             (f): f is StructCustomFieldConfig => f.type === 'struct',

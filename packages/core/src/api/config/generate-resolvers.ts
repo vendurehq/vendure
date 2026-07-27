@@ -1,5 +1,6 @@
 import { IFieldResolver, IResolvers } from '@graphql-tools/utils';
 import { StockMovementType } from '@vendure/common/lib/generated-types';
+import { REDACTED_SECRET_PLACEHOLDER } from '@vendure/common/lib/shared-constants';
 import { GraphQLSchema } from 'graphql';
 import { GraphQLDateTime, GraphQLJSON } from 'graphql-scalars';
 
@@ -311,7 +312,19 @@ function generateCustomFieldResolvers(
                     if (!userHasPermissionsOnCustomField(ctx, fieldDef)) {
                         return null;
                     }
-                    return source[fieldDef.name];
+                    const value = source[fieldDef.name];
+                    if (fieldDef.secret === true && value != null) {
+                        const secretAccessStrategy = configService.systemOptions.secretAccessStrategy;
+                        const canReveal = secretAccessStrategy
+                            ? await secretAccessStrategy.canAccessSecret(ctx, {
+                                  operation: 'read',
+                                  entityType: entityName,
+                                  fieldName: fieldDef.name,
+                              })
+                            : false;
+                        return canReveal ? value : REDACTED_SECRET_PLACEHOLDER;
+                    }
+                    return value;
                 };
             }
 
