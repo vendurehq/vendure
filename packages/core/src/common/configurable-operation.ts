@@ -17,6 +17,7 @@ import {
 import { assertNever } from '@vendure/common/lib/shared-utils';
 
 import { RequestContext } from '../api/common/request-context';
+import type { EncryptionStrategy } from '../config/system/encryption-strategy';
 
 import { DEFAULT_LANGUAGE_CODE } from './constants';
 import { InternalServerError } from './error/errors';
@@ -50,6 +51,17 @@ export interface ConfigArgCommonDef<T extends ConfigArgType> {
     label?: LocalizedStringArray;
     description?: LocalizedStringArray;
     ui?: UiComponentConfig<string>;
+    /**
+     * @description
+     * If set to `true`, the value of this arg is encrypted at rest using the configured
+     * {@link EncryptionStrategy}, and is only returned in decrypted form via the API to users
+     * permitted by the {@link SecretAccessStrategy} (by default, those with the `ReadSecret`
+     * permission). Other users receive a redaction placeholder. Only supported on `string` args.
+     *
+     * @since 3.5.0
+     * @default false
+     */
+    secret?: boolean;
 }
 
 export type ConfigArgListDef<
@@ -342,12 +354,24 @@ export class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
     get description(): LocalizedStringArray {
         return this.options.description;
     }
+    protected encryptionStrategy?: EncryptionStrategy;
+
     constructor(protected options: ConfigurableOperationDefOptions<T>) {}
 
     async init(injector: Injector) {
         if (typeof this.options.init === 'function') {
             await this.options.init(injector);
         }
+    }
+
+    /**
+     * @internal
+     * Sets the EncryptionStrategy used to decrypt the values of any `secret` args. Called during
+     * bootstrap by the ConfigModule, where the ConfigService is available (avoiding a circular
+     * dependency in this module).
+     */
+    setEncryptionStrategy(encryptionStrategy: EncryptionStrategy | undefined) {
+        this.encryptionStrategy = encryptionStrategy;
     }
     async destroy() {
         if (typeof this.options.destroy === 'function') {
@@ -373,6 +397,7 @@ export class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
                         required: arg.required ?? true,
                         defaultValue: arg.defaultValue,
                         ui: arg.ui,
+                        secret: arg.secret ?? false,
                         label:
                             arg.label &&
                             localizeString(arg.label, ctx.languageCode, ctx.channel.defaultLanguageCode),
@@ -402,10 +427,15 @@ export class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
         const output: ConfigArgValues<T> = {} as any;
         for (const arg of args) {
             if (arg && arg.value != null && this.args[arg.name] != null) {
+                const argDef = this.args[arg.name];
+                const value =
+                    argDef.secret && this.encryptionStrategy
+                        ? this.encryptionStrategy.decrypt(arg.value)
+                        : arg.value;
                 output[arg.name as keyof ConfigArgValues<T>] = coerceValueToType<T>(
-                    arg.value,
-                    this.args[arg.name].type,
-                    this.args[arg.name].list || false,
+                    value,
+                    argDef.type,
+                    argDef.list || false,
                 );
             }
         }

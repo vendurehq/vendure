@@ -56,6 +56,20 @@ export type BaseTypedCustomFieldConfig<T extends CustomFieldType, C extends Cust
     unique?: boolean;
     /**
      * @description
+     * If set to `true`, the value of this field is encrypted at rest using the configured
+     * {@link EncryptionStrategy}, and is only returned in decrypted form via the API to users
+     * permitted by the {@link SecretAccessStrategy} (by default, those with the `ReadSecret`
+     * permission). Other users receive a redaction placeholder.
+     *
+     * Only supported on `string` and `text` fields, and cannot be combined with `unique` or an
+     * explicit `length`.
+     *
+     * @since 3.5.0
+     * @default false
+     */
+    secret?: boolean;
+    /**
+     * @description
      * The permission(s) required to read or write to this field.
      * If the user has at least one of these permissions, they will be
      * able to access the field.

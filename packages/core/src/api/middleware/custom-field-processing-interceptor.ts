@@ -1,6 +1,7 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
+import { REDACTED_SECRET_PLACEHOLDER } from '@vendure/common/lib/shared-constants';
 import { getGraphQlInputName } from '@vendure/common/lib/shared-utils';
 import {
     getNamedType,
@@ -12,6 +13,7 @@ import {
 } from 'graphql';
 
 import { Injector } from '../../common/injector';
+import { UserInputError } from '../../common/error/errors';
 import { ConfigService } from '../../config/config.service';
 import { CustomFieldConfig, CustomFields } from '../../config/custom-field/custom-field-types';
 import { parseContext } from '../common/parse-context';
@@ -101,7 +103,35 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
             if (shouldApplyDefaults) {
                 this.applyDefaultsToInput(typeName, inputVariable);
             }
+            this.handleSecretCustomFields(typeName, inputVariable);
             await this.validateInput(typeName, ctx, injector, inputVariable);
+        }
+    }
+
+    /**
+     * For `secret` custom fields, the API returns a redaction placeholder rather than the real
+     * value. When that placeholder is submitted back on an update, the field is removed from the
+     * input so that the stored (encrypted) value is preserved. On a create there is nothing to
+     * preserve, so the placeholder is rejected.
+     */
+    private handleSecretCustomFields(typeName: string, inputVariable: any) {
+        const entityName = this.getEntityNameFromInputType(typeName);
+        const customFieldConfig = this.configService.customFields[entityName as keyof CustomFields];
+        if (!customFieldConfig || !inputVariable?.customFields) {
+            return;
+        }
+        const isCreate = this.createInputsWithCustomFields.has(typeName);
+        for (const config of customFieldConfig) {
+            if (config.secret !== true) {
+                continue;
+            }
+            const fieldName = getGraphQlInputName(config);
+            if (inputVariable.customFields[fieldName] === REDACTED_SECRET_PLACEHOLDER) {
+                if (isCreate) {
+                    throw new UserInputError('error.secret-value-required', { name: fieldName });
+                }
+                delete inputVariable.customFields[fieldName];
+            }
         }
     }
 

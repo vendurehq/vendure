@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigurableOperation, ConfigurableOperationInput } from '@vendure/common/lib/generated-types';
+import { REDACTED_SECRET_PLACEHOLDER } from '@vendure/common/lib/shared-constants';
 
 import { ConfigurableOperationDef } from '../../../common/configurable-operation';
-import { UserInputError } from '../../../common/error/errors';
+import { InternalServerError, UserInputError } from '../../../common/error/errors';
 import { CollectionFilter } from '../../../config/catalog/collection-filter';
 import { ConfigService } from '../../../config/config.service';
 import { EntityDuplicator } from '../../../config/entity/entity-duplicator';
@@ -68,15 +69,60 @@ export class ConfigArgService {
 
     /**
      * Parses and validates the input to a ConfigurableOperation.
+     *
+     * When the operation has `secret` args, their values are encrypted at rest. If the incoming
+     * value is the redaction placeholder (i.e. the admin did not re-enter the secret), the previously
+     * stored value is preserved; on a create there is nothing to preserve, so the placeholder is
+     * rejected.
      */
-    parseInput(defType: ConfigDefType, input: ConfigurableOperationInput): ConfigurableOperation {
+    parseInput(
+        defType: ConfigDefType,
+        input: ConfigurableOperationInput,
+        previous?: ConfigurableOperation,
+    ): ConfigurableOperation {
         const match = this.getByCode(defType, input.code);
         this.validateRequiredFields(input, match);
         const orderedArgs = this.orderArgsToMatchDef(match, input.arguments);
+        const args = this.processSecretArgs(match, orderedArgs, previous);
         return {
             code: input.code,
-            args: orderedArgs,
+            args,
         };
+    }
+
+    /**
+     * Encrypts the values of any `secret` args, preserving the previously-stored (encrypted) value
+     * when the redaction placeholder is submitted.
+     */
+    private processSecretArgs(
+        def: ConfigurableOperationDef,
+        args: ConfigurableOperation['args'],
+        previous?: ConfigurableOperation,
+    ): ConfigurableOperation['args'] {
+        return args.map(arg => {
+            const argDef = def.args[arg.name];
+            if (!argDef?.secret) {
+                return arg;
+            }
+            if (arg.value === REDACTED_SECRET_PLACEHOLDER) {
+                const previousArg = previous?.args?.find(a => a.name === arg.name);
+                if (!previousArg) {
+                    throw new UserInputError('error.secret-value-required', { name: arg.name });
+                }
+                // Preserve the existing stored (already-encrypted) value.
+                return { name: arg.name, value: previousArg.value };
+            }
+            if (arg.value == null || arg.value === '') {
+                return arg;
+            }
+            const encryptionStrategy = this.configService.systemOptions.encryptionStrategy;
+            if (!encryptionStrategy) {
+                throw new InternalServerError(
+                    'A `secret` config arg was used, but no EncryptionStrategy is configured.',
+                );
+            }
+            return { name: arg.name, value: encryptionStrategy.encrypt(arg.value) };
+        });
     }
 
     private orderArgsToMatchDef<T extends ConfigDefType>(

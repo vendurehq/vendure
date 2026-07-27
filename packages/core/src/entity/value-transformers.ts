@@ -1,5 +1,7 @@
 import { ValueTransformer } from 'typeorm';
 
+import type { EncryptionStrategy } from '../config/system/encryption-strategy';
+
 /**
  * Decimal types are returned as strings (e.g. "20.00") by some DBs, e.g. MySQL & Postgres
  */
@@ -10,5 +12,40 @@ export class DecimalTransformer implements ValueTransformer {
 
     from(value: any): any {
         return Number.parseFloat(value);
+    }
+}
+
+/**
+ * Encrypts a column value on write and decrypts it on read, using the configured
+ * {@link EncryptionStrategy}. Used for custom fields marked as `secret`. The strategy is resolved
+ * lazily via `getStrategy` because the transformer is created during entity registration, before
+ * the strategy's `init()` (which derives the key) has run.
+ */
+export class EncryptedFieldTransformer implements ValueTransformer {
+    constructor(private getStrategy: () => EncryptionStrategy | undefined) {}
+
+    to(value: any): any {
+        if (value == null || value === '') {
+            return value;
+        }
+        return this.strategy().encrypt(String(value));
+    }
+
+    from(value: any): any {
+        if (value == null || value === '') {
+            return value;
+        }
+        return this.strategy().decrypt(String(value));
+    }
+
+    private strategy(): EncryptionStrategy {
+        const strategy = this.getStrategy();
+        if (!strategy) {
+            throw new Error(
+                'A `secret` custom field was used, but no EncryptionStrategy is configured in ' +
+                    '`systemOptions.encryptionStrategy`.',
+            );
+        }
+        return strategy;
     }
 }

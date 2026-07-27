@@ -17,6 +17,7 @@
     "collection-id-slug-mismatch": "The provided id and slug refer to different Collections",
     "conditions-required-for-action": "The PromotionAction \"{ action }\" requires the following conditions: { conditions }",
     "configurable-argument-is-required": "The argument \"{ name }\" is required",
+    "secret-value-required": "A value must be provided for the secret argument \"{ name }\"",
     "country-code-not-valid": "The countryCode \"{ countryCode }\" was not recognized",
     "currency-not-available-in-channel": "The currency \"{ currencyCode }\" is not available in the current Channel",
     "customer-does-not-belong-to-customer-group": "Customer does not belong to this CustomerGroup",
