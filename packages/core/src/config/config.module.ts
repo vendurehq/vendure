@@ -21,6 +21,32 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
     async onApplicationBootstrap() {
         await this.initInjectableStrategies();
         await this.initConfigurableOperations();
+        this.assertEncryptionConfiguredIfSecretsUsed();
+    }
+
+    /**
+     * If any custom field or config arg is marked `secret` but no usable EncryptionStrategy is
+     * configured, fail fast at bootstrap rather than throwing later when a secret value is first
+     * written or read.
+     */
+    private assertEncryptionConfiguredIfSecretsUsed() {
+        const { encryptionStrategy } = this.configService.systemOptions;
+        if (encryptionStrategy?.isConfigured()) {
+            return;
+        }
+        const hasSecretCustomField = Object.values(this.configService.customFields).some(fields =>
+            (fields ?? []).some(f => f.secret === true),
+        );
+        const hasSecretConfigArg = this.getConfigurableOperations().some(op =>
+            Object.values(op.args).some(arg => (arg as { secret?: boolean }).secret === true),
+        );
+        if (hasSecretCustomField || hasSecretConfigArg) {
+            throw new Error(
+                '[Vendure] A `secret` custom field or config arg is configured, but the ' +
+                    'EncryptionStrategy has no usable key. Set the `VENDURE_ENCRYPTION_KEY` environment ' +
+                    'variable, or provide a `secret` to the DefaultEncryptionStrategy.',
+            );
+        }
     }
 
     async onApplicationShutdown(signal?: string) {
@@ -55,8 +81,10 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
 
     private async initConfigurableOperations() {
         const injector = new Injector(this.moduleRef);
+        const { encryptionStrategy } = this.configService.systemOptions;
         for (const operation of this.getConfigurableOperations()) {
             await operation.init(injector);
+            operation.setEncryptionStrategy(encryptionStrategy);
         }
     }
 
@@ -119,7 +147,8 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
         const { healthChecks, errorHandlers } = this.configService.systemOptions;
         const { assetImportStrategy } = this.configService.importExportOptions;
         const { refundProcess: refundProcess } = this.configService.paymentOptions;
-        const { cacheStrategy, instrumentationStrategy } = this.configService.systemOptions;
+        const { cacheStrategy, instrumentationStrategy, encryptionStrategy, secretAccessStrategy } =
+            this.configService.systemOptions;
         const entityIdStrategy = entityIdStrategyCurrent ?? entityIdStrategyDeprecated;
         return [
             ...adminAuthenticationStrategy,
@@ -166,6 +195,8 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
             ...refundProcess,
             cacheStrategy,
             ...(instrumentationStrategy ? [instrumentationStrategy] : []),
+            ...(encryptionStrategy ? [encryptionStrategy] : []),
+            ...(secretAccessStrategy ? [secretAccessStrategy] : []),
             ...orderInterceptors,
             schedulerStrategy,
             adminApiKeyStrategy,

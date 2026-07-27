@@ -65,9 +65,11 @@ import { ShippingCalculator } from './shipping-method/shipping-calculator';
 import { ShippingEligibilityChecker } from './shipping-method/shipping-eligibility-checker';
 import { ShippingLineAssignmentStrategy } from './shipping-method/shipping-line-assignment-strategy';
 import { CacheStrategy } from './system/cache-strategy';
+import { EncryptionStrategy } from './system/encryption-strategy';
 import { ErrorHandlerStrategy } from './system/error-handler-strategy';
 import { HealthCheckStrategy } from './system/health-check-strategy';
 import { InstrumentationStrategy } from './system/instrumentation-strategy';
+import { SecretAccessStrategy } from './system/secret-access-strategy';
 import { OrderTaxCalculationStrategy } from './tax/order-tax-calculation-strategy';
 import { TaxLineCalculationStrategy } from './tax/tax-line-calculation-strategy';
 import { TaxZoneStrategy } from './tax/tax-zone-strategy';
@@ -1253,6 +1255,24 @@ export interface SystemOptions {
      */
     cacheStrategy?: CacheStrategy;
     instrumentationStrategy?: InstrumentationStrategy;
+    /**
+     * @description
+     * Defines the strategy used to encrypt the values of `secret` custom fields and config args at
+     * rest.
+     *
+     * @since 3.5.0
+     * @default DefaultEncryptionStrategy
+     */
+    encryptionStrategy?: EncryptionStrategy;
+    /**
+     * @description
+     * Defines the strategy used to determine whether the current user may read the decrypted value
+     * of a `secret` custom field or config arg.
+     *
+     * @since 3.5.0
+     * @default PermissionSecretAccessStrategy
+     */
+    secretAccessStrategy?: SecretAccessStrategy;
 }
 
 /**

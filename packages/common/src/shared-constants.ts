@@ -18,6 +18,14 @@ export const DEFAULT_APIKEY_HEADER_KEY = 'vendure-api-key';
 export const DEFAULT_COOKIE_NAME = 'session';
 export const DEFAULT_CHANNEL_TOKEN_KEY = 'vendure-token';
 
+/**
+ * The placeholder returned by the API in place of a `secret` field or config arg value which the
+ * current user is not permitted to read. When this exact value is submitted back on an update, it is
+ * interpreted as "leave the stored value unchanged". It is deliberately long and namespaced so that
+ * it cannot collide with a genuine secret value.
+ */
+export const REDACTED_SECRET_PLACEHOLDER = '__vendure_secret_unchanged_v1__';
+
 // An environment variable which is set when the @vendure/create
 // script is run. Can be used to modify normal behaviour
 // to fit with the initial create task.

@@ -42,6 +42,13 @@ export const DEFAULT_PERMISSIONS: PermissionDefinition[] = [
         assignable: true,
         internal: false,
     }),
+    new PermissionDefinition({
+        name: 'ReadSecret',
+        description:
+            'Grants permission to read the decrypted value of custom fields and config args marked as `secret`',
+        assignable: true,
+        internal: false,
+    }),
     new CrudPermissionDefinition(
         'Catalog',
         operation => `Grants permission to ${operation} Products, Facets, Assets, Collections`,

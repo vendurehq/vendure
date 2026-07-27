@@ -2630,6 +2630,8 @@ export enum Permission {
     ReadProduct = 'ReadProduct',
     /** Grants permission to read Promotion */
     ReadPromotion = 'ReadPromotion',
+    /** Grants permission to read the decrypted value of custom fields and config args marked as `secret` */
+    ReadSecret = 'ReadSecret',
     /** Grants permission to read Seller */
     ReadSeller = 'ReadSeller',
     /** Grants permission to read PaymentMethods, ShippingMethods, TaxCategories, TaxRates, Zones, Countries, System & GlobalSettings */
