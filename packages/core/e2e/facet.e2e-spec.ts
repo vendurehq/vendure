@@ -844,6 +844,36 @@ describe('Facet resolver', () => {
             const value = facet?.values.find(v => v.id === valueId);
             expect(value?.name).toBe('Original Value');
         });
+
+        it('cannot update a Facet belonging to another channel', async () => {
+            adminClient.setChannelToken(CHANNEL_B_TOKEN);
+            await expect(
+                adminClient.query(updateFacetDocument, {
+                    input: {
+                        id: facetId,
+                        translations: [{ languageCode: LanguageCode.en, name: 'PWNED-FACET' }],
+                    },
+                }),
+            ).rejects.toThrow(/No Facet with the id .* could be found/);
+
+            adminClient.setChannelToken(CHANNEL_A_TOKEN);
+            const { facet } = await adminClient.query(getFacetWithValuesDocument, { id: facetId });
+            expect(facet?.name).toBe('Cross Channel Facet');
+        });
+
+        it('cannot delete a FacetValue belonging to another channel', async () => {
+            adminClient.setChannelToken(CHANNEL_B_TOKEN);
+            await expect(
+                adminClient.query(deleteFacetValuesDocument, {
+                    ids: [valueId],
+                }),
+            ).rejects.toThrow(/No FacetValue with the id .* could be found/);
+
+            adminClient.setChannelToken(CHANNEL_A_TOKEN);
+            const { facet } = await adminClient.query(getFacetWithValuesDocument, { id: facetId });
+            const value = facet?.values.find(v => v.id === valueId);
+            expect(value?.name).toBe('Original Value');
+        });
     });
 });
 
