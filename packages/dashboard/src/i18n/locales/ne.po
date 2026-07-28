@@ -204,7 +204,7 @@ msgstr "कुनै पूर्तिहरू छैनन्"
 #. placeholder {2}: failed.length
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:116
 msgid "{0, plural, one {Failed to delete {1} stock location: {messages}} other {Failed to delete {2} stock locations: {messages}}}"
-msgstr ""
+msgstr "{0, plural, one {{1} स्टक स्थान मेट्न सकिएन: {messages}} other {{2} स्टक स्थानहरू मेट्न सकिएन: {messages}}}"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:339
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
@@ -1053,7 +1053,7 @@ msgstr ""
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:191
 msgid "Select what to do with remaining stock"
-msgstr ""
+msgstr "बाँकी स्टकको के गर्ने भन्ने छान्नुहोस्"
 
 #: src/lib/components/layout/nav-user.tsx:102
 msgid "Explore Platform & Cloud"
@@ -1455,7 +1455,7 @@ msgstr "पूर्ति विवरणहरू"
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:89
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:202
 msgid "Discard remaining stock"
-msgstr ""
+msgstr "बाँकी स्टक हटाउनुहोस्"
 
 #: src/lib/components/data-input/datetime-input.tsx:181
 msgid "Now"
@@ -1932,7 +1932,7 @@ msgstr "स्तम्भ सेटिङहरू"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:137
 msgid "{count, plural, one {Failed to delete {count} stock location} other {Failed to delete {count} stock locations}}"
-msgstr ""
+msgstr "{count, plural, one {{count} स्टक स्थान मेट्न सकिएन} other {{count} स्टक स्थानहरू मेट्न सकिएन}}"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:224
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
@@ -1958,11 +1958,11 @@ msgstr "अर्डर वितरण गरियो"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:47
 msgid "Transfer to {name}"
-msgstr ""
+msgstr "{name} मा सार्नुहोस्"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:174
 msgid "Remaining stock"
-msgstr ""
+msgstr "बाँकी स्टक"
 
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx:49
 msgid "Remove from zone"
@@ -3336,7 +3336,7 @@ msgstr "क्षेत्रहरू"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:163
 msgid "Choose what to do with any stock remaining in the {count, plural, one {# stock location} other {# stock locations}} you are deleting. All selected locations transfer their remaining stock into the single location you choose, or discard it."
-msgstr ""
+msgstr "तपाईंले मेट्न लाग्नुभएको {count, plural, one {# स्टक स्थान} other {# स्टक स्थानहरू}} मा बाँकी रहेको स्टकको के गर्ने भन्ने छान्नुहोस्। चयन गरिएका सबै स्थानहरूले आफ्नो बाँकी स्टक तपाईंले छान्नुभएको एउटै स्थानमा सार्छन्, वा त्यसलाई हटाउँछन्।"
 
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:170
 #: src/lib/components/shared/facet-value-selector.tsx:123
@@ -3427,7 +3427,7 @@ msgstr "ढुवानी विधि अद्यावधिक गर्न
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:103
 msgid "{deleted, plural, one {Deleted {deleted} stock location} other {Deleted {deleted} stock locations}}"
-msgstr ""
+msgstr "{deleted, plural, one {{deleted} स्टक स्थान मेटियो} other {{deleted} स्टक स्थानहरू मेटिए}}"
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:42
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods.tsx:19
@@ -3625,7 +3625,7 @@ msgstr "ड्राफ्ट अर्डर स्थिति"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:190
 msgid "Loading locations…"
-msgstr ""
+msgstr "स्थानहरू लोड हुँदै छन्…"
 
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:110
 msgid "Failed to create payment method"
@@ -3710,7 +3710,7 @@ msgstr "कुनै बिलिङ ठेगाना छैन"
 #. placeholder {2}: failed.length
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:120
 msgid "{0, plural, one {Failed to delete {1} stock location} other {Failed to delete {2} stock locations}}"
-msgstr ""
+msgstr "{0, plural, one {{1} स्टक स्थान मेट्न सकिएन} other {{2} स्टक स्थानहरू मेट्न सकिएन}}"
 
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:119
 msgid "Facet"
@@ -4666,7 +4666,7 @@ msgstr "नयाँ ढुवानी विधि"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:160
 msgid "Delete stock locations"
-msgstr ""
+msgstr "स्टक स्थानहरू मेट्नुहोस्"
 
 #: src/lib/components/data-table/human-readable-operator.tsx:47
 msgid "is greater than or equal to"

@@ -204,7 +204,7 @@ msgstr "Ingen oppfyllelser"
 #. placeholder {2}: failed.length
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:116
 msgid "{0, plural, one {Failed to delete {1} stock location: {messages}} other {Failed to delete {2} stock locations: {messages}}}"
-msgstr ""
+msgstr "{0, plural, one {Kunne ikke slette {1} lagerplassering: {messages}} other {Kunne ikke slette {2} lagerplasseringer: {messages}}}"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:339
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
@@ -1053,7 +1053,7 @@ msgstr ""
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:191
 msgid "Select what to do with remaining stock"
-msgstr ""
+msgstr "Velg hva som skal skje med gjenværende beholdning"
 
 #: src/lib/components/layout/nav-user.tsx:102
 msgid "Explore Platform & Cloud"
@@ -1455,7 +1455,7 @@ msgstr "Oppfyllelsesdetaljer"
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:89
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:202
 msgid "Discard remaining stock"
-msgstr ""
+msgstr "Forkast gjenværende beholdning"
 
 #: src/lib/components/data-input/datetime-input.tsx:181
 msgid "Now"
@@ -1932,7 +1932,7 @@ msgstr "Kolonneinnstillinger"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:137
 msgid "{count, plural, one {Failed to delete {count} stock location} other {Failed to delete {count} stock locations}}"
-msgstr ""
+msgstr "{count, plural, one {Kunne ikke slette {count} lagerplassering} other {Kunne ikke slette {count} lagerplasseringer}}"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:224
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
@@ -1958,11 +1958,11 @@ msgstr "Bestilling levert"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:47
 msgid "Transfer to {name}"
-msgstr ""
+msgstr "Overfør til {name}"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:174
 msgid "Remaining stock"
-msgstr ""
+msgstr "Gjenværende beholdning"
 
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx:49
 msgid "Remove from zone"
@@ -3336,7 +3336,7 @@ msgstr "Soner"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:163
 msgid "Choose what to do with any stock remaining in the {count, plural, one {# stock location} other {# stock locations}} you are deleting. All selected locations transfer their remaining stock into the single location you choose, or discard it."
-msgstr ""
+msgstr "Velg hva som skal skje med lagerbeholdningen som er igjen på {count, plural, one {# lagerplassering} other {# lagerplasseringer}} du sletter. Alle valgte plasseringer overfører den gjenværende beholdningen til den ene plasseringen du velger, eller den forkastes."
 
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:170
 #: src/lib/components/shared/facet-value-selector.tsx:123
@@ -3427,7 +3427,7 @@ msgstr "Kunne ikke oppdatere fraktmetode"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:103
 msgid "{deleted, plural, one {Deleted {deleted} stock location} other {Deleted {deleted} stock locations}}"
-msgstr ""
+msgstr "{deleted, plural, one {Slettet {deleted} lagerplassering} other {Slettet {deleted} lagerplasseringer}}"
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:42
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods.tsx:19
@@ -3625,7 +3625,7 @@ msgstr "Utkast til ordrestatus"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:190
 msgid "Loading locations…"
-msgstr ""
+msgstr "Laster plasseringer…"
 
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:110
 msgid "Failed to create payment method"
@@ -3710,7 +3710,7 @@ msgstr "Ingen fakturaadresse"
 #. placeholder {2}: failed.length
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:120
 msgid "{0, plural, one {Failed to delete {1} stock location} other {Failed to delete {2} stock locations}}"
-msgstr ""
+msgstr "{0, plural, one {Kunne ikke slette {1} lagerplassering} other {Kunne ikke slette {2} lagerplasseringer}}"
 
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:119
 msgid "Facet"
@@ -4666,7 +4666,7 @@ msgstr "Ny fraktmetode"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:160
 msgid "Delete stock locations"
-msgstr ""
+msgstr "Slett lagerplasseringer"
 
 #: src/lib/components/data-table/human-readable-operator.tsx:47
 msgid "is greater than or equal to"

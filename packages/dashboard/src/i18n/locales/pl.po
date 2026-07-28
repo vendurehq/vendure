@@ -204,7 +204,7 @@ msgstr "Brak realizacji"
 #. placeholder {2}: failed.length
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:116
 msgid "{0, plural, one {Failed to delete {1} stock location: {messages}} other {Failed to delete {2} stock locations: {messages}}}"
-msgstr ""
+msgstr "{0, plural, one {Nie udało się usunąć {1} lokalizacji magazynowej: {messages}} few {Nie udało się usunąć {2} lokalizacji magazynowych: {messages}} many {Nie udało się usunąć {2} lokalizacji magazynowych: {messages}} other {Nie udało się usunąć {2} lokalizacji magazynowych: {messages}}}"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:339
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
@@ -1053,7 +1053,7 @@ msgstr ""
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:191
 msgid "Select what to do with remaining stock"
-msgstr ""
+msgstr "Wybierz, co zrobić z pozostałymi zapasami"
 
 #: src/lib/components/layout/nav-user.tsx:102
 msgid "Explore Platform & Cloud"
@@ -1455,7 +1455,7 @@ msgstr "Szczegóły realizacji"
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:89
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:202
 msgid "Discard remaining stock"
-msgstr ""
+msgstr "Odrzuć pozostałe zapasy"
 
 #: src/lib/components/data-input/datetime-input.tsx:181
 msgid "Now"
@@ -1932,7 +1932,7 @@ msgstr "Ustawienia kolumn"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:137
 msgid "{count, plural, one {Failed to delete {count} stock location} other {Failed to delete {count} stock locations}}"
-msgstr ""
+msgstr "{count, plural, one {Nie udało się usunąć {count} lokalizacji magazynowej} few {Nie udało się usunąć {count} lokalizacji magazynowych} many {Nie udało się usunąć {count} lokalizacji magazynowych} other {Nie udało się usunąć {count} lokalizacji magazynowych}}"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:224
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
@@ -1958,11 +1958,11 @@ msgstr "Dostarczono zamówienie"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:47
 msgid "Transfer to {name}"
-msgstr ""
+msgstr "Przenieś do {name}"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:174
 msgid "Remaining stock"
-msgstr ""
+msgstr "Pozostałe zapasy"
 
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx:49
 msgid "Remove from zone"
@@ -3336,7 +3336,7 @@ msgstr "Strefy"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:163
 msgid "Choose what to do with any stock remaining in the {count, plural, one {# stock location} other {# stock locations}} you are deleting. All selected locations transfer their remaining stock into the single location you choose, or discard it."
-msgstr ""
+msgstr "Wybierz, co zrobić z zapasami pozostałymi w {count, plural, one {# lokalizacji magazynowej} few {# lokalizacjach magazynowych} many {# lokalizacjach magazynowych} other {# lokalizacjach magazynowych}}, które usuwasz. Wszystkie wybrane lokalizacje przeniosą pozostałe zapasy do jednej wskazanej przez Ciebie lokalizacji albo je odrzucą."
 
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:170
 #: src/lib/components/shared/facet-value-selector.tsx:123
@@ -3427,7 +3427,7 @@ msgstr "Nie udało się zaktualizować metody wysyłki"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:103
 msgid "{deleted, plural, one {Deleted {deleted} stock location} other {Deleted {deleted} stock locations}}"
-msgstr ""
+msgstr "{deleted, plural, one {Usunięto {deleted} lokalizację magazynową} few {Usunięto {deleted} lokalizacje magazynowe} many {Usunięto {deleted} lokalizacji magazynowych} other {Usunięto {deleted} lokalizacji magazynowych}}"
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:42
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods.tsx:19
@@ -3625,7 +3625,7 @@ msgstr "Status wersji roboczej zamówienia"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:190
 msgid "Loading locations…"
-msgstr ""
+msgstr "Wczytywanie lokalizacji…"
 
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:110
 msgid "Failed to create payment method"
@@ -3710,7 +3710,7 @@ msgstr "Brak adresu rozliczeniowego"
 #. placeholder {2}: failed.length
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:120
 msgid "{0, plural, one {Failed to delete {1} stock location} other {Failed to delete {2} stock locations}}"
-msgstr ""
+msgstr "{0, plural, one {Nie udało się usunąć {1} lokalizacji magazynowej} few {Nie udało się usunąć {2} lokalizacji magazynowych} many {Nie udało się usunąć {2} lokalizacji magazynowych} other {Nie udało się usunąć {2} lokalizacji magazynowych}}"
 
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:119
 msgid "Facet"
@@ -4666,7 +4666,7 @@ msgstr "Nowa metoda wysyłki"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:160
 msgid "Delete stock locations"
-msgstr ""
+msgstr "Usuń lokalizacje magazynowe"
 
 #: src/lib/components/data-table/human-readable-operator.tsx:47
 msgid "is greater than or equal to"

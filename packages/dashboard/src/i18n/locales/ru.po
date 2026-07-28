@@ -204,7 +204,7 @@ msgstr "Нет выполнений"
 #. placeholder {2}: failed.length
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:116
 msgid "{0, plural, one {Failed to delete {1} stock location: {messages}} other {Failed to delete {2} stock locations: {messages}}}"
-msgstr ""
+msgstr "{0, plural, one {Не удалось удалить {1} складскую локацию: {messages}} few {Не удалось удалить {2} складские локации: {messages}} many {Не удалось удалить {2} складских локаций: {messages}} other {Не удалось удалить {2} складских локаций: {messages}}}"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:339
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
@@ -1053,7 +1053,7 @@ msgstr "Не удалось применить промокод к заказу:
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:191
 msgid "Select what to do with remaining stock"
-msgstr ""
+msgstr "Выберите, что сделать с остатками товара"
 
 #: src/lib/components/layout/nav-user.tsx:102
 msgid "Explore Platform & Cloud"
@@ -1455,7 +1455,7 @@ msgstr "Детали выполнения"
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:89
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:202
 msgid "Discard remaining stock"
-msgstr ""
+msgstr "Списать остатки товара"
 
 #: src/lib/components/data-input/datetime-input.tsx:181
 msgid "Now"
@@ -1932,7 +1932,7 @@ msgstr "Настройки столбцов"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:137
 msgid "{count, plural, one {Failed to delete {count} stock location} other {Failed to delete {count} stock locations}}"
-msgstr ""
+msgstr "{count, plural, one {Не удалось удалить {count} складскую локацию} few {Не удалось удалить {count} складские локации} many {Не удалось удалить {count} складских локаций} other {Не удалось удалить {count} складских локаций}}"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:224
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
@@ -1958,11 +1958,11 @@ msgstr "Заказ доставлен"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:47
 msgid "Transfer to {name}"
-msgstr ""
+msgstr "Перенести в {name}"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:174
 msgid "Remaining stock"
-msgstr ""
+msgstr "Остатки товара"
 
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx:49
 msgid "Remove from zone"
@@ -3336,7 +3336,7 @@ msgstr "Зоны"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:163
 msgid "Choose what to do with any stock remaining in the {count, plural, one {# stock location} other {# stock locations}} you are deleting. All selected locations transfer their remaining stock into the single location you choose, or discard it."
-msgstr ""
+msgstr "Выберите, что сделать с остатками товара в {count, plural, one {# складской локации} few {# складских локациях} many {# складских локациях} other {# складских локациях}}, которые вы удаляете. Все выбранные локации перенесут свои остатки в одну выбранную вами локацию или спишут их."
 
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:170
 #: src/lib/components/shared/facet-value-selector.tsx:123
@@ -3427,7 +3427,7 @@ msgstr "Не удалось обновить способ доставки"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:103
 msgid "{deleted, plural, one {Deleted {deleted} stock location} other {Deleted {deleted} stock locations}}"
-msgstr ""
+msgstr "{deleted, plural, one {Удалена {deleted} складская локация} few {Удалены {deleted} складские локации} many {Удалено {deleted} складских локаций} other {Удалено {deleted} складских локаций}}"
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:42
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods.tsx:19
@@ -3625,7 +3625,7 @@ msgstr "Статус черновика заказа"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:190
 msgid "Loading locations…"
-msgstr ""
+msgstr "Загрузка локаций…"
 
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:110
 msgid "Failed to create payment method"
@@ -3710,7 +3710,7 @@ msgstr "Нет адреса выставления счёта"
 #. placeholder {2}: failed.length
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:120
 msgid "{0, plural, one {Failed to delete {1} stock location} other {Failed to delete {2} stock locations}}"
-msgstr ""
+msgstr "{0, plural, one {Не удалось удалить {1} складскую локацию} few {Не удалось удалить {2} складские локации} many {Не удалось удалить {2} складских локаций} other {Не удалось удалить {2} складских локаций}}"
 
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:119
 msgid "Facet"
@@ -4666,7 +4666,7 @@ msgstr "Новый способ доставки"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:160
 msgid "Delete stock locations"
-msgstr ""
+msgstr "Удалить складские локации"
 
 #: src/lib/components/data-table/human-readable-operator.tsx:47
 msgid "is greater than or equal to"

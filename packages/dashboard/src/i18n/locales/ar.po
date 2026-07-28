@@ -204,7 +204,7 @@ msgstr "لا توجد تنفيذات"
 #. placeholder {2}: failed.length
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:116
 msgid "{0, plural, one {Failed to delete {1} stock location: {messages}} other {Failed to delete {2} stock locations: {messages}}}"
-msgstr ""
+msgstr "{0, plural, zero {تعذر حذف {2} موقع مخزون: {messages}} one {تعذر حذف موقع مخزون واحد: {messages}} two {تعذر حذف موقعي مخزون: {messages}} few {تعذر حذف {2} مواقع مخزون: {messages}} many {تعذر حذف {2} موقع مخزون: {messages}} other {تعذر حذف {2} موقع مخزون: {messages}}}"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:339
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
@@ -1053,7 +1053,7 @@ msgstr ""
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:191
 msgid "Select what to do with remaining stock"
-msgstr ""
+msgstr "اختر ما يجب فعله بالمخزون المتبقي"
 
 #: src/lib/components/layout/nav-user.tsx:102
 msgid "Explore Platform & Cloud"
@@ -1455,7 +1455,7 @@ msgstr "تفاصيل التنفيذ"
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:89
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:202
 msgid "Discard remaining stock"
-msgstr ""
+msgstr "التخلص من المخزون المتبقي"
 
 #: src/lib/components/data-input/datetime-input.tsx:181
 msgid "Now"
@@ -1932,7 +1932,7 @@ msgstr "إعدادات الأعمدة"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:137
 msgid "{count, plural, one {Failed to delete {count} stock location} other {Failed to delete {count} stock locations}}"
-msgstr ""
+msgstr "{count, plural, zero {تعذر حذف {count} موقع مخزون} one {تعذر حذف موقع مخزون واحد} two {تعذر حذف موقعي مخزون} few {تعذر حذف {count} مواقع مخزون} many {تعذر حذف {count} موقع مخزون} other {تعذر حذف {count} موقع مخزون}}"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:224
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
@@ -1958,11 +1958,11 @@ msgstr "تم تسليم الطلب"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:47
 msgid "Transfer to {name}"
-msgstr ""
+msgstr "النقل إلى {name}"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:174
 msgid "Remaining stock"
-msgstr ""
+msgstr "المخزون المتبقي"
 
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx:49
 msgid "Remove from zone"
@@ -3336,7 +3336,7 @@ msgstr "المناطق"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:163
 msgid "Choose what to do with any stock remaining in the {count, plural, one {# stock location} other {# stock locations}} you are deleting. All selected locations transfer their remaining stock into the single location you choose, or discard it."
-msgstr ""
+msgstr "اختر ما يجب فعله بالمخزون المتبقي في {count, plural, zero {# موقع مخزون} one {موقع مخزون واحد} two {موقعي مخزون} few {# مواقع مخزون} many {# موقع مخزون} other {# موقع مخزون}} التي تحذفها. تنقل جميع المواقع المحددة مخزونها المتبقي إلى الموقع الوحيد الذي تختاره، أو يتم التخلص منه."
 
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:170
 #: src/lib/components/shared/facet-value-selector.tsx:123
@@ -3427,7 +3427,7 @@ msgstr "فشل تحديث طريقة الشحن"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:103
 msgid "{deleted, plural, one {Deleted {deleted} stock location} other {Deleted {deleted} stock locations}}"
-msgstr ""
+msgstr "{deleted, plural, zero {تم حذف {deleted} موقع مخزون} one {تم حذف موقع مخزون واحد} two {تم حذف موقعي مخزون} few {تم حذف {deleted} مواقع مخزون} many {تم حذف {deleted} موقع مخزون} other {تم حذف {deleted} موقع مخزون}}"
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:42
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods.tsx:19
@@ -3625,7 +3625,7 @@ msgstr "حالة طلب المسودة"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:190
 msgid "Loading locations…"
-msgstr ""
+msgstr "جارٍ تحميل المواقع…"
 
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:110
 msgid "Failed to create payment method"
@@ -3710,7 +3710,7 @@ msgstr "لا يوجد عنوان فوترة"
 #. placeholder {2}: failed.length
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:120
 msgid "{0, plural, one {Failed to delete {1} stock location} other {Failed to delete {2} stock locations}}"
-msgstr ""
+msgstr "{0, plural, zero {تعذر حذف {2} موقع مخزون} one {تعذر حذف موقع مخزون واحد} two {تعذر حذف موقعي مخزون} few {تعذر حذف {2} مواقع مخزون} many {تعذر حذف {2} موقع مخزون} other {تعذر حذف {2} موقع مخزون}}"
 
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:119
 msgid "Facet"
@@ -4666,7 +4666,7 @@ msgstr "طريقة شحن جديدة"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:160
 msgid "Delete stock locations"
-msgstr ""
+msgstr "حذف مواقع المخزون"
 
 #: src/lib/components/data-table/human-readable-operator.tsx:47
 msgid "is greater than or equal to"
