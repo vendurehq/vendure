@@ -397,7 +397,10 @@ export class AssetService {
      * Updates the name, focalPoint, tags & custom fields of an Asset.
      */
     async update(ctx: RequestContext, input: UpdateAssetInput): Promise<Translated<Asset>> {
-        const asset = await this.connection.getEntityOrThrow(ctx, Asset, input.id);
+        // Ensure the entity belongs to the active channel before updating.
+        const asset = await this.connection.getEntityOrThrow(ctx, Asset, input.id, {
+            channelId: ctx.channelId,
+        });
         if (input.focalPoint) {
             const to3dp = (x: number) => +x.toFixed(3);
             input.focalPoint.x = to3dp(input.focalPoint.x);

@@ -360,5 +360,76 @@ describe('Stock location', () => {
 
             expect(productVariant?.stockLevels.length).toBe(0);
         });
+
+        // Cross-channel update protection
+        // Verifies that a channel-scoped admin cannot update a StockLocation belonging
+        // to another channel. This is the guard added by the channelId fix.
+        describe('cross-channel update protection', () => {
+            const CHANNEL_A_TOKEN = 'stock-loc-cross-channel-a';
+            const CHANNEL_B_TOKEN = 'stock-loc-cross-channel-b';
+            let targetLocationId: string;
+
+            beforeAll(async () => {
+                adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+                // Create two isolated channels
+                for (const [code, token] of [
+                    ['stock-loc-cross-a', CHANNEL_A_TOKEN],
+                    ['stock-loc-cross-b', CHANNEL_B_TOKEN],
+                ]) {
+                    await adminClient.query(createChannelDocument, {
+                        input: {
+                            code,
+                            token,
+                            defaultLanguageCode: LanguageCode.en,
+                            currencyCode: CurrencyCode.GBP,
+                            pricesIncludeTax: true,
+                            defaultShippingZoneId: 'T_1',
+                            defaultTaxZoneId: 'T_1',
+                        },
+                    });
+                }
+                // Create a StockLocation in Channel A
+                adminClient.setChannelToken(CHANNEL_A_TOKEN);
+                const { createStockLocation } = await adminClient.query(
+                    testCreateStockLocationDocument,
+                    {
+                        input: {
+                            name: 'Channel-A Location',
+                            description: 'Belongs to Channel A only',
+                        },
+                    },
+                );
+                targetLocationId = createStockLocation.id;
+            });
+
+            afterAll(() => {
+                adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            });
+
+            it('cannot update a StockLocation belonging to another channel', async () => {
+                // Channel B does not contain this StockLocation; the update must be rejected.
+                adminClient.setChannelToken(CHANNEL_B_TOKEN);
+                await expect(
+                    adminClient.query(testUpdateStockLocationDocument, {
+                        input: {
+                            id: targetLocationId,
+                            name: 'PWNED-BY-CHANNEL-B',
+                            description: 'TAMPERED-CROSS-CHANNEL',
+                        },
+                    }),
+                ).rejects.toThrow(/No StockLocation with the id .* could be found/);
+
+                // Verify the original entity in Channel A is completely unchanged.
+                adminClient.setChannelToken(CHANNEL_A_TOKEN);
+                const { stockLocations } = await adminClient.query(
+                    testGetStockLocationsListDocument,
+                );
+                const target = stockLocations.items.find(
+                    (sl: any) => sl.id === targetLocationId,
+                );
+                expect(target?.name).toBe('Channel-A Location');
+                expect(target?.description).toBe('Belongs to Channel A only');
+            });
+        });
     });
 });

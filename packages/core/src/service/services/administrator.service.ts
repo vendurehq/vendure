@@ -13,9 +13,10 @@ import { Instrument } from '../../common';
 import { EntityNotFoundError, InternalServerError, UserInputError } from '../../common/error/errors';
 import { ListQueryOptions } from '../../common/types/common-types';
 import { assertFound, idsAreEqual, normalizeEmailAddress } from '../../common/utils';
-import { ConfigService } from '../../config';
+import { API_KEY_AUTH_STRATEGY_NAME, ConfigService, Logger } from '../../config';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Administrator } from '../../entity/administrator/administrator.entity';
+import { ApiKey } from '../../entity/api-key/api-key.entity';
 import { NativeAuthenticationMethod } from '../../entity/authentication-method/native-authentication-method.entity';
 import { Role } from '../../entity/role/role.entity';
 import { User } from '../../entity/user/user.entity';
@@ -125,6 +126,65 @@ export class AdministratorService {
 
     /**
      * @description
+     * Resolves the Administrator to be credited as the actor of the current request when
+     * recording an audit trail, e.g. the `administrator` of a {@link HistoryEntry}.
+     *
+     * For a regular session this is the Administrator of the active User, exactly as returned by
+     * {@link AdministratorService.findOneByUserId}.
+     *
+     * An API-Key session authenticates as the synthetic "API-Key user" created alongside the key,
+     * which has no Administrator of its own. For those sessions we fall back to the Administrator
+     * of the {@link ApiKey}'s `owner`, so that actions performed with the key are attributed to the
+     * Administrator who created it. The owner is not required to be an Administrator — it may be a
+     * Customer's User — in which case `undefined` is returned and the entry stays unattributed.
+     *
+     * This is deliberately kept separate from {@link AdministratorService.findOneByUserId}, which
+     * answers the literal question "which Administrator belongs to this User id?".
+     *
+     * **Never use this method to make authorization decisions.** The Administrator it returns is not
+     * the authenticated principal of the request, and their permissions do not apply to it.
+     *
+     * @since 3.6.4
+     */
+    async resolveActorAdministrator(
+        ctx: RequestContext,
+        relations?: RelationPaths<Administrator>,
+    ): Promise<Administrator | undefined> {
+        if (!ctx.activeUserId) {
+            return undefined;
+        }
+        const activeAdministrator = await this.findOneByUserId(ctx, ctx.activeUserId, relations);
+        if (activeAdministrator) {
+            return activeAdministrator;
+        }
+        if (ctx.session?.authenticationStrategy !== API_KEY_AUTH_STRATEGY_NAME) {
+            return undefined;
+        }
+        // The ApiKey lookup is intentionally not Channel-scoped: the AuthGuard resolves the key
+        // via the Channel-aware ApiKeyService.findOneByLookupId() on every request, so a key which
+        // gets this far is by definition valid for the current Channel.
+        const apiKey = await this.connection.getRepository(ctx, ApiKey).findOne({
+            select: { id: true, ownerId: true },
+            where: {
+                userId: ctx.activeUserId,
+                deletedAt: IsNull(),
+            },
+        });
+        if (!apiKey) {
+            return undefined;
+        }
+        const ownerAdministrator = await this.findOneByUserId(ctx, apiKey.ownerId, relations);
+        if (!ownerAdministrator) {
+            Logger.verbose(
+                `The owner (User ${String(apiKey.ownerId)}) of ApiKey ${String(apiKey.id)} is not an ` +
+                    'Administrator, so the current request cannot be attributed to one.',
+            );
+        }
+        return ownerAdministrator;
+    }
+
+    /**
+     * @description
      * Create a new Administrator.
      */
     async create(ctx: RequestContext, input: CreateAdministratorInput): Promise<Administrator> {
@@ -159,6 +219,7 @@ export class AdministratorService {
         if (!administrator) {
             throw new EntityNotFoundError('Administrator', input.id);
         }
+        await this.checkActiveUserCanManageAdministrator(ctx, administrator);
         if (input.roleIds) {
             await this.checkActiveUserCanGrantRoles(ctx, input.roleIds);
         }
@@ -236,6 +297,18 @@ export class AdministratorService {
             if (!activeUserHasRequiredPermissions) {
                 throw new UserInputError('error.active-user-does-not-have-sufficient-permissions');
             }
+        }
+    }
+
+    /**
+     * Ensures the active user holds all of the target administrator's permissions on all of the target's
+     * channels before allowing the target to be modified, so a lower-privileged administrator cannot
+     * modify a higher-privileged one (including a SuperAdmin).
+     */
+    private async checkActiveUserCanManageAdministrator(ctx: RequestContext, administrator: Administrator) {
+        const targetRoleIds = administrator.user.roles.map(role => role.id);
+        if (targetRoleIds.length) {
+            await this.checkActiveUserCanGrantRoles(ctx, targetRoleIds);
         }
     }
 

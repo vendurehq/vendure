@@ -454,6 +454,51 @@ describe('Custom field relations', () => {
 
                 assertCustomFieldIds(updateCustomerAddress.customFields, 'T_3', ['T_2', 'T_4']);
             });
+
+            // Regression: an OrderAddress (Order.shippingAddress / billingAddress) is an embedded
+            // value object with no `id`, so its relation custom fields cannot be resolved by a parent
+            // entity id. Previously this threw "The loader.load() function must be called with a
+            // value, but got: undefined"; it must now resolve to null / [] instead of crashing.
+            it('order shippingAddress resolves relation custom fields without throwing', async () => {
+                await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
+                await shopClient.query(gql`
+                    mutation {
+                        addItemToOrder(productVariantId: "T_1", quantity: 1) {
+                            ... on Order {
+                                id
+                            }
+                        }
+                    }
+                `);
+                await shopClient.query(gql`
+                    mutation {
+                        setOrderShippingAddress(
+                            input: {
+                                countryCode: "GB"
+                                streetLine1: "Test Street"
+                                customFields: { singleId: "T_1", multiIds: ["T_1", "T_2"] }
+                            }
+                        ) {
+                            ... on Order {
+                                id
+                            }
+                        }
+                    }
+                `);
+
+                const { activeOrder } = await shopClient.query(gql`
+                    query {
+                        activeOrder {
+                            shippingAddress {
+                                ${customFieldsSelection}
+                            }
+                        }
+                    }
+                `);
+
+                expect(activeOrder.shippingAddress.customFields.single).toBeNull();
+                expect(activeOrder.shippingAddress.customFields.multi).toEqual([]);
+            });
         });
 
         describe('Collection entity', () => {

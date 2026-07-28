@@ -73,7 +73,7 @@ msgstr "अर्डरमा कम्तिमा एउटा वस्तु
 msgid "Add products to create a test order"
 msgstr "परीक्षण अर्डर सिर्जना गर्न उत्पादनहरू थप्नुहोस्"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:124
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:128
 msgid "Failed to create address"
 msgstr "ठेगाना सिर्जना गर्न असफल"
 
@@ -157,7 +157,7 @@ msgstr "कर दर सफलतापूर्वक अपडेट गर�
 msgid "Enter custom reason..."
 msgstr "अनुकूलित कारण लेख्नुहोस्..."
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:744
+#: src/lib/components/shared/asset/asset-gallery.tsx:751
 msgid "Type"
 msgstr "प्रकार"
 
@@ -168,7 +168,7 @@ msgstr ""
 #. placeholder {0}: entityName.toLowerCase()
 #. placeholder {0}: group.name
 #: src/app/routes/_authenticated/_products/components/product-option-select.tsx:57
-#: src/lib/components/data-input/default-relation-input.tsx:676
+#: src/lib/components/data-input/default-relation-input.tsx:679
 msgid "Select {0}"
 msgstr "{0} चयन गर्नुहोस्"
 
@@ -198,6 +198,13 @@ msgstr "हालको"
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:326
 msgid "No fulfillments"
 msgstr "कुनै पूर्तिहरू छैनन्"
+
+#. placeholder {0}: failed.length
+#. placeholder {1}: failed.length
+#. placeholder {2}: failed.length
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:116
+msgid "{0, plural, one {Failed to delete {1} stock location: {messages}} other {Failed to delete {2} stock locations: {messages}}}"
+msgstr "{0, plural, one {{1} स्टक स्थान मेट्न सकिएन: {messages}} other {{2} स्टक स्थानहरू मेट्न सकिएन: {messages}}}"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:339
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
@@ -281,7 +288,7 @@ msgstr "स्टक स्थानहरू"
 msgid "Fulfillment handler"
 msgstr "पूर्ति ह्यान्डलर"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:247
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:251
 #: src/app/routes/_authenticated/_orders/orders.tsx:21
 #: src/app/routes/_authenticated/_orders/orders.tsx:37
 #: src/app/routes/_authenticated/_orders/utils/order-detail-loaders.tsx:48
@@ -307,7 +314,7 @@ msgstr "के तपाईं निश्चित हुनुहुन्छ
 #~ msgid "All resources are up and running"
 #~ msgstr "सबै स्रोतहरू चलिरहेका छन्"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:87
 msgid "Failed to create administrator"
 msgstr "प्रशासक सिर्जना गर्न असफल"
 
@@ -335,9 +342,9 @@ msgstr "देश अपडेट गर्न असफल"
 msgid "Type at least 2 characters to search..."
 msgstr "खोज्न कम्तिमा २ वर्णहरू टाइप गर्नुहोस्..."
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:121
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:182
-#: src/app/routes/_authenticated/_profile/profile.tsx:108
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:122
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:186
+#: src/app/routes/_authenticated/_profile/profile.tsx:109
 msgid "Last name"
 msgstr "थर"
 
@@ -384,7 +391,7 @@ msgstr "विवरणहरू हेर्नुहोस्"
 msgid "Select a channel to assign {0} {entityType} to"
 msgstr "{0} {entityType} असाइन गर्न च्यानल चयन गर्नुहोस्"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:98
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:100
 msgid "Successfully created customer"
 msgstr "ग्राहक सफलतापूर्वक सिर्जना गरियो"
 
@@ -513,7 +520,7 @@ msgstr "मुख्य उत्पादन"
 msgid "City"
 msgstr "शहर"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:37
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:15
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:22
 msgid "Administrators"
@@ -616,7 +623,7 @@ msgstr "थप्दै..."
 msgid "Move Collections"
 msgstr "संग्रहहरू सार्नुहोस्"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:139
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:140
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:55
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:170
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
@@ -787,7 +794,7 @@ msgstr "मस्यौदा पूरा गर्नुहोस्"
 #: src/app/routes/_authenticated/_tax-categories/tax-categories_.$id.tsx:106
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:113
 #: src/app/routes/_authenticated/_zones/zones_.$id.tsx:93
-#: src/lib/components/shared/asset/asset-gallery.tsx:743
+#: src/lib/components/shared/asset/asset-gallery.tsx:750
 msgid "Name"
 msgstr "नाम"
 
@@ -827,7 +834,7 @@ msgstr "पूर्ति सिर्जना गरियो"
 msgid "Found {0} eligible shipping method{1}"
 msgstr "{0} योग्य ढुवानी विधि फेला पर्यो"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:746
+#: src/lib/components/shared/asset/asset-gallery.tsx:753
 #: src/lib/components/shared/asset/asset-properties.tsx:39
 msgid "Dimensions"
 msgstr "आयाम"
@@ -970,9 +977,9 @@ msgstr "अर्डरको लागि बिलिङ ठेगाना �
 msgid "Failed to update zone"
 msgstr "क्षेत्र अपडेट गर्न असफल"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:133
-#: src/app/routes/_authenticated/_profile/profile.tsx:120
-#: src/app/routes/_authenticated/_profile/profile.tsx:137
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:134
+#: src/app/routes/_authenticated/_profile/profile.tsx:121
+#: src/app/routes/_authenticated/_profile/profile.tsx:138
 #: src/lib/components/login/login-form.tsx:93
 msgid "Password"
 msgstr "पासवर्ड"
@@ -1043,6 +1050,10 @@ msgstr "आवंटित"
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:310
 msgid "Failed to set coupon code for order: {0}"
 msgstr ""
+
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:191
+msgid "Select what to do with remaining stock"
+msgstr "बाँकी स्टकको के गर्ने भन्ने छान्नुहोस्"
 
 #: src/lib/components/layout/nav-user.tsx:102
 msgid "Explore Platform & Cloud"
@@ -1153,7 +1164,7 @@ msgstr "कार्य पंक्ति"
 msgid "Assets"
 msgstr "सम्पत्तिहरू"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:188
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:192
 msgid "Email address"
 msgstr "इमेल ठेगाना"
 
@@ -1245,7 +1256,7 @@ msgid "No items selected"
 msgstr "कुनै वस्तुहरू चयन गरिएको छैन"
 
 #. placeholder {0}: selected.length
-#: src/lib/components/shared/asset/asset-gallery.tsx:469
+#: src/lib/components/shared/asset/asset-gallery.tsx:476
 msgid ", {0} selected"
 msgstr ", {0} चयन गरिएको"
 
@@ -1359,7 +1370,7 @@ msgstr "{0} को नक्कल सेटिङहरू कन्फिग�
 msgid "No variants match the current filter."
 msgstr "हालको फिल्टरसँग मिल्ने कुनै भेरियन्ट छैन।"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:203
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:207
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:245
 msgid "Addresses"
 msgstr "ठेगानाहरू"
@@ -1441,6 +1452,11 @@ msgstr "प्रदर्शन भाषा"
 msgid "Fulfillment details"
 msgstr "पूर्ति विवरणहरू"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:89
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:202
+msgid "Discard remaining stock"
+msgstr "बाँकी स्टक हटाउनुहोस्"
+
 #: src/lib/components/data-input/datetime-input.tsx:181
 msgid "Now"
 msgstr "अहिले"
@@ -1463,7 +1479,7 @@ msgstr "अघि"
 msgid "Failed to set customer for order: {0}"
 msgstr ""
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:745
+#: src/lib/components/shared/asset/asset-gallery.tsx:752
 msgid "Size"
 msgstr "आकार"
 
@@ -1491,6 +1507,8 @@ msgstr "पूर्वनिर्धारित बिलिङ ठेगा�
 #: src/app/common/delete-bulk-action.tsx:139
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:41
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:337
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:217
+#: src/app/routes/_authenticated/_stock-locations/components/stock-location-bulk-actions.tsx:28
 #: src/lib/components/data-table/use-generated-columns.tsx:407
 #: src/lib/components/data-table/use-generated-columns.tsx:437
 #: src/lib/components/data-table/views-sheet.tsx:270
@@ -1579,7 +1597,7 @@ msgstr "ठेगाना सफलतापूर्वक अपडेट ग
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
-#: src/lib/components/shared/asset/asset-gallery.tsx:747
+#: src/lib/components/shared/asset/asset-gallery.tsx:754
 #: src/lib/framework/layout-engine/page-layout.tsx:733
 msgid "Created"
 msgstr "सिर्जना गरिएको"
@@ -1629,6 +1647,7 @@ msgstr "अन्तिम पृष्ठमा जानुहोस्"
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:71
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:273
 #: src/app/routes/_authenticated/_products/components/force-remove-option-group-dialog.tsx:48
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:210
 #: src/app/routes/_authenticated/_system/settings-store.tsx:140
 #: src/lib/components/data-input/product-multi-selector-input.tsx:470
 #: src/lib/components/data-table/data-table-bulk-action-item.tsx:122
@@ -1811,14 +1830,14 @@ msgstr "कर वर्ग अपडेट गर्न असफल"
 msgid "Refund settled successfully"
 msgstr "रिफन्ड सफलतापूर्वक सम्पन्न भयो"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx:115
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:214
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:163
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:99
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:102
@@ -1829,7 +1848,7 @@ msgstr "रिफन्ड सफलतापूर्वक सम्पन्�
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:279
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:212
-#: src/app/routes/_authenticated/_profile/profile.tsx:92
+#: src/app/routes/_authenticated/_profile/profile.tsx:93
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
@@ -1850,7 +1869,7 @@ msgstr "शीर्षक २"
 msgid "Order placed"
 msgstr "अर्डर राखियो"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:71
+#: src/app/routes/_authenticated/_profile/profile.tsx:72
 msgid "Successfully updated profile"
 msgstr "प्रोफाइल सफलतापूर्वक अपडेट गरियो"
 
@@ -1911,6 +1930,10 @@ msgstr "कुनै परिणामहरू छैनन्"
 msgid "Column settings"
 msgstr "स्तम्भ सेटिङहरू"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:137
+msgid "{count, plural, one {Failed to delete {count} stock location} other {Failed to delete {count} stock locations}}"
+msgstr "{count, plural, one {{count} स्टक स्थान मेट्न सकिएन} other {{count} स्टक स्थानहरू मेट्न सकिएन}}"
+
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:224
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:137
@@ -1932,6 +1955,14 @@ msgstr "विकल्प समूहहरू हटाउन असफल �
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:97
 msgid "Order delivered"
 msgstr "अर्डर वितरण गरियो"
+
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:47
+msgid "Transfer to {name}"
+msgstr "{name} मा सार्नुहोस्"
+
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:174
+msgid "Remaining stock"
+msgstr "बाँकी स्टक"
 
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx:49
 msgid "Remove from zone"
@@ -1971,13 +2002,13 @@ msgid "Facets"
 msgstr "विशेषताहरू"
 
 #. js-lingui-explicit-id
-#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:103
+#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:107
 #: src/app/routes/_authenticated/_orders/components/order-history/use-order-history.ts:108
 msgid "Failed to add note"
 msgstr "टिप्पणी थप्न असफल"
 
 #. js-lingui-explicit-id
-#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:144
+#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:148
 #: src/app/routes/_authenticated/_orders/components/order-history/use-order-history.ts:150
 msgid "Failed to delete note"
 msgstr "टिप्पणी मेट्न असफल"
@@ -1988,7 +2019,7 @@ msgid "Failed to extend query document"
 msgstr "क्वेरी कागजात विस्तार गर्न असफल"
 
 #. js-lingui-explicit-id
-#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:124
+#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:128
 #: src/app/routes/_authenticated/_orders/components/order-history/use-order-history.ts:129
 msgid "Failed to update note"
 msgstr "टिप्पणी अपडेट गर्न असफल"
@@ -2617,7 +2648,7 @@ msgstr "नयाँ कर वर्ग"
 msgid "Successfully created channel"
 msgstr "च्यानल सफलतापूर्वक सिर्जना गरियो"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:98
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:100
 msgid "Successfully updated customer"
 msgstr "ग्राहक सफलतापूर्वक अपडेट गरियो"
 
@@ -2629,7 +2660,7 @@ msgstr "डेटा हेर्नुहोस्"
 msgid "Delete View"
 msgstr "दृश्य मेट्नुहोस्"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:231
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:235
 msgid "Add a new address to the customer."
 msgstr "ग्राहकमा नयाँ ठेगाना थप्नुहोस्।"
 
@@ -2760,8 +2791,8 @@ msgstr "रकम"
 msgid "Phone Number"
 msgstr "फोन नम्बर"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:62
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:152
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:63
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:156
 msgid "New customer"
 msgstr "नयाँ ग्राहक"
 
@@ -2770,7 +2801,7 @@ msgstr "नयाँ ग्राहक"
 msgid "Image"
 msgstr "छवि"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:77
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:78
 msgid "Successfully created administrator"
 msgstr "प्रशासक सफलतापूर्वक सिर्जना गरियो"
 
@@ -2795,12 +2826,12 @@ msgstr "के तपाईं निश्चित हुनुहुन्छ
 msgid "Force remove option group"
 msgstr "विकल्प समूह बलपूर्वक हटाउनुहोस्"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:140
+#: src/app/routes/_authenticated/_profile/profile.tsx:141
 msgid "Added"
 msgstr "थपियो"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-container.tsx:30
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:250
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:254
 msgid "Customer history"
 msgstr "ग्राहक इतिहास"
 
@@ -2808,7 +2839,7 @@ msgstr "ग्राहक इतिहास"
 msgid "Successfully updated facet values for {entityIdsLength} {entityType}"
 msgstr "{entityIdsLength} {entityType} को लागि विशेषता मानहरू सफलतापूर्वक अपडेट गरियो"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:144
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:148
 msgid "Failed to remove customer from group"
 msgstr "समूहबाट ग्राहक हटाउन असफल"
 
@@ -2842,13 +2873,13 @@ msgstr "फिर्ता कुल अधिकतम फिर्ता य�
 msgid "Delete Global View"
 msgstr "ग्लोबल दृश्य मेट्नुहोस्"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:105
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:106
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:155
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:214
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx:148
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:84
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:159
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:163
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:99
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
@@ -2882,8 +2913,8 @@ msgstr "नयाँ देश"
 msgid "From {0} to {1}"
 msgstr "{0} बाट {1} सम्म"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:105
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:111
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:109
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:115
 msgid "Failed to create customer"
 msgstr "ग्राहक सिर्जना गर्न असफल"
 
@@ -3211,7 +3242,7 @@ msgstr "प्रदर्शन भाषा चयन गर्नुहोस
 msgid "Select Payment Handler"
 msgstr ""
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:128
+#: src/app/routes/_authenticated/_profile/profile.tsx:129
 msgid "Authentication methods"
 msgstr "प्रमाणीकरण विधिहरू"
 
@@ -3251,7 +3282,7 @@ msgid "Processing..."
 msgstr "प्रशोधन गर्दै..."
 
 #. placeholder {0}: totalItems === 1 ? 'asset' : 'assets'
-#: src/lib/components/shared/asset/asset-gallery.tsx:465
+#: src/lib/components/shared/asset/asset-gallery.tsx:472
 msgid "{totalItems} {0} found"
 msgstr "{totalItems} {0} भेटियो"
 
@@ -3302,6 +3333,10 @@ msgstr "पुनः क्रम गर्न तान्नुहोस्"
 #: src/app/routes/_authenticated/_zones/zones.tsx:24
 msgid "Zones"
 msgstr "क्षेत्रहरू"
+
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:163
+msgid "Choose what to do with any stock remaining in the {count, plural, one {# stock location} other {# stock locations}} you are deleting. All selected locations transfer their remaining stock into the single location you choose, or discard it."
+msgstr "तपाईंले मेट्न लाग्नुभएको {count, plural, one {# स्टक स्थान} other {# स्टक स्थानहरू}} मा बाँकी रहेको स्टकको के गर्ने भन्ने छान्नुहोस्। चयन गरिएका सबै स्थानहरूले आफ्नो बाँकी स्टक तपाईंले छान्नुभएको एउटै स्थानमा सार्छन्, वा त्यसलाई हटाउँछन्।"
 
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:170
 #: src/lib/components/shared/facet-value-selector.tsx:123
@@ -3389,6 +3424,10 @@ msgstr "देश चयन गर्नुहोस्"
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:100
 msgid "Failed to update shipping method"
 msgstr "ढुवानी विधि अद्यावधिक गर्न असफल"
+
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:103
+msgid "{deleted, plural, one {Deleted {deleted} stock location} other {Deleted {deleted} stock locations}}"
+msgstr "{deleted, plural, one {{deleted} स्टक स्थान मेटियो} other {{deleted} स्टक स्थानहरू मेटिए}}"
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:42
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods.tsx:19
@@ -3584,6 +3623,10 @@ msgstr "ड्राफ्ट अर्डर स्थिति"
 #~ msgid "Successfully created product options"
 #~ msgstr "उत्पादन विकल्पहरू सफलतापूर्वक सिर्जना गरियो"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:190
+msgid "Loading locations…"
+msgstr "स्थानहरू लोड हुँदै छन्…"
+
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:110
 msgid "Failed to create payment method"
 msgstr "भुक्तानी विधि सिर्जना गर्न असफल"
@@ -3618,7 +3661,7 @@ msgstr "मुद्राहरू खोज्नुहोस्..."
 msgid "Remove from channel"
 msgstr "च्यानलबाट हटाउनुहोस्"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:169
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:173
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:157
 msgid "Title"
 msgstr "शीर्षक"
@@ -3661,6 +3704,13 @@ msgstr "भुक्तानी सम्पन्न गर्न असफल
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:300
 msgid "No billing address"
 msgstr "कुनै बिलिङ ठेगाना छैन"
+
+#. placeholder {0}: failed.length
+#. placeholder {1}: failed.length
+#. placeholder {2}: failed.length
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:120
+msgid "{0, plural, one {Failed to delete {1} stock location} other {Failed to delete {2} stock locations}}"
+msgstr "{0, plural, one {{1} स्टक स्थान मेट्न सकिएन} other {{2} स्टक स्थानहरू मेट्न सकिएन}}"
 
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:119
 msgid "Facet"
@@ -3779,8 +3829,8 @@ msgstr "भेरियन्टहरू फिल्टर गर्नुह�
 msgid "Add a price in another currency"
 msgstr "अर्को मुद्रामा मूल्य थप्नुहोस्"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:127
-#: src/app/routes/_authenticated/_profile/profile.tsx:114
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:128
+#: src/app/routes/_authenticated/_profile/profile.tsx:115
 msgid "Email Address or identifier"
 msgstr "इमेल ठेगाना वा पहिचानकर्ता"
 
@@ -3791,7 +3841,7 @@ msgid "Refund #{0} transitioned to {1}"
 msgstr "रिफन्ड #{0} {1} मा संक्रमण भयो"
 
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:110
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:61
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:62
 #: src/app/routes/_authenticated/_customers/customers.tsx:15
 #: src/app/routes/_authenticated/_customers/customers.tsx:21
 msgid "Customers"
@@ -3843,19 +3893,19 @@ msgid "between"
 msgstr "बीच"
 
 #. js-lingui-explicit-id
-#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:99
+#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:103
 #: src/app/routes/_authenticated/_orders/components/order-history/use-order-history.ts:104
 msgid "Note added successfully"
 msgstr "टिप्पणी सफलतापूर्वक थपियो"
 
 #. js-lingui-explicit-id
-#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:140
+#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:144
 #: src/app/routes/_authenticated/_orders/components/order-history/use-order-history.ts:146
 msgid "Note deleted successfully"
 msgstr "टिप्पणी सफलतापूर्वक मेटियो"
 
 #. js-lingui-explicit-id
-#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:120
+#: src/app/routes/_authenticated/_customers/components/customer-history/use-customer-history.ts:124
 #: src/app/routes/_authenticated/_orders/components/order-history/use-order-history.ts:125
 msgid "Note updated successfully"
 msgstr "टिप्पणी सफलतापूर्वक अपडेट गरियो"
@@ -3960,7 +4010,7 @@ msgstr "मा छ"
 msgid "Email"
 msgstr "इमेल"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:86
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:87
 msgid "Failed to update administrator"
 msgstr "प्रशासक अपडेट गर्न असफल"
 
@@ -4438,7 +4488,7 @@ msgstr "नयाँ विक्रेता"
 msgid "e.g., Red, Large, Cotton"
 msgstr "जस्तै रातो, ठूलो, कपास"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:75
+#: src/app/routes/_authenticated/_profile/profile.tsx:76
 msgid "Failed to update profile"
 msgstr "प्रोफाइल अपडेट गर्न असफल"
 
@@ -4454,7 +4504,7 @@ msgstr "फिल्टर खाली गर्नुहोस्"
 msgid "Regions"
 msgstr "क्षेत्रहरू"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:438
+#: src/lib/components/shared/asset/asset-gallery.tsx:445
 msgid "Drop files here to upload"
 msgstr "अपलोड गर्न यहाँ फाइलहरू छोड्नुहोस्"
 
@@ -4613,6 +4663,10 @@ msgstr "कस्टम फिल्डहरू"
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods.tsx:71
 msgid "New Shipping Method"
 msgstr "नयाँ ढुवानी विधि"
+
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:160
+msgid "Delete stock locations"
+msgstr "स्टक स्थानहरू मेट्नुहोस्"
 
 #: src/lib/components/data-table/human-readable-operator.tsx:47
 msgid "is greater than or equal to"
@@ -4796,7 +4850,7 @@ msgstr "राज्य / प्रान्त"
 msgid "Enabled"
 msgstr "सक्षम"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:476
+#: src/lib/components/shared/asset/asset-gallery.tsx:483
 msgid "Items per page"
 msgstr "प्रति पृष्ठ वस्तुहरू"
 
@@ -5015,8 +5069,8 @@ msgstr "भिन्नता नाम"
 msgid "Remove"
 msgstr "हटाउनुहोस्"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:105
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:111
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:109
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:115
 msgid "Failed to update customer"
 msgstr "ग्राहक अपडेट गर्न असफल"
 
@@ -5183,7 +5237,7 @@ msgstr "टाइप गर्नुहोस् र थप्न Enter वा �
 msgid "Edit Note"
 msgstr "टिप्पणी सम्पादन गर्नुहोस्"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:628
+#: src/lib/components/shared/asset/asset-gallery.tsx:635
 msgid "No assets found. Try adjusting your filters."
 msgstr "कुनै एसेट भेटिएन। कृपया फिल्टरहरू समायोजन गर्नुहोस्।"
 
@@ -5203,7 +5257,7 @@ msgstr "विकल्प समूह सुरक्षित गर्नु
 msgid "Click \"Run Test\" to test this shipping method."
 msgstr "यो ढुवानी विधि परीक्षण गर्न \"परीक्षण चलाउनुहोस्\" क्लिक गर्नुहोस्।"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:78
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:79
 msgid "Successfully updated administrator"
 msgstr "प्रशासक सफलतापूर्वक अपडेट गरियो"
 
@@ -5228,7 +5282,7 @@ msgstr "ग्लोबल दृश्य मेट्न असफल"
 msgid "Default language"
 msgstr "पूर्वनिर्धारित भाषा"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:253
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:257
 #: src/app/routes/_authenticated/_customers/customers.tsx:44
 msgid "Status"
 msgstr "स्थिति"
@@ -5325,7 +5379,7 @@ msgid "Customer not found"
 msgstr "ग्राहक फेला परेन"
 
 #. placeholder {0}: entityName.toLowerCase()
-#: src/lib/components/data-input/default-relation-input.tsx:663
+#: src/lib/components/data-input/default-relation-input.tsx:666
 msgid "Select {0}s"
 msgstr "{0} चयन गर्नुहोस्"
 
@@ -5338,9 +5392,9 @@ msgstr "थप्नको लागि नयाँ विशेषता म�
 msgid "Failed to process refund"
 msgstr "फिर्ता प्रक्रिया गर्न असफल"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:115
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:176
-#: src/app/routes/_authenticated/_profile/profile.tsx:102
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:116
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:180
+#: src/app/routes/_authenticated/_profile/profile.tsx:103
 msgid "First name"
 msgstr "पहिलो नाम"
 
@@ -5397,8 +5451,8 @@ msgstr "फिल्टर थप्नुहोस्"
 msgid "Tax category"
 msgstr "कर वर्ग"
 
-#: src/app/routes/_authenticated/_profile/profile.tsx:38
-#: src/app/routes/_authenticated/_profile/profile.tsx:84
+#: src/app/routes/_authenticated/_profile/profile.tsx:39
+#: src/app/routes/_authenticated/_profile/profile.tsx:85
 #: src/lib/components/layout/nav-user.tsx:108
 msgid "Profile"
 msgstr "प्रोफाइल"
@@ -5428,7 +5482,7 @@ msgstr "नक्कल मान \"{trimmed}\" पहिले नै अवस
 msgid "Reason"
 msgstr "कारण"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:256
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:260
 msgid "Customer groups"
 msgstr "ग्राहक समूहहरू"
 
@@ -5546,8 +5600,8 @@ msgstr "च्यानलमा {entityIdsLength} {entityType} सफलता�
 msgid "Global Languages"
 msgstr "ग्लोबल भाषाहरू"
 
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:38
-#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:97
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:39
+#: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:98
 msgid "New administrator"
 msgstr "नयाँ प्रशासक"
 
@@ -5577,8 +5631,8 @@ msgstr "सामान्य"
 #~ msgid "Failed to remove product from channel"
 #~ msgstr "च्यानलबाट उत्पादन हटाउन असफल"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:223
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:228
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:227
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:232
 msgid "Add new address"
 msgstr "नयाँ ठेगाना थप्नुहोस्"
 
@@ -6057,7 +6111,7 @@ msgid "Payment method is required"
 msgstr "भुक्तानी विधि आवश्यक छ"
 
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:67
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:134
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:138
 msgid "Failed to add customer to group"
 msgstr "समूहमा ग्राहक थप्न असफल"
 
@@ -6095,7 +6149,7 @@ msgstr "विकल्प"
 msgid "Order process"
 msgstr "अर्डर प्रक्रिया"
 
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:194
+#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:198
 msgid "Phone number"
 msgstr "फोन नम्बर"
 
