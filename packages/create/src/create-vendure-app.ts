@@ -153,7 +153,9 @@ export async function createVendureApp(
         outro(e.message);
         process.exit(1);
     }
-    process.env.PORT = port.toString();
+    // Read back by the generated vendure-config when the dashboard build
+    // introspects it later in this same process.
+    process.env.VENDURE_SERVER_PORT = port.toString();
 
     const root = path.resolve(name);
     const appName = path.basename(root);

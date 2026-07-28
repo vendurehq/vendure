@@ -13,7 +13,8 @@ import 'dotenv/config';
 import path from 'path';
 
 const IS_DEV = process.env.APP_ENV === 'dev';
-const serverPort = +process.env.PORT || 3000;
+// PORT is the fallback because most hosting platforms inject it under that name.
+const serverPort = +process.env.VENDURE_SERVER_PORT || +process.env.PORT || 3000;
 
 export const config: VendureConfig = {
     apiOptions: {
