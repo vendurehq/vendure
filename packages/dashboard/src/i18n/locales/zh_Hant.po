@@ -175,7 +175,6 @@ msgid "Enter custom reason..."
 msgstr "輸入自訂原因..."
 
 #: src/lib/components/shared/asset/asset-gallery.tsx:1100
-#: src/lib/components/shared/asset/asset-gallery.tsx:751
 msgid "Type"
 msgstr "類型"
 
@@ -189,7 +188,6 @@ msgstr ""
 #: src/app/routes/_authenticated/_products/components/product-option-select.tsx:57
 #: src/lib/components/data-input/default-relation-input.tsx:674
 #: src/lib/components/shared/asset/asset-gallery.tsx:976
-#: src/lib/components/data-input/default-relation-input.tsx:679
 msgid "Select {0}"
 msgstr "選取 {0}"
 
@@ -220,7 +218,6 @@ msgstr "目前"
 msgid "No fulfillments"
 msgstr "無履行"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:342
 #. placeholder {0}: failed.length
 #. placeholder {1}: failed.length
 #. placeholder {2}: failed.length
@@ -228,7 +225,7 @@ msgstr "無履行"
 msgid "{0, plural, one {Failed to delete {1} stock location: {messages}} other {Failed to delete {2} stock locations: {messages}}}"
 msgstr "{0, plural, other {無法刪除 {2} 個庫存地點：{messages}}}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:339
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:342
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
 msgstr "啟用後，商品目錄中輸入的價格將包含預設稅務區域的稅金。"
 
@@ -332,7 +329,6 @@ msgid "Fulfillment handler"
 msgstr "履行處理器"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:252
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:251
 #: src/app/routes/_authenticated/_orders/orders.tsx:21
 #: src/app/routes/_authenticated/_orders/orders.tsx:37
 #: src/app/routes/_authenticated/_orders/utils/order-detail-loaders.tsx:48
@@ -373,6 +369,7 @@ msgid "Failed to create administrator"
 msgstr "建立管理員失敗"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:402
+#: src/lib/components/data-display/boolean.tsx:12
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx:98
 msgid "No"
 msgstr "否"
@@ -404,7 +401,6 @@ msgstr "至少輸入 2 個字元進行搜尋..."
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:122
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:186
 #: src/app/routes/_authenticated/_profile/profile.tsx:151
-#: src/app/routes/_authenticated/_profile/profile.tsx:109
 msgid "Last name"
 msgstr "姓氏"
 
@@ -742,7 +738,6 @@ msgstr "移動集合"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:140
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:57
-#: src/app/routes/_authenticated/_administrators/administrators.tsx:55
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:170
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
 #: src/app/routes/_authenticated/_roles/roles.tsx:18
@@ -936,7 +931,6 @@ msgstr "完成草稿"
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:113
 #: src/app/routes/_authenticated/_zones/zones_.$id.tsx:93
 #: src/lib/components/shared/asset/asset-gallery.tsx:1088
-#: src/lib/components/shared/asset/asset-gallery.tsx:750
 msgid "Name"
 msgstr "名稱"
 
@@ -977,7 +971,6 @@ msgid "Found {0} eligible shipping method{1}"
 msgstr "找到 {0} 個符合條件的配送方式"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx:1132
-#: src/lib/components/shared/asset/asset-gallery.tsx:753
 #: src/lib/components/shared/asset/asset-properties.tsx:39
 msgid "Dimensions"
 msgstr "尺寸"
@@ -1141,9 +1134,6 @@ msgstr "更新區域失敗"
 #: src/app/routes/_authenticated/_profile/profile.tsx:163
 #: src/app/routes/_authenticated/_profile/profile.tsx:220
 #: src/lib/components/login/login-form.tsx:94
-#: src/app/routes/_authenticated/_profile/profile.tsx:121
-#: src/app/routes/_authenticated/_profile/profile.tsx:138
-#: src/lib/components/login/login-form.tsx:93
 msgid "Password"
 msgstr "密碼"
 
@@ -1227,16 +1217,15 @@ msgstr "已配置"
 msgid "Failed to set coupon code for order: {0}"
 msgstr "為訂單設定優惠券代碼失敗：{0}"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:191
+msgid "Select what to do with remaining stock"
+msgstr "請選擇如何處理剩餘庫存"
+
 #: src/lib/components/data-table/data-table-settings-menu.tsx:64
 msgid "Table settings"
 msgstr "表格設定"
 
 #: src/lib/components/layout/nav-user.tsx:93
-#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:191
-msgid "Select what to do with remaining stock"
-msgstr "請選擇如何處理剩餘庫存"
-
-#: src/lib/components/layout/nav-user.tsx:102
 msgid "Explore Platform & Cloud"
 msgstr "探索 Platform & Cloud"
 
@@ -1463,7 +1452,6 @@ msgstr "未選取項目"
 
 #. placeholder {0}: selected.length
 #: src/lib/components/shared/asset/asset-gallery.tsx:681
-#: src/lib/components/shared/asset/asset-gallery.tsx:476
 msgid ", {0} selected"
 msgstr "，已選取 {0} 項"
 
@@ -1709,7 +1697,6 @@ msgid "Failed to set customer for order: {0}"
 msgstr "為訂單設定客戶失敗：{0}"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx:1109
-#: src/lib/components/shared/asset/asset-gallery.tsx:752
 msgid "Size"
 msgstr "大小"
 
@@ -1745,14 +1732,10 @@ msgstr "用作預設帳單地址"
 
 #: src/app/common/delete-bulk-action.tsx:139
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:40
-#: src/lib/components/data-table/use-generated-columns.tsx:419
-#: src/lib/components/data-table/use-generated-columns.tsx:449
-#: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:41
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:337
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:217
 #: src/app/routes/_authenticated/_stock-locations/components/stock-location-bulk-actions.tsx:28
-#: src/lib/components/data-table/use-generated-columns.tsx:407
-#: src/lib/components/data-table/use-generated-columns.tsx:437
+#: src/lib/components/data-table/use-generated-columns.tsx:419
+#: src/lib/components/data-table/use-generated-columns.tsx:449
 #: src/lib/components/data-table/views-sheet.tsx:270
 #: src/lib/components/data-table/views-sheet.tsx:296
 msgid "Delete"
@@ -1849,9 +1832,6 @@ msgstr "地址已成功更新"
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:141
 #: src/lib/components/shared/asset/asset-gallery.tsx:1116
 #: src/lib/framework/layout-engine/page-layout.tsx:746
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
-#: src/lib/components/shared/asset/asset-gallery.tsx:754
-#: src/lib/framework/layout-engine/page-layout.tsx:733
 msgid "Created"
 msgstr "已建立"
 
@@ -1915,11 +1895,9 @@ msgstr "插入 {row}×{col} 表格"
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:71
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:272
 #: src/app/routes/_authenticated/_products/components/force-remove-option-group-dialog.tsx:48
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:210
 #: src/app/routes/_authenticated/_system/settings-store.tsx:150
 #: src/lib/components/data-input/product-multi-selector-input.tsx:471
-#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:210
-#: src/app/routes/_authenticated/_system/settings-store.tsx:140
-#: src/lib/components/data-input/product-multi-selector-input.tsx:470
 #: src/lib/components/data-table/data-table-bulk-action-item.tsx:122
 #: src/lib/components/data-table/use-generated-columns.tsx:435
 #: src/lib/components/data-table/views-sheet.tsx:217
@@ -2042,7 +2020,7 @@ msgstr "客戶群組"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:139
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:59
-#: src/lib/components/data-display/boolean.tsx:22
+#: src/lib/components/data-display/boolean.tsx:27
 #: src/lib/components/data-input/default-relation-input.tsx:217
 #: src/lib/components/data-input/default-relation-input.tsx:448
 #: src/lib/components/data-input/default-relation-input.tsx:539
@@ -2120,10 +2098,6 @@ msgstr "退款已成功完成"
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:163
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
-#: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:163
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
-#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:99
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:102
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:163
@@ -2133,10 +2107,6 @@ msgstr "退款已成功完成"
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:278
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:242
 #: src/app/routes/_authenticated/_profile/profile.tsx:135
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
-#: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:279
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:212
-#: src/app/routes/_authenticated/_profile/profile.tsx:93
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
@@ -2158,7 +2128,6 @@ msgid "Order placed"
 msgstr "訂單已下單"
 
 #: src/app/routes/_authenticated/_profile/profile.tsx:114
-#: src/app/routes/_authenticated/_profile/profile.tsx:72
 msgid "Successfully updated profile"
 msgstr "已成功更新個人資料"
 
@@ -2220,12 +2189,11 @@ msgstr "無結果"
 msgid "Column settings"
 msgstr "欄設定"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:227
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:137
 msgid "{count, plural, one {Failed to delete {count} stock location} other {Failed to delete {count} stock locations}}"
 msgstr "{count, plural, other {無法刪除 {count} 個庫存地點}}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:224
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:227
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:127
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:127
@@ -3193,7 +3161,6 @@ msgid "Force remove option group"
 msgstr "強制移除選項群組"
 
 #: src/app/routes/_authenticated/_profile/profile.tsx:223
-#: src/app/routes/_authenticated/_profile/profile.tsx:141
 msgid "Added"
 msgstr "已新增"
 
@@ -3264,10 +3231,6 @@ msgstr "刪除全域檢視"
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:163
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
-#: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:163
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
-#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:99
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:163
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:138
@@ -3672,7 +3635,6 @@ msgid "Password reset links are only valid for a limited time. Request a new one
 msgstr "密碼重設連結僅在有限時間內有效。請要求新連結以重設密碼。"
 
 #: src/app/routes/_authenticated/_profile/profile.tsx:212
-#: src/app/routes/_authenticated/_profile/profile.tsx:129
 msgid "Authentication methods"
 msgstr "驗證方式"
 
@@ -3718,10 +3680,6 @@ msgstr "處理中..."
 #: src/lib/components/shared/asset/asset-gallery.tsx:472
 #~ msgid "{totalItems} {0} found"
 #~ msgstr "找到 {totalItems} 個{0}"
-#. placeholder {0}: totalItems === 1 ? 'asset' : 'assets'
-#: src/lib/components/shared/asset/asset-gallery.tsx:472
-msgid "{totalItems} {0} found"
-msgstr "找到 {totalItems} 個{0}"
 
 #: src/lib/components/date-range-picker.tsx:122
 msgid "Select date range"
@@ -3793,15 +3751,13 @@ msgstr "拖曳以重新排序"
 msgid "Zones"
 msgstr "區域"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:111
-#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:151
-#: src/lib/components/shared/facet-value-selector.tsx:124
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:163
 msgid "Choose what to do with any stock remaining in the {count, plural, one {# stock location} other {# stock locations}} you are deleting. All selected locations transfer their remaining stock into the single location you choose, or discard it."
 msgstr "請選擇如何處理您要刪除的 {count, plural, other {# 個庫存地點}} 中剩餘的庫存。所有選取的地點會將其剩餘庫存轉移到您選擇的那個地點，或將其捨棄。"
 
-#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:170
-#: src/lib/components/shared/facet-value-selector.tsx:123
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:111
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:151
+#: src/lib/components/shared/facet-value-selector.tsx:124
 msgid "Search facet values..."
 msgstr "搜尋分面值..."
 
@@ -3923,6 +3879,7 @@ msgid "Select an address"
 msgstr "選取一個地址"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:401
+#: src/lib/components/data-display/boolean.tsx:12
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx:98
 msgid "Yes"
 msgstr "是"
@@ -4234,13 +4191,6 @@ msgstr "完成付款失敗"
 msgid "No billing address"
 msgstr "無帳單地址"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:120
-#~ msgid "Facet"
-#~ msgstr "屬性"
-
-#: src/lib/components/data-table/data-table-views-tabs.tsx:124
-msgid "Unsaved view"
-msgstr "未儲存的檢視"
 #. placeholder {0}: failed.length
 #. placeholder {1}: failed.length
 #. placeholder {2}: failed.length
@@ -4249,8 +4199,12 @@ msgid "{0, plural, one {Failed to delete {1} stock location} other {Failed to de
 msgstr "{0, plural, other {無法刪除 {2} 個庫存地點}}"
 
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:119
-msgid "Facet"
-msgstr "屬性"
+#~ msgid "Facet"
+#~ msgstr "屬性"
+
+#: src/lib/components/data-table/data-table-views-tabs.tsx:124
+msgid "Unsaved view"
+msgstr "未儲存的檢視"
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:41
 #~ msgid "{rejected, plural, one {{0}} other {{1}}}"
@@ -4383,7 +4337,6 @@ msgstr "新增另一種貨幣的價格"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:128
 #: src/app/routes/_authenticated/_profile/profile.tsx:157
-#: src/app/routes/_authenticated/_profile/profile.tsx:115
 msgid "Email Address or identifier"
 msgstr "電子郵件地址或識別碼"
 
@@ -4397,10 +4350,6 @@ msgstr "退款 #{0} 已轉換到 {1}"
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:62
 #: src/app/routes/_authenticated/_customers/customers.tsx:16
 #: src/app/routes/_authenticated/_customers/customers.tsx:23
-#: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:110
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:62
-#: src/app/routes/_authenticated/_customers/customers.tsx:15
-#: src/app/routes/_authenticated/_customers/customers.tsx:21
 msgid "Customers"
 msgstr "客戶"
 
@@ -5143,7 +5092,6 @@ msgid "e.g., Red, Large, Cotton"
 msgstr "例如：紅色、大號、棉質"
 
 #: src/app/routes/_authenticated/_profile/profile.tsx:118
-#: src/app/routes/_authenticated/_profile/profile.tsx:76
 msgid "Failed to update profile"
 msgstr "更新個人資料失敗"
 
@@ -5165,7 +5113,6 @@ msgid "Regions"
 msgstr "地區"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx:629
-#: src/lib/components/shared/asset/asset-gallery.tsx:445
 msgid "Drop files here to upload"
 msgstr "將檔案拖放到此處上傳"
 
@@ -5539,13 +5486,12 @@ msgstr "州/省"
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:56
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:58
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:59
-#: src/lib/components/data-display/boolean.tsx:22
+#: src/lib/components/data-display/boolean.tsx:27
 #: src/lib/components/layout/nav-user.tsx:146
 msgid "Enabled"
 msgstr "已啟用"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx:688
-#: src/lib/components/shared/asset/asset-gallery.tsx:483
 msgid "Items per page"
 msgstr "每頁筆數"
 
@@ -6005,11 +5951,8 @@ msgstr "輸入後按 Enter 或逗號新增..."
 msgid "Edit Note"
 msgstr "編輯備註"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:635
 #~ msgid "No assets found. Try adjusting your filters."
 #~ msgstr "找不到資源。請嘗試調整篩選條件。"
-msgid "No assets found. Try adjusting your filters."
-msgstr "找不到資源。請嘗試調整篩選條件。"
 
 #: src/app/routes/_authenticated/_products/components/option-groups-editor.tsx:161
 msgid "Add Option"
@@ -6061,7 +6004,6 @@ msgstr "預設語言"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:257
 #: src/app/routes/_authenticated/_customers/customers.tsx:47
-#: src/app/routes/_authenticated/_customers/customers.tsx:44
 msgid "Status"
 msgstr "狀態"
 
@@ -6175,7 +6117,6 @@ msgstr ""
 
 #. placeholder {0}: entityName.toLowerCase()
 #: src/lib/components/data-input/default-relation-input.tsx:661
-#: src/lib/components/data-input/default-relation-input.tsx:666
 msgid "Select {0}s"
 msgstr "選取 {0}"
 
@@ -6191,7 +6132,6 @@ msgstr "處理退款失敗"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:116
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:180
 #: src/app/routes/_authenticated/_profile/profile.tsx:145
-#: src/app/routes/_authenticated/_profile/profile.tsx:103
 msgid "First name"
 msgstr "名字"
 
@@ -6264,9 +6204,6 @@ msgstr "稅務類別"
 #: src/app/routes/_authenticated/_profile/profile.tsx:51
 #: src/app/routes/_authenticated/_profile/profile.tsx:127
 #: src/lib/components/layout/nav-user.tsx:99
-#: src/app/routes/_authenticated/_profile/profile.tsx:39
-#: src/app/routes/_authenticated/_profile/profile.tsx:85
-#: src/lib/components/layout/nav-user.tsx:108
 msgid "Profile"
 msgstr "個人資料"
 
@@ -7062,7 +6999,6 @@ msgid "Payment method is required"
 msgstr "付款方式為必填欄位"
 
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:69
-#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:67
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:138
 msgid "Failed to add customer to group"
 msgstr "將客戶新增至群組失敗"

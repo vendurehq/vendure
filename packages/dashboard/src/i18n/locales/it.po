@@ -175,7 +175,6 @@ msgid "Enter custom reason..."
 msgstr "Inserisci un motivo personalizzato..."
 
 #: src/lib/components/shared/asset/asset-gallery.tsx:1100
-#: src/lib/components/shared/asset/asset-gallery.tsx:751
 msgid "Type"
 msgstr "Tipo"
 
@@ -189,7 +188,6 @@ msgstr ""
 #: src/app/routes/_authenticated/_products/components/product-option-select.tsx:57
 #: src/lib/components/data-input/default-relation-input.tsx:674
 #: src/lib/components/shared/asset/asset-gallery.tsx:976
-#: src/lib/components/data-input/default-relation-input.tsx:679
 msgid "Select {0}"
 msgstr "Seleziona {0}"
 
@@ -220,7 +218,6 @@ msgstr "Corrente"
 msgid "No fulfillments"
 msgstr "Nessuna evasione"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:342
 #. placeholder {0}: failed.length
 #. placeholder {1}: failed.length
 #. placeholder {2}: failed.length
@@ -228,7 +225,7 @@ msgstr "Nessuna evasione"
 msgid "{0, plural, one {Failed to delete {1} stock location: {messages}} other {Failed to delete {2} stock locations: {messages}}}"
 msgstr "{0, plural, one {Impossibile eliminare {1} ubicazione di magazzino: {messages}} other {Impossibile eliminare {2} ubicazioni di magazzino: {messages}}}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:339
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:342
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
 msgstr "Quando abilitato, i prezzi inseriti nel catalogo prodotti includeranno l'IVA per la zona fiscale predefinita."
 
@@ -332,7 +329,6 @@ msgid "Fulfillment handler"
 msgstr "Gestore evasione"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:252
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:251
 #: src/app/routes/_authenticated/_orders/orders.tsx:21
 #: src/app/routes/_authenticated/_orders/orders.tsx:37
 #: src/app/routes/_authenticated/_orders/utils/order-detail-loaders.tsx:48
@@ -373,6 +369,7 @@ msgid "Failed to create administrator"
 msgstr "Creazione amministratore non riuscita"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:402
+#: src/lib/components/data-display/boolean.tsx:12
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx:98
 msgid "No"
 msgstr "No"
@@ -404,7 +401,6 @@ msgstr "Digita almeno 2 caratteri per cercare..."
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:122
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:186
 #: src/app/routes/_authenticated/_profile/profile.tsx:151
-#: src/app/routes/_authenticated/_profile/profile.tsx:109
 msgid "Last name"
 msgstr "Cognome"
 
@@ -742,7 +738,6 @@ msgstr "Sposta collezioni"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:140
 #: src/app/routes/_authenticated/_administrators/administrators.tsx:57
-#: src/app/routes/_authenticated/_administrators/administrators.tsx:55
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:170
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:32
 #: src/app/routes/_authenticated/_roles/roles.tsx:18
@@ -936,7 +931,6 @@ msgstr "Completa bozza"
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx:113
 #: src/app/routes/_authenticated/_zones/zones_.$id.tsx:93
 #: src/lib/components/shared/asset/asset-gallery.tsx:1088
-#: src/lib/components/shared/asset/asset-gallery.tsx:750
 msgid "Name"
 msgstr "Nome"
 
@@ -977,7 +971,6 @@ msgid "Found {0} eligible shipping method{1}"
 msgstr "Trovato/i {0} metodo/i di spedizione idoneo/i"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx:1132
-#: src/lib/components/shared/asset/asset-gallery.tsx:753
 #: src/lib/components/shared/asset/asset-properties.tsx:39
 msgid "Dimensions"
 msgstr "Dimensioni"
@@ -1141,9 +1134,6 @@ msgstr "Impossibile aggiornare zona"
 #: src/app/routes/_authenticated/_profile/profile.tsx:163
 #: src/app/routes/_authenticated/_profile/profile.tsx:220
 #: src/lib/components/login/login-form.tsx:94
-#: src/app/routes/_authenticated/_profile/profile.tsx:121
-#: src/app/routes/_authenticated/_profile/profile.tsx:138
-#: src/lib/components/login/login-form.tsx:93
 msgid "Password"
 msgstr "Password"
 
@@ -1227,16 +1217,15 @@ msgstr "Allocato"
 msgid "Failed to set coupon code for order: {0}"
 msgstr "Impossibile applicare il codice sconto all'ordine: {0}"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:191
+msgid "Select what to do with remaining stock"
+msgstr "Seleziona cosa fare con le giacenze rimanenti"
+
 #: src/lib/components/data-table/data-table-settings-menu.tsx:64
 msgid "Table settings"
 msgstr "Impostazioni tabella"
 
 #: src/lib/components/layout/nav-user.tsx:93
-#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:191
-msgid "Select what to do with remaining stock"
-msgstr "Seleziona cosa fare con le giacenze rimanenti"
-
-#: src/lib/components/layout/nav-user.tsx:102
 msgid "Explore Platform & Cloud"
 msgstr "Esplora Piattaforma e Cloud"
 
@@ -1463,7 +1452,6 @@ msgstr "Nessun articolo selezionato"
 
 #. placeholder {0}: selected.length
 #: src/lib/components/shared/asset/asset-gallery.tsx:681
-#: src/lib/components/shared/asset/asset-gallery.tsx:476
 msgid ", {0} selected"
 msgstr ", {0} selezionati"
 
@@ -1709,7 +1697,6 @@ msgid "Failed to set customer for order: {0}"
 msgstr "Impossibile impostare il cliente per l'ordine: {0}"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx:1109
-#: src/lib/components/shared/asset/asset-gallery.tsx:752
 msgid "Size"
 msgstr "Dimensione"
 
@@ -1745,14 +1732,10 @@ msgstr "Usa come indirizzo di fatturazione predefinito"
 
 #: src/app/common/delete-bulk-action.tsx:139
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:40
-#: src/lib/components/data-table/use-generated-columns.tsx:419
-#: src/lib/components/data-table/use-generated-columns.tsx:449
-#: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:41
-#: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx:337
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:217
 #: src/app/routes/_authenticated/_stock-locations/components/stock-location-bulk-actions.tsx:28
-#: src/lib/components/data-table/use-generated-columns.tsx:407
-#: src/lib/components/data-table/use-generated-columns.tsx:437
+#: src/lib/components/data-table/use-generated-columns.tsx:419
+#: src/lib/components/data-table/use-generated-columns.tsx:449
 #: src/lib/components/data-table/views-sheet.tsx:270
 #: src/lib/components/data-table/views-sheet.tsx:296
 msgid "Delete"
@@ -1849,9 +1832,6 @@ msgstr "Indirizzo aggiornato con successo"
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:141
 #: src/lib/components/shared/asset/asset-gallery.tsx:1116
 #: src/lib/framework/layout-engine/page-layout.tsx:746
-#: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:124
-#: src/lib/components/shared/asset/asset-gallery.tsx:754
-#: src/lib/framework/layout-engine/page-layout.tsx:733
 msgid "Created"
 msgstr "Creato"
 
@@ -1915,11 +1895,9 @@ msgstr "Inserisci tabella {row} per {col}"
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:71
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:272
 #: src/app/routes/_authenticated/_products/components/force-remove-option-group-dialog.tsx:48
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:210
 #: src/app/routes/_authenticated/_system/settings-store.tsx:150
 #: src/lib/components/data-input/product-multi-selector-input.tsx:471
-#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:210
-#: src/app/routes/_authenticated/_system/settings-store.tsx:140
-#: src/lib/components/data-input/product-multi-selector-input.tsx:470
 #: src/lib/components/data-table/data-table-bulk-action-item.tsx:122
 #: src/lib/components/data-table/use-generated-columns.tsx:435
 #: src/lib/components/data-table/views-sheet.tsx:217
@@ -2042,7 +2020,7 @@ msgstr "Gruppi clienti"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:139
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:59
-#: src/lib/components/data-display/boolean.tsx:22
+#: src/lib/components/data-display/boolean.tsx:27
 #: src/lib/components/data-input/default-relation-input.tsx:217
 #: src/lib/components/data-input/default-relation-input.tsx:448
 #: src/lib/components/data-input/default-relation-input.tsx:539
@@ -2120,10 +2098,6 @@ msgstr "Rimborso completato con successo"
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:163
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
-#: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:163
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
-#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:99
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx:102
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:163
@@ -2133,10 +2107,6 @@ msgstr "Rimborso completato con successo"
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:278
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:242
 #: src/app/routes/_authenticated/_profile/profile.tsx:135
-#: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx:252
-#: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:279
-#: src/app/routes/_authenticated/_products/products_.$id.tsx:212
-#: src/app/routes/_authenticated/_profile/profile.tsx:93
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx:144
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx:84
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:78
@@ -2158,7 +2128,6 @@ msgid "Order placed"
 msgstr "Ordine effettuato"
 
 #: src/app/routes/_authenticated/_profile/profile.tsx:114
-#: src/app/routes/_authenticated/_profile/profile.tsx:72
 msgid "Successfully updated profile"
 msgstr "Profilo aggiornato con successo"
 
@@ -2220,12 +2189,11 @@ msgstr "Nessun risultato"
 msgid "Column settings"
 msgstr "Impostazioni colonne"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:227
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:137
 msgid "{count, plural, one {Failed to delete {count} stock location} other {Failed to delete {count} stock locations}}"
 msgstr "{count, plural, one {Impossibile eliminare {count} ubicazione di magazzino} other {Impossibile eliminare {count} ubicazioni di magazzino}}"
 
-#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:224
+#: src/app/routes/_authenticated/_channels/channels_.$id.tsx:227
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:127
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:127
@@ -3193,7 +3161,6 @@ msgid "Force remove option group"
 msgstr "Forza rimozione gruppo di opzioni"
 
 #: src/app/routes/_authenticated/_profile/profile.tsx:223
-#: src/app/routes/_authenticated/_profile/profile.tsx:141
 msgid "Added"
 msgstr "Aggiunto"
 
@@ -3264,10 +3231,6 @@ msgstr "Elimina vista globale"
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:163
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:111
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx:100
-#: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:93
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:163
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:110
-#: src/app/routes/_authenticated/_facets/facets_.$id.tsx:99
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx:177
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx:163
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:138
@@ -3672,7 +3635,6 @@ msgid "Password reset links are only valid for a limited time. Request a new one
 msgstr "I link di reimpostazione della password sono validi solo per un tempo limitato. Richiedine uno nuovo per reimpostare la password."
 
 #: src/app/routes/_authenticated/_profile/profile.tsx:212
-#: src/app/routes/_authenticated/_profile/profile.tsx:129
 msgid "Authentication methods"
 msgstr "Metodi di autenticazione"
 
@@ -3718,10 +3680,6 @@ msgstr "Elaborazione in corso..."
 #: src/lib/components/shared/asset/asset-gallery.tsx:472
 #~ msgid "{totalItems} {0} found"
 #~ msgstr "{totalItems} {0} trovati"
-#. placeholder {0}: totalItems === 1 ? 'asset' : 'assets'
-#: src/lib/components/shared/asset/asset-gallery.tsx:472
-msgid "{totalItems} {0} found"
-msgstr "{totalItems} {0} trovati"
 
 #: src/lib/components/date-range-picker.tsx:122
 msgid "Select date range"
@@ -3793,15 +3751,13 @@ msgstr "Trascina per riordinare"
 msgid "Zones"
 msgstr "Zone"
 
-#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:111
-#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:151
-#: src/lib/components/shared/facet-value-selector.tsx:124
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:163
 msgid "Choose what to do with any stock remaining in the {count, plural, one {# stock location} other {# stock locations}} you are deleting. All selected locations transfer their remaining stock into the single location you choose, or discard it."
 msgstr "Scegli cosa fare con le giacenze rimanenti in {count, plural, one {# ubicazione di magazzino} other {# ubicazioni di magazzino}} che stai eliminando. Tutte le ubicazioni selezionate trasferiscono le giacenze rimanenti nell'unica ubicazione che scegli, oppure le scartano."
 
-#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:170
-#: src/lib/components/shared/facet-value-selector.tsx:123
+#: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:111
+#: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:151
+#: src/lib/components/shared/facet-value-selector.tsx:124
 msgid "Search facet values..."
 msgstr "Cerca valori facet..."
 
@@ -3923,6 +3879,7 @@ msgid "Select an address"
 msgstr "Seleziona un indirizzo"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:401
+#: src/lib/components/data-display/boolean.tsx:12
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx:98
 msgid "Yes"
 msgstr "Sì"
@@ -4234,13 +4191,6 @@ msgstr "Impossibile completare pagamento"
 msgid "No billing address"
 msgstr "Nessun indirizzo di fatturazione"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:120
-#~ msgid "Facet"
-#~ msgstr "Attributo"
-
-#: src/lib/components/data-table/data-table-views-tabs.tsx:124
-msgid "Unsaved view"
-msgstr "Vista non salvata"
 #. placeholder {0}: failed.length
 #. placeholder {1}: failed.length
 #. placeholder {2}: failed.length
@@ -4249,8 +4199,12 @@ msgid "{0, plural, one {Failed to delete {1} stock location} other {Failed to de
 msgstr "{0, plural, one {Impossibile eliminare {1} ubicazione di magazzino} other {Impossibile eliminare {2} ubicazioni di magazzino}}"
 
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:119
-msgid "Facet"
-msgstr "Attributo"
+#~ msgid "Facet"
+#~ msgstr "Attributo"
+
+#: src/lib/components/data-table/data-table-views-tabs.tsx:124
+msgid "Unsaved view"
+msgstr "Vista non salvata"
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx:41
 #~ msgid "{rejected, plural, one {{0}} other {{1}}}"
@@ -4383,7 +4337,6 @@ msgstr "Aggiungi un prezzo in un'altra valuta"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:128
 #: src/app/routes/_authenticated/_profile/profile.tsx:157
-#: src/app/routes/_authenticated/_profile/profile.tsx:115
 msgid "Email Address or identifier"
 msgstr "Indirizzo email o identificativo"
 
@@ -4397,10 +4350,6 @@ msgstr "Rimborso #{0} transitato a {1}"
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:62
 #: src/app/routes/_authenticated/_customers/customers.tsx:16
 #: src/app/routes/_authenticated/_customers/customers.tsx:23
-#: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx:110
-#: src/app/routes/_authenticated/_customers/customers_.$id.tsx:62
-#: src/app/routes/_authenticated/_customers/customers.tsx:15
-#: src/app/routes/_authenticated/_customers/customers.tsx:21
 msgid "Customers"
 msgstr "Clienti"
 
@@ -5143,7 +5092,6 @@ msgid "e.g., Red, Large, Cotton"
 msgstr "es. Rosso, Grande, Cotone"
 
 #: src/app/routes/_authenticated/_profile/profile.tsx:118
-#: src/app/routes/_authenticated/_profile/profile.tsx:76
 msgid "Failed to update profile"
 msgstr "Impossibile aggiornare profilo"
 
@@ -5165,7 +5113,6 @@ msgid "Regions"
 msgstr "Regioni"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx:629
-#: src/lib/components/shared/asset/asset-gallery.tsx:445
 msgid "Drop files here to upload"
 msgstr "Trascina i file qui per caricarli"
 
@@ -5539,13 +5486,12 @@ msgstr "Stato / Provincia"
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:56
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:58
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:59
-#: src/lib/components/data-display/boolean.tsx:22
+#: src/lib/components/data-display/boolean.tsx:27
 #: src/lib/components/layout/nav-user.tsx:146
 msgid "Enabled"
 msgstr "Abilitato"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx:688
-#: src/lib/components/shared/asset/asset-gallery.tsx:483
 msgid "Items per page"
 msgstr "Elementi per pagina"
 
@@ -6005,11 +5951,8 @@ msgstr "Digita e premi Invio o virgola per aggiungere..."
 msgid "Edit Note"
 msgstr "Modifica nota"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:635
 #~ msgid "No assets found. Try adjusting your filters."
 #~ msgstr "Nessuna risorsa trovata. Prova a modificare i filtri."
-msgid "No assets found. Try adjusting your filters."
-msgstr "Nessuna risorsa trovata. Prova a modificare i filtri."
 
 #: src/app/routes/_authenticated/_products/components/option-groups-editor.tsx:161
 msgid "Add Option"
@@ -6061,7 +6004,6 @@ msgstr "Lingua predefinita"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:257
 #: src/app/routes/_authenticated/_customers/customers.tsx:47
-#: src/app/routes/_authenticated/_customers/customers.tsx:44
 msgid "Status"
 msgstr "Stato"
 
@@ -6175,7 +6117,6 @@ msgstr ""
 
 #. placeholder {0}: entityName.toLowerCase()
 #: src/lib/components/data-input/default-relation-input.tsx:661
-#: src/lib/components/data-input/default-relation-input.tsx:666
 msgid "Select {0}s"
 msgstr "Seleziona {0}"
 
@@ -6191,7 +6132,6 @@ msgstr "Impossibile elaborare il rimborso"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:116
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:180
 #: src/app/routes/_authenticated/_profile/profile.tsx:145
-#: src/app/routes/_authenticated/_profile/profile.tsx:103
 msgid "First name"
 msgstr "Nome"
 
@@ -6264,9 +6204,6 @@ msgstr "Categoria fiscale"
 #: src/app/routes/_authenticated/_profile/profile.tsx:51
 #: src/app/routes/_authenticated/_profile/profile.tsx:127
 #: src/lib/components/layout/nav-user.tsx:99
-#: src/app/routes/_authenticated/_profile/profile.tsx:39
-#: src/app/routes/_authenticated/_profile/profile.tsx:85
-#: src/lib/components/layout/nav-user.tsx:108
 msgid "Profile"
 msgstr "Profilo"
 
@@ -7062,7 +6999,6 @@ msgid "Payment method is required"
 msgstr "Il metodo di pagamento è obbligatorio"
 
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:69
-#: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-table.tsx:67
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:138
 msgid "Failed to add customer to group"
 msgstr "Impossibile aggiungere cliente al gruppo"
