@@ -9,7 +9,7 @@ import { cn } from '@/vdb/lib/utils.js';
 import { Trans } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
 import { VariablesOf } from 'gql.tada';
-import { Link, Plus } from 'lucide-react';
+import { MapPin, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { addressFragment } from '../../_customers/customers.graphql.js';
 import { getCustomerAddressesDocument, setShippingAddressForDraftOrderDocument } from '../orders.graphql.js';
@@ -78,7 +78,7 @@ export function CustomerAddressSelector({
                     <Tabs value={effectiveTab} onValueChange={setActiveTab}>
                         <TabsList className="grid w-full grid-cols-2">
                             <TabsTrigger value="existing" disabled={!canSelectExisting}>
-                                <Link className="mr-2 h-4 w-4" />
+                                <MapPin className="mr-2 h-4 w-4" />
                                 <Trans>Existing address</Trans>
                             </TabsTrigger>
                             <TabsTrigger value="new">

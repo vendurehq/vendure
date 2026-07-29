@@ -111,12 +111,13 @@ function ModifyOrderPage() {
         setEditingBillingAddress(false);
     }
 
-    function handleSubmitNewShippingAddress(input: CreateAddressInput) {
+    function handleSubmitNewShippingAddress({ customFields, ...input }: CreateAddressInput) {
+        // `customFields` is not part of `UpdateOrderAddressInput`, so modifyOrder rejects it
         updateShippingAddressRawInInput(input);
         setEditingShippingAddress(false);
     }
 
-    function handleSubmitNewBillingAddress(input: CreateAddressInput) {
+    function handleSubmitNewBillingAddress({ customFields, ...input }: CreateAddressInput) {
         updateBillingAddressRawInInput(input);
         setEditingBillingAddress(false);
     }

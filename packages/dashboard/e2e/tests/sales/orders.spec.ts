@@ -294,10 +294,13 @@ test.describe('Orders', () => {
         await expect(page.getByRole('button', { name: /Select address/i })).toHaveCount(2);
     });
 
-    // #4838 — parity with the Angular admin-ui: a draft order should allow creating a
+    // #4951 — parity with the Angular admin-ui: a draft order should allow creating a
     // new customer inline (not just selecting an existing one).
     test('should create a new customer inline on a draft order', async ({ page }) => {
         test.setTimeout(60_000);
+
+        const client = new VendureAdminClient(page);
+        await client.login();
 
         // Create a draft order
         const lp = listPage(page);
@@ -325,7 +328,7 @@ test.describe('Orders', () => {
         });
     });
 
-    // #4838 — parity with the Angular admin-ui: a draft order should allow entering a
+    // #4951 — parity with the Angular admin-ui: a draft order should allow entering a
     // new, ad-hoc address inline (not just selecting from the customer's saved addresses).
     test('should enter a new shipping address inline on a draft order', async ({ page }) => {
         test.setTimeout(60_000);

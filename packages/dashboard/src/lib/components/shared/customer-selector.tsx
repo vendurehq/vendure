@@ -17,7 +17,7 @@ import { Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from '@uidotdev/usehooks';
 import { VariablesOf } from 'gql.tada';
-import { Link, Plus } from 'lucide-react';
+import { Plus, Users } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { FormFieldWrapper } from './form-field-wrapper.js';
@@ -151,7 +151,7 @@ function CreateCustomerForm({ onSubmit }: Readonly<{ onSubmit: (input: CreateCus
                 }}
                 className="space-y-4"
             >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                     <FormFieldWrapper
                         control={form.control}
                         name="title"
@@ -247,7 +247,7 @@ export function CustomerSelector(props: CustomerSelectorProps) {
                     <Tabs value={activeTab} onValueChange={setActiveTab}>
                         <TabsList className="grid w-full grid-cols-2">
                             <TabsTrigger value="existing">
-                                <Link className="mr-2 h-4 w-4" />
+                                <Users className="mr-2 h-4 w-4" />
                                 <Trans>Existing customer</Trans>
                             </TabsTrigger>
                             <TabsTrigger value="new">
