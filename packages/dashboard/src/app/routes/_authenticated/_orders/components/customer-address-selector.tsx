@@ -13,6 +13,7 @@ import { MapPin, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { addressFragment } from '../../_customers/customers.graphql.js';
 import { getCustomerAddressesDocument } from '../orders.graphql.js';
+import { Order } from '../utils/order-types.js';
 
 type CustomerAddressesQuery = ResultOf<typeof getCustomerAddressesDocument>;
 
@@ -32,17 +33,7 @@ interface CustomerAddressSelectorProps {
      * Pre-populates the "New address" form with the given values. Used on the order modify page
      * so that editing an address doesn't require retyping all fields from scratch.
      */
-    initialAddress?: {
-        fullName?: string | null;
-        company?: string | null;
-        streetLine1?: string | null;
-        streetLine2?: string | null;
-        city?: string | null;
-        province?: string | null;
-        postalCode?: string | null;
-        countryCode?: string | null;
-        phoneNumber?: string | null;
-    };
+    initialAddress?: Order['shippingAddress'];
     /**
      * @description
      * Custom label for the submit button in the "New address" form.
