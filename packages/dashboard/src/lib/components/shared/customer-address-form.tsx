@@ -34,7 +34,7 @@ const addressFormSchema = z.object({
     streetLine2: z.string().optional(),
     city: z.string().min(1, { message: 'City is required' }),
     province: z.string().optional(),
-    postalCode: z.string().optional(),
+    postalCode: z.string().min(1, { message: 'Postal code is required' }),
     countryCode: z.string().min(1, { message: 'Country is required' }),
     phoneNumber: z.string().optional(),
     defaultShippingAddress: z.boolean(),
