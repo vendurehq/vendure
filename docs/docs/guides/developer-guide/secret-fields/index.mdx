@@ -76,6 +76,31 @@ edit form has to submit back. When the placeholder is submitted on an update, th
 left unchanged. To change the value, submit a new one; to clear it, submit an empty value. On a
 _create_, the placeholder is rejected, since there is no existing value to preserve.
 
+## Moving data between environments
+
+Secret values are stored encrypted, so a database dump contains ciphertext, not the original values.
+The key that encrypted them lives only in your environment configuration, never in the database. This
+means a dump can only be read in an environment that uses the **same** encryption key.
+
+The first time an encryption key is used against a database, Vendure stores a small "key check" value
+(a known string encrypted with that key). On every startup it verifies the configured key against
+this check, so if you restore a dump into an environment with a different key — or change the key of
+an existing database — the server **fails to start** with a clear error, rather than failing later
+with scattered decryption errors when a secret is first read.
+
+As a result:
+
+- **To move data you want to keep usable** (for example promoting a staging database to production),
+  use the **same `VENDURE_ENCRYPTION_KEY`** in both environments.
+- **To copy data into an environment that uses a different key** (for example pulling production data
+  onto a developer machine without sharing the production key), first clear the secret values in the
+  dump: set the encrypted custom-field columns to `NULL` and remove the secret config-arg values.
+  Otherwise the restored data cannot be decrypted with the local key.
+
+Key rotation (re-encrypting existing data under a new key) is not currently supported. If you have
+intentionally changed the key and there is no encrypted data to preserve, delete the
+`encryption.keyCheck` entry from the settings store to re-bind the database to the new key.
+
 ## Existing data and limitations
 
 - Enabling `secret` on a field that already holds plain-text values does not break anything, but

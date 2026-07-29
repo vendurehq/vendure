@@ -29,6 +29,7 @@ import { PaymentStateMachine } from './helpers/payment-state-machine/payment-sta
 import { ProductPriceApplicator } from './helpers/product-price-applicator/product-price-applicator';
 import { RefundStateMachine } from './helpers/refund-state-machine/refund-state-machine';
 import { RequestContextService } from './helpers/request-context/request-context.service';
+import { EncryptionKeyVerifierService } from './helpers/encryption-key-verifier/encryption-key-verifier.service';
 import { SettingsStoreService } from './helpers/settings-store/settings-store.service';
 import { StoredMediaService } from './helpers/stored-media/stored-media.service';
 import { ShippingCalculator } from './helpers/shipping-calculator/shipping-calculator';
@@ -146,6 +147,7 @@ const helpers = [
     EntityDuplicatorService,
     FacetValueChecker,
     SettingsStoreService,
+    EncryptionKeyVerifierService,
     StoredMediaService,
 ];
 
