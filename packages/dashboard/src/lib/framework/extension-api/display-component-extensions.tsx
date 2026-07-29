@@ -1,4 +1,8 @@
-import { BooleanDisplayBadge, BooleanDisplayCheckbox } from '@/vdb/components/data-display/boolean.js';
+import {
+    BooleanDisplayBadge,
+    BooleanDisplayCheckbox,
+    BooleanDisplayYesNoBadge,
+} from '@/vdb/components/data-display/boolean.js';
 import { DateTime } from '@/vdb/components/data-display/date-time.js';
 import { Json } from '@/vdb/components/data-display/json.js';
 import { Money } from '@/vdb/components/data-display/money.js';
@@ -16,6 +20,7 @@ const AssetDisplay: DataDisplayComponent = ({ value }) => <VendureImage asset={v
 const displayComponents = globalRegistry.get('displayComponents');
 displayComponents.set('vendure:booleanCheckbox', BooleanDisplayCheckbox);
 displayComponents.set('vendure:booleanBadge', BooleanDisplayBadge);
+displayComponents.set('vendure:booleanYesNoBadge', BooleanDisplayYesNoBadge);
 displayComponents.set('vendure:dateTime', DateTime);
 displayComponents.set('vendure:asset', AssetDisplay);
 displayComponents.set('vendure:money', Money);
