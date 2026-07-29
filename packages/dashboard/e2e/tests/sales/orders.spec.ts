@@ -435,6 +435,45 @@ test.describe('Orders', () => {
         await expect(page.getByRole('tab', { name: 'Existing address' })).toBeVisible();
     });
 
+    // Regression test for the customFields blocker: editing an address on the modify page
+    // via the "New address" tab and clicking Preview should not produce a GraphQL variable
+    // coercion error (UpdateOrderAddressInput has no customFields field).
+    test('should update shipping address on modify page without GraphQL error', async ({ page }) => {
+        test.setTimeout(60_000);
+
+        const orderId = await createModifyingOrder(page);
+
+        await page.goto(`/orders/${orderId}/modify`);
+        await expect(page.getByRole('heading', { name: 'Modify order' })).toBeVisible({ timeout: 10_000 });
+
+        // Click "Edit" on shipping address
+        const editButtons = page.getByRole('button', { name: 'Edit' });
+        await editButtons.first().click();
+
+        // The address selector popover opens — switch to the "New address" tab
+        const popover = page.locator('[data-slot="popover-content"]');
+        await expect(popover).toBeVisible({ timeout: 5_000 });
+        await popover.getByRole('tab', { name: /New address/i }).click();
+
+        // Fill in a new address
+        await popover.getByLabel('Street Address').fill('456 Modified Ave');
+        await popover.getByLabel('City').fill('Modifiedton');
+        await popover.getByLabel('Postal Code').fill('99999');
+        // Country — open and pick the first available
+        await popover.getByRole('combobox').click();
+        await page.getByRole('option').first().click();
+        await popover.getByRole('button', { name: /Update address/i }).click();
+
+        // The address should appear in the modification summary
+        await expect(page.getByText('456 Modified Ave')).toBeVisible({ timeout: 10_000 });
+
+        // Click Preview — this is where the customFields blocker used to cause a GraphQL error
+        await page.getByRole('button', { name: /Preview/i }).click();
+
+        // The preview dialog should open without an error toast
+        await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10_000 });
+    });
+
     // #4393 — order modify page should show a "Recalculate shipping" checkbox
     test('should show recalculate shipping checkbox on modify page', async ({ page }) => {
         test.setTimeout(60_000);
