@@ -15,8 +15,7 @@ import { omit } from '@vendure/common/lib/omit';
 import { ID, PaginatedList, Type } from '@vendure/common/lib/shared-types';
 import { notNullOrUndefined } from '@vendure/common/lib/shared-utils';
 import { unique } from '@vendure/common/lib/unique';
-import { ReadStream as FSReadStream } from 'fs';
-import { ReadStream } from 'fs-extra';
+import { ReadStream } from 'fs';
 import { IncomingMessage } from 'http';
 import { imageSize } from 'image-size';
 import mime from 'mime-types';
@@ -398,7 +397,10 @@ export class AssetService {
      * Updates the name, focalPoint, tags & custom fields of an Asset.
      */
     async update(ctx: RequestContext, input: UpdateAssetInput): Promise<Translated<Asset>> {
-        const asset = await this.connection.getEntityOrThrow(ctx, Asset, input.id);
+        // Ensure the entity belongs to the active channel before updating.
+        const asset = await this.connection.getEntityOrThrow(ctx, Asset, input.id, {
+            channelId: ctx.channelId,
+        });
         if (input.focalPoint) {
             const to3dp = (x: number) => +x.toFixed(3);
             input.focalPoint.x = to3dp(input.focalPoint.x);
@@ -564,7 +566,7 @@ export class AssetService {
         const filePathFromArgs =
             maybeFilePathOrCtx instanceof RequestContext ? undefined : maybeFilePathOrCtx;
         const filePath =
-            stream instanceof ReadStream || stream instanceof FSReadStream ? stream.path : filePathFromArgs;
+            stream instanceof ReadStream ? stream.path : filePathFromArgs;
         if (typeof filePath === 'string') {
             const filename = path.basename(filePath).split('?')[0];
             const mimetype = this.getMimeType(stream, filename);

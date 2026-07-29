@@ -192,6 +192,9 @@ const createEntityConfigs = (i18n: any) => ({
 
     ProductVariant: createRelationSelectorConfig({
         ...createBaseEntityConfig('Product Variant', i18n),
+        buildSearchFilter: (term: string) => ({
+            _or: [{ name: { contains: term } }, { sku: { contains: term } }],
+        }),
         listQuery: graphql(`
             query GetProductVariantsForRelationSelector($options: ProductVariantListOptions) {
                 productVariants(options: $options) {

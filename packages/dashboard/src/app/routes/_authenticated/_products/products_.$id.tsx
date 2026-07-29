@@ -23,7 +23,6 @@ import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-lo
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { useMutation } from '@tanstack/react-query';
 import { Layers, Package, PlusIcon } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -31,11 +30,11 @@ import { AddOptionGroupDialog } from './components/add-option-group-dialog.js';
 import { GenerateVariantsPanel } from './components/generate-variants-panel.js';
 import { ProductOptionGroupBadge } from './components/product-option-group-badge.js';
 import { ProductVariantsTable } from './components/product-variants-table.js';
+import { useRemoveOptionGroup } from './hooks/use-remove-option-group.js';
 import {
     assignProductsToChannelDocument,
     createProductDocument,
     productDetailDocument,
-    removeOptionGroupFromProductDocument,
     removeProductsFromChannelDocument,
     updateProductDocument,
 } from './products.graphql.js';
@@ -171,28 +170,22 @@ function ProductDetailPage() {
         },
     });
 
-    const removeOptionGroupMutation = useMutation({
-        mutationFn: api.mutate(removeOptionGroupFromProductDocument),
-    });
+    // The empty-string fallback only ever applies before `entity` has loaded;
+    // `removeAllOptionGroups` is reachable exclusively from the onBack handler below,
+    // which is rendered only once `entity` exists, so the real id is always used.
+    const { removeOptionGroupAsync } = useRemoveOptionGroup(entity?.id ?? '');
 
-    const removeAllOptionGroups = async (
-        productId: string,
-        optionGroups: Array<{ id: string }>,
-    ) => {
+    // Batch-removes every option group when the user backs out of variant setup. This is
+    // reached only while the product has zero variants, so ProductOptionInUseError cannot
+    // realistically fire here — the branch is kept as a defensive guard. Note the loop is
+    // not transactional: a mid-list failure leaves earlier groups already removed.
+    const removeAllOptionGroups = async (optionGroups: Array<{ id: string }>) => {
         try {
             for (const group of optionGroups) {
-                const result = await removeOptionGroupMutation.mutateAsync({
-                    productId,
-                    optionGroupId: group.id,
-                });
-                const removeResult = result?.removeOptionGroupFromProduct;
-                if (
-                    removeResult &&
-                    '__typename' in removeResult &&
-                    removeResult.__typename === 'ProductOptionInUseError'
-                ) {
+                const result = await removeOptionGroupAsync(group.id);
+                if (result.__typename === 'ProductOptionInUseError') {
                     toast.error(t`Could not remove option group`, {
-                        description: removeResult.message,
+                        description: result.message,
                     });
                     refreshEntity();
                     return;
@@ -301,7 +294,7 @@ function ProductDetailPage() {
                                 optionGroups={entity.optionGroups}
                                 onSuccess={() => refreshEntity()}
                                 onBack={{
-                                    handler: () => removeAllOptionGroups(entity.id, entity.optionGroups),
+                                    handler: () => removeAllOptionGroups(entity.optionGroups),
                                     confirmation: {
                                         title: t`Remove option groups?`,
                                         description: t`This will remove all option groups from this product and return to the variant setup choice.`,
@@ -320,6 +313,7 @@ function ProductDetailPage() {
                                     id={g.id}
                                     name={g.name}
                                     productId={entity.id}
+                                    onRemoved={() => refreshEntity()}
                                 />
                             ))}
                         </div>

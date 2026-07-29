@@ -34,6 +34,7 @@ jobs:
     # Job 1: Build all packages and publish to Verdaccio (runs once)
     build_and_publish:
         runs-on: ubuntu-latest
+        timeout-minutes: 30
         permissions:
             contents: read
         steps:
@@ -83,13 +84,17 @@ jobs:
     test:
         needs: build_and_publish
         runs-on: ${{ matrix.os }}
+        timeout-minutes: 45
         permissions:
             contents: read
         strategy:
             matrix:
-                # For PRs: run minimal matrix (1 job). For push: run full matrix (9 jobs)
+                # For PRs: run minimal matrix (1 job). For push: run full matrix (9 jobs).
+                # Only non-EOL Node versions are tested: native deps (e.g. better-sqlite3)
+                # stop publishing prebuilt binaries for EOL versions, and the node-gyp
+                # bundled with an EOL Node cannot drive newer Visual Studio releases.
                 os: ${{ github.event_name == 'pull_request' && fromJSON('["ubuntu-latest"]') || fromJSON('["ubuntu-latest", "windows-latest", "macos-latest"]') }}
-                node-version: ${{ github.event_name == 'pull_request' && fromJSON('["22.x"]') || fromJSON('["20.x", "22.x", "24.x"]') }}
+                node-version: ${{ github.event_name == 'pull_request' && fromJSON('["22.x"]') || fromJSON('["22.x", "24.x", "26.x"]') }}
             fail-fast: false
         steps:
             - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
@@ -210,22 +215,31 @@ jobs:
                 path: /tmp/dashboard-test-*.png
                 retention-days: 28
 
-    # Job 3: Verify `@vendure/create` works end-to-end when invoked via bun and pnpm.
-    # The package manager is detected from npm_config_user_agent (which bunx / pnpm dlx
-    # set), so the install step and generated project must use that manager rather than
-    # hard-coding npm (#4390).
+    # Job 3: Verify `@vendure/create` works end-to-end when invoked via bun, pnpm and yarn.
+    # The package manager is detected from npm_config_user_agent (which bunx / pnpm dlx /
+    # yarn dlx set), so the install step and generated project must use that manager rather
+    # than hard-coding npm (#4390). pnpm and yarn are deliberately NOT pinned: their current
+    # releases are what users get, and policy changes in new majors (e.g. pnpm 11 ignoring
+    # the package.json pnpm field, yarn 4.14 disabling build scripts) must fail here (#4932).
     test_package_managers:
         needs: build_and_publish
         runs-on: ubuntu-latest
+        timeout-minutes: 30
         permissions:
             contents: read
         strategy:
             matrix:
                 include:
+                    # $CREATE_VERSION is resolved from the ci dist-tag at run time. The tag
+                    # itself is not passed to dlx because Verdaccio serves pnpm's abbreviated
+                    # metadata requests a stale/merged tag map, resolving @ci to an upstream
+                    # nightly instead of the locally published version.
                     - pm: bun
-                      scaffold: bunx @vendure/create@ci test-app --ci --log-level info
+                      scaffold: bunx @vendure/create@$CREATE_VERSION test-app --ci --log-level info
                     - pm: pnpm
-                      scaffold: pnpm dlx @vendure/create@ci test-app --ci --log-level info
+                      scaffold: pnpm dlx @vendure/create@$CREATE_VERSION test-app --ci --log-level info
+                    - pm: yarn
+                      scaffold: yarn dlx @vendure/create@$CREATE_VERSION test-app --ci --log-level info
             fail-fast: false
         steps:
             - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
@@ -236,11 +250,16 @@ jobs:
             - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
               with:
                   bun-version: '1.3.10'
-            - name: Enable pnpm via corepack
+            - name: Enable pnpm and yarn via corepack
               run: |
+                  # The runner's bundled corepack maps yarn@stable to an outdated release;
+                  # updating corepack first gives the current one that users actually get.
+                  npm install -g corepack@latest
                   corepack enable
-                  corepack prepare pnpm@9.15.9 --activate
+                  corepack prepare pnpm@latest --activate
+                  corepack prepare yarn@stable --activate
                   pnpm --version
+                  yarn --version
             - name: Download Verdaccio storage
               uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
               with:
@@ -271,13 +290,23 @@ jobs:
               # up to a parent .npmrc/bunfig, but it DOES honour the npm_config_registry env
               # var — and so does the scaffolded project's nested install (it inherits the
               # env). This is the one mechanism that reaches both bunx and the nested install.
+              # Yarn Berry reads neither ~/.npmrc nor npm_config_registry: it needs its own
+              # YARN_NPM_REGISTRY_SERVER env var, plus the http whitelist since Verdaccio
+              # is plain http.
               env:
                   CI: true
                   npm_config_registry: http://localhost:4873/
+                  YARN_NPM_REGISTRY_SERVER: http://localhost:4873/
+                  YARN_UNSAFE_HTTP_WHITELIST: localhost
+                  # Yarn quarantines versions published less than npmMinimalAgeGate ago
+                  # (default 1d, YN0016) — the packages under test are seconds old.
+                  YARN_NPM_MINIMAL_AGE_GATE: 0
               run: |
                   mkdir -p $HOME/install
                   cd $HOME/install
                   npm dist-tag ls @vendure/create
+                  CREATE_VERSION=$(npm view @vendure/create@ci version)
+                  echo "Resolved @vendure/create@ci -> $CREATE_VERSION"
                   # No --use-npm: the manager is detected from the invoking bunx / pnpm dlx.
                   ${{ matrix.scaffold }}
             - name: Assert the generated project used ${{ matrix.pm }}
@@ -286,6 +315,7 @@ jobs:
                   case "${{ matrix.pm }}" in
                     bun) test -f bun.lock || { echo "Expected bun.lock to exist"; ls -la; exit 1; } ;;
                     pnpm) test -f pnpm-lock.yaml || { echo "Expected pnpm-lock.yaml to exist"; ls -la; exit 1; } ;;
+                    yarn) test -f yarn.lock || { echo "Expected yarn.lock to exist"; ls -la; exit 1; } ;;
                   esac
                   echo "Lockfile for ${{ matrix.pm }} present ✓"
             - name: Server smoke tests
@@ -297,3 +327,90 @@ jobs:
               if: always()
               run: |
                   lsof -ti:3000,5173 | xargs kill 2>/dev/null || true
+
+    # Job 4: Exercise the Quick Start PostgreSQL path (docker compose up + readiness wait
+    # + populate against postgres), which `--ci` alone never touches. Runs three creates on
+    # the same runner — two of them monorepo — because the compose project-name collision
+    # that motivated this job (#4932) only bites from the second monorepo project onwards.
+    test_quickstart_postgres:
+        needs: build_and_publish
+        runs-on: ubuntu-latest
+        timeout-minutes: 45
+        permissions:
+            contents: read
+        steps:
+            - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+            - name: Use Node.js 22.x
+              uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+              with:
+                  node-version: 22.x
+            - name: Download Verdaccio storage
+              uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+              with:
+                  name: verdaccio-storage
+                  path: ~/verdaccio-download
+            - name: Setup Verdaccio with pre-built packages
+              run: |
+                  npm install -g verdaccio
+                  npm install -g wait-on
+                  mkdir -p $HOME/.config/verdaccio
+                  cp -v ./.github/workflows/verdaccio/config.yaml $HOME/.config/verdaccio/config.yaml
+                  cd $HOME/.config/verdaccio
+                  tar -xzf ~/verdaccio-download/verdaccio-storage.tar.gz
+                  nohup verdaccio --config $HOME/.config/verdaccio/config.yaml &
+                  wait-on http://localhost:4873
+                  TOKEN_RES=$(curl -XPUT \
+                    -H "Content-type: application/json" \
+                    -d '{ "name": "test", "password": "test" }' \
+                    'http://localhost:4873/-/user/org.couchdb.user:test')
+                  TOKEN=$(echo "$TOKEN_RES" | jq -r '.token')
+                  npm set registry=http://localhost:4873
+                  npm set //localhost:4873/:_authToken $TOKEN
+            # The install directory deliberately contains a space: file URLs percent-encode
+            # it (%20), which used to leak into filesystem paths in the dashboard's vite
+            # plugins and break `npm run dev` (#4931).
+            - name: Quick Start with Postgres (single project)
+              timeout-minutes: 15
+              run: |
+                  mkdir -p "$HOME/install dir"
+                  cd "$HOME/install dir"
+                  npx @vendure/create@ci shop-pg --ci --db postgres --use-npm --log-level info
+            - name: Dev server smoke test from a path containing a space
+              timeout-minutes: 15
+              run: |
+                  cd "$HOME/install dir/shop-pg"
+                  npm run dev &
+                  wait-on http://localhost:3000/health --timeout 120000
+                  # The dashboard Vite server failed to start when the project path
+                  # percent-encoded (#4931), so it becoming reachable is the regression check.
+                  wait-on http://localhost:5173/dashboard --timeout 180000
+                  lsof -ti:3000,5173 | xargs kill 2>/dev/null || true
+            - name: Stop containers so the next project can bind port 6543
+              run: docker ps -q | xargs -r docker stop
+            - name: Quick Start with Postgres (monorepo, first)
+              timeout-minutes: 15
+              env:
+                  GITHUB_TOKEN: ${{ github.token }}
+              run: |
+                  cd "$HOME/install dir"
+                  npx @vendure/create@ci shop-mono-a --ci --db postgres --with-storefront --use-npm --log-level info
+            - name: Stop containers so the next project can bind port 6543
+              run: docker ps -q | xargs -r docker stop
+            - name: Quick Start with Postgres (monorepo, second — compose collision regression)
+              timeout-minutes: 15
+              # Deliberately runs with the previous monorepo project's stopped containers and
+              # volumes still present: before the fix, Compose derived the project name from
+              # the apps/server directory for BOTH projects and hung forever on an
+              # unanswerable "Recreate volume?" prompt.
+              env:
+                  GITHUB_TOKEN: ${{ github.token }}
+              run: |
+                  cd "$HOME/install dir"
+                  npx @vendure/create@ci shop-mono-b --ci --db postgres --with-storefront --use-npm --log-level info
+            - name: Assert each project got its own Compose project
+              run: |
+                  docker ps -a --format '{{.Names}}' | sort
+                  for project in shop-pg shop-mono-a shop-mono-b; do
+                      docker ps -a --format '{{.Names}}' | grep -q "^${project}-postgres_db-1$" \
+                        || { echo "Expected container ${project}-postgres_db-1 to exist"; exit 1; }
+                  done

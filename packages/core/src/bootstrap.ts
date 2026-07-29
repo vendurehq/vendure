@@ -30,6 +30,7 @@ import { setProcessContext } from './process-context/process-context';
 import { isTelemetryDisabled } from './telemetry/helpers/is-telemetry-disabled.helper';
 import { VENDURE_VERSION } from './version';
 import { VendureWorker } from './worker/vendure-worker';
+import { wrapEarlyMiddlewareHandler } from './wrap-early-middleware-handler';
 
 export type VendureBootstrapFunction = (config: VendureConfig) => Promise<INestApplication>;
 
@@ -219,7 +220,14 @@ export async function bootstrap(
     }
     const earlyMiddlewares = middleware.filter(mid => mid.beforeListen);
     earlyMiddlewares.forEach(mid => {
-        app.use(mid.route, mid.handler);
+        const handler = wrapEarlyMiddlewareHandler(mid);
+        if (handler !== mid.handler) {
+            Logger.info(
+                `Wrapped route-scoped "beforeListen" middleware on route "${mid.route}" to avoid ` +
+                    'suppressing the global body-parser on other routes.',
+            );
+        }
+        app.use(mid.route, handler);
     });
     await options?.onBeforeAppListen?.(app);
     await app.listen(port, hostname || '');

@@ -2,7 +2,7 @@
 title: "AdministratorService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/service/services/administrator.service.ts" sourceLine="41" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/administrator.service.ts" sourceLine="43" packageName="@vendure/core" />
 
 Contains methods relating to [Administrator](/reference/typescript-api/entities/administrator#administrator) entities.
 
@@ -12,6 +12,7 @@ class AdministratorService {
     findAll(ctx: RequestContext, options?: ListQueryOptions<Administrator>, relations?: RelationPaths<Administrator>) => Promise<PaginatedList<Administrator>>;
     findOne(ctx: RequestContext, administratorId: ID, relations?: RelationPaths<Administrator>) => Promise<Administrator | undefined>;
     findOneByUserId(ctx: RequestContext, userId: ID, relations?: RelationPaths<Administrator>) => Promise<Administrator | undefined>;
+    resolveActorAdministrator(ctx: RequestContext, relations?: RelationPaths<Administrator>) => Promise<Administrator | undefined>;
     create(ctx: RequestContext, input: CreateAdministratorInput) => Promise<Administrator>;
     update(ctx: RequestContext, input: UpdateAdministratorInput) => Promise<Administrator>;
     assignRole(ctx: RequestContext, administratorId: ID, roleId: ID) => Promise<Administrator>;
@@ -36,6 +37,27 @@ Get an Administrator by id.
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, userId: <a href='/reference/typescript-api/common/id#id'>ID</a>, relations?: RelationPaths<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>>) => Promise<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a> | undefined>`}   />
 
 Get an Administrator based on the User id.
+### resolveActorAdministrator
+
+<MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, relations?: RelationPaths<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>>) => Promise<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a> | undefined>`}  since="3.6.4"  />
+
+Resolves the Administrator to be credited as the actor of the current request when
+recording an audit trail, e.g. the `administrator` of a [HistoryEntry](/reference/typescript-api/entities/history-entry#historyentry).
+
+For a regular session this is the Administrator of the active User, exactly as returned by
+`AdministratorService.findOneByUserId`.
+
+An API-Key session authenticates as the synthetic "API-Key user" created alongside the key,
+which has no Administrator of its own. For those sessions we fall back to the Administrator
+of the [ApiKey](/reference/typescript-api/entities/api-key#apikey)'s `owner`, so that actions performed with the key are attributed to the
+Administrator who created it. The owner is not required to be an Administrator — it may be a
+Customer's User — in which case `undefined` is returned and the entry stays unattributed.
+
+This is deliberately kept separate from `AdministratorService.findOneByUserId`, which
+answers the literal question "which Administrator belongs to this User id?".
+
+**Never use this method to make authorization decisions.** The Administrator it returns is not
+the authenticated principal of the request, and their permissions do not apply to it.
 ### create
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, input: CreateAdministratorInput) => Promise<<a href='/reference/typescript-api/entities/administrator#administrator'>Administrator</a>>`}   />

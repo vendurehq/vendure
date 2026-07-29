@@ -20,7 +20,7 @@ In order to make the best use of both your time and that of the Vendure maintain
   - [Release Process](#release-process)
 - [Specific Contributions](#specific-contributions)
   - [Contributing to the documentation](#contributing-to-the-documentation)
-  - [Contributing to the Admin UI translations](#contributing-to-the-admin-ui-translations)
+  - [Contributing to the Dashboard / Admin UI translations](#contributing-to-the-dashboard--admin-ui-translations)
 - [Help & Support](#help--support)
   - [Where to get help](#where-to-get-help)
   - [Contributor License Agreement](#contributor-license-agreement)
@@ -403,7 +403,8 @@ BREAKING CHANGE: A DB migration will be required in order to add the new "foo" f
 
 #### Linting
 
-Commit messages are linted on commit, so you'll know if your message is not quite right.
+Commit messages are linted on commit, so you'll know if your message is not quite right. Pull request titles are
+checked against the same format when a pull request is opened or its title is edited.
 
 ## Advanced Topics
 
@@ -507,9 +508,12 @@ docs/docs
 > [!NOTE]
 > Files in the [reference](https://docs.vendure.io/reference/) directory are auto-generated. To edit reference documentation, modify the [JSDoc](https://jsdoc.app/about-getting-started) comments in the source code and run `bun run docs:build` from the project root directory.
 
-### Contributing to the Admin UI translations
+### Contributing to the Dashboard / Admin UI translations
 
-If you wish to contribute translations of the Admin UI into another language (or improve an existing set of translations), please see the [Localization guide](https://github.com/vendurehq/vendure/blob/master/packages/admin-ui/README.md#localization) in the admin-ui package.
+If you wish to contribute translations into another language (or improve an existing set of translations):
+
+- **React Dashboard** (`@vendure/dashboard`) — see [Contributing a translation of the Dashboard itself](https://docs.vendure.io/guides/extending-the-dashboard/localization/#contributing-a-translation-of-the-dashboard-itself) in the Localization guide.
+- **Legacy Angular Admin UI** (`@vendure/admin-ui`) — see the [Localization guide](https://github.com/vendurehq/vendure/blob/master/packages/admin-ui/README.md#localization) in the admin-ui package.
 
 ## Help & Support
 

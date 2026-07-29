@@ -859,6 +859,7 @@ export const addPaymentDocument = graphql(
     `
         mutation AddPaymentToOrder($input: PaymentInput!) {
             addPaymentToOrder(input: $input) {
+                __typename
                 ...TestOrderWithPayments
                 ... on ErrorResult {
                     errorCode
@@ -875,6 +876,12 @@ export const addPaymentDocument = graphql(
                 }
                 ... on IneligiblePaymentMethodError {
                     eligibilityCheckerMessage
+                }
+                ... on CouponRemovedDuringCheckoutError {
+                    removedCouponCodes
+                    previousTotalWithTax
+                    newTotalWithTax
+                    currencyCode
                 }
             }
         }

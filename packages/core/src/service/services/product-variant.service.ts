@@ -478,6 +478,72 @@ export class ProductVariantService {
         // variant created directly within a non-default channel the channel-filtered `stockLevels`
         // field resolves to a real entry rather than an empty array until stock is first adjusted.
         await this.ensureStockLevelsForChannel(ctx, [createdVariant.id], ctx.channelId);
+
+        // Assign the new variant to any other channels the parent product is already assigned to,
+        // so that the variant is visible in all channels the product belongs to.
+        // We reuse assignProductVariantsToChannel which handles permissions, pricing
+        // (pricesIncludeTax + defaultCurrencyCode), stock-level seeding, asset assignment,
+        // and ProductVariantChannelEvent — matching the flow in
+        // ProductService.assignProductsToChannel().
+        const product = await this.connection.getRepository(ctx, Product).findOne({
+            where: { id: input.productId },
+            relations: ['channels'],
+            relationLoadStrategy: 'query',
+            loadEagerRelations: false,
+        });
+        if (product) {
+            const additionalChannelIds = product.channels
+                .map(c => c.id)
+                .filter(id => !idsAreEqual(id, ctx.channelId) && !idsAreEqual(id, defaultChannel.id));
+
+            if (additionalChannelIds.length) {
+                // Load the variant's options with their groups so we can assign them
+                // to the additional channels, matching ProductService.assignProductsToChannel()
+                const optionIds = input.optionIds || [];
+                let optionGroupIds: ID[] = [];
+                if (optionIds.length) {
+                    const variantOptions = await this.connection
+                        .getRepository(ctx, ProductOption)
+                        .find({
+                            where: { id: In(optionIds) },
+                            relations: ['group'],
+                            loadEagerRelations: false,
+                        });
+                    optionGroupIds = unique(variantOptions.map(o => o.group.id));
+                }
+
+                for (const additionalChannelId of additionalChannelIds) {
+                    await this.assignProductVariantsToChannel(ctx, {
+                        productVariantIds: [createdVariant.id],
+                        channelId: additionalChannelId,
+                    });
+
+                    // Also assign option groups and options to the target channel,
+                    // matching ProductService.assignProductsToChannel()
+                    if (optionIds.length) {
+                        await Promise.all([
+                            ...optionGroupIds.map(id =>
+                                this.channelService.assignToChannels(
+                                    ctx,
+                                    ProductOptionGroup,
+                                    id,
+                                    [additionalChannelId],
+                                ),
+                            ),
+                            ...optionIds.map(id =>
+                                this.channelService.assignToChannels(
+                                    ctx,
+                                    ProductOption,
+                                    id,
+                                    [additionalChannelId],
+                                ),
+                            ),
+                        ]);
+                    }
+                }
+            }
+        }
+
         return createdVariant.id;
     }
 

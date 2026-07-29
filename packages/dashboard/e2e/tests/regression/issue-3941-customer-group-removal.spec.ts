@@ -6,8 +6,8 @@ import { BaseListPage } from '../../page-objects/list-page.base.js';
 // Regression: https://github.com/vendurehq/vendure/issues/3941
 // Fix PR: https://github.com/vendurehq/vendure/pull/4346
 //
-// The customer group detail page has no bulk action to remove customers from a group.
-// Selecting customers and clicking "With selected" shows an empty action popup.
+// The customer group detail page had no bulk action to remove customers from a group.
+// Selecting customers and clicking "With selected" showed an empty action popup.
 
 test.describe('Issue #3941: Customer group member removal', () => {
     test.describe.configure({ mode: 'serial' });
@@ -51,7 +51,7 @@ test.describe('Issue #3941: Customer group member removal', () => {
         await expect(membersTable.getByRole('row')).toHaveCount(2, { timeout: 5_000 }); // header + 1 member
     });
 
-    test.fixme('should show "Remove from group" bulk action when members are selected', async ({ page }) => {
+    test('should remove a selected member via the "Remove from group" bulk action', async ({ page }) => {
         test.skip(!groupCreated, 'Group was not created in previous test');
 
         const lp = listPage(page);
@@ -60,13 +60,21 @@ test.describe('Issue #3941: Customer group member removal', () => {
         await lp.clickEntity('E2E Removal Test Group');
         await expect(page).toHaveURL(/\/customer-groups\/[^/]+$/);
 
-        // Select the first member's checkbox in the members table
         const membersTable = page.getByRole('table').last();
-        await membersTable.getByRole('checkbox').first().click();
+        await expect(membersTable.getByRole('row')).toHaveCount(2, { timeout: 10_000 }); // header + 1 member
 
-        // Click "With selected" and expect "Remove from group" action
+        const memberRow = membersTable.getByRole('row').nth(1);
+        const memberEmail = await memberRow.getByRole('cell').filter({ hasText: '@' }).innerText();
+
+        await memberRow.getByRole('checkbox').click();
+
         await page.getByRole('button', { name: /Actions/i }).click();
-        await expect(page.getByRole('menuitem').filter({ hasText: /Remove from group/i })).toBeVisible();
+        await page.locator('[role="menu"]').getByText('Remove from group', { exact: true }).click();
+        await page.locator('[role="alertdialog"]').getByRole('button', { name: 'Continue' }).click();
+
+        // Singular form — asserts the message is pluralised, not "Removed 1 customers".
+        await expect(page.getByText('Removed 1 customer from group')).toBeVisible({ timeout: 5_000 });
+        await expect(membersTable).not.toContainText(memberEmail, { timeout: 5_000 });
     });
 
     test('should clean up the test customer group', async ({ page }) => {

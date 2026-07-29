@@ -96,7 +96,10 @@ export class StockLocationService {
     }
 
     async update(ctx: RequestContext, input: UpdateStockLocationInput): Promise<StockLocation> {
-        const stockLocation = await this.connection.getEntityOrThrow(ctx, StockLocation, input.id);
+        // Ensure the entity belongs to the active channel before updating.
+        const stockLocation = await this.connection.getEntityOrThrow(ctx, StockLocation, input.id, {
+            channelId: ctx.channelId,
+        });
         const updatedStockLocation = patchEntity(stockLocation, input);
         await this.connection.getRepository(ctx, StockLocation).save(updatedStockLocation);
         await this.customFieldRelationService.updateRelations(
@@ -256,10 +259,27 @@ export class StockLocationService {
         );
     }
 
-    defaultStockLocation(ctx: RequestContext) {
+    async defaultStockLocation(ctx: RequestContext) {
+        // With a channel-aware StockLocationStrategy (the default MultiChannelStockLocationStrategy)
+        // each Channel has its own StockLocation(s). Prefer the oldest StockLocation associated with
+        // the active Channel so that e.g. a numeric `stockOnHand` supplied on variant create/update is
+        // recorded against a location that is actually visible in that Channel, rather than the global
+        // default location (which would leave the entered stock invisible in a non-default channel).
+        const channelStockLocation = await this.connection
+            .getRepository(ctx, StockLocation)
+            .createQueryBuilder('stockLocation')
+            .innerJoin('stockLocation.channels', 'channel')
+            .where('channel.id = :channelId', { channelId: ctx.channelId })
+            .orderBy('stockLocation.createdAt', 'ASC')
+            .addOrderBy('stockLocation.id', 'ASC')
+            .getOne();
+        if (channelStockLocation) {
+            return channelStockLocation;
+        }
+        // Fallback for data where the active Channel has no associated StockLocation.
         return this.connection
             .getRepository(ctx, StockLocation)
-            .find({ order: { createdAt: 'ASC' } })
+            .find({ order: { createdAt: 'ASC', id: 'ASC' } })
             .then(items => items[0]);
     }
 

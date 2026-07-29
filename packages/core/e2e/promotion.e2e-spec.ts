@@ -368,6 +368,23 @@ describe('Promotion resolver', () => {
             const { promotions } = await adminClient.query(getPromotionListDocument);
             expect(promotions.totalItems).toBe(0);
         });
+
+        it('cannot delete a Promotion belonging to another channel', async () => {
+            // promotion belongs to default channel only (removed from second channel above)
+            adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
+            await expect(
+                adminClient.query(deletePromotionDocument, {
+                    id: promotion.id,
+                }),
+            ).rejects.toThrow(/No Promotion with the id .* could be found/);
+
+            // Verify the Promotion still exists in the default channel
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            const { promotion: result } = await adminClient.query(getPromotionDocument, {
+                id: promotion.id,
+            });
+            expect(result?.name).toBe('test promotion');
+        });
     });
 
     describe('deletion', () => {

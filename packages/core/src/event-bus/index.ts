@@ -49,6 +49,7 @@ export * from './events/product-variant-channel-event';
 export * from './events/product-variant-event';
 export * from './events/product-variant-price-event';
 export * from './events/promotion-event';
+export * from './events/province-event';
 export * from './events/refund-event';
 export * from './events/refund-state-transition-event';
 export * from './events/role-change-event';

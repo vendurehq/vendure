@@ -1,5 +1,5 @@
 ---
-title: "Telemetry"
+title: 'Telemetry'
 sidebar_position: 38
 ---
 
@@ -7,9 +7,13 @@ Starting with Vendure v3.6.0, the framework collects anonymous usage telemetry t
 
 Telemetry collection is designed with privacy as a core principle. No personally identifiable information (PII) is ever collected, and the data is anonymized before transmission.
 
+## When Data is Collected
+
+An initial telemetry event is sent shortly after the server starts up. After that, a lightweight "heartbeat" event is sent roughly every 24 hours for as long as the server keeps running (a small random delay is added to each heartbeat so that many servers restarted together do not all report at the same instant). Each event contains the same categories of data, collected fresh at send time.
+
 ## What Data is Collected
 
-The following data is collected once per server startup:
+The following data is included in each telemetry event:
 
 ### Installation ID
 
@@ -25,6 +29,14 @@ A randomly generated UUID that identifies your Vendure installation. This ID is:
 - Node.js version (e.g., `20.10.0`)
 - Operating system platform and architecture (e.g., `linux x64`, `darwin arm64`, `win32 x64`)
 - `NODE_ENV` environment variable value (e.g., `production`, `development`)
+- Process uptime in seconds at the time of the event
+
+### Runtime and Hardware Shape
+
+- JavaScript runtime (`node`, `bun`, or `deno`)
+- Package manager used to launch the process (`npm`, `pnpm`, `yarn`, `bun`, or `unknown`)
+- Whether the process is running under `ts-node`
+- Number of logical CPUs and total system memory (rounded to whole gigabytes)
 
 ### Database Type
 
@@ -45,16 +57,24 @@ The type of database being used:
 
 Record counts for core Vendure entities, reported as **ranges** rather than exact numbers:
 
-| Range | Description |
-|-------|-------------|
-| `0` | No records |
-| `1-100` | 1 to 100 records |
-| `101-1k` | 101 to 1,000 records |
-| `1k-10k` | 1,001 to 10,000 records |
+| Range      | Description               |
+| ---------- | ------------------------- |
+| `0`        | No records                |
+| `1-100`    | 1 to 100 records          |
+| `101-1k`   | 101 to 1,000 records      |
+| `1k-10k`   | 1,001 to 10,000 records   |
 | `10k-100k` | 10,001 to 100,000 records |
-| `100k+` | More than 100,000 records |
+| `100k+`    | More than 100,000 records |
 
 For custom entities, only the count of custom entity types is collected (not their names), plus an aggregate record count range.
+
+#### Order Lifecycle Metrics
+
+Range-bucketed counts (never exact numbers) describing the order mix: orders that have been placed, orders that are still active, draft orders, orders placed in the last 30 days, and a breakdown by order type (`Regular`, `Seller`, `Aggregate` only — arbitrary values are never reported).
+
+#### Internationalization Breadth
+
+The number of distinct language codes and distinct currency codes configured across all channels. These are simple counts — the actual language/currency codes are not sent.
 
 ### Deployment Information
 
@@ -65,7 +85,7 @@ For custom entities, only the count of custom entity types is collected (not the
 
 ### Configuration
 
-Only **class names** of configured strategies are collected, not their configuration values:
+A non-sensitive summary of the configuration is collected. This includes the **class names** of certain well-known built-in strategies, along with booleans, enums and counts derived from the config — never raw configuration values, secrets or credentials:
 
 - Asset storage strategy class name (e.g., `LocalAssetStorageStrategy`, `S3AssetStorageStrategy`)
 - Job queue strategy class name
@@ -74,6 +94,14 @@ Only **class names** of configured strategies are collected, not their configura
 - Default language code
 - Total count of custom fields
 
+#### Security Posture
+
+Booleans and short enums summarizing security-relevant configuration — for example whether GraphQL introspection, the API playground or API debug output are enabled, whether a wildcard CORS origin or `trustProxy` is in use, the configured token method(s) and cookie `secure`/`sameSite` flags, whether auth is disabled or email verification required, and whether the superadmin credentials are still the built-in defaults. Only the flags are sent — never the actual origins, secrets, or credential values.
+
+#### Customized Strategies
+
+For single-strategy configuration fields, telemetry records the **config path** of any strategy that differs from the framework default (e.g. `orderOptions.orderCodeStrategy`). Only the dotted path is sent — the class name of a custom strategy is deliberately **not** collected, so project-specific naming cannot leak.
+
 ## What is NOT Collected
 
 The following data is explicitly **not** collected:
@@ -81,9 +109,10 @@ The following data is explicitly **not** collected:
 - Hostnames, IP addresses, or domain names
 - Customer data, order data, or any business data
 - Custom plugin names (only a count)
-- API keys, secrets, or credentials
+- API keys, secrets, or credentials (including superadmin credential values)
 - File paths or source code
-- Configuration values (only strategy class names)
+- CORS origin lists, API paths, or database connection details
+- Custom strategy class names (only the config path that was customized)
 - Any personally identifiable information (PII)
 
 ## How We Use This Data
@@ -117,7 +146,7 @@ Travis CI, CircleCI, GitHub Actions, GitLab CI, Jenkins, Bitbucket Pipelines, Az
 ## Technical Details
 
 - **Endpoint**: `https://telemetry.vendure.io/api/v1/collect`
-- **Timing**: Once per server startup after a 5-second delay, non-blocking (fire-and-forget)
+- **Timing**: An initial send ~5 seconds after startup, then a heartbeat roughly every 24 hours (plus a small random jitter). All sends are non-blocking (fire-and-forget)
 - **Timeout**: 5 seconds (telemetry collection never delays server startup)
 - **Failure handling**: All errors are silently ignored
 - **Worker processes**: Telemetry is only sent from the main server process, not from workers

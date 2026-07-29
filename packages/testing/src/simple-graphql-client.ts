@@ -1,12 +1,11 @@
 import { TypedDocumentNode } from '@graphql-typed-document-node/core';
 import { SUPER_ADMIN_USER_IDENTIFIER, SUPER_ADMIN_USER_PASSWORD } from '@vendure/common/lib/shared-constants';
 import { VendureConfig } from '@vendure/core';
-import FormData from 'form-data';
 import fs from 'fs';
 import { DocumentNode } from 'graphql';
 import gql from 'graphql-tag';
 import { print } from 'graphql/language/printer';
-import fetch, { RequestInit, Response } from 'node-fetch';
+import mime from 'mime-types';
 import { stringify } from 'querystring';
 
 import { QueryParams } from './types';
@@ -264,14 +263,20 @@ export class SimpleGraphQLClient {
             'map',
             '{' +
                 Object.entries(postData.map)
-                    .map(([i, path]) => `"${i}":["${path}"]`)
+                    .map(([i, mapPath]) => `"${i}":["${mapPath}"]`)
                     .join(',') +
                 '}',
         );
         postData.filePaths.forEach((filePath, index) => {
             const file = fs.readFileSync(filePath.file);
-            const contentType = contentTypeOverrides?.[index];
-            body.append(filePath.name, file, { filename: filePath.file, contentType });
+            // Native FormData inherits its part Content-Type from the Blob's
+            // `type` field. `form-data` previously did this lookup automatically
+            // via the `mime-types` package, so we reproduce it explicitly. An
+            // explicit `contentTypeOverrides` entry takes precedence, allowing a
+            // test to spoof the part's Content-Type independently of the file.
+            const type = contentTypeOverrides?.[index] ?? (mime.lookup(filePath.file) || undefined);
+            const blob = type ? new Blob([file], { type }) : new Blob([file]);
+            body.append(filePath.name, blob, filePath.file);
         });
 
         const result = await fetch(this.apiUrl, {
@@ -281,7 +286,7 @@ export class SimpleGraphQLClient {
                 ...this.headers,
             },
         });
-        const response = await result.json();
+        const response = (await result.json()) as any;
         if (response.errors && response.errors.length) {
             const error = response.errors[0];
             throw new Error(error.message);

@@ -26,7 +26,12 @@ import {
 import { channelFragment } from './graphql/fragments-admin';
 import { FragmentOf } from './graphql/graphql-admin';
 import { FragmentOf as ShopFragmentOf } from './graphql/graphql-shop';
-import { assignProductToChannelDocument, createChannelDocument } from './graphql/shared-definitions';
+import {
+    assignProductToChannelDocument,
+    createChannelDocument,
+    createProductDocument,
+    createProductVariantsDocument,
+} from './graphql/shared-definitions';
 import { localUpdatedOrderFragment, testOrderFragment } from './graphql/shop-definitions';
 
 describe('Stock location', () => {
@@ -284,6 +289,53 @@ describe('Stock location', () => {
             });
         });
 
+        it('variant created in a channel records numeric stockOnHand at the channel location (#4741)', async () => {
+            // Repro for OSS-645: creating a variant while operating in a non-default channel with a
+            // numeric `stockOnHand` (as the Dashboard's inline create-variant table does) must record
+            // that stock against the *active channel's* stock location, not the global default one.
+            adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
+            const { createProduct } = await adminClient.query(createProductDocument, {
+                input: {
+                    translations: [
+                        {
+                            languageCode: LanguageCode.en,
+                            name: 'Channel Stock Product',
+                            slug: 'channel-stock-product',
+                            description: 'Created in the second channel',
+                        },
+                    ],
+                },
+            });
+
+            const { createProductVariants } = await adminClient.query(createProductVariantsDocument, {
+                input: [
+                    {
+                        productId: createProduct.id,
+                        sku: 'CHANNEL-STOCK-1',
+                        optionIds: [],
+                        price: 1000,
+                        stockOnHand: 25,
+                        translations: [{ languageCode: LanguageCode.en, name: 'Channel Stock Variant' }],
+                    },
+                ],
+            });
+            const createdVariant = createProductVariants[0];
+            if (!createdVariant) {
+                throw new Error('Expected a variant to be created');
+            }
+
+            const { productVariant } = await adminClient.query(testGetStockLevelsForVariantDocument, {
+                id: createdVariant.id,
+            });
+
+            expect(productVariant?.stockLevels.length).toBe(1);
+            expect(productVariant?.stockLevels[0]).toEqual({
+                stockOnHand: 25,
+                stockAllocated: 0,
+                stockLocationId: channelStockLocationId,
+            });
+        });
+
         it('remove stock location from channel', async () => {
             adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
             const { removeStockLocationsFromChannel } = await adminClient.query(
@@ -307,6 +359,77 @@ describe('Stock location', () => {
             });
 
             expect(productVariant?.stockLevels.length).toBe(0);
+        });
+
+        // Cross-channel update protection
+        // Verifies that a channel-scoped admin cannot update a StockLocation belonging
+        // to another channel. This is the guard added by the channelId fix.
+        describe('cross-channel update protection', () => {
+            const CHANNEL_A_TOKEN = 'stock-loc-cross-channel-a';
+            const CHANNEL_B_TOKEN = 'stock-loc-cross-channel-b';
+            let targetLocationId: string;
+
+            beforeAll(async () => {
+                adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+                // Create two isolated channels
+                for (const [code, token] of [
+                    ['stock-loc-cross-a', CHANNEL_A_TOKEN],
+                    ['stock-loc-cross-b', CHANNEL_B_TOKEN],
+                ]) {
+                    await adminClient.query(createChannelDocument, {
+                        input: {
+                            code,
+                            token,
+                            defaultLanguageCode: LanguageCode.en,
+                            currencyCode: CurrencyCode.GBP,
+                            pricesIncludeTax: true,
+                            defaultShippingZoneId: 'T_1',
+                            defaultTaxZoneId: 'T_1',
+                        },
+                    });
+                }
+                // Create a StockLocation in Channel A
+                adminClient.setChannelToken(CHANNEL_A_TOKEN);
+                const { createStockLocation } = await adminClient.query(
+                    testCreateStockLocationDocument,
+                    {
+                        input: {
+                            name: 'Channel-A Location',
+                            description: 'Belongs to Channel A only',
+                        },
+                    },
+                );
+                targetLocationId = createStockLocation.id;
+            });
+
+            afterAll(() => {
+                adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            });
+
+            it('cannot update a StockLocation belonging to another channel', async () => {
+                // Channel B does not contain this StockLocation; the update must be rejected.
+                adminClient.setChannelToken(CHANNEL_B_TOKEN);
+                await expect(
+                    adminClient.query(testUpdateStockLocationDocument, {
+                        input: {
+                            id: targetLocationId,
+                            name: 'PWNED-BY-CHANNEL-B',
+                            description: 'TAMPERED-CROSS-CHANNEL',
+                        },
+                    }),
+                ).rejects.toThrow(/No StockLocation with the id .* could be found/);
+
+                // Verify the original entity in Channel A is completely unchanged.
+                adminClient.setChannelToken(CHANNEL_A_TOKEN);
+                const { stockLocations } = await adminClient.query(
+                    testGetStockLocationsListDocument,
+                );
+                const target = stockLocations.items.find(
+                    (sl: any) => sl.id === targetLocationId,
+                );
+                expect(target?.name).toBe('Channel-A Location');
+                expect(target?.description).toBe('Belongs to Channel A only');
+            });
         });
     });
 });

@@ -3,7 +3,9 @@ import spawn from 'cross-spawn';
 import fs from 'fs-extra';
 import Handlebars from 'handlebars';
 import { execFile, execFileSync, execSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { createWriteStream } from 'node:fs';
+import { Socket } from 'node:net';
 import { platform } from 'node:os';
 import path from 'node:path';
 import { Readable } from 'node:stream';
@@ -16,6 +18,10 @@ import * as tar from 'tar';
 import {
     CONCURRENTLY_VERSION,
     DEFAULT_PROJECT_VERSION,
+    OLDEST_NON_EOL_NODE_MAJOR,
+    PG_READY_MAX_ATTEMPTS,
+    PG_READY_POLL_INTERVAL_MS,
+    SOCKET_TIMEOUT_MS,
     STOREFRONT_BRANCH,
     STOREFRONT_REPO,
     TYPESCRIPT_VERSION,
@@ -42,6 +48,7 @@ export function isSafeToCreateProjectIn(root: string, name: string) {
         '.gitignore',
         '.idea',
         'README.md',
+        'AGENTS.md',
         'LICENSE',
         '.hg',
         '.hgignore',
@@ -101,16 +108,26 @@ export function scaffoldAlreadyExists(root: string, name: string): boolean {
     return scaffoldFiles.every(scaffoldFile => files.includes(scaffoldFile));
 }
 
-export function checkNodeVersion(requiredVersion: string) {
-    if (!semver.satisfies(process.version, requiredVersion)) {
+export function checkNodeVersion(requiredVersion: string, currentVersion: string = process.version) {
+    if (!semver.satisfies(currentVersion, requiredVersion)) {
         log(
             pc.red(
-                `You are running Node ${process.version}.` +
+                `You are running Node ${currentVersion}.` +
                     `Vendure requires Node ${requiredVersion} or higher.` +
                     'Please update your version of Node.',
             ),
         );
         process.exit(1);
+    }
+    if (semver.major(currentVersion) < OLDEST_NON_EOL_NODE_MAJOR) {
+        log(
+            pc.yellow(
+                `You are running Node ${currentVersion}, which has reached end-of-life. ` +
+                    'Native dependencies may no longer provide prebuilt binaries for it, ' +
+                    'which can cause installation failures. Consider upgrading to the ' +
+                    'current LTS release: https://nodejs.org/en/download',
+            ),
+        );
     }
 }
 
@@ -318,22 +335,22 @@ export function getPackageManagerInfo(packageManager: PackageManager): PackageMa
 }
 
 /**
- * Returns the scripts for the server package.json. `concurrently` expands the
- * `<pm>:dev:*` / `<pm>:start:*` shorthands to every matching script using the given
- * package manager, so this must match the manager the project was created with.
+ * Returns the scripts for the server package.json. These delegate to the `vendure`
+ * CLI's `dev`/`build`/`start` commands, which are package-manager-agnostic.
  */
-export function getServerPackageScripts(pmInfo: PackageManagerInfo): Record<string, string> {
-    const pm = pmInfo.name;
+export function getServerPackageScripts(): Record<string, string> {
     return {
-        'dev:server': 'ts-node ./src/index.ts',
-        'dev:worker': 'ts-node ./src/index-worker.ts',
-        'dev:dashboard': 'vite --clearScreen false',
-        dev: `concurrently --kill-others ${pm}:dev:*`,
-        build: 'tsc',
-        'build:dashboard': 'vite build',
+        'dev:server': 'vendure dev server',
+        'dev:worker': 'vendure dev worker',
+        'dev:dashboard': 'vendure dev dashboard',
+        dev: 'vendure dev all',
+        build: 'vendure build all',
+        'build:server': 'vendure build server',
+        'build:worker': 'vendure build worker',
+        'build:dashboard': 'vendure build dashboard',
         'start:server': 'node ./dist/index.js',
         'start:worker': 'node ./dist/index-worker.js',
-        start: `concurrently ${pm}:start:*`,
+        start: 'vendure start all',
     };
 }
 
@@ -369,10 +386,8 @@ export function getMonorepoRootPackageJson(
     if (pmInfo.usesPackageJsonWorkspaces) {
         pkg.workspaces = ['apps/*'];
     }
-    // pnpm reads `onlyBuiltDependencies` from the workspace root, where it governs every
-    // package in the workspace (the deps themselves live in apps/server).
-    if (pmInfo.name === 'pnpm') {
-        pkg.pnpm = { onlyBuiltDependencies: getPnpmOnlyBuiltDependencies(dbType) };
+    if (pmInfo.name === 'yarn') {
+        pkg.dependenciesMeta = getYarnDependenciesMeta(dbType);
     }
     return pkg;
 }
@@ -389,30 +404,84 @@ export function getSingleProjectPackageJson(
         name,
         version: DEFAULT_PROJECT_VERSION,
         private: true,
-        scripts: getServerPackageScripts(pmInfo),
+        scripts: getServerPackageScripts(),
     };
-    if (pmInfo.name === 'pnpm') {
-        pkg.pnpm = { onlyBuiltDependencies: getPnpmOnlyBuiltDependencies(dbType) };
+    if (pmInfo.name === 'yarn') {
+        pkg.dependenciesMeta = getYarnDependenciesMeta(dbType);
     }
     return pkg;
 }
 
 /**
- * Native dependencies whose install/build scripts pnpm v10 blocks by default. Listed
- * under `pnpm.onlyBuiltDependencies` so their build scripts run — otherwise e.g.
- * better-sqlite3's native binding is never compiled and the server crashes on startup.
+ * Native dependencies whose install/build scripts must run for the scaffolded project to
+ * work — otherwise e.g. better-sqlite3's native binding is never compiled and the server
+ * crashes on startup. pnpm (v10+) and yarn (v4.14+) block dependency build scripts unless
+ * allowlisted, so this list feeds their respective allowlist mechanisms.
  * `bcrypt` (core), `sharp` (asset-server-plugin) and `esbuild` (vite) are always present;
  * SQLite adds `better-sqlite3`.
  *
  * This list is derived from the scaffold's transitive native deps; re-check it against
  * `getDependencies()` whenever Vendure's direct native-dep surface changes.
  */
-export function getPnpmOnlyBuiltDependencies(dbType: DbType): string[] {
+export function getNativeBuildDependencies(dbType: DbType): string[] {
     const deps = ['bcrypt', 'esbuild', 'sharp'];
     if (dbType === 'sqlite') {
         deps.push('better-sqlite3');
     }
     return deps.sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * Yarn ≥4.14 does not run dependency build scripts unless they are allowlisted via
+ * `dependenciesMeta` in the top-level package.json (`built: true` per package).
+ */
+export function getYarnDependenciesMeta(dbType: DbType): Record<string, { built: true }> {
+    return Object.fromEntries(getNativeBuildDependencies(dbType).map(dep => [dep, { built: true }]));
+}
+
+/**
+ * Generates the pnpm-workspace.yaml contents. Since pnpm v11, this file is the only place
+ * pnpm reads its settings from (the package.json `pnpm` field is ignored), and it is also
+ * where build-script permissions live: v10 uses `onlyBuiltDependencies`, v11 replaced it
+ * with `allowBuilds`. Both keys are written so the scaffold works under either version.
+ */
+export function getPnpmWorkspaceYaml(dbType: DbType, packagesGlobs?: string[]): string {
+    const nativeDeps = getNativeBuildDependencies(dbType);
+    const lines: string[] = [];
+    if (packagesGlobs?.length) {
+        lines.push('packages:');
+        for (const glob of packagesGlobs) {
+            lines.push(`    - '${glob}'`);
+        }
+        lines.push('');
+    }
+    lines.push('# pnpm v10 build-script allowlist');
+    lines.push('onlyBuiltDependencies:');
+    for (const dep of nativeDeps) {
+        lines.push(`    - ${dep}`);
+    }
+    lines.push('');
+    lines.push('# pnpm v11 build-script allowlist');
+    lines.push('allowBuilds:');
+    for (const dep of nativeDeps) {
+        lines.push(`    ${dep}: true`);
+    }
+    lines.push('');
+    lines.push('# pnpm v11 fails the install when a dependency has build scripts not covered by');
+    lines.push('# allowBuilds. With this off, uncovered scripts are skipped with a warning instead');
+    lines.push('# (as in pnpm v10); the packages concerned work without their build scripts.');
+    lines.push('strictDepBuilds: false');
+    lines.push('');
+    return lines.join('\n');
+}
+
+/**
+ * Generates the .yarnrc.yml for yarn-created projects. The scaffold (ts-node registration,
+ * the `vendure` CLI, the dashboard build) resolves packages from a physical node_modules
+ * tree, so Plug'n'Play is disabled.
+ */
+export function getYarnRcYml(): string {
+    return 'nodeLinker: node-modules\n';
 }
 
 /**
@@ -451,20 +520,35 @@ export function installPackages(options: {
             logLevel,
         });
 
+        // Below verbose, capture output so a failing install can report the actual
+        // package-manager error rather than a generic message. Both streams are needed:
+        // npm reports errors on stderr, while yarn and pnpm largely report on stdout.
         const child = spawn(command, args, {
-            stdio: logLevel === 'verbose' ? 'inherit' : 'ignore',
+            stdio: logLevel === 'verbose' ? 'inherit' : ['ignore', 'pipe', 'pipe'],
             cwd,
+        });
+        let outputTail = '';
+        const collectTail = (chunk: Buffer) => {
+            outputTail = (outputTail + chunk.toString()).slice(-4000);
+        };
+        child.stdout?.on('data', collectTail);
+        child.stderr?.on('data', collectTail);
+        child.on('error', err => {
+            reject(
+                new Error(
+                    `Could not run \`${command} ${args.join(' ')}\`: ${err.message}. Is ${command} installed and on your PATH?`,
+                ),
+            );
         });
         child.on('close', code => {
             if (code !== 0) {
-                let message = 'An error occurred when installing dependencies.';
-                if (logLevel === 'silent') {
+                let message = `\`${command} ${args.join(' ')}\` failed with exit code ${String(code)}.`;
+                if (outputTail.trim()) {
+                    message += `\n\n${outputTail.trim()}`;
+                } else if (logLevel !== 'verbose') {
                     message += ' Try running with `--log-level verbose` to diagnose.';
                 }
-                reject({
-                    message,
-                    command: `${command} ${args.join(' ')}`,
-                });
+                reject(new Error(message));
                 return;
             }
             resolve();
@@ -487,7 +571,6 @@ export function getDependencies(
     ];
     const devDependencies = [
         `@vendure/cli${vendurePkgVersion}`,
-        `concurrently@${CONCURRENTLY_VERSION}`,
         'ts-node',
         `typescript@${TYPESCRIPT_VERSION}`,
         `vite@${VITE_VERSION}`,
@@ -667,13 +750,38 @@ export async function isDockerAvailable(): Promise<{ result: 'not-found' | 'not-
     return { result: 'not-running' };
 }
 
-export async function startPostgresDatabase(root: string): Promise<boolean> {
+/**
+ * Sanitizes a project name into a valid Docker Compose project name
+ * (lowercase letters, digits, `-` and `_`, starting with an alphanumeric).
+ * Used as the top-level `name` in the generated docker-compose.yml so that each
+ * created project gets its own Compose project. Without it, Compose derives the
+ * project name from the compose file's directory — which in monorepo mode is
+ * always `apps/server`, so every project would collide on the project "server".
+ *
+ * When sanitization alters the name, a stable suffix derived from the original is
+ * appended: otherwise distinct project names could sanitize to the same value
+ * (e.g. `shop.v1` and `shopv1`) and end up sharing containers and volumes.
+ */
+export function toComposeProjectName(name: string): string {
+    const sanitized = name
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]+/g, '-')
+        .replace(/^[_-]+/, '');
+    if (sanitized === name) {
+        return name;
+    }
+    const suffix = createHash('sha256').update(name).digest('hex').slice(0, 8);
+    const base = sanitized.replace(/[_-]+$/, '') || 'vendure';
+    return `${base}-${suffix}`;
+}
+
+export async function startPostgresDatabase(root: string, projectName: string): Promise<boolean> {
     // Now we need to run the postgres database via Docker
     let containerName: string | undefined;
     const postgresContainerSpinner = spinner();
     postgresContainerSpinner.start('Starting PostgreSQL database');
     try {
-        const result = await promisify(execFile)(`docker`, [
+        const composePromise = promisify(execFile)(`docker`, [
             `compose`,
             `-f`,
             path.join(root, 'docker-compose.yml'),
@@ -681,10 +789,15 @@ export async function startPostgresDatabase(root: string): Promise<boolean> {
             `-d`,
             `postgres_db`,
         ]);
+        // `docker compose up` can ask interactive questions (e.g. "Volume exists but
+        // doesn't match configuration. Recreate?"). Close stdin so it gets EOF instead
+        // of blocking forever on a prompt the user cannot see.
+        composePromise.child.stdin?.end();
+        const result = await composePromise;
         containerName = result.stderr.match(/Container\s+(.+-postgres_db[^ ]*)/)?.[1];
         if (!containerName) {
-            // guess the container name based on the directory name
-            containerName = path.basename(root).replace(/[^a-z0-9]/gi, '') + '-postgres_db-1';
+            // Fall back to Compose's naming convention: <project>-<service>-<index>
+            containerName = `${toComposeProjectName(projectName)}-postgres_db-1`;
             postgresContainerSpinner.message(
                 'Could not find container name. Guessing it is: ' + containerName,
             );
@@ -707,9 +820,19 @@ export async function startPostgresDatabase(root: string): Promise<boolean> {
     let attempts = 1;
     let isReady = false;
     do {
-        // We now need to ensure that the database is ready to accept connections
+        // We now need to ensure that the database is ready to accept connections.
+        // The `-h localhost` forces a TCP check: during a first boot, initdb runs a
+        // temporary server that only listens on the unix socket, and a socket-based
+        // pg_isready would report "ready" before the real server is up.
         try {
-            const result = execFileSync(`docker`, [`exec`, `-i`, containerName, `pg_isready`]);
+            const result = execFileSync(`docker`, [
+                `exec`,
+                `-i`,
+                containerName,
+                `pg_isready`,
+                `-h`,
+                `localhost`,
+            ]);
             isReady = result?.toString().includes('accepting connections');
             if (!isReady) {
                 log(pc.yellow(`PostgreSQL database not yet ready. Attempt ${attempts}...`), {
@@ -720,9 +843,23 @@ export async function startPostgresDatabase(root: string): Promise<boolean> {
             // ignore
             log('is_ready error:' + (e.message as string), { level: 'verbose', newline: 'before' });
         }
-        await new Promise(resolve => setTimeout(resolve, 50));
+        if (isReady) {
+            break;
+        }
+        await new Promise(resolve => setTimeout(resolve, PG_READY_POLL_INTERVAL_MS));
         attempts++;
-    } while (!isReady && attempts < 100);
+    } while (attempts <= PG_READY_MAX_ATTEMPTS);
+    if (!isReady) {
+        postgresContainerSpinner.stop(
+            pc.red(
+                `PostgreSQL database did not become ready within ${Math.round(
+                    (PG_READY_MAX_ATTEMPTS * PG_READY_POLL_INTERVAL_MS) / 1000,
+                )} seconds`,
+            ),
+        );
+        log(`Check the container logs with: docker logs ${containerName}`);
+        return false;
+    }
     postgresContainerSpinner.stop('PostgreSQL database is ready');
     return true;
 }
@@ -758,15 +895,59 @@ function throwDatabaseSchemaDoesNotExist(dbName: string, schemaName: string) {
     );
 }
 
+/**
+ * Returns `true` if the given TCP port on `127.0.0.1` is already bound, `false`
+ * if the port is free. Rejects on invalid port input or on any socket error
+ * other than `ECONNREFUSED` — surfacing the real error (e.g. `EACCES`,
+ * `EHOSTUNREACH`) to the caller rather than silently treating it as "in use"
+ * and letting a port scan exhaust before reporting a misleading message.
+ */
 export function isServerPortInUse(port: number): Promise<boolean> {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const tcpPortUsed = require('tcp-port-used');
-    try {
-        return tcpPortUsed.check(port);
-    } catch (e: any) {
-        log(pc.yellow(`Warning: could not determine whether port ${port} is available`));
-        return Promise.resolve(false);
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+        return Promise.reject(new Error(`Invalid port: ${port}`));
     }
+    return new Promise((resolve, reject) => {
+        const client = new Socket();
+        let settled = false;
+        const cleanup = () => {
+            client.removeAllListeners();
+            client.destroy();
+        };
+        // Node can emit `error` after `close`, and on some platforms an `error` may follow a
+        // successful `connect`. Guarding every handler with this flag means only the first
+        // outcome decides the promise.
+        const settle = (): boolean => {
+            if (settled) return false;
+            settled = true;
+            cleanup();
+            return true;
+        };
+        client.setTimeout(SOCKET_TIMEOUT_MS);
+        client.once('connect', () => {
+            if (!settle()) return;
+            resolve(true);
+        });
+        client.once('timeout', () => {
+            if (!settle()) return;
+            reject(new Error(`Timed out checking port ${port} after ${SOCKET_TIMEOUT_MS}ms`));
+        });
+        client.once('error', (err: NodeJS.ErrnoException) => {
+            if (!settle()) return;
+            if (err.code === 'ECONNREFUSED') {
+                resolve(false);
+                return;
+            }
+            log(
+                pc.yellow(
+                    `Warning: could not determine whether port ${port} is available (${
+                        err.code ?? err.message
+                    })`,
+                ),
+            );
+            reject(err);
+        });
+        client.connect({ port, host: '127.0.0.1' });
+    });
 }
 
 /**
@@ -782,16 +963,23 @@ export function checkCancel<T>(value: T | symbol): value is T {
 }
 
 export function cleanUpDockerResources(name: string) {
+    const labelFilter = `label=io.vendure.create.name=${name}`;
+    const listIds = (args: string[]): string[] =>
+        execFileSync('docker', args)
+            .toString()
+            .split('\n')
+            .map(line => line.trim())
+            .filter(Boolean);
     try {
-        execSync(`docker stop $(docker ps -a -q --filter "label=io.vendure.create.name=${name}")`, {
-            stdio: 'ignore',
-        });
-        execSync(`docker rm $(docker ps -a -q --filter "label=io.vendure.create.name=${name}")`, {
-            stdio: 'ignore',
-        });
-        execSync(`docker volume rm $(docker volume ls --filter "label=io.vendure.create.name=${name}" -q)`, {
-            stdio: 'ignore',
-        });
+        const containerIds = listIds(['ps', '-a', '-q', '--filter', labelFilter]);
+        if (containerIds.length) {
+            execFileSync('docker', ['stop', ...containerIds], { stdio: 'ignore' });
+            execFileSync('docker', ['rm', ...containerIds], { stdio: 'ignore' });
+        }
+        const volumeIds = listIds(['volume', 'ls', '-q', '--filter', labelFilter]);
+        if (volumeIds.length) {
+            execFileSync('docker', ['volume', 'rm', ...volumeIds], { stdio: 'ignore' });
+        }
     } catch (e) {
         log(pc.yellow(`Could not clean up Docker resources`), { level: 'verbose' });
     }
@@ -835,11 +1023,12 @@ export async function downloadAndExtractStorefront(targetDir: string): Promise<v
     const tempTarPath = path.join(targetDir, '..', 'storefront-temp.tar.gz');
 
     try {
-        // Fetch the tarball from GitHub
+        // Fetch the tarball from GitHub. A token (e.g. in CI) raises the rate limit.
         const response = await fetch(tarballUrl, {
             headers: {
                 Accept: 'application/vnd.github+json',
                 'User-Agent': 'vendure-create',
+                ...(process.env.GITHUB_TOKEN ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {}),
             },
         });
 
@@ -881,11 +1070,17 @@ export async function downloadAndExtractStorefront(targetDir: string): Promise<v
  */
 export async function findAvailablePort(startPort: number, range: number = 20): Promise<number> {
     let port = startPort;
-    while (await isServerPortInUse(port)) {
+    while (true) {
+        let inUse: boolean;
+        try {
+            inUse = await isServerPortInUse(port);
+        } catch (e) {
+            throw new Error(`Could not probe port ${port}: ${e instanceof Error ? e.message : String(e)}`);
+        }
+        if (!inUse) return port;
         port++;
         if (port > startPort + range) {
             throw new Error(`Could not find an available port between ${startPort} and ${startPort + range}`);
         }
     }
-    return port;
 }

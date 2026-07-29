@@ -1,16 +1,7 @@
 import { ConfirmationDialog } from '@/vdb/components/shared/confirmation-dialog.js';
 import { ErrorPage } from '@/vdb/components/shared/error-page.js';
 import { FormFieldWrapper } from '@/vdb/components/shared/form-field-wrapper.js';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from '@/vdb/components/ui/alert-dialog.js';
+import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { Badge } from '@/vdb/components/ui/badge.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import {
@@ -41,11 +32,12 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { AddOptionGroupDialog } from './components/add-option-group-dialog.js';
 import { AddProductVariantDialog } from './components/add-product-variant-dialog.js';
+import { ForceRemoveOptionGroupDialog } from './components/force-remove-option-group-dialog.js';
+import { useRemoveOptionGroup } from './hooks/use-remove-option-group.js';
 import {
     createProductOptionDocument,
     deleteProductVariantDocument,
     productDetailWithVariantsDocument,
-    removeOptionGroupFromProductDocument,
     updateProductVariantDocument,
 } from './products.graphql.js';
 
@@ -198,29 +190,13 @@ function ManageProductVariants() {
         },
     });
 
-    const [forceRemoveGroupId, setForceRemoveGroupId] = useState<string | null>(null);
-
-    const removeOptionGroupMutation = useMutation({
-        mutationFn: api.mutate(removeOptionGroupFromProductDocument),
-        onSuccess: (result: any, variables: any) => {
-            const removeResult = result?.removeOptionGroupFromProduct;
-            if (removeResult && '__typename' in removeResult && removeResult.__typename === 'ProductOptionInUseError') {
-                setForceRemoveGroupId(variables.optionGroupId);
-                return;
-            }
-            toast.success(t`Option group removed`);
-            refetch();
-        },
-    });
-
-    const forceRemoveOptionGroupMutation = useMutation({
-        mutationFn: api.mutate(removeOptionGroupFromProductDocument),
-        onSuccess: () => {
-            setForceRemoveGroupId(null);
-            toast.success(t`Option group removed`);
-            refetch();
-        },
-    });
+    const {
+        remove: removeOptionGroup,
+        forceRemove: forceRemoveOptionGroup,
+        inUseGroupId: forceRemoveGroupId,
+        clearInUseGroup,
+        isPending: isRemovingOptionGroup,
+    } = useRemoveOptionGroup(id, { onRemoved: refetch });
 
     const setOptionToAddToVariant = (variantId: string, groupId: string, optionId: string | undefined) => {
         if (!optionId) {
@@ -316,22 +292,21 @@ function ManageProductVariants() {
                                         </div>
                                     </div>
                                     <div className="col-span-1 flex items-end justify-end">
-                                        <ConfirmationDialog
-                                            title={t`Remove option group`}
-                                            description={t`Are you sure you want to remove this option group from the product?`}
-                                            onConfirm={() => removeOptionGroupMutation.mutate({
-                                                productId: id,
-                                                optionGroupId: group.id,
-                                            })}
-                                        >
-                                            <Button
-                                                size="icon"
-                                                variant="ghost"
-                                                disabled={removeOptionGroupMutation.isPending}
+                                        <PermissionGuard requires={['UpdateProduct', 'UpdateCatalog']}>
+                                            <ConfirmationDialog
+                                                title={t`Remove option group`}
+                                                description={t`Are you sure you want to remove this option group from the product?`}
+                                                onConfirm={() => removeOptionGroup(group.id)}
                                             >
-                                                <Trash2 className="h-4 w-4 text-destructive" />
-                                            </Button>
-                                        </ConfirmationDialog>
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    disabled={isRemovingOptionGroup}
+                                                >
+                                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                                </Button>
+                                            </ConfirmationDialog>
+                                        </PermissionGuard>
                                     </div>
                                 </div>
                             ))
@@ -485,32 +460,16 @@ function ManageProductVariants() {
                     )}
                 </PageBlock>
             </PageLayout>
-            <AlertDialog open={!!forceRemoveGroupId} onOpenChange={(open) => { if (!open) setForceRemoveGroupId(null); }}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle><Trans>Force remove option group</Trans></AlertDialogTitle>
-                        <AlertDialogDescription>
-                            <Trans>This option group is in use by existing variants. Force removing it may affect those variants. Are you sure?</Trans>
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setForceRemoveGroupId(null)}>
-                            <Trans>Cancel</Trans>
-                        </AlertDialogCancel>
-                        <AlertDialogAction onClick={() => {
-                            if (forceRemoveGroupId) {
-                                forceRemoveOptionGroupMutation.mutate({
-                                    productId: id,
-                                    optionGroupId: forceRemoveGroupId,
-                                    force: true,
-                                });
-                            }
-                        }}>
-                            <Trans>Force remove</Trans>
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <ForceRemoveOptionGroupDialog
+                open={!!forceRemoveGroupId}
+                onOpenChange={open => {
+                    if (!open) {
+                        clearInUseGroup();
+                    }
+                }}
+                onConfirm={forceRemoveOptionGroup}
+                isPending={isRemovingOptionGroup}
+            />
         </Page>
     );
 }

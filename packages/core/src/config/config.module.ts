@@ -86,6 +86,7 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
             adminApiKeyStrategy,
             shopApiKeyStrategy,
             entityAccessControlStrategy,
+            customerChannelAssignmentStrategy,
         } = this.configService.authOptions;
         const { taxZoneStrategy, taxLineCalculationStrategy, orderTaxCalculationStrategy } =
             this.configService.taxOptions;
@@ -101,6 +102,7 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
             stockAllocationStrategy,
             activeOrderStrategy,
             changedPriceHandlingStrategy,
+            orderLineDiscountDistributionStrategy,
             orderSellerStrategy,
             guestCheckoutStrategy,
             orderInterceptors,
@@ -152,6 +154,7 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
             ...errorHandlers,
             assetImportStrategy,
             changedPriceHandlingStrategy,
+            orderLineDiscountDistributionStrategy,
             ...(Array.isArray(activeOrderStrategy) ? activeOrderStrategy : [activeOrderStrategy]),
             orderSellerStrategy,
             shippingLineAssignmentStrategy,
@@ -166,6 +169,7 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
             adminApiKeyStrategy,
             shopApiKeyStrategy,
             entityAccessControlStrategy,
+            customerChannelAssignmentStrategy,
         ];
     }
 

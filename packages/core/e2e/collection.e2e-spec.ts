@@ -2161,6 +2161,76 @@ describe('Collection resolver', () => {
         });
     });
 
+    describe('cross-channel update protection', () => {
+        const CHANNEL_A_TOKEN = 'coll-cross-channel-a';
+        const CHANNEL_B_TOKEN = 'coll-cross-channel-b';
+        let targetCollectionId: string;
+
+        beforeAll(async () => {
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            for (const [code, token] of [
+                ['coll-cross-a', CHANNEL_A_TOKEN],
+                ['coll-cross-b', CHANNEL_B_TOKEN],
+            ]) {
+                await adminClient.query(createChannelDocument, {
+                    input: {
+                        code,
+                        token,
+                        defaultLanguageCode: LanguageCode.en,
+                        currencyCode: CurrencyCode.USD,
+                        pricesIncludeTax: true,
+                        defaultShippingZoneId: 'T_1',
+                        defaultTaxZoneId: 'T_1',
+                    },
+                });
+            }
+            adminClient.setChannelToken(CHANNEL_A_TOKEN);
+            const { createCollection } = await adminClient.query(createCollectionDocument, {
+                input: {
+                    filters: [],
+                    translations: [
+                        {
+                            languageCode: LanguageCode.en,
+                            name: 'Channel-A Collection',
+                            description: 'Belongs to Channel A only',
+                            slug: 'channel-a-collection',
+                        },
+                    ],
+                },
+            });
+            targetCollectionId = createCollection.id;
+        });
+
+        afterAll(() => {
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+        });
+
+        it('cannot update a Collection belonging to another channel', async () => {
+            adminClient.setChannelToken(CHANNEL_B_TOKEN);
+            await expect(
+                adminClient.query(updateCollectionDocument, {
+                    input: {
+                        id: targetCollectionId,
+                        translations: [
+                            {
+                                languageCode: LanguageCode.en,
+                                name: 'PWNED-BY-CHANNEL-B',
+                                description: 'TAMPERED',
+                                slug: 'pwned',
+                            },
+                        ],
+                    },
+                }),
+            ).rejects.toThrow(/No Collection with the id .* could be found/);
+
+            adminClient.setChannelToken(CHANNEL_A_TOKEN);
+            const { collection } = await adminClient.query(getCollectionDocument, {
+                id: targetCollectionId,
+            });
+            expect(collection?.name).toBe('Channel-A Collection');
+        });
+    });
+
     function getFacetValueId(code: string): string {
         const match = facetValues.find(fv => fv.code === code);
         if (!match) {

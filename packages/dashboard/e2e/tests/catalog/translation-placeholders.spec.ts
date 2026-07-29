@@ -224,6 +224,98 @@ test.describe('Translation fallback placeholders', () => {
         expect(placeholderValue).toContain('Now equipped with seventh-generation');
     });
 
+    // #4885 / OSS-579 — with German available, the form seeds a translation row for both en and de.
+    // Filling only the default language and submitting must send a single `en` translation, not an
+    // empty `de` row (which would break language fallback). This exercises the real react-hook-form
+    // path that the unit tests can't: `stripUntouchedTranslations` reads `dirtyFields`, which
+    // react-hook-form only populates when it is read during render — if the wiring regressed to
+    // reading it only in the submit handler, the fix would silently no-op and the empty `de` row
+    // would come back here.
+    test('creating a product with only the default language filled submits a single translation', async ({
+        page,
+    }) => {
+        const dp = detailPage(page);
+        await dp.gotoNew();
+        await dp.expectNewPageLoaded();
+
+        const name = `OSS579 Only-EN ${Date.now()}`;
+        // Slug is auto-generated from the name (its input is disabled), so filling the name is enough.
+        await dp.fillInput('Product name', name);
+
+        const createRequest = page.waitForRequest(
+            req => req.method() === 'POST' && (req.postData() ?? '').includes('mutation CreateProduct('),
+            { timeout: 15_000 },
+        );
+        await dp.clickCreate();
+        const input = (await createRequest).postDataJSON()?.variables?.input;
+
+        expect(input).toBeTruthy();
+        expect(input.translations).toHaveLength(1);
+        expect(input.translations[0].languageCode).toBe('en');
+        expect(input.translations[0].name).toBe(name);
+        expect(input.translations.some((t: any) => t.languageCode === 'de')).toBe(false);
+
+        await dp.expectSuccessToast();
+
+        // Clean up the product we just created so the suite stays re-runnable.
+        const createdId = new URL(page.url()).pathname.split('/').pop();
+        if (createdId && createdId !== 'new') {
+            const client = new VendureAdminClient(page);
+            await client.login();
+            await client.gql(`mutation ($id: ID!) { deleteProduct(id: $id) { result } }`, { id: createdId });
+        }
+    });
+
+    // #4885 / OSS-579 — the update path (the #4962 review regression). On edit, react-hook-form
+    // resets the form from the entity, so *nothing* is dirty until the user types. Changing only a
+    // non-translation field (here the Enabled switch) must still submit just the persisted `en`
+    // translation — the seeded empty `de` row is dropped by its missing `id`, not by dirty state
+    // (which is blank here). The dirty-only version kept every row when nothing was dirty and
+    // re-created the empty `de` translation on the most common edit path.
+    test('updating a non-translation field submits only the existing translation, not a seeded empty one', async ({
+        page,
+    }) => {
+        await goToLaptopProduct(page);
+        const productId = new URL(page.url()).pathname.split('/').pop() as string;
+
+        const dp = detailPage(page);
+        // Toggle Enabled to make the form dirty *without* touching any translation field.
+        const enabledSwitch = dp.formItem('Enabled').getByRole('switch');
+        await expect(enabledSwitch).toBeVisible({ timeout: 10_000 });
+        // Read via isChecked() (aria-checked), not a data-state attribute — the Base UI switch
+        // doesn't expose data-state, so reading it would misdetect the state and make the toggle a
+        // no-op, leaving the form pristine and the Update button disabled.
+        const wasEnabled = await enabledSwitch.isChecked();
+        await dp.toggleSwitch('Enabled', !wasEnabled);
+        // The toggle must have dirtied the form, enabling the Update button.
+        await expect(page.getByRole('button', { name: 'Update', exact: true })).toBeEnabled({
+            timeout: 10_000,
+        });
+
+        const updateRequest = page.waitForRequest(
+            req => req.method() === 'POST' && (req.postData() ?? '').includes('mutation UpdateProduct('),
+            { timeout: 15_000 },
+        );
+        await dp.clickUpdate();
+        const input = (await updateRequest).postDataJSON()?.variables?.input;
+
+        expect(input).toBeTruthy();
+        // The persisted English translation (carrying an id) is kept…
+        const en = input.translations.find((t: any) => t.languageCode === 'en');
+        expect(en?.id).toBeTruthy();
+        // …and no empty German row is submitted.
+        expect(input.translations.some((t: any) => t.languageCode === 'de')).toBe(false);
+
+        await dp.expectSuccessToast();
+
+        // Restore the original enabled state so the shared Laptop product is unchanged for others.
+        const client = new VendureAdminClient(page);
+        await client.login();
+        await client.gql(`mutation ($input: UpdateProductInput!) { updateProduct(input: $input) { id } }`, {
+            input: { id: productId, enabled: wasEnabled },
+        });
+    });
+
     // ── Cleanup: switch back to English ─────────────────────────────────
 
     test.afterAll(async ({ browser }) => {
