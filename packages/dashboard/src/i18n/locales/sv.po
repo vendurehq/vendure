@@ -14,7 +14,7 @@ msgstr ""
 "Plural-Forms: \n"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:159
-#: src/lib/components/shared/customer-address-form.tsx:110
+#: src/lib/components/shared/customer-address-form.tsx:116
 msgid "Full Name"
 msgstr "Fullständigt namn"
 
@@ -56,7 +56,7 @@ msgstr "Tilldela en befintlig alternativgrupp eller skapa en ny"
 msgid "New role"
 msgstr "Ny roll"
 
-#: src/lib/components/shared/customer-address-form.tsx:138
+#: src/lib/components/shared/customer-address-form.tsx:144
 msgid "Apartment, suite, etc."
 msgstr "Lägenhet, svit, etc."
 
@@ -525,7 +525,7 @@ msgid "Create new customer"
 msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:196
-#: src/lib/components/shared/customer-address-form.tsx:148
+#: src/lib/components/shared/customer-address-form.tsx:154
 msgid "City"
 msgstr "Stad"
 
@@ -701,7 +701,7 @@ msgstr "Lägg till produkter och fyll i leveransadress för att köra testet."
 msgid "Toggle header row"
 msgstr "Växla rubrikrad"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:73
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:96
 msgid "Select address"
 msgstr "Välj adress"
 
@@ -862,7 +862,7 @@ msgid "(max: {0})"
 msgstr "(max: {0})"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:165
-#: src/lib/components/shared/customer-address-form.tsx:118
+#: src/lib/components/shared/customer-address-form.tsx:124
 msgid "Company"
 msgstr "Företag"
 
@@ -925,6 +925,11 @@ msgstr "Misslyckades att skapa produkt"
 #: src/lib/components/shared/role-code-label.tsx:8
 msgid "Customer"
 msgstr "Kund"
+
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:269
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:301
+msgid "Update address"
+msgstr ""
 
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-container.tsx:46
@@ -1510,7 +1515,7 @@ msgstr "Senaste beställningar"
 msgid "+ {leftOver} more"
 msgstr "+ {leftOver} till"
 
-#: src/lib/components/shared/customer-address-form.tsx:249
+#: src/lib/components/shared/customer-address-form.tsx:255
 msgid "Use as the default billing address"
 msgstr "Använd som standardfakturaadress"
 
@@ -1612,7 +1617,7 @@ msgstr "Adress uppdaterad"
 msgid "Created"
 msgstr "Skapad"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:93
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:116
 msgid "Loading addresses..."
 msgstr "Laddar adresser..."
 
@@ -1668,7 +1673,7 @@ msgstr "Gå till sista sidan"
 #: src/lib/components/shared/asset/asset-focal-point-editor.tsx:88
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:126
 #: src/lib/components/shared/confirmation-dialog.tsx:42
-#: src/lib/components/shared/customer-address-form.tsx:262
+#: src/lib/components/shared/customer-address-form.tsx:268
 #: src/lib/components/shared/navigation-confirmation.tsx:55
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:208
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:146
@@ -1690,7 +1695,7 @@ msgid "Refund from this method"
 msgstr "Återbetalning från denna metod"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:208
-#: src/lib/components/shared/customer-address-form.tsx:170
+#: src/lib/components/shared/customer-address-form.tsx:176
 msgid "Postal Code"
 msgstr "Postnummer"
 
@@ -1797,7 +1802,7 @@ msgstr "Inaktiverad"
 msgid "New promotion"
 msgstr "Ny kampanj"
 
-#: src/lib/components/shared/customer-address-form.tsx:228
+#: src/lib/components/shared/customer-address-form.tsx:234
 msgid "Default Shipping Address"
 msgstr "Standardleveransadress"
 
@@ -1898,8 +1903,8 @@ msgstr "Profil uppdaterad"
 msgid "Payment method"
 msgstr "Betalningsmetod"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:277
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:307
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:279
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:311
 #: src/lib/components/shared/history-timeline/history-note-entry.tsx:46
 msgid "Edit"
 msgstr "Redigera"
@@ -2728,8 +2733,8 @@ msgid "This will remove all option groups from this product and return to the va
 msgstr "Detta tar bort alla alternativgrupper från produkten och återgår till variantval."
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:299
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:291
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:542
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:293
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:543
 msgid "Billing address"
 msgstr "Fakturaadress"
 
@@ -2805,7 +2810,7 @@ msgid "Amount"
 msgstr "Belopp"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:242
-#: src/lib/components/shared/customer-address-form.tsx:208
+#: src/lib/components/shared/customer-address-form.tsx:214
 msgid "Phone Number"
 msgstr "Telefonnummer"
 
@@ -2944,7 +2949,7 @@ msgstr "Fokuspunkt uppdaterad"
 msgid "Option values"
 msgstr "Alternativvärden"
 
-#: src/lib/components/shared/customer-address-form.tsx:246
+#: src/lib/components/shared/customer-address-form.tsx:252
 msgid "Default Billing Address"
 msgstr "Standardfakturaadress"
 
@@ -3193,7 +3198,7 @@ msgstr "Misslyckades att uppdatera fokuspunkt"
 msgid "Successfully updated zone"
 msgstr "Zon uppdaterad"
 
-#: src/lib/components/shared/customer-address-form.tsx:156
+#: src/lib/components/shared/customer-address-form.tsx:162
 msgid "State/Province"
 msgstr "Region/Provins"
 
@@ -3215,7 +3220,7 @@ msgstr "Ange filterkriterier för kolumnen {columnId}"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:217
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:53
-#: src/lib/components/shared/customer-address-form.tsx:180
+#: src/lib/components/shared/customer-address-form.tsx:186
 msgid "Country"
 msgstr "Land"
 
@@ -3431,7 +3436,7 @@ msgstr "Betalning auktoriserad"
 msgid "Successfully updated role"
 msgstr "Roll uppdaterad"
 
-#: src/lib/components/shared/customer-address-form.tsx:191
+#: src/lib/components/shared/customer-address-form.tsx:197
 msgid "Select a country"
 msgstr "Välj ett land"
 
@@ -3658,7 +3663,7 @@ msgstr "Facettvärde skapat"
 msgid "Marketing"
 msgstr "Marknadsföring"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:82
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:105
 msgid "Existing address"
 msgstr ""
 
@@ -3724,7 +3729,7 @@ msgstr "{0} varianter"
 msgid "Failed to settle payment"
 msgstr "Misslyckades att genomföra betalning"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:315
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:319
 msgid "No billing address"
 msgstr "Ingen fakturaadress"
 
@@ -3883,7 +3888,7 @@ msgstr "Misslyckades att uppdatera lagerplats"
 msgid "Order shipped"
 msgstr "Beställning skickad"
 
-#: src/lib/components/shared/customer-address-form.tsx:266
+#: src/lib/components/shared/customer-address-form.tsx:272
 msgid "Save Address"
 msgstr "Spara adress"
 
@@ -4621,7 +4626,7 @@ msgstr ""
 msgid "Failed to set billing address for order: {0}"
 msgstr ""
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:285
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:287
 msgid "No shipping address"
 msgstr "Ingen leveransadress"
 
@@ -4885,7 +4890,7 @@ msgstr "Redigera medlemmar"
 msgid "Stock on hand"
 msgstr "Lager tillgängligt"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:86
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:109
 msgid "New address"
 msgstr ""
 
@@ -5092,7 +5097,7 @@ msgstr "System"
 msgid "Variant name"
 msgstr "Variantnamn"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:595
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:597
 msgid "Remove"
 msgstr "Ta bort"
 
@@ -5161,7 +5166,7 @@ msgid "The page will continue with the default query."
 msgstr "Sidan kommer fortsätta med standardfrågan."
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:175
-#: src/lib/components/shared/customer-address-form.tsx:128
+#: src/lib/components/shared/customer-address-form.tsx:134
 msgid "Street Address"
 msgstr "Gatuadress"
 
@@ -5313,6 +5318,11 @@ msgstr "Standardspråk"
 #: src/app/routes/_authenticated/_customers/customers.tsx:44
 msgid "Status"
 msgstr "Status"
+
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:537
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:566
+msgid "Okay"
+msgstr ""
 
 #: src/lib/components/shared/configurable-operation-multi-selector.tsx:298
 #: src/lib/components/shared/configurable-operation-selector.tsx:155
@@ -5756,7 +5766,7 @@ msgstr "Visa orderprocess"
 msgid "Failed to duplicate view"
 msgstr "Misslyckades att duplicera vy"
 
-#: src/lib/components/shared/customer-address-form.tsx:231
+#: src/lib/components/shared/customer-address-form.tsx:237
 msgid "Use as the default shipping address"
 msgstr "Använd som standardleveransadress"
 
@@ -6096,7 +6106,7 @@ msgstr "Laddar..."
 msgid "The token is used to specify the channel when making API requests."
 msgstr "Token används för att ange kanal vid API-förfrågningar."
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:97
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:120
 msgid "No addresses found"
 msgstr "Inga adresser hittades"
 

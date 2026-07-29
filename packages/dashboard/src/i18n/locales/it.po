@@ -14,7 +14,7 @@ msgstr ""
 "Plural-Forms: \n"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:159
-#: src/lib/components/shared/customer-address-form.tsx:110
+#: src/lib/components/shared/customer-address-form.tsx:116
 msgid "Full Name"
 msgstr "Nome completo"
 
@@ -56,7 +56,7 @@ msgstr "Assegna un gruppo di opzioni esistente o creane uno nuovo"
 msgid "New role"
 msgstr "Nuovo ruolo"
 
-#: src/lib/components/shared/customer-address-form.tsx:138
+#: src/lib/components/shared/customer-address-form.tsx:144
 msgid "Apartment, suite, etc."
 msgstr "Appartamento, suite, ecc."
 
@@ -525,7 +525,7 @@ msgid "Create new customer"
 msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:196
-#: src/lib/components/shared/customer-address-form.tsx:148
+#: src/lib/components/shared/customer-address-form.tsx:154
 msgid "City"
 msgstr "Città"
 
@@ -701,7 +701,7 @@ msgstr "Aggiungi prodotti e completa l'indirizzo di spedizione per eseguire il t
 msgid "Toggle header row"
 msgstr "Attiva/Disattiva riga intestazione"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:73
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:96
 msgid "Select address"
 msgstr "Seleziona indirizzo"
 
@@ -862,7 +862,7 @@ msgid "(max: {0})"
 msgstr "(max: {0})"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:165
-#: src/lib/components/shared/customer-address-form.tsx:118
+#: src/lib/components/shared/customer-address-form.tsx:124
 msgid "Company"
 msgstr "Azienda"
 
@@ -925,6 +925,11 @@ msgstr "Impossibile creare prodotto"
 #: src/lib/components/shared/role-code-label.tsx:8
 msgid "Customer"
 msgstr "Cliente"
+
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:269
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:301
+msgid "Update address"
+msgstr ""
 
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-container.tsx:46
@@ -1510,7 +1515,7 @@ msgstr "Ultimi ordini"
 msgid "+ {leftOver} more"
 msgstr "+ {leftOver} altri"
 
-#: src/lib/components/shared/customer-address-form.tsx:249
+#: src/lib/components/shared/customer-address-form.tsx:255
 msgid "Use as the default billing address"
 msgstr "Usa come indirizzo di fatturazione predefinito"
 
@@ -1612,7 +1617,7 @@ msgstr "Indirizzo aggiornato con successo"
 msgid "Created"
 msgstr "Creato"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:93
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:116
 msgid "Loading addresses..."
 msgstr "Caricamento indirizzi..."
 
@@ -1668,7 +1673,7 @@ msgstr "Vai all'ultima pagina"
 #: src/lib/components/shared/asset/asset-focal-point-editor.tsx:88
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:126
 #: src/lib/components/shared/confirmation-dialog.tsx:42
-#: src/lib/components/shared/customer-address-form.tsx:262
+#: src/lib/components/shared/customer-address-form.tsx:268
 #: src/lib/components/shared/navigation-confirmation.tsx:55
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:208
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:146
@@ -1690,7 +1695,7 @@ msgid "Refund from this method"
 msgstr "Rimborso da questo metodo"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:208
-#: src/lib/components/shared/customer-address-form.tsx:170
+#: src/lib/components/shared/customer-address-form.tsx:176
 msgid "Postal Code"
 msgstr "Codice postale"
 
@@ -1797,7 +1802,7 @@ msgstr "Disabilitato"
 msgid "New promotion"
 msgstr "Nuova promozione"
 
-#: src/lib/components/shared/customer-address-form.tsx:228
+#: src/lib/components/shared/customer-address-form.tsx:234
 msgid "Default Shipping Address"
 msgstr "Indirizzo di spedizione predefinito"
 
@@ -1898,8 +1903,8 @@ msgstr "Profilo aggiornato con successo"
 msgid "Payment method"
 msgstr "Metodo di pagamento"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:277
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:307
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:279
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:311
 #: src/lib/components/shared/history-timeline/history-note-entry.tsx:46
 msgid "Edit"
 msgstr "Modifica"
@@ -2728,8 +2733,8 @@ msgid "This will remove all option groups from this product and return to the va
 msgstr "Questa azione rimuoverà tutti i gruppi di opzioni da questo prodotto e tornerai alla scelta di configurazione delle varianti."
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:299
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:291
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:542
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:293
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:543
 msgid "Billing address"
 msgstr "Indirizzo di fatturazione"
 
@@ -2805,7 +2810,7 @@ msgid "Amount"
 msgstr "Importo"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:242
-#: src/lib/components/shared/customer-address-form.tsx:208
+#: src/lib/components/shared/customer-address-form.tsx:214
 msgid "Phone Number"
 msgstr "Numero di telefono"
 
@@ -2944,7 +2949,7 @@ msgstr "Punto focale aggiornato"
 msgid "Option values"
 msgstr "Valori opzione"
 
-#: src/lib/components/shared/customer-address-form.tsx:246
+#: src/lib/components/shared/customer-address-form.tsx:252
 msgid "Default Billing Address"
 msgstr "Indirizzo di fatturazione predefinito"
 
@@ -3193,7 +3198,7 @@ msgstr "Impossibile aggiornare il punto focale"
 msgid "Successfully updated zone"
 msgstr "Zona aggiornata con successo"
 
-#: src/lib/components/shared/customer-address-form.tsx:156
+#: src/lib/components/shared/customer-address-form.tsx:162
 msgid "State/Province"
 msgstr "Stato/Provincia"
 
@@ -3215,7 +3220,7 @@ msgstr "Imposta criteri di filtro per la colonna {columnId}"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:217
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:53
-#: src/lib/components/shared/customer-address-form.tsx:180
+#: src/lib/components/shared/customer-address-form.tsx:186
 msgid "Country"
 msgstr "Paese"
 
@@ -3431,7 +3436,7 @@ msgstr "Pagamento autorizzato"
 msgid "Successfully updated role"
 msgstr "Ruolo aggiornato con successo"
 
-#: src/lib/components/shared/customer-address-form.tsx:191
+#: src/lib/components/shared/customer-address-form.tsx:197
 msgid "Select a country"
 msgstr "Seleziona un paese"
 
@@ -3658,7 +3663,7 @@ msgstr "Valore attributo creato con successo"
 msgid "Marketing"
 msgstr "Marketing"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:82
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:105
 msgid "Existing address"
 msgstr ""
 
@@ -3724,7 +3729,7 @@ msgstr "{0} varianti"
 msgid "Failed to settle payment"
 msgstr "Impossibile completare pagamento"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:315
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:319
 msgid "No billing address"
 msgstr "Nessun indirizzo di fatturazione"
 
@@ -3883,7 +3888,7 @@ msgstr "Impossibile aggiornare ubicazione magazzino"
 msgid "Order shipped"
 msgstr "Ordine spedito"
 
-#: src/lib/components/shared/customer-address-form.tsx:266
+#: src/lib/components/shared/customer-address-form.tsx:272
 msgid "Save Address"
 msgstr "Salva indirizzo"
 
@@ -4621,7 +4626,7 @@ msgstr ""
 msgid "Failed to set billing address for order: {0}"
 msgstr ""
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:285
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:287
 msgid "No shipping address"
 msgstr "Nessun indirizzo di spedizione"
 
@@ -4885,7 +4890,7 @@ msgstr "Modifica membri"
 msgid "Stock on hand"
 msgstr "Scorta disponibile"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:86
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:109
 msgid "New address"
 msgstr ""
 
@@ -5092,7 +5097,7 @@ msgstr "Sistema"
 msgid "Variant name"
 msgstr "Nome variante"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:595
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:597
 msgid "Remove"
 msgstr "Rimuovi"
 
@@ -5161,7 +5166,7 @@ msgid "The page will continue with the default query."
 msgstr "La pagina continuerà con la query predefinita."
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:175
-#: src/lib/components/shared/customer-address-form.tsx:128
+#: src/lib/components/shared/customer-address-form.tsx:134
 msgid "Street Address"
 msgstr "Indirizzo"
 
@@ -5313,6 +5318,11 @@ msgstr "Lingua predefinita"
 #: src/app/routes/_authenticated/_customers/customers.tsx:44
 msgid "Status"
 msgstr "Stato"
+
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:537
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:566
+msgid "Okay"
+msgstr ""
 
 #: src/lib/components/shared/configurable-operation-multi-selector.tsx:298
 #: src/lib/components/shared/configurable-operation-selector.tsx:155
@@ -5756,7 +5766,7 @@ msgstr "Visualizza processo ordine"
 msgid "Failed to duplicate view"
 msgstr "Impossibile duplicare vista"
 
-#: src/lib/components/shared/customer-address-form.tsx:231
+#: src/lib/components/shared/customer-address-form.tsx:237
 msgid "Use as the default shipping address"
 msgstr "Usa come indirizzo di spedizione predefinito"
 
@@ -6096,7 +6106,7 @@ msgstr "Caricamento..."
 msgid "The token is used to specify the channel when making API requests."
 msgstr "Il token viene utilizzato per specificare il canale quando si effettuano richieste API."
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:97
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:120
 msgid "No addresses found"
 msgstr "Nessun indirizzo trovato"
 

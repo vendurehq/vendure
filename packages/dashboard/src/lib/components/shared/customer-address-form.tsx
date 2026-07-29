@@ -55,6 +55,11 @@ interface CustomerAddressFormProps<T = any> {
      * such as draft order creation where the default-address flags are not applicable.
      */
     hideDefaultAddressFlags?: boolean;
+    /**
+     * @description
+     * Custom label for the submit button. Defaults to "Save Address".
+     */
+    submitLabel?: React.ReactNode;
 }
 
 export function CustomerAddressForm<T>({
@@ -63,6 +68,7 @@ export function CustomerAddressForm<T>({
     onSubmit,
     onCancel,
     hideDefaultAddressFlags = false,
+    submitLabel,
 }: CustomerAddressFormProps<T>) {
     const { t } = useLingui();
 
@@ -263,7 +269,7 @@ export function CustomerAddressForm<T>({
                         </Button>
                     )}
                     <Button type="submit">
-                        <Trans>Save Address</Trans>
+                        {submitLabel ?? <Trans>Save Address</Trans>}
                     </Button>
                 </div>
             </form>

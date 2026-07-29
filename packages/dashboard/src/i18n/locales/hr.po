@@ -14,7 +14,7 @@ msgstr ""
 "Plural-Forms: \n"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:159
-#: src/lib/components/shared/customer-address-form.tsx:110
+#: src/lib/components/shared/customer-address-form.tsx:116
 msgid "Full Name"
 msgstr "Puno ime"
 
@@ -56,7 +56,7 @@ msgstr "Dodijelite postojeću grupu opcija ili stvorite novu"
 msgid "New role"
 msgstr "Nova uloga"
 
-#: src/lib/components/shared/customer-address-form.tsx:138
+#: src/lib/components/shared/customer-address-form.tsx:144
 msgid "Apartment, suite, etc."
 msgstr "Stan, apartman itd."
 
@@ -525,7 +525,7 @@ msgid "Create new customer"
 msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:196
-#: src/lib/components/shared/customer-address-form.tsx:148
+#: src/lib/components/shared/customer-address-form.tsx:154
 msgid "City"
 msgstr "Grad"
 
@@ -701,7 +701,7 @@ msgstr "Molimo dodajte proizvode i dovršite adresu za dostavu kako biste pokren
 msgid "Toggle header row"
 msgstr "Prebaci redak zaglavlja"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:73
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:96
 msgid "Select address"
 msgstr "Odaberi adresu"
 
@@ -862,7 +862,7 @@ msgid "(max: {0})"
 msgstr "(maks: {0})"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:165
-#: src/lib/components/shared/customer-address-form.tsx:118
+#: src/lib/components/shared/customer-address-form.tsx:124
 msgid "Company"
 msgstr "Tvrtka"
 
@@ -925,6 +925,11 @@ msgstr "Stvaranje proizvoda nije uspjelo"
 #: src/lib/components/shared/role-code-label.tsx:8
 msgid "Customer"
 msgstr "Kupac"
+
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:269
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:301
+msgid "Update address"
+msgstr ""
 
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-container.tsx:46
@@ -1510,7 +1515,7 @@ msgstr "Najnovije narudžbe"
 msgid "+ {leftOver} more"
 msgstr "+ {leftOver} više"
 
-#: src/lib/components/shared/customer-address-form.tsx:249
+#: src/lib/components/shared/customer-address-form.tsx:255
 msgid "Use as the default billing address"
 msgstr "Koristi kao zadanu adresu za naplatu"
 
@@ -1612,7 +1617,7 @@ msgstr "Adresa uspješno ažurirana"
 msgid "Created"
 msgstr "Stvoreno"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:93
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:116
 msgid "Loading addresses..."
 msgstr "Učitavanje adresa..."
 
@@ -1668,7 +1673,7 @@ msgstr "Idi na posljednju stranicu"
 #: src/lib/components/shared/asset/asset-focal-point-editor.tsx:88
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:126
 #: src/lib/components/shared/confirmation-dialog.tsx:42
-#: src/lib/components/shared/customer-address-form.tsx:262
+#: src/lib/components/shared/customer-address-form.tsx:268
 #: src/lib/components/shared/navigation-confirmation.tsx:55
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:208
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:146
@@ -1690,7 +1695,7 @@ msgid "Refund from this method"
 msgstr "Povrat iz ove metode"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:208
-#: src/lib/components/shared/customer-address-form.tsx:170
+#: src/lib/components/shared/customer-address-form.tsx:176
 msgid "Postal Code"
 msgstr "Poštanski broj"
 
@@ -1797,7 +1802,7 @@ msgstr "Onemogućeno"
 msgid "New promotion"
 msgstr "Nova promocija"
 
-#: src/lib/components/shared/customer-address-form.tsx:228
+#: src/lib/components/shared/customer-address-form.tsx:234
 msgid "Default Shipping Address"
 msgstr "Zadana adresa za dostavu"
 
@@ -1898,8 +1903,8 @@ msgstr "Profil uspješno ažuriran"
 msgid "Payment method"
 msgstr "Način plaćanja"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:277
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:307
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:279
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:311
 #: src/lib/components/shared/history-timeline/history-note-entry.tsx:46
 msgid "Edit"
 msgstr "Uredi"
@@ -2728,8 +2733,8 @@ msgid "This will remove all option groups from this product and return to the va
 msgstr "Ovo će ukloniti sve grupe opcija s ovog proizvoda i vratiti se na izbor postavljanja varijanti."
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:299
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:291
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:542
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:293
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:543
 msgid "Billing address"
 msgstr "Adresa za naplatu"
 
@@ -2805,7 +2810,7 @@ msgid "Amount"
 msgstr "Iznos"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:242
-#: src/lib/components/shared/customer-address-form.tsx:208
+#: src/lib/components/shared/customer-address-form.tsx:214
 msgid "Phone Number"
 msgstr "Telefonski broj"
 
@@ -2944,7 +2949,7 @@ msgstr "Žarišna točka ažurirana"
 msgid "Option values"
 msgstr "Vrijednosti opcija"
 
-#: src/lib/components/shared/customer-address-form.tsx:246
+#: src/lib/components/shared/customer-address-form.tsx:252
 msgid "Default Billing Address"
 msgstr "Zadana adresa za naplatu"
 
@@ -3193,7 +3198,7 @@ msgstr "Ažuriranje žarišne točke nije uspjelo"
 msgid "Successfully updated zone"
 msgstr "Zona uspješno ažurirana"
 
-#: src/lib/components/shared/customer-address-form.tsx:156
+#: src/lib/components/shared/customer-address-form.tsx:162
 msgid "State/Province"
 msgstr "Država/Pokrajina"
 
@@ -3215,7 +3220,7 @@ msgstr "Postavi kriterije filtriranja za stupac {columnId}"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:217
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:53
-#: src/lib/components/shared/customer-address-form.tsx:180
+#: src/lib/components/shared/customer-address-form.tsx:186
 msgid "Country"
 msgstr "Država"
 
@@ -3431,7 +3436,7 @@ msgstr "Plaćanje autorizirano"
 msgid "Successfully updated role"
 msgstr "Uloga uspješno ažurirana"
 
-#: src/lib/components/shared/customer-address-form.tsx:191
+#: src/lib/components/shared/customer-address-form.tsx:197
 msgid "Select a country"
 msgstr "Odaberite državu"
 
@@ -3658,7 +3663,7 @@ msgstr "Vrijednost svojstva uspješno stvorena"
 msgid "Marketing"
 msgstr "Marketing"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:82
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:105
 msgid "Existing address"
 msgstr ""
 
@@ -3724,7 +3729,7 @@ msgstr "{0} varijanti"
 msgid "Failed to settle payment"
 msgstr "Izvršenje plaćanja nije uspjelo"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:315
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:319
 msgid "No billing address"
 msgstr "Nema adrese za naplatu"
 
@@ -3883,7 +3888,7 @@ msgstr "Ažuriranje lokacije zaliha nije uspjelo"
 msgid "Order shipped"
 msgstr "Narudžba poslana"
 
-#: src/lib/components/shared/customer-address-form.tsx:266
+#: src/lib/components/shared/customer-address-form.tsx:272
 msgid "Save Address"
 msgstr "Spremi adresu"
 
@@ -4621,7 +4626,7 @@ msgstr ""
 msgid "Failed to set billing address for order: {0}"
 msgstr ""
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:285
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:287
 msgid "No shipping address"
 msgstr "Nema adrese za dostavu"
 
@@ -4885,7 +4890,7 @@ msgstr "Uredi članove"
 msgid "Stock on hand"
 msgstr "Zaliha na skladištu"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:86
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:109
 msgid "New address"
 msgstr ""
 
@@ -5092,7 +5097,7 @@ msgstr "Sustav"
 msgid "Variant name"
 msgstr "Naziv varijante"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:595
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:597
 msgid "Remove"
 msgstr "Ukloni"
 
@@ -5161,7 +5166,7 @@ msgid "The page will continue with the default query."
 msgstr "Stranica će nastaviti sa zadanim upitom."
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:175
-#: src/lib/components/shared/customer-address-form.tsx:128
+#: src/lib/components/shared/customer-address-form.tsx:134
 msgid "Street Address"
 msgstr "Ulica"
 
@@ -5313,6 +5318,11 @@ msgstr "Zadani jezik"
 #: src/app/routes/_authenticated/_customers/customers.tsx:44
 msgid "Status"
 msgstr "Status"
+
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:537
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:566
+msgid "Okay"
+msgstr ""
 
 #: src/lib/components/shared/configurable-operation-multi-selector.tsx:298
 #: src/lib/components/shared/configurable-operation-selector.tsx:155
@@ -5756,7 +5766,7 @@ msgstr "Pregled procesa narudžbe"
 msgid "Failed to duplicate view"
 msgstr "Dupliciranje prikaza nije uspjelo"
 
-#: src/lib/components/shared/customer-address-form.tsx:231
+#: src/lib/components/shared/customer-address-form.tsx:237
 msgid "Use as the default shipping address"
 msgstr "Koristi kao zadanu adresu za dostavu"
 
@@ -6096,7 +6106,7 @@ msgstr "Učitavanje..."
 msgid "The token is used to specify the channel when making API requests."
 msgstr "Token se koristi za specificiranje kanala pri slanju API zahtjeva."
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:97
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:120
 msgid "No addresses found"
 msgstr "Nisu pronađene adrese"
 

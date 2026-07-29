@@ -14,7 +14,7 @@ msgstr ""
 "Plural-Forms: \n"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:159
-#: src/lib/components/shared/customer-address-form.tsx:110
+#: src/lib/components/shared/customer-address-form.tsx:116
 msgid "Full Name"
 msgstr "Teljes név"
 
@@ -56,7 +56,7 @@ msgstr "Meglévő opciócsoport hozzárendelése vagy új létrehozása"
 msgid "New role"
 msgstr "Új szerepkör"
 
-#: src/lib/components/shared/customer-address-form.tsx:138
+#: src/lib/components/shared/customer-address-form.tsx:144
 msgid "Apartment, suite, etc."
 msgstr "Emelet, ajtó stb."
 
@@ -525,7 +525,7 @@ msgid "Create new customer"
 msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:196
-#: src/lib/components/shared/customer-address-form.tsx:148
+#: src/lib/components/shared/customer-address-form.tsx:154
 msgid "City"
 msgstr "Város"
 
@@ -701,7 +701,7 @@ msgstr "Kérjük, adjon hozzá termékeket és töltse ki a szállítási címet
 msgid "Toggle header row"
 msgstr "Fejlécsor be-/kikapcsolása"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:73
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:96
 msgid "Select address"
 msgstr "Válasszon címet"
 
@@ -862,7 +862,7 @@ msgid "(max: {0})"
 msgstr "(max: {0})"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:165
-#: src/lib/components/shared/customer-address-form.tsx:118
+#: src/lib/components/shared/customer-address-form.tsx:124
 msgid "Company"
 msgstr "Cég"
 
@@ -925,6 +925,11 @@ msgstr "Termék létrehozása sikertelen"
 #: src/lib/components/shared/role-code-label.tsx:8
 msgid "Customer"
 msgstr "Vásárló"
+
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:269
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:301
+msgid "Update address"
+msgstr ""
 
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-container.tsx:46
@@ -1510,7 +1515,7 @@ msgstr "Legújabb megrendelések"
 msgid "+ {leftOver} more"
 msgstr "+ {leftOver} további"
 
-#: src/lib/components/shared/customer-address-form.tsx:249
+#: src/lib/components/shared/customer-address-form.tsx:255
 msgid "Use as the default billing address"
 msgstr "Használja alapértelmezett számlázási címként"
 
@@ -1612,7 +1617,7 @@ msgstr "Cím sikeresen frissítve"
 msgid "Created"
 msgstr "Létrehozva"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:93
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:116
 msgid "Loading addresses..."
 msgstr "Címek betöltése..."
 
@@ -1668,7 +1673,7 @@ msgstr "Ugrás az utolsó oldalra"
 #: src/lib/components/shared/asset/asset-focal-point-editor.tsx:88
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:126
 #: src/lib/components/shared/confirmation-dialog.tsx:42
-#: src/lib/components/shared/customer-address-form.tsx:262
+#: src/lib/components/shared/customer-address-form.tsx:268
 #: src/lib/components/shared/navigation-confirmation.tsx:55
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:208
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:146
@@ -1690,7 +1695,7 @@ msgid "Refund from this method"
 msgstr "Visszatérítés ezzel a módszerrel"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:208
-#: src/lib/components/shared/customer-address-form.tsx:170
+#: src/lib/components/shared/customer-address-form.tsx:176
 msgid "Postal Code"
 msgstr "Irányítószám"
 
@@ -1797,7 +1802,7 @@ msgstr "Letiltva"
 msgid "New promotion"
 msgstr "Új promóció"
 
-#: src/lib/components/shared/customer-address-form.tsx:228
+#: src/lib/components/shared/customer-address-form.tsx:234
 msgid "Default Shipping Address"
 msgstr "Alapértelmezett szállítási cím"
 
@@ -1892,8 +1897,8 @@ msgstr "Profil sikeresen frissítve"
 msgid "Payment method"
 msgstr "Fizetési mód"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:277
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:307
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:279
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:311
 #: src/lib/components/shared/history-timeline/history-note-entry.tsx:46
 msgid "Edit"
 msgstr "Szerkesztés"
@@ -2718,8 +2723,8 @@ msgid "This will remove all option groups from this product and return to the va
 msgstr "Ez eltávolítja az összes opciócsoportot ebből a termékből és visszatér a variáns beállítási lehetőséghez."
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:299
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:291
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:542
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:293
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:543
 msgid "Billing address"
 msgstr "Számlázási cím"
 
@@ -2795,7 +2800,7 @@ msgid "Amount"
 msgstr "Összeg"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:242
-#: src/lib/components/shared/customer-address-form.tsx:208
+#: src/lib/components/shared/customer-address-form.tsx:214
 msgid "Phone Number"
 msgstr "Telefonszám"
 
@@ -2934,7 +2939,7 @@ msgstr "Fókuszpont frissítve"
 msgid "Option values"
 msgstr "Opcióértékek"
 
-#: src/lib/components/shared/customer-address-form.tsx:246
+#: src/lib/components/shared/customer-address-form.tsx:252
 msgid "Default Billing Address"
 msgstr "Alapértelmezett számlázási cím"
 
@@ -3183,7 +3188,7 @@ msgstr "A fókuszpont frissítése sikertelen"
 msgid "Successfully updated zone"
 msgstr "Zóna sikeresen frissítve"
 
-#: src/lib/components/shared/customer-address-form.tsx:156
+#: src/lib/components/shared/customer-address-form.tsx:162
 msgid "State/Province"
 msgstr "Állam/Tartomány"
 
@@ -3205,7 +3210,7 @@ msgstr "Szűrési feltételek beállítása a(z) {columnId} oszlophoz"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:217
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:53
-#: src/lib/components/shared/customer-address-form.tsx:180
+#: src/lib/components/shared/customer-address-form.tsx:186
 msgid "Country"
 msgstr "Ország"
 
@@ -3421,7 +3426,7 @@ msgstr "Fizetés engedélyezve"
 msgid "Successfully updated role"
 msgstr "Szerepkör sikeresen frissítve"
 
-#: src/lib/components/shared/customer-address-form.tsx:191
+#: src/lib/components/shared/customer-address-form.tsx:197
 msgid "Select a country"
 msgstr "Ország kiválasztása"
 
@@ -3645,7 +3650,7 @@ msgstr "A tulajdonságérték sikeresen létrehozva"
 msgid "Marketing"
 msgstr "Marketing"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:82
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:105
 msgid "Existing address"
 msgstr ""
 
@@ -3711,7 +3716,7 @@ msgstr "{0} termékváltozat"
 msgid "Failed to settle payment"
 msgstr "Fizetés rendezése sikertelen"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:315
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:319
 msgid "No billing address"
 msgstr "Nincs számlázási cím"
 
@@ -3870,7 +3875,7 @@ msgstr "Raktárhely frissítése sikertelen"
 msgid "Order shipped"
 msgstr "Megrendelés elküldve"
 
-#: src/lib/components/shared/customer-address-form.tsx:266
+#: src/lib/components/shared/customer-address-form.tsx:272
 msgid "Save Address"
 msgstr "Cím mentése"
 
@@ -4608,7 +4613,7 @@ msgstr ""
 msgid "Failed to set billing address for order: {0}"
 msgstr ""
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:285
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:287
 msgid "No shipping address"
 msgstr "Nincs szállítási cím"
 
@@ -4872,7 +4877,7 @@ msgstr "Tagok szerkesztése"
 msgid "Stock on hand"
 msgstr "Aktuális készlet"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:86
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:109
 msgid "New address"
 msgstr ""
 
@@ -5079,7 +5084,7 @@ msgstr "Rendszer"
 msgid "Variant name"
 msgstr "Termékváltozat neve"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:595
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:597
 msgid "Remove"
 msgstr "Eltávolítás"
 
@@ -5148,7 +5153,7 @@ msgid "The page will continue with the default query."
 msgstr "Az oldal az alapértelmezett lekérdezéssel folytatódik."
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:175
-#: src/lib/components/shared/customer-address-form.tsx:128
+#: src/lib/components/shared/customer-address-form.tsx:134
 msgid "Street Address"
 msgstr "Utca, házszám"
 
@@ -5300,6 +5305,11 @@ msgstr "Alapértelmezett nyelv"
 #: src/app/routes/_authenticated/_customers/customers.tsx:44
 msgid "Status"
 msgstr "Státusz"
+
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:537
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:566
+msgid "Okay"
+msgstr ""
 
 #: src/lib/components/shared/configurable-operation-multi-selector.tsx:298
 #: src/lib/components/shared/configurable-operation-selector.tsx:155
@@ -5743,7 +5753,7 @@ msgstr "Rendelési folyamat megtekintése"
 msgid "Failed to duplicate view"
 msgstr "Nézet másolása sikertelen"
 
-#: src/lib/components/shared/customer-address-form.tsx:231
+#: src/lib/components/shared/customer-address-form.tsx:237
 msgid "Use as the default shipping address"
 msgstr "Használja alapértelmezett szállítási címként"
 
@@ -6079,7 +6089,7 @@ msgstr "Betöltés..."
 msgid "The token is used to specify the channel when making API requests."
 msgstr "A token a csatorna megadására szolgál API kérések küldésekor."
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:97
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:120
 msgid "No addresses found"
 msgstr "Nem található cím"
 

@@ -14,7 +14,7 @@ msgstr ""
 "Plural-Forms: \n"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:159
-#: src/lib/components/shared/customer-address-form.tsx:110
+#: src/lib/components/shared/customer-address-form.tsx:116
 msgid "Full Name"
 msgstr "氏名"
 
@@ -56,7 +56,7 @@ msgstr "既存のオプショングループを割り当てるか、新しいグ
 msgid "New role"
 msgstr "新しいロール"
 
-#: src/lib/components/shared/customer-address-form.tsx:138
+#: src/lib/components/shared/customer-address-form.tsx:144
 msgid "Apartment, suite, etc."
 msgstr "マンション、スイートなど"
 
@@ -525,7 +525,7 @@ msgid "Create new customer"
 msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:196
-#: src/lib/components/shared/customer-address-form.tsx:148
+#: src/lib/components/shared/customer-address-form.tsx:154
 msgid "City"
 msgstr "市区町村"
 
@@ -701,7 +701,7 @@ msgstr "テストを実行するには、商品を追加して配送先住所を
 msgid "Toggle header row"
 msgstr "ヘッダー行を切り替え"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:73
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:96
 msgid "Select address"
 msgstr "住所を選択"
 
@@ -862,7 +862,7 @@ msgid "(max: {0})"
 msgstr "(最大: {0})"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:165
-#: src/lib/components/shared/customer-address-form.tsx:118
+#: src/lib/components/shared/customer-address-form.tsx:124
 msgid "Company"
 msgstr "会社名"
 
@@ -925,6 +925,11 @@ msgstr "商品の作成に失敗しました"
 #: src/lib/components/shared/role-code-label.tsx:8
 msgid "Customer"
 msgstr "顧客"
+
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:269
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:301
+msgid "Update address"
+msgstr ""
 
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-container.tsx:46
@@ -1510,7 +1515,7 @@ msgstr "最新の注文"
 msgid "+ {leftOver} more"
 msgstr "+ {leftOver} 件"
 
-#: src/lib/components/shared/customer-address-form.tsx:249
+#: src/lib/components/shared/customer-address-form.tsx:255
 msgid "Use as the default billing address"
 msgstr "デフォルトの請求先住所として使用"
 
@@ -1612,7 +1617,7 @@ msgstr "住所を更新しました"
 msgid "Created"
 msgstr "作成日時"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:93
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:116
 msgid "Loading addresses..."
 msgstr "住所を読み込み中..."
 
@@ -1668,7 +1673,7 @@ msgstr "最後のページへ"
 #: src/lib/components/shared/asset/asset-focal-point-editor.tsx:88
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:126
 #: src/lib/components/shared/confirmation-dialog.tsx:42
-#: src/lib/components/shared/customer-address-form.tsx:262
+#: src/lib/components/shared/customer-address-form.tsx:268
 #: src/lib/components/shared/navigation-confirmation.tsx:55
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:208
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:146
@@ -1690,7 +1695,7 @@ msgid "Refund from this method"
 msgstr "この方法から返金"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:208
-#: src/lib/components/shared/customer-address-form.tsx:170
+#: src/lib/components/shared/customer-address-form.tsx:176
 msgid "Postal Code"
 msgstr "郵便番号"
 
@@ -1797,7 +1802,7 @@ msgstr "無効"
 msgid "New promotion"
 msgstr "新しいプロモーション"
 
-#: src/lib/components/shared/customer-address-form.tsx:228
+#: src/lib/components/shared/customer-address-form.tsx:234
 msgid "Default Shipping Address"
 msgstr "デフォルト配送先住所"
 
@@ -1898,8 +1903,8 @@ msgstr "プロフィールを更新しました"
 msgid "Payment method"
 msgstr "支払い方法"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:277
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:307
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:279
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:311
 #: src/lib/components/shared/history-timeline/history-note-entry.tsx:46
 msgid "Edit"
 msgstr "編集"
@@ -2728,8 +2733,8 @@ msgid "This will remove all option groups from this product and return to the va
 msgstr "この商品からすべてのオプショングループが削除され、バリエーション設定の選択に戻ります。"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:299
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:291
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:542
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:293
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:543
 msgid "Billing address"
 msgstr "請求先住所"
 
@@ -2805,7 +2810,7 @@ msgid "Amount"
 msgstr "金額"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:242
-#: src/lib/components/shared/customer-address-form.tsx:208
+#: src/lib/components/shared/customer-address-form.tsx:214
 msgid "Phone Number"
 msgstr "電話番号"
 
@@ -2944,7 +2949,7 @@ msgstr "フォーカルポイントを更新しました"
 msgid "Option values"
 msgstr "オプション値"
 
-#: src/lib/components/shared/customer-address-form.tsx:246
+#: src/lib/components/shared/customer-address-form.tsx:252
 msgid "Default Billing Address"
 msgstr "デフォルト請求先住所"
 
@@ -3193,7 +3198,7 @@ msgstr "フォーカルポイントの更新に失敗しました"
 msgid "Successfully updated zone"
 msgstr "ゾーンを更新しました"
 
-#: src/lib/components/shared/customer-address-form.tsx:156
+#: src/lib/components/shared/customer-address-form.tsx:162
 msgid "State/Province"
 msgstr "都道府県"
 
@@ -3215,7 +3220,7 @@ msgstr "{columnId} 列のフィルター条件を設定"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:217
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:53
-#: src/lib/components/shared/customer-address-form.tsx:180
+#: src/lib/components/shared/customer-address-form.tsx:186
 msgid "Country"
 msgstr "国"
 
@@ -3431,7 +3436,7 @@ msgstr "支払いを承認しました"
 msgid "Successfully updated role"
 msgstr "ロールを更新しました"
 
-#: src/lib/components/shared/customer-address-form.tsx:191
+#: src/lib/components/shared/customer-address-form.tsx:197
 msgid "Select a country"
 msgstr "国を選択"
 
@@ -3658,7 +3663,7 @@ msgstr "ファセット値を作成しました"
 msgid "Marketing"
 msgstr "マーケティング"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:82
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:105
 msgid "Existing address"
 msgstr ""
 
@@ -3724,7 +3729,7 @@ msgstr "{0} 件のバリエーション"
 msgid "Failed to settle payment"
 msgstr "支払いの決済に失敗しました"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:315
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:319
 msgid "No billing address"
 msgstr "請求先住所なし"
 
@@ -3883,7 +3888,7 @@ msgstr "在庫ロケーションの更新に失敗しました"
 msgid "Order shipped"
 msgstr "注文を発送しました"
 
-#: src/lib/components/shared/customer-address-form.tsx:266
+#: src/lib/components/shared/customer-address-form.tsx:272
 msgid "Save Address"
 msgstr "住所を保存"
 
@@ -4621,7 +4626,7 @@ msgstr ""
 msgid "Failed to set billing address for order: {0}"
 msgstr ""
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:285
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:287
 msgid "No shipping address"
 msgstr "配送先住所なし"
 
@@ -4885,7 +4890,7 @@ msgstr "メンバーを編集"
 msgid "Stock on hand"
 msgstr "手持ち在庫"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:86
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:109
 msgid "New address"
 msgstr ""
 
@@ -5092,7 +5097,7 @@ msgstr "システム"
 msgid "Variant name"
 msgstr "バリエーション名"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:595
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:597
 msgid "Remove"
 msgstr "削除"
 
@@ -5161,7 +5166,7 @@ msgid "The page will continue with the default query."
 msgstr "ページはデフォルトのクエリで続行されます。"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:175
-#: src/lib/components/shared/customer-address-form.tsx:128
+#: src/lib/components/shared/customer-address-form.tsx:134
 msgid "Street Address"
 msgstr "番地"
 
@@ -5313,6 +5318,11 @@ msgstr "デフォルト言語"
 #: src/app/routes/_authenticated/_customers/customers.tsx:44
 msgid "Status"
 msgstr "ステータス"
+
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:537
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:566
+msgid "Okay"
+msgstr ""
 
 #: src/lib/components/shared/configurable-operation-multi-selector.tsx:298
 #: src/lib/components/shared/configurable-operation-selector.tsx:155
@@ -5756,7 +5766,7 @@ msgstr "注文プロセスを表示"
 msgid "Failed to duplicate view"
 msgstr "ビューの複製に失敗しました"
 
-#: src/lib/components/shared/customer-address-form.tsx:231
+#: src/lib/components/shared/customer-address-form.tsx:237
 msgid "Use as the default shipping address"
 msgstr "デフォルトの配送先住所として使用"
 
@@ -6096,7 +6106,7 @@ msgstr "読み込み中..."
 msgid "The token is used to specify the channel when making API requests."
 msgstr "トークンは、APIリクエストを行う際にチャネルを指定するために使用されます。"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:97
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:120
 msgid "No addresses found"
 msgstr "住所が見つかりません"
 

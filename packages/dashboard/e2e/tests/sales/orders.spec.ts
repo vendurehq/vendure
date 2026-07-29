@@ -370,7 +370,7 @@ test.describe('Orders', () => {
         // Country is a Select — open and pick the first available country
         await popover.getByRole('combobox').click();
         await page.getByRole('option').first().click();
-        await popover.getByRole('button', { name: /Save Address/i }).click();
+        await popover.getByRole('button', { name: /Okay/i }).click();
 
         // The new address is applied to the order
         await page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200);

@@ -534,6 +534,7 @@ function DraftOrderPage() {
                                             input,
                                         });
                                     }}
+                                    submitLabel={<Trans>Okay</Trans>}
                                 />
                             </div>
                         )}
@@ -562,6 +563,7 @@ function DraftOrderPage() {
                                             input,
                                         });
                                     }}
+                                    submitLabel={<Trans>Okay</Trans>}
                                 />
                             </div>
                         )}

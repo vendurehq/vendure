@@ -14,7 +14,7 @@ msgstr ""
 "Plural-Forms: \n"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:159
-#: src/lib/components/shared/customer-address-form.tsx:110
+#: src/lib/components/shared/customer-address-form.tsx:116
 msgid "Full Name"
 msgstr "पूरा नाम"
 
@@ -56,7 +56,7 @@ msgstr "अवस्थित विकल्प समूह तोक्नु
 msgid "New role"
 msgstr "नयाँ भूमिका"
 
-#: src/lib/components/shared/customer-address-form.tsx:138
+#: src/lib/components/shared/customer-address-form.tsx:144
 msgid "Apartment, suite, etc."
 msgstr "अपार्टमेन्ट, सुइट, आदि"
 
@@ -525,7 +525,7 @@ msgid "Create new customer"
 msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:196
-#: src/lib/components/shared/customer-address-form.tsx:148
+#: src/lib/components/shared/customer-address-form.tsx:154
 msgid "City"
 msgstr "शहर"
 
@@ -701,7 +701,7 @@ msgstr "कृपया परीक्षण चलाउन उत्पाद
 msgid "Toggle header row"
 msgstr "हेडर पङ्क्ति टगल गर्नुहोस्"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:73
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:96
 msgid "Select address"
 msgstr "ठेगाना चयन गर्नुहोस्"
 
@@ -862,7 +862,7 @@ msgid "(max: {0})"
 msgstr "(अधिकतम: {0})"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:165
-#: src/lib/components/shared/customer-address-form.tsx:118
+#: src/lib/components/shared/customer-address-form.tsx:124
 msgid "Company"
 msgstr "कम्पनी"
 
@@ -925,6 +925,11 @@ msgstr "उत्पादन सिर्जना गर्न असफल"
 #: src/lib/components/shared/role-code-label.tsx:8
 msgid "Customer"
 msgstr "ग्राहक"
+
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:269
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:301
+msgid "Update address"
+msgstr ""
 
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-container.tsx:46
@@ -1510,7 +1515,7 @@ msgstr "नवीनतम अर्डरहरू"
 msgid "+ {leftOver} more"
 msgstr "+ {leftOver} थप"
 
-#: src/lib/components/shared/customer-address-form.tsx:249
+#: src/lib/components/shared/customer-address-form.tsx:255
 msgid "Use as the default billing address"
 msgstr "पूर्वनिर्धारित बिलिङ ठेगानाको रूपमा प्रयोग गर्नुहोस्"
 
@@ -1612,7 +1617,7 @@ msgstr "ठेगाना सफलतापूर्वक अपडेट ग
 msgid "Created"
 msgstr "सिर्जना गरिएको"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:93
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:116
 msgid "Loading addresses..."
 msgstr "ठेगानाहरू लोड गर्दै..."
 
@@ -1668,7 +1673,7 @@ msgstr "अन्तिम पृष्ठमा जानुहोस्"
 #: src/lib/components/shared/asset/asset-focal-point-editor.tsx:88
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:126
 #: src/lib/components/shared/confirmation-dialog.tsx:42
-#: src/lib/components/shared/customer-address-form.tsx:262
+#: src/lib/components/shared/customer-address-form.tsx:268
 #: src/lib/components/shared/navigation-confirmation.tsx:55
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:208
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:146
@@ -1690,7 +1695,7 @@ msgid "Refund from this method"
 msgstr "यो विधिबाट रिफन्ड"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:208
-#: src/lib/components/shared/customer-address-form.tsx:170
+#: src/lib/components/shared/customer-address-form.tsx:176
 msgid "Postal Code"
 msgstr "हुलाक कोड"
 
@@ -1797,7 +1802,7 @@ msgstr "असक्षम"
 msgid "New promotion"
 msgstr "नयाँ प्रमोशन"
 
-#: src/lib/components/shared/customer-address-form.tsx:228
+#: src/lib/components/shared/customer-address-form.tsx:234
 msgid "Default Shipping Address"
 msgstr "पूर्वनिर्धारित ढुवानी ठेगाना"
 
@@ -1898,8 +1903,8 @@ msgstr "प्रोफाइल सफलतापूर्वक अपडे�
 msgid "Payment method"
 msgstr "भुक्तानी विधि"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:277
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:307
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:279
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:311
 #: src/lib/components/shared/history-timeline/history-note-entry.tsx:46
 msgid "Edit"
 msgstr "सम्पादन गर्नुहोस्"
@@ -2728,8 +2733,8 @@ msgid "This will remove all option groups from this product and return to the va
 msgstr "यसले यो उत्पादनबाट सबै विकल्प समूहहरू हटाउनेछ र भेरियन्ट सेटअप छनोटमा फर्काउनेछ।"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:299
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:291
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:542
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:293
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:543
 msgid "Billing address"
 msgstr "बिलिङ ठेगाना"
 
@@ -2805,7 +2810,7 @@ msgid "Amount"
 msgstr "रकम"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:242
-#: src/lib/components/shared/customer-address-form.tsx:208
+#: src/lib/components/shared/customer-address-form.tsx:214
 msgid "Phone Number"
 msgstr "फोन नम्बर"
 
@@ -2944,7 +2949,7 @@ msgstr "फोकल पोइन्ट अद्यावधिक गरिय
 msgid "Option values"
 msgstr "विकल्प मानहरू"
 
-#: src/lib/components/shared/customer-address-form.tsx:246
+#: src/lib/components/shared/customer-address-form.tsx:252
 msgid "Default Billing Address"
 msgstr "पूर्वनिर्धारित बिलिङ ठेगाना"
 
@@ -3193,7 +3198,7 @@ msgstr "फोकल पोइन्ट अद्यावधिक गर्न
 msgid "Successfully updated zone"
 msgstr "क्षेत्र सफलतापूर्वक अपडेट गरियो"
 
-#: src/lib/components/shared/customer-address-form.tsx:156
+#: src/lib/components/shared/customer-address-form.tsx:162
 msgid "State/Province"
 msgstr "राज्य/प्रान्त"
 
@@ -3215,7 +3220,7 @@ msgstr "{columnId} स्तम्भको लागि फिल्टर म�
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:217
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:53
-#: src/lib/components/shared/customer-address-form.tsx:180
+#: src/lib/components/shared/customer-address-form.tsx:186
 msgid "Country"
 msgstr "देश"
 
@@ -3431,7 +3436,7 @@ msgstr "भुक्तानी अधिकृत गरियो"
 msgid "Successfully updated role"
 msgstr "भूमिका सफलतापूर्वक अपडेट गरियो"
 
-#: src/lib/components/shared/customer-address-form.tsx:191
+#: src/lib/components/shared/customer-address-form.tsx:197
 msgid "Select a country"
 msgstr "देश चयन गर्नुहोस्"
 
@@ -3658,7 +3663,7 @@ msgstr "विशेषता मान सफलतापूर्वक सि
 msgid "Marketing"
 msgstr "मार्केटिङ"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:82
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:105
 msgid "Existing address"
 msgstr ""
 
@@ -3724,7 +3729,7 @@ msgstr "{0} प्रकारहरू"
 msgid "Failed to settle payment"
 msgstr "भुक्तानी सम्पन्न गर्न असफल"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:315
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:319
 msgid "No billing address"
 msgstr "कुनै बिलिङ ठेगाना छैन"
 
@@ -3883,7 +3888,7 @@ msgstr "स्टक स्थान अपडेट गर्न असफल"
 msgid "Order shipped"
 msgstr "अर्डर पठाइयो"
 
-#: src/lib/components/shared/customer-address-form.tsx:266
+#: src/lib/components/shared/customer-address-form.tsx:272
 msgid "Save Address"
 msgstr "ठेगाना सुरक्षित गर्नुहोस्"
 
@@ -4621,7 +4626,7 @@ msgstr ""
 msgid "Failed to set billing address for order: {0}"
 msgstr ""
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:285
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:287
 msgid "No shipping address"
 msgstr "कुनै ढुवानी ठेगाना छैन"
 
@@ -4885,7 +4890,7 @@ msgstr "सदस्यहरू सम्पादन गर्नुहोस�
 msgid "Stock on hand"
 msgstr "हातमा स्टक"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:86
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:109
 msgid "New address"
 msgstr ""
 
@@ -5092,7 +5097,7 @@ msgstr "प्रणाली"
 msgid "Variant name"
 msgstr "भिन्नता नाम"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:595
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:597
 msgid "Remove"
 msgstr "हटाउनुहोस्"
 
@@ -5161,7 +5166,7 @@ msgid "The page will continue with the default query."
 msgstr "पृष्ठ पूर्वनिर्धारित क्वेरीसँग जारी रहनेछ।"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:175
-#: src/lib/components/shared/customer-address-form.tsx:128
+#: src/lib/components/shared/customer-address-form.tsx:134
 msgid "Street Address"
 msgstr "सडक ठेगाना"
 
@@ -5313,6 +5318,11 @@ msgstr "पूर्वनिर्धारित भाषा"
 #: src/app/routes/_authenticated/_customers/customers.tsx:44
 msgid "Status"
 msgstr "स्थिति"
+
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:537
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:566
+msgid "Okay"
+msgstr ""
 
 #: src/lib/components/shared/configurable-operation-multi-selector.tsx:298
 #: src/lib/components/shared/configurable-operation-selector.tsx:155
@@ -5756,7 +5766,7 @@ msgstr "अर्डर प्रक्रिया हेर्नुहोस�
 msgid "Failed to duplicate view"
 msgstr "दृश्य नक्कल गर्न असफल"
 
-#: src/lib/components/shared/customer-address-form.tsx:231
+#: src/lib/components/shared/customer-address-form.tsx:237
 msgid "Use as the default shipping address"
 msgstr "पूर्वनिर्धारित ढुवानी ठेगानाको रूपमा प्रयोग गर्नुहोस्"
 
@@ -6096,7 +6106,7 @@ msgstr "लोड गर्दै..."
 msgid "The token is used to specify the channel when making API requests."
 msgstr "API अनुरोधहरू गर्दा च्यानल निर्दिष्ट गर्न टोकन प्रयोग गरिन्छ।"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:97
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:120
 msgid "No addresses found"
 msgstr "कुनै ठेगानाहरू फेला परेन"
 

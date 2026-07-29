@@ -29,6 +29,27 @@ interface CustomerAddressSelectorProps {
     onSubmitNew: (input: CreateAddressInput) => void;
     onCancel?: () => void;
     defaultOpen?: boolean;
+    /**
+     * @description
+     * Pre-populates the "New address" form with the given values. Used on the order modify page
+     * so that editing an address doesn't require retyping all fields from scratch.
+     */
+    initialAddress?: {
+        fullName?: string | null;
+        company?: string | null;
+        streetLine1?: string | null;
+        streetLine2?: string | null;
+        city?: string | null;
+        province?: string | null;
+        postalCode?: string | null;
+        countryCode?: string | null;
+        phoneNumber?: string | null;
+    };
+    /**
+     * @description
+     * Custom label for the submit button in the "New address" form.
+     */
+    submitLabel?: React.ReactNode;
 }
 
 export function CustomerAddressSelector({
@@ -37,6 +58,8 @@ export function CustomerAddressSelector({
     onSubmitNew,
     onCancel,
     defaultOpen = false,
+    initialAddress,
+    submitLabel,
 }: Readonly<CustomerAddressSelectorProps>) {
     const [open, setOpen] = useState(defaultOpen);
     const [activeTab, setActiveTab] = useState<string>('existing');
@@ -130,6 +153,23 @@ export function CustomerAddressSelector({
                             <div className="mt-2 max-h-[60vh] overflow-y-auto">
                                 <CustomerAddressForm
                                     hideDefaultAddressFlags
+                                    address={initialAddress}
+                                    setValuesForUpdate={addr => ({
+                                        id: '',
+                                        fullName: addr?.fullName ?? '',
+                                        company: addr?.company ?? '',
+                                        streetLine1: addr?.streetLine1 ?? '',
+                                        streetLine2: addr?.streetLine2 ?? '',
+                                        city: addr?.city ?? '',
+                                        province: addr?.province ?? '',
+                                        postalCode: addr?.postalCode ?? '',
+                                        countryCode: addr?.countryCode ?? '',
+                                        phoneNumber: addr?.phoneNumber ?? '',
+                                        defaultShippingAddress: false,
+                                        defaultBillingAddress: false,
+                                        customFields: {},
+                                    })}
+                                    submitLabel={submitLabel}
                                     onSubmit={values => {
                                         onSubmitNew(mapFormValuesToInput(values));
                                         setOpen(false);

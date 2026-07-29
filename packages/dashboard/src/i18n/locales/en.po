@@ -14,7 +14,7 @@ msgstr ""
 "Plural-Forms: \n"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:159
-#: src/lib/components/shared/customer-address-form.tsx:110
+#: src/lib/components/shared/customer-address-form.tsx:116
 msgid "Full Name"
 msgstr "Full Name"
 
@@ -56,7 +56,7 @@ msgstr "Assign an existing option group or create a new one"
 msgid "New role"
 msgstr "New role"
 
-#: src/lib/components/shared/customer-address-form.tsx:138
+#: src/lib/components/shared/customer-address-form.tsx:144
 msgid "Apartment, suite, etc."
 msgstr "Apartment, suite, etc."
 
@@ -525,7 +525,7 @@ msgid "Create new customer"
 msgstr "Create new customer"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:196
-#: src/lib/components/shared/customer-address-form.tsx:148
+#: src/lib/components/shared/customer-address-form.tsx:154
 msgid "City"
 msgstr "City"
 
@@ -701,7 +701,7 @@ msgstr "Please add products and complete the shipping address to run the test."
 msgid "Toggle header row"
 msgstr "Toggle header row"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:73
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:96
 msgid "Select address"
 msgstr "Select address"
 
@@ -862,7 +862,7 @@ msgid "(max: {0})"
 msgstr "(max: {0})"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:165
-#: src/lib/components/shared/customer-address-form.tsx:118
+#: src/lib/components/shared/customer-address-form.tsx:124
 msgid "Company"
 msgstr "Company"
 
@@ -925,6 +925,11 @@ msgstr "Failed to create product"
 #: src/lib/components/shared/role-code-label.tsx:8
 msgid "Customer"
 msgstr "Customer"
+
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:269
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:301
+msgid "Update address"
+msgstr "Update address"
 
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-container.tsx:46
@@ -1510,7 +1515,7 @@ msgstr "Latest Orders"
 msgid "+ {leftOver} more"
 msgstr "+ {leftOver} more"
 
-#: src/lib/components/shared/customer-address-form.tsx:249
+#: src/lib/components/shared/customer-address-form.tsx:255
 msgid "Use as the default billing address"
 msgstr "Use as the default billing address"
 
@@ -1612,7 +1617,7 @@ msgstr "Address updated successfully"
 msgid "Created"
 msgstr "Created"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:93
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:116
 msgid "Loading addresses..."
 msgstr "Loading addresses..."
 
@@ -1668,7 +1673,7 @@ msgstr "Go to last page"
 #: src/lib/components/shared/asset/asset-focal-point-editor.tsx:88
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:126
 #: src/lib/components/shared/confirmation-dialog.tsx:42
-#: src/lib/components/shared/customer-address-form.tsx:262
+#: src/lib/components/shared/customer-address-form.tsx:268
 #: src/lib/components/shared/navigation-confirmation.tsx:55
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:208
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:146
@@ -1690,7 +1695,7 @@ msgid "Refund from this method"
 msgstr "Refund from this method"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:208
-#: src/lib/components/shared/customer-address-form.tsx:170
+#: src/lib/components/shared/customer-address-form.tsx:176
 msgid "Postal Code"
 msgstr "Postal Code"
 
@@ -1797,7 +1802,7 @@ msgstr "Disabled"
 msgid "New promotion"
 msgstr "New promotion"
 
-#: src/lib/components/shared/customer-address-form.tsx:228
+#: src/lib/components/shared/customer-address-form.tsx:234
 msgid "Default Shipping Address"
 msgstr "Default Shipping Address"
 
@@ -1898,8 +1903,8 @@ msgstr "Successfully updated profile"
 msgid "Payment method"
 msgstr "Payment method"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:277
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:307
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:279
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:311
 #: src/lib/components/shared/history-timeline/history-note-entry.tsx:46
 msgid "Edit"
 msgstr "Edit"
@@ -2728,8 +2733,8 @@ msgid "This will remove all option groups from this product and return to the va
 msgstr "This will remove all option groups from this product and return to the variant setup choice."
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:299
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:291
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:542
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:293
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:543
 msgid "Billing address"
 msgstr "Billing address"
 
@@ -2805,7 +2810,7 @@ msgid "Amount"
 msgstr "Amount"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:242
-#: src/lib/components/shared/customer-address-form.tsx:208
+#: src/lib/components/shared/customer-address-form.tsx:214
 msgid "Phone Number"
 msgstr "Phone Number"
 
@@ -2944,7 +2949,7 @@ msgstr "Focal point updated"
 msgid "Option values"
 msgstr "Option values"
 
-#: src/lib/components/shared/customer-address-form.tsx:246
+#: src/lib/components/shared/customer-address-form.tsx:252
 msgid "Default Billing Address"
 msgstr "Default Billing Address"
 
@@ -3193,7 +3198,7 @@ msgstr "Failed to update focal point"
 msgid "Successfully updated zone"
 msgstr "Successfully updated zone"
 
-#: src/lib/components/shared/customer-address-form.tsx:156
+#: src/lib/components/shared/customer-address-form.tsx:162
 msgid "State/Province"
 msgstr "State/Province"
 
@@ -3215,7 +3220,7 @@ msgstr "Set filter criteria for the {columnId} column"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:217
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:53
-#: src/lib/components/shared/customer-address-form.tsx:180
+#: src/lib/components/shared/customer-address-form.tsx:186
 msgid "Country"
 msgstr "Country"
 
@@ -3431,7 +3436,7 @@ msgstr "Payment authorized"
 msgid "Successfully updated role"
 msgstr "Successfully updated role"
 
-#: src/lib/components/shared/customer-address-form.tsx:191
+#: src/lib/components/shared/customer-address-form.tsx:197
 msgid "Select a country"
 msgstr "Select a country"
 
@@ -3658,7 +3663,7 @@ msgstr "Successfully created facet value"
 msgid "Marketing"
 msgstr "Marketing"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:82
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:105
 msgid "Existing address"
 msgstr "Existing address"
 
@@ -3724,7 +3729,7 @@ msgstr "{0} variants"
 msgid "Failed to settle payment"
 msgstr "Failed to settle payment"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:315
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:319
 msgid "No billing address"
 msgstr "No billing address"
 
@@ -3883,7 +3888,7 @@ msgstr "Failed to update stock location"
 msgid "Order shipped"
 msgstr "Order shipped"
 
-#: src/lib/components/shared/customer-address-form.tsx:266
+#: src/lib/components/shared/customer-address-form.tsx:272
 msgid "Save Address"
 msgstr "Save Address"
 
@@ -4621,7 +4626,7 @@ msgstr "Loading selected items..."
 msgid "Failed to set billing address for order: {0}"
 msgstr "Failed to set billing address for order: {0}"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:285
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:287
 msgid "No shipping address"
 msgstr "No shipping address"
 
@@ -4885,7 +4890,7 @@ msgstr "Edit members"
 msgid "Stock on hand"
 msgstr "Stock on hand"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:86
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:109
 msgid "New address"
 msgstr "New address"
 
@@ -5092,7 +5097,7 @@ msgstr "System"
 msgid "Variant name"
 msgstr "Variant name"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:595
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:597
 msgid "Remove"
 msgstr "Remove"
 
@@ -5161,7 +5166,7 @@ msgid "The page will continue with the default query."
 msgstr "The page will continue with the default query."
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:175
-#: src/lib/components/shared/customer-address-form.tsx:128
+#: src/lib/components/shared/customer-address-form.tsx:134
 msgid "Street Address"
 msgstr "Street Address"
 
@@ -5313,6 +5318,11 @@ msgstr "Default language"
 #: src/app/routes/_authenticated/_customers/customers.tsx:44
 msgid "Status"
 msgstr "Status"
+
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:537
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:566
+msgid "Okay"
+msgstr "Okay"
 
 #: src/lib/components/shared/configurable-operation-multi-selector.tsx:298
 #: src/lib/components/shared/configurable-operation-selector.tsx:155
@@ -5756,7 +5766,7 @@ msgstr "View order process"
 msgid "Failed to duplicate view"
 msgstr "Failed to duplicate view"
 
-#: src/lib/components/shared/customer-address-form.tsx:231
+#: src/lib/components/shared/customer-address-form.tsx:237
 msgid "Use as the default shipping address"
 msgstr "Use as the default shipping address"
 
@@ -6096,7 +6106,7 @@ msgstr "Loading..."
 msgid "The token is used to specify the channel when making API requests."
 msgstr "The token is used to specify the channel when making API requests."
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:97
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:120
 msgid "No addresses found"
 msgstr "No addresses found"
 

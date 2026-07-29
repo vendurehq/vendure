@@ -14,7 +14,7 @@ msgstr ""
 "Plural-Forms: \n"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:159
-#: src/lib/components/shared/customer-address-form.tsx:110
+#: src/lib/components/shared/customer-address-form.tsx:116
 msgid "Full Name"
 msgstr "To'liq ism"
 
@@ -56,7 +56,7 @@ msgstr "Mavjud optsiya guruhini biriktiring yoki yangisini yarating"
 msgid "New role"
 msgstr "Yangi rol"
 
-#: src/lib/components/shared/customer-address-form.tsx:138
+#: src/lib/components/shared/customer-address-form.tsx:144
 msgid "Apartment, suite, etc."
 msgstr "Kvartira, ofis va h.k."
 
@@ -497,7 +497,7 @@ msgid "Create new customer"
 msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:196
-#: src/lib/components/shared/customer-address-form.tsx:148
+#: src/lib/components/shared/customer-address-form.tsx:154
 msgid "City"
 msgstr "Shahar"
 
@@ -673,7 +673,7 @@ msgstr "Sinov uchun mahsulot qo'shing va yetkazib berish manzilini to'ldiring."
 msgid "Toggle header row"
 msgstr "Sarlavha qatorini almashtirish"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:73
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:96
 msgid "Select address"
 msgstr "Manzilni tanlang"
 
@@ -834,7 +834,7 @@ msgid "(max: {0})"
 msgstr "(maksimal: {0})"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:165
-#: src/lib/components/shared/customer-address-form.tsx:118
+#: src/lib/components/shared/customer-address-form.tsx:124
 msgid "Company"
 msgstr "Kompaniya"
 
@@ -897,6 +897,11 @@ msgstr "Mahsulotni yaratib bo'lmadi"
 #: src/lib/components/shared/role-code-label.tsx:8
 msgid "Customer"
 msgstr "Mijoz"
+
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:269
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:301
+msgid "Update address"
+msgstr ""
 
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-container.tsx:46
@@ -1462,7 +1467,7 @@ msgstr "So'nggi buyurtmalar"
 msgid "+ {leftOver} more"
 msgstr "+ yana {leftOver} ta"
 
-#: src/lib/components/shared/customer-address-form.tsx:249
+#: src/lib/components/shared/customer-address-form.tsx:255
 msgid "Use as the default billing address"
 msgstr "Standart hisob-kitob manzili sifatida ishlatish"
 
@@ -1559,7 +1564,7 @@ msgstr "Manzil yangilandi"
 msgid "Created"
 msgstr "Yaratilgan"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:93
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:116
 msgid "Loading addresses..."
 msgstr "Manzillar yuklanmoqda..."
 
@@ -1615,7 +1620,7 @@ msgstr "Oxirgi sahifaga o'tish"
 #: src/lib/components/shared/asset/asset-focal-point-editor.tsx:88
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:126
 #: src/lib/components/shared/confirmation-dialog.tsx:42
-#: src/lib/components/shared/customer-address-form.tsx:262
+#: src/lib/components/shared/customer-address-form.tsx:268
 #: src/lib/components/shared/navigation-confirmation.tsx:55
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:208
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx:146
@@ -1637,7 +1642,7 @@ msgid "Refund from this method"
 msgstr "Ushbu usuldan pul qaytarish"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:208
-#: src/lib/components/shared/customer-address-form.tsx:170
+#: src/lib/components/shared/customer-address-form.tsx:176
 msgid "Postal Code"
 msgstr "Pochta indeksi"
 
@@ -1736,7 +1741,7 @@ msgstr "O'chirilgan"
 msgid "New promotion"
 msgstr "Yangi aksiya"
 
-#: src/lib/components/shared/customer-address-form.tsx:228
+#: src/lib/components/shared/customer-address-form.tsx:234
 msgid "Default Shipping Address"
 msgstr "Standart yetkazib berish manzili"
 
@@ -1831,8 +1836,8 @@ msgstr "Profil muvaffaqiyatli yangilandi"
 msgid "Payment method"
 msgstr "To'lov usuli"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:277
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:307
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:279
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:311
 #: src/lib/components/shared/history-timeline/history-note-entry.tsx:46
 msgid "Edit"
 msgstr "Tahrirlash"
@@ -2649,8 +2654,8 @@ msgid "This will remove all option groups from this product and return to the va
 msgstr "Bu mahsulotdagi barcha optsiya guruhlarini olib tashlaydi va variant sozlash tanloviga qaytaradi."
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:299
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:291
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:542
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:293
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:543
 msgid "Billing address"
 msgstr "Hisob-faktura manzili"
 
@@ -2721,7 +2726,7 @@ msgid "Amount"
 msgstr "Miqdor"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:242
-#: src/lib/components/shared/customer-address-form.tsx:208
+#: src/lib/components/shared/customer-address-form.tsx:214
 msgid "Phone Number"
 msgstr "Telefon raqami"
 
@@ -2860,7 +2865,7 @@ msgstr ""
 msgid "Option values"
 msgstr "Optsiya qiymatlari"
 
-#: src/lib/components/shared/customer-address-form.tsx:246
+#: src/lib/components/shared/customer-address-form.tsx:252
 msgid "Default Billing Address"
 msgstr "Standart hisob-faktura manzili"
 
@@ -3101,7 +3106,7 @@ msgstr ""
 msgid "Successfully updated zone"
 msgstr "Hudud yangilandi"
 
-#: src/lib/components/shared/customer-address-form.tsx:156
+#: src/lib/components/shared/customer-address-form.tsx:162
 msgid "State/Province"
 msgstr "Shtat/Viloyat"
 
@@ -3123,7 +3128,7 @@ msgstr "{columnId} ustuni uchun filtr mezonlarini belgilang"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:217
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:53
-#: src/lib/components/shared/customer-address-form.tsx:180
+#: src/lib/components/shared/customer-address-form.tsx:186
 msgid "Country"
 msgstr "Mamlakat"
 
@@ -3339,7 +3344,7 @@ msgstr "To'lov tasdiqlandi"
 msgid "Successfully updated role"
 msgstr "Rol yangilandi"
 
-#: src/lib/components/shared/customer-address-form.tsx:191
+#: src/lib/components/shared/customer-address-form.tsx:197
 msgid "Select a country"
 msgstr "Mamlakatni tanlang"
 
@@ -3547,7 +3552,7 @@ msgstr "Faset qiymati yaratildi"
 msgid "Marketing"
 msgstr "Marketing"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:82
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:105
 msgid "Existing address"
 msgstr ""
 
@@ -3613,7 +3618,7 @@ msgstr "{0} ta variant"
 msgid "Failed to settle payment"
 msgstr "To'lovni yakunlab bo'lmadi"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:315
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:319
 msgid "No billing address"
 msgstr "Hisob-kitob manzili yo'q"
 
@@ -3768,7 +3773,7 @@ msgstr "Zaxira joylashuvini yangilab bo'lmadi"
 msgid "Order shipped"
 msgstr "Buyurtma jo'natildi"
 
-#: src/lib/components/shared/customer-address-form.tsx:266
+#: src/lib/components/shared/customer-address-form.tsx:272
 msgid "Save Address"
 msgstr "Manzilni saqlash"
 
@@ -4465,7 +4470,7 @@ msgstr ""
 msgid "Failed to set billing address for order: {0}"
 msgstr "Buyurtma uchun hisob-kitob manzilini o'rnatib bo'lmadi: {0}"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:285
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:287
 msgid "No shipping address"
 msgstr "Yetkazib berish manzili yo'q"
 
@@ -4729,7 +4734,7 @@ msgstr "A'zolarni tahrirlash"
 msgid "Stock on hand"
 msgstr "Mavjud zaxira"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:86
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:109
 msgid "New address"
 msgstr ""
 
@@ -4924,7 +4929,7 @@ msgstr "Tizim"
 msgid "Variant name"
 msgstr "Variant nomi"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:595
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:597
 msgid "Remove"
 msgstr "Olib tashlash"
 
@@ -4985,7 +4990,7 @@ msgid "The page will continue with the default query."
 msgstr "Sahifa standart so'rov bilan davom etadi."
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx:175
-#: src/lib/components/shared/customer-address-form.tsx:128
+#: src/lib/components/shared/customer-address-form.tsx:134
 msgid "Street Address"
 msgstr "Ko'cha manzili"
 
@@ -5129,6 +5134,11 @@ msgstr "Standart til"
 #: src/app/routes/_authenticated/_customers/customers.tsx:44
 msgid "Status"
 msgstr "Holat"
+
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:537
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:566
+msgid "Okay"
+msgstr ""
 
 #: src/lib/components/shared/configurable-operation-multi-selector.tsx:298
 #: src/lib/components/shared/configurable-operation-selector.tsx:155
@@ -5560,7 +5570,7 @@ msgstr "Buyurtma jarayonini ko'rish"
 msgid "Failed to duplicate view"
 msgstr "Ko'rinishni nusxalash amalga oshmadi"
 
-#: src/lib/components/shared/customer-address-form.tsx:231
+#: src/lib/components/shared/customer-address-form.tsx:237
 msgid "Use as the default shipping address"
 msgstr "Standart yetkazib berish manzili sifatida ishlatish"
 
@@ -5888,7 +5898,7 @@ msgstr "Yuklanmoqda..."
 msgid "The token is used to specify the channel when making API requests."
 msgstr "Token API so'rovlarini yuborishda kanalni belgilash uchun ishlatiladi."
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:97
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:120
 msgid "No addresses found"
 msgstr "Manzillar topilmadi"
 
