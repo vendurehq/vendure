@@ -1,12 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigurableOperation, ConfigurableOperationInput } from '@vendure/common/lib/generated-types';
-import { REDACTED_SECRET_PLACEHOLDER } from '@vendure/common/lib/shared-constants';
 import { Type } from '@vendure/common/lib/shared-types';
 
 import { ConfigurableOperationDef } from '../../common/configurable-operation';
 import { InternalServerError } from '../../common/error/errors';
-import { VendureEntity } from '../../entity/base/base.entity';
-import { RequestContext } from '../common/request-context';
 import {
     PromotionCondition,
     PromotionItemAction,
@@ -86,49 +83,6 @@ export class ConfigurableOperationCodec {
             }
         }
         return input;
-    }
-
-    /**
-     * Returns a copy of the given operations in which the values of any `secret` args are either
-     * decrypted (if the {@link SecretAccessStrategy} permits) or replaced with a redaction
-     * placeholder. The input operations are not mutated, so the stored (encrypted) values on the
-     * source entity are left intact.
-     */
-    async redactSecretArgs(
-        ctx: RequestContext,
-        defType: Type<ConfigurableOperationDef<any>>,
-        input: ConfigurableOperation[],
-        entity?: VendureEntity,
-    ): Promise<ConfigurableOperation[]> {
-        const availableDefs = this.getAvailableDefsOfType(defType);
-        const { secretAccessStrategy, encryptionStrategy } = this.configService.systemOptions;
-        const output: ConfigurableOperation[] = [];
-        for (const operation of input) {
-            const def = availableDefs.find(d => d.code === operation.code);
-            const args = [];
-            for (const arg of operation.args) {
-                const argDef = def?.args[arg.name];
-                if (!argDef?.secret || arg.value == null) {
-                    args.push({ ...arg });
-                    continue;
-                }
-                const canReveal = secretAccessStrategy
-                    ? await secretAccessStrategy.canAccessSecret(ctx, {
-                          operation: 'read',
-                          entityType: entity?.constructor.name ?? defType.name,
-                          entity,
-                          fieldName: arg.name,
-                      })
-                    : false;
-                const value =
-                    canReveal && encryptionStrategy
-                        ? encryptionStrategy.decrypt(arg.value)
-                        : REDACTED_SECRET_PLACEHOLDER;
-                args.push({ name: arg.name, value });
-            }
-            output.push({ code: operation.code, args });
-        }
-        return output;
     }
 
     getAvailableDefsOfType(defType: Type<ConfigurableOperationDef>): ConfigurableOperationDef[] {

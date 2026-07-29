@@ -559,8 +559,12 @@ export class CollectionService implements OnModuleInit {
     }
 
     async update(ctx: RequestContext, input: UpdateCollectionInput): Promise<Translated<Collection>> {
-        // Ensure the entity belongs to the active channel before updating.
-        await this.connection.getEntityOrThrow(ctx, Collection, input.id, { channelId: ctx.channelId });
+        // Ensure the entity belongs to the active channel before updating. The loaded entity also
+        // provides the previously-stored (encrypted) filter values, needed to preserve `secret`
+        // filter args that were not re-entered by the caller.
+        const existing = await this.connection.getEntityOrThrow(ctx, Collection, input.id, {
+            channelId: ctx.channelId,
+        });
         await this.slugValidator.validateSlugs(ctx, input, CollectionTranslation);
         const collection = await this.translatableSaver.update({
             ctx,
@@ -569,7 +573,7 @@ export class CollectionService implements OnModuleInit {
             translationType: CollectionTranslation,
             beforeSave: async coll => {
                 if (input.filters) {
-                    coll.filters = this.getCollectionFiltersFromInput(input);
+                    coll.filters = this.getCollectionFiltersFromInput(input, existing.filters);
                 }
                 await this.assetService.updateFeaturedAsset(ctx, coll, input);
                 await this.assetService.updateEntityAssets(ctx, coll, input);
@@ -705,11 +709,18 @@ export class CollectionService implements OnModuleInit {
 
     private getCollectionFiltersFromInput(
         input: CreateCollectionInput | UpdateCollectionInput | PreviewCollectionVariantsInput,
+        previous: ConfigurableOperation[] = [],
     ): ConfigurableOperation[] {
         const filters: ConfigurableOperation[] = [];
         if (input.filters) {
             for (const filterInput of input.filters) {
-                filters.push(this.configArgService.parseInput('CollectionFilter', filterInput));
+                filters.push(
+                    this.configArgService.parseInput(
+                        'CollectionFilter',
+                        filterInput,
+                        previous.find(p => p.code === filterInput.code),
+                    ),
+                );
             }
         }
         return filters;

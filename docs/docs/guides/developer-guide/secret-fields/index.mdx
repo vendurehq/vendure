@@ -50,13 +50,21 @@ args: {
 },
 ```
 
+This works for any configurable operation — payment method handlers and eligibility checkers,
+shipping calculators and checkers, promotion conditions and actions, collection filters, and any
+custom `ConfigurableOperationDef` you define yourself. The encryption, redaction and
+preservation-on-edit behaviour is handled centrally, so a custom operation does not need to
+implement any of it. `secret` is only supported on non-list `string` args.
+
 ## Who can read the value
 
 Reading the decrypted value requires the `Permission.ReadSecret` permission, which by default is
 held only by the SuperAdmin. A user without it receives a redaction placeholder instead of the real
 value. This behaviour is defined by the [`SecretAccessStrategy`](/reference/typescript-api/configuration/secret-access-strategy/),
-which you can replace to apply your own logic (for example, revealing a secret only to certain roles
-or depending on the entity).
+which you can replace to apply your own logic (for example, revealing a secret only to certain
+roles). Its input is a discriminated union on `kind`: for a `customField` it includes the entity
+instance, its type and the field name; for a `configArg` it includes the arg name and, where the
+GraphQL query path allows it to be determined, the owning entity type and field.
 
 Writing a secret is **not** gated by `ReadSecret` — any user who is allowed to create or update the
 entity may set its secret fields.

@@ -48,6 +48,7 @@ import { AdministratorEntityResolver } from './resolvers/entity/administrator-en
 import { AssetEntityResolver } from './resolvers/entity/asset-entity.resolver';
 import { ChannelEntityResolver } from './resolvers/entity/channel-entity.resolver';
 import { CollectionEntityResolver } from './resolvers/entity/collection-entity.resolver';
+import { ConfigurableOperationEntityResolver } from './resolvers/entity/configurable-operation-entity.resolver';
 import { CountryEntityResolver } from './resolvers/entity/country-entity.resolver';
 import {
     CustomerAdminEntityResolver,
@@ -147,6 +148,7 @@ export const entityResolvers = [
     AssetEntityResolver,
     ChannelEntityResolver,
     CollectionEntityResolver,
+    ConfigurableOperationEntityResolver,
     CountryEntityResolver,
     CustomerEntityResolver,
     CustomerGroupEntityResolver,

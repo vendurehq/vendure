@@ -21,7 +21,7 @@ const IV_LENGTH = 12;
  * The secret must remain stable across restarts and deployments: if it changes, existing encrypted
  * data can no longer be decrypted.
  *
- * @since 3.5.0
+ * @since 3.8.0
  * @docsCategory configuration
  * @docsPage EncryptionStrategy
  */
@@ -41,6 +41,10 @@ export class DefaultEncryptionStrategy implements EncryptionStrategy {
 
     isConfigured(): boolean {
         return this.key != null;
+    }
+
+    isEncrypted(value: string): boolean {
+        return value.startsWith(CIPHERTEXT_PREFIX);
     }
 
     encrypt(plaintext: string): string {

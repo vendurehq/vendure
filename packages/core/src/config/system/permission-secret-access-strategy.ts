@@ -10,15 +10,12 @@ import { SecretAccessInput, SecretAccessStrategy } from './secret-access-strateg
  * `Permission.ReadSecret` permission (held by the SuperAdmin by default). Writing a secret is not
  * gated here — it is governed by the entity's own `Create`/`Update` permission.
  *
- * @since 3.5.0
+ * @since 3.8.0
  * @docsCategory configuration
  * @docsPage SecretAccessStrategy
  */
 export class PermissionSecretAccessStrategy implements SecretAccessStrategy {
     canAccessSecret(ctx: RequestContext, input: SecretAccessInput): boolean {
-        if (input.operation !== 'read') {
-            return true;
-        }
         return ctx.userHasPermissions([Permission.ReadSecret]);
     }
 }

@@ -21,7 +21,35 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
     async onApplicationBootstrap() {
         await this.initInjectableStrategies();
         await this.initConfigurableOperations();
+        this.assertSecretConfigArgsAreValid();
         this.assertEncryptionConfiguredIfSecretsUsed();
+    }
+
+    /**
+     * A `secret` config arg is encrypted to an unbounded string at rest, so it is only supported on
+     * a non-list `string` arg. This mirrors the equivalent validation for `secret` custom fields.
+     */
+    private assertSecretConfigArgsAreValid() {
+        for (const operation of this.getConfigurableOperations()) {
+            for (const [name, argDef] of Object.entries(operation.args)) {
+                const arg = argDef as { type?: string; list?: boolean; secret?: boolean };
+                if (arg.secret !== true) {
+                    continue;
+                }
+                if (arg.type !== 'string') {
+                    throw new Error(
+                        `ERROR: The "${operation.code}" config arg "${name}" has "secret: true", ` +
+                            'which is only supported on "string" args.',
+                    );
+                }
+                if (arg.list === true) {
+                    throw new Error(
+                        `ERROR: The "${operation.code}" config arg "${name}" cannot combine ` +
+                            '"secret: true" with "list: true".',
+                    );
+                }
+            }
+        }
     }
 
     /**

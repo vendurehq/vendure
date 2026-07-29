@@ -14,7 +14,7 @@ import { InjectableStrategy } from '../../common/types/injectable-strategy';
  *
  * :::
  *
- * @since 3.5.0
+ * @since 3.8.0
  * @docsCategory configuration
  * @docsPage EncryptionStrategy
  * @docsWeight 0
@@ -31,6 +31,14 @@ export interface EncryptionStrategy extends InjectableStrategy {
      * Decrypts a value previously produced by `encrypt()`, returning the original plaintext.
      */
     decrypt(ciphertext: string): string;
+
+    /**
+     * @description
+     * Returns `true` if the given value was produced by this strategy's `encrypt()` method. This is
+     * used to detect secret values at the point they are returned from the API, without needing to
+     * know which config arg or custom field they came from.
+     */
+    isEncrypted(value: string): boolean;
 
     /**
      * @description

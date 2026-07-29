@@ -27,12 +27,28 @@ describe('DefaultEncryptionStrategy', () => {
         expect(strategy.decrypt('legacy-plaintext')).toBe('legacy-plaintext');
     });
 
+    it('detects its own ciphertext via isEncrypted', () => {
+        const strategy = configured();
+        expect(strategy.isEncrypted(strategy.encrypt('hello'))).toBe(true);
+        expect(strategy.isEncrypted('legacy-plaintext')).toBe(false);
+        expect(strategy.isEncrypted('')).toBe(false);
+    });
+
     it('reports whether it is configured', () => {
-        const unconfigured = new DefaultEncryptionStrategy({ secret: undefined });
-        unconfigured.init();
-        // Note: relies on VENDURE_ENCRYPTION_KEY not being set in the test environment.
-        expect(unconfigured.isConfigured()).toBe(process.env.VENDURE_ENCRYPTION_KEY != null);
-        expect(configured().isConfigured()).toBe(true);
+        const savedKey = process.env.VENDURE_ENCRYPTION_KEY;
+        delete process.env.VENDURE_ENCRYPTION_KEY;
+        try {
+            const unconfigured = new DefaultEncryptionStrategy({ secret: undefined });
+            unconfigured.init();
+            expect(unconfigured.isConfigured()).toBe(false);
+            expect(configured().isConfigured()).toBe(true);
+        } finally {
+            if (savedKey === undefined) {
+                delete process.env.VENDURE_ENCRYPTION_KEY;
+            } else {
+                process.env.VENDURE_ENCRYPTION_KEY = savedKey;
+            }
+        }
     });
 
     it('throws on decrypt with a mismatched key', () => {

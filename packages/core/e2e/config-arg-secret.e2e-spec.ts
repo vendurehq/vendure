@@ -1,7 +1,9 @@
 import { Permission } from '@vendure/common/lib/generated-types';
 import { REDACTED_SECRET_PLACEHOLDER } from '@vendure/common/lib/shared-constants';
 import {
+    CollectionFilter,
     DefaultEncryptionStrategy,
+    defaultCollectionFilters,
     LanguageCode,
     mergeConfig,
     PaymentMethod,
@@ -15,7 +17,13 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
-import { createAdministratorDocument, createRoleDocument } from './graphql/shared-definitions';
+import {
+    createAdministratorDocument,
+    createCollectionDocument,
+    createRoleDocument,
+    getCollectionDocument,
+    updateCollectionDocument,
+} from './graphql/shared-definitions';
 import {
     createPaymentMethodDocument,
     getPaymentMethodDocument,
@@ -34,13 +42,32 @@ const secretPaymentHandler = new PaymentMethodHandler({
     settlePayment: () => ({ success: true }),
 });
 
-const PLAINTEXT_KEY = 'sk_live_supersecret';
+// A CollectionFilter is a different `ConfigurableOperationDef` type on a different entity than a
+// PaymentMethodHandler. It has no bespoke secret-handling code of its own — it exercises the same
+// central encryption, redaction and preservation as every other operation type.
+const secretCollectionFilter = new CollectionFilter({
+    code: 'secret-test-filter',
+    description: [{ languageCode: LanguageCode.en, value: 'Secret test filter' }],
+    args: {
+        apiKey: { type: 'string', secret: true },
+        label: { type: 'string' },
+    },
+    apply: qb => qb,
+});
 
-describe('secret config args (GHSA-j7pc)', () => {
+const PLAINTEXT_KEY = 'sk_live_supersecret';
+const FILTER_PLAINTEXT_KEY = 'ck_live_collectionsecret';
+
+// #2648 — `secret` config arg values must be encrypted at rest and never returned in plaintext
+// to a caller without the ReadSecret permission.
+describe('secret config args', () => {
     const { server, adminClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
             paymentOptions: {
                 paymentMethodHandlers: [secretPaymentHandler],
+            },
+            catalogOptions: {
+                collectionFilters: [...defaultCollectionFilters, secretCollectionFilter],
             },
             systemOptions: {
                 encryptionStrategy: new DefaultEncryptionStrategy({ secret: 'test-encryption-key' }),
@@ -77,6 +104,9 @@ describe('secret config args (GHSA-j7pc)', () => {
                     Permission.ReadPaymentMethod,
                     Permission.CreatePaymentMethod,
                     Permission.UpdatePaymentMethod,
+                    Permission.ReadCollection,
+                    Permission.CreateCollection,
+                    Permission.UpdateCollection,
                 ],
                 channelIds: ['T_1'],
             },
@@ -174,4 +204,66 @@ describe('secret config args (GHSA-j7pc)', () => {
             });
         }, 'A value must be provided for the secret argument "apiKey"'),
     );
+
+    // The systemic redaction/preservation must work for an operation type with no bespoke wiring of
+    // its own — CollectionFilter here. Before this was centralised, `Collection.filters` returned the
+    // raw ciphertext to any ReadCollection holder.
+    describe('any configurable operation type (collection filter)', () => {
+        let collectionId: string;
+
+        function makeFilterInput(apiKey: string, label = 'coll') {
+            return {
+                code: secretCollectionFilter.code,
+                arguments: [
+                    { name: 'apiKey', value: apiKey },
+                    { name: 'label', value: label },
+                ],
+            };
+        }
+
+        it('a ReadSecret holder sees the plaintext filter arg on create', async () => {
+            await adminClient.asSuperAdmin();
+            const { createCollection } = await adminClient.query(createCollectionDocument, {
+                input: {
+                    filters: [makeFilterInput(FILTER_PLAINTEXT_KEY)],
+                    translations: [
+                        {
+                            languageCode: LanguageCode.en,
+                            name: 'Secret Collection',
+                            description: '',
+                            slug: 'secret-collection',
+                        },
+                    ],
+                },
+            });
+            collectionId = createCollection.id;
+            const apiKey = createCollection.filters[0].args.find(a => a.name === 'apiKey');
+            expect(apiKey?.value).toBe(FILTER_PLAINTEXT_KEY);
+        });
+
+        it('a non-ReadSecret admin gets the placeholder, but non-secret args are visible', async () => {
+            await adminClient.asUserWithCredentials(manager.emailAddress, manager.password);
+            const { collection } = await adminClient.query(getCollectionDocument, { id: collectionId });
+            const apiKey = collection?.filters[0].args.find(a => a.name === 'apiKey');
+            const label = collection?.filters[0].args.find(a => a.name === 'label');
+            expect(apiKey?.value).toBe(REDACTED_SECRET_PLACEHOLDER);
+            expect(label?.value).toBe('coll');
+        });
+
+        it('submitting the placeholder on update preserves the stored secret', async () => {
+            await adminClient.asUserWithCredentials(manager.emailAddress, manager.password);
+            await adminClient.query(updateCollectionDocument, {
+                input: {
+                    id: collectionId,
+                    filters: [makeFilterInput(REDACTED_SECRET_PLACEHOLDER, 'coll-renamed')],
+                },
+            });
+            await adminClient.asSuperAdmin();
+            const { collection } = await adminClient.query(getCollectionDocument, { id: collectionId });
+            const apiKey = collection?.filters[0].args.find(a => a.name === 'apiKey');
+            const label = collection?.filters[0].args.find(a => a.name === 'label');
+            expect(apiKey?.value).toBe(FILTER_PLAINTEXT_KEY);
+            expect(label?.value).toBe('coll-renamed');
+        });
+    });
 });

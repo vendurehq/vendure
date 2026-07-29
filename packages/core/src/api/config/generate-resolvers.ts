@@ -317,9 +317,10 @@ function generateCustomFieldResolvers(
                         const secretAccessStrategy = configService.systemOptions.secretAccessStrategy;
                         const canReveal = secretAccessStrategy
                             ? await secretAccessStrategy.canAccessSecret(ctx, {
-                                  operation: 'read',
+                                  kind: 'customField',
                                   entityType: entityName,
                                   fieldName: fieldDef.name,
+                                  entity: source,
                               })
                             : false;
                         return canReveal ? value : REDACTED_SECRET_PLACEHOLDER;
