@@ -17,7 +17,7 @@ export const TEMP_COMPILATION_DIR_NAME = 'vendure-dashboard-temp';
  * file one level above `outputPath`, escaping the compiler-written
  * `{"type":"commonjs"}` guard. Node then resolves the emitted `.js` against
  * the nearest `package.json` — which, inside `@vendure/dashboard`, declares
- * `"type": "module"` — and loading throws
+ * `\"type\": \"module\"` — and loading throws
  * `ReferenceError: exports is not defined in ES module scope`. See
  * https://github.com/vendurehq/vendure/issues/4979.
  *
