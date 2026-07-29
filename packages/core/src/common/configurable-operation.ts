@@ -58,7 +58,7 @@ export interface ConfigArgCommonDef<T extends ConfigArgType> {
      * permitted by the {@link SecretAccessStrategy} (by default, those with the `ReadSecret`
      * permission). Other users receive a redaction placeholder. Only supported on `string` args.
      *
-     * @since 3.5.0
+     * @since 3.8.0
      * @default false
      */
     secret?: boolean;

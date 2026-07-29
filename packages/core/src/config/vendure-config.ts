@@ -1260,7 +1260,7 @@ export interface SystemOptions {
      * Defines the strategy used to encrypt the values of `secret` custom fields and config args at
      * rest.
      *
-     * @since 3.5.0
+     * @since 3.8.0
      * @default DefaultEncryptionStrategy
      */
     encryptionStrategy?: EncryptionStrategy;
@@ -1269,7 +1269,7 @@ export interface SystemOptions {
      * Defines the strategy used to determine whether the current user may read the decrypted value
      * of a `secret` custom field or config arg.
      *
-     * @since 3.5.0
+     * @since 3.8.0
      * @default PermissionSecretAccessStrategy
      */
     secretAccessStrategy?: SecretAccessStrategy;

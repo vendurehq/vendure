@@ -64,7 +64,7 @@ export type BaseTypedCustomFieldConfig<T extends CustomFieldType, C extends Cust
      * Only supported on `string` and `text` fields, and cannot be combined with `unique` or an
      * explicit `length`.
      *
-     * @since 3.5.0
+     * @since 3.8.0
      * @default false
      */
     secret?: boolean;
