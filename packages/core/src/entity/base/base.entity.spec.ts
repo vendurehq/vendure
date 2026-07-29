@@ -18,6 +18,14 @@ class ChildEntity extends VendureEntity {
     }
 }
 
+class ChildEntityWithCustomFields extends VendureEntity {
+    constructor(input?: DeepPartial<ChildEntityWithCustomFields>) {
+        super(input);
+    }
+
+    customFields: { [key: string]: any };
+}
+
 class ChildEntityWithCalculated extends VendureEntity {
     constructor(input?: DeepPartial<ChildEntity>) {
         super(input);
@@ -50,6 +58,18 @@ describe('VendureEntity', () => {
 
         expect(child2.name).toBe('foo');
         expect(child2.nameLoud).toBe('FOO');
+    });
+
+    // https://github.com/vendurehq/vendure/issues/5040
+    it('clones customFields rather than sharing the input reference', () => {
+        const input = { customFields: { relatedId: 1 } };
+        const child = new ChildEntityWithCustomFields(input);
+
+        expect(child.customFields).toEqual({ relatedId: 1 });
+        expect(child.customFields).not.toBe(input.customFields);
+
+        child.customFields.relatedId = null;
+        expect(input.customFields.relatedId).toBe(1);
     });
 
     it('instantiating from existing entity with calculated getter', () => {
