@@ -43,6 +43,23 @@ function registerCustomFieldsForEntity(
     if (customFields) {
         for (const customField of customFields) {
             const { name, list, defaultValue, nullable } = customField;
+            if (customField.secret === true) {
+                // Validate secret-field constraints that apply regardless of the underlying storage,
+                // before branching on the field type. Otherwise an unsupported type such as
+                // `relation` is silently registered without encryption or redaction.
+                if (customField.type !== 'string' && customField.type !== 'text') {
+                    throw new Error(
+                        `ERROR: The custom field "${customField.name}" has "secret: true", which ` +
+                            'is only supported on "string" and "text" fields.',
+                    );
+                }
+                if (list) {
+                    throw new Error(
+                        `ERROR: The custom field "${customField.name}" cannot combine "secret: true" ` +
+                            'with "list: true".',
+                    );
+                }
+            }
             const instance = new ctor();
             const registerColumn = () => {
                 if (customField.type === 'relation') {
@@ -102,18 +119,6 @@ function registerCustomFieldsForEntity(
                         options.precision = 6;
                     }
                     if (customField.secret === true) {
-                        if (customField.type !== 'string' && customField.type !== 'text') {
-                            throw new Error(
-                                `ERROR: The custom field "${customField.name}" has "secret: true", which ` +
-                                    'is only supported on "string" and "text" fields.',
-                            );
-                        }
-                        if (list) {
-                            throw new Error(
-                                `ERROR: The custom field "${customField.name}" cannot combine "secret: true" ` +
-                                    'with "list: true".',
-                            );
-                        }
                         if (customField.unique === true) {
                             throw new Error(
                                 `ERROR: The custom field "${customField.name}" cannot combine "secret: true" ` +
