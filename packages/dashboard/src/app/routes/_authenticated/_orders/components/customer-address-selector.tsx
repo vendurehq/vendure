@@ -143,21 +143,7 @@ export function CustomerAddressSelector({
                                 <CustomerAddressForm
                                     hideDefaultAddressFlags
                                     address={initialAddress}
-                                    setValuesForUpdate={addr => ({
-                                        id: '',
-                                        fullName: addr?.fullName ?? '',
-                                        company: addr?.company ?? '',
-                                        streetLine1: addr?.streetLine1 ?? '',
-                                        streetLine2: addr?.streetLine2 ?? '',
-                                        city: addr?.city ?? '',
-                                        province: addr?.province ?? '',
-                                        postalCode: addr?.postalCode ?? '',
-                                        countryCode: addr?.countryCode ?? '',
-                                        phoneNumber: addr?.phoneNumber ?? '',
-                                        defaultShippingAddress: false,
-                                        defaultBillingAddress: false,
-                                        customFields: {},
-                                    })}
+                                    setValuesForUpdate={mapOrderAddressToFormValues}
                                     submitLabel={submitLabel}
                                     onSubmit={values => {
                                         onSubmitNew(mapFormValuesToInput(values));
@@ -171,6 +157,24 @@ export function CustomerAddressSelector({
             </PopoverContent>
         </Popover>
     );
+}
+
+function mapOrderAddressToFormValues(address: Order['shippingAddress']): AddressFormValues {
+    return {
+        id: '',
+        fullName: address?.fullName || '',
+        company: address?.company || '',
+        streetLine1: address?.streetLine1 || '',
+        streetLine2: address?.streetLine2 || '',
+        city: address?.city || '',
+        province: address?.province || '',
+        postalCode: address?.postalCode || '',
+        countryCode: address?.countryCode || '',
+        phoneNumber: address?.phoneNumber || '',
+        defaultShippingAddress: false,
+        defaultBillingAddress: false,
+        customFields: {},
+    };
 }
 
 function mapFormValuesToInput(values: AddressFormValues): CreateAddressInput {
