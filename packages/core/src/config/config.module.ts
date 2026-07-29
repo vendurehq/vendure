@@ -70,9 +70,16 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
         );
         if (hasSecretCustomField || hasSecretConfigArg) {
             throw new Error(
-                '[Vendure] A `secret` custom field or config arg is configured, but the ' +
-                    'EncryptionStrategy has no usable key. Set the `VENDURE_ENCRYPTION_KEY` environment ' +
-                    'variable, or provide a `secret` to the DefaultEncryptionStrategy.',
+                '[Vendure] A `secret` custom field or config arg is configured, but no EncryptionStrategy ' +
+                    'with a usable key is available. Configure one in your VendureConfig:\n\n' +
+                    "  import { DefaultEncryptionStrategy } from '@vendure/core';\n\n" +
+                    '  systemOptions: {\n' +
+                    '    encryptionStrategy: new DefaultEncryptionStrategy({\n' +
+                    '      secret: process.env.VENDURE_ENCRYPTION_KEY,\n' +
+                    '    }),\n' +
+                    '  }\n\n' +
+                    'and set the VENDURE_ENCRYPTION_KEY environment variable to a stable, secret value. It ' +
+                    'must not change once secret data has been written, or that data can no longer be decrypted.',
             );
         }
     }

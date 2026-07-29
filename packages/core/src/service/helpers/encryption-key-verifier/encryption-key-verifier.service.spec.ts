@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { DefaultEncryptionStrategy } from '../../../config/system/default-encryption-strategy';
 
@@ -45,9 +45,6 @@ function createVerifier(
 }
 
 describe('EncryptionKeyVerifierService', () => {
-    beforeEach(() => {
-        delete process.env.VENDURE_ENCRYPTION_KEY;
-    });
     afterEach(() => {
         vi.restoreAllMocks();
     });

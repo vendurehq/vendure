@@ -11,8 +11,23 @@ permitted to see it**.
 
 ## Enabling encryption
 
-Encryption requires a stable secret key, provided via the `VENDURE_ENCRYPTION_KEY` environment
-variable (or by passing a `secret` to the [`DefaultEncryptionStrategy`](/reference/typescript-api/configuration/encryption-strategy/)):
+Encryption requires a stable secret key. Configure an [`EncryptionStrategy`](/reference/typescript-api/configuration/encryption-strategy/)
+in your VendureConfig and pass it the secret. The strategy does not read the environment itself —
+following Vendure's convention, you read the environment variable in your config and pass the value
+in explicitly:
+
+```ts
+import { DefaultEncryptionStrategy, VendureConfig } from '@vendure/core';
+
+export const config: VendureConfig = {
+    // ...
+    systemOptions: {
+        encryptionStrategy: new DefaultEncryptionStrategy({
+            secret: process.env.VENDURE_ENCRYPTION_KEY,
+        }),
+    },
+};
+```
 
 ```sh
 VENDURE_ENCRYPTION_KEY=your-long-random-secret
@@ -23,7 +38,8 @@ The key must remain the same across restarts and deployments. If it changes, exi
 data can no longer be decrypted. Do not commit it to source control, and back it up securely.
 :::
 
-If a `secret` field or arg is configured but no key is available, the server will refuse to start.
+If a `secret` field or arg is configured but no encryption key is available, the server refuses to
+start, with a message showing exactly which configuration to add.
 
 ## Marking a custom field as secret
 

@@ -15,8 +15,15 @@ const IV_LENGTH = 12;
 /**
  * @description
  * The default {@link EncryptionStrategy}, which uses AES-256-GCM. The encryption key is derived from
- * a secret provided either via the `secret` option or the `VENDURE_ENCRYPTION_KEY` environment
- * variable.
+ * the `secret` passed to the strategy. The secret is not read from the environment by the strategy
+ * itself; instead you provide it explicitly in your config, typically from an environment variable:
+ *
+ * @example
+ * ```ts
+ * systemOptions: {
+ *     encryptionStrategy: new DefaultEncryptionStrategy({ secret: process.env.VENDURE_ENCRYPTION_KEY }),
+ * }
+ * ```
  *
  * The secret must remain stable across restarts and deployments: if it changes, existing encrypted
  * data can no longer be decrypted.
@@ -31,11 +38,10 @@ export class DefaultEncryptionStrategy implements EncryptionStrategy {
     constructor(private options: { secret?: string } = {}) {}
 
     init() {
-        const secret = this.options.secret ?? process.env.VENDURE_ENCRYPTION_KEY;
-        if (secret) {
+        if (this.options.secret) {
             // Derive a fixed-length 32-byte key from the provided secret, so that any-length
             // secrets are supported while satisfying AES-256's key-length requirement.
-            this.key = createHash('sha256').update(secret, 'utf8').digest();
+            this.key = createHash('sha256').update(this.options.secret, 'utf8').digest();
         }
     }
 
@@ -86,8 +92,8 @@ export class DefaultEncryptionStrategy implements EncryptionStrategy {
     private assertKey(): Buffer {
         if (!this.key) {
             throw new Error(
-                'The DefaultEncryptionStrategy has no encryption key configured. Set the ' +
-                    '`VENDURE_ENCRYPTION_KEY` environment variable, or pass a `secret` to the strategy.',
+                'The DefaultEncryptionStrategy has no encryption key configured. Pass a `secret` to ' +
+                    'the strategy, e.g. `new DefaultEncryptionStrategy({ secret: process.env.VENDURE_ENCRYPTION_KEY })`.',
             );
         }
         return this.key;

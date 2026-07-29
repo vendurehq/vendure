@@ -35,19 +35,20 @@ describe('DefaultEncryptionStrategy', () => {
     });
 
     it('reports whether it is configured', () => {
-        const savedKey = process.env.VENDURE_ENCRYPTION_KEY;
-        delete process.env.VENDURE_ENCRYPTION_KEY;
+        const unconfigured = new DefaultEncryptionStrategy({ secret: undefined });
+        unconfigured.init();
+        expect(unconfigured.isConfigured()).toBe(false);
+        expect(configured().isConfigured()).toBe(true);
+    });
+
+    it('does not read the secret from the environment', () => {
+        process.env.VENDURE_ENCRYPTION_KEY = 'from-env-should-be-ignored';
         try {
-            const unconfigured = new DefaultEncryptionStrategy({ secret: undefined });
-            unconfigured.init();
-            expect(unconfigured.isConfigured()).toBe(false);
-            expect(configured().isConfigured()).toBe(true);
+            const strategy = new DefaultEncryptionStrategy({ secret: undefined });
+            strategy.init();
+            expect(strategy.isConfigured()).toBe(false);
         } finally {
-            if (savedKey === undefined) {
-                delete process.env.VENDURE_ENCRYPTION_KEY;
-            } else {
-                process.env.VENDURE_ENCRYPTION_KEY = savedKey;
-            }
+            delete process.env.VENDURE_ENCRYPTION_KEY;
         }
     });
 
