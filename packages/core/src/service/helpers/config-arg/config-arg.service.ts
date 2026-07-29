@@ -107,6 +107,26 @@ export class ConfigArgService {
     }
 
     /**
+     * Parses a list of ConfigurableOperation inputs, matching each input to its previously-stored
+     * value so that `secret` args submitted as the redaction placeholder are preserved. Matching is
+     * by code and by position among entries that share a code, so that duplicate operations (e.g.
+     * two promotion conditions with the same code, or two collection filters) each preserve their
+     * own stored value rather than all matching the first entry.
+     */
+    parseInputList(
+        defType: ConfigDefType,
+        inputs: ConfigurableOperationInput[],
+        previous: ConfigurableOperation[] = [],
+    ): ConfigurableOperation[] {
+        const remainingPrevious = [...previous];
+        return inputs.map(input => {
+            const matchIndex = remainingPrevious.findIndex(p => p.code === input.code);
+            const matched = matchIndex === -1 ? undefined : remainingPrevious.splice(matchIndex, 1)[0];
+            return this.parseInput(defType, input, matched);
+        });
+    }
+
+    /**
      * Encrypts the values of any `secret` args, preserving the previously-stored (encrypted) value
      * when the redaction placeholder is submitted.
      */

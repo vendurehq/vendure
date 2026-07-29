@@ -176,21 +176,17 @@ export class PromotionService {
             beforeSave: async p => {
                 p.priorityScore = this.calculatePriorityScore(input);
                 if (input.conditions) {
-                    p.conditions = input.conditions.map(c =>
-                        this.configArgService.parseInput(
-                            'PromotionCondition',
-                            c,
-                            promotion.conditions.find(previous => previous.code === c.code),
-                        ),
+                    p.conditions = this.configArgService.parseInputList(
+                        'PromotionCondition',
+                        input.conditions,
+                        promotion.conditions,
                     );
                 }
                 if (input.actions) {
-                    p.actions = input.actions.map(a =>
-                        this.configArgService.parseInput(
-                            'PromotionAction',
-                            a,
-                            promotion.actions.find(previous => previous.code === a.code),
-                        ),
+                    p.actions = this.configArgService.parseInputList(
+                        'PromotionAction',
+                        input.actions,
+                        promotion.actions,
                     );
                 }
             },

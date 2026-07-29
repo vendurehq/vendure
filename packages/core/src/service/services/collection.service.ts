@@ -711,19 +711,9 @@ export class CollectionService implements OnModuleInit {
         input: CreateCollectionInput | UpdateCollectionInput | PreviewCollectionVariantsInput,
         previous: ConfigurableOperation[] = [],
     ): ConfigurableOperation[] {
-        const filters: ConfigurableOperation[] = [];
-        if (input.filters) {
-            for (const filterInput of input.filters) {
-                filters.push(
-                    this.configArgService.parseInput(
-                        'CollectionFilter',
-                        filterInput,
-                        previous.find(p => p.code === filterInput.code),
-                    ),
-                );
-            }
-        }
-        return filters;
+        return input.filters
+            ? this.configArgService.parseInputList('CollectionFilter', input.filters, previous)
+            : [];
     }
 
     private chunkArray = <T>(array: T[], chunkSize: number): T[][] => {

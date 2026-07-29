@@ -302,5 +302,42 @@ describe('secret config args', () => {
             expect(apiKey?.value).toBe(FILTER_PLAINTEXT_KEY);
             expect(label?.value).toBe('coll-renamed');
         });
+
+        // Two filters share the same code, so preserving by code alone would give both the first
+        // filter's secret. Each must preserve its own.
+        it('preserves each secret independently for duplicate operations of the same code', async () => {
+            await adminClient.asSuperAdmin();
+            const { createCollection } = await adminClient.query(createCollectionDocument, {
+                input: {
+                    filters: [makeFilterInput('ck_first', 'a'), makeFilterInput('ck_second', 'b')],
+                    translations: [
+                        {
+                            languageCode: LanguageCode.en,
+                            name: 'Dup Filter Collection',
+                            description: '',
+                            slug: 'dup-filter-collection',
+                        },
+                    ],
+                },
+            });
+            const dupId = createCollection.id;
+            expect(createCollection.filters[0].args.find(a => a.name === 'apiKey')?.value).toBe('ck_first');
+            expect(createCollection.filters[1].args.find(a => a.name === 'apiKey')?.value).toBe('ck_second');
+
+            await adminClient.query(updateCollectionDocument, {
+                input: {
+                    id: dupId,
+                    filters: [
+                        makeFilterInput(REDACTED_SECRET_PLACEHOLDER, 'a2'),
+                        makeFilterInput(REDACTED_SECRET_PLACEHOLDER, 'b2'),
+                    ],
+                },
+            });
+            const { collection } = await adminClient.query(getCollectionDocument, { id: dupId });
+            expect(collection?.filters[0].args.find(a => a.name === 'apiKey')?.value).toBe('ck_first');
+            expect(collection?.filters[1].args.find(a => a.name === 'apiKey')?.value).toBe('ck_second');
+            expect(collection?.filters[0].args.find(a => a.name === 'label')?.value).toBe('a2');
+            expect(collection?.filters[1].args.find(a => a.name === 'label')?.value).toBe('b2');
+        });
     });
 });
