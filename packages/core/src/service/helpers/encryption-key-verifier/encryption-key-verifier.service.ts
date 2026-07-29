@@ -1,4 +1,5 @@
 import { Injectable, OnApplicationBootstrap, OnModuleInit } from '@nestjs/common';
+import { Permission } from '@vendure/common/lib/generated-types';
 
 import { RequestContext } from '../../../api/common/request-context';
 import { ConfigService } from '../../../config/config.service';
@@ -31,7 +32,19 @@ export class EncryptionKeyVerifierService implements OnModuleInit, OnApplication
     onModuleInit() {
         this.settingsStoreService.register({
             namespace: SETTINGS_NAMESPACE,
-            fields: [{ name: SETTINGS_FIELD, scope: SettingsStoreScopes.global, readonly: true }],
+            fields: [
+                {
+                    name: SETTINGS_FIELD,
+                    scope: SettingsStoreScopes.global,
+                    readonly: true,
+                    // Restrict read access to the SuperAdmin. Without this, the settings store
+                    // exposes a registered field to any authenticated user, which would hand out
+                    // this key-check value (a known plaintext encrypted with the active key) as an
+                    // offline brute-force oracle for the encryption secret. The SuperAdmin already
+                    // has full access to decrypted secrets, so this is not a new capability for them.
+                    requiresPermission: Permission.SuperAdmin,
+                },
+            ],
         });
     }
 
