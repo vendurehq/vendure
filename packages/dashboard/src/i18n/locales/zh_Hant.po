@@ -349,7 +349,7 @@ msgstr "至少輸入 2 個字元進行搜尋..."
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:122
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:186
 #: src/app/routes/_authenticated/_profile/profile.tsx:109
-#: src/lib/components/shared/customer-selector.tsx:170
+#: src/lib/components/shared/customer-selector.tsx:163
 msgid "Last name"
 msgstr "姓氏"
 
@@ -520,7 +520,7 @@ msgstr "成功建立產品選項"
 msgid "Parent product"
 msgstr "父級產品"
 
-#: src/lib/components/shared/customer-selector.tsx:255
+#: src/lib/components/shared/customer-selector.tsx:249
 msgid "Create new customer"
 msgstr ""
 
@@ -561,7 +561,7 @@ msgid "You must first select an available currency to set a default currency"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:92
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:59
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:60
 msgid "Successfully updated order"
 msgstr "已成功更新訂單"
 
@@ -701,7 +701,7 @@ msgstr "請新增商品並填寫配送地址以執行測試。"
 msgid "Toggle header row"
 msgstr "切換標題列"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:96
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:110
 msgid "Select address"
 msgstr "選取地址"
 
@@ -753,7 +753,7 @@ msgstr "短日期"
 msgid "Available currencies"
 msgstr "可用貨幣"
 
-#: src/lib/components/shared/customer-selector.tsx:107
+#: src/lib/components/shared/customer-selector.tsx:99
 msgid "Search customers..."
 msgstr ""
 
@@ -920,14 +920,14 @@ msgid "Failed to create product"
 msgstr "建立商品失敗"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:276
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:246
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:247
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:497
 #: src/lib/components/shared/role-code-label.tsx:8
 msgid "Customer"
 msgstr "客戶"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:269
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:301
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:271
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:304
 msgid "Update address"
 msgstr ""
 
@@ -1179,7 +1179,7 @@ msgid "Assets"
 msgstr "資源"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:192
-#: src/lib/components/shared/customer-selector.tsx:176
+#: src/lib/components/shared/customer-selector.tsx:169
 msgid "Email address"
 msgstr "電子郵件地址"
 
@@ -1302,7 +1302,7 @@ msgstr "付款方式"
 msgid "Stock"
 msgstr "庫存"
 
-#: src/lib/components/shared/customer-selector.tsx:113
+#: src/lib/components/shared/customer-selector.tsx:105
 msgid "No customers found"
 msgstr "找不到客戶"
 
@@ -1386,7 +1386,7 @@ msgid "No variants match the current filter."
 msgstr "沒有符合目前篩選條件的變體。"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:207
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:258
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:259
 msgid "Addresses"
 msgstr "地址"
 
@@ -1416,7 +1416,7 @@ msgstr "建立選項群組失敗"
 msgid "True"
 msgstr "是"
 
-#: src/lib/components/shared/customer-selector.tsx:213
+#: src/lib/components/shared/customer-selector.tsx:207
 msgid "Select customer"
 msgstr "選取客戶"
 
@@ -1617,7 +1617,7 @@ msgstr "地址已成功更新"
 msgid "Created"
 msgstr "已建立"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:116
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:144
 msgid "Loading addresses..."
 msgstr "正在載入地址..."
 
@@ -1747,7 +1747,7 @@ msgid "Reason:"
 msgstr "原因:"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:291
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:261
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:262
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:514
 msgid "Shipping address"
 msgstr "配送地址"
@@ -1771,7 +1771,7 @@ msgstr "稅務類別"
 msgid "Private collections are not visible in the shop"
 msgstr "私人集合在商店中不可見"
 
-#: src/lib/components/shared/customer-selector.tsx:188
+#: src/lib/components/shared/customer-selector.tsx:182
 msgid "Create customer"
 msgstr ""
 
@@ -1903,8 +1903,8 @@ msgstr "已成功更新個人資料"
 msgid "Payment method"
 msgstr "付款方式"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:279
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:311
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:281
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:314
 #: src/lib/components/shared/history-timeline/history-note-entry.tsx:46
 msgid "Edit"
 msgstr "編輯"
@@ -2537,7 +2537,7 @@ msgstr "已選取 {0} 個"
 msgid "Search option groups..."
 msgstr "搜尋選項群組..."
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:181
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:182
 msgid "Modify order"
 msgstr "修改訂單"
 
@@ -2733,8 +2733,8 @@ msgid "This will remove all option groups from this product and return to the va
 msgstr "這將移除此產品的所有選項群組並返回變體設定選擇。"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:299
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:293
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:543
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:295
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:544
 msgid "Billing address"
 msgstr "帳單地址"
 
@@ -2954,7 +2954,7 @@ msgid "Default Billing Address"
 msgstr "預設帳單地址"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:284
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:254
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:255
 msgid "No customer"
 msgstr "無客戶"
 
@@ -3513,7 +3513,7 @@ msgstr "不等於"
 #~ msgid "Refresh"
 #~ msgstr "重新整理"
 
-#: src/lib/components/shared/customer-selector.tsx:251
+#: src/lib/components/shared/customer-selector.tsx:245
 msgid "Existing customer"
 msgstr ""
 
@@ -3663,7 +3663,7 @@ msgstr "已成功建立屬性值"
 msgid "Marketing"
 msgstr "行銷"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:105
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:133
 msgid "Existing address"
 msgstr ""
 
@@ -3689,7 +3689,7 @@ msgid "Remove from channel"
 msgstr "從頻道中移除"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:173
-#: src/lib/components/shared/customer-selector.tsx:158
+#: src/lib/components/shared/customer-selector.tsx:151
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:157
 msgid "Title"
 msgstr "標題"
@@ -3729,7 +3729,7 @@ msgstr "{0} 個變體"
 msgid "Failed to settle payment"
 msgstr "完成付款失敗"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:319
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:322
 msgid "No billing address"
 msgstr "無帳單地址"
 
@@ -4372,7 +4372,7 @@ msgstr "{title}"
 
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:244
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:87
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:191
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:192
 msgid "Order lines"
 msgstr "訂單行"
 
@@ -4626,7 +4626,7 @@ msgstr ""
 msgid "Failed to set billing address for order: {0}"
 msgstr ""
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:287
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:289
 msgid "No shipping address"
 msgstr "無配送地址"
 
@@ -4742,7 +4742,7 @@ msgstr "其他"
 msgid "refundReason.WrongItem"
 msgstr "發錯商品"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:214
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:215
 msgid "Summary of modifications"
 msgstr "修改摘要"
 
@@ -4780,7 +4780,7 @@ msgstr "更新客戶群組失敗"
 msgid "Payment metadata"
 msgstr "付款中繼資料"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:186
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:187
 msgid "Cancel modification"
 msgstr "取消修改"
 
@@ -4802,7 +4802,7 @@ msgid "Additional payment required"
 msgstr "需要額外付款"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:96
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:63
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:64
 msgid "Failed to update order"
 msgstr "更新訂單失敗"
 
@@ -4890,7 +4890,7 @@ msgstr "編輯成員"
 msgid "Stock on hand"
 msgstr "現有庫存"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:109
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:137
 msgid "New address"
 msgstr ""
 
@@ -4910,7 +4910,7 @@ msgstr "警示"
 msgid "Option Values"
 msgstr "選項值"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:235
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:236
 msgid "Preview changes"
 msgstr "預覽變更"
 
@@ -5097,7 +5097,7 @@ msgstr "系統"
 msgid "Variant name"
 msgstr "變體名稱"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:597
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:599
 msgid "Remove"
 msgstr "移除"
 
@@ -5319,8 +5319,8 @@ msgstr "預設語言"
 msgid "Status"
 msgstr "狀態"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:537
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:566
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:534
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:564
 msgid "Okay"
 msgstr ""
 
@@ -5432,7 +5432,7 @@ msgstr "處理退款失敗"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:116
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:180
 #: src/app/routes/_authenticated/_profile/profile.tsx:103
-#: src/lib/components/shared/customer-selector.tsx:164
+#: src/lib/components/shared/customer-selector.tsx:157
 msgid "First name"
 msgstr "名字"
 
@@ -5539,7 +5539,7 @@ msgid "Option Groups"
 msgstr "選項群組"
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:133
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:207
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:208
 msgid "Add surcharge"
 msgstr "新增附加費"
 
@@ -6097,7 +6097,7 @@ msgstr "向訂單新增付款"
 #: src/lib/components/data-input/relation-selector.tsx:427
 #: src/lib/components/shared/country-selector.tsx:86
 #: src/lib/components/shared/customer-group-selector.tsx:56
-#: src/lib/components/shared/customer-selector.tsx:113
+#: src/lib/components/shared/customer-selector.tsx:105
 #: src/lib/components/shared/facet-value-selector.tsx:159
 msgid "Loading..."
 msgstr "正在載入..."
@@ -6106,7 +6106,7 @@ msgstr "正在載入..."
 msgid "The token is used to specify the channel when making API requests."
 msgstr "在進行 API 要求時使用權杖來指定通路。"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:120
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:148
 msgid "No addresses found"
 msgstr "找不到地址"
 
@@ -6188,7 +6188,7 @@ msgid "Order process"
 msgstr "訂單流程"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:198
-#: src/lib/components/shared/customer-selector.tsx:182
+#: src/lib/components/shared/customer-selector.tsx:175
 msgid "Phone number"
 msgstr "電話號碼"
 

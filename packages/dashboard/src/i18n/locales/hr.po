@@ -349,7 +349,7 @@ msgstr "Unesite najmanje 2 znaka za pretraživanje..."
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:122
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:186
 #: src/app/routes/_authenticated/_profile/profile.tsx:109
-#: src/lib/components/shared/customer-selector.tsx:170
+#: src/lib/components/shared/customer-selector.tsx:163
 msgid "Last name"
 msgstr "Prezime"
 
@@ -520,7 +520,7 @@ msgstr "Opcija proizvoda uspješno stvorena"
 msgid "Parent product"
 msgstr "Nadređeni proizvod"
 
-#: src/lib/components/shared/customer-selector.tsx:255
+#: src/lib/components/shared/customer-selector.tsx:249
 msgid "Create new customer"
 msgstr ""
 
@@ -561,7 +561,7 @@ msgid "You must first select an available currency to set a default currency"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:92
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:59
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:60
 msgid "Successfully updated order"
 msgstr "Narudžba uspješno ažurirana"
 
@@ -701,7 +701,7 @@ msgstr "Molimo dodajte proizvode i dovršite adresu za dostavu kako biste pokren
 msgid "Toggle header row"
 msgstr "Prebaci redak zaglavlja"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:96
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:110
 msgid "Select address"
 msgstr "Odaberi adresu"
 
@@ -753,7 +753,7 @@ msgstr "Kratki datum"
 msgid "Available currencies"
 msgstr "Dostupne valute"
 
-#: src/lib/components/shared/customer-selector.tsx:107
+#: src/lib/components/shared/customer-selector.tsx:99
 msgid "Search customers..."
 msgstr ""
 
@@ -920,14 +920,14 @@ msgid "Failed to create product"
 msgstr "Stvaranje proizvoda nije uspjelo"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:276
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:246
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:247
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:497
 #: src/lib/components/shared/role-code-label.tsx:8
 msgid "Customer"
 msgstr "Kupac"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:269
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:301
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:271
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:304
 msgid "Update address"
 msgstr ""
 
@@ -1179,7 +1179,7 @@ msgid "Assets"
 msgstr "Datoteke"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:192
-#: src/lib/components/shared/customer-selector.tsx:176
+#: src/lib/components/shared/customer-selector.tsx:169
 msgid "Email address"
 msgstr "Adresa e-pošte"
 
@@ -1302,7 +1302,7 @@ msgstr "Načini plaćanja"
 msgid "Stock"
 msgstr "Zaliha"
 
-#: src/lib/components/shared/customer-selector.tsx:113
+#: src/lib/components/shared/customer-selector.tsx:105
 msgid "No customers found"
 msgstr "Nisu pronađeni kupci"
 
@@ -1386,7 +1386,7 @@ msgid "No variants match the current filter."
 msgstr "Nijedna varijanta ne odgovara trenutnom filtru."
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:207
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:258
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:259
 msgid "Addresses"
 msgstr "Adrese"
 
@@ -1416,7 +1416,7 @@ msgstr "Stvaranje grupe opcija nije uspjelo"
 msgid "True"
 msgstr "Točno"
 
-#: src/lib/components/shared/customer-selector.tsx:213
+#: src/lib/components/shared/customer-selector.tsx:207
 msgid "Select customer"
 msgstr "Odaberi kupca"
 
@@ -1617,7 +1617,7 @@ msgstr "Adresa uspješno ažurirana"
 msgid "Created"
 msgstr "Stvoreno"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:116
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:144
 msgid "Loading addresses..."
 msgstr "Učitavanje adresa..."
 
@@ -1747,7 +1747,7 @@ msgid "Reason:"
 msgstr "Razlog:"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:291
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:261
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:262
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:514
 msgid "Shipping address"
 msgstr "Adresa za dostavu"
@@ -1771,7 +1771,7 @@ msgstr "Porezne kategorije"
 msgid "Private collections are not visible in the shop"
 msgstr "Privatne kolekcije nisu vidljive u trgovini"
 
-#: src/lib/components/shared/customer-selector.tsx:188
+#: src/lib/components/shared/customer-selector.tsx:182
 msgid "Create customer"
 msgstr ""
 
@@ -1903,8 +1903,8 @@ msgstr "Profil uspješno ažuriran"
 msgid "Payment method"
 msgstr "Način plaćanja"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:279
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:311
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:281
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:314
 #: src/lib/components/shared/history-timeline/history-note-entry.tsx:46
 msgid "Edit"
 msgstr "Uredi"
@@ -2537,7 +2537,7 @@ msgstr "{0} odabrano"
 msgid "Search option groups..."
 msgstr "Pretraži grupe opcija..."
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:181
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:182
 msgid "Modify order"
 msgstr "Izmijeni narudžbu"
 
@@ -2733,8 +2733,8 @@ msgid "This will remove all option groups from this product and return to the va
 msgstr "Ovo će ukloniti sve grupe opcija s ovog proizvoda i vratiti se na izbor postavljanja varijanti."
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:299
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:293
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:543
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:295
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:544
 msgid "Billing address"
 msgstr "Adresa za naplatu"
 
@@ -2954,7 +2954,7 @@ msgid "Default Billing Address"
 msgstr "Zadana adresa za naplatu"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:284
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:254
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:255
 msgid "No customer"
 msgstr "Nema kupca"
 
@@ -3513,7 +3513,7 @@ msgstr "nije jednako"
 #~ msgid "Refresh"
 #~ msgstr "Osvježi"
 
-#: src/lib/components/shared/customer-selector.tsx:251
+#: src/lib/components/shared/customer-selector.tsx:245
 msgid "Existing customer"
 msgstr ""
 
@@ -3663,7 +3663,7 @@ msgstr "Vrijednost svojstva uspješno stvorena"
 msgid "Marketing"
 msgstr "Marketing"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:105
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:133
 msgid "Existing address"
 msgstr ""
 
@@ -3689,7 +3689,7 @@ msgid "Remove from channel"
 msgstr "Ukloni iz kanala"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:173
-#: src/lib/components/shared/customer-selector.tsx:158
+#: src/lib/components/shared/customer-selector.tsx:151
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:157
 msgid "Title"
 msgstr "Naslov"
@@ -3729,7 +3729,7 @@ msgstr "{0} varijanti"
 msgid "Failed to settle payment"
 msgstr "Izvršenje plaćanja nije uspjelo"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:319
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:322
 msgid "No billing address"
 msgstr "Nema adrese za naplatu"
 
@@ -4372,7 +4372,7 @@ msgstr "{title}"
 
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:244
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:87
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:191
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:192
 msgid "Order lines"
 msgstr "Redci narudžbe"
 
@@ -4626,7 +4626,7 @@ msgstr ""
 msgid "Failed to set billing address for order: {0}"
 msgstr ""
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:287
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:289
 msgid "No shipping address"
 msgstr "Nema adrese za dostavu"
 
@@ -4742,7 +4742,7 @@ msgstr "Ostalo"
 msgid "refundReason.WrongItem"
 msgstr "Pogrešan artikl"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:214
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:215
 msgid "Summary of modifications"
 msgstr "Sažetak izmjena"
 
@@ -4780,7 +4780,7 @@ msgstr "Ažuriranje grupe kupaca nije uspjelo"
 msgid "Payment metadata"
 msgstr "Metapodaci plaćanja"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:186
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:187
 msgid "Cancel modification"
 msgstr "Otkaži izmjenu"
 
@@ -4802,7 +4802,7 @@ msgid "Additional payment required"
 msgstr "Potrebno dodatno plaćanje"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:96
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:63
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:64
 msgid "Failed to update order"
 msgstr "Ažuriranje narudžbe nije uspjelo"
 
@@ -4890,7 +4890,7 @@ msgstr "Uredi članove"
 msgid "Stock on hand"
 msgstr "Zaliha na skladištu"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:109
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:137
 msgid "New address"
 msgstr ""
 
@@ -4910,7 +4910,7 @@ msgstr "Upozorenja"
 msgid "Option Values"
 msgstr "Vrijednosti opcija"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:235
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:236
 msgid "Preview changes"
 msgstr "Pregled izmjena"
 
@@ -5097,7 +5097,7 @@ msgstr "Sustav"
 msgid "Variant name"
 msgstr "Naziv varijante"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:597
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:599
 msgid "Remove"
 msgstr "Ukloni"
 
@@ -5319,8 +5319,8 @@ msgstr "Zadani jezik"
 msgid "Status"
 msgstr "Status"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:537
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:566
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:534
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:564
 msgid "Okay"
 msgstr ""
 
@@ -5432,7 +5432,7 @@ msgstr "Nije uspjelo obraditi povrat"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:116
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:180
 #: src/app/routes/_authenticated/_profile/profile.tsx:103
-#: src/lib/components/shared/customer-selector.tsx:164
+#: src/lib/components/shared/customer-selector.tsx:157
 msgid "First name"
 msgstr "Ime"
 
@@ -5539,7 +5539,7 @@ msgid "Option Groups"
 msgstr "Grupe opcija"
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:133
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:207
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:208
 msgid "Add surcharge"
 msgstr "Dodaj doplatu"
 
@@ -6097,7 +6097,7 @@ msgstr "Dodaj plaćanje narudžbi"
 #: src/lib/components/data-input/relation-selector.tsx:427
 #: src/lib/components/shared/country-selector.tsx:86
 #: src/lib/components/shared/customer-group-selector.tsx:56
-#: src/lib/components/shared/customer-selector.tsx:113
+#: src/lib/components/shared/customer-selector.tsx:105
 #: src/lib/components/shared/facet-value-selector.tsx:159
 msgid "Loading..."
 msgstr "Učitavanje..."
@@ -6106,7 +6106,7 @@ msgstr "Učitavanje..."
 msgid "The token is used to specify the channel when making API requests."
 msgstr "Token se koristi za specificiranje kanala pri slanju API zahtjeva."
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:120
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:148
 msgid "No addresses found"
 msgstr "Nisu pronađene adrese"
 
@@ -6188,7 +6188,7 @@ msgid "Order process"
 msgstr "Proces narudžbe"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:198
-#: src/lib/components/shared/customer-selector.tsx:182
+#: src/lib/components/shared/customer-selector.tsx:175
 msgid "Phone number"
 msgstr "Telefonski broj"
 

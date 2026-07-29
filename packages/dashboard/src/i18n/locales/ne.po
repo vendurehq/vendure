@@ -349,7 +349,7 @@ msgstr "खोज्न कम्तिमा २ वर्णहरू टा�
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:122
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:186
 #: src/app/routes/_authenticated/_profile/profile.tsx:109
-#: src/lib/components/shared/customer-selector.tsx:170
+#: src/lib/components/shared/customer-selector.tsx:163
 msgid "Last name"
 msgstr "थर"
 
@@ -520,7 +520,7 @@ msgstr "उत्पादन विकल्प सफलतापूर्व�
 msgid "Parent product"
 msgstr "मुख्य उत्पादन"
 
-#: src/lib/components/shared/customer-selector.tsx:255
+#: src/lib/components/shared/customer-selector.tsx:249
 msgid "Create new customer"
 msgstr ""
 
@@ -561,7 +561,7 @@ msgid "You must first select an available currency to set a default currency"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:92
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:59
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:60
 msgid "Successfully updated order"
 msgstr "अर्डर सफलतापूर्वक अपडेट गरियो"
 
@@ -701,7 +701,7 @@ msgstr "कृपया परीक्षण चलाउन उत्पाद
 msgid "Toggle header row"
 msgstr "हेडर पङ्क्ति टगल गर्नुहोस्"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:96
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:110
 msgid "Select address"
 msgstr "ठेगाना चयन गर्नुहोस्"
 
@@ -753,7 +753,7 @@ msgstr "छोटो मिति"
 msgid "Available currencies"
 msgstr "उपलब्ध मुद्राहरू"
 
-#: src/lib/components/shared/customer-selector.tsx:107
+#: src/lib/components/shared/customer-selector.tsx:99
 msgid "Search customers..."
 msgstr ""
 
@@ -920,14 +920,14 @@ msgid "Failed to create product"
 msgstr "उत्पादन सिर्जना गर्न असफल"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:276
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:246
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:247
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:497
 #: src/lib/components/shared/role-code-label.tsx:8
 msgid "Customer"
 msgstr "ग्राहक"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:269
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:301
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:271
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:304
 msgid "Update address"
 msgstr ""
 
@@ -1179,7 +1179,7 @@ msgid "Assets"
 msgstr "सम्पत्तिहरू"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:192
-#: src/lib/components/shared/customer-selector.tsx:176
+#: src/lib/components/shared/customer-selector.tsx:169
 msgid "Email address"
 msgstr "इमेल ठेगाना"
 
@@ -1302,7 +1302,7 @@ msgstr "भुक्तानी विधिहरू"
 msgid "Stock"
 msgstr "स्टक"
 
-#: src/lib/components/shared/customer-selector.tsx:113
+#: src/lib/components/shared/customer-selector.tsx:105
 msgid "No customers found"
 msgstr "कुनै ग्राहकहरू फेला परेन"
 
@@ -1386,7 +1386,7 @@ msgid "No variants match the current filter."
 msgstr "हालको फिल्टरसँग मिल्ने कुनै भेरियन्ट छैन।"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:207
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:258
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:259
 msgid "Addresses"
 msgstr "ठेगानाहरू"
 
@@ -1416,7 +1416,7 @@ msgstr "विकल्प समूह सिर्जना गर्न अ�
 msgid "True"
 msgstr "सत्य"
 
-#: src/lib/components/shared/customer-selector.tsx:213
+#: src/lib/components/shared/customer-selector.tsx:207
 msgid "Select customer"
 msgstr "ग्राहक चयन गर्नुहोस्"
 
@@ -1617,7 +1617,7 @@ msgstr "ठेगाना सफलतापूर्वक अपडेट ग
 msgid "Created"
 msgstr "सिर्जना गरिएको"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:116
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:144
 msgid "Loading addresses..."
 msgstr "ठेगानाहरू लोड गर्दै..."
 
@@ -1747,7 +1747,7 @@ msgid "Reason:"
 msgstr "कारण:"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:291
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:261
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:262
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:514
 msgid "Shipping address"
 msgstr "ढुवानी ठेगाना"
@@ -1771,7 +1771,7 @@ msgstr "कर वर्गहरू"
 msgid "Private collections are not visible in the shop"
 msgstr "निजी संग्रहहरू पसलमा देखिँदैनन्"
 
-#: src/lib/components/shared/customer-selector.tsx:188
+#: src/lib/components/shared/customer-selector.tsx:182
 msgid "Create customer"
 msgstr ""
 
@@ -1903,8 +1903,8 @@ msgstr "प्रोफाइल सफलतापूर्वक अपडे�
 msgid "Payment method"
 msgstr "भुक्तानी विधि"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:279
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:311
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:281
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:314
 #: src/lib/components/shared/history-timeline/history-note-entry.tsx:46
 msgid "Edit"
 msgstr "सम्पादन गर्नुहोस्"
@@ -2537,7 +2537,7 @@ msgstr "{0} चयन गरियो"
 msgid "Search option groups..."
 msgstr "विकल्प समूहहरू खोज्नुहोस्..."
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:181
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:182
 msgid "Modify order"
 msgstr "अर्डर परिमार्जन गर्नुहोस्"
 
@@ -2733,8 +2733,8 @@ msgid "This will remove all option groups from this product and return to the va
 msgstr "यसले यो उत्पादनबाट सबै विकल्प समूहहरू हटाउनेछ र भेरियन्ट सेटअप छनोटमा फर्काउनेछ।"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:299
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:293
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:543
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:295
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:544
 msgid "Billing address"
 msgstr "बिलिङ ठेगाना"
 
@@ -2954,7 +2954,7 @@ msgid "Default Billing Address"
 msgstr "पूर्वनिर्धारित बिलिङ ठेगाना"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:284
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:254
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:255
 msgid "No customer"
 msgstr "कुनै ग्राहक छैन"
 
@@ -3513,7 +3513,7 @@ msgstr "बराबर छैन"
 #~ msgid "Refresh"
 #~ msgstr "रिफ्रेस गर्नुहोस्"
 
-#: src/lib/components/shared/customer-selector.tsx:251
+#: src/lib/components/shared/customer-selector.tsx:245
 msgid "Existing customer"
 msgstr ""
 
@@ -3663,7 +3663,7 @@ msgstr "विशेषता मान सफलतापूर्वक सि
 msgid "Marketing"
 msgstr "मार्केटिङ"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:105
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:133
 msgid "Existing address"
 msgstr ""
 
@@ -3689,7 +3689,7 @@ msgid "Remove from channel"
 msgstr "च्यानलबाट हटाउनुहोस्"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:173
-#: src/lib/components/shared/customer-selector.tsx:158
+#: src/lib/components/shared/customer-selector.tsx:151
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:157
 msgid "Title"
 msgstr "शीर्षक"
@@ -3729,7 +3729,7 @@ msgstr "{0} प्रकारहरू"
 msgid "Failed to settle payment"
 msgstr "भुक्तानी सम्पन्न गर्न असफल"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:319
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:322
 msgid "No billing address"
 msgstr "कुनै बिलिङ ठेगाना छैन"
 
@@ -4372,7 +4372,7 @@ msgstr "{title}"
 
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:244
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:87
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:191
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:192
 msgid "Order lines"
 msgstr "अर्डर लाइनहरू"
 
@@ -4626,7 +4626,7 @@ msgstr ""
 msgid "Failed to set billing address for order: {0}"
 msgstr ""
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:287
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:289
 msgid "No shipping address"
 msgstr "कुनै ढुवानी ठेगाना छैन"
 
@@ -4742,7 +4742,7 @@ msgstr "अन्य"
 msgid "refundReason.WrongItem"
 msgstr "गलत सामान"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:214
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:215
 msgid "Summary of modifications"
 msgstr "परिमार्जनहरूको सारांश"
 
@@ -4780,7 +4780,7 @@ msgstr "ग्राहक समूह अपडेट गर्न असफ�
 msgid "Payment metadata"
 msgstr "भुक्तानी मेटाडेटा"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:186
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:187
 msgid "Cancel modification"
 msgstr "परिमार्जन रद्द गर्नुहोस्"
 
@@ -4802,7 +4802,7 @@ msgid "Additional payment required"
 msgstr "थप भुक्तानी आवश्यक"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:96
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:63
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:64
 msgid "Failed to update order"
 msgstr "अर्डर अपडेट गर्न असफल"
 
@@ -4890,7 +4890,7 @@ msgstr "सदस्यहरू सम्पादन गर्नुहोस�
 msgid "Stock on hand"
 msgstr "हातमा स्टक"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:109
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:137
 msgid "New address"
 msgstr ""
 
@@ -4910,7 +4910,7 @@ msgstr "सूचनाहरू"
 msgid "Option Values"
 msgstr "विकल्प मानहरू"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:235
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:236
 msgid "Preview changes"
 msgstr "परिवर्तनहरू पूर्वावलोकन गर्नुहोस्"
 
@@ -5097,7 +5097,7 @@ msgstr "प्रणाली"
 msgid "Variant name"
 msgstr "भिन्नता नाम"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:597
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:599
 msgid "Remove"
 msgstr "हटाउनुहोस्"
 
@@ -5319,8 +5319,8 @@ msgstr "पूर्वनिर्धारित भाषा"
 msgid "Status"
 msgstr "स्थिति"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:537
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:566
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:534
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:564
 msgid "Okay"
 msgstr ""
 
@@ -5432,7 +5432,7 @@ msgstr "फिर्ता प्रक्रिया गर्न असफल
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:116
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:180
 #: src/app/routes/_authenticated/_profile/profile.tsx:103
-#: src/lib/components/shared/customer-selector.tsx:164
+#: src/lib/components/shared/customer-selector.tsx:157
 msgid "First name"
 msgstr "पहिलो नाम"
 
@@ -5539,7 +5539,7 @@ msgid "Option Groups"
 msgstr "विकल्प समूहहरू"
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:133
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:207
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:208
 msgid "Add surcharge"
 msgstr "अतिरिक्त शुल्क थप्नुहोस्"
 
@@ -6097,7 +6097,7 @@ msgstr "अर्डरमा भुक्तानी थप्नुहोस�
 #: src/lib/components/data-input/relation-selector.tsx:427
 #: src/lib/components/shared/country-selector.tsx:86
 #: src/lib/components/shared/customer-group-selector.tsx:56
-#: src/lib/components/shared/customer-selector.tsx:113
+#: src/lib/components/shared/customer-selector.tsx:105
 #: src/lib/components/shared/facet-value-selector.tsx:159
 msgid "Loading..."
 msgstr "लोड गर्दै..."
@@ -6106,7 +6106,7 @@ msgstr "लोड गर्दै..."
 msgid "The token is used to specify the channel when making API requests."
 msgstr "API अनुरोधहरू गर्दा च्यानल निर्दिष्ट गर्न टोकन प्रयोग गरिन्छ।"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:120
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:148
 msgid "No addresses found"
 msgstr "कुनै ठेगानाहरू फेला परेन"
 
@@ -6188,7 +6188,7 @@ msgid "Order process"
 msgstr "अर्डर प्रक्रिया"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:198
-#: src/lib/components/shared/customer-selector.tsx:182
+#: src/lib/components/shared/customer-selector.tsx:175
 msgid "Phone number"
 msgstr "फोन नम्बर"
 

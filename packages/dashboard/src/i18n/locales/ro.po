@@ -325,7 +325,7 @@ msgstr "Introduceți cel puțin 2 caractere pentru căutare..."
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:122
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:186
 #: src/app/routes/_authenticated/_profile/profile.tsx:109
-#: src/lib/components/shared/customer-selector.tsx:170
+#: src/lib/components/shared/customer-selector.tsx:163
 msgid "Last name"
 msgstr "Nume"
 
@@ -492,7 +492,7 @@ msgstr "Opțiunea produsului a fost creată cu succes"
 msgid "Parent product"
 msgstr "Produs părinte"
 
-#: src/lib/components/shared/customer-selector.tsx:255
+#: src/lib/components/shared/customer-selector.tsx:249
 msgid "Create new customer"
 msgstr ""
 
@@ -533,7 +533,7 @@ msgid "You must first select an available currency to set a default currency"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:92
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:59
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:60
 msgid "Successfully updated order"
 msgstr "Comanda a fost actualizată cu succes"
 
@@ -673,7 +673,7 @@ msgstr "Te rugăm să adaugi produse și să completezi adresa de livrare pentru
 msgid "Toggle header row"
 msgstr "Comută rândul antet"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:96
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:110
 msgid "Select address"
 msgstr "Selectează adresa"
 
@@ -725,7 +725,7 @@ msgstr "Dată scurtă"
 msgid "Available currencies"
 msgstr "Monede disponibile"
 
-#: src/lib/components/shared/customer-selector.tsx:107
+#: src/lib/components/shared/customer-selector.tsx:99
 msgid "Search customers..."
 msgstr ""
 
@@ -892,14 +892,14 @@ msgid "Failed to create product"
 msgstr "Nu s-a putut crea produsul"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:276
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:246
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:247
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:497
 #: src/lib/components/shared/role-code-label.tsx:8
 msgid "Customer"
 msgstr "Client"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:269
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:301
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:271
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:304
 msgid "Update address"
 msgstr ""
 
@@ -1147,7 +1147,7 @@ msgid "Assets"
 msgstr "Resurse"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:192
-#: src/lib/components/shared/customer-selector.tsx:176
+#: src/lib/components/shared/customer-selector.tsx:169
 msgid "Email address"
 msgstr "Adresă de email"
 
@@ -1266,7 +1266,7 @@ msgstr "Metode de Plată"
 msgid "Stock"
 msgstr "Stoc"
 
-#: src/lib/components/shared/customer-selector.tsx:113
+#: src/lib/components/shared/customer-selector.tsx:105
 msgid "No customers found"
 msgstr "Nu s-au găsit clienți"
 
@@ -1342,7 +1342,7 @@ msgid "No variants match the current filter."
 msgstr "Nicio variantă nu corespunde filtrului curent."
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:207
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:258
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:259
 msgid "Addresses"
 msgstr "Adrese"
 
@@ -1372,7 +1372,7 @@ msgstr "Nu s-a putut crea grupul de opțiuni"
 msgid "True"
 msgstr "Adevărat"
 
-#: src/lib/components/shared/customer-selector.tsx:213
+#: src/lib/components/shared/customer-selector.tsx:207
 msgid "Select customer"
 msgstr "Selectează clientul"
 
@@ -1564,7 +1564,7 @@ msgstr "Adresă actualizată cu succes"
 msgid "Created"
 msgstr "Creat"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:116
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:144
 msgid "Loading addresses..."
 msgstr "Se încarcă adresele..."
 
@@ -1686,7 +1686,7 @@ msgid "Reason:"
 msgstr "Motiv:"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:291
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:261
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:262
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:514
 msgid "Shipping address"
 msgstr "Adresă de livrare"
@@ -1710,7 +1710,7 @@ msgstr "Categorii de taxă"
 msgid "Private collections are not visible in the shop"
 msgstr "Colecțiile private nu sunt vizibile în magazin"
 
-#: src/lib/components/shared/customer-selector.tsx:188
+#: src/lib/components/shared/customer-selector.tsx:182
 msgid "Create customer"
 msgstr ""
 
@@ -1836,8 +1836,8 @@ msgstr "Profilul a fost actualizat cu succes"
 msgid "Payment method"
 msgstr "Metodă de plată"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:279
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:311
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:281
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:314
 #: src/lib/components/shared/history-timeline/history-note-entry.tsx:46
 msgid "Edit"
 msgstr "Editează"
@@ -2470,7 +2470,7 @@ msgstr "{0} selectate"
 msgid "Search option groups..."
 msgstr "Caută grupuri de opțiuni..."
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:181
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:182
 msgid "Modify order"
 msgstr "Modifică comandă"
 
@@ -2654,8 +2654,8 @@ msgid "This will remove all option groups from this product and return to the va
 msgstr "Se vor elimina toate grupurile de opțiuni de pe acest produs și veți reveni la alegerea configurării variantelor."
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:299
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:293
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:543
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:295
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:544
 msgid "Billing address"
 msgstr "Adresă de facturare"
 
@@ -2870,7 +2870,7 @@ msgid "Default Billing Address"
 msgstr "Adresă de facturare implicită"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:284
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:254
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:255
 msgid "No customer"
 msgstr "Fără client"
 
@@ -3417,7 +3417,7 @@ msgstr "este mai mic sau egal cu"
 msgid "is not equal to"
 msgstr "nu este egal cu"
 
-#: src/lib/components/shared/customer-selector.tsx:251
+#: src/lib/components/shared/customer-selector.tsx:245
 msgid "Existing customer"
 msgstr ""
 
@@ -3552,7 +3552,7 @@ msgstr "Valoarea atributului a fost creată cu succes"
 msgid "Marketing"
 msgstr "Marketing"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:105
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:133
 msgid "Existing address"
 msgstr ""
 
@@ -3578,7 +3578,7 @@ msgid "Remove from channel"
 msgstr "Elimină din canal"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:173
-#: src/lib/components/shared/customer-selector.tsx:158
+#: src/lib/components/shared/customer-selector.tsx:151
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:157
 msgid "Title"
 msgstr "Titlu"
@@ -3618,7 +3618,7 @@ msgstr "{0} variante"
 msgid "Failed to settle payment"
 msgstr "Nu s-a putut soluționa plata"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:319
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:322
 msgid "No billing address"
 msgstr "Fără adresă de facturare"
 
@@ -4236,7 +4236,7 @@ msgstr "{title}"
 
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:244
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:87
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:191
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:192
 msgid "Order lines"
 msgstr "Linii comandă"
 
@@ -4470,7 +4470,7 @@ msgstr ""
 msgid "Failed to set billing address for order: {0}"
 msgstr ""
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:287
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:289
 msgid "No shipping address"
 msgstr "Fără adresă de livrare"
 
@@ -4586,7 +4586,7 @@ msgstr "Altul"
 msgid "refundReason.WrongItem"
 msgstr "Articol greșit"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:214
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:215
 msgid "Summary of modifications"
 msgstr "Rezumat modificări"
 
@@ -4624,7 +4624,7 @@ msgstr "Nu s-a putut actualiza grupul de clienți"
 msgid "Payment metadata"
 msgstr "Metadate plată"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:186
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:187
 msgid "Cancel modification"
 msgstr "Anulează modificarea"
 
@@ -4646,7 +4646,7 @@ msgid "Additional payment required"
 msgstr "Plată suplimentară necesară"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:96
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:63
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:64
 msgid "Failed to update order"
 msgstr "Nu s-a putut actualiza comanda"
 
@@ -4734,7 +4734,7 @@ msgstr "Editează membri"
 msgid "Stock on hand"
 msgstr "Stoc disponibil"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:109
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:137
 msgid "New address"
 msgstr ""
 
@@ -4754,7 +4754,7 @@ msgstr "Alerte"
 msgid "Option Values"
 msgstr "Valori Opțiuni"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:235
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:236
 msgid "Preview changes"
 msgstr "Previzualizează modificările"
 
@@ -4929,7 +4929,7 @@ msgstr "Sistem"
 msgid "Variant name"
 msgstr "Nume variantă"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:597
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:599
 msgid "Remove"
 msgstr "Elimină"
 
@@ -5135,8 +5135,8 @@ msgstr "Limbă implicită"
 msgid "Status"
 msgstr "Status"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:537
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:566
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:534
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:564
 msgid "Okay"
 msgstr ""
 
@@ -5244,7 +5244,7 @@ msgstr "Nu s-a putut procesa rambursarea"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:116
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:180
 #: src/app/routes/_authenticated/_profile/profile.tsx:103
-#: src/lib/components/shared/customer-selector.tsx:164
+#: src/lib/components/shared/customer-selector.tsx:157
 msgid "First name"
 msgstr "Prenume"
 
@@ -5351,7 +5351,7 @@ msgid "Option Groups"
 msgstr "Grupuri Opțiuni"
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:133
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:207
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:208
 msgid "Add surcharge"
 msgstr "Adaugă suprataxă"
 
@@ -5889,7 +5889,7 @@ msgstr "Adaugă plată la comandă"
 #: src/lib/components/data-input/relation-selector.tsx:427
 #: src/lib/components/shared/country-selector.tsx:86
 #: src/lib/components/shared/customer-group-selector.tsx:56
-#: src/lib/components/shared/customer-selector.tsx:113
+#: src/lib/components/shared/customer-selector.tsx:105
 #: src/lib/components/shared/facet-value-selector.tsx:159
 msgid "Loading..."
 msgstr "Se încarcă..."
@@ -5898,7 +5898,7 @@ msgstr "Se încarcă..."
 msgid "The token is used to specify the channel when making API requests."
 msgstr "Token-ul este folosit pentru a specifica canalul la efectuarea cererilor API."
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:120
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:148
 msgid "No addresses found"
 msgstr "Nu s-au găsit adrese"
 
@@ -5976,7 +5976,7 @@ msgid "Order process"
 msgstr "Procesul comenzii"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:198
-#: src/lib/components/shared/customer-selector.tsx:182
+#: src/lib/components/shared/customer-selector.tsx:175
 msgid "Phone number"
 msgstr "Număr de telefon"
 

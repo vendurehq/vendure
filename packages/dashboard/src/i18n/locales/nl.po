@@ -349,7 +349,7 @@ msgstr "Typ minstens 2 tekens om te zoeken..."
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:122
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:186
 #: src/app/routes/_authenticated/_profile/profile.tsx:109
-#: src/lib/components/shared/customer-selector.tsx:170
+#: src/lib/components/shared/customer-selector.tsx:163
 msgid "Last name"
 msgstr "Achternaam"
 
@@ -520,7 +520,7 @@ msgstr "Productoptie succesvol aangemaakt"
 msgid "Parent product"
 msgstr "Hoofdproduct"
 
-#: src/lib/components/shared/customer-selector.tsx:255
+#: src/lib/components/shared/customer-selector.tsx:249
 msgid "Create new customer"
 msgstr ""
 
@@ -561,7 +561,7 @@ msgid "You must first select an available currency to set a default currency"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:92
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:59
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:60
 msgid "Successfully updated order"
 msgstr "Bestelling succesvol bijgewerkt"
 
@@ -701,7 +701,7 @@ msgstr "Voeg producten toe en voltooi het verzendadres om de test uit te voeren.
 msgid "Toggle header row"
 msgstr "Rijkop schakelen"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:96
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:110
 msgid "Select address"
 msgstr "Selecteer adres"
 
@@ -753,7 +753,7 @@ msgstr "Korte datum"
 msgid "Available currencies"
 msgstr "Beschikbare valuta's"
 
-#: src/lib/components/shared/customer-selector.tsx:107
+#: src/lib/components/shared/customer-selector.tsx:99
 msgid "Search customers..."
 msgstr ""
 
@@ -924,14 +924,14 @@ msgid "Failed to create product"
 msgstr "Product aanmaken mislukt"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:276
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:246
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:247
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:497
 #: src/lib/components/shared/role-code-label.tsx:8
 msgid "Customer"
 msgstr "Klant"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:269
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:301
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:271
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:304
 msgid "Update address"
 msgstr ""
 
@@ -1183,7 +1183,7 @@ msgid "Assets"
 msgstr "Middelen"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:192
-#: src/lib/components/shared/customer-selector.tsx:176
+#: src/lib/components/shared/customer-selector.tsx:169
 msgid "Email address"
 msgstr "E-mailadres"
 
@@ -1306,7 +1306,7 @@ msgstr "Betaalmethoden"
 msgid "Stock"
 msgstr "Voorraad"
 
-#: src/lib/components/shared/customer-selector.tsx:113
+#: src/lib/components/shared/customer-selector.tsx:105
 msgid "No customers found"
 msgstr "Geen klanten gevonden"
 
@@ -1390,7 +1390,7 @@ msgid "No variants match the current filter."
 msgstr "Geen varianten komen overeen met het huidige filter."
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:207
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:258
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:259
 msgid "Addresses"
 msgstr "Adressen"
 
@@ -1420,7 +1420,7 @@ msgstr "Optiegroep aanmaken mislukt"
 msgid "True"
 msgstr "Waar"
 
-#: src/lib/components/shared/customer-selector.tsx:213
+#: src/lib/components/shared/customer-selector.tsx:207
 msgid "Select customer"
 msgstr "Selecteer klant"
 
@@ -1621,7 +1621,7 @@ msgstr "Adres succesvol bijgewerkt"
 msgid "Created"
 msgstr "Aangemaakt"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:116
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:144
 msgid "Loading addresses..."
 msgstr "Adressen laden..."
 
@@ -1751,7 +1751,7 @@ msgid "Reason:"
 msgstr "Reden:"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:291
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:261
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:262
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:514
 msgid "Shipping address"
 msgstr "Verzendadres"
@@ -1775,7 +1775,7 @@ msgstr "Belastingcategorieën"
 msgid "Private collections are not visible in the shop"
 msgstr "Privécollecties zijn niet zichtbaar in de winkel"
 
-#: src/lib/components/shared/customer-selector.tsx:188
+#: src/lib/components/shared/customer-selector.tsx:182
 msgid "Create customer"
 msgstr ""
 
@@ -1901,8 +1901,8 @@ msgstr "Profiel succesvol bijgewerkt"
 msgid "Payment method"
 msgstr "Betaalmethode"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:279
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:311
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:281
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:314
 #: src/lib/components/shared/history-timeline/history-note-entry.tsx:46
 msgid "Edit"
 msgstr "Bewerken"
@@ -2535,7 +2535,7 @@ msgstr "{0} geselecteerd"
 msgid "Search option groups..."
 msgstr "Optiegroepen zoeken..."
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:181
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:182
 msgid "Modify order"
 msgstr "Bestelling wijzigen"
 
@@ -2727,8 +2727,8 @@ msgid "This will remove all option groups from this product and return to the va
 msgstr "Dit verwijdert alle optiegroepen van dit product en keert terug naar de variantkeuze."
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:299
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:293
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:543
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:295
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:544
 msgid "Billing address"
 msgstr "Factuuradres"
 
@@ -2948,7 +2948,7 @@ msgid "Default Billing Address"
 msgstr "Standaard factuuradres"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:284
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:254
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:255
 msgid "No customer"
 msgstr "Geen klant"
 
@@ -3507,7 +3507,7 @@ msgstr "is niet gelijk aan"
 #~ msgid "Refresh"
 #~ msgstr "Vernieuwen"
 
-#: src/lib/components/shared/customer-selector.tsx:251
+#: src/lib/components/shared/customer-selector.tsx:245
 msgid "Existing customer"
 msgstr ""
 
@@ -3654,7 +3654,7 @@ msgstr "Facetwaarde succesvol aangemaakt"
 msgid "Marketing"
 msgstr "Marketing"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:105
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:133
 msgid "Existing address"
 msgstr ""
 
@@ -3680,7 +3680,7 @@ msgid "Remove from channel"
 msgstr "Verwijderen uit kanaal"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:173
-#: src/lib/components/shared/customer-selector.tsx:158
+#: src/lib/components/shared/customer-selector.tsx:151
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:157
 msgid "Title"
 msgstr "Titel"
@@ -3720,7 +3720,7 @@ msgstr "{0} varianten"
 msgid "Failed to settle payment"
 msgstr "Betaling afhandelen mislukt"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:319
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:322
 msgid "No billing address"
 msgstr "Geen factuuradres"
 
@@ -4363,7 +4363,7 @@ msgstr "{title}"
 
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:244
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:87
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:191
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:192
 msgid "Order lines"
 msgstr "Bestelregels"
 
@@ -4617,7 +4617,7 @@ msgstr ""
 msgid "Failed to set billing address for order: {0}"
 msgstr ""
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:287
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:289
 msgid "No shipping address"
 msgstr "Geen verzendadres"
 
@@ -4733,7 +4733,7 @@ msgstr "Overig"
 msgid "refundReason.WrongItem"
 msgstr "Verkeerd artikel"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:214
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:215
 msgid "Summary of modifications"
 msgstr "Samenvatting van wijzigingen"
 
@@ -4771,7 +4771,7 @@ msgstr "Klantengroep bijwerken mislukt"
 msgid "Payment metadata"
 msgstr "Betalingsmetadata"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:186
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:187
 msgid "Cancel modification"
 msgstr "Wijziging annuleren"
 
@@ -4793,7 +4793,7 @@ msgid "Additional payment required"
 msgstr "Extra betaling vereist"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:96
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:63
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:64
 msgid "Failed to update order"
 msgstr "Bestelling bijwerken mislukt"
 
@@ -4885,7 +4885,7 @@ msgstr "Leden bewerken"
 msgid "Stock on hand"
 msgstr "Voorraad op voorraad"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:109
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:137
 msgid "New address"
 msgstr ""
 
@@ -4905,7 +4905,7 @@ msgstr "Meldingen"
 msgid "Option Values"
 msgstr "Optiewaarden"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:235
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:236
 msgid "Preview changes"
 msgstr "Voorbeeld van wijzigingen"
 
@@ -5092,7 +5092,7 @@ msgstr "Systeem"
 msgid "Variant name"
 msgstr "Variantnaam"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:597
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:599
 msgid "Remove"
 msgstr "Verwijderen"
 
@@ -5314,8 +5314,8 @@ msgstr "Standaardtaal"
 msgid "Status"
 msgstr "Status"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:537
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:566
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:534
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:564
 msgid "Okay"
 msgstr ""
 
@@ -5427,7 +5427,7 @@ msgstr "Verwerking van restitutie mislukt"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:116
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:180
 #: src/app/routes/_authenticated/_profile/profile.tsx:103
-#: src/lib/components/shared/customer-selector.tsx:164
+#: src/lib/components/shared/customer-selector.tsx:157
 msgid "First name"
 msgstr "Voornaam"
 
@@ -5534,7 +5534,7 @@ msgid "Option Groups"
 msgstr "Optiegroepen"
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:133
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:207
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:208
 msgid "Add surcharge"
 msgstr "Toeslag toevoegen"
 
@@ -6092,7 +6092,7 @@ msgstr "Betaling toevoegen aan bestelling"
 #: src/lib/components/data-input/relation-selector.tsx:427
 #: src/lib/components/shared/country-selector.tsx:86
 #: src/lib/components/shared/customer-group-selector.tsx:56
-#: src/lib/components/shared/customer-selector.tsx:113
+#: src/lib/components/shared/customer-selector.tsx:105
 #: src/lib/components/shared/facet-value-selector.tsx:159
 msgid "Loading..."
 msgstr "Laden..."
@@ -6101,7 +6101,7 @@ msgstr "Laden..."
 msgid "The token is used to specify the channel when making API requests."
 msgstr "De token wordt gebruikt om het kanaal op te geven bij het doen van API-verzoeken."
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:120
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:148
 msgid "No addresses found"
 msgstr "Geen adressen gevonden"
 
@@ -6183,7 +6183,7 @@ msgid "Order process"
 msgstr "Bestelproces"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:198
-#: src/lib/components/shared/customer-selector.tsx:182
+#: src/lib/components/shared/customer-selector.tsx:175
 msgid "Phone number"
 msgstr "Telefoonnummer"
 

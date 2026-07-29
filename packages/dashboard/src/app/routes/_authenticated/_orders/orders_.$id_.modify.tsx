@@ -267,6 +267,7 @@ function ModifyOrderPage() {
                                     onSubmitNew={handleSubmitNewShippingAddress}
                                     onCancel={() => setEditingShippingAddress(false)}
                                     initialAddress={shippingAddress}
+                                    currentAddress={shippingAddress}
                                     submitLabel={<Trans>Update address</Trans>}
                                     defaultOpen
                                 />
@@ -299,6 +300,7 @@ function ModifyOrderPage() {
                                     onSubmitNew={handleSubmitNewBillingAddress}
                                     onCancel={() => setEditingBillingAddress(false)}
                                     initialAddress={billingAddress}
+                                    currentAddress={billingAddress}
                                     submitLabel={<Trans>Update address</Trans>}
                                     defaultOpen
                                 />

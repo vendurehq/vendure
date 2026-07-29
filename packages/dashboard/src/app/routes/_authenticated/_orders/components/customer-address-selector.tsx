@@ -13,9 +13,21 @@ import { MapPin, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { addressFragment } from '../../_customers/customers.graphql.js';
 import { getCustomerAddressesDocument } from '../orders.graphql.js';
-import { Order } from '../utils/order-types.js';
 
 type CustomerAddressesQuery = ResultOf<typeof getCustomerAddressesDocument>;
+
+/**
+ * A loose address shape that both `Order['shippingAddress']` (OrderAddress) and
+ * `UpdateOrderAddressInput` satisfy. Using a structural type here avoids a type
+ * error on the modify page where the address can come from either source.
+ */
+type InitialAddressValues = Partial<
+    Record<
+        | 'fullName' | 'company' | 'streetLine1' | 'streetLine2' | 'city'
+        | 'province' | 'postalCode' | 'countryCode' | 'phoneNumber',
+        string | null
+    >
+>;
 
 interface CustomerAddressSelectorProps {
     customerId: string | undefined;
@@ -33,7 +45,13 @@ interface CustomerAddressSelectorProps {
      * Pre-populates the "New address" form with the given values. Used on the order modify page
      * so that editing an address doesn't require retyping all fields from scratch.
      */
-    initialAddress?: Order['shippingAddress'];
+    initialAddress?: InitialAddressValues | null;
+    /**
+     * @description
+     * The current address on the order, used to highlight the matching saved address
+     * in the "Existing address" tab (matched by streetLine1 + postalCode).
+     */
+    currentAddress?: InitialAddressValues | null;
     /**
      * @description
      * Custom label for the submit button in the "New address" form.
@@ -48,6 +66,7 @@ export function CustomerAddressSelector({
     onCancel,
     defaultOpen = false,
     initialAddress,
+    currentAddress,
     submitLabel,
 }: Readonly<CustomerAddressSelectorProps>) {
     const [open, setOpen] = useState(defaultOpen);
@@ -57,6 +76,7 @@ export function CustomerAddressSelector({
         queryKey: ['customerAddresses', customerId],
         queryFn: () => api.query(getCustomerAddressesDocument, { customerId: customerId ?? '' }),
         enabled: !!customerId,
+        placeholderData: undefined,
     });
 
     const addresses: ResultOf<typeof addressFragment>[] = data?.customer?.addresses || [];
@@ -67,6 +87,11 @@ export function CustomerAddressSelector({
     // query is still loading we honour the explicitly chosen tab so the selection doesn't jump
     // when the addresses transition from loading to loaded.
     const effectiveTab = canSelectExisting || (!!customerId && isLoading) ? activeTab : 'new';
+
+    // Match saved addresses against the current order address (Angular used streetLine1 + postalCode)
+    const isMatchingAddress = (address: ResultOf<typeof addressFragment>) =>
+        currentAddress?.streetLine1 === address.streetLine1 &&
+        currentAddress?.postalCode === address.postalCode;
 
     return (
         <Popover
@@ -85,7 +110,21 @@ export function CustomerAddressSelector({
                     <Trans>Select address</Trans>
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[520px] p-0" align="start">
+            <PopoverContent
+                className="w-[520px] p-0"
+                align="start"
+                onInteractOutside={e => {
+                    // Prevent dismiss on outside click when the form tab is active
+                    if (effectiveTab === 'new') {
+                        e.preventDefault();
+                    }
+                }}
+                onEscapeKeyDown={e => {
+                    if (effectiveTab === 'new') {
+                        e.preventDefault();
+                    }
+                }}
+            >
                 <div className="p-4">
                     <Tabs value={effectiveTab} onValueChange={setActiveTab}>
                         <TabsList className="grid w-full grid-cols-2">
@@ -112,8 +151,10 @@ export function CustomerAddressSelector({
                                     addresses.map(address => (
                                         <Card
                                             key={address.id}
+                                            aria-selected={isMatchingAddress(address)}
                                             className={cn(
                                                 'p-4 cursor-pointer hover:bg-accent transition-colors',
+                                                isMatchingAddress(address) && 'border-primary bg-accent',
                                             )}
                                             onClick={() => {
                                                 onSelect(address);
@@ -145,6 +186,10 @@ export function CustomerAddressSelector({
                                     address={initialAddress}
                                     setValuesForUpdate={mapOrderAddressToFormValues}
                                     submitLabel={submitLabel}
+                                    onCancel={() => {
+                                        setOpen(false);
+                                        onCancel?.();
+                                    }}
                                     onSubmit={values => {
                                         onSubmitNew(mapFormValuesToInput(values));
                                         setOpen(false);
@@ -159,7 +204,7 @@ export function CustomerAddressSelector({
     );
 }
 
-function mapOrderAddressToFormValues(address: Order['shippingAddress']): AddressFormValues {
+function mapOrderAddressToFormValues(address: InitialAddressValues | null | undefined): AddressFormValues {
     return {
         id: '',
         fullName: address?.fullName || '',

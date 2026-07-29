@@ -514,59 +514,61 @@ function DraftOrderPage() {
                 <PageBlock column="side" blockId="shipping-address" title={<Trans>Shipping address</Trans>}>
                     <div className="flex flex-col">
                         <OrderAddress address={entity.shippingAddress ?? undefined} />
-                        {entity.shippingAddress?.streetLine1 ? (
-                            <RemoveAddressButton
-                                onClick={() => unsetShippingAddressForDraftOrder({ orderId: entity.id })}
+                        <div className="mt-4 flex gap-2">
+                            <CustomerAddressSelector
+                                customerId={entity.customer?.id}
+                                onSelect={address => {
+                                    setShippingAddressForDraftOrder({
+                                        orderId: entity.id,
+                                        input: mapToAddressInput(address),
+                                    });
+                                }}
+                                onSubmitNew={input => {
+                                    setShippingAddressForDraftOrder({
+                                        orderId: entity.id,
+                                        input,
+                                    });
+                                }}
+                                initialAddress={entity.shippingAddress}
+                                currentAddress={entity.shippingAddress}
+                                submitLabel={<Trans>Okay</Trans>}
                             />
-                        ) : (
-                            <div className="mt-4">
-                                <CustomerAddressSelector
-                                    customerId={entity.customer?.id}
-                                    onSelect={address => {
-                                        setShippingAddressForDraftOrder({
-                                            orderId: entity.id,
-                                            input: mapToAddressInput(address),
-                                        });
-                                    }}
-                                    onSubmitNew={input => {
-                                        setShippingAddressForDraftOrder({
-                                            orderId: entity.id,
-                                            input,
-                                        });
-                                    }}
-                                    submitLabel={<Trans>Okay</Trans>}
+                            {entity.shippingAddress?.streetLine1 && (
+                                <RemoveAddressButton
+                                    onClick={() => unsetShippingAddressForDraftOrder({ orderId: entity.id })}
                                 />
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
                 </PageBlock>
                 <PageBlock column="side" blockId="billing-address" title={<Trans>Billing address</Trans>}>
                     <div className="flex flex-col">
                         <OrderAddress address={entity.billingAddress ?? undefined} />
-                        {entity.billingAddress?.streetLine1 ? (
-                            <RemoveAddressButton
-                                onClick={() => unsetBillingAddressForDraftOrder({ orderId: entity.id })}
+                        <div className="mt-4 flex gap-2">
+                            <CustomerAddressSelector
+                                customerId={entity.customer?.id}
+                                onSelect={address => {
+                                    setBillingAddressForDraftOrder({
+                                        orderId: entity.id,
+                                        input: mapToAddressInput(address),
+                                    });
+                                }}
+                                onSubmitNew={input => {
+                                    setBillingAddressForDraftOrder({
+                                        orderId: entity.id,
+                                        input,
+                                    });
+                                }}
+                                initialAddress={entity.billingAddress}
+                                currentAddress={entity.billingAddress}
+                                submitLabel={<Trans>Okay</Trans>}
                             />
-                        ) : (
-                            <div className="mt-4">
-                                <CustomerAddressSelector
-                                    customerId={entity.customer?.id}
-                                    onSelect={address => {
-                                        setBillingAddressForDraftOrder({
-                                            orderId: entity.id,
-                                            input: mapToAddressInput(address),
-                                        });
-                                    }}
-                                    onSubmitNew={input => {
-                                        setBillingAddressForDraftOrder({
-                                            orderId: entity.id,
-                                            input,
-                                        });
-                                    }}
-                                    submitLabel={<Trans>Okay</Trans>}
+                            {entity.billingAddress?.streetLine1 && (
+                                <RemoveAddressButton
+                                    onClick={() => unsetBillingAddressForDraftOrder({ orderId: entity.id })}
                                 />
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
                 </PageBlock>
             </PageLayout>

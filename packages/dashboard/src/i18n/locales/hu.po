@@ -349,7 +349,7 @@ msgstr "Írjon be legalább 2 karaktert a kereséshez..."
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:122
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:186
 #: src/app/routes/_authenticated/_profile/profile.tsx:109
-#: src/lib/components/shared/customer-selector.tsx:170
+#: src/lib/components/shared/customer-selector.tsx:163
 msgid "Last name"
 msgstr "Vezetéknév"
 
@@ -520,7 +520,7 @@ msgstr "A termékopció sikeresen létrehozva"
 msgid "Parent product"
 msgstr "Szülő termék"
 
-#: src/lib/components/shared/customer-selector.tsx:255
+#: src/lib/components/shared/customer-selector.tsx:249
 msgid "Create new customer"
 msgstr ""
 
@@ -561,7 +561,7 @@ msgid "You must first select an available currency to set a default currency"
 msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:92
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:59
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:60
 msgid "Successfully updated order"
 msgstr "Megrendelés sikeresen frissítve"
 
@@ -701,7 +701,7 @@ msgstr "Kérjük, adjon hozzá termékeket és töltse ki a szállítási címet
 msgid "Toggle header row"
 msgstr "Fejlécsor be-/kikapcsolása"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:96
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:110
 msgid "Select address"
 msgstr "Válasszon címet"
 
@@ -753,7 +753,7 @@ msgstr "Rövid dátum"
 msgid "Available currencies"
 msgstr "Elérhető pénznemek"
 
-#: src/lib/components/shared/customer-selector.tsx:107
+#: src/lib/components/shared/customer-selector.tsx:99
 msgid "Search customers..."
 msgstr ""
 
@@ -920,14 +920,14 @@ msgid "Failed to create product"
 msgstr "Termék létrehozása sikertelen"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:276
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:246
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:247
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:497
 #: src/lib/components/shared/role-code-label.tsx:8
 msgid "Customer"
 msgstr "Vásárló"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:269
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:301
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:271
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:304
 msgid "Update address"
 msgstr ""
 
@@ -1179,7 +1179,7 @@ msgid "Assets"
 msgstr "Média"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:192
-#: src/lib/components/shared/customer-selector.tsx:176
+#: src/lib/components/shared/customer-selector.tsx:169
 msgid "Email address"
 msgstr "E-mail cím"
 
@@ -1302,7 +1302,7 @@ msgstr "Fizetési módok"
 msgid "Stock"
 msgstr "Készlet"
 
-#: src/lib/components/shared/customer-selector.tsx:113
+#: src/lib/components/shared/customer-selector.tsx:105
 msgid "No customers found"
 msgstr "Nem található vásárló"
 
@@ -1386,7 +1386,7 @@ msgid "No variants match the current filter."
 msgstr "Egyetlen változat sem felel meg az aktuális szűrőnek."
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:207
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:258
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:259
 msgid "Addresses"
 msgstr "Címek"
 
@@ -1416,7 +1416,7 @@ msgstr "Opciócsoport létrehozása sikertelen"
 msgid "True"
 msgstr "Igaz"
 
-#: src/lib/components/shared/customer-selector.tsx:213
+#: src/lib/components/shared/customer-selector.tsx:207
 msgid "Select customer"
 msgstr "Válasszon vásárlót"
 
@@ -1617,7 +1617,7 @@ msgstr "Cím sikeresen frissítve"
 msgid "Created"
 msgstr "Létrehozva"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:116
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:144
 msgid "Loading addresses..."
 msgstr "Címek betöltése..."
 
@@ -1747,7 +1747,7 @@ msgid "Reason:"
 msgstr "Ok:"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:291
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:261
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:262
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:514
 msgid "Shipping address"
 msgstr "Szállítási cím"
@@ -1771,7 +1771,7 @@ msgstr "Adókategóriák"
 msgid "Private collections are not visible in the shop"
 msgstr "A privát gyűjtemények nem láthatók az áruházban"
 
-#: src/lib/components/shared/customer-selector.tsx:188
+#: src/lib/components/shared/customer-selector.tsx:182
 msgid "Create customer"
 msgstr ""
 
@@ -1897,8 +1897,8 @@ msgstr "Profil sikeresen frissítve"
 msgid "Payment method"
 msgstr "Fizetési mód"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:279
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:311
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:281
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:314
 #: src/lib/components/shared/history-timeline/history-note-entry.tsx:46
 msgid "Edit"
 msgstr "Szerkesztés"
@@ -2531,7 +2531,7 @@ msgstr "{0} kijelölve"
 msgid "Search option groups..."
 msgstr "Opciócsoportok keresése..."
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:181
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:182
 msgid "Modify order"
 msgstr "Megrendelés módosítása"
 
@@ -2723,8 +2723,8 @@ msgid "This will remove all option groups from this product and return to the va
 msgstr "Ez eltávolítja az összes opciócsoportot ebből a termékből és visszatér a variáns beállítási lehetőséghez."
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:299
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:293
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:543
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:295
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:544
 msgid "Billing address"
 msgstr "Számlázási cím"
 
@@ -2944,7 +2944,7 @@ msgid "Default Billing Address"
 msgstr "Alapértelmezett számlázási cím"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:284
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:254
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:255
 msgid "No customer"
 msgstr "Nincs vásárló"
 
@@ -3503,7 +3503,7 @@ msgstr "nem egyenlő"
 #~ msgid "Refresh"
 #~ msgstr "Frissítés"
 
-#: src/lib/components/shared/customer-selector.tsx:251
+#: src/lib/components/shared/customer-selector.tsx:245
 msgid "Existing customer"
 msgstr ""
 
@@ -3650,7 +3650,7 @@ msgstr "A tulajdonságérték sikeresen létrehozva"
 msgid "Marketing"
 msgstr "Marketing"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:105
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:133
 msgid "Existing address"
 msgstr ""
 
@@ -3676,7 +3676,7 @@ msgid "Remove from channel"
 msgstr "Eltávolítás a csatornából"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:173
-#: src/lib/components/shared/customer-selector.tsx:158
+#: src/lib/components/shared/customer-selector.tsx:151
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx:157
 msgid "Title"
 msgstr "Cím"
@@ -3716,7 +3716,7 @@ msgstr "{0} termékváltozat"
 msgid "Failed to settle payment"
 msgstr "Fizetés rendezése sikertelen"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:319
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:322
 msgid "No billing address"
 msgstr "Nincs számlázási cím"
 
@@ -4359,7 +4359,7 @@ msgstr "{title}"
 
 #: src/app/routes/_authenticated/_orders/components/fulfill-order-dialog.tsx:244
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx:87
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:191
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:192
 msgid "Order lines"
 msgstr "Megrendeléssorok"
 
@@ -4613,7 +4613,7 @@ msgstr ""
 msgid "Failed to set billing address for order: {0}"
 msgstr ""
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:287
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:289
 msgid "No shipping address"
 msgstr "Nincs szállítási cím"
 
@@ -4729,7 +4729,7 @@ msgstr "Egyéb"
 msgid "refundReason.WrongItem"
 msgstr "Téves termék"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:214
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:215
 msgid "Summary of modifications"
 msgstr "Módosítások összefoglalása"
 
@@ -4767,7 +4767,7 @@ msgstr "Vásárlói csoport frissítése sikertelen"
 msgid "Payment metadata"
 msgstr "Fizetés metaadatai"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:186
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:187
 msgid "Cancel modification"
 msgstr "Módosítás megszakítása"
 
@@ -4789,7 +4789,7 @@ msgid "Additional payment required"
 msgstr "Pótlólagos fizetés szükséges"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:96
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:63
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:64
 msgid "Failed to update order"
 msgstr "Megrendelés frissítése sikertelen"
 
@@ -4877,7 +4877,7 @@ msgstr "Tagok szerkesztése"
 msgid "Stock on hand"
 msgstr "Aktuális készlet"
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:109
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:137
 msgid "New address"
 msgstr ""
 
@@ -4897,7 +4897,7 @@ msgstr "Értesítések"
 msgid "Option Values"
 msgstr "Opcióértékek"
 
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:235
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:236
 msgid "Preview changes"
 msgstr "Módosítások előnézete"
 
@@ -5084,7 +5084,7 @@ msgstr "Rendszer"
 msgid "Variant name"
 msgstr "Termékváltozat neve"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:597
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:599
 msgid "Remove"
 msgstr "Eltávolítás"
 
@@ -5306,8 +5306,8 @@ msgstr "Alapértelmezett nyelv"
 msgid "Status"
 msgstr "Státusz"
 
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:537
-#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:566
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:534
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx:564
 msgid "Okay"
 msgstr ""
 
@@ -5419,7 +5419,7 @@ msgstr "Visszatérítés feldolgozása sikertelen"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx:116
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:180
 #: src/app/routes/_authenticated/_profile/profile.tsx:103
-#: src/lib/components/shared/customer-selector.tsx:164
+#: src/lib/components/shared/customer-selector.tsx:157
 msgid "First name"
 msgstr "Keresztnév"
 
@@ -5526,7 +5526,7 @@ msgid "Option Groups"
 msgstr "Opciócsoportok"
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx:133
-#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:207
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx:208
 msgid "Add surcharge"
 msgstr "Felár hozzáadása"
 
@@ -6080,7 +6080,7 @@ msgstr "Fizetés hozzáadása a megrendeléshez"
 #: src/lib/components/data-input/relation-selector.tsx:427
 #: src/lib/components/shared/country-selector.tsx:86
 #: src/lib/components/shared/customer-group-selector.tsx:56
-#: src/lib/components/shared/customer-selector.tsx:113
+#: src/lib/components/shared/customer-selector.tsx:105
 #: src/lib/components/shared/facet-value-selector.tsx:159
 msgid "Loading..."
 msgstr "Betöltés..."
@@ -6089,7 +6089,7 @@ msgstr "Betöltés..."
 msgid "The token is used to specify the channel when making API requests."
 msgstr "A token a csatorna megadására szolgál API kérések küldésekor."
 
-#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:120
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx:148
 msgid "No addresses found"
 msgstr "Nem található cím"
 
@@ -6171,7 +6171,7 @@ msgid "Order process"
 msgstr "Rendelési folyamat"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:198
-#: src/lib/components/shared/customer-selector.tsx:182
+#: src/lib/components/shared/customer-selector.tsx:175
 msgid "Phone number"
 msgstr "Telefonszám"
 

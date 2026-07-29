@@ -20,6 +20,7 @@ import { useDebounce } from '@uidotdev/usehooks';
 import { Plus, Users } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { CustomFieldsForm } from './custom-fields-form.js';
 import { FormFieldWrapper } from './form-field-wrapper.js';
 
 const customersDocument = graphql(`
@@ -63,6 +64,7 @@ const createCustomerFormSchema = z.object({
     lastName: z.string().min(1, { message: 'Last name is required' }),
     emailAddress: z.string().min(1, { message: 'Email address is required' }).email(),
     phoneNumber: z.string().optional(),
+    customFields: z.any().optional(),
 });
 
 type CreateCustomerFormValues = z.infer<typeof createCustomerFormSchema>;
@@ -128,6 +130,7 @@ function CreateCustomerForm({ onSubmit }: Readonly<{ onSubmit: (input: CreateCus
             lastName: '',
             emailAddress: '',
             phoneNumber: '',
+            customFields: {},
         },
         mode: 'onChange',
     });
@@ -173,6 +176,7 @@ function CreateCustomerForm({ onSubmit }: Readonly<{ onSubmit: (input: CreateCus
                         render={({ field }) => <Input {...field} value={field.value || ''} />}
                     />
                 </div>
+                <CustomFieldsForm entityType="Customer" control={form.control} />
                 <div className="flex justify-end pt-2">
                     <Button type="submit" disabled={!form.formState.isValid}>
                         <Trans>Create customer</Trans>
