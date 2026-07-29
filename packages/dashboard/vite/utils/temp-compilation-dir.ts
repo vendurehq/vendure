@@ -1,4 +1,4 @@
-import path from 'path';
+import path from 'node:path';
 
 /**
  * Name of the directory (under the consuming project's `node_modules/.cache`)
@@ -11,10 +11,13 @@ export const TEMP_COMPILATION_DIR_NAME = 'vendure-dashboard-temp';
  * Resolves the default directory into which the VendureConfig is transpiled (to
  * CommonJS) and dynamically imported during the dashboard build.
  *
- * This deliberately does NOT live inside the `@vendure/dashboard` package. In
- * affected Windows/pnpm Vite builds, Node resolves the generated CommonJS file
- * against that package's `"type": "module"` scope despite the compiler-written
- * child package manifest, and loading it throws
+ * This deliberately does NOT live inside the `@vendure/dashboard` package.
+ * When the config contains a local import from above its own directory (e.g.
+ * `import { x } from '../shared/util.js'`), the compiler emits the resolved
+ * file one level above `outputPath`, escaping the compiler-written
+ * `{"type":"commonjs"}` guard. Node then resolves the emitted `.js` against
+ * the nearest `package.json` — which, inside `@vendure/dashboard`, declares
+ * `"type": "module"` — and loading throws
  * `ReferenceError: exports is not defined in ES module scope`. See
  * https://github.com/vendurehq/vendure/issues/4979.
  *
