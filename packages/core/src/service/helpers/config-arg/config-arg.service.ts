@@ -55,6 +55,22 @@ export class ConfigArgService {
         return this.definitionsByType[defType] as Array<ConfigDefTypeMap[T]>;
     }
 
+    /**
+     * Returns `true` if any registered operation with the given code defines a `secret` arg with the
+     * given name. Used to redact secret args on read based on their definition rather than on whether
+     * the stored value happens to look encrypted, so that a `secret` arg holding a legacy plaintext
+     * value (e.g. written before the field was marked secret) is still redacted rather than leaked.
+     */
+    hasSecretArg(code: string, argName: string): boolean {
+        for (const defs of Object.values(this.definitionsByType)) {
+            const def = defs.find(d => d.code === code);
+            if (def && (def.args as Record<string, { secret?: boolean }>)[argName]?.secret === true) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     getByCode<T extends ConfigDefType>(defType: T, code: string): ConfigDefTypeMap[T] {
         const defsOfType = this.getDefinitions(defType);
         const match = defsOfType.find(def => def.code === code);

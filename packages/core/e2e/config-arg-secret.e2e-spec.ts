@@ -190,6 +190,43 @@ describe('secret config args', () => {
         expect(apiKey?.value).toBe('sk_live_rotated');
     });
 
+    // A secret arg is redacted based on its definition, not on whether the stored value happens to
+    // be encrypted. A value stored as plaintext (e.g. written before the field was marked secret)
+    // must not leak to a caller without ReadSecret.
+    it('redacts a secret arg stored as legacy plaintext', async () => {
+        await adminClient.asSuperAdmin();
+        const { createPaymentMethod } = await adminClient.query(createPaymentMethodDocument, {
+            input: {
+                code: 'legacy-plaintext-pm',
+                enabled: true,
+                handler: await makeHandlerInput('placeholder-will-be-overwritten'),
+                translations: [{ languageCode: LanguageCode.en, name: 'Legacy PM', description: '' }],
+            },
+        });
+        const id = createPaymentMethod.id;
+
+        // Simulate legacy/plaintext data by writing an un-encrypted value directly into the stored
+        // handler args, bypassing the service-layer encryption.
+        const connection = server.app.get(TransactionalConnection);
+        const repo = connection.rawConnection.getRepository(PaymentMethod);
+        const pm = await repo.findOne({ where: { code: 'legacy-plaintext-pm' } });
+        const storedApiKey = pm!.handler.args.find(a => a.name === 'apiKey');
+        storedApiKey!.value = 'pk_legacy_plaintext';
+        await repo.save(pm!);
+
+        // A non-ReadSecret admin must receive the placeholder, not the plaintext.
+        await adminClient.asUserWithCredentials(manager.emailAddress, manager.password);
+        const { paymentMethod: asManager } = await adminClient.query(getPaymentMethodDocument, { id });
+        expect(asManager?.handler.args.find(a => a.name === 'apiKey')?.value).toBe(
+            REDACTED_SECRET_PLACEHOLDER,
+        );
+
+        // A ReadSecret holder sees the (plaintext) value as-is.
+        await adminClient.asSuperAdmin();
+        const { paymentMethod: asAdmin } = await adminClient.query(getPaymentMethodDocument, { id });
+        expect(asAdmin?.handler.args.find(a => a.name === 'apiKey')?.value).toBe('pk_legacy_plaintext');
+    });
+
     it(
         'rejects the placeholder value on create',
         assertThrowsWithMessage(async () => {
