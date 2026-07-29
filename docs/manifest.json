@@ -4009,7 +4009,7 @@
                   "title": "Page Blocks",
                   "slug": "page-blocks",
                   "file": "docs/reference/dashboard/extensions-api/page-blocks.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-07-29T14:18:10Z"
                 },
                 {
                   "title": "Routes",
@@ -4275,19 +4275,19 @@
                   "title": "PageActionBar",
                   "slug": "page-action-bar",
                   "file": "docs/reference/dashboard/page-layout/page-action-bar.mdx",
-                  "lastModified": "2026-07-15T13:23:53+02:00"
+                  "lastModified": "2026-07-29T14:18:10Z"
                 },
                 {
                   "title": "PageBlock",
                   "slug": "page-block",
                   "file": "docs/reference/dashboard/page-layout/page-block.mdx",
-                  "lastModified": "2026-07-16T14:41:21+02:00"
+                  "lastModified": "2026-07-29T14:18:10Z"
                 },
                 {
                   "title": "PageTitle",
                   "slug": "page-title",
                   "file": "docs/reference/dashboard/page-layout/page-title.mdx",
-                  "lastModified": "2026-07-15T13:23:53+02:00"
+                  "lastModified": "2026-07-29T14:18:10Z"
                 },
                 {
                   "title": "UsePageBlock",
@@ -4307,7 +4307,7 @@
                   "title": "VendureDashboardPlugin",
                   "slug": "vendure-dashboard-plugin",
                   "file": "docs/reference/dashboard/vite-plugin/vendure-dashboard-plugin.mdx",
-                  "lastModified": "2026-07-15T13:23:53+02:00"
+                  "lastModified": "2026-07-29T14:18:10Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
