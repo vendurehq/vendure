@@ -428,8 +428,10 @@ export class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
         for (const arg of args) {
             if (arg && arg.value != null && this.args[arg.name] != null) {
                 const argDef = this.args[arg.name];
+                // Only values produced by encrypt() may be passed to decrypt(); a legacy plaintext
+                // secret value is used as-is.
                 const value =
-                    argDef.secret && this.encryptionStrategy
+                    argDef.secret && this.encryptionStrategy?.isEncrypted(arg.value)
                         ? this.encryptionStrategy.decrypt(arg.value)
                         : arg.value;
                 output[arg.name as keyof ConfigArgValues<T>] = coerceValueToType<T>(

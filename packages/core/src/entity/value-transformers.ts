@@ -35,7 +35,11 @@ export class EncryptedFieldTransformer implements ValueTransformer {
         if (value == null || value === '') {
             return value;
         }
-        return this.strategy().decrypt(String(value));
+        const strategy = this.strategy();
+        const stringValue = String(value);
+        // Only values produced by encrypt() may be passed to decrypt(). A legacy plaintext value,
+        // written before the field was marked secret, is returned unchanged.
+        return strategy.isEncrypted(stringValue) ? strategy.decrypt(stringValue) : value;
     }
 
     private strategy(): EncryptionStrategy {
