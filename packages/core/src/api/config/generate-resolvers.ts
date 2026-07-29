@@ -195,6 +195,7 @@ function generateCustomFieldResolvers(
     schema: GraphQLSchema,
 ) {
     const ENTITY_ID_KEY = '__entityId__';
+    const ENTITY_KEY = '__entity__';
     const adminResolvers: IResolvers = {};
     const shopResolvers: IResolvers = {};
 
@@ -216,6 +217,9 @@ function generateCustomFieldResolvers(
             return {
                 ...source.customFields,
                 [ENTITY_ID_KEY]: source.id,
+                // Retain the owning entity so that field resolvers (e.g. secret-field redaction) can
+                // pass the real VendureEntity to strategies, rather than this customFields wrapper.
+                [ENTITY_KEY]: source,
             };
         };
         const resolverObject = {
@@ -320,7 +324,7 @@ function generateCustomFieldResolvers(
                                   kind: 'customField',
                                   entityType: entityName,
                                   fieldName: fieldDef.name,
-                                  entity: source,
+                                  entity: source[ENTITY_KEY],
                               })
                             : false;
                         return canReveal ? value : REDACTED_SECRET_PLACEHOLDER;

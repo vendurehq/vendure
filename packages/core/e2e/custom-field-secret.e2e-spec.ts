@@ -1,6 +1,13 @@
 import { LanguageCode, Permission } from '@vendure/common/lib/generated-types';
 import { REDACTED_SECRET_PLACEHOLDER } from '@vendure/common/lib/shared-constants';
-import { DefaultEncryptionStrategy, mergeConfig, TransactionalConnection } from '@vendure/core';
+import {
+    DefaultEncryptionStrategy,
+    mergeConfig,
+    RequestContext,
+    SecretAccessInput,
+    SecretAccessStrategy,
+    TransactionalConnection,
+} from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import gql from 'graphql-tag';
 import path from 'path';
@@ -48,6 +55,16 @@ const CREATE_PRODUCT = gql`
 
 const PLAINTEXT_KEY = 'sk_live_customfield';
 
+// Captures the input passed to the strategy so a test can assert the owning entity is provided,
+// while preserving the default permission-based reveal decision.
+let capturedSecretAccessInput: SecretAccessInput | undefined;
+class CapturingSecretAccessStrategy implements SecretAccessStrategy {
+    canAccessSecret(ctx: RequestContext, input: SecretAccessInput): boolean {
+        capturedSecretAccessInput = input;
+        return ctx.userHasPermissions([Permission.ReadSecret]);
+    }
+}
+
 describe('secret custom fields', () => {
     const { server, adminClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
@@ -59,6 +76,7 @@ describe('secret custom fields', () => {
             },
             systemOptions: {
                 encryptionStrategy: new DefaultEncryptionStrategy({ secret: 'test-encryption-key' }),
+                secretAccessStrategy: new CapturingSecretAccessStrategy(),
             },
         }),
     );
@@ -138,6 +156,18 @@ describe('secret custom fields', () => {
         });
         const { product } = await adminClient.query(GET_PRODUCT, { id: 'T_1' });
         expect(product.customFields.secretKey).toBe('sk_live_rotated');
+    });
+
+    it('passes the owning entity (not the customFields wrapper) to the SecretAccessStrategy', async () => {
+        capturedSecretAccessInput = undefined;
+        await adminClient.asSuperAdmin();
+        await adminClient.query(GET_PRODUCT, { id: 'T_1' });
+        const captured = capturedSecretAccessInput as SecretAccessInput | undefined;
+        expect(captured?.kind).toBe('customField');
+        const entity = captured?.kind === 'customField' ? captured.entity : undefined;
+        expect(entity?.id).toBeTruthy();
+        // The owning entity carries a nested `customFields` object; the wrapper does not.
+        expect((entity as any)?.customFields).toBeDefined();
     });
 
     it(
