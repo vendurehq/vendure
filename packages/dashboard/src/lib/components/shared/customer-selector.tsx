@@ -11,12 +11,12 @@ import { Input } from '@/vdb/components/ui/input.js';
 import { Popover, PopoverContent, PopoverTrigger } from '@/vdb/components/ui/popover.js';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/vdb/components/ui/tabs.js';
 import { api } from '@/vdb/graphql/api.js';
+import { type CreateCustomerInput } from '@/vdb/graphql/common-operations.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
 import { z, zodResolver } from '@/vdb/lib/zod.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from '@uidotdev/usehooks';
-import { VariablesOf } from 'gql.tada';
 import { Plus, Users } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -36,22 +36,12 @@ const customersDocument = graphql(`
     }
 `);
 
-const createCustomerInputDocument = graphql(`
-    mutation CreateCustomerInputTypeRef($input: CreateCustomerInput!) {
-        createCustomer(input: $input) {
-            __typename
-        }
-    }
-`);
-
 export interface Customer {
     id: string;
     firstName: string;
     lastName: string;
     emailAddress: string;
 }
-
-export type CreateCustomerInput = VariablesOf<typeof createCustomerInputDocument>['input'];
 
 export interface CustomerSelectorProps {
     onSelect: (value: Customer) => void;

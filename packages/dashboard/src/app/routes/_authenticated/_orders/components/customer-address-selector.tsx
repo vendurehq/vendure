@@ -4,19 +4,17 @@ import { Card } from '@/vdb/components/ui/card.js';
 import { Popover, PopoverContent, PopoverTrigger } from '@/vdb/components/ui/popover.js';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/vdb/components/ui/tabs.js';
 import { api } from '@/vdb/graphql/api.js';
+import { type CreateAddressInput } from '@/vdb/graphql/common-operations.js';
 import { ResultOf } from '@/vdb/graphql/graphql.js';
 import { cn } from '@/vdb/lib/utils.js';
 import { Trans } from '@lingui/react/macro';
 import { useQuery } from '@tanstack/react-query';
-import { VariablesOf } from 'gql.tada';
 import { MapPin, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { addressFragment } from '../../_customers/customers.graphql.js';
-import { getCustomerAddressesDocument, setShippingAddressForDraftOrderDocument } from '../orders.graphql.js';
+import { getCustomerAddressesDocument } from '../orders.graphql.js';
 
 type CustomerAddressesQuery = ResultOf<typeof getCustomerAddressesDocument>;
-
-export type CreateAddressInput = VariablesOf<typeof setShippingAddressForDraftOrderDocument>['input'];
 
 interface CustomerAddressSelectorProps {
     customerId: string | undefined;

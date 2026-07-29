@@ -11,6 +11,7 @@ import { addCustomFields } from '@/vdb/framework/document-introspection/add-cust
 import { useCustomFieldConfig } from '@/vdb/hooks/use-custom-field-config.js';
 import { getDetailQueryOptions, useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
 import { api } from '@/vdb/graphql/api.js';
+import { type CreateAddressInput } from '@/vdb/graphql/common-operations.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
@@ -18,7 +19,7 @@ import { User } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { AddSurchargeForm } from './components/add-surcharge-form.js';
-import { CreateAddressInput, CustomerAddressSelector } from './components/customer-address-selector.js';
+import { CustomerAddressSelector } from './components/customer-address-selector.js';
 import { EditOrderTable } from './components/edit-order-table.js';
 import { OrderAddress } from './components/order-address.js';
 import { OrderModificationPreviewDialog } from './components/order-modification-preview-dialog.js';
