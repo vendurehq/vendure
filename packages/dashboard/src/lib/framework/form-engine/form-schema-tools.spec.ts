@@ -41,6 +41,7 @@ const createMockCustomField = (
         datetimeMax?: string;
         list?: boolean;
         nullable?: boolean;
+        readonly?: boolean;
     } = {},
 ) => ({
     name,
@@ -303,6 +304,53 @@ describe('form-schema-tools', () => {
 
             const undefinedData = { customFields: { optionalField: undefined } };
             expect(() => schema.parse(undefinedData)).not.toThrow();
+        });
+
+        // Readonly custom fields with nullable: false should not block form submission.
+        // The server excludes readonly fields from Create/Update GraphQL input types,
+        // and the dashboard strips them from the mutation payload before submitting.
+        // So the Zod schema must treat them as optional.
+        it('should treat readonly custom fields as optional even when nullable is false', () => {
+            const fields = [createMockField('customFields', 'Object', false, false, [])];
+            const customFields = [
+                createMockCustomField('type', 'string', { nullable: false, readonly: true }),
+            ];
+
+            const schema = createFormSchemaFromFields(fields, customFields, false);
+
+            // Should accept null/undefined since readonly fields cannot be submitted
+            const nullData = { customFields: { type: null } };
+            expect(() => schema.parse(nullData)).not.toThrow();
+
+            const undefinedData = { customFields: { type: undefined } };
+            expect(() => schema.parse(undefinedData)).not.toThrow();
+
+            const emptyData = { customFields: {} };
+            expect(() => schema.parse(emptyData)).not.toThrow();
+
+            // Should still accept a value if one happens to be present
+            const withValue = { customFields: { type: 'manually-created' } };
+            expect(() => schema.parse(withValue)).not.toThrow();
+        });
+
+        // Guards against the readonly fix accidentally making every field optional.
+        // A plain nullable: false field (no readonly) must still reject null/undefined.
+        it('should reject null/undefined for non-readonly custom fields with nullable false', () => {
+            const fields = [createMockField('customFields', 'Object', false, false, [])];
+            const customFields = [
+                createMockCustomField('sku', 'string', { nullable: false }),
+            ];
+
+            const schema = createFormSchemaFromFields(fields, customFields, false);
+
+            const validData = { customFields: { sku: 'AB-123' } };
+            expect(() => schema.parse(validData)).not.toThrow();
+
+            const nullData = { customFields: { sku: null } };
+            expect(() => schema.parse(nullData)).toThrow();
+
+            const undefinedData = { customFields: { sku: undefined } };
+            expect(() => schema.parse(undefinedData)).toThrow();
         });
 
         it('should only include non-translatable fields in root context', () => {
