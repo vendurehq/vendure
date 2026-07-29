@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto';
+import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto';
 
 import { Logger } from '../logger/vendure-logger';
 
@@ -11,6 +11,14 @@ import { EncryptionStrategy } from './encryption-strategy';
 const CIPHERTEXT_PREFIX = 'enc:v1:';
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
+/**
+ * A fixed salt for key derivation. A per-database random salt would additionally defeat cross-install
+ * precomputation, but deriving the key synchronously at bootstrap (as required by the synchronous
+ * transformer) rules out loading a stored salt here; the primary protection against brute-force is
+ * scrypt's per-guess cost combined with a high-entropy secret.
+ */
+const KEY_DERIVATION_SALT = 'vendure:default-encryption-strategy';
+const RECOMMENDED_SECRET_LENGTH = 24;
 
 /**
  * @description
@@ -39,9 +47,16 @@ export class DefaultEncryptionStrategy implements EncryptionStrategy {
 
     init() {
         if (this.options.secret) {
-            // Derive a fixed-length 32-byte key from the provided secret, so that any-length
-            // secrets are supported while satisfying AES-256's key-length requirement.
-            this.key = createHash('sha256').update(this.options.secret, 'utf8').digest();
+            if (this.options.secret.length < RECOMMENDED_SECRET_LENGTH) {
+                Logger.warn(
+                    `The encryption secret is shorter than the recommended ${RECOMMENDED_SECRET_LENGTH} ` +
+                        'characters. Use a long, high-entropy random value: a short or guessable secret ' +
+                        'can be brute-forced offline if the encrypted data or key check is obtained.',
+                );
+            }
+            // Derive a 32-byte AES-256 key from the secret using scrypt, a memory-hard KDF, so that
+            // brute-forcing a weak secret is expensive per guess (a plain hash would be cheap).
+            this.key = scryptSync(this.options.secret, KEY_DERIVATION_SALT, 32);
         }
     }
 
