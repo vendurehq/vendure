@@ -234,6 +234,27 @@ describe('PageLayout', () => {
         ]);
     });
 
+    it('renders an extension block description below its title', () => {
+        registerDashboardPageBlock({
+            id: 'described-block',
+            title: 'Block title',
+            description: 'Supporting description',
+            location: {
+                pageId: 'customer-list',
+                column: 'main',
+                position: { blockId: 'list-table', order: 'before' },
+            },
+            component: () => <div data-testid="page-block-described">content</div>,
+        });
+
+        const markup = renderWithOriginal();
+
+        expect(markup).toContain('Block title');
+        expect(markup).toContain(
+            'data-slot="card-description" class="text-muted-foreground text-sm">Supporting description</div>',
+        );
+    });
+
     // A directly-authored full-width block must render inside PageLayout on desktop. Regression:
     // the layout engine only routed the FullWidthPageBlock *type* into the full-width column, so a
     // plain <PageBlock column="full"> matched none of the main/side/full filters and silently vanished.
