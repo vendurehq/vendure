@@ -2,7 +2,7 @@
 title: "ConfigurableOperationDef"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/common/configurable-operation.ts" sourceLine="335" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/common/configurable-operation.ts" sourceLine="347" packageName="@vendure/core" />
 
 A ConfigurableOperationDef is a special type of object used extensively by Vendure to define
 code blocks which have arguments which are configurable at run-time by the administrator.
@@ -82,6 +82,7 @@ class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
     code: string
     args: T
     description: LocalizedStringArray
+    protected encryptionStrategy?: EncryptionStrategy;
     constructor(options: ConfigurableOperationDefOptions<T>)
     init(injector: Injector) => ;
     destroy() => ;
@@ -105,6 +106,11 @@ class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
 ### description
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/configurable-operation-def/localized-string-array#localizedstringarray'>LocalizedStringArray</a>`}   />
+
+
+### encryptionStrategy
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/configuration/encryption-strategy#encryptionstrategy'>EncryptionStrategy</a>`}   />
 
 
 ### init
