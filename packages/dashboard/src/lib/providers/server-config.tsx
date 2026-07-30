@@ -21,6 +21,7 @@ export const customFieldConfigFragment = graphql(`
         readonly
         nullable
         requiresPermission
+        secret
         ui
     }
 `);

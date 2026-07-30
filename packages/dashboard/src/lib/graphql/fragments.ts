@@ -50,6 +50,7 @@ export const configArgDefinitionFragment = graphql(`
         ui
         label
         description
+        secret
     }
 `);
 
