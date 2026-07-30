@@ -1,12 +1,14 @@
 import { Module, OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+import { ConfigArgType } from '@vendure/common/lib/shared-types';
 
-import { ConfigurableOperationDef } from '../common/configurable-operation';
+import { ConfigArgDef, ConfigurableOperationDef } from '../common/configurable-operation';
 import { Injector } from '../common/injector';
 import { InjectableStrategy } from '../common/types/injectable-strategy';
 
 import { resetConfig } from './config-helpers';
 import { ConfigService } from './config.service';
+import { getConfigurableOperationDefinitions } from './configurable-operation-registry';
 
 @Module({
     providers: [ConfigService],
@@ -31,18 +33,17 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
      */
     private assertSecretConfigArgsAreValid() {
         for (const operation of this.getConfigurableOperations()) {
-            for (const [name, argDef] of Object.entries(operation.args)) {
-                const arg = argDef as { type?: string; list?: boolean; secret?: boolean };
-                if (arg.secret !== true) {
+            for (const [name, argDef] of Object.entries<ConfigArgDef<ConfigArgType>>(operation.args)) {
+                if (argDef.secret !== true) {
                     continue;
                 }
-                if (arg.type !== 'string') {
+                if (argDef.type !== 'string') {
                     throw new Error(
                         `ERROR: The "${operation.code}" config arg "${name}" has "secret: true", ` +
                             'which is only supported on "string" args.',
                     );
                 }
-                if (arg.list === true) {
+                if (argDef.list === true) {
                     throw new Error(
                         `ERROR: The "${operation.code}" config arg "${name}" cannot combine ` +
                             '"secret: true" with "list: true".',
@@ -66,7 +67,7 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
             (fields ?? []).some(f => f.secret === true),
         );
         const hasSecretConfigArg = this.getConfigurableOperations().some(op =>
-            Object.values(op.args).some(arg => (arg as { secret?: boolean }).secret === true),
+            Object.values<ConfigArgDef<ConfigArgType>>(op.args).some(arg => arg.secret === true),
         );
         if (hasSecretCustomField || hasSecretConfigArg) {
             throw new Error(
@@ -242,22 +243,6 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
     }
 
     private getConfigurableOperations(): Array<ConfigurableOperationDef<any>> {
-        const { paymentMethodHandlers, paymentMethodEligibilityCheckers } = this.configService.paymentOptions;
-        const { collectionFilters } = this.configService.catalogOptions;
-        const { entityDuplicators } = this.configService.entityOptions;
-        const { promotionActions, promotionConditions } = this.configService.promotionOptions;
-        const { shippingCalculators, shippingEligibilityCheckers, fulfillmentHandlers } =
-            this.configService.shippingOptions;
-        return [
-            ...(paymentMethodEligibilityCheckers || []),
-            ...paymentMethodHandlers,
-            ...collectionFilters,
-            ...(promotionActions || []),
-            ...(promotionConditions || []),
-            ...(shippingCalculators || []),
-            ...(shippingEligibilityCheckers || []),
-            ...(fulfillmentHandlers || []),
-            ...(entityDuplicators || []),
-        ];
+        return Object.values(getConfigurableOperationDefinitions(this.configService)).flat();
     }
 }

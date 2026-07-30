@@ -4,30 +4,14 @@ import { isForeignSecretPlaceholder, REDACTED_SECRET_PLACEHOLDER } from '@vendur
 
 import { ConfigurableOperationDef } from '../../../common/configurable-operation';
 import { InternalServerError, UserInputError } from '../../../common/error/errors';
-import { CollectionFilter } from '../../../config/catalog/collection-filter';
 import { ConfigService } from '../../../config/config.service';
-import { EntityDuplicator } from '../../../config/entity/entity-duplicator';
-import { FulfillmentHandler } from '../../../config/fulfillment/fulfillment-handler';
-import { PaymentMethodEligibilityChecker } from '../../../config/payment/payment-method-eligibility-checker';
-import { PaymentMethodHandler } from '../../../config/payment/payment-method-handler';
-import { PromotionAction } from '../../../config/promotion/promotion-action';
-import { PromotionCondition } from '../../../config/promotion/promotion-condition';
-import { ShippingCalculator } from '../../../config/shipping-method/shipping-calculator';
-import { ShippingEligibilityChecker } from '../../../config/shipping-method/shipping-eligibility-checker';
+import {
+    ConfigDefType,
+    ConfigDefTypeMap,
+    getConfigurableOperationDefinitions,
+} from '../../../config/configurable-operation-registry';
 
-export type ConfigDefTypeMap = {
-    CollectionFilter: CollectionFilter;
-    EntityDuplicator: EntityDuplicator;
-    FulfillmentHandler: FulfillmentHandler;
-    PaymentMethodEligibilityChecker: PaymentMethodEligibilityChecker;
-    PaymentMethodHandler: PaymentMethodHandler;
-    PromotionAction: PromotionAction;
-    PromotionCondition: PromotionCondition;
-    ShippingCalculator: ShippingCalculator;
-    ShippingEligibilityChecker: ShippingEligibilityChecker;
-};
-
-export type ConfigDefType = keyof ConfigDefTypeMap;
+export type { ConfigDefType, ConfigDefTypeMap };
 
 // A NUL separator that cannot appear in a code or arg name, so the two parts are unambiguous.
 function secretArgKey(code: string, argName: string): string {
@@ -50,18 +34,7 @@ export class ConfigArgService {
     private readonly secretArgKeys = new Set<string>();
 
     constructor(private configService: ConfigService) {
-        this.definitionsByType = {
-            CollectionFilter: this.configService.catalogOptions.collectionFilters,
-            EntityDuplicator: this.configService.entityOptions.entityDuplicators,
-            FulfillmentHandler: this.configService.shippingOptions.fulfillmentHandlers,
-            PaymentMethodEligibilityChecker:
-                this.configService.paymentOptions.paymentMethodEligibilityCheckers || [],
-            PaymentMethodHandler: this.configService.paymentOptions.paymentMethodHandlers,
-            PromotionAction: this.configService.promotionOptions.promotionActions,
-            PromotionCondition: this.configService.promotionOptions.promotionConditions,
-            ShippingCalculator: this.configService.shippingOptions.shippingCalculators,
-            ShippingEligibilityChecker: this.configService.shippingOptions.shippingEligibilityCheckers,
-        };
+        this.definitionsByType = getConfigurableOperationDefinitions(this.configService);
         for (const defs of Object.values(this.definitionsByType)) {
             for (const def of defs) {
                 for (const [argName, argDef] of Object.entries(def.args)) {
