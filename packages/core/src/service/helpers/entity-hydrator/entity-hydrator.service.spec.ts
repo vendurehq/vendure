@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
+import { Asset } from '../../../entity/asset/asset.entity';
+import { ProductVariant } from '../../../entity/product-variant/product-variant.entity';
+import { ProductPriceApplicator } from '../product-price-applicator/product-price-applicator';
+
 import { EntityHydrator } from './entity-hydrator.service';
 
 describe('EntityHydrator', () => {
@@ -261,6 +265,157 @@ describe('EntityHydrator', () => {
 
             expect(result).toHaveLength(1_000_000);
             expect(result[5]).toBeUndefined();
+        });
+    });
+
+    describe('getProductVariantsToPrice()', () => {
+        function getProductVariantsToPrice(entity: any): ProductVariant[] {
+            const hydrator = new EntityHydrator(undefined as any, undefined as any, undefined as any);
+            return (hydrator as any).getProductVariantsToPrice(entity);
+        }
+
+        // These pin the semantics of the helper rather than guard a regression: they are also
+        // satisfied by the pre-helper code, which skipped all three shapes by other means.
+        it('returns an empty array for an empty array', () => {
+            expect(getProductVariantsToPrice([])).toEqual([]);
+        });
+
+        it('returns an empty array when the array contains only holes', () => {
+            expect(getProductVariantsToPrice([null, undefined])).toEqual([]);
+        });
+
+        it('returns an empty array for non-ProductVariant entities', () => {
+            const assets = [new Asset({ id: 1 }), new Asset({ id: 2 })];
+            expect(getProductVariantsToPrice(assets)).toEqual([]);
+        });
+    });
+
+    describe('hydrate() with applyProductVariantPrices', () => {
+        class TestOrder {
+            id = 1;
+            children?: any[];
+        }
+        class TestChild {}
+
+        /**
+         * Drives the real hydrate() against a stubbed query builder that returns a fixed
+         * hydrated result. The ProductPriceApplicator is the real implementation with stubbed
+         * strategies, so a crash in applyChannelPriceAndTax() is a real crash, not a mock
+         * artefact. A relation array can contain `null`/`undefined` elements —
+         * getRelationEntityAtPath() pushes them deliberately — and the price application at the
+         * hydrate() call site must neither skip the whole array because of one (the `[0]` sample
+         * did) nor pass one to applyChannelPriceAndTax(), which dereferences its argument.
+         */
+        function createHydrator(children: any[]) {
+            const variantMetadata = {
+                target: ProductVariant,
+                findRelationWithPropertyPath: () => undefined,
+            };
+            const childMetadata = {
+                target: TestChild,
+                findRelationWithPropertyPath: (path: string) =>
+                    path === 'variant' ? { inverseEntityMetadata: variantMetadata } : undefined,
+            };
+            const orderMetadata = {
+                target: TestOrder,
+                treeType: undefined,
+                relations: [],
+                findRelationWithPropertyPath: (path: string) =>
+                    path === 'children' ? { inverseEntityMetadata: childMetadata } : undefined,
+            };
+            const queryBuilder = {
+                alias: 'TestOrder',
+                connection: { getMetadata: () => orderMetadata },
+                expressionMap: { joinAttributes: [] },
+                setFindOptions: () => queryBuilder,
+                getOne: () => Promise.resolve({ children }),
+            };
+            const connection = {
+                rawConnection: { entityMetadatas: [orderMetadata] },
+                getRepository: () => ({ createQueryBuilder: () => queryBuilder }),
+            };
+            const configService = {
+                catalogOptions: {
+                    productVariantPriceSelectionStrategy: {
+                        selectPrice: (_ctx: any, prices: any[]) => Promise.resolve(prices[0]),
+                    },
+                    productVariantPriceCalculationStrategy: {
+                        calculate: ({ inputPrice }: any) =>
+                            Promise.resolve({ price: inputPrice, priceIncludesTax: false }),
+                    },
+                },
+                taxOptions: {
+                    taxZoneStrategy: { determineTaxZone: () => ({ id: 1 }) },
+                },
+            };
+            const priceApplicator = new ProductPriceApplicator(
+                configService as any,
+                { getApplicableTaxRate: () => Promise.resolve({ id: 1 }) } as any,
+                { getAllWithMembers: () => Promise.resolve([]) } as any,
+                { get: (_ctx: any, _key: any, getValue: () => any) => getValue() } as any,
+            );
+            const translator = { translate: (entity: any) => entity };
+            const hydrator = new EntityHydrator(connection as any, priceApplicator, translator as any);
+            const ctx = { channelId: 1, currencyCode: 'USD' } as any;
+            return { hydrator, ctx, target: new TestOrder() };
+        }
+
+        function createVariant(id: number): ProductVariant {
+            return new ProductVariant({
+                id,
+                productVariantPrices: [{ price: 4200, currencyCode: 'USD' }] as any,
+                taxCategory: { id: 1 } as any,
+            });
+        }
+
+        it('prices a variant that sits behind a null array element', async () => {
+            const variant = createVariant(1);
+            const { hydrator, ctx, target } = createHydrator([{ variant: null }, { variant }]);
+
+            await hydrator.hydrate(
+                ctx,
+                target as any,
+                {
+                    relations: ['children.variant'],
+                    applyProductVariantPrices: true,
+                } as any,
+            );
+
+            expect(variant.listPrice).toBe(4200);
+        });
+
+        it('does not pass a null array element to the price applicator', async () => {
+            const variant = createVariant(1);
+            const { hydrator, ctx, target } = createHydrator([{ variant }, { variant: null }]);
+
+            await hydrator.hydrate(
+                ctx,
+                target as any,
+                {
+                    relations: ['children.variant'],
+                    applyProductVariantPrices: true,
+                } as any,
+            );
+
+            expect(variant.listPrice).toBe(4200);
+        });
+
+        it('prices every element when the array is fully populated', async () => {
+            const variant1 = createVariant(1);
+            const variant2 = createVariant(2);
+            const { hydrator, ctx, target } = createHydrator([{ variant: variant1 }, { variant: variant2 }]);
+
+            await hydrator.hydrate(
+                ctx,
+                target as any,
+                {
+                    relations: ['children.variant'],
+                    applyProductVariantPrices: true,
+                } as any,
+            );
+
+            expect(variant1.listPrice).toBe(4200);
+            expect(variant2.listPrice).toBe(4200);
         });
     });
 });

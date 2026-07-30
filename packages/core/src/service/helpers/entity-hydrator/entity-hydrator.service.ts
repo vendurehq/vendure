@@ -151,22 +151,11 @@ export class EntityHydrator {
 
                 if (options.applyProductVariantPrices === true) {
                     for (const relationWithEntities of relationsWithEntities) {
-                        const entity = relationWithEntities.entity;
-                        if (entity) {
-                            if (Array.isArray(entity)) {
-                                if (entity[0] instanceof ProductVariant) {
-                                    await Promise.all(
-                                        entity.map((e: any) =>
-                                            this.productPriceApplicator.applyChannelPriceAndTax(e, ctx),
-                                        ),
-                                    );
-                                }
-                            } else {
-                                if (entity instanceof ProductVariant) {
-                                    await this.productPriceApplicator.applyChannelPriceAndTax(entity, ctx);
-                                }
-                            }
-                        }
+                        await Promise.all(
+                            this.getProductVariantsToPrice(relationWithEntities.entity).map(variant =>
+                                this.productPriceApplicator.applyChannelPriceAndTax(variant, ctx),
+                            ),
+                        );
                     }
                 }
 
@@ -338,6 +327,20 @@ export class EntityHydrator {
         }
         visit(entity, path.slice());
         return isArrayResult ? result : result[0];
+    }
+
+    /**
+     * Returns the ProductVariants found at a relation path, to which Channel prices should be
+     * applied. A relation array can contain `null`/`undefined` entries — getRelationEntityAtPath()
+     * pushes them deliberately — and only some of its elements may be ProductVariants, so the type
+     * is tested per element rather than sampled from element [0]. Sampling [0] was wrong in both
+     * directions: a hole at [0] suppressed pricing for every real ProductVariant in the array, and
+     * a ProductVariant at [0] passed the holes behind it straight into applyChannelPriceAndTax(),
+     * which dereferences `variant.productVariantPrices` and throws.
+     */
+    private getProductVariantsToPrice(entity: VendureEntity | VendureEntity[] | undefined): ProductVariant[] {
+        const candidates = Array.isArray(entity) ? entity : [entity];
+        return candidates.filter((e): e is ProductVariant => e instanceof ProductVariant);
     }
 
     private getRelationEntityTypeAtPath(entity: VendureEntity, path: string): Type<VendureEntity> {
