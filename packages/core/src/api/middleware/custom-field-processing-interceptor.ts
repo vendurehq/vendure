@@ -5,7 +5,11 @@ import { isForeignSecretPlaceholder, REDACTED_SECRET_PLACEHOLDER } from '@vendur
 import { getGraphQlInputName } from '@vendure/common/lib/shared-utils';
 import {
     getNamedType,
+    getNullableType,
+    GraphQLInputType,
     GraphQLSchema,
+    isInputObjectType,
+    isListType,
     OperationDefinitionNode,
     TypeInfo,
     visit,
@@ -35,50 +39,23 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
     private readonly createInputsWithCustomFields = new Set<string>();
     private readonly updateInputsWithCustomFields = new Set<string>();
     /**
-     * Every input type that carries an entity's custom fields, mapped to the owning entity. This
-     * includes the standard `Create<Entity>Input`/`Update<Entity>Input` and the alias inputs that
-     * embed custom fields under a non-standard name (kept in sync with the extensions added in
-     * `graphql-custom-fields.ts`). Used to strip secret redaction placeholders on every write path,
-     * not just the standard ones.
+     * Per-schema cache mapping the name of each `*CustomFieldsInput` type to the set of its `secret`
+     * field input-names. Built lazily from the schema (see {@link getSecretFieldsByInputType}) so that
+     * secret redaction placeholders are stripped wherever custom fields appear in a mutation input,
+     * regardless of the (arbitrary) name of the enclosing input type.
      */
-    private readonly secretCapableInputs = new Map<string, keyof CustomFields>();
-    /**
-     * Input types whose value is itself the custom-fields object, rather than an object with a nested
-     * `customFields` property.
-     */
-    private readonly directCustomFieldsInputs = new Set<string>(['OrderLineCustomFieldsInput']);
+    private readonly secretFieldsByInputTypeCache = new WeakMap<GraphQLSchema, Map<string, Set<string>>>();
 
     constructor(
         private readonly configService: ConfigService,
         private readonly moduleRef: ModuleRef,
     ) {
-        const hasFields = (entityName: keyof CustomFields) =>
-            (this.configService.customFields[entityName]?.length ?? 0) > 0;
-        (Object.keys(configService.customFields) as Array<keyof CustomFields>).forEach(entityName => {
+        Object.keys(configService.customFields).forEach(entityName => {
             this.createInputsWithCustomFields.add(`Create${entityName}Input`);
             this.updateInputsWithCustomFields.add(`Update${entityName}Input`);
-            if (hasFields(entityName)) {
-                this.secretCapableInputs.set(`Create${entityName}Input`, entityName);
-                this.secretCapableInputs.set(`Update${entityName}Input`, entityName);
-            }
         });
-        // Alias input types that embed an entity's custom fields under a non-standard input name.
-        const aliases: Array<[string, keyof CustomFields]> = [
-            ['UpdateActiveAdministratorInput', 'Administrator'],
-            ['RegisterCustomerInput', 'Customer'],
-            ['UpdateOrderAddressInput', 'Address'],
-            ['ModifyOrderInput', 'Order'],
-            ['OrderLineCustomFieldsInput', 'OrderLine'],
-            ['AddItemInput', 'OrderLine'],
-            ['OrderLineInput', 'OrderLine'],
-            ['AddItemToDraftOrderInput', 'OrderLine'],
-            ['AdjustDraftOrderLineInput', 'OrderLine'],
-        ];
-        for (const [inputType, entityName] of aliases) {
-            if (hasFields(entityName)) {
-                this.secretCapableInputs.set(inputType, entityName);
-            }
-        }
+        // Note: OrderLineCustomFieldsInput is handled separately since it's used in both
+        // create operations (addItemToOrder) and update operations (adjustOrderLine)
     }
 
     async intercept(context: ExecutionContext, next: CallHandler<any>) {
@@ -106,19 +83,161 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
         const ctx = internal_getRequestContext(parseContext(context).req);
         const injector = new Injector(this.moduleRef);
 
-        const inputTypeNames = this.getArgumentMap(operation, schema);
+        // Strip secret redaction placeholders anywhere custom fields appear in the mutation input,
+        // discovered from the schema so it does not depend on the enclosing input type's name.
+        this.stripSecretPlaceholders(operation, schema, variables);
 
+        const inputTypeNames = this.getArgumentMap(operation, schema);
         for (const [inputName, typeName] of Object.entries(inputTypeNames)) {
-            if (!variables[inputName]) {
-                continue;
-            }
-            // Strip secret redaction placeholders on every write path that carries custom fields,
-            // including the alias inputs the defaults/validation path below does not handle.
-            this.stripSecretPlaceholders(typeName, variables[inputName], operation);
-            if (this.hasCustomFields(typeName)) {
+            if (this.hasCustomFields(typeName) && variables[inputName]) {
                 await this.processInputVariables(typeName, variables[inputName], ctx, injector, operation);
             }
         }
+    }
+
+    /**
+     * Removes `secret` custom-field redaction placeholders from the mutation input before it reaches
+     * the database. When the API redacts a secret on read, the placeholder is what an edit form
+     * submits back; if it were persisted, the encryption transformer would encrypt the literal
+     * placeholder and destroy the stored secret. Placeholders are therefore stripped (leaving the
+     * stored value untouched), and a placeholder from a different Vendure version is rejected.
+     *
+     * The locations of custom fields are discovered from the schema — any value sitting at a position
+     * typed as a `*CustomFieldsInput` type is a custom-fields object — so this works for every input
+     * that carries custom fields (e.g. `updateActiveAdministrator`, `modifyOrder`, the order-line
+     * inputs, and any future or plugin-defined mutation) without a hand-maintained list of input names.
+     */
+    private stripSecretPlaceholders(
+        operation: OperationDefinitionNode,
+        schema: GraphQLSchema,
+        variables: Record<string, any>,
+    ) {
+        const secretFieldsByInputType = this.getSecretFieldsByInputType(schema);
+        if (secretFieldsByInputType.size === 0) {
+            return;
+        }
+        const mutationType = schema.getMutationType();
+        if (!mutationType) {
+            return;
+        }
+        const mutationFields = mutationType.getFields();
+        for (const selection of operation.selectionSet.selections) {
+            if (selection.kind !== 'Field') {
+                continue;
+            }
+            const fieldDef = mutationFields[selection.name.value];
+            if (!fieldDef) {
+                continue;
+            }
+            for (const arg of fieldDef.args) {
+                if (arg.name in variables) {
+                    // On a create there is no stored value to preserve, so a placeholder is rejected
+                    // rather than stripped. This is best-effort (set membership against the generated
+                    // create inputs); when unknown it defaults to stripping, which is always safe.
+                    const isCreate = this.createInputsWithCustomFields.has(getNamedType(arg.type).name);
+                    this.walkAndStripSecrets(
+                        variables[arg.name],
+                        arg.type,
+                        secretFieldsByInputType,
+                        isCreate,
+                    );
+                }
+            }
+        }
+    }
+
+    /**
+     * Recursively descends a mutation input value against its GraphQL input type. Wherever the value
+     * sits at a position typed as a `*CustomFieldsInput` type, its `secret` fields have their redaction
+     * placeholders stripped.
+     */
+    private walkAndStripSecrets(
+        value: any,
+        type: GraphQLInputType,
+        secretFieldsByInputType: Map<string, Set<string>>,
+        isCreate: boolean,
+    ) {
+        if (value == null) {
+            return;
+        }
+        const nullableType = getNullableType(type);
+        if (isListType(nullableType)) {
+            if (Array.isArray(value)) {
+                for (const item of value) {
+                    this.walkAndStripSecrets(item, nullableType.ofType, secretFieldsByInputType, isCreate);
+                }
+            }
+            return;
+        }
+        if (isInputObjectType(nullableType) && typeof value === 'object') {
+            const secretFields = secretFieldsByInputType.get(nullableType.name);
+            if (secretFields) {
+                this.stripSecretPlaceholdersFromObject(value, secretFields, isCreate);
+            }
+            const fields = nullableType.getFields();
+            for (const [fieldName, field] of Object.entries(fields)) {
+                if (fieldName in value) {
+                    this.walkAndStripSecrets(value[fieldName], field.type, secretFieldsByInputType, isCreate);
+                }
+            }
+        }
+    }
+
+    private stripSecretPlaceholdersFromObject(
+        customFieldsObject: any,
+        secretFields: Set<string>,
+        isCreate: boolean,
+    ) {
+        for (const fieldName of secretFields) {
+            const fieldValue = customFieldsObject[fieldName];
+            if (fieldValue === REDACTED_SECRET_PLACEHOLDER) {
+                if (isCreate) {
+                    throw new UserInputError('error.secret-custom-field-value-required', { name: fieldName });
+                }
+                // Preserve the stored value by not submitting anything for this field.
+                delete customFieldsObject[fieldName];
+            } else if (isForeignSecretPlaceholder(fieldValue)) {
+                // A placeholder from a different version must not be stored as a real value.
+                throw new UserInputError('error.secret-custom-field-value-required', { name: fieldName });
+            }
+        }
+    }
+
+    /**
+     * Builds, per schema, a map from each `*CustomFieldsInput` type name to the set of its `secret`
+     * field input-names. The owning entity is resolved from the type name (e.g.
+     * `UpdateAdministratorCustomFieldsInput` → `Administrator`) by the longest matching custom-field
+     * entity name, which is unambiguous because these type names are generated as
+     * `<verb><Entity>CustomFieldsInput`.
+     */
+    private getSecretFieldsByInputType(schema: GraphQLSchema): Map<string, Set<string>> {
+        const cached = this.secretFieldsByInputTypeCache.get(schema);
+        if (cached) {
+            return cached;
+        }
+        const map = new Map<string, Set<string>>();
+        const suffix = 'CustomFieldsInput';
+        const entityNames = (Object.keys(this.configService.customFields) as Array<keyof CustomFields>).sort(
+            (a, b) => (b as string).length - (a as string).length,
+        );
+        for (const type of Object.values(schema.getTypeMap())) {
+            if (!isInputObjectType(type) || !type.name.endsWith(suffix)) {
+                continue;
+            }
+            const prefix = type.name.slice(0, -suffix.length);
+            const entityName = entityNames.find(name => prefix.endsWith(name as string));
+            if (!entityName) {
+                continue;
+            }
+            const secretFieldNames = (this.configService.customFields[entityName] ?? [])
+                .filter(config => config.secret === true)
+                .map(config => getGraphQlInputName(config));
+            if (secretFieldNames.length) {
+                map.set(type.name, new Set(secretFieldNames));
+            }
+        }
+        this.secretFieldsByInputTypeCache.set(schema, map);
+        return map;
     }
 
     private hasCustomFields(typeName: string): boolean {
@@ -145,77 +264,6 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
             }
             await this.validateInput(typeName, ctx, injector, inputVariable);
         }
-    }
-
-    /**
-     * For `secret` custom fields, the API returns a redaction placeholder rather than the real value.
-     * When that placeholder is submitted back on an update, the field is removed from the input so the
-     * stored (encrypted) value is preserved; otherwise the transformer would encrypt the literal
-     * placeholder and destroy the real secret. On a create there is nothing to preserve, so the
-     * placeholder is rejected. This runs for every custom-field-carrying input type, including alias
-     * inputs such as `UpdateActiveAdministratorInput`, `ModifyOrderInput` and the order-line inputs.
-     */
-    private stripSecretPlaceholders(
-        typeName: string,
-        variableInput: any,
-        operation: OperationDefinitionNode,
-    ) {
-        const entityName = this.secretCapableInputs.get(typeName);
-        if (!entityName) {
-            return;
-        }
-        const customFieldConfig = this.configService.customFields[entityName];
-        if (!customFieldConfig?.some(c => c.secret === true)) {
-            return;
-        }
-        const isDirect = this.directCustomFieldsInputs.has(typeName);
-        const isCreate = this.isCreateForSecretStripping(typeName, entityName, operation);
-        const inputVariables = Array.isArray(variableInput) ? variableInput : [variableInput];
-        for (const inputVariable of inputVariables) {
-            const customFieldsObject = isDirect ? inputVariable : inputVariable?.customFields;
-            if (!customFieldsObject) {
-                continue;
-            }
-            for (const config of customFieldConfig) {
-                if (config.secret !== true) {
-                    continue;
-                }
-                const fieldName = getGraphQlInputName(config);
-                const fieldValue = customFieldsObject[fieldName];
-                if (fieldValue === REDACTED_SECRET_PLACEHOLDER) {
-                    if (isCreate) {
-                        throw new UserInputError('error.secret-custom-field-value-required', {
-                            name: fieldName,
-                        });
-                    }
-                    delete customFieldsObject[fieldName];
-                } else if (isForeignSecretPlaceholder(fieldValue)) {
-                    // A placeholder from a different version must not be stored as a real value.
-                    throw new UserInputError('error.secret-custom-field-value-required', {
-                        name: fieldName,
-                    });
-                }
-            }
-        }
-    }
-
-    /**
-     * Whether the placeholder should be rejected (a create, with nothing to preserve) rather than
-     * stripped (an update). When in doubt this returns `false` (treat as update/strip), which is the
-     * safe direction: it can never encrypt the literal placeholder over a real secret.
-     */
-    private isCreateForSecretStripping(
-        typeName: string,
-        entityName: keyof CustomFields,
-        operation: OperationDefinitionNode,
-    ): boolean {
-        if (this.createInputsWithCustomFields.has(typeName) || typeName === 'RegisterCustomerInput') {
-            return true;
-        }
-        if (entityName === 'OrderLine') {
-            return this.isOrderLineCreateOperation(operation);
-        }
-        return false;
     }
 
     private shouldApplyDefaults(typeName: string, operation: OperationDefinitionNode): boolean {
