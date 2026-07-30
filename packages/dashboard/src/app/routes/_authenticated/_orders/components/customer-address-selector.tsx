@@ -96,7 +96,15 @@ export function CustomerAddressSelector({
     return (
         <Popover
             open={open}
-            onOpenChange={value => {
+            onOpenChange={(value, eventDetails) => {
+                if (
+                    !value &&
+                    effectiveTab === 'new' &&
+                    (eventDetails.reason === 'outside-press' || eventDetails.reason === 'escape-key')
+                ) {
+                    eventDetails.cancel();
+                    return;
+                }
                 setOpen(value);
                 if (!value) {
                     setActiveTab('existing');
@@ -113,17 +121,6 @@ export function CustomerAddressSelector({
             <PopoverContent
                 className="w-[520px] p-0"
                 align="start"
-                onInteractOutside={e => {
-                    // Prevent dismiss on outside click when the form tab is active
-                    if (effectiveTab === 'new') {
-                        e.preventDefault();
-                    }
-                }}
-                onEscapeKeyDown={e => {
-                    if (effectiveTab === 'new') {
-                        e.preventDefault();
-                    }
-                }}
             >
                 <div className="p-4">
                     <Tabs value={effectiveTab} onValueChange={setActiveTab}>

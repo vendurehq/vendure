@@ -367,7 +367,6 @@ test.describe('Orders', () => {
         // Fill the inline address form
         await popover.getByLabel('Street Address').fill('99 Inline Road');
         await popover.getByLabel('City').fill('Inlineton');
-        await popover.getByLabel('Postal Code').fill('12345');
         // Country is a Select — open and pick the first available country
         await popover.getByRole('combobox').click();
         await page.getByRole('option').first().click();

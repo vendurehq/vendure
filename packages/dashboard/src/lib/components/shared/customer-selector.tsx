@@ -121,7 +121,7 @@ function CustomerSearch({ onSelect }: Readonly<{ onSelect: (value: Customer) => 
     );
 }
 
-function CreateCustomerForm({ onSubmit }: Readonly<{ onSubmit: (input: CreateCustomerInput) => void }>) {
+function CreateCustomerForm({ onSubmit, onCancel }: Readonly<{ onSubmit: (input: CreateCustomerInput) => void; onCancel?: () => void }>) {
     const form = useForm<CreateCustomerFormValues>({
         resolver: zodResolver(createCustomerFormSchema),
         defaultValues: {
@@ -177,7 +177,12 @@ function CreateCustomerForm({ onSubmit }: Readonly<{ onSubmit: (input: CreateCus
                     />
                 </div>
                 <CustomFieldsForm entityType="Customer" control={form.control} />
-                <div className="flex justify-end pt-2">
+                <div className="flex justify-end gap-2 pt-2">
+                    {onCancel && (
+                        <Button type="button" variant="outline" onClick={onCancel}>
+                            <Trans>Cancel</Trans>
+                        </Button>
+                    )}
                     <Button type="submit" disabled={!form.formState.isValid}>
                         <Trans>Create customer</Trans>
                     </Button>
@@ -228,7 +233,15 @@ export function CustomerSelector(props: CustomerSelectorProps) {
     return (
         <Popover
             open={open}
-            onOpenChange={isOpen => {
+            onOpenChange={(isOpen, eventDetails) => {
+                if (
+                    !isOpen &&
+                    activeTab === 'new' &&
+                    (eventDetails.reason === 'outside-press' || eventDetails.reason === 'escape-key')
+                ) {
+                    eventDetails.cancel();
+                    return;
+                }
                 setOpen(isOpen);
                 if (!isOpen) {
                     setActiveTab('existing');
@@ -265,6 +278,10 @@ export function CustomerSelector(props: CustomerSelectorProps) {
                                 <CreateCustomerForm
                                     onSubmit={input => {
                                         props.onCreateNew?.(input);
+                                        setOpen(false);
+                                        setActiveTab('existing');
+                                    }}
+                                    onCancel={() => {
                                         setOpen(false);
                                         setActiveTab('existing');
                                     }}
