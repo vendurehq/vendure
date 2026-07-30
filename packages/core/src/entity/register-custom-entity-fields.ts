@@ -59,6 +59,12 @@ function registerCustomFieldsForEntity(
                             'with "list: true".',
                     );
                 }
+                if (defaultValue !== undefined) {
+                    throw new Error(
+                        `ERROR: The custom field "${customField.name}" cannot combine "secret: true" ` +
+                            'with a "defaultValue", because a column default would be stored unencrypted.',
+                    );
+                }
             }
             const instance = new ctor();
             const registerColumn = () => {

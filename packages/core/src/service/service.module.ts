@@ -11,6 +11,7 @@ import { ActiveOrderService } from './helpers/active-order/active-order.service'
 import { ConfigArgService } from './helpers/config-arg/config-arg.service';
 import { CustomFieldRelationService } from './helpers/custom-field-relation/custom-field-relation.service';
 import { CustomerChannelAssignmentService } from './helpers/customer-channel-assignment/customer-channel-assignment.service';
+import { EncryptionKeyVerifierService } from './helpers/encryption-key-verifier/encryption-key-verifier.service';
 import { EntityDuplicatorService } from './helpers/entity-duplicator/entity-duplicator.service';
 import { EntityHydrator } from './helpers/entity-hydrator/entity-hydrator.service';
 import { EntitySlugService } from './helpers/entity-slug.service';
@@ -29,12 +30,11 @@ import { PaymentStateMachine } from './helpers/payment-state-machine/payment-sta
 import { ProductPriceApplicator } from './helpers/product-price-applicator/product-price-applicator';
 import { RefundStateMachine } from './helpers/refund-state-machine/refund-state-machine';
 import { RequestContextService } from './helpers/request-context/request-context.service';
-import { EncryptionKeyVerifierService } from './helpers/encryption-key-verifier/encryption-key-verifier.service';
 import { SettingsStoreService } from './helpers/settings-store/settings-store.service';
-import { StoredMediaService } from './helpers/stored-media/stored-media.service';
 import { ShippingCalculator } from './helpers/shipping-calculator/shipping-calculator';
 import { SlugValidator } from './helpers/slug-validator/slug-validator';
 import { SlugService } from './helpers/slug.service';
+import { StoredMediaService } from './helpers/stored-media/stored-media.service';
 import { TranslatableSaver } from './helpers/translatable-saver/translatable-saver';
 import { TranslatorService } from './helpers/translator/translator.service';
 import { VerificationTokenGenerator } from './helpers/verification-token-generator/verification-token-generator';

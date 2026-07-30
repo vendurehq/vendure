@@ -69,7 +69,6 @@ import {
     PaymentAdminEntityResolver,
     PaymentEntityResolver,
 } from './resolvers/entity/payment-entity.resolver';
-import { PaymentMethodEntityResolver } from './resolvers/entity/payment-method-entity.resolver';
 import {
     ProductAdminEntityResolver,
     ProductEntityResolver,
@@ -177,7 +176,6 @@ export const adminEntityResolvers = [
     AdministratorEntityResolver,
     CustomerAdminEntityResolver,
     OrderAdminEntityResolver,
-    PaymentMethodEntityResolver,
     FulfillmentAdminEntityResolver,
     PaymentAdminEntityResolver,
     ProductVariantAdminEntityResolver,

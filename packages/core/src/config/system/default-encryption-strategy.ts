@@ -88,6 +88,11 @@ export class DefaultEncryptionStrategy implements EncryptionStrategy {
         }
         const key = this.assertKey();
         const [ivPart, authTagPart, dataPart] = ciphertext.slice(CIPHERTEXT_PREFIX.length).split(':');
+        if (ivPart == null || authTagPart == null || dataPart == null) {
+            throw new Error(
+                'The value is not a well-formed ciphertext (expected `enc:v1:<iv>:<authTag>:<data>`).',
+            );
+        }
         try {
             const decipher = createDecipheriv(ALGORITHM, key, Buffer.from(ivPart, 'base64url'));
             decipher.setAuthTag(Buffer.from(authTagPart, 'base64url'));

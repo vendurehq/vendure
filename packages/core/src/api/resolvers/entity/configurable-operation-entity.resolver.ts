@@ -4,6 +4,7 @@ import { REDACTED_SECRET_PLACEHOLDER } from '@vendure/common/lib/shared-constant
 import { GraphQLResolveInfo } from 'graphql';
 
 import { ConfigService } from '../../../config/config.service';
+import { Logger } from '../../../config/logger/vendure-logger';
 import { ConfigArgService } from '../../../service/helpers/config-arg/config-arg.service';
 import { RequestContext } from '../../common/request-context';
 import { Ctx } from '../../decorators/request-context.decorator';
@@ -15,9 +16,12 @@ import { Ctx } from '../../decorators/request-context.decorator';
  * config arg values are gated: a value is either decrypted (when the {@link SecretAccessStrategy}
  * permits) or replaced with a redaction placeholder, so no per-operation-type wiring is required.
  *
- * An arg is treated as secret if its definition declares `secret: true`, so that a value which is
- * not (or not yet) encrypted at rest — e.g. legacy plaintext written before the field was marked
- * secret — is still redacted rather than served in the clear.
+ * An arg is treated as secret based on its definition (`secret: true`), so that a value which is not
+ * (or not yet) encrypted at rest — e.g. legacy plaintext written before the field was marked secret —
+ * is still redacted rather than served in the clear. Conversely, a non-secret arg whose value happens
+ * to look like ciphertext is left untouched, so it is not accidentally redacted or run through
+ * `decrypt()`. If `secret: true` is later removed from a def, any encrypted values already stored are
+ * passed through unchanged until the operation is next saved.
  */
 @Resolver('ConfigurableOperation')
 export class ConfigurableOperationEntityResolver {
@@ -33,15 +37,14 @@ export class ConfigurableOperationEntityResolver {
         const owner = this.deriveOwner(info);
         const output: ConfigArg[] = [];
         for (const arg of operation.args) {
-            const isEncrypted = arg.value != null && encryptionStrategy?.isEncrypted(arg.value) === true;
-            const isSecret = isEncrypted || this.configArgService.hasSecretArg(operation.code, arg.name);
-            if (arg.value == null || !isSecret) {
+            if (arg.value == null || !this.configArgService.hasSecretArg(operation.code, arg.name)) {
                 output.push({ ...arg });
                 continue;
             }
             const canReveal = secretAccessStrategy
                 ? await secretAccessStrategy.canAccessSecret(ctx, {
                       kind: 'configArg',
+                      code: operation.code,
                       entityType: owner.entityType,
                       field: owner.field,
                       argName: arg.name,
@@ -50,11 +53,22 @@ export class ConfigurableOperationEntityResolver {
             let value: string;
             if (!canReveal) {
                 value = REDACTED_SECRET_PLACEHOLDER;
+            } else if (encryptionStrategy && encryptionStrategy.isEncrypted(arg.value)) {
+                try {
+                    value = encryptionStrategy.decrypt(arg.value);
+                } catch (e: any) {
+                    // A single arg that cannot be decrypted must not fail the whole query.
+                    Logger.error(
+                        `Failed to decrypt secret arg "${arg.name}" of operation "${operation.code}": ` +
+                            (e.message as string),
+                    );
+                    value = REDACTED_SECRET_PLACEHOLDER;
+                }
             } else {
-                // When revealing, decrypt if encrypted; a legacy plaintext value is returned as-is.
-                value = isEncrypted ? encryptionStrategy!.decrypt(arg.value) : arg.value;
+                // A legacy plaintext value is returned as-is.
+                value = arg.value;
             }
-            output.push({ name: arg.name, value });
+            output.push({ ...arg, value });
         }
         return output;
     }

@@ -79,11 +79,19 @@ export class EncryptionKeyVerifierService implements OnModuleInit, OnApplication
             // First use of an encryption key against this database: bind it to the current key.
             // The settings store value type does not accept a bare string, hence the cast (as in
             // the InstallationIdCollector).
-            await this.settingsStoreService.set(
+            const result = await this.settingsStoreService.set(
                 ctx,
                 SETTINGS_KEY,
                 encryptionStrategy.encrypt(KEY_CHECK_PLAINTEXT) as any,
             );
+            if (!result.result) {
+                // `set` catches internally and returns a result rather than throwing, so without this
+                // a failed write would silently leave the wrong-key guard un-armed on later boots.
+                Logger.warn(
+                    'Could not persist the encryption key check; the key-mismatch guard will not be ' +
+                        `active until it succeeds. ${result.error ?? ''}`,
+                );
+            }
             return;
         }
         let decrypted: string | undefined;

@@ -30,12 +30,22 @@ export type SecretAccessInput =
           fieldName: string;
           /**
            * @description
-           * The entity instance carrying the custom field.
+           * The entity instance carrying the custom field. Available for the common case where the
+           * entity's `customFields` are resolved by the built-in entity resolver, but may be
+           * `undefined` for types whose `customFields` are resolved by GraphQL's default resolver
+           * (e.g. `ShippingMethodQuote`/`PaymentMethodQuote`, or some plugin-defined types).
            */
-          entity: VendureEntity;
+          entity: VendureEntity | undefined;
       }
     | {
           kind: 'configArg';
+          /**
+           * @description
+           * The code of the configurable operation the arg belongs to, e.g. the payment method
+           * handler or collection filter code. Always defined, and together with `argName` uniquely
+           * identifies which secret is being accessed.
+           */
+          code: string;
           /**
            * @description
            * The name of the entity type the operation belongs to, e.g. `'PaymentMethod'` or

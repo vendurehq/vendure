@@ -1,6 +1,8 @@
+import type { EncryptionStrategy } from '../config/system/encryption-strategy';
+import { REDACTED_SECRET_PLACEHOLDER } from '@vendure/common/lib/shared-constants';
 import { ValueTransformer } from 'typeorm';
 
-import type { EncryptionStrategy } from '../config/system/encryption-strategy';
+import { Logger } from '../config/logger/vendure-logger';
 
 /**
  * Decimal types are returned as strings (e.g. "20.00") by some DBs, e.g. MySQL & Postgres
@@ -39,7 +41,17 @@ export class EncryptedFieldTransformer implements ValueTransformer {
         const stringValue = String(value);
         // Only values produced by encrypt() may be passed to decrypt(). A legacy plaintext value,
         // written before the field was marked secret, is returned unchanged.
-        return strategy.isEncrypted(stringValue) ? strategy.decrypt(stringValue) : value;
+        if (!strategy.isEncrypted(stringValue)) {
+            return value;
+        }
+        try {
+            return strategy.decrypt(stringValue);
+        } catch (e: any) {
+            // A single row whose value cannot be decrypted (corrupted ciphertext, a manual edit, or a
+            // partial key change) must not fail the entire query. Log and fall back to the placeholder.
+            Logger.error(`Failed to decrypt a secret custom field value: ${e.message as string}`);
+            return REDACTED_SECRET_PLACEHOLDER;
+        }
     }
 
     private strategy(): EncryptionStrategy {
