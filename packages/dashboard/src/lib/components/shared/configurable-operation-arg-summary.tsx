@@ -60,7 +60,11 @@ export function shouldUseListCountSummary(
  *    plain value)
  */
 export function ArgSummary({ fieldDef, value, omitPrefix, omitSuffix }: Readonly<ArgSummaryProps>) {
-    const componentId = fieldDef.ui?.component as string | undefined;
+    // Secret args default to the masked password summary, matching their input, so a redacted or
+    // decrypted secret is not shown in plain text. An explicit `ui.component` still wins.
+    const isSecret = (fieldDef as { secret?: boolean }).secret === true;
+    const componentId =
+        (fieldDef.ui?.component as string | undefined) ?? (isSecret ? 'password-form-input' : undefined);
     const CustomComponent = getInputComponent(componentId);
     const parsedValue = transformValue(value, fieldDef, 'json-string', 'parse');
     const isListValue = fieldDef.list === true && Array.isArray(parsedValue);

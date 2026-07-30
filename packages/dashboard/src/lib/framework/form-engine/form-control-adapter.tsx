@@ -151,7 +151,11 @@ function renderListField(
 export function FormControlAdapter({ fieldDef, field, valueMode, ...rest }: Readonly<FormControlAdapterProps> & { placeholder?: string }) {
     const isList = fieldDef.list ?? false;
     const isReadonly = isCustomFieldConfig(fieldDef) ? fieldDef.readonly === true : false;
-    const componentId = fieldDef.ui?.component as string | undefined;
+    // Secret fields default to a masked (revealable) password input, so it is visually clear the
+    // value is sensitive even for a user permitted to read it. An explicit `ui.component` still wins.
+    const isSecret = (fieldDef as { secret?: boolean }).secret === true;
+    const componentId =
+        (fieldDef.ui?.component as string | undefined) ?? (isSecret ? 'password-form-input' : undefined);
 
     const fieldWithTransform = useMemo(() => {
         const fieldOnChange = field.onChange.bind(field);
