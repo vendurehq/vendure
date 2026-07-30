@@ -73,6 +73,7 @@ describe('secret custom fields', () => {
                     { name: 'secretKey', type: 'string', secret: true },
                     { name: 'note', type: 'string' },
                 ],
+                Administrator: [{ name: 'apiToken', type: 'string', secret: true }],
             },
             systemOptions: {
                 encryptionStrategy: new DefaultEncryptionStrategy({ secret: 'test-encryption-key' }),
@@ -82,6 +83,7 @@ describe('secret custom fields', () => {
     );
 
     const manager = { emailAddress: 'cf-secret-manager@test.com', password: 'test-password' };
+    let managerAdminId: string;
 
     beforeAll(async () => {
         await server.init({
@@ -99,7 +101,7 @@ describe('secret custom fields', () => {
                 channelIds: ['T_1'],
             },
         });
-        await adminClient.query(createAdministratorDocument, {
+        const { createAdministrator } = await adminClient.query(createAdministratorDocument, {
             input: {
                 emailAddress: manager.emailAddress,
                 firstName: 'CF',
@@ -108,6 +110,7 @@ describe('secret custom fields', () => {
                 roleIds: [createRole.id],
             },
         });
+        managerAdminId = createAdministrator.id;
     }, TEST_SETUP_TIMEOUT_MS);
 
     afterAll(async () => {
@@ -170,9 +173,69 @@ describe('secret custom fields', () => {
         const captured = capturedSecretAccessInput as SecretAccessInput | undefined;
         expect(captured?.kind).toBe('customField');
         const entity = captured?.kind === 'customField' ? captured.entity : undefined;
+        // Must be the owning Product entity, not the customFields wrapper. The entity holds its custom
+        // fields under a nested `customFields` object; the wrapper instead spreads them at the top
+        // level (so it would have `secretKey` directly and no nested `customFields`).
+        expect((entity as any)?.customFields?.secretKey).toBe('sk_entity_check');
+        expect((entity as any)?.secretKey).toBeUndefined();
         expect(entity?.id).toBeTruthy();
-        // The owning entity carries a nested `customFields` object; the wrapper does not.
-        expect((entity as any)?.customFields).toBeDefined();
+    });
+
+    // Gabriel review — secret custom fields on an entity edited via an alias input type (here
+    // `updateActiveAdministrator`, an admin saving their own profile) must be preserved on a
+    // placeholder resubmit, not corrupted. This is the common case that the Product-only suites missed.
+    it('preserves a secret custom field edited via updateActiveAdministrator (alias input)', async () => {
+        const SET_ADMIN_TOKEN = gql`
+            mutation SetAdminToken($input: UpdateAdministratorInput!) {
+                updateAdministrator(input: $input) {
+                    id
+                }
+            }
+        `;
+        const GET_ADMIN_TOKEN = gql`
+            query GetAdminToken($id: ID!) {
+                administrator(id: $id) {
+                    id
+                    customFields {
+                        apiToken
+                    }
+                }
+            }
+        `;
+        const UPDATE_ACTIVE_ADMIN = gql`
+            mutation UpdateActiveAdmin($input: UpdateActiveAdministratorInput!) {
+                updateActiveAdministrator(input: $input) {
+                    id
+                }
+            }
+        `;
+        // As SuperAdmin, set the manager's secret token.
+        await adminClient.asSuperAdmin();
+        await adminClient.query(SET_ADMIN_TOKEN, {
+            input: { id: managerAdminId, customFields: { apiToken: 'admin_secret_token' } },
+        });
+
+        // The manager (no ReadSecret) sees the placeholder and saves their own profile back with it.
+        await adminClient.asUserWithCredentials(manager.emailAddress, manager.password);
+        const { activeAdministrator } = await adminClient.query(gql`
+            query {
+                activeAdministrator {
+                    id
+                    customFields {
+                        apiToken
+                    }
+                }
+            }
+        `);
+        expect(activeAdministrator.customFields.apiToken).toBe(REDACTED_SECRET_PLACEHOLDER);
+        await adminClient.query(UPDATE_ACTIVE_ADMIN, {
+            input: { firstName: 'Renamed', customFields: { apiToken: REDACTED_SECRET_PLACEHOLDER } },
+        });
+
+        // The stored secret must be preserved, not overwritten with the encrypted placeholder.
+        await adminClient.asSuperAdmin();
+        const { administrator } = await adminClient.query(GET_ADMIN_TOKEN, { id: managerAdminId });
+        expect(administrator.customFields.apiToken).toBe('admin_secret_token');
     });
 
     it(
@@ -192,6 +255,6 @@ describe('secret custom fields', () => {
                     customFields: { secretKey: REDACTED_SECRET_PLACEHOLDER },
                 },
             });
-        }, 'A value must be provided for the secret argument "secretKey"'),
+        }, 'A value must be provided for the secret field "secretKey"'),
     );
 });

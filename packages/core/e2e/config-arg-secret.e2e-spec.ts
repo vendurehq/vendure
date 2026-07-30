@@ -8,6 +8,9 @@ import {
     mergeConfig,
     PaymentMethod,
     PaymentMethodHandler,
+    RequestContext,
+    SecretAccessInput,
+    SecretAccessStrategy,
     TransactionalConnection,
 } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
@@ -58,6 +61,16 @@ const secretCollectionFilter = new CollectionFilter({
 const PLAINTEXT_KEY = 'sk_live_supersecret';
 const FILTER_PLAINTEXT_KEY = 'ck_live_collectionsecret';
 
+// Captures the input passed to the strategy so a test can assert the derived owner (entityType/field)
+// and code for a config arg, while preserving the default permission-based reveal decision.
+let capturedSecretAccessInput: SecretAccessInput | undefined;
+class CapturingSecretAccessStrategy implements SecretAccessStrategy {
+    canAccessSecret(ctx: RequestContext, input: SecretAccessInput): boolean {
+        capturedSecretAccessInput = input;
+        return ctx.userHasPermissions([Permission.ReadSecret]);
+    }
+}
+
 // #2648 — `secret` config arg values must be encrypted at rest and never returned in plaintext
 // to a caller without the ReadSecret permission.
 describe('secret config args', () => {
@@ -71,6 +84,7 @@ describe('secret config args', () => {
             },
             systemOptions: {
                 encryptionStrategy: new DefaultEncryptionStrategy({ secret: 'test-encryption-key' }),
+                secretAccessStrategy: new CapturingSecretAccessStrategy(),
             },
         }),
     );
@@ -139,6 +153,20 @@ describe('secret config args', () => {
         paymentMethodId = createPaymentMethod.id;
         const apiKey = createPaymentMethod.handler.args.find(a => a.name === 'apiKey');
         expect(apiKey?.value).toBe(PLAINTEXT_KEY);
+    });
+
+    it('provides the code and derived owner (entityType/field) to the strategy for a config arg', async () => {
+        capturedSecretAccessInput = undefined;
+        await adminClient.asSuperAdmin();
+        await adminClient.query(getPaymentMethodDocument, { id: paymentMethodId });
+        const captured = capturedSecretAccessInput as SecretAccessInput | undefined;
+        expect(captured?.kind).toBe('configArg');
+        if (captured?.kind === 'configArg') {
+            expect(captured.code).toBe(secretPaymentHandler.code);
+            expect(captured.argName).toBe('apiKey');
+            expect(captured.entityType).toBe('PaymentMethod');
+            expect(captured.field).toBe('handler');
+        }
     });
 
     it('stores the secret arg encrypted at rest', async () => {

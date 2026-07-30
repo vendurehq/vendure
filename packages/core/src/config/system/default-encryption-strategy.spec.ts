@@ -58,4 +58,20 @@ describe('DefaultEncryptionStrategy', () => {
         const encrypted = a.encrypt('secret-value');
         expect(() => b.decrypt(encrypted)).toThrow();
     });
+
+    it('rejects tampered ciphertext (GCM integrity)', () => {
+        const strategy = configured();
+        const encrypted = strategy.encrypt('secret-value');
+        // Flip the last character of the ciphertext's data segment.
+        const parts = encrypted.split(':');
+        const data = parts[parts.length - 1];
+        const flipped = (data.slice(0, -1) + (data.endsWith('A') ? 'B' : 'A')) as string;
+        parts[parts.length - 1] = flipped;
+        expect(() => strategy.decrypt(parts.join(':'))).toThrow();
+    });
+
+    it('throws a clear error on a malformed ciphertext', () => {
+        const strategy = configured();
+        expect(() => strategy.decrypt('enc:v1:')).toThrow(/not a well-formed ciphertext/);
+    });
 });
