@@ -121,7 +121,7 @@ msgstr "शीर्षक ५"
 msgid "Failed to add payment"
 msgstr "भुक्तानी थप्न असफल"
 
-#: src/lib/framework/layout-engine/page-layout.tsx:759
+#: src/lib/framework/layout-engine/page-layout.tsx:761
 msgid "Updated"
 msgstr "अपडेट गरिएको"
 
@@ -1831,7 +1831,7 @@ msgstr "ठेगाना सफलतापूर्वक अपडेट ग
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:141
 #: src/lib/components/shared/asset/asset-gallery.tsx:1116
-#: src/lib/framework/layout-engine/page-layout.tsx:746
+#: src/lib/framework/layout-engine/page-layout.tsx:748
 msgid "Created"
 msgstr "सिर्जना गरिएको"
 
@@ -4039,6 +4039,10 @@ msgstr "पासवर्डहरू मेल खाँदैनन्"
 msgid "Pick a date and time"
 msgstr "मिति र समय छान्नुहोस्"
 
+#: src/lib/components/shared/form-error-summary.tsx:101
+msgid "This field is invalid"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:60
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:64
 msgid "Failed to update fulfillment state"
@@ -4740,11 +4744,15 @@ msgstr "भुक्तानी सम्पन्न"
 msgid "orderState.Shipped"
 msgstr "पठाइएको"
 
+#: src/lib/components/shared/form-error-summary.tsx:86
+msgid "This cannot be saved until the following are fixed:"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/healthchecks.tsx:83
 #~ msgid "Monitored Resources"
 #~ msgstr "निगरानी गरिएका स्रोतहरू"
 
-#: src/lib/framework/layout-engine/page-layout.tsx:718
+#: src/lib/framework/layout-engine/page-layout.tsx:720
 msgid "Entity Information"
 msgstr "निकाय जानकारी"
 

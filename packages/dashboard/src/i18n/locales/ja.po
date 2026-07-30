@@ -121,7 +121,7 @@ msgstr "見出し5"
 msgid "Failed to add payment"
 msgstr "支払いの追加に失敗しました"
 
-#: src/lib/framework/layout-engine/page-layout.tsx:759
+#: src/lib/framework/layout-engine/page-layout.tsx:761
 msgid "Updated"
 msgstr "更新日時"
 
@@ -1831,7 +1831,7 @@ msgstr "住所を更新しました"
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:141
 #: src/lib/components/shared/asset/asset-gallery.tsx:1116
-#: src/lib/framework/layout-engine/page-layout.tsx:746
+#: src/lib/framework/layout-engine/page-layout.tsx:748
 msgid "Created"
 msgstr "作成日時"
 
@@ -4039,6 +4039,10 @@ msgstr "パスワードが一致しません"
 msgid "Pick a date and time"
 msgstr "日時を選択"
 
+#: src/lib/components/shared/form-error-summary.tsx:101
+msgid "This field is invalid"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:60
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:64
 msgid "Failed to update fulfillment state"
@@ -4740,11 +4744,15 @@ msgstr "支払い完了"
 msgid "orderState.Shipped"
 msgstr "発送済み"
 
+#: src/lib/components/shared/form-error-summary.tsx:86
+msgid "This cannot be saved until the following are fixed:"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/healthchecks.tsx:83
 #~ msgid "Monitored Resources"
 #~ msgstr "監視対象リソース"
 
-#: src/lib/framework/layout-engine/page-layout.tsx:718
+#: src/lib/framework/layout-engine/page-layout.tsx:720
 msgid "Entity Information"
 msgstr "エンティティ情報"
 

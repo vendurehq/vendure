@@ -121,7 +121,7 @@ msgstr "标题 5"
 msgid "Failed to add payment"
 msgstr "添加支付失败"
 
-#: src/lib/framework/layout-engine/page-layout.tsx:759
+#: src/lib/framework/layout-engine/page-layout.tsx:761
 msgid "Updated"
 msgstr "已更新"
 
@@ -1831,7 +1831,7 @@ msgstr "地址已成功更新"
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:141
 #: src/lib/components/shared/asset/asset-gallery.tsx:1116
-#: src/lib/framework/layout-engine/page-layout.tsx:746
+#: src/lib/framework/layout-engine/page-layout.tsx:748
 msgid "Created"
 msgstr "已创建"
 
@@ -4039,6 +4039,10 @@ msgstr "密码不匹配"
 msgid "Pick a date and time"
 msgstr "选择日期和时间"
 
+#: src/lib/components/shared/form-error-summary.tsx:101
+msgid "This field is invalid"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:60
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:64
 msgid "Failed to update fulfillment state"
@@ -4740,11 +4744,15 @@ msgstr "支付已完成"
 msgid "orderState.Shipped"
 msgstr "已发货"
 
+#: src/lib/components/shared/form-error-summary.tsx:86
+msgid "This cannot be saved until the following are fixed:"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/healthchecks.tsx:83
 #~ msgid "Monitored Resources"
 #~ msgstr "监控资源"
 
-#: src/lib/framework/layout-engine/page-layout.tsx:718
+#: src/lib/framework/layout-engine/page-layout.tsx:720
 msgid "Entity Information"
 msgstr "实体信息"
 

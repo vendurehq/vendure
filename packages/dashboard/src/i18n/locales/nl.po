@@ -121,7 +121,7 @@ msgstr "Kop 5"
 msgid "Failed to add payment"
 msgstr "Betaling toevoegen mislukt"
 
-#: src/lib/framework/layout-engine/page-layout.tsx:759
+#: src/lib/framework/layout-engine/page-layout.tsx:761
 msgid "Updated"
 msgstr "Bijgewerkt"
 
@@ -1835,7 +1835,7 @@ msgstr "Adres succesvol bijgewerkt"
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:141
 #: src/lib/components/shared/asset/asset-gallery.tsx:1116
-#: src/lib/framework/layout-engine/page-layout.tsx:746
+#: src/lib/framework/layout-engine/page-layout.tsx:748
 msgid "Created"
 msgstr "Aangemaakt"
 
@@ -4033,6 +4033,10 @@ msgstr "Wachtwoorden komen niet overeen"
 msgid "Pick a date and time"
 msgstr "Kies een datum en tijd"
 
+#: src/lib/components/shared/form-error-summary.tsx:101
+msgid "This field is invalid"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:60
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:64
 msgid "Failed to update fulfillment state"
@@ -4731,11 +4735,15 @@ msgstr "Betaling afgehandeld"
 msgid "orderState.Shipped"
 msgstr "Verzonden"
 
+#: src/lib/components/shared/form-error-summary.tsx:86
+msgid "This cannot be saved until the following are fixed:"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/healthchecks.tsx:83
 #~ msgid "Monitored Resources"
 #~ msgstr "Gemonitorde bronnen"
 
-#: src/lib/framework/layout-engine/page-layout.tsx:718
+#: src/lib/framework/layout-engine/page-layout.tsx:720
 msgid "Entity Information"
 msgstr "Entiteitsinformatie"
 

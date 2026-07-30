@@ -121,7 +121,7 @@ msgstr "Overskrift 5"
 msgid "Failed to add payment"
 msgstr "Kunne ikke legge til betaling"
 
-#: src/lib/framework/layout-engine/page-layout.tsx:759
+#: src/lib/framework/layout-engine/page-layout.tsx:761
 msgid "Updated"
 msgstr "Oppdatert"
 
@@ -1831,7 +1831,7 @@ msgstr "Adresse oppdatert"
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:141
 #: src/lib/components/shared/asset/asset-gallery.tsx:1116
-#: src/lib/framework/layout-engine/page-layout.tsx:746
+#: src/lib/framework/layout-engine/page-layout.tsx:748
 msgid "Created"
 msgstr "Opprettet"
 
@@ -4039,6 +4039,10 @@ msgstr "Passordene stemmer ikke overens"
 msgid "Pick a date and time"
 msgstr "Velg dato og klokkeslett"
 
+#: src/lib/components/shared/form-error-summary.tsx:101
+msgid "This field is invalid"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:60
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:64
 msgid "Failed to update fulfillment state"
@@ -4740,11 +4744,15 @@ msgstr "Betaling gjennomført"
 msgid "orderState.Shipped"
 msgstr "Sendt"
 
+#: src/lib/components/shared/form-error-summary.tsx:86
+msgid "This cannot be saved until the following are fixed:"
+msgstr ""
+
 #: src/app/routes/_authenticated/_system/healthchecks.tsx:83
 #~ msgid "Monitored Resources"
 #~ msgstr "Overvåkede ressurser"
 
-#: src/lib/framework/layout-engine/page-layout.tsx:718
+#: src/lib/framework/layout-engine/page-layout.tsx:720
 msgid "Entity Information"
 msgstr "Enhetsinformasjon"
 

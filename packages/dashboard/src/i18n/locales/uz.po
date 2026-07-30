@@ -121,7 +121,7 @@ msgstr "Sarlavha 5"
 msgid "Failed to add payment"
 msgstr "To'lov qo'shib bo'lmadi"
 
-#: src/lib/framework/layout-engine/page-layout.tsx:759
+#: src/lib/framework/layout-engine/page-layout.tsx:761
 msgid "Updated"
 msgstr "Yangilandi"
 
@@ -1778,7 +1778,7 @@ msgstr "Manzil yangilandi"
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:141
 #: src/lib/components/shared/asset/asset-gallery.tsx:1116
-#: src/lib/framework/layout-engine/page-layout.tsx:746
+#: src/lib/framework/layout-engine/page-layout.tsx:748
 msgid "Created"
 msgstr "Yaratilgan"
 
@@ -3939,6 +3939,10 @@ msgstr "Parollar mos kelmaydi"
 msgid "Pick a date and time"
 msgstr "Sana va vaqtni tanlang"
 
+#: src/lib/components/shared/form-error-summary.tsx:101
+msgid "This field is invalid"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:60
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:64
 msgid "Failed to update fulfillment state"
@@ -4616,7 +4620,11 @@ msgstr "To'lov yakunlangan"
 msgid "orderState.Shipped"
 msgstr "Jo'natilgan"
 
-#: src/lib/framework/layout-engine/page-layout.tsx:718
+#: src/lib/components/shared/form-error-summary.tsx:86
+msgid "This cannot be saved until the following are fixed:"
+msgstr ""
+
+#: src/lib/framework/layout-engine/page-layout.tsx:720
 msgid "Entity Information"
 msgstr "Obyekt ma'lumotlari"
 

@@ -56,7 +56,11 @@ export interface GeneratedFormOptions<
      * The entity to use to generate the form.
      */
     entity: E | null | undefined;
-    customFieldConfig?: any[]; // Add custom field config for validation
+    // Custom field config used to build the validation schema. MUST be referentially
+    // stable across renders (e.g. from `useCustomFieldConfig`, which memoises it):
+    // it feeds the `schema`/`values` memos and the on-load validation effect below,
+    // so a fresh array each render causes an infinite validate -> re-render loop.
+    customFieldConfig?: any[];
     /**
      * @description
      * Refines the auto-generated Zod schema before it is passed to the form resolver. Use this
@@ -197,13 +201,7 @@ export function useGeneratedForm<
     }, [processedEntity, processedDefaultValues, updateFields, customFieldConfig]);
 
     const form = useForm({
-        resolver: async (values, context, options) => {
-            const result = await zodResolver(schema)(values, context, options);
-            if (Object.keys(result.errors).length > 0) {
-                console.log('Zod form validation errors:', result.errors);
-            }
-            return result;
-        },
+        resolver: zodResolver(schema),
         mode: 'onChange',
         defaultValues: processedDefaultValues,
         values,
@@ -212,6 +210,21 @@ export function useGeneratedForm<
     // Proxy actually populates it. If it were only read inside the submit handler it could come
     // back empty, and `stripUntouchedTranslations` would then keep every seeded row (see its docs).
     const { dirtyFields } = form.formState;
+
+    // When editing an existing entity, validate once the entity has loaded so
+    // that any pre-existing invalid values (e.g. a custom field whose stored
+    // value or default fails validation) surface as on-page errors instead of
+    // silently disabling the submit button with no explanation (see #4741).
+    useEffect(() => {
+        if (entity) {
+            void form.trigger();
+        }
+        // Keyed on the entity id (so we don't re-run on every background refetch
+        // that yields a new object identity) plus the inputs that shape the
+        // validated `values` — `schema` (custom field config) and the available
+        // languages — so we re-validate if those settle after the entity loads,
+        // otherwise hidden invalid custom fields/translations could stay hidden.
+    }, [entity?.id, schema, availableLanguages]);
 
     let submitHandler = (event: FormEvent): any => {
         event.preventDefault();
@@ -224,7 +237,6 @@ export function useGeneratedForm<
             const isValid = await form.trigger();
 
             if (!isValid) {
-                console.log(`Form invalid!`);
                 event.stopPropagation();
                 return;
             }

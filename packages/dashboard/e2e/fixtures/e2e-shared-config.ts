@@ -60,6 +60,17 @@ export const e2eCustomFields: CustomFields = {
             label: [{ languageCode: LanguageCode.en, value: 'Feature Type' }],
             options: [{ value: 'standard' }, { value: 'premium' }],
         },
+        {
+            // Used by tests/regression/issue-4741-form-error-summary.spec.ts.
+            // Nullable + a pattern that permits the empty default, so it does not
+            // affect other product create/edit tests, but rejects non-numeric
+            // input — letting a test drive the form into an invalid state.
+            name: 'oss540NumericCode',
+            type: 'string',
+            nullable: true,
+            pattern: '^[0-9]*$',
+            label: [{ languageCode: LanguageCode.en, value: 'OSS-540 Numeric Code' }],
+        },
         // ── SEO tab ──
         {
             name: 'seoTitle',

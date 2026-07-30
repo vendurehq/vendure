@@ -1,4 +1,5 @@
 import { CustomFieldsForm } from '@/vdb/components/shared/custom-fields-form.js';
+import { FormErrorSummary } from '@/vdb/components/shared/form-error-summary.js';
 import { NavigationConfirmation } from '@/vdb/components/shared/navigation-confirmation.js';
 import { PermissionGuard } from '@/vdb/components/shared/permission-guard.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/vdb/components/ui/card.js';
@@ -174,6 +175,7 @@ export function PageContentWithOptionalForm({
             <NavigationConfirmation form={form} />
             <form onSubmit={submitHandler} className="space-y-4">
                 {pageHeader}
+                <FormErrorSummary form={form} />
                 {pageContent}
             </form>
         </Form>

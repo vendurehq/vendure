@@ -121,6 +121,7 @@ export * from './components/shared/entity-assets.js';
 export * from './components/shared/error-page.js';
 export * from './components/shared/facet-value-chip.js';
 export * from './components/shared/facet-value-selector.js';
+export * from './components/shared/form-error-summary.js';
 export * from './components/shared/form-field-wrapper.js';
 export * from './components/shared/history-timeline/history-entry-date.js';
 export * from './components/shared/history-timeline/history-note-checkbox.js';
