@@ -116,9 +116,11 @@ describe('McpToolRegistryService', () => {
         });
 
         it('aborts boot when a schema cannot be compiled (names the tool)', () => {
+            // The default validator supports 2020-12, 2019-09, draft-07 and draft-06; any other
+            // declared dialect is rejected before compilation, which is what we're testing here.
             const badSchema = {
                 type: 'object',
-                $schema: 'http://json-schema.org/draft-07/schema#',
+                $schema: 'http://json-schema.org/draft-03/schema#',
                 properties: {},
             } as any;
             const { service } = build([wrapper(shopTool({ inputSchema: badSchema }))]);
