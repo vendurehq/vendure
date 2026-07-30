@@ -242,4 +242,34 @@ describe('EntityHydrator', () => {
             expect(result).toEqual([translation, undefined]);
         });
     });
+
+    describe('isTranslatable()', () => {
+        function isTranslatable(input: any): boolean {
+            const hydrator = new EntityHydrator(undefined as any, undefined as any, undefined as any);
+            return (hydrator as any).isTranslatable(input);
+        }
+        const translatable = { translations: [{ languageCode: 'en', name: 'Laptop' }] };
+
+        // A relation array can contain `null` (fetched but null on that element) or `undefined`
+        // (never fetched) entries — getRelationEntityAtPath() pushes both deliberately — so
+        // whether the relation is translatable cannot be decided from element [0] alone.
+        it('detects a translatable entity after a null leading element', () => {
+            expect(isTranslatable([null, translatable])).toBe(true);
+        });
+
+        it('detects a translatable entity after an undefined leading hole', () => {
+            expect(isTranslatable([undefined, translatable])).toBe(true);
+        });
+
+        // Pins `some` semantics: nothing to translate must stay false. These pass before and
+        // after the fix.
+        it('reports false for an empty array', () => {
+            expect(isTranslatable([])).toBe(false);
+        });
+
+        it('reports false when no element is translatable', () => {
+            expect(isTranslatable([null, null])).toBe(false);
+            expect(isTranslatable([{ id: 1 }, null])).toBe(false);
+        });
+    });
 });
