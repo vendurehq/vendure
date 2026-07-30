@@ -4,7 +4,7 @@ import { DefaultEncryptionStrategy } from '../../../config/system/default-encryp
 
 import { EncryptionKeyVerifierService } from './encryption-key-verifier.service';
 
-const SETTINGS_KEY = 'encryption.keyCheck';
+const SETTINGS_KEY = 'vendure.encryption.keyCheck';
 
 function strategy(secret: string | undefined) {
     const s = new DefaultEncryptionStrategy({ secret });

@@ -17,7 +17,7 @@ import { SettingsStoreService } from '../settings-store/settings-store.service';
  * startup rather than scattered decryption failures at runtime.
  */
 const KEY_CHECK_PLAINTEXT = 'vendure-encryption-key-check';
-const SETTINGS_NAMESPACE = 'encryption';
+const SETTINGS_NAMESPACE = 'vendure.encryption';
 const SETTINGS_FIELD = 'keyCheck';
 const SETTINGS_KEY = `${SETTINGS_NAMESPACE}.${SETTINGS_FIELD}`;
 
