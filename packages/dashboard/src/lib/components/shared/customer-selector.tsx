@@ -234,13 +234,9 @@ export function CustomerSelector(props: CustomerSelectorProps) {
         <Popover
             open={open}
             onOpenChange={(isOpen, eventDetails) => {
-                if (
-                    !isOpen &&
-                    activeTab === 'new' &&
-                    (eventDetails.reason === 'outside-press' || eventDetails.reason === 'escape-key')
-                ) {
-                    eventDetails.cancel();
-                    return;
+                // While the create tab is open, only our own submit/cancel may close the popover
+                if (!isOpen && activeTab === 'new') {
+                    return eventDetails.cancel();
                 }
                 setOpen(isOpen);
                 if (!isOpen) {

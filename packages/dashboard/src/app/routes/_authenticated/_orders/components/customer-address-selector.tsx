@@ -97,13 +97,9 @@ export function CustomerAddressSelector({
         <Popover
             open={open}
             onOpenChange={(value, eventDetails) => {
-                if (
-                    !value &&
-                    effectiveTab === 'new' &&
-                    (eventDetails.reason === 'outside-press' || eventDetails.reason === 'escape-key')
-                ) {
-                    eventDetails.cancel();
-                    return;
+                // While the form tab is open, only our own submit/cancel may close the popover
+                if (!value && effectiveTab === 'new') {
+                    return eventDetails.cancel();
                 }
                 setOpen(value);
                 if (!value) {
