@@ -1,6 +1,17 @@
-import { LATEST_PROTOCOL_VERSION } from '@modelcontextprotocol/server';
+import {
+    CLIENT_CAPABILITIES_META_KEY,
+    LATEST_PROTOCOL_VERSION,
+    PROTOCOL_VERSION_META_KEY,
+} from '@modelcontextprotocol/server';
 
 export const MCP_ACCEPT = 'application/json, text/event-stream';
+
+/**
+ * The modern protocol revision. `LATEST_PROTOCOL_VERSION` is the newest *legacy* revision — the era
+ * that agrees a version once at `initialize` — so it can never name this one. The SDK exports no
+ * constant for it, hence the literal.
+ */
+export const MODERN_PROTOCOL_VERSION = '2026-07-28';
 
 export interface McpHttpResult {
     status: number;
@@ -30,6 +41,19 @@ export function initializeParams(protocolVersion: string = LATEST_PROTOCOL_VERSI
         protocolVersion,
         capabilities: {},
         clientInfo: { name: 'mcp-e2e', version: '1.0.0' },
+    };
+}
+
+/**
+ * The `_meta` envelope a modern-era request carries inside its `params`. The protocol-version key is
+ * what routes the request to the modern era; `clientCapabilities` is required alongside it.
+ * `clientInfo` is deliberately absent — it was required in a pre-final draft of the revision and is
+ * optional in the final one, so leaving it out keeps these tests honest about that.
+ */
+function modernEnvelope() {
+    return {
+        [PROTOCOL_VERSION_META_KEY]: MODERN_PROTOCOL_VERSION,
+        [CLIENT_CAPABILITIES_META_KEY]: {},
     };
 }
 
@@ -93,4 +117,31 @@ export async function postMcp(
         text,
         body: parseBody(text, response.headers.get('content-type') ?? ''),
     };
+}
+
+/**
+ * POSTs a request in the modern (`2026-07-28`) protocol era, adding everything that era requires:
+ * the `_meta` envelope inside `params`, and the standard headers the revision mandates — `Mcp-Method`
+ * naming the body's method on every request, plus `Mcp-Name` mirroring `params.name` on a
+ * `tools/call`. Omitting either header is a header/body disagreement, not a modern request, so the
+ * helper always sends them.
+ */
+export async function postModernMcp(
+    baseUrl: string,
+    toolset: 'shop' | 'admin',
+    method: string,
+    params: Record<string, unknown> = {},
+    id: number | string = 1,
+    options: PostMcpOptions = {},
+): Promise<McpHttpResult> {
+    const message = rpc(method, { ...params, _meta: modernEnvelope() }, id);
+    return postMcp(baseUrl, toolset, message, {
+        ...options,
+        protocolVersion: MODERN_PROTOCOL_VERSION,
+        headers: {
+            'Mcp-Method': method,
+            ...(typeof params.name === 'string' ? { 'Mcp-Name': params.name } : {}),
+            ...options.headers,
+        },
+    });
 }

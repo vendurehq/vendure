@@ -1,5 +1,5 @@
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
-import { SUPPORTED_PROTOCOL_VERSIONS } from '@modelcontextprotocol/server';
+import { SERVER_INFO_META_KEY, SUPPORTED_PROTOCOL_VERSIONS } from '@modelcontextprotocol/server';
 import { mergeConfig } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import http from 'node:http';
@@ -12,12 +12,20 @@ import { McpPlugin } from '../src/plugin';
 import { McpPluginOptions } from '../src/types';
 
 import { McpTestToolsPlugin } from './fixtures/mcp-test-tools';
-import { initializeParams, MCP_ACCEPT, postMcp, rpc } from './utils/mcp-http-client';
+import {
+    initializeParams,
+    MCP_ACCEPT,
+    MODERN_PROTOCOL_VERSION,
+    postMcp,
+    postModernMcp,
+    rpc,
+} from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
 
 const TOKEN_SECRET = 'protocol-lifecycle-secret-000000000000000000';
 const ISSUER = 'http://localhost:3500';
 const productsCsvPath = path.join(__dirname, 'fixtures/e2e-products.csv');
+const AUTH_TOKEN_HEADER = 'vendure-auth-token';
 
 describe('MCP protocol conformance (direct mode)', () => {
     const options: McpPluginOptions = { oauth: { tokenSecret: TOKEN_SECRET } };
@@ -206,6 +214,45 @@ describe('MCP protocol conformance (direct mode)', () => {
         expect(call.body.result.structuredContent).toEqual({ items: [] });
     });
 
+    it('tools/call runs a real tool under the modern 2026-07-28 envelope', async () => {
+        const res = await postModernMcp(
+            baseUrl(),
+            'shop',
+            'tools/call',
+            { name: 'shop_echo', arguments: { text: 'modern' } },
+            20,
+        );
+        expect(res.status).toBe(200);
+        expect(res.body.error).toBeUndefined();
+        expect(res.body.result.isError).toBeUndefined();
+        expect(res.body.result.structuredContent).toEqual({ echoed: 'modern' });
+        // `resultType` exists only in the 2026 era, so it also proves this was not served as legacy.
+        expect(res.body.result.resultType).toBe('complete');
+    });
+
+    it('server/discover is answered, with serverInfo in the result _meta and not in its body', async () => {
+        const res = await postModernMcp(baseUrl(), 'shop', 'server/discover', {}, 21);
+        expect(res.status).toBe(200);
+        expect(res.body.error).toBeUndefined();
+        expect(res.body.result.supportedVersions).toContain(MODERN_PROTOCOL_VERSION);
+        // Every 2026-era response identifies the server in its `_meta`; the result body carries no
+        // `serverInfo` of its own (unlike the legacy `initialize` result, which does).
+        expect(res.body.result._meta[SERVER_INFO_META_KEY].name).toBe('vendure-mcp-shop');
+        expect(res.body.result.serverInfo).toBeUndefined();
+    });
+
+    it('a request claiming 2026-07-28 without the envelope is rejected, not served as legacy', async () => {
+        const res = await postMcp(baseUrl(), 'shop', rpc('tools/list', {}, 22), {
+            protocolVersion: MODERN_PROTOCOL_VERSION,
+        });
+        // Invalid-params (-32602) on HTTP 400: the version claim routed the request to the modern era,
+        // which then found no envelope to serve it with. The message text is not asserted — it has
+        // changed between SDK versions.
+        expect(res.status).toBe(400);
+        expect(res.body.error.code).toBe(-32602);
+        expect(res.body.result).toBeUndefined();
+    });
+
     it('the official MCP SDK client connects, lists, and calls a shop tool (interop)', async () => {
         const client = new Client({ name: 'interop-test', version: '1.0.0' });
         const transport = new StreamableHTTPClientTransport(new URL(`${baseUrl()}/mcp/shop`));
@@ -313,6 +360,54 @@ describe('MCP discovery mode', () => {
             ),
         );
         expect(confirmed.body.result.structuredContent).toEqual({ deleted: 'abc' });
+    });
+});
+
+describe('MCP modern protocol era rate limiting', () => {
+    const options: McpPluginOptions = {
+        oauth: { tokenSecret: TOKEN_SECRET },
+        // Only the per-session bucket is live, so a refusal here can only have come from the
+        // controller's handshake pre-check — not from the anonymous-IP gate that runs ahead of it.
+        rateLimits: { perSession: { rpm: 1 }, perClient: { rpm: 0 }, anonymousIp: false },
+    };
+    const config = mergeConfig(testConfig(), { plugins: [McpTestToolsPlugin, McpPlugin.init(options)] });
+    const { server } = createTestEnvironment(config);
+    const baseUrl = () => `http://localhost:${config.apiOptions.port}`;
+
+    beforeAll(async () => {
+        McpPlugin.init(options);
+        await server.init({ initialData, productsCsvPath, customerCount: 1 });
+    }, TEST_SETUP_TIMEOUT_MS);
+
+    afterAll(async () => {
+        await server.destroy();
+    });
+
+    it('meters a modern-envelope request and refuses it with -32029 once the bucket is spent', async () => {
+        // The pre-check reads the top-level `method`, and the modern envelope does not move it — the
+        // envelope lives in `params._meta`. So a modern request is metered exactly like a legacy one.
+        const first = await postModernMcp(baseUrl(), 'shop', 'tools/list', {}, 1);
+        expect(first.status).toBe(200);
+        expect(first.body.result.tools.map((t: any) => t.name)).toContain('shop_echo');
+        // Only the modern era puts the server identity in the result's `_meta`, so this is what
+        // makes the test evidence about the era rather than about tools/list.
+        expect(first.body.result._meta[SERVER_INFO_META_KEY]).toBeDefined();
+        const sessionToken = first.headers.get(AUTH_TOKEN_HEADER) as string;
+        expect(sessionToken).toBeTruthy();
+
+        // Thread the session token so the second request lands in the same (now spent) bucket.
+        const tripped = await postModernMcp(baseUrl(), 'shop', 'tools/list', {}, 2, {
+            headers: { [AUTH_TOKEN_HEADER]: sessionToken },
+        });
+        expect(tripped.status).toBe(200);
+        expect(tripped.body.error.code).toBe(-32029);
+        expect(tripped.body.error.data.scope).toBe('session');
+        // The pre-check names the bucket's subject after the method it read, so seeing `tools/list`
+        // here is the proof that it read the method from the top level of a modern request.
+        expect(tripped.body.error.message).toContain('tools/list');
+        // The refusal is addressed to the request, which proves the top-level `id` was read too.
+        expect(tripped.body.id).toBe(2);
+        expect(tripped.body.result).toBeUndefined();
     });
 });
 
