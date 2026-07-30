@@ -163,7 +163,7 @@ function DraftOrderPage() {
         },
     });
 
-    const { mutate: setCustomerForDraftOrder } = useMutation({
+    const { mutateAsync: setCustomerForDraftOrder } = useMutation({
         mutationFn: api.mutate(setCustomerForDraftOrderDocument),
         onSuccess: async (result: ResultOf<typeof setCustomerForDraftOrderDocument>) => {
             const order = result.setCustomerForDraftOrder;
@@ -229,7 +229,7 @@ function DraftOrderPage() {
         },
     });
 
-    const { mutate: setShippingAddressForDraftOrder } = useMutation({
+    const { mutateAsync: setShippingAddressForDraftOrder } = useMutation({
         mutationFn: api.mutate(setShippingAddressForDraftOrderDocument),
         onSuccess: (result: ResultOf<typeof setShippingAddressForDraftOrderDocument>) => {
             toast.success(t`Shipping address set for order`);
@@ -240,7 +240,7 @@ function DraftOrderPage() {
         },
     });
 
-    const { mutate: setBillingAddressForDraftOrder } = useMutation({
+    const { mutateAsync: setBillingAddressForDraftOrder } = useMutation({
         mutationFn: api.mutate(setBillingAddressForDraftOrderDocument),
         onSuccess: (result: ResultOf<typeof setBillingAddressForDraftOrderDocument>) => {
             toast.success(t`Billing address set for order`);
@@ -506,8 +506,8 @@ function DraftOrderPage() {
                         onSelect={customer => {
                             setCustomerForDraftOrder({ orderId: entity.id, customerId: customer.id });
                         }}
-                        onCreateNew={input => {
-                            setCustomerForDraftOrder({ orderId: entity.id, input });
+                        onCreateNew={async input => {
+                            await setCustomerForDraftOrder({ orderId: entity.id, input });
                         }}
                     />
                 </PageBlock>
@@ -523,8 +523,8 @@ function DraftOrderPage() {
                                         input: mapToAddressInput(address),
                                     });
                                 }}
-                                onSubmitNew={input => {
-                                    setShippingAddressForDraftOrder({
+                                onSubmitNew={async input => {
+                                    await setShippingAddressForDraftOrder({
                                         orderId: entity.id,
                                         input,
                                     });
@@ -553,8 +553,8 @@ function DraftOrderPage() {
                                         input: mapToAddressInput(address),
                                     });
                                 }}
-                                onSubmitNew={input => {
-                                    setBillingAddressForDraftOrder({
+                                onSubmitNew={async input => {
+                                    await setBillingAddressForDraftOrder({
                                         orderId: entity.id,
                                         input,
                                     });

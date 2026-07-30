@@ -37,7 +37,7 @@ interface CustomerAddressSelectorProps {
      * Called when a new, ad-hoc address is entered via the "New address" tab. Receives a
      * {@link CreateAddressInput} ready to be passed to the draft order address mutations.
      */
-    onSubmitNew: (input: CreateAddressInput) => void;
+    onSubmitNew: (input: CreateAddressInput) => void | Promise<void>;
     onCancel?: () => void;
     defaultOpen?: boolean;
     /**
@@ -187,8 +187,8 @@ export function CustomerAddressSelector({
                                         setOpen(false);
                                         onCancel?.();
                                     }}
-                                    onSubmit={values => {
-                                        onSubmitNew(mapFormValuesToInput(values));
+                                    onSubmit={async values => {
+                                        await onSubmitNew(mapFormValuesToInput(values));
                                         setOpen(false);
                                     }}
                                 />

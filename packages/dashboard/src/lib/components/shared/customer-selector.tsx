@@ -53,7 +53,7 @@ export interface CustomerSelectorProps {
      * is called with the {@link CreateCustomerInput}.
      */
     allowCreateNew?: boolean;
-    onCreateNew?: (input: CreateCustomerInput) => void;
+    onCreateNew?: (input: CreateCustomerInput) => void | Promise<void>;
     label?: string | React.ReactNode;
     readOnly?: boolean;
 }
@@ -276,8 +276,8 @@ export function CustomerSelector(props: CustomerSelectorProps) {
                         <TabsContent value="new">
                             <div className="mt-2">
                                 <CreateCustomerForm
-                                    onSubmit={input => {
-                                        props.onCreateNew?.(input);
+                                    onSubmit={async input => {
+                                        await props.onCreateNew?.(input);
                                         setOpen(false);
                                         setActiveTab('existing');
                                     }}
