@@ -26,6 +26,26 @@ export const DEFAULT_CHANNEL_TOKEN_KEY = 'vendure-token';
  */
 export const REDACTED_SECRET_PLACEHOLDER = '__vendure_secret_unchanged_v1__';
 
+/**
+ * The version-independent prefix of {@link REDACTED_SECRET_PLACEHOLDER}. Used to detect a placeholder
+ * produced by a different Vendure version so that it can be rejected rather than silently written over
+ * a stored secret.
+ */
+export const SECRET_PLACEHOLDER_PREFIX = '__vendure_secret_unchanged_';
+
+/**
+ * Returns `true` if the value looks like a redaction placeholder but is not the current
+ * {@link REDACTED_SECRET_PLACEHOLDER} — i.e. a placeholder from a different Vendure version. Such a
+ * value must not be treated as a real secret to store.
+ */
+export function isForeignSecretPlaceholder(value: unknown): boolean {
+    return (
+        typeof value === 'string' &&
+        value.startsWith(SECRET_PLACEHOLDER_PREFIX) &&
+        value !== REDACTED_SECRET_PLACEHOLDER
+    );
+}
+
 // An environment variable which is set when the @vendure/create
 // script is run. Can be used to modify normal behaviour
 // to fit with the initial create task.
