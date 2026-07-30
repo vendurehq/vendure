@@ -386,10 +386,9 @@ msgstr "退款总额不能为负数"
 msgid "View details"
 msgstr "查看详情"
 
-#. placeholder {0}: entityIds.length
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:95
-msgid "Select a channel to assign {0} {entityType} to"
-msgstr "选择要将 {0} {entityType} 分配到的渠道"
+#~ msgid "Select a channel to assign {0} {entityType} to"
+#~ msgstr "选择要将 {0} {entityType} 分配到的渠道"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:100
 msgid "Successfully created customer"
@@ -1439,7 +1438,6 @@ msgstr "已成功更新促销"
 msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to cancel {rejected} jobs}}"
 msgstr "{rejected, plural, other {取消 {rejected} 个任务失败}}"
 
-#: src/lib/components/shared/assign-to-channel-dialog.tsx:111
 #: src/lib/components/shared/channel-selector.tsx:47
 msgid "Select a channel"
 msgstr "选择一个渠道"
@@ -1656,7 +1654,7 @@ msgstr "转到末页"
 #: src/lib/components/data-table/views-sheet.tsx:293
 #: src/lib/components/layout/manage-languages-dialog.tsx:379
 #: src/lib/components/shared/asset/asset-focal-point-editor.tsx:88
-#: src/lib/components/shared/assign-to-channel-dialog.tsx:126
+#: src/lib/components/shared/assign-to-channel-dialog.tsx:145
 #: src/lib/components/shared/confirmation-dialog.tsx:42
 #: src/lib/components/shared/customer-address-form.tsx:253
 #: src/lib/components/shared/navigation-confirmation.tsx:55
@@ -2747,6 +2745,11 @@ msgstr "折扣"
 msgid "All types"
 msgstr "所有类型"
 
+#. placeholder {0}: entityIds.length
+#: src/lib/components/shared/assign-to-channel-dialog.tsx:121
+msgid "Select channels to assign {0} {entityType} to"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/draft-order-status.tsx:29
 msgid "Only draft orders can be completed"
 msgstr "只有草稿订单可以完成"
@@ -2772,7 +2775,7 @@ msgstr "添加属性值"
 msgid "after"
 msgstr "之后"
 
-#: src/lib/components/shared/assign-to-channel-dialog.tsx:103
+#: src/lib/components/shared/assign-to-channel-dialog.tsx:129
 msgid "Channel"
 msgstr "渠道"
 
@@ -3065,6 +3068,11 @@ msgstr "保存更改"
 msgid "Address updated"
 msgstr "地址已更新"
 
+#. placeholder {0}: selectedChannelIds.length
+#: src/lib/components/shared/assign-to-channel-dialog.tsx:95
+msgid "Successfully assigned {entityIdsLength} {entityType} to {0} channels"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts:299
 msgid "Refund processed successfully"
 msgstr "退款处理成功"
@@ -3308,13 +3316,19 @@ msgstr "类别"
 msgid "Moving..."
 msgstr "正在移动..."
 
-#: src/lib/components/shared/assign-to-channel-dialog.tsx:129
+#: src/lib/components/shared/assign-to-channel-dialog.tsx:148
 msgid "Assign"
 msgstr "分配"
 
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:56
 msgid "Successfully created seller"
 msgstr "已成功创建卖家"
+
+#. placeholder {0}: failedChannelIds.length
+#. placeholder {1}: selectedChannelIds.length
+#: src/lib/components/shared/assign-to-channel-dialog.tsx:104
+msgid "Failed to assign {entityIdsLength} {entityType} to {0} of {1} channels"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:91
 msgid "Successfully updated shipping method"
@@ -4360,6 +4374,10 @@ msgstr "插入带有 URL 和目标选项的新超链接"
 msgid "Height"
 msgstr "高度"
 
+#: src/lib/components/shared/assign-to-channel-dialog.tsx:118
+msgid "Assign {entityType} to channels"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx:180
 msgid "A refund of {formattedDiff} is required. Select payment amounts and enter a note to proceed."
 msgstr "需要退款 {formattedDiff}。选择付款金额并输入备注以继续。"
@@ -4386,6 +4404,7 @@ msgstr "添加渠道"
 #~ msgid "Failed to update product option group"
 #~ msgstr "更新商品选项组失败"
 
+#: src/lib/components/shared/assign-to-channel-dialog.tsx:137
 #: src/lib/components/shared/channel-selector.tsx:48
 msgid "Search channels..."
 msgstr "搜索渠道..."
@@ -4425,6 +4444,10 @@ msgstr "将视图转换为全局失败"
 
 #: src/app/routes/_authenticated/_payment-methods/components/payment-eligibility-checker-selector.tsx:37
 msgid "Select Payment Eligibility Checker"
+msgstr ""
+
+#: src/lib/components/shared/assign-to-channel-dialog.tsx:136
+msgid "Select one or more channels"
 msgstr ""
 
 #: src/lib/components/data-table/filters/data-table-enum-filter.tsx:53
@@ -5171,8 +5194,8 @@ msgid "Using native authentication strategy"
 msgstr "使用本地身份验证策略"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:73
-msgid "Failed to assign {entityIdsLength} {entityType} to channel"
-msgstr "无法将 {entityIdsLength} 个 {entityType} 分配到渠道"
+#~ msgid "Failed to assign {entityIdsLength} {entityType} to channel"
+#~ msgstr "无法将 {entityIdsLength} 个 {entityType} 分配到渠道"
 
 #: src/lib/components/layout/manage-languages-dialog.tsx:351
 msgid "Default Language"
@@ -5593,8 +5616,8 @@ msgid "Failed to create shipping method"
 msgstr "创建配送方式失败"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:68
-msgid "Successfully assigned {entityIdsLength} {entityType} to channel"
-msgstr "已成功将 {entityIdsLength} {entityType} 分配给渠道"
+#~ msgid "Successfully assigned {entityIdsLength} {entityType} to channel"
+#~ msgstr "已成功将 {entityIdsLength} {entityType} 分配给渠道"
 
 #: src/lib/components/layout/manage-languages-dialog.tsx:253
 msgid "Global Languages"
@@ -5652,7 +5675,7 @@ msgstr "值"
 msgid "Customer updated"
 msgstr "客户已更新"
 
-#: src/lib/components/shared/assign-to-channel-dialog.tsx:146
+#: src/lib/components/shared/assign-to-channel-dialog.tsx:165
 msgid "Price conversion factor"
 msgstr "价格转换系数"
 
@@ -5795,8 +5818,8 @@ msgid "New Facet"
 msgstr "新属性"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:92
-msgid "Assign {entityType} to channel"
-msgstr "将 {entityType} 分配给渠道"
+#~ msgid "Assign {entityType} to channel"
+#~ msgstr "将 {entityType} 分配给渠道"
 
 #: src/lib/components/data-table/data-table-bulk-action-item.tsx:125
 #: src/lib/components/shared/confirmation-dialog.tsx:51

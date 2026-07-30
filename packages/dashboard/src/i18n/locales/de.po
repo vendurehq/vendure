@@ -386,10 +386,9 @@ msgstr "Der Erstattungsbetrag darf nicht negativ sein"
 msgid "View details"
 msgstr "Details anzeigen"
 
-#. placeholder {0}: entityIds.length
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:95
-msgid "Select a channel to assign {0} {entityType} to"
-msgstr "Kanal auswählen, dem {0} {entityType} zugeordnet werden soll"
+#~ msgid "Select a channel to assign {0} {entityType} to"
+#~ msgstr "Kanal auswählen, dem {0} {entityType} zugeordnet werden soll"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx:100
 msgid "Successfully created customer"
@@ -1439,7 +1438,6 @@ msgstr "Aktion erfolgreich aktualisiert"
 msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to cancel {rejected} jobs}}"
 msgstr "{rejected, plural, one {{rejected} Job konnte nicht abgebrochen werden} other {{rejected} Jobs konnten nicht abgebrochen werden}}"
 
-#: src/lib/components/shared/assign-to-channel-dialog.tsx:111
 #: src/lib/components/shared/channel-selector.tsx:47
 msgid "Select a channel"
 msgstr "Kanal auswählen"
@@ -1656,7 +1654,7 @@ msgstr "Zur letzten Seite"
 #: src/lib/components/data-table/views-sheet.tsx:293
 #: src/lib/components/layout/manage-languages-dialog.tsx:379
 #: src/lib/components/shared/asset/asset-focal-point-editor.tsx:88
-#: src/lib/components/shared/assign-to-channel-dialog.tsx:126
+#: src/lib/components/shared/assign-to-channel-dialog.tsx:145
 #: src/lib/components/shared/confirmation-dialog.tsx:42
 #: src/lib/components/shared/customer-address-form.tsx:253
 #: src/lib/components/shared/navigation-confirmation.tsx:55
@@ -2747,6 +2745,11 @@ msgstr "Rabatt"
 msgid "All types"
 msgstr "Alle Typen"
 
+#. placeholder {0}: entityIds.length
+#: src/lib/components/shared/assign-to-channel-dialog.tsx:121
+msgid "Select channels to assign {0} {entityType} to"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/draft-order-status.tsx:29
 msgid "Only draft orders can be completed"
 msgstr "Nur Bestellentwürfe können abgeschlossen werden"
@@ -2772,7 +2775,7 @@ msgstr "Facettenwerte hinzufügen"
 msgid "after"
 msgstr "nach"
 
-#: src/lib/components/shared/assign-to-channel-dialog.tsx:103
+#: src/lib/components/shared/assign-to-channel-dialog.tsx:129
 msgid "Channel"
 msgstr "Kanal"
 
@@ -3065,6 +3068,11 @@ msgstr "Änderungen speichern"
 msgid "Address updated"
 msgstr "Adresse aktualisiert"
 
+#. placeholder {0}: selectedChannelIds.length
+#: src/lib/components/shared/assign-to-channel-dialog.tsx:95
+msgid "Successfully assigned {entityIdsLength} {entityType} to {0} channels"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts:299
 msgid "Refund processed successfully"
 msgstr "Erstattung erfolgreich verarbeitet"
@@ -3308,13 +3316,19 @@ msgstr "Kategorie"
 msgid "Moving..."
 msgstr "Verschiebe..."
 
-#: src/lib/components/shared/assign-to-channel-dialog.tsx:129
+#: src/lib/components/shared/assign-to-channel-dialog.tsx:148
 msgid "Assign"
 msgstr "Zuweisen"
 
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx:56
 msgid "Successfully created seller"
 msgstr "Verkäufer erfolgreich erstellt"
+
+#. placeholder {0}: failedChannelIds.length
+#. placeholder {1}: selectedChannelIds.length
+#: src/lib/components/shared/assign-to-channel-dialog.tsx:104
+msgid "Failed to assign {entityIdsLength} {entityType} to {0} of {1} channels"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:91
 msgid "Successfully updated shipping method"
@@ -4360,6 +4374,10 @@ msgstr "Einen neuen Hyperlink mit URL und Zieloptionen einfügen"
 msgid "Height"
 msgstr "Höhe"
 
+#: src/lib/components/shared/assign-to-channel-dialog.tsx:118
+msgid "Assign {entityType} to channels"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx:180
 msgid "A refund of {formattedDiff} is required. Select payment amounts and enter a note to proceed."
 msgstr "Eine Rückerstattung von {formattedDiff} ist erforderlich. Wählen Sie Zahlungsbeträge und geben Sie eine Notiz ein, um fortzufahren."
@@ -4386,6 +4404,7 @@ msgstr "Kanal hinzufügen"
 #~ msgid "Failed to update product option group"
 #~ msgstr "Aktualisierung der Produktoptionsgruppe fehlgeschlagen"
 
+#: src/lib/components/shared/assign-to-channel-dialog.tsx:137
 #: src/lib/components/shared/channel-selector.tsx:48
 msgid "Search channels..."
 msgstr "Kanäle suchen..."
@@ -4425,6 +4444,10 @@ msgstr "Fehler beim Umwandeln der Ansicht in globale Ansicht"
 
 #: src/app/routes/_authenticated/_payment-methods/components/payment-eligibility-checker-selector.tsx:37
 msgid "Select Payment Eligibility Checker"
+msgstr ""
+
+#: src/lib/components/shared/assign-to-channel-dialog.tsx:136
+msgid "Select one or more channels"
 msgstr ""
 
 #: src/lib/components/data-table/filters/data-table-enum-filter.tsx:53
@@ -5171,8 +5194,8 @@ msgid "Using native authentication strategy"
 msgstr "Verwende native Authentifizierungsstrategie"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:73
-msgid "Failed to assign {entityIdsLength} {entityType} to channel"
-msgstr "Fehler beim Zuweisen von {entityIdsLength} {entityType} zum Kanal"
+#~ msgid "Failed to assign {entityIdsLength} {entityType} to channel"
+#~ msgstr "Fehler beim Zuweisen von {entityIdsLength} {entityType} zum Kanal"
 
 #: src/lib/components/layout/manage-languages-dialog.tsx:351
 msgid "Default Language"
@@ -5593,8 +5616,8 @@ msgid "Failed to create shipping method"
 msgstr "Versandmethode konnte nicht erstellt werden"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:68
-msgid "Successfully assigned {entityIdsLength} {entityType} to channel"
-msgstr "{entityIdsLength} {entityType} erfolgreich zu Kanal zugewiesen"
+#~ msgid "Successfully assigned {entityIdsLength} {entityType} to channel"
+#~ msgstr "{entityIdsLength} {entityType} erfolgreich zu Kanal zugewiesen"
 
 #: src/lib/components/layout/manage-languages-dialog.tsx:253
 msgid "Global Languages"
@@ -5652,7 +5675,7 @@ msgstr "Wert"
 msgid "Customer updated"
 msgstr "Kunde aktualisiert"
 
-#: src/lib/components/shared/assign-to-channel-dialog.tsx:146
+#: src/lib/components/shared/assign-to-channel-dialog.tsx:165
 msgid "Price conversion factor"
 msgstr "Preisumrechnungsfaktor"
 
@@ -5795,8 +5818,8 @@ msgid "New Facet"
 msgstr "Neue Facette"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx:92
-msgid "Assign {entityType} to channel"
-msgstr "{entityType} zu Kanal zuweisen"
+#~ msgid "Assign {entityType} to channel"
+#~ msgstr "{entityType} zu Kanal zuweisen"
 
 #: src/lib/components/data-table/data-table-bulk-action-item.tsx:125
 #: src/lib/components/shared/confirmation-dialog.tsx:51
