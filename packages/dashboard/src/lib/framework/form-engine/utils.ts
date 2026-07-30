@@ -523,6 +523,19 @@ export function hasPermissionRequirement(input: ConfigurableFieldDef): boolean {
 }
 
 /**
+ * Resolves the id of the input component to render for a field. An explicit `ui.component`
+ * always wins; otherwise secret fields default to the masked, revealable password input so it is
+ * visually clear the value is sensitive even to a user permitted to read it.
+ */
+export function resolveInputComponentId(input: ConfigurableFieldDef): string | undefined {
+    const explicit = input.ui?.component as string | undefined;
+    if (explicit) {
+        return explicit;
+    }
+    return input.secret === true ? 'password-form-input' : undefined;
+}
+
+/**
  * Determines if a field is nullable
  */
 export function isNullableField(input: ConfigurableFieldDef): boolean {

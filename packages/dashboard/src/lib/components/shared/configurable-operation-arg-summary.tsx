@@ -3,7 +3,7 @@ import {
     ConfigurableFieldDef,
     DashboardFormComponentSummaryProps,
 } from '@/vdb/framework/form-engine/form-engine-types.js';
-import { extractFieldOptions } from '@/vdb/framework/form-engine/utils.js';
+import { extractFieldOptions, resolveInputComponentId } from '@/vdb/framework/form-engine/utils.js';
 import { transformValue } from '@/vdb/framework/form-engine/value-transformers.js';
 import { api } from '@/vdb/graphql/api.js';
 import { graphql } from '@/vdb/graphql/graphql.js';
@@ -61,10 +61,8 @@ export function shouldUseListCountSummary(
  */
 export function ArgSummary({ fieldDef, value, omitPrefix, omitSuffix }: Readonly<ArgSummaryProps>) {
     // Secret args default to the masked password summary, matching their input, so a redacted or
-    // decrypted secret is not shown in plain text. An explicit `ui.component` still wins.
-    const isSecret = (fieldDef as { secret?: boolean }).secret === true;
-    const componentId =
-        (fieldDef.ui?.component as string | undefined) ?? (isSecret ? 'password-form-input' : undefined);
+    // decrypted secret is not shown in plain text.
+    const componentId = resolveInputComponentId(fieldDef);
     const CustomComponent = getInputComponent(componentId);
     const parsedValue = transformValue(value, fieldDef, 'json-string', 'parse');
     const isListValue = fieldDef.list === true && Array.isArray(parsedValue);

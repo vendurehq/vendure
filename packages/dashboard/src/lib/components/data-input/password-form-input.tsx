@@ -9,13 +9,19 @@ import { PasswordInput } from '../ui/password-input.js';
  * @docsCategory form-components
  * @docsPage PasswordInput
  */
-export function PasswordFormInput(props: Readonly<DashboardFormComponentProps>) {
-    const readOnly = props.disabled || isReadonlyField(props.fieldDef);
+export function PasswordFormInput({
+    value,
+    onChange,
+    fieldDef,
+    disabled,
+    ...rest
+}: Readonly<DashboardFormComponentProps>) {
+    const readOnly = disabled || isReadonlyField(fieldDef);
     return (
         <PasswordInput
-            ref={props.ref}
-            value={props.value}
-            onChange={e => props.onChange(e.target.value)}
+            {...rest}
+            value={value}
+            onChange={e => onChange(e.target.value)}
             disabled={readOnly}
         />
     );
