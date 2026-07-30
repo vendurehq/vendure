@@ -33,6 +33,14 @@ import { RequestContext } from '../../api/common/request-context';
 import { Injector } from '../../common/injector';
 import { VendureEntity } from '../../entity/base/base.entity';
 
+/**
+ * The suffix of every generated GraphQL input type that carries an entity's custom fields, e.g.
+ * `UpdateProductCustomFieldsInput`. It is the single source of this naming convention, shared by the
+ * schema generation (which produces these types) and the custom-field processing interceptor (which
+ * discovers them). If this changes, both sides change together.
+ */
+export const CUSTOM_FIELDS_INPUT_TYPE_SUFFIX = 'CustomFieldsInput';
+
 // prettier-ignore
 export type DefaultValueType<T extends CustomFieldType | StructFieldType> =
     T extends 'string' | 'localeString' | 'text' | 'localeText' ? string :

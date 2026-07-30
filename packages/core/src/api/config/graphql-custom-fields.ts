@@ -11,6 +11,7 @@ import {
 
 import {
     BaseTypedCustomFieldConfig,
+    CUSTOM_FIELDS_INPUT_TYPE_SUFFIX,
     CustomFieldConfig,
     CustomFields,
     isNonListRelationCustomField,
@@ -163,7 +164,7 @@ export function addGraphQLCustomFields(
 
         if (hasCreateInputType) {
             if (writeableNonLocalizedFields.length) {
-                const createCustomFieldsInputType = `Create${entityName}CustomFieldsInput`;
+                const createCustomFieldsInputType = `Create${entityName}${CUSTOM_FIELDS_INPUT_TYPE_SUFFIX}`;
                 if (!schema.getType(createCustomFieldsInputType)) {
                     customFieldTypeDefs += `
                         input ${createCustomFieldsInputType} {
@@ -201,7 +202,7 @@ export function addGraphQLCustomFields(
 
         if (hasUpdateInputType) {
             if (writeableNonLocalizedFields.length) {
-                const updateCustomFieldsInputType = `Update${entityName}CustomFieldsInput`;
+                const updateCustomFieldsInputType = `Update${entityName}${CUSTOM_FIELDS_INPUT_TYPE_SUFFIX}`;
                 if (!schema.getType(updateCustomFieldsInputType)) {
                     customFieldTypeDefs += `
                         input ${updateCustomFieldsInputType} {

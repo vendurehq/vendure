@@ -19,7 +19,11 @@ import {
 import { UserInputError } from '../../common/error/errors';
 import { Injector } from '../../common/injector';
 import { ConfigService } from '../../config/config.service';
-import { CustomFieldConfig, CustomFields } from '../../config/custom-field/custom-field-types';
+import {
+    CUSTOM_FIELDS_INPUT_TYPE_SUFFIX,
+    CustomFieldConfig,
+    CustomFields,
+} from '../../config/custom-field/custom-field-types';
 import { parseContext } from '../common/parse-context';
 import { internal_getRequestContext, RequestContext } from '../common/request-context';
 import { validateCustomFieldValue } from '../common/validate-custom-field-value';
@@ -216,7 +220,7 @@ export class CustomFieldProcessingInterceptor implements NestInterceptor {
             return cached;
         }
         const map = new Map<string, Set<string>>();
-        const suffix = 'CustomFieldsInput';
+        const suffix = CUSTOM_FIELDS_INPUT_TYPE_SUFFIX;
         const entityNames = (Object.keys(this.configService.customFields) as Array<keyof CustomFields>).sort(
             (a, b) => (b as string).length - (a as string).length,
         );
