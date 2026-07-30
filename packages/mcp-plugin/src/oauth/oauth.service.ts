@@ -1,3 +1,4 @@
+import { getOAuthProtectedResourceMetadataUrl } from '@modelcontextprotocol/server';
 import {
     BadRequestException,
     ForbiddenException,
@@ -150,7 +151,7 @@ export class McpOauthService {
     }
 
     protectedResourceMetadataUrl(endpoint: McpToolset): string {
-        return `${this.issuerOrigin()}/.well-known/oauth-protected-resource/mcp/${endpoint}`;
+        return getOAuthProtectedResourceMetadataUrl(new URL(this.resourceForToolset(endpoint)));
     }
 
     async createAuthorizationRedirect(input: AuthorizeInput): Promise<string> {

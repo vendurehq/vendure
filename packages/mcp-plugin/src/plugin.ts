@@ -1,3 +1,4 @@
+import { preloadSchemas } from '@modelcontextprotocol/server';
 import { OnApplicationBootstrap, Type } from '@nestjs/common';
 import { DiscoveryModule } from '@nestjs/core';
 import {
@@ -147,6 +148,10 @@ export class McpPlugin implements OnApplicationBootstrap {
         if (!this.processContext.isServer) {
             return;
         }
+        // The SDK builds the schemas it validates MCP messages against on first use. Build them
+        // now so that cost lands on startup rather than on whichever request arrives first.
+        preloadSchemas();
+
         const logging = McpPlugin.options.logging;
         if (logging?.capture === 'full' && !logging.redact) {
             Logger.warn(
@@ -160,6 +165,8 @@ export class McpPlugin implements OnApplicationBootstrap {
         if (!oauth) {
             return;
         }
+
+        this.assertIssuerIsOrigin(oauth.issuer);
 
         const isProduction = process.env.NODE_ENV === 'production';
         if (isProduction) {
@@ -178,6 +185,26 @@ export class McpPlugin implements OnApplicationBootstrap {
                         `this deployment never uses shop OAuth.`,
                 );
             }
+        }
+    }
+
+    private assertIssuerIsOrigin(issuer?: string): void {
+        let url: URL;
+        try {
+            url = new URL(issuer ?? '');
+        } catch {
+            throw new Error(
+                `McpPlugin: oauth.issuer must be a valid URL such as "https://example.com" — ` +
+                    `received "${issuer ?? ''}". Include the scheme; a host on its own is not a URL.`,
+            );
+        }
+        if (url.pathname !== '/' || url.search || url.hash) {
+            throw new Error(
+                `McpPlugin: oauth.issuer must be the scheme, host and port of your Vendure server ` +
+                    `(for example "https://example.com") with no path, query or fragment — got ` +
+                    `"${issuer ?? ''}". If Vendure is served under a path, either give it its own ` +
+                    `subdomain or have the proxy forward /.well-known/* to it as well.`,
+            );
         }
     }
 

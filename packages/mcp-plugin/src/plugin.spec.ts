@@ -1,3 +1,4 @@
+import { preloadSchemas } from '@modelcontextprotocol/server';
 import { getConfigurationFunction, Logger, ProcessContext } from '@vendure/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -5,6 +6,13 @@ import { DEFAULT_OAUTH_OPTIONS } from './constants';
 import { McpPlugin } from './plugin';
 import { mcpOauthRetentionTask } from './tasks/mcp-oauth-retention.task';
 import { McpPluginOptions } from './types';
+
+// Only `preloadSchemas` is stubbed; everything else in the SDK stays real, because the plugin
+// module graph loads the transport controller from the same package.
+vi.mock('@modelcontextprotocol/server', async importOriginal => ({
+    ...(await importOriginal<typeof import('@modelcontextprotocol/server')>()),
+    preloadSchemas: vi.fn(),
+}));
 
 /** Runs the plugin's real `configuration` hook against a minimal config and returns it. */
 async function runConfiguration() {
@@ -80,6 +88,38 @@ describe('McpPlugin production config guard', () => {
         expect(() => plugin.onApplicationBootstrap()).toThrow();
     });
 
+    // Every OAuth and MCP URL is built from the issuer, and the `.well-known` documents are
+    // served at the server root — so an issuer with a path yields URLs nothing serves. Refused
+    // in development too, because that is where such a misconfiguration is discovered cheaply.
+    it('throws when the issuer is more than a scheme, host and port', () => {
+        process.env.NODE_ENV = 'development';
+        setOauth({ tokenSecret: 'x', issuer: 'https://example.com/vendure' });
+        expect(() => createPlugin(true).onApplicationBootstrap()).toThrow(/no path, query or fragment/);
+
+        setOauth({ tokenSecret: 'x', issuer: 'https://example.com?tenant=1' });
+        expect(() => createPlugin(true).onApplicationBootstrap()).toThrow(/no path, query or fragment/);
+
+        setOauth({ tokenSecret: 'x', issuer: 'https://example.com#frag' });
+        expect(() => createPlugin(true).onApplicationBootstrap()).toThrow(/no path, query or fragment/);
+    });
+
+    // Left to run, a schemeless issuer boots fine and then turns the first unauthenticated
+    // request's 401 into a 500, because building the challenge URL from it throws.
+    it('throws when the issuer is not a URL at all', () => {
+        process.env.NODE_ENV = 'development';
+        setOauth({ tokenSecret: 'x', issuer: 'example.com' });
+        expect(() => createPlugin(true).onApplicationBootstrap()).toThrow(/must be a valid URL/);
+    });
+
+    it('accepts an issuer that is a bare origin, with or without a trailing slash', () => {
+        process.env.NODE_ENV = 'development';
+        setOauth({ tokenSecret: 'x', issuer: 'https://example.com' });
+        expect(() => createPlugin(true).onApplicationBootstrap()).not.toThrow();
+
+        setOauth({ tokenSecret: 'x', issuer: 'https://example.com/' });
+        expect(() => createPlugin(true).onApplicationBootstrap()).not.toThrow();
+    });
+
     it('does not throw when not running on the server process', () => {
         process.env.NODE_ENV = 'production';
         setOauth({ tokenSecret: 'x', issuer: 'http://localhost:3500' });
@@ -99,6 +139,24 @@ describe('McpPlugin production config guard', () => {
         setOauth({ tokenSecret: 'x', issuer: 'http://localhost:3500' });
         const plugin = createPlugin(true);
         expect(() => plugin.onApplicationBootstrap()).not.toThrow();
+    });
+});
+
+describe('McpPlugin SDK schema preload', () => {
+    let savedOptions: McpPluginOptions;
+
+    beforeEach(() => {
+        savedOptions = McpPlugin.options;
+    });
+    afterEach(() => {
+        McpPlugin.options = savedOptions;
+    });
+
+    it('builds the MCP SDK wire schemas at bootstrap instead of on the first request', () => {
+        McpPlugin.init({});
+        vi.mocked(preloadSchemas).mockClear();
+        new McpPlugin({ isServer: true } as ProcessContext).onApplicationBootstrap();
+        expect(preloadSchemas).toHaveBeenCalledOnce();
     });
 });
 

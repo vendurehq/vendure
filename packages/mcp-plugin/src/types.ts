@@ -37,8 +37,14 @@ export interface McpOauthOptions {
     tokenSecret: string;
     /**
      * @description
-     * Public base URL of the Vendure server, used as the OAuth issuer and to build
-     * authorization-server / protected-resource metadata URLs.
+     * The public URL of your Vendure server, e.g. `https://shop.example.com`. OAuth
+     * clients use it to find this server's login and token endpoints.
+     *
+     * It must be just `https://` plus the host (and port if needed) — no path, or the
+     * server refuses to start: clients fetch the server's OAuth info at fixed
+     * `/.well-known/...` addresses directly under the host, so a path here would point
+     * them at addresses that don't exist. If a proxy serves Vendure under a path, use a
+     * subdomain instead, or forward `/.well-known/*` to Vendure too.
      *
      * @default 'http://localhost:3500'
      */

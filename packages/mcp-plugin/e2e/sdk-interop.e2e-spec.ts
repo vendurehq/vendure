@@ -40,6 +40,7 @@ class InMemoryOAuthProvider {
     private _clientInformation?: any;
     private _tokens?: any;
     private _codeVerifier?: string;
+    private _discoveryState?: any;
 
     get clientMetadata() {
         return {
@@ -82,6 +83,18 @@ class InMemoryOAuthProvider {
             throw new Error('No code verifier saved');
         }
         return this._codeVerifier;
+    }
+
+    // What the client discovered about our authorization server, stored next to the code verifier
+    // because it has to survive the same redirect round-trip. When the code comes back, the client
+    // re-runs discovery and refuses to send the code and verifier anywhere else, which is only
+    // possible if it can read back what it recorded here (SEP-2352). A provider without these two
+    // methods skips that check.
+    saveDiscoveryState(state: any) {
+        this._discoveryState = state;
+    }
+    discoveryState() {
+        return this._discoveryState;
     }
 }
 
