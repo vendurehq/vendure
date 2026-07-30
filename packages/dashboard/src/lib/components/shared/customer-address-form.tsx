@@ -175,7 +175,7 @@ export function CustomerAddressForm<T>({
                         name="postalCode"
                         label={<Trans>Postal Code</Trans>}
                         render={({ field }) => (
-                            <Input placeholder="Postal Code" {...field} value={field.value || ''} />
+                            <Input placeholder="Postal Code (optional)" {...field} value={field.value || ''} />
                         )}
                     />
 

@@ -514,7 +514,7 @@ function DraftOrderPage() {
                 <PageBlock column="side" blockId="shipping-address" title={<Trans>Shipping address</Trans>}>
                     <div className="flex flex-col">
                         <OrderAddress address={entity.shippingAddress ?? undefined} />
-                        <div className="mt-4 flex gap-2">
+                        <div className="mt-2 flex items-center gap-2">
                             <CustomerAddressSelector
                                 customerId={entity.customer?.id}
                                 onSelect={address => {
@@ -544,7 +544,7 @@ function DraftOrderPage() {
                 <PageBlock column="side" blockId="billing-address" title={<Trans>Billing address</Trans>}>
                     <div className="flex flex-col">
                         <OrderAddress address={entity.billingAddress ?? undefined} />
-                        <div className="mt-4 flex gap-2">
+                        <div className="mt-2 flex items-center gap-2">
                             <CustomerAddressSelector
                                 customerId={entity.customer?.id}
                                 onSelect={address => {
@@ -594,10 +594,8 @@ function mapToAddressInput(address: ResultOf<typeof addressFragment>) {
 
 function RemoveAddressButton(props: { onClick: () => void }) {
     return (
-        <div className="">
-            <Button variant="outline" className="mt-4" size="sm" onClick={props.onClick}>
-                <Trans>Remove</Trans>
-            </Button>
-        </div>
+        <Button variant="outline" size="sm" onClick={props.onClick}>
+            <Trans>Remove</Trans>
+        </Button>
     );
 }
