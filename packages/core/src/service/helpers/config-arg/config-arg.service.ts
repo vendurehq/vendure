@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigurableOperation, ConfigurableOperationInput } from '@vendure/common/lib/generated-types';
-import { REDACTED_SECRET_PLACEHOLDER } from '@vendure/common/lib/shared-constants';
+import { isForeignSecretPlaceholder, REDACTED_SECRET_PLACEHOLDER } from '@vendure/common/lib/shared-constants';
 
 import { ConfigurableOperationDef } from '../../../common/configurable-operation';
 import { InternalServerError, UserInputError } from '../../../common/error/errors';
@@ -29,12 +29,25 @@ export type ConfigDefTypeMap = {
 
 export type ConfigDefType = keyof ConfigDefTypeMap;
 
+// A NUL separator that cannot appear in a code or arg name, so the two parts are unambiguous.
+function secretArgKey(code: string, argName: string): string {
+    return `${code}\0${argName}`;
+}
+
 /**
  * This helper class provides methods relating to ConfigurableOperationDef instances.
  */
 @Injectable()
 export class ConfigArgService {
     private readonly definitionsByType: { [K in ConfigDefType]: Array<ConfigDefTypeMap[K]> };
+    /**
+     * The `code\0argName` of every registered `secret` config arg, built once so that redaction can
+     * look up "is this arg secret" in O(1) per arg rather than scanning the registries per response.
+     * Operation codes are expected to be unique across operation types (the framework convention); if
+     * two types share a code and one declares a secret arg by the same name, the other is treated as
+     * secret too, which fails closed (redacted) rather than open.
+     */
+    private readonly secretArgKeys = new Set<string>();
 
     constructor(private configService: ConfigService) {
         this.definitionsByType = {
@@ -49,6 +62,15 @@ export class ConfigArgService {
             ShippingCalculator: this.configService.shippingOptions.shippingCalculators,
             ShippingEligibilityChecker: this.configService.shippingOptions.shippingEligibilityCheckers,
         };
+        for (const defs of Object.values(this.definitionsByType)) {
+            for (const def of defs) {
+                for (const [argName, argDef] of Object.entries(def.args)) {
+                    if ((argDef as { secret?: boolean }).secret === true) {
+                        this.secretArgKeys.add(secretArgKey(def.code, argName));
+                    }
+                }
+            }
+        }
     }
 
     getDefinitions<T extends ConfigDefType>(defType: T): Array<ConfigDefTypeMap[T]> {
@@ -56,19 +78,13 @@ export class ConfigArgService {
     }
 
     /**
-     * Returns `true` if any registered operation with the given code defines a `secret` arg with the
+     * Returns `true` if a registered operation with the given code defines a `secret` arg with the
      * given name. Used to redact secret args on read based on their definition rather than on whether
      * the stored value happens to look encrypted, so that a `secret` arg holding a legacy plaintext
      * value (e.g. written before the field was marked secret) is still redacted rather than leaked.
      */
     hasSecretArg(code: string, argName: string): boolean {
-        for (const defs of Object.values(this.definitionsByType)) {
-            const def = defs.find(d => d.code === code);
-            if (def && (def.args as Record<string, { secret?: boolean }>)[argName]?.secret === true) {
-                return true;
-            }
-        }
-        return false;
+        return this.secretArgKeys.size > 0 && this.secretArgKeys.has(secretArgKey(code, argName));
     }
 
     getByCode<T extends ConfigDefType>(defType: T, code: string): ConfigDefTypeMap[T] {
@@ -103,6 +119,26 @@ export class ConfigArgService {
         return {
             code: input.code,
             args,
+        };
+    }
+
+    /**
+     * Parses input for an operation that is run immediately and never persisted, such as a collection
+     * variant preview or a shipping-method test. Unlike {@link parseInput} it does not encrypt `secret`
+     * args or resolve the redaction placeholder: the caller-supplied values are validated, ordered and
+     * used as-is. This avoids the placeholder-preservation logic (which would otherwise reject a
+     * resubmitted placeholder), at the cost that such a transient operation cannot see the stored
+     * secret of an existing entity — the caller must supply a real value to exercise it.
+     */
+    parseInputForExecution(
+        defType: ConfigDefType,
+        input: ConfigurableOperationInput,
+    ): ConfigurableOperation {
+        const match = this.getByCode(defType, input.code);
+        this.validateRequiredFields(input, match);
+        return {
+            code: input.code,
+            args: this.orderArgsToMatchDef(match, input.arguments),
         };
     }
 
@@ -147,6 +183,10 @@ export class ConfigArgService {
                 }
                 // Preserve the existing stored (already-encrypted) value.
                 return { name: arg.name, value: previousArg.value };
+            }
+            if (isForeignSecretPlaceholder(arg.value)) {
+                // A placeholder from a different version must not be encrypted as a real value.
+                throw new UserInputError('error.secret-value-required', { name: arg.name });
             }
             if (arg.value == null || arg.value === '') {
                 return arg;

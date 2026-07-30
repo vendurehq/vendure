@@ -492,7 +492,7 @@ export class CollectionService implements OnModuleInit {
         options?: ListQueryOptions<ProductVariant>,
         relations?: RelationPaths<Collection>,
     ): Promise<PaginatedList<ProductVariant>> {
-        const applicableFilters = this.getCollectionFiltersFromInput(input);
+        const applicableFilters = this.getCollectionFiltersFromInput(input, [], true);
         if (input.parentId && input.inheritFilters) {
             const parentFilters = (await this.findOne(ctx, input.parentId, []))?.filters ?? [];
             const ancestorFilters = await this.getAncestors(input.parentId).then(ancestors =>
@@ -710,10 +710,18 @@ export class CollectionService implements OnModuleInit {
     private getCollectionFiltersFromInput(
         input: CreateCollectionInput | UpdateCollectionInput | PreviewCollectionVariantsInput,
         previous: ConfigurableOperation[] = [],
+        forExecution = false,
     ): ConfigurableOperation[] {
-        return input.filters
-            ? this.configArgService.parseInputList('CollectionFilter', input.filters, previous)
-            : [];
+        if (!input.filters) {
+            return [];
+        }
+        // A preview runs the filters immediately and never persists them, so it must not go through
+        // the secret encryption/preservation machinery (which would reject a resubmitted placeholder).
+        return forExecution
+            ? input.filters.map(filterInput =>
+                  this.configArgService.parseInputForExecution('CollectionFilter', filterInput),
+              )
+            : this.configArgService.parseInputList('CollectionFilter', input.filters, previous);
     }
 
     private chunkArray = <T>(array: T[], chunkSize: number): T[][] => {
