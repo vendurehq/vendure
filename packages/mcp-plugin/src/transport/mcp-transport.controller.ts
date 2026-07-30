@@ -1,5 +1,5 @@
 import { hostHeaderValidation, originValidation, toNodeHandler } from '@modelcontextprotocol/node';
-import { AuthInfo, createMcpHandler } from '@modelcontextprotocol/server';
+import { AuthInfo, createMcpHandler, isJsonContentType } from '@modelcontextprotocol/server';
 import {
     Body,
     Controller,
@@ -165,7 +165,7 @@ export class McpTransportController {
 
         // 4. Handshake rate-limit pre-check (only meaningful for JSON bodies we can parse).
         const contentType = this.getHeader(headers, 'content-type') ?? '';
-        const isJson = contentType.includes('application/json');
+        const isJson = isJsonContentType(contentType);
         const parsedBody = isJson ? body : undefined;
         if (isJson) {
             const exceeded = await this.preCheckHandshakeRateLimit(body, toolset, executionContext);

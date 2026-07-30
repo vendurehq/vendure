@@ -275,3 +275,55 @@ describe('MCP transport per-tool rate limiting', () => {
         expect(second.body.result.content[0].text).toMatch(/Rate limit exceeded/);
     });
 });
+
+describe('MCP transport content-type casing', () => {
+    // anonymousIp is disabled so the only bucket in play is perSession — the one the handshake
+    // pre-check itself enforces — isolating it from the unrelated anonymous-IP gate that runs
+    // earlier in the request and would refuse regardless of Content-Type casing.
+    const options: McpPluginOptions = {
+        oauth: { tokenSecret: TOKEN_SECRET },
+        rateLimits: { perSession: { rpm: 2 }, perClient: { rpm: 0 }, anonymousIp: false },
+    };
+    const config = mergeConfig(testConfig(), { plugins: [McpTestToolsPlugin, McpPlugin.init(options)] });
+    const { server } = createTestEnvironment(config);
+    const baseUrl = () => `http://localhost:${config.apiOptions.port}`;
+
+    beforeAll(async () => {
+        McpPlugin.init(options);
+        await server.init({ initialData, productsCsvPath, customerCount: 1 });
+    }, TEST_SETUP_TIMEOUT_MS);
+
+    afterAll(async () => {
+        await server.destroy();
+    });
+
+    it('serves a request with an uppercase Content-Type identically to lowercase', async () => {
+        const lower = await postMcp(baseUrl(), 'shop', callTool('shop_echo', { text: 'hi' }, 1));
+        expect(lower.body.result.isError).toBeUndefined();
+        expect(lower.body.result.structuredContent).toEqual({ echoed: 'hi' });
+
+        const upper = await postMcp(baseUrl(), 'shop', callTool('shop_echo', { text: 'hi' }, 2), {
+            contentType: 'APPLICATION/JSON',
+        });
+        expect(upper.body.result.isError).toBeUndefined();
+        expect(upper.body.result.structuredContent).toEqual({ echoed: 'hi' });
+    });
+
+    it('meters an uppercase-header handshake exactly like lowercase (bypass closed)', async () => {
+        // perSession rpm = 2, so the third `ping` on the same threaded session trips the limit — same
+        // shape as the -32029 test above, but keyed by session (the handshake pre-check's own bucket)
+        // rather than anonymous IP, so an uppercase Content-Type can't dodge it by skipping the check.
+        const first = await postMcp(baseUrl(), 'shop', rpc('ping', {}, 1));
+        const sessionToken = first.headers.get(AUTH_TOKEN_HEADER) as string;
+        expect(sessionToken).toBeTruthy();
+
+        await postMcp(baseUrl(), 'shop', rpc('ping', {}, 2), {
+            headers: { [AUTH_TOKEN_HEADER]: sessionToken },
+        });
+        const tripped = await postMcp(baseUrl(), 'shop', rpc('ping', {}, 3), {
+            headers: { [AUTH_TOKEN_HEADER]: sessionToken },
+            contentType: 'APPLICATION/JSON',
+        });
+        expect(tripped.body.error.code).toBe(-32029);
+    });
+});
