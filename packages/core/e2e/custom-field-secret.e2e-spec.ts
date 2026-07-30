@@ -159,8 +159,13 @@ describe('secret custom fields', () => {
     });
 
     it('passes the owning entity (not the customFields wrapper) to the SecretAccessStrategy', async () => {
-        capturedSecretAccessInput = undefined;
         await adminClient.asSuperAdmin();
+        // Ensure the secret field holds a value, otherwise the resolver never invokes the strategy
+        // and this test would pass vacuously regardless of what entity would have been passed.
+        await adminClient.query(UPDATE_PRODUCT, {
+            input: { id: 'T_1', customFields: { secretKey: 'sk_entity_check' } },
+        });
+        capturedSecretAccessInput = undefined;
         await adminClient.query(GET_PRODUCT, { id: 'T_1' });
         const captured = capturedSecretAccessInput as SecretAccessInput | undefined;
         expect(captured?.kind).toBe('customField');
