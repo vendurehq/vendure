@@ -216,9 +216,13 @@ describe('EntityHydrator', () => {
     });
 
     describe('getRelationEntityAtPath()', () => {
+        function getRelationEntityAtPath(target: any, path: string[]): any {
+            const hydrator = new EntityHydrator(undefined as any, undefined as any, undefined as any);
+            return (hydrator as any).getRelationEntityAtPath(target, path);
+        }
+
         // https://github.com/vendurehq/vendure/issues/4661
         it('treats undefined intermediate relations as terminal values', () => {
-            const hydrator = new EntityHydrator(undefined as any, undefined as any, undefined as any);
             const translation = { languageCode: 'en', name: 'Laptop' };
             const order = {
                 lines: [
@@ -233,13 +237,30 @@ describe('EntityHydrator', () => {
                 ],
             };
 
-            const result = (hydrator as any).getRelationEntityAtPath(order, [
-                'lines',
-                'productVariant',
-                'translations',
-            ]);
+            const result = getRelationEntityAtPath(order, ['lines', 'productVariant', 'translations']);
 
             expect(result).toEqual([translation, undefined]);
+        });
+
+        it('does not crash when a terminal relation array is very large', () => {
+            // A relation at the end of the path is collected element by element. `push(...target)`
+            // expands the array into call arguments, which exceeds V8's stack budget and throws a
+            // RangeError — the same failure fixed in getMissingRelations() in #4986. Reproduces
+            // e.g. `collection.productVariants` on a big catalog.
+            //
+            // The limit is a stack budget rather than a fixed count, so it moves with the Node
+            // version and the vitest pool (measured on Node 22: ~110k in a process, ~495k in a
+            // worker thread). The fixture is sized well above both. The hole is deliberate:
+            // `target.forEach(...)` would also avoid the RangeError but silently skips holes, and
+            // the walk must preserve them.
+            const variant = { id: 1 };
+            const productVariants = new Array(1_000_000).fill(variant);
+            delete productVariants[5];
+
+            const result = getRelationEntityAtPath({ productVariants }, ['productVariants']);
+
+            expect(result).toHaveLength(1_000_000);
+            expect(result[5]).toBeUndefined();
         });
     });
 });

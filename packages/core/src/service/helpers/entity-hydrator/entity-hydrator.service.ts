@@ -314,7 +314,13 @@ export class EntityHydrator {
             if (Array.isArray(target)) {
                 isArrayResult = true;
                 if (parts.length === 0) {
-                    result.push(...target);
+                    // Use a plain loop rather than push(...target): spreading a very large array
+                    // (e.g. `collection.productVariants` on a big catalog) expands it into call
+                    // arguments, which exceeds V8's stack budget and throws a RangeError. Same
+                    // fix as in getMissingRelations() above.
+                    for (const item of target) {
+                        result.push(item);
+                    }
                 } else {
                     for (const item of target) {
                         visit(item, parts.slice());
