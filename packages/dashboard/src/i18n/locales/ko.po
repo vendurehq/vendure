@@ -5702,7 +5702,7 @@ msgstr "주문 사용자 정의 필드가 업데이트되었습니다"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 msgid "Calculator"
-msgstr "계산기"
+msgstr "계산 방식"
 
 #: src/app/routes/_authenticated/_option-groups/components/option-group-bulk-actions.tsx
 msgid "Failed to remove option group from channel: {message}"

@@ -836,7 +836,7 @@ msgstr "{0}個の適格な配送方法が見つかりました"
 #: src/lib/components/shared/asset/asset-gallery.tsx
 #: src/lib/components/shared/asset/asset-properties.tsx
 msgid "Dimensions"
-msgstr "サイズ"
+msgstr "寸法"
 
 #: src/lib/components/ui/password-input.tsx
 msgid "Show password"
@@ -5787,7 +5787,7 @@ msgstr "注文カスタムフィールドが更新されました"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 msgid "Calculator"
-msgstr "計算機"
+msgstr "計算方法"
 
 #: src/app/routes/_authenticated/_option-groups/components/option-group-bulk-actions.tsx
 msgid "Failed to remove option group from channel: {message}"
