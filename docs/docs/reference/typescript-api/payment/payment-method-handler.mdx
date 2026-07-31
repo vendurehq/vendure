@@ -2,7 +2,7 @@
 title: "PaymentMethodHandler"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/config/payment/payment-method-handler.ts" sourceLine="355" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/payment/payment-method-handler.ts" sourceLine="354" packageName="@vendure/core" />
 
 A PaymentMethodHandler contains the code which is used to generate a Payment when a call to the
 `addPaymentToOrder` mutation is made. It contains any necessary steps of interfacing with a
@@ -59,7 +59,6 @@ export const examplePaymentHandler = new PaymentMethodHandler({
 
 ```ts title="Signature"
 class PaymentMethodHandler<T extends ConfigArgs = ConfigArgs> extends ConfigurableOperationDef<T> {
-    protected readonly defType: ConfigurableOperationDefType = 'PaymentMethodHandler';
     constructor(config: PaymentMethodConfigOptions<T>)
 }
 ```
@@ -68,11 +67,6 @@ class PaymentMethodHandler<T extends ConfigArgs = ConfigArgs> extends Configurab
 
 
 <div className="members-wrapper">
-
-### defType
-
-<MemberInfo kind="property" type={`<a href='/reference/typescript-api/configurable-operation-def/configurable-operation-def-type#configurableoperationdeftype'>ConfigurableOperationDefType</a>`}   />
-
 
 
 

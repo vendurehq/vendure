@@ -4,7 +4,7 @@ generated: true
 ---
 ## PromotionCondition
 
-<GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-condition.ts" sourceLine="67" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-condition.ts" sourceLine="66" packageName="@vendure/core" />
 
 PromotionConditions are used to create [Promotion](/reference/typescript-api/entities/promotion#promotion)s. The purpose of a PromotionCondition
 is to check the order against a particular predicate function (the `check` function) and to return
@@ -12,7 +12,6 @@ is to check the order against a particular predicate function (the `check` funct
 
 ```ts title="Signature"
 class PromotionCondition<T extends ConfigArgs = ConfigArgs, C extends string = string, R extends CheckPromotionConditionResult = any> extends ConfigurableOperationDef<T> {
-    protected readonly defType: ConfigurableOperationDefType = 'PromotionCondition';
     readonly priorityValue: number;
     code: C
     constructor(config: PromotionConditionConfig<T, C, R>)
@@ -24,11 +23,6 @@ class PromotionCondition<T extends ConfigArgs = ConfigArgs, C extends string = s
 
 
 <div className="members-wrapper">
-
-### defType
-
-<MemberInfo kind="property" type={`<a href='/reference/typescript-api/configurable-operation-def/configurable-operation-def-type#configurableoperationdeftype'>ConfigurableOperationDefType</a>`}   />
-
 
 ### priorityValue
 
@@ -53,7 +47,7 @@ a Promotion should apply to an Order. See [CheckPromotionConditionFn](/reference
 </div>
 ## PromotionConditionConfig
 
-<GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-condition.ts" sourceLine="47" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-condition.ts" sourceLine="46" packageName="@vendure/core" />
 
 This object is used to configure a PromotionCondition.
 
@@ -90,7 +84,7 @@ interface PromotionConditionConfig<T extends ConfigArgs, C extends string, R ext
 </div>
 ## CheckPromotionConditionFn
 
-<GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-condition.ts" sourceLine="32" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/promotion/promotion-condition.ts" sourceLine="31" packageName="@vendure/core" />
 
 A function which checks whether or not a given [Order](/reference/typescript-api/entities/order#order) satisfies the [PromotionCondition](/reference/typescript-api/promotions/promotion-condition#promotioncondition).
 

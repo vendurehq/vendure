@@ -4,7 +4,7 @@ generated: true
 ---
 ## FulfillmentHandler
 
-<GenerationInfo sourceFile="packages/core/src/config/fulfillment/fulfillment-handler.ts" sourceLine="150" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/fulfillment/fulfillment-handler.ts" sourceLine="149" packageName="@vendure/core" />
 
 A FulfillmentHandler is used when creating a new [Fulfillment](/reference/typescript-api/entities/fulfillment#fulfillment). When the `addFulfillmentToOrder` mutation
 is executed, the specified handler will be used and it's `createFulfillment` method is called. This method
@@ -82,7 +82,6 @@ export const shipomaticFulfillmentHandler = new FulfillmentHandler({
 
 ```ts title="Signature"
 class FulfillmentHandler<T extends ConfigArgs = ConfigArgs> extends ConfigurableOperationDef<T> {
-    protected readonly defType: ConfigurableOperationDefType = 'FulfillmentHandler';
     constructor(config: FulfillmentHandlerConfig<T>)
 }
 ```
@@ -92,17 +91,12 @@ class FulfillmentHandler<T extends ConfigArgs = ConfigArgs> extends Configurable
 
 <div className="members-wrapper">
 
-### defType
-
-<MemberInfo kind="property" type={`<a href='/reference/typescript-api/configurable-operation-def/configurable-operation-def-type#configurableoperationdeftype'>ConfigurableOperationDefType</a>`}   />
-
-
 
 
 </div>
 ## FulfillmentHandlerConfig
 
-<GenerationInfo sourceFile="packages/core/src/config/fulfillment/fulfillment-handler.ts" sourceLine="49" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/fulfillment/fulfillment-handler.ts" sourceLine="48" packageName="@vendure/core" />
 
 The configuration object used to instantiate a [FulfillmentHandler](/reference/typescript-api/fulfillment/fulfillment-handler#fulfillmenthandler).
 
@@ -142,7 +136,7 @@ shipping API.
 </div>
 ## CreateFulfillmentFn
 
-<GenerationInfo sourceFile="packages/core/src/config/fulfillment/fulfillment-handler.ts" sourceLine="34" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/fulfillment/fulfillment-handler.ts" sourceLine="33" packageName="@vendure/core" />
 
 The function called when creating a new Fulfillment
 
@@ -156,7 +150,7 @@ type CreateFulfillmentFn<T extends ConfigArgs> = (
 ```
 ## CreateFulfillmentResult
 
-<GenerationInfo sourceFile="packages/core/src/config/fulfillment/fulfillment-handler.ts" sourceLine="24" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/fulfillment/fulfillment-handler.ts" sourceLine="23" packageName="@vendure/core" />
 
 
 

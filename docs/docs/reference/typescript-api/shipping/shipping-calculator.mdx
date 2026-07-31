@@ -4,7 +4,7 @@ generated: true
 ---
 ## ShippingCalculator
 
-<GenerationInfo sourceFile="packages/core/src/config/shipping-method/shipping-calculator.ts" sourceLine="49" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/shipping-method/shipping-calculator.ts" sourceLine="48" packageName="@vendure/core" />
 
 The ShippingCalculator is used by a [ShippingMethod](/reference/typescript-api/entities/shipping-method#shippingmethod) to calculate the price of shipping on a given [Order](/reference/typescript-api/entities/order#order).
 
@@ -36,7 +36,6 @@ const flatRateCalculator = new ShippingCalculator({
 
 ```ts title="Signature"
 class ShippingCalculator<T extends ConfigArgs = ConfigArgs> extends ConfigurableOperationDef<T> {
-    protected readonly defType: ConfigurableOperationDefType = 'ShippingCalculator';
     constructor(config: ShippingCalculatorConfig<T>)
 }
 ```
@@ -46,17 +45,12 @@ class ShippingCalculator<T extends ConfigArgs = ConfigArgs> extends Configurable
 
 <div className="members-wrapper">
 
-### defType
-
-<MemberInfo kind="property" type={`<a href='/reference/typescript-api/configurable-operation-def/configurable-operation-def-type#configurableoperationdeftype'>ConfigurableOperationDefType</a>`}   />
-
-
 
 
 </div>
 ## ShippingCalculationResult
 
-<GenerationInfo sourceFile="packages/core/src/config/shipping-method/shipping-calculator.ts" sourceLine="82" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/shipping-method/shipping-calculator.ts" sourceLine="79" packageName="@vendure/core" />
 
 The return value of the [CalculateShippingFn](/reference/typescript-api/shipping/shipping-calculator#calculateshippingfn).
 
@@ -98,7 +92,7 @@ needed in the storefront application when listing eligible shipping methods.
 </div>
 ## CalculateShippingFn
 
-<GenerationInfo sourceFile="packages/core/src/config/shipping-method/shipping-calculator.ts" sourceLine="122" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/shipping-method/shipping-calculator.ts" sourceLine="119" packageName="@vendure/core" />
 
 A function which implements the specific shipping calculation logic. It takes an [Order](/reference/typescript-api/entities/order#order) and
 an arguments object and should return the shipping price as an integer in cents.

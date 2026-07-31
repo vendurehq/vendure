@@ -4,7 +4,7 @@ generated: true
 ---
 ## EntityDuplicator
 
-<GenerationInfo sourceFile="packages/core/src/config/entity/entity-duplicator.ts" sourceLine="159" packageName="@vendure/core" since="2.2.0" />
+<GenerationInfo sourceFile="packages/core/src/config/entity/entity-duplicator.ts" sourceLine="158" packageName="@vendure/core" since="2.2.0" />
 
 An EntityDuplicator is used to define the logic for duplicating entities when the `duplicateEntity` mutation is called.
 This allows you to add support for duplication of both core and custom entities.
@@ -94,7 +94,6 @@ export const config: VendureConfig = {
 
 ```ts title="Signature"
 class EntityDuplicator<T extends ConfigArgs = ConfigArgs> extends ConfigurableOperationDef<T> {
-    protected readonly defType: ConfigurableOperationDefType = 'EntityDuplicator';
     constructor(config: EntityDuplicatorConfig<T>)
     duplicate(input: {
         ctx: RequestContext;
@@ -110,11 +109,6 @@ class EntityDuplicator<T extends ConfigArgs = ConfigArgs> extends ConfigurableOp
 
 <div className="members-wrapper">
 
-### defType
-
-<MemberInfo kind="property" type={`<a href='/reference/typescript-api/configurable-operation-def/configurable-operation-def-type#configurableoperationdeftype'>ConfigurableOperationDefType</a>`}   />
-
-
 ### duplicate
 
 <MemberInfo kind="method" type={`(input: {         ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>;         entityName: string;         id: <a href='/reference/typescript-api/common/id#id'>ID</a>;         args: ConfigArg[];     }) => Promise<<a href='/reference/typescript-api/entities/vendure-entity#vendureentity'>VendureEntity</a>>`}   />
@@ -125,7 +119,7 @@ class EntityDuplicator<T extends ConfigArgs = ConfigArgs> extends ConfigurableOp
 </div>
 ## DuplicateEntityFn
 
-<GenerationInfo sourceFile="packages/core/src/config/entity/entity-duplicator.ts" sourceLine="22" packageName="@vendure/core" since="2.2.0" />
+<GenerationInfo sourceFile="packages/core/src/config/entity/entity-duplicator.ts" sourceLine="21" packageName="@vendure/core" since="2.2.0" />
 
 A function which performs the duplication of an entity.
 
@@ -139,7 +133,7 @@ type DuplicateEntityFn<T extends ConfigArgs> = (input: {
 ```
 ## EntityDuplicatorConfig
 
-<GenerationInfo sourceFile="packages/core/src/config/entity/entity-duplicator.ts" sourceLine="37" packageName="@vendure/core" since="2.2.0" />
+<GenerationInfo sourceFile="packages/core/src/config/entity/entity-duplicator.ts" sourceLine="36" packageName="@vendure/core" since="2.2.0" />
 
 Configuration for creating a new EntityDuplicator.
 

@@ -99,7 +99,6 @@ read, so a typo produces no error — the inline string is used instead.
 
 ```ts title="Signature"
 class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
-    protected readonly defType?: ConfigurableOperationDefType;
     code: string
     args: T
     description: LocalizedStringArray
@@ -114,11 +113,6 @@ class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
 ```
 
 <div className="members-wrapper">
-
-### defType
-
-<MemberInfo kind="property" type={`<a href='/reference/typescript-api/configurable-operation-def/configurable-operation-def-type#configurableoperationdeftype'>ConfigurableOperationDefType</a>`}   />
-
 
 ### code
 

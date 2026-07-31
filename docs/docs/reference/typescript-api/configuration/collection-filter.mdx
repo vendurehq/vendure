@@ -2,7 +2,7 @@
 title: "CollectionFilter"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/config/catalog/collection-filter.ts" sourceLine="65" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/catalog/collection-filter.ts" sourceLine="64" packageName="@vendure/core" />
 
 A CollectionFilter defines a rule which can be used to associate ProductVariants with a Collection.
 The filtering is done by defining the `apply()` function, which receives a TypeORM
@@ -46,7 +46,6 @@ export const skuCollectionFilter = new CollectionFilter({
 
 ```ts title="Signature"
 class CollectionFilter<T extends ConfigArgs = ConfigArgs> extends ConfigurableOperationDef<T> {
-    protected readonly defType: ConfigurableOperationDefType = 'CollectionFilter';
     constructor(config: CollectionFilterConfig<T>)
     apply(qb: SelectQueryBuilder<ProductVariant>, args: ConfigArg[]) => SelectQueryBuilder<ProductVariant>;
 }
@@ -56,11 +55,6 @@ class CollectionFilter<T extends ConfigArgs = ConfigArgs> extends ConfigurableOp
 
 
 <div className="members-wrapper">
-
-### defType
-
-<MemberInfo kind="property" type={`<a href='/reference/typescript-api/configurable-operation-def/configurable-operation-def-type#configurableoperationdeftype'>ConfigurableOperationDefType</a>`}   />
-
 
 ### apply
 
