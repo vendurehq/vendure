@@ -44,7 +44,7 @@ and the [useLingui hook](https://lingui.dev/ref/react#uselingui).
 
 Create a `lingui.config.js` file in your project root, with references to any plugins that need to be localized:
 
-```js title="lingui.config.js
+```js title="lingui.config.js"
 import { defineConfig } from '@lingui/cli';
 
 export default defineConfig({
@@ -87,10 +87,57 @@ Since we set the "sourceLocale" to be "en", the `en.po` file will already be com
 open up the `de.po` file and add German translations for each of the strings, by filling out the empty `msgstr` values:
 
 ```text title="de.po"
-#: test-plugins/reviews/dashboard/review-list.tsx:51
+#: src/plugins/reviews/dashboard/review-list.tsx:51
 msgid "Welcome to Dashboard"
 msgstr "Willkommen zum Dashboard" # [!code highlight]
 ```
+
+## Reducing merge conflicts in your .po files
+
+The `#:` comment above each message records where the string was found, down to the line number. Those
+line numbers are recalculated on every extraction, so any edit that shifts code up or down rewrites
+them — adding one import at the top of a file changes the recorded line of every string below it, even
+though none of the strings themselves changed.
+
+If several people work on the same plugin, this can make the `.po` files a recurring source of merge
+conflicts that have nothing to do with the translations. You can turn the line numbers off by passing an
+explicit PO formatter to your config:
+
+```js title="lingui.config.js"
+import { defineConfig } from '@lingui/cli';
+import { formatter } from '@lingui/format-po'; // [!code highlight]
+
+export default defineConfig({
+    sourceLocale: 'en',
+    locales: ['en', 'de'],
+    format: formatter({ lineNumbers: false }), // [!code highlight]
+    catalogs: [
+        {
+            path: '<rootDir>/src/plugins/reviews/dashboard/i18n/{locale}',
+            include: ['<rootDir>/src/plugins/reviews/dashboard/**'],
+        },
+    ],
+});
+```
+
+The references then keep the file path and drop the line number, which is usually enough context for a
+translator to find the string:
+
+```text title="de.po"
+#: src/plugins/reviews/dashboard/review-list.tsx
+msgid "Welcome to Dashboard"
+msgstr "Willkommen zum Dashboard"
+```
+
+The next `npx lingui extract` rewrites every reference in your catalogs, so expect one large diff when
+you first make this change. After that the references only change when a string genuinely moves to a
+different file.
+
+:::note
+`formatter` comes from `@lingui/format-po`, which is installed as part of the Lingui CLI. If your package
+manager enforces strict dependency resolution (pnpm, or Yarn PnP), add it to your project explicitly with
+`npm install --save-dev @lingui/format-po`.
+:::
 
 ## Contributing a translation of the Dashboard itself
 
