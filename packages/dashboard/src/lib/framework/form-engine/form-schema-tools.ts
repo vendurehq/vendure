@@ -37,6 +37,7 @@ function mapGraphQLCustomFieldToConfig(field: StructField) {
         readonly: false,
         requiresPermission: [],
         nullable: true, // Default to true since GraphQL fields are nullable by default
+        secret: false, // struct sub-fields cannot be secret
     };
 
     switch (field.__typename) {
