@@ -12,9 +12,7 @@ permitted to see it**.
 ## Enabling encryption
 
 Encryption requires a stable secret key. Configure an [`EncryptionStrategy`](/reference/typescript-api/configuration/encryption-strategy/)
-in your VendureConfig and pass it the secret. The strategy does not read the environment itself —
-following Vendure's convention, you read the environment variable in your config and pass the value
-in explicitly:
+in your VendureConfig, passing the secret key to its constructor:
 
 ```ts
 import { DefaultEncryptionStrategy, VendureConfig } from '@vendure/core';
@@ -70,7 +68,11 @@ This works for any configurable operation — payment method handlers and eligib
 shipping calculators and checkers, promotion conditions and actions, collection filters, and any
 custom `ConfigurableOperationDef` you define yourself. The encryption, redaction and
 preservation-on-edit behaviour is handled centrally, so a custom operation does not need to
-implement any of it. `secret` is only supported on non-list `string` args.
+implement any of it.
+
+`secret` is only supported on non-list `string` args. Encryption turns the value into an opaque
+ciphertext string, so the arg has to be a `string`; list args are not supported because the
+redaction placeholder that preserves an unchanged secret on edit stands for a single value.
 
 ## Who can read the value
 
