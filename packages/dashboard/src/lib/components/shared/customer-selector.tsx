@@ -140,7 +140,7 @@ function CreateCustomerForm({ onSubmit, onCancel }: Readonly<{ onSubmit: (input:
             <form
                 onSubmit={e => {
                     e.stopPropagation();
-                    form.handleSubmit(onSubmit)(e);
+                    form.handleSubmit(onSubmit)(e).catch(() => undefined);
                 }}
                 className="space-y-4"
             >

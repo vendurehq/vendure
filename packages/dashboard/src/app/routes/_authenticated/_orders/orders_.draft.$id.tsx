@@ -507,7 +507,12 @@ function DraftOrderPage() {
                             setCustomerForDraftOrder({ orderId: entity.id, customerId: customer.id });
                         }}
                         onCreateNew={async input => {
-                            await setCustomerForDraftOrder({ orderId: entity.id, input });
+                            const result = await setCustomerForDraftOrder({ orderId: entity.id, input });
+                            if (result.setCustomerForDraftOrder.__typename !== 'Order') {
+                                // ErrorResult, not a transport error — mutateAsync resolves, so throw to
+                                // keep the popover open with the entered values.
+                                throw new Error(result.setCustomerForDraftOrder.message);
+                            }
                         }}
                     />
                 </PageBlock>
