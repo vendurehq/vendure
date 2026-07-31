@@ -536,6 +536,23 @@ export function resolveInputComponentId(input: ConfigurableFieldDef): string | u
 }
 
 /**
+ * Mirrors `SECRET_PLACEHOLDER_PREFIX` from `@vendure/common`. It is inlined rather than imported
+ * because the dashboard is a browser bundle and importing the CommonJS build of `@vendure/common`
+ * as a runtime value fails under Vite. The prefix is version-independent by design, and a unit test
+ * asserts it against the real constant so the two cannot drift apart.
+ */
+const SECRET_PLACEHOLDER_PREFIX = '__vendure_secret_unchanged_';
+
+/**
+ * Returns true when a value is a secret redaction placeholder returned by the API in place of a
+ * secret the current user is not permitted to read. Matches any Vendure version's placeholder by
+ * prefix, so the internal sentinel is never surfaced to the user.
+ */
+export function isRedactedSecretValue(value: unknown): value is string {
+    return typeof value === 'string' && value.startsWith(SECRET_PLACEHOLDER_PREFIX);
+}
+
+/**
  * Determines if a field is nullable
  */
 export function isNullableField(input: ConfigurableFieldDef): boolean {
