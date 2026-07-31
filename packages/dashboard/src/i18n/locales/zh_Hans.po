@@ -362,7 +362,7 @@ msgid "Failed to create administrator"
 msgstr "创建管理员失败"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:402
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:98
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:100
 msgid "No"
 msgstr "否"
 
@@ -1072,7 +1072,7 @@ msgstr "单一变体，无选项"
 msgid "Select the next state for the order"
 msgstr "选择订单的下一个状态"
 
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:334
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:336
 msgid "{count} selected"
 msgstr "已选择 {count} 项"
 
@@ -2717,7 +2717,7 @@ msgid "Browse facets"
 msgstr "浏览分面"
 
 #. placeholder {0}: summary.count
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:178
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:180
 msgid "{0} items"
 msgstr ""
 
@@ -2763,7 +2763,7 @@ msgstr "保存视图"
 #: src/lib/components/data-table/data-table-bulk-actions.tsx:91
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:137
 #: src/lib/components/data-table/data-table-faceted-filter.tsx:139
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:94
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:96
 msgid "{0} selected"
 msgstr "已选择 {0} 个"
 
@@ -3145,7 +3145,7 @@ msgstr "已成功为 {entityIdsLength} {entityType} 更新属性值"
 msgid "Failed to remove customer from group"
 msgstr "从组中删除客户失败"
 
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:181
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:183
 msgid "1 property"
 msgstr ""
 
@@ -3839,7 +3839,7 @@ msgid "Select an address"
 msgstr "选择一个地址"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:401
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:98
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:100
 msgid "Yes"
 msgstr "是"
 
@@ -4194,6 +4194,10 @@ msgstr "创建角色失败"
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:253
 msgid "Product name"
 msgstr "商品名称"
+
+#: src/lib/components/data-input/password-form-input.tsx:34
+msgid "Hidden — you do not have permission to view this value"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:57
 msgid "Fulfillment state updated successfully"
@@ -5448,7 +5452,7 @@ msgid "Stock on hand"
 msgstr "现有库存"
 
 #. placeholder {0}: summary.count
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:181
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:183
 msgid "{0} properties"
 msgstr ""
 
@@ -6267,7 +6271,7 @@ msgstr "指标"
 msgid "Language"
 msgstr "语言"
 
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:178
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:180
 msgid "1 item"
 msgstr ""
 

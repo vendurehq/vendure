@@ -362,7 +362,7 @@ msgid "Failed to create administrator"
 msgstr "Failed to create administrator"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:402
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:98
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:100
 msgid "No"
 msgstr "No"
 
@@ -1072,7 +1072,7 @@ msgstr "Single variant, no options"
 msgid "Select the next state for the order"
 msgstr "Select the next state for the order"
 
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:334
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:336
 msgid "{count} selected"
 msgstr "{count} selected"
 
@@ -2717,7 +2717,7 @@ msgid "Browse facets"
 msgstr "Browse facets"
 
 #. placeholder {0}: summary.count
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:178
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:180
 msgid "{0} items"
 msgstr "{0} items"
 
@@ -2763,7 +2763,7 @@ msgstr "Save View"
 #: src/lib/components/data-table/data-table-bulk-actions.tsx:91
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:137
 #: src/lib/components/data-table/data-table-faceted-filter.tsx:139
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:94
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:96
 msgid "{0} selected"
 msgstr "{0} selected"
 
@@ -3145,7 +3145,7 @@ msgstr "Successfully updated facet values for {entityIdsLength} {entityType}"
 msgid "Failed to remove customer from group"
 msgstr "Failed to remove customer from group"
 
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:181
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:183
 msgid "1 property"
 msgstr "1 property"
 
@@ -3839,7 +3839,7 @@ msgid "Select an address"
 msgstr "Select an address"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:401
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:98
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:100
 msgid "Yes"
 msgstr "Yes"
 
@@ -4194,6 +4194,10 @@ msgstr "Failed to create role"
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:253
 msgid "Product name"
 msgstr "Product name"
+
+#: src/lib/components/data-input/password-form-input.tsx:34
+msgid "Hidden — you do not have permission to view this value"
+msgstr "Hidden — you do not have permission to view this value"
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:57
 msgid "Fulfillment state updated successfully"
@@ -5448,7 +5452,7 @@ msgid "Stock on hand"
 msgstr "Stock on hand"
 
 #. placeholder {0}: summary.count
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:181
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:183
 msgid "{0} properties"
 msgstr "{0} properties"
 
@@ -6267,7 +6271,7 @@ msgstr "Metrics"
 msgid "Language"
 msgstr "Language"
 
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:178
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:180
 msgid "1 item"
 msgstr "1 item"
 

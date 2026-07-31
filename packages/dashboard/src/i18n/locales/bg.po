@@ -365,7 +365,7 @@ msgid "Failed to create administrator"
 msgstr "Неуспешно създаване на администратор"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:402
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:98
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:100
 msgid "No"
 msgstr "Не"
 
@@ -1078,7 +1078,7 @@ msgstr "Единичен вариант, без опции"
 msgid "Select the next state for the order"
 msgstr "Изберете следващото състояние за поръчката"
 
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:334
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:336
 msgid "{count} selected"
 msgstr "{count} избрани"
 
@@ -2735,7 +2735,7 @@ msgid "Browse facets"
 msgstr "Преглед на атрибути"
 
 #. placeholder {0}: summary.count
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:178
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:180
 msgid "{0} items"
 msgstr ""
 
@@ -2781,7 +2781,7 @@ msgstr "Запазване на изгледа"
 #: src/lib/components/data-table/data-table-bulk-actions.tsx:91
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:137
 #: src/lib/components/data-table/data-table-faceted-filter.tsx:139
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:94
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:96
 msgid "{0} selected"
 msgstr "{0} избрани"
 
@@ -3165,7 +3165,7 @@ msgstr "Успешно актуализирани стойности на атр
 msgid "Failed to remove customer from group"
 msgstr "Неуспешно премахване на клиент от групата"
 
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:181
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:183
 msgid "1 property"
 msgstr ""
 
@@ -3859,7 +3859,7 @@ msgid "Select an address"
 msgstr "Изберете адрес"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:401
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:98
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:100
 msgid "Yes"
 msgstr "Да"
 
@@ -4214,6 +4214,10 @@ msgstr "Неуспешно създаване на роля"
 #: src/app/routes/_authenticated/_products/products_.$id.tsx:253
 msgid "Product name"
 msgstr "Име на продукта"
+
+#: src/lib/components/data-input/password-form-input.tsx:34
+msgid "Hidden — you do not have permission to view this value"
+msgstr ""
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:57
 msgid "Fulfillment state updated successfully"
@@ -5477,7 +5481,7 @@ msgid "Stock on hand"
 msgstr "Склад на ръка"
 
 #. placeholder {0}: summary.count
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:181
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:183
 msgid "{0} properties"
 msgstr ""
 
@@ -6299,7 +6303,7 @@ msgstr "Метрики"
 msgid "Language"
 msgstr "Език"
 
-#: src/lib/components/shared/configurable-operation-arg-summary.tsx:178
+#: src/lib/components/shared/configurable-operation-arg-summary.tsx:180
 msgid "1 item"
 msgstr ""
 
