@@ -233,7 +233,7 @@ msgstr "{deleted}개 {entityName}이(가) 삭제되었습니다"
 
 #: src/lib/components/shared/asset/asset-properties.tsx
 msgid "File Size"
-msgstr "파일 크기"
+msgstr "파일 용량"
 
 #: src/app/routes/_authenticated/_system/healthchecks.tsx
 #~ msgid "Healthchecks"
@@ -467,7 +467,7 @@ msgstr "세율"
 
 #: src/app/routes/_authenticated/_orders/components/draft-order-status.tsx
 msgid "Order draft isn't ready to be completed"
-msgstr "주문 임시 저장본은 완료할 준비가 되지 않았습니다"
+msgstr "임시 저장 주문은 완료할 준비가 되지 않았습니다"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
@@ -693,7 +693,7 @@ msgstr "기본 세금 지역"
 
 #: src/app/routes/_authenticated/_orders/components/draft-order-status.tsx
 msgid "Order draft is ready to be completed"
-msgstr "주문 임시 저장본을 완료할 준비가 되었습니다"
+msgstr "임시 저장 주문은 완료할 준비가 되었습니다"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
@@ -1467,7 +1467,7 @@ msgstr "주문의 고객 설정 실패: {0}"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Size"
-msgstr "크기"
+msgstr "용량"
 
 #. placeholder {0}: formatLanguageName(contentLanguage)
 #: src/lib/components/shared/translatable-form-field.tsx
@@ -1558,7 +1558,7 @@ msgstr "고객"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-calculator-selector.tsx
 msgid "Select Shipping Calculator"
-msgstr "배송료 계산기 선택"
+msgstr "배송비 계산 방식 선택"
 
 #: src/lib/components/layout/language-dialog.tsx
 msgid "Sample Formatting"
@@ -3298,7 +3298,7 @@ msgstr "판매자가 생성되었습니다"
 #. placeholder {1}: selectedChannelIds.length
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 msgid "Failed to assign {entityIdsLength} {entityType} to {0} of {1} channels"
-msgstr "{entityIdsLength}개 {entityType}을(를) {1}개 채널 중 {0}개에 할당하지 못했습니다"
+msgstr "{entityIdsLength}개 {entityType}을(를) {1}개 채널 중 {0}개에 할당 실패"
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 msgid "Successfully updated shipping method"
@@ -5628,7 +5628,7 @@ msgstr "이 변경사항에는 결제 또는 환불이 필요하지 않습니다
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
-msgstr "{cancellableCount, plural, other {{cancellableCount}개 작업을 취소하시겠습니까? 이 작업은 되돌릴 수 없습니다.}}"
+msgstr "{cancellableCount, plural, other {{cancellableCount}개 작업을 취소하시겠습니까? 취소하면 되돌릴 수 없습니다.}}"
 
 #: src/lib/framework/dashboard-widget/orders-summary/index.tsx
 msgid "Total Revenue"

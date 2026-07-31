@@ -1570,7 +1570,7 @@ msgstr "顧客"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-calculator-selector.tsx
 msgid "Select Shipping Calculator"
-msgstr "配送料計算機を選択"
+msgstr "配送料の計算方法を選択"
 
 #: src/lib/components/layout/language-dialog.tsx
 msgid "Sample Formatting"
@@ -5713,7 +5713,7 @@ msgstr "これらの変更には支払いまたは返金は必要ありません
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
-msgstr "{cancellableCount, plural, other {{cancellableCount} 件のジョブをキャンセルしてもよろしいですか？この操作は元に戻せません。}}"
+msgstr "{cancellableCount, plural, other {{cancellableCount} 件のジョブをキャンセルしてもよろしいですか？この操作は取り消せません。}}"
 
 #: src/lib/framework/dashboard-widget/orders-summary/index.tsx
 msgid "Total Revenue"
