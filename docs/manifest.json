@@ -1379,7 +1379,7 @@
                   "lastModified": "2026-07-31T11:59:25Z"
                 }
               ],
-              "lastModified": "2026-07-31T11:59:25Z"
+              "lastModified": "2026-07-31T14:43:47Z"
             },
             {
               "title": "Configuration",
@@ -1396,7 +1396,7 @@
                   "title": "CollectionFilter",
                   "slug": "collection-filter",
                   "file": "docs/reference/typescript-api/configuration/collection-filter.mdx",
-                  "lastModified": "2026-07-31T11:59:25Z"
+                  "lastModified": "2026-07-31T14:43:47Z"
                 },
                 {
                   "title": "DefaultConfig",
@@ -1420,7 +1420,7 @@
                   "title": "EntityDuplicator",
                   "slug": "entity-duplicator",
                   "file": "docs/reference/typescript-api/configuration/entity-duplicator.mdx",
-                  "lastModified": "2026-07-31T11:59:25Z"
+                  "lastModified": "2026-07-31T14:43:47Z"
                 },
                 {
                   "title": "EntityId Decorator",
@@ -2034,7 +2034,7 @@
                   "title": "FulfillmentHandler",
                   "slug": "fulfillment-handler",
                   "file": "docs/reference/typescript-api/fulfillment/fulfillment-handler.mdx",
-                  "lastModified": "2026-07-31T11:59:25Z"
+                  "lastModified": "2026-07-31T14:43:47Z"
                 },
                 {
                   "title": "FulfillmentProcess",
@@ -2572,25 +2572,25 @@
                   "title": "Payment Method Types",
                   "slug": "payment-method-types",
                   "file": "docs/reference/typescript-api/payment/payment-method-types.mdx",
-                  "lastModified": "2026-07-31T11:59:25Z"
+                  "lastModified": "2026-07-31T14:43:47Z"
                 },
                 {
                   "title": "PaymentMethodConfigOptions",
                   "slug": "payment-method-config-options",
                   "file": "docs/reference/typescript-api/payment/payment-method-config-options.mdx",
-                  "lastModified": "2026-07-31T11:59:25Z"
+                  "lastModified": "2026-07-31T14:43:47Z"
                 },
                 {
                   "title": "PaymentMethodEligibilityChecker",
                   "slug": "payment-method-eligibility-checker",
                   "file": "docs/reference/typescript-api/payment/payment-method-eligibility-checker.mdx",
-                  "lastModified": "2026-07-31T11:59:25Z"
+                  "lastModified": "2026-07-31T14:43:47Z"
                 },
                 {
                   "title": "PaymentMethodHandler",
                   "slug": "payment-method-handler",
                   "file": "docs/reference/typescript-api/payment/payment-method-handler.mdx",
-                  "lastModified": "2026-07-31T11:59:25Z"
+                  "lastModified": "2026-07-31T14:43:47Z"
                 },
                 {
                   "title": "PaymentOptions",
@@ -2752,13 +2752,13 @@
                   "title": "Promotion Action",
                   "slug": "promotion-action",
                   "file": "docs/reference/typescript-api/promotions/promotion-action.mdx",
-                  "lastModified": "2026-07-31T11:59:25Z"
+                  "lastModified": "2026-07-31T14:43:47Z"
                 },
                 {
                   "title": "Promotion Condition",
                   "slug": "promotion-condition",
                   "file": "docs/reference/typescript-api/promotions/promotion-condition.mdx",
-                  "lastModified": "2026-07-31T11:59:25Z"
+                  "lastModified": "2026-07-31T14:43:47Z"
                 },
                 {
                   "title": "PromotionOptions",
@@ -3244,7 +3244,7 @@
                   "title": "CheckShippingEligibilityCheckerFn",
                   "slug": "check-shipping-eligibility-checker-fn",
                   "file": "docs/reference/typescript-api/shipping/check-shipping-eligibility-checker-fn.mdx",
-                  "lastModified": "2026-07-31T11:59:25Z"
+                  "lastModified": "2026-07-31T14:43:47Z"
                 },
                 {
                   "title": "DefaultShippingLineAssignmentStrategy",
@@ -3256,19 +3256,19 @@
                   "title": "ShippingCalculator",
                   "slug": "shipping-calculator",
                   "file": "docs/reference/typescript-api/shipping/shipping-calculator.mdx",
-                  "lastModified": "2026-07-31T11:59:25Z"
+                  "lastModified": "2026-07-31T14:43:47Z"
                 },
                 {
                   "title": "ShippingEligibilityChecker",
                   "slug": "shipping-eligibility-checker",
                   "file": "docs/reference/typescript-api/shipping/shipping-eligibility-checker.mdx",
-                  "lastModified": "2026-07-31T11:59:25Z"
+                  "lastModified": "2026-07-31T14:43:47Z"
                 },
                 {
                   "title": "ShippingEligibilityCheckerConfig",
                   "slug": "shipping-eligibility-checker-config",
                   "file": "docs/reference/typescript-api/shipping/shipping-eligibility-checker-config.mdx",
-                  "lastModified": "2026-07-31T11:59:25Z"
+                  "lastModified": "2026-07-31T14:43:47Z"
                 },
                 {
                   "title": "ShippingLineAssignmentStrategy",
@@ -3286,7 +3286,7 @@
                   "title": "ShouldRunCheckFn",
                   "slug": "should-run-check-fn",
                   "file": "docs/reference/typescript-api/shipping/should-run-check-fn.mdx",
-                  "lastModified": "2026-07-31T11:59:25Z"
+                  "lastModified": "2026-07-31T14:43:47Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
