@@ -45,7 +45,7 @@ msgstr "새 세율"
 
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx
 msgid "Assign an existing option group or create a new one"
-msgstr ""
+msgstr "기존 옵션 그룹을 할당하거나 새로 만드세요"
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx
@@ -67,7 +67,7 @@ msgstr "링크 편집"
 
 #: src/app/routes/_authenticated/_orders/components/draft-order-status.tsx
 msgid "Add at least one item to the order"
-msgstr ""
+msgstr "주문에 항목을 하나 이상 추가하세요"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-order-builder.tsx
 msgid "Add products to create a test order"
@@ -84,7 +84,7 @@ msgstr "모두 토글"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 msgid "Edit JSON value"
-msgstr ""
+msgstr "JSON 값 편집"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
 msgid "Using external authentication strategy: {strategy}"
@@ -92,7 +92,7 @@ msgstr "외부 인증 전략 사용: {strategy}"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Select a reason..."
-msgstr ""
+msgstr "사유 선택..."
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Heading 5"
@@ -155,15 +155,15 @@ msgstr "세율이 업데이트되었습니다"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Enter custom reason..."
-msgstr ""
+msgstr "사용자 지정 사유 입력..."
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Type"
-msgstr ""
+msgstr "유형"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "The default currency is chosen from this list."
-msgstr ""
+msgstr "기본 통화는 이 목록에서 선택됩니다."
 
 #. placeholder {0}: entityName.toLowerCase()
 #. placeholder {0}: group.name
@@ -175,7 +175,7 @@ msgstr "{0} 선택"
 #. placeholder {0}: selectedItems.length
 #: src/lib/components/data-input/relation-selector.tsx
 msgid "Add more ({0} selected)"
-msgstr ""
+msgstr "더 추가 ({0}개 선택됨)"
 
 #: src/app/routes/_authenticated/_facets/facets.tsx
 msgid "View values"
@@ -193,7 +193,7 @@ msgstr "조건"
 #: src/lib/components/layout/channel-switcher.tsx
 msgctxt "current channel"
 msgid "Current"
-msgstr ""
+msgstr "현재"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
 msgid "No fulfillments"
@@ -204,7 +204,7 @@ msgstr "이행 없음"
 #. placeholder {2}: failed.length
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
 msgid "{0, plural, one {Failed to delete {1} stock location: {messages}} other {Failed to delete {2} stock locations: {messages}}}"
-msgstr ""
+msgstr "{0, plural, other {{2}개 재고 위치 삭제 실패: {messages}}}"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
@@ -233,7 +233,7 @@ msgstr "{deleted}개 {entityName}이(가) 삭제되었습니다"
 
 #: src/lib/components/shared/asset/asset-properties.tsx
 msgid "File Size"
-msgstr ""
+msgstr "파일 크기"
 
 #: src/app/routes/_authenticated/_system/healthchecks.tsx
 #~ msgid "Healthchecks"
@@ -247,11 +247,11 @@ msgstr "판매자"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Options"
-msgstr ""
+msgstr "옵션"
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 msgid "{fulfilled, plural, one {Successfully cancelled {fulfilled} job} other {Successfully cancelled {fulfilled} jobs}}"
-msgstr ""
+msgstr "{fulfilled, plural, other {{fulfilled}개 작업이 취소되었습니다}}"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Seller"
@@ -259,11 +259,11 @@ msgstr "판매자"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "SKU:"
-msgstr ""
+msgstr "SKU:"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
 msgid "Add payment"
-msgstr ""
+msgstr "결제 추가"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-shipping-method-sheet.tsx
 msgid "Test this shipping method by simulating an order to see if it's eligible and what the shipping cost would be."
@@ -296,7 +296,7 @@ msgstr "주문"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 msgid "Select roles"
-msgstr ""
+msgstr "역할 선택"
 
 #: src/app/routes/_authenticated/_roles/roles_.$id.tsx
 msgid "Successfully created role"
@@ -312,11 +312,11 @@ msgstr "이 변형을 삭제하시겠습니까?"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 msgid "Failed to create administrator"
-msgstr ""
+msgstr "관리자 생성 실패"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 msgid "No"
-msgstr ""
+msgstr "아니요"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Successfully updated product variant"
@@ -376,7 +376,7 @@ msgstr "알 수 없는 오류"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "Refund total cannot be negative"
-msgstr ""
+msgstr "환불 합계는 음수일 수 없습니다"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
 msgid "View details"
@@ -393,7 +393,7 @@ msgstr "고객이 생성되었습니다"
 #: src/lib/components/date-range-picker.tsx
 msgctxt "date-range"
 msgid "Last 7 days"
-msgstr ""
+msgstr "최근 7일"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
@@ -415,7 +415,7 @@ msgstr "에셋 삭제 실패: {message}"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Return to stock"
-msgstr ""
+msgstr "재고로 반환"
 
 #: src/app/routes/_authenticated/_facets/facets.tsx
 msgid "Visibility"
@@ -423,7 +423,7 @@ msgstr "공개 설정"
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Product variants"
-msgstr ""
+msgstr "상품 변형"
 
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx
 #: src/app/routes/_authenticated/_customer-groups/customer-groups_.$id.tsx
@@ -442,11 +442,11 @@ msgstr "이름 변경"
 
 #: src/lib/components/layout/language-dialog.tsx
 msgid "Choose your preferred display language and locale settings"
-msgstr ""
+msgstr "원하는 표시 언어와 로케일 설정을 선택하세요"
 
 #: src/app/routes/_authenticated/_option-groups/components/option-group-bulk-actions.tsx
 msgid "Successfully removed {successCount} option groups from channel"
-msgstr ""
+msgstr "채널에서 {successCount}개 옵션 그룹이 제거되었습니다"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-method-result.tsx
 msgid "Shipping method is not eligible for this order"
@@ -467,7 +467,7 @@ msgstr "세율"
 
 #: src/app/routes/_authenticated/_orders/components/draft-order-status.tsx
 msgid "Order draft isn't ready to be completed"
-msgstr ""
+msgstr "주문 임시 저장본은 완료할 준비가 되지 않았습니다"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
@@ -476,7 +476,7 @@ msgstr "새 컬렉션"
 
 #: src/app/routes/_authenticated/index.tsx
 msgid "Insights"
-msgstr ""
+msgstr "인사이트"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 msgid "Run"
@@ -496,11 +496,11 @@ msgstr "비공개"
 
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx
 msgid "Successfully created product option"
-msgstr ""
+msgstr "상품 옵션이 생성되었습니다"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Parent product"
-msgstr ""
+msgstr "상위 상품"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 #: src/lib/components/shared/customer-address-form.tsx
@@ -519,7 +519,7 @@ msgstr "총 가격: <0/>"
 
 #: src/lib/components/data-table/data-table-pagination.tsx
 msgid "Go to next page"
-msgstr ""
+msgstr "다음 페이지로 이동"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx
 msgid "Remove link"
@@ -527,16 +527,16 @@ msgstr "링크 제거"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 msgid "This field is readonly"
-msgstr ""
+msgstr "이 필드는 읽기 전용입니다"
 
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "Order Count"
-msgstr ""
+msgstr "주문 수"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "You must first select an available currency to set a default currency"
-msgstr ""
+msgstr "기본 통화를 설정하려면 먼저 사용 가능한 통화를 선택해야 합니다"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
@@ -561,7 +561,7 @@ msgstr "주문의 배송 주소가 해제됨"
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 msgid "Create {enabledCount} variants"
-msgstr ""
+msgstr "{enabledCount}개 변형 생성"
 
 #. placeholder {0}: entry.data.paymentId
 #. placeholder {1}: entry.data.to
@@ -593,7 +593,7 @@ msgstr "이후"
 
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx
 msgid "Successfully updated product option"
-msgstr ""
+msgstr "상품 옵션이 업데이트되었습니다"
 
 #: src/app/routes/_authenticated/_product-variants/components/product-variant-bulk-actions.tsx
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx
@@ -621,7 +621,7 @@ msgstr "역할"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Grid view"
-msgstr ""
+msgstr "그리드 보기"
 
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 msgid "Failed to delete address"
@@ -645,11 +645,11 @@ msgstr "{selectionLength}개 에셋을 삭제하시겠습니까?"
 
 #: src/lib/components/login/login-form.tsx
 msgid "Sign in"
-msgstr ""
+msgstr "로그인"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "List view"
-msgstr ""
+msgstr "목록 보기"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-order-builder.tsx
 msgid "Test Order"
@@ -657,11 +657,11 @@ msgstr "테스트 주문"
 
 #: src/app/routes/_authenticated/_orders/components/draft-order-status.tsx
 msgid "Select a customer to continue"
-msgstr ""
+msgstr "계속하려면 고객을 선택하세요"
 
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx
 msgid "Successfully assigned option group"
-msgstr ""
+msgstr "옵션 그룹이 할당되었습니다"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-method-test-result-wrapper.tsx
 msgid "Run Test"
@@ -693,7 +693,7 @@ msgstr "기본 세금 지역"
 
 #: src/app/routes/_authenticated/_orders/components/draft-order-status.tsx
 msgid "Order draft is ready to be completed"
-msgstr ""
+msgstr "주문 임시 저장본을 완료할 준비가 되었습니다"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
@@ -703,7 +703,7 @@ msgstr "메타데이터"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to set shipping method for order: {0}"
-msgstr ""
+msgstr "주문의 배송 방법 설정 실패: {0}"
 
 #: src/app/routes/_authenticated/_option-groups/components/option-group-products-block.tsx
 #: src/lib/components/data-table/data-table.tsx
@@ -721,7 +721,7 @@ msgstr "채널이 업데이트되었습니다"
 
 #: src/lib/components/shared/history-timeline/history-timeline-with-grouping.tsx
 msgid "Show less"
-msgstr ""
+msgstr "간략히 보기"
 
 #: src/lib/components/layout/language-dialog.tsx
 msgid "Short date"
@@ -738,11 +738,11 @@ msgstr "{0}개 항목 선택"
 
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx
 msgid "Placed At"
-msgstr ""
+msgstr "주문 일시"
 
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx
 msgid "Rotating this key will immediately invalidate the current key. Any integrations using it will stop working until updated with the new key."
-msgstr ""
+msgstr "이 키를 교체하면 현재 키가 즉시 무효화됩니다. 이 키를 사용하는 모든 연동은 새 키로 업데이트할 때까지 작동이 중단됩니다."
 
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 msgid "The data that has been passed to the job"
@@ -805,7 +805,7 @@ msgstr "이 환불 정산의 거래 ID를 입력하세요"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 msgid "Your API Key"
-msgstr ""
+msgstr "내 API 키"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Are you sure you want to delete this draft order?"
@@ -824,16 +824,16 @@ msgstr "{0}개의 적합한 배송 방법을 찾았습니다"
 #: src/lib/components/shared/asset/asset-gallery.tsx
 #: src/lib/components/shared/asset/asset-properties.tsx
 msgid "Dimensions"
-msgstr ""
+msgstr "크기"
 
 #: src/lib/components/ui/password-input.tsx
 msgid "Show password"
-msgstr ""
+msgstr "비밀번호 표시"
 
 #. placeholder {0}: formatCurrency(refund.totalRefundableAmount, order.currencyCode)
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "(max: {0})"
-msgstr ""
+msgstr "(최대: {0})"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 #: src/lib/components/shared/customer-address-form.tsx
@@ -853,7 +853,7 @@ msgstr "작업"
 
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx
 msgid "Discounts"
-msgstr ""
+msgstr "할인"
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 msgid "Enter refund note"
@@ -865,11 +865,11 @@ msgstr "주문 항목이 제거되었습니다"
 
 #: src/lib/components/layout/channel-switcher.tsx
 msgid "Content:"
-msgstr ""
+msgstr "내용:"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 msgid "Key"
-msgstr ""
+msgstr "키"
 
 #: src/lib/components/login/login-form.tsx
 #~ msgid "Username"
@@ -883,7 +883,7 @@ msgstr "확인"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to complete draft order: {0}"
-msgstr ""
+msgstr "임시 저장 주문 완료 실패: {0}"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
 msgid "Failed to create collection"
@@ -891,7 +891,7 @@ msgstr "컬렉션 생성 실패"
 
 #: src/lib/components/data-table/data-table-pagination.tsx
 msgid "Go to first page"
-msgstr ""
+msgstr "첫 페이지로 이동"
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Failed to create product"
@@ -920,7 +920,7 @@ msgstr "초점"
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Single variant, no options"
-msgstr ""
+msgstr "단일 변형, 옵션 없음"
 
 #: src/app/routes/_authenticated/_orders/components/use-transition-order-to-state.tsx
 msgid "Select the next state for the order"
@@ -995,7 +995,7 @@ msgstr "배송지 주소가 변경되었습니다"
 
 #: src/app/routes/_authenticated/_option-groups/components/option-group-products-block.tsx
 msgid "No products found"
-msgstr ""
+msgstr "상품을 찾을 수 없습니다"
 
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Add row before"
@@ -1008,7 +1008,7 @@ msgstr "{suggestedState}(으)로 전환"
 #: src/lib/components/date-range-picker.tsx
 msgctxt "date-range"
 msgid "This month"
-msgstr ""
+msgstr "이번 달"
 
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx
 msgid "Failed to create facet"
@@ -1016,7 +1016,7 @@ msgstr "속성 생성 실패"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "Failed to cancel order items"
-msgstr ""
+msgstr "주문 항목 취소 실패"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
@@ -1036,15 +1036,15 @@ msgstr "할당됨"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to set coupon code for order: {0}"
-msgstr ""
+msgstr "주문의 쿠폰 코드 설정 실패: {0}"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
 msgid "Select what to do with remaining stock"
-msgstr ""
+msgstr "남은 재고의 처리 방법을 선택하세요"
 
 #: src/lib/components/layout/nav-user.tsx
 msgid "Explore Platform & Cloud"
-msgstr ""
+msgstr "Platform & Cloud 살펴보기"
 
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 msgid "Every 5 seconds"
@@ -1071,11 +1071,11 @@ msgstr "임시 저장 주문"
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 msgid "Scope"
-msgstr ""
+msgstr "범위"
 
 #: src/app/routes/_authenticated/_promotions/components/promotion-conditions-selector.tsx
 msgid "Add condition"
-msgstr ""
+msgstr "조건 추가"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-method-result.tsx
 msgid "Shipping method is eligible for this order"
@@ -1100,7 +1100,7 @@ msgstr "결제 또는 환불 불필요"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 msgid "Download as .env file"
-msgstr ""
+msgstr ".env 파일로 다운로드"
 
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx
 msgid "When enabled, a promotion is available in the shop"
@@ -1122,12 +1122,12 @@ msgstr "프로모션 업데이트 실패"
 #: src/lib/components/shared/asset/asset-gallery.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Images"
-msgstr ""
+msgstr "이미지"
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts
 msgid "API Keys"
-msgstr ""
+msgstr "API 키"
 
 #: src/app/routes/_authenticated/_products/components/product-option-select.tsx
 msgid "Search {name}..."
@@ -1158,7 +1158,7 @@ msgstr "이메일 주소"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to remove coupon code from order: {0}"
-msgstr ""
+msgstr "주문에서 쿠폰 코드 제거 실패: {0}"
 
 #: src/lib/components/data-input/slug-input.tsx
 #: src/lib/components/data-input/slug-input.tsx
@@ -1182,7 +1182,7 @@ msgstr "결과를 찾을 수 없습니다"
 
 #: src/app/routes/_authenticated/_orders/components/draft-order-status.tsx
 msgid "Set a shipping address and select a shipping method"
-msgstr ""
+msgstr "배송지 주소를 설정하고 배송 방법을 선택하세요"
 
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 msgid "Off"
@@ -1191,7 +1191,7 @@ msgstr "끄기"
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 msgid "Settings Store"
-msgstr ""
+msgstr "설정 저장소"
 
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 msgid "Queue"
@@ -1223,7 +1223,7 @@ msgstr "가격에 기본 세금 지역의 세금이 포함됩니다"
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "This field is required"
-msgstr ""
+msgstr "이 필드는 필수입니다"
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 msgid "Total refund:"
@@ -1245,7 +1245,7 @@ msgstr "선택한 항목 없음"
 #. placeholder {0}: selected.length
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid ", {0} selected"
-msgstr ""
+msgstr ", {0}개 선택됨"
 
 #: src/lib/components/shared/country-selector.tsx
 msgid "No countries found"
@@ -1253,7 +1253,7 @@ msgstr "국가를 찾을 수 없습니다"
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 msgid "Successfully created variants"
-msgstr ""
+msgstr "변형이 생성되었습니다"
 
 #: src/lib/components/data-input/slug-input.tsx
 #: src/lib/components/data-input/slug-input.tsx
@@ -1292,11 +1292,11 @@ msgstr "결제 상태가 업데이트되었습니다"
 
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx
 msgid "Create new"
-msgstr ""
+msgstr "새로 만들기"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Refund total"
-msgstr ""
+msgstr "환불 합계"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
@@ -1305,11 +1305,11 @@ msgstr "주소가 삭제되었습니다"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 msgid "Only roles assigned to your account are available."
-msgstr ""
+msgstr "계정에 할당된 역할만 사용할 수 있습니다."
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
-msgstr ""
+msgstr "{cancellableCount, plural, other {{cancellableCount}개 작업 취소}}"
 
 #: src/lib/components/data-input/product-multi-selector-input.tsx
 msgid "{buttonText}"
@@ -1321,7 +1321,7 @@ msgstr "주문에 항목이 추가되었습니다"
 
 #: src/lib/components/shared/asset/asset-preview.tsx
 msgid "Edit focal point"
-msgstr ""
+msgstr "초점 편집"
 
 #: src/lib/components/shared/seller-selector.tsx
 #~ msgid "No sellers found"
@@ -1329,11 +1329,11 @@ msgstr ""
 
 #: src/lib/components/shared/asset/asset-preview-dialog.tsx
 msgid "Asset"
-msgstr ""
+msgstr "에셋"
 
 #: src/app/routes/_authenticated/_products/components/shared-option-group-warning.tsx
 msgid "{productCount, plural, one {This option group is used by one other product. Changes will affect it too.} other {This option group is shared across # products. Changes will affect all of them.}}"
-msgstr ""
+msgstr "{productCount, plural, one {이 옵션 그룹은 다른 상품 하나에서 사용 중입니다. 변경 사항은 해당 상품에도 영향을 줍니다.} other {이 옵션 그룹은 # 개 상품에서 공유됩니다. 변경 사항은 모든 상품에 영향을 줍니다.}}"
 
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "My Saved Views"
@@ -1351,11 +1351,11 @@ msgstr "판매자 생성 실패"
 #. placeholder {0}: entityName.toLowerCase()
 #: src/app/common/duplicate-entity-dialog.tsx
 msgid "Configure duplication settings for {0}s"
-msgstr ""
+msgstr "{0} 복제 설정 구성"
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 msgid "No variants match the current filter."
-msgstr ""
+msgstr "현재 필터와 일치하는 변형이 없습니다."
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
@@ -1364,7 +1364,7 @@ msgstr "주소"
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 msgid "Add a new option value to the {groupName} option group"
-msgstr ""
+msgstr "{groupName} 옵션 그룹에 새 옵션 값 추가"
 
 #. placeholder {0}: entry.data.modificationId
 #: src/app/routes/_authenticated/_orders/components/order-history/default-order-history-components.tsx
@@ -1424,7 +1424,7 @@ msgstr "프로모션이 업데이트되었습니다"
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 msgid "{rejected, plural, one {Failed to cancel {rejected} job} other {Failed to cancel {rejected} jobs}}"
-msgstr ""
+msgstr "{rejected, plural, other {{rejected}개 작업 취소 실패}}"
 
 #: src/lib/components/shared/channel-selector.tsx
 msgid "Select a channel"
@@ -1441,11 +1441,11 @@ msgstr "이행 세부정보"
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
 msgid "Discard remaining stock"
-msgstr ""
+msgstr "남은 재고 폐기"
 
 #: src/lib/components/data-input/datetime-input.tsx
 msgid "Now"
-msgstr ""
+msgstr "지금"
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts
@@ -1463,11 +1463,11 @@ msgstr "이전"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to set customer for order: {0}"
-msgstr ""
+msgstr "주문의 고객 설정 실패: {0}"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Size"
-msgstr ""
+msgstr "크기"
 
 #. placeholder {0}: formatLanguageName(contentLanguage)
 #: src/lib/components/shared/translatable-form-field.tsx
@@ -1480,7 +1480,7 @@ msgstr "새 고객"
 
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx
 msgid "Latest Orders"
-msgstr ""
+msgstr "최근 주문"
 
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "+ {leftOver} more"
@@ -1535,7 +1535,7 @@ msgstr "뷰 이름 변경 실패"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Available"
-msgstr ""
+msgstr "사용 가능"
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Normal"
@@ -1558,7 +1558,7 @@ msgstr "고객"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-calculator-selector.tsx
 msgid "Select Shipping Calculator"
-msgstr ""
+msgstr "배송료 계산기 선택"
 
 #: src/lib/components/layout/language-dialog.tsx
 msgid "Sample Formatting"
@@ -1600,7 +1600,7 @@ msgstr "{0}을(를) 이동할 대상 컬렉션을 선택하세요."
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to unset billing address for order: {0}"
-msgstr ""
+msgstr "주문의 청구지 주소 해제 실패: {0}"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Customer details updated"
@@ -1620,7 +1620,7 @@ msgstr "새 상품 옵션"
 
 #: src/lib/components/data-table/data-table-pagination.tsx
 msgid "Go to last page"
-msgstr ""
+msgstr "마지막 페이지로 이동"
 
 #: src/app/common/duplicate-entity-dialog.tsx
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx
@@ -1654,7 +1654,7 @@ msgstr "취소"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to update order custom fields: {0}"
-msgstr ""
+msgstr "주문 사용자 정의 필드 업데이트 실패: {0}"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx
@@ -1685,7 +1685,7 @@ msgstr "새 세금 카테고리"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "Partial refund completed"
-msgstr ""
+msgstr "부분 환불이 완료되었습니다"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Set custom fields"
@@ -1699,11 +1699,11 @@ msgstr "컬렉션"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-eligibility-checker-selector.tsx
 msgid "Select Shipping Eligibility Checker"
-msgstr ""
+msgstr "배송 적격성 확인 선택"
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 msgid "Delete variant"
-msgstr ""
+msgstr "변형 삭제"
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
 msgid "No modifications made"
@@ -1715,7 +1715,7 @@ msgstr "기본 배송 지역"
 
 #: src/app/routes/_authenticated/_orders/components/order-history/default-order-history-components.tsx
 msgid "Reason:"
-msgstr ""
+msgstr "사유:"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
@@ -1794,7 +1794,7 @@ msgstr "채널 설정을 볼 수 있는 권한이 없습니다"
 #: src/lib/components/date-range-picker.tsx
 msgctxt "date-range"
 msgid "Last 30 days"
-msgstr ""
+msgstr "최근 30일"
 
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx
 msgid "No facet values"
@@ -1802,11 +1802,11 @@ msgstr "속성 값 없음"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "A reason for the refund is required"
-msgstr ""
+msgstr "환불 사유가 필요합니다"
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Could not remove option group"
-msgstr ""
+msgstr "옵션 그룹을 제거할 수 없습니다"
 
 #: src/app/routes/_authenticated/_tax-categories/tax-categories_.$id.tsx
 msgid "Failed to update tax category"
@@ -1912,7 +1912,7 @@ msgstr "열 설정"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
 msgid "{count, plural, one {Failed to delete {count} stock location} other {Failed to delete {count} stock locations}}"
-msgstr ""
+msgstr "{count, plural, other {{count}개 재고 위치 삭제 실패}}"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx
@@ -1930,7 +1930,7 @@ msgstr "코드"
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Failed to remove option groups"
-msgstr ""
+msgstr "옵션 그룹 제거 실패"
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 msgid "Order delivered"
@@ -1938,15 +1938,15 @@ msgstr "주문이 배송되었습니다"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
 msgid "Transfer to {name}"
-msgstr ""
+msgstr "{name}(으)로 이전"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
 msgid "Remaining stock"
-msgstr ""
+msgstr "남은 재고"
 
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
 msgid "Remove from zone"
-msgstr ""
+msgstr "지역에서 제거"
 
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "Select from globally available languages for this channel"
@@ -1958,7 +1958,7 @@ msgstr "이 주소를 삭제하시겠습니까?"
 
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx
 msgid "Failed to assign option group"
-msgstr ""
+msgstr "옵션 그룹 할당 실패"
 
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx
 msgid "Failed to update asset"
@@ -2006,13 +2006,13 @@ msgstr "메모 업데이트 실패"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Refund shipping"
-msgstr ""
+msgstr "배송비 환불"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 msgid "Readonly"
-msgstr ""
+msgstr "읽기 전용"
 
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Failed to duplicate global view"
@@ -2020,7 +2020,7 @@ msgstr "전역 뷰 복제 실패"
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 msgid "Showing {shown} of {total} • {selected} selected"
-msgstr ""
+msgstr "{total}개 중 {shown}개 표시 • {selected}개 선택됨"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-single-shipping-method-sheet.tsx
 msgid "Test Shipping Method"
@@ -2041,7 +2041,7 @@ msgstr "테마"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "You must select at least one available currency"
-msgstr ""
+msgstr "사용 가능한 통화를 하나 이상 선택해야 합니다"
 
 #. placeholder {0}: value.totalItems
 #: src/app/routes/_authenticated/_customer-groups/customer-groups.tsx
@@ -2052,7 +2052,7 @@ msgstr "{0}명의 고객"
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx
 msgid "API Keys"
-msgstr ""
+msgstr "API 키"
 
 #: src/lib/components/shared/language-selector.tsx
 msgid "Select a language"
@@ -2415,7 +2415,7 @@ msgstr "컬렉션이 성공적으로 이동되었습니다"
 
 #: src/lib/components/data-input/relation-selector.tsx
 msgid "Change selection"
-msgstr ""
+msgstr "선택 변경"
 
 #: src/app/routes/_authenticated/_customers/components/customer-status-badge.tsx
 msgid "Registered"
@@ -2424,7 +2424,7 @@ msgstr "등록됨"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to set shipping address for order: {0}"
-msgstr ""
+msgstr "주문의 배송지 주소 설정 실패: {0}"
 
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 msgid "Cancel Job"
@@ -2438,7 +2438,7 @@ msgstr "종료 일시"
 #. placeholder {1}: table.getPageCount() || 1
 #: src/lib/components/data-table/data-table-pagination.tsx
 msgid "Page {0} of {1}"
-msgstr ""
+msgstr "{1} 페이지 중 {0} 페이지"
 
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 msgid "Rate"
@@ -2446,12 +2446,12 @@ msgstr "요율"
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Size, colour, etc."
-msgstr ""
+msgstr "크기, 색상 등"
 
 #: src/lib/components/shared/facet-value-selector.tsx
 #: src/lib/components/shared/facet-value-selector.tsx
 msgid "Browse facets"
-msgstr ""
+msgstr "속성 탐색"
 
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
@@ -2486,7 +2486,7 @@ msgstr "배송됨"
 
 #: src/lib/components/data-table/save-view-button.tsx
 msgid "Save View"
-msgstr ""
+msgstr "뷰 저장"
 
 #. placeholder {0}: selection.length
 #: src/lib/components/data-table/data-table-bulk-actions.tsx
@@ -2496,7 +2496,7 @@ msgstr "{0}개 선택됨"
 
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx
 msgid "Search option groups..."
-msgstr ""
+msgstr "옵션 그룹 검색..."
 
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 msgid "Modify order"
@@ -2548,7 +2548,7 @@ msgstr "새 지역"
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx
 msgid "New API Key"
-msgstr ""
+msgstr "새 API 키"
 
 #: src/lib/components/shared/rich-text-editor/table-edit-icons.tsx
 msgid "Delete column"
@@ -2556,7 +2556,7 @@ msgstr "열 삭제"
 
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx
 msgid "Assign existing"
-msgstr ""
+msgstr "기존 항목 할당"
 
 #: src/lib/components/data-table/filters/data-table-enum-filter.tsx
 #: src/lib/components/data-table/human-readable-operator.tsx
@@ -2577,7 +2577,7 @@ msgstr "기본 채널"
 
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx
 msgid "Insert a new image with source, title, and dimensions"
-msgstr ""
+msgstr "소스, 제목, 크기를 지정하여 새 이미지 삽입"
 
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx
 msgid "Failed to create facet value"
@@ -2589,7 +2589,7 @@ msgstr "="
 
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx
 msgid "Failed to update product option"
-msgstr ""
+msgstr "상품 옵션 업데이트 실패"
 
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx
 msgid "Coupon code"
@@ -2610,7 +2610,7 @@ msgstr "일정"
 
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "Cannot move a collection into its own descendant"
-msgstr ""
+msgstr "컬렉션을 자신의 하위 항목으로 이동할 수 없습니다"
 
 #: src/app/routes/_authenticated/_tax-categories/tax-categories.tsx
 msgid "New Tax Category"
@@ -2646,7 +2646,7 @@ msgstr "더 많은 뷰"
 
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx
 msgid "Edit the selected image properties"
-msgstr ""
+msgstr "선택한 이미지 속성 편집"
 
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Applied view \"{viewName}\""
@@ -2666,7 +2666,7 @@ msgstr "새 에셋"
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
 msgid "Recalculate shipping"
-msgstr ""
+msgstr "배송비 재계산"
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "Select which options should apply to the existing variant \"{0}\""
@@ -2683,7 +2683,7 @@ msgstr "에셋"
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "This will remove all option groups from this product and return to the variant setup choice."
-msgstr ""
+msgstr "이 상품에서 모든 옵션 그룹이 제거되고 변형 설정 선택으로 돌아갑니다."
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
@@ -2721,16 +2721,16 @@ msgstr "할인"
 #: src/lib/components/shared/asset/asset-gallery.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "All types"
-msgstr ""
+msgstr "모든 유형"
 
 #. placeholder {0}: entityIds.length
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 msgid "Select channels to assign {0} {entityType} to"
-msgstr ""
+msgstr "{0}개 {entityType}을(를) 할당할 채널을 선택하세요"
 
 #: src/app/routes/_authenticated/_orders/components/draft-order-status.tsx
 msgid "Only draft orders can be completed"
-msgstr ""
+msgstr "임시 저장 주문만 완료할 수 있습니다"
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Failed to update product"
@@ -2738,7 +2738,7 @@ msgstr "상품 업데이트 실패"
 
 #: src/app/routes/_authenticated/_collections/components/collection-filters-selector.tsx
 msgid "Add collection filter"
-msgstr ""
+msgstr "컬렉션 필터 추가"
 
 #. placeholder {0}: adjustedLines.length
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
@@ -2784,7 +2784,7 @@ msgstr "이미지"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 msgid "Successfully created administrator"
-msgstr ""
+msgstr "관리자가 생성되었습니다"
 
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
@@ -2805,11 +2805,11 @@ msgstr "이 전역 뷰를 삭제하시겠습니까? 이 작업은 취소할 수 
 
 #: src/app/routes/_authenticated/_products/components/force-remove-option-group-dialog.tsx
 msgid "Force remove option group"
-msgstr ""
+msgstr "옵션 그룹 강제 제거"
 
 #: src/app/routes/_authenticated/_profile/profile.tsx
 msgid "Added"
-msgstr ""
+msgstr "추가됨"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-container.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
@@ -2848,7 +2848,7 @@ msgstr "개인용으로 복사"
 #. placeholder {0}: formatCurrency(totalRefundableAmount, order.currencyCode)
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "Refund total exceeds maximum refundable amount of {0}"
-msgstr ""
+msgstr "환불 합계가 최대 환불 가능 금액 {0}을(를) 초과합니다"
 
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Delete Global View"
@@ -2901,7 +2901,7 @@ msgstr "고객 생성 실패"
 
 #: src/lib/components/shared/asset/asset-preview.tsx
 msgid "Focal point updated"
-msgstr ""
+msgstr "초점이 업데이트되었습니다"
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 msgid "Option values"
@@ -2918,7 +2918,7 @@ msgstr "고객 없음"
 
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
 msgid "Failed to remove countries from zone"
-msgstr ""
+msgstr "지역에서 국가 제거 실패"
 
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx
@@ -2928,12 +2928,12 @@ msgstr "프로모션 생성 실패"
 #: src/lib/components/date-range-picker.tsx
 msgctxt "date-range"
 msgid "Today"
-msgstr ""
+msgstr "오늘"
 
 #: src/lib/components/date-range-picker.tsx
 msgctxt "date-range"
 msgid "Yesterday"
-msgstr ""
+msgstr "어제"
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "Option name"
@@ -2943,12 +2943,12 @@ msgstr ""
 #. placeholder {1}: selection.length === 1 ? 'country' : 'countries'
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
 msgid "Are you sure you want to remove {0} {1} from this zone?"
-msgstr ""
+msgstr "이 지역에서 {0}개 {1}을(를) 제거하시겠습니까?"
 
 #. placeholder {0}: addedSurcharges.length
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
 msgid "Adding {0} surcharge(s)"
-msgstr ""
+msgstr "{0}개 추가 요금 추가 중"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx
 msgid "Link href"
@@ -2956,7 +2956,7 @@ msgstr "링크 URL"
 
 #: src/lib/utils/get-locale-fallback-placeholder.ts
 msgid "Fallback: {value}"
-msgstr ""
+msgstr "대체 값: {value}"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-container.tsx
@@ -2965,7 +2965,7 @@ msgstr "주문 이력"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Override"
-msgstr ""
+msgstr "재정의"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
 msgid "Transaction ID is required"
@@ -2987,7 +2987,7 @@ msgstr "선택한 태그 없음"
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx
 msgid "Back"
-msgstr ""
+msgstr "뒤로"
 
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "View renamed successfully"
@@ -3045,15 +3045,15 @@ msgstr "주소가 업데이트되었습니다"
 #. placeholder {0}: selectedChannelIds.length
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 msgid "Successfully assigned {entityIdsLength} {entityType} to {0} channels"
-msgstr ""
+msgstr "{entityIdsLength}개 {entityType}이(가) {0}개 채널에 할당되었습니다"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "Refund processed successfully"
-msgstr ""
+msgstr "환불이 처리되었습니다"
 
 #: src/lib/components/data-table/filters/data-table-enum-filter.tsx
 msgid "Select value"
-msgstr ""
+msgstr "값 선택"
 
 #. placeholder {0}: action.label
 #. placeholder {0}: entityType === 'products' ? 'Product' : 'Variant'
@@ -3077,11 +3077,11 @@ msgstr "새 지역"
 
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "Failed to update collection position"
-msgstr ""
+msgstr "컬렉션 위치 업데이트 실패"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Refund"
-msgstr ""
+msgstr "환불"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
 #: src/app/routes/_authenticated/_orders/utils/order-detail-loaders.tsx
@@ -3113,7 +3113,7 @@ msgstr "{facetName}의 속성 값"
 
 #: src/app/routes/_authenticated/index.tsx
 msgid "Save Layout"
-msgstr ""
+msgstr "레이아웃 저장"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
@@ -3143,7 +3143,7 @@ msgstr "옵션 값 이름"
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx
 msgid "Last used"
-msgstr ""
+msgstr "마지막 사용"
 
 #: src/app/routes/_authenticated/_tax-categories/tax-categories_.$id.tsx
 msgid "Is default tax category"
@@ -3155,7 +3155,7 @@ msgstr "슬러그가 설정되었습니다"
 
 #: src/lib/components/shared/asset/asset-preview.tsx
 msgid "Failed to update focal point"
-msgstr ""
+msgstr "초점 업데이트 실패"
 
 #: src/app/routes/_authenticated/_zones/zones_.$id.tsx
 msgid "Successfully updated zone"
@@ -3167,7 +3167,7 @@ msgstr "시/도"
 
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx
 msgid "Failed to update option group"
-msgstr ""
+msgstr "옵션 그룹 업데이트 실패"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Channel defaults"
@@ -3179,7 +3179,7 @@ msgstr "세금 카테고리 생성 실패"
 
 #: src/lib/components/data-table/data-table-filter-dialog.tsx
 msgid "Set filter criteria for the {columnId} column"
-msgstr ""
+msgstr "{columnId} 열의 필터 조건 설정"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx
@@ -3189,7 +3189,7 @@ msgstr "국가"
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Simple product"
-msgstr ""
+msgstr "단순 상품"
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts
@@ -3198,7 +3198,7 @@ msgstr "작업 큐"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 msgid "Please confirm you have saved the API key before closing."
-msgstr ""
+msgstr "닫기 전에 API 키를 저장했는지 확인하세요."
 
 #: src/lib/components/data-table/use-generated-columns.tsx
 msgid "Confirm deletion"
@@ -3210,11 +3210,11 @@ msgstr "주문 수정 실패"
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx
 msgid "Includes tax at {taxRate}%"
-msgstr ""
+msgstr "{taxRate}% 세금 포함"
 
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "Order metrics"
-msgstr ""
+msgstr "주문 지표"
 
 #: src/lib/components/layout/language-dialog.tsx
 msgid "Select display language"
@@ -3222,19 +3222,19 @@ msgstr "표시 언어 선택"
 
 #: src/app/routes/_authenticated/_payment-methods/components/payment-handler-selector.tsx
 msgid "Select Payment Handler"
-msgstr ""
+msgstr "결제 처리기 선택"
 
 #: src/app/routes/_authenticated/_profile/profile.tsx
 msgid "Authentication methods"
-msgstr ""
+msgstr "인증 방법"
 
 #: src/lib/components/data-table/data-table-filter-badge.tsx
 msgid "start"
-msgstr ""
+msgstr "시작"
 
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx
 msgid "Failed to rotate API key"
-msgstr ""
+msgstr "API 키 교체 실패"
 
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "in"
@@ -3257,16 +3257,16 @@ msgstr "전역 뷰 관리"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Processing..."
-msgstr ""
+msgstr "처리 중..."
 
 #. placeholder {0}: totalItems === 1 ? 'asset' : 'assets'
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "{totalItems} {0} found"
-msgstr ""
+msgstr "{totalItems}개의 {0}을(를) 찾았습니다"
 
 #: src/lib/components/date-range-picker.tsx
 msgid "Select date range"
-msgstr ""
+msgstr "기간 선택"
 
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx
 #: src/app/routes/_authenticated/_orders/components/order-table.tsx
@@ -3276,7 +3276,7 @@ msgstr "상품"
 
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx
 msgid "Rotate API Key"
-msgstr ""
+msgstr "API 키 교체"
 
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx
 msgid "Category"
@@ -3298,11 +3298,11 @@ msgstr "판매자가 생성되었습니다"
 #. placeholder {1}: selectedChannelIds.length
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 msgid "Failed to assign {entityIdsLength} {entityType} to {0} of {1} channels"
-msgstr ""
+msgstr "{entityIdsLength}개 {entityType}을(를) {1}개 채널 중 {0}개에 할당하지 못했습니다"
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 msgid "Successfully updated shipping method"
-msgstr ""
+msgstr "배송 방법이 업데이트되었습니다"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Failed to update product variant"
@@ -3320,16 +3320,16 @@ msgstr "지역"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
 msgid "Choose what to do with any stock remaining in the {count, plural, one {# stock location} other {# stock locations}} you are deleting. All selected locations transfer their remaining stock into the single location you choose, or discard it."
-msgstr ""
+msgstr "삭제하려는 {count, plural, other {#개 재고 위치}}에 남아 있는 재고의 처리 방법을 선택하세요. 선택한 모든 위치는 남은 재고를 선택한 단일 위치로 이전하거나 폐기합니다."
 
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx
 #: src/lib/components/shared/facet-value-selector.tsx
 msgid "Search facet values..."
-msgstr ""
+msgstr "속성 값 검색..."
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
 msgid "Note"
-msgstr ""
+msgstr "메모"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
@@ -3339,7 +3339,7 @@ msgstr "사용 가능한 언어"
 #. placeholder {0}: Math.min(remaining, CHILDREN_PAGE_SIZE)
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "Load {0} more ({remaining} remaining)"
-msgstr ""
+msgstr "{0}개 더 불러오기 ({remaining}개 남음)"
 
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx
 #: src/app/routes/_authenticated/_product-variants/product-variants.tsx
@@ -3349,11 +3349,11 @@ msgstr "속성 값"
 
 #: src/lib/components/data-table/data-table.tsx
 msgid "Failed to reorder items"
-msgstr ""
+msgstr "항목 순서 변경 실패"
 
 #: src/lib/framework/dashboard-widget/orders-summary/index.tsx
 msgid "Total Orders"
-msgstr ""
+msgstr "총 주문 수"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-result.tsx
 msgid "No eligible shipping methods found for this order."
@@ -3371,11 +3371,11 @@ msgstr "배송"
 
 #: src/lib/hooks/use-widget-dimensions.ts
 msgid "useWidgetDimensions must be used within a DashboardBaseWidget"
-msgstr ""
+msgstr "useWidgetDimensions는 DashboardBaseWidget 내에서 사용해야 합니다"
 
 #: src/app/routes/_authenticated/_products/components/force-remove-option-group-dialog.tsx
 msgid "This option group is in use by existing variants. Force removing it may affect those variants. Are you sure?"
-msgstr ""
+msgstr "이 옵션 그룹은 기존 변형에서 사용 중입니다. 강제로 제거하면 해당 변형에 영향을 줄 수 있습니다. 계속하시겠습니까?"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Email update requested"
@@ -3407,11 +3407,11 @@ msgstr "국가 선택"
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 msgid "Failed to update shipping method"
-msgstr ""
+msgstr "배송 방법 업데이트 실패"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
 msgid "{deleted, plural, one {Deleted {deleted} stock location} other {Deleted {deleted} stock locations}}"
-msgstr ""
+msgstr "{deleted, plural, other {{deleted}개 재고 위치를 삭제했습니다}}"
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods.tsx
@@ -3425,7 +3425,7 @@ msgstr "주소 선택"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 msgid "Yes"
-msgstr ""
+msgstr "예"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
@@ -3438,7 +3438,7 @@ msgstr "초점 설정"
 
 #: src/lib/components/data-table/data-table-filter-badge.tsx
 msgid "end"
-msgstr ""
+msgstr "종료"
 
 #: src/lib/components/shared/currency-selector.tsx
 msgid "Select a currency"
@@ -3463,7 +3463,7 @@ msgstr "배송 방법이 변경되었습니다"
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx
 msgid "Tax description"
-msgstr ""
+msgstr "세금 설명"
 
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "is less than or equal to"
@@ -3484,7 +3484,7 @@ msgstr "같지 않음"
 
 #: src/app/routes/_authenticated/_payment-methods/components/payment-eligibility-checker-selector.tsx
 msgid "No checkers found"
-msgstr ""
+msgstr "확인 도구를 찾을 수 없습니다"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Settle payment"
@@ -3502,11 +3502,11 @@ msgstr "채널"
 
 #: src/app/routes/_authenticated/_orders/components/order-history/default-order-history-components.tsx
 msgid "Shipping refunded"
-msgstr ""
+msgstr "배송비 환불됨"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Asset type"
-msgstr ""
+msgstr "에셋 유형"
 
 #: src/app/routes/_authenticated/_stock-locations/stock-locations.tsx
 msgid "New Stock Location"
@@ -3514,7 +3514,7 @@ msgstr "새 재고 위치"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "{successfulRefundCount} payment(s) refunded before failure. Check order history for details."
-msgstr ""
+msgstr "실패 전에 {successfulRefundCount}건의 결제가 환불되었습니다. 자세한 내용은 주문 내역을 확인하세요."
 
 #: src/lib/components/data-input/relation-selector.tsx
 msgid "Select item"
@@ -3531,11 +3531,11 @@ msgstr "태그 관리"
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 msgid "Items refunded"
-msgstr ""
+msgstr "환불된 항목"
 
 #: src/app/routes/_authenticated/_promotions/components/promotion-actions-selector.tsx
 msgid "Add action"
-msgstr ""
+msgstr "작업 추가"
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "Assign options to existing variant"
@@ -3557,7 +3557,7 @@ msgstr "이행 상태 업데이트 실패"
 
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx
 msgid "Create a new product variant with options, pricing, and stock"
-msgstr ""
+msgstr "옵션, 가격, 재고를 지정하여 새 상품 변형 생성"
 
 #: src/app/routes/_authenticated/_facets/facets_.$id.tsx
 msgid "Private facets are not visible in the shop"
@@ -3573,7 +3573,7 @@ msgstr "실행 중 아님"
 
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx
 msgid "Assigned"
-msgstr ""
+msgstr "할당됨"
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Heading 1"
@@ -3598,7 +3598,7 @@ msgstr "세금 합계"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Draft order status"
-msgstr ""
+msgstr "임시 저장 주문 상태"
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "Successfully created product options"
@@ -3606,7 +3606,7 @@ msgstr ""
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
 msgid "Loading locations…"
-msgstr ""
+msgstr "위치를 불러오는 중…"
 
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx
 msgid "Failed to create payment method"
@@ -3640,7 +3640,7 @@ msgstr "통화 검색..."
 
 #: src/lib/components/shared/remove-from-channel-bulk-action.tsx
 msgid "Remove from channel"
-msgstr ""
+msgstr "채널에서 제거"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx
@@ -3691,7 +3691,7 @@ msgstr "청구지 주소 없음"
 #. placeholder {2}: failed.length
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
 msgid "{0, plural, one {Failed to delete {1} stock location} other {Failed to delete {2} stock locations}}"
-msgstr ""
+msgstr "{0, plural, other {{2}개 재고 위치 삭제 실패}}"
 
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx
 msgid "Facet"
@@ -3699,7 +3699,7 @@ msgstr "속성"
 
 #: src/lib/components/shared/assigned-channels.tsx
 msgid "Cannot remove from active channel"
-msgstr ""
+msgstr "활성 채널에서는 제거할 수 없습니다"
 
 #: src/app/routes/_authenticated/_assets/assets_.$id.tsx
 #: src/lib/components/shared/asset/asset-preview.tsx
@@ -3708,7 +3708,7 @@ msgstr "설정되지 않음"
 
 #: src/app/routes/_authenticated/_products/components/force-remove-option-group-dialog.tsx
 msgid "Force remove"
-msgstr ""
+msgstr "강제 제거"
 
 #: src/app/routes/_authenticated/_channels/channels.tsx
 msgid "New Channel"
@@ -3757,7 +3757,7 @@ msgstr "주소가 생성되었습니다"
 
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx
 msgid "API key rotated successfully"
-msgstr ""
+msgstr "API 키가 교체되었습니다"
 
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx
 msgid "Add option group"
@@ -3766,7 +3766,7 @@ msgstr "옵션 그룹 추가"
 #. placeholder {0}: formatCurrency(refund.amountToRefundTotal, order.currencyCode)
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Refund {0}"
-msgstr ""
+msgstr "{0} 환불"
 
 #: src/lib/components/data-input/slug-input.tsx
 msgid "Enter slug manually"
@@ -3774,7 +3774,7 @@ msgstr "슬러그 수동 입력"
 
 #: src/app/routes/_authenticated/index.tsx
 msgid "No widgets available"
-msgstr ""
+msgstr "사용 가능한 위젯이 없습니다"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
@@ -3792,15 +3792,15 @@ msgstr "전역 뷰가 복제되었습니다"
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx
 msgid "Created by"
-msgstr ""
+msgstr "생성자"
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 msgid "Filter variants..."
-msgstr ""
+msgstr "변형 필터링..."
 
 #: src/app/routes/_authenticated/_product-variants/components/add-currency-dropdown.tsx
 msgid "Add a price in another currency"
-msgstr ""
+msgstr "다른 통화로 가격 추가"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 #: src/app/routes/_authenticated/_profile/profile.tsx
@@ -3847,7 +3847,7 @@ msgstr "다음 상태 선택"
 
 #: src/lib/components/shared/alerts.tsx
 msgid "No alerts"
-msgstr ""
+msgstr "알림 없음"
 
 #. placeholder {0}: collectionsToMove.length
 #. placeholder {1}: collectionsToMove.length === 1 ? '' : 's'
@@ -3899,7 +3899,7 @@ msgstr "항목 추가"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 msgid "Successfully created API key"
-msgstr ""
+msgstr "API 키가 생성되었습니다"
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 msgid "Loading preview…"
@@ -3917,7 +3917,7 @@ msgstr "뷰가 복제되었습니다"
 #: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 msgid "Remove option group"
-msgstr ""
+msgstr "옵션 그룹 제거"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx
@@ -3942,7 +3942,7 @@ msgstr "국가"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to remove order line: {0}"
-msgstr ""
+msgstr "주문 항목 제거 실패: {0}"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 msgid "Street Address 2"
@@ -3954,7 +3954,7 @@ msgstr "전역 뷰가 삭제되었습니다"
 
 #: src/app/routes/_authenticated/index.tsx
 msgid "Edit Layout"
-msgstr ""
+msgstr "레이아웃 편집"
 
 #: src/lib/components/shared/assign-to-channel-bulk-action.tsx
 #: src/lib/components/shared/assigned-channels.tsx
@@ -3964,7 +3964,7 @@ msgstr "채널에 할당"
 #: src/lib/components/date-range-picker.tsx
 msgctxt "date-range"
 msgid "This week"
-msgstr ""
+msgstr "이번 주"
 
 #. placeholder {0}: formatCurrency(outstandingAmount, currencyCode)
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
@@ -3977,11 +3977,11 @@ msgstr "포함"
 
 #: src/lib/components/login/login-form.tsx
 msgid "Email"
-msgstr ""
+msgstr "이메일"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 msgid "Failed to update administrator"
-msgstr ""
+msgstr "관리자 업데이트 실패"
 
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Manage your personal saved views for this table"
@@ -3993,7 +3993,7 @@ msgstr "태그로 필터"
 
 #: src/lib/components/login/login-form.tsx
 msgid "Sign in to access the admin dashboard"
-msgstr ""
+msgstr "관리 대시보드에 접속하려면 로그인하세요"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
 #~ msgid "Add payment to order ({0})"
@@ -4019,7 +4019,7 @@ msgstr "같음"
 
 #: src/lib/components/shared/asset/asset-properties.tsx
 msgid "Source File"
-msgstr ""
+msgstr "소스 파일"
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
@@ -4037,7 +4037,7 @@ msgstr "포함하지 않음"
 
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx
 msgid "Option Group"
-msgstr ""
+msgstr "옵션 그룹"
 
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 msgid "Edit the address details below."
@@ -4058,7 +4058,7 @@ msgstr "결제 상태 업데이트 실패"
 
 #: src/lib/framework/dashboard-widget/orders-summary/index.tsx
 msgid "Your orders summary"
-msgstr ""
+msgstr "주문 요약"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Upload"
@@ -4066,7 +4066,7 @@ msgstr "업로드"
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Product with options"
-msgstr ""
+msgstr "옵션이 있는 상품"
 
 #. placeholder {0}: filteredTags.length
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx
@@ -4077,7 +4077,7 @@ msgstr "{0}개 결과를 모두 표시 중"
 #: src/app/routes/_authenticated/_api-keys/api-keys.tsx
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 msgid "Lookup ID"
-msgstr ""
+msgstr "조회 ID"
 
 #. placeholder {0}: list.totalItems - 3
 #: src/app/routes/_authenticated/_facets/facets.tsx
@@ -4087,7 +4087,7 @@ msgstr "+ {0}개 더보기"
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts
 msgid "Option Groups"
-msgstr ""
+msgstr "옵션 그룹"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Custom fields"
@@ -4095,7 +4095,7 @@ msgstr "사용자 정의 필드"
 
 #: src/app/routes/_authenticated/_orders/components/order-process-dialog.tsx
 msgid "All possible order states and their transitions. The current state is highlighted."
-msgstr ""
+msgstr "가능한 모든 주문 상태와 전환입니다. 현재 상태가 강조 표시되어 있습니다."
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts
@@ -4183,7 +4183,7 @@ msgstr "엔티티 정보"
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "Order Total"
-msgstr ""
+msgstr "주문 합계"
 
 #: src/lib/components/shared/history-timeline/history-note-checkbox.tsx
 msgid "Visible to admins only"
@@ -4191,7 +4191,7 @@ msgstr "관리자만 볼 수 있음"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Qty"
-msgstr ""
+msgstr "수량"
 
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx
 msgid "Tags"
@@ -4207,12 +4207,12 @@ msgstr "최고 관리자"
 
 #: src/app/routes/_authenticated/_promotions/components/promotion-actions-selector.tsx
 msgid "Available Actions"
-msgstr ""
+msgstr "사용 가능한 작업"
 
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to update order line: {0}"
-msgstr ""
+msgstr "주문 항목 업데이트 실패: {0}"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx
 msgid "Insert link"
@@ -4238,7 +4238,7 @@ msgstr "결제가 정산되었습니다"
 #. placeholder {1}: selection.length === 1 ? 'country' : 'countries'
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx
 msgid "Removed {0} {1} from zone"
-msgstr ""
+msgstr "지역에서 {0}개 {1}을(를) 제거했습니다"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 msgid "Enable"
@@ -4293,7 +4293,7 @@ msgstr "정산됨"
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "Average Order Value"
-msgstr ""
+msgstr "평균 주문 금액"
 
 #: src/app/routes/_authenticated/_zones/zones_.$id.tsx
 msgid "Failed to create zone"
@@ -4305,7 +4305,7 @@ msgstr "재고 수준"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 msgid "Failed to update API key"
-msgstr ""
+msgstr "API 키 업데이트 실패"
 
 #: src/lib/framework/dashboard-widget/base-widget.tsx
 msgid "{title}"
@@ -4323,7 +4323,7 @@ msgstr "전역 뷰 이름 변경 실패"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx
 msgid "Insert a new hyperlink with URL and target options"
-msgstr ""
+msgstr "URL과 대상 옵션을 지정하여 새 하이퍼링크 삽입"
 
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx
 msgid "Height"
@@ -4331,7 +4331,7 @@ msgstr "높이"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 msgid "Assign {entityType} to channels"
-msgstr ""
+msgstr "{entityType}을(를) 채널에 할당"
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 msgid "A refund of {formattedDiff} is required. Select payment amounts and enter a note to proceed."
@@ -4353,7 +4353,7 @@ msgstr "결제 실패"
 
 #: src/lib/components/layout/channel-switcher.tsx
 msgid "Add channel"
-msgstr ""
+msgstr "채널 추가"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 #: src/lib/components/shared/channel-selector.tsx
@@ -4370,7 +4370,7 @@ msgstr "사용 가능한 언어"
 
 #: src/lib/components/data-table/data-table-bulk-actions.tsx
 msgid "Reset selection"
-msgstr ""
+msgstr "선택 초기화"
 
 #: src/app/routes/_authenticated/_orders/components/order-address.tsx
 msgid "No address"
@@ -4387,7 +4387,7 @@ msgstr "고객 정보가 업데이트되었습니다"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to delete draft order: {0}"
-msgstr ""
+msgstr "임시 저장 주문 삭제 실패: {0}"
 
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Failed to convert view to global"
@@ -4395,15 +4395,15 @@ msgstr "뷰를 전역으로 변환하는 데 실패했습니다"
 
 #: src/app/routes/_authenticated/_payment-methods/components/payment-eligibility-checker-selector.tsx
 msgid "Select Payment Eligibility Checker"
-msgstr ""
+msgstr "결제 적격성 확인 선택"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 msgid "Select one or more channels"
-msgstr ""
+msgstr "하나 이상의 채널을 선택하세요"
 
 #: src/lib/components/data-table/filters/data-table-enum-filter.tsx
 msgid "Select operator"
-msgstr ""
+msgstr "연산자 선택"
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts
@@ -4422,7 +4422,7 @@ msgstr "프로모션"
 
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx
 msgid "Failed to create product option"
-msgstr ""
+msgstr "상품 옵션 생성 실패"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
 msgid "Old email:"
@@ -4434,7 +4434,7 @@ msgstr "모든 사용자가 사용할 수 있도록 뷰를 \"전역\"으로 저�
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 msgid "Failed to create variants"
-msgstr ""
+msgstr "변형 생성 실패"
 
 #: src/app/routes/_authenticated/_global-settings/global-settings.tsx
 msgid "Sets the stock level at which this a variant is considered to be out of stock. Using a negative value enables backorder support. Can be overridden by product variants."
@@ -4443,11 +4443,11 @@ msgstr "이 변형이 품절로 간주되는 재고 수준을 설정합니다. �
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx
 #: src/app/routes/_authenticated/_api-keys/components/rotate-api-key-button.tsx
 msgid "Rotate Key"
-msgstr ""
+msgstr "키 교체"
 
 #: src/lib/components/ui/password-input.tsx
 msgid "Hide password"
-msgstr ""
+msgstr "비밀번호 숨기기"
 
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx
@@ -4476,11 +4476,11 @@ msgstr "지역"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Drop files here to upload"
-msgstr ""
+msgstr "업로드하려면 여기에 파일을 놓으세요"
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 msgid "Toggle all visible variants"
-msgstr ""
+msgstr "표시된 모든 변형 전환"
 
 #: src/app/routes/_authenticated/_customers/components/customer-status-badge.tsx
 msgid "Verified"
@@ -4490,7 +4490,7 @@ msgstr "확인됨"
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx
 msgid "New option group"
-msgstr ""
+msgstr "새 옵션 그룹"
 
 #: src/app/routes/_authenticated/_system/healthchecks.tsx
 #~ msgid "Last updated {0}"
@@ -4506,7 +4506,7 @@ msgstr "역할 업데이트 실패"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 msgid "This is the only time the full API key will be displayed. Copy or download it now — it cannot be retrieved later."
-msgstr ""
+msgstr "전체 API 키가 표시되는 것은 이번 한 번뿐입니다. 지금 복사하거나 다운로드하세요. 나중에는 다시 확인할 수 없습니다."
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
 msgid "Successfully updated collection"
@@ -4530,7 +4530,7 @@ msgstr "OR"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "You must select a default currency from the list of available currencies"
-msgstr ""
+msgstr "사용 가능한 통화 목록에서 기본 통화를 선택해야 합니다"
 
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx
 msgid "Manage tags"
@@ -4561,12 +4561,12 @@ msgstr "주문이 이행되었습니다"
 
 #: src/lib/components/data-input/product-multi-selector-input.tsx
 msgid "Loading selected items..."
-msgstr ""
+msgstr "선택한 항목을 불러오는 중..."
 
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to set billing address for order: {0}"
-msgstr ""
+msgstr "주문의 청구지 주소 설정 실패: {0}"
 
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 msgid "No shipping address"
@@ -4636,7 +4636,7 @@ msgstr "새 배송 방법"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
 msgid "Delete stock locations"
-msgstr ""
+msgstr "재고 위치 삭제"
 
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "is greater than or equal to"
@@ -4646,7 +4646,7 @@ msgstr "이상"
 #: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx
 #: src/lib/components/shared/entity-assets.tsx
 msgid "Preview"
-msgstr ""
+msgstr "미리보기"
 
 #. placeholder {0}: quantity.max
 #. placeholder {1}: line.quantity
@@ -4657,32 +4657,32 @@ msgstr "{1}개 중 {0}개 처리 가능"
 #: src/lib/components/date-range-picker.tsx
 msgctxt "date-range"
 msgid "Month to date"
-msgstr ""
+msgstr "이번 달 누계"
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts
 msgid "refundReason.CustomerRequest"
-msgstr ""
+msgstr "고객 요청"
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts
 msgid "refundReason.DamagedInShipping"
-msgstr ""
+msgstr "배송 중 파손"
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts
 msgid "refundReason.NotAvailable"
-msgstr ""
+msgstr "재고 없음"
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts
 msgid "refundReason.Other"
-msgstr ""
+msgstr "기타"
 
 #. js-lingui-explicit-id
 #: src/i18n/common-strings.ts
 msgid "refundReason.WrongItem"
-msgstr ""
+msgstr "잘못된 상품"
 
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 msgid "Summary of modifications"
@@ -4767,7 +4767,7 @@ msgstr "{customerGroupName}의 고객 그룹 멤버"
 #. placeholder {0}: e instanceof Error ? e.message : String(e)
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to set address for order: {0}"
-msgstr ""
+msgstr "주문의 주소 설정 실패: {0}"
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
@@ -4789,7 +4789,7 @@ msgstr "이행 #{0}이(가) 생성되었습니다"
 #. js-lingui-explicit-id
 #: src/lib/framework/alert/search-index-buffer-alert/search-index-buffer-alert.ts
 msgid "Running pending search index updates"
-msgstr ""
+msgstr "대기 중인 검색 색인 업데이트 실행 중"
 
 #: src/app/routes/_authenticated/_roles/roles.tsx
 msgid "This is a default Role and cannot be modified"
@@ -4826,7 +4826,7 @@ msgstr "활성화됨"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Items per page"
-msgstr ""
+msgstr "페이지당 항목 수"
 
 #: src/app/routes/_authenticated/_zones/zones.tsx
 msgid "Edit members"
@@ -4846,7 +4846,7 @@ msgstr "ID"
 
 #: src/lib/components/shared/alerts.tsx
 msgid "Alerts"
-msgstr ""
+msgstr "알림"
 
 #: src/app/routes/_authenticated/_products/components/option-groups-editor.tsx
 msgid "Option Values"
@@ -4858,7 +4858,7 @@ msgstr "변경사항 미리보기"
 
 #: src/lib/components/shared/assigned-channels.tsx
 msgid "Failed to remove {entityType} from channel"
-msgstr ""
+msgstr "채널에서 {entityType} 제거 실패"
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 msgid "Variant deleted successfully"
@@ -4866,7 +4866,7 @@ msgstr "변형이 삭제되었습니다"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx
 msgid "Edit the selected link properties"
-msgstr ""
+msgstr "선택한 링크 속성 편집"
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts
@@ -4879,7 +4879,7 @@ msgstr "대상 컬렉션 선택"
 
 #: src/lib/framework/dashboard-widget/latest-orders-widget/index.tsx
 msgid "Your latest orders"
-msgstr ""
+msgstr "최근 주문"
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts
@@ -4907,7 +4907,7 @@ msgstr "설정"
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts
 msgid "Settings Store"
-msgstr ""
+msgstr "설정 저장소"
 
 #: src/lib/components/shared/rich-text-editor/responsive-toolbar.tsx
 msgid "Heading 3"
@@ -4915,7 +4915,7 @@ msgstr "제목 3"
 
 #: src/lib/components/login/login-form.tsx
 msgid "Welcome to Vendure"
-msgstr ""
+msgstr "Vendure에 오신 것을 환영합니다"
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts
@@ -4924,7 +4924,7 @@ msgstr "배송 방법"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "({maxRefundable} refundable)"
-msgstr ""
+msgstr "({maxRefundable} 환불 가능)"
 
 #: src/app/routes/_authenticated/_administrators/administrators.tsx
 msgid "Identifier"
@@ -4932,7 +4932,7 @@ msgstr "식별자"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/fulfillment-handler-selector.tsx
 msgid "Select a fulfillment handler"
-msgstr ""
+msgstr "이행 처리기 선택"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
 msgid "Failed to update collection"
@@ -4965,7 +4965,7 @@ msgstr "비밀번호 재설정이 요청되었습니다"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "Allocated payment amount must equal refund total"
-msgstr ""
+msgstr "할당된 결제 금액은 환불 합계와 같아야 합니다"
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "e.g. Small"
@@ -4996,7 +4996,7 @@ msgstr "재고 위치"
 
 #: src/lib/components/data-table/data-table-pagination.tsx
 msgid "Go to previous page"
-msgstr ""
+msgstr "이전 페이지로 이동"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
 #: src/app/routes/_authenticated/_collections/collections.tsx
@@ -5025,7 +5025,7 @@ msgstr "시스템"
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_products/components/product-variants-table.tsx
 msgid "Variant name"
-msgstr ""
+msgstr "변형 이름"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Remove"
@@ -5038,11 +5038,11 @@ msgstr "고객 업데이트 실패"
 
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
 msgid "Remove option groups?"
-msgstr ""
+msgstr "옵션 그룹을 제거하시겠습니까?"
 
 #: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx
 msgid "This is a preview of the collection contents based on the current filter settings. Once you save the collection, the contents will be updated to reflect the new filter settings."
-msgstr ""
+msgstr "현재 필터 설정을 기준으로 한 컬렉션 내용 미리보기입니다. 컬렉션을 저장하면 새 필터 설정이 반영되도록 내용이 업데이트됩니다."
 
 #: src/app/routes/_authenticated/_customer-groups/components/customer-group-members-bulk-actions.tsx
 msgid "{count, plural, one {Removed {count} customer from group} other {Removed {count} customers from group}}"
@@ -5068,7 +5068,7 @@ msgstr "전역 설정 로딩 실패"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Select items to refund and optionally return to stock"
-msgstr ""
+msgstr "환불할 항목을 선택하고 필요하면 재고로 반환하세요"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
 #: src/app/routes/_authenticated/_system/settings-store.tsx
@@ -5094,7 +5094,7 @@ msgstr "도로명 주소"
 
 #: src/lib/components/shared/facet-value-selector.tsx
 msgid "No more facets"
-msgstr ""
+msgstr "더 이상 속성이 없습니다"
 
 #: src/app/routes/_authenticated/_products/products.tsx
 msgid "Search index rebuild started"
@@ -5102,7 +5102,7 @@ msgstr "검색 인덱스 재구성이 시작되었습니다"
 
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "Collection position updated"
-msgstr ""
+msgstr "컬렉션 위치가 업데이트되었습니다"
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "Option group name"
@@ -5143,7 +5143,7 @@ msgstr "상품에 옵션 그룹 추가"
 #. placeholder {0}: asset.name
 #: src/lib/components/shared/asset/asset-preview-dialog.tsx
 msgid "Preview of {0}"
-msgstr ""
+msgstr "{0} 미리보기"
 
 #: src/app/routes/_authenticated/_sellers/sellers_.$id.tsx
 msgid "Successfully updated seller"
@@ -5156,7 +5156,7 @@ msgstr "주문 상태 전환 실패"
 #. placeholder {0}: group.entries.length - 2
 #: src/lib/components/shared/history-timeline/history-timeline-with-grouping.tsx
 msgid "Show all ({0})"
-msgstr ""
+msgstr "모두 표시 ({0})"
 
 #: src/app/routes/_authenticated/_tax-rates/tax-rates_.$id.tsx
 msgid "Failed to create tax rate"
@@ -5164,7 +5164,7 @@ msgstr "세율 생성 실패"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 msgid "I have saved this API key"
-msgstr ""
+msgstr "이 API 키를 저장했습니다"
 
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "Configure available languages for your store and channels"
@@ -5181,7 +5181,7 @@ msgstr "상품 변형 추가"
 #. js-lingui-explicit-id
 #: src/lib/components/data-input/string-list-input.tsx
 msgid "Type and press Enter or comma to add..."
-msgstr ""
+msgstr "입력한 후 Enter 또는 쉼표를 눌러 추가..."
 
 #: src/lib/components/shared/history-timeline/history-note-editor.tsx
 msgid "Edit Note"
@@ -5189,7 +5189,7 @@ msgstr "메모 편집"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "No assets found. Try adjusting your filters."
-msgstr ""
+msgstr "에셋을 찾을 수 없습니다. 필터를 조정해 보세요."
 
 #: src/app/routes/_authenticated/_products/components/option-groups-editor.tsx
 msgid "Add Option"
@@ -5209,7 +5209,7 @@ msgstr "\"테스트 실행\"을 클릭하여 이 배송 방법을 테스트하�
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 msgid "Successfully updated administrator"
-msgstr ""
+msgstr "관리자가 업데이트되었습니다"
 
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx
 #: src/lib/components/data-table/data-table-faceted-filter.tsx
@@ -5240,16 +5240,16 @@ msgstr "상태"
 #: src/lib/components/shared/configurable-operation-multi-selector.tsx
 #: src/lib/components/shared/configurable-operation-selector.tsx
 msgid "No options found"
-msgstr ""
+msgstr "옵션을 찾을 수 없습니다"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Binary"
-msgstr ""
+msgstr "바이너리"
 
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$id.tsx
 msgid "Successfully updated option group"
-msgstr ""
+msgstr "옵션 그룹이 업데이트되었습니다"
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
@@ -5274,7 +5274,7 @@ msgstr "옵션 값이 추가되었습니다"
 
 #: src/app/routes/_authenticated/_collections/collections.tsx
 msgid "Collection moved to new parent"
-msgstr ""
+msgstr "컬렉션이 새 상위 항목으로 이동되었습니다"
 
 #: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts
 #: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts
@@ -5295,11 +5295,11 @@ msgstr "기본적으로 재고 추적"
 
 #: src/app/routes/_authenticated/_products/components/generate-variants-panel.tsx
 msgid "{selected} of {total} selected"
-msgstr ""
+msgstr "{total}개 중 {selected}개 선택됨"
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 msgid "Successfully created shipping method"
-msgstr ""
+msgstr "배송 방법이 생성되었습니다"
 
 #: src/app/routes/_authenticated/_customer-groups/customer-groups.tsx
 msgid "New Customer Group"
@@ -5340,7 +5340,7 @@ msgstr "추가할 새 속성 값:"
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "Failed to process refund"
-msgstr ""
+msgstr "환불 처리 실패"
 
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
@@ -5350,7 +5350,7 @@ msgstr "이름"
 
 #: src/lib/components/shared/product-variant-selector.tsx
 msgid "Add item to order"
-msgstr ""
+msgstr "주문에 항목 추가"
 
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "contains"
@@ -5358,7 +5358,7 @@ msgstr "포함"
 
 #: src/app/routes/_authenticated/_products/components/add-option-group-dialog.tsx
 msgid "No option groups found"
-msgstr ""
+msgstr "옵션 그룹을 찾을 수 없습니다"
 
 #: src/lib/components/data-input/product-multi-selector-input.tsx
 msgid "No items found"
@@ -5367,7 +5367,7 @@ msgstr "항목을 찾을 수 없습니다"
 #: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts
 #: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts
 msgid "Failed to remove option group"
-msgstr ""
+msgstr "옵션 그룹 제거 실패"
 
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx
 msgid "Sub total"
@@ -5380,7 +5380,7 @@ msgstr "이행된 항목({0})"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 msgid "Value updated"
-msgstr ""
+msgstr "값이 업데이트되었습니다"
 
 #: src/app/routes/_authenticated/_customers/components/customer-status-badge.tsx
 msgid "Unverified"
@@ -5425,7 +5425,7 @@ msgstr "새 결제 방법"
 
 #: src/app/routes/_authenticated/_products/components/option-value-input.tsx
 msgid "Duplicate value \"{trimmed}\" already exists"
-msgstr ""
+msgstr "중복 값 \"{trimmed}\"이(가) 이미 존재합니다"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
@@ -5438,7 +5438,7 @@ msgstr "고객 그룹"
 
 #: src/lib/components/shared/assigned-channels.tsx
 msgid "Successfully removed {entityType} from channel"
-msgstr ""
+msgstr "채널에서 {entityType}이(가) 제거되었습니다"
 
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx
 #: src/app/routes/_authenticated/_option-groups/option-groups_.$groupId.options_.$id.tsx
@@ -5453,7 +5453,7 @@ msgstr "옵션 그룹"
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 msgid "Add surcharge"
-msgstr ""
+msgstr "추가 요금 추가"
 
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx
 msgid "Current facet values"
@@ -5461,12 +5461,12 @@ msgstr "현재 속성 값"
 
 #: src/app/routes/_authenticated/_option-groups/components/option-group-products-block.tsx
 msgid "Page {page} of {totalPages}"
-msgstr ""
+msgstr "{totalPages} 페이지 중 {page} 페이지"
 
 #: src/lib/components/date-range-picker.tsx
 msgctxt "date-range"
 msgid "Last month"
-msgstr ""
+msgstr "지난달"
 
 #: src/app/routes/_authenticated/_countries/countries.tsx
 msgid "Add Country"
@@ -5474,7 +5474,7 @@ msgstr "국가 추가"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Defaults to the default language."
-msgstr ""
+msgstr "기본 언어가 사용됩니다."
 
 #: src/lib/components/data-input/custom-field-list-input.tsx
 msgid "Remove item"
@@ -5483,7 +5483,7 @@ msgstr "항목 제거"
 #: src/lib/components/shared/asset/asset-gallery.tsx
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Video"
-msgstr ""
+msgstr "비디오"
 
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "less than"
@@ -5491,11 +5491,11 @@ msgstr "보다 작음"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "The variant could not be added. Ensure the parent product is enabled."
-msgstr ""
+msgstr "변형을 추가할 수 없습니다. 상위 상품이 활성화되어 있는지 확인하세요."
 
 #: src/lib/framework/dashboard-widget/metrics-widget/index.tsx
 msgid "Metrics"
-msgstr ""
+msgstr "지표"
 
 #: src/lib/components/layout/nav-user.tsx
 msgid "Language"
@@ -5507,7 +5507,7 @@ msgstr "새 컬렉션"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Refund and cancel order"
-msgstr ""
+msgstr "환불 및 주문 취소"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Email update verified"
@@ -5519,7 +5519,7 @@ msgstr "사이"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
 msgid "Refund & Cancel"
-msgstr ""
+msgstr "환불 및 취소"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-shipping-methods-result.tsx
 msgid "Testing shipping methods..."
@@ -5532,7 +5532,7 @@ msgstr "{label}"
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 msgid "Failed to create shipping method"
-msgstr ""
+msgstr "배송 방법 생성 실패"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 #~ msgid "Successfully assigned {entityIdsLength} {entityType} to channel"
@@ -5584,7 +5584,7 @@ msgstr "지역이 생성되었습니다"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 msgid "Value"
-msgstr ""
+msgstr "값"
 
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx
 msgid "Customer updated"
@@ -5606,7 +5606,7 @@ msgstr "새 속성"
 #: src/app/routes/_authenticated/_products/components/product-option-group-badge.tsx
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 msgid "Are you sure you want to remove this option group from the product?"
-msgstr ""
+msgstr "이 상품에서 옵션 그룹을 제거하시겠습니까?"
 
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx
 msgid "Description (alt)"
@@ -5628,11 +5628,11 @@ msgstr "이 변경사항에는 결제 또는 환불이 필요하지 않습니다
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
-msgstr ""
+msgstr "{cancellableCount, plural, other {{cancellableCount}개 작업을 취소하시겠습니까? 이 작업은 되돌릴 수 없습니다.}}"
 
 #: src/lib/framework/dashboard-widget/orders-summary/index.tsx
 msgid "Total Revenue"
-msgstr ""
+msgstr "총 매출"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
 msgid "Next Execution"
@@ -5648,7 +5648,7 @@ msgstr "중간 날짜"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 msgid "Invalid number"
-msgstr ""
+msgstr "유효하지 않은 숫자"
 
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "You haven't saved any views yet."
@@ -5660,7 +5660,7 @@ msgstr "이 뷰를 삭제하시겠습니까? 이 작업은 취소할 수 없습�
 
 #: src/app/routes/_authenticated/_orders/components/order-process-dialog.tsx
 msgid "View order process"
-msgstr ""
+msgstr "주문 프로세스 보기"
 
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Failed to duplicate view"
@@ -5677,7 +5677,7 @@ msgstr "슬러그 수동 편집"
 
 #: src/app/routes/_authenticated/_collections/components/collection-contents-preview-table.tsx
 msgid "Add filters to preview the collection contents."
-msgstr ""
+msgstr "컬렉션 내용을 미리 보려면 필터를 추가하세요."
 
 #: src/app/routes/_authenticated/_products/products_.$productId.option-groups.$productOptionGroupId.options_.$id.tsx
 #~ msgid "Product Option Group"
@@ -5697,7 +5697,7 @@ msgstr "환불 ID"
 
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Order custom fields updated"
-msgstr ""
+msgstr "주문 사용자 정의 필드가 업데이트되었습니다"
 
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
@@ -5706,7 +5706,7 @@ msgstr "계산기"
 
 #: src/app/routes/_authenticated/_option-groups/components/option-group-bulk-actions.tsx
 msgid "Failed to remove option group from channel: {message}"
-msgstr ""
+msgstr "채널에서 옵션 그룹 제거 실패: {message}"
 
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 msgid "View job data"
@@ -5722,11 +5722,11 @@ msgstr "지우기"
 
 #: src/lib/framework/dashboard-widget/orders-summary/index.tsx
 msgid "Orders Summary"
-msgstr ""
+msgstr "주문 요약"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Search assets..."
-msgstr ""
+msgstr "에셋 검색..."
 
 #: src/app/routes/_authenticated/_facets/facets.tsx
 msgid "New Facet"
@@ -5753,7 +5753,7 @@ msgstr "오류 메시지"
 
 #: src/app/routes/_authenticated/_product-variants/components/add-stock-location-dropdown.tsx
 msgid "Add stock level for another location"
-msgstr ""
+msgstr "다른 위치의 재고 수량 추가"
 
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 msgid "Delete Address"
@@ -5765,7 +5765,7 @@ msgstr "속성 업데이트 실패"
 
 #: src/lib/hooks/use-widget-filters.ts
 msgid "useWidgetFilters must be used within a WidgetFiltersProvider"
-msgstr ""
+msgstr "useWidgetFilters는 WidgetFiltersProvider 내에서 사용해야 합니다"
 
 #: src/app/routes/_authenticated/_customers/components/customer-address-card.tsx
 msgid "Edit Address"
@@ -5820,7 +5820,7 @@ msgstr "결과 보기"
 
 #: src/lib/components/data-table/data-table-pagination.tsx
 msgid "Rows per page"
-msgstr ""
+msgstr "페이지당 행 수"
 
 #: src/app/routes/_authenticated/_collections/components/move-collections-dialog.tsx
 msgid "Loading collections..."
@@ -5858,7 +5858,7 @@ msgstr "{groupName}에 옵션 값 추가"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to unset shipping address for order: {0}"
-msgstr ""
+msgstr "주문의 배송지 주소 해제 실패: {0}"
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx
@@ -5872,7 +5872,7 @@ msgstr "SKU"
 
 #: src/app/routes/_authenticated/_orders/components/order-history/default-order-history-components.tsx
 msgid "{totalQuantity} item(s) refunded"
-msgstr ""
+msgstr "{totalQuantity}개 항목이 환불되었습니다"
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 msgid "No option groups defined yet. Add option groups to create different variants of your product (e.g., Size, Color, Material)"
@@ -5902,12 +5902,12 @@ msgstr "상품 변형 생성 실패"
 
 #: src/lib/components/data-input/relation-selector.tsx
 msgid "Search..."
-msgstr ""
+msgstr "검색..."
 
 #. placeholder {0}: formatLanguageName(contentLanguage)
 #: src/lib/components/layout/channel-switcher.tsx
 msgid "Language: {0}"
-msgstr ""
+msgstr "언어: {0}"
 
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "You don't have permission to view global language settings"
@@ -5928,7 +5928,7 @@ msgstr "쿠폰 코드가 추가되었습니다"
 #: src/lib/components/layout/channel-switcher.tsx
 msgctxt "active language"
 msgid "Active"
-msgstr ""
+msgstr "활성"
 
 #: src/app/routes/_authenticated/_orders/components/order-tax-summary.tsx
 msgid "Tax base"
@@ -5945,7 +5945,7 @@ msgstr "환불이 정산되었습니다"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 msgid "API Key"
-msgstr ""
+msgstr "API 키"
 
 #: src/app/common/duplicate-bulk-action.tsx
 msgid "Successfully duplicated {count} {entityName}"
@@ -5953,7 +5953,7 @@ msgstr "{count}개 {entityName}이(가) 복제되었습니다"
 
 #: src/app/routes/_authenticated/_option-groups/option-groups.tsx
 msgid "New Option Group"
-msgstr ""
+msgstr "새 옵션 그룹"
 
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx
@@ -5966,11 +5966,11 @@ msgstr "결제가 완료되었습니다"
 
 #: src/app/routes/_authenticated/_promotions/components/promotion-conditions-selector.tsx
 msgid "Available Conditions"
-msgstr ""
+msgstr "사용 가능한 조건"
 
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx
 msgid "Active filters"
-msgstr ""
+msgstr "활성 필터"
 
 #: src/app/routes/_authenticated/_assets/components/asset-tag-filter.tsx
 #: src/lib/components/data-table/data-table-active-filters-popover.tsx
@@ -5984,7 +5984,7 @@ msgstr "보다 큼"
 
 #: src/app/routes/_authenticated/_api-keys/components/api-key-secret-dialog.tsx
 msgid "Close"
-msgstr ""
+msgstr "닫기"
 
 #: src/app/routes/_authenticated/_orders/components/add-manual-payment-dialog.tsx
 msgid "Add payment to order"
@@ -6016,7 +6016,7 @@ msgstr "이행 ID"
 
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Select payments to refund"
-msgstr ""
+msgstr "환불할 결제를 선택하세요"
 
 #: src/app/common/delete-bulk-action.tsx
 msgid "Failed to delete {failed} {entityName}"
@@ -6028,11 +6028,11 @@ msgstr "품절 임계값"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 msgid "Failed to update value"
-msgstr ""
+msgstr "값 업데이트 실패"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 msgid "Failed to create API key"
-msgstr ""
+msgstr "API 키 생성 실패"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx
@@ -6069,7 +6069,7 @@ msgstr "지역"
 
 #: src/lib/components/shared/seller-selector.tsx
 msgid "Search sellers..."
-msgstr ""
+msgstr "판매자 검색..."
 
 #: src/app/routes/_authenticated/_promotions/promotions_.$id.tsx
 msgid "Successfully created promotion"
@@ -6081,7 +6081,7 @@ msgstr "옵션"
 
 #: src/app/routes/_authenticated/_orders/components/order-process-dialog.tsx
 msgid "Order process"
-msgstr ""
+msgstr "주문 프로세스"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 msgid "Phone number"
@@ -6102,7 +6102,7 @@ msgstr "전역 설정이 업데이트되었습니다"
 
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx
 msgid "Successfully updated API key"
-msgstr ""
+msgstr "API 키가 업데이트되었습니다"
 
 #: src/lib/components/layout/manage-languages-dialog.tsx
 msgid "These languages will be available for all channels to use"
