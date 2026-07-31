@@ -96,7 +96,7 @@
         "@types/react": "^19.2.14",
         "@types/react-dom": "^19.0.4",
         "@uidotdev/usehooks": "^2.4.1",
-        "@vendure-io/design-tokens": "^2.0.0-beta.7",
+        "@vendure-io/design-tokens": "^2.0.0-beta.9",
         "@vendure-io/ui": "^2.0.0-beta.16",
         "@vitejs/plugin-react": "^5.2.0",
         "acorn": "^8.16.0",
