@@ -121,7 +121,7 @@ msgstr "Kop 5"
 msgid "Failed to add payment"
 msgstr "Betaling toevoegen mislukt"
 
-#: src/lib/framework/layout-engine/page-layout.tsx:759
+#: src/lib/framework/layout-engine/page-layout.tsx:760
 msgid "Updated"
 msgstr "Bijgewerkt"
 
@@ -217,6 +217,13 @@ msgstr "Huidig"
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:300
 msgid "No fulfillments"
 msgstr "Geen afhandelingen"
+
+#. placeholder {0}: failed.length
+#. placeholder {1}: failed.length
+#. placeholder {2}: failed.length
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:116
+msgid "{0, plural, one {Failed to delete {1} stock location: {messages}} other {Failed to delete {2} stock locations: {messages}}}"
+msgstr "{0, plural, one {Kan {1} voorraadlocatie niet verwijderen: {messages}} other {Kan {2} voorraadlocaties niet verwijderen: {messages}}}"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:342
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
@@ -362,6 +369,7 @@ msgid "Failed to create administrator"
 msgstr "Aanmaken van beheerder mislukt"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:402
+#: src/lib/components/data-display/boolean.tsx:12
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx:100
 msgid "No"
 msgstr "Nee"
@@ -1213,6 +1221,10 @@ msgstr "Toegewezen"
 msgid "Failed to set coupon code for order: {0}"
 msgstr "Instellen van couponcode voor bestelling mislukt: {0}"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:191
+msgid "Select what to do with remaining stock"
+msgstr "Kies wat er met de resterende voorraad moet gebeuren"
+
 #: src/lib/components/data-table/data-table-settings-menu.tsx:64
 msgid "Table settings"
 msgstr "Tabelinstellingen"
@@ -1661,6 +1673,11 @@ msgstr ""
 msgid "Fulfillment details"
 msgstr "Afhandelingsdetails"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:89
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:202
+msgid "Discard remaining stock"
+msgstr "Resterende voorraad verwijderen"
+
 #: src/lib/components/data-input/datetime-input.tsx:181
 #~ msgid "Now"
 #~ msgstr "Nu"
@@ -1719,6 +1736,8 @@ msgstr "Gebruiken als standaard factuuradres"
 
 #: src/app/common/delete-bulk-action.tsx:139
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:40
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:217
+#: src/app/routes/_authenticated/_stock-locations/components/stock-location-bulk-actions.tsx:28
 #: src/lib/components/data-table/use-generated-columns.tsx:419
 #: src/lib/components/data-table/use-generated-columns.tsx:449
 #: src/lib/components/data-table/views-sheet.tsx:270
@@ -1816,7 +1835,7 @@ msgstr "Adres succesvol bijgewerkt"
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:141
 #: src/lib/components/shared/asset/asset-gallery.tsx:1116
-#: src/lib/framework/layout-engine/page-layout.tsx:746
+#: src/lib/framework/layout-engine/page-layout.tsx:747
 msgid "Created"
 msgstr "Aangemaakt"
 
@@ -1880,6 +1899,7 @@ msgstr "Tabel van {row} bij {col} invoegen"
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:71
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:272
 #: src/app/routes/_authenticated/_products/components/force-remove-option-group-dialog.tsx:48
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:210
 #: src/app/routes/_authenticated/_system/settings-store.tsx:150
 #: src/lib/components/data-input/product-multi-selector-input.tsx:471
 #: src/lib/components/data-table/data-table-bulk-action-item.tsx:122
@@ -2004,7 +2024,7 @@ msgstr "Klantengroepen"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:139
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:59
-#: src/lib/components/data-display/boolean.tsx:22
+#: src/lib/components/data-display/boolean.tsx:27
 #: src/lib/components/data-input/default-relation-input.tsx:217
 #: src/lib/components/data-input/default-relation-input.tsx:448
 #: src/lib/components/data-input/default-relation-input.tsx:539
@@ -2167,6 +2187,10 @@ msgstr "Geen resultaten"
 msgid "Column settings"
 msgstr "Kolominstellingen"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:137
+msgid "{count, plural, one {Failed to delete {count} stock location} other {Failed to delete {count} stock locations}}"
+msgstr "{count, plural, one {Kan {count} voorraadlocatie niet verwijderen} other {Kan {count} voorraadlocaties niet verwijderen}}"
+
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:227
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:127
@@ -2188,6 +2212,14 @@ msgstr "Verwijderen van optiegroepen mislukt"
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:97
 msgid "Order delivered"
 msgstr "Bestelling afgeleverd"
+
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:47
+msgid "Transfer to {name}"
+msgstr "Overdragen naar {name}"
+
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:174
+msgid "Remaining stock"
+msgstr "Resterende voorraad"
 
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx:49
 msgid "Remove from zone"
@@ -3713,6 +3745,10 @@ msgstr "Slepen om opnieuw te ordenen"
 msgid "Zones"
 msgstr "Zones"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:163
+msgid "Choose what to do with any stock remaining in the {count, plural, one {# stock location} other {# stock locations}} you are deleting. All selected locations transfer their remaining stock into the single location you choose, or discard it."
+msgstr "Kies wat er moet gebeuren met de resterende voorraad in {count, plural, one {# voorraadlocatie} other {# voorraadlocaties}} die u verwijdert. Alle geselecteerde locaties dragen hun resterende voorraad over naar de ene locatie die u kiest, of verwijderen die."
+
 #: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:111
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:151
 #: src/lib/components/shared/facet-value-selector.tsx:124
@@ -3822,6 +3858,10 @@ msgstr "Selecteer een land"
 msgid "Failed to update shipping method"
 msgstr "Bijwerken van verzendmethode mislukt"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:103
+msgid "{deleted, plural, one {Deleted {deleted} stock location} other {Deleted {deleted} stock locations}}"
+msgstr "{deleted, plural, one {{deleted} voorraadlocatie verwijderd} other {{deleted} voorraadlocaties verwijderd}}"
+
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:42
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods.tsx:19
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods.tsx:29
@@ -3833,6 +3873,7 @@ msgid "Select an address"
 msgstr "Selecteer een adres"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:401
+#: src/lib/components/data-display/boolean.tsx:12
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx:100
 msgid "Yes"
 msgstr "Ja"
@@ -4051,6 +4092,10 @@ msgstr "Varianten zoeken..."
 #~ msgid "Successfully created product options"
 #~ msgstr "Productopties succesvol aangemaakt"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:190
+msgid "Loading locations…"
+msgstr "Locaties laden…"
+
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:110
 msgid "Failed to create payment method"
 msgstr "Betaalmethode aanmaken mislukt"
@@ -4137,7 +4182,14 @@ msgstr "Betaling afhandelen mislukt"
 msgid "No billing address"
 msgstr "Geen factuuradres"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:120
+#. placeholder {0}: failed.length
+#. placeholder {1}: failed.length
+#. placeholder {2}: failed.length
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:120
+msgid "{0, plural, one {Failed to delete {1} stock location} other {Failed to delete {2} stock locations}}"
+msgstr "{0, plural, one {Kan {1} voorraadlocatie niet verwijderen} other {Kan {2} voorraadlocaties niet verwijderen}}"
+
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:119
 #~ msgid "Facet"
 #~ msgstr "Facet"
 
@@ -4687,7 +4739,7 @@ msgstr "Verzonden"
 #~ msgid "Monitored Resources"
 #~ msgstr "Gemonitorde bronnen"
 
-#: src/lib/framework/layout-engine/page-layout.tsx:718
+#: src/lib/framework/layout-engine/page-layout.tsx:719
 msgid "Entity Information"
 msgstr "Entiteitsinformatie"
 
@@ -5229,6 +5281,10 @@ msgstr "Aangepaste velden"
 msgid "New Shipping Method"
 msgstr "Nieuwe verzendmethode"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:160
+msgid "Delete stock locations"
+msgstr "Voorraadlocaties verwijderen"
+
 #: src/lib/components/data-table/human-readable-operator.tsx:47
 msgid "is greater than or equal to"
 msgstr "is groter dan of gelijk aan"
@@ -5429,7 +5485,7 @@ msgstr "Staat / Provincie"
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:56
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:58
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:59
-#: src/lib/components/data-display/boolean.tsx:22
+#: src/lib/components/data-display/boolean.tsx:27
 #: src/lib/components/layout/nav-user.tsx:146
 msgid "Enabled"
 msgstr "Ingeschakeld"
@@ -5894,7 +5950,6 @@ msgstr "Typ en druk op Enter of komma om toe te voegen..."
 msgid "Edit Note"
 msgstr "Notitie bewerken"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:635
 #~ msgid "No assets found. Try adjusting your filters."
 #~ msgstr "Geen bestanden gevonden. Probeer uw filters aan te passen."
 

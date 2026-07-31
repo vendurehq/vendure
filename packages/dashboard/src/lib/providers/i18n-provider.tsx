@@ -5,6 +5,13 @@ import React from 'react';
 
 export const defaultLocale = 'en';
 
+// Dashboard extensions are evaluated asynchronously during app bootstrap and
+// may translate source-locale strings at module scope. Activate an empty source
+// catalog synchronously so those translations are safe while the compiled
+// dashboard and plugin catalogs load in parallel.
+i18n.load(defaultLocale, {});
+i18n.activate(defaultLocale);
+
 /**
  * We do a dynamic import of just the catalog that we need
  * @param locale any locale string

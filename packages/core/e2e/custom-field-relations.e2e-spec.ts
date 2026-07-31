@@ -947,6 +947,29 @@ describe('Custom field relations', () => {
                 expect(updateProduct.customFields.primitive).toBe('test');
             });
 
+            // https://github.com/vendurehq/vendure/issues/5040
+            it('updating an unrelated scalar custom field does not clear relation custom fields', async () => {
+                const { updateProduct } = await adminClient.query(gql`
+                    mutation {
+                        updateProduct(
+                            input: {
+                                id: "${productId}"
+                                customFields: { primitive: "changed" }
+                            }
+                        ) {
+                            id
+                            ${customFieldsSelection}
+                        }
+                    }
+                `);
+                expect(updateProduct.customFields.primitive).toBe('changed');
+                expect(updateProduct.customFields.single).toEqual({ id: 'T_3' });
+                expect(updateProduct.customFields.multi.sort(sortById)).toEqual([
+                    { id: 'T_3' },
+                    { id: 'T_4' },
+                ]);
+            });
+
             let productVariantId: string;
             it('admin createProductVariant', async () => {
                 const { createProductVariants } = await adminClient.query(gql`

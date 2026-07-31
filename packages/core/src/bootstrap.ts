@@ -17,7 +17,10 @@ import { Logger } from './config/logger/vendure-logger';
 import { RuntimeVendureConfig, VendureConfig } from './config/vendure-config';
 import { Administrator } from './entity/administrator/administrator.entity';
 import { coreEntitiesMap } from './entity/entities';
-import { registerCustomEntityFields } from './entity/register-custom-entity-fields';
+import {
+    getEntityNamesWithCustomFields,
+    registerCustomEntityFields,
+} from './entity/register-custom-entity-fields';
 import { runEntityMetadataModifiers } from './entity/run-entity-metadata-modifiers';
 import { setEntityIdStrategy } from './entity/set-entity-id-strategy';
 import { setMoneyStrategy } from './entity/set-money-strategy';
@@ -375,6 +378,17 @@ function checkPluginCompatibility(
  * Run the configuration functions of all plugins and return the final config object.
  */
 export async function runPluginConfigurations(config: RuntimeVendureConfig): Promise<RuntimeVendureConfig> {
+    // Auto-initialise an empty custom-field array for every entity that supports custom
+    // fields (core or plugin-defined), so a plugin's `configuration` callback can do
+    // `config.customFields.SomeEntity.push(...)` without the defensive
+    // `if (!config.customFields.SomeEntity) config.customFields.SomeEntity = []` guard.
+    // Empty arrays are ignored by `registerCustomEntityFields`, so this is inert for
+    // entities nobody extends. See OSS-408.
+    for (const entityName of getEntityNamesWithCustomFields()) {
+        if (!Object.prototype.hasOwnProperty.call(config.customFields, entityName)) {
+            config.customFields[entityName] = [];
+        }
+    }
     for (const plugin of config.plugins) {
         const configFn = getConfigurationFunction(plugin);
         if (typeof configFn === 'function') {

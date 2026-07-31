@@ -316,6 +316,7 @@ export function PageLayout({ children, className }: Readonly<PageLayoutProps>) {
                             column={extensionBlock.location.column}
                             blockId={extensionBlock.id}
                             title={extensionBlock.title}
+                            description={extensionBlock.description}
                         >
                             <extensionBlock.component context={page} />
                         </BlockComponent>,

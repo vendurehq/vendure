@@ -121,7 +121,7 @@ msgstr "標題 5"
 msgid "Failed to add payment"
 msgstr "新增付款失敗"
 
-#: src/lib/framework/layout-engine/page-layout.tsx:759
+#: src/lib/framework/layout-engine/page-layout.tsx:760
 msgid "Updated"
 msgstr "已更新"
 
@@ -217,6 +217,13 @@ msgstr "目前"
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:300
 msgid "No fulfillments"
 msgstr "無履行"
+
+#. placeholder {0}: failed.length
+#. placeholder {1}: failed.length
+#. placeholder {2}: failed.length
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:116
+msgid "{0, plural, one {Failed to delete {1} stock location: {messages}} other {Failed to delete {2} stock locations: {messages}}}"
+msgstr "{0, plural, other {無法刪除 {2} 個庫存地點：{messages}}}"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:342
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
@@ -362,6 +369,7 @@ msgid "Failed to create administrator"
 msgstr "建立管理員失敗"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:402
+#: src/lib/components/data-display/boolean.tsx:12
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx:100
 msgid "No"
 msgstr "否"
@@ -1209,6 +1217,10 @@ msgstr "已配置"
 msgid "Failed to set coupon code for order: {0}"
 msgstr "為訂單設定優惠券代碼失敗：{0}"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:191
+msgid "Select what to do with remaining stock"
+msgstr "請選擇如何處理剩餘庫存"
+
 #: src/lib/components/data-table/data-table-settings-menu.tsx:64
 msgid "Table settings"
 msgstr "表格設定"
@@ -1657,6 +1669,11 @@ msgstr ""
 msgid "Fulfillment details"
 msgstr "履行詳細資料"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:89
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:202
+msgid "Discard remaining stock"
+msgstr "捨棄剩餘庫存"
+
 #: src/lib/components/data-input/datetime-input.tsx:181
 #~ msgid "Now"
 #~ msgstr "現在"
@@ -1715,6 +1732,8 @@ msgstr "用作預設帳單地址"
 
 #: src/app/common/delete-bulk-action.tsx:139
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:40
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:217
+#: src/app/routes/_authenticated/_stock-locations/components/stock-location-bulk-actions.tsx:28
 #: src/lib/components/data-table/use-generated-columns.tsx:419
 #: src/lib/components/data-table/use-generated-columns.tsx:449
 #: src/lib/components/data-table/views-sheet.tsx:270
@@ -1812,7 +1831,7 @@ msgstr "地址已成功更新"
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:141
 #: src/lib/components/shared/asset/asset-gallery.tsx:1116
-#: src/lib/framework/layout-engine/page-layout.tsx:746
+#: src/lib/framework/layout-engine/page-layout.tsx:747
 msgid "Created"
 msgstr "已建立"
 
@@ -1876,6 +1895,7 @@ msgstr "插入 {row}×{col} 表格"
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:71
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:272
 #: src/app/routes/_authenticated/_products/components/force-remove-option-group-dialog.tsx:48
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:210
 #: src/app/routes/_authenticated/_system/settings-store.tsx:150
 #: src/lib/components/data-input/product-multi-selector-input.tsx:471
 #: src/lib/components/data-table/data-table-bulk-action-item.tsx:122
@@ -2000,7 +2020,7 @@ msgstr "客戶群組"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:139
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:59
-#: src/lib/components/data-display/boolean.tsx:22
+#: src/lib/components/data-display/boolean.tsx:27
 #: src/lib/components/data-input/default-relation-input.tsx:217
 #: src/lib/components/data-input/default-relation-input.tsx:448
 #: src/lib/components/data-input/default-relation-input.tsx:539
@@ -2169,6 +2189,10 @@ msgstr "無結果"
 msgid "Column settings"
 msgstr "欄設定"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:137
+msgid "{count, plural, one {Failed to delete {count} stock location} other {Failed to delete {count} stock locations}}"
+msgstr "{count, plural, other {無法刪除 {count} 個庫存地點}}"
+
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:227
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:127
@@ -2190,6 +2214,14 @@ msgstr "移除選項群組失敗"
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:97
 msgid "Order delivered"
 msgstr "訂單已送達"
+
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:47
+msgid "Transfer to {name}"
+msgstr "轉移至 {name}"
+
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:174
+msgid "Remaining stock"
+msgstr "剩餘庫存"
 
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx:49
 msgid "Remove from zone"
@@ -3719,6 +3751,10 @@ msgstr "拖曳以重新排序"
 msgid "Zones"
 msgstr "區域"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:163
+msgid "Choose what to do with any stock remaining in the {count, plural, one {# stock location} other {# stock locations}} you are deleting. All selected locations transfer their remaining stock into the single location you choose, or discard it."
+msgstr "請選擇如何處理您要刪除的 {count, plural, other {# 個庫存地點}} 中剩餘的庫存。所有選取的地點會將其剩餘庫存轉移到您選擇的那個地點，或將其捨棄。"
+
 #: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:111
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:151
 #: src/lib/components/shared/facet-value-selector.tsx:124
@@ -3828,6 +3864,10 @@ msgstr "選取一個國家"
 msgid "Failed to update shipping method"
 msgstr "更新配送方式失敗"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:103
+msgid "{deleted, plural, one {Deleted {deleted} stock location} other {Deleted {deleted} stock locations}}"
+msgstr "{deleted, plural, other {已刪除 {deleted} 個庫存地點}}"
+
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:42
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods.tsx:19
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods.tsx:29
@@ -3839,6 +3879,7 @@ msgid "Select an address"
 msgstr "選取一個地址"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:401
+#: src/lib/components/data-display/boolean.tsx:12
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx:100
 msgid "Yes"
 msgstr "是"
@@ -4060,6 +4101,10 @@ msgstr "搜尋變體..."
 #~ msgid "Successfully created product options"
 #~ msgstr "已成功建立商品選項"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:190
+msgid "Loading locations…"
+msgstr "正在載入地點…"
+
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:110
 msgid "Failed to create payment method"
 msgstr "建立付款方式失敗"
@@ -4146,7 +4191,14 @@ msgstr "完成付款失敗"
 msgid "No billing address"
 msgstr "無帳單地址"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:120
+#. placeholder {0}: failed.length
+#. placeholder {1}: failed.length
+#. placeholder {2}: failed.length
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:120
+msgid "{0, plural, one {Failed to delete {1} stock location} other {Failed to delete {2} stock locations}}"
+msgstr "{0, plural, other {無法刪除 {2} 個庫存地點}}"
+
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:119
 #~ msgid "Facet"
 #~ msgstr "屬性"
 
@@ -4696,7 +4748,7 @@ msgstr "已出貨"
 #~ msgid "Monitored Resources"
 #~ msgstr "監控資源"
 
-#: src/lib/framework/layout-engine/page-layout.tsx:718
+#: src/lib/framework/layout-engine/page-layout.tsx:719
 msgid "Entity Information"
 msgstr "實體資訊"
 
@@ -5238,6 +5290,10 @@ msgstr "自訂欄位"
 msgid "New Shipping Method"
 msgstr "新增配送方式"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:160
+msgid "Delete stock locations"
+msgstr "刪除庫存地點"
+
 #: src/lib/components/data-table/human-readable-operator.tsx:47
 msgid "is greater than or equal to"
 msgstr "大於或等於"
@@ -5434,7 +5490,7 @@ msgstr "州/省"
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:56
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:58
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:59
-#: src/lib/components/data-display/boolean.tsx:22
+#: src/lib/components/data-display/boolean.tsx:27
 #: src/lib/components/layout/nav-user.tsx:146
 msgid "Enabled"
 msgstr "已啟用"
@@ -5899,7 +5955,6 @@ msgstr "輸入後按 Enter 或逗號新增..."
 msgid "Edit Note"
 msgstr "編輯備註"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:635
 #~ msgid "No assets found. Try adjusting your filters."
 #~ msgstr "找不到資源。請嘗試調整篩選條件。"
 

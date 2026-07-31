@@ -13,6 +13,7 @@ import {
     buildTanstackRouterPluginConfig,
     TanstackRouterPluginOptions,
 } from './utils/tanstack-router-config.js';
+import { getDefaultTempCompilationDir } from './utils/temp-compilation-dir.js';
 import { adminApiSchemaPlugin } from './vite-plugin-admin-api-schema.js';
 import { bundleEntryPlugin } from './vite-plugin-bundle-entry.js';
 import { configLoaderPlugin } from './vite-plugin-config-loader.js';
@@ -93,6 +94,17 @@ export type VitePluginVendureDashboardOptions = {
      * The path to the directory where the generated GraphQL Tada files will be output.
      */
     gqlOutputPath?: string;
+    /**
+     * @description
+     * The directory into which the VendureConfig is transpiled and loaded in order
+     * to introspect the configuration during the dashboard build.
+     *
+     * Defaults to `<project>/node_modules/.cache/vendure-dashboard-temp`. It must
+     * not be located inside a `"type": "module"` package (such as
+     * `@vendure/dashboard` itself), because the config is compiled to CommonJS and
+     * Node would then load it as ESM, failing with
+     * `exports is not defined in ES module scope`.
+     */
     tempCompilationDir?: string;
     /**
      * @description
@@ -240,7 +252,7 @@ type PluginMapEntry = {
  * @docsWeight 0
  */
 export function vendureDashboardPlugin(options: VitePluginVendureDashboardOptions): PluginOption[] {
-    const tempDir = options.tempCompilationDir ?? path.join(import.meta.dirname, './.vendure-dashboard-temp');
+    const tempDir = options.tempCompilationDir ?? getDefaultTempCompilationDir();
     const tempInstanceId = `${process.pid}-${randomUUID()}`;
     const compilationTempDir = path.join(tempDir, 'compiler', tempInstanceId);
     const gqlTadaTempDir = path.join(tempDir, 'gql-tada', tempInstanceId);

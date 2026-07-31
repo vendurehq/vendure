@@ -121,7 +121,7 @@ msgstr "Nadpis 5"
 msgid "Failed to add payment"
 msgstr "Nepodařilo se přidat platbu"
 
-#: src/lib/framework/layout-engine/page-layout.tsx:759
+#: src/lib/framework/layout-engine/page-layout.tsx:760
 msgid "Updated"
 msgstr "Aktualizováno"
 
@@ -217,6 +217,13 @@ msgstr "Aktuální"
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:300
 msgid "No fulfillments"
 msgstr "Žádné expedice"
+
+#. placeholder {0}: failed.length
+#. placeholder {1}: failed.length
+#. placeholder {2}: failed.length
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:116
+msgid "{0, plural, one {Failed to delete {1} stock location: {messages}} other {Failed to delete {2} stock locations: {messages}}}"
+msgstr "{0, plural, one {Nepodařilo se smazat {1} skladové místo: {messages}} few {Nepodařilo se smazat {2} skladová místa: {messages}} other {Nepodařilo se smazat {2} skladových míst: {messages}}}"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:342
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
@@ -362,6 +369,7 @@ msgid "Failed to create administrator"
 msgstr "Vytvoření administrátora se nezdařilo"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:402
+#: src/lib/components/data-display/boolean.tsx:12
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx:100
 msgid "No"
 msgstr "Ne"
@@ -1209,6 +1217,10 @@ msgstr "Alokováno"
 msgid "Failed to set coupon code for order: {0}"
 msgstr "Nepodařilo se nastavit kupónový kód pro objednávku: {0}"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:191
+msgid "Select what to do with remaining stock"
+msgstr "Zvolte, co se má stát se zbývajícími zásobami"
+
 #: src/lib/components/data-table/data-table-settings-menu.tsx:64
 msgid "Table settings"
 msgstr "Nastavení tabulky"
@@ -1657,6 +1669,11 @@ msgstr ""
 msgid "Fulfillment details"
 msgstr "Detaily expedice"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:89
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:202
+msgid "Discard remaining stock"
+msgstr "Zahodit zbývající zásoby"
+
 #: src/lib/components/data-input/datetime-input.tsx:181
 #~ msgid "Now"
 #~ msgstr "Nyní"
@@ -1715,6 +1732,8 @@ msgstr "Použít jako výchozí fakturační adresu"
 
 #: src/app/common/delete-bulk-action.tsx:139
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:40
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:217
+#: src/app/routes/_authenticated/_stock-locations/components/stock-location-bulk-actions.tsx:28
 #: src/lib/components/data-table/use-generated-columns.tsx:419
 #: src/lib/components/data-table/use-generated-columns.tsx:449
 #: src/lib/components/data-table/views-sheet.tsx:270
@@ -1812,7 +1831,7 @@ msgstr "Adresa úspěšně aktualizována"
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:141
 #: src/lib/components/shared/asset/asset-gallery.tsx:1116
-#: src/lib/framework/layout-engine/page-layout.tsx:746
+#: src/lib/framework/layout-engine/page-layout.tsx:747
 msgid "Created"
 msgstr "Vytvořeno"
 
@@ -1876,6 +1895,7 @@ msgstr "Vložit tabulku {row} × {col}"
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:71
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:272
 #: src/app/routes/_authenticated/_products/components/force-remove-option-group-dialog.tsx:48
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:210
 #: src/app/routes/_authenticated/_system/settings-store.tsx:150
 #: src/lib/components/data-input/product-multi-selector-input.tsx:471
 #: src/lib/components/data-table/data-table-bulk-action-item.tsx:122
@@ -2000,7 +2020,7 @@ msgstr "Skupiny zákazníků"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:139
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:59
-#: src/lib/components/data-display/boolean.tsx:22
+#: src/lib/components/data-display/boolean.tsx:27
 #: src/lib/components/data-input/default-relation-input.tsx:217
 #: src/lib/components/data-input/default-relation-input.tsx:448
 #: src/lib/components/data-input/default-relation-input.tsx:539
@@ -2169,6 +2189,10 @@ msgstr "Žádné výsledky"
 msgid "Column settings"
 msgstr "Nastavení sloupců"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:137
+msgid "{count, plural, one {Failed to delete {count} stock location} other {Failed to delete {count} stock locations}}"
+msgstr "{count, plural, one {Nepodařilo se smazat {count} skladové místo} few {Nepodařilo se smazat {count} skladová místa} other {Nepodařilo se smazat {count} skladových míst}}"
+
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:227
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:127
@@ -2190,6 +2214,14 @@ msgstr "Nepodařilo se odebrat skupiny voleb"
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:97
 msgid "Order delivered"
 msgstr "Objednávka doručena"
+
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:47
+msgid "Transfer to {name}"
+msgstr "Převést na {name}"
+
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:174
+msgid "Remaining stock"
+msgstr "Zbývající zásoby"
 
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx:49
 msgid "Remove from zone"
@@ -3719,6 +3751,10 @@ msgstr "Přetažením změnit pořadí"
 msgid "Zones"
 msgstr "Zóny"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:163
+msgid "Choose what to do with any stock remaining in the {count, plural, one {# stock location} other {# stock locations}} you are deleting. All selected locations transfer their remaining stock into the single location you choose, or discard it."
+msgstr "Zvolte, co se má stát se zásobami, které zůstávají na {count, plural, one {# skladovém místě} few {# skladových místech} other {# skladových místech}}, jež mažete. Všechna vybraná místa převedou zbývající zásoby do jednoho místa, které zvolíte, nebo je zahodí."
+
 #: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:111
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:151
 #: src/lib/components/shared/facet-value-selector.tsx:124
@@ -3828,6 +3864,10 @@ msgstr "Vyberte zemi"
 msgid "Failed to update shipping method"
 msgstr "Nepodařilo se aktualizovat způsob dopravy"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:103
+msgid "{deleted, plural, one {Deleted {deleted} stock location} other {Deleted {deleted} stock locations}}"
+msgstr "{deleted, plural, one {Smazáno {deleted} skladové místo} few {Smazána {deleted} skladová místa} other {Smazáno {deleted} skladových míst}}"
+
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:42
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods.tsx:19
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods.tsx:29
@@ -3839,6 +3879,7 @@ msgid "Select an address"
 msgstr "Vyberte adresu"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:401
+#: src/lib/components/data-display/boolean.tsx:12
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx:100
 msgid "Yes"
 msgstr "Ano"
@@ -4060,6 +4101,10 @@ msgstr "Hledat varianty..."
 #~ msgid "Successfully created product options"
 #~ msgstr "Volby produktu úspěšně vytvořeny"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:190
+msgid "Loading locations…"
+msgstr "Načítání míst…"
+
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:110
 msgid "Failed to create payment method"
 msgstr "Nepodařilo se vytvořit způsob platby"
@@ -4146,7 +4191,14 @@ msgstr "Nepodařilo se vypořádat platbu"
 msgid "No billing address"
 msgstr "Žádná fakturační adresa"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:120
+#. placeholder {0}: failed.length
+#. placeholder {1}: failed.length
+#. placeholder {2}: failed.length
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:120
+msgid "{0, plural, one {Failed to delete {1} stock location} other {Failed to delete {2} stock locations}}"
+msgstr "{0, plural, one {Nepodařilo se smazat {1} skladové místo} few {Nepodařilo se smazat {2} skladová místa} other {Nepodařilo se smazat {2} skladových míst}}"
+
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:119
 #~ msgid "Facet"
 #~ msgstr "Vlastnost"
 
@@ -4696,7 +4748,7 @@ msgstr "Odesláno"
 #~ msgid "Monitored Resources"
 #~ msgstr "Monitorované zdroje"
 
-#: src/lib/framework/layout-engine/page-layout.tsx:718
+#: src/lib/framework/layout-engine/page-layout.tsx:719
 msgid "Entity Information"
 msgstr "Informace o entitě"
 
@@ -5238,6 +5290,10 @@ msgstr "Vlastní pole"
 msgid "New Shipping Method"
 msgstr "Nový způsob dopravy"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:160
+msgid "Delete stock locations"
+msgstr "Smazat skladová místa"
+
 #: src/lib/components/data-table/human-readable-operator.tsx:47
 msgid "is greater than or equal to"
 msgstr "je větší nebo rovno"
@@ -5434,7 +5490,7 @@ msgstr "Stát / Kraj"
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:56
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:58
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:59
-#: src/lib/components/data-display/boolean.tsx:22
+#: src/lib/components/data-display/boolean.tsx:27
 #: src/lib/components/layout/nav-user.tsx:146
 msgid "Enabled"
 msgstr "Povoleno"
@@ -5899,7 +5955,6 @@ msgstr "Zadejte a stiskněte Enter nebo čárku pro přidání..."
 msgid "Edit Note"
 msgstr "Upravit poznámku"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:635
 #~ msgid "No assets found. Try adjusting your filters."
 #~ msgstr "Nebyly nalezeny žádné soubory. Zkuste upravit filtry."
 

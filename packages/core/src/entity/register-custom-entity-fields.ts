@@ -14,6 +14,7 @@ import {
     ManyToOne,
 } from 'typeorm';
 import { EmbeddedMetadataArgs } from 'typeorm/metadata-args/EmbeddedMetadataArgs';
+import { RelationMetadataArgs } from 'typeorm/metadata-args/RelationMetadataArgs';
 import { DateUtils } from 'typeorm/util/DateUtils';
 
 import { CustomFieldConfig, CustomFields } from '../config/custom-field/custom-field-types';
@@ -27,6 +28,61 @@ import { EncryptedFieldTransformer } from './value-transformers';
  * The maximum length of the "length" argument of a MySQL varchar column.
  */
 const MAX_STRING_LENGTH = 65535;
+
+/**
+ * @description
+ * Returns the names of all registered entities that support custom fields (i.e.
+ * implement `HasCustomFields`). An entity supports custom fields when it declares
+ * a `customFields` embedded property, so we detect them from the TypeORM metadata
+ * rather than a runtime-unavailable `implements` check. Used to auto-initialise
+ * `config.customFields[EntityName]` so plugins can extend any such entity without
+ * a defensive guard (OSS-408).
+ *
+ * Translation entities are excluded: they carry their own `customFields` embedded
+ * (to hold localized field values) but are never valid `config.customFields` keys —
+ * localized custom fields are declared on the *base* entity. Auto-initialising an
+ * entry for a translation entity would make the GraphQL schema builder emit a
+ * duplicate `customFields` field on the `*TranslationInput` types (colliding with
+ * the one derived from the base entity's localized fields — "Field
+ * `CreateXTranslationInput.customFields` can only be defined once"). We detect
+ * translation entities as the target of a `translations` relation, the same signal
+ * `registerCustomEntityFields` uses to locate the translation type.
+ */
+export function getEntityNamesWithCustomFields(): string[] {
+    const metadataArgsStorage = getMetadataArgsStorage();
+    const translationEntityNames = new Set(
+        metadataArgsStorage.relations
+            .filter(relation => relation.propertyName === 'translations')
+            .map(relation => getRelationTargetName(relation.type))
+            .filter((name): name is string => name != null),
+    );
+    const names = metadataArgsStorage.embeddeds
+        .filter(embedded => embedded.propertyName === 'customFields')
+        .map(embedded => (typeof embedded.target === 'string' ? embedded.target : embedded.target.name))
+        .filter(name => !translationEntityNames.has(name));
+    return Array.from(new Set(names));
+}
+
+/**
+ * Resolves a TypeORM relation target to the target entity's name. The target may be a
+ * constructor closure (`() => ProductTranslation`, the usual form), a bare string name, or a
+ * closure returning a string — the latter two are both legal and commonly used to break
+ * circular imports (`@OneToMany('ArticleTranslation', ...)`). Calling a non-function, as the
+ * previous code did unconditionally, threw `relation.type is not a function` and aborted
+ * bootstrap; a closure returning a string yielded `undefined` and silently failed to exclude
+ * the translation entity.
+ */
+function getRelationTargetName(type: RelationMetadataArgs['type']): string | undefined {
+    const resolved: unknown = typeof type === 'function' ? (type as () => unknown)() : type;
+    if (typeof resolved === 'string') {
+        return resolved;
+    }
+    if (typeof resolved === 'function') {
+        return resolved.name;
+    }
+    // Anything else that carries a `name` (e.g. an EntitySchema-like object).
+    return (resolved as { name?: string } | undefined)?.name;
+}
 
 /**
  * Dynamically add columns to the custom field entity based on the CustomFields config.
@@ -320,17 +376,23 @@ export function registerCustomEntityFields(config: VendureConfig) {
             if (translationsMetadata) {
                 // This entity is translatable, which means that we should
                 // also register any localized custom fields on the related
-                // EntityTranslation entity.
-                const translationType: Function = (translationsMetadata.type as Function)();
-                const customFieldsTranslationsMetadata = getCustomFieldsMetadata(translationType);
-                const customFieldsTranslationClass = customFieldsTranslationsMetadata.type();
-                if (customFieldsTranslationClass && typeof customFieldsTranslationClass !== 'string') {
-                    registerCustomFieldsForEntity(
-                        config,
-                        entityName,
-                        customFieldsTranslationClass as any,
-                        true,
-                    );
+                // EntityTranslation entity. Resolve the target via the shared
+                // helper so a bare-string or closure-returning-string relation
+                // target (both legal, used to break circular imports) does not
+                // throw `type is not a function` here — the same crash fixed in
+                // getEntityNamesWithCustomFields().
+                const translationEntityName = getRelationTargetName(translationsMetadata.type);
+                if (translationEntityName != null) {
+                    const customFieldsTranslationsMetadata = getCustomFieldsMetadata(translationEntityName);
+                    const customFieldsTranslationClass = customFieldsTranslationsMetadata.type();
+                    if (customFieldsTranslationClass && typeof customFieldsTranslationClass !== 'string') {
+                        registerCustomFieldsForEntity(
+                            config,
+                            entityName,
+                            customFieldsTranslationClass as any,
+                            true,
+                        );
+                    }
                 }
             } else {
                 assertLocaleFieldsNotSpecified(config, entityName);

@@ -121,7 +121,7 @@ msgstr "سرفصل ۵"
 msgid "Failed to add payment"
 msgstr "افزودن پرداخت ناموفق بود"
 
-#: src/lib/framework/layout-engine/page-layout.tsx:759
+#: src/lib/framework/layout-engine/page-layout.tsx:760
 msgid "Updated"
 msgstr "به‌روزرسانی شد"
 
@@ -217,6 +217,13 @@ msgstr "فعلی"
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:300
 msgid "No fulfillments"
 msgstr "هیچ تحویلی وجود ندارد"
+
+#. placeholder {0}: failed.length
+#. placeholder {1}: failed.length
+#. placeholder {2}: failed.length
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:116
+msgid "{0, plural, one {Failed to delete {1} stock location: {messages}} other {Failed to delete {2} stock locations: {messages}}}"
+msgstr "{0, plural, one {حذف {1} مکان موجودی ناموفق بود: {messages}} other {حذف {2} مکان موجودی ناموفق بود: {messages}}}"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:342
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
@@ -362,6 +369,7 @@ msgid "Failed to create administrator"
 msgstr "ایجاد مدیر ناموفق بود"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:402
+#: src/lib/components/data-display/boolean.tsx:12
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx:100
 msgid "No"
 msgstr "خیر"
@@ -1209,6 +1217,10 @@ msgstr "تخصیص داده شده"
 msgid "Failed to set coupon code for order: {0}"
 msgstr "تنظیم کد کوپن برای سفارش ناموفق بود: {0}"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:191
+msgid "Select what to do with remaining stock"
+msgstr "انتخاب کنید با موجودی باقی‌مانده چه کاری انجام شود"
+
 #: src/lib/components/data-table/data-table-settings-menu.tsx:64
 msgid "Table settings"
 msgstr "تنظیمات جدول"
@@ -1657,6 +1669,11 @@ msgstr ""
 msgid "Fulfillment details"
 msgstr "جزئیات تحویل"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:89
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:202
+msgid "Discard remaining stock"
+msgstr "کنار گذاشتن موجودی باقی‌مانده"
+
 #: src/lib/components/data-input/datetime-input.tsx:181
 #~ msgid "Now"
 #~ msgstr "اکنون"
@@ -1715,6 +1732,8 @@ msgstr "استفاده به عنوان آدرس صورتحساب پیش‌فرض
 
 #: src/app/common/delete-bulk-action.tsx:139
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:40
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:217
+#: src/app/routes/_authenticated/_stock-locations/components/stock-location-bulk-actions.tsx:28
 #: src/lib/components/data-table/use-generated-columns.tsx:419
 #: src/lib/components/data-table/use-generated-columns.tsx:449
 #: src/lib/components/data-table/views-sheet.tsx:270
@@ -1812,7 +1831,7 @@ msgstr "آدرس با موفقیت به‌روزرسانی شد"
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:141
 #: src/lib/components/shared/asset/asset-gallery.tsx:1116
-#: src/lib/framework/layout-engine/page-layout.tsx:746
+#: src/lib/framework/layout-engine/page-layout.tsx:747
 msgid "Created"
 msgstr "ایجاد شد"
 
@@ -1876,6 +1895,7 @@ msgstr "درج جدول {row} در {col}"
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:71
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:272
 #: src/app/routes/_authenticated/_products/components/force-remove-option-group-dialog.tsx:48
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:210
 #: src/app/routes/_authenticated/_system/settings-store.tsx:150
 #: src/lib/components/data-input/product-multi-selector-input.tsx:471
 #: src/lib/components/data-table/data-table-bulk-action-item.tsx:122
@@ -2000,7 +2020,7 @@ msgstr "گروه‌های مشتری"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:139
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:59
-#: src/lib/components/data-display/boolean.tsx:22
+#: src/lib/components/data-display/boolean.tsx:27
 #: src/lib/components/data-input/default-relation-input.tsx:217
 #: src/lib/components/data-input/default-relation-input.tsx:448
 #: src/lib/components/data-input/default-relation-input.tsx:539
@@ -2169,6 +2189,10 @@ msgstr "نتیجه‌ای وجود ندارد"
 msgid "Column settings"
 msgstr "تنظیمات ستون"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:137
+msgid "{count, plural, one {Failed to delete {count} stock location} other {Failed to delete {count} stock locations}}"
+msgstr "{count, plural, one {حذف {count} مکان موجودی ناموفق بود} other {حذف {count} مکان موجودی ناموفق بود}}"
+
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:227
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:127
@@ -2190,6 +2214,14 @@ msgstr "حذف گروه‌های گزینه ناموفق بود"
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:97
 msgid "Order delivered"
 msgstr "سفارش تحویل داده شد"
+
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:47
+msgid "Transfer to {name}"
+msgstr "انتقال به {name}"
+
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:174
+msgid "Remaining stock"
+msgstr "موجودی باقی‌مانده"
 
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx:49
 msgid "Remove from zone"
@@ -3719,6 +3751,10 @@ msgstr "برای مرتب‌سازی بکشید"
 msgid "Zones"
 msgstr "مناطق"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:163
+msgid "Choose what to do with any stock remaining in the {count, plural, one {# stock location} other {# stock locations}} you are deleting. All selected locations transfer their remaining stock into the single location you choose, or discard it."
+msgstr "انتخاب کنید با موجودی باقی‌مانده در {count, plural, one {# مکان موجودی} other {# مکان موجودی}} که حذف می‌کنید چه کاری انجام شود. همه مکان‌های انتخاب‌شده موجودی باقی‌مانده خود را به تنها مکانی که انتخاب می‌کنید منتقل می‌کنند یا آن را کنار می‌گذارند."
+
 #: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:111
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:151
 #: src/lib/components/shared/facet-value-selector.tsx:124
@@ -3828,6 +3864,10 @@ msgstr "یک کشور انتخاب کنید"
 msgid "Failed to update shipping method"
 msgstr "به‌روزرسانی روش ارسال ناموفق بود"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:103
+msgid "{deleted, plural, one {Deleted {deleted} stock location} other {Deleted {deleted} stock locations}}"
+msgstr "{deleted, plural, one {{deleted} مکان موجودی حذف شد} other {{deleted} مکان موجودی حذف شد}}"
+
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:42
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods.tsx:19
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods.tsx:29
@@ -3839,6 +3879,7 @@ msgid "Select an address"
 msgstr "یک آدرس انتخاب کنید"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:401
+#: src/lib/components/data-display/boolean.tsx:12
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx:100
 msgid "Yes"
 msgstr "بله"
@@ -4060,6 +4101,10 @@ msgstr "جستجوی انواع..."
 #~ msgid "Successfully created product options"
 #~ msgstr "گزینه‌های محصول با موفقیت ایجاد شد"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:190
+msgid "Loading locations…"
+msgstr "در حال بارگذاری مکان‌ها…"
+
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:110
 msgid "Failed to create payment method"
 msgstr "ایجاد روش پرداخت ناموفق بود"
@@ -4146,7 +4191,14 @@ msgstr "تسویه پرداخت ناموفق بود"
 msgid "No billing address"
 msgstr "آدرس صورتحساب وجود ندارد"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:120
+#. placeholder {0}: failed.length
+#. placeholder {1}: failed.length
+#. placeholder {2}: failed.length
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:120
+msgid "{0, plural, one {Failed to delete {1} stock location} other {Failed to delete {2} stock locations}}"
+msgstr "{0, plural, one {حذف {1} مکان موجودی ناموفق بود} other {حذف {2} مکان موجودی ناموفق بود}}"
+
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:119
 #~ msgid "Facet"
 #~ msgstr "ویژگی"
 
@@ -4696,7 +4748,7 @@ msgstr "ارسال شده"
 #~ msgid "Monitored Resources"
 #~ msgstr "منابع نظارت شده"
 
-#: src/lib/framework/layout-engine/page-layout.tsx:718
+#: src/lib/framework/layout-engine/page-layout.tsx:719
 msgid "Entity Information"
 msgstr "اطلاعات موجودیت"
 
@@ -5238,6 +5290,10 @@ msgstr "فیلدهای سفارشی"
 msgid "New Shipping Method"
 msgstr "روش ارسال جدید"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:160
+msgid "Delete stock locations"
+msgstr "حذف مکان‌های موجودی"
+
 #: src/lib/components/data-table/human-readable-operator.tsx:47
 msgid "is greater than or equal to"
 msgstr "بزرگتر یا مساوی است با"
@@ -5434,7 +5490,7 @@ msgstr "ایالت / استان"
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:56
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:58
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:59
-#: src/lib/components/data-display/boolean.tsx:22
+#: src/lib/components/data-display/boolean.tsx:27
 #: src/lib/components/layout/nav-user.tsx:146
 msgid "Enabled"
 msgstr "فعال"
@@ -5899,7 +5955,6 @@ msgstr "تایپ کنید و Enter یا کاما را برای افزودن فش
 msgid "Edit Note"
 msgstr "ویرایش یادداشت"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:635
 #~ msgid "No assets found. Try adjusting your filters."
 #~ msgstr "فایلی یافت نشد. فیلترهای خود را تنظیم کنید."
 

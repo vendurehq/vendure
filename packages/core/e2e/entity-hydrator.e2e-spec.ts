@@ -405,6 +405,55 @@ describe('Entity hydration', () => {
         expect(order!.lines[1].productVariant.product.facetValues[0].facet).toBeDefined();
     });
 
+    // https://github.com/vendurehq/vendure/issues/4537
+    // A relation can be present on some elements of an array relation but not others. This is
+    // reachable through the public API: plugin code (e.g. an OrderInterceptor, see
+    // order-interceptor.ts:168) hydrates a relation onto a *single* line's variant, leaving the
+    // array unevenly loaded as [present, missing] — exactly what the reporter described. Hydrating
+    // the whole array must then populate every element, not just sample the first. Producing the
+    // uneven state through a real hydrate() call (rather than editing the entity by hand) verifies
+    // the fix against a shape a real code path actually generates.
+    it("hydrates lines after a plugin hydrated one line's variant", async () => {
+        // Fresh anonymous order so we're not appending to another test's active order.
+        await shopClient.asAnonymousUser();
+        // Two variants belonging to different products (T_1 = Laptop, T_5 = Curvy Monitor),
+        // so each line has its own ProductVariant and Product instance.
+        await shopClient.query(addItemToOrderDocument, { productVariantId: 'T_1', quantity: 1 });
+        const { addItemToOrder } = await shopClient.query(addItemToOrderDocument, {
+            productVariantId: 'T_5',
+            quantity: 1,
+        });
+        orderResultGuard.assertSuccess(addItemToOrder);
+
+        const internalOrderId = +addItemToOrder.id.replace(/^\D+/g, '');
+        const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+        const hydrator = server.app.get(EntityHydrator);
+        const order = await server.app
+            .get(OrderService)
+            .findOne(ctx, internalOrderId, ['lines.productVariant']);
+
+        expect(order!.lines[0].productVariant.product).toBeUndefined();
+        expect(order!.lines[1].productVariant.product).toBeUndefined();
+
+        // A plugin acts on one line and hydrates just that line's variant.
+        await hydrator.hydrate(ctx, order!.lines[0].productVariant, { relations: ['product'] });
+
+        // The array is now unevenly loaded: [present, missing].
+        expect(order!.lines[0].productVariant.product).toBeDefined();
+        expect(order!.lines[1].productVariant.product).toBeUndefined();
+
+        await hydrator.hydrate(ctx, order!, { relations: ['lines.productVariant.product'] });
+
+        // Before the fix, only lines[0] was sampled, so the relation was considered present for
+        // the whole array and nothing was fetched, leaving lines[1]'s product undefined.
+        expect(order!.lines[0].productVariant.product).toBeDefined();
+        expect(order!.lines[1].productVariant.product).toBeDefined();
+        // Assert against each variant's own productId rather than a hardcoded id, so the test
+        // isn't coupled to fixture CSV row order or the id strategy.
+        expect(order!.lines[0].productVariant.product.id).toBe(order!.lines[0].productVariant.productId);
+        expect(order!.lines[1].productVariant.product.id).toBe(order!.lines[1].productVariant.productId);
+    });
+
     // https://github.com/vendurehq/vendure/issues/2546
     it('Preserves ordering when merging arrays of relations', async () => {
         await shopClient.asUserWithCredentials('trevor_donnelly96@hotmail.com', 'test');

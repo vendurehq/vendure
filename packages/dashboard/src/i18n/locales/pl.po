@@ -121,7 +121,7 @@ msgstr "Nagłówek 5"
 msgid "Failed to add payment"
 msgstr "Nie udało się dodać płatności"
 
-#: src/lib/framework/layout-engine/page-layout.tsx:759
+#: src/lib/framework/layout-engine/page-layout.tsx:760
 msgid "Updated"
 msgstr "Zaktualizowano"
 
@@ -217,6 +217,13 @@ msgstr "Bieżący"
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx:300
 msgid "No fulfillments"
 msgstr "Brak realizacji"
+
+#. placeholder {0}: failed.length
+#. placeholder {1}: failed.length
+#. placeholder {2}: failed.length
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:116
+msgid "{0, plural, one {Failed to delete {1} stock location: {messages}} other {Failed to delete {2} stock locations: {messages}}}"
+msgstr "{0, plural, one {Nie udało się usunąć {1} lokalizacji magazynowej: {messages}} few {Nie udało się usunąć {2} lokalizacji magazynowych: {messages}} many {Nie udało się usunąć {2} lokalizacji magazynowych: {messages}} other {Nie udało się usunąć {2} lokalizacji magazynowych: {messages}}}"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:342
 msgid "When this is enabled, the prices entered in the product catalog will be included in the tax for the default tax zone."
@@ -362,6 +369,7 @@ msgid "Failed to create administrator"
 msgstr "Nie udało się utworzyć administratora"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:402
+#: src/lib/components/data-display/boolean.tsx:12
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx:100
 msgid "No"
 msgstr "Nie"
@@ -1209,6 +1217,10 @@ msgstr "Przydzielono"
 msgid "Failed to set coupon code for order: {0}"
 msgstr "Nie udało się ustawić kodu kuponu dla zamówienia: {0}"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:191
+msgid "Select what to do with remaining stock"
+msgstr "Wybierz, co zrobić z pozostałymi zapasami"
+
 #: src/lib/components/data-table/data-table-settings-menu.tsx:64
 msgid "Table settings"
 msgstr "Ustawienia tabeli"
@@ -1657,6 +1669,11 @@ msgstr ""
 msgid "Fulfillment details"
 msgstr "Szczegóły realizacji"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:89
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:202
+msgid "Discard remaining stock"
+msgstr "Odrzuć pozostałe zapasy"
+
 #: src/lib/components/data-input/datetime-input.tsx:181
 #~ msgid "Now"
 #~ msgstr "Teraz"
@@ -1715,6 +1732,8 @@ msgstr "Użyj jako domyślny adres rozliczeniowy"
 
 #: src/app/common/delete-bulk-action.tsx:139
 #: src/app/routes/_authenticated/_assets/components/asset-bulk-actions.tsx:40
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:217
+#: src/app/routes/_authenticated/_stock-locations/components/stock-location-bulk-actions.tsx:28
 #: src/lib/components/data-table/use-generated-columns.tsx:419
 #: src/lib/components/data-table/use-generated-columns.tsx:449
 #: src/lib/components/data-table/views-sheet.tsx:270
@@ -1812,7 +1831,7 @@ msgstr "Adres zaktualizowany pomyślnie"
 #: src/app/routes/_authenticated/_api-keys/api-keys_.$id.tsx:226
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx:141
 #: src/lib/components/shared/asset/asset-gallery.tsx:1116
-#: src/lib/framework/layout-engine/page-layout.tsx:746
+#: src/lib/framework/layout-engine/page-layout.tsx:747
 msgid "Created"
 msgstr "Utworzono"
 
@@ -1876,6 +1895,7 @@ msgstr "Wstaw tabelę {row} × {col}"
 #: src/app/routes/_authenticated/_orders/components/settle-refund-dialog.tsx:71
 #: src/app/routes/_authenticated/_products/components/assign-facet-values-dialog.tsx:272
 #: src/app/routes/_authenticated/_products/components/force-remove-option-group-dialog.tsx:48
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:210
 #: src/app/routes/_authenticated/_system/settings-store.tsx:150
 #: src/lib/components/data-input/product-multi-selector-input.tsx:471
 #: src/lib/components/data-table/data-table-bulk-action-item.tsx:122
@@ -2000,7 +2020,7 @@ msgstr "Grupy klientów"
 
 #: src/app/routes/_authenticated/_system/scheduled-tasks.tsx:139
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:59
-#: src/lib/components/data-display/boolean.tsx:22
+#: src/lib/components/data-display/boolean.tsx:27
 #: src/lib/components/data-input/default-relation-input.tsx:217
 #: src/lib/components/data-input/default-relation-input.tsx:448
 #: src/lib/components/data-input/default-relation-input.tsx:539
@@ -2169,6 +2189,10 @@ msgstr "Brak wyników"
 msgid "Column settings"
 msgstr "Ustawienia kolumn"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:137
+msgid "{count, plural, one {Failed to delete {count} stock location} other {Failed to delete {count} stock locations}}"
+msgstr "{count, plural, one {Nie udało się usunąć {count} lokalizacji magazynowej} few {Nie udało się usunąć {count} lokalizacji magazynowych} many {Nie udało się usunąć {count} lokalizacji magazynowych} other {Nie udało się usunąć {count} lokalizacji magazynowych}}"
+
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx:227
 #: src/app/routes/_authenticated/_countries/countries_.$id.tsx:110
 #: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:127
@@ -2190,6 +2214,14 @@ msgstr "Nie udało się usunąć grup opcji"
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-utils.tsx:97
 msgid "Order delivered"
 msgstr "Dostarczono zamówienie"
+
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:47
+msgid "Transfer to {name}"
+msgstr "Przenieś do {name}"
+
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:174
+msgid "Remaining stock"
+msgstr "Pozostałe zapasy"
 
 #: src/app/routes/_authenticated/_zones/components/zone-bulk-actions.tsx:49
 msgid "Remove from zone"
@@ -3719,6 +3751,10 @@ msgstr "Przeciągnij, aby zmienić kolejność"
 msgid "Zones"
 msgstr "Strefy"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:163
+msgid "Choose what to do with any stock remaining in the {count, plural, one {# stock location} other {# stock locations}} you are deleting. All selected locations transfer their remaining stock into the single location you choose, or discard it."
+msgstr "Wybierz, co zrobić z zapasami pozostałymi w {count, plural, one {# lokalizacji magazynowej} few {# lokalizacjach magazynowych} many {# lokalizacjach magazynowych} other {# lokalizacjach magazynowych}}, które usuwasz. Wszystkie wybrane lokalizacje przeniosą pozostałe zapasy do jednej wskazanej przez Ciebie lokalizacji albo je odrzucą."
+
 #: src/app/routes/_authenticated/_facets/components/facet-values-table.tsx:111
 #: src/lib/components/data-table/data-table-facet-value-faceted-filter.tsx:151
 #: src/lib/components/shared/facet-value-selector.tsx:124
@@ -3828,6 +3864,10 @@ msgstr "Wybierz kraj"
 msgid "Failed to update shipping method"
 msgstr "Nie udało się zaktualizować metody wysyłki"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:103
+msgid "{deleted, plural, one {Deleted {deleted} stock location} other {Deleted {deleted} stock locations}}"
+msgstr "{deleted, plural, one {Usunięto {deleted} lokalizację magazynową} few {Usunięto {deleted} lokalizacje magazynowe} many {Usunięto {deleted} lokalizacji magazynowych} other {Usunięto {deleted} lokalizacji magazynowych}}"
+
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx:42
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods.tsx:19
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods.tsx:29
@@ -3839,6 +3879,7 @@ msgid "Select an address"
 msgstr "Wybierz adres"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx:401
+#: src/lib/components/data-display/boolean.tsx:12
 #: src/lib/components/shared/configurable-operation-arg-summary.tsx:100
 msgid "Yes"
 msgstr "Tak"
@@ -4060,6 +4101,10 @@ msgstr "Szukaj wariantów..."
 #~ msgid "Successfully created product options"
 #~ msgstr "Pomyślnie utworzono opcje produktu"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:190
+msgid "Loading locations…"
+msgstr "Wczytywanie lokalizacji…"
+
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx:110
 msgid "Failed to create payment method"
 msgstr "Nie udało się utworzyć metody płatności"
@@ -4146,7 +4191,14 @@ msgstr "Nie udało się rozliczyć płatności"
 msgid "No billing address"
 msgstr "Brak adresu rozliczeniowego"
 
-#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:120
+#. placeholder {0}: failed.length
+#. placeholder {1}: failed.length
+#. placeholder {2}: failed.length
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:120
+msgid "{0, plural, one {Failed to delete {1} stock location} other {Failed to delete {2} stock locations}}"
+msgstr "{0, plural, one {Nie udało się usunąć {1} lokalizacji magazynowej} few {Nie udało się usunąć {2} lokalizacji magazynowych} many {Nie udało się usunąć {2} lokalizacji magazynowych} other {Nie udało się usunąć {2} lokalizacji magazynowych}}"
+
+#: src/app/routes/_authenticated/_facets/facets_.$facetId.values_.$id.tsx:119
 #~ msgid "Facet"
 #~ msgstr "Aspekt"
 
@@ -4696,7 +4748,7 @@ msgstr "Wysłane"
 #~ msgid "Monitored Resources"
 #~ msgstr "Monitorowane zasoby"
 
-#: src/lib/framework/layout-engine/page-layout.tsx:718
+#: src/lib/framework/layout-engine/page-layout.tsx:719
 msgid "Entity Information"
 msgstr "Informacje o encji"
 
@@ -5238,6 +5290,10 @@ msgstr "Pola niestandardowe"
 msgid "New Shipping Method"
 msgstr "Nowa metoda wysyłki"
 
+#: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx:160
+msgid "Delete stock locations"
+msgstr "Usuń lokalizacje magazynowe"
+
 #: src/lib/components/data-table/human-readable-operator.tsx:47
 msgid "is greater than or equal to"
 msgstr "jest większe lub równe"
@@ -5434,7 +5490,7 @@ msgstr "Stan / Województwo"
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:56
 #: src/app/routes/_authenticated/_tax-rates/tax-rates.tsx:58
 #: src/app/routes/_authenticated/_zones/components/zone-countries-table.tsx:59
-#: src/lib/components/data-display/boolean.tsx:22
+#: src/lib/components/data-display/boolean.tsx:27
 #: src/lib/components/layout/nav-user.tsx:146
 msgid "Enabled"
 msgstr "Włączono"
@@ -5899,7 +5955,6 @@ msgstr "Wpisz i naciśnij Enter lub przecinek, aby dodać..."
 msgid "Edit Note"
 msgstr "Edytuj notatkę"
 
-#: src/lib/components/shared/asset/asset-gallery.tsx:635
 #~ msgid "No assets found. Try adjusting your filters."
 #~ msgstr "Nie znaleziono zasobów. Spróbuj dostosować filtry."
 

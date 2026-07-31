@@ -329,7 +329,7 @@ function DefaultDisplayComponent({ value, fieldInfo }: { value: any; fieldInfo: 
         if (fieldInfo.name === 'enabled') {
             return <DisplayComponent id="vendure:booleanBadge" value={value} />;
         } else {
-            return <DisplayComponent id="vendure:booleanCheckbox" value={value} />;
+            return <DisplayComponent id="vendure:booleanYesNoBadge" value={value} />;
         }
     }
     if (fieldInfo.type === 'Asset') {
