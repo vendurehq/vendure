@@ -5,7 +5,6 @@ import { RequestContext } from '../api/common/request-context';
 
 import {
     ConfigurableOperationDef,
-    ConfigurableOperationDefType,
     ConfigurableOperationTranslator,
     LocalizedStringArray,
 } from './configurable-operation';
@@ -30,10 +29,6 @@ function stubTranslator(catalogs: { [languageCode: string]: any }): Configurable
     };
 }
 
-class TestOperation extends ConfigurableOperationDef {
-    protected readonly defType: ConfigurableOperationDefType = 'ShippingCalculator';
-}
-
 function createOperation(
     options: {
         code?: string;
@@ -43,7 +38,7 @@ function createOperation(
     },
     translator?: ConfigurableOperationTranslator,
 ) {
-    const operation = new TestOperation({
+    const operation = new ConfigurableOperationDef({
         code: options.code ?? 'test-calculator',
         description: options.description ?? [],
         args: {
@@ -57,6 +52,7 @@ function createOperation(
             },
         },
     });
+    operation.setDefType('ShippingCalculator');
     if (translator) {
         void operation.init({ get: () => translator } as unknown as Injector);
     }
@@ -254,7 +250,7 @@ describe('ConfigurableOperationDef', () => {
         });
 
         it('leaves a ui config with no options untouched', () => {
-            const operation = new TestOperation({
+            const operation = new ConfigurableOperationDef({
                 code: 'test-calculator',
                 description: [],
                 args: { rate: { type: 'string', ui: { component: 'currency-form-input' } } },

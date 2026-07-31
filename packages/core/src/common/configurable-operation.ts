@@ -426,12 +426,7 @@ export interface ConfigurableOperationDefOptions<T extends ConfigArgs> extends I
  * @docsCategory ConfigurableOperationDef
  */
 export class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
-    /**
-     * The registry this operation belongs to, set by each subclass. Combined with the `code` it
-     * forms the key prefix under which translated strings are looked up. An operation with no
-     * defType resolves its strings from the inline arrays only.
-     */
-    protected readonly defType?: ConfigurableOperationDefType;
+    private defType?: ConfigurableOperationDefType;
     private translator?: ConfigurableOperationTranslator;
 
     get code(): string {
@@ -452,6 +447,17 @@ export class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
         if (typeof this.options.init === 'function') {
             await this.options.init(injector);
         }
+    }
+
+    /**
+     * @internal
+     * Sets the registry this operation is part of, which together with the `code` forms the key
+     * prefix under which its translated strings are looked up. Called during bootstrap by the
+     * ConfigModule, which holds the registries. An operation with no defType resolves its strings
+     * from the inline arrays only.
+     */
+    setDefType(defType: ConfigurableOperationDefType) {
+        this.defType = defType;
     }
 
     /**

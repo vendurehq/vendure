@@ -25,6 +25,7 @@ const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const CORE_DIST = path.resolve(__dirname, '../../dist/index.js');
+const CORE_REGISTRY = path.resolve(__dirname, '../../dist/config/configurable-operation-registry.js');
 const MESSAGES_DIR = path.resolve(__dirname, '../../src/i18n/messages');
 /** The dashboard's catalogs are the canonical list of locales Vendure supports. */
 const DASHBOARD_LOCALES_DIR = path.resolve(__dirname, '../../../dashboard/src/i18n/locales');
@@ -32,9 +33,10 @@ const NAMESPACE = 'configurableOperation';
 const SOURCE_LANGUAGE = 'en';
 
 /**
- * Every ConfigurableOperationDef shipped by core. `dummyPaymentHandler` and
- * `examplePaymentHandler` are exported for use in development but are not part of
- * `defaultConfig`, so they have to be listed explicitly.
+ * Every ConfigurableOperationDef shipped by core, with its registry assigned. The registries come
+ * from the same helper the server bootstrap uses, so the two cannot list different operations.
+ * `defaultConfig` has the shape that helper reads. `dummyPaymentHandler` and `examplePaymentHandler`
+ * are exported for use in development but are absent from `defaultConfig`, so they are added here.
  */
 function getCoreOperations() {
     if (!fs.existsSync(CORE_DIST)) {
@@ -42,21 +44,22 @@ function getCoreOperations() {
         process.exit(1);
     }
     const { defaultConfig, dummyPaymentHandler, examplePaymentHandler } = require(CORE_DIST);
-    const { catalogOptions, entityOptions, paymentOptions, promotionOptions, shippingOptions } =
-        defaultConfig;
-    return [
-        ...catalogOptions.collectionFilters,
-        ...entityOptions.entityDuplicators,
-        ...shippingOptions.fulfillmentHandlers,
-        ...(paymentOptions.paymentMethodEligibilityCheckers ?? []),
-        ...paymentOptions.paymentMethodHandlers,
+    const { getConfigurableOperationDefinitions } = require(CORE_REGISTRY);
+    const registries = getConfigurableOperationDefinitions(defaultConfig);
+    registries.PaymentMethodHandler = [
+        ...registries.PaymentMethodHandler,
         dummyPaymentHandler,
         examplePaymentHandler,
-        ...promotionOptions.promotionActions,
-        ...promotionOptions.promotionConditions,
-        ...shippingOptions.shippingCalculators,
-        ...shippingOptions.shippingEligibilityCheckers,
     ].filter(Boolean);
+
+    const operations = [];
+    for (const [defType, defs] of Object.entries(registries)) {
+        for (const def of defs) {
+            def.setDefType(defType);
+            operations.push(def);
+        }
+    }
+    return operations;
 }
 
 /** The translatable strings of every core operation which has an English source value. */

@@ -8,7 +8,7 @@ import { InjectableStrategy } from '../common/types/injectable-strategy';
 
 import { resetConfig } from './config-helpers';
 import { ConfigService } from './config.service';
-import { getConfigurableOperationDefinitions } from './configurable-operation-registry';
+import { ConfigDefType, getConfigurableOperationDefinitions } from './configurable-operation-registry';
 
 @Module({
     providers: [ConfigService],
@@ -118,9 +118,15 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
     private async initConfigurableOperations() {
         const injector = new Injector(this.moduleRef);
         const { encryptionStrategy } = this.configService.systemOptions;
-        for (const operation of this.getConfigurableOperations()) {
-            await operation.init(injector);
-            operation.setEncryptionStrategy(encryptionStrategy);
+        const registries = getConfigurableOperationDefinitions(this.configService);
+        for (const [defType, operations] of Object.entries(registries) as Array<
+            [ConfigDefType, Array<ConfigurableOperationDef<any>>]
+        >) {
+            for (const operation of operations) {
+                operation.setDefType(defType);
+                await operation.init(injector);
+                operation.setEncryptionStrategy(encryptionStrategy);
+            }
         }
     }
 

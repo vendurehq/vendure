@@ -6,7 +6,6 @@ import {
     ConfigArgValues,
     ConfigurableOperationDef,
     ConfigurableOperationDefOptions,
-    ConfigurableOperationDefType,
 } from '../../common/configurable-operation';
 import { Order } from '../../entity/order/order.entity';
 import { Promotion } from '../../entity/promotion/promotion.entity';
@@ -69,8 +68,6 @@ export class PromotionCondition<
     C extends string = string,
     R extends CheckPromotionConditionResult = any,
 > extends ConfigurableOperationDef<T> {
-    protected readonly defType: ConfigurableOperationDefType = 'PromotionCondition';
-
     /**
      * @description
      * Used to determine the order of application of multiple Promotions

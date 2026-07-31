@@ -6,7 +6,6 @@ import {
     ConfigArgValues,
     ConfigurableOperationDef,
     ConfigurableOperationDefOptions,
-    ConfigurableOperationDefType,
 } from '../../common/configurable-operation';
 import { Order, PaymentMethod } from '../../entity';
 
@@ -48,8 +47,6 @@ export interface PaymentMethodEligibilityCheckerConfig<T extends ConfigArgs>
 export class PaymentMethodEligibilityChecker<
     T extends ConfigArgs = ConfigArgs,
 > extends ConfigurableOperationDef<T> {
-    protected readonly defType: ConfigurableOperationDefType = 'PaymentMethodEligibilityChecker';
-
     private readonly checkFn: CheckPaymentMethodEligibilityCheckerFn<T>;
 
     constructor(config: PaymentMethodEligibilityCheckerConfig<T>) {

@@ -7,7 +7,6 @@ import {
     ConfigArgValues,
     ConfigurableOperationDef,
     ConfigurableOperationDefOptions,
-    ConfigurableOperationDefType,
 } from '../../common/configurable-operation';
 import { VendureEntity } from '../../entity/base/base.entity';
 
@@ -157,8 +156,6 @@ export interface EntityDuplicatorConfig<T extends ConfigArgs> extends Configurab
  * @since 2.2.0
  */
 export class EntityDuplicator<T extends ConfigArgs = ConfigArgs> extends ConfigurableOperationDef<T> {
-    protected readonly defType: ConfigurableOperationDefType = 'EntityDuplicator';
-
     private _forEntities: string[];
     private _requiresPermission: Array<Permission | string> | Permission | string;
     private duplicateFn: DuplicateEntityFn<T>;

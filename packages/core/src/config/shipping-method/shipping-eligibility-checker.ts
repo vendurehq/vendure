@@ -9,7 +9,6 @@ import {
     ConfigArgValues,
     ConfigurableOperationDef,
     ConfigurableOperationDefOptions,
-    ConfigurableOperationDefType,
 } from '../../common/configurable-operation';
 import { Injector } from '../../common/index';
 import { Order, ShippingMethod } from '../../entity';
@@ -51,8 +50,6 @@ export interface ShippingEligibilityCheckerConfig<T extends ConfigArgs>
 export class ShippingEligibilityChecker<
     T extends ConfigArgs = ConfigArgs,
 > extends ConfigurableOperationDef<T> {
-    protected readonly defType: ConfigurableOperationDefType = 'ShippingEligibilityChecker';
-
     private readonly checkFn: CheckShippingEligibilityCheckerFn<T>;
     private readonly shouldRunCheckFn?: ShouldRunCheckFn<T>;
     private cacheService: CacheService;

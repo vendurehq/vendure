@@ -6,7 +6,6 @@ import {
     ConfigArgValues,
     ConfigurableOperationDef,
     ConfigurableOperationDefOptions,
-    ConfigurableOperationDefType,
 } from '../../common/configurable-operation';
 import { OnTransitionStartFn } from '../../common/finite-state-machine/types';
 import { Fulfillment } from '../../entity/fulfillment/fulfillment.entity';
@@ -148,8 +147,6 @@ export interface FulfillmentHandlerConfig<T extends ConfigArgs> extends Configur
  * @docsWeight 0
  */
 export class FulfillmentHandler<T extends ConfigArgs = ConfigArgs> extends ConfigurableOperationDef<T> {
-    protected readonly defType: ConfigurableOperationDefType = 'FulfillmentHandler';
-
     private readonly createFulfillmentFn: CreateFulfillmentFn<T>;
     private readonly onFulfillmentTransitionFn:
         | OnTransitionStartFn<FulfillmentState, FulfillmentTransitionData>
