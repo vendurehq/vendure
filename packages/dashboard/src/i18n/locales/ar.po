@@ -4302,6 +4302,10 @@ msgstr "إضافة مجموعة خيارات"
 msgid "All"
 msgstr "الكل"
 
+#: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx
+msgid "No matching tax descriptions"
+msgstr ""
+
 #. placeholder {0}: formatCurrency(refund.amountToRefundTotal, order.currencyCode)
 #: src/app/routes/_authenticated/_orders/components/refund-order-dialog.tsx
 msgid "Refund {0}"
