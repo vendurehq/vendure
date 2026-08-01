@@ -513,6 +513,30 @@ describe('translateDeep()', () => {
         expect(result.variants[1].featuredAsset).toHaveProperty('name', ASSET_NAME_EN);
     });
 
+    // The single-segment and two-segment non-array branches feed the shared
+    // `object[property] = value` assignment at the end of the loop, so they must preserve a
+    // null relation for the same reason as the array branch above — e.g.
+    // translate(collection, ctx, ['parent']) reaches the single-segment branch with a null
+    // parent on the root collection.
+    it('leaves a null relation as null for a single-segment path', () => {
+        (product as any).featuredAsset = null;
+
+        const result = translateDeep(product, [LanguageCode.en, LanguageCode.en], ['featuredAsset'] as any);
+
+        expect((result as any).featuredAsset).toBeNull();
+    });
+
+    it('leaves a null nested relation as null when the first level is not an array', () => {
+        (productVariant as any).featuredAsset = null;
+        testProduct.singleRealVariant = productVariant;
+
+        const result = translateDeep(testProduct, [LanguageCode.en, LanguageCode.en], [
+            ['singleRealVariant', 'featuredAsset'],
+        ] as any);
+
+        expect((result.singleRealVariant as any).featuredAsset).toBeNull();
+    });
+
     it('should translate a first-level nested non-array entity', () => {
         const result = translateDeep(testProduct, [LanguageCode.en, LanguageCode.en], ['singleRealVariant']);
 

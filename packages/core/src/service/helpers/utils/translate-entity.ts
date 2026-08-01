@@ -244,7 +244,12 @@ export function translateDeep<T extends Translatable & VendureEntity>(
             value = translateLeaf(object, property, languageCode);
         }
 
-        if (object && property) {
+        // translateLeaf() returns undefined exactly when there is nothing to translate at the
+        // property — including when the relation is null in the database. Writing that back
+        // would rewrite null to undefined, destroying the distinction getMissingRelations()
+        // relies on (undefined = never fetched, null = fetched and null), same as in the
+        // array branch above.
+        if (object && property && value !== undefined) {
             object[property] = value;
         }
     }
