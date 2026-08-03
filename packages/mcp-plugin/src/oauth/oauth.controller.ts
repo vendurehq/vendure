@@ -3,7 +3,7 @@ import { Ctx, RequestContext } from '@vendure/core';
 import { McpToolset } from '@vendure/mcp-sdk';
 import type { Response } from 'express';
 
-import { AuthorizeInput, RegisterClientInput, StorefrontCallbackInput, TokenInput } from './oauth-types';
+import { AuthorizeInput, RegisterClientInput, TokenInput } from './oauth-types';
 import { McpOauthService } from './oauth.service';
 
 @Controller()
@@ -32,8 +32,8 @@ export class McpOauthController {
     }
 
     @Get('mcp/oauth/authorization-request')
-    authorizationRequest(@Query('session') session: string) {
-        return this.oauthService.getAuthorizationRequestInfo(session);
+    authorizationRequest(@Query('request_token') requestToken: string) {
+        return this.oauthService.getAuthorizationRequestInfo(requestToken);
     }
 
     // RFC 6749 §5.1 requires the token endpoint to respond with 200; override the NestJS
@@ -52,14 +52,9 @@ export class McpOauthController {
     @Post('mcp/oauth/admin-consent')
     adminConsent(
         @Ctx() ctx: RequestContext,
-        @Body('session') session: string,
+        @Body('request_token') requestToken: string,
         @Body('approved') approved: boolean,
     ) {
-        return this.oauthService.approveAdminRequest(ctx, session, approved === true);
-    }
-
-    @Post('mcp/oauth/storefront-callback')
-    storefrontCallback(@Body() input: StorefrontCallbackInput) {
-        return this.oauthService.completeStorefrontRequest(input);
+        return this.oauthService.approveAdminRequest(ctx, requestToken, approved === true);
     }
 }

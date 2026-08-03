@@ -88,9 +88,9 @@ export async function runAuthorizationCodeFlow(
     if (!consentLocation) {
         throw new Error(`Authorize did not redirect to consent (status ${authorizeResponse.status})`);
     }
-    const request_token = new URL(consentLocation).searchParams.get('session');
+    const request_token = new URL(consentLocation).searchParams.get('request_token');
     if (!request_token) {
-        throw new Error(`Consent redirect missing session param: ${consentLocation}`);
+        throw new Error(`Consent redirect missing request_token param: ${consentLocation}`);
     }
 
     // 3. Admin consent: authenticated as superadmin via the bearer token.
@@ -100,7 +100,7 @@ export async function runAuthorizationCodeFlow(
             'content-type': 'application/json',
             Authorization: `Bearer ${superAdminToken}`,
         },
-        body: JSON.stringify({ session: request_token, approved: true }),
+        body: JSON.stringify({ request_token, approved: true }),
     });
     if (!consentResponse.ok) {
         throw new Error(`Admin consent failed: ${consentResponse.status} ${await consentResponse.text()}`);
@@ -156,15 +156,23 @@ export interface RunShopAuthorizationCodeFlowOptions {
     clientName?: string;
     /** Registered redirect URI. Defaults to `https://example.com/cb`. */
     redirectUri?: string;
+    /**
+     * Channel token to submit the consent under, sent as the `vendure-token` header. A real
+     * consent page must send this on a multi-channel store: the mutation takes the channel from
+     * the request, so omitting it binds the grant to the default channel and moves the shopper's
+     * session there. Omit only when the default channel is what you want.
+     */
+    channelToken?: string;
 }
 
 /**
  * Drives the full storefront (shop) OAuth authorization-code flow and returns every
  * value a test might need. The shop path differs from the admin path only at the
- * consent step: instead of an authenticated-superadmin bearer, the storefront consent
- * endpoint approves the request with a real customer session token (`vendureAuthToken`).
+ * consent step: instead of an authenticated-superadmin bearer, the Shop API's
+ * `authorizeMcpClient` mutation approves the request, with the customer's session
+ * (`vendureAuthToken`) travelling as a bearer header rather than a body field.
  *
- * Flow: register (DCR) -> authorize (resource = shop) -> storefront-callback -> token exchange.
+ * Flow: register (DCR) -> authorize (resource = shop) -> authorizeMcpClient mutation -> token exchange.
  */
 export async function runShopAuthorizationCodeFlow(
     options: RunShopAuthorizationCodeFlowOptions,
@@ -175,6 +183,7 @@ export async function runShopAuthorizationCodeFlow(
         vendureAuthToken,
         clientName = `oauth-shop-test-client-${Math.random().toString(36).slice(2)}`,
         redirectUri = 'https://example.com/cb',
+        channelToken,
     } = options;
 
     const resource = `${issuer}/mcp/shop`;
@@ -207,23 +216,35 @@ export async function runShopAuthorizationCodeFlow(
     if (!consentLocation) {
         throw new Error(`Authorize did not redirect to consent (status ${authorizeResponse.status})`);
     }
-    const request_token = new URL(consentLocation).searchParams.get('session');
+    const request_token = new URL(consentLocation).searchParams.get('request_token');
     if (!request_token) {
-        throw new Error(`Consent redirect missing session param: ${consentLocation}`);
+        throw new Error(`Consent redirect missing request_token param: ${consentLocation}`);
     }
 
-    // 3. Storefront consent: approved with the customer's Vendure session token.
-    const consentResponse = await fetch(`${baseUrl}/mcp/oauth/storefront-callback`, {
+    // 3. Storefront consent: the page submits through the Shop API, so the customer's session
+    // travels as a header rather than in the body.
+    const consentResponse = await fetch(`${baseUrl}/shop-api`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ session: request_token, vendureAuthToken, approved: true }),
+        headers: {
+            'content-type': 'application/json',
+            Authorization: `Bearer ${vendureAuthToken}`,
+            ...(channelToken ? { 'vendure-token': channelToken } : {}),
+        },
+        body: JSON.stringify({
+            query: `mutation ($requestToken: String!) {
+                authorizeMcpClient(requestToken: $requestToken, approved: true) { redirectUrl }
+            }`,
+            variables: { requestToken: request_token },
+        }),
     });
-    if (!consentResponse.ok) {
-        throw new Error(
-            `Storefront consent failed: ${consentResponse.status} ${await consentResponse.text()}`,
-        );
+    const consentBody = (await consentResponse.json()) as {
+        data?: { authorizeMcpClient?: { redirectUrl: string } };
+        errors?: Array<{ message: string }>;
+    };
+    if (!consentBody.data?.authorizeMcpClient) {
+        throw new Error(`Storefront consent failed: ${consentBody.errors?.[0]?.message ?? 'unknown error'}`);
     }
-    const { redirectUrl } = (await consentResponse.json()) as { redirectUrl: string };
+    const { redirectUrl } = consentBody.data.authorizeMcpClient;
     const code = new URL(redirectUrl).searchParams.get('code');
     if (!code) {
         throw new Error(`Consent redirect missing code param: ${redirectUrl}`);

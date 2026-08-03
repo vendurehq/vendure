@@ -37,7 +37,6 @@ export const DEFAULT_OAUTH_OPTIONS = {
     authorizationCodeTtlSeconds: 60,
     authorizationRequestTtlSeconds: 10 * 60,
     adminConsentPath: '/dashboard/mcp/authorize',
-    storefrontConsentUrl: 'http://localhost:3000/mcp/authorize',
     grantRetentionDays: 30,
 } as const;
 

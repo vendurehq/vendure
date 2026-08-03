@@ -33,7 +33,8 @@ export const config: VendureConfig = {
                 // Public base URL of this server. Used as the OAuth issuer and to
                 // build the metadata URLs agents discover.
                 issuer: 'https://my-store.example.com',
-                // The storefront page that approves customer (shop) consent.
+                // The storefront page that approves customer (shop) consent. Only needed
+                // if customers will authorize MCP clients.
                 storefrontConsentUrl: 'https://my-storefront.example.com/mcp/authorize',
             },
         }),
@@ -46,9 +47,9 @@ but the authenticated shop and admin endpoints do not. See [`McpOauthOptions`](/
 for every field and its default.
 
 :::info
-When `NODE_ENV=production` the plugin refuses to boot with the default `http://localhost:3500` issuer or a loopback
-`storefrontConsentUrl`. Set both to real public URLs — including on an admin-only deployment, where
-`storefrontConsentUrl` is still checked even though nothing visits it. This is covered in the
+When `NODE_ENV=production` the plugin refuses to boot with the default `http://localhost:3500` issuer — set it to
+your real public URL. `storefrontConsentUrl` has no default and is needed only if customers will authorize MCP
+clients; when you do set it, it must be a public HTTPS URL. This is covered in the
 [Production & Observability](/guides/mcp-server/production/) guide.
 :::
 

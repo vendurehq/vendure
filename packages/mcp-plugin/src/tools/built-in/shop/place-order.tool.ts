@@ -43,7 +43,9 @@ export class PlaceOrderTool implements McpPluginToolHandler<PlaceOrderInput> {
         if (!ctx.activeUserId) {
             return {
                 requiresAuthorization: true,
-                message: 'Authorize with shop.checkout before placing an order.',
+                message:
+                    'Placing an order requires an authorized customer. Complete the OAuth flow ' +
+                    'for this store and retry with the resulting access token.',
             };
         }
         const order = await getActiveOrder(ctx, this.activeOrderService, this.orderService, true);

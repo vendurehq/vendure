@@ -14,7 +14,13 @@ import { McpJsonSchema, McpTool, McpToolBehavior, McpToolMetadata, McpToolset } 
 import { loggerCtx, MCP_PLUGIN_OPTIONS, MCP_TOOL_TOGGLES_STORE_KEY } from '../constants';
 import { McpToolCallLogService } from '../logging/mcp-tool-call-log.service';
 import { McpRateLimiterService, McpRateLimitExceededError } from '../rate-limit/mcp-rate-limiter.service';
-import { McpExecutionContext, McpPluginOptions, McpPluginToolHandler, McpRegisteredTool } from '../types';
+import {
+    McpExecutionContext,
+    McpPluginOptions,
+    McpPluginToolHandler,
+    McpRegisteredTool,
+    McpToolSummary,
+} from '../types';
 
 import { Bm25Index } from './bm25';
 
@@ -52,7 +58,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     }
 
     // ---------------------------------------------------------------------------------------------
-    // Public surface (six members)
+    // Public surface (eight members)
     // ---------------------------------------------------------------------------------------------
 
     /** Every registered tool. Consumed by the admin API. */
@@ -94,6 +100,31 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             return this.executeToolViaDiscovery(executionContext, toolset, input);
         }
         return this.callRegisteredTool(executionContext, toolset, name, input);
+    }
+
+    /**
+     * The tools an in-process caller may run: the toolset's tools, minus disabled ones, minus those
+     * the context has no permission for. Unlike {@link getExposedTools} this ignores `toolExposure`,
+     * because the discovery meta-tools exist to keep a remote agent's tool list small and give an
+     * in-process caller nothing.
+     */
+    async getCallableTools(ctx: RequestContext, toolset: McpToolset): Promise<McpToolSummary[]> {
+        const toggles = await this.getToolToggles(ctx);
+        return this.visibleTools({ ctx }, toolset, toggles).map(tool => this.toolSummary(tool));
+    }
+
+    /**
+     * Runs one named tool through the shared funnel, validating its input. Skips the meta-tool
+     * routing in {@link callTool}, so `search_tools` and `execute_tool` are unknown names here —
+     * a caller using this already knows which tool it wants.
+     */
+    callToolDirect(
+        executionContext: McpExecutionContext,
+        toolset: McpToolset,
+        name: string,
+        input: unknown,
+    ): Promise<CallToolResult> {
+        return this.callRegisteredTool(executionContext, toolset, name, input, true);
     }
 
     /** Reads the tool-enablement map from the settings store (empty when unset). */
@@ -364,7 +395,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             .filter(item => query.length === 0 || item.score > 0)
             .sort((a, b) => b.score - a.score || a.tool.name.localeCompare(b.tool.name))
             .slice(0, limit)
-            .map(item => this.discoverySummary(item.tool));
+            .map(item => this.toolSummary(item.tool));
         if (matches.length === 0) {
             // Zero-result fallback hint rather than a dead-end empty list.
             return this.successResult({
@@ -378,8 +409,11 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         return this.successResult({ tools: matches });
     }
 
-    /** A concise tool summary for search results — carries the ORIGINAL input schema (no injected confirm). */
-    private discoverySummary(tool: McpRegisteredTool): Record<string, unknown> {
+    /**
+     * A concise tool summary for search results and in-process tool listings — carries the
+     * ORIGINAL input schema (no injected confirm).
+     */
+    private toolSummary(tool: McpRegisteredTool): McpToolSummary {
         return {
             name: tool.name,
             title: tool.title,

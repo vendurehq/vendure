@@ -2,7 +2,7 @@
 title: "McpOauthOptions"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/mcp-plugin/src/types.ts" sourceLine="27" packageName="@vendure/mcp-plugin" since="3.8.0" />
+<GenerationInfo sourceFile="packages/mcp-plugin/src/types.ts" sourceLine="33" packageName="@vendure/mcp-plugin" since="3.8.0" />
 
 OAuth-related options for [McpPlugin](/reference/core-plugins/mcp-plugin/#mcpplugin).
 
@@ -37,8 +37,14 @@ retention task deletes them once their grants expire.
 
 <MemberInfo kind="property" type={`string`} default={`'http://localhost:3500'`}   />
 
-Public base URL of the Vendure server, used as the OAuth issuer and to build
-authorization-server / protected-resource metadata URLs.
+The public URL of your Vendure server, e.g. `https://shop.example.com`. OAuth
+clients use it to find this server's login and token endpoints.
+
+It must be just `https://` plus the host (and port if needed) — no path, or the
+server refuses to start: clients fetch the server's OAuth info at fixed
+`/.well-known/...` addresses directly under the host, so a path here would point
+them at addresses that don't exist. If a proxy serves Vendure under a path, use a
+subdomain instead, or forward `/.well-known/*` to Vendure too.
 ### accessTokenTtlSeconds
 
 <MemberInfo kind="property" type={`number`} default={`900`}   />
@@ -70,10 +76,14 @@ Path (relative to `issuer`) of the admin consent page that approves
 admin-scoped authorization requests.
 ### storefrontConsentUrl
 
-<MemberInfo kind="property" type={`string`} default={`'http://localhost:3000/mcp/authorize'`}   />
+<MemberInfo kind="property" type={`string`}   />
 
 Absolute URL of the storefront consent page that approves customer-scoped
-authorization requests.
+authorization requests. Required only if you want customers to authorize MCP
+clients; a deployment that uses the admin toolset alone does not need it.
+
+Must be HTTPS in production. It also cannot be a loopback address such as
+`localhost` or `127.0.0.1`.
 ### grantRetentionDays
 
 <MemberInfo kind="property" type={`number`} default={`30 (days)`}   />

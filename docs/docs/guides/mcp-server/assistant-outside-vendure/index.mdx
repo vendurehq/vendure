@@ -1,0 +1,372 @@
+---
+title: 'Assistant outside Vendure'
+metaTitle: 'Build an MCP Assistant outside Vendure | Vendure'
+metaDescription: 'Run your own shop assistant as a separate service: register once, run the OAuth round trip during a navigation the shopper is already making, and renew tokens without interrupting the chat.'
+order: 4
+---
+
+If your assistant is a separate service — its own deployment, its own front end — it has to obtain a real token
+from outside the Vendure process. That means OAuth. The good news is that the shopper does not have to see it: if
+you run the round trip during a page navigation they were making anyway, and your consent page recognises your own
+assistant, the whole thing is one extra redirect they never notice.
+
+This guide covers the flow end to end, with the two rules that will cut a shopper off if you get them wrong.
+
+## When this is the right shape
+
+Pick this if the assistant is deployed separately from Vendure.
+
+Pick something else if:
+
+- the assistant is a **Vendure plugin** in the same process. It can run the tools directly, with no token at all —
+  see [Assistant inside Vendure](/guides/mcp-server/assistant-inside-vendure/).
+- the AI client belongs to the **shopper** — Claude Desktop, ChatGPT, Cursor. Those run this flow themselves; all
+  you build is [the customer consent page](/guides/mcp-server/oauth-consent/#the-customer-consent-page).
+
+## You still need the consent page
+
+Every authorization for the shop toolset redirects the browser to your `oauth.storefrontConsentUrl`. There is no
+way around it, including for your own assistant — and that is exactly where the invisibility comes from. Your
+consent page recognises your own `client_id`, approves without drawing a screen, and redirects onward. So build
+that page first: [the customer consent page](/guides/mcp-server/oauth-consent/#the-customer-consent-page).
+
+## The round trip
+
+```text
+Your assistant                     Vendure                        Your consent page
+     │
+     │ 1. register (once, ever) ──────▶ client_id
+     │
+     │ 2. redirect the browser ───────▶ /mcp/oauth/authorize
+     │                                        │
+     │                                        └─ redirect ──────────▶ ?request_token=…
+     │                                                                     │
+     │                                                        recognises your client_id,
+     │                                                        approves without a screen
+     │                                                                     │
+     │ 3. browser returns to your redirect address with ?code=…&state=… ◀───┘
+     │
+     │ 4. exchange the code ──────────▶ /mcp/oauth/token
+     │                                  ◀── access_token + refresh_token
+     │
+     │ 5. call tools with the access token, renewing it when it runs out
+```
+
+Steps 2 and 3 are browser redirects. Everything else is server-to-server.
+
+## Register once, and store the client id
+
+Registration always creates a **new** client record with a new id. So register the first time only, and persist
+what you get back. Re-registering on every boot leaves a trail of unused records and changes your assistant's
+identity in the tool-call logs.
+
+```ts title="src/mcp/oauth-client.ts"
+const VENDURE_URL = 'https://my-store.example.com';
+const RESOURCE = `${VENDURE_URL}/mcp/shop`;
+const REDIRECT_URI = 'https://assistant.example.com/mcp/callback';
+
+/**
+ * Returns this assistant's client id, registering it the first time only. `db` here is your
+ * own storage, not Vendure's.
+ */
+export async function getClientId(): Promise<string> {
+    const stored = await db.getSetting('mcpClientId');
+    if (stored) {
+        return stored;
+    }
+    const response = await fetch(`${VENDURE_URL}/mcp/oauth/register`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+            client_name: 'Acme Assistant',
+            client_uri: 'https://assistant.example.com',
+            // The address used in step 3 must appear here, or the authorize step refuses it.
+            redirect_uris: [REDIRECT_URI],
+        }),
+    });
+    if (!response.ok) {
+        throw new Error(`MCP client registration failed: ${response.status}`);
+    }
+    const { client_id } = (await response.json()) as { client_id: string };
+    await db.setSetting('mcpClientId', client_id);
+    return client_id;
+}
+```
+
+Put that `client_id` where your consent page can read it too — that is what lets the page recognise its own
+assistant and skip the screen.
+
+## The three values you generate per flow
+
+Every authorization needs three fresh random values, and each does a different job.
+
+| Value | Where it goes | What it is for |
+|---|---|---|
+| **Code verifier** | Stays on your server, then goes to the token endpoint | Proves that the service redeeming the code is the one that started the flow. Never send it to the browser. |
+| **Code challenge** | Travels in the browser, on the authorize URL | A one-way hash of the verifier. Anyone who steals it learns nothing, because they cannot work backwards to the verifier. |
+| **State** | Travels in the browser, and comes back on the callback | Ties the callback to a flow this server started, and to the customer who started it. |
+
+The verifier and the challenge are a pair: you send the hash out through the browser, keep the original, and
+present the original at the end. A stolen authorization code is then useless on its own.
+
+## Start the flow
+
+```ts title="src/mcp/oauth-client.ts"
+import { createHash, randomBytes } from 'crypto';
+
+interface PendingFlow {
+    /** The secret half of the pair. Never leaves your server. */
+    codeVerifier: string;
+    /** Who started this flow. The callback needs it to know whose tokens these are. */
+    customerId: string;
+    conversationId: string;
+}
+
+// Keyed by state. Use shared storage if more than one instance can handle the callback.
+const pendingFlows = new Map<string, PendingFlow>();
+
+/** Returns the URL to send the shopper's browser to. */
+export async function startAuthorization(
+    customerId: string,
+    conversationId: string,
+): Promise<string> {
+    const codeVerifier = randomBytes(32).toString('base64url');
+    const codeChallenge = createHash('sha256').update(codeVerifier).digest('base64url');
+    const state = randomBytes(16).toString('base64url');
+
+    pendingFlows.set(state, { codeVerifier, customerId, conversationId });
+
+    const url = new URL('/mcp/oauth/authorize', VENDURE_URL);
+    url.searchParams.set('response_type', 'code');
+    url.searchParams.set('client_id', await getClientId());
+    url.searchParams.set('redirect_uri', REDIRECT_URI);
+    url.searchParams.set('code_challenge', codeChallenge);
+    url.searchParams.set('code_challenge_method', 'S256');
+    // Names the toolset the token will be good for. `/mcp/shop` is the customer-facing one.
+    url.searchParams.set('resource', RESOURCE);
+    url.searchParams.set('state', state);
+    return url.toString();
+}
+```
+
+## Handle the callback
+
+```ts title="src/mcp/oauth-client.ts"
+/** Handles the browser's return from the consent page. */
+export async function handleCallback(query: Record<string, string | undefined>): Promise<void> {
+    const { code, state, error } = query;
+
+    // Check the state before anything else, every time.
+    if (!state) {
+        throw new Error('Unrecognised MCP callback — no state');
+    }
+    const flow = pendingFlows.get(state);
+    if (!flow) {
+        throw new Error('Unrecognised MCP callback — no matching flow');
+    }
+    // Each state is good for one callback only.
+    pendingFlows.delete(state);
+
+    if (error || !code) {
+        // The shopper denied, or the server refused. There is nothing to store.
+        return;
+    }
+
+    const tokens = await requestTokens({
+        grant_type: 'authorization_code',
+        code,
+        client_id: await getClientId(),
+        redirect_uri: REDIRECT_URI,
+        code_verifier: flow.codeVerifier,
+        resource: RESOURCE,
+    });
+    conversations.set(flow.conversationId, tokens);
+}
+```
+
+## Hold the tokens for the conversation
+
+The token exchange gives you two tokens. Keep both, in memory, for as long as the conversation lasts.
+
+```ts title="src/mcp/oauth-client.ts"
+/** Replace the access token this long before it expires. */
+const RENEW_WITHIN_MS = 60_000;
+
+interface Tokens {
+    accessToken: string;
+    refreshToken: string;
+    /** Clock time at which the access token stops working. */
+    expiresAt: number;
+    /** Set while a renewal is in flight, so two messages cannot renew at once. */
+    renewal?: Promise<Tokens>;
+}
+
+const conversations = new Map<string, Tokens>();
+
+async function requestTokens(body: Record<string, string>): Promise<Tokens> {
+    const response = await fetch(`${VENDURE_URL}/mcp/oauth/token`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+        throw new Error(`MCP token request failed: ${response.status}`);
+    }
+    const payload = (await response.json()) as {
+        access_token: string;
+        refresh_token: string;
+        expires_in: number;
+    };
+    return {
+        accessToken: payload.access_token,
+        refreshToken: payload.refresh_token,
+        expiresAt: Date.now() + payload.expires_in * 1000,
+    };
+}
+```
+
+## Renew silently
+
+The access token lasts 15 minutes by default; the refresh token lasts 30 days. Renewing is a server-to-server
+call, so the shopper sees nothing — as long as only one renewal runs at a time.
+
+```ts title="src/mcp/oauth-client.ts"
+/** Returns a usable access token, renewing first if the current one is nearly up. */
+export async function accessTokenFor(conversationId: string): Promise<string> {
+    const tokens = conversations.get(conversationId);
+    if (!tokens) {
+        throw new Error('This conversation has no MCP grant yet');
+    }
+    if (tokens.expiresAt - Date.now() > RENEW_WITHIN_MS) {
+        return tokens.accessToken;
+    }
+    // One renewal at a time. Two messages renewing together would present the same refresh
+    // token twice: one succeeds and the other is rejected, and if the loser then retries with
+    // the token it is still holding, that token has become the *previous* one — which the
+    // server treats as evidence of theft and revokes the whole grant. Share one promise so
+    // there is only ever one call in flight.
+    const renewal = (tokens.renewal ??= renew(conversationId, tokens).finally(() => {
+        delete tokens.renewal;
+    }));
+    return (await renewal).accessToken;
+}
+
+async function renew(conversationId: string, current: Tokens): Promise<Tokens> {
+    const fresh = await requestTokens({
+        grant_type: 'refresh_token',
+        refresh_token: current.refreshToken,
+        client_id: await getClientId(),
+        resource: RESOURCE,
+    });
+    conversations.set(conversationId, fresh);
+    return fresh;
+}
+```
+
+Then call tools with whatever `accessTokenFor` hands back:
+
+```ts
+import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
+
+const transport = new StreamableHTTPClientTransport(new URL(`${VENDURE_URL}/mcp/shop`), {
+    requestInit: {
+        headers: { authorization: `Bearer ${await accessTokenFor(conversationId)}` },
+    },
+});
+const client = new Client({ name: 'acme-assistant', version: '1.0.0' });
+await client.connect(transport);
+```
+
+## Two rules you cannot bend
+
+**Always check the returned state.** It is the only thing tying a callback to a flow this backend started, and to
+the right customer. Skip the check and anyone can begin their own authorization, then cause a shopper's browser to
+complete it — your assistant ends up holding a token, but not the one it thinks it holds. Look the state up, treat
+an unknown state as an error, and use each one once.
+
+**One renewal at a time per conversation.** Every refresh rotates the pair: you get a new access token and a new
+refresh token, and the old refresh token stops working. Presenting an already-rotated refresh token is treated as
+evidence that it was stolen, and revokes the grant outright. So two messages that renew simultaneously will, at
+best, have one of them fail — and if the failing one retries with the token it still has, the shopper is cut off
+mid-conversation. Serialise renewals, as the `tokens.renewal` promise above does.
+
+## Making it invisible
+
+The round trip involves two browser redirects, so the shopper's browser has to go somewhere. The trick is to make
+that somewhere a place it was going anyway.
+
+- **Trigger it during a navigation the shopper is already making** — opening the chat panel on a fresh page load,
+  moving from the product page to the basket. The redirects happen inside a page transition they expected, so
+  there is nothing to notice.
+- **Only start it when the shopper is already signed in.** If they are not, your consent page has to send them to
+  a login form, and that login form will appear in the middle of whatever you were doing — inside a popup, or in
+  place of the page they were reading. Check first, and either sign them in deliberately or wait.
+- **Do not start a flow in the background** during a message. Nothing good happens when a redirect fires while
+  somebody is typing.
+
+## When the assistant must act with nobody present
+
+If your assistant needs to do something for a shopper who is not there — following up on an abandoned basket,
+answering later — a conversation-scoped, in-memory token is the wrong home for it. Persist the pair instead, and
+**key it by customer identity, never by chat session**.
+
+A chat session is short-lived and there may be several per customer. Key by session and each one collects its own
+grant, none of them can be found again once the session is gone, and there is nothing to reach for when nobody is
+present. Key by customer and there is exactly one grant to find, refresh and revoke.
+
+Three things change with a persisted pair:
+
+- **Encrypt the refresh token at rest.** It is a 30-day credential for that shopper's account.
+- **Lock the renewal across processes**, not just within one. The single-promise trick above only serialises
+  renewals inside one instance; two instances renewing the same grant hit the rule above and revoke it. A short
+  lease in Redis, or a row-level lock, is enough.
+- **Handle a dead grant as a normal outcome.** A grant can be revoked by an administrator from the dashboard, by
+  your own code, or automatically if a rotated refresh token is ever replayed — and it expires 30 days after its
+  last use. Treat a rejected refresh as "ask this shopper again next time they visit", not as an error to retry.
+
+## Operational notes
+
+**Raise `rateLimits.perClient`.** The per-client limit is counted per OAuth client record, and every shopper's
+grant sits behind the single record you registered above. So the default of **120 requests per minute is a ceiling
+for your whole store's assistant traffic**, not a per-shopper allowance. It was sized for one third-party client
+acting for one person. The per-session limit is separate: counted per grant, it caps each conversation at 60
+requests per minute, and that one is usually about right.
+
+```ts title="src/vendure-config.ts"
+McpPlugin.init({
+    rateLimits: {
+        perClient: { rpm: 3000 },
+    },
+});
+```
+
+**Give the cache a backend that only evicts on time.** Rate-limit counters live in Vendure's `CacheService`. The
+default `InMemoryCacheStrategy` holds 10,000 entries and drops the oldest when full, sharing that space with
+everything else Vendure caches — so on a busy store a counter can be evicted before its one-minute window ends,
+silently resetting the limit at the moment it matters. An assistant of your own adds steady traffic, which makes
+that more likely. `RedisCachePlugin` expires entries by time, has no entry cap, and gives every app instance one
+shared set of counters:
+
+```ts title="src/vendure-config.ts"
+import { RedisCachePlugin } from '@vendure/core';
+
+plugins: [
+    RedisCachePlugin.init({
+        redisOptions: { host: 'localhost', port: 6379 },
+    }),
+];
+```
+
+**Handle a refusal rather than failing.** Tell the shopper to try again in a moment. A refusal arrives in one of
+two shapes: as a protocol error carrying `data.retryAfterSeconds` and `data.scope` when it happens before a tool
+runs, or as an ordinary failed tool result with a text message and no retry hint once a tool has started. Read
+the hint defensively and treat a missing value as "wait a few seconds". Do not branch on the numeric error code,
+and do not assume the HTTP status — a refusal is already 429 today when the request expected no reply, and 200
+when there is a request to answer. The error code, meanwhile, is moving out of the range the 2026-07-28 protocol
+revision reserves.
+
+## Next steps
+
+- [The customer consent page](/guides/mcp-server/oauth-consent/#the-customer-consent-page) — the page this flow redirects through, and where your own assistant gets waved past.
+- [Built-in Tool Reference](/guides/mcp-server/built-in-tools/) — the tools your assistant can reach on the shop toolset.
+- [Production & Observability](/guides/mcp-server/production/) — token secret rotation, logging, and telemetry.

@@ -9,8 +9,9 @@ import {
     VendurePlugin,
 } from '@vendure/core';
 
-import { adminApiExtensions } from './api/api-extensions';
+import { adminApiExtensions, shopApiExtensions } from './api/api-extensions';
 import { McpAdminResolver } from './api/mcp-admin.resolver';
+import { McpShopResolver } from './api/mcp-shop.resolver';
 import {
     DEFAULT_LOG_TTL_DAYS,
     DEFAULT_OAUTH_OPTIONS,
@@ -33,6 +34,7 @@ import { McpToolCallLogService } from './logging/mcp-tool-call-log.service';
 import { McpOauthController } from './oauth/oauth.controller';
 import { McpOauthService } from './oauth/oauth.service';
 import { McpRateLimiterService } from './rate-limit/mcp-rate-limiter.service';
+import { McpToolExecutionService } from './registry/mcp-tool-execution.service';
 import { McpToolRegistryService } from './registry/mcp-tool-registry.service';
 import { mcpOauthRetentionTask } from './tasks/mcp-oauth-retention.task';
 import { mcpToolCallLogRetentionTask } from './tasks/mcp-tool-call-log-retention.task';
@@ -68,6 +70,7 @@ import { McpPluginOptions, McpRateLimitOptions } from './types';
         { provide: MCP_PLUGIN_OPTIONS, useFactory: () => McpPlugin.options },
         McpOauthService,
         McpToolRegistryService,
+        McpToolExecutionService,
         McpRateLimiterService,
         McpToolCallLogService,
         ...mcpBuiltInToolProviders,
@@ -76,6 +79,10 @@ import { McpPluginOptions, McpRateLimitOptions } from './types';
     adminApiExtensions: {
         schema: adminApiExtensions,
         resolvers: [McpAdminResolver],
+    },
+    shopApiExtensions: {
+        schema: shopApiExtensions,
+        resolvers: [McpShopResolver],
     },
     dashboard: '../src/dashboard/index.tsx',
     configuration: config => {
@@ -104,7 +111,7 @@ import { McpPluginOptions, McpRateLimitOptions } from './types';
         );
         return config;
     },
-    compatibility: '^3.8.0',
+    compatibility: '^3.7.0',
 })
 export class McpPlugin implements OnApplicationBootstrap {
     static options: McpPluginOptions;
@@ -176,14 +183,21 @@ export class McpPlugin implements OnApplicationBootstrap {
                         `Set it to your public Vendure server URL so clients can reach it.`,
                 );
             }
-            if (this.isLoopbackUrl(oauth.storefrontConsentUrl)) {
-                throw new Error(
-                    `McpPlugin: oauth.storefrontConsentUrl cannot be a loopback URL ("${
-                        oauth.storefrontConsentUrl ?? ''
-                    }") in production. ` +
-                        `Set it to your public storefront consent page URL, or to any real URL you control if ` +
-                        `this deployment never uses shop OAuth.`,
-                );
+            if (oauth.storefrontConsentUrl != null) {
+                if (this.isLoopbackUrl(oauth.storefrontConsentUrl)) {
+                    throw new Error(
+                        `McpPlugin: oauth.storefrontConsentUrl cannot be a loopback URL ` +
+                            `("${oauth.storefrontConsentUrl}") in production. Set it to your public ` +
+                            `storefront consent page URL.`,
+                    );
+                }
+                if (new URL(oauth.storefrontConsentUrl).protocol !== 'https:') {
+                    throw new Error(
+                        `McpPlugin: oauth.storefrontConsentUrl must use https in production ` +
+                            `("${oauth.storefrontConsentUrl}"). A consent page carries a customer's ` +
+                            `session, so it cannot be served over plain HTTP.`,
+                    );
+                }
             }
         }
     }

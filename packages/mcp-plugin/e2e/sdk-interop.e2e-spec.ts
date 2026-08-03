@@ -110,14 +110,14 @@ async function approveViaAdminConsent(authorizationUrl: URL, superAdminToken: st
     if (!consentLocation) {
         throw new Error(`Authorize did not redirect to consent (status ${authorizeResponse.status})`);
     }
-    const requestToken = new URL(consentLocation).searchParams.get('session');
+    const requestToken = new URL(consentLocation).searchParams.get('request_token');
     if (!requestToken) {
-        throw new Error(`Consent redirect missing session param: ${consentLocation}`);
+        throw new Error(`Consent redirect missing request_token param: ${consentLocation}`);
     }
     const consentResponse = await fetch(`${baseUrl()}/mcp/oauth/admin-consent`, {
         method: 'POST',
         headers: { 'content-type': 'application/json', Authorization: `Bearer ${superAdminToken}` },
-        body: JSON.stringify({ session: requestToken, approved: true }),
+        body: JSON.stringify({ request_token: requestToken, approved: true }),
     });
     if (!consentResponse.ok) {
         throw new Error(`Admin consent failed: ${consentResponse.status} ${await consentResponse.text()}`);

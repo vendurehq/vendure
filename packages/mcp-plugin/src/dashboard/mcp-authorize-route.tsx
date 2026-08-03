@@ -42,7 +42,7 @@ function redirectHostname(uri: string): string | null {
     }
 }
 
-function ConsentCard({ session }: { session: string }) {
+function ConsentCard({ requestToken }: { requestToken: string }) {
     const { t } = useLingui();
     const [info, setInfo] = useState<AuthRequestInfo | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -51,7 +51,7 @@ function ConsentCard({ session }: { session: string }) {
 
     useEffect(() => {
         let cancelled = false;
-        fetch(`/mcp/oauth/authorization-request?session=${encodeURIComponent(session)}`, {
+        fetch(`/mcp/oauth/authorization-request?request_token=${encodeURIComponent(requestToken)}`, {
             credentials: 'include',
         })
             .then(async res => {
@@ -75,7 +75,7 @@ function ConsentCard({ session }: { session: string }) {
         return () => {
             cancelled = true;
         };
-    }, [session]);
+    }, [requestToken]);
 
     const submit = async (approved: boolean) => {
         setSubmitting(true);
@@ -85,7 +85,7 @@ function ConsentCard({ session }: { session: string }) {
                 method: 'POST',
                 headers: { 'content-type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ session, approved }),
+                body: JSON.stringify({ request_token: requestToken, approved }),
             });
             if (!res.ok) {
                 throw new Error(`Request failed (${res.status})`);
@@ -195,13 +195,13 @@ function ConsentCard({ session }: { session: string }) {
 export const mcpAuthorizeRoute: DashboardRouteDefinition = {
     path: '/mcp/authorize',
     loader: () => ({ breadcrumb: () => <Trans>Authorize MCP Client</Trans> }),
-    validateSearch: search => z.object({ session: z.string() }).parse(search),
+    validateSearch: search => z.object({ request_token: z.string() }).parse(search),
     component: route => {
-        const { session } = route.useSearch();
+        const { request_token: requestToken } = route.useSearch();
         return (
             <PermissionGuard requires={['UpdateMcpServer']}>
                 <div className="flex justify-center p-8">
-                    <ConsentCard session={session} />
+                    <ConsentCard requestToken={requestToken} />
                 </div>
             </PermissionGuard>
         );

@@ -88,6 +88,26 @@ describe('McpPlugin production config guard', () => {
         expect(() => plugin.onApplicationBootstrap()).toThrow();
     });
 
+    // The whole point of this task: a deployment that only uses the admin toolset must be able
+    // to start in production without ever configuring a storefront consent page.
+    it('does not throw in production when the issuer is public and storefrontConsentUrl is unset', () => {
+        process.env.NODE_ENV = 'production';
+        setOauth({ tokenSecret: 'x', issuer: 'https://shop.example.com' });
+        const plugin = createPlugin(true);
+        expect(() => plugin.onApplicationBootstrap()).not.toThrow();
+    });
+
+    it('throws in production when the storefrontConsentUrl is a public but plain-HTTP URL', () => {
+        process.env.NODE_ENV = 'production';
+        setOauth({
+            tokenSecret: 'x',
+            issuer: 'https://shop.example.com',
+            storefrontConsentUrl: 'http://shop.example.com/mcp/authorize',
+        });
+        const plugin = createPlugin(true);
+        expect(() => plugin.onApplicationBootstrap()).toThrow();
+    });
+
     // Every OAuth and MCP URL is built from the issuer, and the `.well-known` documents are
     // served at the server root — so an issuer with a path yields URLs nothing serves. Refused
     // in development too, because that is where such a misconfiguration is discovered cheaply.

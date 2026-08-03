@@ -1,31 +1,56 @@
 ---
 title: 'OAuth & Consent Integration'
 metaTitle: 'MCP OAuth & Consent Integration | Vendure'
-metaDescription: 'How AI agents authenticate to the Vendure MCP server via OAuth 2.1 — admin consent through the dashboard, and the storefront consent page a merchant builds for shop access.'
+metaDescription: 'How AI clients authenticate to the Vendure MCP server via OAuth 2.1 — admin consent through the dashboard, the customer consent page you host, and how to tell which of them you need.'
 order: 2
 ---
 
-MCP agents authenticate to the Vendure server using **OAuth 2.1** with PKCE and Dynamic Client Registration.
-An MCP client runs almost the entire flow for you — it discovers the endpoints, registers itself, and exchanges
-tokens. The one part that needs a human is **consent**: a person has to approve the agent's access.
+MCP clients authenticate to the Vendure server using **OAuth 2.1** with PKCE and Dynamic Client Registration.
+The client runs almost the entire flow for you — it discovers the endpoints, registers itself, and exchanges
+tokens. The one part that needs a decision from a person is **consent**: somebody has to agree that this client
+may act on their behalf.
 
-## What works out of the box, and what you build
+Who that person is, and whether they ever see a screen, depends on what you are building. Sort yourself first.
 
-- **Admin OAuth works out of the box.** The plugin ships a consent page inside the dashboard. An administrator
-  holding the `UpdateMcpServer` permission approves an agent using their existing dashboard session — no extra
+## Which of these are you doing?
+
+**Staff tools only** — your team queries the store with an AI client such as Claude Desktop or Cursor.
+You need [Admin consent](#admin-consent-ships-with-the-dashboard) below. Vendure ships that page, so there is
+nothing for you to build. Nothing else here applies to you.
+
+**A chat assistant you build as a Vendure plugin.** No browser, no consent page, no popup, no token — it runs the
+tools directly. See [Assistant inside Vendure](/guides/mcp-server/assistant-inside-vendure/).
+
+**A chat assistant you run outside Vendure**, as a separate service with its own front end. You need the full
+OAuth round trip, but the shopper never notices it if you run it during a page navigation they were making
+anyway. See [Assistant outside Vendure](/guides/mcp-server/assistant-outside-vendure/).
+
+**Shoppers bringing their own AI client** — Claude Desktop, ChatGPT, Cursor — and pointing it at your store.
+Each shopper approves once, on a page you host. That is
+[the customer consent page](#the-customer-consent-page) below, and it is the same page the previous case needs.
+
+## What ships with the plugin, and what you build
+
+- **Admin consent works out of the box.** The plugin ships a consent page inside the dashboard. An administrator
+  holding the `UpdateMcpServer` permission approves a client using their existing dashboard session — no extra
   build, no separate login.
-- **Shop OAuth requires a storefront consent page you build.** Because your storefront owns customer login,
-  the plugin cannot render the customer-facing consent screen. You build one page against the
-  [storefront callback contract](#storefront-consent-contract) below; it also handles customer sign-in (the
-  headless cold-start handoff).
+- **Customer consent needs a page you host**, and only if customers will authorize clients at all. Your
+  storefront owns customer login, so the plugin cannot render that screen for you. Build one page against
+  [the customer consent page](#the-customer-consent-page) contract below. If nothing but the admin toolset is
+  ever used, you do not need the page and you do not need to configure its URL.
+- **An assistant you build as a Vendure plugin needs neither.** It runs inside the server process, so it calls
+  the tools directly instead of sending anyone through a browser. See
+  [Assistant inside Vendure](/guides/mcp-server/assistant-inside-vendure/).
 - **The richer MCP management dashboard is a fast-follow.** v1 ships an enriched consent page plus a single
   Overview. Multi-page management, a config panel, and OAuth-client inventory are deferred; until then, use the
   Admin GraphQL API and the [MCP Inspector](/guides/mcp-server/quick-start/#test--debug-with-the-mcp-inspector).
 
 ## The OAuth 2.1 flow
 
-The client drives these steps; you only configure `oauth` (see [`McpOauthOptions`](/reference/core-plugins/mcp-plugin/mcp-oauth-options/))
-and, for shop access, build the consent page.
+This is the flow a client outside your server runs. The client drives every step; you only configure `oauth`
+(see [`McpOauthOptions`](/reference/core-plugins/mcp-plugin/mcp-oauth-options/)) and, for customer access, host
+the consent page. An assistant built as a Vendure plugin skips all of it — see
+[Assistant inside Vendure](/guides/mcp-server/assistant-inside-vendure/).
 
 1. **Discover.** A call to a protected endpoint returns `401` with a
    `WWW-Authenticate: Bearer resource_metadata="…"` header. The client fetches that protected-resource metadata,
@@ -34,7 +59,7 @@ and, for shop access, build the consent page.
    and receives a `client_id`. Clients are public (PKCE, no secret).
 3. **Authorize.** The client sends the user to `GET /mcp/oauth/authorize` with `response_type=code`, its
    `client_id`, `redirect_uri`, a PKCE `code_challenge` (`S256`), and the `resource` it wants access to. The
-   server records a pending request and **redirects to the consent page** carrying only `?session=<requestToken>`.
+   server records a pending request and **redirects to the consent page** carrying only `?request_token=<requestToken>`.
 4. **Consent.** A human approves (admin via the dashboard; customer via your storefront page). On approval the
    server issues a short-lived authorization `code` and redirects back to the client's `redirect_uri`.
 5. **Token exchange.** The client `POST`s to `/mcp/oauth/token` with `grant_type=authorization_code`, the `code`,
@@ -57,7 +82,10 @@ reach.
 | `/mcp/oauth/revoke` | POST | Revoke a grant (RFC 7009) |
 | `/mcp/oauth/authorization-request` | GET | Consent-page lookup of pending-request details |
 | `/mcp/oauth/admin-consent` | POST | Admin approval (used by the dashboard page) |
-| `/mcp/oauth/storefront-callback` | POST | Customer approval (used by your storefront page) |
+
+A customer's decision is not an endpoint in this list. It is the `authorizeMcpClient` mutation on the **Shop
+API**, so your consent page records it the same way it does everything else — see
+[the customer consent page](#the-customer-consent-page).
 
 The token endpoint accepts an `application/x-www-form-urlencoded` body as required by OAuth 2.1 (RFC 6749); the
 `/register` and `/revoke` endpoints accept form-encoded bodies too. Standard MCP clients send form-encoded token
@@ -118,7 +146,7 @@ When an agent requests the **admin** toolset, the authorize step redirects to th
 `adminConsentPath` (default `/dashboard/mcp/authorize`). The page reads the pending request, shows the client
 name, its redirect URI, and the requested toolset, and lets the signed-in administrator **Approve** or **Deny**.
 Approval uses the administrator's existing dashboard session — there is no second login. Under the hood the page
-`POST`s `{ session, approved }` to `/mcp/oauth/admin-consent`; the server checks the session, creates the
+`POST`s `{ request_token: requestToken, approved }` to `/mcp/oauth/admin-consent`; the server checks the session, creates the
 authorization code, and returns the client redirect URL.
 
 Two things are enforced on that endpoint beyond being signed in:
@@ -128,64 +156,395 @@ Two things are enforced on that endpoint beyond being signed in:
   dashboard route is guarded too, so an administrator holding only `ReadMcpServer` never sees the page; the
   server-side check is what stops the same approval being submitted directly to the endpoint.
 - **A same-origin check.** The approval rides the administrator's login cookie, which the browser attaches
-  automatically, so the request's `Origin` (or `Referer`, if `Origin` is absent) must match the origin of your
-  configured `oauth.issuer`, otherwise it is a `403`. This blocks a third-party page from forging an approval.
-  Requests carrying an `Authorization` header skip the check, since those cannot be forged cross-site — that is
-  what lets an API client approve programmatically.
+  automatically, so if the request carries an `Origin` header, it must match the origin of your configured
+  `oauth.issuer`, otherwise it is a `403`. This blocks a third-party page from forging an approval. A request with
+  no `Origin` header at all is allowed — that is what lets an API client approve programmatically. A caller
+  authenticated by a bearer token gets no exemption from this check: Vendure reads the session cookie before it
+  ever looks at `Authorization`, so a page on another site could send a meaningless `Authorization` value and
+  still be riding the administrator's own cookie.
 
 The practical consequence of the second rule is that **`oauth.issuer` must be the origin your dashboard is served
-from**. If the two differ, the consent page's own submission looks cross-origin and every approval fails.
+from**. If the two differ, the consent page's own submission looks cross-origin and every approval fails. The
+same rule also refuses a programmatic approval that happens to send an `Origin` other than that address — send
+none at all rather than setting it to something arbitrary.
 
 Nothing to build here — it works as soon as the plugin is installed and the dashboard extension is active.
 
-## Storefront consent contract
+## The customer consent page
 
-When an agent requests the **shop** toolset, the authorize step redirects to your `storefrontConsentUrl` with
-`?session=<requestToken>`. Your storefront page implements three steps:
+When a client asks for the **shop** toolset, the authorize step redirects the browser to a page you host,
+carrying one query parameter: `?request_token=<token>`. That page shows the shopper what is being asked and
+records their answer.
 
-1. **Look up the request.** `GET /mcp/oauth/authorization-request?session=<requestToken>` returns the details to
-   show the customer:
+### Configuring the page URL
 
-   ```json
-   {
-       "client_id": "…",
-       "client_name": "Acme Assistant",
-       "client_uri": "https://acme.example.com",
-       "logo_uri": "https://acme.example.com/logo.png",
-       "redirect_uri": "https://acme.example.com/callback",
-       "resource": "https://my-store.example.com/mcp/shop",
-       "toolset": "shop"
-   }
-   ```
+Set `oauth.storefrontConsentUrl` to the absolute URL of that page:
 
-   Show at least the **client name** and its **redirect URI** so the customer can judge what they are approving.
+```ts title="src/vendure-config.ts"
+McpPlugin.init({
+    oauth: {
+        tokenSecret: process.env.MCP_TOKEN_SECRET,
+        issuer: 'https://my-store.example.com',
+        storefrontConsentUrl: 'https://my-storefront.example.com/mcp/authorize',
+    },
+});
+```
 
-2. **Sign the customer in.** The customer must be authenticated in your storefront (via the normal Shop API
-   login), because approval attaches the grant to their account. This is the cold-start handoff: an agent that
-   has no browser session relies on your storefront to establish the customer identity.
+There is **no default**. The setting is required only if customers will authorize clients; a store that uses the
+admin toolset alone starts up without it. When you do set it, two rules apply once `NODE_ENV=production`: it must
+use HTTPS, and it must not be a loopback address such as `localhost` or `127.0.0.1`. The server refuses to boot
+otherwise.
 
-3. **Submit the decision.** `POST /mcp/oauth/storefront-callback` with:
+If a customer authorization arrives at a server where the setting is missing, the client is sent back to its own
+registered redirect address with `error=server_error` and the `state` it supplied, and a short explanation that
+the store is not configured for customer access. That message deliberately does not name the setting — the
+actionable detail goes to your server log instead, which names `oauth.storefrontConsentUrl`.
 
-   ```json
-   {
-       "session": "<requestToken>",
-       "vendureAuthToken": "<the customer's Vendure session token>",
-       "channelToken": "<optional channel token>",
-       "approved": true
-   }
-   ```
+### The two calls your page makes
 
-   The response is `{ "redirectUrl": "…" }` — redirect the customer's browser there to hand the authorization
-   `code` back to the agent. Send `approved: false` to deny; the same redirect carries the denial back to the
-   client.
+| Call | Credential | Purpose |
+|---|---|---|
+| `GET {issuer}/mcp/oauth/authorization-request?request_token=…` | None | Find out who is asking |
+| The `authorizeMcpClient` mutation on the Shop API | The shopper's ordinary Shop API session | Record the decision |
 
-:::warning
-The `session` value is a one-time request token — it is consumed on the first decision. If a customer reloads the
-consent page after approving, re-fetching the request will fail; treat a missing or consumed request as an
-expired flow and ask the agent to start again.
-:::
+**The lookup** needs no credential at all, which is what lets you show the request before asking anyone to sign
+in. It returns:
+
+```json
+{
+    "client_id": "…",
+    "client_name": "Acme Assistant",
+    "client_uri": "https://acme.example.com",
+    "logo_uri": "https://acme.example.com/logo.png",
+    "redirect_uri": "https://acme.example.com/callback",
+    "resource": "https://my-store.example.com/mcp/shop",
+    "toolset": "shop"
+}
+```
+
+`client_uri` and `logo_uri` are omitted entirely when the client did not register them. Anything other than a
+success response means the request token is unknown, has timed out, or has already been decided.
+
+**The decision** is a Shop API mutation:
+
+```graphql
+mutation ApproveMcpClient($requestToken: String!, $approved: Boolean!) {
+    authorizeMcpClient(requestToken: $requestToken, approved: $approved) {
+        redirectUrl
+    }
+}
+```
+
+Send the browser to the `redirectUrl` it returns. On approval that URL hands an authorization code back to the
+client; on denial it carries the refusal back instead.
+
+The mutation is public, so **a shopper who is not signed in can still deny**. Approving is different: it needs a
+signed-in customer, because the grant is attached to that customer's account. It is also refused for a user who
+holds an administrator record — one person registered as both a customer and an administrator would otherwise
+receive a customer-scoped token for an account with staff privileges.
+
+The request token is single-use. It is consumed by the first decision, so a shopper who reloads the page after
+approving will find the lookup fails. Treat that as an expired flow: your page cannot restart something the
+client began, so the only useful thing it can say is "go back to your assistant and connect again".
+
+### The decision flow
+
+```text
+request_token from the page URL
+  │
+  ▼
+GET /mcp/oauth/authorization-request?request_token=…          (no credential needed)
+  │
+  ├─ unknown, expired or already decided
+  │    → "This request has expired. Go back to your assistant and connect again."
+  │
+  ▼
+Is client_id your own assistant's?
+  │
+  ├─ yes ── signed in? ── no  → send to your login page, return to this URL
+  │                       └─ yes → authorizeMcpClient(approved: true) → redirect
+  │                                (no consent screen — the shopper chose this assistant)
+  │
+  └─ no  → show "<name> wants access to your account", with Approve and Deny
+             ├─ Deny ──── authorizeMcpClient(approved: false) → redirect  (no sign-in needed)
+             └─ Approve ─ signed in? ── no  → send to your login page, return to this URL
+                                        └─ yes → authorizeMcpClient(approved: true) → redirect
+```
+
+### Rules your page must follow
+
+**Send your channel token if your store has more than one sales channel.** The mutation has no channel argument.
+It takes the channel from the request, exactly like every other Shop API call.
+
+Call it without a channel token and Vendure resolves the request to the **default channel**. Two things then go
+wrong:
+
+- The authorization is recorded against the default channel, so the client's tools work there rather than in the
+  channel the shopper was browsing.
+- The shopper's **own active channel changes to the default too**. Vendure stores the resolved channel on the
+  session on any authenticated Shop API request, so a consent page that forgets the token moves the shopper out
+  of the channel they were in. That is not something this mutation does, but it is the effect.
+
+So send the token — the `vendure-token` header by default — on the mutation, exactly as the rest of your
+storefront does. On a single-channel store there is nothing to do. The lookup call never needs it, because it
+reads nothing channel-specific.
+
+**Show the request before the login.** The lookup needs no credential precisely so that you can. A shopper
+should be able to see what they are allowing before typing a password.
+
+**Compare the client id, never the name.** Registration is open: anything can register and pick its own
+`client_name`, so the name is a value a stranger chose. Present it as unverified rather than as an established
+identity, or a shopper can be shown "Acme Shoes Official Assistant" belonging to somebody else. Skipping the
+screen for your own assistant is unaffected by this, because that comparison is on `client_id`, which the server
+generated.
+
+**Allow your storefront's origin in `apiOptions.cors`.** A page running in the browser reads the lookup endpoint
+and posts to the Shop API from your storefront's origin, so that origin has to be permitted. It already has to
+be, for every other Shop API call your storefront makes.
+
+### Where the submission must come from
+
+Approving acts on whatever Shop API session the request carried. Without a check, a page on another site could
+trigger an approval inside a signed-in shopper's browser. One rule prevents that:
+
+> If the request carries an `Origin` header, it must match the origin of your configured
+> `oauth.storefrontConsentUrl`. If it carries no `Origin` at all, it is allowed.
+
+That covers both ways of building the page:
+
+- **A page rendered on your server** calls the Shop API from Node, which attaches no `Origin` header, so it
+  passes.
+- **A page running in the browser** always attaches `Origin` to a cross-site POST, and page code cannot suppress
+  it. Your own page's origin is the consent page's origin, so it matches. A stranger's page cannot make it match.
+
+The practical consequence, **for a page that submits from the browser**, is that
+`oauth.storefrontConsentUrl` must be on the same origin as that page. If the two differ, your own page's
+submissions are refused. A page that submits from your server is not affected, because it sends no `Origin` for
+the rule to compare. This is usually met first as a preview or staging deployment: if its origin differs from
+the address configured in `oauth.storefrontConsentUrl`, its approvals are refused until the setting is updated
+to match.
+
+### A reference implementation
+
+Two files. The first holds the calls, so it works the same whether your page renders in the browser or on your
+server; the second is the page itself.
+
+```ts title="src/mcp-consent/mcp-consent.ts"
+// Where your Vendure server lives, and where its Shop API is.
+const VENDURE_URL = 'https://my-store.example.com';
+const SHOP_API_URL = `${VENDURE_URL}/shop-api`;
+
+// The channel this storefront serves. Required if your store has more than one sales
+// channel; on a single-channel store you can remove it and the header below.
+const CHANNEL_TOKEN = 'my-channel-token';
+
+// The client id your own assistant registered, if you have one, so its requests can be
+// approved without showing a screen. Leave it empty if every client that reaches this
+// page belongs to somebody else.
+export const OWN_CLIENT_ID = '';
+
+export interface AuthorizationRequest {
+    client_id: string;
+    client_name: string;
+    /** Absent when the client did not register one. */
+    client_uri?: string;
+    /** Absent when the client did not register one. */
+    logo_uri?: string;
+    redirect_uri: string;
+    resource: string;
+    toolset: 'shop' | 'admin';
+}
+
+/**
+ * Reads the pending request. Needs no credential, so this works before the shopper has
+ * signed in. Returns 'expired' for a token that is unknown, timed out or already decided.
+ */
+export async function loadAuthorizationRequest(
+    requestToken: string,
+): Promise<AuthorizationRequest | 'expired'> {
+    const url = new URL('/mcp/oauth/authorization-request', VENDURE_URL);
+    url.searchParams.set('request_token', requestToken);
+    const response = await fetch(url);
+    return response.ok ? ((await response.json()) as AuthorizationRequest) : 'expired';
+}
+
+/** Records the decision and returns the URL to send the browser to next. */
+export async function submitDecision(requestToken: string, approved: boolean): Promise<string> {
+    const data = await shopApi<{ authorizeMcpClient: { redirectUrl: string } }>(
+        `mutation ApproveMcpClient($requestToken: String!, $approved: Boolean!) {
+            authorizeMcpClient(requestToken: $requestToken, approved: $approved) {
+                redirectUrl
+            }
+        }`,
+        { requestToken, approved },
+    );
+    return data.authorizeMcpClient.redirectUrl;
+}
+
+/** True when the shopper has a signed-in Shop API session. */
+export async function isSignedIn(): Promise<boolean> {
+    const data = await shopApi<{ activeCustomer: { id: string } | null }>(
+        '{ activeCustomer { id } }',
+    );
+    return data.activeCustomer !== null;
+}
+
+async function shopApi<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
+    const response = await fetch(SHOP_API_URL, {
+        method: 'POST',
+        // Sends the shopper's Vendure session cookie. If your storefront authenticates with
+        // a bearer token instead, set `Authorization: Bearer <token>` here as it does
+        // everywhere else.
+        credentials: 'include',
+        headers: {
+            'content-type': 'application/json',
+            // The mutation takes the channel from the request. Omit this and the
+            // authorization is recorded against the default channel.
+            'vendure-token': CHANNEL_TOKEN,
+        },
+        body: JSON.stringify({ query, variables }),
+    });
+    const payload = (await response.json()) as {
+        data?: T;
+        errors?: Array<{ message: string }>;
+    };
+    if (payload.errors?.length) {
+        throw new Error(payload.errors[0].message);
+    }
+    return payload.data as T;
+}
+```
+
+```tsx title="src/mcp-consent/McpConsentPage.tsx"
+import { useEffect, useState } from 'react';
+
+import {
+    AuthorizationRequest,
+    isSignedIn,
+    loadAuthorizationRequest,
+    OWN_CLIENT_ID,
+    submitDecision,
+} from './mcp-consent';
+
+type PageState =
+    | { status: 'busy' }
+    | { status: 'expired' }
+    | { status: 'decide'; request: AuthorizationRequest };
+
+export function McpConsentPage() {
+    const requestToken = new URLSearchParams(window.location.search).get('request_token') ?? '';
+    const [state, setState] = useState<PageState>({ status: 'busy' });
+
+    async function decide(approved: boolean) {
+        // Denying never requires a signed-in shopper, so only check before approving.
+        if (approved && !(await isSignedIn())) {
+            // Come back to this exact URL afterwards — the request token is part of it.
+            const returnTo = encodeURIComponent(window.location.href);
+            window.location.assign(`/login?redirectTo=${returnTo}`);
+            return;
+        }
+        setState({ status: 'busy' });
+        window.location.assign(await submitDecision(requestToken, approved));
+    }
+
+    useEffect(() => {
+        void (async () => {
+            // Load the request before anything else, so the shopper can see what is being
+            // asked even if they still have to sign in.
+            const request = await loadAuthorizationRequest(requestToken);
+            if (request === 'expired') {
+                setState({ status: 'expired' });
+                return;
+            }
+            // Your own assistant needs no screen: the shopper already chose to use it.
+            // Compare the id the server generated, never the name the client chose.
+            if (OWN_CLIENT_ID && request.client_id === OWN_CLIENT_ID) {
+                await decide(true);
+                return;
+            }
+            setState({ status: 'decide', request });
+        })();
+    }, [requestToken]);
+
+    if (state.status === 'busy') {
+        return <p>One moment…</p>;
+    }
+    if (state.status === 'expired') {
+        return <p>This request has expired. Go back to your assistant and connect again.</p>;
+    }
+
+    const { request } = state;
+    return (
+        <section>
+            <h1>Allow access to your account?</h1>
+            <p>
+                An application calling itself <strong>{request.client_name}</strong> wants to use your
+                account on this store. We have not verified that name.
+            </p>
+            <p>
+                If you approve, it will be able to browse the catalogue, manage your cart and see your
+                orders as you. It will be sent back to{' '}
+                <strong>{new URL(request.redirect_uri).origin}</strong>.
+            </p>
+            <button onClick={() => decide(true)}>Approve</button>
+            <button onClick={() => decide(false)}>Deny</button>
+        </section>
+    );
+}
+```
+
+## Operational notes
+
+These apply to every deployment described on this page, and to both assistant guides.
+
+**Raise `rateLimits.perClient` if you run your own assistant.** The per-client limit is counted per OAuth client
+record, and one record serves every grant issued for a given assistant name. So with a first-party assistant the
+default of **120 requests per minute is a ceiling for your whole store's assistant traffic**, not a per-shopper
+allowance. It was sized for one third-party client acting for one person. The per-session limit is separate: it is
+counted per grant, and caps a single conversation at 60 requests per minute.
+
+```ts title="src/vendure-config.ts"
+McpPlugin.init({
+    rateLimits: {
+        perClient: { rpm: 3000 },
+    },
+});
+```
+
+**Give the cache a backend that only evicts on time.** Rate-limit counters live in Vendure's `CacheService`.
+The default `InMemoryCacheStrategy` holds 10,000 entries and drops the oldest when it is full, sharing that space
+with everything else Vendure caches. A busy store can therefore evict a counter before its one-minute window is
+up, which silently resets the limit at exactly the moment it matters. A first-party assistant adds steady traffic,
+so it makes that more likely. `RedisCachePlugin` expires entries by time and has no entry cap:
+
+```ts title="src/vendure-config.ts"
+import { RedisCachePlugin } from '@vendure/core';
+
+plugins: [
+    RedisCachePlugin.init({
+        redisOptions: { host: 'localhost', port: 6379 },
+    }),
+];
+```
+
+It also gives you one shared set of counters across app instances, instead of one set per instance.
+
+**Handle a refusal rather than failing.** Surface a "try again in a moment" message to the person chatting.
+A refusal arrives in one of two shapes, so handle both:
+
+- **Before a tool runs** — during the client's own setup calls — it is a protocol error carrying
+  `data.retryAfterSeconds` and `data.scope`.
+- **Once a tool has started** — it is an ordinary failed tool result, with a text message and no structured
+  retry hint at all.
+
+Read the retry hint defensively: treat a missing value as "wait a few seconds". Do not branch on the numeric
+error code, and do not assume the HTTP status — a refusal is already 429 today when the request expected no
+reply, and 200 when there is a request to answer, so that `error.data` survives a client that discards non-2xx
+bodies. The error code, meanwhile, is moving out of the range the 2026-07-28 protocol revision reserves.
 
 ## Next steps
 
+- [Assistant inside Vendure](/guides/mcp-server/assistant-inside-vendure/) — a chat assistant built as a Vendure plugin, with no browser round trip at all.
+- [Assistant outside Vendure](/guides/mcp-server/assistant-outside-vendure/) — a chat assistant in its own service, running this flow invisibly.
 - [Production & Observability](/guides/mcp-server/production/) — the issuer guard, token secret rotation, and rate limits that protect these endpoints.
 - [Built-in Tool Reference](/guides/mcp-server/built-in-tools/) — what the shop and admin toolsets expose once a grant is in place.

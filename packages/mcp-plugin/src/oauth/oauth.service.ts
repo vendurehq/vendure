@@ -7,6 +7,7 @@ import {
     UnauthorizedException,
 } from '@nestjs/common';
 import {
+    Administrator,
     AuthenticatedSession,
     ChannelService,
     ConfigService,
@@ -44,7 +45,6 @@ import {
     OAuthTokenResponse,
     RegisterClientInput,
     RegisteredClientResponse,
-    StorefrontCallbackInput,
     TokenInput,
 } from './oauth-types';
 import { addSeconds, appendOAuthParams, randomToken, verifyPkceChallenge } from './oauth-utils';
@@ -170,6 +170,27 @@ export class McpOauthService {
             throw new BadRequestException('redirect_uri is not registered for client');
         }
         const { resource, toolset } = this.resolveResource(input.resource);
+
+        let consentUrl: URL;
+        if (toolset === 'admin') {
+            consentUrl = new URL(this.resolvedOauth().adminConsentPath, this.resolvedOauth().issuer);
+        } else {
+            const storefrontConsentUrl = this.resolvedOauth().storefrontConsentUrl;
+            if (!storefrontConsentUrl) {
+                Logger.error(
+                    'A customer authorization request was refused because oauth.storefrontConsentUrl is not set. ' +
+                        'Set it to your storefront consent page URL. Staff-only deployments do not need it.',
+                    loggerCtx,
+                );
+                return appendOAuthParams(input.redirect_uri, {
+                    error: 'server_error',
+                    error_description: 'This store is not configured to authorize customer access.',
+                    state: input.state,
+                });
+            }
+            consentUrl = new URL(storefrontConsentUrl);
+        }
+
         const requestTokenPlaintext = randomToken();
         await this.connection.getRepository(ctx, McpAuthorizationRequest).save(
             new McpAuthorizationRequest({
@@ -186,17 +207,13 @@ export class McpOauthService {
                 consumedAt: null,
             }),
         );
-        const consentUrl =
-            toolset === 'admin'
-                ? new URL(this.resolvedOauth().adminConsentPath, this.resolvedOauth().issuer)
-                : new URL(this.resolvedOauth().storefrontConsentUrl);
-        consentUrl.searchParams.set('session', requestTokenPlaintext);
+        consentUrl.searchParams.set('request_token', requestTokenPlaintext);
         return consentUrl.toString();
     }
 
     async getAuthorizationRequestInfo(requestToken: string | undefined): Promise<AuthorizationRequestInfo> {
         if (!requestToken) {
-            throw new BadRequestException('session is required');
+            throw new BadRequestException('request_token is required');
         }
         const request = await this.findActiveAuthorizationRequest(requestToken);
         const client = request.oauthClient;
@@ -226,33 +243,46 @@ export class McpOauthService {
             );
         }
         this.assertConsentRequestOrigin(ctx);
-        return this.completeAuthorizationRequest(requestToken, approved, ctx.activeUserId, 'admin');
+        if (!approved) {
+            return this.denyAuthorizationRequest(requestToken, 'admin');
+        }
+        return this.approveAuthorizationRequest(requestToken, 'admin', {
+            userId: ctx.activeUserId,
+            userType: 'admin',
+        });
     }
 
-    async completeStorefrontRequest(input: StorefrontCallbackInput): Promise<{ redirectUrl: string }> {
-        if (!input.session) {
-            throw new BadRequestException('session is required');
+    /**
+     * Records a customer's decision on a pending authorization request. Called from the Shop
+     * API, so `ctx` already identifies the customer and the channel.
+     */
+    async approveCustomerRequest(
+        ctx: RequestContext,
+        requestToken: string,
+        approved: boolean,
+    ): Promise<{ redirectUrl: string }> {
+        if (!approved) {
+            return this.denyAuthorizationRequest(requestToken, 'shop');
         }
-        if (input.approved === false) {
-            return this.completeAuthorizationRequest(input.session, false, null, 'customer');
+        if (!ctx.activeUserId) {
+            throw new UnauthorizedException('Approving requires a signed-in customer');
         }
-        if (!input.vendureAuthToken) {
-            throw new BadRequestException('vendureAuthToken is required');
+        this.assertStorefrontConsentOrigin(ctx);
+        await this.assertNotAnAdministrator(ctx);
+        return this.approveAuthorizationRequest(requestToken, 'shop', {
+            userId: ctx.activeUserId,
+            userType: 'customer',
+            channelId: ctx.channelId ?? null,
+        });
+    }
+
+    private async assertNotAnAdministrator(ctx: RequestContext): Promise<void> {
+        const administrator = await this.connection
+            .getRepository(ctx, Administrator)
+            .findOne({ where: { user: { id: ctx.activeUserId } }, relations: ['user'] });
+        if (administrator) {
+            throw new ForbiddenException('Customer consent cannot be given by an administrator');
         }
-        const vendureSession = await this.sessionService.getSessionFromToken(input.vendureAuthToken);
-        if (!vendureSession?.user) {
-            throw new UnauthorizedException('Invalid Vendure storefront session');
-        }
-        const channelId = input.channelToken
-            ? await this.resolveChannelId(input.channelToken)
-            : (vendureSession.activeChannelId ?? null);
-        return this.completeAuthorizationRequest(
-            input.session,
-            true,
-            vendureSession.user.id,
-            'customer',
-            channelId,
-        );
     }
 
     async exchangeToken(input: TokenInput) {
@@ -530,15 +560,24 @@ export class McpOauthService {
         return totalDeleted;
     }
 
-    private async completeAuthorizationRequest(
+    /**
+     * Loads a pending authorization request and consumes it, atomically and single-use.
+     *
+     * The toolset comparison is the entitlement check: the authorize endpoint needs no
+     * credential, so anyone can start a request for either toolset and read the request token
+     * out of the redirect. Each caller therefore states which toolset it is entitled to decide
+     * (admin consent → admin requests, customer consent → shop requests), rather than trusting
+     * the token alone.
+     */
+    private async consumeAuthorizationRequest(
         requestToken: string,
-        approved: boolean,
-        userId: ID | null,
-        userType: McpActorType,
-        channelId: ID | null = null,
-    ): Promise<{ redirectUrl: string }> {
+        expectedToolset: McpToolset,
+    ): Promise<{ ctx: RequestContext; request: McpAuthorizationRequest }> {
         const ctx = await this.createAdminCtx();
         const request = await this.findActiveAuthorizationRequest(requestToken, ctx);
+        if (request.toolset !== expectedToolset) {
+            throw new BadRequestException('Authorization request invalid or expired');
+        }
         const claim = await this.connection
             .getRepository(ctx, McpAuthorizationRequest)
             .createQueryBuilder()
@@ -550,15 +589,31 @@ export class McpOauthService {
         if (!claim.affected) {
             throw new BadRequestException('Authorization request invalid or expired');
         }
+        return { ctx, request };
+    }
 
-        if (!approved) {
-            return {
-                redirectUrl: appendOAuthParams(request.redirectUri, {
-                    error: 'access_denied',
-                    state: request.state ?? undefined,
-                }),
-            };
-        }
+    /** Consumes the request and sends the browser back with `error=access_denied`. */
+    private async denyAuthorizationRequest(
+        requestToken: string,
+        expectedToolset: McpToolset,
+    ): Promise<{ redirectUrl: string }> {
+        const { request } = await this.consumeAuthorizationRequest(requestToken, expectedToolset);
+        return {
+            redirectUrl: appendOAuthParams(request.redirectUri, {
+                error: 'access_denied',
+                state: request.state ?? undefined,
+            }),
+        };
+    }
+
+    /** Consumes the request, issues an authorization code for `approver`, and sends the browser back with it. */
+    private async approveAuthorizationRequest(
+        requestToken: string,
+        expectedToolset: McpToolset,
+        approver: { userId: ID | undefined; userType: McpActorType; channelId?: ID | null },
+    ): Promise<{ redirectUrl: string }> {
+        const { ctx, request } = await this.consumeAuthorizationRequest(requestToken, expectedToolset);
+        const { userId, userType, channelId = null } = approver;
         if (userId == null) {
             throw new UnauthorizedException('Authenticated Vendure session required');
         }
@@ -864,30 +919,55 @@ export class McpOauthService {
     }
 
     /**
-     * Blocks CSRF on admin consent: the approval rides the admin's login cookie
-     * (auto-sent by the browser), so we require the request to come from our own
-     * consent page (its Origin, or Referer). A request with an `Authorization` header
-     * can't be forged cross-site, so it skips the check (also covers API clients).
+     * CSRF guard for admin consent. Expects the Vendure server's own origin, because Vendure
+     * serves the admin consent page itself. See {@link assertOriginMatches} for how the guard
+     * works.
      */
     private assertConsentRequestOrigin(ctx: RequestContext): void {
-        const headers = ctx.req?.headers;
-        if (headers?.authorization) {
+        this.assertOriginMatches(
+            ctx,
+            new URL(this.resolvedOauth().issuer).origin,
+            'Admin consent must be submitted from the Vendure consent page',
+        );
+    }
+
+    /**
+     * CSRF guard for customer consent. Expects the origin of the configured storefront consent
+     * page, which lives on the merchant's own domain. A consent page rendered on a server calls
+     * from Node with no `Origin` header, which is allowed — see {@link assertOriginMatches}.
+     */
+    private assertStorefrontConsentOrigin(ctx: RequestContext): void {
+        const consentUrl = this.resolvedOauth().storefrontConsentUrl;
+        if (!consentUrl) {
+            throw new ForbiddenException(
+                'Customer consent requires oauth.storefrontConsentUrl to be configured',
+            );
+        }
+        this.assertOriginMatches(
+            ctx,
+            new URL(consentUrl).origin,
+            'Customer consent must be submitted from your consent page',
+        );
+    }
+
+    /**
+     * CSRF protection for the consent endpoints:
+     * If a request has an `Origin`, it must match ours.
+     *
+     * This prevents other websites from making requests using a signed-in user's session.
+     * Browsers always send `Origin` for cross-site requests, so we can detect and block them.
+     *
+     * Requests without `Origin` (e.g. server or API calls) are allowed.
+     * An `Authorization` header does not skip this check.
+     */
+    private assertOriginMatches(ctx: RequestContext, expectedOrigin: string, message: string): void {
+        const rawOrigin = ctx.req?.headers?.origin;
+        const originHeader = Array.isArray(rawOrigin) ? rawOrigin[0] : rawOrigin;
+        if (!originHeader) {
             return;
         }
-        const rawOrigin = headers?.origin;
-        const originHeader = Array.isArray(rawOrigin) ? rawOrigin[0] : rawOrigin;
-        const source = originHeader ?? headers?.referer;
-        let requestOrigin: string | undefined;
-        if (source) {
-            try {
-                requestOrigin = new URL(source).origin;
-            } catch {
-                requestOrigin = undefined;
-            }
-        }
-        const expectedOrigin = new URL(this.resolvedOauth().issuer).origin;
-        if (requestOrigin !== expectedOrigin) {
-            throw new ForbiddenException('Admin consent must be submitted from the Vendure consent page');
+        if (originHeader !== expectedOrigin) {
+            throw new ForbiddenException(message);
         }
     }
 
@@ -907,11 +987,6 @@ export class McpOauthService {
         if (url.protocol !== 'https:' && !(url.protocol === 'http:' && isLoopback)) {
             throw new BadRequestException('redirect_uri must use HTTPS or localhost HTTP');
         }
-    }
-
-    private async resolveChannelId(channelToken: string): Promise<ID> {
-        const ctx = await this.createAdminCtx();
-        return (await this.channelService.getChannelFromToken(ctx, channelToken)).id;
     }
 
     /**

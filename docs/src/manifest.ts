@@ -869,6 +869,16 @@ const manifestInput: DocsPackageManifestInput = {
                     file: file('docs/guides/mcp-server/oauth-consent/index.mdx'),
                 },
                 {
+                    title: 'Assistant inside Vendure',
+                    slug: 'assistant-inside-vendure',
+                    file: file('docs/guides/mcp-server/assistant-inside-vendure/index.mdx'),
+                },
+                {
+                    title: 'Assistant outside Vendure',
+                    slug: 'assistant-outside-vendure',
+                    file: file('docs/guides/mcp-server/assistant-outside-vendure/index.mdx'),
+                },
+                {
                     title: 'Registering Custom Tools',
                     slug: 'custom-tools',
                     file: file('docs/guides/mcp-server/custom-tools/index.mdx'),

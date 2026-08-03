@@ -33,13 +33,6 @@ export interface TokenInput {
     resource?: string;
 }
 
-export interface StorefrontCallbackInput {
-    session?: string;
-    vendureAuthToken?: string;
-    channelToken?: string;
-    approved?: boolean;
-}
-
 export interface AuthorizationRequestInfo {
     client_id: string;
     client_name: string;

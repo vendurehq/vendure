@@ -1,6 +1,12 @@
 import type { StandardSchemaWithJSON, ToolAnnotations } from '@modelcontextprotocol/server';
 import { RequestContext, type ScheduledTaskConfig } from '@vendure/core';
-import { McpJsonSchema, McpToolBehavior, McpToolHandler, McpToolMetadata } from '@vendure/mcp-sdk';
+import {
+    McpJsonSchema,
+    McpToolBehavior,
+    McpToolHandler,
+    McpToolMetadata,
+    McpToolset,
+} from '@vendure/mcp-sdk';
 import type { McpOauthGrant } from './entities/mcp-oauth-grant.entity';
 
 /**
@@ -91,9 +97,8 @@ export interface McpOauthOptions {
     /**
      * @description
      * Absolute URL of the storefront consent page that approves customer-scoped
-     * authorization requests.
-     *
-     * @default 'http://localhost:3000/mcp/authorize'
+     * authorization requests. Required only if you want customers to authorize MCP
+     * clients; a deployment that uses the admin toolset alone does not need it.
      */
     storefrontConsentUrl?: string;
     /**
@@ -126,8 +131,10 @@ export interface McpOauthOptions {
  * is excluded: it configures a scheduled task, not the runtime behaviour of the OAuth server, and
  * its default lives in the task itself.
  */
-export type ResolvedMcpOauthOptions = Required<Omit<McpOauthOptions, 'retentionSchedule'>> &
-    Pick<McpOauthOptions, 'retentionSchedule'>;
+export type ResolvedMcpOauthOptions = Required<
+    Omit<McpOauthOptions, 'retentionSchedule' | 'storefrontConsentUrl'>
+> &
+    Pick<McpOauthOptions, 'retentionSchedule' | 'storefrontConsentUrl'>;
 
 /**
  * @description
@@ -314,6 +321,28 @@ export interface McpExecutionContext {
  */
 export interface McpPluginToolHandler<I = unknown, O = unknown> extends McpToolHandler<I, O> {
     execute(ctx: RequestContext, input: I, executionContext?: McpExecutionContext): Promise<O> | O;
+}
+
+/**
+ * @description
+ * A tool as described to a caller, carrying everything a model needs to decide whether to call it.
+ * Returned by {@link McpToolExecutionService.listTools} and by the `search_tools` discovery meta-tool.
+ *
+ * @docsCategory core plugins/McpPlugin
+ * @since 3.8.0
+ */
+export interface McpToolSummary {
+    name: string;
+    title?: string;
+    description: string;
+    toolset: McpToolset;
+    behavior: McpToolBehavior;
+    annotations: ToolAnnotations;
+    /**
+     * The tool's declared input schema, without the optional `confirm` field the registry adds to
+     * the wire schema of a destructive tool.
+     */
+    inputSchema: McpJsonSchema;
 }
 
 /**

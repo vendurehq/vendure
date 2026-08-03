@@ -1,0 +1,205 @@
+---
+title: 'Assistant inside Vendure'
+metaTitle: 'Build an MCP Assistant inside Vendure | Vendure'
+metaDescription: 'Build a shop assistant as a Vendure plugin: inject McpToolExecutionService and run MCP tools directly as the signed-in shopper, with no OAuth, no token and no HTTP call.'
+order: 3
+---
+
+If your assistant runs inside your Vendure server, it does not need OAuth. There is no browser to redirect, no
+consent page to build, no token to obtain and renew, and no HTTP call to make. You inject one service and run the
+tools directly.
+
+This guide builds a small chat plugin: a Shop API mutation the shopper's browser calls, and a service that hands
+the tools to your model and runs whichever one it picks.
+
+## When this is the right shape
+
+Pick this if the assistant is code you deploy alongside Vendure — a Vendure plugin, in the same process.
+
+Pick something else if:
+
+- the assistant runs as a **separate service** with its own front end. It sits outside the process, so it needs a
+  real token, and that means OAuth — see [Assistant outside Vendure](/guides/mcp-server/assistant-outside-vendure/).
+- the AI client belongs to the **shopper** rather than to you — Claude Desktop, ChatGPT, Cursor. Those cannot be
+  handed anything; they run OAuth themselves, so you need
+  [the customer consent page](/guides/mcp-server/oauth-consent/#the-customer-consent-page).
+
+## The service
+
+[`McpToolExecutionService`](/reference/core-plugins/mcp-plugin/mcp-tool-execution-service/) has two methods, and
+both take the `RequestContext` your resolver received:
+
+```ts
+import { McpToolExecutionService } from '@vendure/mcp-plugin';
+
+// Every shop tool this shopper is allowed to run, described so you can hand them
+// straight to a model as tool definitions.
+const tools = await this.mcpToolExecution.listTools(ctx, 'shop');
+
+// Run the one the model picked.
+const result = await this.mcpToolExecution.executeTool(ctx, 'shop', 'search_products', {
+    query: 'red running shoes',
+});
+```
+
+Four things to know about them:
+
+- **Pass the context the resolver received, untouched.** Never construct one. It is the identity of the call: the
+  tool acts as whoever that context identifies, so a hand-built context acts as the wrong customer — or as
+  nobody, and the tool returns whatever an anonymous visitor would see.
+- **A tool that cannot run says so in its result, rather than throwing.** An unknown or disabled tool, a
+  permission the shopper lacks, arguments that do not match the tool's schema, a rate-limit refusal, or a failure
+  inside the tool itself all come back as `isError: true` with a text explanation. The only thing that throws is
+  your own mistake: the `'shop'` toolset needs a Shop API context, and `'admin'` needs an Admin API one.
+- **Destructive tools still ask first.** Calling one without `confirm: true` returns a `confirmation_required`
+  result instead of running. Show it to the shopper and call again with `confirm: true` if they agree.
+- **Every call is logged**, as an `McpToolCallLog` row attributed to the signed-in customer, and published as an
+  `McpToolCallEvent`. There is no OAuth grant on this path, so the log rows carry no grant or client.
+
+Permissions, tool enable/disable toggles, and rate limits behave exactly as they do for a request arriving over
+HTTP. Rate limits are counted per shopper session, so one chatty conversation cannot spend another shopper's
+allowance.
+
+## The plugin
+
+Three files.
+
+### 1. The plugin definition
+
+Importing `McpPlugin` is what makes `McpToolExecutionService` available to inject.
+
+```ts title="src/plugins/assistant/assistant.plugin.ts"
+import { PluginCommonModule, VendurePlugin } from '@vendure/core';
+import { McpPlugin } from '@vendure/mcp-plugin';
+import gql from 'graphql-tag';
+
+import { AssistantResolver } from './assistant.resolver';
+import { AssistantService } from './assistant.service';
+
+@VendurePlugin({
+    imports: [PluginCommonModule, McpPlugin],
+    providers: [AssistantService],
+    shopApiExtensions: {
+        schema: gql`
+            extend type Mutation {
+                sendAssistantMessage(conversationId: String!, message: String!): String!
+            }
+        `,
+        resolvers: [AssistantResolver],
+    },
+    compatibility: '^3.0.0',
+})
+export class AssistantPlugin {}
+```
+
+### 2. The mutation
+
+The one job here is to hand the request context straight through.
+
+```ts title="src/plugins/assistant/assistant.resolver.ts"
+import { Args, Mutation, Resolver } from '@nestjs/graphql';
+import { Allow, Ctx, Permission, RequestContext } from '@vendure/core';
+
+import { AssistantService } from './assistant.service';
+
+@Resolver()
+export class AssistantResolver {
+    constructor(private assistantService: AssistantService) {}
+
+    @Mutation()
+    @Allow(Permission.Authenticated)
+    async sendAssistantMessage(
+        @Ctx() ctx: RequestContext,
+        @Args() args: { conversationId: string; message: string },
+    ): Promise<string> {
+        // Pass `ctx` through untouched. Tools run as whoever this context identifies,
+        // so building a context here would run them for the wrong person.
+        return this.assistantService.sendMessage(ctx, args.conversationId, args.message);
+    }
+}
+```
+
+### 3. The service
+
+```ts title="src/plugins/assistant/assistant.service.ts"
+import { Injectable } from '@nestjs/common';
+import { RequestContext } from '@vendure/core';
+import { McpToolExecutionService } from '@vendure/mcp-plugin';
+
+interface Message {
+    role: 'user' | 'assistant';
+    text: string;
+}
+
+@Injectable()
+export class AssistantService {
+    /** Everything said so far, per conversation. See the note on storage below. */
+    private histories = new Map<string, Message[]>();
+
+    constructor(private mcpToolExecution: McpToolExecutionService) {}
+
+    async sendMessage(ctx: RequestContext, conversationId: string, message: string): Promise<string> {
+        const history = this.histories.get(conversationId) ?? [];
+        history.push({ role: 'user', text: message });
+
+        // Each summary carries the `name`, `description` and `inputSchema` that every model
+        // API wants in a tool definition.
+        const tools = await this.mcpToolExecution.listTools(ctx, 'shop');
+
+        // Your model loop goes here: send it `history` and `tools`, then run whichever tool
+        // it asks for. A single fixed call stands in for that below.
+        const result = await this.mcpToolExecution.executeTool(ctx, 'shop', 'search_products', {
+            query: message,
+        });
+
+        const reply = result.isError
+            ? 'Sorry, I could not look that up just now — please try again in a moment.'
+            : JSON.stringify(result.structuredContent);
+        history.push({ role: 'assistant', text: reply });
+        this.histories.set(conversationId, history);
+        return reply;
+    }
+}
+```
+
+## Operational notes
+
+**Conversation history in a `Map` is per process.** Restart the server and every conversation is gone; run more
+than one instance and a shopper's next message may reach an instance that has never heard of the conversation.
+For a single instance that is usually fine. Beyond that, keep the history in shared storage. Nothing else about
+the assistant is stateful — there is no connection or token to keep alive.
+
+**Handle a rate-limit refusal rather than failing.** It arrives as an ordinary failed tool result: `isError: true`
+with a text message. Tell the shopper to try again in a moment. The default is 60 tool calls per minute per
+shopper session; raise it with `rateLimits.perSession` if your model tends to chain several tools per reply.
+
+```ts title="src/vendure-config.ts"
+McpPlugin.init({
+    rateLimits: {
+        perSession: { rpm: 120 },
+    },
+});
+```
+
+**Give the cache a backend that only evicts on time.** Rate-limit counters live in Vendure's `CacheService`. The
+default `InMemoryCacheStrategy` holds 10,000 entries and drops the oldest when full, sharing that space with
+everything else Vendure caches — so on a busy store a counter can be evicted before its one-minute window ends,
+silently resetting the limit at the moment it matters. `RedisCachePlugin` expires entries by time, has no entry
+cap, and gives every app instance one shared set of counters:
+
+```ts title="src/vendure-config.ts"
+import { RedisCachePlugin } from '@vendure/core';
+
+plugins: [
+    RedisCachePlugin.init({
+        redisOptions: { host: 'localhost', port: 6379 },
+    }),
+];
+```
+
+## Next steps
+
+- [Built-in Tool Reference](/guides/mcp-server/built-in-tools/) — the tools your assistant can reach on the shop toolset.
+- [Registering Custom Tools](/guides/mcp-server/custom-tools/) — add your own operations to that set.
+- [OAuth & Consent](/guides/mcp-server/oauth-consent/) — what the other paths involve, if this shape turns out to be the wrong one.
+- [Production & Observability](/guides/mcp-server/production/) — logging, telemetry, and the rest of the hardening.

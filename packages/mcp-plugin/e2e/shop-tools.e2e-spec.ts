@@ -1,6 +1,7 @@
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import {
     ConfigService,
+    Customer,
     ID,
     mergeConfig,
     Order,
@@ -18,8 +19,11 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { McpOauthGrant } from '../src/entities/mcp-oauth-grant.entity';
+import { McpToolCallLog } from '../src/entities/mcp-tool-call-log.entity';
 import { deriveHashKey, hashToken } from '../src/oauth/token-hash';
 import { McpPlugin } from '../src/plugin';
+import { McpToolExecutionService } from '../src/registry/mcp-tool-execution.service';
+import { McpToolRegistryService } from '../src/registry/mcp-tool-registry.service';
 
 import { postMcp, rpc } from './utils/mcp-http-client';
 import { runShopAuthorizationCodeFlow } from './utils/oauth-test-client';
@@ -67,7 +71,14 @@ describe('MCP built-in shop tools', () => {
     const orderByCodeAccessStrategy = new TestOrderByCodeAccessStrategy();
     const config = mergeConfig(testConfig(), {
         orderOptions: { orderByCodeAccessStrategy },
-        plugins: [McpPlugin.init({ oauth: { tokenSecret: TOKEN_SECRET } })],
+        plugins: [
+            McpPlugin.init({
+                oauth: {
+                    tokenSecret: TOKEN_SECRET,
+                    storefrontConsentUrl: 'https://storefront.example.com/mcp/authorize',
+                },
+            }),
+        ],
     });
     const { server, adminClient, shopClient } = createTestEnvironment(config);
     const baseUrl = () => `http://localhost:${config.apiOptions.port}`;
@@ -76,6 +87,7 @@ describe('MCP built-in shop tools', () => {
     let adminCtx: RequestContext;
     let connection: TransactionalConnection;
     let customerAuthToken: string;
+    let customerEmail: string;
     let productId: ID;
     let productAdminId: string;
     let productSlug: string;
@@ -132,7 +144,7 @@ describe('MCP built-in shop tools', () => {
         const product = fixture.products.items[0];
         const collection = fixture.collections.items[0];
         const zoneId = fixture.zones.items[0]?.id;
-        const customerEmail = fixture.customers.items[0]?.emailAddress;
+        customerEmail = fixture.customers.items[0]?.emailAddress;
         if (!product?.variants[0] || !collection || !zoneId || !customerEmail) {
             throw new Error(
                 `Expected seeded product, variant, collection, zone, and customer fixtures: ${JSON.stringify(
@@ -259,6 +271,7 @@ describe('MCP built-in shop tools', () => {
             baseUrl: baseUrl(),
             issuer: ISSUER,
             vendureAuthToken: customerAuthToken,
+            channelToken: secondChannelToken,
         });
     }
 
@@ -468,7 +481,9 @@ describe('MCP built-in shop tools', () => {
             expect(confirmed.isError).toBeUndefined();
             expect(confirmed.structuredContent).toEqual({
                 requiresAuthorization: true,
-                message: 'Authorize with shop.checkout before placing an order.',
+                message:
+                    'Placing an order requires an authorized customer. Complete the OAuth flow ' +
+                    'for this store and retry with the resulting access token.',
             });
 
             const session = await anonymousSession(sessionToken as string);
@@ -479,5 +494,109 @@ describe('MCP built-in shop tools', () => {
         } finally {
             await client.close();
         }
+    });
+
+    // Relates to OSS-575 — the in-process path: a merchant's own plugin listing and running the
+    // same tools through McpToolExecutionService, with the shopper's RequestContext as identity.
+    describe('in-process execution via McpToolExecutionService', () => {
+        /** A Shop API context for the seeded customer, as a shop resolver would receive. */
+        async function customerShopContext(): Promise<RequestContext> {
+            const customer = await connection.getRepository(adminCtx, Customer).findOneOrFail({
+                where: { emailAddress: customerEmail },
+                relations: ['user'],
+            });
+            return server.app.get(RequestContextService).create({ apiType: 'shop', user: customer.user });
+        }
+
+        it('executes a tool as the signed-in customer and attributes the log to them', async () => {
+            const executionService = server.app.get(McpToolExecutionService);
+            const ctx = await customerShopContext();
+
+            const result = await executionService.executeTool(ctx, 'shop', 'search_products', {
+                query: 'laptop',
+            });
+
+            expect(result.isError).toBeUndefined();
+            expect(result.structuredContent).toBeDefined();
+
+            const log = await connection.getRepository(adminCtx, McpToolCallLog).findOneOrFail({
+                where: { toolName: 'search_products' },
+            });
+            // No grant exists on this path, so the attribution has to come off the context.
+            expect(log.grantId).toBeNull();
+            expect(log.actor).toBe(String(ctx.activeUserId));
+            expect(log.actorType).toBe('customer');
+        });
+
+        it('returns an isError result for arguments that do not match the schema', async () => {
+            const executionService = server.app.get(McpToolExecutionService);
+            const ctx = await customerShopContext();
+
+            const result = await executionService.executeTool(ctx, 'shop', 'search_products', {
+                query: 123,
+            });
+
+            expect(result.isError).toBe(true);
+            expect((result.content as Array<{ text: string }>)[0].text).toContain('query');
+        });
+
+        it('throws when the context apiType does not match the toolset', async () => {
+            const executionService = server.app.get(McpToolExecutionService);
+
+            await expect(
+                executionService.executeTool(adminCtx, 'shop', 'search_products', {}),
+            ).rejects.toThrow(/shop/);
+        });
+
+        // The discovery meta-tools are deliberately unreachable here: an in-process caller names
+        // the tool it wants, so the search/execute indirection buys it nothing.
+        it('returns an isError result for an unknown tool, including the discovery meta-tools', async () => {
+            const executionService = server.app.get(McpToolExecutionService);
+            const ctx = await customerShopContext();
+
+            for (const name of ['no_such_tool', 'execute_tool']) {
+                const result = await executionService.executeTool(ctx, 'shop', name, {});
+                expect(result.isError).toBe(true);
+                expect((result.content as Array<{ text: string }>)[0].text).toBe(`Unknown MCP tool: ${name}`);
+            }
+        });
+
+        it('lists callable tools with their input schemas, and drops a disabled one', async () => {
+            const executionService = server.app.get(McpToolExecutionService);
+            const registry = server.app.get(McpToolRegistryService);
+            const ctx = await customerShopContext();
+
+            const tools = await executionService.listTools(ctx, 'shop');
+            expect(tools.map(tool => tool.name).sort()).toEqual(shopToolNames);
+            const searchProducts = tools.find(tool => tool.name === 'search_products');
+            expect(searchProducts?.behavior).toBe('readonly');
+            expect(searchProducts?.inputSchema.properties?.query).toEqual({
+                type: 'string',
+                description: 'Text to look up in product names and slugs.',
+            });
+
+            await registry.setToolEnabled(adminCtx, 'shop', 'get_cart', false);
+            try {
+                const afterDisabling = await executionService.listTools(ctx, 'shop');
+                expect(afterDisabling.map(tool => tool.name)).not.toContain('get_cart');
+            } finally {
+                await registry.setToolEnabled(adminCtx, 'shop', 'get_cart', true);
+            }
+        });
+
+        it('gates a destructive tool behind confirm', async () => {
+            const executionService = server.app.get(McpToolExecutionService);
+            const ctx = await customerShopContext();
+
+            const result = await executionService.executeTool(ctx, 'shop', 'place_order', {
+                paymentMethodCode: 'not-configured',
+            });
+
+            expect(result.isError).toBeUndefined();
+            expect(result.structuredContent).toMatchObject({
+                status: 'confirmation_required',
+                confirmed: false,
+            });
+        });
     });
 });

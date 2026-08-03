@@ -2,7 +2,7 @@
 title: 'Production & Observability'
 metaTitle: 'MCP Server Production & Observability | Vendure'
 metaDescription: 'Harden the Vendure MCP server for production: token secrets, the issuer guard, rate limiting, DNS-rebinding protection, tool-call logging with tiered capture, and the three observability tiers.'
-order: 4
+order: 6
 ---
 
 This guide covers running the MCP server in production: the hardening you must configure, how rate limiting
@@ -35,15 +35,17 @@ the grant expires.
 ### The issuer guard
 
 To stop a misconfigured server from issuing tokens against a localhost URL, the plugin refuses to boot when
-`NODE_ENV=production` unless both `oauth.issuer` and `oauth.storefrontConsentUrl` are set to real, non-loopback
-URLs. The defaults (`http://localhost:3500` and a `localhost` storefront URL) are development-only.
+`NODE_ENV=production` and `oauth.issuer` is a loopback address. The default, `http://localhost:3500`, is
+development-only — set it to your public Vendure URL.
+
+`oauth.storefrontConsentUrl` is checked the same way, but only if you supply it. It has **no default**, and it is
+needed only when customers will authorize MCP clients, so a deployment that uses the admin toolset alone starts
+without it (admin authorization redirects to `oauth.adminConsentPath` on the issuer instead). When you do supply
+it, it must not be a loopback address, and it must use HTTPS: a consent page carries a customer's session, so it
+cannot be served over plain HTTP.
 
 `NODE_ENV` is the only trigger, so a deployment that never sets it never gets the guard. The check also runs in the
 server process only, not the worker, and only when an `oauth` block is configured.
-
-For an admin-only deployment that never uses shop OAuth, set `storefrontConsentUrl` to a real URL you control
-anyway. It is read only when a shop authorization begins — admin authorization redirects to `oauth.adminConsentPath`
-on the issuer instead — so a real value satisfies the guard without you having to build a storefront consent page.
 
 ### DNS-rebinding protection
 
@@ -54,12 +56,24 @@ Set [`dnsRebinding`](/reference/core-plugins/mcp-plugin/mcp-dns-rebinding-option
 McpPlugin.init({
     dnsRebinding: {
         allowedHosts: ['my-store.example.com'],
-        allowedOrigins: ['https://my-store.example.com'],
+        allowedOrigins: ['my-store.example.com'],
     },
 });
 ```
 
+Both lists hold **bare hostnames**, not URLs. The guard reduces the incoming header to its hostname before
+comparing, so an entry written as `https://my-store.example.com` never matches anything, and an entry carrying a
+port never matches either.
+
 The guard is off when `dnsRebinding` is omitted. Turn it on for any internet-facing deployment.
+
+### Let the `Origin` header through your proxy
+
+Check that your reverse proxy, CDN or web application firewall forwards the browser's `Origin` header to Vendure
+rather than stripping it. Both consent checks — the customer one and the administrator one — allow a request that
+arrives without an `Origin`, because a consent page rendered on a server legitimately sends none; so if something
+in front of Vendure removes the header a real browser sent, forged cross-site approvals start being accepted and
+nothing in the logs looks wrong.
 
 ### CORS and body size
 

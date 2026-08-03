@@ -128,7 +128,7 @@ export const devConfig: VendureConfig = {
         ReviewsPlugin,
         // FieldTestPlugin,
         NavModifierPlugin,
-        McpPlugin.init({ oauth: { tokenSecret: 'dev-secret' } }),
+        McpPlugin.init({ oauth: { tokenSecret: 'dev-secret', issuer: 'http://localhost:3000' } }),
         GraphiqlPlugin.init(),
         AssetServerPlugin.init({
             route: 'assets',

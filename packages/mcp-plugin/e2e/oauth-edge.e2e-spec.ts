@@ -1,5 +1,7 @@
 import {
+    Administrator,
     Channel,
+    Customer,
     mergeConfig,
     Permission,
     RequestContext,
@@ -16,6 +18,7 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { mcpServerPermission } from '../src/constants';
 import { McpAuthorizationCode } from '../src/entities/mcp-authorization-code.entity';
+import { McpAuthorizationRequest } from '../src/entities/mcp-authorization-request.entity';
 import { McpOauthGrant } from '../src/entities/mcp-oauth-grant.entity';
 import { McpOauthService } from '../src/oauth/oauth.service';
 import { deriveHashKey, hashToken } from '../src/oauth/token-hash';
@@ -29,7 +32,14 @@ const ISSUER = 'http://localhost:3500';
 
 describe('McpPlugin OAuth edge & security cases', () => {
     const config = mergeConfig(testConfig(), {
-        plugins: [McpPlugin.init({ oauth: { tokenSecret: TOKEN_SECRET } })],
+        plugins: [
+            McpPlugin.init({
+                oauth: {
+                    tokenSecret: TOKEN_SECRET,
+                    storefrontConsentUrl: 'https://storefront.example.com/mcp/authorize',
+                },
+            }),
+        ],
     });
     const { server, adminClient, shopClient } = createTestEnvironment(config);
 
@@ -42,6 +52,15 @@ describe('McpPlugin OAuth edge & security cases', () => {
     let customerAuthToken: string;
 
     beforeAll(async () => {
+        // Multiple test servers in this file share the McpPlugin class's static options field
+        // (read at bootstrap), so this describe must reassert its own oauth config immediately
+        // before booting its server.
+        McpPlugin.init({
+            oauth: {
+                tokenSecret: TOKEN_SECRET,
+                storefrontConsentUrl: 'https://storefront.example.com/mcp/authorize',
+            },
+        });
         await server.init({
             initialData,
             productsCsvPath: path.join(__dirname, 'fixtures/e2e-products.csv'),
@@ -126,15 +145,15 @@ describe('McpPlugin OAuth edge & security cases', () => {
         if (!consentLocation) {
             throw new Error(`Authorize did not redirect (status ${authorizeRes.status})`);
         }
-        const request_token = new URL(consentLocation).searchParams.get('session');
+        const request_token = new URL(consentLocation).searchParams.get('request_token');
         if (!request_token) {
-            throw new Error(`Consent redirect missing session: ${consentLocation}`);
+            throw new Error(`Consent redirect missing request_token: ${consentLocation}`);
         }
 
         const consentRes = await fetch(`${baseUrl()}/mcp/oauth/admin-consent`, {
             method: 'POST',
             headers: { 'content-type': 'application/json', Authorization: `Bearer ${superAdminToken}` },
-            body: JSON.stringify({ session: request_token, approved: true }),
+            body: JSON.stringify({ request_token, approved: true }),
         });
         const { redirectUrl } = (await consentRes.json()) as { redirectUrl: string };
         const code = new URL(redirectUrl).searchParams.get('code');
@@ -393,20 +412,23 @@ describe('McpPlugin OAuth edge & security cases', () => {
         const res = await fetch(`${baseUrl()}/mcp/oauth/admin-consent`, {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ session: flow.request_token, approved: true }),
+            body: JSON.stringify({ request_token: flow.request_token, approved: true }),
         });
         expect(res.status).toBe(401);
     });
 
     // Builds an admin RequestContext authenticated as if by a session cookie: a
-    // session with a user, and NO Authorization header on the request, with a
-    // caller-supplied Origin. This is exactly the shape the CSRF gate inspects.
+    // session with a user, and NO Authorization header on the request (unless the
+    // caller opts in via `authorization`), with a caller-supplied Origin. This is
+    // exactly the shape the CSRF gate inspects.
     const buildCookieAuthedAdminCtx = ({
         origin,
         permissions = [mcpServerPermission.Update],
+        authorization,
     }: {
         origin: string;
         permissions?: Permission[];
+        authorization?: string;
     }) =>
         new RequestContext({
             apiType: 'admin',
@@ -415,7 +437,7 @@ describe('McpPlugin OAuth edge & security cases', () => {
                 token: 'mcp-test-session',
                 user: { id: 1, channelPermissions: [{ id: 1, permissions }] },
             } as any,
-            req: { headers: { origin } } as any,
+            req: { headers: { origin, ...(authorization ? { authorization } : {}) } } as any,
             isAuthorized: true,
             authorizedAsOwnerOnly: false,
         });
@@ -424,6 +446,24 @@ describe('McpPlugin OAuth edge & security cases', () => {
         const oauth = server.app.get(McpOauthService);
         const flow = await authorizeAdminToCodePreConsent();
         const ctx = buildCookieAuthedAdminCtx({ origin: 'https://evil.example' });
+
+        await expect(oauth.approveAdminRequest(ctx, flow.request_token, true)).rejects.toThrow(
+            /consent page/i,
+        );
+    });
+
+    // Relates to OSS-575 — an `Authorization` header must not exempt a request from the
+    // origin check. Vendure authenticates via the session cookie before it looks at
+    // `Authorization` (core's extractSessionToken), so a page on another site can attach a
+    // meaningless `Authorization` value, still ride the administrator's cookie, and would
+    // otherwise bypass the CSRF gate entirely.
+    it('rejects cookie-authenticated admin consent from a foreign origin even with an Authorization header', async () => {
+        const oauth = server.app.get(McpOauthService);
+        const flow = await authorizeAdminToCodePreConsent();
+        const ctx = buildCookieAuthedAdminCtx({
+            origin: 'https://evil.example',
+            authorization: 'Bearer meaningless-value',
+        });
 
         await expect(oauth.approveAdminRequest(ctx, flow.request_token, true)).rejects.toThrow(
             /consent page/i,
@@ -461,7 +501,7 @@ describe('McpPlugin OAuth edge & security cases', () => {
         const res = await fetch(`${baseUrl()}/mcp/oauth/admin-consent`, {
             method: 'POST',
             headers: { 'content-type': 'application/json', Authorization: `Bearer ${superAdminToken}` },
-            body: JSON.stringify({ session: flow.request_token, approved: false }),
+            body: JSON.stringify({ request_token: flow.request_token, approved: false }),
         });
         expect(res.status).toBe(201);
         const { redirectUrl } = (await res.json()) as { redirectUrl: string };
@@ -477,30 +517,13 @@ describe('McpPlugin OAuth edge & security cases', () => {
         const res = await fetch(`${baseUrl()}/mcp/oauth/admin-consent`, {
             method: 'POST',
             headers: { 'content-type': 'application/json', Authorization: `Bearer ${superAdminToken}` },
-            body: JSON.stringify({ session: flow.request_token, approved: 'false' }),
+            body: JSON.stringify({ request_token: flow.request_token, approved: 'false' }),
         });
         expect(res.status).toBe(201);
         const { redirectUrl } = (await res.json()) as { redirectUrl: string };
         const url = new URL(redirectUrl);
         expect(url.searchParams.get('error')).toBe('access_denied');
         expect(url.searchParams.get('code')).toBeNull();
-    });
-
-    // Relates to OSS-575 — the storefront callback rejects a garbage Vendure session token.
-    it('rejects a storefront callback with an invalid Vendure session token', async () => {
-        const flow = await authorizeShopToConsent();
-
-        const res = await fetch(`${baseUrl()}/mcp/oauth/storefront-callback`, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({
-                session: flow.request_token,
-                vendureAuthToken: 'not-a-real-session-token',
-                approved: true,
-            }),
-        });
-        expect(res.status).toBe(401);
-        expect(await res.text()).toMatch(/invalid Vendure storefront session/i);
     });
 
     // --- Shop happy path ---
@@ -517,6 +540,245 @@ describe('McpPlugin OAuth edge & security cases', () => {
         expect(authenticated.grant.userType).toBe('customer');
         expect(authenticated.ctx.activeUserId).toBe(authenticated.grant.userId);
         expect(authenticated.grant.userId).toBeTruthy();
+    });
+
+    describe('authorizeMcpClient mutation', () => {
+        const APPROVE = gql`
+            mutation ApproveMcp($requestToken: String!, $approved: Boolean!) {
+                authorizeMcpClient(requestToken: $requestToken, approved: $approved) {
+                    redirectUrl
+                }
+            }
+        `;
+
+        /**
+         * Starts an authorization for the shop resource and returns the request token the
+         * consent page would receive, plus the client id and PKCE verifier needed to finish.
+         */
+        async function startShopAuthorization(redirectUri = 'https://example.com/cb') {
+            const code_verifier = 'a'.repeat(64);
+            const code_challenge = crypto.createHash('sha256').update(code_verifier).digest('base64url');
+            const registerResponse = await fetch(`${baseUrl()}/mcp/oauth/register`, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({
+                    client_name: `approve-test-${Math.random().toString(36).slice(2)}`,
+                    redirect_uris: [redirectUri],
+                }),
+            });
+            const { client_id } = (await registerResponse.json()) as { client_id: string };
+
+            const authorizeUrl = new URL(`${baseUrl()}/mcp/oauth/authorize`);
+            authorizeUrl.searchParams.set('response_type', 'code');
+            authorizeUrl.searchParams.set('client_id', client_id);
+            authorizeUrl.searchParams.set('redirect_uri', redirectUri);
+            authorizeUrl.searchParams.set('code_challenge', code_challenge);
+            authorizeUrl.searchParams.set('code_challenge_method', 'S256');
+            authorizeUrl.searchParams.set('resource', `${ISSUER}/mcp/shop`);
+            authorizeUrl.searchParams.set('state', 'state-abc');
+            const authorizeResponse = await fetch(authorizeUrl, { redirect: 'manual' });
+            const requestToken = extractRequestToken(authorizeResponse.headers.get('location'));
+            return { requestToken, client_id, code_verifier, redirectUri };
+        }
+
+        it('approves for a signed-in customer and returns a redirect carrying a code', async () => {
+            await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
+            const { requestToken } = await startShopAuthorization();
+
+            const { authorizeMcpClient } = await shopClient.query(APPROVE, {
+                requestToken,
+                approved: true,
+            });
+
+            const redirect = new URL(authorizeMcpClient.redirectUrl);
+            expect(redirect.searchParams.get('code')).toBeTruthy();
+            expect(redirect.searchParams.get('state')).toBe('state-abc');
+        });
+
+        it('records the grant against that customer and channel', async () => {
+            await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
+            const { requestToken, client_id, code_verifier, redirectUri } = await startShopAuthorization();
+            const { authorizeMcpClient } = await shopClient.query(APPROVE, {
+                requestToken,
+                approved: true,
+            });
+            const code = new URL(authorizeMcpClient.redirectUrl).searchParams.get('code') as string;
+
+            const tokenResponse = await fetch(`${baseUrl()}/mcp/oauth/token`, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({
+                    grant_type: 'authorization_code',
+                    code,
+                    client_id,
+                    redirect_uri: redirectUri,
+                    code_verifier,
+                    resource: `${ISSUER}/mcp/shop`,
+                }),
+            });
+            const { access_token } = (await tokenResponse.json()) as { access_token: string };
+
+            const connection = server.app.get(TransactionalConnection);
+            const grant = await connection.rawConnection.getRepository(McpOauthGrant).findOne({
+                where: { accessTokenHash: lookupHash(access_token) },
+            });
+            expect(grant?.userType).toBe('customer');
+            expect(grant?.userId).toBeTruthy();
+            expect(grant?.channelId).toBeTruthy();
+        });
+
+        it('allows denial with no signed-in customer', async () => {
+            await shopClient.asAnonymousUser();
+            const { requestToken } = await startShopAuthorization();
+
+            const { authorizeMcpClient } = await shopClient.query(APPROVE, {
+                requestToken,
+                approved: false,
+            });
+
+            const redirect = new URL(authorizeMcpClient.redirectUrl);
+            expect(redirect.searchParams.get('error')).toBe('access_denied');
+        });
+
+        it('refuses approval with no signed-in customer', async () => {
+            await shopClient.asAnonymousUser();
+            const { requestToken } = await startShopAuthorization();
+
+            await expect(shopClient.query(APPROVE, { requestToken, approved: true })).rejects.toThrow(
+                /signed-in customer/,
+            );
+        });
+
+        it('refuses approval from an administrator', async () => {
+            // The Shop API's own login mutation is customer-scoped — it inner-joins the
+            // `customer` table, so a superadmin (Administrator-only, no Customer record) simply
+            // cannot obtain a Shop API session through login at all. What this check guards
+            // against is the same underlying user *also* holding an Administrator record, so it
+            // is exercised directly here: a synthetic Shop API context authenticated as the
+            // seeded superadmin's real user id, which does have one.
+            const oauth = server.app.get(McpOauthService);
+            const connection = server.app.get(TransactionalConnection);
+            const requestContextService = server.app.get(RequestContextService);
+            const adminCtx = await requestContextService.create({ apiType: 'admin' });
+            const [administrator] = await connection
+                .getRepository(adminCtx, Administrator)
+                .find({ relations: ['user'], take: 1 });
+            const { requestToken } = await startShopAuthorization();
+            const ctx = new RequestContext({
+                apiType: 'shop',
+                channel: new Channel({ id: 1 }),
+                session: {
+                    token: 'mcp-test-session',
+                    user: { id: administrator.user.id },
+                } as any,
+                // No Origin header is present, so the origin check passes, and this exercises
+                // assertNotAnAdministrator in isolation from assertStorefrontConsentOrigin.
+                req: { headers: { authorization: 'Bearer mcp-test' } } as any,
+                isAuthorized: true,
+                authorizedAsOwnerOnly: false,
+            });
+
+            await expect(oauth.approveCustomerRequest(ctx, requestToken, true)).rejects.toThrow(
+                /administrator/,
+            );
+        });
+
+        it('refuses a request token that has already been used', async () => {
+            await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
+            const { requestToken } = await startShopAuthorization();
+            await shopClient.query(APPROVE, { requestToken, approved: true });
+
+            await expect(shopClient.query(APPROVE, { requestToken, approved: true })).rejects.toThrow(
+                /invalid or expired/,
+            );
+        });
+
+        // Relates to OSS-575 — GET /mcp/oauth/authorize needs no credential, so anyone can start a
+        // flow for the administrator resource and read the request token straight out of the
+        // redirect. A signed-in customer must not be able to decide that request through the shop
+        // mutation just because they hold a valid request token for it.
+        it('refuses a signed-in customer approving a request started for the administrator resource', async () => {
+            await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
+            const { request_token: requestToken } = await authorizeAdminToCodePreConsent();
+
+            await expect(shopClient.query(APPROVE, { requestToken, approved: true })).rejects.toThrow(
+                /invalid or expired/i,
+            );
+        });
+
+        // Relates to OSS-575 — the mirror case: an administrator must not be able to decide a
+        // request that was started for the shop resource, even though the admin-consent endpoint
+        // has no other way of knowing which toolset a given request token belongs to.
+        it('refuses an administrator approving a request started for the shop resource', async () => {
+            const { requestToken } = await startShopAuthorization();
+
+            const res = await fetch(`${baseUrl()}/mcp/oauth/admin-consent`, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json', Authorization: `Bearer ${superAdminToken}` },
+                body: JSON.stringify({ request_token: requestToken, approved: true }),
+            });
+            expect(res.status).toBe(400);
+            expect(await res.text()).toMatch(/invalid or expired/i);
+        });
+
+        it('approves a signed-in customer request with no Origin header', async () => {
+            // This is the server-rendered consent page: a Next.js or Remix action calling the
+            // Shop API from Node, which attaches no `Origin` header at all — that absence is what
+            // the check allows. `Authorization: Bearer` is unrelated to that decision; it is only
+            // what signs the shopper in, exactly as any other authenticated request would use.
+            await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
+            const sessionToken = shopClient.getAuthToken();
+            const { requestToken } = await startShopAuthorization();
+
+            const response = await fetch(`${baseUrl()}/shop-api`, {
+                method: 'POST',
+                headers: {
+                    'content-type': 'application/json',
+                    Authorization: `Bearer ${sessionToken}`,
+                },
+                body: JSON.stringify({
+                    query: `mutation { authorizeMcpClient(requestToken: "${requestToken}", approved: true) { redirectUrl } }`,
+                }),
+            });
+            const body = (await response.json()) as any;
+            expect(body.errors).toBeUndefined();
+            expect(body.data.authorizeMcpClient.redirectUrl).toContain('code=');
+        });
+
+        it('refuses a request with a mismatched Origin header', async () => {
+            // A browser attaches `Origin` to every cross-site POST and page code cannot suppress
+            // it, so this is the shape an attacker's page actually arrives with. The plugin's test
+            // server authenticates over `Authorization: Bearer` rather than a real signed session
+            // cookie, so this simulates it the same way the equivalent admin-consent test does: a
+            // synthetic context carrying a real customer's user id and a foreign Origin, with no
+            // Authorization header (the origin check no longer looks for one either way).
+            const oauth = server.app.get(McpOauthService);
+            const connection = server.app.get(TransactionalConnection);
+            const requestContextService = server.app.get(RequestContextService);
+            const adminCtx = await requestContextService.create({ apiType: 'admin' });
+            const [customer] = await connection
+                .getRepository(adminCtx, Customer)
+                .find({ relations: ['user'], take: 1 });
+            if (!customer?.user) {
+                throw new Error('Expected at least one seeded customer with a user');
+            }
+            const { requestToken } = await startShopAuthorization();
+            const ctx = new RequestContext({
+                apiType: 'shop',
+                channel: new Channel({ id: 1 }),
+                session: {
+                    token: 'mcp-test-session',
+                    user: { id: customer.user.id },
+                } as any,
+                req: { headers: { origin: 'https://attacker.example.com' } } as any,
+                isAuthorized: true,
+                authorizedAsOwnerOnly: false,
+            });
+
+            await expect(oauth.approveCustomerRequest(ctx, requestToken, true)).rejects.toThrow(
+                /consent page/,
+            );
+        });
     });
 
     // --- helpers that stop before consent ---
@@ -545,48 +807,76 @@ describe('McpPlugin OAuth edge & security cases', () => {
         authorizeUrl.searchParams.set('code_challenge_method', 'S256');
         authorizeUrl.searchParams.set('resource', `${ISSUER}/mcp/admin`);
         const authorizeRes = await fetch(authorizeUrl, { redirect: 'manual' });
-        const request_token = extractSession(authorizeRes.headers.get('location'));
+        const request_token = extractRequestToken(authorizeRes.headers.get('location'));
         return { client_id, request_token };
     }
 
-    // Drives DCR + authorize for the shop resource and returns the request token, so a test
-    // can exercise the storefront-callback endpoint directly.
-    async function authorizeShopToConsent() {
+    // Pulls the `request_token` out of a consent redirect Location header,
+    // throwing a clear error if the redirect is missing or malformed.
+    function extractRequestToken(location: string | null): string {
+        if (!location) {
+            throw new Error('Authorize did not redirect to consent');
+        }
+        const requestToken = new URL(location).searchParams.get('request_token');
+        if (!requestToken) {
+            throw new Error(`Consent redirect missing request_token: ${location}`);
+        }
+        return requestToken;
+    }
+});
+
+describe('shop authorization with no storefrontConsentUrl configured', () => {
+    const config = mergeConfig(testConfig(), {
+        plugins: [McpPlugin.init({ oauth: { tokenSecret: TOKEN_SECRET } })],
+    });
+    const { server: noConsentUrlServer } = createTestEnvironment(config);
+    const baseUrl = () => `http://localhost:${config.apiOptions.port}`;
+
+    beforeAll(async () => {
+        // Multiple test servers in this file share the McpPlugin class's static options field
+        // (read at bootstrap), so this describe must reassert its own oauth config immediately
+        // before booting its server.
+        McpPlugin.init({ oauth: { tokenSecret: TOKEN_SECRET } });
+        await noConsentUrlServer.init({
+            initialData,
+            productsCsvPath: path.join(__dirname, 'fixtures/e2e-products.csv'),
+            customerCount: 1,
+        });
+    }, TEST_SETUP_TIMEOUT_MS);
+
+    afterAll(async () => {
+        await noConsentUrlServer.destroy();
+    });
+
+    it('redirects the error to the client and writes no pending request', async () => {
         const redirectUri = 'https://example.com/cb';
-        const registerRes = await fetch(`${baseUrl()}/mcp/oauth/register`, {
+        const registerResponse = await fetch(`${baseUrl()}/mcp/oauth/register`, {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({
-                client_name: `shop-consent-${Math.random().toString(36).slice(2)}`,
-                redirect_uris: [redirectUri],
-            }),
+            body: JSON.stringify({ client_name: 'no-consent-url', redirect_uris: [redirectUri] }),
         });
-        const { client_id } = (await registerRes.json()) as { client_id: string };
+        const { client_id } = (await registerResponse.json()) as { client_id: string };
 
-        const code_verifier = 'a'.repeat(64);
-        const code_challenge = crypto.createHash('sha256').update(code_verifier).digest('base64url');
         const authorizeUrl = new URL(`${baseUrl()}/mcp/oauth/authorize`);
         authorizeUrl.searchParams.set('response_type', 'code');
         authorizeUrl.searchParams.set('client_id', client_id);
         authorizeUrl.searchParams.set('redirect_uri', redirectUri);
-        authorizeUrl.searchParams.set('code_challenge', code_challenge);
+        authorizeUrl.searchParams.set('code_challenge', 'x'.repeat(43));
         authorizeUrl.searchParams.set('code_challenge_method', 'S256');
         authorizeUrl.searchParams.set('resource', `${ISSUER}/mcp/shop`);
-        const authorizeRes = await fetch(authorizeUrl, { redirect: 'manual' });
-        const request_token = extractSession(authorizeRes.headers.get('location'));
-        return { client_id, request_token };
-    }
+        authorizeUrl.searchParams.set('state', 'state-xyz');
 
-    // Pulls the `session` request token out of a consent redirect Location header,
-    // throwing a clear error if the redirect is missing or malformed.
-    function extractSession(location: string | null): string {
-        if (!location) {
-            throw new Error('Authorize did not redirect to consent');
-        }
-        const session = new URL(location).searchParams.get('session');
-        if (!session) {
-            throw new Error(`Consent redirect missing session: ${location}`);
-        }
-        return session;
-    }
+        const response = await fetch(authorizeUrl, { redirect: 'manual' });
+        const location = new URL(response.headers.get('location') as string);
+
+        expect(location.origin + location.pathname).toBe(redirectUri);
+        expect(location.searchParams.get('error')).toBe('server_error');
+        expect(location.searchParams.get('state')).toBe('state-xyz');
+        // The message must not leak the setting name to a third-party client.
+        expect(location.searchParams.get('error_description')).not.toContain('storefrontConsentUrl');
+
+        const connection = noConsentUrlServer.app.get(TransactionalConnection);
+        const pending = await connection.rawConnection.getRepository(McpAuthorizationRequest).count();
+        expect(pending).toBe(0);
+    });
 });

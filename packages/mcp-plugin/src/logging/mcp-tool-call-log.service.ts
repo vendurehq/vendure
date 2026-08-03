@@ -41,8 +41,18 @@ export class McpToolCallLogService {
         try {
             const log = new McpToolCallLog({
                 grantId: grant?.id ?? null,
-                actor: grant?.userId != null ? String(grant.userId) : null,
-                actorType: grant?.userType ?? (ctx.apiType === 'admin' ? 'admin' : 'anonymous'),
+                // A grant carries the actor when the call arrived over OAuth. Without one the
+                // context is the only identity there is: an in-process caller passes a signed-in
+                // shopper's context, while the anonymous shop endpoint has nobody signed in.
+                actor:
+                    grant?.userId != null
+                        ? String(grant.userId)
+                        : ctx.activeUserId != null
+                          ? String(ctx.activeUserId)
+                          : null,
+                actorType:
+                    grant?.userType ??
+                    (ctx.apiType === 'admin' ? 'admin' : ctx.activeUserId != null ? 'customer' : 'anonymous'),
                 channelId: ctx.channelId ?? null,
                 toolName: input.tool.name,
                 pluginSource: input.tool.pluginSource,
