@@ -89,37 +89,48 @@ four scopes. The defaults are sensible; override only what you need:
 
 | Scope | Default | Notes |
 |---|---|---|
-| `perSession` | 60 rpm | Per authenticated OAuth grant |
+| `perSession` | 60 rpm | Per caller: the OAuth grant's session for authenticated calls, the client IP for anonymous `/mcp/shop` calls, the supplied Vendure session for in-process calls |
 | `perClient` | 120 rpm | Per registered OAuth client |
 | `anonymousIp` | 60 rpm | Per client IP for anonymous `/mcp/shop` calls. Set `false` to disable |
 | `perTool` | `place_order: 5`, `create_product: 10` | Opt-in, keyed by tool name |
 
 Things to know before you tune these:
 
-- **The anonymous-IP limit is the safety backstop** — it is on by default at 60 rpm and protects the
-  unauthenticated shop endpoint. Only disable it (`anonymousIp: false`) if something upstream already rate-limits.
-- **Per-tool limits are opt-in.** A tool with no `perTool` entry (or an entry of `0`) is unlimited. Add entries
-  for expensive or sensitive tools.
-- **Limits are per instance.** The buckets live in Vendure's `CacheService`, which is in-memory by default — so
-  with N app instances the effective limit is roughly N × the configured value. Back `CacheService` with a shared
-  store (e.g. Redis) if you need a cluster-wide limit.
-- **Buckets are best-effort under concurrency.** The consume step is not atomic, so simultaneous requests can
-  occasionally slip a few over the limit. This is acceptable for abuse-prevention; it is not a hard quota.
-- **Behind a reverse proxy, enable Vendure's `trustProxy`** so `req.ip` reports the real client address rather
-  than the proxy's. There is no plugin-level proxy-header option — this is a core Vendure setting.
+- **Also rate-limit at your proxy or CDN.** The anonymous-IP limit protects the public shop endpoint,
+  but an attacker with many IP addresses can spread requests across them. Treat the built-in limits
+  as a baseline, not your only defence. Only disable the anonymous-IP limit (`anonymousIp: false`)
+  if something in front of Vendure already limits requests by IP.
+- **Anonymous callers are counted by IP.** A caller that omits the session-token header gets a new
+  session on every request, so sessions cannot be used to count anonymous traffic. For anonymous
+  `/mcp/shop` requests, the `perSession` and `perTool` limits therefore count by client IP. Callers
+  sharing one network (an office, a campus) share those allowances.
+- **Per-tool limits are opt-in.** A tool with no `perTool` entry (or an entry of `0`) is unlimited.
+  Add entries for expensive or sensitive tools — coupon and checkout tools are typical candidates.
+- **Use a shared cache if the limits matter.** The counters are stored in Vendure's `CacheService`.
+  The default store is in-memory and holds at most 10,000 entries for the whole application, so on a
+  busy store other cache activity pushes rate-limit counters out and the limits quietly stop working.
+  The SQL and Redis cache plugins do not have this problem, and with them all instances share one
+  set of counters instead of each counting separately. One caveat: counting is exact within a single
+  instance only. Two instances updating the same counter at the same moment can overwrite each
+  other's update, so under simultaneous load a shared counter can still admit somewhat more than the
+  configured number — treat these limits as abuse protection, not a precise quota.
+- **Behind a reverse proxy, enable Vendure's `trustProxy`** (a core setting, not a plugin option) so
+  `req.ip` is the real client address rather than the proxy's. Otherwise every anonymous caller
+  appears to come from the same IP and they all share a single allowance.
 
 What a caller sees when it hits a limit depends on how far the request got.
 
-Most refusals happen before any tool runs. The anonymous-IP limit is checked first of all, so an anonymous
-caller is counted before Vendure creates a session for it, and the calls a client makes to set itself up
-(`initialize`, `tools/list` and the like) are checked straight after. Both refuse with JSON-RPC error `-32029`,
-which carries the number of seconds to wait before retrying.
+Most refusals happen before any tool runs: the anonymous-IP check comes first (before Vendure creates
+a session for the request), and setup calls like `initialize` and `tools/list` are checked right
+after. These refusals are HTTP 429 responses with a `Retry-After` header giving the seconds to wait.
+The body is a JSON-RPC error with code `-31029`, and `error.data.retryAfterSeconds` carries the same
+wait time for programmatic use.
 
-A request that already reached a tool is refused inside the tool call, so the client gets a failed tool result
-rather than a protocol error. That is what the MCP spec asks for.
+A request that already reached a tool is refused inside the tool call, so the client gets a failed
+tool result rather than a protocol error — which is what the MCP spec asks for.
 
-Notifications are the exception. A notification is a message the client sends without expecting an answer, so
-there is no reply to put an error into; those are refused with HTTP 429.
+Notifications expect no reply, so a rate-limited notification gets the same 429 and `Retry-After`
+with `id: null` in the error body.
 
 ## Logging
 

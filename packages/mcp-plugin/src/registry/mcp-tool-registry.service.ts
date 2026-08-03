@@ -282,7 +282,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         // pre-check deliberately skips tools/call), so unknown/disabled/permission-denied calls — on
         // BOTH the direct and discovery paths — must still consume the shared buckets, otherwise they
         // are a free hammer on the anonymous surface. Exceedance flattens to isError here (only the
-        // pre-check carries -32029 + data).
+        // pre-check carries -31029 + data).
         const rateLimited = await this.enforceRateLimitOrError(executionContext, toolset, name);
         if (rateLimited) {
             return rateLimited;

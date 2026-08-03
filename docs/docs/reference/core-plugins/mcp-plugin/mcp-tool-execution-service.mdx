@@ -2,15 +2,14 @@
 title: "McpToolExecutionService"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/mcp-plugin/src/registry/mcp-tool-execution.service.ts" sourceLine="43" packageName="@vendure/mcp-plugin" since="3.8.0" />
+<GenerationInfo sourceFile="packages/mcp-plugin/src/registry/mcp-tool-execution.service.ts" sourceLine="42" packageName="@vendure/mcp-plugin" since="3.8.0" />
 
 Lists and runs MCP tools from code running inside the Vendure process — typically a chat
-assistant a merchant builds as a plugin. Calls go through the same funnel as MCP requests
-arriving over HTTP, so rate limiting, tool enablement, permissions, input validation, the
-destructive-confirmation gate and tool-call logging all behave identically.
+assistant a merchant builds as a plugin. Calls go through the same pipeline as HTTP requests,
+so things like permissions, rate limits, validation, confirmations, and logging behave the same.
 
-The `ctx` you pass is the identity of the call. Pass the one your resolver received, untouched:
-the tools act as whoever it identifies, and a hand-built context acts as the wrong person.
+Always pass the original `ctx` you received. Tools run as that user, and
+creating a new context can lead to wrong permissions.
 
 *Example*
 
@@ -47,9 +46,7 @@ class McpToolExecutionService {
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, toolset: <a href='/reference/core-plugins/mcp-plugin/mcp-toolset#mcptoolset'>McpToolset</a>) => Promise<<a href='/reference/core-plugins/mcp-plugin/mcp-tool-summary#mcptoolsummary'>McpToolSummary</a>[]>`}   />
 
-Lists the tools this caller may execute: the toolset's registered tools, minus disabled
-ones, minus those `ctx` has no permission for. The descriptors are ready to hand to a model
-as tool definitions.
+Lists the tools this caller may execute. Filters out disabled tools and those the user has no permission for.
 
 Always lists the real tools. The `toolExposure: 'discovery'` option only shrinks the tool
 list served over HTTP; it does not apply here.
@@ -57,15 +54,11 @@ list served over HTTP; it does not apply here.
 
 <MemberInfo kind="method" type={`(ctx: <a href='/reference/typescript-api/request/request-context#requestcontext'>RequestContext</a>, toolset: <a href='/reference/core-plugins/mcp-plugin/mcp-toolset#mcptoolset'>McpToolset</a>, toolName: string, input?: unknown) => Promise<CallToolResult>`}   />
 
-Executes one registered tool and returns the MCP `CallToolResult` (`content`,
-`structuredContent`, `isError`).
+Runs a tool and returns its result.
 
-Everything a tool call can get wrong comes back as an `isError` result rather than a throw:
-an unknown or disabled tool, a permission the caller lacks, input that does not match the
-tool's schema, a rate limit, or a failure inside the tool itself. A destructive tool called
-without `confirm: true` returns its confirmation-required result instead of running.
-
-Throws only when the caller itself is wrong: `ctx.apiType` must match `toolset`.
+Most errors (invalid input, no permission, rate limits, tool failure, etc.)
+are returned as `isError` instead of throwing.  Destructive tools require `confirm: true`,
+otherwise they return a confirmation-needed response.
 
 
 </div>

@@ -28,7 +28,13 @@ const productsCsvPath = path.join(__dirname, 'fixtures/e2e-products.csv');
 const AUTH_TOKEN_HEADER = 'vendure-auth-token';
 
 describe('MCP protocol conformance (direct mode)', () => {
-    const options: McpPluginOptions = { oauth: { tokenSecret: TOKEN_SECRET } };
+    // Test isolation, not a behavior change: with default rate limits, this describe's anonymous
+    // shop calls would share the IP-keyed per-session bucket with later describes in this file
+    // (they all call from the same test-host IP).
+    const options: McpPluginOptions = {
+        oauth: { tokenSecret: TOKEN_SECRET },
+        rateLimits: { perSession: { rpm: 0 }, perClient: { rpm: 0 }, anonymousIp: false },
+    };
     const config = mergeConfig(testConfig(), { plugins: [McpTestToolsPlugin, McpPlugin.init(options)] });
     const { server, adminClient } = createTestEnvironment(config);
     const baseUrl = () => `http://localhost:${config.apiOptions.port}`;
@@ -269,7 +275,14 @@ describe('MCP protocol conformance (direct mode)', () => {
 });
 
 describe('MCP discovery mode', () => {
-    const options: McpPluginOptions = { toolExposure: 'discovery', oauth: { tokenSecret: TOKEN_SECRET } };
+    // Test isolation, not a behavior change: with default rate limits, this describe's anonymous
+    // shop calls would share the IP-keyed per-session bucket with later describes in this file
+    // (they all call from the same test-host IP).
+    const options: McpPluginOptions = {
+        toolExposure: 'discovery',
+        oauth: { tokenSecret: TOKEN_SECRET },
+        rateLimits: { perSession: { rpm: 0 }, perClient: { rpm: 0 }, anonymousIp: false },
+    };
     const config = mergeConfig(testConfig(), { plugins: [McpTestToolsPlugin, McpPlugin.init(options)] });
     const { server } = createTestEnvironment(config);
     const baseUrl = () => `http://localhost:${config.apiOptions.port}`;
@@ -383,7 +396,7 @@ describe('MCP modern protocol era rate limiting', () => {
         await server.destroy();
     });
 
-    it('meters a modern-envelope request and refuses it with -32029 once the bucket is spent', async () => {
+    it('meters a modern-envelope request and refuses it with -31029 once the bucket is spent', async () => {
         // The pre-check reads the top-level `method`, and the modern envelope does not move it — the
         // envelope lives in `params._meta`. So a modern request is metered exactly like a legacy one.
         const first = await postModernMcp(baseUrl(), 'shop', 'tools/list', {}, 1);
@@ -395,12 +408,13 @@ describe('MCP modern protocol era rate limiting', () => {
         const sessionToken = first.headers.get(AUTH_TOKEN_HEADER) as string;
         expect(sessionToken).toBeTruthy();
 
-        // Thread the session token so the second request lands in the same (now spent) bucket.
+        // The per-session bucket is keyed by IP for anonymous callers, so the second request lands
+        // in the same (now spent) bucket regardless; the token is threaded for cart continuity.
         const tripped = await postModernMcp(baseUrl(), 'shop', 'tools/list', {}, 2, {
             headers: { [AUTH_TOKEN_HEADER]: sessionToken },
         });
-        expect(tripped.status).toBe(200);
-        expect(tripped.body.error.code).toBe(-32029);
+        expect(tripped.status).toBe(429);
+        expect(tripped.body.error.code).toBe(-31029);
         expect(tripped.body.error.data.scope).toBe('session');
         // The pre-check names the bucket's subject after the method it read, so seeing `tools/list`
         // here is the proof that it read the method from the top level of a modern request.

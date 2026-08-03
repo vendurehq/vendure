@@ -146,7 +146,8 @@ export type ResolvedMcpOauthOptions = Required<
  */
 export interface McpRateLimitOptions {
     /**
-     * Limit per authenticated MCP session (OAuth grant).
+     * Limit per MCP session: for logged-in users, this is their session.
+     * For anonymous `/mcp/shop` calls, it falls back to the client IP.
      *
      * @default { rpm: 60 }
      */

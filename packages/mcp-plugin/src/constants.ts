@@ -14,8 +14,10 @@ export const MCP_TOOL_TOGGLES_FIELD_NAME = 'tool-toggles';
 /** Namespaced lookup key used with `SettingsStoreService.get/set`. */
 export const MCP_TOOL_TOGGLES_STORE_KEY = `${MCP_SETTINGS_NAMESPACE}.${MCP_TOOL_TOGGLES_FIELD_NAME}`;
 
-/** JSON-RPC error code for rate-limit rejection (handshake pre-check only). */
-export const RATE_LIMIT_ERROR_CODE = -32029;
+/**
+ * JSON-RPC error code for a rate-limit refusal (handshake pre-check only).
+ */
+export const RATE_LIMIT_ERROR_CODE = -31029;
 /** Rate-limit window in milliseconds. */
 export const RATE_LIMIT_WINDOW_MS = 60_000;
 /** Cache-key prefix for rate-limit buckets. */

@@ -81,9 +81,6 @@ admin-scoped authorization requests.
 Absolute URL of the storefront consent page that approves customer-scoped
 authorization requests. Required only if you want customers to authorize MCP
 clients; a deployment that uses the admin toolset alone does not need it.
-
-Must be HTTPS in production. It also cannot be a loopback address such as
-`localhost` or `127.0.0.1`.
 ### grantRetentionDays
 
 <MemberInfo kind="property" type={`number`} default={`30 (days)`}   />

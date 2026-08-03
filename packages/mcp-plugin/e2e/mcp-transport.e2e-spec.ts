@@ -28,7 +28,13 @@ const countAnonymousSessions = (server: TestServer) =>
     server.app.get(TransactionalConnection).rawConnection.getRepository(AnonymousSession).count();
 
 describe('MCP transport (auth, session, channel, destructive)', () => {
-    const options: McpPluginOptions = { oauth: { tokenSecret: TOKEN_SECRET } };
+    // Test isolation, not a behavior change: with default rate limits, this describe's anonymous
+    // shop calls would share the IP-keyed per-session bucket with later describes in this file
+    // (they all call from the same test-host IP).
+    const options: McpPluginOptions = {
+        oauth: { tokenSecret: TOKEN_SECRET },
+        rateLimits: { perSession: { rpm: 0 }, perClient: { rpm: 0 }, anonymousIp: false },
+    };
     const config = mergeConfig(testConfig(), { plugins: [McpTestToolsPlugin, McpPlugin.init(options)] });
     const { server, adminClient } = createTestEnvironment(config);
     const baseUrl = () => `http://localhost:${config.apiOptions.port}`;
@@ -157,6 +163,18 @@ describe('MCP transport (auth, session, channel, destructive)', () => {
         );
         expect(confirmed.body.result.structuredContent).toEqual({ deleted: 'abc' });
     });
+
+    it('serves a request with an uppercase Content-Type identically to lowercase', async () => {
+        const lower = await postMcp(baseUrl(), 'shop', callTool('shop_echo', { text: 'hi' }, 1));
+        expect(lower.body.result.isError).toBeUndefined();
+        expect(lower.body.result.structuredContent).toEqual({ echoed: 'hi' });
+
+        const upper = await postMcp(baseUrl(), 'shop', callTool('shop_echo', { text: 'hi' }, 2), {
+            contentType: 'APPLICATION/JSON',
+        });
+        expect(upper.body.result.isError).toBeUndefined();
+        expect(upper.body.result.structuredContent).toEqual({ echoed: 'hi' });
+    });
 });
 
 describe('MCP transport rate limiting', () => {
@@ -177,13 +195,14 @@ describe('MCP transport rate limiting', () => {
         await server.destroy();
     });
 
-    it('handshake rate limit returns -32029 WITH machine-readable error.data', async () => {
+    it('handshake rate limit returns 429 + Retry-After WITH machine-readable error.data', async () => {
         // anonymousIp rpm = 2, so the third sequential anonymous ping trips the limit.
         await postMcp(baseUrl(), 'shop', rpc('ping', {}, 1));
         await postMcp(baseUrl(), 'shop', rpc('ping', {}, 2));
         const tripped = await postMcp(baseUrl(), 'shop', rpc('ping', {}, 3));
-        expect(tripped.status).toBe(200);
-        expect(tripped.body.error.code).toBe(-32029);
+        expect(tripped.status).toBe(429);
+        expect(Number(tripped.headers.get('retry-after'))).toBeGreaterThan(0);
+        expect(tripped.body.error.code).toBe(-31029);
         expect(tripped.body.error.data.retryAfterSeconds).toBeGreaterThan(0);
         expect(tripped.body.error.data.scope).toBe('anonymous IP');
     });
@@ -193,7 +212,7 @@ describe('MCP transport rate limiting', () => {
         // to come before the context is built, because building it writes an anonymous session row.
         const before = await countAnonymousSessions(server);
         const refused = await postMcp(baseUrl(), 'shop', rpc('ping', {}, 4));
-        expect(refused.body.error.code).toBe(-32029);
+        expect(refused.body.error.code).toBe(-31029);
         expect(await countAnonymousSessions(server)).toBe(before);
     });
 });
@@ -223,13 +242,16 @@ describe('MCP transport anonymous session metering', () => {
         const notification = { jsonrpc: '2.0', method: 'notifications/initialized' };
         const before = await countAnonymousSessions(server);
 
-        const statuses: number[] = [];
+        const responses = [];
         for (let i = 0; i < 6; i++) {
-            statuses.push((await postMcp(baseUrl(), 'shop', notification)).status);
+            responses.push(await postMcp(baseUrl(), 'shop', notification));
         }
 
         expect((await countAnonymousSessions(server)) - before).toBeLessThanOrEqual(3);
-        expect(statuses.filter(status => status === 429).length).toBeGreaterThan(0);
+        const refused = responses.filter(response => response.status === 429);
+        expect(refused.length).toBeGreaterThan(0);
+        // The notification branch always returned 429; it now carries Retry-After too.
+        expect(Number(refused[0].headers.get('retry-after'))).toBeGreaterThan(0);
     });
 });
 
@@ -256,30 +278,38 @@ describe('MCP transport per-tool rate limiting', () => {
         await server.destroy();
     });
 
-    it('a tool-path rate limit flattens to isError (no -32029 code)', async () => {
-        // Per-tool buckets are keyed by session, so the second call threads the session token the
-        // first one issued — as a real client would — to land in the same bucket.
+    it('keys per-tool buckets by IP for anonymous callers — dropping the session token does not reset the limit', async () => {
+        // shop_echo rpm = 1. The first anonymous call is allowed and issues a session token.
         const first = await postMcp(baseUrl(), 'shop', callTool('shop_echo', { text: 'x' }, 1));
         expect(first.body.result.isError).toBeUndefined();
         const sessionToken = first.headers.get(AUTH_TOKEN_HEADER) as string;
         expect(sessionToken).toBeTruthy();
 
-        // Per-tool limits are enforced inside the registry, after the SDK has dispatched the call, and
-        // the SDK strips custom error codes from anything thrown there — so exceeding one surfaces as
-        // isError content rather than as a -32029 JSON-RPC error.
+        // A cooperating client that threads the token is refused. Per-tool limits are enforced
+        // inside the registry, after the SDK has dispatched the call, and the SDK strips custom
+        // error codes there — so the refusal is isError content, not a -31029 JSON-RPC error.
         const second = await postMcp(baseUrl(), 'shop', callTool('shop_echo', { text: 'x' }, 2), {
             headers: { [AUTH_TOKEN_HEADER]: sessionToken },
         });
         expect(second.body.error).toBeUndefined();
         expect(second.body.result.isError).toBe(true);
         expect(second.body.result.content[0].text).toMatch(/Rate limit exceeded/);
+
+        // The regression: a caller that OMITS the session header used to be minted a fresh session
+        // — and a fresh bucket — on every request, so only cooperating callers were ever limited.
+        // Same IP, no header: still refused. (This describe also runs with anonymousIp: false, the
+        // documented configuration under which the old keys left no limit applying at all.)
+        const third = await postMcp(baseUrl(), 'shop', callTool('shop_echo', { text: 'x' }, 3));
+        expect(third.body.result.isError).toBe(true);
+        expect(third.body.result.content[0].text).toMatch(/Rate limit exceeded/);
     });
 });
 
 describe('MCP transport content-type casing', () => {
     // anonymousIp is disabled so the only bucket in play is perSession — the one the handshake
-    // pre-check itself enforces — isolating it from the unrelated anonymous-IP gate that runs
-    // earlier in the request and would refuse regardless of Content-Type casing.
+    // pre-check itself enforces (keyed by IP for anonymous callers). The single test below owns
+    // that bucket entirely, so it can run alone and is unaffected by other tests' traffic. The
+    // uppercase-SERVING case lives in the dispatch describe above, which runs with limits off.
     const options: McpPluginOptions = {
         oauth: { tokenSecret: TOKEN_SECRET },
         rateLimits: { perSession: { rpm: 2 }, perClient: { rpm: 0 }, anonymousIp: false },
@@ -297,22 +327,11 @@ describe('MCP transport content-type casing', () => {
         await server.destroy();
     });
 
-    it('serves a request with an uppercase Content-Type identically to lowercase', async () => {
-        const lower = await postMcp(baseUrl(), 'shop', callTool('shop_echo', { text: 'hi' }, 1));
-        expect(lower.body.result.isError).toBeUndefined();
-        expect(lower.body.result.structuredContent).toEqual({ echoed: 'hi' });
-
-        const upper = await postMcp(baseUrl(), 'shop', callTool('shop_echo', { text: 'hi' }, 2), {
-            contentType: 'APPLICATION/JSON',
-        });
-        expect(upper.body.result.isError).toBeUndefined();
-        expect(upper.body.result.structuredContent).toEqual({ echoed: 'hi' });
-    });
-
     it('meters an uppercase-header handshake exactly like lowercase (bypass closed)', async () => {
-        // perSession rpm = 2, so the third `ping` on the same threaded session trips the limit — same
-        // shape as the -32029 test above, but keyed by session (the handshake pre-check's own bucket)
-        // rather than anonymous IP, so an uppercase Content-Type can't dodge it by skipping the check.
+        // perSession rpm = 2, so the third ping (charge 3) trips the limit — same shape as the
+        // -31029 test above, but on the per-session bucket (keyed by IP for anonymous callers)
+        // rather than the anonymous-IP edge gate, so an uppercase Content-Type can't dodge the
+        // handshake pre-check by skipping the JSON parse.
         const first = await postMcp(baseUrl(), 'shop', rpc('ping', {}, 1));
         const sessionToken = first.headers.get(AUTH_TOKEN_HEADER) as string;
         expect(sessionToken).toBeTruthy();
@@ -324,6 +343,7 @@ describe('MCP transport content-type casing', () => {
             headers: { [AUTH_TOKEN_HEADER]: sessionToken },
             contentType: 'APPLICATION/JSON',
         });
-        expect(tripped.body.error.code).toBe(-32029);
+        expect(tripped.body.error.code).toBe(-31029);
+        expect(tripped.status).toBe(429);
     });
 });

@@ -41,7 +41,7 @@ export interface RateLimitInput {
 
 /**
  * Thrown when a rate-limit bucket is exceeded. The controller's handshake pre-check maps this to a
- * JSON-RPC `-32029` error whose `data` carries `{ retryAfterSeconds, scope }`; inside a tool call it
+ * JSON-RPC `-31029` error whose `data` carries `{ retryAfterSeconds, scope }`; inside a tool call it
  * is caught and flattened to an `isError` result.
  */
 export class McpRateLimitExceededError extends Error {
@@ -72,8 +72,8 @@ export class McpRateLimiterService {
     }
 
     /**
-     * Reads every relevant bucket. If any is already at/over its `rpm`, returns the exceeded metadata
-     * without consuming. Otherwise increments every bucket and returns `undefined`.
+     * Charges every relevant bucket, then reports the first bucket over its limit (or `undefined`
+     * when all are within it). A refused request stays charged, like other fixed-window limiters.
      */
     async checkRateLimit(input: RateLimitInput): Promise<McpRateLimitExceeded | undefined> {
         return this.runChecks(
@@ -107,11 +107,15 @@ export class McpRateLimiterService {
             return undefined;
         }
         const now = Date.now();
-        const bucketStates = await Promise.all(
-            checks.map(async check => ({ check, state: await this.getBucketState(check.key, now) })),
+        // Charge first, judge after. Each increment is atomic per bucket key (see incrementBucket),
+        // so overlapping requests each advance the counter — the previous read-then-write split let
+        // N overlapping requests collectively count as one. Charging refused requests also rewrites
+        // the bucket, which keeps an actively-refusing bucket recent in an LRU-evicting cache.
+        const results = await Promise.all(
+            checks.map(async check => ({ check, state: await this.incrementBucket(check.key, now) })),
         );
-        const exceeded = bucketStates.find(({ check, state }) => state != null && state.count >= check.rpm);
-        if (exceeded?.state) {
+        const exceeded = results.find(({ check, state }) => state.count > check.rpm);
+        if (exceeded) {
             const retryAfterSeconds = Math.max(1, Math.ceil((exceeded.state.resetAt - now) / 1000));
             return {
                 message: `Rate limit exceeded for ${subject} (${exceeded.check.scope}). Retry after ${retryAfterSeconds} seconds.`,
@@ -120,7 +124,6 @@ export class McpRateLimiterService {
                 subject,
             };
         }
-        await Promise.all(bucketStates.map(({ check, state }) => this.consumeBucket(check.key, state, now)));
         return undefined;
     }
 
@@ -151,7 +154,7 @@ export class McpRateLimiterService {
         const perSessionRpm = rateLimits.perSession?.rpm ?? 0;
         if (perSessionRpm > 0) {
             checks.push({
-                key: `session:${endpoint}:${this.sessionKey(input.executionContext)}`,
+                key: `session:${endpoint}:${this.actorSessionKey(input.executionContext)}`,
                 rpm: perSessionRpm,
                 scope: 'session',
             });
@@ -205,15 +208,35 @@ export class McpRateLimiterService {
         return state;
     }
 
-    /** Increments a bucket (creating it on first hit within the window). */
-    private async consumeBucket(key: string, state: BucketState | undefined, now: number): Promise<void> {
-        const nextState: BucketState = state
-            ? { count: state.count + 1, resetAt: state.resetAt }
-            : { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS };
-        await this.cacheService.set(this.cacheKey(key), nextState, {
-            ttl: Math.max(1000, nextState.resetAt - now),
-            tags: [RATE_LIMIT_CACHE_TAG],
+    /** Tail of the increment queue per bucket key; an entry is removed once its tail settles. */
+    private inFlightIncrements = new Map<string, Promise<void>>();
+
+    private incrementBucket(key: string, now: number): Promise<BucketState> {
+        const run = async (): Promise<BucketState> => {
+            const state = await this.getBucketState(key, now);
+            const next: BucketState = state
+                ? { count: state.count + 1, resetAt: state.resetAt }
+                : { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS };
+            await this.cacheService.set(this.cacheKey(key), next, {
+                ttl: Math.max(1000, next.resetAt - now),
+                tags: [RATE_LIMIT_CACHE_TAG],
+            });
+            return next;
+        };
+        const previous = this.inFlightIncrements.get(key) ?? Promise.resolve();
+        const result = previous.then(run, run);
+        const tail = result.then(
+            () => undefined,
+            () => undefined,
+        );
+        this.inFlightIncrements.set(key, tail);
+        void tail.then(() => {
+            // Only clear the entry if no later increment has replaced it.
+            if (this.inFlightIncrements.get(key) === tail) {
+                this.inFlightIncrements.delete(key);
+            }
         });
+        return result;
     }
 
     private sessionKey(executionContext: McpExecutionContext): string {
@@ -227,20 +250,33 @@ export class McpRateLimiterService {
         return 'none';
     }
 
+    /**
+     * The identity behind session-scoped buckets. An anonymous HTTP caller (no OAuth grant, but a
+     * client IP) is minted a fresh Vendure session token on every request that omits the session
+     * header, so the token cannot key a limit — those callers are keyed by IP instead.
+     */
+    private actorSessionKey(executionContext: McpExecutionContext): string {
+        if (executionContext.grant == null && executionContext.clientIp != null) {
+            return `anonymous-ip:${this.ipKey(executionContext.clientIp)}`;
+        }
+        return this.sessionKey(executionContext);
+    }
+
     private clientKey(executionContext: McpExecutionContext): string | undefined {
         return executionContext.grant?.oauthClientId != null
             ? `oauth:${executionContext.grant.oauthClientId}`
             : undefined;
     }
 
-    // Composes the caller identity (OAuth client, else anonymous IP) with the session so a caller
-    // can't bypass a per-tool limit by spreading requests across different tools in one session.
+    // The caller identity for per-tool buckets. OAuth callers keep the grant's session in the key —
+    // do NOT collapse it to the client alone, or one first-party client serving every shopper would
+    // share a single per-tool bucket store-wide. Anonymous and in-process callers use the same
+    // identity as the session bucket (IP for anonymous HTTP, own session for in-process).
     private toolActorKey(executionContext: McpExecutionContext): string {
         const clientKey = this.clientKey(executionContext);
-        const sessionKey = this.sessionKey(executionContext);
         return clientKey
-            ? `client:${clientKey}:session:${sessionKey}`
-            : `anonymous-ip:${this.ipKey(executionContext.clientIp)}:session:${sessionKey}`;
+            ? `client:${clientKey}:session:${this.sessionKey(executionContext)}`
+            : this.actorSessionKey(executionContext);
     }
 
     private ipKey(clientIp?: string): string {

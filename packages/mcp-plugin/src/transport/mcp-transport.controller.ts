@@ -39,7 +39,7 @@ interface JsonRpcError {
 /**
  * @description
  * HTTP transport for the MCP server. Owns authentication, anonymous shop context, the anonymous-IP
- * gate and the handshake rate-limit pre-check (both kept at controller altitude so the `-32029`
+ * gate and the handshake rate-limit pre-check (both kept at controller altitude so the `-31029`
  * `error.data` survives), and the DNS-rebinding front guard. It then delegates JSON-RPC handling to the v2 SDK handler via
  * `toNodeHandler`, passing the resolved Vendure context through the SDK's pass-through `authInfo`.
  */
@@ -214,13 +214,15 @@ export class McpTransportController {
     }
 
     /**
-     * Writes the `-32029` refusal. A body that contains a request keeps HTTP 200 so that clients
-     * which discard non-2xx bodies still receive `error.data`; a body of only notifications expected
-     * no reply at all, so it is refused with an error status instead.
+     * Sends a rate-limit response:
+     * HTTP 429 with a `Retry-After` header, plus a JSON-RPC error body.
+     * The 429 status lets proxies and monitoring treat this as a proper refusal.
+     * The JSON-RPC body includes retry details for MCP-aware clients.
      */
     private sendRateLimitError(res: Response, body: unknown, error: McpRateLimitExceededError): void {
         const id = this.firstRequestId(body);
-        res.status(id === undefined ? 429 : 200);
+        res.status(429);
+        res.setHeader('Retry-After', String(error.details.retryAfterSeconds));
         res.setHeader('Content-Type', 'application/json');
         const payload: JsonRpcError = {
             jsonrpc: '2.0',

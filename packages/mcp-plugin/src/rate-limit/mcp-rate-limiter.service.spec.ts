@@ -37,6 +37,11 @@ function anonCtx(ip: string) {
     return { ctx: { session: undefined }, clientIp: ip } as any;
 }
 
+/** An anonymous HTTP shop context: a minted session token plus a client IP (no OAuth grant). */
+function anonHttpCtx(token: string, ip: string) {
+    return { ctx: { session: { token } }, clientIp: ip } as any;
+}
+
 describe('McpRateLimiterService rate limiting', () => {
     beforeEach(() => {
         vi.useFakeTimers();
@@ -151,5 +156,89 @@ describe('McpRateLimiterService rate limiting', () => {
         for (let i = 0; i < 3; i++) {
             await expect(service.enforceAnonymousIpRateLimit('admin', '1.2.3.4')).resolves.toBeUndefined();
         }
+    });
+
+    it('counts correctly under concurrency — 20 simultaneous requests cannot exceed the limit', async () => {
+        const { service } = build({
+            rateLimits: { perSession: { rpm: 5 }, perClient: { rpm: 0 }, anonymousIp: false },
+        });
+        const ctx = sessionCtx('subject-a');
+        // Before the consume step was fused, every overlapping request read the same count and wrote
+        // the same count + 1, so all 20 were allowed. The increment is now queued per bucket key.
+        const results = await Promise.all(
+            Array.from({ length: 20 }, () =>
+                service.checkRateLimit({ executionContext: ctx, endpoint: 'admin', subject: 'ping' }),
+            ),
+        );
+        const allowed = results.filter(result => result === undefined).length;
+        expect(allowed).toBe(5);
+    });
+
+    it('limits an anonymous HTTP caller across fresh session tokens (per-session bucket keys on IP)', async () => {
+        const { service } = build({
+            rateLimits: { perSession: { rpm: 2 }, perClient: { rpm: 0 }, anonymousIp: false },
+        });
+        // A caller that omits the session header is minted a fresh token on every request. The
+        // bucket must not be fresh with it.
+        await service.enforceRateLimit({
+            executionContext: anonHttpCtx('fresh-1', '1.2.3.4'),
+            endpoint: 'shop',
+            subject: 'ping',
+        });
+        await service.enforceRateLimit({
+            executionContext: anonHttpCtx('fresh-2', '1.2.3.4'),
+            endpoint: 'shop',
+            subject: 'ping',
+        });
+        await expect(
+            service.enforceRateLimit({
+                executionContext: anonHttpCtx('fresh-3', '1.2.3.4'),
+                endpoint: 'shop',
+                subject: 'ping',
+            }),
+        ).rejects.toBeInstanceOf(McpRateLimitExceededError);
+    });
+
+    it('limits an anonymous HTTP caller per tool across fresh session tokens', async () => {
+        const { service } = build({
+            rateLimits: {
+                perSession: { rpm: 0 },
+                perClient: { rpm: 0 },
+                anonymousIp: false,
+                perTool: { apply_coupon_code: { rpm: 1 } },
+            },
+        });
+        await service.enforceRateLimit({
+            executionContext: anonHttpCtx('fresh-1', '1.2.3.4'),
+            endpoint: 'shop',
+            toolNames: ['apply_coupon_code'],
+        });
+        await expect(
+            service.enforceRateLimit({
+                executionContext: anonHttpCtx('fresh-2', '1.2.3.4'),
+                endpoint: 'shop',
+                toolNames: ['apply_coupon_code'],
+            }),
+        ).rejects.toMatchObject({ details: { scope: 'tool:apply_coupon_code' } });
+    });
+
+    it('keeps in-process callers (no grant, no client IP) on separate per-session buckets', async () => {
+        const { service } = build({
+            rateLimits: { perSession: { rpm: 1 }, perClient: { rpm: 0 }, anonymousIp: false },
+        });
+        // McpToolExecutionService passes { ctx } with no clientIp. Two merchant-assistant users
+        // must not share a bucket — that would make perSession a store-wide limit.
+        await service.enforceRateLimit({
+            executionContext: sessionCtx('assistant-user-a'),
+            endpoint: 'shop',
+            subject: 'tools/call',
+        });
+        await expect(
+            service.enforceRateLimit({
+                executionContext: sessionCtx('assistant-user-b'),
+                endpoint: 'shop',
+                subject: 'tools/call',
+            }),
+        ).resolves.toBeUndefined();
     });
 });
