@@ -341,6 +341,7 @@ msgstr "검색하려면 최소 2자를 입력하세요..."
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_profile/profile.tsx
+#: src/lib/components/shared/customer-selector.tsx
 msgid "Last name"
 msgstr "성"
 
@@ -501,6 +502,10 @@ msgstr "상품 옵션이 생성되었습니다"
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 msgid "Parent product"
 msgstr "상위 상품"
+
+#: src/lib/components/shared/customer-selector.tsx
+msgid "Create new customer"
+msgstr ""
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 #: src/lib/components/shared/customer-address-form.tsx
@@ -731,6 +736,10 @@ msgstr "짧은 날짜"
 msgid "Available currencies"
 msgstr "사용 가능한 통화"
 
+#: src/lib/components/shared/customer-selector.tsx
+msgid "Search customers..."
+msgstr ""
+
 #. placeholder {0}: selectedIds.size
 #: src/lib/components/data-input/product-multi-selector-input.tsx
 msgid "Select {0} Items"
@@ -903,6 +912,11 @@ msgstr "상품 생성 실패"
 #: src/lib/components/shared/role-code-label.tsx
 msgid "Customer"
 msgstr "고객"
+
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
+#: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
+msgid "Update address"
+msgstr ""
 
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/components/order-history/order-history-container.tsx
@@ -1152,6 +1166,7 @@ msgid "Assets"
 msgstr "에셋"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+#: src/lib/components/shared/customer-selector.tsx
 msgid "Email address"
 msgstr "이메일 주소"
 
@@ -1645,6 +1660,7 @@ msgstr "마지막 페이지로 이동"
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 #: src/lib/components/shared/confirmation-dialog.tsx
 #: src/lib/components/shared/customer-address-form.tsx
+#: src/lib/components/shared/customer-selector.tsx
 #: src/lib/components/shared/navigation-confirmation.tsx
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx
@@ -1741,6 +1757,10 @@ msgstr "세금 카테고리"
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
 msgid "Private collections are not visible in the shop"
 msgstr "비공개 컬렉션은 상점에 표시되지 않습니다"
+
+#: src/lib/components/shared/customer-selector.tsx
+msgid "Create customer"
+msgstr ""
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_products/products_.$id.tsx
@@ -3420,8 +3440,8 @@ msgid "Shipping Methods"
 msgstr "배송 방법"
 
 #: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx
-msgid "Select an address"
-msgstr "주소 선택"
+#~ msgid "Select an address"
+#~ msgstr "주소 선택"
 
 #: src/app/routes/_authenticated/_system/settings-store.tsx
 msgid "Yes"
@@ -3477,6 +3497,10 @@ msgstr "같지 않음"
 #: src/app/routes/_authenticated/_system/healthchecks.tsx
 #~ msgid "Refresh"
 #~ msgstr "새로고침"
+
+#: src/lib/components/shared/customer-selector.tsx
+msgid "Existing customer"
+msgstr ""
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #~ msgid "e.g. Size"
@@ -3621,6 +3645,10 @@ msgstr "속성 값이 생성되었습니다"
 msgid "Marketing"
 msgstr "마케팅"
 
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx
+msgid "Existing address"
+msgstr ""
+
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Draft order deleted"
 msgstr "임시 저장 주문이 삭제되었습니다"
@@ -3643,6 +3671,7 @@ msgid "Remove from channel"
 msgstr "채널에서 제거"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+#: src/lib/components/shared/customer-selector.tsx
 #: src/lib/components/shared/rich-text-editor/image-dialog.tsx
 msgid "Title"
 msgstr "제목"
@@ -4836,6 +4865,10 @@ msgstr "멤버 편집"
 msgid "Stock on hand"
 msgstr "보유 재고"
 
+#: src/app/routes/_authenticated/_orders/components/customer-address-selector.tsx
+msgid "New address"
+msgstr ""
+
 #: src/lib/components/data-table/data-table-filter-dialog.tsx
 msgid "Filter by {columnId}"
 msgstr "{columnId}로 필터"
@@ -5237,6 +5270,11 @@ msgstr "기본 언어"
 msgid "Status"
 msgstr "상태"
 
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
+#: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
+msgid "Okay"
+msgstr ""
+
 #: src/lib/components/shared/configurable-operation-multi-selector.tsx
 #: src/lib/components/shared/configurable-operation-selector.tsx
 msgid "No options found"
@@ -5345,6 +5383,7 @@ msgstr "환불 처리 실패"
 #: src/app/routes/_authenticated/_administrators/administrators_.$id.tsx
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
 #: src/app/routes/_authenticated/_profile/profile.tsx
+#: src/lib/components/shared/customer-selector.tsx
 msgid "First name"
 msgstr "이름"
 
@@ -6084,6 +6123,7 @@ msgid "Order process"
 msgstr "주문 프로세스"
 
 #: src/app/routes/_authenticated/_customers/customers_.$id.tsx
+#: src/lib/components/shared/customer-selector.tsx
 msgid "Phone number"
 msgstr "전화번호"
 
