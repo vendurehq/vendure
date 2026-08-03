@@ -1,7 +1,7 @@
 {
   "id": "core",
   "name": "Vendure Core Documentation",
-  "version": "3.7.1",
+  "version": "3.7.2",
   "vendureVersion": "v3",
   "navigation": [
     {
