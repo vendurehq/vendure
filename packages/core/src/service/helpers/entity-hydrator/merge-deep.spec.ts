@@ -106,16 +106,31 @@ describe('mergeDeep()', () => {
     // https://github.com/vendurehq/vendure/issues/5083
     it('should merge each object once rather than once per path', () => {
         // `depth + 2` distinct objects, 2 ^ (depth + 1) distinct paths to the leaf, no cycles.
-        let shared: any = { id: 'leaf', value: 'x' };
-        for (let i = 0; i < 22; i++) {
-            shared = { id: `level-${i}`, left: shared, right: shared, value: 'x' };
-        }
+        const layeredDiamond = (leaf: object) => {
+            let shared: any = leaf;
+            for (let i = 0; i < 22; i++) {
+                shared = { id: `level-${i}`, left: shared, right: shared, value: 'x' };
+            }
+            return { id: 'root', a: shared, b: shared };
+        };
+        let leafMerges = 0;
+        // mergeDeep() enumerates the source once per merge. Throwing rather than counting up stops
+        // a regression here from working through the other 2 ^ 23 paths to the leaf first.
+        const countedLeaf = new Proxy(
+            { id: 'leaf', value: 'x' },
+            {
+                ownKeys(leaf) {
+                    if (++leafMerges > 1) {
+                        throw new Error('the shared leaf was merged more than once');
+                    }
+                    return Reflect.ownKeys(leaf);
+                },
+            },
+        );
 
-        const start = Date.now();
-        mergeDeep({ id: 'root', a: shared, b: shared }, { id: 'root', a: shared, b: shared });
+        mergeDeep(layeredDiamond({ id: 'leaf', value: 'x' }), layeredDiamond(countedLeaf));
 
-        // Merging per object is sub-millisecond here; merging per path takes tens of seconds.
-        expect(Date.now() - start).toBeLessThan(2000);
+        expect(leafMerges).toBe(1);
     });
 
     // Rules out memoising on the source alone, which is also linear but aliases the merged
