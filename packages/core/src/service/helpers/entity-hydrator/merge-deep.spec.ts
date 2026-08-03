@@ -103,6 +103,44 @@ describe('mergeDeep()', () => {
         expect(merged[2].id).toBe(3);
     });
 
+    // https://github.com/vendurehq/vendure/issues/5083
+    // A source reachable by more than one path is not a circular reference, so it is merged once
+    // per path. Path counts multiply with every level of shared references, so the cost grows with
+    // the number of paths through the graph rather than the number of objects in it.
+    it('should merge each object once rather than once per path', () => {
+        // Every level holds two references to the same child: `depth + 2` distinct objects, but
+        // 2 ^ (depth + 1) distinct paths to the leaf, and no cycles.
+        let shared: any = { id: 'leaf', value: 'x' };
+        for (let i = 0; i < 22; i++) {
+            shared = { id: `level-${i}`, left: shared, right: shared, value: 'x' };
+        }
+
+        const start = Date.now();
+        mergeDeep({ id: 'root', a: shared, b: shared }, { id: 'root', a: shared, b: shared });
+
+        // Merging per object is sub-millisecond here; merging per path takes tens of seconds.
+        expect(Date.now() - start).toBeLessThan(2000);
+    });
+
+    // https://github.com/vendurehq/vendure/issues/5083
+    // Merging a shared source once and reusing that result for the other targets would also make
+    // the cost linear, but each target keeps whatever it already had, so they cannot be aliased.
+    it('should keep the existing data of every target a shared source is merged into', () => {
+        const sharedSource = { id: 'shared', facet: { id: 7, code: 'weight' } };
+        const source = { left: { child: sharedSource }, right: { child: sharedSource } };
+        const target = {
+            left: { child: { id: 'shared', existing: 'left' } },
+            right: { child: { id: 'shared', existing: 'right' } },
+        };
+
+        const merged = mergeDeep(target as any, source as any);
+
+        expect(merged.left.child.facet.code).toBe('weight');
+        expect(merged.right.child.facet.code).toBe('weight');
+        expect(merged.left.child.existing).toBe('left');
+        expect(merged.right.child.existing).toBe('right');
+    });
+
     it('should handle circular objects', () => {
         const first = {
             name: 'John',

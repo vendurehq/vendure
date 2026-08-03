@@ -12,9 +12,26 @@ export function mergeDeep<T extends { [key: string]: any }>(
     a: T | undefined,
     b: T,
     visited: WeakSet<object> = new WeakSet(),
+    merged: WeakMap<object, WeakSet<object>> = new WeakMap(),
 ): T {
     if (!a) {
         return b;
+    }
+
+    // Merging a source into a target is idempotent, so each pair only needs merging once. Without
+    // this, a shared instance — relations are loaded with the 'query' strategy, so every
+    // referencing parent gets the same one — is re-merged once per path that reaches it, and path
+    // counts multiply with each level of sharing. See #5083.
+    if (typeof a === 'object' && typeof b === 'object' && b !== null) {
+        let mergedSources = merged.get(a);
+        if (mergedSources?.has(b)) {
+            return a;
+        }
+        if (!mergedSources) {
+            mergedSources = new WeakSet();
+            merged.set(a, mergedSources);
+        }
+        mergedSources.add(b);
     }
 
     // Track only the current recursion path, not every source object seen during the
@@ -79,7 +96,7 @@ export function mergeDeep<T extends { [key: string]: any }>(
                     Object.prototype.hasOwnProperty.call(a, key) &&
                     (Array.isArray(a[key]) || isObject(a[key]))
                 ) {
-                    const mergedValue = mergeDeep(a[key], b[key], visited);
+                    const mergedValue = mergeDeep(a[key], b[key], visited, merged);
                     safeAssign(a, key, mergedValue);
                 } else {
                     safeAssign(a, key, value);
