@@ -30,6 +30,7 @@ export default defineConfig({
         'sv',
         'tr',
         'ja',
+        'ko',
         'bg',
         'nl',
         'ro',

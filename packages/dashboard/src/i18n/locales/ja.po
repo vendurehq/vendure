@@ -163,7 +163,7 @@ msgstr "タイプ"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "The default currency is chosen from this list."
-msgstr ""
+msgstr "デフォルト通貨はこのリストから選択されます。"
 
 #. placeholder {0}: entityName.toLowerCase()
 #. placeholder {0}: group.name
@@ -175,7 +175,7 @@ msgstr "{0}を選択"
 #. placeholder {0}: selectedItems.length
 #: src/lib/components/data-input/relation-selector.tsx
 msgid "Add more ({0} selected)"
-msgstr ""
+msgstr "さらに追加（{0} 件選択中）"
 
 #: src/app/routes/_authenticated/_facets/facets.tsx
 msgid "View values"
@@ -237,7 +237,7 @@ msgstr "{deleted}{entityName}を削除しました"
 
 #: src/lib/components/shared/asset/asset-properties.tsx
 msgid "File Size"
-msgstr ""
+msgstr "ファイルサイズ"
 
 #: src/app/routes/_authenticated/_system/healthchecks.tsx
 #~ msgid "Healthchecks"
@@ -553,7 +553,7 @@ msgstr "注文数"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "You must first select an available currency to set a default currency"
-msgstr ""
+msgstr "デフォルト通貨を設定するには、まず利用可能な通貨を選択する必要があります"
 
 #: src/app/routes/_authenticated/_orders/components/order-detail-shared.tsx
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
@@ -720,7 +720,7 @@ msgstr "メタデータ"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to set shipping method for order: {0}"
-msgstr ""
+msgstr "注文の配送方法の設定に失敗しました: {0}"
 
 #: src/app/routes/_authenticated/_option-groups/components/option-group-products-block.tsx
 #: src/lib/components/data-table/data-table.tsx
@@ -845,7 +845,7 @@ msgstr "{0}個の適格な配送方法が見つかりました"
 #: src/lib/components/shared/asset/asset-gallery.tsx
 #: src/lib/components/shared/asset/asset-properties.tsx
 msgid "Dimensions"
-msgstr "サイズ"
+msgstr "寸法"
 
 #: src/lib/components/ui/password-input.tsx
 msgid "Show password"
@@ -900,7 +900,7 @@ msgstr "確認"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to complete draft order: {0}"
-msgstr ""
+msgstr "下書き注文の完了に失敗しました: {0}"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
 msgid "Failed to create collection"
@@ -1062,7 +1062,7 @@ msgstr "割り当て済み"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to set coupon code for order: {0}"
-msgstr ""
+msgstr "注文のクーポンコードの設定に失敗しました: {0}"
 
 #: src/app/routes/_authenticated/_stock-locations/components/delete-stock-locations-dialog.tsx
 msgid "Select what to do with remaining stock"
@@ -1185,7 +1185,7 @@ msgstr "メールアドレス"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to remove coupon code from order: {0}"
-msgstr ""
+msgstr "注文からのクーポンコードの削除に失敗しました: {0}"
 
 #: src/lib/components/data-input/slug-input.tsx
 #: src/lib/components/data-input/slug-input.tsx
@@ -1250,7 +1250,7 @@ msgstr "価格はデフォルト税ゾーンの税を含みます"
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "This field is required"
-msgstr ""
+msgstr "このフィールドは必須です"
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 msgid "Total refund:"
@@ -1336,7 +1336,7 @@ msgstr "アカウントに割り当てられたロールのみ使用可能です
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 msgid "{cancellableCount, plural, one {Cancel {cancellableCount} job} other {Cancel {cancellableCount} jobs}}"
-msgstr ""
+msgstr "{cancellableCount, plural, other {{cancellableCount} 件のジョブをキャンセル}}"
 
 #: src/lib/components/data-input/product-multi-selector-input.tsx
 msgid "{buttonText}"
@@ -1490,7 +1490,7 @@ msgstr "以前"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to set customer for order: {0}"
-msgstr ""
+msgstr "注文の顧客の設定に失敗しました: {0}"
 
 #: src/lib/components/shared/asset/asset-gallery.tsx
 msgid "Size"
@@ -1585,7 +1585,7 @@ msgstr "顧客"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-calculator-selector.tsx
 msgid "Select Shipping Calculator"
-msgstr ""
+msgstr "配送料の計算方法を選択"
 
 #: src/lib/components/layout/language-dialog.tsx
 msgid "Sample Formatting"
@@ -1627,7 +1627,7 @@ msgstr "{0}を移動するターゲットコレクションを選択してくだ
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to unset billing address for order: {0}"
-msgstr ""
+msgstr "注文の請求先住所の解除に失敗しました: {0}"
 
 #: src/app/routes/_authenticated/_customers/components/customer-history/customer-history-utils.tsx
 msgid "Customer details updated"
@@ -1682,7 +1682,7 @@ msgstr "キャンセル"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to update order custom fields: {0}"
-msgstr ""
+msgstr "注文カスタムフィールドの更新に失敗しました: {0}"
 
 #: src/app/routes/_authenticated/_product-variants/product-variants_.$id.tsx
 #: src/app/routes/_authenticated/_products/components/add-product-variant-dialog.tsx
@@ -1727,7 +1727,7 @@ msgstr "コレクション"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/shipping-eligibility-checker-selector.tsx
 msgid "Select Shipping Eligibility Checker"
-msgstr ""
+msgstr "配送適格性チェッカーを選択"
 
 #: src/app/routes/_authenticated/_products/products_.$id_.variants.tsx
 msgid "Delete variant"
@@ -2079,7 +2079,7 @@ msgstr "テーマ"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "You must select at least one available currency"
-msgstr ""
+msgstr "利用可能な通貨を少なくとも1つ選択する必要があります"
 
 #. placeholder {0}: value.totalItems
 #: src/app/routes/_authenticated/_customer-groups/customer-groups.tsx
@@ -2453,7 +2453,7 @@ msgstr "コレクションの移動が完了しました"
 
 #: src/lib/components/data-input/relation-selector.tsx
 msgid "Change selection"
-msgstr ""
+msgstr "選択を変更"
 
 #: src/app/routes/_authenticated/_customers/components/customer-status-badge.tsx
 msgid "Registered"
@@ -2462,7 +2462,7 @@ msgstr "登録済み"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to set shipping address for order: {0}"
-msgstr ""
+msgstr "注文の配送先住所の設定に失敗しました: {0}"
 
 #: src/app/routes/_authenticated/_system/job-queue.tsx
 msgid "Cancel Job"
@@ -2768,7 +2768,7 @@ msgstr "すべてのタイプ"
 #. placeholder {0}: entityIds.length
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 msgid "Select channels to assign {0} {entityType} to"
-msgstr ""
+msgstr "{0}件の{entityType}を割り当てるチャネルを選択"
 
 #: src/app/routes/_authenticated/_orders/components/draft-order-status.tsx
 msgid "Only draft orders can be completed"
@@ -2780,7 +2780,7 @@ msgstr "商品の更新に失敗しました"
 
 #: src/app/routes/_authenticated/_collections/components/collection-filters-selector.tsx
 msgid "Add collection filter"
-msgstr ""
+msgstr "コレクションフィルターを追加"
 
 #. placeholder {0}: adjustedLines.length
 #: src/app/routes/_authenticated/_orders/components/order-modification-summary.tsx
@@ -3091,7 +3091,7 @@ msgstr "住所を更新しました"
 #. placeholder {0}: selectedChannelIds.length
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 msgid "Successfully assigned {entityIdsLength} {entityType} to {0} channels"
-msgstr ""
+msgstr "{entityIdsLength} 件の{entityType}を {0} 件のチャネルに割り当てました"
 
 #: src/app/routes/_authenticated/_orders/hooks/use-refund-order.ts
 msgid "Refund processed successfully"
@@ -3099,7 +3099,7 @@ msgstr "返金が正常に処理されました"
 
 #: src/lib/components/data-table/filters/data-table-enum-filter.tsx
 msgid "Select value"
-msgstr ""
+msgstr "値を選択"
 
 #. placeholder {0}: action.label
 #. placeholder {0}: entityType === 'products' ? 'Product' : 'Variant'
@@ -3268,7 +3268,7 @@ msgstr "表示言語を選択"
 
 #: src/app/routes/_authenticated/_payment-methods/components/payment-handler-selector.tsx
 msgid "Select Payment Handler"
-msgstr ""
+msgstr "支払いハンドラーを選択"
 
 #: src/app/routes/_authenticated/_profile/profile.tsx
 msgid "Authentication methods"
@@ -3348,7 +3348,7 @@ msgstr "販売者を作成しました"
 #. placeholder {1}: selectedChannelIds.length
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 msgid "Failed to assign {entityIdsLength} {entityType} to {0} of {1} channels"
-msgstr ""
+msgstr "{entityIdsLength} 件の{entityType}を {1} 件中 {0} 件のチャネルに割り当てられませんでした"
 
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 msgid "Successfully updated shipping method"
@@ -3538,7 +3538,7 @@ msgstr ""
 
 #: src/app/routes/_authenticated/_payment-methods/components/payment-eligibility-checker-selector.tsx
 msgid "No checkers found"
-msgstr ""
+msgstr "チェッカーが見つかりません"
 
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
 msgid "Settle payment"
@@ -4012,7 +4012,7 @@ msgstr "国"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to remove order line: {0}"
-msgstr ""
+msgstr "注文明細の削除に失敗しました: {0}"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/test-address-form.tsx
 msgid "Street Address 2"
@@ -4093,7 +4093,7 @@ msgstr "と等しい"
 
 #: src/lib/components/shared/asset/asset-properties.tsx
 msgid "Source File"
-msgstr ""
+msgstr "ソースファイル"
 
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
 #: src/app/routes/_authenticated/_products/components/create-product-options-dialog.tsx
@@ -4286,7 +4286,7 @@ msgstr "利用可能なアクション"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to update order line: {0}"
-msgstr ""
+msgstr "注文明細の更新に失敗しました: {0}"
 
 #: src/lib/components/shared/rich-text-editor/link-dialog.tsx
 msgid "Insert link"
@@ -4405,7 +4405,7 @@ msgstr "高さ"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 msgid "Assign {entityType} to channels"
-msgstr ""
+msgstr "{entityType}をチャネルに割り当て"
 
 #: src/app/routes/_authenticated/_orders/components/order-modification-preview-dialog.tsx
 msgid "A refund of {formattedDiff} is required. Select payment amounts and enter a note to proceed."
@@ -4465,7 +4465,7 @@ msgstr "顧客情報を更新しました"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to delete draft order: {0}"
-msgstr ""
+msgstr "下書き注文の削除に失敗しました: {0}"
 
 #: src/lib/components/data-table/views-sheet.tsx
 msgid "Failed to convert view to global"
@@ -4473,15 +4473,15 @@ msgstr "ビューのグローバル化に失敗しました"
 
 #: src/app/routes/_authenticated/_payment-methods/components/payment-eligibility-checker-selector.tsx
 msgid "Select Payment Eligibility Checker"
-msgstr ""
+msgstr "支払い適格性チェッカーを選択"
 
 #: src/lib/components/shared/assign-to-channel-dialog.tsx
 msgid "Select one or more channels"
-msgstr ""
+msgstr "1つ以上のチャネルを選択"
 
 #: src/lib/components/data-table/filters/data-table-enum-filter.tsx
 msgid "Select operator"
-msgstr ""
+msgstr "演算子を選択"
 
 #. js-lingui-explicit-id
 #: src/lib/framework/defaults.ts
@@ -4612,7 +4612,7 @@ msgstr "OR"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "You must select a default currency from the list of available currencies"
-msgstr ""
+msgstr "利用可能な通貨のリストからデフォルト通貨を選択する必要があります"
 
 #: src/app/routes/_authenticated/_assets/components/asset-tags-editor.tsx
 msgid "Manage tags"
@@ -4643,12 +4643,12 @@ msgstr "注文をフルフィルメントしました"
 
 #: src/lib/components/data-input/product-multi-selector-input.tsx
 msgid "Loading selected items..."
-msgstr ""
+msgstr "選択したアイテムを読み込み中..."
 
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to set billing address for order: {0}"
-msgstr ""
+msgstr "注文の請求先住所の設定に失敗しました: {0}"
 
 #: src/app/routes/_authenticated/_orders/orders_.$id_.modify.tsx
 msgid "No shipping address"
@@ -4849,7 +4849,7 @@ msgstr "{customerGroupName}の顧客グループメンバー"
 #. placeholder {0}: e instanceof Error ? e.message : String(e)
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to set address for order: {0}"
-msgstr ""
+msgstr "注文の住所の設定に失敗しました: {0}"
 
 #: src/app/routes/_authenticated/_orders/components/fulfillment-details.tsx
 #: src/app/routes/_authenticated/_orders/components/payment-details.tsx
@@ -5014,7 +5014,7 @@ msgstr "識別子"
 
 #: src/app/routes/_authenticated/_shipping-methods/components/fulfillment-handler-selector.tsx
 msgid "Select a fulfillment handler"
-msgstr ""
+msgstr "フルフィルメントハンドラーを選択"
 
 #: src/app/routes/_authenticated/_collections/collections_.$id.tsx
 msgid "Failed to update collection"
@@ -5462,7 +5462,7 @@ msgstr "名"
 
 #: src/lib/components/shared/product-variant-selector.tsx
 msgid "Add item to order"
-msgstr ""
+msgstr "注文にアイテムを追加"
 
 #: src/lib/components/data-table/human-readable-operator.tsx
 msgid "contains"
@@ -5479,7 +5479,7 @@ msgstr "アイテムが見つかりません"
 #: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts
 #: src/app/routes/_authenticated/_products/hooks/use-remove-option-group.ts
 msgid "Failed to remove option group"
-msgstr ""
+msgstr "オプショングループの削除に失敗しました"
 
 #: src/app/routes/_authenticated/_orders/components/order-table-totals.tsx
 msgid "Sub total"
@@ -5590,7 +5590,7 @@ msgstr "国を追加"
 
 #: src/app/routes/_authenticated/_channels/channels_.$id.tsx
 msgid "Defaults to the default language."
-msgstr ""
+msgstr "デフォルト言語が使用されます。"
 
 #: src/lib/components/data-input/custom-field-list-input.tsx
 msgid "Remove item"
@@ -5752,7 +5752,7 @@ msgstr "これらの変更には支払いまたは返金は必要ありません
 
 #: src/app/routes/_authenticated/_system/components/cancel-jobs-bulk-action.tsx
 msgid "{cancellableCount, plural, one {Are you sure you want to cancel {cancellableCount} job? This action cannot be undone.} other {Are you sure you want to cancel {cancellableCount} jobs? This action cannot be undone.}}"
-msgstr ""
+msgstr "{cancellableCount, plural, other {{cancellableCount} 件のジョブをキャンセルしてもよろしいですか？この操作は取り消せません。}}"
 
 #: src/lib/framework/dashboard-widget/orders-summary/index.tsx
 msgid "Total Revenue"
@@ -5826,7 +5826,7 @@ msgstr "注文カスタムフィールドが更新されました"
 #: src/app/routes/_authenticated/_payment-methods/payment-methods_.$id.tsx
 #: src/app/routes/_authenticated/_shipping-methods/shipping-methods_.$id.tsx
 msgid "Calculator"
-msgstr "計算機"
+msgstr "計算方法"
 
 #: src/app/routes/_authenticated/_option-groups/components/option-group-bulk-actions.tsx
 msgid "Failed to remove option group from channel: {message}"
@@ -5982,7 +5982,7 @@ msgstr "{groupName}にオプション値を追加"
 #. placeholder {0}: error.message
 #: src/app/routes/_authenticated/_orders/orders_.draft.$id.tsx
 msgid "Failed to unset shipping address for order: {0}"
-msgstr ""
+msgstr "注文の配送先住所の解除に失敗しました: {0}"
 
 #: src/app/routes/_authenticated/_orders/components/add-surcharge-form.tsx
 #: src/app/routes/_authenticated/_orders/components/edit-order-table.tsx
@@ -6026,7 +6026,7 @@ msgstr "商品バリエーションの作成に失敗しました"
 
 #: src/lib/components/data-input/relation-selector.tsx
 msgid "Search..."
-msgstr ""
+msgstr "検索..."
 
 #. placeholder {0}: formatLanguageName(contentLanguage)
 #: src/lib/components/layout/channel-switcher.tsx
