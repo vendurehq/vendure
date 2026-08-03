@@ -104,12 +104,8 @@ describe('mergeDeep()', () => {
     });
 
     // https://github.com/vendurehq/vendure/issues/5083
-    // A source reachable by more than one path is not a circular reference, so it is merged once
-    // per path. Path counts multiply with every level of shared references, so the cost grows with
-    // the number of paths through the graph rather than the number of objects in it.
     it('should merge each object once rather than once per path', () => {
-        // Every level holds two references to the same child: `depth + 2` distinct objects, but
-        // 2 ^ (depth + 1) distinct paths to the leaf, and no cycles.
+        // `depth + 2` distinct objects, 2 ^ (depth + 1) distinct paths to the leaf, no cycles.
         let shared: any = { id: 'leaf', value: 'x' };
         for (let i = 0; i < 22; i++) {
             shared = { id: `level-${i}`, left: shared, right: shared, value: 'x' };
@@ -122,9 +118,8 @@ describe('mergeDeep()', () => {
         expect(Date.now() - start).toBeLessThan(2000);
     });
 
-    // https://github.com/vendurehq/vendure/issues/5083
-    // Merging a shared source once and reusing that result for the other targets would also make
-    // the cost linear, but each target keeps whatever it already had, so they cannot be aliased.
+    // Rules out memoising on the source alone, which is also linear but aliases the merged
+    // sub-object between the targets.
     it('should keep the existing data of every target a shared source is merged into', () => {
         const sharedSource = { id: 'shared', facet: { id: 7, code: 'weight' } };
         const source = { left: { child: sharedSource }, right: { child: sharedSource } };

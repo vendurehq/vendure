@@ -18,10 +18,10 @@ export function mergeDeep<T extends { [key: string]: any }>(
         return b;
     }
 
-    // Merging a source into a target is idempotent, so each pair only needs merging once. Without
-    // this, a shared instance — relations are loaded with the 'query' strategy, so every
-    // referencing parent gets the same one — is re-merged once per path that reaches it, and path
-    // counts multiply with each level of sharing. See #5083.
+    // Merging a source into a target is idempotent, so each pair only needs merging once. Relations
+    // load with the 'query' strategy, so every referencing parent gets the same instance; without
+    // this the pair is re-merged once per path reaching it, and paths multiply with each level of
+    // sharing. See #5083.
     if (typeof a === 'object' && typeof b === 'object' && b !== null) {
         let mergedSources = merged.get(a);
         if (mergedSources?.has(b)) {
