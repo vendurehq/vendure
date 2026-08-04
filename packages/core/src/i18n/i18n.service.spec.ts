@@ -101,7 +101,10 @@ describe('I18nService', () => {
             ).toBe('Rate');
         });
 
-        it('treats dots in a code as part of the key rather than as path separators', () => {
+        it('returns the value verbatim, treating dots in a code as a key segment', () => {
+            // The exact match covers both hazards at once: i18next must not split the dotted code
+            // into path segments, and ICU must not consume the `{ rate }` placeholder, which the
+            // Admin UI substitutes with the live argument value.
             expect(
                 i18nService.getConfigurableOperationTranslation('aa', [
                     'ShippingCalculator',
@@ -109,15 +112,6 @@ describe('I18nService', () => {
                     'description',
                 ]),
             ).toBe('Flat rate of { rate }');
-        });
-
-        it('returns ICU-style placeholders verbatim', () => {
-            const result = i18nService.getConfigurableOperationTranslation('aa', [
-                'ShippingCalculator',
-                'acme.flat-rate',
-                'description',
-            ]);
-            expect(result).toContain('{ rate }');
         });
 
         it('resolves a nested select option label', () => {

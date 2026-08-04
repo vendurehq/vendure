@@ -43,14 +43,23 @@ function getCoreOperations() {
         console.error(`Could not find ${CORE_DIST}. Run \`npm run build\` in packages/core first.`);
         process.exit(1);
     }
-    const { defaultConfig, dummyPaymentHandler, examplePaymentHandler } = require(CORE_DIST);
+    const core = require(CORE_DIST);
     const { getConfigurableOperationDefinitions } = require(CORE_REGISTRY);
-    const registries = getConfigurableOperationDefinitions(defaultConfig);
+    const registries = getConfigurableOperationDefinitions(core.defaultConfig);
+
+    const extraHandlerNames = ['dummyPaymentHandler', 'examplePaymentHandler'];
+    const missing = extraHandlerNames.filter(name => !core[name]);
+    if (missing.length) {
+        console.error(
+            `@vendure/core no longer exports ${missing.join(', ')}. Update this script, otherwise ` +
+                'their strings are dropped from every batch without anyone noticing.',
+        );
+        process.exit(1);
+    }
     registries.PaymentMethodHandler = [
         ...registries.PaymentMethodHandler,
-        dummyPaymentHandler,
-        examplePaymentHandler,
-    ].filter(Boolean);
+        ...extraHandlerNames.map(name => core[name]),
+    ];
 
     const operations = [];
     for (const [defType, defs] of Object.entries(registries)) {
