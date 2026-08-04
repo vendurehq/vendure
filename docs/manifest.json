@@ -3524,13 +3524,13 @@
                   "title": "AssetServerOptions",
                   "slug": "asset-server-options",
                   "file": "docs/reference/core-plugins/asset-server-plugin/asset-server-options.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-08-04T07:13:24Z"
                 },
                 {
                   "title": "CacheConfig",
                   "slug": "cache-config",
                   "file": "docs/reference/core-plugins/asset-server-plugin/cache-config.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-08-04T07:13:24Z"
                 },
                 {
                   "title": "HashedAssetNamingStrategy",
@@ -3539,22 +3539,28 @@
                   "lastModified": "2026-01-28T14:49:21+01:00"
                 },
                 {
+                  "title": "HexColorString",
+                  "slug": "hex-color-string",
+                  "file": "docs/reference/core-plugins/asset-server-plugin/hex-color-string.mdx",
+                  "lastModified": "2026-08-04T07:13:24Z"
+                },
+                {
                   "title": "ImageTransformMode",
                   "slug": "image-transform-mode",
                   "file": "docs/reference/core-plugins/asset-server-plugin/image-transform-mode.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-08-04T07:13:24Z"
                 },
                 {
                   "title": "ImageTransformPreset",
                   "slug": "image-transform-preset",
                   "file": "docs/reference/core-plugins/asset-server-plugin/image-transform-preset.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-08-04T07:13:24Z"
                 },
                 {
                   "title": "ImageTransformStrategy",
                   "slug": "image-transform-strategy",
                   "file": "docs/reference/core-plugins/asset-server-plugin/image-transform-strategy.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-04T07:13:24Z"
                 },
                 {
                   "title": "LocalAssetStorageStrategy",
@@ -3566,7 +3572,7 @@
                   "title": "PresetOnlyStrategy",
                   "slug": "preset-only-strategy",
                   "file": "docs/reference/core-plugins/asset-server-plugin/preset-only-strategy.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-04T07:13:24Z"
                 },
                 {
                   "title": "S3AssetStorageStrategy",
