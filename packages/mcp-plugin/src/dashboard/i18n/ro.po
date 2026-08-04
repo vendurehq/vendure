@@ -44,6 +44,9 @@ msgstr "Client"
 msgid "Client configuration"
 msgstr "Configurație client"
 
+msgid "Client identity (hostname verified)"
+msgstr "Identitatea clientului (nume de gazdă verificat)"
+
 msgid "Connect an MCP client to your Vendure server using the endpoints below."
 msgstr "Conectați un client MCP la serverul dvs. Vendure folosind endpoint-urile de mai jos."
 
@@ -157,6 +160,12 @@ msgstr "Testați și depanați serverul MCP în mod interactiv cu MCP Inspector:
 
 msgid "The authorization session is invalid or expired."
 msgstr "Sesiunea de autorizare este invalidă sau a expirat."
+
+msgid "The client's details were fetched from this address, so the hostname is verified. The name below is still chosen by the client itself."
+msgstr "Datele clientului au fost preluate de la această adresă, deci numele de gazdă este verificat. Numele de mai jos rămâne ales de clientul însuși."
+
+msgid "This destination is on the local machine. Any application running on that machine could receive the authorization code."
+msgstr "Această destinație se află pe mașina locală. Orice aplicație care rulează pe acea mașină ar putea primi codul de autorizare."
 
 msgid "This immediately revokes the client's access. The client will need to authorize again to reconnect."
 msgstr "Aceasta revocă imediat accesul clientului. Clientul va trebui să autorizeze din nou pentru a se reconecta."

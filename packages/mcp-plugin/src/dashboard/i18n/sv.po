@@ -44,6 +44,9 @@ msgstr "Klient"
 msgid "Client configuration"
 msgstr "Klientkonfiguration"
 
+msgid "Client identity (hostname verified)"
+msgstr "Klientens identitet (värdnamn verifierat)"
+
 msgid "Connect an MCP client to your Vendure server using the endpoints below."
 msgstr "Anslut en MCP-klient till din Vendure-server med hjälp av slutpunkterna nedan."
 
@@ -157,6 +160,12 @@ msgstr "Testa och felsök din MCP-server interaktivt med MCP Inspector:"
 
 msgid "The authorization session is invalid or expired."
 msgstr "Auktoriseringssessionen är ogiltig eller har gått ut."
+
+msgid "The client's details were fetched from this address, so the hostname is verified. The name below is still chosen by the client itself."
+msgstr "Klientens uppgifter hämtades från den här adressen, så värdnamnet är verifierat. Namnet nedan väljs fortfarande av klienten själv."
+
+msgid "This destination is on the local machine. Any application running on that machine could receive the authorization code."
+msgstr "Det här målet finns på den lokala datorn. Alla program som körs på den datorn skulle kunna ta emot auktoriseringskoden."
 
 msgid "This immediately revokes the client's access. The client will need to authorize again to reconnect."
 msgstr "Detta återkallar omedelbart klientens åtkomst. Klienten måste auktorisera igen för att återansluta."

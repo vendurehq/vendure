@@ -44,6 +44,9 @@ msgstr "客户端"
 msgid "Client configuration"
 msgstr "客户端配置"
 
+msgid "Client identity (hostname verified)"
+msgstr "客户端身份（主机名已验证）"
+
 msgid "Connect an MCP client to your Vendure server using the endpoints below."
 msgstr "使用下面的端点将 MCP 客户端连接到您的 Vendure 服务器。"
 
@@ -157,6 +160,12 @@ msgstr "使用 MCP Inspector 交互式测试和调试您的 MCP 服务器："
 
 msgid "The authorization session is invalid or expired."
 msgstr "授权会话无效或已过期。"
+
+msgid "The client's details were fetched from this address, so the hostname is verified. The name below is still chosen by the client itself."
+msgstr "客户端的详细信息是从该地址获取的，因此主机名已经过验证。下方的名称仍由客户端自行选择。"
+
+msgid "This destination is on the local machine. Any application running on that machine could receive the authorization code."
+msgstr "该目标位于本机。运行在该机器上的任何应用程序都可能收到授权码。"
 
 msgid "This immediately revokes the client's access. The client will need to authorize again to reconnect."
 msgstr "这将立即撤销该客户端的访问权限。客户端需要重新授权才能重新连接。"

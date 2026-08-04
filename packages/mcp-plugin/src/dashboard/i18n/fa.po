@@ -44,6 +44,9 @@ msgstr "کلاینت"
 msgid "Client configuration"
 msgstr "پیکربندی کلاینت"
 
+msgid "Client identity (hostname verified)"
+msgstr "هویت کلاینت (نام میزبان تأیید شد)"
+
 msgid "Connect an MCP client to your Vendure server using the endpoints below."
 msgstr "با استفاده از نقاط پایانی زیر، یک کلاینت MCP را به سرور Vendure خود متصل کنید."
 
@@ -157,6 +160,12 @@ msgstr "سرور MCP خود را به‌صورت تعاملی با MCP Inspector
 
 msgid "The authorization session is invalid or expired."
 msgstr "نشست مجوز نامعتبر یا منقضی شده است."
+
+msgid "The client's details were fetched from this address, so the hostname is verified. The name below is still chosen by the client itself."
+msgstr "جزئیات کلاینت از این نشانی دریافت شده است، بنابراین نام میزبان تأیید شده است. نام زیر همچنان توسط خود کلاینت انتخاب می‌شود."
+
+msgid "This destination is on the local machine. Any application running on that machine could receive the authorization code."
+msgstr "این مقصد روی رایانه محلی است. هر برنامه‌ای که روی آن رایانه اجرا می‌شود می‌تواند کد مجوز را دریافت کند."
 
 msgid "This immediately revokes the client's access. The client will need to authorize again to reconnect."
 msgstr "این کار دسترسی کلاینت را بلافاصله لغو می‌کند. کلاینت باید برای اتصال مجدد دوباره مجوز بگیرد."

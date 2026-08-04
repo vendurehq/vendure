@@ -44,6 +44,9 @@ msgstr "Клієнт"
 msgid "Client configuration"
 msgstr "Конфігурація клієнта"
 
+msgid "Client identity (hostname verified)"
+msgstr "Ідентичність клієнта (ім'я хоста перевірено)"
+
 msgid "Connect an MCP client to your Vendure server using the endpoints below."
 msgstr "Підключіть MCP-клієнт до вашого сервера Vendure за допомогою кінцевих точок нижче."
 
@@ -157,6 +160,12 @@ msgstr "Тестуйте та налагоджуйте ваш MCP-сервер �
 
 msgid "The authorization session is invalid or expired."
 msgstr "Сесія авторизації недійсна або її термін дії минув."
+
+msgid "The client's details were fetched from this address, so the hostname is verified. The name below is still chosen by the client itself."
+msgstr "Дані клієнта отримано з цієї адреси, тому ім'я хоста перевірено. Ім'я нижче все одно обирає сам клієнт."
+
+msgid "This destination is on the local machine. Any application running on that machine could receive the authorization code."
+msgstr "Це призначення розташоване на локальному комп'ютері. Будь-який застосунок, запущений на цьому комп'ютері, може отримати код авторизації."
 
 msgid "This immediately revokes the client's access. The client will need to authorize again to reconnect."
 msgstr "Це негайно відкликає доступ клієнта. Клієнту потрібно буде авторизуватися знову, щоб повторно підключитися."

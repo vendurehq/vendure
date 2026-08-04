@@ -44,6 +44,9 @@ msgstr "Client"
 msgid "Client configuration"
 msgstr "Configuration du client"
 
+msgid "Client identity (hostname verified)"
+msgstr "Identité du client (nom d'hôte vérifié)"
+
 msgid "Connect an MCP client to your Vendure server using the endpoints below."
 msgstr "Connectez un client MCP à votre serveur Vendure à l'aide des points de terminaison ci-dessous."
 
@@ -157,6 +160,12 @@ msgstr "Testez et déboguez votre serveur MCP de manière interactive avec le MC
 
 msgid "The authorization session is invalid or expired."
 msgstr "La session d'autorisation est invalide ou a expiré."
+
+msgid "The client's details were fetched from this address, so the hostname is verified. The name below is still chosen by the client itself."
+msgstr "Les informations du client ont été récupérées à cette adresse, le nom d'hôte est donc vérifié. Le nom ci-dessous reste choisi par le client lui-même."
+
+msgid "This destination is on the local machine. Any application running on that machine could receive the authorization code."
+msgstr "Cette destination se trouve sur la machine locale. Toute application s'exécutant sur cette machine pourrait recevoir le code d'autorisation."
 
 msgid "This immediately revokes the client's access. The client will need to authorize again to reconnect."
 msgstr "Cela révoque immédiatement l'accès du client. Le client devra à nouveau autoriser l'accès pour se reconnecter."

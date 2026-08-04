@@ -5,10 +5,11 @@ metaDescription: 'How AI clients authenticate to the Vendure MCP server via OAut
 order: 2
 ---
 
-MCP clients authenticate to the Vendure server using **OAuth 2.1** with PKCE and Dynamic Client Registration.
-The client runs almost the entire flow for you — it discovers the endpoints, registers itself, and exchanges
-tokens. The one part that needs a decision from a person is **consent**: somebody has to agree that this client
-may act on their behalf.
+MCP clients authenticate to the Vendure server using **OAuth 2.1** with PKCE. A client identifies itself either
+with a **Client ID Metadata Document** (CIMD — its `client_id` is an HTTPS URL the server fetches its details
+from) or, as the older fallback, by registering itself via Dynamic Client Registration. The client runs almost
+the entire flow for you — it discovers the endpoints, identifies itself, and exchanges tokens. The one part that
+needs a decision from a person is **consent**: somebody has to agree that this client may act on their behalf.
 
 Who that person is, and whether they ever see a screen, depends on what you are building. Sort yourself first.
 
@@ -55,8 +56,11 @@ the consent page. An assistant built as a Vendure plugin skips all of it — see
 1. **Discover.** A call to a protected endpoint returns `401` with a
    `WWW-Authenticate: Bearer resource_metadata="…"` header. The client fetches that protected-resource metadata,
    then the authorization-server metadata, to learn every endpoint URL.
-2. **Register (DCR).** The client `POST`s to `/mcp/oauth/register` with its `client_name` and `redirect_uris`
-   and receives a `client_id`. Clients are public (PKCE, no secret).
+2. **Identify.** Preferred: the client uses an HTTPS URL as its `client_id` (CIMD); the server fetches the JSON
+   document at that URL to learn the client's name and `redirect_uris`, and caches it. No registration call is
+   made. Fallback: the client `POST`s to `/mcp/oauth/register` with its `client_name` and `redirect_uris` and
+   receives a `client_id` (Dynamic Client Registration — deprecated by the MCP spec as of 2026-07-28, but still
+   served for compatibility). Clients are public either way (PKCE, no secret).
 3. **Authorize.** The client sends the user to `GET /mcp/oauth/authorize` with `response_type=code`, its
    `client_id`, `redirect_uri`, a PKCE `code_challenge` (`S256`), and the `resource` it wants access to. The
    server records a pending request and **redirects to the consent page** carrying only `?request_token=<requestToken>`.
@@ -91,8 +95,28 @@ The token endpoint accepts an `application/x-www-form-urlencoded` body as requir
 `/register` and `/revoke` endpoints accept form-encoded bodies too. Standard MCP clients send form-encoded token
 requests, and they work as-is.
 
-The authorization-server metadata advertises `S256` PKCE, the `authorization_code` and `refresh_token` grants, and
-`token_endpoint_auth_methods_supported: ["none"]` (public clients).
+The authorization-server metadata advertises `S256` PKCE, the `authorization_code` and `refresh_token` grants,
+`token_endpoint_auth_methods_supported: ["none"]` (public clients), and
+`client_id_metadata_document_supported: true` — the flag MCP clients check before sending a URL `client_id`.
+
+A CIMD `client_id` must be an HTTPS URL with a path, no query or fragment, a hostname rather than an IP address,
+and at most 512 characters. It must also already be in the form a URL parser produces — a lowercase host, no
+default port, no `.`/`..` or backslash path segments — because the server fetches exactly the address given and
+compares it against the document character for character. The server fetches the document without following
+redirects, refuses hosts that resolve to private or otherwise special-use addresses, caps the document at 5 KB,
+and caches it per the response's `Cache-Control` header (clamped between 1 minute and 24 hours). The document
+must contain a `client_id` exactly equal to the URL, a `client_name`, and `redirect_uris`; the redirect URI the
+client uses must be listed there exactly.
+
+To develop against a metadata document served from your own machine, set
+`oauth.allowLoopbackCimdDocuments: true`. That permits a `client_id` URL pointing at `localhost`, `127.0.0.1` or
+`::1` over plain HTTP. Leave it off anywhere others can reach: with it on, anyone who can reach the authorize
+endpoint — no credentials needed — can make the server open a connection to any port on the machine it runs on.
+The server refuses to start with it enabled when `NODE_ENV` is `production`.
+
+The authorize endpoint takes no credentials, and resolving a `client_id` URL makes the server fetch it, so a
+flood of distinct URLs means a flood of outbound requests. Rate limiting for the OAuth endpoints is not yet in
+place; until it is, restrict access to `/mcp/oauth/*` at your proxy if that matters to you.
 
 ### Resource → toolset mapping
 
@@ -213,6 +237,7 @@ in. It returns:
 ```json
 {
     "client_id": "…",
+    "client_id_source": "dcr",
     "client_name": "Acme Assistant",
     "client_uri": "https://acme.example.com",
     "logo_uri": "https://acme.example.com/logo.png",
@@ -222,8 +247,11 @@ in. It returns:
 }
 ```
 
-`client_uri` and `logo_uri` are omitted entirely when the client did not register them. Anything other than a
-success response means the request token is unknown, has timed out, or has already been decided.
+`client_uri` and `logo_uri` are omitted entirely when the client did not register them. `client_id_source` is
+`"cimd"` when the `client_id` is a Client ID Metadata Document URL — the details above were fetched from it, so
+its hostname is a verifiable identity — and `"dcr"` when the client registered itself via Dynamic Client
+Registration, in which case every detail is self-asserted. Anything other than a success response means the
+request token is unknown, has timed out, or has already been decided.
 
 **The decision** is a Shop API mutation:
 

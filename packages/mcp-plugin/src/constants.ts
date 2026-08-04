@@ -39,8 +39,33 @@ export const DEFAULT_OAUTH_OPTIONS = {
     authorizationCodeTtlSeconds: 60,
     authorizationRequestTtlSeconds: 10 * 60,
     adminConsentPath: '/dashboard/mcp/authorize',
+    allowLoopbackCimdDocuments: false,
     grantRetentionDays: 30,
 } as const;
+
+/**
+ * CIMD (client_id metadata document) fetch budget — draft-ietf-oauth-client-id-metadata-document-02
+ * recommends a ~5 KB size cap (§8.7); the deadline covers connection plus body.
+ */
+export const CIMD_FETCH_TIMEOUT_MS = 5_000;
+export const CIMD_MAX_DOCUMENT_BYTES = 5 * 1024;
+/**
+ * Length caps on the client values that are stored in columns of their own. They keep an over-long
+ * value a validation error (HTTP 400) instead of a database error at insert time, because MySQL's
+ * varchar columns default to 255 characters.
+ */
+export const CIMD_MAX_CLIENT_ID_LENGTH = 512;
+/** Applies to `client_name`, `client_uri` and `logo_uri`, whichever way the client identified itself. */
+export const MAX_CLIENT_METADATA_FIELD_LENGTH = 255;
+/**
+ * Bounds applied to a document's Cache-Control lifetime (§5.2 lets the server pick bounds).
+ * The floor also applies to no-store responses: it exists so a hostile document cannot force
+ * one outbound fetch per authorization request.
+ */
+export const CIMD_CACHE_MIN_SECONDS = 60;
+export const CIMD_CACHE_MAX_SECONDS = 24 * 60 * 60;
+/** Document lifetime when the response carries no usable Cache-Control max-age. */
+export const CIMD_CACHE_DEFAULT_SECONDS = 60 * 60;
 
 /**
  * Default rate limits. The anonymous-IP limit is ON by default (60 rpm) — it is the safety backstop

@@ -44,6 +44,9 @@ msgstr "İstemci"
 msgid "Client configuration"
 msgstr "İstemci yapılandırması"
 
+msgid "Client identity (hostname verified)"
+msgstr "İstemci kimliği (ana bilgisayar adı doğrulandı)"
+
 msgid "Connect an MCP client to your Vendure server using the endpoints below."
 msgstr "Aşağıdaki uç noktaları kullanarak bir MCP istemcisini Vendure sunucunuza bağlayın."
 
@@ -157,6 +160,12 @@ msgstr "MCP sunucunuzu MCP Inspector ile etkileşimli olarak test edin ve hata a
 
 msgid "The authorization session is invalid or expired."
 msgstr "Yetkilendirme oturumu geçersiz veya süresi dolmuş."
+
+msgid "The client's details were fetched from this address, so the hostname is verified. The name below is still chosen by the client itself."
+msgstr "İstemcinin bilgileri bu adresten alındı, bu nedenle ana bilgisayar adı doğrulanmıştır. Aşağıdaki ad yine istemcinin kendisi tarafından seçilir."
+
+msgid "This destination is on the local machine. Any application running on that machine could receive the authorization code."
+msgstr "Bu hedef yerel makinede. O makinede çalışan herhangi bir uygulama yetkilendirme kodunu alabilir."
 
 msgid "This immediately revokes the client's access. The client will need to authorize again to reconnect."
 msgstr "Bu, istemcinin erişimini hemen iptal eder. İstemcinin yeniden bağlanmak için tekrar yetkilendirme yapması gerekir."

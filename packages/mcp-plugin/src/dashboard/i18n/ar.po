@@ -44,6 +44,9 @@ msgstr "العميل"
 msgid "Client configuration"
 msgstr "إعدادات العميل"
 
+msgid "Client identity (hostname verified)"
+msgstr "هوية العميل (تم التحقق من اسم المضيف)"
+
 msgid "Connect an MCP client to your Vendure server using the endpoints below."
 msgstr "قم بتوصيل عميل MCP بخادم Vendure الخاص بك باستخدام نقاط النهاية أدناه."
 
@@ -157,6 +160,12 @@ msgstr "اختبر خادم MCP الخاص بك وصحّح أخطاءه بشكل
 
 msgid "The authorization session is invalid or expired."
 msgstr "جلسة التفويض غير صالحة أو منتهية الصلاحية."
+
+msgid "The client's details were fetched from this address, so the hostname is verified. The name below is still chosen by the client itself."
+msgstr "تم جلب بيانات العميل من هذا العنوان، لذا فإن اسم المضيف مُتحقَّق منه. الاسم أدناه ما يزال يختاره العميل نفسه."
+
+msgid "This destination is on the local machine. Any application running on that machine could receive the authorization code."
+msgstr "هذه الوجهة موجودة على الجهاز المحلي. أي تطبيق يعمل على ذلك الجهاز قد يستلم رمز التفويض."
 
 msgid "This immediately revokes the client's access. The client will need to authorize again to reconnect."
 msgstr "يؤدي هذا إلى إلغاء وصول العميل فورًا. سيحتاج العميل إلى التفويض مرة أخرى لإعادة الاتصال."

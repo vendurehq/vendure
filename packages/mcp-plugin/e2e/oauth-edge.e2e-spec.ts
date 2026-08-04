@@ -166,7 +166,7 @@ describe('McpPlugin OAuth edge & security cases', () => {
 
     // --- Rejection gates at token exchange ---
 
-    // Relates to OSS-575 — a token request with the wrong PKCE verifier is rejected.
+    // A token request with the wrong PKCE verifier is rejected.
     it('rejects token exchange with an invalid PKCE verifier', async () => {
         const oauth = server.app.get(McpOauthService);
         const flow = await authorizeAdminToCode();
@@ -183,7 +183,7 @@ describe('McpPlugin OAuth edge & security cases', () => {
         ).rejects.toThrow(/PKCE/i);
     });
 
-    // Relates to OSS-575 — a token request whose client_id differs from the code's is rejected.
+    // A token request whose client_id differs from the code's is rejected.
     it('rejects token exchange with a client_id that does not match the code', async () => {
         const oauth = server.app.get(McpOauthService);
         const flow = await authorizeAdminToCode();
@@ -200,7 +200,7 @@ describe('McpPlugin OAuth edge & security cases', () => {
         ).rejects.toThrow(/does not match client/i);
     });
 
-    // Relates to OSS-575 — a redirect_uri not registered for the client is rejected at authorize.
+    // A redirect_uri not registered for the client is rejected at authorize.
     it('rejects authorize when redirect_uri is not registered for the client', async () => {
         const redirectUri = 'https://example.com/registered';
         const registerRes = await fetch(`${baseUrl()}/mcp/oauth/register`, {
@@ -229,7 +229,7 @@ describe('McpPlugin OAuth edge & security cases', () => {
         expect(await res.text()).toMatch(/redirect_uri is not registered/i);
     });
 
-    // Relates to OSS-575 — a token request whose redirect_uri differs from the code's is rejected.
+    // A token request whose redirect_uri differs from the code's is rejected.
     it('rejects token exchange when redirect_uri does not match the authorization code', async () => {
         const oauth = server.app.get(McpOauthService);
         // The code is bound to this redirect_uri at authorize time.
@@ -247,7 +247,7 @@ describe('McpPlugin OAuth edge & security cases', () => {
         ).rejects.toThrow(/does not match client or redirect_uri/i);
     });
 
-    // Relates to OSS-575 — authorize without a `resource` parameter is rejected.
+    // Authorize without a `resource` parameter is rejected.
     it('rejects authorize when the resource parameter is missing', async () => {
         const redirectUri = 'https://example.com/cb';
         const registerRes = await fetch(`${baseUrl()}/mcp/oauth/register`, {
@@ -275,7 +275,7 @@ describe('McpPlugin OAuth edge & security cases', () => {
         expect(await res.text()).toMatch(/resource is required/i);
     });
 
-    // Relates to OSS-575 — a token request without a `resource` is rejected.
+    // A token request without a `resource` is rejected.
     it('rejects token exchange when the resource is missing', async () => {
         const oauth = server.app.get(McpOauthService);
         const flow = await authorizeAdminToCode();
@@ -292,7 +292,7 @@ describe('McpPlugin OAuth edge & security cases', () => {
         ).rejects.toThrow(/resource (is|are) required|are required/i);
     });
 
-    // Relates to OSS-575 — a token request whose resource differs from the code's is rejected.
+    // A token request whose resource differs from the code's is rejected.
     it('rejects token exchange when the requested resource does not match the code', async () => {
         const oauth = server.app.get(McpOauthService);
         const flow = await authorizeAdminToCode(); // code bound to the admin resource
@@ -309,7 +309,7 @@ describe('McpPlugin OAuth edge & security cases', () => {
         ).rejects.toThrow(/does not match token request resource/i);
     });
 
-    // Relates to OSS-575 — a refresh request whose resource differs from the token's is rejected.
+    // A refresh request whose resource differs from the token's is rejected.
     it('rejects a refresh-token exchange when the resource does not match', async () => {
         const oauth = server.app.get(McpOauthService);
         const flow = await runAdminFlow(); // admin tokens, resource = ${ISSUER}/mcp/admin
@@ -324,7 +324,7 @@ describe('McpPlugin OAuth edge & security cases', () => {
         ).rejects.toThrow(/does not match token request resource/i);
     });
 
-    // Relates to OSS-575 — an authorization code past its expiry is rejected on exchange.
+    // An authorization code past its expiry is rejected on exchange.
     it('rejects an expired authorization code', async () => {
         const oauth = server.app.get(McpOauthService);
         const connection = server.app.get(TransactionalConnection);
@@ -353,9 +353,8 @@ describe('McpPlugin OAuth edge & security cases', () => {
 
     // --- Security checks ---
 
-    // Relates to OSS-575 — revoke() is a soft-revoke: the grant row survives (so
-    // McpToolCallLog audit links are preserved) with revokedAt set, and the token is
-    // rejected at the resource afterwards.
+    // revoke() is a soft-revoke: the grant row survives (so McpToolCallLog audit links are
+    // preserved) with revokedAt set, and the token is rejected at the resource afterwards.
     it('soft-revokes the grant: keeps the row with revokedAt set and rejects the token', async () => {
         const oauth = server.app.get(McpOauthService);
         const connection = server.app.get(TransactionalConnection);
@@ -381,8 +380,8 @@ describe('McpPlugin OAuth edge & security cases', () => {
         );
     });
 
-    // Relates to OSS-575 — a token whose stored resource has been tampered with is rejected
-    // on the resource gate, even though the token itself is otherwise valid.
+    // A token whose stored resource has been tampered with is rejected on the resource gate,
+    // even though the token itself is otherwise valid.
     it('rejects an access token whose stored resource has been tampered with', async () => {
         const oauth = server.app.get(McpOauthService);
         const connection = server.app.get(TransactionalConnection);
@@ -404,7 +403,7 @@ describe('McpPlugin OAuth edge & security cases', () => {
         );
     });
 
-    // Relates to OSS-575 — admin consent without an authenticated admin session is rejected.
+    // Admin consent without an authenticated admin session is rejected.
     it('rejects admin consent from an unauthenticated caller', async () => {
         const flow = await authorizeAdminToCodePreConsent();
 
@@ -452,11 +451,11 @@ describe('McpPlugin OAuth edge & security cases', () => {
         );
     });
 
-    // Relates to OSS-575 — an `Authorization` header must not exempt a request from the
-    // origin check. Vendure authenticates via the session cookie before it looks at
-    // `Authorization` (core's extractSessionToken), so a page on another site can attach a
-    // meaningless `Authorization` value, still ride the administrator's cookie, and would
-    // otherwise bypass the CSRF gate entirely.
+    // An `Authorization` header must not exempt a request from the origin check. Vendure
+    // authenticates via the session cookie before it looks at `Authorization` (core's
+    // extractSessionToken), so a page on another site can attach a meaningless `Authorization`
+    // value, still ride the administrator's cookie, and would otherwise bypass the CSRF gate
+    // entirely.
     it('rejects cookie-authenticated admin consent from a foreign origin even with an Authorization header', async () => {
         const oauth = server.app.get(McpOauthService);
         const flow = await authorizeAdminToCodePreConsent();
@@ -470,8 +469,8 @@ describe('McpPlugin OAuth edge & security cases', () => {
         );
     });
 
-    // Relates to OSS-575 — the same cookie-authenticated consent from the issuer's own
-    // origin (the real consent page) is allowed and creates an authorization code.
+    // The same cookie-authenticated consent from the issuer's own origin (the real consent
+    // page) is allowed and creates an authorization code.
     it('allows cookie-authenticated admin consent from the consent page origin', async () => {
         const oauth = server.app.get(McpOauthService);
         const flow = await authorizeAdminToCodePreConsent();
@@ -481,9 +480,9 @@ describe('McpPlugin OAuth edge & security cases', () => {
         expect(new URL(redirectUrl).searchParams.get('code')).toBeTruthy();
     });
 
-    // Relates to OSS-575 — "admin consent" must require an actual admin permission, not
-    // merely an authenticated session. A signed-in principal without UpdateMcpServer (e.g.
-    // a shop customer on the same origin) is rejected even from the correct consent origin.
+    // "admin consent" must require an actual admin permission, not merely an authenticated
+    // session. A signed-in principal without UpdateMcpServer (e.g. a shop customer on the same
+    // origin) is rejected even from the correct consent origin.
     it('rejects cookie-authenticated consent from a caller lacking the McpServer permission', async () => {
         const oauth = server.app.get(McpOauthService);
         const flow = await authorizeAdminToCodePreConsent();
@@ -492,8 +491,8 @@ describe('McpPlugin OAuth edge & security cases', () => {
         await expect(oauth.approveAdminRequest(ctx, flow.request_token, true)).rejects.toThrow(/permission/i);
     });
 
-    // Relates to OSS-575 — admin consent with a falsey `approved` returns an access_denied
-    // redirect and creates no authorization code.
+    // Admin consent with a falsey `approved` returns an access_denied redirect and creates no
+    // authorization code.
     it('returns access_denied (and no code) when admin consent is not approved', async () => {
         const flow = await authorizeAdminToCodePreConsent();
 
@@ -510,7 +509,7 @@ describe('McpPlugin OAuth edge & security cases', () => {
         expect(url.searchParams.get('code')).toBeNull();
     });
 
-    // Relates to OSS-575 — the string `'false'` is also treated as a denial (no code created).
+    // The string `'false'` is also treated as a denial (no code created).
     it('treats a string "false" approved value as a denial', async () => {
         const flow = await authorizeAdminToCodePreConsent();
 
@@ -528,7 +527,7 @@ describe('McpPlugin OAuth edge & security cases', () => {
 
     // --- Shop happy path ---
 
-    // Relates to OSS-575 — the full shop flow issues tokens that authenticate as the customer.
+    // The full shop flow issues tokens that authenticate as the customer.
     it('issues a shop token via the full storefront flow and authenticates the customer', async () => {
         const oauth = server.app.get(McpOauthService);
         const flow = await runShopFlow();
@@ -693,10 +692,10 @@ describe('McpPlugin OAuth edge & security cases', () => {
             );
         });
 
-        // Relates to OSS-575 — GET /mcp/oauth/authorize needs no credential, so anyone can start a
-        // flow for the administrator resource and read the request token straight out of the
-        // redirect. A signed-in customer must not be able to decide that request through the shop
-        // mutation just because they hold a valid request token for it.
+        // GET /mcp/oauth/authorize needs no credential, so anyone can start a flow for the
+        // administrator resource and read the request token straight out of the redirect. A
+        // signed-in customer must not be able to decide that request through the shop mutation
+        // just because they hold a valid request token for it.
         it('refuses a signed-in customer approving a request started for the administrator resource', async () => {
             await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
             const { request_token: requestToken } = await authorizeAdminToCodePreConsent();
@@ -706,9 +705,9 @@ describe('McpPlugin OAuth edge & security cases', () => {
             );
         });
 
-        // Relates to OSS-575 — the mirror case: an administrator must not be able to decide a
-        // request that was started for the shop resource, even though the admin-consent endpoint
-        // has no other way of knowing which toolset a given request token belongs to.
+        // The mirror case: an administrator must not be able to decide a request that was started
+        // for the shop resource, even though the admin-consent endpoint has no other way of
+        // knowing which toolset a given request token belongs to.
         it('refuses an administrator approving a request started for the shop resource', async () => {
             const { requestToken } = await startShopAuthorization();
 

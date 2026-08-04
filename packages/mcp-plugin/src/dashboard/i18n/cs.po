@@ -44,6 +44,9 @@ msgstr "Klient"
 msgid "Client configuration"
 msgstr "Konfigurace klienta"
 
+msgid "Client identity (hostname verified)"
+msgstr "Identita klienta (název hostitele ověřen)"
+
 msgid "Connect an MCP client to your Vendure server using the endpoints below."
 msgstr "Připojte klienta MCP k serveru Vendure pomocí níže uvedených koncových bodů."
 
@@ -157,6 +160,12 @@ msgstr "Testujte a laďte svůj MCP server interaktivně pomocí MCP Inspector:"
 
 msgid "The authorization session is invalid or expired."
 msgstr "Autorizační relace je neplatná nebo vypršela."
+
+msgid "The client's details were fetched from this address, so the hostname is verified. The name below is still chosen by the client itself."
+msgstr "Údaje klienta byly načteny z této adresy, název hostitele je tedy ověřen. Níže uvedený název si klient stále volí sám."
+
+msgid "This destination is on the local machine. Any application running on that machine could receive the authorization code."
+msgstr "Tento cíl se nachází na místním počítači. Kód autorizace by mohla obdržet jakákoli aplikace běžící na tomto počítači."
 
 msgid "This immediately revokes the client's access. The client will need to authorize again to reconnect."
 msgstr "Tím se okamžitě odvolá přístup klienta. Klient se bude muset znovu autorizovat, aby se mohl znovu připojit."

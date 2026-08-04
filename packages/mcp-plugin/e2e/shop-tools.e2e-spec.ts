@@ -287,7 +287,7 @@ describe('MCP built-in shop tools', () => {
         );
     });
 
-    // EE-178 — read-only cart helpers must not create an empty Order for a fresh session.
+    // Read-only cart helpers must not create an empty Order for a fresh session.
     it('keeps a fresh anonymous session order-free until add_to_cart creates and binds a cart', async () => {
         const beforeCount = await connection.getRepository(adminCtx, Order).count();
         const getCart = await postMcp(baseUrl(), 'shop', callTool('get_cart', {}, 1));
@@ -496,8 +496,8 @@ describe('MCP built-in shop tools', () => {
         }
     });
 
-    // Relates to OSS-575 — the in-process path: a merchant's own plugin listing and running the
-    // same tools through McpToolExecutionService, with the shopper's RequestContext as identity.
+    // The in-process path: a merchant's own plugin listing and running the same tools through
+    // McpToolExecutionService, with the shopper's RequestContext as identity.
     describe('in-process execution via McpToolExecutionService', () => {
         /** A Shop API context for the seeded customer, as a shop resolver would receive. */
         async function customerShopContext(): Promise<RequestContext> {

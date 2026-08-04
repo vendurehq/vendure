@@ -22,6 +22,7 @@ import { useEffect, useState } from 'react';
  */
 interface AuthRequestInfo {
     client_id: string;
+    client_id_source: 'cimd' | 'dcr';
     client_name: string;
     client_uri?: string;
     logo_uri?: string;
@@ -40,6 +41,15 @@ function redirectHostname(uri: string): string | null {
     } catch {
         return null;
     }
+}
+
+/**
+ * Loopback hosts mean "this computer": the redirect could be received by any local app.
+ * Browser-side copy of `isLoopbackHostname` in `../oauth/oauth-utils.ts`, which this
+ * bundle cannot import because that module depends on NestJS.
+ */
+function isLoopbackHost(host: string | null): boolean {
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '[::1]';
 }
 
 function ConsentCard({ requestToken }: { requestToken: string }) {
@@ -124,6 +134,8 @@ function ConsentCard({ requestToken }: { requestToken: string }) {
     }
 
     const redirectHost = redirectHostname(info.redirect_uri);
+    const isCimdClient = info.client_id_source === 'cimd';
+    const clientIdHost = isCimdClient ? redirectHostname(info.client_id) : null;
 
     return (
         <Card className="w-full max-w-lg">
@@ -162,6 +174,14 @@ function ConsentCard({ requestToken }: { requestToken: string }) {
                     <p className="text-xs text-muted-foreground">
                         <Trans>Approve only if you recognise and trust this exact destination.</Trans>
                     </p>
+                    {isLoopbackHost(redirectHost) ? (
+                        <p className="text-xs font-medium text-amber-700">
+                            <Trans>
+                                This destination is on the local machine. Any application running on that
+                                machine could receive the authorization code.
+                            </Trans>
+                        </p>
+                    ) : null}
                 </div>
                 <div className="space-y-1">
                     <div className="text-xs font-medium text-muted-foreground">
@@ -169,6 +189,23 @@ function ConsentCard({ requestToken }: { requestToken: string }) {
                     </div>
                     <Badge variant="secondary">{info.toolset}</Badge>
                 </div>
+                {isCimdClient ? (
+                    <div className="space-y-1 border-t pt-3">
+                        <div className="text-xs font-medium text-muted-foreground">
+                            <Trans>Client identity (hostname verified)</Trans>
+                        </div>
+                        {clientIdHost ? (
+                            <div className="text-sm font-semibold break-all">{clientIdHost}</div>
+                        ) : null}
+                        <div className="text-xs text-muted-foreground break-all">{info.client_id}</div>
+                        <p className="text-xs text-muted-foreground">
+                            <Trans>
+                                The client's details were fetched from this address, so the hostname is
+                                verified. The name below is still chosen by the client itself.
+                            </Trans>
+                        </p>
+                    </div>
+                ) : null}
                 {/* Client-supplied metadata — self-asserted and unverified, so de-emphasised. */}
                 <div className="space-y-1 border-t pt-3">
                     <div className="text-xs font-medium text-muted-foreground">

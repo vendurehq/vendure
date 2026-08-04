@@ -44,6 +44,9 @@ msgstr "클라이언트"
 msgid "Client configuration"
 msgstr "클라이언트 구성"
 
+msgid "Client identity (hostname verified)"
+msgstr "클라이언트 신원 (호스트 이름 확인됨)"
+
 msgid "Connect an MCP client to your Vendure server using the endpoints below."
 msgstr "아래 엔드포인트를 사용하여 MCP 클라이언트를 Vendure 서버에 연결하세요."
 
@@ -157,6 +160,12 @@ msgstr "MCP Inspector로 MCP 서버를 대화형으로 테스트하고 디버깅
 
 msgid "The authorization session is invalid or expired."
 msgstr "인증 세션이 유효하지 않거나 만료되었습니다."
+
+msgid "The client's details were fetched from this address, so the hostname is verified. The name below is still chosen by the client itself."
+msgstr "클라이언트 정보를 이 주소에서 가져왔으므로 호스트 이름은 확인되었습니다. 아래 이름은 여전히 클라이언트가 직접 정한 것입니다."
+
+msgid "This destination is on the local machine. Any application running on that machine could receive the authorization code."
+msgstr "이 대상은 로컬 컴퓨터에 있습니다. 해당 컴퓨터에서 실행 중인 어떤 애플리케이션이든 인증 코드를 받을 수 있습니다."
 
 msgid "This immediately revokes the client's access. The client will need to authorize again to reconnect."
 msgstr "이렇게 하면 클라이언트의 액세스 권한이 즉시 취소됩니다. 다시 연결하려면 클라이언트가 다시 인증해야 합니다."

@@ -44,6 +44,9 @@ msgstr "לקוח"
 msgid "Client configuration"
 msgstr "תצורת הלקוח"
 
+msgid "Client identity (hostname verified)"
+msgstr "זהות הלקוח (שם המארח אומת)"
+
 msgid "Connect an MCP client to your Vendure server using the endpoints below."
 msgstr "חבר לקוח MCP לשרת ה-Vendure שלך באמצעות נקודות הקצה שלמטה."
 
@@ -157,6 +160,12 @@ msgstr "בדוק ואבחן את שרת ה-MCP שלך באופן אינטראק�
 
 msgid "The authorization session is invalid or expired."
 msgstr "הפעלת ההרשאה אינה תקפה או שפג תוקפה."
+
+msgid "The client's details were fetched from this address, so the hostname is verified. The name below is still chosen by the client itself."
+msgstr "פרטי הלקוח נשלפו מכתובת זו, ולכן שם המארח מאומת. השם שלמטה עדיין נבחר על ידי הלקוח עצמו."
+
+msgid "This destination is on the local machine. Any application running on that machine could receive the authorization code."
+msgstr "יעד זה נמצא במחשב המקומי. כל יישום שפועל על אותו מחשב עלול לקבל את קוד ההרשאה."
 
 msgid "This immediately revokes the client's access. The client will need to authorize again to reconnect."
 msgstr "פעולה זו מבטלת מיד את גישת הלקוח. הלקוח יצטרך לאשר שוב כדי להתחבר מחדש."

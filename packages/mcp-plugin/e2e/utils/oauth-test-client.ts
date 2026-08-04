@@ -39,6 +39,8 @@ export interface RunAuthorizationCodeFlowOptions {
     clientName?: string;
     /** Registered redirect URI. Defaults to `https://example.com/cb`. */
     redirectUri?: string;
+    /** Use this client_id as-is and skip Dynamic Client Registration (CIMD flows). */
+    clientId?: string;
 }
 
 /**
@@ -63,16 +65,22 @@ export async function runAuthorizationCodeFlow(
     const code_verifier = 'a'.repeat(64);
     const code_challenge = crypto.createHash('sha256').update(code_verifier).digest('base64url');
 
-    // 1. Dynamic Client Registration.
-    const registerResponse = await fetch(`${baseUrl}/mcp/oauth/register`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ client_name: clientName, redirect_uris: [redirectUri] }),
-    });
-    if (!registerResponse.ok) {
-        throw new Error(`DCR failed: ${registerResponse.status} ${await registerResponse.text()}`);
+    // 1. Obtain a client_id: either the caller supplies one (CIMD — the server resolves it
+    // from the URL at the authorize step), or Dynamic Client Registration creates one.
+    let client_id: string;
+    if (options.clientId) {
+        client_id = options.clientId;
+    } else {
+        const registerResponse = await fetch(`${baseUrl}/mcp/oauth/register`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ client_name: clientName, redirect_uris: [redirectUri] }),
+        });
+        if (!registerResponse.ok) {
+            throw new Error(`DCR failed: ${registerResponse.status} ${await registerResponse.text()}`);
+        }
+        ({ client_id } = (await registerResponse.json()) as { client_id: string });
     }
-    const { client_id } = (await registerResponse.json()) as { client_id: string };
 
     // 2. Authorize: returns a 302 redirect to the consent page carrying the request token.
     const authorizeUrl = new URL(`${baseUrl}/mcp/oauth/authorize`);

@@ -44,6 +44,9 @@ msgstr "क्लाइन्ट"
 msgid "Client configuration"
 msgstr "क्लाइन्ट कन्फिगरेसन"
 
+msgid "Client identity (hostname verified)"
+msgstr "क्लाइन्टको पहिचान (होस्टनेम प्रमाणित)"
+
 msgid "Connect an MCP client to your Vendure server using the endpoints below."
 msgstr "तलका एन्डपोइन्टहरू प्रयोग गरेर MCP क्लाइन्टलाई आफ्नो Vendure सर्भरमा जडान गर्नुहोस्।"
 
@@ -157,6 +160,12 @@ msgstr "MCP Inspector प्रयोग गरेर आफ्नो MCP सर
 
 msgid "The authorization session is invalid or expired."
 msgstr "प्राधिकरण सत्र अमान्य वा म्याद सकिएको छ।"
+
+msgid "The client's details were fetched from this address, so the hostname is verified. The name below is still chosen by the client itself."
+msgstr "क्लाइन्टका विवरणहरू यही ठेगानाबाट ल्याइएका हुन्, त्यसैले होस्टनेम प्रमाणित छ। तलको नाम भने अझै क्लाइन्ट आफैंले छानेको हो।"
+
+msgid "This destination is on the local machine. Any application running on that machine could receive the authorization code."
+msgstr "यो गन्तव्य स्थानीय मेसिनमा छ। त्यो मेसिनमा चलिरहेको जुनसुकै एप्लिकेसनले प्राधिकरण कोड प्राप्त गर्न सक्छ।"
 
 msgid "This immediately revokes the client's access. The client will need to authorize again to reconnect."
 msgstr "यसले तुरुन्तै क्लाइन्टको पहुँच रद्द गर्छ। पुनः जडान गर्न क्लाइन्टले फेरि प्राधिकरण गर्नुपर्नेछ।"

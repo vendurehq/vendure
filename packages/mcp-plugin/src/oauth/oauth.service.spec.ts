@@ -14,7 +14,7 @@ function createService(oauth?: McpPluginOptions['oauth']): McpOauthService {
         oauth: oauth === undefined ? undefined : { ...DEFAULT_OAUTH_OPTIONS, issuer: ISSUER, ...oauth },
     };
     // The methods exercised here validate input / read options before touching any
-    // injected dependency, so the DB/session deps can be omitted.
+    // injected dependency, so the DB/session deps (and the CIMD resolver) can be omitted.
     return new McpOauthService(
         undefined as any,
         undefined as any,
@@ -23,6 +23,7 @@ function createService(oauth?: McpPluginOptions['oauth']): McpOauthService {
         undefined as any,
         { authOptions: { sessionCacheStrategy: { delete: vi.fn() } } } as any,
         options,
+        undefined as any,
     );
 }
 
@@ -43,6 +44,11 @@ describe('McpOauthService metadata', () => {
         expect(meta.token_endpoint_auth_methods_supported).toEqual(['none']);
         expect(meta.response_types_supported).toEqual(['code']);
         expect(meta.grant_types_supported).toEqual(['authorization_code', 'refresh_token']);
+    });
+
+    it('advertises CIMD support (client_id_metadata_document_supported)', () => {
+        const meta = createService({ tokenSecret: 's' }).metadata();
+        expect(meta.client_id_metadata_document_supported).toBe(true);
     });
 
     it('builds RFC 9728 protected-resource metadata per toolset', () => {

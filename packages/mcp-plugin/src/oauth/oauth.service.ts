@@ -28,6 +28,7 @@ import { ObjectLiteral, ObjectType } from 'typeorm';
 import {
     DEFAULT_OAUTH_OPTIONS,
     loggerCtx,
+    MAX_CLIENT_METADATA_FIELD_LENGTH,
     MCP_PLUGIN_OPTIONS,
     mcpServerPermission,
     MS_PER_DAY,
@@ -39,6 +40,8 @@ import { McpOauthClient } from '../entities/mcp-oauth-client.entity';
 import { McpOauthGrant } from '../entities/mcp-oauth-grant.entity';
 import { McpActorType, McpAuthenticatedContext, McpPluginOptions, ResolvedMcpOauthOptions } from '../types';
 
+import { McpCimdClientResolverService } from './cimd/cimd-client-resolver.service';
+import { isUrlClientId } from './cimd/cimd-url';
 import {
     AuthorizationRequestInfo,
     AuthorizeInput,
@@ -47,7 +50,13 @@ import {
     RegisteredClientResponse,
     TokenInput,
 } from './oauth-types';
-import { addSeconds, appendOAuthParams, randomToken, verifyPkceChallenge } from './oauth-utils';
+import {
+    addSeconds,
+    appendOAuthParams,
+    assertSafeRedirectUri,
+    randomToken,
+    verifyPkceChallenge,
+} from './oauth-utils';
 import { deriveHashKey, hashToken } from './token-hash';
 
 /**
@@ -66,7 +75,8 @@ export interface McpOauthRetentionResult {
  * Implements the MCP OAuth 2.1 authorization server.
  *
  * Core Features:
- * - Handles Dynamic Client Registration, authorize/consent flows, revocation, and `.well-known` metadata.
+ * - Handles CIMD (URL client_id) resolution and Dynamic Client Registration, authorize/consent
+ *   flows, revocation, and `.well-known` metadata.
  * - Supports authorization-code and refresh-token grants.
  *
  * Session & Security Mechanics:
@@ -88,17 +98,23 @@ export class McpOauthService {
         private userService: UserService,
         private configService: ConfigService,
         @Inject(MCP_PLUGIN_OPTIONS) private options: McpPluginOptions,
+        private cimdClientResolver: McpCimdClientResolverService,
     ) {}
 
     async registerClient(input: RegisterClientInput): Promise<RegisteredClientResponse> {
         if (!input.client_name) {
             throw new BadRequestException('client_name is required');
         }
+        if (input.client_name.length > MAX_CLIENT_METADATA_FIELD_LENGTH) {
+            throw new BadRequestException(
+                `client_name must be at most ${MAX_CLIENT_METADATA_FIELD_LENGTH} characters`,
+            );
+        }
         if (!input.redirect_uris || input.redirect_uris.length === 0) {
             throw new BadRequestException('redirect_uris is required');
         }
         for (const redirectUri of input.redirect_uris) {
-            this.assertSafeRedirectUri(redirectUri);
+            assertSafeRedirectUri(redirectUri);
         }
         const ctx = await this.createAdminCtx();
         const client = await this.connection.getRepository(ctx, McpOauthClient).save(
@@ -110,6 +126,8 @@ export class McpOauthService {
                 redirectUris: input.redirect_uris,
                 grantTypes: input.grant_types ?? ['authorization_code', 'refresh_token'],
                 tokenEndpointAuthMethod: input.token_endpoint_auth_method ?? 'none',
+                clientType: 'dcr',
+                cimdDocumentExpiresAt: null,
                 lastUsedAt: null,
             }),
         );
@@ -137,6 +155,9 @@ export class McpOauthService {
             grant_types_supported: ['authorization_code', 'refresh_token'],
             code_challenge_methods_supported: ['S256'],
             token_endpoint_auth_methods_supported: ['none'],
+            // CIMD (draft-ietf-oauth-client-id-metadata-document §6): clients gate on this
+            // flag before sending a URL client_id. MUST be present because we support it.
+            client_id_metadata_document_supported: true,
         };
     }
 
@@ -164,12 +185,17 @@ export class McpOauthService {
         if (input.code_challenge_method !== 'S256') {
             throw new BadRequestException('Only PKCE S256 is supported');
         }
+        // Everything that can be judged from the request alone is checked first, because
+        // resolving the client may fetch a metadata document from the address the caller named,
+        // and this endpoint takes no credentials. `resolvedOauth` refuses a server with no OAuth
+        // configured, and `resolveResource` a request that names no toolset of ours.
+        this.resolvedOauth();
+        const { resource, toolset } = this.resolveResource(input.resource);
         const ctx = await this.createAdminCtx();
         const client = await this.findClient(ctx, input.client_id);
         if (!client.redirectUris.includes(input.redirect_uri)) {
             throw new BadRequestException('redirect_uri is not registered for client');
         }
-        const { resource, toolset } = this.resolveResource(input.resource);
 
         let consentUrl: URL;
         if (toolset === 'admin') {
@@ -219,6 +245,7 @@ export class McpOauthService {
         const client = request.oauthClient;
         return {
             client_id: client.clientId,
+            client_id_source: client.clientType,
             client_name: client.clientName,
             ...(client.clientUri ? { client_uri: client.clientUri } : {}),
             ...(client.logoUri ? { logo_uri: client.logoUri } : {}),
@@ -848,6 +875,9 @@ export class McpOauthService {
     }
 
     private async findClient(ctx: RequestContext, clientId: string): Promise<McpOauthClient> {
+        if (isUrlClientId(clientId)) {
+            return this.cimdClientResolver.resolveClient(ctx, clientId);
+        }
         const client = await this.connection.getRepository(ctx, McpOauthClient).findOne({
             where: { clientId },
         });
@@ -968,24 +998,6 @@ export class McpOauthService {
         }
         if (originHeader !== expectedOrigin) {
             throw new ForbiddenException(message);
-        }
-    }
-
-    private assertSafeRedirectUri(redirectUri: string): void {
-        let url: URL;
-        try {
-            url = new URL(redirectUri);
-        } catch {
-            throw new BadRequestException('redirect_uri must be an absolute URL');
-        }
-        const hostname = url.hostname.toLowerCase();
-        const isLoopback =
-            hostname === 'localhost' ||
-            hostname === '127.0.0.1' ||
-            hostname === '::1' ||
-            hostname === '[::1]';
-        if (url.protocol !== 'https:' && !(url.protocol === 'http:' && isLoopback)) {
-            throw new BadRequestException('redirect_uri must use HTTPS or localhost HTTP');
         }
     }
 

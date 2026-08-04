@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { createHash, randomBytes } from 'node:crypto';
 
 /**
@@ -45,4 +46,26 @@ export function appendOAuthParams(redirectUri: string, params: Record<string, st
         }
     }
     return url.toString();
+}
+
+export function isLoopbackHostname(hostname: string): boolean {
+    const bare = hostname.replace(/^\[|\]$/g, '').toLowerCase();
+    return bare === 'localhost' || bare === '127.0.0.1' || bare === '::1';
+}
+
+/**
+ * A redirect_uri must be HTTPS, or plain HTTP only on a loopback host (native and CLI
+ * clients listen there). Applied to DCR registrations and to the redirect_uris inside
+ * CIMD client metadata documents.
+ */
+export function assertSafeRedirectUri(redirectUri: string): void {
+    let url: URL;
+    try {
+        url = new URL(redirectUri);
+    } catch {
+        throw new BadRequestException('redirect_uri must be an absolute URL');
+    }
+    if (url.protocol !== 'https:' && !(url.protocol === 'http:' && isLoopbackHostname(url.hostname))) {
+        throw new BadRequestException('redirect_uri must use HTTPS or localhost HTTP');
+    }
 }

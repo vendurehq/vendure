@@ -31,6 +31,8 @@ import {
     McpToolCallLog,
 } from './entities';
 import { McpToolCallLogService } from './logging/mcp-tool-call-log.service';
+import { McpCimdClientResolverService } from './oauth/cimd/cimd-client-resolver.service';
+import { isLoopbackHostname } from './oauth/oauth-utils';
 import { McpOauthController } from './oauth/oauth.controller';
 import { McpOauthService } from './oauth/oauth.service';
 import { McpRateLimiterService } from './rate-limit/mcp-rate-limiter.service';
@@ -69,6 +71,7 @@ import { McpPluginOptions, McpRateLimitOptions } from './types';
     providers: [
         { provide: MCP_PLUGIN_OPTIONS, useFactory: () => McpPlugin.options },
         McpOauthService,
+        McpCimdClientResolverService,
         McpToolRegistryService,
         McpToolExecutionService,
         McpRateLimiterService,
@@ -177,6 +180,14 @@ export class McpPlugin implements OnApplicationBootstrap {
 
         const isProduction = process.env.NODE_ENV === 'production';
         if (isProduction) {
+            if (oauth.allowLoopbackCimdDocuments) {
+                throw new Error(
+                    `McpPlugin: oauth.allowLoopbackCimdDocuments cannot be enabled in production. ` +
+                        `It lets any caller of the authorize endpoint make this server open a ` +
+                        `connection to any port on the machine it runs on, and is only meant for ` +
+                        `fetching a client metadata document from your own development setup.`,
+                );
+            }
             if (this.isLoopbackUrl(oauth.issuer)) {
                 throw new Error(
                     `McpPlugin: oauth.issuer cannot be a loopback URL ("${oauth.issuer ?? ''}") in production. ` +
@@ -225,15 +236,11 @@ export class McpPlugin implements OnApplicationBootstrap {
     private isLoopbackUrl(url?: string): boolean {
         if (!url) return true;
 
-        let hostname: string;
         try {
-            hostname = new URL(url).hostname;
+            return isLoopbackHostname(new URL(url).hostname);
         } catch {
             // Not a valid URL, so not a real public address either — treat as unsafe.
             return true;
         }
-        return (
-            hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname === '[::1]'
-        );
     }
 }

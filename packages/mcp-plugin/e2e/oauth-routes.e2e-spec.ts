@@ -33,6 +33,8 @@ describe('McpPlugin OAuth routes', () => {
         expect(body).toHaveProperty('issuer');
         expect(body).toHaveProperty('token_endpoint');
         expect(body.code_challenge_methods_supported).toEqual(['S256']);
+        // CIMD: MCP clients check this flag before using a URL client_id.
+        expect(body.client_id_metadata_document_supported).toBe(true);
     });
 
     // OAuth POST routes must accept application/x-www-form-urlencoded

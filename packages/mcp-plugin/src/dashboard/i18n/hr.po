@@ -44,6 +44,9 @@ msgstr "Klijent"
 msgid "Client configuration"
 msgstr "Konfiguracija klijenta"
 
+msgid "Client identity (hostname verified)"
+msgstr "Identitet klijenta (naziv poslužitelja provjeren)"
+
 msgid "Connect an MCP client to your Vendure server using the endpoints below."
 msgstr "Povežite MCP klijenta sa svojim Vendure poslužiteljem pomoću krajnjih točaka u nastavku."
 
@@ -157,6 +160,12 @@ msgstr "Testirajte i otklanjajte pogreške na svom MCP poslužitelju interaktivn
 
 msgid "The authorization session is invalid or expired."
 msgstr "Sesija autorizacije nije važeća ili je istekla."
+
+msgid "The client's details were fetched from this address, so the hostname is verified. The name below is still chosen by the client itself."
+msgstr "Podaci klijenta dohvaćeni su s ove adrese, pa je naziv poslužitelja provjeren. Naziv u nastavku i dalje bira sam klijent."
+
+msgid "This destination is on the local machine. Any application running on that machine could receive the authorization code."
+msgstr "Ovo odredište nalazi se na lokalnom računalu. Svaka aplikacija koja se izvodi na tom računalu mogla bi primiti autorizacijski kod."
 
 msgid "This immediately revokes the client's access. The client will need to authorize again to reconnect."
 msgstr "Time se odmah opoziva pristup klijenta. Klijent će se morati ponovno autorizirati kako bi se ponovno povezao."

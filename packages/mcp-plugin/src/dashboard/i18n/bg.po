@@ -44,6 +44,9 @@ msgstr "Клиент"
 msgid "Client configuration"
 msgstr "Конфигурация на клиента"
 
+msgid "Client identity (hostname verified)"
+msgstr "Идентичност на клиента (име на хост потвърдено)"
+
 msgid "Connect an MCP client to your Vendure server using the endpoints below."
 msgstr "Свържете MCP клиент към вашия Vendure сървър, като използвате крайните точки по-долу."
 
@@ -157,6 +160,12 @@ msgstr "Тествайте и дебъгвайте вашия MCP сървър �
 
 msgid "The authorization session is invalid or expired."
 msgstr "Сесията за оторизация е невалидна или изтекла."
+
+msgid "The client's details were fetched from this address, so the hostname is verified. The name below is still chosen by the client itself."
+msgstr "Данните на клиента са изтеглени от този адрес, затова името на хоста е потвърдено. Името по-долу все пак се избира от самия клиент."
+
+msgid "This destination is on the local machine. Any application running on that machine could receive the authorization code."
+msgstr "Тази дестинация се намира на локалната машина. Всяко приложение, работещо на тази машина, би могло да получи кода за оторизация."
 
 msgid "This immediately revokes the client's access. The client will need to authorize again to reconnect."
 msgstr "Това незабавно отменя достъпа на клиента. Клиентът ще трябва да оторизира отново, за да се свърже."

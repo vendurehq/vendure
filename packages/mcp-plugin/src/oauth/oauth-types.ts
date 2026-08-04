@@ -35,6 +35,12 @@ export interface TokenInput {
 
 export interface AuthorizationRequestInfo {
     client_id: string;
+    /**
+     * How the client's identity was established: 'cimd' when the client_id is a URL whose
+     * metadata document was fetched and validated (its hostname is verifiable), 'dcr' for
+     * Dynamic Client Registration (all fields self-asserted).
+     */
+    client_id_source: 'cimd' | 'dcr';
     client_name: string;
     client_uri?: string;
     logo_uri?: string;

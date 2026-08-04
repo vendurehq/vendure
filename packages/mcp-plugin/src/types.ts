@@ -103,6 +103,20 @@ export interface McpOauthOptions {
     storefrontConsentUrl?: string;
     /**
      * @description
+     * Allows a client to identify itself with a `client_id` URL that points at the local machine
+     * (`localhost`, `127.0.0.1` or `::1`), over plain HTTP, so that a metadata document served by
+     * your own development setup can be fetched.
+     *
+     * Leave this off anywhere reachable by others. With it on, anyone who can reach the authorize
+     * endpoint — no credentials needed — can make the server open a connection to any port on the
+     * machine it runs on. The server refuses to start with this enabled when `NODE_ENV` is
+     * `production`.
+     *
+     * @default false
+     */
+    allowLoopbackCimdDocuments?: boolean;
+    /**
+     * @description
      * How long to keep a grant after it dies, by expiry or revocation, before the row itself is
      * deleted. The grant is the only OAuth record with anything to audit, so it outlives the
      * authorization it recorded.

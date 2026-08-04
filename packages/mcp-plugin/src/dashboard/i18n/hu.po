@@ -44,6 +44,9 @@ msgstr "Kliens"
 msgid "Client configuration"
 msgstr "Kliens konfigurációja"
 
+msgid "Client identity (hostname verified)"
+msgstr "Kliens identitása (állomásnév ellenőrizve)"
+
 msgid "Connect an MCP client to your Vendure server using the endpoints below."
 msgstr "Csatlakoztasson egy MCP-klienst a Vendure-kiszolgálóhoz az alábbi végpontok segítségével."
 
@@ -157,6 +160,12 @@ msgstr "Tesztelje és végezzen hibakeresést MCP-kiszolgálóján interaktívan
 
 msgid "The authorization session is invalid or expired."
 msgstr "Az engedélyezési munkamenet érvénytelen vagy lejárt."
+
+msgid "The client's details were fetched from this address, so the hostname is verified. The name below is still chosen by the client itself."
+msgstr "A kliens adatai erről a címről lettek lekérve, így az állomásnév ellenőrzött. Az alábbi nevet továbbra is maga a kliens választja."
+
+msgid "This destination is on the local machine. Any application running on that machine could receive the authorization code."
+msgstr "Ez a cél a helyi gépen található. A gépen futó bármely alkalmazás megkaphatná az engedélyezési kódot."
 
 msgid "This immediately revokes the client's access. The client will need to authorize again to reconnect."
 msgstr "Ez azonnal visszavonja a kliens hozzáférését. A kliensnek újra engedélyeznie kell a hozzáférést az újracsatlakozáshoz."

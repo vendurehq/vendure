@@ -44,6 +44,9 @@ msgstr "クライアント"
 msgid "Client configuration"
 msgstr "クライアント設定"
 
+msgid "Client identity (hostname verified)"
+msgstr "クライアントの識別情報（ホスト名検証済み）"
+
 msgid "Connect an MCP client to your Vendure server using the endpoints below."
 msgstr "以下のエンドポイントを使用して、MCPクライアントをVendureサーバーに接続します。"
 
@@ -157,6 +160,12 @@ msgstr "MCP Inspector を使って MCP サーバーをインタラクティブ�
 
 msgid "The authorization session is invalid or expired."
 msgstr "認可セッションが無効または期限切れです。"
+
+msgid "The client's details were fetched from this address, so the hostname is verified. The name below is still chosen by the client itself."
+msgstr "クライアントの詳細はこのアドレスから取得されたため、ホスト名は検証済みです。以下の名前は引き続きクライアント自身が選んだものです。"
+
+msgid "This destination is on the local machine. Any application running on that machine could receive the authorization code."
+msgstr "この送信先はローカルマシン上にあります。そのマシンで動作しているどのアプリケーションも認可コードを受け取る可能性があります。"
 
 msgid "This immediately revokes the client's access. The client will need to authorize again to reconnect."
 msgstr "これにより、クライアントのアクセスが直ちに取り消されます。再接続するには、クライアントは再度認可する必要があります。"

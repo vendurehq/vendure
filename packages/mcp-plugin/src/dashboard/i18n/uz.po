@@ -44,6 +44,9 @@ msgstr "Mijoz"
 msgid "Client configuration"
 msgstr "Mijoz konfiguratsiyasi"
 
+msgid "Client identity (hostname verified)"
+msgstr "Mijoz identifikatsiyasi (host nomi tasdiqlangan)"
+
 msgid "Connect an MCP client to your Vendure server using the endpoints below."
 msgstr "Quyidagi so'nggi nuqtalardan foydalanib, MCP mijozini Vendure serveringizga ulang."
 
@@ -157,6 +160,12 @@ msgstr "MCP serveringizni MCP Inspector yordamida interaktiv sinovdan o'tkazing 
 
 msgid "The authorization session is invalid or expired."
 msgstr "Avtorizatsiya seansi yaroqsiz yoki muddati tugagan."
+
+msgid "The client's details were fetched from this address, so the hostname is verified. The name below is still chosen by the client itself."
+msgstr "Mijoz ma'lumotlari shu manzildan olindi, shuning uchun host nomi tasdiqlangan. Quyidagi nomni esa mijozning o'zi tanlaydi."
+
+msgid "This destination is on the local machine. Any application running on that machine could receive the authorization code."
+msgstr "Bu manzil mahalliy kompyuterda joylashgan. O'sha kompyuterda ishlayotgan istalgan ilova avtorizatsiya kodini olishi mumkin."
 
 msgid "This immediately revokes the client's access. The client will need to authorize again to reconnect."
 msgstr "Bu mijozning kirish huquqini darhol bekor qiladi. Qayta ulanish uchun mijoz qaytadan avtorizatsiyadan o'tishi kerak bo'ladi."

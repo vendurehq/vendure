@@ -44,6 +44,9 @@ msgstr "Client"
 msgid "Client configuration"
 msgstr "Clientconfiguratie"
 
+msgid "Client identity (hostname verified)"
+msgstr "Identiteit van de client (hostnaam geverifieerd)"
+
 msgid "Connect an MCP client to your Vendure server using the endpoints below."
 msgstr "Verbind een MCP-client met uw Vendure-server via de onderstaande endpoints."
 
@@ -157,6 +160,12 @@ msgstr "Test en debug uw MCP-server interactief met de MCP Inspector:"
 
 msgid "The authorization session is invalid or expired."
 msgstr "De autorisatiesessie is ongeldig of verlopen."
+
+msgid "The client's details were fetched from this address, so the hostname is verified. The name below is still chosen by the client itself."
+msgstr "De gegevens van de client zijn van dit adres opgehaald, dus de hostnaam is geverifieerd. De naam hieronder wordt nog steeds door de client zelf gekozen."
+
+msgid "This destination is on the local machine. Any application running on that machine could receive the authorization code."
+msgstr "Deze bestemming bevindt zich op de lokale machine. Elke applicatie die op die machine draait, zou de autorisatiecode kunnen ontvangen."
 
 msgid "This immediately revokes the client's access. The client will need to authorize again to reconnect."
 msgstr "Hiermee wordt de toegang van de client onmiddellijk ingetrokken. De client moet opnieuw autoriseren om opnieuw verbinding te maken."
