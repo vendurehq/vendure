@@ -2,7 +2,7 @@
 title: "ConfigurableOperationDef"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/common/configurable-operation.ts" sourceLine="428" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/common/configurable-operation.ts" sourceLine="435" packageName="@vendure/core" />
 
 A ConfigurableOperationDef is a special type of object used extensively by Vendure to define
 code blocks which have arguments which are configurable at run-time by the administrator.
@@ -96,6 +96,12 @@ Catalog entries take precedence over the inline arrays for the same language, wh
 strings of a third-party operation can be overridden by registering translations for its keys
 via `I18nService.addTranslation()`. A key which does not match any operation is simply never
 read, so a typo produces no error — the inline string is used instead.
+
+The description and the arg labels are resolved to a single string before being sent, in the
+language requested by the client. Select option labels are the exception: they are sent as a
+full [LocalizedStringArray](/reference/typescript-api/configurable-operation-def/localized-string-array#localizedstringarray) with the catalog translation merged in, because the Admin UI
+resolves them against the administrator's display language, which is a separate setting from the
+content language sent with the request.
 
 ```ts title="Signature"
 class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
