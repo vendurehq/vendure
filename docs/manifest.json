@@ -1328,7 +1328,7 @@
                   "title": "ConfigArgs",
                   "slug": "config-args",
                   "file": "docs/reference/typescript-api/configurable-operation-def/config-args.mdx",
-                  "lastModified": "2026-07-31T11:59:25Z"
+                  "lastModified": "2026-08-04T10:12:26Z"
                 },
                 {
                   "title": "ConfigArgType",
@@ -1340,25 +1340,25 @@
                   "title": "ConfigurableOperationDefOptions",
                   "slug": "configurable-operation-def-options",
                   "file": "docs/reference/typescript-api/configurable-operation-def/configurable-operation-def-options.mdx",
-                  "lastModified": "2026-07-31T11:59:25Z"
+                  "lastModified": "2026-08-04T10:12:26Z"
                 },
                 {
                   "title": "ConfigurableOperationDefType",
                   "slug": "configurable-operation-def-type",
                   "file": "docs/reference/typescript-api/configurable-operation-def/configurable-operation-def-type.mdx",
-                  "lastModified": "2026-07-31T11:59:25Z"
+                  "lastModified": "2026-08-04T10:12:26Z"
                 },
                 {
                   "title": "ConfigurableOperationTranslationKey",
                   "slug": "configurable-operation-translation-key",
                   "file": "docs/reference/typescript-api/configurable-operation-def/configurable-operation-translation-key.mdx",
-                  "lastModified": "2026-07-31T11:59:25Z"
+                  "lastModified": "2026-08-04T10:12:26Z"
                 },
                 {
                   "title": "ConfigurableOperationTranslator",
                   "slug": "configurable-operation-translator",
                   "file": "docs/reference/typescript-api/configurable-operation-def/configurable-operation-translator.mdx",
-                  "lastModified": "2026-07-31T11:59:25Z"
+                  "lastModified": "2026-08-04T10:12:26Z"
                 },
                 {
                   "title": "DefaultFormComponentId",
@@ -1376,10 +1376,10 @@
                   "title": "LocalizedStringArray",
                   "slug": "localized-string-array",
                   "file": "docs/reference/typescript-api/configurable-operation-def/localized-string-array.mdx",
-                  "lastModified": "2026-07-31T11:59:25Z"
+                  "lastModified": "2026-08-04T10:12:26Z"
                 }
               ],
-              "lastModified": "2026-07-31T14:43:47Z"
+              "lastModified": "2026-08-04T10:12:26Z"
             },
             {
               "title": "Configuration",
