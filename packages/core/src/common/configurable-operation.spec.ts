@@ -221,7 +221,10 @@ describe('ConfigurableOperationDef', () => {
             },
         });
 
-        it('resolves the option label to a single-entry localized array', () => {
+        it('merges the catalog translation into the existing label array', () => {
+            // The Admin UI resolves option labels against the display language, which is a separate
+            // setting from the content language sent with the request, so the other languages have
+            // to survive rather than being narrowed away.
             const operation = createOperation(
                 { optionLabel: [{ languageCode: LanguageCode.en, value: 'Inline option' }] },
                 stubTranslator({ de: optionLabelCatalog('Catalog option') }),
@@ -229,24 +232,64 @@ describe('ConfigurableOperationDef', () => {
 
             const ui = operation.toGraphQlType(createRequestContext(LanguageCode.de)).args[0].ui;
             expect(ui.options).toEqual([
-                { value: 'auto', label: [{ languageCode: LanguageCode.de, value: 'Catalog option' }] },
+                {
+                    value: 'auto',
+                    label: [
+                        { languageCode: LanguageCode.en, value: 'Inline option' },
+                        { languageCode: LanguageCode.de, value: 'Catalog option' },
+                    ],
+                },
             ]);
         });
 
-        it('does not mutate the shared ui config, so requests do not affect each other', () => {
+        it('replaces rather than duplicates an inline label for the same language', () => {
+            const operation = createOperation(
+                {
+                    optionLabel: [
+                        { languageCode: LanguageCode.en, value: 'Inline English option' },
+                        { languageCode: LanguageCode.de, value: 'Inline German option' },
+                    ],
+                },
+                stubTranslator({ de: optionLabelCatalog('Catalog German option') }),
+            );
+
+            const ui = operation.toGraphQlType(createRequestContext(LanguageCode.de)).args[0].ui;
+            expect(ui.options[0].label).toEqual([
+                { languageCode: LanguageCode.en, value: 'Inline English option' },
+                { languageCode: LanguageCode.de, value: 'Catalog German option' },
+            ]);
+        });
+
+        it('passes the label through untouched when the catalog has no entry', () => {
             const inlineOptionLabel: LocalizedStringArray = [
                 { languageCode: LanguageCode.en, value: 'Inline English option' },
                 { languageCode: LanguageCode.de, value: 'Inline German option' },
             ];
             const operation = createOperation({ optionLabel: inlineOptionLabel }, stubTranslator({}));
 
+            expect(
+                operation.toGraphQlType(createRequestContext(LanguageCode.de)).args[0].ui.options[0].label,
+            ).toEqual(inlineOptionLabel);
+        });
+
+        it('does not mutate the shared ui config, so requests do not affect each other', () => {
+            const inlineOptionLabel: LocalizedStringArray = [
+                { languageCode: LanguageCode.en, value: 'Inline English option' },
+            ];
+            const operation = createOperation(
+                { optionLabel: inlineOptionLabel },
+                stubTranslator({ de: optionLabelCatalog('Catalog German option') }),
+            );
+
             operation.toGraphQlType(createRequestContext(LanguageCode.de));
             const second = operation.toGraphQlType(createRequestContext(LanguageCode.en));
 
+            // The German entry merged in for the first request must not have leaked into the
+            // shared config and reappeared here.
             expect(second.args[0].ui.options[0].label).toEqual([
                 { languageCode: LanguageCode.en, value: 'Inline English option' },
             ]);
-            expect(inlineOptionLabel).toHaveLength(2);
+            expect(inlineOptionLabel).toHaveLength(1);
         });
 
         it('leaves a ui config with no options untouched', () => {
@@ -295,6 +338,21 @@ describe('ConfigurableOperationDef', () => {
                     ],
                     sourceValue: 'Automatic',
                 },
+            ]);
+        });
+
+        it('contributes no option keys for an arg whose ui has no options', () => {
+            const operation = new ConfigurableOperationDef({
+                code: 'test-calculator',
+                description: [],
+                args: { rate: { type: 'string', ui: { component: 'currency-form-input' } } },
+            });
+            operation.setDefType('ShippingCalculator');
+
+            expect(operation.getTranslationKeys().map(k => k.keyPath.join('.'))).toEqual([
+                'ShippingCalculator.test-calculator.description',
+                'ShippingCalculator.test-calculator.args.rate.label',
+                'ShippingCalculator.test-calculator.args.rate.description',
             ]);
         });
 

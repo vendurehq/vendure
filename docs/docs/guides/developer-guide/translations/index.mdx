@@ -216,8 +216,10 @@ export class MyPlugin implements OnApplicationBootstrap {
 
 When a string is resolved, each language in turn — the requested language, then the Channel's default language, then English — is looked up first in the catalogs and then in the inline array. A catalog entry therefore wins over an inline string for the same language, which is what allows a third-party operation's wording to be overridden. An operation which ships only inline strings still resolves to its own language rather than to somebody else's English catalog entry.
 
+Select option labels behave slightly differently. The description and the arg labels arrive at the client already resolved to one string, but option labels are sent as the full array with the catalog translation merged in. This is because the Admin UI picks the option label matching the administrator's display language, which is a separate setting from the content language sent with the request, so the other languages have to survive the round trip.
+
 :::note
-A key which matches no operation is never read, so a mistyped key produces no error — the inline string is used instead and the mistake is silent. Call `getTranslationKeys()` on the operation to print the exact key paths it expects.
+A key which matches no operation is never read, so a mistyped key produces no error — the inline string is used instead and the mistake is silent. Call `getTranslationKeys()` on the operation, which returns the exact key paths it expects.
 :::
 
 Several of core's descriptions are templates rather than sentences, for example `Discount order by { discount }%`. The admin UI substitutes the live argument values into these placeholders, so a translated string must reproduce them exactly, spaces inside the braces included.

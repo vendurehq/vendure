@@ -3,6 +3,7 @@ import {
     ConfigArg,
     ConfigArgDefinition,
     ConfigurableOperationDefinition,
+    LanguageCode,
     LocalizedString,
     Maybe,
     StringFieldOption,
@@ -423,6 +424,12 @@ export interface ConfigurableOperationDefOptions<T extends ConfigArgs> extends I
  * via `I18nService.addTranslation()`. A key which does not match any operation is simply never
  * read, so a typo produces no error — the inline string is used instead.
  *
+ * The description and the arg labels are resolved to a single string before being sent, in the
+ * language requested by the client. Select option labels are the exception: they are sent as a
+ * full {@link LocalizedStringArray} with the catalog translation merged in, because the Admin UI
+ * resolves them against the administrator's display language, which is a separate setting from the
+ * content language sent with the request.
+ *
  * @docsCategory ConfigurableOperationDef
  */
 export class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
@@ -557,15 +564,12 @@ export class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
             ctx.channel.defaultLanguageCode,
             DEFAULT_LANGUAGE_CODE,
         ]) {
-            if (this.defType) {
-                const fromCatalog = this.translator?.getConfigurableOperationTranslation(languageCode, [
-                    this.defType,
-                    this.code,
-                    ...keyPath,
-                ]);
-                if (fromCatalog) {
-                    return fromCatalog;
-                }
+            // Truthiness, not a null check: an empty catalog entry means "not translated yet", the
+            // same as it does in the .po catalogs, so it falls through rather than blanking the
+            // string. A catalog therefore cannot be used to remove an inline string.
+            const fromCatalog = this.lookupCatalog(languageCode, keyPath);
+            if (fromCatalog) {
+                return fromCatalog;
             }
             const fromInline = inline?.find(x => x.languageCode === languageCode);
             if (fromInline) {
@@ -575,11 +579,30 @@ export class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
         return inline?.[0]?.value;
     }
 
+    /** Reads a single string out of the message catalogs, or undefined if the key is not set. */
+    private lookupCatalog(languageCode: LanguageCode, keyPath: string[]): string | undefined {
+        if (!this.defType) {
+            return undefined;
+        }
+        return this.translator?.getConfigurableOperationTranslation(languageCode, [
+            this.defType,
+            this.code,
+            ...keyPath,
+        ]);
+    }
+
     /**
-     * Returns a copy of the arg's `ui` config with any select option labels resolved down to a
-     * single localized string. Copying is essential: `ui` belongs to the long-lived config object
-     * shared by every request, so resolving labels in place would pin all later requests to
-     * whichever language happened to arrive first.
+     * Merges any catalog translation of a select option's label into the arg's `ui` config.
+     *
+     * Option labels stay as a full LocalizedStringArray rather than being resolved to one string
+     * like the operation description and the arg labels are. The Admin UI picks the option label
+     * matching the administrator's display language, which is a different setting from the content
+     * language sent with the request, so resolving to the request language here would give an
+     * administrator whose two settings differ the wrong string.
+     *
+     * The result is a copy, and the original is returned untouched when there is nothing to merge.
+     * `ui` belongs to the long-lived config object shared by every request, so merging in place
+     * would leak one request's translations into all the requests that follow it.
      */
     private localizeUiOptions(
         ui: UiComponentConfig<string> | undefined,
@@ -590,21 +613,26 @@ export class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
         if (!options.length) {
             return ui;
         }
-        return {
-            ...(ui as any),
-            options: options.map(option => {
-                const label = this.localizeString(option.label, ctx, [
-                    'args',
-                    argName,
-                    'options',
-                    option.value,
-                    'label',
-                ]);
-                return label === undefined
-                    ? option
-                    : { ...option, label: [{ languageCode: ctx.languageCode, value: label }] };
-            }),
-        };
+        let merged = false;
+        const localized = options.map(option => {
+            const fromCatalog = this.lookupCatalog(ctx.languageCode, [
+                'args',
+                argName,
+                'options',
+                option.value,
+                'label',
+            ]);
+            if (!fromCatalog) {
+                return option;
+            }
+            merged = true;
+            const others = (option.label ?? []).filter(x => x.languageCode !== ctx.languageCode);
+            return {
+                ...option,
+                label: [...others, { languageCode: ctx.languageCode, value: fromCatalog }],
+            };
+        });
+        return merged ? { ...(ui as any), options: localized } : ui;
     }
 
     /**

@@ -110,7 +110,10 @@ describe('Translation', () => {
             const calculator = await getCalculator(LanguageCode.de);
             expect(calculator.description).toBe(de.description);
             expect(calculator.args[0].label).toBe(de.modeLabel);
+            // Option labels keep every language, because the Admin UI resolves them against the
+            // display language rather than the content language sent with this request.
             expect(calculator.args[0].ui.options[0].label).toEqual([
+                { languageCode: LanguageCode.en, value: 'Automatic' },
                 { languageCode: LanguageCode.de, value: de.autoOptionLabel },
             ]);
         });
