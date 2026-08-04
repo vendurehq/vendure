@@ -58,14 +58,12 @@ export const CIMD_MAX_CLIENT_ID_LENGTH = 512;
 /** Applies to `client_name`, `client_uri` and `logo_uri`, whichever way the client identified itself. */
 export const MAX_CLIENT_METADATA_FIELD_LENGTH = 255;
 /**
- * Bounds applied to a document's Cache-Control lifetime (§5.2 lets the server pick bounds).
- * The floor also applies to no-store responses: it exists so a hostile document cannot force
- * one outbound fetch per authorization request.
+ * How long a fetched document is reused before it is fetched again. The draft (§5.2) leaves the
+ * lifetime to the server, so this is a fixed value rather than whatever the document's own
+ * Cache-Control header asks for — which also stops a hostile document demanding one outbound
+ * fetch per authorization request.
  */
-export const CIMD_CACHE_MIN_SECONDS = 60;
-export const CIMD_CACHE_MAX_SECONDS = 24 * 60 * 60;
-/** Document lifetime when the response carries no usable Cache-Control max-age. */
-export const CIMD_CACHE_DEFAULT_SECONDS = 60 * 60;
+export const CIMD_CACHE_TTL_SECONDS = 60 * 60;
 
 /**
  * Default rate limits. The anonymous-IP limit is ON by default (60 rpm) — it is the safety backstop

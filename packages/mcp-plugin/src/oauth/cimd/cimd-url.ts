@@ -2,7 +2,7 @@ import { BadRequestException } from '@nestjs/common';
 import { isIP } from 'net';
 
 import { CIMD_MAX_CLIENT_ID_LENGTH } from '../../constants';
-import { isLoopbackHostname } from '../oauth-utils';
+import { isLoopbackHostname } from '../loopback';
 
 // Client ID Metadata Documents (CIMD, draft-ietf-oauth-client-id-metadata-document-02):
 // a client_id that is an HTTPS URL pointing at a JSON document describing the client,
@@ -71,7 +71,7 @@ export function validateCimdClientIdUrl(clientId: string, options: CimdClientIdU
     // The WHATWG URL parser resolves "." and ".." segments silently, so inspect the raw
     // string: the document's client_id must equal this exact string, and the draft forbids
     // dot segments outright.
-    for (const segment of clientId.split('#')[0].split('?')[0].split('/')) {
+    for (const segment of clientId.split('/')) {
         const normalized = segment.toLowerCase().replace(/%2e/g, '.');
         if (normalized === '.' || normalized === '..') {
             throw new BadRequestException('client_id URL must not contain dot path segments');
@@ -83,10 +83,7 @@ export function validateCimdClientIdUrl(clientId: string, options: CimdClientIdU
     }
     // Last: the string must survive parsing unchanged. The parser rewrites a URL in ways the
     // checks above cannot see — it resolves "." and ".." segments, treats "\" as a path
-    // separator, strips tab and newline characters, lowercases the host, converts a numeric or
-    // non-ASCII host, and drops a default port. Any of those would leave us fetching one address
-    // while storing and displaying a different string, and the document's own client_id is
-    // compared against that string byte for byte, so it must be the address we actually used.
+    // separator etc...
     if (url.href !== clientId) {
         throw new BadRequestException(
             `client_id URL must be given in canonical form (${url.href}), not "${clientId}"`,

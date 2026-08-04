@@ -29,11 +29,6 @@ export interface CimdFetchOptions {
 export interface CimdFetchResult {
     /** The raw response body. */
     body: string;
-    /**
-     * Seconds from the response's Cache-Control max-age, if present. 0 means the response
-     * said not to cache; undefined means it said nothing.
-     */
-    cacheMaxAgeSeconds: number | undefined;
 }
 
 // RFC 6890 special-use ranges (draft §8.6 forbids fetching anything that resolves here):
@@ -119,19 +114,6 @@ function createGuardedLookup(allowLoopback: boolean, baseLookup: typeof dns.look
     return guarded as typeof dns.lookup;
 }
 
-/** Extracts max-age from a Cache-Control header. 0 for no-store/no-cache; undefined when silent. */
-export function parseCacheMaxAge(header: string | string[] | undefined): number | undefined {
-    const value = Array.isArray(header) ? header.join(',') : header;
-    if (!value) {
-        return undefined;
-    }
-    if (/(?:^|[\s,])(?:no-store|no-cache)(?:$|[\s,=;])/i.test(value)) {
-        return 0;
-    }
-    const match = /(?:^|[\s,])max-age\s*=\s*"?(\d+)"?/i.exec(value);
-    return match ? Number(match[1]) : undefined;
-}
-
 const jsonContentType = /^application\/(?:[^;+\s]+\+)?json\s*(?:;.*)?$/i;
 
 /**
@@ -140,12 +122,13 @@ const jsonContentType = /^application\/(?:[^;+\s]+\+)?json\s*(?:;.*)?$/i;
  */
 export function fetchCimdDocument(url: URL, options: CimdFetchOptions): Promise<CimdFetchResult> {
     const transport = url.protocol === 'https:' ? https : http;
+    const deadline = AbortSignal.timeout(options.timeoutMs);
+    const timedOut = () => new BadRequestException('client_id metadata document request timed out');
     return new Promise<CimdFetchResult>((resolve, reject) => {
         let settled = false;
         const fail = (error: Error) => {
             if (!settled) {
                 settled = true;
-                clearTimeout(timer);
                 request.destroy();
                 reject(error);
             }
@@ -153,7 +136,6 @@ export function fetchCimdDocument(url: URL, options: CimdFetchOptions): Promise<
         const succeed = (result: CimdFetchResult) => {
             if (!settled) {
                 settled = true;
-                clearTimeout(timer);
                 resolve(result);
             }
         };
@@ -168,6 +150,7 @@ export function fetchCimdDocument(url: URL, options: CimdFetchOptions): Promise<
                 // open could be handed to this request — and a reused socket never runs the
                 // lookup above, which is where the address check lives.
                 agent: false,
+                signal: deadline,
             },
             response => {
                 if (response.statusCode !== 200) {
@@ -191,25 +174,25 @@ export function fetchCimdDocument(url: URL, options: CimdFetchOptions): Promise<
                     chunks.push(chunk);
                 });
                 response.on('end', () => {
-                    succeed({
-                        body: Buffer.concat(chunks).toString('utf8'),
-                        cacheMaxAgeSeconds: parseCacheMaxAge(response.headers['cache-control']),
-                    });
+                    succeed({ body: Buffer.concat(chunks).toString('utf8') });
                 });
+                // The deadline destroys the request mid-body, which surfaces here rather than on
+                // the request itself, so it has to be reported as the timeout it is.
                 response.on('error', () =>
-                    fail(new BadRequestException('client_id metadata document could not be read')),
+                    fail(
+                        deadline.aborted
+                            ? timedOut()
+                            : new BadRequestException('client_id metadata document could not be read'),
+                    ),
                 );
             },
-        );
-        // `fail` and `succeed` close over this; every path that reaches them runs
-        // asynchronously, after this assignment.
-        const timer = setTimeout(
-            () => fail(new BadRequestException('client_id metadata document request timed out')),
-            options.timeoutMs,
         );
         request.on('error', error => {
             if (error instanceof BadRequestException) {
                 return fail(error);
+            }
+            if (deadline.aborted) {
+                return fail(timedOut());
             }
             // Connection-level detail (refused, reset, TLS failure, a blocked address) goes to
             // the server log only. It must not reach the caller: the authorize endpoint needs no

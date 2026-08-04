@@ -1,7 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { CIMD_CACHE_MAX_SECONDS, CIMD_CACHE_MIN_SECONDS } from '../../constants';
 import { McpOauthClient } from '../../entities/mcp-oauth-client.entity';
 import { McpPluginOptions } from '../../types';
 
@@ -28,10 +27,9 @@ const fetchMock = vi.mocked(cimdFetch.fetchCimdDocument);
 
 // The SWC unit build uses define semantics for class fields, so constructor-passed
 // scalars on entities are wiped back to undefined — assign fields explicitly instead.
-function makeRow(clientId: string, clientType: 'dcr' | 'cimd', expiresAt: Date | null): McpOauthClient {
+function makeRow(clientId: string, expiresAt: Date | null): McpOauthClient {
     const row = new McpOauthClient();
     row.clientId = clientId;
-    row.clientType = clientType;
     row.cimdDocumentExpiresAt = expiresAt;
     return row;
 }
@@ -86,7 +84,7 @@ afterEach(() => {
 
 describe('McpCimdClientResolverService', () => {
     it('returns a fresh cached row without fetching', async () => {
-        const cached = makeRow(CLIENT_ID, 'cimd', new Date('2026-08-03T13:00:00Z'));
+        const cached = makeRow(CLIENT_ID, new Date('2026-08-03T13:00:00Z'));
         cached.clientName = 'Cached Client';
         const { resolver } = createResolver({ rows: [cached] });
 
@@ -97,38 +95,25 @@ describe('McpCimdClientResolverService', () => {
     });
 
     it('fetches, validates and stores the document when the row is stale', async () => {
-        const stale = makeRow(CLIENT_ID, 'cimd', new Date('2026-08-03T11:00:00Z'));
+        const stale = makeRow(CLIENT_ID, new Date('2026-08-03T11:00:00Z'));
         const { resolver, repository } = createResolver({ rows: [stale] });
-        fetchMock.mockResolvedValue({ body: documentBody(), cacheMaxAgeSeconds: 300 });
+        fetchMock.mockResolvedValue({ body: documentBody() });
 
         const result = await resolver.resolveClient({} as any, CLIENT_ID);
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(repository.save).toHaveBeenCalledTimes(1);
         expect(result.clientName).toBe('Example MCP Client');
-        expect(result.clientType).toBe('cimd');
-        expect(result.cimdDocumentExpiresAt).toEqual(new Date('2026-08-03T12:05:00Z'));
+        expect(result.cimdDocumentExpiresAt).toEqual(new Date('2026-08-03T13:00:00Z'));
     });
 
     it('creates the row on first resolution', async () => {
         const { resolver, rows } = createResolver();
-        fetchMock.mockResolvedValue({ body: documentBody(), cacheMaxAgeSeconds: undefined });
+        fetchMock.mockResolvedValue({ body: documentBody() });
 
         const result = await resolver.resolveClient({} as any, CLIENT_ID);
         expect(rows).toContain(result);
-        // Default lifetime (1 h) applies when the response says nothing about caching.
+        // The fixed one-hour document lifetime.
         expect(result.cimdDocumentExpiresAt).toEqual(new Date('2026-08-03T13:00:00Z'));
-    });
-
-    it('clamps the document lifetime to the configured bounds', async () => {
-        const { resolver } = createResolver();
-        fetchMock.mockResolvedValue({ body: documentBody(), cacheMaxAgeSeconds: 999_999_999 });
-        const capped = await resolver.resolveClient({} as any, CLIENT_ID);
-        expect(capped.cimdDocumentExpiresAt).toEqual(new Date(Date.now() + CIMD_CACHE_MAX_SECONDS * 1000));
-
-        const { resolver: resolver2 } = createResolver();
-        fetchMock.mockResolvedValue({ body: documentBody(), cacheMaxAgeSeconds: 0 });
-        const floored = await resolver2.resolveClient({} as any, CLIENT_ID);
-        expect(floored.cimdDocumentExpiresAt).toEqual(new Date(Date.now() + CIMD_CACHE_MIN_SECONDS * 1000));
     });
 
     it('does not store anything when the fetch fails', async () => {
@@ -145,7 +130,6 @@ describe('McpCimdClientResolverService', () => {
         const { resolver, repository } = createResolver();
         fetchMock.mockResolvedValue({
             body: documentBody({ client_id: 'https://other.example.com/x.json' }),
-            cacheMaxAgeSeconds: 300,
         });
 
         await expect(resolver.resolveClient({} as any, CLIENT_ID)).rejects.toThrow('must exactly match');
@@ -155,10 +139,10 @@ describe('McpCimdClientResolverService', () => {
     // A write failure other than losing an insert race leaves an older document on file. Serving
     // it would authorize a redirect destination the client may have just removed.
     it('fails rather than serving the previous document when the write fails', async () => {
-        const stale = makeRow(CLIENT_ID, 'cimd', new Date('2026-08-03T11:00:00Z'));
+        const stale = makeRow(CLIENT_ID, new Date('2026-08-03T11:00:00Z'));
         stale.redirectUris = ['https://client.example.com/old-callback'];
         const { resolver } = createResolver({ rows: [stale], failWrites: true });
-        fetchMock.mockResolvedValue({ body: documentBody(), cacheMaxAgeSeconds: 300 });
+        fetchMock.mockResolvedValue({ body: documentBody() });
 
         await expect(resolver.resolveClient({} as any, CLIENT_ID)).rejects.toThrow('write failed');
     });
@@ -166,9 +150,9 @@ describe('McpCimdClientResolverService', () => {
     // Losing the race to insert the first row is the one write failure that is safe to absorb.
     it('serves the row another server inserted first when the write loses that race', async () => {
         const { resolver, rows } = createResolver({ failWrites: true });
-        fetchMock.mockResolvedValue({ body: documentBody(), cacheMaxAgeSeconds: 300 });
+        fetchMock.mockResolvedValue({ body: documentBody() });
         // The winning insert lands while this request is fetching.
-        rows.push(makeRow(CLIENT_ID, 'cimd', new Date('2026-08-03T12:30:00Z')));
+        rows.push(makeRow(CLIENT_ID, new Date('2026-08-03T12:30:00Z')));
 
         const result = await resolver.resolveClient({} as any, CLIENT_ID);
         expect(result.cimdDocumentExpiresAt).toEqual(new Date('2026-08-03T12:30:00Z'));
@@ -176,15 +160,11 @@ describe('McpCimdClientResolverService', () => {
 
     // MySQL's default collation ignores case, so a lookup can return another client's row.
     it('ignores a stored row whose client_id differs in case', async () => {
-        const otherCasing = makeRow(
-            CLIENT_ID.replace('client', 'CLIENT'),
-            'cimd',
-            new Date('2026-08-03T13:00:00Z'),
-        );
+        const otherCasing = makeRow(CLIENT_ID.replace('client', 'CLIENT'), new Date('2026-08-03T13:00:00Z'));
         const { resolver, repository } = createResolver({ rows: [otherCasing] });
         // Stand in for a case-insensitive comparison: the query matches the case-variant row.
         repository.findOne.mockResolvedValue(otherCasing);
-        fetchMock.mockResolvedValue({ body: documentBody(), cacheMaxAgeSeconds: 300 });
+        fetchMock.mockResolvedValue({ body: documentBody() });
 
         const result = await resolver.resolveClient({} as any, CLIENT_ID);
         expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -217,7 +197,6 @@ describe('McpCimdClientResolverService', () => {
                 client_name: 'Local Client',
                 redirect_uris: ['https://client.example.com/callback'],
             }),
-            cacheMaxAgeSeconds: 300,
         });
         const result = await permissive.resolveClient({} as any, loopbackClientId);
         expect(result.clientName).toBe('Local Client');
@@ -230,7 +209,7 @@ describe('McpCimdClientResolverService', () => {
 
         const first = resolver.resolveClient({} as any, CLIENT_ID);
         const second = resolver.resolveClient({} as any, CLIENT_ID);
-        release({ body: documentBody(), cacheMaxAgeSeconds: 300 });
+        release({ body: documentBody() });
         const [a, b] = await Promise.all([first, second]);
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(a.clientName).toBe('Example MCP Client');

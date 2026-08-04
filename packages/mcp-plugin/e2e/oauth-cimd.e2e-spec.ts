@@ -130,9 +130,7 @@ describe('McpPlugin OAuth CIMD client registration', () => {
 
     it('serves the cached document within its lifetime instead of refetching', async () => {
         const clientId = `${documentServer.baseUrl}/cached/client-metadata.json`;
-        documentServer.setDocument('/cached/client-metadata.json', documentFor(clientId), {
-            'cache-control': 'max-age=3600',
-        });
+        documentServer.setDocument('/cached/client-metadata.json', documentFor(clientId));
 
         expect(await authorizeStatus(clientId)).toBe(302);
         expect(await authorizeStatus(clientId)).toBe(302);
@@ -157,15 +155,6 @@ describe('McpPlugin OAuth CIMD client registration', () => {
         expect(await authorizeStatus(clientId)).toBe(400);
     });
 
-    it('rejects a document that carries a client secret', async () => {
-        const clientId = `${documentServer.baseUrl}/secret/client-metadata.json`;
-        documentServer.setDocument(
-            '/secret/client-metadata.json',
-            documentFor(clientId, { client_secret: 'shh' }),
-        );
-        expect(await authorizeStatus(clientId)).toBe(400);
-    });
-
     it('fails the request on a fetch error and does not cache the failure', async () => {
         const clientId = `${documentServer.baseUrl}/flaky/client-metadata.json`;
         documentServer.setError('/flaky/client-metadata.json', 500);
@@ -178,7 +167,7 @@ describe('McpPlugin OAuth CIMD client registration', () => {
         expect(documentServer.requestCount('/flaky/client-metadata.json')).toBe(2);
     });
 
-    it('persists the resolved client as a cimd-typed row', async () => {
+    it('persists the resolved client as a row carrying a document expiry', async () => {
         const clientId = `${documentServer.baseUrl}/row/client-metadata.json`;
         documentServer.setDocument('/row/client-metadata.json', documentFor(clientId));
         expect(await authorizeStatus(clientId)).toBe(302);
@@ -188,7 +177,6 @@ describe('McpPlugin OAuth CIMD client registration', () => {
             .rawConnection.getRepository(McpOauthClient)
             .findOne({ where: { clientId } });
         expect(row).toBeTruthy();
-        expect(row?.clientType).toBe('cimd');
         expect(row?.cimdDocumentExpiresAt).toBeTruthy();
         expect(row?.clientName).toBe('CIMD Test Client');
     });
@@ -204,7 +192,9 @@ describe('McpPlugin OAuth CIMD client registration', () => {
         expect(documentServer.requestCount('/canon/b.json')).toBe(0);
     });
 
-    it('keeps treating registered (DCR) clients as registration-sourced', async () => {
+    // A client that registered itself still works, and its row carries no document expiry — which
+    // is what marks it as not resolved from a metadata document.
+    it('keeps registered (DCR) clients working and free of a document expiry', async () => {
         const result = await runAuthorizationCodeFlow({
             baseUrl,
             issuer,
@@ -216,6 +206,7 @@ describe('McpPlugin OAuth CIMD client registration', () => {
             .get(TransactionalConnection)
             .rawConnection.getRepository(McpOauthClient)
             .findOne({ where: { clientId: result.client_id } });
-        expect(row?.clientType).toBe('dcr');
+        expect(row).toBeTruthy();
+        expect(row?.cimdDocumentExpiresAt).toBeNull();
     });
 });

@@ -1,6 +1,8 @@
 import { BadRequestException } from '@nestjs/common';
 import { createHash, randomBytes } from 'node:crypto';
 
+import { isLoopbackHostname } from './loopback';
+
 /**
  * Generates a cryptographically random, URL-safe token encoded as base64url
  * (no padding characters). Use this to create authorization codes, state
@@ -46,11 +48,6 @@ export function appendOAuthParams(redirectUri: string, params: Record<string, st
         }
     }
     return url.toString();
-}
-
-export function isLoopbackHostname(hostname: string): boolean {
-    const bare = hostname.replace(/^\[|\]$/g, '').toLowerCase();
-    return bare === 'localhost' || bare === '127.0.0.1' || bare === '::1';
 }
 
 /**

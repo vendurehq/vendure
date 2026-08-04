@@ -16,6 +16,8 @@ import {
 import { AlertTriangleIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+import { isLoopbackHostname } from '../oauth/loopback';
+
 /**
  * Shape returned by the `/mcp/oauth/authorization-request` REST endpoint. Mirrors
  * `AuthorizationRequestInfo` from the OAuth service.
@@ -32,24 +34,16 @@ interface AuthRequestInfo {
 }
 
 /**
- * Extracts the hostname from a redirect URI so it can be shown as the primary
- * trust anchor on the consent screen.
+ * Extracts the hostname from a URI, for the two addresses the consent screen shows as the
+ * things worth recognising: where the authorization code is sent, and where the client's
+ * metadata document was fetched from.
  */
-function redirectHostname(uri: string): string | null {
+function hostnameOf(uri: string): string | null {
     try {
         return new URL(uri).hostname || null;
     } catch {
         return null;
     }
-}
-
-/**
- * Loopback hosts mean "this computer": the redirect could be received by any local app.
- * Browser-side copy of `isLoopbackHostname` in `../oauth/oauth-utils.ts`, which this
- * bundle cannot import because that module depends on NestJS.
- */
-function isLoopbackHost(host: string | null): boolean {
-    return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '[::1]';
 }
 
 function ConsentCard({ requestToken }: { requestToken: string }) {
@@ -133,9 +127,9 @@ function ConsentCard({ requestToken }: { requestToken: string }) {
         );
     }
 
-    const redirectHost = redirectHostname(info.redirect_uri);
+    const redirectHost = hostnameOf(info.redirect_uri);
     const isCimdClient = info.client_id_source === 'cimd';
-    const clientIdHost = isCimdClient ? redirectHostname(info.client_id) : null;
+    const clientIdHost = isCimdClient ? hostnameOf(info.client_id) : null;
 
     return (
         <Card className="w-full max-w-lg">
@@ -174,7 +168,8 @@ function ConsentCard({ requestToken }: { requestToken: string }) {
                     <p className="text-xs text-muted-foreground">
                         <Trans>Approve only if you recognise and trust this exact destination.</Trans>
                     </p>
-                    {isLoopbackHost(redirectHost) ? (
+                    {/* A loopback host means "this computer": any local app could receive the code. */}
+                    {redirectHost != null && isLoopbackHostname(redirectHost) ? (
                         <p className="text-xs font-medium text-amber-700">
                             <Trans>
                                 This destination is on the local machine. Any application running on that

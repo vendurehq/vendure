@@ -104,9 +104,9 @@ and at most 512 characters. It must also already be in the form a URL parser pro
 default port, no `.`/`..` or backslash path segments — because the server fetches exactly the address given and
 compares it against the document character for character. The server fetches the document without following
 redirects, refuses hosts that resolve to private or otherwise special-use addresses, caps the document at 5 KB,
-and caches it per the response's `Cache-Control` header (clamped between 1 minute and 24 hours). The document
-must contain a `client_id` exactly equal to the URL, a `client_name`, and `redirect_uris`; the redirect URI the
-client uses must be listed there exactly.
+and reuses it for one hour before fetching it again. The document must contain a `client_id` exactly equal to the
+URL, a `client_name` of at most 255 characters, and `redirect_uris`; the redirect URI the client uses must be
+listed there exactly.
 
 To develop against a metadata document served from your own machine, set
 `oauth.allowLoopbackCimdDocuments: true`. That permits a `client_id` URL pointing at `localhost`, `127.0.0.1` or

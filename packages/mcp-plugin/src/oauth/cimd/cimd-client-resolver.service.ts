@@ -2,9 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { RequestContext, TransactionalConnection } from '@vendure/core';
 
 import {
-    CIMD_CACHE_DEFAULT_SECONDS,
-    CIMD_CACHE_MAX_SECONDS,
-    CIMD_CACHE_MIN_SECONDS,
+    CIMD_CACHE_TTL_SECONDS,
     CIMD_FETCH_TIMEOUT_MS,
     CIMD_MAX_DOCUMENT_BYTES,
     MCP_PLUGIN_OPTIONS,
@@ -16,12 +14,6 @@ import { addSeconds } from '../oauth-utils';
 import { CimdDocument, parseCimdDocument } from './cimd-document';
 import { fetchCimdDocument } from './cimd-fetch';
 import { validateCimdClientIdUrl } from './cimd-url';
-
-/** A validated document together with the cache lifetime its HTTP response asked for. */
-interface FetchedCimdDocument {
-    document: CimdDocument;
-    cacheMaxAgeSeconds: number | undefined;
-}
 
 /**
  * Resolves a URL-shaped client_id into an {@link McpOauthClient} row by fetching and
@@ -38,7 +30,7 @@ export class McpCimdClientResolverService {
      * fetched document rather than the stored row, so each caller writes its own row using its
      * own request context.
      */
-    private inFlight = new Map<string, Promise<FetchedCimdDocument>>();
+    private inFlight = new Map<string, Promise<CimdDocument>>();
 
     constructor(
         private connection: TransactionalConnection,
@@ -54,16 +46,12 @@ export class McpCimdClientResolverService {
         if (cached && this.isFresh(cached)) {
             return cached;
         }
-        const fetched = await this.resolveDocument(clientId, url, allowLoopback);
-        return this.storeDocument(ctx, clientId, fetched);
+        const document = await this.resolveDocument(clientId, url, allowLoopback);
+        return this.storeDocument(ctx, clientId, document);
     }
 
     /** Fetches and validates the document, sharing one request with any concurrent caller. */
-    private resolveDocument(
-        clientId: string,
-        url: URL,
-        allowLoopback: boolean,
-    ): Promise<FetchedCimdDocument> {
+    private resolveDocument(clientId: string, url: URL, allowLoopback: boolean): Promise<CimdDocument> {
         const running = this.inFlight.get(clientId);
         if (running) {
             return running;
@@ -79,25 +67,21 @@ export class McpCimdClientResolverService {
         clientId: string,
         url: URL,
         allowLoopback: boolean,
-    ): Promise<FetchedCimdDocument> {
+    ): Promise<CimdDocument> {
         const fetched = await fetchCimdDocument(url, {
             timeoutMs: CIMD_FETCH_TIMEOUT_MS,
             maxBytes: CIMD_MAX_DOCUMENT_BYTES,
             allowLoopback,
         });
-        return {
-            document: parseCimdDocument(clientId, fetched.body),
-            cacheMaxAgeSeconds: fetched.cacheMaxAgeSeconds,
-        };
+        return parseCimdDocument(clientId, fetched.body);
     }
 
     /** Writes the validated document to its client row, creating the row the first time. */
     private async storeDocument(
         ctx: RequestContext,
         clientId: string,
-        fetched: FetchedCimdDocument,
+        document: CimdDocument,
     ): Promise<McpOauthClient> {
-        const { document } = fetched;
         const repository = this.connection.getRepository(ctx, McpOauthClient);
         let client = await this.findClientRow(ctx, clientId);
         if (!client) {
@@ -105,14 +89,13 @@ export class McpCimdClientResolverService {
             client.clientId = clientId;
             client.lastUsedAt = null;
         }
-        client.clientType = 'cimd';
         client.clientName = document.clientName;
         client.clientUri = document.clientUri;
         client.logoUri = document.logoUri;
         client.redirectUris = document.redirectUris;
         client.grantTypes = document.grantTypes;
         client.tokenEndpointAuthMethod = document.tokenEndpointAuthMethod;
-        client.cimdDocumentExpiresAt = addSeconds(new Date(), this.clampLifetime(fetched.cacheMaxAgeSeconds));
+        client.cimdDocumentExpiresAt = addSeconds(new Date(), CIMD_CACHE_TTL_SECONDS);
         try {
             return await repository.save(client);
         } catch (error) {
@@ -128,22 +111,23 @@ export class McpCimdClientResolverService {
         }
     }
 
+    /**
+     * Loads the row for exactly this client_id. The database comparison can be case-insensitive —
+     * that is MySQL's default — while a CIMD client_id is identified by its exact characters, so a
+     * row that merely differs in case belongs to a different client and must not be read or
+     * overwritten.
+     */
     private async findClientRow(ctx: RequestContext, clientId: string): Promise<McpOauthClient | undefined> {
         const row = await this.connection.getRepository(ctx, McpOauthClient).findOne({ where: { clientId } });
         return row?.clientId === clientId ? row : undefined;
     }
 
+    /**
+     * Only a row this service wrote has an expiry, so the expiry alone identifies a usable cached
+     * document; a registered (DCR) row never reaches here, because the OAuth service routes URL
+     * client_ids to this service and everything else to its own lookup.
+     */
     private isFresh(client: McpOauthClient): boolean {
-        return (
-            client.clientType === 'cimd' &&
-            client.cimdDocumentExpiresAt != null &&
-            client.cimdDocumentExpiresAt > new Date()
-        );
-    }
-
-    /** Applies the server-side bounds (§5.2) to the document's Cache-Control lifetime. */
-    private clampLifetime(maxAgeSeconds: number | undefined): number {
-        const requested = maxAgeSeconds ?? CIMD_CACHE_DEFAULT_SECONDS;
-        return Math.min(CIMD_CACHE_MAX_SECONDS, Math.max(CIMD_CACHE_MIN_SECONDS, requested));
+        return client.cimdDocumentExpiresAt != null && client.cimdDocumentExpiresAt > new Date();
     }
 }

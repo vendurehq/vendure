@@ -126,7 +126,6 @@ export class McpOauthService {
                 redirectUris: input.redirect_uris,
                 grantTypes: input.grant_types ?? ['authorization_code', 'refresh_token'],
                 tokenEndpointAuthMethod: input.token_endpoint_auth_method ?? 'none',
-                clientType: 'dcr',
                 cimdDocumentExpiresAt: null,
                 lastUsedAt: null,
             }),
@@ -245,7 +244,9 @@ export class McpOauthService {
         const client = request.oauthClient;
         return {
             client_id: client.clientId,
-            client_id_source: client.clientType,
+            // A URL client_id is one this server fetched a metadata document from; anything else
+            // is a token it issued at registration.
+            client_id_source: isUrlClientId(client.clientId) ? 'cimd' : 'dcr',
             client_name: client.clientName,
             ...(client.clientUri ? { client_uri: client.clientUri } : {}),
             ...(client.logoUri ? { logo_uri: client.logoUri } : {}),

@@ -3,7 +3,7 @@ import * as http from 'http';
 import { AddressInfo } from 'net';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { fetchCimdDocument, isAllowedCimdAddress, parseCacheMaxAge } from './cimd-fetch';
+import { fetchCimdDocument, isAllowedCimdAddress } from './cimd-fetch';
 
 type Handler = (req: http.IncomingMessage, res: http.ServerResponse) => void;
 
@@ -25,15 +25,13 @@ afterEach(async () => {
 const baseOptions = { timeoutMs: 2000, maxBytes: 5 * 1024, allowLoopback: true };
 
 describe('fetchCimdDocument', () => {
-    it('returns the body and the Cache-Control max-age of a 200 JSON response', async () => {
+    it('returns the body of a 200 JSON response', async () => {
         const url = await startServer((req, res) => {
             res.setHeader('content-type', 'application/json');
-            res.setHeader('cache-control', 'public, max-age=120');
             res.end('{"ok":true}');
         });
         const result = await fetchCimdDocument(url, baseOptions);
         expect(result.body).toBe('{"ok":true}');
-        expect(result.cacheMaxAgeSeconds).toBe(120);
     });
 
     it('accepts application/*+json content types', async () => {
@@ -155,22 +153,5 @@ describe('isAllowedCimdAddress', () => {
     it('allows ordinary public addresses', () => {
         expect(isAllowedCimdAddress('93.184.216.34', 4, false)).toBe(true);
         expect(isAllowedCimdAddress('2606:2800:220:1:248:1893:25c8:1946', 6, false)).toBe(true);
-    });
-});
-
-describe('parseCacheMaxAge', () => {
-    it('reads max-age from a Cache-Control header', () => {
-        expect(parseCacheMaxAge('public, max-age=300')).toBe(300);
-        expect(parseCacheMaxAge('max-age="600"')).toBe(600);
-    });
-
-    it('returns 0 for no-store / no-cache responses', () => {
-        expect(parseCacheMaxAge('no-store')).toBe(0);
-        expect(parseCacheMaxAge('no-cache, max-age=500')).toBe(0);
-    });
-
-    it('returns undefined when absent or unparseable', () => {
-        expect(parseCacheMaxAge(undefined)).toBeUndefined();
-        expect(parseCacheMaxAge('private')).toBeUndefined();
     });
 });

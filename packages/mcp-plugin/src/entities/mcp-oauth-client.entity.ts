@@ -43,12 +43,9 @@ export class McpOauthClient extends VendureEntity {
     tokenEndpointAuthMethod: string;
 
     /**
-     * How the record came to exist: `'dcr'` for Dynamic Client Registration, `'cimd'` for a
-     * client resolved from a client_id metadata document URL.
+     * When the fetched metadata document stops being reused and is fetched again. Set only for a
+     * client resolved from a metadata document (CIMD) URL; null for one that registered itself.
      */
-    @Column({ default: 'dcr' })
-    clientType: 'dcr' | 'cimd';
-
     @Column({ type: Date, nullable: true })
     cimdDocumentExpiresAt: Date | null;
 

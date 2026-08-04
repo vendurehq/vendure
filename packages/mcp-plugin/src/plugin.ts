@@ -32,7 +32,7 @@ import {
 } from './entities';
 import { McpToolCallLogService } from './logging/mcp-tool-call-log.service';
 import { McpCimdClientResolverService } from './oauth/cimd/cimd-client-resolver.service';
-import { isLoopbackHostname } from './oauth/oauth-utils';
+import { isLoopbackHostname } from './oauth/loopback';
 import { McpOauthController } from './oauth/oauth.controller';
 import { McpOauthService } from './oauth/oauth.service';
 import { McpRateLimiterService } from './rate-limit/mcp-rate-limiter.service';
