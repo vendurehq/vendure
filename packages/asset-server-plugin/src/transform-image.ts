@@ -24,6 +24,12 @@ export async function transformImage(
     }
 
     const image = sharp(originalImage).rotate();
+
+    // Merge alpha transparency channel with the specified background color
+    if (parameters.backgroundColor) {
+        image.flatten({ background: parameters.backgroundColor });
+    }
+
     try {
         await applyFormat(image, parameters.format, parameters.quality);
     } catch (e: any) {
