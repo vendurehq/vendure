@@ -114,7 +114,7 @@ import { McpPluginOptions, McpRateLimitOptions } from './types';
         );
         return config;
     },
-    compatibility: '^3.7.0',
+    compatibility: '^3.8.0',
 })
 export class McpPlugin implements OnApplicationBootstrap {
     static options: McpPluginOptions;
