@@ -30,6 +30,7 @@ const SEARCH_TOOLS = 'search_tools';
 const EXECUTE_TOOL = 'execute_tool';
 const RESERVED_META_TOOL_NAMES: readonly string[] = [SEARCH_TOOLS, EXECUTE_TOOL];
 const NO_ARGS_SCHEMA: McpJsonSchema = { type: 'object', properties: {}, additionalProperties: false };
+const ALL_TOOLSETS: readonly McpToolset[] = ['shop', 'admin'];
 
 /**
  * @description
@@ -98,9 +99,10 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             return this.searchTools(executionContext, toolset, input);
         }
         if (name === EXECUTE_TOOL) {
-            return this.executeToolViaDiscovery(executionContext, toolset, input);
+            return this.callToolFromEnvelope(executionContext, toolset, input);
         }
-        return this.callRegisteredTool(executionContext, toolset, name, input);
+        // The SDK already validated `input` against the registered wire schema.
+        return this.callRegisteredTool(executionContext, toolset, name, input, false);
     }
 
     /**
@@ -141,7 +143,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         tool: Pick<McpRegisteredTool, 'toolset' | 'name'>,
         toggles: Record<string, boolean>,
     ): boolean {
-        return toggles[this.toolToggleKey(tool.toolset, tool.name)] !== false;
+        return toggles[this.toolKey(tool.toolset, tool.name)] !== false;
     }
 
     /** Enables or disables a tool. Writes the one canonical key. */
@@ -152,7 +154,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         enabled: boolean,
     ): Promise<void> {
         const toggles = await this.getToolToggles(ctx);
-        toggles[this.toolToggleKey(toolset, name)] = enabled;
+        toggles[this.toolKey(toolset, name)] = enabled;
         await this.settingsStoreService.set(ctx, MCP_TOOL_TOGGLES_STORE_KEY, toggles);
     }
 
@@ -164,23 +166,23 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         this.tools.clear();
         for (const wrapper of this.discoveryService.getProviders()) {
             const metadata = this.discoveryService.getMetadataByDecorator(McpTool, wrapper);
-            const instance = wrapper.instance as Partial<McpPluginToolHandler> | undefined;
+            const instance = wrapper.instance as unknown;
             if (!metadata || !instance) {
                 continue;
             }
-            if (typeof instance.execute !== 'function') {
+            if (!this.isToolHandler(instance)) {
                 throw new Error(
                     `MCP tool provider ${String(wrapper.name ?? metadata.name)} must implement execute()`,
                 );
             }
-            const entry = this.buildRegisteredTool(
-                metadata,
-                instance as McpPluginToolHandler,
-                this.getPluginSource(wrapper),
-            );
+            const entry = this.buildRegisteredTool(metadata, instance, this.getPluginSource(wrapper));
             this.registerTool(entry);
         }
         Logger.info(`Discovered ${this.tools.size} MCP tools`, loggerCtx);
+    }
+
+    private isToolHandler(instance: unknown): instance is McpPluginToolHandler {
+        return typeof (instance as Partial<McpPluginToolHandler>)?.execute === 'function';
     }
 
     /**
@@ -212,7 +214,15 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                     `"confirm" property — the registry injects it.`,
             );
         }
-        const entry: McpRegisteredTool = {
+        const compiledInputSchema = this.compileSchema(
+            this.wireInputSchema({ resolvedBehavior, jsonInputSchema }),
+            `${metadata.name} inputSchema`,
+            pluginSource,
+        );
+        const compiledOutputSchema = metadata.outputSchema
+            ? this.compileSchema(metadata.outputSchema, `${metadata.name} outputSchema`, pluginSource)
+            : undefined;
+        return {
             ...metadata,
             handler,
             pluginSource,
@@ -220,21 +230,9 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             annotations: this.deriveAnnotations(metadata, resolvedBehavior),
             jsonInputSchema,
             jsonOutputSchema: metadata.outputSchema,
-            compiledInputSchema: undefined as unknown as StandardSchemaWithJSON,
+            compiledInputSchema,
+            compiledOutputSchema,
         };
-        entry.compiledInputSchema = this.compileSchema(
-            this.wireInputSchema(entry),
-            `${metadata.name} inputSchema`,
-            pluginSource,
-        );
-        if (entry.jsonOutputSchema) {
-            entry.compiledOutputSchema = this.compileSchema(
-                entry.jsonOutputSchema,
-                `${metadata.name} outputSchema`,
-                pluginSource,
-            );
-        }
-        return entry;
     }
 
     private compileSchema(
@@ -276,7 +274,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         toolset: McpToolset,
         name: string,
         input: unknown,
-        validateInput = false,
+        validateInput: boolean,
     ): Promise<CallToolResult> {
         const ctx = executionContext.ctx;
         // Rate limit FIRST. This is the only rate gate for tools/call (the controller handshake
@@ -351,20 +349,19 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     }
 
     /**
-     * Discovery-path execution. Routes through the shared funnel with inner-argument validation
-     * enabled: the funnel rate-limits FIRST (so an unknown name or invalid arguments still consumes
-     * the shared buckets — the discovery path must not be a rate-limit-free hammer) and then
+     * Unwraps an `execute_tool` envelope and routes through the shared funnel with inner-argument
+     * validation enabled: the funnel rate-limits FIRST (so an unknown name or invalid arguments still
+     * consumes the shared buckets — the discovery path must not be a rate-limit-free hammer) and then
      * re-validates the inner arguments against the target tool's wire schema (the SDK validated only
      * the `execute_tool` envelope). No early returns here would bypass that gate.
      */
-    private async executeToolViaDiscovery(
+    private async callToolFromEnvelope(
         executionContext: McpExecutionContext,
         toolset: McpToolset,
         input: unknown,
     ): Promise<CallToolResult> {
-        const params = (input ?? {}) as { name?: unknown; arguments?: unknown };
-        const name = typeof params.name === 'string' ? params.name : '';
-        return this.callRegisteredTool(executionContext, toolset, name, params.arguments ?? {}, true);
+        const { name, arguments: args } = input as { name: string; arguments?: Record<string, unknown> };
+        return this.callRegisteredTool(executionContext, toolset, name, args ?? {}, true);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -428,7 +425,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
 
     private buildSearchIndexes(): Map<McpToolset, Bm25Index> {
         const indexes = new Map<McpToolset, Bm25Index>();
-        for (const toolset of ['shop', 'admin'] as McpToolset[]) {
+        for (const toolset of ALL_TOOLSETS) {
             const entries = [...this.tools.values()]
                 .filter(tool => tool.toolset === toolset)
                 .map(tool => ({ id: tool.name, text: this.searchDocText(tool) }));
@@ -542,7 +539,9 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     }
 
     /** Augments a destructive tool's WIRE schema with an optional `confirm`, on a clone (never the SSOT). */
-    private wireInputSchema(tool: McpRegisteredTool): McpJsonSchema {
+    private wireInputSchema(
+        tool: Pick<McpRegisteredTool, 'resolvedBehavior' | 'jsonInputSchema'>,
+    ): McpJsonSchema {
         if (tool.resolvedBehavior !== 'destructive') {
             return tool.jsonInputSchema;
         }
@@ -614,11 +613,11 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         return wrapper.host?.metatype?.name ?? String(wrapper.name ?? 'unknown');
     }
 
+    /**
+     * Canonical `${toolset}:${name}` key. Used both as the in-memory registry key and as the
+     * PERSISTED key in the tool-toggle settings map — changing the format orphans stored toggles.
+     */
     private toolKey(toolset: McpToolset, name: string): string {
-        return `${toolset}:${name}`;
-    }
-
-    private toolToggleKey(toolset: McpToolset, name: string): string {
         return `${toolset}:${name}`;
     }
 
