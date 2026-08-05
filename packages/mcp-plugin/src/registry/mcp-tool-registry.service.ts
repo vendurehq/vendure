@@ -44,7 +44,9 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     private readonly tools = new Map<string, McpRegisteredTool>();
     private discoveryMetaTools: McpExposedTool[] = [];
     private bm25 = new Map<McpToolset, Bm25Index>();
-    private readonly toggleCache = new WeakMap<RequestContext, Record<string, boolean>>();
+    // Not readonly: a toggle write must be visible to every live RequestContext, not just the one
+    // that made the write, so `setToolEnabled` replaces this whole map rather than patching one entry.
+    private toggleCache = new WeakMap<RequestContext, Record<string, boolean>>();
 
     constructor(
         private discoveryService: DiscoveryService,
@@ -175,6 +177,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         const toggles = await this.getToolToggles(ctx);
         toggles[this.toolKey(toolset, name)] = enabled;
         await this.settingsStoreService.set(ctx, MCP_TOOL_TOGGLES_STORE_KEY, toggles);
+        this.toggleCache = new WeakMap();
         this.toggleCache.set(ctx, toggles);
     }
 

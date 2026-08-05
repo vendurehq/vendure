@@ -205,6 +205,19 @@ describe('McpToolRegistryService', () => {
 
             expect(settingsStoreService.get).toHaveBeenCalledTimes(2);
         });
+
+        it('makes a write from one ctx visible to another ctx that already cached toggles', async () => {
+            const { service } = build([wrapper(shopTool())]);
+            service.onApplicationBootstrap();
+            const ctxA = makeCtx();
+            const ctxB = makeCtx();
+
+            // ctxA populates its cache entry before ctxB writes.
+            await service.getToolToggles(ctxA);
+            await service.setToolEnabled(ctxB, 'shop', 'get_thing', false);
+
+            expect(await service.getToolToggles(ctxA)).toEqual({ 'shop:get_thing': false });
+        });
     });
 
     describe('exposure modes', () => {
