@@ -30,23 +30,31 @@ const awesomeClient = new AwesomeGraphQLClient({
             headers.set(uiConfig.api.channelTokenKey, channelToken);
         }
 
-        // Get the content language from user settings and add as query parameter
+        // The two languages answer different questions, so they travel separately: the content
+        // language says which translation of the data to return, while the display language says
+        // which language to write the server's own descriptions and labels in. Sending the display
+        // language explicitly also stops the browser's own Accept-Language, which reflects the OS
+        // locale rather than anything chosen here, from deciding it instead.
         let finalUrl = url;
         try {
             const userSettings = localStorage.getItem(LS_KEY_USER_SETTINGS);
             if (userSettings) {
                 const settings = JSON.parse(userSettings);
                 const contentLanguage = settings.contentLanguage;
+                const displayLanguage = settings.displayLanguage;
 
                 if (contentLanguage) {
                     const urlObj = new URL(finalUrl);
                     urlObj.searchParams.set('languageCode', contentLanguage);
                     finalUrl = urlObj.toString();
                 }
+                if (displayLanguage) {
+                    headers.set('Accept-Language', displayLanguage.replace(/_/g, '-'));
+                }
             }
         } catch (error) {
             // eslint-disable-next-line no-console
-            console.warn('Failed to read content language from user settings:', error);
+            console.warn('Failed to read languages from user settings:', error);
         }
 
         return fetch(finalUrl, {

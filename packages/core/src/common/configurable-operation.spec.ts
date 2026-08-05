@@ -59,9 +59,14 @@ function createOperation(
     return operation;
 }
 
-function createRequestContext(languageCode: LanguageCode, channelLanguageCode = LanguageCode.en) {
+function createRequestContext(
+    languageCode: LanguageCode,
+    channelLanguageCode = LanguageCode.en,
+    acceptedLanguageCodes: LanguageCode[] = [],
+) {
     return {
         languageCode,
+        acceptedLanguageCodes,
         channel: { defaultLanguageCode: channelLanguageCode },
     } as unknown as RequestContext;
 }
@@ -302,6 +307,83 @@ describe('ConfigurableOperationDef', () => {
             expect(operation.toGraphQlType(createRequestContext(LanguageCode.en)).args[0].ui).toEqual({
                 component: 'currency-form-input',
             });
+        });
+    });
+
+    describe('reader language', () => {
+        // These strings describe the operation rather than the data, so they belong in the language
+        // the client asked to read, not the language of the content it happens to be editing.
+        it('prefers an accepted language over the content language', () => {
+            const operation = createOperation(
+                { description: inlineDescription },
+                stubTranslator({
+                    ja: catalogDescription('Catalog Japanese'),
+                    de: catalogDescription('Catalog German'),
+                }),
+            );
+
+            const ctx = createRequestContext(LanguageCode.de, LanguageCode.en, [LanguageCode.ja]);
+            expect(operation.toGraphQlType(ctx).description).toBe('Catalog Japanese');
+        });
+
+        it('tries the accepted languages in order', () => {
+            const operation = createOperation(
+                { description: inlineDescription },
+                stubTranslator({ fr: catalogDescription('Catalog French') }),
+            );
+
+            const ctx = createRequestContext(LanguageCode.en, LanguageCode.en, [
+                LanguageCode.ja,
+                LanguageCode.fr,
+            ]);
+            expect(operation.toGraphQlType(ctx).description).toBe('Catalog French');
+        });
+
+        it('falls back to the content language when no accepted language resolves', () => {
+            const operation = createOperation(
+                { description: inlineDescription },
+                stubTranslator({ de: catalogDescription('Catalog German') }),
+            );
+
+            const ctx = createRequestContext(LanguageCode.de, LanguageCode.en, [LanguageCode.ja]);
+            expect(operation.toGraphQlType(ctx).description).toBe('Catalog German');
+        });
+
+        it('resolves an arg label against the accepted language', () => {
+            const operation = createOperation(
+                { argLabel: [{ languageCode: LanguageCode.en, value: 'Inline label' }] },
+                stubTranslator({
+                    ja: {
+                        ShippingCalculator: {
+                            'test-calculator': { args: { rate: { label: 'Catalog Japanese label' } } },
+                        },
+                    },
+                }),
+            );
+
+            const ctx = createRequestContext(LanguageCode.de, LanguageCode.en, [LanguageCode.ja]);
+            expect(operation.toGraphQlType(ctx).args[0].label).toBe('Catalog Japanese label');
+        });
+
+        it('merges an option label under the accepted language, which is where the client looks', () => {
+            const operation = createOperation(
+                { optionLabel: [{ languageCode: LanguageCode.en, value: 'Inline option' }] },
+                stubTranslator({
+                    ja: {
+                        ShippingCalculator: {
+                            'test-calculator': {
+                                args: { rate: { options: { auto: { label: 'Catalog Japanese option' } } } },
+                            },
+                        },
+                    },
+                }),
+            );
+
+            const ctx = createRequestContext(LanguageCode.de, LanguageCode.en, [LanguageCode.ja]);
+            expect(operation.toGraphQlType(ctx).args[0].ui.options[0].label).toEqual([
+                { languageCode: LanguageCode.en, value: 'Inline option' },
+                { languageCode: LanguageCode.ja, value: 'Catalog Japanese option' },
+            ]);
         });
     });
 

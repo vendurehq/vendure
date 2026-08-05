@@ -559,11 +559,7 @@ export class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
         ctx: RequestContext,
         keyPath: string[],
     ): string | undefined {
-        for (const languageCode of [
-            ctx.languageCode,
-            ctx.channel.defaultLanguageCode,
-            DEFAULT_LANGUAGE_CODE,
-        ]) {
+        for (const languageCode of this.languagePreference(ctx)) {
             // Truthiness, not a null check: an empty catalog entry means "not translated yet", the
             // same as it does in the .po catalogs, so it falls through rather than blanking the
             // string. A catalog therefore cannot be used to remove an inline string.
@@ -577,6 +573,24 @@ export class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
             }
         }
         return inline?.[0]?.value;
+    }
+
+    /**
+     * The languages to try, in order, when resolving a string which the administrator reads.
+     *
+     * These strings describe the operation itself rather than any of the data it acts on, so the
+     * language they belong in is the one the client asked to read, which it states in its
+     * `Accept-Language` header. `ctx.languageCode` selects a translation of the *content* and is
+     * only consulted after that, so that a client which sends no header behaves as it always has.
+     */
+    private languagePreference(ctx: RequestContext): LanguageCode[] {
+        return [
+            // Defensive: a hand-rolled RequestContext, as plugin tests often use, has no such field.
+            ...(ctx.acceptedLanguageCodes ?? []),
+            ctx.languageCode,
+            ctx.channel.defaultLanguageCode,
+            DEFAULT_LANGUAGE_CODE,
+        ];
     }
 
     /** Reads a single string out of the message catalogs, or undefined if the key is not set. */
@@ -595,10 +609,9 @@ export class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
      * Merges any catalog translation of a select option's label into the arg's `ui` config.
      *
      * Option labels stay as a full LocalizedStringArray rather than being resolved to one string
-     * like the operation description and the arg labels are. The Admin UI picks the option label
-     * matching the administrator's display language, which is a different setting from the content
-     * language sent with the request, so resolving to the request language here would give an
-     * administrator whose two settings differ the wrong string.
+     * like the operation description and the arg labels are, because the Admin UI picks the option
+     * label itself. The translation is therefore merged in under the language it was found for,
+     * which is the language the client will look for it under.
      *
      * The result is a copy, and the original is returned untouched when there is nothing to merge.
      * `ui` belongs to the long-lived config object shared by every request, so merging in place
@@ -615,22 +628,25 @@ export class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
         }
         let merged = false;
         const localized = options.map(option => {
-            const fromCatalog = this.lookupCatalog(ctx.languageCode, [
-                'args',
-                argName,
-                'options',
-                option.value,
-                'label',
-            ]);
-            if (!fromCatalog) {
-                return option;
+            for (const languageCode of this.languagePreference(ctx)) {
+                const fromCatalog = this.lookupCatalog(languageCode, [
+                    'args',
+                    argName,
+                    'options',
+                    option.value,
+                    'label',
+                ]);
+                if (!fromCatalog) {
+                    continue;
+                }
+                merged = true;
+                const others = (option.label ?? []).filter(x => x.languageCode !== languageCode);
+                return {
+                    ...option,
+                    label: [...others, { languageCode, value: fromCatalog }],
+                };
             }
-            merged = true;
-            const others = (option.label ?? []).filter(x => x.languageCode !== ctx.languageCode);
-            return {
-                ...option,
-                label: [...others, { languageCode: ctx.languageCode, value: fromCatalog }],
-            };
+            return option;
         });
         return merged ? { ...(ui as any), options: localized } : ui;
     }

@@ -214,9 +214,21 @@ export class MyPlugin implements OnApplicationBootstrap {
 }
 ```
 
-When a string is resolved, each language in turn — the requested language, then the Channel's default language, then English — is looked up first in the catalogs and then in the inline array. A catalog entry therefore wins over an inline string for the same language, which is what allows a third-party operation's wording to be overridden. An operation which ships only inline strings still resolves to its own language rather than to somebody else's English catalog entry.
+### Which language these strings are resolved into
 
-Select option labels behave slightly differently. The description and the arg labels arrive at the client already resolved to one string, but option labels are sent as the full array with the catalog translation merged in. This is because the Admin UI picks the option label matching the administrator's display language, which is a separate setting from the content language sent with the request, so the other languages have to survive the round trip.
+These strings describe the operation itself, so the language they belong in is the one the administrator reads, which is not the same question as which translation of the data to return.
+
+Vendure takes the two from different places. The `languageCode` query parameter selects the translation of the *content* — the product name, the Collection description. The `Accept-Language` header states which language the *response's own text* should be written in, which is what these descriptions and labels are. An administrator reading the Admin UI in Japanese while editing the German translation of a product sends `?languageCode=de` with `Accept-Language: ja`, and gets German product data described by Japanese labels.
+
+A client which sends no `Accept-Language` header behaves as it always has, falling back to `languageCode`.
+
+The full order tried, for each language in turn, is the languages from `Accept-Language` in the order the header gives them, then the request's `languageCode`, then the Channel's default language, then English. Each is looked up first in the catalogs and then in the inline array. A catalog entry therefore wins over an inline string for the same language, which is what allows a third-party operation's wording to be overridden. An operation which ships only inline strings still resolves to its own language rather than to somebody else's English catalog entry.
+
+Select option labels behave slightly differently. The description and the arg labels arrive at the client already resolved to one string, but option labels are sent as the full array with the catalog translation merged in under the language it was found for, because the Admin UI picks the matching option label itself.
+
+:::note
+If you are building your own Admin API client, send `Accept-Language` to control these strings. Setting it explicitly also matters in a browser, because the browser sends its own `Accept-Language` from the operating system locale, which is not necessarily the language your interface is being displayed in.
+:::
 
 :::note
 A key which matches no operation is never read, so a mistyped key produces no error — the inline string is used instead and the mistake is silent. Call `getTranslationKeys()` on the operation, which returns the exact key paths it expects.

@@ -2,7 +2,7 @@
 title: "RequestContext"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/api/common/request-context.ts" sourceLine="179" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/api/common/request-context.ts" sourceLine="180" packageName="@vendure/core" />
 
 The RequestContext holds information relevant to the current request, which may be
 required at various points of the stack.
@@ -51,6 +51,7 @@ class RequestContext {
     channel: Channel
     channelId: ID
     languageCode: LanguageCode
+    acceptedLanguageCodes: LanguageCode[]
     currencyCode: CurrencyCode
     session: CachedSession | undefined
     activeUserId: ID | undefined
@@ -150,6 +151,22 @@ The active [Channel](/reference/typescript-api/entities/channel#channel) of this
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>`}   />
 
 
+### acceptedLanguageCodes
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/language-code#languagecode'>LanguageCode</a>[]`}  since="3.8.0"  />
+
+The languages the client asked to read this response in, most preferred first, taken from the
+`Accept-Language` header. Empty when the client sent no header.
+
+This is a separate question from `RequestContext.languageCode`, which selects *which
+translation of the data* to return. These codes select *which language the response's own
+text is written in* — the descriptions and labels Vendure defines itself. The two differ for
+an administrator who is, say, reading the Admin UI in Japanese while editing the German
+translation of a product.
+
+A code here is not guaranteed to be a member of the [LanguageCode](/reference/typescript-api/common/language-code#languagecode) enum, for the same
+reason `languageCode` is not: custom codes are permitted. Treat a code with no translation
+behind it as a miss and fall back.
 ### currencyCode
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/currency-code#currencycode'>CurrencyCode</a>`}   />
