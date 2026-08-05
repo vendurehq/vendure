@@ -1,4 +1,4 @@
-import { LanguageCode, mergeConfig } from '@vendure/core';
+import { defaultShippingCalculator, LanguageCode, mergeConfig } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import gql from 'graphql-tag';
 import path from 'path';
@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { testConfig, TEST_SETUP_TIMEOUT_MS } from '../../../e2e-common/test-config';
+import * as JA from '../src/i18n/messages/ja.json';
 
 import * as DE from './fixtures/i18n/de.json';
 import * as EN from './fixtures/i18n/en.json';
@@ -128,6 +129,31 @@ describe('Translation', () => {
             expect(calculator.args[0].ui.options[0].label).toEqual([
                 { languageCode: LanguageCode.en, value: 'Automatic' },
             ]);
+        });
+
+        it("resolves a core operation against core's own shipped catalog", async () => {
+            // Japanese exists only in the catalog, so a key path which no longer matches the
+            // operation resolves to English instead of failing, and would go unnoticed.
+            const { shippingCalculators } = await adminClient.query(
+                gql(SHIPPING_CALCULATORS),
+                {},
+                { languageCode: LanguageCode.ja },
+            );
+            const calculator = shippingCalculators.find(
+                (c: any) => c.code === defaultShippingCalculator.code,
+            );
+            const ja = JA.configurableOperation.ShippingCalculator['default-shipping-calculator'];
+
+            expect(calculator.description).toBe(ja.description);
+            expect(calculator.args.find((a: any) => a.name === 'rate').label).toBe(ja.args.rate.label);
+            expect(calculator.args.find((a: any) => a.name === 'includesTax').ui.options).toContainEqual(
+                expect.objectContaining({
+                    value: 'auto',
+                    label: expect.arrayContaining([
+                        { languageCode: LanguageCode.ja, value: ja.args.includesTax.options.auto.label },
+                    ]),
+                }),
+            );
         });
     });
 });

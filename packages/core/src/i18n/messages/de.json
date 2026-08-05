@@ -113,5 +113,202 @@
     "payment-method-used-in-channels": "Die gewählte Zahlungsmethode wird von den folgenden Kanälen verwendet: { channelCodes }. Mit \"force: true\" wird sie von allen Kanälen entfernt.",
     "zone-used-in-channels": "Die ausgewählte Zone kann nicht gelöscht werden, da sie als Standard in den folgenden Kanälen verwendet wird: { channelCodes }",
     "zone-used-in-tax-rates": "Die ausgewählte Zone kann nicht gelöscht werden, da sie in den folgenden Steuersätzen verwendet wird: { taxRateNames }"
+  },
+  "configurableOperation": {
+    "CollectionFilter": {
+      "facet-value-filter": {
+        "description": "Nach Facetten-Werten filtern",
+        "args": {
+          "facetValueIds": {
+            "label": "Facetten-Werte"
+          },
+          "containsAny": {
+            "label": "Enthält einen beliebigen Wert",
+            "description": "Wenn aktiviert, müssen Produktvarianten mindestens einen der ausgewählten Facetten-Werte besitzen. Wenn nicht aktiviert, muss die Variante alle ausgewählten Werte besitzen."
+          },
+          "combineWithAnd": {
+            "label": "Kombinationsmodus",
+            "description": "Wenn dieser Filter mit anderen Filtern kombiniert wird: Müssen alle Bedingungen erfüllt sein (AND) oder nur eine von ihnen (OR)?"
+          }
+        }
+      },
+      "variant-name-filter": {
+        "description": "Nach Produktvariantennamen filtern",
+        "args": {
+          "combineWithAnd": {
+            "label": "Kombinationsmodus",
+            "description": "Wenn dieser Filter mit anderen Filtern kombiniert wird: Müssen alle Bedingungen erfüllt sein (AND) oder nur eine von ihnen (OR)?"
+          }
+        }
+      },
+      "variant-id-filter": {
+        "description": "Produktvarianten manuell auswählen",
+        "args": {
+          "variantIds": {
+            "label": "Produktvarianten"
+          },
+          "combineWithAnd": {
+            "label": "Kombinationsmodus",
+            "description": "Wenn dieser Filter mit anderen Filtern kombiniert wird: Müssen alle Bedingungen erfüllt sein (AND) oder nur eine von ihnen (OR)?"
+          }
+        }
+      },
+      "product-id-filter": {
+        "description": "Produkte manuell auswählen",
+        "args": {
+          "productIds": {
+            "label": "Produkte"
+          },
+          "combineWithAnd": {
+            "label": "Kombinationsmodus",
+            "description": "Wenn dieser Filter mit anderen Filtern kombiniert wird: Müssen alle Bedingungen erfüllt sein (AND) oder nur eine von ihnen (OR)?"
+          }
+        }
+      }
+    },
+    "EntityDuplicator": {
+      "product-duplicator": {
+        "description": "Standard-Duplikator für Produkte",
+        "args": {
+          "includeVariants": {
+            "label": "Varianten einbeziehen"
+          }
+        }
+      },
+      "collection-duplicator": {
+        "description": "Standard-Duplikator für Sammlungen"
+      },
+      "facet-duplicator": {
+        "description": "Standard-Duplikator für Facetten",
+        "args": {
+          "includeFacetValues": {
+            "label": "Facetten-Werte einbeziehen"
+          }
+        }
+      },
+      "promotion-duplicator": {
+        "description": "Standard-Duplikator für Aktionen"
+      }
+    },
+    "FulfillmentHandler": {
+      "manual-fulfillment": {
+        "description": "Fulfillment-Details manuell eingeben"
+      }
+    },
+    "PaymentMethodHandler": {
+      "dummy-payment-handler": {
+        "description": "Ein Dummy-Zahlungsanbieter, der ausschließlich für Tests und Entwicklung gedacht ist.",
+        "args": {
+          "automaticSettle": {
+            "label": "Autorisieren und in einem Schritt abschließen",
+            "description": "Wenn aktiviert, werden Zahlungen im Status \"Settled\" erstellt."
+          }
+        }
+      },
+      "example-payment-provider": {
+        "description": "Beispiel-Zahlungsanbieter"
+      }
+    },
+    "PromotionAction": {
+      "order_fixed_discount": {
+        "description": "Bestellung um einen festen Betrag rabattieren"
+      },
+      "order_line_fixed_discount": {
+        "description": "orderLine um einen festen Betrag rabattieren"
+      },
+      "order_percentage_discount": {
+        "description": "Bestellung um { discount }% rabattieren"
+      },
+      "facet_based_discount": {
+        "description": "Produkte mit diesen Facetten um { discount }% rabattieren"
+      },
+      "products_percentage_discount": {
+        "description": "Angegebene Produkte um { discount }% rabattieren",
+        "args": {
+          "productVariantIds": {
+            "label": "Produktvarianten"
+          }
+        }
+      },
+      "free_shipping": {
+        "description": "Kostenloser Versand"
+      },
+      "buy_x_get_y_free": {
+        "description": "X Produkte kaufen, Y Produkte gratis erhalten"
+      }
+    },
+    "PromotionCondition": {
+      "minimum_order_amount": {
+        "description": "Wenn der Bestellwert größer ist als { amount }"
+      },
+      "at_least_n_with_facets": {
+        "description": "Mindestens { minimum } Produkte mit den angegebenen Facetten kaufen"
+      },
+      "contains_products": {
+        "description": "Mindestens { minimum } der angegebenen Produkte kaufen",
+        "args": {
+          "productVariantIds": {
+            "label": "Produktvarianten"
+          }
+        }
+      },
+      "customer_group": {
+        "description": "Kunde ist Mitglied der angegebenen Gruppe",
+        "args": {
+          "customerGroupId": {
+            "label": "Kundengruppe"
+          }
+        }
+      },
+      "buy_x_get_y_free": {
+        "description": "X Produkte kaufen, Y Produkte gratis erhalten",
+        "args": {
+          "variantIdsX": {
+            "label": "amountX dieser Varianten kaufen"
+          },
+          "variantIdsY": {
+            "label": "amountY dieser Varianten gratis erhalten"
+          }
+        }
+      }
+    },
+    "ShippingCalculator": {
+      "default-shipping-calculator": {
+        "description": "Standard-Versandrechner mit Pauschalpreis",
+        "args": {
+          "rate": {
+            "label": "Versandpreis"
+          },
+          "includesTax": {
+            "label": "Preis inklusive Steuer",
+            "options": {
+              "include": {
+                "label": "Inklusive Steuer"
+              },
+              "exclude": {
+                "label": "Exklusive Steuer"
+              },
+              "auto": {
+                "label": "Automatisch (basierend auf dem Kanal)"
+              }
+            }
+          },
+          "taxRate": {
+            "label": "Steuersatz"
+          }
+        }
+      }
+    },
+    "ShippingEligibilityChecker": {
+      "default-shipping-eligibility-checker": {
+        "description": "Standard-Prüfer der Versandberechtigung",
+        "args": {
+          "orderMinimum": {
+            "label": "Mindestbestellwert",
+            "description": "Die Bestellung ist nur berechtigt, wenn ihr Gesamtwert größer oder gleich diesem Wert ist"
+          }
+        }
+      }
+    }
   }
 }

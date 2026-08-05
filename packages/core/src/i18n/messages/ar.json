@@ -1,0 +1,199 @@
+{
+  "configurableOperation": {
+    "CollectionFilter": {
+      "facet-value-filter": {
+        "description": "التصفية حسب قيم الخصائص",
+        "args": {
+          "facetValueIds": {
+            "label": "قيم الخصائص"
+          },
+          "containsAny": {
+            "label": "يحتوي على أي منها",
+            "description": "إذا تم تحديده، يجب أن تحتوي متغيرات المنتج على قيمة واحدة على الأقل من قيم الخصائص المحددة. وإذا لم يتم تحديده، يجب أن يحتوي المتغير على جميع القيم المحددة."
+          },
+          "combineWithAnd": {
+            "label": "وضع الدمج",
+            "description": "إذا تم دمج هذا الفلتر مع فلاتر أخرى، فهل يجب استيفاء جميع الشروط (AND) أم يكفي شرط واحد فقط (OR)؟"
+          }
+        }
+      },
+      "variant-name-filter": {
+        "description": "التصفية حسب اسم متغير المنتج",
+        "args": {
+          "combineWithAnd": {
+            "label": "وضع الدمج",
+            "description": "إذا تم دمج هذا الفلتر مع فلاتر أخرى، فهل يجب استيفاء جميع الشروط (AND) أم يكفي شرط واحد فقط (OR)؟"
+          }
+        }
+      },
+      "variant-id-filter": {
+        "description": "تحديد متغيرات المنتج يدويًا",
+        "args": {
+          "variantIds": {
+            "label": "متغيرات المنتج"
+          },
+          "combineWithAnd": {
+            "label": "وضع الدمج",
+            "description": "إذا تم دمج هذا الفلتر مع فلاتر أخرى، فهل يجب استيفاء جميع الشروط (AND) أم يكفي شرط واحد فقط (OR)؟"
+          }
+        }
+      },
+      "product-id-filter": {
+        "description": "تحديد المنتجات يدويًا",
+        "args": {
+          "productIds": {
+            "label": "المنتجات"
+          },
+          "combineWithAnd": {
+            "label": "وضع الدمج",
+            "description": "إذا تم دمج هذا الفلتر مع فلاتر أخرى، فهل يجب استيفاء جميع الشروط (AND) أم يكفي شرط واحد فقط (OR)؟"
+          }
+        }
+      }
+    },
+    "EntityDuplicator": {
+      "product-duplicator": {
+        "description": "أداة النسخ الافتراضية للمنتجات",
+        "args": {
+          "includeVariants": {
+            "label": "تضمين المتغيرات"
+          }
+        }
+      },
+      "collection-duplicator": {
+        "description": "أداة النسخ الافتراضية للمجموعات"
+      },
+      "facet-duplicator": {
+        "description": "أداة النسخ الافتراضية للخصائص",
+        "args": {
+          "includeFacetValues": {
+            "label": "تضمين قيم الخصائص"
+          }
+        }
+      },
+      "promotion-duplicator": {
+        "description": "أداة النسخ الافتراضية للعروض الترويجية"
+      }
+    },
+    "FulfillmentHandler": {
+      "manual-fulfillment": {
+        "description": "إدخال تفاصيل التنفيذ يدويًا"
+      }
+    },
+    "PaymentMethodHandler": {
+      "dummy-payment-handler": {
+        "description": "مزود دفع وهمي مخصص للاختبار والتطوير فقط.",
+        "args": {
+          "automaticSettle": {
+            "label": "التفويض والتسوية في خطوة واحدة",
+            "description": "في حال التفعيل، سيتم إنشاء المدفوعات في الحالة \"Settled\"."
+          }
+        }
+      },
+      "example-payment-provider": {
+        "description": "مزود دفع نموذجي"
+      }
+    },
+    "PromotionAction": {
+      "order_fixed_discount": {
+        "description": "خصم مبلغ ثابت من الطلب"
+      },
+      "order_line_fixed_discount": {
+        "description": "خصم مبلغ ثابت من orderLine"
+      },
+      "order_percentage_discount": {
+        "description": "خصم { discount }% من الطلب"
+      },
+      "facet_based_discount": {
+        "description": "خصم { discount }% من المنتجات التي تحمل هذه الخصائص"
+      },
+      "products_percentage_discount": {
+        "description": "خصم { discount }% من المنتجات المحددة",
+        "args": {
+          "productVariantIds": {
+            "label": "متغيرات المنتج"
+          }
+        }
+      },
+      "free_shipping": {
+        "description": "شحن مجاني"
+      },
+      "buy_x_get_y_free": {
+        "description": "شراء X من المنتجات والحصول على Y من المنتجات مجانًا"
+      }
+    },
+    "PromotionCondition": {
+      "minimum_order_amount": {
+        "description": "إذا كان إجمالي الطلب أكبر من { amount }"
+      },
+      "at_least_n_with_facets": {
+        "description": "شراء { minimum } من المنتجات على الأقل التي تحمل الخصائص المحددة"
+      },
+      "contains_products": {
+        "description": "شراء { minimum } على الأقل من المنتجات المحددة",
+        "args": {
+          "productVariantIds": {
+            "label": "متغيرات المنتج"
+          }
+        }
+      },
+      "customer_group": {
+        "description": "العميل عضو في المجموعة المحددة",
+        "args": {
+          "customerGroupId": {
+            "label": "مجموعة العملاء"
+          }
+        }
+      },
+      "buy_x_get_y_free": {
+        "description": "شراء X من المنتجات والحصول على Y من المنتجات مجانًا",
+        "args": {
+          "variantIdsX": {
+            "label": "شراء amountX من هذه المتغيرات"
+          },
+          "variantIdsY": {
+            "label": "الحصول على amountY من هذه المتغيرات مجانًا"
+          }
+        }
+      }
+    },
+    "ShippingCalculator": {
+      "default-shipping-calculator": {
+        "description": "حاسبة الشحن الافتراضية بسعر ثابت",
+        "args": {
+          "rate": {
+            "label": "سعر الشحن"
+          },
+          "includesTax": {
+            "label": "السعر يشمل الضريبة",
+            "options": {
+              "include": {
+                "label": "شامل الضريبة"
+              },
+              "exclude": {
+                "label": "غير شامل الضريبة"
+              },
+              "auto": {
+                "label": "تلقائي (حسب القناة)"
+              }
+            }
+          },
+          "taxRate": {
+            "label": "معدل الضريبة"
+          }
+        }
+      }
+    },
+    "ShippingEligibilityChecker": {
+      "default-shipping-eligibility-checker": {
+        "description": "أداة التحقق الافتراضية من أهلية الشحن",
+        "args": {
+          "orderMinimum": {
+            "label": "الحد الأدنى لقيمة الطلب",
+            "description": "الطلب مؤهل فقط إذا كان إجماليه أكبر من هذه القيمة أو مساويًا لها"
+          }
+        }
+      }
+    }
+  }
+}
