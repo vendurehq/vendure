@@ -354,8 +354,8 @@ export interface McpToolSummary {
     behavior: McpToolBehavior;
     annotations: ToolAnnotations;
     /**
-     * The tool's declared input schema, without the optional `confirm` field the registry adds to
-     * the wire schema of a destructive tool.
+     * The input schema a call must satisfy: the tool's declared schema plus, for a destructive
+     * tool, the optional `confirm` field the registry injects.
      */
     inputSchema: McpJsonSchema;
 }
@@ -402,6 +402,13 @@ export interface McpRegisteredTool extends McpToolMetadata {
      * per request and reused for discovery-path (`execute_tool`) inner-argument validation.
      */
     compiledInputSchema: StandardSchemaWithJSON;
+    /**
+     * The WIRE input schema: the canonical schema plus, for destructive tools, the injected
+     * optional `confirm` field. This is what is registered with the SDK and advertised in tool
+     * summaries — the schema a call must actually satisfy. For non-destructive tools it is the
+     * same object as `jsonInputSchema`.
+     */
+    wireJsonSchema: McpJsonSchema;
     /** The declared output schema, if any (drives output-drift logging). */
     jsonOutputSchema?: McpJsonSchema;
     /** Compiled validator for the declared output schema, if any. */

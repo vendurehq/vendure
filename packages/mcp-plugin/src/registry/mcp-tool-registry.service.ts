@@ -44,6 +44,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     private readonly tools = new Map<string, McpRegisteredTool>();
     private discoveryMetaTools: McpExposedTool[] = [];
     private bm25 = new Map<McpToolset, Bm25Index>();
+    private readonly toggleCache = new WeakMap<RequestContext, Record<string, boolean>>();
 
     constructor(
         private discoveryService: DiscoveryService,
@@ -139,12 +140,21 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         return this.callRegisteredTool(executionContext, toolset, name, input, true);
     }
 
-    /** Reads the tool-enablement map from the settings store (empty when unset). */
+    /**
+     * Reads the tool-enablement map from the settings store (empty when unset). Cached per
+     * RequestContext, so one request reads the settings store once; `setToolEnabled` refreshes
+     * the cache.
+     */
     async getToolToggles(ctx: RequestContext): Promise<Record<string, boolean>> {
-        return (
+        const cached = this.toggleCache.get(ctx);
+        if (cached) {
+            return cached;
+        }
+        const toggles =
             (await this.settingsStoreService.get<Record<string, boolean>>(ctx, MCP_TOOL_TOGGLES_STORE_KEY)) ??
-            {}
-        );
+            {};
+        this.toggleCache.set(ctx, toggles);
+        return toggles;
     }
 
     /** A tool is enabled unless explicitly disabled. One canonical key: `${toolset}:${name}`. */
@@ -165,6 +175,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         const toggles = await this.getToolToggles(ctx);
         toggles[this.toolKey(toolset, name)] = enabled;
         await this.settingsStoreService.set(ctx, MCP_TOOL_TOGGLES_STORE_KEY, toggles);
+        this.toggleCache.set(ctx, toggles);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -223,8 +234,9 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                     `"confirm" property — the registry injects it.`,
             );
         }
+        const wireJsonSchema = this.wireInputSchema({ resolvedBehavior, jsonInputSchema });
         const compiledInputSchema = this.compileSchema(
-            this.wireInputSchema({ resolvedBehavior, jsonInputSchema }),
+            wireJsonSchema,
             `${metadata.name} inputSchema`,
             pluginSource,
         );
@@ -240,6 +252,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             jsonInputSchema,
             jsonOutputSchema: metadata.outputSchema,
             compiledInputSchema,
+            wireJsonSchema,
             compiledOutputSchema,
         };
     }
@@ -418,7 +431,8 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
 
     /**
      * A concise tool summary for search results and in-process tool listings — carries the
-     * ORIGINAL input schema (no injected confirm).
+     * WIRE input schema — the one the call must satisfy, including the injected `confirm` on
+     * destructive tools.
      */
     private toolSummary(tool: McpRegisteredTool): McpToolSummary {
         return {
@@ -428,7 +442,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             toolset: tool.toolset,
             behavior: tool.resolvedBehavior,
             annotations: tool.annotations,
-            inputSchema: tool.jsonInputSchema,
+            inputSchema: tool.wireJsonSchema,
         };
     }
 

@@ -44,11 +44,11 @@ function build(
         getMetadataByDecorator: (_dec: unknown, w: any) => w.metadata,
     };
     const settingsStoreService = {
-        get: (_ctx: unknown, key: string) => Promise.resolve(store[key]),
-        set: (_ctx: unknown, key: string, value: unknown) => {
+        get: vi.fn((_ctx: unknown, key: string) => Promise.resolve(store[key])),
+        set: vi.fn((_ctx: unknown, key: string, value: unknown) => {
             store[key] = value;
             return Promise.resolve();
-        },
+        }),
     };
     const rateLimiter = {
         enforceRateLimit: vi.fn(() => Promise.resolve(undefined)),
@@ -63,7 +63,7 @@ function build(
         toolCallLog as any,
         options,
     );
-    return { service, rateLimiter, toolCallLog, store };
+    return { service, rateLimiter, toolCallLog, settingsStoreService, store };
 }
 
 const shopTool = (over: Partial<McpToolMetadata> = {}): McpToolMetadata => ({
@@ -179,6 +179,31 @@ describe('McpToolRegistryService', () => {
             const result = await service.callTool({ ctx }, 'shop', 'get_thing', {});
             expect(result.isError).toBe(true);
             expect((result.content as any)[0].text).toMatch(/disabled/);
+        });
+    });
+
+    describe('toggle cache (per RequestContext)', () => {
+        it('reads the settings store once for two getToolToggles calls with the same ctx', async () => {
+            const { service, settingsStoreService } = build([wrapper(shopTool())]);
+            service.onApplicationBootstrap();
+            const ctx = makeCtx();
+
+            await service.getToolToggles(ctx);
+            await service.getToolToggles(ctx);
+
+            expect(settingsStoreService.get).toHaveBeenCalledOnce();
+        });
+
+        it('reads the settings store once per ctx when different ctx objects are used', async () => {
+            const { service, settingsStoreService } = build([wrapper(shopTool())]);
+            service.onApplicationBootstrap();
+            const ctxA = makeCtx();
+            const ctxB = makeCtx();
+
+            await service.getToolToggles(ctxA);
+            await service.getToolToggles(ctxB);
+
+            expect(settingsStoreService.get).toHaveBeenCalledTimes(2);
         });
     });
 
@@ -461,7 +486,9 @@ describe('McpToolRegistryService', () => {
             expect((result.structuredContent as any).hint).toContain('No shop tools matched');
         });
 
-        it('returns matching summaries carrying the original schema', async () => {
+        it('returns matching summaries carrying the wire schema', async () => {
+            // get_thing is non-destructive, so its wire schema equals its canonical schema
+            // (no injected confirm) — the destructive case is covered separately below.
             const { service } = build([wrapper(shopTool())], { toolExposure: 'discovery' });
             service.onApplicationBootstrap();
             const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'search_tools', {
@@ -471,6 +498,31 @@ describe('McpToolRegistryService', () => {
             expect(tools).toHaveLength(1);
             expect(tools[0].name).toBe('get_thing');
             expect(tools[0].inputSchema.properties.confirm).toBeUndefined();
+        });
+
+        it('for a destructive tool, the summary carries the injected confirm while the SSOT schema stays clean', async () => {
+            const destructiveTool = shopTool({
+                name: 'delete_thing',
+                behavior: 'destructive',
+                inputSchema: {
+                    type: 'object',
+                    properties: { id: { type: 'string' } },
+                    required: ['id'],
+                    additionalProperties: false,
+                },
+            });
+            const { service } = build([wrapper(destructiveTool)], { toolExposure: 'discovery' });
+            service.onApplicationBootstrap();
+
+            const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'search_tools', {
+                query: 'thing',
+            });
+            const tools = (result.structuredContent as any).tools;
+            expect(tools).toHaveLength(1);
+            expect(tools[0].inputSchema.properties.confirm).toBeDefined();
+
+            const registered = service.getRegistrySnapshot().find(t => t.name === 'delete_thing');
+            expect(registered?.jsonInputSchema.properties?.confirm).toBeUndefined();
         });
 
         it('matches author keywords in the search query', async () => {
