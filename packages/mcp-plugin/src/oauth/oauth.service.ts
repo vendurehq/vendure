@@ -395,7 +395,8 @@ export class McpOauthService {
             : undefined;
         if (!vendureSession) {
             const user = await this.userService.getUserById(adminCtx, grant.userId);
-            if (!user) {
+            if (!user || user.deletedAt) {
+                await this.revokeGrant(adminCtx, grant);
                 throw new UnauthorizedException('Vendure user no longer exists');
             }
             // The lapsed session row may still be in the table — Vendure clears expired

@@ -1,10 +1,12 @@
 import { ModuleRef } from '@nestjs/core';
 import {
+    AdministratorService,
     ConfigService,
     Injector,
     mergeConfig,
     RequestContext,
     RequestContextService,
+    RoleService,
     Session,
     SessionService,
     TransactionalConnection,
@@ -243,6 +245,69 @@ describe('McpPlugin OAuth end-to-end flow', () => {
             throw new Error('Expected the McpOauthGrant to persist after re-creation');
         }
         expect(mcpSessionAfter.vendureSessionId).not.toBe(sessionIdBefore);
+    });
+
+    // Deleting the granting administrator must end MCP access. Core deletes the admin's
+    // sessions on deletion, so the next call takes the re-creation path above — which must
+    // refuse the soft-deleted user and revoke the grant, not mint a fresh session carrying
+    // the deleted account's roles.
+    it('ends MCP access and revokes the grant when the granting administrator is deleted', async () => {
+        const oauth = server.app.get(McpOauthService);
+        const administratorService = server.app.get(AdministratorService);
+        const roleService = server.app.get(RoleService);
+        const connection = server.app.get(TransactionalConnection);
+        const bareCtx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+        // Creating an administrator checks the acting user may grant the roles,
+        // so the context must act as the superadmin, not anonymously.
+        const superadminUser = await connection
+            .getRepository(bareCtx, User)
+            .findOneByOrFail({ identifier: 'superadmin' });
+        const ctx = await server.app
+            .get(RequestContextService)
+            .create({ apiType: 'admin', user: superadminUser });
+
+        // An administrator other than the shared superadmin, so deleting them cannot
+        // affect the rest of this suite. Consent needs the UpdateMcpServer permission,
+        // which the superadmin role carries.
+        const superAdminRole = await roleService.getSuperAdminRole(ctx);
+        const doomedAdmin = await administratorService.create(ctx, {
+            firstName: 'Doomed',
+            lastName: 'Admin',
+            emailAddress: 'doomed@test.com',
+            password: 'test',
+            roleIds: [superAdminRole.id],
+        });
+        await adminClient.asUserWithCredentials('doomed@test.com', 'test');
+        const doomedAdminToken = adminClient.getAuthToken();
+        const { access_token, refresh_token, client_id, resource } = await runAuthorizationCodeFlow({
+            baseUrl: baseUrl(),
+            issuer: ISSUER,
+            superAdminToken: doomedAdminToken,
+        });
+        // Switching the shared client's user invalidated the session behind the suite-wide
+        // superadmin token, so capture the replacement for the tests that follow.
+        await adminClient.asSuperAdmin();
+        superAdminToken = adminClient.getAuthToken();
+
+        const authenticated = await oauth.authenticateBearerToken(access_token, 'admin');
+        expect(authenticated.grant.userId).toBe(doomedAdmin.user.id);
+
+        await administratorService.softDelete(ctx, doomedAdmin.id);
+
+        await expect(oauth.authenticateBearerToken(access_token, 'admin')).rejects.toThrow(
+            'Vendure user no longer exists',
+        );
+        // The refusal also revoked the grant, so the refresh token is dead too.
+        const grant = await grantFor(ctx, access_token);
+        expect(grant.revokedAt).toBeTruthy();
+        await expect(
+            oauth.exchangeToken({
+                grant_type: 'refresh_token',
+                refresh_token,
+                client_id,
+                resource,
+            }),
+        ).rejects.toThrow(/invalid or expired/i);
     });
 
     // Revoking must take the session with it — row and cache entry both. Leaving the cache
