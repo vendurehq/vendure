@@ -151,11 +151,12 @@ export class EntityHydrator {
 
                 if (options.applyProductVariantPrices === true) {
                     for (const relationWithEntities of relationsWithEntities) {
-                        await Promise.all(
-                            this.getProductVariantsToPrice(relationWithEntities.entity).map(variant =>
-                                this.productPriceApplicator.applyChannelPriceAndTax(variant, ctx),
-                            ),
-                        );
+                        // Applied sequentially rather than with Promise.all: relation arrays are
+                        // unbounded in size, and applyChannelPriceAndTax() is applied per variant
+                        // the same way in ProductVariantService.assignProductVariantsToChannel()
+                        for (const variant of this.getProductVariantsToPrice(relationWithEntities.entity)) {
+                            await this.productPriceApplicator.applyChannelPriceAndTax(variant, ctx);
+                        }
                     }
                 }
 
