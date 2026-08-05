@@ -534,33 +534,45 @@ describe('Entity hydration', () => {
     it('translates a relation reached past a null array element', async () => {
         const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
         const connection = server.app.get(TransactionalConnection).rawConnection;
-        const asset = await connection.getRepository(Asset).findOne({ where: {} });
-        const assetName = asset!.translations.find(t => t.languageCode === ctx.languageCode)!.name;
+        // The expected name is the known fixture literal (also asserted near the top of this
+        // file), so the expectation is independent of the data the translation path reads
+        const assetName = 'derick-david-409858-unsplash.jpg';
+        const assets = await connection.getRepository(Asset).find();
+        const asset = assets.find(a => a.translations.some(t => t.name === assetName));
 
+        // Raw-connection queries take the numeric DB id; 'T_1' exists only at the API layer
         const laptop = await connection
             .getRepository(Product)
             .findOne({ where: { id: 1 }, relations: ['variants'] });
-        // Give exactly one of the four variants a featuredAsset; the other three keep the
+        const variantWithAssetId = laptop!.variants[laptop!.variants.length - 1].id;
+        const nullAssetVariantCount = laptop!.variants.length - 1;
+        // Give exactly one of the variants a featuredAsset; the others keep the
         // featuredAsset that is null in the database.
-        await connection
-            .getRepository(ProductVariant)
-            .update(laptop!.variants[laptop!.variants.length - 1].id, { featuredAsset: asset! });
+        await connection.getRepository(ProductVariant).update(variantWithAssetId, { featuredAsset: asset! });
+        try {
+            const product = await connection
+                .getRepository(Product)
+                .findOne({ where: { id: 1 }, relations: ['variants'] });
 
-        const product = await connection
-            .getRepository(Product)
-            .findOne({ where: { id: 1 }, relations: ['variants'] });
+            await server.app.get(EntityHydrator).hydrate(ctx, product!, {
+                relations: ['variants.featuredAsset'],
+            });
 
-        await server.app.get(EntityHydrator).hydrate(ctx, product!, {
-            relations: ['variants.featuredAsset'],
-        });
-
-        const withAsset = product!.variants.filter(v => v.featuredAsset != null);
-        expect(withAsset.length).toBe(1);
-        expect(withAsset[0].featuredAsset.name).toBe(assetName);
-        // The other three were null in the database and must still be null, not undefined:
-        // getMissingRelations() treats undefined as never-fetched, so hydrate() would re-query
-        // them on every subsequent call.
-        expect(product!.variants.filter(v => v.featuredAsset === null).length).toBe(3);
+            const withAsset = product!.variants.filter(v => v.featuredAsset != null);
+            expect(withAsset.length).toBe(1);
+            expect(withAsset[0].featuredAsset.name).toBe(assetName);
+            // The others were null in the database and must still be null, not undefined:
+            // getMissingRelations() treats undefined as never-fetched, so hydrate() would
+            // re-query them on every subsequent call.
+            expect(product!.variants.filter(v => v.featuredAsset === null).length).toBe(
+                nullAssetVariantCount,
+            );
+        } finally {
+            // Restore the shared fixture so tests added after this one do not inherit it
+            await connection
+                .getRepository(ProductVariant)
+                .update(variantWithAssetId, { featuredAsset: null });
+        }
     });
 });
 
