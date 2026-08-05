@@ -52,7 +52,10 @@ export interface McpOauthOptions {
      * them at addresses that don't exist. If a proxy serves Vendure under a path, use a
      * subdomain instead, or forward `/.well-known/*` to Vendure too.
      *
-     * @default 'http://localhost:3500'
+     * When unset, it defaults to `http://localhost:<port>` using the port your server is
+     * configured with (`apiOptions.port`), so local development needs no configuration.
+     *
+     * @default 'http://localhost:<apiOptions.port>'
      */
     issuer?: string;
     /**

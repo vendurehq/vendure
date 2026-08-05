@@ -17,6 +17,7 @@ vi.mock('@modelcontextprotocol/server', async importOriginal => ({
 /** Runs the plugin's real `configuration` hook against a minimal config and returns it. */
 async function runConfiguration() {
     const config = {
+        apiOptions: { port: 3000 },
         authOptions: { customPermissions: [] },
         settingsStoreFields: {},
         schedulerOptions: { tasks: [] },

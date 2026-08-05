@@ -27,8 +27,8 @@ import { McpPlugin } from '../src/plugin';
 import { runAuthorizationCodeFlow, runShopAuthorizationCodeFlow } from './utils/oauth-test-client';
 
 const TOKEN_SECRET = 'test-secret';
-// The plugin's default issuer (see src/constants.ts), from which the resource is derived.
-const ISSUER = 'http://localhost:3500';
+// The issuer the plugin derives when none is configured: localhost on the configured API port.
+const ISSUER = `http://localhost:${testConfig().apiOptions.port}`;
 
 describe('McpPlugin OAuth edge & security cases', () => {
     const config = mergeConfig(testConfig(), {

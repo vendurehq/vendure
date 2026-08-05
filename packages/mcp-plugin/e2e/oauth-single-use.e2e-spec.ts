@@ -14,7 +14,7 @@ import { McpPlugin } from '../src/plugin';
 import { seedAuthorizationCode, withFailingUpdate } from './utils/oauth-test-fixtures';
 
 const TOKEN_SECRET = 'test-secret';
-const RESOURCE = 'http://localhost:3500/mcp/admin';
+const RESOURCE = `http://localhost:${testConfig().apiOptions.port}/mcp/admin`;
 
 describe('McpPlugin OAuth single-use code', () => {
     const config = mergeConfig(testConfig(), {

@@ -47,8 +47,8 @@ but the authenticated shop and admin endpoints do not. See [`McpOauthOptions`](/
 for every field and its default.
 
 :::info
-When `NODE_ENV=production` the plugin refuses to boot with the default `http://localhost:3500` issuer — set it to
-your real public URL. `storefrontConsentUrl` has no default and is needed only if customers will authorize MCP
+The `issuer` defaults to `http://localhost:<your API port>`, which is right for local development only. When
+`NODE_ENV=production` the plugin refuses to boot with a localhost issuer — set it to your real public URL. `storefrontConsentUrl` has no default and is needed only if customers will authorize MCP
 clients; when you do set it, it must be a public HTTPS URL. This is covered in the
 [Production & Observability](/guides/mcp-server/production/) guide.
 :::

@@ -33,7 +33,6 @@ export const RETENTION_DELETE_BATCH_SIZE = 500;
 export const DEFAULT_LOG_TTL_DAYS = 30;
 
 export const DEFAULT_OAUTH_OPTIONS = {
-    issuer: 'http://localhost:3500',
     accessTokenTtlSeconds: 15 * 60,
     refreshTokenTtlSeconds: 30 * 24 * 60 * 60,
     authorizationCodeTtlSeconds: 60,

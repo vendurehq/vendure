@@ -31,7 +31,7 @@ export interface AuthorizationCodeFlowResult {
 export interface RunAuthorizationCodeFlowOptions {
     /** Base URL of the running test server, e.g. `http://localhost:3260`. */
     baseUrl: string;
-    /** OAuth issuer origin, e.g. `http://localhost:3500`. */
+    /** OAuth issuer origin, e.g. `http://localhost:3000`. */
     issuer: string;
     /** Superadmin bearer token used to authenticate the admin-consent step. */
     superAdminToken: string;
@@ -156,7 +156,7 @@ export async function runAuthorizationCodeFlow(
 export interface RunShopAuthorizationCodeFlowOptions {
     /** Base URL of the running test server, e.g. `http://localhost:3260`. */
     baseUrl: string;
-    /** OAuth issuer origin, e.g. `http://localhost:3500`. */
+    /** OAuth issuer origin, e.g. `http://localhost:3000`. */
     issuer: string;
     /** A real Vendure customer session token, used to approve storefront consent. */
     vendureAuthToken: string;

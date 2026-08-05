@@ -14,7 +14,7 @@ import { postMcp, rpc } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
 
 const TOKEN_SECRET = 'mcp-transport-secret-0000000000000000000000';
-const ISSUER = 'http://localhost:3500';
+const ISSUER = `http://localhost:${testConfig().apiOptions.port}`;
 const productsCsvPath = path.join(__dirname, 'fixtures/e2e-products.csv');
 
 const AUTH_TOKEN_HEADER = 'vendure-auth-token';

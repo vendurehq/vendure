@@ -29,8 +29,8 @@ describe('McpPlugin OAuth CIMD client registration', () => {
         ],
     });
     const { server, adminClient } = createTestEnvironment(config);
-    // The plugin's default issuer (see src/constants.ts), from which the resource is derived.
-    const issuer = 'http://localhost:3500';
+    // The issuer the plugin derives when none is configured: localhost on the configured API port.
+    const issuer = `http://localhost:${config.apiOptions.port}`;
     let baseUrl: string;
     let documentServer: CimdTestServer;
     let superAdminToken: string;

@@ -35,7 +35,7 @@ The Vendure sessions behind existing grants cannot be reached through the old to
 retention task deletes them once their grants expire.
 ### issuer
 
-<MemberInfo kind="property" type={`string`} default={`'http://localhost:3500'`}   />
+<MemberInfo kind="property" type={`string`} default={`'http://localhost:<apiOptions.port>'`}   />
 
 The public URL of your Vendure server, e.g. `https://shop.example.com`. OAuth
 clients use it to find this server's login and token endpoints.
@@ -45,6 +45,11 @@ server refuses to start: clients fetch the server's OAuth info at fixed
 `/.well-known/...` addresses directly under the host, so a path here would point
 them at addresses that don't exist. If a proxy serves Vendure under a path, use a
 subdomain instead, or forward `/.well-known/*` to Vendure too.
+
+When unset, it defaults to `http://localhost:<port>` using the port your server is
+configured with (`apiOptions.port`), so local development needs no configuration.
+Production always needs it set explicitly: the server refuses to start in
+production with a localhost issuer.
 ### accessTokenTtlSeconds
 
 <MemberInfo kind="property" type={`number`} default={`900`}   />

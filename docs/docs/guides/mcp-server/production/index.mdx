@@ -35,8 +35,8 @@ the grant expires.
 ### The issuer guard
 
 To stop a misconfigured server from issuing tokens against a localhost URL, the plugin refuses to boot when
-`NODE_ENV=production` and `oauth.issuer` is a loopback address. The default, `http://localhost:3500`, is
-development-only — set it to your public Vendure URL.
+`NODE_ENV=production` and `oauth.issuer` is a loopback address. The default — localhost on your configured
+API port — is development-only, so in production you must set it to your public Vendure URL.
 
 `oauth.storefrontConsentUrl` is checked the same way, but only if you supply it. It has **no default**, and it is
 needed only when customers will authorize MCP clients, so a deployment that uses the admin toolset alone starts

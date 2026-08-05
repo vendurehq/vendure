@@ -10,9 +10,9 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 import { McpPlugin } from '../src/plugin';
 
 // The MCP endpoints are served relative to the configured OAuth `issuer`, and the official
-// client auto-discovers every endpoint from the published metadata. So the issuer MUST be the
-// real base URL the test server listens on — otherwise the client would follow metadata pointing
-// at the default localhost:3500 (a dead port in the test).
+// client auto-discovers every endpoint from the published metadata. The issuer must therefore be
+// the real base URL the test server listens on; it is set explicitly here, though the derived
+// default (localhost on the configured API port) would resolve to the same value.
 const baseConfig = testConfig();
 const PORT = baseConfig.apiOptions.port;
 const ISSUER = `http://localhost:${PORT}`;

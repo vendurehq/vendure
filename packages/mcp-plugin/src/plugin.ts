@@ -89,6 +89,12 @@ import { McpPluginOptions, McpRateLimitOptions } from './types';
     },
     dashboard: '../src/dashboard/index.tsx',
     configuration: config => {
+        // No issuer configured: default to the address the API server actually listens on.
+        // Correct for local development only — in production the loopback check below
+        // refuses it, so a public issuer must always be set explicitly there.
+        if (McpPlugin.options.oauth && !McpPlugin.options.oauth.issuer) {
+            McpPlugin.options.oauth.issuer = `http://localhost:${config.apiOptions.port}`;
+        }
         config.authOptions.customPermissions.push(mcpServerPermission);
         config.settingsStoreFields = {
             ...config.settingsStoreFields,

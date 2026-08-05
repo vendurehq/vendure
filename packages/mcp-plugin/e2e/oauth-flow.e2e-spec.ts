@@ -31,8 +31,8 @@ import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
 import { withFailingUpdate } from './utils/oauth-test-fixtures';
 
 const TOKEN_SECRET = 'test-secret';
-// The plugin's default issuer (see src/constants.ts), from which the resource is derived.
-const ISSUER = 'http://localhost:3500';
+// The issuer the plugin derives when none is configured: localhost on the configured API port.
+const ISSUER = `http://localhost:${testConfig().apiOptions.port}`;
 
 describe('McpPlugin OAuth end-to-end flow', () => {
     const config = mergeConfig(testConfig(), {
