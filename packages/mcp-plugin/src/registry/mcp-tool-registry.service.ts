@@ -16,6 +16,7 @@ import { McpToolCallLogService } from '../logging/mcp-tool-call-log.service';
 import { McpRateLimiterService, McpRateLimitExceededError } from '../rate-limit/mcp-rate-limiter.service';
 import {
     McpExecutionContext,
+    McpExposedTool,
     McpPluginOptions,
     McpPluginToolHandler,
     McpRegisteredTool,
@@ -40,7 +41,7 @@ const NO_ARGS_SCHEMA: McpJsonSchema = { type: 'object', properties: {}, addition
 @Instrument()
 export class McpToolRegistryService implements OnApplicationBootstrap {
     private readonly tools = new Map<string, McpRegisteredTool>();
-    private discoveryMetaTools: McpRegisteredTool[] = [];
+    private discoveryMetaTools: McpExposedTool[] = [];
     private bm25 = new Map<McpToolset, Bm25Index>();
 
     constructor(
@@ -69,14 +70,14 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     /**
      * The tools to register with the per-request MCP server. In `direct` mode: the caller's permitted,
      * enabled tools for the toolset. In `discovery` mode: the two meta-tools (`search_tools` +
-     * `execute_tool`), stamped with the endpoint's toolset.
+     * `execute_tool`).
      */
     async getExposedTools(
         executionContext: McpExecutionContext,
         toolset: McpToolset,
-    ): Promise<McpRegisteredTool[]> {
+    ): Promise<McpExposedTool[]> {
         if (this.options.toolExposure === 'discovery') {
-            return this.discoveryMetaTools.map(tool => ({ ...tool, toolset }));
+            return this.discoveryMetaTools;
         }
         const toggles = await this.getToolToggles(executionContext.ctx);
         return this.visibleTools(executionContext, toolset, toggles);
@@ -440,7 +441,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         return [tool.name, tool.title ?? '', tool.description, ...(tool.keywords ?? [])].join(' ');
     }
 
-    private buildDiscoveryMetaTools(): McpRegisteredTool[] {
+    private buildDiscoveryMetaTools(): McpExposedTool[] {
         const searchSchema: McpJsonSchema = {
             type: 'object',
             properties: {
@@ -462,36 +463,20 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             required: ['name'],
             additionalProperties: false,
         };
-        // Meta-tools are routed by name in callTool; this handler is never invoked.
-        const routedHandler: McpPluginToolHandler = {
-            execute() {
-                throw new Error('discovery meta-tool is routed via callTool');
-            },
-        };
         return [
             {
                 name: SEARCH_TOOLS,
                 description:
                     'Search for available Vendure MCP tools by keyword. Returns matching tools with their ' +
                     'input schemas so you can then run one via execute_tool.',
-                toolset: 'shop',
-                resolvedBehavior: 'readonly',
                 annotations: { readOnlyHint: true, idempotentHint: true },
-                handler: routedHandler,
-                pluginSource: 'McpPlugin',
-                jsonInputSchema: searchSchema,
                 compiledInputSchema: this.compileSchema(searchSchema, SEARCH_TOOLS, 'McpPlugin'),
             },
             {
                 name: EXECUTE_TOOL,
                 description:
                     'Execute a Vendure MCP tool found via search_tools. Provide the tool name and its arguments.',
-                toolset: 'shop',
-                resolvedBehavior: 'mutating',
                 annotations: {},
-                handler: routedHandler,
-                pluginSource: 'McpPlugin',
-                jsonInputSchema: executeSchema,
                 compiledInputSchema: this.compileSchema(executeSchema, EXECUTE_TOOL, 'McpPlugin'),
             },
         ];
