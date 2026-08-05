@@ -288,6 +288,15 @@ describe('EntityHydrator', () => {
             const assets = [new Asset({ id: 1 }), new Asset({ id: 2 })];
             expect(getProductVariantsToPrice(assets)).toEqual([]);
         });
+
+        it('wraps a bare ProductVariant in an array', () => {
+            const variant = new ProductVariant({ id: 1 });
+            expect(getProductVariantsToPrice(variant)).toEqual([variant]);
+        });
+
+        it('returns an empty array for undefined', () => {
+            expect(getProductVariantsToPrice(undefined)).toEqual([]);
+        });
     });
 
     describe('hydrate() with applyProductVariantPrices', () => {
