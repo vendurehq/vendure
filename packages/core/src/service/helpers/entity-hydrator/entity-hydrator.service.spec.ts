@@ -261,8 +261,7 @@ describe('EntityHydrator', () => {
             expect(isTranslatable([undefined, translatable])).toBe(true);
         });
 
-        // Pins `some` semantics: nothing to translate must stay false. These pass before and
-        // after the fix.
+        // The falsy side: an array with nothing translatable must report false
         it('reports false for an empty array', () => {
             expect(isTranslatable([])).toBe(false);
         });

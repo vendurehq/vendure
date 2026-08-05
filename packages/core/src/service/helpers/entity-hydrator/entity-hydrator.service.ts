@@ -388,9 +388,7 @@ export class EntityHydrator {
      * Whether the entity, or any entity of an array-valued relation, is translatable. An array
      * relation can contain `null` (the relation was fetched but is null on that element) or
      * `undefined` (never fetched) entries — getRelationEntityAtPath() deliberately pushes both
-     * into its result — so every element must be considered rather than just the first. Sampling
-     * element [0] meant e.g. a null `variants[0].featuredAsset` suppressed translation of
-     * `variants[1].featuredAsset`.
+     * into its result — so every element must be considered rather than just the first.
      */
     private isTranslatable<T extends VendureEntity>(input: T | T[] | undefined): boolean {
         const hasTranslations = (entity: T | undefined): boolean =>

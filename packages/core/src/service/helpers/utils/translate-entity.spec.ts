@@ -457,7 +457,7 @@ describe('translateDeep()', () => {
     // produces both deliberately. Translation must skip such elements rather than dereference
     // them, and must not rewrite a `null` into `undefined`, because getMissingRelations()
     // relies on that distinction to decide whether a relation still needs to be fetched.
-    it('does not throw when a relation array contains an undefined hole', () => {
+    it('preserves an undefined hole and translates the real elements of a relation array', () => {
         product.variants = [productVariant, undefined] as any;
 
         const result = translateDeep(product, [LanguageCode.en, LanguageCode.en], ['variants']);
@@ -467,7 +467,7 @@ describe('translateDeep()', () => {
         expect(result.variants[1]).toBeUndefined();
     });
 
-    it('does not throw when a relation array contains a null element', () => {
+    it('preserves a null element and translates the real elements of a relation array', () => {
         product.variants = [null, productVariant] as any;
 
         const result = translateDeep(product, [LanguageCode.en, LanguageCode.en], ['variants']);
@@ -477,12 +477,10 @@ describe('translateDeep()', () => {
         expect(result.variants[1]).toHaveProperty('name', VARIANT_NAME_EN);
     });
 
-    it('does not throw when a first-level array element is a hole', () => {
+    it('preserves a first-level hole and translates nested relations of later elements', () => {
         product.variants = [undefined, productVariant] as any;
 
-        const result = translateDeep(product, [LanguageCode.en, LanguageCode.en], [
-            ['variants', 'options'],
-        ] as any);
+        const result = translateDeep(product, [LanguageCode.en, LanguageCode.en], [['variants', 'options']]);
 
         expect(result.variants[0]).toBeUndefined();
         expect(result.variants[1].options[0]).toHaveProperty('name', OPTION_NAME_EN);
@@ -505,9 +503,11 @@ describe('translateDeep()', () => {
         secondVariant.featuredAsset = asset;
         product.variants = [productVariant, secondVariant];
 
-        const result = translateDeep(product, [LanguageCode.en, LanguageCode.en], [
-            ['variants', 'featuredAsset'],
-        ] as any);
+        const result = translateDeep(
+            product,
+            [LanguageCode.en, LanguageCode.en],
+            [['variants', 'featuredAsset']],
+        );
 
         expect(result.variants[0].featuredAsset).toBeNull();
         expect(result.variants[1].featuredAsset).toHaveProperty('name', ASSET_NAME_EN);
@@ -521,7 +521,7 @@ describe('translateDeep()', () => {
     it('leaves a null relation as null for a single-segment path', () => {
         (product as any).featuredAsset = null;
 
-        const result = translateDeep(product, [LanguageCode.en, LanguageCode.en], ['featuredAsset'] as any);
+        const result = translateDeep(product, [LanguageCode.en, LanguageCode.en], ['featuredAsset']);
 
         expect((result as any).featuredAsset).toBeNull();
     });
@@ -530,11 +530,23 @@ describe('translateDeep()', () => {
         (productVariant as any).featuredAsset = null;
         testProduct.singleRealVariant = productVariant;
 
-        const result = translateDeep(testProduct, [LanguageCode.en, LanguageCode.en], [
-            ['singleRealVariant', 'featuredAsset'],
-        ] as any);
+        const result = translateDeep(
+            testProduct,
+            [LanguageCode.en, LanguageCode.en],
+            [['singleRealVariant', 'featuredAsset']],
+        );
 
         expect((result.singleRealVariant as any).featuredAsset).toBeNull();
+    });
+
+    // A path deeper than two segments is outside what translateDeep() handles; it must fall
+    // through without creating a junk own-property from the stringified path array
+    it('does not create a junk own-property for a three-segment path', () => {
+        const result = translateDeep(product, [LanguageCode.en, LanguageCode.en], [
+            ['variants', 'featuredAsset', 'x'],
+        ] as any);
+
+        expect(Object.keys(result)).not.toContain('variants,featuredAsset,x');
     });
 
     it('should translate a first-level nested non-array entity', () => {
