@@ -377,6 +377,19 @@ describe('Promotion resolver', () => {
             expect(promotions.totalItems).toBe(0);
         });
 
+        // #5093 — cannot remove a Promotion from the default channel
+        it('cannot remove a Promotion from the default channel', async () => {
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            await expect(
+                adminClient.query(removePromotionsFromChannelDocument, {
+                    input: {
+                        channelId: 'T_1',
+                        promotionIds: [promotion.id],
+                    },
+                }),
+            ).rejects.toThrow('Items cannot be removed from the default Channel');
+        });
+
         it('cannot delete a Promotion belonging to another channel', async () => {
             // promotion belongs to default channel only (removed from second channel above)
             adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);

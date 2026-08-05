@@ -239,6 +239,10 @@ export class PromotionService {
         if (!hasPermission) {
             throw new ForbiddenError();
         }
+        const defaultChannel = await this.channelService.getDefaultChannel(ctx);
+        if (idsAreEqual(input.channelId, defaultChannel.id)) {
+            throw new UserInputError('error.items-cannot-be-removed-from-default-channel');
+        }
         const promotions = await this.connection.findByIdsInChannel(
             ctx,
             Promotion,
