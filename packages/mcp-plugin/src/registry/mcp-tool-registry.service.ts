@@ -85,8 +85,15 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     }
 
     /**
-     * The only public execution entry. Routes discovery meta-tools; everything else runs the shared
-     * funnel. For a direct call the SDK has already validated `input` against the registered schema;
+     * The only public execution entry, called by the per-request transport for every tool
+     * invocation. Which names can arrive is decided by the exposure mode, not here:
+     *
+     * - `direct` (default): only real tool names. The two meta-tool names are refused as real
+     *   tool names at startup and never registered, so the SDK rejects them before this runs.
+     * - `discovery`: only `search_tools` and `execute_tool`. Real tool names are never
+     *   registered, so the SDK rejects them before this runs.
+     *
+     * For a direct call the SDK has already validated `input` against the registered schema;
      * for an `execute_tool` call the funnel validates the inner arguments itself.
      */
     async callTool(
@@ -95,11 +102,13 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         name: string,
         input: unknown,
     ): Promise<CallToolResult> {
-        if (name === SEARCH_TOOLS) {
-            return this.searchTools(executionContext, toolset, input);
-        }
-        if (name === EXECUTE_TOOL) {
-            return this.callToolFromEnvelope(executionContext, toolset, input);
+        if (this.options.toolExposure === 'discovery') {
+            if (name === SEARCH_TOOLS) {
+                return this.searchTools(executionContext, toolset, input);
+            }
+            if (name === EXECUTE_TOOL) {
+                return this.callToolFromEnvelope(executionContext, toolset, input);
+            }
         }
         // The SDK already validated `input` against the registered wire schema.
         return this.callRegisteredTool(executionContext, toolset, name, input, false);
