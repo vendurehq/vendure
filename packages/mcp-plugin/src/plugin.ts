@@ -16,6 +16,7 @@ import {
     DEFAULT_LOG_TTL_DAYS,
     DEFAULT_OAUTH_OPTIONS,
     DEFAULT_RATE_LIMIT_OPTIONS,
+    DEFAULT_SHOP_ACCESS,
     DEFAULT_TOOL_EXPOSURE,
     MCP_PLUGIN_OPTIONS,
     MCP_SETTINGS_NAMESPACE,
@@ -130,6 +131,7 @@ export class McpPlugin implements OnApplicationBootstrap {
     static init(options: McpPluginOptions = {}): Type<McpPlugin> {
         this.options = {
             toolExposure: options.toolExposure ?? DEFAULT_TOOL_EXPOSURE,
+            shopAccess: options.shopAccess ?? DEFAULT_SHOP_ACCESS,
             oauth: options.oauth && { ...DEFAULT_OAUTH_OPTIONS, ...options.oauth },
             rateLimits: McpPlugin.resolveRateLimits(options.rateLimits),
             dnsRebinding: options.dnsRebinding,

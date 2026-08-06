@@ -4,6 +4,7 @@ import {
     ForbiddenException,
     Inject,
     Injectable,
+    NotFoundException,
     UnauthorizedException,
 } from '@nestjs/common';
 import {
@@ -162,6 +163,9 @@ export class McpOauthService {
     }
 
     protectedResourceMetadata(endpoint: McpToolset) {
+        if (endpoint === 'shop' && this.options.shopAccess === 'disabled') {
+            throw new NotFoundException();
+        }
         const issuer = this.issuerOrigin();
         return {
             resource: this.resourceForToolset(endpoint),
@@ -424,8 +428,6 @@ export class McpOauthService {
             ? await this.channelService.findOne(adminCtx, grant.channelId)
             : await this.channelService.getDefaultChannel(adminCtx);
         if (!channel) {
-            // The grant was scoped to a channel that has since been deleted. Channel deletion
-            // is permanent, so the grant can never be honoured again — revoke it and refuse.
             await this.revokeGrant(adminCtx, grant);
             throw new UnauthorizedException('Channel no longer exists');
         }
@@ -924,7 +926,9 @@ export class McpOauthService {
             if (url.search || url.hash) {
                 throw new Error('OAuth resource must not include query parameters or fragments');
             }
-            for (const toolset of ['shop', 'admin'] as const) {
+            const toolsets: readonly McpToolset[] =
+                this.options.shopAccess === 'disabled' ? (['admin'] as const) : (['shop', 'admin'] as const);
+            for (const toolset of toolsets) {
                 if (this.sameResourceUrl(url, new URL(this.resourceForToolset(toolset)))) {
                     return { resource: this.resourceForToolset(toolset), toolset };
                 }

@@ -290,6 +290,22 @@ export interface McpPluginOptions {
     toolExposure?: McpToolExposureMode;
     /**
      * @description
+     * Controls HTTP access to the `/mcp/shop` endpoint and the shop toolset.
+     *
+     * - `'anonymous'` (default): the endpoint accepts anonymous callers as well as
+     *   OAuth-authenticated customers.
+     * - `'authenticated'`: the endpoint requires an OAuth Bearer token. Token-less
+     *   requests receive a 401 with the standard auth challenge.
+     * - `'disabled'`: the endpoint responds 404 and customer OAuth authorization
+     *   requests are refused.
+     *
+     * In-process tool execution via {@link McpToolExecutionService} is not affected.
+     *
+     * @default 'anonymous'
+     */
+    shopAccess?: 'disabled' | 'authenticated' | 'anonymous';
+    /**
+     * @description
      * OAuth options. When omitted, the OAuth surface is disabled.
      */
     oauth?: McpOauthOptions;

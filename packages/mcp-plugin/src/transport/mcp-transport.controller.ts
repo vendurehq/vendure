@@ -6,6 +6,7 @@ import {
     Get,
     Headers,
     Inject,
+    NotFoundException,
     Post,
     Req,
     Res,
@@ -84,6 +85,9 @@ export class McpTransportController {
         @Body() body: unknown,
         @Headers() headers: Record<string, string | string[] | undefined>,
     ): Promise<void> {
+        if (this.options.shopAccess === 'disabled') {
+            throw new NotFoundException();
+        }
         return this.handlePost('shop', req, res, body, headers);
     }
 
@@ -99,6 +103,9 @@ export class McpTransportController {
 
     @Get('shop')
     getShop(@Res() res: Response): void {
+        if (this.options.shopAccess === 'disabled') {
+            throw new NotFoundException();
+        }
         this.methodNotAllowed(res);
     }
 
@@ -124,7 +131,12 @@ export class McpTransportController {
 
         const token = this.getBearerToken(this.getHeader(headers, 'authorization'));
 
-        // 2. Meter anonymous shop traffic by IP before anything else touches the database. Building
+        if (toolset === 'shop' && this.options.shopAccess === 'authenticated' && !token) {
+            this.setAuthChallenge(res, 'shop');
+            throw new UnauthorizedException('Shop MCP endpoint requires a Bearer token');
+        }
+
+        // 3. Meter anonymous shop traffic by IP before anything else touches the database. Building
         // the context below creates a Vendure session row when the caller has no usable session, so the
         // write has to sit inside the limit rather than behind it.
         if (toolset === 'shop' && !token) {
@@ -139,7 +151,7 @@ export class McpTransportController {
             }
         }
 
-        // 3. Authenticate and build the execution context.
+        // 4. Authenticate and build the execution context.
         let executionContext: McpExecutionContext;
         if (toolset === 'admin') {
             if (!token) {
@@ -164,7 +176,7 @@ export class McpTransportController {
             executionContext = { ctx, clientIp: this.getClientIp(req) };
         }
 
-        // 4. Handshake rate-limit pre-check (only meaningful for JSON bodies we can parse).
+        // 5. Handshake rate-limit pre-check (only meaningful for JSON bodies we can parse).
         const contentType = this.getHeader(headers, 'content-type') ?? '';
         const isJson = isJsonContentType(contentType);
         const parsedBody = isJson ? body : undefined;
@@ -176,7 +188,7 @@ export class McpTransportController {
             }
         }
 
-        // 5. Attach the resolved context as pass-through authInfo and delegate to the SDK handler.
+        // 6. Attach the resolved context as pass-through authInfo and delegate to the SDK handler.
         (req as Request & { auth?: AuthInfo }).auth = this.buildAuthInfo(executionContext, toolset, token);
         await this.nodeHandler(req, res, parsedBody);
     }

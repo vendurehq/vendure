@@ -11,7 +11,7 @@ import { McpPluginOptions } from '../src/types';
 
 import { McpTestToolsPlugin } from './fixtures/mcp-test-tools';
 import { postMcp, rpc } from './utils/mcp-http-client';
-import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
+import { runAuthorizationCodeFlow, runShopAuthorizationCodeFlow } from './utils/oauth-test-client';
 
 const TOKEN_SECRET = 'mcp-transport-secret-0000000000000000000000';
 const ISSUER = `http://localhost:${testConfig().apiOptions.port}`;
@@ -345,5 +345,138 @@ describe('MCP transport content-type casing', () => {
         });
         expect(tripped.body.error.code).toBe(-31029);
         expect(tripped.status).toBe(429);
+    });
+});
+
+describe('MCP transport shopAccess: disabled', () => {
+    const options: McpPluginOptions = {
+        oauth: {
+            tokenSecret: TOKEN_SECRET,
+            storefrontConsentUrl: 'https://storefront.example.com/mcp/authorize',
+        },
+        shopAccess: 'disabled',
+    };
+    const config = mergeConfig(testConfig(), { plugins: [McpTestToolsPlugin, McpPlugin.init(options)] });
+    const { server } = createTestEnvironment(config);
+    const baseUrl = () => `http://localhost:${config.apiOptions.port}`;
+
+    beforeAll(async () => {
+        McpPlugin.init(options);
+        await server.init({ initialData, productsCsvPath, customerCount: 1 });
+    }, TEST_SETUP_TIMEOUT_MS);
+
+    afterAll(async () => {
+        await server.destroy();
+    });
+
+    it('POST /mcp/shop returns 404', async () => {
+        const res = await postMcp(baseUrl(), 'shop', rpc('ping', {}, 1));
+        expect(res.status).toBe(404);
+    });
+
+    it('GET /mcp/shop returns 404, not the 405 it returns when shop access is enabled', async () => {
+        const res = await fetch(`${baseUrl()}/mcp/shop`);
+        expect(res.status).toBe(404);
+    });
+
+    it('the admin endpoint still answers, proving only shop is gone', async () => {
+        const res = await postMcp(baseUrl(), 'admin', rpc('ping', {}, 1));
+        expect(res.status).toBe(401);
+        expect(res.headers.get('www-authenticate') ?? '').toMatch(/^Bearer .*resource_metadata=/);
+    });
+
+    it('shop protected-resource metadata 404s while admin metadata still 200s', async () => {
+        const shopMeta = await fetch(`${baseUrl()}/.well-known/oauth-protected-resource/mcp/shop`);
+        expect(shopMeta.status).toBe(404);
+
+        const adminMeta = await fetch(`${baseUrl()}/.well-known/oauth-protected-resource/mcp/admin`);
+        expect(adminMeta.status).toBe(200);
+        expect((await adminMeta.json()).resource).toBe(`${ISSUER}/mcp/admin`);
+    });
+
+    // resolveResource no longer recognises the shop resource at all when shopAccess is disabled,
+    // so an authorize request naming it fails the same way it would for any unrecognised URL.
+    it('refuses an authorize request naming the shop resource as an unsupported resource', async () => {
+        const authorizeUrl = new URL(`${baseUrl()}/mcp/oauth/authorize`);
+        authorizeUrl.searchParams.set('response_type', 'code');
+        authorizeUrl.searchParams.set('client_id', 'irrelevant-client-id');
+        authorizeUrl.searchParams.set('redirect_uri', 'https://example.com/cb');
+        authorizeUrl.searchParams.set('code_challenge', 'x'.repeat(43));
+        authorizeUrl.searchParams.set('code_challenge_method', 'S256');
+        authorizeUrl.searchParams.set('resource', `${ISSUER}/mcp/shop`);
+
+        const res = await fetch(authorizeUrl, { redirect: 'manual' });
+        expect(res.status).toBe(400);
+        expect(await res.text()).toMatch(/Unsupported OAuth resource/i);
+    });
+});
+
+describe('MCP transport shopAccess: authenticated', () => {
+    const options: McpPluginOptions = {
+        oauth: {
+            tokenSecret: TOKEN_SECRET,
+            storefrontConsentUrl: 'https://storefront.example.com/mcp/authorize',
+        },
+        shopAccess: 'authenticated',
+    };
+    const config = mergeConfig(testConfig(), { plugins: [McpTestToolsPlugin, McpPlugin.init(options)] });
+    const { server, adminClient, shopClient } = createTestEnvironment(config);
+    const baseUrl = () => `http://localhost:${config.apiOptions.port}`;
+    let customerAuthToken: string;
+
+    beforeAll(async () => {
+        McpPlugin.init(options);
+        await server.init({ initialData, productsCsvPath, customerCount: 1 });
+        await adminClient.asSuperAdmin();
+
+        // Log in a real seeded customer on the shop client to obtain a customer session token —
+        // the storefront consent step approves the shop grant with this token.
+        const { customers } = await adminClient.query(gql`
+            query {
+                customers(options: { take: 1 }) {
+                    items {
+                        emailAddress
+                    }
+                }
+            }
+        `);
+        const customerEmail = customers.items[0]?.emailAddress;
+        if (!customerEmail) {
+            throw new Error('Expected at least one seeded customer');
+        }
+        const login = await shopClient.asUserWithCredentials(customerEmail, 'test');
+        if (!login || login.errorCode) {
+            throw new Error(`Customer login failed: ${JSON.stringify(login)}`);
+        }
+        customerAuthToken = shopClient.getAuthToken();
+        if (!customerAuthToken) {
+            throw new Error('Customer login did not yield a session token');
+        }
+    }, TEST_SETUP_TIMEOUT_MS);
+
+    afterAll(async () => {
+        await server.destroy();
+    });
+
+    it('a token-less POST /mcp/shop is refused with a challenge pointing at the shop metadata URL', async () => {
+        const res = await postMcp(baseUrl(), 'shop', rpc('ping', {}, 1));
+        expect(res.status).toBe(401);
+        const challenge = res.headers.get('www-authenticate') ?? '';
+        expect(challenge).toMatch(/^Bearer .*resource_metadata=/);
+        expect(challenge).toContain(`${ISSUER}/.well-known/oauth-protected-resource/mcp/shop`);
+    });
+
+    it('a full customer OAuth flow succeeds and a subsequent tools/call with the access token succeeds', async () => {
+        const flow = await runShopAuthorizationCodeFlow({
+            baseUrl: baseUrl(),
+            issuer: ISSUER,
+            vendureAuthToken: customerAuthToken,
+        });
+        expect(flow.access_token).toBeTruthy();
+
+        const result = await postMcp(baseUrl(), 'shop', callTool('shop_ping', {}, 1), {
+            token: flow.access_token,
+        });
+        expect(result.body.result.isError).toBeUndefined();
     });
 });

@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
 import { DEFAULT_OAUTH_OPTIONS } from '../constants';
@@ -9,9 +9,13 @@ import { deriveHashKey, hashToken } from './token-hash';
 
 const ISSUER = 'https://shop.example.com';
 
-function createService(oauth?: McpPluginOptions['oauth']): McpOauthService {
+function createService(
+    oauth?: McpPluginOptions['oauth'],
+    shopAccess?: McpPluginOptions['shopAccess'],
+): McpOauthService {
     const options: McpPluginOptions = {
         oauth: oauth === undefined ? undefined : { ...DEFAULT_OAUTH_OPTIONS, issuer: ISSUER, ...oauth },
+        shopAccess,
     };
     // The methods exercised here validate input / read options before touching any
     // injected dependency, so the DB/session deps (and the CIMD resolver) can be omitted.
@@ -98,6 +102,12 @@ describe('McpOauthService metadata', () => {
         const service = createService(undefined);
         expect(() => service.metadata()).toThrow(BadRequestException);
     });
+
+    it('404s the shop protected-resource metadata when shopAccess is disabled, but still serves admin', () => {
+        const service = createService({ tokenSecret: 's' }, 'disabled');
+        expect(() => service.protectedResourceMetadata('shop')).toThrow(NotFoundException);
+        expect(service.protectedResourceMetadata('admin').resource).toBe(`${ISSUER}/mcp/admin`);
+    });
 });
 
 describe('McpOauthService PKCE / grant gating', () => {
@@ -132,6 +142,22 @@ describe('McpOauthService PKCE / grant gating', () => {
         await expect(service.exchangeToken({ grant_type: 'password' })).rejects.toThrow(
             'Unsupported grant_type',
         );
+    });
+
+    // With shopAccess disabled, resolveResource must not recognise the shop resource at all —
+    // an authorize request naming it fails the same way it would for any unrecognised URL.
+    it('refuses an authorize request for the shop resource when shopAccess is disabled', async () => {
+        const service = createService({ tokenSecret: 's' }, 'disabled');
+        await expect(
+            service.createAuthorizationRedirect({
+                response_type: 'code',
+                client_id: 'c',
+                redirect_uri: 'https://x/cb',
+                code_challenge: 'abc',
+                code_challenge_method: 'S256',
+                resource: `${ISSUER}/mcp/shop`,
+            }),
+        ).rejects.toThrow('Unsupported OAuth resource');
     });
 });
 

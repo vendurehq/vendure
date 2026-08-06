@@ -8,6 +8,8 @@ export const loggerCtx = 'McpPlugin';
 
 export const DEFAULT_TOOL_EXPOSURE = 'direct' as const;
 
+export const DEFAULT_SHOP_ACCESS = 'anonymous' as const;
+
 export const MCP_SETTINGS_NAMESPACE = 'mcp';
 /** Field name registered in `settingsStoreFields` under {@link MCP_SETTINGS_NAMESPACE}. */
 export const MCP_TOOL_TOGGLES_FIELD_NAME = 'tool-toggles';
