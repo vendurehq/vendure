@@ -24,7 +24,7 @@ interface GetProductInput {
         'see this thing you sell',
     ],
     permissions: [Permission.Public],
-    readOnly: true,
+    behavior: 'readonly',
     inputSchema: objectSchema({
         id: optional(idProp('Product ID.')),
         slug: optional(stringProp('Product slug, used when ID is omitted.')),

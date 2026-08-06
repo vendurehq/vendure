@@ -230,10 +230,8 @@ permission, not the general Settings permission:
   [approving admin consent requests](/guides/mcp-server/oauth-consent/#admin-consent-ships-with-the-dashboard).
 
 Grant `ReadMcpServer`/`UpdateMcpServer` to operators who manage the AI integration without giving them full
-store-settings access. Two behaviours are intentional and worth knowing: the tool-registry query returns the full
-registry (it is not filtered per-caller — any holder of `ReadMcpServer` sees every tool), and the admin API
-surfaces the raw `readOnly`/`requiresConfirmation` flags rather than the single computed `behavior` the transport
-advertises to agents.
+store-settings access. One behaviour is intentional and worth knowing: the tool-registry query returns the full
+registry — it is not filtered per-caller, so any holder of `ReadMcpServer` sees every tool.
 
 ## Related
 

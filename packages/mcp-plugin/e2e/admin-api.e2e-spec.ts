@@ -34,8 +34,7 @@ const MCP_TOOLS_QUERY = `
             toolset
             description
             pluginSource
-            readOnly
-            requiresConfirmation
+            behavior
             enabled
         }
     }

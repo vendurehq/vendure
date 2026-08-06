@@ -23,7 +23,6 @@ interface SetShippingMethodInput {
         'how I want my order delivered',
     ],
     permissions: [Permission.Public],
-    readOnly: false,
     inputSchema: objectSchema({ methodId: idProp('Shipping method ID.') }),
 })
 @Injectable()

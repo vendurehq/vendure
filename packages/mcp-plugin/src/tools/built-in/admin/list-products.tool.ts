@@ -25,7 +25,7 @@ interface ListProductsInput extends Record<string, unknown> {
         'catalog listing for staff',
     ],
     permissions: [Permission.ReadProduct],
-    readOnly: true,
+    behavior: 'readonly',
     inputSchema: objectSchema({
         limit: optional(numberProp('Maximum number of products to return.')),
         offset: optional(numberProp('Number of products to skip.')),

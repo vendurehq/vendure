@@ -22,7 +22,7 @@ interface GetStockLevelsInput {
         'is this in stock',
     ],
     permissions: [Permission.ReadProduct],
-    readOnly: true,
+    behavior: 'readonly',
     inputSchema: objectSchema({ variantId: idProp('Product variant ID.') }),
 })
 @Injectable()

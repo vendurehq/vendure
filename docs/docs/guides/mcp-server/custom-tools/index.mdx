@@ -50,7 +50,7 @@ interface LowStockInput {
     toolset: 'admin',
     description: 'List product variants whose stock on hand is at or below a threshold.',
     permissions: [Permission.ReadCatalog],
-    readOnly: true,
+    behavior: 'readonly',
     inputSchema: {
         type: 'object',
         properties: {
@@ -111,7 +111,7 @@ the API it wraps.
 ## Destructive tools and confirmation
 
 Mark a tool that deletes, cancels, refunds, or otherwise makes a hard-to-reverse change with
-`requiresConfirmation: true`. The registry then does the confirmation handshake for you:
+`behavior: 'destructive'`. The registry then does the confirmation handshake for you:
 
 - It advertises an optional `confirm: boolean` parameter on the tool's schema.
 - On a call without `confirm: true`, it returns a non-error response describing the action and asking the agent
@@ -128,7 +128,7 @@ colliding.
     toolset: 'admin',
     description: 'Permanently archive a product so it can no longer be sold.',
     permissions: [Permission.DeleteCatalog],
-    requiresConfirmation: true, // → resolved behavior: destructive; the registry gates confirmation
+    behavior: 'destructive', // the registry gates confirmation
     inputSchema: {
         type: 'object',
         properties: { id: { type: 'string', description: 'Product ID to archive.' } },
@@ -143,8 +143,8 @@ export class ArchiveProductTool implements McpToolHandler<{ id: string }> {
 }
 ```
 
-See [How tool safety is derived](/guides/mcp-server/built-in-tools/#how-tool-safety-is-derived) for how
-`behavior`, `readOnly`, and `requiresConfirmation` combine.
+See [How tool safety is derived](/guides/mcp-server/built-in-tools/#how-tool-safety-is-derived) for what each
+`behavior` value means.
 
 ## Discovery keywords
 
@@ -173,7 +173,7 @@ The full field list, types, and defaults are on
 | `description` | Agent-facing description — write it for the model |
 | `toolset` | `'shop'` or `'admin'` — which endpoint serves it |
 | `permissions` | `Permission[]`, OR semantics |
-| `readOnly` / `requiresConfirmation` / `behavior` | Safety classification |
+| `behavior` | Safety classification: `'readonly'`, `'mutating'` (default), or `'destructive'` |
 | `inputSchema` / `outputSchema` | JSON Schema; input validated pre-call, output drift-checked post-call |
 | `keywords` | Search-only synonyms for discovery mode |
 

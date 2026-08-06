@@ -21,14 +21,13 @@ values and the caller needs *any one* of them. Shop tools use `Public` (anonymou
 
 ### How tool safety is derived
 
-Each tool resolves to one of three behaviors, in this precedence:
+Each tool declares a single `behavior`, one of:
 
-1. an explicit `behavior` if set (no built-in uses this);
-2. else `requiresConfirmation: true` → **destructive**;
-3. else `readOnly: true` → **readonly**;
-4. else → **mutating**.
+- **readonly** — changes nothing.
+- **mutating** — writes data and runs immediately. This is the default when `behavior` is omitted.
+- **destructive** — writes data and requires the confirmation round-trip below before running.
 
-The resolved behavior drives the MCP annotations an agent sees (`readOnlyHint`, `destructiveHint`).
+The declared behavior drives the MCP annotations an agent sees (`readOnlyHint`, `destructiveHint`).
 
 ### Destructive confirmation
 

@@ -24,7 +24,6 @@ interface RemoveCouponCodeInput {
         'clear the applied promo',
     ],
     permissions: [Permission.Public],
-    readOnly: false,
     inputSchema: objectSchema({ code: stringProp('Coupon code.') }),
 })
 @Injectable()

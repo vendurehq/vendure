@@ -25,7 +25,7 @@ interface ListOrdersInput extends Record<string, unknown> {
         'pull the full order list',
     ],
     permissions: [Permission.ReadOrder],
-    readOnly: true,
+    behavior: 'readonly',
     inputSchema: objectSchema({
         limit: optional(numberProp('Maximum number of orders to return.')),
         offset: optional(numberProp('Number of orders to skip.')),

@@ -523,16 +523,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     }
 
     private getToolBehavior(tool: McpToolMetadata): McpToolBehavior {
-        if (tool.behavior) {
-            return tool.behavior;
-        }
-        if (tool.requiresConfirmation) {
-            return 'destructive';
-        }
-        if (tool.readOnly) {
-            return 'readonly';
-        }
-        return 'mutating';
+        return tool.behavior ?? 'mutating';
     }
 
     private deriveAnnotations(tool: McpToolMetadata, behavior: McpToolBehavior): ToolAnnotations {

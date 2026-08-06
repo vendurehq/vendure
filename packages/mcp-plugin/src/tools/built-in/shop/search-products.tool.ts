@@ -26,7 +26,7 @@ interface SearchProductsInput extends Record<string, unknown> {
         'hunt for a product',
     ],
     permissions: [Permission.Public],
-    readOnly: true,
+    behavior: 'readonly',
     inputSchema: objectSchema({
         query: optional(stringProp('Text to look up in product names and slugs.')),
         limit: optional(numberProp('Maximum number of products to return.')),

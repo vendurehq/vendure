@@ -12,7 +12,6 @@ import { McpTool, McpToolHandler, McpToolMetadata } from './mcp-tool.decorator';
     description: 'Search the product catalog',
     toolset: 'shop',
     behavior: 'readonly',
-    readOnly: true,
     permissions: [Permission.Public],
 })
 class SearchProductsTool implements McpToolHandler<{ term: string }, { items: unknown[] }> {

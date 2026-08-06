@@ -25,8 +25,7 @@ interface PlaceOrderInput {
         'confirm and pay',
     ],
     permissions: [Permission.Public],
-    readOnly: false,
-    requiresConfirmation: true,
+    behavior: 'destructive',
     inputSchema: objectSchema({
         paymentMethodCode: stringProp('Payment method code.'),
         paymentMetadata: optional(jsonObjectProp('Metadata passed to the payment handler.')),

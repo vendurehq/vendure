@@ -19,7 +19,7 @@ import { customerSummary } from '../serializers';
         'show my account',
     ],
     permissions: [Permission.Authenticated],
-    readOnly: true,
+    behavior: 'readonly',
     inputSchema: objectSchema({}),
 })
 @Injectable()

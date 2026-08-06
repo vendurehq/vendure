@@ -20,7 +20,7 @@ import { orderSummary } from '../serializers';
         'how much is in my basket',
     ],
     permissions: [Permission.Public],
-    readOnly: true,
+    behavior: 'readonly',
     inputSchema: objectSchema({}),
 })
 @Injectable()

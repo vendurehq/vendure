@@ -25,7 +25,7 @@ interface CancelOrderToolInput {
         'kill this order',
     ],
     permissions: [Permission.UpdateOrder],
-    requiresConfirmation: true,
+    behavior: 'destructive',
     inputSchema: objectSchema({
         id: idProp('Order ID.'),
         reason: optional(stringProp('Reason for the cancellation.')),

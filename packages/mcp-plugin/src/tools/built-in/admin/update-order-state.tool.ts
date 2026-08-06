@@ -24,7 +24,7 @@ interface UpdateOrderStateInput {
         'transition order status',
     ],
     permissions: [Permission.UpdateOrder],
-    requiresConfirmation: true,
+    behavior: 'destructive',
     inputSchema: objectSchema({
         id: idProp('Order ID.'),
         state: stringProp('Target order state, e.g. "Shipped" or "Cancelled".'),

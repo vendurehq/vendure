@@ -40,7 +40,6 @@ const addressInputSchema = objectSchema({
         'send it to this address',
     ],
     permissions: [Permission.Public],
-    readOnly: false,
     inputSchema: objectSchema({ address: addressInputSchema }),
 })
 @Injectable()

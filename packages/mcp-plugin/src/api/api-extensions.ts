@@ -13,8 +13,7 @@ export const adminApiExtensions = gql`
         toolset: String!
         description: String!
         pluginSource: String!
-        readOnly: Boolean!
-        requiresConfirmation: Boolean!
+        behavior: String!
         enabled: Boolean!
     }
 

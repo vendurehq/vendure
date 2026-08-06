@@ -19,7 +19,7 @@ import { objectSchema } from '../schema-helpers';
         'which couriers can I use',
     ],
     permissions: [Permission.Public],
-    readOnly: true,
+    behavior: 'readonly',
     inputSchema: objectSchema({}),
 })
 @Injectable()

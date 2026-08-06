@@ -19,7 +19,7 @@ import { objectSchema } from '../schema-helpers';
         'which payment types are allowed',
     ],
     permissions: [Permission.Public],
-    readOnly: true,
+    behavior: 'readonly',
     inputSchema: objectSchema({}),
 })
 @Injectable()

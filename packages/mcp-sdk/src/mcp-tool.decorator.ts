@@ -48,12 +48,13 @@ export interface McpToolMetadata {
      * (OR logic, the same as `@Allow`).
      */
     permissions?: Permission[];
-    /** How the tool behaves; controls how it is exposed to the agent. */
+    /**
+     * How the tool behaves; controls how it is exposed to the agent. One of:
+     * - `'readonly'` — changes nothing.
+     * - `'mutating'` — writes data and runs immediately (the default when omitted).
+     * - `'destructive'` — writes data and requires the confirmation round-trip before running.
+     */
     behavior?: McpToolBehavior;
-    /** True if the tool only reads data and never changes anything. */
-    readOnly?: boolean;
-    /** True if calling the tool needs explicit confirmation, e.g. deletes. */
-    requiresConfirmation?: boolean;
     /** Optional JSON Schema used to validate the tool's input. */
     inputSchema?: McpJsonSchema;
     /** Optional JSON Schema describing the tool's output. */

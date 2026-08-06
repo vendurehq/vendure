@@ -25,7 +25,7 @@ interface ListCustomersInput extends Record<string, unknown> {
         'pull the customer list',
     ],
     permissions: [Permission.ReadCustomer],
-    readOnly: true,
+    behavior: 'readonly',
     inputSchema: objectSchema({
         limit: optional(numberProp('Maximum number of customers to return.')),
         offset: optional(numberProp('Number of customers to skip.')),

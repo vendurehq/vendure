@@ -23,7 +23,7 @@ interface GetOrderInput {
         'how is my delivery going',
     ],
     permissions: [Permission.Public],
-    readOnly: true,
+    behavior: 'readonly',
     inputSchema: objectSchema({ code: stringProp('Order code.') }),
 })
 @Injectable()

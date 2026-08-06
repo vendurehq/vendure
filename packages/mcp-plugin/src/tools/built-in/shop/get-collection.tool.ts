@@ -24,7 +24,7 @@ interface GetCollectionInput {
         "what's in this category",
     ],
     permissions: [Permission.Public],
-    readOnly: true,
+    behavior: 'readonly',
     inputSchema: objectSchema({
         id: optional(idProp('Collection ID.')),
         slug: optional(stringProp('Collection slug, used when ID is omitted.')),

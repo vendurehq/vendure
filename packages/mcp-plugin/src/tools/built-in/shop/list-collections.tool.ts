@@ -26,7 +26,7 @@ interface ListCollectionsInput extends Record<string, unknown> {
         'how is the store organized',
     ],
     permissions: [Permission.Public],
-    readOnly: true,
+    behavior: 'readonly',
     inputSchema: objectSchema({
         limit: optional(numberProp('Maximum number of collections to return.')),
         offset: optional(numberProp('Number of collections to skip.')),

@@ -23,14 +23,14 @@ import { MCP_TOOLS_QUERY, McpToolInfo, SET_MCP_TOOL_ENABLED } from '../queries';
 const ALL_TOOLSETS = '__all__';
 
 function SafetyBadge({ tool }: { tool: McpToolInfo }) {
-    if (tool.requiresConfirmation) {
+    if (tool.behavior === 'destructive') {
         return (
             <Badge variant="destructive">
                 <Trans>Destructive</Trans>
             </Badge>
         );
     }
-    if (tool.readOnly) {
+    if (tool.behavior === 'readonly') {
         return (
             <Badge variant="secondary">
                 <Trans>Read-only</Trans>

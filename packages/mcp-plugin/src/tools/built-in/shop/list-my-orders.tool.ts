@@ -25,7 +25,7 @@ interface ListMyOrdersInput extends Record<string, unknown> {
         'my buying history',
     ],
     permissions: [Permission.Authenticated],
-    readOnly: true,
+    behavior: 'readonly',
     inputSchema: objectSchema({
         limit: optional(numberProp('Maximum number of orders to return.')),
         offset: optional(numberProp('Number of orders to skip.')),

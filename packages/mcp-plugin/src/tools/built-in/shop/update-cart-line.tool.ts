@@ -24,7 +24,6 @@ interface UpdateCartLineInput {
         'update the number of this item',
     ],
     permissions: [Permission.Public],
-    readOnly: false,
     inputSchema: objectSchema({ orderLineId: idProp('Order line ID.'), quantity: numberProp('Quantity.') }),
 })
 @Injectable()

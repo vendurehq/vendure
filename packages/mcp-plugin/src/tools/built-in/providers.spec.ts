@@ -120,11 +120,10 @@ describe('built-in shop tool providers', () => {
         expect(byName.get('get_my_account')?.permissions).toEqual([Permission.Authenticated]);
         expect(byName.get('list_my_orders')?.permissions).toEqual([Permission.Authenticated]);
         expect(byName.get('get_order')?.permissions).toEqual([Permission.Public]);
-        expect(byName.get('get_order')?.readOnly).toBe(true);
+        expect(byName.get('get_order')?.behavior).toBe('readonly');
         expect(byName.get('place_order')).toMatchObject({
             permissions: [Permission.Public],
-            readOnly: false,
-            requiresConfirmation: true,
+            behavior: 'destructive',
         });
     });
 

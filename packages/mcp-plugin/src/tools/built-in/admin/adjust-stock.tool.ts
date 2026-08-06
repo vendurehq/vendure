@@ -33,7 +33,7 @@ interface AdjustStockInput {
     // Parity fix: stock is adjusted via the core updateProductVariants mutation, gated by
     // UpdateCatalog/UpdateProduct — UpdateStockLocation governs the StockLocation entity, not quantities.
     permissions: [Permission.UpdateProduct],
-    requiresConfirmation: true,
+    behavior: 'destructive',
     inputSchema: objectSchema({
         variantId: idProp('Product variant ID.'),
         locationId: idProp('Stock location ID.'),

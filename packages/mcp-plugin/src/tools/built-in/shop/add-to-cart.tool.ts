@@ -24,7 +24,6 @@ interface AddToCartInput {
         'put this in my shopping bag',
     ],
     permissions: [Permission.Public],
-    readOnly: false,
     inputSchema: objectSchema({
         variantId: idProp('Product variant ID.'),
         quantity: numberProp('Quantity.'),

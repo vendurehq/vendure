@@ -25,7 +25,7 @@ interface GetOrderInput {
         'fetch order info for operations',
     ],
     permissions: [Permission.ReadOrder],
-    readOnly: true,
+    behavior: 'readonly',
     inputSchema: objectSchema({ id: idProp('Order ID.') }),
 })
 @Injectable()

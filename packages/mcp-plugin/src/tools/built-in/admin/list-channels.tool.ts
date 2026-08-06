@@ -24,7 +24,7 @@ interface ListChannelsInput extends Record<string, unknown> {
         'multi-store channel list',
     ],
     permissions: [Permission.ReadSettings, Permission.ReadChannel],
-    readOnly: true,
+    behavior: 'readonly',
     inputSchema: objectSchema({
         limit: optional(numberProp('Maximum number of channels to return.')),
         offset: optional(numberProp('Number of channels to skip.')),

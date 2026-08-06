@@ -25,7 +25,7 @@ interface RefundOrderToolInput {
         'process a refund',
     ],
     permissions: [Permission.UpdateOrder],
-    requiresConfirmation: true,
+    behavior: 'destructive',
     inputSchema: objectSchema({
         id: idProp('Order ID.'),
         amount: optional(

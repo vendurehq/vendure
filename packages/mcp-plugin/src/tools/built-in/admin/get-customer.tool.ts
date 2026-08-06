@@ -23,7 +23,7 @@ interface GetCustomerInput {
         'open a single customer',
     ],
     permissions: [Permission.ReadCustomer],
-    readOnly: true,
+    behavior: 'readonly',
     inputSchema: objectSchema({ id: idProp('Customer ID.') }),
 })
 @Injectable()

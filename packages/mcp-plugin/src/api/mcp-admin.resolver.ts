@@ -27,8 +27,7 @@ interface McpToolInfo {
     toolset: string;
     description: string;
     pluginSource: string;
-    readOnly: boolean;
-    requiresConfirmation: boolean;
+    behavior: string;
     enabled: boolean;
 }
 
@@ -100,8 +99,7 @@ export class McpAdminResolver {
             toolset: tool.toolset,
             description: tool.description,
             pluginSource: tool.pluginSource,
-            readOnly: tool.readOnly ?? false,
-            requiresConfirmation: tool.requiresConfirmation ?? false,
+            behavior: tool.resolvedBehavior,
             enabled: this.registry.isToolEnabled(tool, toggles),
         }));
     }
@@ -193,8 +191,7 @@ export class McpAdminResolver {
             toolset: tool.toolset,
             description: tool.description,
             pluginSource: tool.pluginSource,
-            readOnly: tool.readOnly ?? false,
-            requiresConfirmation: tool.requiresConfirmation ?? false,
+            behavior: tool.resolvedBehavior,
             enabled: this.registry.isToolEnabled(tool, toggles),
         };
     }

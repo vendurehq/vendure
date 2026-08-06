@@ -23,7 +23,6 @@ interface ApplyCouponCodeInput {
         'use my promotional code',
     ],
     permissions: [Permission.Public],
-    readOnly: false,
     inputSchema: objectSchema({ code: stringProp('Coupon code.') }),
 })
 @Injectable()

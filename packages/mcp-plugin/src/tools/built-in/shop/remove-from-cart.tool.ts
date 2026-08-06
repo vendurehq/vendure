@@ -23,7 +23,6 @@ interface RemoveFromCartInput {
         'get rid of a cart item',
     ],
     permissions: [Permission.Public],
-    readOnly: false,
     inputSchema: objectSchema({ orderLineId: idProp('Order line ID.') }),
 })
 @Injectable()

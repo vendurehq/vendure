@@ -25,7 +25,7 @@ interface GetProductInput {
         'fetch admin product info',
     ],
     permissions: [Permission.ReadProduct],
-    readOnly: true,
+    behavior: 'readonly',
     inputSchema: objectSchema({ id: idProp('Product ID.') }),
 })
 @Injectable()

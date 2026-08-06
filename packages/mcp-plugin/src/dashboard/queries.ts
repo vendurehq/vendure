@@ -12,8 +12,7 @@ export interface McpToolInfo {
     toolset: string;
     description: string;
     pluginSource: string;
-    readOnly: boolean;
-    requiresConfirmation: boolean;
+    behavior: string;
     enabled: boolean;
 }
 
@@ -70,8 +69,7 @@ export const MCP_TOOLS_QUERY = `
             toolset
             description
             pluginSource
-            readOnly
-            requiresConfirmation
+            behavior
             enabled
         }
     }

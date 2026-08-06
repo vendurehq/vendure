@@ -389,7 +389,7 @@ export interface McpRegisteredTool extends McpToolMetadata {
     handler: McpPluginToolHandler;
     /** Name of the Nest module/host that declared the provider. */
     pluginSource: string;
-    /** The resolved behavior (`behavior` → `requiresConfirmation` → `readOnly` → `mutating`). */
+    /** The tool's `behavior`, defaulting to `mutating` when not declared. */
     resolvedBehavior: McpToolBehavior;
     /** MCP annotations derived from behavior; surfaced to the agent in `tools/list` and `search_tools`. */
     annotations: ToolAnnotations;

@@ -16,8 +16,6 @@ interface McpToolMetadata {
     toolset: McpToolset;
     permissions?: Permission[];
     behavior?: McpToolBehavior;
-    readOnly?: boolean;
-    requiresConfirmation?: boolean;
     inputSchema?: McpJsonSchema;
     outputSchema?: McpJsonSchema;
 }
@@ -58,16 +56,6 @@ interface McpToolMetadata {
 ### behavior
 
 <MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-tool-behavior#mcptoolbehavior'>McpToolBehavior</a>`}   />
-
-
-### readOnly
-
-<MemberInfo kind="property" type={`boolean`}   />
-
-
-### requiresConfirmation
-
-<MemberInfo kind="property" type={`boolean`}   />
 
 
 ### inputSchema
