@@ -26,7 +26,7 @@ import { McpToolExecutionService } from '../src/registry/mcp-tool-execution.serv
 import { McpToolRegistryService } from '../src/registry/mcp-tool-registry.service';
 
 import { postMcp, rpc } from './utils/mcp-http-client';
-import { runShopAuthorizationCodeFlow } from './utils/oauth-test-client';
+import { runAuthorizationCodeFlow, runShopAuthorizationCodeFlow } from './utils/oauth-test-client';
 
 const TOKEN_SECRET = 'shop-tools-secret-000000000000000000000';
 const ISSUER = `http://localhost:${testConfig().apiOptions.port}`;
@@ -360,6 +360,148 @@ describe('MCP built-in shop tools', () => {
         expect(added.body.result.isError).toBeUndefined();
         const order = await orderByCode(added.body.result.structuredContent.order.code);
         expect(order.channels.map(channel => String(channel.id))).toContain(String(grant.channelId));
+    });
+
+    // The Shop API's "connected assistants" surface: list and revoke the signed-in customer's
+    // own grants. Placed here, before the channel-deletion test below, because shopFlow() binds
+    // its grant to the second channel and that test deletes it — once gone, shopFlow() itself
+    // can no longer complete (the consent step needs a live channel to attribute the grant to).
+    describe('activeMcpClientGrants / revokeMcpClientGrant', () => {
+        const ACTIVE_GRANTS_QUERY = gql`
+            query ActiveMcpClientGrants {
+                activeMcpClientGrants {
+                    id
+                    createdAt
+                    oauthClientName
+                    lastActivityAt
+                    expiresAt
+                }
+            }
+        `;
+
+        it("lists the signed-in customer's active grant with its client name, and no token material", async () => {
+            const flow = await shopFlow();
+            const grantEntity = await connection.getRepository(adminCtx, McpOauthGrant).findOneOrFail({
+                where: { accessTokenHash: lookupHash(flow.access_token) },
+                relations: ['oauthClient'],
+            });
+
+            const result = await shopClient.query(ACTIVE_GRANTS_QUERY);
+
+            // Ids are opaque (encoded by the configured entityIdStrategy), so correlate by the
+            // client name this flow registered rather than by the raw database id.
+            const item = result.activeMcpClientGrants.find(
+                (g: { oauthClientName: string | null }) =>
+                    g.oauthClientName === grantEntity.oauthClient.clientName,
+            );
+            expect(item).toBeTruthy();
+            const raw = JSON.stringify(result);
+            expect(raw).not.toContain(flow.access_token);
+            expect(raw).not.toContain(flow.refresh_token);
+        });
+
+        // A raw, header-less fetch rather than `shopClient.asAnonymousUser()`: that call issues a
+        // real `logout` mutation, which would destroy the session behind `customerAuthToken` —
+        // the same shared client is currently authenticated as the seeded customer, and later
+        // tests in this file (including the channel-deletion test right below) still need that
+        // token to run `shopFlow()` again.
+        it('refuses activeMcpClientGrants for an anonymous caller instead of returning an empty list', async () => {
+            const response = await fetch(`${baseUrl()}/shop-api`, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ query: 'query { activeMcpClientGrants { id } }' }),
+            });
+            const body = (await response.json()) as {
+                data?: { activeMcpClientGrants?: unknown };
+                errors?: Array<{ message: string }>;
+            };
+            expect(body.data?.activeMcpClientGrants).toBeUndefined();
+            expect(body.errors?.[0]?.message).toMatch(/signed-in customer/);
+        });
+
+        it('lets the customer revoke their own grant, ending /mcp/shop access and dropping it from the list', async () => {
+            const flow = await shopFlow();
+            const grantEntity = await connection.getRepository(adminCtx, McpOauthGrant).findOneOrFail({
+                where: { accessTokenHash: lookupHash(flow.access_token) },
+                relations: ['oauthClient'],
+            });
+
+            const before = await shopClient.query(ACTIVE_GRANTS_QUERY);
+            const target = before.activeMcpClientGrants.find(
+                (g: { oauthClientName: string | null }) =>
+                    g.oauthClientName === grantEntity.oauthClient.clientName,
+            );
+            if (!target) {
+                throw new Error('Expected the freshly-created grant to appear in activeMcpClientGrants');
+            }
+
+            const { revokeMcpClientGrant } = await shopClient.query(
+                gql`
+                    mutation RevokeOwnMcpClientGrant($id: ID!) {
+                        revokeMcpClientGrant(id: $id)
+                    }
+                `,
+                { id: target.id },
+            );
+            expect(revokeMcpClientGrant).toBe(true);
+
+            const grantAfter = await connection
+                .getRepository(adminCtx, McpOauthGrant)
+                .findOneByOrFail({ id: grantEntity.id });
+            expect(grantAfter.revokedAt).toBeTruthy();
+
+            const denied = await postMcp(baseUrl(), 'shop', callTool('get_cart', {}, 1), {
+                token: flow.access_token,
+            });
+            expect(denied.status).toBe(401);
+
+            const after = await shopClient.query(ACTIVE_GRANTS_QUERY);
+            expect(after.activeMcpClientGrants.some((g: { id: string }) => g.id === target.id)).toBe(false);
+        });
+
+        it("refuses to revoke a grant that is not the signed-in customer's own", async () => {
+            const adminFlow = await runAuthorizationCodeFlow({
+                baseUrl: baseUrl(),
+                issuer: ISSUER,
+                superAdminToken: adminClient.getAuthToken(),
+            });
+            const adminGrantEntity = await connection.getRepository(adminCtx, McpOauthGrant).findOneOrFail({
+                where: { accessTokenHash: lookupHash(adminFlow.access_token) },
+            });
+
+            // The admin API's own grants query gives us a correctly-encoded id for the admin
+            // grant, without needing to touch the raw database id ourselves.
+            const adminGrantsList = await adminClient.query(gql`
+                query {
+                    mcpOauthGrants {
+                        id
+                        actorType
+                    }
+                }
+            `);
+            const adminItem = adminGrantsList.mcpOauthGrants.find(
+                (g: { actorType: string | null }) => g.actorType === 'admin',
+            );
+            if (!adminItem) {
+                throw new Error('Expected the freshly-created admin grant to appear in mcpOauthGrants');
+            }
+
+            await expect(
+                shopClient.query(
+                    gql`
+                        mutation RevokeForeignMcpClientGrant($id: ID!) {
+                            revokeMcpClientGrant(id: $id)
+                        }
+                    `,
+                    { id: adminItem.id },
+                ),
+            ).rejects.toThrow(/could be found/i);
+
+            const stillThere = await connection
+                .getRepository(adminCtx, McpOauthGrant)
+                .findOneByOrFail({ id: adminGrantEntity.id });
+            expect(stillThere.revokedAt).toBeFalsy();
+        });
     });
 
     // Channel deletion is a hard row delete (no soft-delete), so a grant scoped to a deleted

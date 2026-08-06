@@ -522,6 +522,16 @@ export function McpConsentPage() {
 }
 ```
 
+### Letting shoppers see and revoke their connections
+
+Approving a grant here is not the only Shop API surface: a signed-in customer can also list and end their own
+grants, for a "connected assistants" page in your account area. `activeMcpClientGrants` returns the customer's
+active grants (id, client name, and the timestamps shown above), across every channel they were made on — the
+consent belongs to the person, not the storefront they happened to use. `revokeMcpClientGrant(id: ID!)` ends one
+of those grants the same way the dashboard's admin-side revoke does: the grant's tokens and its dedicated Vendure
+session stop working immediately. Both operations require a signed-in customer and only ever act on that
+customer's own grants.
+
 ## Operational notes
 
 These apply to every deployment described on this page, and to both assistant guides.

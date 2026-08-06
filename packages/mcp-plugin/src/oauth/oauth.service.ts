@@ -12,6 +12,7 @@ import {
     AuthenticatedSession,
     ChannelService,
     ConfigService,
+    EntityNotFoundError,
     ID,
     idsAreEqual,
     Logger,
@@ -24,7 +25,7 @@ import {
     UserService,
 } from '@vendure/core';
 import { McpToolset } from '@vendure/mcp-sdk';
-import { ObjectLiteral, ObjectType } from 'typeorm';
+import { IsNull, MoreThan, ObjectLiteral, ObjectType } from 'typeorm';
 
 import {
     DEFAULT_OAUTH_OPTIONS,
@@ -358,6 +359,48 @@ export class McpOauthService {
             !idsAreEqual(grant.channelId, ctx.channelId)
         ) {
             return false;
+        }
+        if (!grant.revokedAt) {
+            await this.revokeGrant(ctx, grant);
+        }
+        return true;
+    }
+
+    /**
+     * The signed-in customer's own active grants (not revoked, not expired). No channel filter:
+     * the consent belongs to the person, not the storefront it happened to be made on, so a
+     * customer sees every grant regardless of which sales channel it came from.
+     */
+    async listCustomerGrants(ctx: RequestContext): Promise<McpOauthGrant[]> {
+        if (!ctx.activeUserId) {
+            throw new UnauthorizedException('Listing MCP client grants requires a signed-in customer');
+        }
+        return this.connection.getRepository(ctx, McpOauthGrant).find({
+            where: {
+                userId: ctx.activeUserId,
+                userType: 'customer',
+                revokedAt: IsNull(),
+                expiresAt: MoreThan(new Date()),
+            },
+            relations: ['oauthClient'],
+            order: { lastActivityAt: 'DESC' },
+        });
+    }
+
+    /**
+     * Revokes a grant on behalf of the signed-in customer. An id that doesn't exist and an id
+     * that belongs to someone else are refused with the same EntityNotFoundError, so a caller
+     * can't use the response to tell which of those it is.
+     */
+    async revokeCustomerGrant(ctx: RequestContext, grantId: ID): Promise<boolean> {
+        if (!ctx.activeUserId) {
+            throw new UnauthorizedException('Revoking an MCP client grant requires a signed-in customer');
+        }
+        const grant = await this.connection
+            .getRepository(ctx, McpOauthGrant)
+            .findOne({ where: { id: grantId } });
+        if (!grant || grant.userType !== 'customer' || !idsAreEqual(grant.userId, ctx.activeUserId)) {
+            throw new EntityNotFoundError('McpOauthGrant', grantId);
         }
         if (!grant.revokedAt) {
             await this.revokeGrant(ctx, grant);

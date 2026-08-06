@@ -119,11 +119,30 @@ export const shopApiExtensions = gql`
         redirectUrl: String!
     }
 
+    "One of the signed-in customer's own active MCP OAuth grants, summarised for a connected-assistants page."
+    type McpCustomerOauthGrantInfo {
+        id: ID!
+        createdAt: DateTime!
+        oauthClientName: String
+        lastActivityAt: DateTime!
+        expiresAt: DateTime!
+    }
+
+    extend type Query {
+        "The signed-in customer's own active (not revoked, not expired) MCP OAuth grants, across every channel."
+        activeMcpClientGrants: [McpCustomerOauthGrantInfo!]!
+    }
+
     extend type Mutation {
         """
         Records the signed-in customer's decision on a pending MCP authorization request.
         Denial does not require a signed-in customer; approval does.
         """
         authorizeMcpClient(requestToken: String!, approved: Boolean!): McpAuthorizationResult!
+        """
+        Revokes one of the signed-in customer's own MCP OAuth grants. Throws if no such grant
+        exists for the signed-in customer.
+        """
+        revokeMcpClientGrant(id: ID!): Boolean!
     }
 `;
