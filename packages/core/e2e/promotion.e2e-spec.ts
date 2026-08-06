@@ -1,4 +1,10 @@
-import { CurrencyCode, DeletionResult, ErrorCode, LanguageCode } from '@vendure/common/lib/generated-types';
+import {
+    CurrencyCode,
+    DeletionResult,
+    ErrorCode,
+    LanguageCode,
+    Permission,
+} from '@vendure/common/lib/generated-types';
 import { pick } from '@vendure/common/lib/pick';
 import { ConfigService, type PromotionAction, PromotionCondition, PromotionOrderAction } from '@vendure/core';
 import {
@@ -17,8 +23,10 @@ import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-conf
 
 import {
     assignPromotionsToChannelDocument,
+    createAdministratorDocument,
     createChannelDocument,
     createPromotionDocument,
+    createRoleDocument,
     deletePromotionDocument,
     getAdjustmentOperationsDocument,
     getPromotionDocument,
@@ -384,6 +392,90 @@ describe('Promotion resolver', () => {
                 id: promotion.id,
             });
             expect(result?.name).toBe('test promotion');
+        });
+
+        describe('cannot assign/remove without permission on the target channel', () => {
+            const RESTRICTED_ADMIN_EMAIL = 'promotion-channel-permission-test@e2e.com';
+            const RESTRICTED_ADMIN_PASSWORD = 'test';
+
+            beforeAll(async () => {
+                adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+                await adminClient.asSuperAdmin();
+
+                // Make the Promotion visible in secondChannel so the restricted admin can
+                // reach it below, rather than being stopped by the visibility filter.
+                await adminClient.query(assignPromotionsToChannelDocument, {
+                    input: {
+                        channelId: secondChannel.id,
+                        promotionIds: [promotion.id],
+                    },
+                });
+
+                const { createRole } = await adminClient.query(createRoleDocument, {
+                    input: {
+                        code: 'promotion-channel-permission-test-role',
+                        description: '',
+                        channelIds: [secondChannel.id],
+                        permissions: [Permission.UpdatePromotion],
+                    },
+                });
+                await adminClient.query(createAdministratorDocument, {
+                    input: {
+                        firstName: 'Restricted',
+                        lastName: 'Admin',
+                        emailAddress: RESTRICTED_ADMIN_EMAIL,
+                        password: RESTRICTED_ADMIN_PASSWORD,
+                        roleIds: [createRole.id],
+                    },
+                });
+                adminClient.setChannelToken(SECOND_CHANNEL_TOKEN);
+                await adminClient.asUserWithCredentials(RESTRICTED_ADMIN_EMAIL, RESTRICTED_ADMIN_PASSWORD);
+            });
+
+            afterAll(async () => {
+                await adminClient.asSuperAdmin();
+                adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+                await adminClient.query(removePromotionsFromChannelDocument, {
+                    input: {
+                        channelId: secondChannel.id,
+                        promotionIds: [promotion.id],
+                    },
+                });
+            });
+
+            it('can assign a Promotion to a channel it has permission on', async () => {
+                // Positive control for the rejections below.
+                const { assignPromotionsToChannel } = await adminClient.query(assignPromotionsToChannelDocument, {
+                    input: {
+                        channelId: secondChannel.id,
+                        promotionIds: [promotion.id],
+                    },
+                });
+                expect(assignPromotionsToChannel).toEqual([{ id: promotion.id, name: promotion.name }]);
+            });
+
+            it('cannot assign a Promotion to a channel it has no permission on', async () => {
+                // the restricted admin only has UpdatePromotion on secondChannel, not on the default channel
+                await expect(
+                    adminClient.query(assignPromotionsToChannelDocument, {
+                        input: {
+                            channelId: 'T_1',
+                            promotionIds: [promotion.id],
+                        },
+                    }),
+                ).rejects.toThrow(/not currently authorized/);
+            });
+
+            it('cannot remove a Promotion from a channel it has no permission on', async () => {
+                await expect(
+                    adminClient.query(removePromotionsFromChannelDocument, {
+                        input: {
+                            channelId: 'T_1',
+                            promotionIds: [promotion.id],
+                        },
+                    }),
+                ).rejects.toThrow(/not currently authorized/);
+            });
         });
     });
 

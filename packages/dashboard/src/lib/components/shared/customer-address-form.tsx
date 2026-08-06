@@ -49,6 +49,17 @@ interface CustomerAddressFormProps<T = any> {
     setValuesForUpdate?: (values: T) => AddressFormValues;
     onSubmit?: (values: AddressFormValues) => void;
     onCancel?: () => void;
+    /**
+     * @description
+     * Hides the "Default Shipping Address" / "Default Billing Address" checkboxes. Used in contexts
+     * such as draft order creation where the default-address flags are not applicable.
+     */
+    hideDefaultAddressFlags?: boolean;
+    /**
+     * @description
+     * Custom label for the submit button. Defaults to "Save Address".
+     */
+    submitLabel?: React.ReactNode;
 }
 
 export function CustomerAddressForm<T>({
@@ -56,6 +67,8 @@ export function CustomerAddressForm<T>({
     setValuesForUpdate,
     onSubmit,
     onCancel,
+    hideDefaultAddressFlags = false,
+    submitLabel,
 }: CustomerAddressFormProps<T>) {
     const { t } = useLingui();
 
@@ -162,7 +175,7 @@ export function CustomerAddressForm<T>({
                         name="postalCode"
                         label={<Trans>Postal Code</Trans>}
                         render={({ field }) => (
-                            <Input placeholder="Postal Code" {...field} value={field.value || ''} />
+                            <Input placeholder="Postal Code (optional)" {...field} value={field.value || ''} />
                         )}
                     />
 
@@ -208,43 +221,45 @@ export function CustomerAddressForm<T>({
                 {/* Custom Fields */}
                 <CustomFieldsForm entityType="Address" control={form.control} />
                 {/* Default Address Checkboxes */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                    <Controller
-                        control={form.control}
-                        name="defaultShippingAddress"
-                        render={({ field }) => (
-                            <div className="flex flex-row items-start space-x-3">
-                                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                                <div className="space-y-1 leading-none">
-                                    <FieldLabel>
-                                        <Trans>Default Shipping Address</Trans>
-                                    </FieldLabel>
-                                    <FieldDescription>
-                                        <Trans>Use as the default shipping address</Trans>
-                                    </FieldDescription>
+                {!hideDefaultAddressFlags && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                        <Controller
+                            control={form.control}
+                            name="defaultShippingAddress"
+                            render={({ field }) => (
+                                <div className="flex flex-row items-start space-x-3">
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                    <div className="space-y-1 leading-none">
+                                        <FieldLabel>
+                                            <Trans>Default Shipping Address</Trans>
+                                        </FieldLabel>
+                                        <FieldDescription>
+                                            <Trans>Use as the default shipping address</Trans>
+                                        </FieldDescription>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
-                    />
+                            )}
+                        />
 
-                    <Controller
-                        control={form.control}
-                        name="defaultBillingAddress"
-                        render={({ field }) => (
-                            <div className="flex flex-row items-start space-x-3">
-                                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                                <div className="space-y-1 leading-none">
-                                    <FieldLabel>
-                                        <Trans>Default Billing Address</Trans>
-                                    </FieldLabel>
-                                    <FieldDescription>
-                                        <Trans>Use as the default billing address</Trans>
-                                    </FieldDescription>
+                        <Controller
+                            control={form.control}
+                            name="defaultBillingAddress"
+                            render={({ field }) => (
+                                <div className="flex flex-row items-start space-x-3">
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                    <div className="space-y-1 leading-none">
+                                        <FieldLabel>
+                                            <Trans>Default Billing Address</Trans>
+                                        </FieldLabel>
+                                        <FieldDescription>
+                                            <Trans>Use as the default billing address</Trans>
+                                        </FieldDescription>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
-                    />
-                </div>
+                            )}
+                        />
+                    </div>
+                )}
 
                 {/* Form Actions */}
                 <div className="flex justify-end gap-2 pt-4">
@@ -254,7 +269,7 @@ export function CustomerAddressForm<T>({
                         </Button>
                     )}
                     <Button type="submit">
-                        <Trans>Save Address</Trans>
+                        {submitLabel ?? <Trans>Save Address</Trans>}
                     </Button>
                 </div>
             </form>

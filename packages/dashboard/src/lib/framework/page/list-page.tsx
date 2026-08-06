@@ -324,6 +324,27 @@ export interface ListPageProps<
     transformData?: (data: any[]) => any[];
     /**
      * @description
+     * Allows the react-query cache key to be transformed. Use this together with the
+     * `transformVariables` prop when a page injects extra state into the query
+     * (e.g. a language selector or a status filter): the default key only reflects page, sorting,
+     * column filters and the search term, so without transforming the key too, changing the injected
+     * state serves a stale cached result instead of refetching.
+     */
+    transformQueryKey?: (queryKey: any[]) => any[];
+    /**
+     * @description
+     * When true, disables the view options (column visibility) control in the table toolbar.
+     */
+    disableViewOptions?: boolean;
+    /**
+     * @description
+     * When false, the row selection checkbox column will not be included.
+     *
+     * @default true
+     */
+    includeSelectionColumn?: boolean;
+    /**
+     * @description
      * Allows you to directly manipulate the TanStack Table `TableOptions` object before the
      * table is created. And advanced option that is not often required.
      */
@@ -500,6 +521,9 @@ export function ListPage<
     children,
     rowActions,
     transformData,
+    transformQueryKey,
+    disableViewOptions,
+    includeSelectionColumn,
     setTableOptions,
     bulkActions,
     registerRefresher,
@@ -599,6 +623,9 @@ export function ListPage<
         bulkActions,
         setTableOptions,
         transformData,
+        transformQueryKey,
+        disableViewOptions,
+        includeSelectionColumn,
         registerRefresher,
     };
 

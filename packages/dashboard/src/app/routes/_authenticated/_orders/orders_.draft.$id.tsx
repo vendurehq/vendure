@@ -163,7 +163,7 @@ function DraftOrderPage() {
         },
     });
 
-    const { mutate: setCustomerForDraftOrder } = useMutation({
+    const { mutateAsync: setCustomerForDraftOrder } = useMutation({
         mutationFn: api.mutate(setCustomerForDraftOrderDocument),
         onSuccess: async (result: ResultOf<typeof setCustomerForDraftOrderDocument>) => {
             const order = result.setCustomerForDraftOrder;
@@ -229,7 +229,7 @@ function DraftOrderPage() {
         },
     });
 
-    const { mutate: setShippingAddressForDraftOrder } = useMutation({
+    const { mutateAsync: setShippingAddressForDraftOrder } = useMutation({
         mutationFn: api.mutate(setShippingAddressForDraftOrderDocument),
         onSuccess: (result: ResultOf<typeof setShippingAddressForDraftOrderDocument>) => {
             toast.success(t`Shipping address set for order`);
@@ -240,7 +240,7 @@ function DraftOrderPage() {
         },
     });
 
-    const { mutate: setBillingAddressForDraftOrder } = useMutation({
+    const { mutateAsync: setBillingAddressForDraftOrder } = useMutation({
         mutationFn: api.mutate(setBillingAddressForDraftOrderDocument),
         onSuccess: (result: ResultOf<typeof setBillingAddressForDraftOrderDocument>) => {
             toast.success(t`Billing address set for order`);
@@ -502,53 +502,78 @@ function DraftOrderPage() {
                         </Button>
                     ) : null}
                     <CustomerSelector
+                        allowCreateNew
                         onSelect={customer => {
                             setCustomerForDraftOrder({ orderId: entity.id, customerId: customer.id });
+                        }}
+                        onCreateNew={async input => {
+                            const result = await setCustomerForDraftOrder({ orderId: entity.id, input });
+                            if (result.setCustomerForDraftOrder.__typename !== 'Order') {
+                                // ErrorResult, not a transport error — mutateAsync resolves, so throw to
+                                // keep the popover open with the entered values.
+                                throw new Error(result.setCustomerForDraftOrder.message);
+                            }
                         }}
                     />
                 </PageBlock>
                 <PageBlock column="side" blockId="shipping-address" title={<Trans>Shipping address</Trans>}>
                     <div className="flex flex-col">
                         <OrderAddress address={entity.shippingAddress ?? undefined} />
-                        {entity.shippingAddress?.streetLine1 ? (
-                            <RemoveAddressButton
-                                onClick={() => unsetShippingAddressForDraftOrder({ orderId: entity.id })}
+                        <div className="mt-2 flex items-center gap-2">
+                            <CustomerAddressSelector
+                                customerId={entity.customer?.id}
+                                onSelect={address => {
+                                    setShippingAddressForDraftOrder({
+                                        orderId: entity.id,
+                                        input: mapToAddressInput(address),
+                                    });
+                                }}
+                                onSubmitNew={async input => {
+                                    await setShippingAddressForDraftOrder({
+                                        orderId: entity.id,
+                                        input,
+                                    });
+                                }}
+                                initialAddress={entity.shippingAddress}
+                                currentAddress={entity.shippingAddress}
+                                submitLabel={<Trans>Okay</Trans>}
                             />
-                        ) : (
-                            <div className="mt-4">
-                                <CustomerAddressSelector
-                                    customerId={entity.customer?.id}
-                                    onSelect={address => {
-                                        setShippingAddressForDraftOrder({
-                                            orderId: entity.id,
-                                            input: mapToAddressInput(address),
-                                        });
-                                    }}
+                            {entity.shippingAddress?.streetLine1 && (
+                                <RemoveAddressButton
+                                    onClick={() => unsetShippingAddressForDraftOrder({ orderId: entity.id })}
                                 />
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
                 </PageBlock>
                 <PageBlock column="side" blockId="billing-address" title={<Trans>Billing address</Trans>}>
                     <div className="flex flex-col">
                         <OrderAddress address={entity.billingAddress ?? undefined} />
-                        {entity.billingAddress?.streetLine1 ? (
-                            <RemoveAddressButton
-                                onClick={() => unsetBillingAddressForDraftOrder({ orderId: entity.id })}
+                        <div className="mt-2 flex items-center gap-2">
+                            <CustomerAddressSelector
+                                customerId={entity.customer?.id}
+                                onSelect={address => {
+                                    setBillingAddressForDraftOrder({
+                                        orderId: entity.id,
+                                        input: mapToAddressInput(address),
+                                    });
+                                }}
+                                onSubmitNew={async input => {
+                                    await setBillingAddressForDraftOrder({
+                                        orderId: entity.id,
+                                        input,
+                                    });
+                                }}
+                                initialAddress={entity.billingAddress}
+                                currentAddress={entity.billingAddress}
+                                submitLabel={<Trans>Okay</Trans>}
                             />
-                        ) : (
-                            <div className="mt-4">
-                                <CustomerAddressSelector
-                                    customerId={entity.customer?.id}
-                                    onSelect={address => {
-                                        setBillingAddressForDraftOrder({
-                                            orderId: entity.id,
-                                            input: mapToAddressInput(address),
-                                        });
-                                    }}
+                            {entity.billingAddress?.streetLine1 && (
+                                <RemoveAddressButton
+                                    onClick={() => unsetBillingAddressForDraftOrder({ orderId: entity.id })}
                                 />
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
                 </PageBlock>
             </PageLayout>
@@ -574,10 +599,8 @@ function mapToAddressInput(address: ResultOf<typeof addressFragment>) {
 
 function RemoveAddressButton(props: { onClick: () => void }) {
     return (
-        <div className="">
-            <Button variant="outline" className="mt-4" size="sm" onClick={props.onClick}>
-                <Trans>Remove</Trans>
-            </Button>
-        </div>
+        <Button variant="outline" size="sm" onClick={props.onClick}>
+            <Trans>Remove</Trans>
+        </Button>
     );
 }
