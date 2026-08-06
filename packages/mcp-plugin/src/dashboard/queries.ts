@@ -141,3 +141,11 @@ export const REVOKE_MCP_OAUTH_GRANT = `
         revokeMcpOauthGrant(id: $id)
     }
 `;
+
+export const AUTHORIZE_MCP_CLIENT = `
+    mutation AuthorizeMcpClient($requestToken: String!, $approved: Boolean!) {
+        authorizeMcpClient(requestToken: $requestToken, approved: $approved) {
+            redirectUrl
+        }
+    }
+`;

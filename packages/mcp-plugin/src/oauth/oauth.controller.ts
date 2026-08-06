@@ -1,5 +1,4 @@
 import { Body, Controller, Get, HttpCode, Param, Post, Query, Res } from '@nestjs/common';
-import { Ctx, RequestContext } from '@vendure/core';
 import { McpToolset } from '@vendure/mcp-sdk';
 import type { Response } from 'express';
 
@@ -47,14 +46,5 @@ export class McpOauthController {
     @Post('mcp/oauth/revoke')
     revoke(@Body('token') token?: string) {
         return this.oauthService.revoke(token);
-    }
-
-    @Post('mcp/oauth/admin-consent')
-    adminConsent(
-        @Ctx() ctx: RequestContext,
-        @Body('request_token') requestToken: string,
-        @Body('approved') approved: boolean,
-    ) {
-        return this.oauthService.approveAdminRequest(ctx, requestToken, approved === true);
     }
 }

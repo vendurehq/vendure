@@ -5,7 +5,7 @@ import crypto from 'crypto';
 // available from the test harness) stands in for the authenticated administrator,
 // so no separate customer credentials are needed.
 //
-// Flow: register (DCR) -> authorize -> admin-consent -> token exchange.
+// Flow: register (DCR) -> authorize -> admin consent mutation -> token exchange.
 
 export interface AuthorizationCodeFlowResult {
     /** The plaintext OAuth client_id returned by Dynamic Client Registration. */
@@ -26,6 +26,47 @@ export interface AuthorizationCodeFlowResult {
     access_token: string;
     /** The created refresh token (plaintext). */
     refresh_token: string;
+}
+
+export interface SubmitAdminConsentOptions {
+    /** Base URL of the running test server, e.g. `http://localhost:3260`. */
+    baseUrl: string;
+    /** The plaintext request token identifying the pending authorization request. */
+    requestToken: string;
+    /** The decision to record. */
+    approved: boolean;
+    /** Superadmin bearer token; omit to submit unauthenticated. */
+    superAdminToken?: string;
+}
+
+export interface AdminConsentResponseBody {
+    data?: { authorizeMcpClient?: { redirectUrl: string } };
+    errors?: Array<{ message: string }>;
+}
+
+/**
+ * Records an admin's consent decision through the Admin API's `authorizeMcpClient`
+ * mutation — the same call the dashboard consent page makes — with the superadmin
+ * session travelling as a bearer header. Returns the raw GraphQL response body so
+ * tests can assert on errors as well as success.
+ */
+export async function submitAdminConsent(
+    options: SubmitAdminConsentOptions,
+): Promise<AdminConsentResponseBody> {
+    const response = await fetch(`${options.baseUrl}/admin-api`, {
+        method: 'POST',
+        headers: {
+            'content-type': 'application/json',
+            ...(options.superAdminToken ? { Authorization: `Bearer ${options.superAdminToken}` } : {}),
+        },
+        body: JSON.stringify({
+            query: `mutation ($requestToken: String!, $approved: Boolean!) {
+                authorizeMcpClient(requestToken: $requestToken, approved: $approved) { redirectUrl }
+            }`,
+            variables: { requestToken: options.requestToken, approved: options.approved },
+        }),
+    });
+    return (await response.json()) as AdminConsentResponseBody;
 }
 
 export interface RunAuthorizationCodeFlowOptions {
@@ -101,19 +142,17 @@ export async function runAuthorizationCodeFlow(
         throw new Error(`Consent redirect missing request_token param: ${consentLocation}`);
     }
 
-    // 3. Admin consent: authenticated as superadmin via the bearer token.
-    const consentResponse = await fetch(`${baseUrl}/mcp/oauth/admin-consent`, {
-        method: 'POST',
-        headers: {
-            'content-type': 'application/json',
-            Authorization: `Bearer ${superAdminToken}`,
-        },
-        body: JSON.stringify({ request_token, approved: true }),
+    // 3. Admin consent: the Admin API mutation, authenticated as superadmin via the bearer token.
+    const consentBody = await submitAdminConsent({
+        baseUrl,
+        superAdminToken,
+        requestToken: request_token,
+        approved: true,
     });
-    if (!consentResponse.ok) {
-        throw new Error(`Admin consent failed: ${consentResponse.status} ${await consentResponse.text()}`);
+    if (!consentBody.data?.authorizeMcpClient) {
+        throw new Error(`Admin consent failed: ${consentBody.errors?.[0]?.message ?? 'unknown error'}`);
     }
-    const { redirectUrl } = (await consentResponse.json()) as { redirectUrl: string };
+    const { redirectUrl } = consentBody.data.authorizeMcpClient;
     const code = new URL(redirectUrl).searchParams.get('code');
     if (!code) {
         throw new Error(`Consent redirect missing code param: ${redirectUrl}`);
@@ -176,9 +215,9 @@ export interface RunShopAuthorizationCodeFlowOptions {
 /**
  * Drives the full storefront (shop) OAuth authorization-code flow and returns every
  * value a test might need. The shop path differs from the admin path only at the
- * consent step: instead of an authenticated-superadmin bearer, the Shop API's
+ * consent step: instead of a superadmin calling the Admin API, the Shop API's
  * `authorizeMcpClient` mutation approves the request, with the customer's session
- * (`vendureAuthToken`) travelling as a bearer header rather than a body field.
+ * (`vendureAuthToken`) travelling as a bearer header.
  *
  * Flow: register (DCR) -> authorize (resource = shop) -> authorizeMcpClient mutation -> token exchange.
  */

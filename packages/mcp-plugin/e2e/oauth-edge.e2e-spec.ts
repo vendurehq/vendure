@@ -24,7 +24,11 @@ import { McpOauthService } from '../src/oauth/oauth.service';
 import { deriveHashKey, hashToken } from '../src/oauth/token-hash';
 import { McpPlugin } from '../src/plugin';
 
-import { runAuthorizationCodeFlow, runShopAuthorizationCodeFlow } from './utils/oauth-test-client';
+import {
+    runAuthorizationCodeFlow,
+    runShopAuthorizationCodeFlow,
+    submitAdminConsent,
+} from './utils/oauth-test-client';
 
 const TOKEN_SECRET = 'test-secret';
 // The issuer the plugin derives when none is configured: localhost on the configured API port.
@@ -115,7 +119,7 @@ describe('McpPlugin OAuth edge & security cases', () => {
             vendureAuthToken: customerAuthToken,
         });
 
-    // Drives DCR + authorize + admin-consent and stops at the freshly created code, so a
+    // Drives DCR + authorize + admin consent and stops at the freshly created code, so a
     // test can craft its own token-exchange request. The code has not yet been consumed.
     const authorizeAdminToCode = async (overrides?: { redirectUri?: string; resource?: string }) => {
         const redirectUri = overrides?.redirectUri ?? 'https://example.com/cb';
@@ -150,12 +154,16 @@ describe('McpPlugin OAuth edge & security cases', () => {
             throw new Error(`Consent redirect missing request_token: ${consentLocation}`);
         }
 
-        const consentRes = await fetch(`${baseUrl()}/mcp/oauth/admin-consent`, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json', Authorization: `Bearer ${superAdminToken}` },
-            body: JSON.stringify({ request_token, approved: true }),
+        const consentBody = await submitAdminConsent({
+            baseUrl: baseUrl(),
+            superAdminToken,
+            requestToken: request_token,
+            approved: true,
         });
-        const { redirectUrl } = (await consentRes.json()) as { redirectUrl: string };
+        if (!consentBody.data?.authorizeMcpClient) {
+            throw new Error(`Admin consent failed: ${consentBody.errors?.[0]?.message ?? 'unknown error'}`);
+        }
+        const { redirectUrl } = consentBody.data.authorizeMcpClient;
         const code = new URL(redirectUrl).searchParams.get('code');
         if (!code) {
             throw new Error(`Consent redirect missing code: ${redirectUrl}`);
@@ -408,12 +416,13 @@ describe('McpPlugin OAuth edge & security cases', () => {
         const flow = await authorizeAdminToCodePreConsent();
 
         // No Authorization header: the request is anonymous, not an admin.
-        const res = await fetch(`${baseUrl()}/mcp/oauth/admin-consent`, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ request_token: flow.request_token, approved: true }),
+        const body = await submitAdminConsent({
+            baseUrl: baseUrl(),
+            requestToken: flow.request_token,
+            approved: true,
         });
-        expect(res.status).toBe(401);
+        expect(body.data?.authorizeMcpClient).toBeUndefined();
+        expect(body.errors?.[0]?.message).toMatch(/not currently authorized/i);
     });
 
     // Builds an admin RequestContext authenticated as if by a session cookie: a
@@ -491,38 +500,39 @@ describe('McpPlugin OAuth edge & security cases', () => {
         await expect(oauth.approveAdminRequest(ctx, flow.request_token, true)).rejects.toThrow(/permission/i);
     });
 
-    // Admin consent with a falsey `approved` returns an access_denied redirect and creates no
+    // Admin consent with `approved: false` returns an access_denied redirect and creates no
     // authorization code.
     it('returns access_denied (and no code) when admin consent is not approved', async () => {
         const flow = await authorizeAdminToCodePreConsent();
 
-        // `approved: false` (boolean). The controller treats anything !== true as denial.
-        const res = await fetch(`${baseUrl()}/mcp/oauth/admin-consent`, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json', Authorization: `Bearer ${superAdminToken}` },
-            body: JSON.stringify({ request_token: flow.request_token, approved: false }),
+        const body = await submitAdminConsent({
+            baseUrl: baseUrl(),
+            superAdminToken,
+            requestToken: flow.request_token,
+            approved: false,
         });
-        expect(res.status).toBe(201);
-        const { redirectUrl } = (await res.json()) as { redirectUrl: string };
+        const redirectUrl = body.data?.authorizeMcpClient?.redirectUrl;
+        if (!redirectUrl) {
+            throw new Error(`Denial failed: ${body.errors?.[0]?.message ?? 'unknown error'}`);
+        }
         const url = new URL(redirectUrl);
         expect(url.searchParams.get('error')).toBe('access_denied');
         expect(url.searchParams.get('code')).toBeNull();
     });
 
-    // The string `'false'` is also treated as a denial (no code created).
-    it('treats a string "false" approved value as a denial', async () => {
+    // A non-boolean `approved` (the string "false") never approves: GraphQL's Boolean!
+    // type rejects it at variable validation, so the request is neither approved nor denied.
+    it('rejects a string "false" approved value without approving', async () => {
         const flow = await authorizeAdminToCodePreConsent();
 
-        const res = await fetch(`${baseUrl()}/mcp/oauth/admin-consent`, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json', Authorization: `Bearer ${superAdminToken}` },
-            body: JSON.stringify({ request_token: flow.request_token, approved: 'false' }),
+        const body = await submitAdminConsent({
+            baseUrl: baseUrl(),
+            superAdminToken,
+            requestToken: flow.request_token,
+            approved: 'false' as unknown as boolean,
         });
-        expect(res.status).toBe(201);
-        const { redirectUrl } = (await res.json()) as { redirectUrl: string };
-        const url = new URL(redirectUrl);
-        expect(url.searchParams.get('error')).toBe('access_denied');
-        expect(url.searchParams.get('code')).toBeNull();
+        expect(body.data?.authorizeMcpClient).toBeUndefined();
+        expect(body.errors?.length).toBeGreaterThan(0);
     });
 
     // --- Shop happy path ---
@@ -706,18 +716,19 @@ describe('McpPlugin OAuth edge & security cases', () => {
         });
 
         // The mirror case: an administrator must not be able to decide a request that was started
-        // for the shop resource, even though the admin-consent endpoint has no other way of
+        // for the shop resource, even though the admin consent mutation has no other way of
         // knowing which toolset a given request token belongs to.
         it('refuses an administrator approving a request started for the shop resource', async () => {
             const { requestToken } = await startShopAuthorization();
 
-            const res = await fetch(`${baseUrl()}/mcp/oauth/admin-consent`, {
-                method: 'POST',
-                headers: { 'content-type': 'application/json', Authorization: `Bearer ${superAdminToken}` },
-                body: JSON.stringify({ request_token: requestToken, approved: true }),
+            const body = await submitAdminConsent({
+                baseUrl: baseUrl(),
+                superAdminToken,
+                requestToken,
+                approved: true,
             });
-            expect(res.status).toBe(400);
-            expect(await res.text()).toMatch(/invalid or expired/i);
+            expect(body.data?.authorizeMcpClient).toBeUndefined();
+            expect(body.errors?.[0]?.message).toMatch(/invalid or expired/i);
         });
 
         it('approves a signed-in customer request with no Origin header', async () => {
@@ -783,7 +794,7 @@ describe('McpPlugin OAuth edge & security cases', () => {
     // --- helpers that stop before consent ---
 
     // Drives DCR + authorize for the admin resource and returns the request token, so a
-    // test can exercise the admin-consent endpoint directly without approving yet.
+    // test can exercise the admin consent mutation directly without approving yet.
     async function authorizeAdminToCodePreConsent() {
         const redirectUri = 'https://example.com/cb';
         const registerRes = await fetch(`${baseUrl()}/mcp/oauth/register`, {

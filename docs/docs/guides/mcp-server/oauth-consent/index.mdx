@@ -85,10 +85,10 @@ reach.
 | `/mcp/oauth/token` | POST | Authorization-code exchange and refresh-token rotation |
 | `/mcp/oauth/revoke` | POST | Revoke a grant (RFC 7009) |
 | `/mcp/oauth/authorization-request` | GET | Consent-page lookup of pending-request details |
-| `/mcp/oauth/admin-consent` | POST | Admin approval (used by the dashboard page) |
 
-A customer's decision is not an endpoint in this list. It is the `authorizeMcpClient` mutation on the **Shop
-API**, so your consent page records it the same way it does everything else — see
+Consent decisions are not endpoints in this list. Each is an `authorizeMcpClient` mutation: an administrator's
+decision on the **Admin API** (used by the dashboard consent page), and a customer's on the **Shop API**, so
+your consent page records it the same way it does everything else — see
 [the customer consent page](#the-customer-consent-page).
 
 The token endpoint accepts an `application/x-www-form-urlencoded` body as required by OAuth 2.1 (RFC 6749); the
@@ -170,18 +170,19 @@ When an agent requests the **admin** toolset, the authorize step redirects to th
 `adminConsentPath` (default `/dashboard/mcp/authorize`). The page reads the pending request, shows the client
 name, its redirect URI, and the requested toolset, and lets the signed-in administrator **Approve** or **Deny**.
 Approval uses the administrator's existing dashboard session — there is no second login. Under the hood the page
-`POST`s `{ request_token: requestToken, approved }` to `/mcp/oauth/admin-consent`; the server checks the session, creates the
-authorization code, and returns the client redirect URL.
+calls the `authorizeMcpClient` mutation on the **Admin API** through the dashboard's own API client, so the
+decision is authenticated however the rest of the dashboard is (session cookie or bearer token); the server
+checks the session, creates the authorization code, and returns the client redirect URL.
 
-Two things are enforced on that endpoint beyond being signed in:
+Two things are enforced on that mutation beyond being signed in:
 
 - **The `UpdateMcpServer` permission.** Being an authenticated administrator is not enough — approving is a
   mutation of who can reach your store, so it is gated on the same permission as the other MCP mutations. The
   dashboard route is guarded too, so an administrator holding only `ReadMcpServer` never sees the page; the
-  server-side check is what stops the same approval being submitted directly to the endpoint.
-- **A same-origin check.** The approval rides the administrator's login cookie, which the browser attaches
-  automatically, so if the request carries an `Origin` header, it must match the origin of your configured
-  `oauth.issuer`, otherwise it is a `403`. This blocks a third-party page from forging an approval. A request with
+  server-side check is what stops the same approval being submitted directly through the API.
+- **A same-origin check.** On a cookie-authenticated server the approval rides the administrator's login cookie,
+  which the browser attaches automatically, so if the request carries an `Origin` header, it must match the origin
+  of your configured `oauth.issuer`, otherwise it is refused. This blocks a third-party page from forging an approval. A request with
   no `Origin` header at all is allowed — that is what lets an API client approve programmatically. A caller
   authenticated by a bearer token gets no exemption from this check: Vendure reads the session cookie before it
   ever looks at `Authorization`, so a page on another site could send a meaningless `Authorization` value and

@@ -9,6 +9,8 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { McpPlugin } from '../src/plugin';
 
+import { submitAdminConsent } from './utils/oauth-test-client';
+
 // The MCP endpoints are served relative to the configured OAuth `issuer`, and the official
 // client auto-discovers every endpoint from the published metadata. The issuer must therefore be
 // the real base URL the test server listens on; it is set explicitly here, though the derived
@@ -101,8 +103,9 @@ class InMemoryOAuthProvider {
 /**
  * Approves a consent request from the test, so we get an auth code without opening the browser UI.
  *
- * Note: this signs in with a superadmin token in the header, not the login cookie the real consent
- * page uses — so it doesn't cover the page itself. The cookie path is tested in oauth-edge.e2e-spec.ts.
+ * Note: this calls the same Admin API mutation the real consent page uses, but signs in with a
+ * superadmin token in the header rather than driving the page itself. The cookie-authenticated
+ * path is tested in oauth-edge.e2e-spec.ts.
  */
 async function approveViaAdminConsent(authorizationUrl: URL, superAdminToken: string): Promise<string> {
     const authorizeResponse = await fetch(authorizationUrl, { redirect: 'manual' });
@@ -114,15 +117,16 @@ async function approveViaAdminConsent(authorizationUrl: URL, superAdminToken: st
     if (!requestToken) {
         throw new Error(`Consent redirect missing request_token param: ${consentLocation}`);
     }
-    const consentResponse = await fetch(`${baseUrl()}/mcp/oauth/admin-consent`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', Authorization: `Bearer ${superAdminToken}` },
-        body: JSON.stringify({ request_token: requestToken, approved: true }),
+    const consentBody = await submitAdminConsent({
+        baseUrl: baseUrl(),
+        superAdminToken,
+        requestToken,
+        approved: true,
     });
-    if (!consentResponse.ok) {
-        throw new Error(`Admin consent failed: ${consentResponse.status} ${await consentResponse.text()}`);
+    if (!consentBody.data?.authorizeMcpClient) {
+        throw new Error(`Admin consent failed: ${consentBody.errors?.[0]?.message ?? 'unknown error'}`);
     }
-    const { redirectUrl } = (await consentResponse.json()) as { redirectUrl: string };
+    const { redirectUrl } = consentBody.data.authorizeMcpClient;
     const code = new URL(redirectUrl).searchParams.get('code');
     if (!code) {
         throw new Error(`Consent redirect missing code param: ${redirectUrl}`);
@@ -150,13 +154,18 @@ describe('MCP SDK interop (official @modelcontextprotocol/client 2.x)', () => {
     it('publishes protected-resource and authorization-server metadata', async () => {
         const prm = await fetch(`${baseUrl()}/.well-known/oauth-protected-resource/mcp/admin`);
         expect(prm.status).toBe(200);
-        const prmBody = await prm.json();
+        const prmBody = (await prm.json()) as { resource: string; authorization_servers: string[] };
         expect(prmBody.resource).toBe(`${ISSUER}/mcp/admin`);
         expect(prmBody.authorization_servers).toContain(ISSUER);
 
         const asm = await fetch(`${baseUrl()}/.well-known/oauth-authorization-server`);
         expect(asm.status).toBe(200);
-        const asmBody = await asm.json();
+        const asmBody = (await asm.json()) as {
+            issuer: string;
+            token_endpoint: string;
+            registration_endpoint: string;
+            code_challenge_methods_supported: string[];
+        };
         expect(asmBody.issuer).toBe(ISSUER);
         expect(asmBody.token_endpoint).toBe(`${ISSUER}/mcp/oauth/token`);
         expect(asmBody.registration_endpoint).toBe(`${ISSUER}/mcp/oauth/register`);

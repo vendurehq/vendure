@@ -6,6 +6,7 @@ import {
     ID,
     ListQueryBuilder,
     ListQueryOptions,
+    Permission,
     RequestContext,
     TransactionalConnection,
     UserInputError,
@@ -206,6 +207,18 @@ export class McpAdminResolver {
     @Allow(mcpServerPermission.Update)
     async removeExpiredMcpToolCallLogs(@Ctx() ctx: RequestContext): Promise<number> {
         return this.toolCallLog.deleteExpiredToolCallLogs(ctx, ctx.channelId);
+    }
+
+    // Gated loosely on Authenticated: the service enforces the real requirements
+    // (an authenticated admin with UpdateMcpServer, submitted from the consent page's origin),
+    // mirroring how the Shop API's authorizeMcpClient leaves enforcement to the service.
+    @Mutation()
+    @Allow(Permission.Authenticated)
+    async authorizeMcpClient(
+        @Ctx() ctx: RequestContext,
+        @Args() args: { requestToken: string; approved: boolean },
+    ): Promise<{ redirectUrl: string }> {
+        return this.oauthService.approveAdminRequest(ctx, args.requestToken, args.approved);
     }
 
     /**

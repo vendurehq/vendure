@@ -1,5 +1,6 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import {
+    api,
     Badge,
     Button,
     Card,
@@ -17,6 +18,7 @@ import { AlertTriangleIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { isLoopbackHostname } from '../oauth/loopback';
+import { AUTHORIZE_MCP_CLIENT } from './queries';
 
 /**
  * Shape returned by the `/mcp/oauth/authorization-request` REST endpoint. Mirrors
@@ -85,17 +87,10 @@ function ConsentCard({ requestToken }: { requestToken: string }) {
         setSubmitting(true);
         setError(null);
         try {
-            const res = await fetch('/mcp/oauth/admin-consent', {
-                method: 'POST',
-                headers: { 'content-type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ request_token: requestToken, approved }),
-            });
-            if (!res.ok) {
-                throw new Error(`Request failed (${res.status})`);
-            }
-            const data: { redirectUrl: string } = await res.json();
-            window.location.href = data.redirectUrl;
+            const data = (await api.mutate(AUTHORIZE_MCP_CLIENT, { requestToken, approved })) as {
+                authorizeMcpClient: { redirectUrl: string };
+            };
+            window.location.href = data.authorizeMcpClient.redirectUrl;
         } catch (e: unknown) {
             setError(e instanceof Error ? e.message : String(e));
             setSubmitting(false);

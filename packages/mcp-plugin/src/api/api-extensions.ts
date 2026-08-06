@@ -2,8 +2,8 @@ import { gql } from 'graphql-tag';
 
 /**
  * Admin API for the MCP server: list tools and OAuth grants, page through the
- * tool-call log, read usage stats, and run the maintenance mutations (toggle a
- * tool, revoke a grant, delete old logs).
+ * tool-call log, read usage stats, record an admin's consent decision, and run
+ * the maintenance mutations (toggle a tool, revoke a grant, delete old logs).
  */
 export const adminApiExtensions = gql`
     "A registered tool and whether it is currently enabled."
@@ -82,6 +82,11 @@ export const adminApiExtensions = gql`
         mcpStats(timeRange: String): McpStats!
     }
 
+    "Where to send the browser once an administrator has approved or denied an MCP client."
+    type McpAuthorizationResult {
+        redirectUrl: String!
+    }
+
     extend type Mutation {
         "Enable or disable a tool. Returns the tool with its new state."
         setMcpToolEnabled(toolName: String!, toolset: String!, enabled: Boolean!): McpToolInfo!
@@ -89,6 +94,11 @@ export const adminApiExtensions = gql`
         revokeMcpOauthGrant(id: ID!): Boolean!
         "Delete tool-call logs past the retention window. Returns how many were deleted."
         removeExpiredMcpToolCallLogs: Int!
+        """
+        Records the signed-in administrator's decision on a pending MCP authorization request.
+        Both approval and denial require the UpdateMcpServer permission.
+        """
+        authorizeMcpClient(requestToken: String!, approved: Boolean!): McpAuthorizationResult!
     }
 
     # Auto-generated at runtime
