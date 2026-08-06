@@ -105,17 +105,19 @@ describe('mergeDeep()', () => {
 
     // https://github.com/vendurehq/vendure/issues/5083
     it('should merge each object once rather than once per path', () => {
+        const depth = 22;
         // `depth + 2` distinct objects, 2 ^ (depth + 1) distinct paths to the leaf, no cycles.
         const layeredDiamond = (leaf: object) => {
             let shared: any = leaf;
-            for (let i = 0; i < 22; i++) {
+            for (let i = 0; i < depth; i++) {
                 shared = { id: `level-${i}`, left: shared, right: shared, value: 'x' };
             }
             return { id: 'root', a: shared, b: shared };
         };
         let leafMerges = 0;
-        // mergeDeep() enumerates the source once per merge. Throwing rather than counting up stops
-        // a regression here from working through the other 2 ^ 23 paths to the leaf first.
+        // mergeDeep() enumerates the source once per merge, so this is one `ownKeys` per merge —
+        // changing how the source is enumerated invalidates the count. Throwing rather than
+        // counting up stops a regression here from working through the other paths to the leaf first.
         const countedLeaf = new Proxy(
             { id: 'leaf', value: 'x' },
             {
@@ -133,8 +135,7 @@ describe('mergeDeep()', () => {
         expect(leafMerges).toBe(1);
     });
 
-    // Rules out memoising on the source alone, which is also linear but aliases the merged
-    // sub-object between the targets.
+    // Each target keeps its own pre-existing data when a shared source is merged into several of them.
     it('should keep the existing data of every target a shared source is merged into', () => {
         const sharedSource = { id: 'shared', facet: { id: 7, code: 'weight' } };
         const source = { left: { child: sharedSource }, right: { child: sharedSource } };
@@ -149,6 +150,27 @@ describe('mergeDeep()', () => {
         expect(merged.right.child.facet.code).toBe('weight');
         expect(merged.left.child.existing).toBe('left');
         expect(merged.right.child.existing).toBe('right');
+    });
+
+    // The cycle guard skips keys whose source is on the current path, so the first merge of a pair
+    // reached through a cycle is partial. It has to stay mergeable via a route that does not cross
+    // that cycle, otherwise the skipped keys are lost.
+    it('should complete a pair whose first merge was cut short by the cycle guard', () => {
+        const parent: any = { id: 'parent', tag: 'p' };
+        const child: any = { id: 'child', tag: 'c', parent };
+        parent.child = child;
+        const source = { viaParent: parent, direct: { child } };
+
+        const existingChild = { id: 'child', existing: 'yes' };
+        const target = {
+            viaParent: { id: 'parent', child: existingChild },
+            direct: { child: existingChild },
+        };
+
+        const merged = mergeDeep(target as any, source as any);
+
+        expect(merged.direct.child.parent.id).toBe('parent');
+        expect(merged.direct.child.existing).toBe('yes');
     });
 
     it('should handle circular objects', () => {

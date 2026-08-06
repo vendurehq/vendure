@@ -140,6 +140,10 @@ export class EntityHydrator {
                 });
                 const hydrated = await hydratedQb.getOne();
                 const propertiesToAdd = unique(missingRelations.map(relation => relation.split('.')[0]));
+                // Each call starts its own memo, so an entity shared by two top-level relations is
+                // merged once per relation. That is deliberate: the count is bounded by the number
+                // of relations, and sharing a memo across them would keep it alive for the whole
+                // loop rather than for one merge.
                 for (const prop of propertiesToAdd) {
                     (target as any)[prop] = mergeDeep((target as any)[prop], hydrated[prop]);
                 }

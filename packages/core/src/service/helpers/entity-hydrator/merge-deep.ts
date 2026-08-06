@@ -12,26 +12,33 @@ export function mergeDeep<T extends { [key: string]: any }>(
     a: T | undefined,
     b: T,
     visited: WeakSet<object> = new WeakSet(),
-    merged: WeakMap<object, WeakSet<object>> = new WeakMap(),
 ): T {
+    return mergeDeepRecursive(a, b, visited, new WeakMap()).value;
+}
+
+/**
+ * `mergedPairs` records the (target, source) pairs already merged. Merging a source into a target
+ * is idempotent, so each pair only needs doing once. Relations load with the 'query' strategy, so
+ * every referencing parent gets the same instance; without this the pair is re-merged once per path
+ * reaching it, and paths multiply with each level of sharing. See #5083.
+ *
+ * A pair is only recorded once it merged in full: the cycle guard below skips keys whose source is
+ * on the current path, and a pair left partial that way must stay mergeable via a path that does
+ * not cross the cycle. `complete` reports that upwards so an ancestor of a partial merge is not
+ * recorded either.
+ */
+function mergeDeepRecursive<T extends { [key: string]: any }>(
+    a: T | undefined,
+    b: T,
+    visited: WeakSet<object>,
+    mergedPairs: WeakMap<object, WeakSet<object>>,
+): { value: T; complete: boolean } {
     if (!a) {
-        return b;
+        return { value: b, complete: true };
     }
 
-    // Merging a source into a target is idempotent, so each pair only needs merging once. Relations
-    // load with the 'query' strategy, so every referencing parent gets the same instance; without
-    // this the pair is re-merged once per path reaching it, and paths multiply with each level of
-    // sharing. See #5083.
-    if (typeof a === 'object' && typeof b === 'object' && b !== null) {
-        let mergedSources = merged.get(a);
-        if (mergedSources?.has(b)) {
-            return a;
-        }
-        if (!mergedSources) {
-            mergedSources = new WeakSet();
-            merged.set(a, mergedSources);
-        }
-        mergedSources.add(b);
+    if (mergedPairs.get(a)?.has(b)) {
+        return { value: a, complete: true };
     }
 
     // Track only the current recursion path, not every source object seen during the
@@ -43,7 +50,7 @@ export function mergeDeep<T extends { [key: string]: any }>(
     let addedToPath = false;
     if (isObject(b)) {
         if (visited.has(b)) {
-            return a;
+            return { value: a, complete: false };
         }
         visited.add(b);
         addedToPath = true;
@@ -79,6 +86,7 @@ export function mergeDeep<T extends { [key: string]: any }>(
         }
     }
 
+    let complete = true;
     for (const [key, value] of Object.entries(b)) {
         // Guard against prototype pollution - block dangerous property names
         if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
@@ -89,6 +97,7 @@ export function mergeDeep<T extends { [key: string]: any }>(
             if (Array.isArray(value) || isObject(value)) {
                 // Skip if we detect a circular reference
                 if (isObject(value) && visited.has(value)) {
+                    complete = false;
                     continue;
                 }
                 // Only merge recursively if the property exists as an own property in the destination object
@@ -96,8 +105,9 @@ export function mergeDeep<T extends { [key: string]: any }>(
                     Object.prototype.hasOwnProperty.call(a, key) &&
                     (Array.isArray(a[key]) || isObject(a[key]))
                 ) {
-                    const mergedValue = mergeDeep(a[key], b[key], visited, merged);
-                    safeAssign(a, key, mergedValue);
+                    const child = mergeDeepRecursive(a[key], b[key], visited, mergedPairs);
+                    complete &&= child.complete;
+                    safeAssign(a, key, child.value);
                 } else {
                     safeAssign(a, key, value);
                 }
@@ -111,5 +121,14 @@ export function mergeDeep<T extends { [key: string]: any }>(
         visited.delete(b);
     }
 
-    return a ?? b;
+    if (complete && typeof a === 'object' && typeof b === 'object' && b !== null) {
+        let sources = mergedPairs.get(a);
+        if (!sources) {
+            sources = new WeakSet();
+            mergedPairs.set(a, sources);
+        }
+        sources.add(b);
+    }
+
+    return { value: a, complete };
 }
