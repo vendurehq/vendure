@@ -362,6 +362,45 @@ describe('MCP built-in shop tools', () => {
         expect(order.channels.map(channel => String(channel.id))).toContain(String(grant.channelId));
     });
 
+    // Channel deletion is a hard row delete (no soft-delete), so a grant scoped to a deleted
+    // channel can never be honoured again. The next call must refuse it and revoke the grant,
+    // not silently widen access to the default channel.
+    it('ends MCP access and revokes the grant when its channel is deleted', async () => {
+        const flow = await shopFlow();
+        const grant = await connection.getRepository(adminCtx, McpOauthGrant).findOneOrFail({
+            where: { accessTokenHash: lookupHash(flow.access_token) },
+        });
+        expect(String(grant.channelId)).toBe(String(secondChannelDbId));
+
+        const deleteResult = await adminClient.query(
+            gql`
+                mutation DeleteShopToolChannel($id: ID!) {
+                    deleteChannel(id: $id) {
+                        result
+                    }
+                }
+            `,
+            { id: secondChannelId },
+        );
+        expect(deleteResult.deleteChannel.result).toBe('DELETED');
+
+        const denied = await postMcp(baseUrl(), 'shop', callTool('get_cart', {}, 1), {
+            token: flow.access_token,
+        });
+        expect(denied.status).toBe(401);
+
+        const grantAfter = await connection
+            .getRepository(adminCtx, McpOauthGrant)
+            .findOneByOrFail({ id: grant.id });
+        expect(grantAfter.revokedAt).toBeTruthy();
+
+        // The revocation must stick: a retry with the same token still gets refused.
+        const retry = await postMcp(baseUrl(), 'shop', callTool('get_cart', {}, 2), {
+            token: flow.access_token,
+        });
+        expect(retry.status).toBe(401);
+    });
+
     it('rejects an invalid vendure-token instead of falling back to the default channel', async () => {
         const response = await postMcp(baseUrl(), 'shop', callTool('get_product', { id: productId }), {
             headers: { [CHANNEL_TOKEN_HEADER]: 'not-a-real-channel-token' },

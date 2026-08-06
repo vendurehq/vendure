@@ -423,9 +423,15 @@ export class McpOauthService {
         const channel = grant.channelId
             ? await this.channelService.findOne(adminCtx, grant.channelId)
             : await this.channelService.getDefaultChannel(adminCtx);
+        if (!channel) {
+            // The grant was scoped to a channel that has since been deleted. Channel deletion
+            // is permanent, so the grant can never be honoured again — revoke it and refuse.
+            await this.revokeGrant(adminCtx, grant);
+            throw new UnauthorizedException('Channel no longer exists');
+        }
         const ctx = new RequestContext({
             apiType,
-            channel: channel ?? (await this.channelService.getDefaultChannel(adminCtx)),
+            channel,
             session: vendureSession,
             isAuthorized: true,
             authorizedAsOwnerOnly: false,
