@@ -115,8 +115,8 @@ describe('mergeDeep()', () => {
             return { id: 'root', a: shared, b: shared };
         };
         let leafMerges = 0;
-        // mergeDeep() enumerates the source once per merge, so this is one `ownKeys` per merge —
-        // changing how the source is enumerated invalidates the count. Throwing rather than
+        // mergeDeep() enumerates the source once per merge, so this is one `ownKeys` per merge.
+        // Changing how the source is enumerated invalidates the count. Throwing rather than
         // counting up stops a regression here from working through the other paths to the leaf first.
         const countedLeaf = new Proxy(
             { id: 'leaf', value: 'x' },
@@ -152,9 +152,7 @@ describe('mergeDeep()', () => {
         expect(merged.right.child.existing).toBe('right');
     });
 
-    // The cycle guard skips keys whose source is on the current path, so the first merge of a pair
-    // reached through a cycle is partial. It has to stay mergeable via a route that does not cross
-    // that cycle, otherwise the skipped keys are lost.
+    // A pair left partial by the cycle guard stays mergeable via a route that avoids the cycle.
     it('should complete a pair whose first merge was cut short by the cycle guard', () => {
         const parent: any = { id: 'parent', tag: 'p' };
         const child: any = { id: 'child', tag: 'c', parent };
