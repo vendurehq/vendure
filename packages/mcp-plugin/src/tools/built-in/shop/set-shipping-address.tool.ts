@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { CreateAddressInput } from '@vendure/common/lib/generated-types';
 import { ActiveOrderService, OrderService, Permission, RequestContext } from '@vendure/core';
-import { McpTool } from '@vendure/mcp-sdk';
+import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 
-import { McpPluginToolHandler } from '../../../types';
 import { getActiveOrder } from '../order-helpers';
 import { booleanProp, jsonObjectProp, objectSchema, optional, stringProp } from '../schema-helpers';
 import { orderSummary } from '../serializers';
@@ -43,7 +42,7 @@ const addressInputSchema = objectSchema({
     inputSchema: objectSchema({ address: addressInputSchema }),
 })
 @Injectable()
-export class SetShippingAddressTool implements McpPluginToolHandler<SetShippingAddressInput> {
+export class SetShippingAddressTool implements McpToolHandler<SetShippingAddressInput> {
     constructor(
         private activeOrderService: ActiveOrderService,
         private orderService: OrderService,

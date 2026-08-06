@@ -38,7 +38,8 @@ import { McpAuthorizationCode } from '../entities/mcp-authorization-code.entity'
 import { McpAuthorizationRequest } from '../entities/mcp-authorization-request.entity';
 import { McpOauthClient } from '../entities/mcp-oauth-client.entity';
 import { McpOauthGrant } from '../entities/mcp-oauth-grant.entity';
-import { McpActorType, McpAuthenticatedContext, McpPluginOptions, ResolvedMcpOauthOptions } from '../types';
+import { McpAuthenticatedContext } from '../internal-types';
+import { McpActorType, McpPluginOptions, ResolvedMcpOauthOptions } from '../types';
 
 import { McpCimdClientResolverService } from './cimd/cimd-client-resolver.service';
 import { isUrlClientId } from './cimd/cimd-url';

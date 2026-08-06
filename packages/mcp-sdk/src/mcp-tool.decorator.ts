@@ -1,6 +1,6 @@
 import { DiscoveryService } from '@nestjs/core';
 import type { Permission } from '@vendure/common/lib/generated-types';
-import type { RequestContext } from '@vendure/core';
+import type { ID, RequestContext } from '@vendure/core';
 
 import { McpToolBehavior, McpToolset } from './types';
 
@@ -63,14 +63,44 @@ export interface McpToolMetadata {
 
 /**
  * @description
+ * The MCP OAuth grant behind a tool call, when the call arrived over MCP OAuth.
+ *
+ * @docsCategory core plugins/McpPlugin
+ * @since 3.8.0
+ */
+export interface McpCallerGrant {
+    /** ID of the MCP OAuth grant this call was authenticated with. */
+    id: ID;
+    /** ID of the OAuth client (the connecting app) the grant was issued to. */
+    oauthClientId: ID;
+}
+
+/**
+ * @description
+ * Who is calling a tool and how. Passed as the optional third argument to
+ * {@link McpToolHandler.execute}.
+ *
+ * @docsCategory core plugins/McpPlugin
+ * @since 3.8.0
+ */
+export interface McpCallerInfo {
+    /** Present when the call arrived via MCP OAuth. Absent for anonymous shop calls and in-process calls. */
+    grant?: McpCallerGrant;
+    /** Client IP resolved by the HTTP transport. Absent for in-process calls. */
+    clientIp?: string;
+}
+
+/**
+ * @description
  * The shape of an MCP tool class: an `execute` method that the server calls with the
- * {@link RequestContext} and the input.
+ * {@link RequestContext}, the input, and — when a tool needs to know who is calling —
+ * {@link McpCallerInfo}.
  *
  * @docsCategory core plugins/McpPlugin
  * @since 3.8.0
  */
 export interface McpToolHandler<I = unknown, O = unknown> {
-    execute(ctx: RequestContext, input: I): Promise<O> | O;
+    execute(ctx: RequestContext, input: I, caller?: McpCallerInfo): Promise<O> | O;
 }
 
 /**

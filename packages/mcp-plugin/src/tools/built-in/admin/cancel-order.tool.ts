@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ID, OrderService, Permission, RequestContext } from '@vendure/core';
-import { McpTool } from '@vendure/mcp-sdk';
+import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 
-import { McpPluginToolHandler } from '../../../types';
 import { orderResult } from '../order-helpers';
 import { booleanProp, idProp, objectSchema, optional, stringProp } from '../schema-helpers';
 
@@ -33,7 +32,7 @@ interface CancelOrderToolInput {
     }),
 })
 @Injectable()
-export class CancelOrderTool implements McpPluginToolHandler<CancelOrderToolInput> {
+export class CancelOrderTool implements McpToolHandler<CancelOrderToolInput> {
     constructor(private orderService: OrderService) {}
 
     async execute(ctx: RequestContext, input: CancelOrderToolInput) {

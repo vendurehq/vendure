@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PaymentInput } from '@vendure/common/lib/generated-shop-types';
 import { ActiveOrderService, OrderService, Permission, RequestContext } from '@vendure/core';
-import { McpTool } from '@vendure/mcp-sdk';
+import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 
-import { McpPluginToolHandler } from '../../../types';
 import { getActiveOrder, orderResult } from '../order-helpers';
 import { jsonObjectProp, objectSchema, optional, stringProp } from '../schema-helpers';
 
@@ -32,7 +31,7 @@ interface PlaceOrderInput {
     }),
 })
 @Injectable()
-export class PlaceOrderTool implements McpPluginToolHandler<PlaceOrderInput> {
+export class PlaceOrderTool implements McpToolHandler<PlaceOrderInput> {
     constructor(
         private activeOrderService: ActiveOrderService,
         private orderService: OrderService,

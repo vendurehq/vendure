@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Permission, ProductService, RequestContext } from '@vendure/core';
-import { McpTool } from '@vendure/mcp-sdk';
+import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 
-import { McpPluginToolHandler } from '../../../types';
 import { page, publicProductListOptions } from '../order-helpers';
 import { numberProp, objectSchema, optional, stringProp } from '../schema-helpers';
 import { productSummary } from '../serializers';
@@ -34,7 +33,7 @@ interface SearchProductsInput extends Record<string, unknown> {
     }),
 })
 @Injectable()
-export class SearchProductsTool implements McpPluginToolHandler<SearchProductsInput> {
+export class SearchProductsTool implements McpToolHandler<SearchProductsInput> {
     constructor(private productService: ProductService) {}
 
     async execute(ctx: RequestContext, input: SearchProductsInput) {

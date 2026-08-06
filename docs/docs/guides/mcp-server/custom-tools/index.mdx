@@ -177,20 +177,22 @@ The full field list, types, and defaults are on
 | `inputSchema` / `outputSchema` | JSON Schema; input validated pre-call, output drift-checked post-call |
 | `keywords` | Search-only synonyms for discovery mode |
 
-## Accessing the execution context
+## Accessing who is calling
 
-`execute(ctx, input)` is enough for almost every tool. If you need the MCP-specific execution context — the OAuth
-grant or the client IP — implement
-[`McpPluginToolHandler`](/reference/core-plugins/mcp-plugin/mcp-plugin-tool-handler/) from `@vendure/mcp-plugin`
-instead, which adds an optional third argument:
+`execute(ctx, input)` is enough for almost every tool. If you need to know who is calling — the OAuth grant behind
+the call, or the client IP — `execute` takes an optional third argument,
+[`McpCallerInfo`](/reference/core-plugins/mcp-plugin/mcp-caller-info/), from `@vendure/mcp-sdk`:
 
 ```ts
-import { McpExecutionContext, McpPluginToolHandler } from '@vendure/mcp-plugin';
+import { McpCallerInfo, McpToolHandler } from '@vendure/mcp-sdk';
 
-async execute(ctx: RequestContext, input: MyInput, executionContext?: McpExecutionContext) {
-    const grant = executionContext?.grant; // the OAuth grant, when present
-    // ...
+export class MyTool implements McpToolHandler<MyInput> {
+    async execute(ctx: RequestContext, input: MyInput, caller?: McpCallerInfo) {
+        const grant = caller?.grant; // the OAuth grant info, when present
+        // ...
+    }
 }
 ```
 
-This is the one case where a tool depends on `@vendure/mcp-plugin` rather than only `@vendure/mcp-sdk`.
+`caller` is absent for anonymous shop calls and for in-process calls made via `McpToolExecutionService`. A tool
+never needs to depend on `@vendure/mcp-plugin` — everything a tool implements comes from `@vendure/mcp-sdk`.

@@ -7,9 +7,8 @@ import {
     RequestContext,
     StockLevelService,
 } from '@vendure/core';
-import { McpTool } from '@vendure/mcp-sdk';
+import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 
-import { McpPluginToolHandler } from '../../../types';
 import { idProp, numberProp, objectSchema } from '../schema-helpers';
 
 interface AdjustStockInput {
@@ -41,7 +40,7 @@ interface AdjustStockInput {
     }),
 })
 @Injectable()
-export class AdjustStockTool implements McpPluginToolHandler<AdjustStockInput> {
+export class AdjustStockTool implements McpToolHandler<AdjustStockInput> {
     constructor(
         private productVariantService: ProductVariantService,
         private stockLevelService: StockLevelService,

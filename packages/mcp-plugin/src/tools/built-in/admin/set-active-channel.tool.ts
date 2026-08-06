@@ -8,10 +8,9 @@ import {
     RequestContext,
     TransactionalConnection,
 } from '@vendure/core';
-import { McpTool } from '@vendure/mcp-sdk';
+import { McpCallerInfo, McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 
 import { McpOauthGrant } from '../../../entities/mcp-oauth-grant.entity';
-import { McpExecutionContext, McpPluginToolHandler } from '../../../types';
 import { objectSchema, stringProp } from '../schema-helpers';
 
 interface SetActiveChannelInput {
@@ -36,13 +35,13 @@ interface SetActiveChannelInput {
     }),
 })
 @Injectable()
-export class SetActiveChannelTool implements McpPluginToolHandler<SetActiveChannelInput> {
+export class SetActiveChannelTool implements McpToolHandler<SetActiveChannelInput> {
     constructor(
         private channelService: ChannelService,
         private connection: TransactionalConnection,
     ) {}
 
-    async execute(ctx: RequestContext, input: SetActiveChannelInput, executionContext?: McpExecutionContext) {
+    async execute(ctx: RequestContext, input: SetActiveChannelInput, caller?: McpCallerInfo) {
         const channel = await this.channelService.getChannelFromToken(ctx, input.channelToken);
         const accessibleIds = ctx.session?.user?.channelPermissions.map(entry => entry.id) ?? [];
         if (!accessibleIds.some(id => idsAreEqual(id, channel.id))) {
@@ -50,12 +49,12 @@ export class SetActiveChannelTool implements McpPluginToolHandler<SetActiveChann
         }
         // Persist the choice on the one merged grant row. Subsequent requests re-authenticate against
         // this grant, so its channelId becomes the active channel for later calls.
-        const grant = executionContext?.grant;
-        if (!grant) {
-            // An authenticated MCP caller always carries a grant; its absence means the execution
-            // context was not wired up, so fail loudly rather than report a switch that never persisted.
+        if (!caller?.grant) {
+            // An authenticated MCP caller always carries a grant; its absence means the caller info
+            // was not wired up, so fail loudly rather than report a switch that never persisted.
             throw new InternalServerError('MCP set_active_channel requires an authenticated grant');
         }
+        const grant = await this.connection.getEntityOrThrow(ctx, McpOauthGrant, caller.grant.id);
         grant.channelId = channel.id;
         await this.connection.getRepository(ctx, McpOauthGrant).save(grant);
         return { channel: { id: channel.id, code: channel.code, token: channel.token } };

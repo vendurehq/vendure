@@ -4,7 +4,8 @@ import { McpToolset } from '@vendure/mcp-sdk';
 import { createHash } from 'node:crypto';
 
 import { MCP_PLUGIN_OPTIONS, RATE_LIMIT_CACHE_PREFIX, RATE_LIMIT_WINDOW_MS } from '../constants';
-import { McpExecutionContext, McpPluginOptions } from '../types';
+import { McpExecutionContext } from '../internal-types';
+import { McpPluginOptions } from '../types';
 
 const RATE_LIMIT_CACHE_TAG = 'mcp-rate-limit';
 

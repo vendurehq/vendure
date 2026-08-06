@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { OrderService, Permission, RequestContext } from '@vendure/core';
-import { McpTool } from '@vendure/mcp-sdk';
+import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 
-import { McpPluginToolHandler } from '../../../types';
 import { orderListOptions, page } from '../order-helpers';
 import { numberProp, objectSchema, optional } from '../schema-helpers';
 import { orderSummary } from '../serializers';
@@ -32,7 +31,7 @@ interface ListOrdersInput extends Record<string, unknown> {
     }),
 })
 @Injectable()
-export class ListOrdersTool implements McpPluginToolHandler<ListOrdersInput> {
+export class ListOrdersTool implements McpToolHandler<ListOrdersInput> {
     constructor(private orderService: OrderService) {}
 
     async execute(ctx: RequestContext, input: ListOrdersInput) {

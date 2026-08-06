@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ID, OrderService, OrderState, Permission, RequestContext } from '@vendure/core';
-import { McpTool } from '@vendure/mcp-sdk';
+import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 
-import { McpPluginToolHandler } from '../../../types';
 import { orderResult } from '../order-helpers';
 import { idProp, objectSchema, stringProp } from '../schema-helpers';
 
@@ -31,7 +30,7 @@ interface UpdateOrderStateInput {
     }),
 })
 @Injectable()
-export class UpdateOrderStateTool implements McpPluginToolHandler<UpdateOrderStateInput> {
+export class UpdateOrderStateTool implements McpToolHandler<UpdateOrderStateInput> {
     constructor(private orderService: OrderService) {}
 
     async execute(ctx: RequestContext, input: UpdateOrderStateInput) {

@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ActiveOrderService, OrderService, Permission, RequestContext } from '@vendure/core';
-import { McpTool } from '@vendure/mcp-sdk';
+import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 
-import { McpPluginToolHandler } from '../../../types';
 import { getActiveOrder, orderResult } from '../order-helpers';
 import { objectSchema, stringProp } from '../schema-helpers';
 
@@ -26,7 +25,7 @@ interface ApplyCouponCodeInput {
     inputSchema: objectSchema({ code: stringProp('Coupon code.') }),
 })
 @Injectable()
-export class ApplyCouponCodeTool implements McpPluginToolHandler<ApplyCouponCodeInput> {
+export class ApplyCouponCodeTool implements McpToolHandler<ApplyCouponCodeInput> {
     constructor(
         private activeOrderService: ActiveOrderService,
         private orderService: OrderService,

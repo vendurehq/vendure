@@ -9,19 +9,21 @@ import {
 import { Inject, Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { DiscoveryService } from '@nestjs/core';
 import { Instrument, Logger, Permission, RequestContext, SettingsStoreService } from '@vendure/core';
-import { McpJsonSchema, McpTool, McpToolBehavior, McpToolMetadata, McpToolset } from '@vendure/mcp-sdk';
+import {
+    McpCallerInfo,
+    McpJsonSchema,
+    McpTool,
+    McpToolBehavior,
+    McpToolHandler,
+    McpToolMetadata,
+    McpToolset,
+} from '@vendure/mcp-sdk';
 
 import { loggerCtx, MCP_PLUGIN_OPTIONS, MCP_TOOL_TOGGLES_STORE_KEY } from '../constants';
+import { McpExecutionContext } from '../internal-types';
 import { McpToolCallLogService } from '../logging/mcp-tool-call-log.service';
 import { McpRateLimiterService, McpRateLimitExceededError } from '../rate-limit/mcp-rate-limiter.service';
-import {
-    McpExecutionContext,
-    McpExposedTool,
-    McpPluginOptions,
-    McpPluginToolHandler,
-    McpRegisteredTool,
-    McpToolSummary,
-} from '../types';
+import { McpExposedTool, McpPluginOptions, McpRegisteredTool, McpToolSummary } from '../types';
 
 import { Bm25Index } from './bm25';
 
@@ -204,8 +206,8 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         Logger.info(`Discovered ${this.tools.size} MCP tools`, loggerCtx);
     }
 
-    private isToolHandler(instance: unknown): instance is McpPluginToolHandler {
-        return typeof (instance as Partial<McpPluginToolHandler>)?.execute === 'function';
+    private isToolHandler(instance: unknown): instance is McpToolHandler {
+        return typeof (instance as Partial<McpToolHandler>)?.execute === 'function';
     }
 
     /**
@@ -215,7 +217,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
      */
     private buildRegisteredTool(
         metadata: McpToolMetadata,
-        handler: McpPluginToolHandler,
+        handler: McpToolHandler,
         pluginSource: string,
     ): McpRegisteredTool {
         if (metadata.inputSchema !== undefined && !this.isMcpJsonSchema(metadata.inputSchema)) {
@@ -340,7 +342,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         }
         const startedAt = Date.now();
         try {
-            const output = await tool.handler.execute(ctx, toolInput, executionContext);
+            const output = await tool.handler.execute(ctx, toolInput, this.toCallerInfo(executionContext));
             if (tool.compiledOutputSchema) {
                 const validated = await this.validateAgainst(tool.compiledOutputSchema, output);
                 if (!validated.ok) {
@@ -577,6 +579,18 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
     // ---------------------------------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------------------------------
+
+    /**
+     * Maps the server-internal call state to the plain-data `McpCallerInfo` a tool actually
+     * receives. This is the one place the `McpOauthGrant` entity crosses into a tool's `execute` —
+     * every other consumer of this call state keeps using the entity directly.
+     */
+    private toCallerInfo(state: McpExecutionContext): McpCallerInfo {
+        return {
+            grant: state.grant ? { id: state.grant.id, oauthClientId: state.grant.oauthClientId } : undefined,
+            clientIp: state.clientIp,
+        };
+    }
 
     /**
      * Enforces the rate limit for `subject` against its per-subject bucket plus the shared

@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ChannelService, idsAreEqual, Permission, RequestContext } from '@vendure/core';
-import { McpTool } from '@vendure/mcp-sdk';
+import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 
-import { McpPluginToolHandler } from '../../../types';
 import { page } from '../order-helpers';
 import { numberProp, objectSchema, optional } from '../schema-helpers';
 
@@ -31,7 +30,7 @@ interface ListChannelsInput extends Record<string, unknown> {
     }),
 })
 @Injectable()
-export class ListChannelsTool implements McpPluginToolHandler<ListChannelsInput> {
+export class ListChannelsTool implements McpToolHandler<ListChannelsInput> {
     constructor(private channelService: ChannelService) {}
 
     async execute(ctx: RequestContext, input: ListChannelsInput) {

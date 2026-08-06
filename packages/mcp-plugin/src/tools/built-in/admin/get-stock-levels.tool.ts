@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ID, Permission, RequestContext, StockLevelService } from '@vendure/core';
-import { McpTool } from '@vendure/mcp-sdk';
+import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 
-import { McpPluginToolHandler } from '../../../types';
 import { idProp, objectSchema } from '../schema-helpers';
 
 interface GetStockLevelsInput {
@@ -26,7 +25,7 @@ interface GetStockLevelsInput {
     inputSchema: objectSchema({ variantId: idProp('Product variant ID.') }),
 })
 @Injectable()
-export class GetStockLevelsTool implements McpPluginToolHandler<GetStockLevelsInput> {
+export class GetStockLevelsTool implements McpToolHandler<GetStockLevelsInput> {
     constructor(private stockLevelService: StockLevelService) {}
 
     async execute(ctx: RequestContext, input: GetStockLevelsInput) {

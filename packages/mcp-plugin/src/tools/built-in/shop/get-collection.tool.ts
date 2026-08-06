@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CollectionService, ID, Permission, RequestContext } from '@vendure/core';
-import { McpTool } from '@vendure/mcp-sdk';
+import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 
-import { McpPluginToolHandler } from '../../../types';
 import { idProp, objectSchema, optional, stringProp } from '../schema-helpers';
 import { collectionSummary } from '../serializers';
 
@@ -31,7 +30,7 @@ interface GetCollectionInput {
     }),
 })
 @Injectable()
-export class ShopGetCollectionTool implements McpPluginToolHandler<GetCollectionInput> {
+export class ShopGetCollectionTool implements McpToolHandler<GetCollectionInput> {
     constructor(private collectionService: CollectionService) {}
 
     async execute(ctx: RequestContext, input: GetCollectionInput) {

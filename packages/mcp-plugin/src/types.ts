@@ -1,5 +1,5 @@
 import type { StandardSchemaWithJSON, ToolAnnotations } from '@modelcontextprotocol/server';
-import { RequestContext, type ScheduledTaskConfig } from '@vendure/core';
+import { type ScheduledTaskConfig } from '@vendure/core';
 import {
     McpJsonSchema,
     McpToolBehavior,
@@ -7,7 +7,6 @@ import {
     McpToolMetadata,
     McpToolset,
 } from '@vendure/mcp-sdk';
-import type { McpOauthGrant } from './entities/mcp-oauth-grant.entity';
 
 /**
  * @description
@@ -315,34 +314,6 @@ export interface McpPluginOptions {
 
 /**
  * @description
- * Carries the Vendure request context into a tool's `execute` call, together with the
- * MCP OAuth grant and client IP resolved for the call when the request was
- * authenticated over OAuth.
- *
- * @docsCategory core plugins/McpPlugin
- * @since 3.8.0
- */
-export interface McpExecutionContext {
-    ctx: RequestContext;
-    grant?: McpOauthGrant;
-    clientIp?: string;
-}
-
-/**
- * @description
- * Plugin-side handler interface. It extends `McpToolHandler`
- * with an optional {@link McpExecutionContext} third argument, which tools use
- * when they need access to the MCP execution context.
- *
- * @docsCategory core plugins/McpPlugin
- * @since 3.8.0
- */
-export interface McpPluginToolHandler<I = unknown, O = unknown> extends McpToolHandler<I, O> {
-    execute(ctx: RequestContext, input: I, executionContext?: McpExecutionContext): Promise<O> | O;
-}
-
-/**
- * @description
  * A tool as described to a caller, carrying everything a model needs to decide whether to call it.
  * Returned by {@link McpToolExecutionService.listTools} and by the `search_tools` discovery meta-tool.
  *
@@ -369,12 +340,6 @@ export interface McpToolSummary {
 export type McpActorType = 'customer' | 'admin' | 'anonymous';
 
 /**
- * Result of authenticating a bearer token: the resolved `RequestContext` plus the
- * backing MCP OAuth grant record.
- */
-export type McpAuthenticatedContext = Required<Pick<McpExecutionContext, 'ctx' | 'grant'>>;
-
-/**
  * Terminal outcome of a single MCP tool call recorded in {@link McpToolCallLog}.
  */
 export type McpToolCallStatus = 'success' | 'error';
@@ -386,7 +351,7 @@ export type McpToolCallStatus = 'success' | 'error';
  */
 export interface McpRegisteredTool extends McpToolMetadata {
     /** The discovered provider instance (implements `execute`). */
-    handler: McpPluginToolHandler;
+    handler: McpToolHandler;
     /** Name of the Nest module/host that declared the provider. */
     pluginSource: string;
     /** The tool's `behavior`, defaulting to `mutating` when not declared. */

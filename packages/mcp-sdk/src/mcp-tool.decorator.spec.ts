@@ -52,9 +52,10 @@ describe('@McpTool contract', () => {
         expect(metadata.permissions).toEqual([Permission.Public]);
     });
 
-    it('McpToolHandler is a 2-arg contract (no executionContext in core)', () => {
+    it('McpToolHandler.execute works with or without the optional caller info', () => {
         const tool = new SearchProductsTool();
-        // execute accepts exactly (ctx, input); compile-time + runtime smoke
+        // The third argument (McpCallerInfo) is optional, so both call shapes are valid.
         expect(tool.execute({} as any, { term: 'x' })).toEqual({ items: [] });
+        expect(tool.execute({} as any, { term: 'x' }, { clientIp: '127.0.0.1' })).toEqual({ items: [] });
     });
 });

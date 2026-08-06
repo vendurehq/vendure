@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CustomerGroupService, ID, Permission, RequestContext } from '@vendure/core';
-import { McpTool } from '@vendure/mcp-sdk';
+import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 
-import { McpPluginToolHandler } from '../../../types';
 import { idProp, objectSchema } from '../schema-helpers';
 
 interface AddCustomerToGroupInput {
@@ -29,7 +28,7 @@ interface AddCustomerToGroupInput {
     }),
 })
 @Injectable()
-export class AddCustomerToGroupTool implements McpPluginToolHandler<AddCustomerToGroupInput> {
+export class AddCustomerToGroupTool implements McpToolHandler<AddCustomerToGroupInput> {
     constructor(private customerGroupService: CustomerGroupService) {}
 
     async execute(ctx: RequestContext, input: AddCustomerToGroupInput) {

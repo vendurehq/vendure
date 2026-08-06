@@ -10,7 +10,8 @@ import {
 } from '../constants';
 import { McpToolCallLog } from '../entities/mcp-tool-call-log.entity';
 import { McpToolCallEvent } from '../events/mcp-tool-call.event';
-import { McpExecutionContext, McpPluginOptions, McpRegisteredTool, McpToolCallStatus } from '../types';
+import { McpExecutionContext } from '../internal-types';
+import { McpPluginOptions, McpRegisteredTool, McpToolCallStatus } from '../types';
 
 /** Input to the (Phase-6) tool-call logger. */
 export interface LogToolCallInput {

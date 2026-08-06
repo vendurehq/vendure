@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { AssetService, ConfigService, Permission, RequestContext } from '@vendure/core';
-import { McpTool } from '@vendure/mcp-sdk';
+import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 
-import { McpPluginToolHandler } from '../../../types';
 import { uploadAssetFromUrl } from '../remote-asset';
 import { objectSchema, stringProp } from '../schema-helpers';
 
@@ -28,7 +27,7 @@ interface UploadAssetInput {
     }),
 })
 @Injectable()
-export class UploadAssetTool implements McpPluginToolHandler<UploadAssetInput> {
+export class UploadAssetTool implements McpToolHandler<UploadAssetInput> {
     constructor(
         private assetService: AssetService,
         private configService: ConfigService,

@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ActiveOrderService, ID, OrderService, Permission, RequestContext } from '@vendure/core';
-import { McpTool } from '@vendure/mcp-sdk';
+import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 
-import { McpPluginToolHandler } from '../../../types';
 import { getActiveOrder, orderResult } from '../order-helpers';
 import { idProp, numberProp, objectSchema } from '../schema-helpers';
 
@@ -27,7 +26,7 @@ interface UpdateCartLineInput {
     inputSchema: objectSchema({ orderLineId: idProp('Order line ID.'), quantity: numberProp('Quantity.') }),
 })
 @Injectable()
-export class UpdateCartLineTool implements McpPluginToolHandler<UpdateCartLineInput> {
+export class UpdateCartLineTool implements McpToolHandler<UpdateCartLineInput> {
     constructor(
         private activeOrderService: ActiveOrderService,
         private orderService: OrderService,

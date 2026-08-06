@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CustomerService, Permission, RequestContext } from '@vendure/core';
-import { McpTool } from '@vendure/mcp-sdk';
+import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 
-import { McpPluginToolHandler } from '../../../types';
 import { objectSchema } from '../schema-helpers';
 import { customerSummary } from '../serializers';
 
@@ -23,7 +22,7 @@ import { customerSummary } from '../serializers';
     inputSchema: objectSchema({}),
 })
 @Injectable()
-export class GetMyAccountTool implements McpPluginToolHandler<Record<string, never>> {
+export class GetMyAccountTool implements McpToolHandler<Record<string, never>> {
     constructor(private customerService: CustomerService) {}
 
     async execute(ctx: RequestContext) {

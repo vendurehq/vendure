@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { CreateCustomerInput } from '@vendure/common/lib/generated-types';
 import { CustomerService, Permission, RequestContext } from '@vendure/core';
-import { McpTool } from '@vendure/mcp-sdk';
+import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 
-import { McpPluginToolHandler } from '../../../types';
 import { jsonObjectProp, objectSchema, optional, stringProp } from '../schema-helpers';
 import { customerSummaryResult } from '../serializers';
 
@@ -40,7 +39,7 @@ const customerInputSchema = objectSchema({
     }),
 })
 @Injectable()
-export class CreateCustomerTool implements McpPluginToolHandler<CreateCustomerToolInput> {
+export class CreateCustomerTool implements McpToolHandler<CreateCustomerToolInput> {
     constructor(private customerService: CustomerService) {}
 
     async execute(ctx: RequestContext, input: CreateCustomerToolInput) {

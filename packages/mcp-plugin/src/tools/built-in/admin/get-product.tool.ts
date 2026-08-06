@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ID, Permission, ProductService, RequestContext } from '@vendure/core';
-import { McpTool } from '@vendure/mcp-sdk';
+import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 
-import { McpPluginToolHandler } from '../../../types';
 import { idProp, objectSchema } from '../schema-helpers';
 import { productSummary } from '../serializers';
 
@@ -29,7 +28,7 @@ interface GetProductInput {
     inputSchema: objectSchema({ id: idProp('Product ID.') }),
 })
 @Injectable()
-export class AdminGetProductTool implements McpPluginToolHandler<GetProductInput> {
+export class AdminGetProductTool implements McpToolHandler<GetProductInput> {
     constructor(private productService: ProductService) {}
 
     async execute(ctx: RequestContext, input: GetProductInput) {

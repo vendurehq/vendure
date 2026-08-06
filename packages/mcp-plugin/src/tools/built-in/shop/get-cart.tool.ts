@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ActiveOrderService, OrderService, Permission, RequestContext } from '@vendure/core';
-import { McpTool } from '@vendure/mcp-sdk';
+import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 
-import { McpPluginToolHandler } from '../../../types';
 import { getActiveOrder } from '../order-helpers';
 import { objectSchema } from '../schema-helpers';
 import { orderSummary } from '../serializers';
@@ -24,7 +23,7 @@ import { orderSummary } from '../serializers';
     inputSchema: objectSchema({}),
 })
 @Injectable()
-export class GetCartTool implements McpPluginToolHandler<Record<string, never>> {
+export class GetCartTool implements McpToolHandler<Record<string, never>> {
     constructor(
         private activeOrderService: ActiveOrderService,
         private orderService: OrderService,

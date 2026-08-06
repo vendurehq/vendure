@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService, OrderService, Permission, RequestContext } from '@vendure/core';
-import { McpTool } from '@vendure/mcp-sdk';
+import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 
-import { McpPluginToolHandler } from '../../../types';
 import { objectSchema, stringProp } from '../schema-helpers';
 import { orderSummary } from '../serializers';
 
@@ -27,7 +26,7 @@ interface GetOrderInput {
     inputSchema: objectSchema({ code: stringProp('Order code.') }),
 })
 @Injectable()
-export class ShopGetOrderTool implements McpPluginToolHandler<GetOrderInput> {
+export class ShopGetOrderTool implements McpToolHandler<GetOrderInput> {
     constructor(
         private configService: ConfigService,
         private orderService: OrderService,

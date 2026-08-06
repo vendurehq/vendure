@@ -16,10 +16,11 @@ import { McpToolset } from '@vendure/mcp-sdk';
 import type { Request, Response } from 'express';
 
 import { MCP_PLUGIN_OPTIONS, RATE_LIMIT_ERROR_CODE } from '../constants';
+import { McpExecutionContext } from '../internal-types';
 import { McpOauthService } from '../oauth/oauth.service';
 import { McpRateLimiterService, McpRateLimitExceededError } from '../rate-limit/mcp-rate-limiter.service';
 import { McpToolRegistryService } from '../registry/mcp-tool-registry.service';
-import { McpExecutionContext, McpPluginOptions } from '../types';
+import { McpPluginOptions } from '../types';
 
 import { createMcpServerForRequest } from './mcp-server.factory';
 

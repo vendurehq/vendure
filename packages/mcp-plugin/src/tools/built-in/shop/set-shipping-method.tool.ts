@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ActiveOrderService, ID, OrderService, Permission, RequestContext } from '@vendure/core';
-import { McpTool } from '@vendure/mcp-sdk';
+import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 
-import { McpPluginToolHandler } from '../../../types';
 import { getActiveOrder, orderResult } from '../order-helpers';
 import { idProp, objectSchema } from '../schema-helpers';
 
@@ -26,7 +25,7 @@ interface SetShippingMethodInput {
     inputSchema: objectSchema({ methodId: idProp('Shipping method ID.') }),
 })
 @Injectable()
-export class SetShippingMethodTool implements McpPluginToolHandler<SetShippingMethodInput> {
+export class SetShippingMethodTool implements McpToolHandler<SetShippingMethodInput> {
     constructor(
         private activeOrderService: ActiveOrderService,
         private orderService: OrderService,

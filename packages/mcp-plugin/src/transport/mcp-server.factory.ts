@@ -1,8 +1,8 @@
 import { McpServer } from '@modelcontextprotocol/server';
 import { McpToolset } from '@vendure/mcp-sdk';
 
+import { McpExecutionContext } from '../internal-types';
 import { McpToolRegistryService } from '../registry/mcp-tool-registry.service';
-import { McpExecutionContext } from '../types';
 
 /** Version advertised in the MCP server's `serverInfo`. Cosmetic — the MCP server implementation version. */
 const MCP_SERVER_VERSION = '1.0.0';

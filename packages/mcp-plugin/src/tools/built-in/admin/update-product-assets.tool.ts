@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ID, Permission, ProductService, RequestContext } from '@vendure/core';
-import { McpTool } from '@vendure/mcp-sdk';
+import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 
-import { McpPluginToolHandler } from '../../../types';
 import { idArrayProp, idProp, objectSchema, optional } from '../schema-helpers';
 import { productSummary } from '../serializers';
 
@@ -32,7 +31,7 @@ interface UpdateProductAssetsInput {
     }),
 })
 @Injectable()
-export class UpdateProductAssetsTool implements McpPluginToolHandler<UpdateProductAssetsInput> {
+export class UpdateProductAssetsTool implements McpToolHandler<UpdateProductAssetsInput> {
     constructor(private productService: ProductService) {}
 
     async execute(ctx: RequestContext, input: UpdateProductAssetsInput) {

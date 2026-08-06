@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { CreateProductVariantInput } from '@vendure/common/lib/generated-types';
 import { ID, Permission, ProductVariantService, RequestContext } from '@vendure/core';
-import { McpTool } from '@vendure/mcp-sdk';
+import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 
-import { McpPluginToolHandler } from '../../../types';
 import {
     arrayProp,
     booleanProp,
@@ -61,7 +60,7 @@ const createVariantInputSchema = objectSchema({
     }),
 })
 @Injectable()
-export class CreateVariantTool implements McpPluginToolHandler<CreateVariantToolInput> {
+export class CreateVariantTool implements McpToolHandler<CreateVariantToolInput> {
     constructor(private productVariantService: ProductVariantService) {}
 
     async execute(ctx: RequestContext, input: CreateVariantToolInput) {
