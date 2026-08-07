@@ -1,5 +1,5 @@
 import type { AssetImportStrategy, AssetService, RequestContext } from '@vendure/core';
-import { DefaultAssetImportStrategy } from '@vendure/core';
+import { DefaultAssetImportStrategy, UserInputError } from '@vendure/core';
 import { Readable } from 'stream';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -49,6 +49,10 @@ describe('uploadAssetFromUrl', () => {
         await expect(uploadAssetFromUrl(ctx, 'file:///etc/passwd', assetService, strategy)).rejects.toThrow(
             /scheme/i,
         );
+
+        await expect(uploadAssetFromUrl(ctx, 'file:///etc/passwd', assetService, strategy)).rejects.toThrow(
+            UserInputError,
+        );
         expect(getStreamFromPath).not.toHaveBeenCalled();
         expect(createFromFileStream).not.toHaveBeenCalled();
     });
@@ -81,6 +85,14 @@ describe('uploadAssetFromUrl', () => {
         await expect(
             uploadAssetFromUrl(ctx, 'http://big.example/img', assetService, strategy, { maxBytes: 100 }),
         ).rejects.toThrow(/maximum size/);
+
+        // The class must survive the trip through the stream pipeline: UserInputError is on the tool
+        // funnel's caller-safe list, so this message reaches the caller.
+        const { strategy: strategy2 } = stubStrategy([Buffer.alloc(80), Buffer.alloc(80)]);
+        const { assetService: assetService2 } = drainingAssetService();
+        await expect(
+            uploadAssetFromUrl(ctx, 'http://big.example/img', assetService2, strategy2, { maxBytes: 100 }),
+        ).rejects.toThrow(UserInputError);
     });
 });
 
