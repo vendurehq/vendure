@@ -1,3 +1,44 @@
+## <small>3.7.2 (2026-08-03)</small>
+
+#### Security
+
+* **core** Secure `adjustDraftOrderLine` mutation from unauthorized access [GHSA-hc75-2v4j-x372](https://github.com/vendurehq/vendure/security/advisories/GHSA-hc75-2v4j-x372)
+* **core** Fix privilege escalation via updateAdministrator password reset [GHSA-v85r-wfgv-jcqc](https://github.com/vendurehq/vendure/security/advisories/GHSA-v85r-wfgv-jcqc)
+* **core** Fix cross-channel delete IDOR in Promotion and FacetValue delete paths (#5043) [GHSA-fp4j-ff6j-9793](https://github.com/vendurehq/vendure/security/advisories/GHSA-fp4j-ff6j-9793)
+* **core** Fix cross-channel write IDOR in Asset and StockLocation update (#5017) [GHSA-rgjm-ff27-p2hf](https://github.com/vendurehq/vendure/security/advisories/GHSA-rgjm-ff27-p2hf)
+
+#### Fixes
+
+* **admin-ui** Fix missing currency button on initial load (#4140) (#5002) ([db8482a](https://github.com/vendurehq/vendure/commit/db8482a)), closes [#4140](https://github.com/vendurehq/vendure/issues/4140) [#5002](https://github.com/vendurehq/vendure/issues/5002)
+* **cli** Exclude translatable fields from top-level input type | #4373 (#4505) ([cefe2a5](https://github.com/vendurehq/vendure/commit/cefe2a5)), closes [#4373](https://github.com/vendurehq/vendure/issues/4373) [#4505](https://github.com/vendurehq/vendure/issues/4505)
+* **core** Add channel-scope guard to delete paths (#5043) ([2b2509e](https://github.com/vendurehq/vendure/commit/2b2509e)), closes [#5043](https://github.com/vendurehq/vendure/issues/5043)
+* **core** Add channel-scope guard to StockLocation & Asset update() (#5017) ([f67ef5f](https://github.com/vendurehq/vendure/commit/f67ef5f)), closes [#5017](https://github.com/vendurehq/vendure/issues/5017)
+* **core** Assign new variants to all product channels ([4d199a1](https://github.com/vendurehq/vendure/commit/4d199a1))
+* **core** Guard mergeDeep against undefined array elements (#4961) ([d7096f2](https://github.com/vendurehq/vendure/commit/d7096f2)), closes [#4961](https://github.com/vendurehq/vendure/issues/4961)
+* **core** Guard relation custom field resolution against a missing entity id (#5006) ([016c830](https://github.com/vendurehq/vendure/commit/016c830)), closes [#5006](https://github.com/vendurehq/vendure/issues/5006)
+* **core** Hydrate relations missing from only some array elements (#4986) ([10bbf33](https://github.com/vendurehq/vendure/commit/10bbf33)), closes [#4986](https://github.com/vendurehq/vendure/issues/4986)
+* **core** Prevent route-scoped beforeListen parser from disabling body parsing (#5029) ([d037526](https://github.com/vendurehq/vendure/commit/d037526)), closes [#5029](https://github.com/vendurehq/vendure/issues/5029)
+* **core** Record numeric stockOnHand at active channel's stock location (#4970) ([54cbfab](https://github.com/vendurehq/vendure/commit/54cbfab)), closes [#4970](https://github.com/vendurehq/vendure/issues/4970)
+* **core** Resolve Administrator on API-Key sessions via key owner ([eef0820](https://github.com/vendurehq/vendure/commit/eef0820))
+* **create** Read the server port from VENDURE_SERVER_PORT (#5046) ([4a59d15](https://github.com/vendurehq/vendure/commit/4a59d15)), closes [#5046](https://github.com/vendurehq/vendure/issues/5046)
+* **dashboard** Activate fallback locale before extensions (#5061) ([aaa2eb0](https://github.com/vendurehq/vendure/commit/aaa2eb0)), closes [#5061](https://github.com/vendurehq/vendure/issues/5061)
+* **dashboard** add password visibility toggle to all password fields ([dfd6e5f](https://github.com/vendurehq/vendure/commit/dfd6e5f))
+* **dashboard** Clear asset selection after bulk action completes ([d8b638b](https://github.com/vendurehq/vendure/commit/d8b638b))
+* **dashboard** Compile config outside the type:module package (#4913) ([c16ba71](https://github.com/vendurehq/vendure/commit/c16ba71)), closes [#4913](https://github.com/vendurehq/vendure/issues/4913)
+* **dashboard** Don't persist empty translations for unfilled languages (#4962) ([62611a5](https://github.com/vendurehq/vendure/commit/62611a5)), closes [#4962](https://github.com/vendurehq/vendure/issues/4962)
+* **dashboard** Fix required-field validation on the channel create form (#4198) ([ea9aaff](https://github.com/vendurehq/vendure/commit/ea9aaff)), closes [#4198](https://github.com/vendurehq/vendure/issues/4198)
+* **dashboard** Fix stock location deletion and add stock transfer on delete (#4918) ([0fd2ba8](https://github.com/vendurehq/vendure/commit/0fd2ba8)), closes [#4918](https://github.com/vendurehq/vendure/issues/4918)
+* **dashboard** Make Japanese and Korean selectable and complete their translations (#5077) ([4790067](https://github.com/vendurehq/vendure/commit/4790067)), closes [#5077](https://github.com/vendurehq/vendure/issues/5077)
+* **dashboard** Preserve numeric-looking values in string list inputs (#4988) ([fc2bf52](https://github.com/vendurehq/vendure/commit/fc2bf52)), closes [#4988](https://github.com/vendurehq/vendure/issues/4988)
+* **dashboard** Refresh customer history after updating customer (#4998) ([0434e78](https://github.com/vendurehq/vendure/commit/0434e78)), closes [#4998](https://github.com/vendurehq/vendure/issues/4998)
+* **dashboard** search product variants by name or SKU in relation selectors (#4990) ([22d35f8](https://github.com/vendurehq/vendure/commit/22d35f8)), closes [#4990](https://github.com/vendurehq/vendure/issues/4990)
+* **job-queue-plugin** Fix BullMQ job list query pagination, ordering & index maintenance (#5014) ([6bb9bed](https://github.com/vendurehq/vendure/commit/6bb9bed)), closes [#5014](https://github.com/vendurehq/vendure/issues/5014)
+
+#### Features
+
+* **core** expand telemetry to schema v2 with heartbeat and new signals (#4933) ([df840ee](https://github.com/vendurehq/vendure/commit/df840ee)), closes [#4933](https://github.com/vendurehq/vendure/issues/4933)
+* **dashboard** support assigning multiple channels in bulk actions (#4687) ([fe68a92](https://github.com/vendurehq/vendure/commit/fe68a92)), closes [#4687](https://github.com/vendurehq/vendure/issues/4687)
+
 ## <small>3.7.1 (2026-07-14)</small>
 
 

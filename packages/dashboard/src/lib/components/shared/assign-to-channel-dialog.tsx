@@ -1,8 +1,10 @@
-import { toast } from '@/vdb/components/ui/sonner.js';
+import { useMutation } from '@tanstack/react-query';
 import { ReactNode, useEffect, useState } from 'react';
+import { toast } from '@/vdb/components/ui/sonner.js';
 
 import { ChannelCodeLabel } from '@/vdb/components/shared/channel-code-label.js';
 import { MultiSelect } from '@/vdb/components/shared/multi-select.js';
+import { assignToChannels } from '@/vdb/components/shared/assign-to-channels.js';
 import { Button } from '@/vdb/components/ui/button.js';
 import {
     Dialog,
@@ -14,6 +16,7 @@ import {
 } from '@/vdb/components/ui/dialog.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { ResultOf } from '@/vdb/graphql/graphql.js';
+import { plural } from '@lingui/core/macro';
 import { Trans, useLingui } from '@lingui/react/macro';
 
 import { useChannel } from '@/vdb/hooks/use-channel.js';
@@ -55,7 +58,6 @@ export function AssignToChannelDialog({
 }: Readonly<AssignToChannelDialogProps>) {
     const { t } = useLingui();
     const [selectedChannelIds, setSelectedChannelIds] = useState<string[]>([]);
-    const [isAssigning, setIsAssigning] = useState(false);
     const { channels, activeChannel } = useChannel();
     const entityIdsLength = entityIds.length;
 
@@ -63,7 +65,7 @@ export function AssignToChannelDialog({
         if (!open) setSelectedChannelIds([]);
     }, [open]);
 
-    // Filter out the currently selected channel from available options
+    // Filter out the currently active channel from available options
     const availableChannels = channels.filter(channel => channel.id !== activeChannel?.id);
 
     const selectItems = availableChannels.map(ch => ({
@@ -72,42 +74,64 @@ export function AssignToChannelDialog({
         display: <ChannelCodeLabel code={ch.code} />,
     }));
 
-    const handleAssign = async () => {
-        setIsAssigning(true);
-        try {
-            const results = await Promise.allSettled(
-                selectedChannelIds.map(channelId =>
-                    mutationFn({ input: buildInput(channelId, additionalData) }),
-                ),
-            );
+    const { mutate, isPending } = useMutation({
+        mutationFn: () =>
+            assignToChannels(
+                selectedChannelIds,
+                channelId => buildInput(channelId, additionalData),
+                mutationFn,
+            ),
+        onSuccess: ({ succeeded, failed }) => {
+            if (failed.length) {
+                console.error('Failed to assign to channels', failed);
+            }
 
-            const failedChannelIds = results.flatMap((r, i) =>
-                r.status === 'rejected' ? [selectedChannelIds[i]] : [],
-            );
-            const succeededCount = results.length - failedChannelIds.length;
+            const failedCodes = failed
+                .map(f => channels.find(c => c.id === f.channelId)?.code ?? f.channelId)
+                .join(', ');
 
-            if (succeededCount > 0) {
+            if (failed.length === 0) {
+                toast.success(
+                    plural(succeeded.length, {
+                        one: `Assigned ${entityIdsLength} ${entityType} to ${succeeded.length} channel`,
+                        other: `Assigned ${entityIdsLength} ${entityType} to ${succeeded.length} channels`,
+                    }),
+                );
+                setSelectedChannelIds([]);
+                onSuccess?.();
+                onOpenChange(false);
+            } else if (succeeded.length === 0) {
+                toast.error(
+                    plural(failed.length, {
+                        one: `Failed to assign ${entityIdsLength} ${entityType} to ${failed.length} channel`,
+                        other: `Failed to assign ${entityIdsLength} ${entityType} to ${failed.length} channels`,
+                    }),
+                    { description: failedCodes },
+                );
+            } else {
+                toast.warning(
+                    plural(succeeded.length, {
+                        one: `Assigned ${entityIdsLength} ${entityType} to ${succeeded.length} channel`,
+                        other: `Assigned ${entityIdsLength} ${entityType} to ${succeeded.length} channels`,
+                    }),
+                    { description: t`Failed for: ${failedCodes}` },
+                );
+                // Keep the dialog open and narrow the selection to the failures, so retrying
+                // is one click and doesn't re-assign the channels that already succeeded.
+                setSelectedChannelIds(failed.map(f => f.channelId));
                 onSuccess?.();
             }
+        },
+        onError: () => {
+            toast.error(t`Failed to assign ${entityIdsLength} ${entityType} to the selected channels`);
+        },
+    });
 
-            if (failedChannelIds.length === 0) {
-                toast.success(
-                    t`Successfully assigned ${entityIdsLength} ${entityType} to ${selectedChannelIds.length} channels`,
-                );
-                onOpenChange(false);
-            } else {
-                const firstRejected = results.find(r => r.status === 'rejected');
-                const firstReason = firstRejected?.status === 'rejected' ? firstRejected.reason : undefined;
-                const description = firstReason instanceof Error ? firstReason.message : undefined;
-                setSelectedChannelIds(failedChannelIds);
-                toast.error(
-                    t`Failed to assign ${entityIdsLength} ${entityType} to ${failedChannelIds.length} of ${selectedChannelIds.length} channels`,
-                    { description },
-                );
-            }
-        } finally {
-            setIsAssigning(false);
+    const handleAssign = () => {
+        if (selectedChannelIds.length === 0) {
+            return;
         }
+        mutate();
     };
 
     return (
@@ -135,6 +159,7 @@ export function AssignToChannelDialog({
                             onChange={setSelectedChannelIds}
                             placeholder={t`Select one or more channels`}
                             searchPlaceholder={t`Search channels...`}
+                            showSearch
                             className="w-full"
                         />
                     </div>
@@ -144,7 +169,7 @@ export function AssignToChannelDialog({
                     <Button variant="outline" onClick={() => onOpenChange(false)}>
                         <Trans>Cancel</Trans>
                     </Button>
-                    <Button onClick={handleAssign} disabled={selectedChannelIds.length === 0 || isAssigning}>
+                    <Button onClick={handleAssign} disabled={selectedChannelIds.length === 0 || isPending}>
                         <Trans>Assign</Trans>
                     </Button>
                 </DialogFooter>
