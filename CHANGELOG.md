@@ -1,3 +1,11 @@
+## Unreleased
+
+#### Security
+
+* **core** Bump `file-type` to `^21.3.1` to fix an infinite loop on malformed ASF input (#5099) [GHSA-5v7r-6r5c-r473](https://github.com/advisories/GHSA-5v7r-6r5c-r473)
+* **asset-server-plugin** Bump `file-type` to `^21.3.1` (#5099) [GHSA-5v7r-6r5c-r473](https://github.com/advisories/GHSA-5v7r-6r5c-r473)
+* **core** Note: `file-type` v21 renames four MIME types to their IANA registrations (`audio/x-flac` to `audio/flac`, `video/x-matroska` to `video/matroska`, `application/x-apache-arrow` to `application/vnd.apache.arrow.file`, `application/x-parquet` to `application/vnd.apache.parquet`). If you list any of the old values explicitly in `assetOptions.permittedFileTypes`, update them, otherwise those uploads will be rejected. The default wildcard config (`image/*`, `video/*`, `audio/*`, `.pdf`) is unaffected.
+
 ## <small>3.7.2 (2026-08-03)</small>
 
 #### Security
