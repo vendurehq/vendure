@@ -31,6 +31,7 @@ import {
     DEFAULT_OAUTH_OPTIONS,
     loggerCtx,
     MAX_CLIENT_METADATA_FIELD_LENGTH,
+    MCP_GRANT_ACTIVITY_UPDATE_INTERVAL_MS,
     MCP_PLUGIN_OPTIONS,
     mcpServerPermission,
     MS_PER_DAY,
@@ -481,8 +482,22 @@ export class McpOauthService {
             isAuthorized: true,
             authorizedAsOwnerOnly: false,
         });
-        grant.lastActivityAt = new Date();
-        await this.connection.getRepository(adminCtx, McpOauthGrant).save(grant);
+        // Bump the audit timestamp at most once per interval, in the background, as a
+        // single-column update — the request must not wait for it. Mirrors core's
+        // handling of ApiKey.lastUsedAt in auth-guard.ts.
+        const staleBefore = new Date(Date.now() - MCP_GRANT_ACTIVITY_UPDATE_INTERVAL_MS);
+        if (!grant.lastActivityAt || grant.lastActivityAt < staleBefore) {
+            this.connection
+                .getRepository(adminCtx, McpOauthGrant)
+                .update({ id: grant.id }, { lastActivityAt: new Date() })
+                .catch(err =>
+                    Logger.error(
+                        `Failed to update lastActivityAt for MCP grant ${String(grant.id)}`,
+                        loggerCtx,
+                        err?.stack,
+                    ),
+                );
+        }
         return { ctx, grant };
     }
 

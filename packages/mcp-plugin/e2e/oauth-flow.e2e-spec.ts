@@ -18,7 +18,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
-import { MS_PER_DAY } from '../src/constants';
+import { MCP_GRANT_ACTIVITY_UPDATE_INTERVAL_MS, MS_PER_DAY } from '../src/constants';
 import { McpAuthorizationCode } from '../src/entities/mcp-authorization-code.entity';
 import { McpAuthorizationRequest } from '../src/entities/mcp-authorization-request.entity';
 import { McpOauthGrant } from '../src/entities/mcp-oauth-grant.entity';
@@ -245,6 +245,37 @@ describe('McpPlugin OAuth end-to-end flow', () => {
             throw new Error('Expected the McpOauthGrant to persist after re-creation');
         }
         expect(mcpSessionAfter.vendureSessionId).not.toBe(sessionIdBefore);
+    });
+
+    // lastActivityAt is throttled: it's only rewritten in the background once the stored
+    // value is older than MCP_GRANT_ACTIVITY_UPDATE_INTERVAL_MS, and the write isn't awaited
+    // by authenticateBearerToken, so the test polls the row rather than asserting immediately.
+    it('refreshes a stale lastActivityAt in the background on the next authenticated call', async () => {
+        const oauth = server.app.get(McpOauthService);
+        const connection = server.app.get(TransactionalConnection);
+        const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+
+        const { access_token } = await runFlow();
+        const grant = await grantFor(ctx, access_token);
+
+        const staleActivityAt = new Date(Date.now() - MCP_GRANT_ACTIVITY_UPDATE_INTERVAL_MS - 1000);
+        await connection
+            .getRepository(ctx, McpOauthGrant)
+            .update({ id: grant.id }, { lastActivityAt: staleActivityAt });
+
+        await oauth.authenticateBearerToken(access_token, 'admin');
+
+        // The update is fired in the background, so poll briefly for it to land rather
+        // than assuming it has completed by the time authenticateBearerToken returns.
+        let updated: McpOauthGrant | null = null;
+        for (let attempt = 0; attempt < 20; attempt++) {
+            updated = await connection.getRepository(ctx, McpOauthGrant).findOne({ where: { id: grant.id } });
+            if (updated && updated.lastActivityAt.getTime() > staleActivityAt.getTime()) {
+                break;
+            }
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        expect(updated?.lastActivityAt.getTime()).toBeGreaterThan(staleActivityAt.getTime());
     });
 
     // Deleting the granting administrator must end MCP access. Core deletes the admin's

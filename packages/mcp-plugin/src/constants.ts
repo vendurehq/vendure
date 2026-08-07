@@ -27,6 +27,9 @@ export const RATE_LIMIT_CACHE_PREFIX = 'mcp:rate-limit';
 
 export const mcpServerPermission = new CrudPermissionDefinition('McpServer');
 
+/** Throttles how often a bearer-token call bumps `McpOauthGrant.lastActivityAt`. */
+export const MCP_GRANT_ACTIVITY_UPDATE_INTERVAL_MS = 60_000;
+
 /** Turns the day-valued retention options into a cutoff date. */
 export const MS_PER_DAY = 86_400_000;
 /** Rows deleted per statement by a retention sweep — small enough not to lock a large table. */
