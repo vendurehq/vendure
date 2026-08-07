@@ -3,10 +3,11 @@ import { ID } from '@vendure/common/lib/shared-types';
 import { unique } from '@vendure/common/lib/unique';
 
 import { RequestContext } from '../../api/common/request-context';
+import { idsAreEqual } from '../../common/utils';
 import { TransactionalConnection } from '../../connection/transactional-connection';
-import { Order } from '../../entity/order/order.entity';
 import { OrderLine } from '../../entity/order-line/order-line.entity';
 import { OrderModification } from '../../entity/order-modification/order-modification.entity';
+import { Order } from '../../entity/order/order.entity';
 import { Payment } from '../../entity/payment/payment.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
 import { OrderPlacedEvent } from '../../event-bus/events/order-placed-event';
@@ -169,6 +170,7 @@ export function configureDefaultOrderProcess(options: DefaultOrderProcessOptions
     let stockLevelService: import('../../service/index').StockLevelService;
     let historyService: import('../../service/index').HistoryService;
     let orderSplitter: import('../../service/index').OrderSplitter;
+    let orderService: import('../../service/index').OrderService;
 
     const orderProcess: OrderProcess<OrderState> = {
         transitions: {
@@ -248,6 +250,7 @@ export function configureDefaultOrderProcess(options: DefaultOrderProcessOptions
             const ProductVariantService = await import('../../service/index.js').then(
                 m => m.ProductVariantService,
             );
+            const OrderService = await import('../../service/index.js').then(m => m.OrderService);
             connection = injector.get(TransactionalConnection);
             productVariantService = injector.get(ProductVariantService);
             configService = injector.get(ConfigService);
@@ -256,6 +259,7 @@ export function configureDefaultOrderProcess(options: DefaultOrderProcessOptions
             stockLevelService = injector.get(StockLevelService);
             historyService = injector.get(HistoryService);
             orderSplitter = injector.get(OrderSplitter);
+            orderService = injector.get(OrderService);
         },
 
         async onTransitionStart(fromState, toState, { ctx, order }) {
@@ -327,6 +331,29 @@ export function configureDefaultOrderProcess(options: DefaultOrderProcessOptions
                 ) {
                     return 'message.cannot-transition-to-payment-without-shipping-method';
                 }
+                // Recalculate prices, promotions and shipping promotions for every transition to
+                // ArrangingPayment — including shipping-less checkouts — so payment always runs
+                // against fresh totals. This is done WITHOUT re-selecting the shipping method, so
+                // eligibility is judged (below) on current prices and the customer's chosen method
+                // is never swapped silently. Doing it before the eligibility check is essential:
+                // otherwise a recalculation that makes the chosen method ineligible slips past the
+                // guard and applyShipping would silently swap it to another method.
+                await orderService.applyPriceAdjustments(ctx, order, order.lines, undefined, {
+                    recalculateShipping: false,
+                    recalculateShippingPromotions: true,
+                });
+                if (options.arrangingPaymentRequiresShipping !== false && order.shippingLines?.length) {
+                    const eligibleMethods = await orderService.getEligibleShippingMethods(ctx, order.id);
+                    const eligibleIds = eligibleMethods.map(m => m.id);
+                    const hasIneligible = order.shippingLines.some(
+                        line =>
+                            line.shippingMethodId != null &&
+                            !eligibleIds.some(id => idsAreEqual(id, line.shippingMethodId)),
+                    );
+                    if (hasIneligible) {
+                        return 'message.cannot-transition-to-payment-with-ineligible-shipping-method';
+                    }
+                }
                 if (options.arrangingPaymentRequiresStock !== false) {
                     const variantsWithInsufficientSaleableStock: ProductVariant[] = [];
                     for (const line of order.lines) {
@@ -348,6 +375,12 @@ export function configureDefaultOrderProcess(options: DefaultOrderProcessOptions
                             },
                         );
                     }
+                }
+                // All refusal guards passed — do a full recalculation (prices, promotions, taxes
+                // and shipping rate) before payment. The chosen method was verified eligible
+                // above, so applyShipping refreshes its rate without swapping the method.
+                if (options.arrangingPaymentRequiresShipping !== false && order.shippingLines?.length) {
+                    await orderService.applyPriceAdjustments(ctx, order, order.lines);
                 }
             }
             if (options.checkPaymentsCoverTotal !== false) {

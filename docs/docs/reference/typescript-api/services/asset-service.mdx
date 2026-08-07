@@ -4,13 +4,13 @@ generated: true
 ---
 ## AssetService
 
-<GenerationInfo sourceFile="packages/core/src/service/services/asset.service.ts" sourceLine="160" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/asset.service.ts" sourceLine="91" packageName="@vendure/core" />
 
 Contains methods relating to [Asset](/reference/typescript-api/entities/asset#asset) entities.
 
 ```ts title="Signature"
 class AssetService {
-    constructor(connection: TransactionalConnection, configService: ConfigService, listQueryBuilder: ListQueryBuilder, eventBus: EventBus, tagService: TagService, channelService: ChannelService, roleService: RoleService, customFieldRelationService: CustomFieldRelationService, translatableSaver: TranslatableSaver, translator: TranslatorService)
+    constructor(connection: TransactionalConnection, configService: ConfigService, listQueryBuilder: ListQueryBuilder, eventBus: EventBus, tagService: TagService, channelService: ChannelService, roleService: RoleService, customFieldRelationService: CustomFieldRelationService, translatableSaver: TranslatableSaver, translator: TranslatorService, storedMediaService: StoredMediaService)
     findOne(ctx: RequestContext, id: ID, relations?: RelationPaths<Asset>) => Promise<Translated<Asset> | undefined>;
     findAll(ctx: RequestContext, options?: AssetListOptions, relations?: RelationPaths<Asset>) => Promise<PaginatedList<Translated<Asset>>>;
     getFeaturedAsset(ctx: RequestContext, entity: T) => Promise<Asset | undefined>;
@@ -105,7 +105,7 @@ Create an Asset from a file stream, for example to create an Asset during data i
 </div>
 ## EntityWithAssets
 
-<GenerationInfo sourceFile="packages/core/src/service/services/asset.service.ts" sourceLine="68" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/asset.service.ts" sourceLine="67" packageName="@vendure/core" />
 
 Certain entities (Product, ProductVariant, Collection) use this interface
 to model a featured asset and then a list of assets with a defined order.
@@ -137,7 +137,7 @@ interface EntityWithAssets extends VendureEntity {
 </div>
 ## EntityAssetInput
 
-<GenerationInfo sourceFile="packages/core/src/service/services/asset.service.ts" sourceLine="80" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/service/services/asset.service.ts" sourceLine="79" packageName="@vendure/core" />
 
 Used when updating entities which implement [EntityWithAssets](/reference/typescript-api/services/asset-service#entitywithassets).
 

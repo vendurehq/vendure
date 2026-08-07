@@ -59,7 +59,7 @@ interface OrderProcess<State extends keyof CustomOrderStates | string> extends I
 </div>
 ## DefaultOrderProcessOptions
 
-<GenerationInfo sourceFile="packages/core/src/config/order/default-order-process.ts" sourceLine="50" packageName="@vendure/core" since="2.0.0" />
+<GenerationInfo sourceFile="packages/core/src/config/order/default-order-process.ts" sourceLine="51" packageName="@vendure/core" since="2.0.0" />
 
 Options which can be passed to the [configureDefaultOrderProcess](/reference/typescript-api/orders/order-process#configuredefaultorderprocess) function
 to configure an instance of the default [OrderProcess](/reference/typescript-api/orders/order-process#orderprocess). By default, all
@@ -148,7 +148,7 @@ the Order are part of a Fulfillment which itself is in the `Shipped` state.
 </div>
 ## configureDefaultOrderProcess
 
-<GenerationInfo sourceFile="packages/core/src/config/order/default-order-process.ts" sourceLine="163" packageName="@vendure/core" since="2.0.0" />
+<GenerationInfo sourceFile="packages/core/src/config/order/default-order-process.ts" sourceLine="164" packageName="@vendure/core" since="2.0.0" />
 
 Used to configure a customized instance of the default [OrderProcess](/reference/typescript-api/orders/order-process#orderprocess) that ships with Vendure.
 Using this function allows you to turn off certain checks and constraints that are enabled by default.
@@ -183,7 +183,7 @@ Parameters
 
 ## defaultOrderProcess
 
-<GenerationInfo sourceFile="packages/core/src/config/order/default-order-process.ts" sourceLine="475" packageName="@vendure/core" since="2.0.0" />
+<GenerationInfo sourceFile="packages/core/src/config/order/default-order-process.ts" sourceLine="508" packageName="@vendure/core" since="2.0.0" />
 
 This is the built-in [OrderProcess](/reference/typescript-api/orders/order-process#orderprocess) that ships with Vendure. A customized version of this process
 can be created using the [configureDefaultOrderProcess](/reference/typescript-api/orders/order-process#configuredefaultorderprocess) function, which allows you to pass in an object

@@ -2,7 +2,7 @@
 title: "SystemOptions"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="1210" packageName="@vendure/core" since="1.6.0" />
+<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="1226" packageName="@vendure/core" since="1.6.0" />
 
 Options relating to system functions.
 
@@ -12,6 +12,8 @@ interface SystemOptions {
     errorHandlers?: ErrorHandlerStrategy[];
     cacheStrategy?: CacheStrategy;
     instrumentationStrategy?: InstrumentationStrategy;
+    encryptionStrategy?: EncryptionStrategy;
+    secretAccessStrategy?: SecretAccessStrategy;
 }
 ```
 
@@ -40,6 +42,18 @@ Defines the underlying method used to store cache key-value pairs which powers t
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/telemetry/instrumentation-strategy#instrumentationstrategy'>InstrumentationStrategy</a>`}   />
 
 
+### encryptionStrategy
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/configuration/encryption-strategy#encryptionstrategy'>EncryptionStrategy</a>`} default={`<a href='/reference/typescript-api/configuration/encryption-strategy#defaultencryptionstrategy'>DefaultEncryptionStrategy</a>`}  since="3.8.0"  />
+
+Defines the strategy used to encrypt the values of `secret` custom fields and config args at
+rest.
+### secretAccessStrategy
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/configuration/secret-access-strategy#secretaccessstrategy'>SecretAccessStrategy</a>`} default={`<a href='/reference/typescript-api/configuration/secret-access-strategy#permissionsecretaccessstrategy'>PermissionSecretAccessStrategy</a>`}  since="3.8.0"  />
+
+Defines the strategy used to determine whether the current user may read the decrypted value
+of a `secret` custom field or config arg.
 
 
 </div>

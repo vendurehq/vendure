@@ -28,3 +28,17 @@ export const updateAdministratorDocument = graphql(`
         }
     }
 `);
+
+export const setActiveAdministratorAvatarDocument = `
+    mutation SetActiveAdministratorAvatar($file: Upload) {
+        setActiveAdministratorAvatar(file: $file) {
+            id
+            avatar {
+                preview
+                mimeType
+                width
+                height
+            }
+        }
+    }
+`;

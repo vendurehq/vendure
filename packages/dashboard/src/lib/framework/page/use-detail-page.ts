@@ -1,4 +1,5 @@
 import { removeReadonlyAndLocalizedCustomFields } from '@/vdb/lib/utils.js';
+import type { ZodObject, ZodTypeAny } from '@/vdb/lib/zod.js';
 import type { TypedDocumentNode } from '@graphql-typed-document-node/core';
 import {
     DefinedInitialDataOptions,
@@ -102,6 +103,34 @@ export interface DetailPageOptions<
     ) => WithLooseCustomFields<VariablesOf<U>[VarNameUpdate]>;
     transformCreateInput?: (input: VariablesOf<C>[VarNameCreate]) => VariablesOf<C>[VarNameCreate];
     transformUpdateInput?: (input: VariablesOf<U>[VarNameUpdate]) => VariablesOf<U>[VarNameUpdate];
+    /**
+     * @description
+     * Refines the auto-generated Zod schema for this page's form. Use this to declare the
+     * fields the user must actually fill in.
+     *
+     * The generated schema is derived from the GraphQL input type, which only expresses
+     * nullability — and nullability tells you nothing about whether a value is required:
+     *
+     * - A non-nullable field may still be legitimately empty. `String!` means "not null",
+     *   not "not empty", and a non-nullable `ID!` such as `CreateFacetValueInput.facetId`
+     *   may be supplied by the page in `transformCreateInput` rather than by the user.
+     * - A nullable field may still be required by the server. `CreateChannelInput.
+     *   defaultCurrencyCode` is nullable, yet `ChannelService.create` rejects the input
+     *   unless it is set.
+     *
+     * So required-ness is declared per page, here.
+     *
+     * @example
+     * ```ts
+     * extendSchema: schema =>
+     *     schema.extend({
+     *         code: z.string().min(1, { message: t`This field is required` }),
+     *     }),
+     * ```
+     *
+     * @since 3.7.0
+     */
+    extendSchema?: (schema: ZodObject<any>) => ZodTypeAny;
     /**
      * @description
      * The function to call when the update is successful.
@@ -257,6 +286,7 @@ export function useDetailPage<
         setValuesForUpdate,
         transformCreateInput,
         transformUpdateInput,
+        extendSchema,
         params,
         entityField,
         entityName,
@@ -317,6 +347,7 @@ export function useDetailPage<
         varName: 'input',
         entity,
         customFieldConfig,
+        extendSchema,
         setValues: setValuesForUpdate,
         onSubmit(values: any) {
             const filteredValues = removeReadonlyAndLocalizedCustomFields(values, customFieldConfig || []);

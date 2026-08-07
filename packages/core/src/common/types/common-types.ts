@@ -208,6 +208,21 @@ export type MiddlewareHandler = Type<any> | Function;
  * };
  * ```
  *
+ * The `route` may also be scoped to a single API path if you only want to raise the limit (or
+ * otherwise customize body parsing) for that route, leaving the default parser in place everywhere
+ * else:
+ *
+ * @example
+ * ```ts
+ * apiOptions: {
+ *   middleware: [{
+ *     handler: json({ limit: '10mb' }),
+ *     route: '/admin-api',
+ *     beforeListen: true,
+ *   }],
+ * },
+ * ```
+ *
  * @docsCategory Common
  */
 export interface Middleware {

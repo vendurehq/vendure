@@ -34,8 +34,9 @@ import { GripVertical } from 'lucide-react';
 import React, { Suspense, useEffect, useMemo, useRef } from 'react';
 import { AddFilterMenu } from './add-filter-menu.js';
 import { ActiveFiltersPopover } from './data-table-active-filters-popover.js';
-import { DataTableBulkActions } from './data-table-bulk-actions.js';
+import { DataTableBulkActions, getRowItemId } from './data-table-bulk-actions.js';
 import { DataTableProvider } from './data-table-context.js';
+import { createPaginationState, syncPaginationState } from './data-table-pagination-state.js';
 import {
     DataTableFacetedFilter,
     DataTableFacetedFilterOption,
@@ -161,8 +162,20 @@ interface DataTableProps<TData> {
      * @default false
      * @since 3.8.0
      */
+    /**
+     * Bulk actions to render for selected rows. Set to `false` to suppress the
+     * bulk-action toolbar while retaining row selection.
+     */
+    bulkActions?: BulkActionsInput | false;
+    /**
+     * The selected items, used to synchronize table selection with an owning component.
+     */
+    selectedItems?: TData[];
+    /**
+     * Called when row selection changes, including selections retained across pages.
+     */
+    onSelectionChange?: (selection: TData[]) => void;
     enableViews?: boolean;
-    bulkActions?: BulkActionsInput;
     /**
      * @description
      * This property allows full control over _all_ features of TanStack Table
@@ -263,6 +276,8 @@ export function DataTable<TData>({
     disableViewOptions,
     enableViews,
     bulkActions,
+    selectedItems,
+    onSelectionChange,
     setTableOptions,
     onRefresh,
     onReorder,
@@ -279,14 +294,21 @@ export function DataTable<TData>({
     const { activeChannel } = useChannel();
     const { pageId } = usePage();
     const { t } = useLingui();
-    const [pagination, setPagination] = React.useState<PaginationState>({
-        pageIndex: (page ?? 1) - 1,
-        pageSize: itemsPerPage ?? 10,
-    });
+    const [pagination, setPagination] = React.useState<PaginationState>(() =>
+        createPaginationState(page, itemsPerPage),
+    );
+    const paginationPropsKey = `${page ?? ''}:${itemsPerPage ?? ''}`;
+    const [lastPaginationPropsKey, setLastPaginationPropsKey] = React.useState(paginationPropsKey);
+    if (lastPaginationPropsKey !== paginationPropsKey) {
+        setLastPaginationPropsKey(paginationPropsKey);
+        setPagination(current => syncPaginationState(current, page, itemsPerPage));
+    }
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(
         defaultColumnVisibility ?? {},
     );
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+    const rowSelectionRef = useRef<RowSelectionState>(rowSelection);
+    const selectedItemsCache = useRef<Map<string, TData>>(new Map());
     // The faceted filter the user is currently interacting with — launched from
     // the unified Filter menu or reopened from its chip. Keeps the chip mounted
     // while its popover is open even when no values are selected yet.
@@ -302,6 +324,42 @@ export function DataTable<TData>({
     const handleTableReady = (table: TableType<TData>) => {
         tableRef.current = table;
         setTableInstance(table);
+    };
+
+    const selectedItemIds = selectedItems?.map(item => getRowItemId(item)).join(',');
+
+    useEffect(() => {
+        if (!selectedItems) return;
+
+        selectedItems.forEach(item => {
+            selectedItemsCache.current.set(getRowItemId(item), item);
+        });
+        const nextSelection = Object.fromEntries(selectedItems.map(item => [getRowItemId(item), true]));
+        rowSelectionRef.current = nextSelection;
+        setRowSelection(nextSelection);
+    }, [selectedItemIds]);
+
+    const handleRowSelectionChange = (updater: RowSelectionState | ((previous: RowSelectionState) => RowSelectionState)) => {
+        const nextSelection = typeof updater === 'function' ? updater(rowSelectionRef.current) : updater;
+
+        data.forEach(item => {
+            const id = getRowItemId(item);
+            if (nextSelection[id]) {
+                selectedItemsCache.current.set(id, item);
+            }
+        });
+        for (const id of selectedItemsCache.current.keys()) {
+            if (!nextSelection[id]) {
+                selectedItemsCache.current.delete(id);
+            }
+        }
+        rowSelectionRef.current = nextSelection;
+        setRowSelection(nextSelection);
+        onSelectionChange?.(
+            Object.keys(nextSelection)
+                .map(id => selectedItemsCache.current.get(id))
+                .filter((item): item is TData => item !== undefined),
+        );
     };
 
     const { sensors, localData, handleDragEnd, itemIds } = useDragAndDrop({
@@ -657,7 +715,7 @@ export function DataTable<TData>({
                             hasSelectionColumn
                                 ? {
                                       value: rowSelection,
-                                      onChange: setRowSelection,
+                                      onChange: handleRowSelectionChange,
                                       selectColumnId: 'selection',
                                   }
                                 : undefined
@@ -672,11 +730,12 @@ export function DataTable<TData>({
                         }
                         toolbar={hasToolbarContent ? renderToolbar : undefined}
                         bulkActions={
-                            hasSelectionColumn
+                            hasSelectionColumn && bulkActions !== false
                                 ? ctx => (
                                       <DataTableBulkActions
                                           bulkActions={bulkActions ?? []}
                                           table={ctx.table}
+                                          selectedItems={selectedItems}
                                       />
                                   )
                                 : undefined

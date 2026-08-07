@@ -18,6 +18,17 @@ export type OperationDescriptionSegment =
 
 const PLACEHOLDER_RE = /{\s*([a-zA-Z0-9]+)\s*}/g;
 
+export function descriptionIncludesAdjacentAffix(
+    text: string | undefined,
+    affix: string | undefined,
+    side: 'before' | 'after',
+): boolean {
+    if (!text || !affix) {
+        return false;
+    }
+    return side === 'before' ? text.trimEnd().endsWith(affix) : text.trimStart().startsWith(affix);
+}
+
 /**
  * @description
  * Parses a configurable operation's description template (e.g.

@@ -113,3 +113,49 @@ async function getProductCount() {
     const { totalItems } = await productService.findAll(ctx, {take: 0});
 }
 ```
+
+### Acting as a specific user
+
+The context above is anonymous — it carries no user, and therefore no permissions. That is fine for
+services which do not check them, but services such as the [`RoleService`](/reference/typescript-api/services/role-service/)
+will reject it.
+
+To act as a particular user, pass that user in the `user` option. The example below loads the
+superadmin, which is usually what you want for an administrative script:
+
+```ts title="src/get-product-count.ts"
+// ...
+import { ConfigService, RequestContextService, TransactionalConnection, User } from '@vendure/core';
+
+async function getProductCount() {
+    const { app } = await bootstrapWorker(config);
+
+    // Load the user the script should act as. Any User will do — the superadmin is used here
+    // because an administrative script generally needs unrestricted permissions.
+    const { superadminCredentials } = app.get(ConfigService).authOptions; // [!code highlight]
+    const superAdminUser = await app // [!code highlight]
+        .get(TransactionalConnection) // [!code highlight]
+        .rawConnection.getRepository(User) // [!code highlight]
+        .findOneOrFail({ // [!code highlight]
+            where: { identifier: superadminCredentials.identifier }, // [!code highlight]
+            // The roles (and their channels) must be loaded, or the resulting context // [!code highlight]
+            // has the user's id but no permissions. // [!code highlight]
+            relations: { roles: { channels: true } }, // [!code highlight]
+        }); // [!code highlight]
+
+    const ctx = await app.get(RequestContextService).create({
+        apiType: 'admin',
+        user: superAdminUser, // [!code highlight]
+    });
+
+    // `ctx` now carries the superadmin's permissions, so permission-checking
+    // services will accept it.
+}
+```
+
+:::note
+Loading the `roles` relation (and its `channels`) is what gives the context its permissions. Omit
+it and the context still has the user's id — enough for services that reload the user by id, but
+its `channelPermissions` are empty, so any check that reads them directly (for example the entity
+access-control checks behind `connection.getRepository(ctx, Entity)`) will deny access.
+:::

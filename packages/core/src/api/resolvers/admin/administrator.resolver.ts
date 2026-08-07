@@ -1,4 +1,4 @@
-import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { Args, Mutation, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
 import {
     DeletionResponse,
     MutationAssignRoleToAdministratorArgs,
@@ -13,6 +13,7 @@ import {
 } from '@vendure/common/lib/generated-types';
 import { PaginatedList } from '@vendure/common/lib/shared-types';
 
+import { ForbiddenError } from '../../../common/error/errors';
 import { Administrator } from '../../../entity/administrator/administrator.entity';
 import { AdministratorService } from '../../../service/services/administrator.service';
 import { RequestContext } from '../../common/request-context';
@@ -24,6 +25,11 @@ import { Transaction } from '../../decorators/transaction.decorator';
 @Resolver('Administrator')
 export class AdministratorResolver {
     constructor(private administratorService: AdministratorService) {}
+
+    @ResolveField()
+    avatar(@Parent() administrator: Administrator) {
+        return administrator.avatar?.source ? administrator.avatar : null;
+    }
 
     @Query()
     @Allow(Permission.ReadAdministrator)
@@ -89,6 +95,23 @@ export class AdministratorResolver {
                 return this.administratorService.update(ctx, { ...input, id: administrator.id });
             }
         }
+    }
+
+    @Transaction()
+    @Mutation()
+    @Allow(Permission.Owner)
+    async setActiveAdministratorAvatar(
+        @Ctx() ctx: RequestContext,
+        @Args('file') file: any,
+    ): Promise<Administrator> {
+        if (!ctx.activeUserId) {
+            throw new ForbiddenError();
+        }
+        const administrator = await this.administratorService.findOneByUserId(ctx, ctx.activeUserId);
+        if (!administrator) {
+            throw new ForbiddenError();
+        }
+        return this.administratorService.setAvatar(ctx, administrator.id, file ?? null);
     }
 
     @Transaction()

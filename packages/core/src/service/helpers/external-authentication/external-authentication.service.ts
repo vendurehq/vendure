@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { HistoryEntryType } from '@vendure/common/lib/generated-types';
+import { ID } from '@vendure/common/lib/shared-types';
 
 import { RequestContext } from '../../../api/common/request-context';
-import { UnverifiedExternalEmailError } from '../../../common/error/errors';
+import { EntityNotFoundError, UnverifiedExternalEmailError } from '../../../common/error/errors';
 import { TransactionalConnection } from '../../../connection/transactional-connection';
 import { Administrator } from '../../../entity/administrator/administrator.entity';
 import { ExternalAuthenticationMethod } from '../../../entity/authentication-method/external-authentication-method.entity';
@@ -14,6 +15,7 @@ import { ChannelService } from '../../services/channel.service';
 import { CustomerService } from '../../services/customer.service';
 import { HistoryService } from '../../services/history.service';
 import { RoleService } from '../../services/role.service';
+import { StoredMediaUpload } from '../stored-media/stored-media.service';
 
 /**
  * @description
@@ -193,6 +195,8 @@ export class ExternalAuthenticationService {
             firstName?: string;
             lastName?: string;
             roles: Role[];
+            /** An optional provider profile image to use as the Administrator avatar. */
+            avatar?: Promise<StoredMediaUpload> | StoredMediaUpload;
         },
     ) {
         const newUser = new User({
@@ -220,7 +224,42 @@ export class ExternalAuthenticationService {
             }),
         );
 
+        if (config.avatar) {
+            await this.administratorService.setAvatar(ctx, administrator.id, config.avatar);
+        }
+
         return savedUser;
+    }
+
+    /**
+     * @description
+     * Sets or removes the avatar belonging to an externally-authenticated Administrator.
+     * This allows an authentication strategy to synchronize a provider profile image without
+     * needing to look up the Administrator or manage the underlying system Asset.
+     *
+     * @example
+     * ```ts
+     * import { Readable } from 'stream';
+     *
+     * const response = await fetch(googleProfile.picture);
+     * const image = Buffer.from(await response.arrayBuffer());
+     * await externalAuthenticationService.setAdministratorAvatar(ctx, user.id, {
+     *     filename: `${googleProfile.sub}.jpg`,
+     *     mimetype: response.headers.get('content-type') ?? 'image/jpeg',
+     *     createReadStream: () => Readable.from([image]),
+     * });
+     * ```
+     */
+    async setAdministratorAvatar(
+        ctx: RequestContext,
+        userId: ID,
+        avatar: Promise<StoredMediaUpload> | StoredMediaUpload | null,
+    ): Promise<Administrator> {
+        const administrator = await this.administratorService.findOneByUserId(ctx, userId);
+        if (!administrator) {
+            throw new EntityNotFoundError('Administrator', userId);
+        }
+        return this.administratorService.setAvatar(ctx, administrator.id, avatar);
     }
 
     async findUser(

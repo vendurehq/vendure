@@ -4,7 +4,7 @@ generated: true
 ---
 ## useDetailPage
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/use-detail-page.ts" sourceLine="242" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/use-detail-page.ts" sourceLine="271" packageName="@vendure/dashboard" since="3.3.0" />
 
 **Status: Developer Preview**
 
@@ -80,7 +80,7 @@ Parameters
 
 ## DetailPageOptions
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/use-detail-page.ts" sourceLine="48" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/use-detail-page.ts" sourceLine="49" packageName="@vendure/dashboard" since="3.3.0" />
 
 Options used to configure the result of the `useDetailPage` hook.
 
@@ -100,6 +100,7 @@ interface DetailPageOptions<T extends TypedDocumentNode<any, any>, C extends Typ
     ) => WithLooseCustomFields<VariablesOf<U>[VarNameUpdate]>;
     transformCreateInput?: (input: VariablesOf<C>[VarNameCreate]) => VariablesOf<C>[VarNameCreate];
     transformUpdateInput?: (input: VariablesOf<U>[VarNameUpdate]) => VariablesOf<U>[VarNameUpdate];
+    extendSchema?: (schema: ZodObject<any>) => ZodTypeAny;
     onSuccess?: (entity: ResultOf<C>[keyof ResultOf<C>] | ResultOf<U>[keyof ResultOf<U>]) => void;
     onError?: (error: unknown) => void;
 }
@@ -160,6 +161,33 @@ The function to set the values for the update document.
 <MemberInfo kind="property" type={`(input: VariablesOf<U>[VarNameUpdate]) => VariablesOf<U>[VarNameUpdate]`}   />
 
 
+### extendSchema
+
+<MemberInfo kind="property" type={`(schema: ZodObject<any>) => ZodTypeAny`}  since="3.7.0"  />
+
+Refines the auto-generated Zod schema for this page's form. Use this to declare the
+fields the user must actually fill in.
+
+The generated schema is derived from the GraphQL input type, which only expresses
+nullability — and nullability tells you nothing about whether a value is required:
+
+- A non-nullable field may still be legitimately empty. `String!` means "not null",
+  not "not empty", and a non-nullable `ID!` such as `CreateFacetValueInput.facetId`
+  may be supplied by the page in `transformCreateInput` rather than by the user.
+- A nullable field may still be required by the server. `CreateChannelInput.
+  defaultCurrencyCode` is nullable, yet `ChannelService.create` rejects the input
+  unless it is set.
+
+So required-ness is declared per page, here.
+
+*Example*
+
+```ts
+extendSchema: schema =>
+    schema.extend({
+        code: z.string().min(1, { message: t`This field is required` }),
+    }),
+```
 ### onSuccess
 
 <MemberInfo kind="property" type={`(entity: ResultOf<C>[keyof ResultOf<C>] | ResultOf<U>[keyof ResultOf<U>]) => void`}   />
@@ -175,7 +203,7 @@ The function to call when the update is successful.
 </div>
 ## UseDetailPageResult
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/use-detail-page.ts" sourceLine="160" packageName="@vendure/dashboard" since="3.3.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/page/use-detail-page.ts" sourceLine="189" packageName="@vendure/dashboard" since="3.3.0" />
 
 
 

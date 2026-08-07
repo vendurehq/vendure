@@ -26,6 +26,8 @@ export const defaultAvailableLanguages = [
     LanguageCode.sv,
     LanguageCode.nb,
     LanguageCode.tr,
+    LanguageCode.ja,
+    LanguageCode.ko,
     LanguageCode.bg,
     LanguageCode.nl,
     LanguageCode.ro,

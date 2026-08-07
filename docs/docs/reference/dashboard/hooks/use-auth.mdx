@@ -26,7 +26,11 @@ interface AuthContext {
     isAuthenticated: boolean;
     login: (username: string, password: string, onSuccess?: () => void) => void;
     logout: (onSuccess?: () => void) => Promise<void>;
-    user: ResultOf<typeof CurrentUserQuery>['activeAdministrator'] | undefined;
+    user:
+        | (NonNullable<ResultOf<typeof CurrentUserQuery>['activeAdministrator']> & {
+              avatar: AdministratorAvatar | null;
+          })
+        | undefined;
     channels: NonNullable<ResultOf<typeof CurrentUserQuery>['me']>['channels'] | undefined;
     refreshCurrentUser: () => void;
 }
@@ -61,7 +65,7 @@ The function to login the user.
 The function to logout the user.
 ### user
 
-<MemberInfo kind="property" type={`ResultOf<typeof CurrentUserQuery>['activeAdministrator'] | undefined`}   />
+<MemberInfo kind="property" type={`| (NonNullable<ResultOf<typeof CurrentUserQuery>['activeAdministrator']> &#38; {               avatar: AdministratorAvatar | null;           })         | undefined`}   />
 
 The user object.
 ### channels

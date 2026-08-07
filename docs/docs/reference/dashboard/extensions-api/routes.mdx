@@ -2,7 +2,7 @@
 title: "Routes"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/navigation.ts" sourceLine="15" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/framework/extension-api/types/navigation.ts" sourceLine="29" packageName="@vendure/dashboard" since="3.4.0" />
 
 Defines a custom route for the dashboard with optional navigation menu integration.
 
@@ -10,7 +10,7 @@ Defines a custom route for the dashboard with optional navigation menu integrati
 interface DashboardRouteDefinition {
     component: (route: AnyRoute) => React.ReactNode;
     path: string;
-    navMenuItem?: Partial<NavMenuItem> & { sectionId: string };
+    navMenuItem?: DashboardNavMenuItemDefinition;
     loader?: RouteOptions<any>['loader'];
     validateSearch?: RouteOptions<any>['validateSearch'];
     authenticated?: boolean;
@@ -31,7 +31,7 @@ The React component that will be rendered for this route.
 The URL path for this route, e.g. '/my-custom-page'.
 ### navMenuItem
 
-<MemberInfo kind="property" type={`Partial<<a href='/reference/dashboard/extensions-api/navigation#navmenuitem'>NavMenuItem</a>> &#38; { sectionId: string }`}   />
+<MemberInfo kind="property" type={`DashboardNavMenuItemDefinition`}   />
 
 Optional navigation menu item configuration to add this route to the nav menu
 on the left side of the dashboard.

@@ -1,4 +1,8 @@
-import { getNavMenuConfig, setNavMenuConfig } from '../nav-menu/nav-menu-extensions.js';
+import {
+    getNavMenuConfig,
+    setNavMenuConfig,
+    validateNavigationShortcuts,
+} from '../nav-menu/nav-menu-extensions.js';
 import { globalRegistry } from '../registry/global-registry.js';
 
 import { registerDashboardCustomProviders } from './custom-providers.js';
@@ -41,7 +45,6 @@ export function executeDashboardExtensionCallbacks() {
             if (result && typeof result === 'object' && Array.isArray(result.sections)) {
                 config = result;
             } else {
-                // eslint-disable-next-line no-console
                 console.warn(
                     `A navSections modifier function returned an invalid result. ` +
                         `Expected an object with a "sections" array. The modifier will be skipped. ` +
@@ -50,6 +53,16 @@ export function executeDashboardExtensionCallbacks() {
             }
         }
         setNavMenuConfig(config);
+    }
+
+    const shortcutValidation = validateNavigationShortcuts(getNavMenuConfig());
+    setNavMenuConfig(shortcutValidation.config);
+    if (shortcutValidation.errors.length) {
+        const message = shortcutValidation.errors.join('\n');
+        if (import.meta.env.DEV) {
+            throw new Error(message);
+        }
+        console.error(message);
     }
 }
 

@@ -44,7 +44,11 @@ export interface AuthContext {
      * @description
      * The user object.
      */
-    user: ResultOf<typeof CurrentUserQuery>['activeAdministrator'] | undefined;
+    user:
+        | (NonNullable<ResultOf<typeof CurrentUserQuery>['activeAdministrator']> & {
+              avatar: AdministratorAvatar | null;
+          })
+        | undefined;
     /**
      * @description
      * The channels object.
@@ -56,6 +60,15 @@ export interface AuthContext {
      */
     refreshCurrentUser: () => void;
 }
+
+export interface AdministratorAvatar {
+    preview: string;
+    mimeType: string;
+    width: number;
+    height: number;
+}
+
+export const CURRENT_ADMINISTRATOR_AVATAR_QUERY_KEY = ['currentUser', 'avatar'] as const;
 
 const LoginMutation = graphql(`
     mutation Login($username: String!, $password: String!) {
@@ -102,6 +115,19 @@ const CurrentUserQuery = graphql(`
     }
 `);
 
+const CurrentAdministratorAvatarQuery = `
+    query CurrentAdministratorAvatar {
+        activeAdministrator {
+            avatar {
+                preview
+                mimeType
+                width
+                height
+            }
+        }
+    }
+`;
+
 export const AuthContext = React.createContext<AuthContext | null>(null);
 
 export function AuthProvider({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -137,6 +163,15 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
 
     // Determine isAuthenticated from currentUserData
     const isAuthenticated = !!currentUserData?.me?.id;
+    const { data: avatarData } = useQuery<{
+        activeAdministrator: { avatar: AdministratorAvatar | null } | null;
+    }>({
+        queryKey: CURRENT_ADMINISTRATOR_AVATAR_QUERY_KEY,
+        queryFn: () => api.query(CurrentAdministratorAvatarQuery),
+        retry: false,
+        enabled: isAuthenticated,
+        staleTime: Infinity,
+    });
 
     // Auth actions
     const login = React.useCallback(
@@ -281,7 +316,12 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
                 isAuthenticated,
                 authenticationError,
                 status,
-                user: currentUserData?.activeAdministrator,
+                user: currentUserData?.activeAdministrator
+                    ? {
+                          ...currentUserData.activeAdministrator,
+                          avatar: avatarData?.activeAdministrator?.avatar ?? null,
+                      }
+                    : undefined,
                 channels: currentUserData?.me?.channels,
                 login,
                 logout,

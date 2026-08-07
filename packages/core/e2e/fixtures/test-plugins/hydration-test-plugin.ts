@@ -166,6 +166,19 @@ export class TestAdminPluginResolver {
 
         return channel;
     }
+
+    // Test case for https://github.com/vendurehq/vendure/pull/5030
+    @Query()
+    async hydrateChannelWithLongCustomFieldName(@Ctx() ctx: RequestContext, @Args() args: { id: ID }) {
+        const channel = await this.channelService.findOne(ctx, args.id);
+        await this.entityHydrator.hydrate(ctx, channel!, {
+            relations: [
+                'customFields.additionalConfig',
+                'customFields.additionalConfigWithAVeryLongPropertyName.backgroundImage',
+            ],
+        });
+        return channel;
+    }
 }
 
 @Entity()
@@ -225,6 +238,7 @@ export class TreeEntity extends VendureEntity {
                 hydrateChannel(id: ID!): JSON
                 hydrateChannelWithNestedRelation(id: ID!): JSON
                 hydrateChannelWithVeryLongPropertyName(id: ID!): JSON
+                hydrateChannelWithLongCustomFieldName(id: ID!): JSON
             }
         `,
     },
@@ -232,6 +246,17 @@ export class TreeEntity extends VendureEntity {
         config.customFields.Channel.push({ name: 'thumb', type: 'relation', entity: Asset, nullable: true });
         config.customFields.Channel.push({
             name: 'additionalConfig',
+            type: 'relation',
+            entity: AdditionalConfig,
+            graphQLType: 'JSON',
+            nullable: true,
+        });
+        // The name is chosen so that the grouping key used by TypeORM's query relation load
+        // strategy, `AdditionalConfig_customFields_additionalConfigWithAVeryLongPropertyName_id`
+        // (74 chars), exceeds the 63-char postgres/mysql alias limit. See
+        // typeorm-relation-id-loader-fix.ts and https://github.com/vendurehq/vendure/pull/5030
+        config.customFields.Channel.push({
+            name: 'additionalConfigWithAVeryLongPropertyName',
             type: 'relation',
             entity: AdditionalConfig,
             graphQLType: 'JSON',

@@ -11,6 +11,8 @@ import * as DE from './fixtures/i18n/de.json';
 import * as EN from './fixtures/i18n/en.json';
 import {
     CUSTOM_ERROR_MESSAGE_TRANSLATION,
+    shippingCalculatorTranslations,
+    TRANSLATED_SHIPPING_CALCULATOR_CODE,
     TranslationTestPlugin,
 } from './fixtures/test-plugins/translation-test-plugin';
 
@@ -81,6 +83,53 @@ describe('Translation', () => {
             expect(customErrorMessage.message).toBe(CUSTOM_ERROR_MESSAGE_TRANSLATION);
         });
     });
+
+    // https://github.com/vendurehq/vendure/issues/4820
+    describe('configurable operation translations', () => {
+        const de = shippingCalculatorTranslations.de;
+
+        async function getCalculator(languageCode?: LanguageCode) {
+            const { shippingCalculators } = await adminClient.query(
+                gql(SHIPPING_CALCULATORS),
+                {},
+                languageCode ? { languageCode } : undefined,
+            );
+            return shippingCalculators.find((c: any) => c.code === TRANSLATED_SHIPPING_CALCULATOR_CODE);
+        }
+
+        it('resolves the inline English strings by default', async () => {
+            const calculator = await getCalculator();
+            expect(calculator.description).toBe('Translated shipping calculator');
+            expect(calculator.args[0].label).toBe('Mode');
+            expect(calculator.args[0].ui.options[0].label).toEqual([
+                { languageCode: LanguageCode.en, value: 'Automatic' },
+            ]);
+        });
+
+        it('resolves the catalog strings for the requested language', async () => {
+            const calculator = await getCalculator(LanguageCode.de);
+            expect(calculator.description).toBe(de.description);
+            expect(calculator.args[0].label).toBe(de.modeLabel);
+            // Option labels keep every language, because the Admin UI resolves them against the
+            // display language rather than the content language sent with this request.
+            expect(calculator.args[0].ui.options[0].label).toEqual([
+                { languageCode: LanguageCode.en, value: 'Automatic' },
+                { languageCode: LanguageCode.de, value: de.autoOptionLabel },
+            ]);
+        });
+
+        it('does not carry a resolved language over into the next request', async () => {
+            // The `ui` config is part of the long-lived shipping calculator instance, so resolving
+            // option labels in place would leave every later request stuck on German.
+            await getCalculator(LanguageCode.de);
+            const calculator = await getCalculator(LanguageCode.en);
+
+            expect(calculator.description).toBe('Translated shipping calculator');
+            expect(calculator.args[0].ui.options[0].label).toEqual([
+                { languageCode: LanguageCode.en, value: 'Automatic' },
+            ]);
+        });
+    });
 });
 
 const CUSTOM_ERROR = `
@@ -89,6 +138,20 @@ const CUSTOM_ERROR = `
             ... on ErrorResult {
                 errorCode
                 message
+            }
+        }
+    }
+`;
+
+const SHIPPING_CALCULATORS = `
+    query ShippingCalculators {
+        shippingCalculators {
+            code
+            description
+            args {
+                name
+                label
+                ui
             }
         }
     }

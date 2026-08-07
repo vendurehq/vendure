@@ -118,7 +118,7 @@ export function ConfigurableOperationMultiSelector({
 }: Readonly<ConfigurableOperationMultiSelectorProps>) {
     const { t } = useLingui();
     // Index of the most recently added operation, which should auto-open the
-    // popover of its first empty required arg (sentence variant only).
+    // popover of its first empty arg (sentence variant only).
     const [autoOpenIndex, setAutoOpenIndex] = useState<number | null>(null);
     // Track validity for each operation by code+index to handle reordering/removal.
     // When operations change, we clear and let each ConfigurableOperationInput re-report.
@@ -240,8 +240,8 @@ export function ConfigurableOperationMultiSelector({
                         const combinationModePill = index > 0 && hasCombinationMode && (
                             <CombinationModeInput
                                 value={
-                                    operation.arguments.find(arg => arg.name === 'combineWithAnd')
-                                        ?.value ?? 'true'
+                                    operation.arguments.find(arg => arg.name === 'combineWithAnd')?.value ??
+                                    'true'
                                 }
                                 onChange={(newValue: boolean | string) =>
                                     onCombinationModeChange(index, newValue)
@@ -284,10 +284,17 @@ export function ConfigurableOperationMultiSelector({
             <div className={hasOperations ? 'pt-2' : ''}>
                 <DropdownMenu>
                     <DropdownMenuTrigger render={<Button variant="outline" className="w-full sm:w-auto" />}>
-                            <Plus className="h-4 w-4" />
-                            {buttonText}
+                        <Plus className="h-4 w-4" />
+                        {buttonText}
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className={showEnhancedDropdown ? 'w-80 max-h-[min(600px,50vh)] overflow-y-auto' : 'w-96 max-h-[min(600px,50vh)] overflow-y-auto'} align="start">
+                    <DropdownMenuContent
+                        className={
+                            showEnhancedDropdown
+                                ? 'w-80 max-h-[min(600px,50vh)] overflow-y-auto'
+                                : 'w-96 max-h-[min(600px,50vh)] overflow-y-auto'
+                        }
+                        align="start"
+                    >
                         {showEnhancedDropdown && dropdownTitle && (
                             <div className="px-2 py-1.5 text-sm font-medium text-muted-foreground">
                                 {dropdownTitle}

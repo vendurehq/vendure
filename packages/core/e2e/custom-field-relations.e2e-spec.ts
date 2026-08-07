@@ -454,6 +454,51 @@ describe('Custom field relations', () => {
 
                 assertCustomFieldIds(updateCustomerAddress.customFields, 'T_3', ['T_2', 'T_4']);
             });
+
+            // Regression: an OrderAddress (Order.shippingAddress / billingAddress) is an embedded
+            // value object with no `id`, so its relation custom fields cannot be resolved by a parent
+            // entity id. Previously this threw "The loader.load() function must be called with a
+            // value, but got: undefined"; it must now resolve to null / [] instead of crashing.
+            it('order shippingAddress resolves relation custom fields without throwing', async () => {
+                await shopClient.asUserWithCredentials('hayden.zieme12@hotmail.com', 'test');
+                await shopClient.query(gql`
+                    mutation {
+                        addItemToOrder(productVariantId: "T_1", quantity: 1) {
+                            ... on Order {
+                                id
+                            }
+                        }
+                    }
+                `);
+                await shopClient.query(gql`
+                    mutation {
+                        setOrderShippingAddress(
+                            input: {
+                                countryCode: "GB"
+                                streetLine1: "Test Street"
+                                customFields: { singleId: "T_1", multiIds: ["T_1", "T_2"] }
+                            }
+                        ) {
+                            ... on Order {
+                                id
+                            }
+                        }
+                    }
+                `);
+
+                const { activeOrder } = await shopClient.query(gql`
+                    query {
+                        activeOrder {
+                            shippingAddress {
+                                ${customFieldsSelection}
+                            }
+                        }
+                    }
+                `);
+
+                expect(activeOrder.shippingAddress.customFields.single).toBeNull();
+                expect(activeOrder.shippingAddress.customFields.multi).toEqual([]);
+            });
         });
 
         describe('Collection entity', () => {
@@ -900,6 +945,29 @@ describe('Custom field relations', () => {
                 `);
                 expect(updateProduct.customFields.single).toEqual({ id: 'T_3' });
                 expect(updateProduct.customFields.primitive).toBe('test');
+            });
+
+            // https://github.com/vendurehq/vendure/issues/5040
+            it('updating an unrelated scalar custom field does not clear relation custom fields', async () => {
+                const { updateProduct } = await adminClient.query(gql`
+                    mutation {
+                        updateProduct(
+                            input: {
+                                id: "${productId}"
+                                customFields: { primitive: "changed" }
+                            }
+                        ) {
+                            id
+                            ${customFieldsSelection}
+                        }
+                    }
+                `);
+                expect(updateProduct.customFields.primitive).toBe('changed');
+                expect(updateProduct.customFields.single).toEqual({ id: 'T_3' });
+                expect(updateProduct.customFields.multi.sort(sortById)).toEqual([
+                    { id: 'T_3' },
+                    { id: 'T_4' },
+                ]);
             });
 
             let productVariantId: string;
@@ -1483,6 +1551,286 @@ describe('Custom field relations', () => {
                 expect(args[0].customFields.multi.length).toEqual(2);
             });
         });
+    });
+
+    // https://github.com/vendurehq/vendure/issues/2031
+    describe('relation id columns', () => {
+        it('id columns map to the existing join columns rather than creating new ones', () => {
+            const connection = server.app.get(TransactionalConnection);
+            const productMetadata = connection.rawConnection.getMetadata(Product);
+            const relationCustomFieldNames = [
+                'single',
+                'cfCollection',
+                'cfCountry',
+                'cfFacetValue',
+                'cfFacet',
+                'cfProductOptionGroup',
+                'cfProductOption',
+                'cfProductVariant',
+                'cfProduct',
+                'cfShippingMethod',
+                'cfInternalAsset',
+            ];
+            for (const name of relationCustomFieldNames) {
+                const idColumns = productMetadata.columns.filter(
+                    c => c.propertyPath === `customFields.${name}Id`,
+                );
+                // The explicit id property must exist as a column, and it must be the
+                // join column itself (same database column), not an additional column.
+                expect(idColumns.length).toBe(1);
+                expect(idColumns[0].relationMetadata?.propertyPath).toBe(`customFields.${name}`);
+                const columnsWithSameDbName = productMetadata.columns.filter(
+                    c => c.databaseName === idColumns[0].databaseName,
+                );
+                expect(columnsWithSameDbName.length).toBe(1);
+            }
+        });
+
+        it('relation id is available without joining the relation', async () => {
+            await adminClient.query(gql`
+                mutation {
+                    updateProduct(input: { id: "T_1", customFields: { singleId: "T_2" } }) {
+                        id
+                    }
+                }
+            `);
+
+            const connection = server.app.get(TransactionalConnection);
+            const product = await connection.rawConnection.getRepository(Product).findOne({
+                where: { id: 1 },
+                loadEagerRelations: false,
+            });
+
+            expect((product?.customFields as any).single).toBeUndefined();
+            expect((product?.customFields as any).singleId).toBe(2);
+        });
+
+        it('updating the relation updates the id column', async () => {
+            await adminClient.query(gql`
+                mutation {
+                    updateProduct(input: { id: "T_1", customFields: { singleId: "T_3" } }) {
+                        id
+                    }
+                }
+            `);
+
+            const connection = server.app.get(TransactionalConnection);
+            const product = await connection.rawConnection.getRepository(Product).findOne({
+                where: { id: 1 },
+                loadEagerRelations: false,
+            });
+
+            expect((product?.customFields as any).singleId).toBe(3);
+        });
+
+        it('setting the relation to null clears the id column', async () => {
+            await adminClient.query(gql`
+                mutation {
+                    updateProduct(input: { id: "T_1", customFields: { singleId: null } }) {
+                        id
+                    }
+                }
+            `);
+
+            const connection = server.app.get(TransactionalConnection);
+            const product = await connection.rawConnection.getRepository(Product).findOne({
+                where: { id: 1 },
+                loadEagerRelations: false,
+            });
+
+            expect((product?.customFields as any).singleId).toBeNull();
+        });
+
+        // The following tests cover the ways in which plugin code may directly assign
+        // relation custom field values on an entity before saving it.
+        it('assigning a relation object directly persists the relation', async () => {
+            const connection = server.app.get(TransactionalConnection);
+            const repository = connection.rawConnection.getRepository(Product);
+            const product = await repository.findOneOrFail({ where: { id: 1 }, loadEagerRelations: false });
+
+            (product.customFields as any).single = { id: 2 };
+            await repository.save(product, { reload: false });
+
+            const result = await repository.findOne({ where: { id: 1 }, loadEagerRelations: false });
+            expect((result?.customFields as any).singleId).toBe(2);
+        });
+
+        it('assigning null to the relation clears it, even with a stale id value', async () => {
+            const connection = server.app.get(TransactionalConnection);
+            const repository = connection.rawConnection.getRepository(Product);
+            const product = await repository.findOneOrFail({ where: { id: 1 }, loadEagerRelations: false });
+            expect((product.customFields as any).singleId).toBe(2);
+
+            (product.customFields as any).single = null;
+            await repository.save(product, { reload: false });
+
+            const result = await repository.findOne({ where: { id: 1 }, loadEagerRelations: false });
+            expect((result?.customFields as any).singleId).toBeNull();
+        });
+
+        it('assigning to the id column directly persists the relation', async () => {
+            const connection = server.app.get(TransactionalConnection);
+            const repository = connection.rawConnection.getRepository(Product);
+            const product = await repository.findOneOrFail({ where: { id: 1 }, loadEagerRelations: false });
+
+            (product.customFields as any).singleId = 3;
+            await repository.save(product, { reload: false });
+
+            const result = await repository.findOne({
+                where: { id: 1 },
+                loadEagerRelations: false,
+                relations: { customFields: { single: true } } as any,
+            });
+            expect((result?.customFields as any).singleId).toBe(3);
+            expect((result?.customFields as any).single?.id).toBe(3);
+        });
+
+        it('sorting by a relation custom field sorts by the id column', async () => {
+            const { products } = await adminClient.query(gql`
+                query {
+                    products(options: { sort: { single: ASC }, take: 5 }) {
+                        items {
+                            id
+                        }
+                    }
+                }
+            `);
+            expect(products.items.length).toBeGreaterThan(0);
+        });
+    });
+
+    // https://github.com/vendurehq/vendure/issues/2031
+    describe('relation id fields in the GraphQL APIs', () => {
+        beforeAll(async () => {
+            await adminClient.query(gql`
+                mutation {
+                    updateProduct(input: { id: "T_1", customFields: { singleId: "T_2" } }) {
+                        id
+                    }
+                }
+            `);
+        });
+
+        it('exposes the relation id in the Admin API', async () => {
+            const { product } = await adminClient.query(gql`
+                query {
+                    product(id: "T_1") {
+                        customFields {
+                            singleId
+                            single {
+                                id
+                            }
+                        }
+                    }
+                }
+            `);
+            expect(product.customFields.singleId).toBe('T_2');
+            expect(product.customFields.single.id).toBe('T_2');
+        });
+
+        it('exposes the relation id in the Shop API', async () => {
+            const { product } = await shopClient.query(gql`
+                query {
+                    product(id: "T_1") {
+                        customFields {
+                            singleId
+                        }
+                    }
+                }
+            `);
+            expect(product.customFields.singleId).toBe('T_2');
+        });
+
+        it('does not expose the id of internal relation custom fields', async () => {
+            await expect(
+                adminClient.query(gql`
+                    query {
+                        product(id: "T_1") {
+                            customFields {
+                                cfInternalAssetId
+                            }
+                        }
+                    }
+                `),
+            ).rejects.toThrowError(/cfInternalAssetId/);
+        });
+
+        it('filters by relation id', async () => {
+            const { products } = await adminClient.query(gql`
+                query {
+                    products(options: { filter: { singleId: { eq: "T_2" } } }) {
+                        items {
+                            id
+                            customFields {
+                                singleId
+                            }
+                        }
+                    }
+                }
+            `);
+            expect(products.items.map((i: { id: string }) => i.id)).toContain('T_1');
+            for (const item of products.items) {
+                expect(item.customFields.singleId).toBe('T_2');
+            }
+        });
+
+        it('filters by relation id isNull', async () => {
+            const { products } = await adminClient.query(gql`
+                query {
+                    products(options: { filter: { singleId: { isNull: true } } }) {
+                        items {
+                            id
+                        }
+                    }
+                }
+            `);
+            expect(products.items.length).toBeGreaterThan(0);
+            expect(products.items.map((i: { id: string }) => i.id)).not.toContain('T_1');
+        });
+
+        it('sorts by relation id', async () => {
+            // Give a second product a distinct relation id so that the ordering
+            // of non-null values can be asserted.
+            await adminClient.query(gql`
+                mutation {
+                    updateProduct(input: { id: "T_2", customFields: { singleId: "T_3" } }) {
+                        id
+                    }
+                }
+            `);
+
+            const values = await getProductsSortedBySingle('singleId');
+            const nonNullValues = values.filter((id): id is string => id != null);
+            expect(nonNullValues.length).toBeGreaterThanOrEqual(2);
+            // The database may sort nulls first or last, but the non-null values
+            // must form a single contiguous block, in ascending order.
+            expect(nonNullValues).toEqual([...nonNullValues].sort());
+            const firstNonNull = values.findIndex(v => v != null);
+            expect(values.slice(firstNonNull, firstNonNull + nonNullValues.length)).toEqual(nonNullValues);
+        });
+
+        it('sorting by the relation field name is equivalent to sorting by its id', async () => {
+            const sortedByName = await getProductsSortedBySingle('single');
+            const sortedById = await getProductsSortedBySingle('singleId');
+            expect(sortedByName).toEqual(sortedById);
+        });
+
+        async function getProductsSortedBySingle(sortField: 'single' | 'singleId') {
+            const { products } = await adminClient.query(gql`
+                query {
+                    products(options: { sort: { ${sortField}: ASC }, take: 100 }) {
+                        items {
+                            customFields {
+                                singleId
+                            }
+                        }
+                    }
+                }
+            `);
+            return products.items.map(
+                (i: { customFields: { singleId: string | null } }) => i.customFields.singleId,
+            ) as Array<string | null>;
+        }
     });
 
     it('null values', async () => {

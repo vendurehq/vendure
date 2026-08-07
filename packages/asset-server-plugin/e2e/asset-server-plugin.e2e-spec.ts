@@ -254,8 +254,9 @@ describe('AssetServerPlugin', () => {
 
             expect(deleteAsset.result).toBe(DeletionResult.DELETED);
 
-            expect(fs.existsSync(sourceFilePath)).toBe(false);
-            expect(fs.existsSync(previewFilePath)).toBe(false);
+            await expect
+                .poll(() => [sourceFilePath, previewFilePath].some(filePath => fs.existsSync(filePath)))
+                .toBe(false);
         });
     });
 

@@ -87,10 +87,10 @@ test.describe('Promotions CRUD', () => {
 
         const dp = detailPage(page);
 
-        // The condition renders as a sentence with the amount as a chip
-        // (default value 100 minor units → displayed as 1)
+        // The condition renders as a sentence with the amount and active
+        // channel currency as a chip (default value 100 minor units → $1.00).
         const amountChip = page.getByRole('button', { name: 'amount' });
-        await expect(amountChip).toHaveText('1');
+        await expect(amountChip).toHaveText('$1.00');
 
         // Edit the amount in the chip popover — changes apply live.
         // (MoneyInput does not forward the name attribute, so locate the
@@ -102,14 +102,14 @@ test.describe('Promotions CRUD', () => {
             .getByRole('textbox')
             .fill('50');
         await page.keyboard.press('Escape');
-        await expect(amountChip).toHaveText('50');
+        await expect(amountChip).toHaveText('$50.00');
 
         await dp.clickUpdate();
         await dp.expectSuccessToast(/Successfully updated promotion/);
 
         // The edited value persists across a reload
         await page.reload();
-        await expect(page.getByRole('button', { name: 'amount' })).toHaveText('50');
+        await expect(page.getByRole('button', { name: 'amount' })).toHaveText('$50.00');
     });
 
     test('should update the promotion', async ({ page }) => {

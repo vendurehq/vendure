@@ -153,6 +153,9 @@ export async function createVendureApp(
         outro(e.message);
         process.exit(1);
     }
+    // Read back by the generated vendure-config when the dashboard build introspects it later in
+    // this same process. Set as PORT because that is the name the config resolves first, so an
+    // unrelated PORT already in the shell environment cannot override the port we just verified.
     process.env.PORT = port.toString();
 
     const root = path.resolve(name);

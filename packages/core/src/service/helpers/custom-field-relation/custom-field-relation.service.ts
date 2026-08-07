@@ -64,6 +64,15 @@ export class CustomFieldRelationService {
                             ...entity.customFields,
                             ...entityWithCustomFields?.customFields,
                             [field.name]: relations,
+                            // The relation id column must always be kept in sync with the relation
+                            // itself, otherwise a stale id value would conflict with the relation
+                            // when persisting, since both map to the same database column.
+                            ...(field.list
+                                ? {}
+                                : {
+                                      [`${field.name}Id`]:
+                                          relations && !Array.isArray(relations) ? relations.id : null,
+                                  }),
                         };
                         await this.connection
                             .getRepository(ctx, entityType)

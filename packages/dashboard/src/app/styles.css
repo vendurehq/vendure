@@ -1,7 +1,7 @@
 @import '@vendure-io/design-tokens/css/fonts';
 @import 'tailwindcss';
 @import 'tw-animate-css';
-@import "shadcn/tailwind.css";
+@import '@vendure-io/design-tokens/css/shadcn';
 
 html[dir="rtl"] * {
     direction: rtl;

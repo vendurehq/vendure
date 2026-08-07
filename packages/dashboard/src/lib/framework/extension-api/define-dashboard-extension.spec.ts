@@ -71,6 +71,61 @@ describe('defineDashboardExtension - navSections', () => {
         );
     });
 
+    it('registers a route navigation shortcut', () => {
+        addNavMenuSection({ id: 'catalog', title: 'Catalog', items: [] });
+        defineDashboardExtension({
+            routes: [
+                {
+                    path: '/reviews',
+                    navMenuItem: {
+                        sectionId: 'catalog',
+                        id: 'reviews',
+                        title: 'Reviews',
+                        shortcut: 'r',
+                    },
+                    component: () => null,
+                },
+            ],
+        });
+
+        executeDashboardExtensionCallbacks();
+
+        const catalog = getNavMenuConfig().sections.find(section => section.id === 'catalog');
+        expect(catalog && 'items' in catalog ? catalog.items : []).toContainEqual(
+            expect.objectContaining({ id: 'reviews', shortcut: 'r' }),
+        );
+    });
+
+    it('throws when extensions declare the same navigation shortcut in development', () => {
+        addNavMenuSection({ id: 'catalog', title: 'Catalog', items: [] });
+        for (const id of ['reviews', 'returns']) {
+            defineDashboardExtension({
+                routes: [
+                    {
+                        path: `/${id}`,
+                        navMenuItem: {
+                            sectionId: 'catalog',
+                            id,
+                            title: id,
+                            shortcut: 'r',
+                        },
+                        component: () => null,
+                    },
+                ],
+            });
+        }
+
+        expect(() => executeDashboardExtensionCallbacks()).toThrowError(
+            'Navigation shortcut collision: G → R is declared by "reviews" and "returns"',
+        );
+
+        const catalog = getNavMenuConfig().sections.find(section => section.id === 'catalog');
+        expect(catalog && 'items' in catalog ? catalog.items : []).toEqual([
+            expect.objectContaining({ id: 'reviews', shortcut: undefined }),
+            expect.objectContaining({ id: 'returns', shortcut: undefined }),
+        ]);
+    });
+
     it('defers function-form navSections to Phase 2', () => {
         defineDashboardExtension({
             navSections: [{ id: 'settings', title: 'Settings' }],

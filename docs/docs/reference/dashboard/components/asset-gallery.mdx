@@ -4,7 +4,7 @@ generated: true
 ---
 ## AssetGallery
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/asset/asset-gallery.tsx" sourceLine="178" packageName="@vendure/dashboard" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/asset/asset-gallery.tsx" sourceLine="217" packageName="@vendure/dashboard" />
 
 A component for displaying a gallery of assets.
 
@@ -31,7 +31,7 @@ Parameters
 
 ## AssetGalleryProps
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/asset/asset-gallery.tsx" sourceLine="90" packageName="@vendure/dashboard" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/shared/asset/asset-gallery.tsx" sourceLine="127" packageName="@vendure/dashboard" />
 
 Props for the [AssetGallery](/reference/dashboard/components/asset-gallery#assetgallery) component.
 
@@ -46,7 +46,7 @@ interface AssetGalleryProps {
     showHeader?: boolean;
     className?: string;
     onFilesDropped?: (files: File[]) => void;
-    bulkActions?: AssetBulkAction[];
+    bulkActions?: AssetBulkActionsInput;
     displayBulkActions?: boolean;
     onPageSizeChange?: (pageSize: number) => void;
     viewMode?: AssetViewMode;
@@ -106,14 +106,16 @@ The class name to apply to the gallery.
 The function to call when files are dropped.
 ### bulkActions
 
-<MemberInfo kind="property" type={`AssetBulkAction[]`}   />
+<MemberInfo kind="property" type={`AssetBulkActionsInput`}   />
 
 The bulk actions to display in the gallery.
 ### displayBulkActions
 
 <MemberInfo kind="property" type={`boolean`}   />
 
-Whether the gallery should display bulk actions.
+Whether the gallery should display the bulk-action toolbar. Asset
+selection stays enabled when this is `false` — in list view this maps
+to the data table's `bulkActions={false}` mode.
 ### onPageSizeChange
 
 <MemberInfo kind="property" type={`(pageSize: number) => void`}   />

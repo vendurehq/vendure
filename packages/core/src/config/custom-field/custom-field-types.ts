@@ -33,6 +33,14 @@ import { RequestContext } from '../../api/common/request-context';
 import { Injector } from '../../common/injector';
 import { VendureEntity } from '../../entity/base/base.entity';
 
+/**
+ * The suffix of every generated GraphQL input type that carries an entity's custom fields, e.g.
+ * `UpdateProductCustomFieldsInput`. It is the single source of this naming convention, shared by the
+ * schema generation (which produces these types) and the custom-field processing interceptor (which
+ * discovers them). If this changes, both sides change together.
+ */
+export const CUSTOM_FIELDS_INPUT_TYPE_SUFFIX = 'CustomFieldsInput';
+
 // prettier-ignore
 export type DefaultValueType<T extends CustomFieldType | StructFieldType> =
     T extends 'string' | 'localeString' | 'text' | 'localeText' ? string :
@@ -54,6 +62,20 @@ export type BaseTypedCustomFieldConfig<T extends CustomFieldType, C extends Cust
     public?: boolean;
     nullable?: boolean;
     unique?: boolean;
+    /**
+     * @description
+     * If set to `true`, the value of this field is encrypted at rest using the configured
+     * {@link EncryptionStrategy}, and is only returned in decrypted form via the API to users
+     * permitted by the {@link SecretAccessStrategy} (by default, those with the `ReadSecret`
+     * permission). Other users receive a redaction placeholder.
+     *
+     * Only supported on `string` and `text` fields, and cannot be combined with `unique` or an
+     * explicit `length`.
+     *
+     * @since 3.8.0
+     * @default false
+     */
+    secret?: boolean;
     /**
      * @description
      * The permission(s) required to read or write to this field.
@@ -332,4 +354,14 @@ export type CustomFields = {
  */
 export interface HasCustomFields {
     customFields: CustomFieldsObject;
+}
+
+/**
+ * Returns true for non-list relation custom fields, i.e. those which also expose a
+ * `<name>Id` property on the entity and in the GraphQL APIs.
+ */
+export function isNonListRelationCustomField(
+    config: CustomFieldConfig,
+): config is RelationCustomFieldConfig {
+    return config.type === 'relation' && config.list !== true;
 }

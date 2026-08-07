@@ -32,6 +32,8 @@ class Order extends VendureEntity implements ChannelAware, HasCustomFields {
     @Column({ nullable: true })
     @Index()
     orderPlacedAt?: Date;
+    @Column({ nullable: true, precision: 6 })
+    pricingUpdatedAt?: Date;
     @Index()
     @ManyToOne(type => Customer, customer => customer.orders)
     customer?: Customer;
@@ -137,6 +139,13 @@ This is governed by the [OrderPlacedStrategy](/reference/typescript-api/orders/o
 The date & time that the Order was placed, i.e. the Customer
 completed the checkout and the Order is no longer "active".
 This is governed by the [OrderPlacedStrategy](/reference/typescript-api/orders/order-placed-strategy#orderplacedstrategy).
+### pricingUpdatedAt
+
+<MemberInfo kind="property" type={`Date`}  since="3.8.0"  />
+
+The date & time that the Order's prices, promotions and taxes were last recalculated via
+`OrderService.applyPriceAdjustments`. Used by the configured [OrderRecalculationStrategy](/reference/typescript-api/orders/order-recalculation-strategy#orderrecalculationstrategy)to determine whether an active Order is stale and should be recalculated on read.
+Shipping method eligibility and rates are NOT included in read-time recalculation.
 ### customer
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/entities/customer#customer'>Customer</a>`}   />

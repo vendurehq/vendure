@@ -11,12 +11,16 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
 import { channelFragment, productVariantFragment } from './graphql/fragments-admin';
+import { graphql } from './graphql/graphql-admin';
 import {
+    addOptionGroupToProductDocument,
     assignProductToChannelDocument,
     assignProductVariantToChannelDocument,
     createAdministratorDocument,
+    createAssetsDocument,
     createChannelDocument,
     createProductDocument,
+    createProductOptionGroupDocument,
     createProductVariantsDocument,
     createRoleDocument,
     getChannelsDocument,
@@ -556,6 +560,303 @@ describe('ChannelAware Products and ProductVariants', () => {
         });
     });
 
+    // https://github.com/vendure-ecommerce/vendure/issues/4532
+    describe('creating a new variant for a product already assigned to another channel', () => {
+        let testProduct: ResultOf<typeof createProductDocument>['createProduct'];
+        let colorGroupId: string;
+        let redOptionId: string;
+        let assetId: string;
+
+        beforeAll(async () => {
+            await adminClient.asSuperAdmin();
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+
+            // Create an asset in the default channel to attach to the new variant
+            const { createAssets } = await adminClient.fileUploadMutation({
+                mutation: createAssetsDocument,
+                filePaths: [path.join(__dirname, 'fixtures/assets/pps2.jpg')],
+                mapVariables: filePaths => ({
+                    input: filePaths.map(() => ({ file: null })),
+                }),
+            });
+            assetId = createAssets[0].id;
+
+            // Create a product in the default channel
+            const { createProduct } = await adminClient.query(createProductDocument, {
+                input: {
+                    translations: [
+                        {
+                            languageCode: LanguageCode.en,
+                            name: 'Channel Variant Test Product',
+                            slug: 'channel-variant-test-product',
+                            description: 'Testing variant channel inheritance',
+                        },
+                    ],
+                },
+            });
+            testProduct = createProduct;
+
+            // Create an option group with one option
+            const { createProductOptionGroup } = await adminClient.query(
+                createProductOptionGroupDocument,
+                {
+                    input: {
+                        code: 'test-color',
+                        translations: [{ languageCode: LanguageCode.en, name: 'Color' }],
+                        options: [
+                            {
+                                code: 'red',
+                                translations: [{ languageCode: LanguageCode.en, name: 'Red' }],
+                            },
+                        ],
+                    },
+                },
+            );
+            colorGroupId = createProductOptionGroup.id;
+            redOptionId = createProductOptionGroup.options[0].id;
+
+            // Attach option group to product
+            await adminClient.query(addOptionGroupToProductDocument, {
+                productId: testProduct.id,
+                optionGroupId: colorGroupId,
+            });
+
+            // Create first variant with the red option
+            const { createProductVariants } = await adminClient.query(createProductVariantsDocument, {
+                input: [
+                    {
+                        productId: testProduct.id,
+                        sku: 'CHAN-VAR-RED',
+                        price: 1000,
+                        optionIds: [redOptionId],
+                        translations: [{ languageCode: LanguageCode.en, name: 'Red Variant' }],
+                    },
+                ],
+            });
+            productVariantGuard.assertSuccess(createProductVariants[0]);
+
+            // Assign the product to the third channel (pricesIncludeTax: true, EUR)
+            await adminClient.query(assignProductToChannelDocument, {
+                input: {
+                    channelId: 'T_3',
+                    productIds: [testProduct.id],
+                    priceFactor: 1,
+                },
+            });
+
+            // Assign the default stock location to the third channel so that
+            // ensureStockLevelsForChannel has a location to seed StockLevels at when the
+            // new variant is created (new channels do not get a stock location by default).
+            const { stockLocations } = await adminClient.query(getStockLocationsDocument);
+            await adminClient.query(assignStockLocationToChannelDocument, {
+                input: {
+                    channelId: 'T_3',
+                    stockLocationIds: [stockLocations.items[0].id],
+                },
+            });
+        });
+
+        it('new variant is automatically assigned to the same channels as the product', async () => {
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+
+            // Create a new option after the product was assigned to the channel
+            const { createProductOption } = await adminClient.query(createProductOptionDocument, {
+                input: {
+                    productOptionGroupId: colorGroupId,
+                    code: 'blue',
+                    translations: [{ languageCode: LanguageCode.en, name: 'Blue' }],
+                },
+            });
+
+            // Create a new variant with the new option
+            const { createProductVariants } = await adminClient.query(createProductVariantsDocument, {
+                input: [
+                    {
+                        productId: testProduct.id,
+                        sku: 'CHAN-VAR-BLUE',
+                        price: 2000,
+                        optionIds: [createProductOption.id],
+                        assetIds: [assetId],
+                        featuredAssetId: assetId,
+                        translations: [{ languageCode: LanguageCode.en, name: 'Blue Variant' }],
+                    },
+                ],
+            });
+            const newVariant = createProductVariants[0];
+            productVariantGuard.assertSuccess(newVariant);
+
+            // From the default channel, the new variant should be in both channels
+            expect(newVariant.channels.map(c => c.id).sort()).toEqual(['T_1', 'T_3']);
+        });
+
+        it('new variant is visible in the assigned channel', async () => {
+            adminClient.setChannelToken(THIRD_CHANNEL_TOKEN);
+
+            const { product } = await adminClient.query(getProductWithVariantsDocument, {
+                id: testProduct.id,
+            });
+            productGuard.assertSuccess(product);
+
+            // Both variants should be visible in the third channel
+            expect(product.variants).toHaveLength(2);
+            expect(product.variants.map(v => v.sku).sort()).toEqual([
+                'CHAN-VAR-BLUE',
+                'CHAN-VAR-RED',
+            ]);
+        });
+
+        it('new variant has correct price in the tax-inclusive assigned channel', async () => {
+            adminClient.setChannelToken(THIRD_CHANNEL_TOKEN);
+
+            const { product } = await adminClient.query(getProductWithVariantsDocument, {
+                id: testProduct.id,
+            });
+            productGuard.assertSuccess(product);
+
+            const blueVariant = product.variants.find(v => v.sku === 'CHAN-VAR-BLUE');
+            expect(blueVariant).toBeDefined();
+            // Third channel has pricesIncludeTax: true and uses EUR.
+            // assignProductVariantsToChannel writes the variant's net price (2000) as the
+            // channel price; with 20% tax applied the gross priceWithTax is 2000 * 1.2 = 2400.
+            expect(blueVariant!.priceWithTax).toBe(2400);
+            expect(blueVariant!.currencyCode).toBe(CurrencyCode.EUR);
+        });
+
+        it('new variant has stock initialized in the assigned channel', async () => {
+            adminClient.setChannelToken(THIRD_CHANNEL_TOKEN);
+
+            const { product } = await adminClient.query(getProductWithVariantsDocument, {
+                id: testProduct.id,
+            });
+            productGuard.assertSuccess(product);
+            const blueVariant = product.variants.find(v => v.sku === 'CHAN-VAR-BLUE');
+            expect(blueVariant).toBeDefined();
+
+            // Assert on the channel-filtered `stockLevels` array (queried from the third
+            // channel) rather than `stockOnHand` — this proves ensureStockLevelsForChannel
+            // actually seeded a StockLevel row for the third channel's stock location,
+            // which a `stockOnHand === 0` check alone could not distinguish from "no row".
+            const { productVariants } = await adminClient.query(getVariantStockLevelsDocument, {
+                options: { filter: { id: { eq: blueVariant!.id } } },
+            });
+            const stockLevels = productVariants.items[0]?.stockLevels ?? [];
+            expect(stockLevels.length).toBeGreaterThan(0);
+            expect(stockLevels[0].stockOnHand).toBe(0);
+        });
+
+        it('new variant assets are assigned to the assigned channel', async () => {
+            adminClient.setChannelToken(THIRD_CHANNEL_TOKEN);
+
+            const { product } = await adminClient.query(getProductWithVariantsDocument, {
+                id: testProduct.id,
+            });
+            productGuard.assertSuccess(product);
+
+            const blueVariant = product.variants.find(v => v.sku === 'CHAN-VAR-BLUE');
+            expect(blueVariant).toBeDefined();
+            // The asset attached at creation time should be assigned to the third channel
+            // (via assetService.assignToChannel inside assignProductVariantsToChannel)
+            // and therefore visible/resolvable when querying from that channel.
+            expect(blueVariant!.assets).toHaveLength(1);
+            expect(blueVariant!.assets[0].id).toBe(assetId);
+            expect(blueVariant!.featuredAsset).toBeDefined();
+            expect(blueVariant!.featuredAsset!.id).toBe(assetId);
+        });
+
+        it('new variant options and option groups are accessible in the assigned channel', async () => {
+            adminClient.setChannelToken(THIRD_CHANNEL_TOKEN);
+
+            const { product } = await adminClient.query(getProductWithVariantsDocument, {
+                id: testProduct.id,
+            });
+            productGuard.assertSuccess(product);
+
+            // The option group should be visible in the third channel
+            expect(product.optionGroups).toHaveLength(1);
+            expect(product.optionGroups[0].code).toBe('test-color');
+
+            // The new variant's options should have valid group references
+            const blueVariant = product.variants.find(v => v.sku === 'CHAN-VAR-BLUE');
+            expect(blueVariant).toBeDefined();
+            expect(blueVariant!.options).toHaveLength(1);
+            expect(blueVariant!.options[0].code).toBe('blue');
+            expect(blueVariant!.options[0].groupId).toBe(product.optionGroups[0].id);
+        });
+
+        it(
+            'respects permissions: throws if user lacks UpdateCatalog on a target channel',
+            assertThrowsWithMessage(async () => {
+                await adminClient.asSuperAdmin();
+                adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+
+                // Create a new option so we have a valid optionId for the variant
+                const { createProductOption } = await adminClient.query(createProductOptionDocument, {
+                    input: {
+                        productOptionGroupId: colorGroupId,
+                        code: 'green',
+                        translations: [{ languageCode: LanguageCode.en, name: 'Green' }],
+                    },
+                });
+
+                // Create a role with UpdateCatalog only on the default channel
+                const { createRole } = await adminClient.query(createRoleDocument, {
+                    input: {
+                        description: 'default-channel-catalog-admin',
+                        code: 'default-channel-catalog-admin',
+                        channelIds: ['T_1'],
+                        permissions: [Permission.UpdateCatalog, Permission.ReadCatalog],
+                    },
+                });
+                await adminClient.query(createAdministratorDocument, {
+                    input: {
+                        firstName: 'Limited',
+                        lastName: 'Admin',
+                        emailAddress: 'limited-admin@test.com',
+                        password: 'test',
+                        roleIds: [createRole.id],
+                    },
+                });
+
+                // This user can create variants on the default channel,
+                // but lacks UpdateCatalog on T_3 where the product is also assigned.
+                // assignProductVariantsToChannel should throw ForbiddenError.
+                await adminClient.asUserWithCredentials('limited-admin@test.com', 'test');
+                adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+                await adminClient.query(createProductVariantsDocument, {
+                    input: [
+                        {
+                            productId: testProduct.id,
+                            sku: 'CHAN-VAR-GREEN',
+                            price: 3000,
+                            optionIds: [createProductOption.id],
+                            translations: [{ languageCode: LanguageCode.en, name: 'Green Variant' }],
+                        },
+                    ],
+                });
+            }, 'You are not currently authorized to perform this action'),
+        );
+
+        it('does not leave an orphaned variant after a permission-denied create', async () => {
+            // The create above runs inside a @Transaction(), so the ForbiddenError thrown
+            // by assignProductVariantsToChannel must roll back the whole operation — no
+            // partially-created CHAN-VAR-GREEN variant should remain.
+            await adminClient.asSuperAdmin();
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+
+            const { product } = await adminClient.query(getProductWithVariantsDocument, {
+                id: testProduct.id,
+            });
+            productGuard.assertSuccess(product);
+            expect(product.variants.some(v => v.sku === 'CHAN-VAR-GREEN')).toBe(false);
+        });
+
+        afterAll(async () => {
+            // Reset to super admin for subsequent test suites
+            await adminClient.asSuperAdmin();
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+        });
+    });
+
     describe('updating Product in sub-channel', () => {
         it(
             'throws if attempting to update a Product which is not assigned to that Channel',
@@ -727,3 +1028,49 @@ describe('ChannelAware Products and ProductVariants', () => {
         });
     });
 });
+
+const createProductOptionDocument = graphql(`
+    mutation CreateProductOption($input: CreateProductOptionInput!) {
+        createProductOption(input: $input) {
+            id
+            code
+            name
+            groupId
+        }
+    }
+`);
+
+const getVariantStockLevelsDocument = graphql(`
+    query GetVariantStockLevels($options: ProductVariantListOptions) {
+        productVariants(options: $options) {
+            items {
+                id
+                stockLevels {
+                    stockLocationId
+                    stockOnHand
+                    stockAllocated
+                }
+            }
+        }
+    }
+`);
+
+const getStockLocationsDocument = graphql(`
+    query GetStockLocations {
+        stockLocations {
+            items {
+                id
+                name
+            }
+        }
+    }
+`);
+
+const assignStockLocationToChannelDocument = graphql(`
+    mutation AssignStockLocationToChannel($input: AssignStockLocationsToChannelInput!) {
+        assignStockLocationsToChannel(input: $input) {
+            id
+            name
+        }
+    }
+`);

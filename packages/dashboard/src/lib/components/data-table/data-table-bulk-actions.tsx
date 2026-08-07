@@ -18,11 +18,44 @@ import { useRef } from 'react';
 interface DataTableBulkActionsProps<TData> {
     table: Table<TData>;
     bulkActions: BulkActionsInput;
+    selectedItems?: TData[];
+}
+
+// The data-table components assume row data carries an `id`; this keeps that
+// assumption (and its cast) in one place.
+export function getRowItemId(item: unknown): string {
+    return String((item as { id: string | number }).id);
+}
+
+export function resolveSelectedItems<TData>(
+    table: Table<TData>,
+    selectedItemsCache: Map<string, TData>,
+    selectedItems?: TData[],
+) {
+    selectedItems?.forEach(item => {
+        selectedItemsCache.set(getRowItemId(item), item);
+    });
+
+    return Object.keys(table.getState().rowSelection)
+        .map(key => {
+            try {
+                const row = table.getRow(key);
+                if (row) {
+                    selectedItemsCache.set(key, row.original);
+                    return row.original;
+                }
+            } catch (error) {
+                // The row may be selected on a different page.
+            }
+            return selectedItemsCache.get(key);
+        })
+        .filter((item): item is TData => item !== undefined);
 }
 
 export function DataTableBulkActions<TData>({
     table,
     bulkActions,
+    selectedItems,
 }: Readonly<DataTableBulkActionsProps<TData>>) {
     const allBulkActionGroups = useAllBulkActions(bulkActions);
     const { t } = useLingui();
@@ -34,25 +67,7 @@ export function DataTableBulkActions<TData>({
     const selectedRowIds = Object.keys(table.getState().rowSelection);
     const hasSelection = selectedRowIds.length > 0;
 
-    // Get selection from cache instead of trying to get from table
-    const selection = selectedRowIds
-        .map(key => {
-            try {
-                const row = table.getRow(key);
-                if (row) {
-                    selectedItemsCache.current.set(key, row.original);
-                    return row.original;
-                }
-            } catch (error) {
-                // ignore the error, it just means the row is not on the
-                // current page.
-            }
-            if (selectedItemsCache.current.has(key)) {
-                return selectedItemsCache.current.get(key);
-            }
-            return undefined;
-        })
-        .filter((item): item is TData => item !== undefined);
+    const selection = resolveSelectedItems(table, selectedItemsCache.current, selectedItems);
 
     if (!hasSelection) {
         return null;

@@ -1,0 +1,31 @@
+---
+title: "ConfigurableOperationTranslationKey"
+generated: true
+---
+<GenerationInfo sourceFile="packages/core/src/common/configurable-operation.ts" sourceLine="95" packageName="@vendure/core" since="3.8.0" />
+
+A single translatable string belonging to a [ConfigurableOperationDef](/reference/typescript-api/configurable-operation-def/#configurableoperationdef), as returned by
+`ConfigurableOperationDef.getTranslationKeys`.
+
+```ts title="Signature"
+interface ConfigurableOperationTranslationKey {
+    keyPath: string[];
+    sourceValue?: string;
+}
+```
+
+<div className="members-wrapper">
+
+### keyPath
+
+<MemberInfo kind="property" type={`string[]`}   />
+
+The path to this string within the `configurableOperation` namespace of a message catalog.
+### sourceValue
+
+<MemberInfo kind="property" type={`string`}   />
+
+The string as defined inline on the operation, in the default (English) language.
+
+
+</div>

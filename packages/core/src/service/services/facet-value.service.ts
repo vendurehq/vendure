@@ -225,7 +225,9 @@ export class FacetValueService {
         let message = '';
         let result: DeletionResult;
 
-        const facetValue = await this.connection.getEntityOrThrow(ctx, FacetValue, id);
+        const facetValue = await this.connection.getEntityOrThrow(ctx, FacetValue, id, {
+            channelId: ctx.channelId,
+        });
         const i18nVars = {
             products: productCount,
             variants: variantCount,

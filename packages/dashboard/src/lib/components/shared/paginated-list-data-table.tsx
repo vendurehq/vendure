@@ -187,7 +187,7 @@ export interface PaginatedListDataTableProps<
     customizeColumns?: CustomizeColumnConfig<T>;
     additionalColumns?: AC;
     defaultColumnOrder?: (keyof ListQueryFields<T> | keyof AC | CustomFieldKeysOfItem<ListQueryFields<T>>)[];
-    defaultVisibility?: Partial<Record<AllItemFieldKeys<T>, boolean>>;
+    defaultVisibility?: Partial<Record<AllItemFieldKeys<T> | keyof AC, boolean>>;
     /**
      * @description
      * Called whenever the debounced search term changes (including when it
@@ -224,7 +224,19 @@ export interface PaginatedListDataTableProps<
     onColumnVisibilityChange?: (table: Table<any>, columnVisibility: VisibilityState) => void;
     facetedFilters?: FacetedFilterConfig<T>;
     rowActions?: RowAction<PaginatedListItemFields<T>>[];
-    bulkActions?: BulkActionsInput;
+    /**
+     * Bulk actions to render for selected rows. Set to `false` to suppress the
+     * bulk-action toolbar while retaining row selection.
+     */
+    bulkActions?: BulkActionsInput | false;
+    /**
+     * The selected items, used to synchronize table selection with an owning component.
+     */
+    selectedItems?: PaginatedListItemFields<T>[];
+    /**
+     * Called when row selection changes, including selections retained across pages.
+     */
+    onSelectionChange?: (selection: PaginatedListItemFields<T>[]) => void;
     disableViewOptions?: boolean;
     /**
      * @description
@@ -450,6 +462,8 @@ export function PaginatedListDataTable<
     facetedFilters,
     rowActions,
     bulkActions,
+    selectedItems,
+    onSelectionChange,
     disableViewOptions,
     enableViews,
     setTableOptions,
@@ -500,7 +514,7 @@ export function PaginatedListDataTable<
         fields,
         customizeColumns,
         rowActions,
-        bulkActions,
+        bulkActions: bulkActions === false ? undefined : bulkActions,
         deleteMutation,
         additionalColumns,
         defaultColumnOrder: getStandardizedDefaultColumnOrder(defaultColumnOrder),
@@ -601,6 +615,8 @@ export function PaginatedListDataTable<
                     disableViewOptions={disableViewOptions}
                     enableViews={enableViews}
                     bulkActions={bulkActions}
+                    selectedItems={selectedItems}
+                    onSelectionChange={onSelectionChange}
                     setTableOptions={setTableOptions}
                     onRefresh={refetchPaginatedList}
                     onReorder={onReorder}

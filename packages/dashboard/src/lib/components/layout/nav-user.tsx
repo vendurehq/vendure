@@ -22,9 +22,9 @@ import { useDisplayLocale } from '@/vdb/hooks/use-display-locale.js';
 import { useUserSettings } from '@/vdb/hooks/use-user-settings.js';
 import { Theme } from '@/vdb/providers/theme-provider.js';
 import { Trans } from '@lingui/react/macro';
-import { useMemo } from 'react';
 import { Dialog, DialogTrigger } from '../ui/dialog.js';
 import { LanguageDialog } from './language-dialog.js';
+import { NavUserIdentity } from './nav-user-identity.js';
 
 export function NavUser() {
     const { isMobile, state } = useSidebar();
@@ -42,10 +42,6 @@ export function NavUser() {
         });
     };
 
-    const avatarFallback = useMemo(() => {
-        return (user?.firstName?.charAt(0) ?? '') + (user?.lastName?.charAt(0) ?? '');
-    }, [user]);
-
     if (!user) {
         return <></>;
     }
@@ -57,22 +53,16 @@ export function NavUser() {
             <SidebarMenuItem>
                 <Dialog>
                     <DropdownMenu>
-                        <DropdownMenuTrigger render={<SidebarMenuButton
-                                size="lg"
-                                className="data-open:bg-sidebar-accent data-open:text-sidebar-accent-foreground"
-                            />}>
-                                <div className="relative flex rounded-lg border justify-center items-center w-8 h-8">
-                                    {avatarFallback}
-                                </div>
-                                {state === 'expanded' ? (
-                                    <div className="grid flex-1 text-left text-sm leading-tight">
-                                        <span className="truncate font-heading font-semibold text-accent-foreground">
-                                            {user.firstName} {user.lastName}
-                                        </span>
-                                        <span className="truncate font-mono text-xs">{user.emailAddress}</span>
-                                    </div>
-                                ) : null}
-                                {state === 'expanded' ? <ChevronsUpDown className="ml-auto size-4" /> : null}
+                        <DropdownMenuTrigger
+                            render={
+                                <SidebarMenuButton
+                                    size="lg"
+                                    className="data-open:bg-sidebar-accent data-open:text-sidebar-accent-foreground"
+                                />
+                            }
+                        >
+                            <NavUserIdentity user={user} showDetails={state === 'expanded'} />
+                            {state === 'expanded' ? <ChevronsUpDown className="ml-auto size-4" /> : null}
                         </DropdownMenuTrigger>
                         <DropdownMenuContent
                             className="w-(--anchor-width) min-w-56 rounded-lg"
@@ -83,35 +73,39 @@ export function NavUser() {
                             <DropdownMenuGroup>
                                 <DropdownMenuLabel className="p-0 font-normal">
                                     <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                                        <div className="relative flex rounded-lg border justify-center items-center w-8 h-8">
-                                            {avatarFallback}
-                                        </div>
-                                        <div className="grid flex-1 text-left text-sm leading-tight">
-                                            <span className="truncate font-heading font-semibold text-accent-foreground">
-                                                {user.firstName} {user.lastName}
-                                            </span>
-                                            <span className="truncate font-mono text-xs">{user.emailAddress}</span>
-                                        </div>
+                                        <NavUserIdentity user={user} />
                                     </div>
                                 </DropdownMenuLabel>
                             </DropdownMenuGroup>
                             <DropdownMenuSeparator />
                             <DropdownMenuGroup>
-                                <DropdownMenuItem render={<a href="https://vendure.io/pricing" target="_blank" rel="noopener noreferrer" aria-label="Explore Platform & Cloud" />}>
-                                        <Sparkles />
-                                        <Trans>Explore Platform & Cloud</Trans>
+                                <DropdownMenuItem
+                                    render={
+                                        <a
+                                            href="https://vendure.io/pricing"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            aria-label="Explore Platform & Cloud"
+                                        />
+                                    }
+                                >
+                                    <Sparkles />
+                                    <Trans>Explore Platform & Cloud</Trans>
                                 </DropdownMenuItem>
                             </DropdownMenuGroup>
                             <DropdownMenuSeparator />
                             <DropdownMenuGroup>
                                 <DropdownMenuItem render={<Link to="/profile" />}>
-                                        <Trans>Profile</Trans>
+                                    <Trans>Profile</Trans>
                                 </DropdownMenuItem>
-                                <DialogTrigger nativeButton={false} render={<DropdownMenuItem className="flex gap-2" />}>
-                                        <div>
-                                            <Trans>Language</Trans>
-                                        </div>
-                                        <div className="text-muted-foreground">{humanReadableLanguage}</div>
+                                <DialogTrigger
+                                    nativeButton={false}
+                                    render={<DropdownMenuItem className="flex gap-2" />}
+                                >
+                                    <div>
+                                        <Trans>Language</Trans>
+                                    </div>
+                                    <div className="text-muted-foreground">{humanReadableLanguage}</div>
                                 </DialogTrigger>
                                 <DropdownMenuSub>
                                     <DropdownMenuSubTrigger>

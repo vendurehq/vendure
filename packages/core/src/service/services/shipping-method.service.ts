@@ -156,12 +156,14 @@ export class ShippingMethodService {
             updatedShippingMethod.checker = this.configArgService.parseInput(
                 'ShippingEligibilityChecker',
                 input.checker,
+                shippingMethod.checker ?? undefined,
             );
         }
         if (input.calculator) {
             updatedShippingMethod.calculator = this.configArgService.parseInput(
                 'ShippingCalculator',
                 input.calculator,
+                shippingMethod.calculator ?? undefined,
             );
         }
         if (input.fulfillmentHandler) {

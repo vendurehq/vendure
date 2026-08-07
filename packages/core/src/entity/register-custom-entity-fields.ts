@@ -14,16 +14,75 @@ import {
     ManyToOne,
 } from 'typeorm';
 import { EmbeddedMetadataArgs } from 'typeorm/metadata-args/EmbeddedMetadataArgs';
+import { RelationMetadataArgs } from 'typeorm/metadata-args/RelationMetadataArgs';
 import { DateUtils } from 'typeorm/util/DateUtils';
 
 import { CustomFieldConfig, CustomFields } from '../config/custom-field/custom-field-types';
 import { Logger } from '../config/logger/vendure-logger';
 import { VendureConfig } from '../config/vendure-config';
 
+import { EntityId } from './entity-id.decorator';
+import { EncryptedFieldTransformer } from './value-transformers';
+
 /**
  * The maximum length of the "length" argument of a MySQL varchar column.
  */
 const MAX_STRING_LENGTH = 65535;
+
+/**
+ * @description
+ * Returns the names of all registered entities that support custom fields (i.e.
+ * implement `HasCustomFields`). An entity supports custom fields when it declares
+ * a `customFields` embedded property, so we detect them from the TypeORM metadata
+ * rather than a runtime-unavailable `implements` check. Used to auto-initialise
+ * `config.customFields[EntityName]` so plugins can extend any such entity without
+ * a defensive guard (OSS-408).
+ *
+ * Translation entities are excluded: they carry their own `customFields` embedded
+ * (to hold localized field values) but are never valid `config.customFields` keys —
+ * localized custom fields are declared on the *base* entity. Auto-initialising an
+ * entry for a translation entity would make the GraphQL schema builder emit a
+ * duplicate `customFields` field on the `*TranslationInput` types (colliding with
+ * the one derived from the base entity's localized fields — "Field
+ * `CreateXTranslationInput.customFields` can only be defined once"). We detect
+ * translation entities as the target of a `translations` relation, the same signal
+ * `registerCustomEntityFields` uses to locate the translation type.
+ */
+export function getEntityNamesWithCustomFields(): string[] {
+    const metadataArgsStorage = getMetadataArgsStorage();
+    const translationEntityNames = new Set(
+        metadataArgsStorage.relations
+            .filter(relation => relation.propertyName === 'translations')
+            .map(relation => getRelationTargetName(relation.type))
+            .filter((name): name is string => name != null),
+    );
+    const names = metadataArgsStorage.embeddeds
+        .filter(embedded => embedded.propertyName === 'customFields')
+        .map(embedded => (typeof embedded.target === 'string' ? embedded.target : embedded.target.name))
+        .filter(name => !translationEntityNames.has(name));
+    return Array.from(new Set(names));
+}
+
+/**
+ * Resolves a TypeORM relation target to the target entity's name. The target may be a
+ * constructor closure (`() => ProductTranslation`, the usual form), a bare string name, or a
+ * closure returning a string — the latter two are both legal and commonly used to break
+ * circular imports (`@OneToMany('ArticleTranslation', ...)`). Calling a non-function, as the
+ * previous code did unconditionally, threw `relation.type is not a function` and aborted
+ * bootstrap; a closure returning a string yielded `undefined` and silently failed to exclude
+ * the translation entity.
+ */
+function getRelationTargetName(type: RelationMetadataArgs['type']): string | undefined {
+    const resolved: unknown = typeof type === 'function' ? (type as () => unknown)() : type;
+    if (typeof resolved === 'string') {
+        return resolved;
+    }
+    if (typeof resolved === 'function') {
+        return resolved.name;
+    }
+    // Anything else that carries a `name` (e.g. an EntitySchema-like object).
+    return (resolved as { name?: string } | undefined)?.name;
+}
 
 /**
  * Dynamically add columns to the custom field entity based on the CustomFields config.
@@ -40,6 +99,29 @@ function registerCustomFieldsForEntity(
     if (customFields) {
         for (const customField of customFields) {
             const { name, list, defaultValue, nullable } = customField;
+            if (customField.secret === true) {
+                // Validate secret-field constraints that apply regardless of the underlying storage,
+                // before branching on the field type. Otherwise an unsupported type such as
+                // `relation` is silently registered without encryption or redaction.
+                if (customField.type !== 'string' && customField.type !== 'text') {
+                    throw new Error(
+                        `ERROR: The custom field "${customField.name}" has "secret: true", which ` +
+                            'is only supported on "string" and "text" fields.',
+                    );
+                }
+                if (list) {
+                    throw new Error(
+                        `ERROR: The custom field "${customField.name}" cannot combine "secret: true" ` +
+                            'with "list: true".',
+                    );
+                }
+                if (defaultValue !== undefined) {
+                    throw new Error(
+                        `ERROR: The custom field "${customField.name}" cannot combine "secret: true" ` +
+                            'with a "defaultValue", because a column default would be stored unencrypted.',
+                    );
+                }
+            }
             const instance = new ctor();
             const registerColumn = () => {
                 if (customField.type === 'relation') {
@@ -53,6 +135,9 @@ function registerCustomFieldsForEntity(
                             eager: customField.eager,
                         })(instance, name);
                         JoinColumn()(instance, name);
+                        // Expose the foreign key as an id property (e.g. "ownerId"), which maps
+                        // to the same database column as the relation's join column.
+                        EntityId({ nullable: true })(instance, `${name}Id`);
                     }
                 } else {
                     const options: ColumnOptions = {
@@ -94,6 +179,28 @@ function registerCustomFieldsForEntity(
                         !list
                     ) {
                         options.precision = 6;
+                    }
+                    if (customField.secret === true) {
+                        if (customField.unique === true) {
+                            throw new Error(
+                                `ERROR: The custom field "${customField.name}" cannot combine "secret: true" ` +
+                                    'with "unique: true", because encrypted values cannot be uniquely indexed.',
+                            );
+                        }
+                        if (customField.type === 'string' && customField.length != null) {
+                            throw new Error(
+                                `ERROR: The custom field "${customField.name}" cannot combine "secret: true" ` +
+                                    'with an explicit "length", because encrypted values are stored as unbounded text.',
+                            );
+                        }
+                        // Ciphertext is longer than the plaintext and variable in size, so it is
+                        // stored as unbounded text and encrypted/decrypted via the configured strategy.
+                        options.type = getColumnType(dbEngine, 'text', false);
+                        delete options.length;
+                        delete options.default;
+                        options.transformer = new EncryptedFieldTransformer(
+                            () => config.systemOptions?.encryptionStrategy,
+                        );
                     }
                     Column(options)(instance, name);
                     if ((dbEngine === 'mysql' || dbEngine === 'mariadb') && customField.unique === true) {
@@ -269,17 +376,23 @@ export function registerCustomEntityFields(config: VendureConfig) {
             if (translationsMetadata) {
                 // This entity is translatable, which means that we should
                 // also register any localized custom fields on the related
-                // EntityTranslation entity.
-                const translationType: Function = (translationsMetadata.type as Function)();
-                const customFieldsTranslationsMetadata = getCustomFieldsMetadata(translationType);
-                const customFieldsTranslationClass = customFieldsTranslationsMetadata.type();
-                if (customFieldsTranslationClass && typeof customFieldsTranslationClass !== 'string') {
-                    registerCustomFieldsForEntity(
-                        config,
-                        entityName,
-                        customFieldsTranslationClass as any,
-                        true,
-                    );
+                // EntityTranslation entity. Resolve the target via the shared
+                // helper so a bare-string or closure-returning-string relation
+                // target (both legal, used to break circular imports) does not
+                // throw `type is not a function` here — the same crash fixed in
+                // getEntityNamesWithCustomFields().
+                const translationEntityName = getRelationTargetName(translationsMetadata.type);
+                if (translationEntityName != null) {
+                    const customFieldsTranslationsMetadata = getCustomFieldsMetadata(translationEntityName);
+                    const customFieldsTranslationClass = customFieldsTranslationsMetadata.type();
+                    if (customFieldsTranslationClass && typeof customFieldsTranslationClass !== 'string') {
+                        registerCustomFieldsForEntity(
+                            config,
+                            entityName,
+                            customFieldsTranslationClass as any,
+                            true,
+                        );
+                    }
                 }
             } else {
                 assertLocaleFieldsNotSpecified(config, entityName);

@@ -20,7 +20,7 @@ In order to make the best use of both your time and that of the Vendure maintain
   - [Release Process](#release-process)
 - [Specific Contributions](#specific-contributions)
   - [Contributing to the documentation](#contributing-to-the-documentation)
-  - [Contributing to the Admin UI translations](#contributing-to-the-admin-ui-translations)
+  - [Contributing to the Dashboard / Admin UI translations](#contributing-to-the-dashboard--admin-ui-translations)
 - [Help & Support](#help--support)
   - [Where to get help](#where-to-get-help)
   - [Contributor License Agreement](#contributor-license-agreement)
@@ -127,7 +127,7 @@ All the necessary infrastructure is defined in the root [docker-compose.yml](./d
 you will need to start a database, for example:
 
 ```bash
-docker-compose up -d mariadb
+docker compose up -d mariadb
 ```
 
 MariaDB/MySQL is the default that will be used by the dev server if you don't explicitly set the `DB` environment variable.
@@ -135,7 +135,7 @@ MariaDB/MySQL is the default that will be used by the dev server if you don't ex
 If for example you are doing development on the Elasticsearch plugin, you will also need to start the Elasticsearch container:
 
 ```bash
-docker-compose up -d elasticsearch
+docker compose up -d elasticsearch
 ```
 
 ### 4. Populate test data
@@ -156,7 +156,7 @@ If you want to develop against **PostgreSQL**:
 1. Run the `postgres_16` Docker container.
 
 ```bash
-docker-compose up -d postgres_16
+docker compose up -d postgres_16
 ```
 
 2. Create a .env file in `/packages/dev-server` and declare the `DB` variable inside it:
@@ -403,7 +403,8 @@ BREAKING CHANGE: A DB migration will be required in order to add the new "foo" f
 
 #### Linting
 
-Commit messages are linted on commit, so you'll know if your message is not quite right.
+Commit messages are linted on commit, so you'll know if your message is not quite right. Pull request titles are
+checked against the same format when a pull request is opened or its title is edited.
 
 ## Advanced Topics
 
@@ -507,9 +508,12 @@ docs/docs
 > [!NOTE]
 > Files in the [reference](https://docs.vendure.io/reference/) directory are auto-generated. To edit reference documentation, modify the [JSDoc](https://jsdoc.app/about-getting-started) comments in the source code and run `bun run docs:build` from the project root directory.
 
-### Contributing to the Admin UI translations
+### Contributing to the Dashboard / Admin UI translations
 
-If you wish to contribute translations of the Admin UI into another language (or improve an existing set of translations), please see the [Localization guide](https://github.com/vendurehq/vendure/blob/master/packages/admin-ui/README.md#localization) in the admin-ui package.
+If you wish to contribute translations into another language (or improve an existing set of translations):
+
+- **React Dashboard** (`@vendure/dashboard`) — see [Contributing a translation of the Dashboard itself](https://docs.vendure.io/guides/extending-the-dashboard/localization/#contributing-a-translation-of-the-dashboard-itself) in the Localization guide.
+- **Legacy Angular Admin UI** (`@vendure/admin-ui`) — see the [Localization guide](https://github.com/vendurehq/vendure/blob/master/packages/admin-ui/README.md#localization) in the admin-ui package.
 
 ## Help & Support
 

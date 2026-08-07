@@ -4,7 +4,7 @@ generated: true
 ---
 ## vendureDashboardPlugin
 
-<GenerationInfo sourceFile="packages/dashboard/vite/vite-plugin-vendure-dashboard.ts" sourceLine="242" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/vite/vite-plugin-vendure-dashboard.ts" sourceLine="254" packageName="@vendure/dashboard" since="3.4.0" />
 
 This is the Vite plugin which powers the Vendure Dashboard, including:
 
@@ -23,7 +23,7 @@ Parameters
 
 ## VitePluginVendureDashboardOptions
 
-<GenerationInfo sourceFile="packages/dashboard/vite/vite-plugin-vendure-dashboard.ts" sourceLine="39" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/vite/vite-plugin-vendure-dashboard.ts" sourceLine="40" packageName="@vendure/dashboard" since="3.4.0" />
 
 Options for the [vendureDashboardPlugin](/reference/dashboard/vite-plugin/vendure-dashboard-plugin#venduredashboardplugin) Vite plugin.
 
@@ -85,6 +85,17 @@ type VitePluginVendureDashboardOptions = {
      * The path to the directory where the generated GraphQL Tada files will be output.
      */
     gqlOutputPath?: string;
+    /**
+     * @description
+     * The directory into which the VendureConfig is transpiled and loaded in order
+     * to introspect the configuration during the dashboard build.
+     *
+     * Defaults to `<project>/node_modules/.cache/vendure-dashboard-temp`. It must
+     * not be located inside a `"type": "module"` package (such as
+     * `@vendure/dashboard` itself), because the config is compiled to CommonJS and
+     * Node would then load it as ESM, failing with
+     * `exports is not defined in ES module scope`.
+     */
     tempCompilationDir?: string;
     /**
      * @description

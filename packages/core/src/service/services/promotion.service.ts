@@ -176,13 +176,17 @@ export class PromotionService {
             beforeSave: async p => {
                 p.priorityScore = this.calculatePriorityScore(input);
                 if (input.conditions) {
-                    p.conditions = input.conditions.map(c =>
-                        this.configArgService.parseInput('PromotionCondition', c),
+                    p.conditions = this.configArgService.parseInputList(
+                        'PromotionCondition',
+                        input.conditions,
+                        promotion.conditions,
                     );
                 }
                 if (input.actions) {
-                    p.actions = input.actions.map(a =>
-                        this.configArgService.parseInput('PromotionAction', a),
+                    p.actions = this.configArgService.parseInputList(
+                        'PromotionAction',
+                        input.actions,
+                        promotion.actions,
                     );
                 }
             },
@@ -193,7 +197,9 @@ export class PromotionService {
     }
 
     async softDeletePromotion(ctx: RequestContext, promotionId: ID): Promise<DeletionResponse> {
-        const promotion = await this.connection.getEntityOrThrow(ctx, Promotion, promotionId);
+        const promotion = await this.connection.getEntityOrThrow(ctx, Promotion, promotionId, {
+            channelId: ctx.channelId,
+        });
         await this.connection
             .getRepository(ctx, Promotion)
             .update({ id: promotionId }, { deletedAt: new Date() });

@@ -47,6 +47,7 @@ import { defaultOrderProcess } from './order/default-order-process';
 import { DefaultOrderSellerStrategy } from './order/default-order-seller-strategy';
 import { DefaultStockAllocationStrategy } from './order/default-stock-allocation-strategy';
 import { MergeOrdersStrategy } from './order/merge-orders-strategy';
+import { NoOrderRecalculationStrategy } from './order/no-order-recalculation-strategy';
 import { DefaultOrderByCodeAccessStrategy } from './order/order-by-code-access-strategy';
 import { DefaultOrderCodeStrategy } from './order/order-code-strategy';
 import { UseGuestStrategy } from './order/use-guest-strategy';
@@ -58,8 +59,10 @@ import { cleanOrphanedSettingsStoreTask } from './settings-store/clean-orphaned-
 import { defaultShippingCalculator } from './shipping-method/default-shipping-calculator';
 import { defaultShippingEligibilityChecker } from './shipping-method/default-shipping-eligibility-checker';
 import { DefaultShippingLineAssignmentStrategy } from './shipping-method/default-shipping-line-assignment-strategy';
+import { DefaultEncryptionStrategy } from './system/default-encryption-strategy';
 import { InMemoryCacheStrategy } from './system/in-memory-cache-strategy';
 import { NoopInstrumentationStrategy } from './system/noop-instrumentation-strategy';
+import { PermissionSecretAccessStrategy } from './system/permission-secret-access-strategy';
 import { DefaultOrderTaxCalculationStrategy } from './tax/default-order-tax-calculation-strategy';
 import { DefaultTaxLineCalculationStrategy } from './tax/default-tax-line-calculation-strategy';
 import { DefaultTaxZoneStrategy } from './tax/default-tax-zone-strategy';
@@ -189,6 +192,7 @@ export const defaultConfig: RuntimeVendureConfig = {
         orderSellerStrategy: new DefaultOrderSellerStrategy(),
         guestCheckoutStrategy: new DefaultGuestCheckoutStrategy(),
         orderInterceptors: [],
+        orderRecalculationStrategy: new NoOrderRecalculationStrategy(),
     },
     paymentOptions: {
         paymentMethodEligibilityCheckers: [],
@@ -262,6 +266,8 @@ export const defaultConfig: RuntimeVendureConfig = {
         healthChecks: [],
         errorHandlers: [],
         instrumentationStrategy: new NoopInstrumentationStrategy(),
+        encryptionStrategy: new DefaultEncryptionStrategy(),
+        secretAccessStrategy: new PermissionSecretAccessStrategy(),
     },
     experimental: {},
 };

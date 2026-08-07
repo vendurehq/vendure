@@ -606,6 +606,12 @@ function createCrudApiExtension(project: Project, plugin: VendurePluginRef, serv
                             if (serviceRef.features.create) {
                                 writer.writeLine(`  input Create${entityRef.name}Input {`);
                                 for (const { name, type, nullable } of entityRef.getProps()) {
+                                    if (
+                                        entityRef.isTranslatable() &&
+                                        type.getText().includes('LocaleString')
+                                    ) {
+                                        continue;
+                                    }
                                     const graphQlType = getGraphQLType(type);
                                     if (graphQlType) {
                                         writer.writeLine(`    ${name}: ${graphQlType}${nullable ? '' : '!'}`);
@@ -624,6 +630,12 @@ function createCrudApiExtension(project: Project, plugin: VendurePluginRef, serv
                                 writer.writeLine(`  input Update${entityRef.name}Input {`);
                                 writer.writeLine(`    id: ID!`);
                                 for (const { name, type } of entityRef.getProps()) {
+                                    if (
+                                        entityRef.isTranslatable() &&
+                                        type.getText().includes('LocaleString')
+                                    ) {
+                                        continue;
+                                    }
                                     const graphQlType = getGraphQLType(type);
                                     if (graphQlType) {
                                         writer.writeLine(`    ${name}: ${graphQlType}`);

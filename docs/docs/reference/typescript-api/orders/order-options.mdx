@@ -2,7 +2,7 @@
 title: "OrderOptions"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="574" packageName="@vendure/core" />
+<GenerationInfo sourceFile="packages/core/src/config/vendure-config.ts" sourceLine="577" packageName="@vendure/core" />
 
 
 
@@ -24,6 +24,7 @@ interface OrderOptions {
     orderSellerStrategy?: OrderSellerStrategy;
     guestCheckoutStrategy?: GuestCheckoutStrategy;
     orderInterceptors?: OrderInterceptor[];
+    orderRecalculationStrategy?: OrderRecalculationStrategy;
 }
 ```
 
@@ -143,6 +144,16 @@ Defines how we deal with guest checkouts.
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/orders/order-interceptor#orderinterceptor'>OrderInterceptor</a>[]`} default={`[]`}  since="3.1.0"  />
 
 An array of [OrderInterceptor](/reference/typescript-api/orders/order-interceptor#orderinterceptor)s which can be used to modify the behavior of the Order process.
+### orderRecalculationStrategy
+
+<MemberInfo kind="property" type={`<a href='/reference/typescript-api/orders/order-recalculation-strategy#orderrecalculationstrategy'>OrderRecalculationStrategy</a>`} default={`<a href='/reference/typescript-api/orders/order-recalculation-strategy#noorderrecalculationstrategy'>NoOrderRecalculationStrategy</a>`}  since="3.8.0"  />
+
+Defines whether and when an active Order's prices, promotions and taxes are re-calculated
+when the Order is read (e.g. via the `activeOrder` query). By default no read-time
+recalculation occurs (prices only change on write mutations). Use
+[TtlOrderRecalculationStrategy](/reference/typescript-api/orders/order-recalculation-strategy#ttlorderrecalculationstrategy) to keep long-lived carts in sync with changing prices
+and promotions. Shipping method eligibility and rates are NOT re-evaluated on read; they are
+re-evaluated when the order transitions to `ArrangingPayment`.
 
 
 </div>

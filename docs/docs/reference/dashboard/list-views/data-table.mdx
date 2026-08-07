@@ -4,7 +4,7 @@ generated: true
 ---
 ## DataTable
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-table/data-table.tsx" sourceLine="245" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-table/data-table.tsx" sourceLine="258" packageName="@vendure/dashboard" since="3.4.0" />
 
 A data table which includes sorting, filtering, pagination, bulk actions, column controls etc.
 
@@ -21,7 +21,7 @@ Parameters
 
 ## DataTableProps
 
-<GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-table/data-table.tsx" sourceLine="128" packageName="@vendure/dashboard" since="3.4.0" />
+<GenerationInfo sourceFile="packages/dashboard/src/lib/components/data-table/data-table.tsx" sourceLine="129" packageName="@vendure/dashboard" since="3.4.0" />
 
 Props for configuring the [DataTable](/reference/dashboard/list-views/data-table#datatable).
 
@@ -45,8 +45,10 @@ interface DataTableProps<TData> {
     defaultColumnVisibility?: VisibilityState;
     facetedFilters?: { [key: string]: FacetedFilter | undefined };
     disableViewOptions?: boolean;
+    bulkActions?: BulkActionsInput | false;
+    selectedItems?: TData[];
+    onSelectionChange?: (selection: TData[]) => void;
     enableViews?: boolean;
-    bulkActions?: BulkActionsInput;
     setTableOptions?: (table: TableOptions<TData>) => TableOptions<TData>;
     onRefresh?: () => void;
     onReorder?: (oldIndex: number, newIndex: number, item: TData, allItems?: TData[]) => void | Promise<void>;
@@ -152,17 +154,24 @@ e.g. "Search products...". Defaults to a generic "Search...".
 <MemberInfo kind="property" type={`boolean`}   />
 
 
-### enableViews
-
-<MemberInfo kind="property" type={`boolean`} default={`false`}  since="3.8.0"  />
-
-Enables saved-view controls for this table. This should be used for tables
-which represent a whole data set, such as top-level list pages. It should
-not be enabled for embedded tables or tables whose query is already scoped
-by a predefined filter.
 ### bulkActions
 
-<MemberInfo kind="property" type={`<a href='/reference/dashboard/list-views/bulk-actions#bulkactionsinput'>BulkActionsInput</a>`}   />
+<MemberInfo kind="property" type={`<a href='/reference/dashboard/list-views/bulk-actions#bulkactionsinput'>BulkActionsInput</a> | false`}   />
+
+
+### selectedItems
+
+<MemberInfo kind="property" type={`TData[]`}   />
+
+
+### onSelectionChange
+
+<MemberInfo kind="property" type={`(selection: TData[]) => void`}   />
+
+
+### enableViews
+
+<MemberInfo kind="property" type={`boolean`}   />
 
 
 ### setTableOptions

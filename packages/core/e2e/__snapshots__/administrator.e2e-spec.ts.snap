@@ -19,6 +19,7 @@ exports[`Administrator resolver > createAdministrator 1`] = `
           "Authenticated",
           "SuperAdmin",
           "UpdateGlobalSettings",
+          "ReadSecret",
           "CreateCatalog",
           "ReadCatalog",
           "UpdateCatalog",

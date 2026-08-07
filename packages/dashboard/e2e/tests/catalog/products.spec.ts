@@ -1,7 +1,17 @@
-import { expect, test } from '@playwright/test';
+import { type Page, expect, test } from '@playwright/test';
 
 import { createCrudTestSuite } from '../../utils/crud-test-factory.js';
 import { VendureAdminClient } from '../../utils/vendure-admin-client.js';
+
+async function navigateToLaptopProduct(page: Page) {
+    await page.goto('/products');
+    await expect(page.locator('table')).toBeVisible();
+    await page.getByRole('textbox', { name: 'Search products...' }).fill('Laptop');
+    const laptopRow = page.locator('table tbody tr').filter({ hasText: 'Laptop' }).first();
+    await expect(laptopRow).toBeVisible();
+    await laptopRow.getByRole('button').first().click();
+    await expect(page).toHaveURL(/\/products\/.+/);
+}
 
 createCrudTestSuite({
     entityName: 'product',
@@ -19,14 +29,7 @@ createCrudTestSuite({
 test.describe('Product detail features', () => {
     test('should display all detail page sections', async ({ page }) => {
         // Navigate to the seeded "Laptop" product via search to avoid race conditions
-        await page.goto('/products');
-        await expect(page.locator('table')).toBeVisible();
-        await Promise.all([
-            page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200),
-            page.getByRole('textbox', { name: 'Search products...' }).fill('Laptop'),
-        ]);
-        await page.locator('table tbody tr').first().getByRole('button').first().click();
-        await expect(page).toHaveURL(/\/products\/.+/);
+        await navigateToLaptopProduct(page);
 
         // Product name field
         await expect(
@@ -67,14 +70,7 @@ test.describe('Product detail features', () => {
         page,
     }) => {
         // Navigate to the seeded "Laptop" product via search to avoid race conditions
-        await page.goto('/products');
-        await expect(page.locator('table')).toBeVisible();
-        await Promise.all([
-            page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200),
-            page.getByRole('textbox', { name: 'Search products...' }).fill('Laptop'),
-        ]);
-        await page.locator('table tbody tr').first().getByRole('button').first().click();
-        await expect(page).toHaveURL(/\/products\/.+/);
+        await navigateToLaptopProduct(page);
 
         const productId = page.url().split('/products/')[1].split(/[/?#]/)[0];
         const enabledSwitch = page.getByTestId('product-enabled-switch').getByRole('switch');
@@ -126,14 +122,7 @@ test.describe('Product detail features', () => {
 
     test('should display product variants table', async ({ page }) => {
         // Navigate to the seeded "Laptop" product which has variants
-        await page.goto('/products');
-        await expect(page.locator('table')).toBeVisible();
-        await Promise.all([
-            page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200),
-            page.getByRole('textbox', { name: 'Search products...' }).fill('Laptop'),
-        ]);
-        await page.locator('table tbody tr').first().getByRole('button').first().click();
-        await expect(page).toHaveURL(/\/products\/.+/);
+        await navigateToLaptopProduct(page);
 
         // The "Manage variants" button should be visible for the Laptop product
         await expect(page.getByRole('button', { name: /Manage variants/i })).toBeVisible({ timeout: 10_000 });
@@ -179,14 +168,7 @@ test.describe('Product detail features', () => {
         page,
     }) => {
         // Navigate to the seeded "Laptop" product which has variants
-        await page.goto('/products');
-        await expect(page.locator('table')).toBeVisible();
-        await Promise.all([
-            page.waitForResponse(resp => resp.url().includes('/admin-api') && resp.status() === 200),
-            page.getByRole('textbox', { name: 'Search products...' }).fill('Laptop'),
-        ]);
-        await page.locator('table tbody tr').first().getByRole('button').first().click();
-        await expect(page).toHaveURL(/\/products\/.+/);
+        await navigateToLaptopProduct(page);
 
         // Wait for the embedded variants table to be present
         await expect(page.getByRole('button', { name: /Manage variants/i })).toBeVisible({

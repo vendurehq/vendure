@@ -400,3 +400,7 @@ package-lock.json
 
 # Agentic engineering
 plans/
+
+# Scratch files produced by the translation tooling
+missing-translations.txt
+translations.txt

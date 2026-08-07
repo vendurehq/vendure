@@ -162,7 +162,11 @@ export class BullMQJobQueueStrategy implements InspectableJobQueueStrategy {
 
     async destroy() {
         const workerClosePromises = Array.from(this.workers.values()).map(w => w.close());
-        await Promise.all([this.queue.close(), ...workerClosePromises]);
+        await Promise.all([
+            this.queue.close(),
+            this.jobListIndexService?.close(),
+            ...workerClosePromises,
+        ]);
     }
 
     async add<Data extends JobData<Data> = object>(job: Job<Data>): Promise<Job<Data>> {
@@ -200,6 +204,29 @@ export class BullMQJobQueueStrategy implements InspectableJobQueueStrategy {
         }
     }
 
+    /**
+     * Maps a Vendure JobState to the BullMQ job types which hold jobs in that state.
+     * Jobs awaiting a retry after failure are stored in the 'delayed' state, and
+     * cancelled jobs are stored as 'failed'.
+     */
+    private jobStateToJobTypes(state: string): JobType[] {
+        switch (state) {
+            case 'PENDING':
+                return ['wait', 'waiting-children', 'prioritized'];
+            case 'RUNNING':
+                return ['active'];
+            case 'COMPLETED':
+                return ['completed'];
+            case 'RETRYING':
+                return ['delayed'];
+            case 'FAILED':
+            case 'CANCELLED':
+                return ['failed'];
+            default:
+                return [];
+        }
+    }
+
     async findMany(options?: JobListOptions): Promise<PaginatedList<Job>> {
         const skip = options?.skip ?? 0;
         const take = options?.take ?? 10;
@@ -209,51 +236,13 @@ export class BullMQJobQueueStrategy implements InspectableJobQueueStrategy {
 
         const stateFilter = flatFilter.state;
         if (stateFilter?.eq) {
-            switch (stateFilter.eq) {
-                case 'PENDING':
-                    jobTypes = ['wait', 'waiting-children', 'prioritized'];
-                    break;
-                case 'RUNNING':
-                    jobTypes = ['active'];
-                    break;
-                case 'COMPLETED':
-                    jobTypes = ['completed'];
-                    break;
-                case 'RETRYING':
-                    jobTypes = ['repeat'];
-                    break;
-                case 'FAILED':
-                    jobTypes = ['failed'];
-                    break;
-                case 'CANCELLED':
-                    jobTypes = ['failed'];
-                    break;
+            const mapped = this.jobStateToJobTypes(stateFilter.eq);
+            if (mapped.length) {
+                jobTypes = mapped;
             }
         }
         if (stateFilter?.in?.length) {
-            const stateJobTypes: JobType[] = [];
-            for (const state of stateFilter.in) {
-                switch (state) {
-                    case 'PENDING':
-                        stateJobTypes.push('wait', 'waiting-children', 'prioritized');
-                        break;
-                    case 'RUNNING':
-                        stateJobTypes.push('active');
-                        break;
-                    case 'COMPLETED':
-                        stateJobTypes.push('completed');
-                        break;
-                    case 'RETRYING':
-                        stateJobTypes.push('repeat');
-                        break;
-                    case 'FAILED':
-                        stateJobTypes.push('failed');
-                        break;
-                    case 'CANCELLED':
-                        stateJobTypes.push('failed');
-                        break;
-                }
-            }
+            const stateJobTypes = stateFilter.in.flatMap(state => this.jobStateToJobTypes(state));
             if (stateJobTypes.length) {
                 jobTypes = [...new Set(stateJobTypes)];
             }
@@ -263,20 +252,21 @@ export class BullMQJobQueueStrategy implements InspectableJobQueueStrategy {
             jobTypes =
                 settledFilter.eq === true
                     ? ['completed', 'failed']
-                    : ['wait', 'waiting-children', 'active', 'repeat', 'delayed', 'paused', 'prioritized'];
+                    : ['wait', 'waiting-children', 'active', 'delayed', 'paused', 'prioritized'];
         }
 
         let items: Bull.Job[] = [];
         let totalItems = 0;
 
         const queueNameFilter = flatFilter.queueName;
-        const queueName = queueNameFilter?.eq ?? queueNameFilter?.in?.[0] ?? '';
+        const queueNames = queueNameFilter?.eq ? [queueNameFilter.eq] : (queueNameFilter?.in ?? []);
 
         try {
             const [total, jobIds] = await this.callCustomScript(getJobsByType, [
                 skip,
                 take,
-                queueName,
+                queueNames.length,
+                ...queueNames,
                 ...jobTypes,
             ]);
             items = (

@@ -24,6 +24,7 @@ import {
     authenticateDocument,
     createCustomerDocument,
     deleteCustomerDocument,
+    getActiveAdministratorAvatarDocument,
     getCustomerHistoryDocument,
     getCustomersDocument,
     getCustomerUserAuthDocument,
@@ -295,6 +296,12 @@ describe('AuthenticationStrategy', () => {
                 },
             });
             currentUserGuard.assertSuccess(adminAuth);
+
+            const { activeAdministrator } = await adminClient.query(getActiveAdministratorAvatarDocument);
+            expect(activeAdministrator?.avatar).toMatchObject({
+                mimeType: 'image/png',
+            });
+            expect(activeAdministrator?.avatar?.source).toContain('external-profile.png');
 
             const { authenticate: shopAuth } = await shopClient.query(authenticateDocument, {
                 input: {

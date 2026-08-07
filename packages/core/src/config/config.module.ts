@@ -1,12 +1,14 @@
 import { Module, OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+import { ConfigArgType } from '@vendure/common/lib/shared-types';
 
-import { ConfigurableOperationDef } from '../common/configurable-operation';
+import { ConfigArgDef, ConfigurableOperationDef } from '../common/configurable-operation';
 import { Injector } from '../common/injector';
 import { InjectableStrategy } from '../common/types/injectable-strategy';
 
 import { resetConfig } from './config-helpers';
 import { ConfigService } from './config.service';
+import { ConfigDefType, getConfigurableOperationDefinitions } from './configurable-operation-registry';
 
 @Module({
     providers: [ConfigService],
@@ -21,6 +23,66 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
     async onApplicationBootstrap() {
         await this.initInjectableStrategies();
         await this.initConfigurableOperations();
+        this.assertSecretConfigArgsAreValid();
+        this.assertEncryptionConfiguredIfSecretsUsed();
+    }
+
+    /**
+     * A `secret` config arg is encrypted to an unbounded string at rest, so it is only supported on
+     * a non-list `string` arg. This mirrors the equivalent validation for `secret` custom fields.
+     */
+    private assertSecretConfigArgsAreValid() {
+        for (const operation of this.getConfigurableOperations()) {
+            for (const [name, argDef] of Object.entries<ConfigArgDef<ConfigArgType>>(operation.args)) {
+                if (argDef.secret !== true) {
+                    continue;
+                }
+                if (argDef.type !== 'string') {
+                    throw new Error(
+                        `ERROR: The "${operation.code}" config arg "${name}" has "secret: true", ` +
+                            'which is only supported on "string" args.',
+                    );
+                }
+                if (argDef.list === true) {
+                    throw new Error(
+                        `ERROR: The "${operation.code}" config arg "${name}" cannot combine ` +
+                            '"secret: true" with "list: true".',
+                    );
+                }
+            }
+        }
+    }
+
+    /**
+     * If any custom field or config arg is marked `secret` but no usable EncryptionStrategy is
+     * configured, fail fast at bootstrap rather than throwing later when a secret value is first
+     * written or read.
+     */
+    private assertEncryptionConfiguredIfSecretsUsed() {
+        const { encryptionStrategy } = this.configService.systemOptions;
+        if (encryptionStrategy?.isConfigured()) {
+            return;
+        }
+        const hasSecretCustomField = Object.values(this.configService.customFields).some(fields =>
+            (fields ?? []).some(f => f.secret === true),
+        );
+        const hasSecretConfigArg = this.getConfigurableOperations().some(op =>
+            Object.values<ConfigArgDef<ConfigArgType>>(op.args).some(arg => arg.secret === true),
+        );
+        if (hasSecretCustomField || hasSecretConfigArg) {
+            throw new Error(
+                '[Vendure] A `secret` custom field or config arg is configured, but no EncryptionStrategy ' +
+                    'with a usable key is available. Configure one in your VendureConfig:\n\n' +
+                    "  import { DefaultEncryptionStrategy } from '@vendure/core';\n\n" +
+                    '  systemOptions: {\n' +
+                    '    encryptionStrategy: new DefaultEncryptionStrategy({\n' +
+                    '      secret: process.env.VENDURE_ENCRYPTION_KEY,\n' +
+                    '    }),\n' +
+                    '  }\n\n' +
+                    'and set the VENDURE_ENCRYPTION_KEY environment variable to a stable, secret value. It ' +
+                    'must not change once secret data has been written, or that data can no longer be decrypted.',
+            );
+        }
     }
 
     async onApplicationShutdown(signal?: string) {
@@ -55,8 +117,16 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
 
     private async initConfigurableOperations() {
         const injector = new Injector(this.moduleRef);
-        for (const operation of this.getConfigurableOperations()) {
-            await operation.init(injector);
+        const { encryptionStrategy } = this.configService.systemOptions;
+        const registries = getConfigurableOperationDefinitions(this.configService);
+        for (const [defType, operations] of Object.entries(registries) as Array<
+            [ConfigDefType, Array<ConfigurableOperationDef<any>>]
+        >) {
+            for (const operation of operations) {
+                operation.setDefType(defType);
+                await operation.init(injector);
+                operation.setEncryptionStrategy(encryptionStrategy);
+            }
         }
     }
 
@@ -106,6 +176,7 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
             orderSellerStrategy,
             guestCheckoutStrategy,
             orderInterceptors,
+            orderRecalculationStrategy,
         } = this.configService.orderOptions;
         const {
             customFulfillmentProcess,
@@ -118,7 +189,8 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
         const { healthChecks, errorHandlers } = this.configService.systemOptions;
         const { assetImportStrategy } = this.configService.importExportOptions;
         const { refundProcess: refundProcess } = this.configService.paymentOptions;
-        const { cacheStrategy, instrumentationStrategy } = this.configService.systemOptions;
+        const { cacheStrategy, instrumentationStrategy, encryptionStrategy, secretAccessStrategy } =
+            this.configService.systemOptions;
         const entityIdStrategy = entityIdStrategyCurrent ?? entityIdStrategyDeprecated;
         return [
             ...adminAuthenticationStrategy,
@@ -154,6 +226,7 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
             ...errorHandlers,
             assetImportStrategy,
             changedPriceHandlingStrategy,
+            ...(orderRecalculationStrategy ? [orderRecalculationStrategy] : []),
             orderLineDiscountDistributionStrategy,
             ...(Array.isArray(activeOrderStrategy) ? activeOrderStrategy : [activeOrderStrategy]),
             orderSellerStrategy,
@@ -164,6 +237,8 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
             ...refundProcess,
             cacheStrategy,
             ...(instrumentationStrategy ? [instrumentationStrategy] : []),
+            ...(encryptionStrategy ? [encryptionStrategy] : []),
+            ...(secretAccessStrategy ? [secretAccessStrategy] : []),
             ...orderInterceptors,
             schedulerStrategy,
             adminApiKeyStrategy,
@@ -174,22 +249,6 @@ export class ConfigModule implements OnApplicationBootstrap, OnApplicationShutdo
     }
 
     private getConfigurableOperations(): Array<ConfigurableOperationDef<any>> {
-        const { paymentMethodHandlers, paymentMethodEligibilityCheckers } = this.configService.paymentOptions;
-        const { collectionFilters } = this.configService.catalogOptions;
-        const { entityDuplicators } = this.configService.entityOptions;
-        const { promotionActions, promotionConditions } = this.configService.promotionOptions;
-        const { shippingCalculators, shippingEligibilityCheckers, fulfillmentHandlers } =
-            this.configService.shippingOptions;
-        return [
-            ...(paymentMethodEligibilityCheckers || []),
-            ...paymentMethodHandlers,
-            ...collectionFilters,
-            ...(promotionActions || []),
-            ...(promotionConditions || []),
-            ...(shippingCalculators || []),
-            ...(shippingEligibilityCheckers || []),
-            ...(fulfillmentHandlers || []),
-            ...(entityDuplicators || []),
-        ];
+        return Object.values(getConfigurableOperationDefinitions(this.configService)).flat();
     }
 }

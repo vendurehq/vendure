@@ -36,6 +36,25 @@ export class RequestContextService {
      * with services outside the request-response cycle, for example in stand-alone scripts or in
      * worker jobs.
      *
+     * Without a `user`, the resulting context is anonymous and carries no permissions, which
+     * services that perform permission checks will reject. Pass the `User` the context should act
+     * as — commonly the superadmin for administrative scripts:
+     *
+     * ```ts
+     * const { superadminCredentials } = this.configService.authOptions;
+     * const superAdminUser = await this.connection.rawConnection.getRepository(User).findOneOrFail({
+     *     where: { identifier: superadminCredentials.identifier },
+     *     // The roles (and their channels) must be loaded, or the resulting context
+     *     // has the user's id but no permissions.
+     *     relations: { roles: { channels: true } },
+     * });
+     *
+     * const ctx = await this.requestContextService.create({
+     *     apiType: 'admin',
+     *     user: superAdminUser,
+     * });
+     * ```
+     *
      * @since 1.5.0
      */
     async create(config: {

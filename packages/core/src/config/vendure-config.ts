@@ -50,6 +50,7 @@ import { OrderLineDiscountDistributionStrategy } from './order/order-line-discou
 import { OrderMergeStrategy } from './order/order-merge-strategy';
 import { OrderPlacedStrategy } from './order/order-placed-strategy';
 import { OrderProcess } from './order/order-process';
+import { OrderRecalculationStrategy } from './order/order-recalculation-strategy';
 import { OrderSellerStrategy } from './order/order-seller-strategy';
 import { StockAllocationStrategy } from './order/stock-allocation-strategy';
 import { PaymentMethodEligibilityChecker } from './payment/payment-method-eligibility-checker';
@@ -64,9 +65,11 @@ import { ShippingCalculator } from './shipping-method/shipping-calculator';
 import { ShippingEligibilityChecker } from './shipping-method/shipping-eligibility-checker';
 import { ShippingLineAssignmentStrategy } from './shipping-method/shipping-line-assignment-strategy';
 import { CacheStrategy } from './system/cache-strategy';
+import { EncryptionStrategy } from './system/encryption-strategy';
 import { ErrorHandlerStrategy } from './system/error-handler-strategy';
 import { HealthCheckStrategy } from './system/health-check-strategy';
 import { InstrumentationStrategy } from './system/instrumentation-strategy';
+import { SecretAccessStrategy } from './system/secret-access-strategy';
 import { OrderTaxCalculationStrategy } from './tax/order-tax-calculation-strategy';
 import { TaxLineCalculationStrategy } from './tax/tax-line-calculation-strategy';
 import { TaxZoneStrategy } from './tax/tax-zone-strategy';
@@ -725,6 +728,19 @@ export interface OrderOptions {
      * @default []
      */
     orderInterceptors?: OrderInterceptor[];
+    /**
+     * @description
+     * Defines whether and when an active Order's prices, promotions and taxes are re-calculated
+     * when the Order is read (e.g. via the `activeOrder` query). By default no read-time
+     * recalculation occurs (prices only change on write mutations). Use
+     * {@link TtlOrderRecalculationStrategy} to keep long-lived carts in sync with changing prices
+     * and promotions. Shipping method eligibility and rates are NOT re-evaluated on read; they are
+     * re-evaluated when the order transitions to `ArrangingPayment`.
+     *
+     * @default NoOrderRecalculationStrategy
+     * @since 3.8.0
+     */
+    orderRecalculationStrategy?: OrderRecalculationStrategy;
 }
 
 /**
@@ -1239,6 +1255,24 @@ export interface SystemOptions {
      */
     cacheStrategy?: CacheStrategy;
     instrumentationStrategy?: InstrumentationStrategy;
+    /**
+     * @description
+     * Defines the strategy used to encrypt the values of `secret` custom fields and config args at
+     * rest.
+     *
+     * @since 3.8.0
+     * @default DefaultEncryptionStrategy
+     */
+    encryptionStrategy?: EncryptionStrategy;
+    /**
+     * @description
+     * Defines the strategy used to determine whether the current user may read the decrypted value
+     * of a `secret` custom field or config arg.
+     *
+     * @since 3.8.0
+     * @default PermissionSecretAccessStrategy
+     */
+    secretAccessStrategy?: SecretAccessStrategy;
 }
 
 /**

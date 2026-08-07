@@ -49,7 +49,6 @@ export function MetricsWidget() {
         queryFn: () => {
             return api.query(orderChartDataQuery, {
                 types: [dataType],
-                refresh: true,
                 startDate: dateRange.from.toISOString(),
                 endDate: dateRange.to.toISOString(),
             });

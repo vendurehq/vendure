@@ -208,18 +208,62 @@ export class EntityHydrator {
         for (const relation of options.relations.slice().sort()) {
             if (typeof relation === 'string') {
                 const parts = relation.split('.');
-                let entity: Record<string, any> | undefined = target;
+                // The entities found at the current depth of the relation path. An array-valued
+                // relation can be loaded unevenly, e.g. `order.lines[0].productVariant` is present
+                // but `order.lines[1].productVariant` is not, so every entity at a given depth must
+                // be checked rather than just the first.
+                let entities: Array<Record<string, any>> = [target];
                 const path = [];
+                let isMissing = false;
                 for (const part of parts) {
                     path.push(part);
-                    // null = the relation has been fetched but was null in the database.
-                    // undefined = the relation has not been fetched.
-                    if (entity && entity[part] === null) {
-                        break;
+                    if (!isMissing) {
+                        const nextEntities: Array<Record<string, any>> = [];
+                        for (const entity of entities) {
+                            // undefined = this array element (or relation) was never fetched,
+                            // e.g. an `undefined` hole in a relation array, so the rest of the
+                            // path must be reported missing rather than skipped.
+                            if (entity === undefined) {
+                                isMissing = true;
+                                break;
+                            }
+                            // null = the relation has been fetched but was null in the database.
+                            if (entity === null || entity[part] === null) {
+                                continue;
+                            }
+                            const value = entity[part];
+                            if (!value) {
+                                isMissing = true;
+                                break;
+                            }
+                            // At the last segment of the path we only need to know whether the
+                            // relation is present; the entities it points to are never inspected,
+                            // so there is no point collecting them.
+                            const isLastPart = path.length === parts.length;
+                            if (Array.isArray(value)) {
+                                if (value.length === 0) {
+                                    if (!isLastPart) {
+                                        // An empty array leaves nothing to check further down the
+                                        // path, so treat the rest of the path as missing.
+                                        isMissing = true;
+                                        break;
+                                    }
+                                } else if (!isLastPart) {
+                                    // Use a plain loop rather than push(...value): spreading a
+                                    // very large array (e.g. collections.productVariants on a
+                                    // big catalog) exceeds V8's argument limit and throws
+                                    // RangeError, even when everything is already loaded.
+                                    for (const element of value) {
+                                        nextEntities.push(element);
+                                    }
+                                }
+                            } else if (!isLastPart) {
+                                nextEntities.push(value);
+                            }
+                        }
+                        entities = nextEntities;
                     }
-                    if (entity && entity[part]) {
-                        entity = Array.isArray(entity[part]) ? entity[part][0] : entity[part];
-                    } else {
+                    if (isMissing) {
                         const allParts = path.reduce((result, p, i) => {
                             if (i === 0) {
                                 return [p];
@@ -228,7 +272,6 @@ export class EntityHydrator {
                             }
                         }, [] as string[]);
                         missingRelations.push(...allParts);
-                        entity = undefined;
                     }
                 }
             }
