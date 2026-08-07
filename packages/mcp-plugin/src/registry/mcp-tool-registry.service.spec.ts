@@ -1,5 +1,5 @@
 import { Permission } from '@vendure/common/lib/generated-types';
-import { Logger } from '@vendure/core';
+import { Logger, UserInputError } from '@vendure/core';
 import { McpToolMetadata, McpToolset } from '@vendure/mcp-sdk';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -648,6 +648,63 @@ describe('McpToolRegistryService', () => {
                 limit: 50,
             });
             expect((raised.structuredContent as any).tools).toHaveLength(12);
+        });
+    });
+
+    describe('error classification (catch block)', () => {
+        it('passes a caller-safe error message through unchanged, and logs it to the tool-call log', async () => {
+            const execute = () => {
+                throw new UserInputError('bad input from caller');
+            };
+            const { service, toolCallLog } = build([wrapper(shopTool(), execute)]);
+            service.onApplicationBootstrap();
+            const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'get_thing', {});
+            expect(result.isError).toBe(true);
+            expect((result.content as any)[0].text).toBe('bad input from caller');
+            expect(toolCallLog.logToolCall).toHaveBeenCalledWith(
+                expect.objectContaining({ status: 'error', output: { message: 'bad input from caller' } }),
+            );
+        });
+
+        it('genericizes an internal Error for the caller, but logs the real message server-side and to the tool-call log', async () => {
+            const error = vi.spyOn(Logger, 'error').mockImplementation(() => undefined);
+            const execute = () => {
+                throw new Error('database connection refused');
+            };
+            const { service, toolCallLog } = build([wrapper(shopTool(), execute)]);
+            service.onApplicationBootstrap();
+            const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'get_thing', {});
+            expect(result.isError).toBe(true);
+            expect((result.content as any)[0].text).toBe('The tool failed unexpectedly');
+            expect((result.content as any)[0].text).not.toContain('database connection refused');
+            expect(error).toHaveBeenCalledWith(
+                expect.stringContaining('database connection refused'),
+                expect.anything(),
+                expect.anything(),
+            );
+            // Operator-only data: the real message still lands in the log row regardless of what
+            // the caller sees. (The `capture` setting, not this funnel, decides if it's persisted.)
+            expect(toolCallLog.logToolCall).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    status: 'error',
+                    output: { message: 'database connection refused' },
+                }),
+            );
+            error.mockRestore();
+        });
+
+        it('treats a thrown non-Error value as internal, using the fallback message', async () => {
+            const thrown: unknown = 'oops';
+            const execute = () => {
+                throw thrown;
+            };
+            const { service, toolCallLog } = build([wrapper(shopTool(), execute)]);
+            service.onApplicationBootstrap();
+            const result = await service.callTool({ ctx: makeCtx() }, 'shop', 'get_thing', {});
+            expect((result.content as any)[0].text).toBe('The tool failed unexpectedly');
+            expect(toolCallLog.logToolCall).toHaveBeenCalledWith(
+                expect.objectContaining({ status: 'error', output: { message: 'MCP tool failed' } }),
+            );
         });
     });
 

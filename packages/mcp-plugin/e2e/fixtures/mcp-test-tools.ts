@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Permission, PluginCommonModule, RequestContext, VendurePlugin } from '@vendure/core';
+import { Permission, PluginCommonModule, RequestContext, UserInputError, VendurePlugin } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 
 @Injectable()
@@ -59,6 +59,21 @@ export class ShopBoomTool implements McpToolHandler {
 
 @Injectable()
 @McpTool({
+    name: 'shop_bad_input',
+    description: 'Always throws UserInputError — used to verify caller-safe errors pass through.',
+    toolset: 'shop',
+    behavior: 'mutating',
+    permissions: [Permission.Public],
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+})
+export class ShopBadInputTool implements McpToolHandler {
+    execute(): never {
+        throw new UserInputError('bad-input-from-caller');
+    }
+}
+
+@Injectable()
+@McpTool({
     name: 'shop_delete',
     description: 'Deletes a thing. Destructive — requires confirmation.',
     toolset: 'shop',
@@ -93,6 +108,6 @@ export class AdminListTool implements McpToolHandler {
 
 @VendurePlugin({
     imports: [PluginCommonModule],
-    providers: [ShopPingTool, ShopEchoTool, ShopBoomTool, ShopDeleteTool, AdminListTool],
+    providers: [ShopPingTool, ShopEchoTool, ShopBoomTool, ShopBadInputTool, ShopDeleteTool, AdminListTool],
 })
 export class McpTestToolsPlugin {}

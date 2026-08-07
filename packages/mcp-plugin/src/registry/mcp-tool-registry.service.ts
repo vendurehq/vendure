@@ -8,7 +8,18 @@ import {
 } from '@modelcontextprotocol/server';
 import { Inject, Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { DiscoveryService } from '@nestjs/core';
-import { Instrument, Logger, Permission, RequestContext, SettingsStoreService } from '@vendure/core';
+import {
+    EntityNotFoundError,
+    ForbiddenError,
+    IllegalOperationError,
+    Instrument,
+    Logger,
+    Permission,
+    RequestContext,
+    SettingsStoreService,
+    UnauthorizedError,
+    UserInputError,
+} from '@vendure/core';
 import {
     McpCallerInfo,
     McpJsonSchema,
@@ -33,6 +44,16 @@ const EXECUTE_TOOL = 'execute_tool';
 const RESERVED_META_TOOL_NAMES: readonly string[] = [SEARCH_TOOLS, EXECUTE_TOOL];
 const NO_ARGS_SCHEMA: McpJsonSchema = { type: 'object', properties: {}, additionalProperties: false };
 const ALL_TOOLSETS: readonly McpToolset[] = ['shop', 'admin'];
+// Error types a tool throws on purpose, with a message meant to be read by the caller. Anything
+// else is treated as an internal failure: logged server-side, genericized for the caller.
+const CALLER_SAFE_ERROR_TYPES = [
+    UserInputError,
+    IllegalOperationError,
+    EntityNotFoundError,
+    ForbiddenError,
+    UnauthorizedError,
+] as const;
+const GENERIC_TOOL_ERROR_MESSAGE = 'The tool failed unexpectedly';
 
 /**
  * @description
@@ -363,15 +384,25 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             return this.successResult(output);
         } catch (e) {
             const message = e instanceof Error ? e.message : 'MCP tool failed';
+            const callerSafe = this.isCallerSafeError(e);
+            if (!callerSafe) {
+                Logger.error(
+                    `MCP tool "${tool.name}" failed: ${message}`,
+                    loggerCtx,
+                    e instanceof Error ? e.stack : undefined,
+                );
+            }
             await this.toolCallLog.logToolCall({
                 executionContext,
                 tool,
                 input: toolInput,
+                // The real message always goes into the log row — it's operator-only data, only
+                // ever persisted when the operator opts into `capture: 'full'`.
                 output: { message },
                 durationMs: Date.now() - startedAt,
                 status: 'error',
             });
-            return this.errorResult(message);
+            return this.errorResult(callerSafe ? message : GENERIC_TOOL_ERROR_MESSAGE);
         }
     }
 
@@ -658,6 +689,11 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
 
     private isMcpJsonSchema(value: unknown): value is McpJsonSchema {
         return typeof value === 'object' && value !== null && (value as { type?: unknown }).type === 'object';
+    }
+
+    /** Whether a thrown error is one a tool raises on purpose with a message meant for the caller. */
+    private isCallerSafeError(e: unknown): boolean {
+        return CALLER_SAFE_ERROR_TYPES.some(ErrorType => e instanceof ErrorType);
     }
 
     private successResult(output: unknown): CallToolResult {

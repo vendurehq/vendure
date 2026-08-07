@@ -161,7 +161,21 @@ describe('MCP protocol conformance (direct mode)', () => {
         );
         expect(res.status).toBe(200);
         expect(res.body.result.isError).toBe(true);
-        expect(res.body.result.content[0].text).toContain('boom');
+        // shop_boom throws a plain Error("boom"), which the funnel treats as internal: the caller
+        // gets a generic message, never the real one.
+        expect(res.body.result.content[0].text).not.toContain('boom');
+        expect(res.body.result.content[0].text).toContain('failed unexpectedly');
+    });
+
+    it('a caller-safe error (UserInputError) passes its message through unchanged', async () => {
+        const res = await postMcp(
+            baseUrl(),
+            'shop',
+            rpc('tools/call', { name: 'shop_bad_input', arguments: {} }, 18),
+        );
+        expect(res.status).toBe(200);
+        expect(res.body.result.isError).toBe(true);
+        expect(res.body.result.content[0].text).toContain('bad-input-from-caller');
     });
 
     it('an unknown tool is a JSON-RPC dispatch error (-32602), not isError', async () => {

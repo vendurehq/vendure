@@ -100,7 +100,10 @@ describe('MCP tool-call logging', () => {
         const eventPromise = firstValueFrom(eventBus.ofType(McpToolCallEvent));
         const response = await postMcp(baseUrl(), 'shop', callTool('shop_boom', {}, 2));
         expect(response.body.result.isError).toBe(true);
-        expect(response.body.result.content[0].text).toMatch(/boom/);
+        // shop_boom throws a plain Error, which is internal — the caller gets the generic
+        // message, not the real one ("boom").
+        expect(response.body.result.content[0].text).not.toMatch(/boom/);
+        expect(response.body.result.content[0].text).toMatch(/failed unexpectedly/);
 
         const event = await eventPromise;
         expect(event.entry.toolName).toBe('shop_boom');
