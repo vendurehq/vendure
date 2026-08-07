@@ -325,10 +325,10 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         validateInput: boolean,
     ): Promise<CallToolResult> {
         const ctx = executionContext.ctx;
-        // Rate limit FIRST. This is the only rate gate for tools/call (the controller handshake
-        // pre-check deliberately skips tools/call), so unknown/disabled/permission-denied calls — on
-        // BOTH the direct and discovery paths — must still consume the shared buckets, otherwise they
-        // are a free hammer on the anonymous surface. Exceedance flattens to isError here (only the
+        // Rate limit first — the controller pre-check skips tools/call, so this is the only gate.
+        // A direct call naming a tool outside the caller's visible set never reaches here: the SDK
+        // rejects it earlier, uncharged. Accepted, because that caller holds a token and anonymous
+        // traffic is IP-limited in the controller. Exceedance flattens to isError here (only the
         // pre-check carries -31029 + data).
         const rateLimited = await this.enforceRateLimitOrError(executionContext, toolset, name);
         if (rateLimited) {
