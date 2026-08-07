@@ -287,10 +287,13 @@ export class OrderLine extends VendureEntity implements HasCustomFields {
         // Group discounts together, so that it does not list a new
         // discount row for each item in the line
         const groupedDiscounts = new Map<string, Discount>();
+        // A line added by an OrderModification keeps an orderPlacedQuantity of 0, so once it is
+        // cancelled there are no units left to prorate the adjustment over.
+        const proratedOverQuantity = Math.max(this.orderPlacedQuantity, this.quantity);
         for (const adjustment of this.adjustments) {
             const discountGroup = groupedDiscounts.get(adjustment.adjustmentSource);
             const unitAdjustmentAmount =
-                (adjustment.amount / Math.max(this.orderPlacedQuantity, this.quantity)) * this.quantity;
+                proratedOverQuantity === 0 ? 0 : (adjustment.amount / proratedOverQuantity) * this.quantity;
             const amount = priceIncludesTax
                 ? netPriceOf(unitAdjustmentAmount, this.taxRate)
                 : unitAdjustmentAmount;
