@@ -33,6 +33,7 @@ import {
     MAX_CLIENT_METADATA_FIELD_LENGTH,
     MCP_GRANT_ACTIVITY_UPDATE_INTERVAL_MS,
     MCP_PLUGIN_OPTIONS,
+    MCP_UNUSED_OAUTH_CLIENT_RETENTION_MS,
     mcpServerPermission,
     MS_PER_DAY,
     RETENTION_DELETE_BATCH_SIZE,
@@ -73,6 +74,7 @@ export interface McpOauthRetentionResult {
     deletedRequests: number;
     deletedCodes: number;
     deletedGrants: number;
+    deletedClients: number;
 }
 
 /**
@@ -551,7 +553,8 @@ export class McpOauthService {
         const deletedRequests = await this.deleteSpentRecords(ctx, McpAuthorizationRequest);
         const deletedCodes = await this.deleteSpentRecords(ctx, McpAuthorizationCode);
         const deletedGrants = await this.deleteDeadGrants(ctx);
-        return { deletedSessions, deletedRequests, deletedCodes, deletedGrants };
+        const deletedClients = await this.deleteUnusedClients(ctx);
+        return { deletedSessions, deletedRequests, deletedCodes, deletedGrants, deletedClients };
     }
 
     /**
@@ -619,6 +622,27 @@ export class McpOauthService {
                 .select('grant.id', 'id')
                 .where('grant.expiresAt < :cutoff', { cutoff })
                 .orWhere('grant.revokedAt < :cutoff', { cutoff })
+                .limit(RETENTION_DELETE_BATCH_SIZE)
+                .getRawMany<{ id: ID }>(),
+        );
+    }
+
+    /**
+     * Deletes client registrations that were never used: older than
+     * `MCP_UNUSED_OAUTH_CLIENT_RETENTION_MS`, never issued a token (`lastUsedAt IS NULL`),
+     * and with no grants.
+     */
+    private deleteUnusedClients(ctx: RequestContext): Promise<number> {
+        const cutoff = new Date(Date.now() - MCP_UNUSED_OAUTH_CLIENT_RETENTION_MS);
+        return this.deleteInBatches(ctx, McpOauthClient, () =>
+            this.connection
+                .getRepository(ctx, McpOauthClient)
+                .createQueryBuilder('client')
+                .select('client.id', 'id')
+                .leftJoin(McpOauthGrant, 'grant', 'grant.oauthClientId = client.id')
+                .where('client.lastUsedAt IS NULL')
+                .andWhere('client.createdAt < :cutoff', { cutoff })
+                .andWhere('grant.id IS NULL')
                 .limit(RETENTION_DELETE_BATCH_SIZE)
                 .getRawMany<{ id: ID }>(),
         );
