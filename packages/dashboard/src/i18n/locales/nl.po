@@ -22,6 +22,10 @@ msgstr "Volledige naam"
 msgid "Select items"
 msgstr "Selecteer items"
 
+#: src/lib/components/shared/asset/asset-gallery.tsx
+msgid "Uploading assets..."
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
 msgid "View changes"

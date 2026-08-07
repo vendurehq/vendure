@@ -12,6 +12,8 @@
 
 * **core** Secure `adjustDraftOrderLine` mutation from unauthorized access [GHSA-hc75-2v4j-x372](https://github.com/vendurehq/vendure/security/advisories/GHSA-hc75-2v4j-x372)
 * **core** Fix privilege escalation via updateAdministrator password reset [GHSA-v85r-wfgv-jcqc](https://github.com/vendurehq/vendure/security/advisories/GHSA-v85r-wfgv-jcqc)
+* **core** Fix cross-channel delete IDOR in Promotion and FacetValue delete paths (#5043) [GHSA-fp4j-ff6j-9793](https://github.com/vendurehq/vendure/security/advisories/GHSA-fp4j-ff6j-9793)
+* **core** Fix cross-channel write IDOR in Asset and StockLocation update (#5017) [GHSA-rgjm-ff27-p2hf](https://github.com/vendurehq/vendure/security/advisories/GHSA-rgjm-ff27-p2hf)
 
 #### Fixes
 

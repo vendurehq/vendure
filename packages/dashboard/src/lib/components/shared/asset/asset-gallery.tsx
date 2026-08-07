@@ -246,7 +246,7 @@ export function AssetGallery({
 
     const assets = (data?.assets.items ?? []) as Asset[];
 
-    const { mutate: createAssets } = useMutation({
+    const { mutate: createAssets, isPending: isUploading } = useMutation({
         mutationFn: api.mutate(createAssetsDocument),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey });
@@ -402,8 +402,13 @@ export function AssetGallery({
                         )}
                         <PageActionBar>
                             <ActionBarItem itemId="upload-assets-button">
-                                <Button onClick={openFileDialog} className="whitespace-nowrap">
-                                    <Upload className="h-4 w-4 mr-2" /> <Trans>Upload</Trans>
+                                <Button onClick={openFileDialog} disabled={isUploading} className="whitespace-nowrap">
+                                    {isUploading ? (
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    ) : (
+                                        <Upload className="h-4 w-4 mr-2" />
+                                    )}
+                                    <Trans>Upload</Trans>
                                 </Button>
                             </ActionBarItem>
                         </PageActionBar>
@@ -443,6 +448,13 @@ export function AssetGallery({
                     <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center rounded-md">
                         <Upload className="h-12 w-12 text-primary mb-2" />
                         <p className="text-center font-medium"><Trans>Drop files here to upload</Trans></p>
+                    </div>
+                )}
+
+                {isUploading && (
+                    <div className="absolute inset-0 bg-background/70 backdrop-blur-sm z-10 flex flex-col items-center justify-center rounded-md">
+                        <Loader2 className="h-10 w-10 text-primary animate-spin mb-3" />
+                        <p className="text-center font-medium"><Trans>Uploading assets...</Trans></p>
                     </div>
                 )}
 

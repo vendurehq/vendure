@@ -22,6 +22,10 @@ msgstr "氏名"
 msgid "Select items"
 msgstr "アイテムを選択"
 
+#: src/lib/components/shared/asset/asset-gallery.tsx
+msgid "Uploading assets..."
+msgstr ""
+
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
 #: src/app/routes/_authenticated/_customers/components/customer-history/default-customer-history-components.tsx
 msgid "View changes"
