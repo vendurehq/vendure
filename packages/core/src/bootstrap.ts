@@ -383,8 +383,14 @@ export async function runPluginConfigurations(config: RuntimeVendureConfig): Pro
     // `config.customFields.SomeEntity.push(...)` without the defensive
     // `if (!config.customFields.SomeEntity) config.customFields.SomeEntity = []` guard.
     // Empty arrays are ignored by `registerCustomEntityFields`, so this is inert for
-    // entities nobody extends. See OSS-408.
-    for (const entityName of getEntityNamesWithCustomFields()) {
+    // entities nobody extends. See OSS-408. Seeding is scoped to this server's entities
+    // (core entities plus this config's plugin entities, via `getAllEntities`) rather than the
+    // global TypeORM metadata, to avoid phantom keys from entities imported into the process but
+    // not registered with this server — a second server in the same process, or an
+    // imported-but-uninstalled plugin (OSS-653). Derived from `config` so every caller of
+    // `runPluginConfigurations` is covered, not only the `preBootstrapConfig` path.
+    const entities = getAllEntities(config);
+    for (const entityName of getEntityNamesWithCustomFields(entities)) {
         if (!Object.prototype.hasOwnProperty.call(config.customFields, entityName)) {
             config.customFields[entityName] = [];
         }

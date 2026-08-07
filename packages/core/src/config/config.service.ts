@@ -1,6 +1,8 @@
 import { DynamicModule, Injectable, Type } from '@nestjs/common';
 import { LanguageCode } from '@vendure/common/lib/generated-types';
-import { DataSourceOptions, getMetadataArgsStorage } from 'typeorm';
+import { DataSourceOptions } from 'typeorm';
+
+import { getEntityNamesWithCustomFields } from '../entity/register-custom-entity-fields';
 
 import { getConfig } from './config-helpers';
 import { CustomFields } from './custom-field/custom-field-types';
@@ -131,27 +133,25 @@ export class ConfigService implements VendureConfig {
 
     private getCustomFieldsForAllEntities(): Required<CustomFields> {
         const definedCustomFields = this.activeConfig.customFields;
-        const metadataArgsStorage = getMetadataArgsStorage();
 
-        // We need to check for any entities which have a "customFields" property but which are not
-        // explicitly defined in the customFields config. This is because the customFields object
-        // only includes the built-in entities. Any custom entities which have a "customFields"
-        // must be dynamically added to the customFields object.
-        if (Array.isArray(this.dbConnectionOptions.entities)) {
-            for (const entity of this.dbConnectionOptions.entities) {
-                if (typeof entity === 'function' && !definedCustomFields[entity.name]) {
-                    const hasCustomFields = !!metadataArgsStorage
-                        .filterEmbeddeds(entity)
-                        .find(c => c.propertyName === 'customFields');
-                    const isTranslationEntity =
-                        entity.name.endsWith('Translation') &&
-                        metadataArgsStorage
-                            .filterColumns(entity)
-                            .find(c => c.propertyName === 'languageCode');
-                    if (hasCustomFields && !isTranslationEntity) {
-                        definedCustomFields[entity.name] = [];
-                    }
-                }
+        // The `customFields` config only includes the built-in entities, so any (plugin) entity
+        // that declares a `customFields` embedded but is not explicitly configured must be added
+        // here. The translation-exclusion logic is shared with the bootstrap-time auto-init
+        // (runPluginConfigurations) via `getEntityNamesWithCustomFields`, replacing the
+        // `*Translation` name + `languageCode` column heuristic this getter used to apply.
+        //
+        // The two call sites still source their *entity list* differently: the auto-init passes
+        // `getAllEntities(config)`, whereas this getter reads `dbConnectionOptions.entities`. That is
+        // safe because `preBootstrapConfig` populates `dbConnectionOptions.entities` before any
+        // `ConfigService` exists, so the list is complete by the time this getter runs. Unifying the
+        // source would import `getAllEntities` from `bootstrap.ts` and create a cycle, so the
+        // invariant is relied on rather than enforced.
+        const entities = Array.isArray(this.dbConnectionOptions.entities)
+            ? this.dbConnectionOptions.entities.filter((e): e is Type<any> => typeof e === 'function')
+            : [];
+        for (const entityName of getEntityNamesWithCustomFields(entities)) {
+            if (!definedCustomFields[entityName]) {
+                definedCustomFields[entityName] = [];
             }
         }
         return definedCustomFields;

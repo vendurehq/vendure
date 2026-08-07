@@ -67,6 +67,10 @@ export class ProductRequestTranslation
 
 Thus there is a one-to-many relation between `ProductRequest` and `ProductRequestTranslation`, which allows Vendure to handle multiple translations of the same entity. The `ProductRequestTranslation` entity also implements the `Translation` interface, which requires the `languageCode` field and a reference to the base entity.
 
+:::note
+Custom fields are auto-initialized for every entity that declares a `customFields` embedded, **except** translation entities, which are detected by being the *target of a `translations` relation* — not by a `*Translation` name suffix or a `languageCode` column. In practice a properly-wired translation entity (as above) is always excluded. The only behavioural edge case: an entity that merely *looks* like a translation entity by name and `languageCode` but has no `translations` relation pointing at it is now treated as a normal custom-field-bearing entity and seeded, whereas earlier it was excluded by the old name+column heuristic.
+:::
+
 ### Translations in the GraphQL schema
 Since the `text` field is getting hydrated with the translation it should be exposed in the GraphQL Schema. Additionally, the `ProductRequestTranslation` type should
 be defined as well, to access other translations as well:
