@@ -189,6 +189,16 @@ export interface McpRateLimitOptions {
      * @default { rpm: 60 }
      */
     anonymousIp?: { rpm: number } | false;
+    /**
+     * Limit per client IP across the whole OAuth HTTP surface: every route on the OAuth
+     * controller shares this one bucket, including the `.well-known` metadata documents.
+     *
+     * Behind a reverse proxy, enable Vendure's `trustProxy` so `req.ip` reports the client
+     * address rather than the proxy's.
+     *
+     * @default { rpm: 60 }
+     */
+    oauthIp?: { rpm: number } | false;
 }
 
 /**

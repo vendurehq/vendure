@@ -17,6 +17,7 @@ import { McpToolset } from '@vendure/mcp-sdk';
 import type { Request, Response } from 'express';
 
 import { MCP_PLUGIN_OPTIONS, RATE_LIMIT_ERROR_CODE } from '../constants';
+import { getClientIp } from '../get-client-ip';
 import { McpExecutionContext } from '../internal-types';
 import { McpOauthService } from '../oauth/oauth.service';
 import { McpRateLimiterService, McpRateLimitExceededError } from '../rate-limit/mcp-rate-limiter.service';
@@ -141,7 +142,7 @@ export class McpTransportController {
         // write has to sit inside the limit rather than behind it.
         if (toolset === 'shop' && !token) {
             try {
-                await this.rateLimiter.enforceAnonymousIpRateLimit(toolset, this.getClientIp(req));
+                await this.rateLimiter.enforceAnonymousIpRateLimit(toolset, getClientIp(req));
             } catch (e) {
                 if (!(e instanceof McpRateLimitExceededError)) {
                     throw e;
@@ -159,10 +160,10 @@ export class McpTransportController {
                 throw new UnauthorizedException('Admin MCP endpoint requires a Bearer token');
             }
             const authContext = await this.authenticateBearerToken(token, 'admin', res);
-            executionContext = { ...authContext, clientIp: this.getClientIp(req) };
+            executionContext = { ...authContext, clientIp: getClientIp(req) };
         } else if (token) {
             const authContext = await this.authenticateBearerToken(token, 'shop', res);
-            executionContext = { ...authContext, clientIp: this.getClientIp(req) };
+            executionContext = { ...authContext, clientIp: getClientIp(req) };
         } else {
             // Anonymous shop: thread the Vendure session token (for cart continuity) and the channel
             // token (for multi-channel). An invalid channel token errors like the rest of Vendure.
@@ -173,7 +174,7 @@ export class McpTransportController {
             // Echo the session token BEFORE delegating — the SDK handler owns the response write.
             // (If a future SDK path resets headers, hook res.writeHead here instead.)
             this.setVendureSessionToken(res, ctx.session?.token);
-            executionContext = { ctx, clientIp: this.getClientIp(req) };
+            executionContext = { ctx, clientIp: getClientIp(req) };
         }
 
         // 5. Handshake rate-limit pre-check (only meaningful for JSON bodies we can parse).
@@ -308,10 +309,6 @@ export class McpTransportController {
     private getBearerToken(header?: string): string | undefined {
         const match = /^Bearer\s+(.+)$/i.exec(header ?? '');
         return match?.[1];
-    }
-
-    private getClientIp(req: Request): string | undefined {
-        return req.ip ?? req.socket?.remoteAddress ?? undefined;
     }
 
     private getVendureSessionToken(

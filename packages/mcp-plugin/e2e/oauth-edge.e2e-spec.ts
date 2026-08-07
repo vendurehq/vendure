@@ -42,6 +42,9 @@ describe('McpPlugin OAuth edge & security cases', () => {
                     tokenSecret: TOKEN_SECRET,
                     storefrontConsentUrl: 'https://storefront.example.com/mcp/authorize',
                 },
+                // This suite drives dozens of real OAuth HTTP calls well within the 60s fixed
+                // window; it isn't testing rate limiting, so the default oauthIp budget is off.
+                rateLimits: { oauthIp: false },
             }),
         ],
     });
@@ -64,6 +67,7 @@ describe('McpPlugin OAuth edge & security cases', () => {
                 tokenSecret: TOKEN_SECRET,
                 storefrontConsentUrl: 'https://storefront.example.com/mcp/authorize',
             },
+            rateLimits: { oauthIp: false },
         });
         await server.init({
             initialData,
@@ -837,7 +841,12 @@ describe('McpPlugin OAuth edge & security cases', () => {
 
 describe('shop authorization with no storefrontConsentUrl configured', () => {
     const config = mergeConfig(testConfig(), {
-        plugins: [McpPlugin.init({ oauth: { tokenSecret: TOKEN_SECRET } })],
+        plugins: [
+            McpPlugin.init({
+                oauth: { tokenSecret: TOKEN_SECRET },
+                rateLimits: { oauthIp: false },
+            }),
+        ],
     });
     const { server: noConsentUrlServer } = createTestEnvironment(config);
     const baseUrl = () => `http://localhost:${config.apiOptions.port}`;
@@ -846,7 +855,7 @@ describe('shop authorization with no storefrontConsentUrl configured', () => {
         // Multiple test servers in this file share the McpPlugin class's static options field
         // (read at bootstrap), so this describe must reassert its own oauth config immediately
         // before booting its server.
-        McpPlugin.init({ oauth: { tokenSecret: TOKEN_SECRET } });
+        McpPlugin.init({ oauth: { tokenSecret: TOKEN_SECRET }, rateLimits: { oauthIp: false } });
         await noConsentUrlServer.init({
             initialData,
             productsCsvPath: path.join(__dirname, 'fixtures/e2e-products.csv'),
@@ -888,5 +897,58 @@ describe('shop authorization with no storefrontConsentUrl configured', () => {
         const connection = noConsentUrlServer.app.get(TransactionalConnection);
         const pending = await connection.rawConnection.getRepository(McpAuthorizationRequest).count();
         expect(pending).toBe(0);
+    });
+});
+
+describe('OAuth surface per-IP rate limit', () => {
+    const config = mergeConfig(testConfig(), {
+        plugins: [
+            McpPlugin.init({
+                oauth: { tokenSecret: TOKEN_SECRET },
+                rateLimits: { oauthIp: { rpm: 3 } },
+            }),
+        ],
+    });
+    const { server: rateLimitedServer } = createTestEnvironment(config);
+    const baseUrl = () => `http://localhost:${config.apiOptions.port}`;
+
+    beforeAll(async () => {
+        // Multiple test servers in this file share the McpPlugin class's static options field
+        // (read at bootstrap), so this describe must reassert its own oauth config immediately
+        // before booting its server.
+        McpPlugin.init({
+            oauth: { tokenSecret: TOKEN_SECRET },
+            rateLimits: { oauthIp: { rpm: 3 } },
+        });
+        await rateLimitedServer.init({
+            initialData,
+            productsCsvPath: path.join(__dirname, 'fixtures/e2e-products.csv'),
+            customerCount: 1,
+        });
+    }, TEST_SETUP_TIMEOUT_MS);
+
+    afterAll(async () => {
+        await rateLimitedServer.destroy();
+    });
+
+    it('allows up to the configured rpm then returns 429 with Retry-After and the generic body', async () => {
+        for (let i = 0; i < 3; i++) {
+            const response = await fetch(`${baseUrl()}/.well-known/oauth-authorization-server`);
+            expect(response.status).toBe(200);
+        }
+
+        const fourth = await fetch(`${baseUrl()}/.well-known/oauth-authorization-server`);
+        expect(fourth.status).toBe(429);
+        expect(fourth.headers.get('retry-after')).toMatch(/^\d+$/);
+        expect(await fourth.json()).toMatchObject({ error: 'rate_limit_exceeded' });
+    });
+
+    it('shares the bucket across different OAuth routes (a different endpoint also 429s)', async () => {
+        // The bucket above is already exhausted for this IP — a different route on the same
+        // controller must be refused too, pinning the one-shared-bucket design.
+        const response = await fetch(`${baseUrl()}/.well-known/oauth-protected-resource/mcp/shop`);
+        expect(response.status).toBe(429);
+        expect(response.headers.get('retry-after')).toMatch(/^\d+$/);
+        expect(await response.json()).toMatchObject({ error: 'rate_limit_exceeded' });
     });
 });

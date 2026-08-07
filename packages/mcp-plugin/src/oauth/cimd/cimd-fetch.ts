@@ -5,7 +5,7 @@ import * as http from 'http';
 import * as https from 'https';
 import { BlockList } from 'net';
 
-import { loggerCtx } from '../../constants';
+import { loggerCtx, MAX_CONCURRENT_CIMD_FETCHES } from '../../constants';
 
 // SSRF-guarded fetch for CIMD client metadata documents.
 //
@@ -117,10 +117,31 @@ function createGuardedLookup(allowLoopback: boolean, baseLookup: typeof dns.look
 const jsonContentType = /^application\/(?:[^;+\s]+\+)?json\s*(?:;.*)?$/i;
 
 /**
+ * CIMD fetches currently in flight, process-wide. Caps this server's outbound fan-out at
+ * {@link MAX_CONCURRENT_CIMD_FETCHES} sockets, however many distinct client_id URLs ask at once.
+ */
+let activeFetchCount = 0;
+
+/**
  * Fetches a client metadata document. Exactly one GET; a 200 JSON response within the
  * size and time budgets resolves, anything else rejects with a BadRequestException.
+ *
+ * At the concurrency cap it fails immediately, with the same generic error as a network
+ * failure — refusing the burst rather than queueing it into a backlog.
  */
-export function fetchCimdDocument(url: URL, options: CimdFetchOptions): Promise<CimdFetchResult> {
+export async function fetchCimdDocument(url: URL, options: CimdFetchOptions): Promise<CimdFetchResult> {
+    if (activeFetchCount >= MAX_CONCURRENT_CIMD_FETCHES) {
+        throw new BadRequestException('client_id metadata document could not be fetched');
+    }
+    activeFetchCount++;
+    try {
+        return await runFetch(url, options);
+    } finally {
+        activeFetchCount--;
+    }
+}
+
+function runFetch(url: URL, options: CimdFetchOptions): Promise<CimdFetchResult> {
     const transport = url.protocol === 'https:' ? https : http;
     const deadline = AbortSignal.timeout(options.timeoutMs);
     const timedOut = () => new BadRequestException('client_id metadata document request timed out');

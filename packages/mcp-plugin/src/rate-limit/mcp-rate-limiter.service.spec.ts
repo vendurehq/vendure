@@ -222,6 +222,82 @@ describe('McpRateLimiterService rate limiting', () => {
         ).rejects.toMatchObject({ details: { scope: 'tool:apply_coupon_code' } });
     });
 
+    it('applies the OAuth-IP limit and reports the OAuth IP scope', async () => {
+        const { service } = build({
+            rateLimits: {
+                perSession: { rpm: 0 },
+                perClient: { rpm: 0 },
+                anonymousIp: false,
+                oauthIp: { rpm: 2 },
+            },
+        });
+        await service.enforceOauthIpRateLimit('1.2.3.4');
+        await service.enforceOauthIpRateLimit('1.2.3.4');
+        await expect(service.enforceOauthIpRateLimit('1.2.3.4')).rejects.toMatchObject({
+            details: { scope: 'OAuth IP' },
+        });
+    });
+
+    it('keys the OAuth-IP bucket per IP — exhausting one IP does not limit another', async () => {
+        const { service } = build({
+            rateLimits: {
+                perSession: { rpm: 0 },
+                perClient: { rpm: 0 },
+                anonymousIp: false,
+                oauthIp: { rpm: 1 },
+            },
+        });
+        await service.enforceOauthIpRateLimit('1.2.3.4');
+        await expect(service.enforceOauthIpRateLimit('1.2.3.4')).rejects.toBeInstanceOf(
+            McpRateLimitExceededError,
+        );
+        await expect(service.enforceOauthIpRateLimit('5.6.7.8')).resolves.toBeUndefined();
+    });
+
+    it('does not apply the OAuth-IP limit when disabled (oauthIp: false)', async () => {
+        const { service } = build({
+            rateLimits: { perSession: { rpm: 0 }, perClient: { rpm: 0 }, anonymousIp: false, oauthIp: false },
+        });
+        for (let i = 0; i < 5; i++) {
+            await expect(service.enforceOauthIpRateLimit('1.2.3.4')).resolves.toBeUndefined();
+        }
+    });
+
+    it('does not apply the OAuth-IP limit when rpm is 0', async () => {
+        const { service } = build({
+            rateLimits: {
+                perSession: { rpm: 0 },
+                perClient: { rpm: 0 },
+                anonymousIp: false,
+                oauthIp: { rpm: 0 },
+            },
+        });
+        for (let i = 0; i < 5; i++) {
+            await expect(service.enforceOauthIpRateLimit('1.2.3.4')).resolves.toBeUndefined();
+        }
+    });
+
+    it('populates retryAfterSeconds when the OAuth-IP bucket is exceeded', async () => {
+        const { service } = build({
+            rateLimits: {
+                perSession: { rpm: 0 },
+                perClient: { rpm: 0 },
+                anonymousIp: false,
+                oauthIp: { rpm: 1 },
+            },
+        });
+        await service.enforceOauthIpRateLimit('1.2.3.4');
+        try {
+            await service.enforceOauthIpRateLimit('1.2.3.4');
+            expect.unreachable('expected enforceOauthIpRateLimit to throw');
+        } catch (e) {
+            expect(e).toBeInstanceOf(McpRateLimitExceededError);
+            const exceeded = e as McpRateLimitExceededError;
+            expect(exceeded.details.retryAfterSeconds).toBeGreaterThan(0);
+            expect(exceeded.details.retryAfterSeconds).toBeLessThanOrEqual(60);
+        }
+    });
+
     it('keeps in-process callers (no grant, no client IP) on separate per-session buckets', async () => {
         const { service } = build({
             rateLimits: { perSession: { rpm: 1 }, perClient: { rpm: 0 }, anonymousIp: false },

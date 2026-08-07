@@ -69,14 +69,19 @@ export const MAX_CLIENT_METADATA_FIELD_LENGTH = 255;
  */
 export const CIMD_CACHE_TTL_SECONDS = 60 * 60;
 
+/** Hard cap on simultaneous outbound CIMD fetches, regardless of how many distinct client_id URLs ask for one. */
+export const MAX_CONCURRENT_CIMD_FETCHES = 8;
+
 /**
- * Default rate limits. The anonymous-IP limit is ON by default (60 rpm) — it is the safety backstop
- * for the unattributable anonymous `/mcp/shop` surface, and is disabled only via explicit
- * `anonymousIp: false`. Per-tool limits are opt-in (`0` = unlimited) with two safe defaults.
+ * Default rate limits. The anonymous-IP and OAuth-IP limits are ON by default (60 rpm each) — they
+ * are the safety backstop for the unattributable anonymous `/mcp/shop` surface and the credential-less
+ * OAuth surface respectively, and are disabled only via an explicit `false`. Per-tool limits are
+ * opt-in (`0` = unlimited) with two safe defaults.
  */
 export const DEFAULT_RATE_LIMIT_OPTIONS: Required<McpRateLimitOptions> = {
     perSession: { rpm: 60 },
     perClient: { rpm: 120 },
     perTool: { place_order: { rpm: 5 }, create_product: { rpm: 10 } },
     anonymousIp: { rpm: 60 },
+    oauthIp: { rpm: 60 },
 };

@@ -55,7 +55,8 @@ export class McpRateLimitExceededError extends Error {
 /**
  * @description
  * Enforces fixed-window rate limits for MCP requests: per Vendure session, per OAuth client,
- * per anonymous IP (shop endpoint only), and per tool. Buckets are ephemeral, backed by CacheService.
+ * per anonymous IP (shop endpoint only), per tool, and per IP across the OAuth HTTP surface.
+ * Buckets are ephemeral, backed by CacheService.
  */
 @Injectable()
 export class McpRateLimiterService {
@@ -95,6 +96,22 @@ export class McpRateLimiterService {
             return;
         }
         const exceeded = await this.runChecks([check], 'MCP request');
+        if (exceeded) {
+            throw new McpRateLimitExceededError(exceeded);
+        }
+    }
+
+    /**
+     * Charges the OAuth-IP bucket alone, for a call into the OAuth HTTP surface. One shared bucket
+     * covers every route on `McpOauthController` — see {@link McpOauthRateLimitGuard}, which is
+     * the only caller of this method.
+     */
+    async enforceOauthIpRateLimit(clientIp?: string): Promise<void> {
+        const check = this.buildOauthIpCheck(this.ipKey(clientIp));
+        if (!check) {
+            return;
+        }
+        const exceeded = await this.runChecks([check], 'MCP OAuth request');
         if (exceeded) {
             throw new McpRateLimitExceededError(exceeded);
         }
@@ -180,6 +197,16 @@ export class McpRateLimiterService {
             return undefined;
         }
         return { key: `anonymous-ip:${endpoint}:${ipKey}`, rpm, scope: 'anonymous IP' };
+    }
+
+    /** The OAuth-IP bucket, or `undefined` when it does not apply. */
+    private buildOauthIpCheck(ipKey: string): RateLimitCheck | undefined {
+        const oauthIp = this.options.rateLimits?.oauthIp;
+        const rpm = oauthIp === false ? 0 : (oauthIp?.rpm ?? 0);
+        if (rpm <= 0) {
+            return undefined;
+        }
+        return { key: `oauth-ip:${ipKey}`, rpm, scope: 'OAuth IP' };
     }
 
     /** One bucket per name in `input.toolNames`, keyed by actor+session (see {@link toolActorKey}). */

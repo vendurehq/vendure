@@ -36,6 +36,7 @@ import { McpCimdClientResolverService } from './oauth/cimd/cimd-client-resolver.
 import { isLoopbackHostname } from './oauth/loopback';
 import { McpOauthController } from './oauth/oauth.controller';
 import { McpOauthService } from './oauth/oauth.service';
+import { McpOauthRateLimitGuard } from './rate-limit/mcp-oauth-rate-limit.guard';
 import { McpRateLimiterService } from './rate-limit/mcp-rate-limiter.service';
 import { McpToolExecutionService } from './registry/mcp-tool-execution.service';
 import { McpToolRegistryService } from './registry/mcp-tool-registry.service';
@@ -76,6 +77,7 @@ import { McpPluginOptions, McpRateLimitOptions } from './types';
         McpToolRegistryService,
         McpToolExecutionService,
         McpRateLimiterService,
+        McpOauthRateLimitGuard,
         McpToolCallLogService,
         ...mcpBuiltInToolProviders,
     ],
@@ -158,6 +160,8 @@ export class McpPlugin implements OnApplicationBootstrap {
                 rateLimits?.anonymousIp === undefined
                     ? DEFAULT_RATE_LIMIT_OPTIONS.anonymousIp
                     : rateLimits.anonymousIp,
+            oauthIp:
+                rateLimits?.oauthIp === undefined ? DEFAULT_RATE_LIMIT_OPTIONS.oauthIp : rateLimits.oauthIp,
         };
     }
 

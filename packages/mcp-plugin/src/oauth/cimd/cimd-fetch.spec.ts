@@ -3,6 +3,8 @@ import * as http from 'http';
 import { AddressInfo } from 'net';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { MAX_CONCURRENT_CIMD_FETCHES } from '../../constants';
+
 import { fetchCimdDocument, isAllowedCimdAddress } from './cimd-fetch';
 
 type Handler = (req: http.IncomingMessage, res: http.ServerResponse) => void;
@@ -118,6 +120,53 @@ describe('fetchCimdDocument', () => {
         const target = new URL(`http://cimd-host.example:${url.port}/metadata.json`);
         const result = await fetchCimdDocument(target, { ...baseOptions, lookup });
         expect(result.body).toBe('{"via":"lookup"}');
+    });
+});
+
+describe('fetchCimdDocument concurrency cap', () => {
+    /** Starts a server that holds the connection open until its returned resolver is called. */
+    async function startHangingServer(): Promise<{ url: URL; ready: Promise<http.ServerResponse> }> {
+        let resolveReady!: (res: http.ServerResponse) => void;
+        const ready = new Promise<http.ServerResponse>(resolve => {
+            resolveReady = resolve;
+        });
+        const url = await startServer((req, res) => {
+            res.setHeader('content-type', 'application/json');
+            resolveReady(res);
+        });
+        return { url, ready };
+    }
+
+    it('rejects immediately at the cap while distinct fetches are pending, then admits a new one once a slot frees', async () => {
+        const hanging = await Promise.all(
+            Array.from({ length: MAX_CONCURRENT_CIMD_FETCHES }, () => startHangingServer()),
+        );
+        // Fires MAX_CONCURRENT_CIMD_FETCHES distinct-URL fetches. The slot counter is incremented
+        // synchronously inside fetchCimdDocument, so calling it this many times already fills the cap
+        // — none of these need to reach their server first.
+        const pending = hanging.map(h => fetchCimdDocument(h.url, baseOptions));
+
+        const extraUrl = await startServer((req, res) => res.end('{}'));
+        await expect(fetchCimdDocument(extraUrl, baseOptions)).rejects.toThrow(
+            'client_id metadata document could not be fetched',
+        );
+
+        // Release the first batch and confirm they still complete normally — a thrown/rejected
+        // fetch beyond the cap must not have consumed one of their slots.
+        const responses = await Promise.all(hanging.map(h => h.ready));
+        responses.forEach(res => res.end('{"ok":true}'));
+        const results = await Promise.all(pending);
+        expect(results).toHaveLength(MAX_CONCURRENT_CIMD_FETCHES);
+        results.forEach(result => expect(result.body).toBe('{"ok":true}'));
+
+        // A slot freed up when the batch above settled, so a brand-new fetch is admitted.
+        const freedUrl = await startServer((req, res) => {
+            res.setHeader('content-type', 'application/json');
+            res.end('{"via":"freed-slot"}');
+        });
+        await expect(fetchCimdDocument(freedUrl, baseOptions)).resolves.toMatchObject({
+            body: '{"via":"freed-slot"}',
+        });
     });
 });
 
