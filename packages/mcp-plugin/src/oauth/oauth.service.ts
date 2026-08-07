@@ -238,7 +238,6 @@ export class McpOauthService {
                 toolset,
                 resource,
                 expiresAt: addSeconds(new Date(), this.resolvedOauth().authorizationRequestTtlSeconds),
-                consumedAt: null,
             }),
         );
         consentUrl.searchParams.set('request_token', requestTokenPlaintext);
@@ -550,8 +549,8 @@ export class McpOauthService {
 
     async deleteExpiredOauthRecords(ctx: RequestContext): Promise<McpOauthRetentionResult> {
         const deletedSessions = await this.deleteSessionsOfExpiredGrants(ctx);
-        const deletedRequests = await this.deleteSpentRecords(ctx, McpAuthorizationRequest);
-        const deletedCodes = await this.deleteSpentRecords(ctx, McpAuthorizationCode);
+        const deletedRequests = await this.deleteExpiredShortLivedRecords(ctx, McpAuthorizationRequest);
+        const deletedCodes = await this.deleteExpiredShortLivedRecords(ctx, McpAuthorizationCode);
         const deletedGrants = await this.deleteDeadGrants(ctx);
         const deletedClients = await this.deleteUnusedClients(ctx);
         return { deletedSessions, deletedRequests, deletedCodes, deletedGrants, deletedClients };
@@ -585,11 +584,11 @@ export class McpOauthService {
     }
 
     /**
-     * Deletes authorization requests or codes that have expired or already been consumed. Their
-     * lifetimes are 10 minutes and 60 seconds, and once spent there is nothing in them to audit,
-     * so they are removed without a grace window.
+     * Deletes authorization requests or codes that have expired without ever being used. Their
+     * lifetimes are 10 minutes and 60 seconds; a used one is deleted immediately by the atomic
+     * claim that consumes it, so this only ever catches abandoned flows.
      */
-    private deleteSpentRecords<T extends ObjectLiteral>(
+    private deleteExpiredShortLivedRecords<T extends ObjectLiteral>(
         ctx: RequestContext,
         entity: ObjectType<T>,
     ): Promise<number> {
@@ -599,7 +598,6 @@ export class McpOauthService {
                 .createQueryBuilder('record')
                 .select('record.id', 'id')
                 .where('record.expiresAt <= :now', { now: new Date() })
-                .orWhere('record.consumedAt IS NOT NULL')
                 .limit(RETENTION_DELETE_BATCH_SIZE)
                 .getRawMany<{ id: ID }>(),
         );
@@ -701,10 +699,8 @@ export class McpOauthService {
         const claim = await this.connection
             .getRepository(ctx, McpAuthorizationRequest)
             .createQueryBuilder()
-            .update(McpAuthorizationRequest)
-            .set({ consumedAt: () => 'CURRENT_TIMESTAMP' })
+            .delete()
             .where('requestToken = :requestToken', { requestToken: this.hashLookup(requestToken) })
-            .andWhere('consumedAt IS NULL')
             .execute();
         if (!claim.affected) {
             throw new BadRequestException('Authorization request invalid or expired');
@@ -751,7 +747,6 @@ export class McpOauthService {
                 codeChallengeMethod: request.codeChallengeMethod,
                 channelId,
                 expiresAt: addSeconds(new Date(), this.resolvedOauth().authorizationCodeTtlSeconds),
-                consumedAt: null,
             }),
         );
         return {
@@ -781,7 +776,7 @@ export class McpOauthService {
             where: { code: this.hashLookup(input.code) },
             relations: ['oauthClient'],
         });
-        if (!code || code.consumedAt || code.expiresAt <= new Date()) {
+        if (!code || code.expiresAt <= new Date()) {
             throw new BadRequestException('Authorization code invalid or expired');
         }
         if (code.oauthClient.clientId !== input.client_id || code.redirectUri !== input.redirect_uri) {
@@ -795,10 +790,8 @@ export class McpOauthService {
         }
         const claim = await codeRepo
             .createQueryBuilder()
-            .update(McpAuthorizationCode)
-            .set({ consumedAt: () => 'CURRENT_TIMESTAMP' })
+            .delete()
             .where('code = :code', { code: this.hashLookup(input.code) })
-            .andWhere('consumedAt IS NULL')
             .execute();
         if (!claim.affected) {
             throw new BadRequestException('Authorization code invalid or expired');
@@ -989,7 +982,7 @@ export class McpOauthService {
             where: { requestToken: this.hashLookup(requestToken) },
             relations: ['oauthClient'],
         });
-        if (!request || request.consumedAt || request.expiresAt <= new Date()) {
+        if (!request || request.expiresAt <= new Date()) {
             throw new BadRequestException('Authorization request invalid or expired');
         }
         return request;

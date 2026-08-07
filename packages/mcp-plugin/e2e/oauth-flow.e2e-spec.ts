@@ -455,9 +455,9 @@ describe('McpPlugin OAuth end-to-end flow', () => {
         expect(await sessionRepo.findOne({ where: { token: superAdminToken } })).toBeTruthy();
     });
 
-    // A completed flow leaves one consumed request and one consumed code behind. Both are spent
-    // protocol ephemera, and nothing ever removed them.
-    it('deletes the authorization request and code a completed flow consumed', async () => {
+    // Using a request or code deletes the row outright (the atomic claim is a DELETE, not a
+    // flag flip), so a completed flow leaves nothing behind for the sweep to find.
+    it('leaves no authorization request or code behind after a completed flow', async () => {
         const oauth = server.app.get(McpOauthService);
         const connection = server.app.get(TransactionalConnection);
         const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
@@ -470,21 +470,78 @@ describe('McpPlugin OAuth end-to-end flow', () => {
         const codeRepo = connection.getRepository(ctx, McpAuthorizationCode);
         const findRequest = () => requestRepo.findOne({ where: { requestToken: lookupHash(request_token) } });
         const findCode = () => codeRepo.findOne({ where: { code: lookupHash(code) } });
-        expect(await findRequest()).toBeTruthy();
-        expect(await findCode()).toBeTruthy();
+
+        // Approving the request deleted it, and exchanging the code deleted that too.
+        expect(await findRequest()).toBeNull();
+        expect(await findCode()).toBeNull();
 
         const result = await oauth.deleteExpiredOauthRecords(ctx);
 
-        expect(await findRequest()).toBeNull();
-        expect(await findCode()).toBeNull();
-        // The grant this flow created is still live, so neither it nor its session is touched.
+        // Nothing left for the sweep to find. The grant this flow created is still live, so
+        // neither it nor its session is touched.
         expect(result).toEqual({
             deletedSessions: 0,
-            deletedRequests: 1,
-            deletedCodes: 1,
+            deletedRequests: 0,
+            deletedCodes: 0,
             deletedGrants: 0,
             deletedClients: 0,
         });
+    });
+
+    // A request or code that is created but never used — an abandoned flow — has no claim to
+    // delete it, so the sweep is the only thing that ever removes it, once it has expired.
+    it('sweeps an authorization request and code that expired without ever being used', async () => {
+        const oauth = server.app.get(McpOauthService);
+        const connection = server.app.get(TransactionalConnection);
+        const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+        const requestRepo = connection.getRepository(ctx, McpAuthorizationRequest);
+        const codeRepo = connection.getRepository(ctx, McpAuthorizationCode);
+
+        // Drain what earlier tests left behind, so the counts below are exact.
+        await oauth.deleteExpiredOauthRecords(ctx);
+
+        const client = await createClient(ctx);
+        const superadmin = await connection.getRepository(ctx, User).findOneByOrFail({
+            identifier: 'superadmin',
+        });
+        const uniqueSuffix = Math.random().toString(36).slice(2);
+
+        const request = await requestRepo.save(
+            new McpAuthorizationRequest({
+                requestToken: `expired-request-${uniqueSuffix}`,
+                oauthClient: client,
+                oauthClientId: client.id,
+                redirectUri: 'https://example.com/cb',
+                state: null,
+                codeChallenge: 'challenge',
+                codeChallengeMethod: 'S256',
+                toolset: 'admin',
+                resource: `${ISSUER}/mcp/admin`,
+                expiresAt: new Date(Date.now() - 60_000),
+            }),
+        );
+        const authCode = await codeRepo.save(
+            new McpAuthorizationCode({
+                code: `expired-code-${uniqueSuffix}`,
+                oauthClient: client,
+                oauthClientId: client.id,
+                userId: superadmin.id,
+                userType: 'admin',
+                redirectUri: 'https://example.com/cb',
+                resource: `${ISSUER}/mcp/admin`,
+                codeChallenge: 'challenge',
+                codeChallengeMethod: 'S256',
+                channelId: null,
+                expiresAt: new Date(Date.now() - 60_000),
+            }),
+        );
+
+        const result = await oauth.deleteExpiredOauthRecords(ctx);
+
+        expect(result.deletedRequests).toBe(1);
+        expect(result.deletedCodes).toBe(1);
+        expect(await requestRepo.findOne({ where: { id: request.id } })).toBeNull();
+        expect(await codeRepo.findOne({ where: { id: authCode.id } })).toBeNull();
     });
 
     // The grant row is the only OAuth record carrying audit value, so it outlives its own expiry

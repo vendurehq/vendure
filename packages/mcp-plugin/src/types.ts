@@ -133,7 +133,7 @@ export interface McpOauthOptions {
     /**
      * @description
      * Schedule for the cleanup job that prunes OAuth records which can no longer be used: the
-     * Vendure session created for each expired grant, expired or spent authorization requests and
+     * Vendure session created for each expired grant, expired authorization requests and
      * codes, and grants dead for longer than `grantRetentionDays`.
      *
      * @default cron => cron.everyDayAt(3, 30)

@@ -60,8 +60,4 @@ export class McpAuthorizationCode extends VendureEntity {
     @Index()
     @Column({ type: Date })
     expiresAt: Date;
-
-    @Index()
-    @Column({ type: Date, nullable: true })
-    consumedAt: Date | null;
 }

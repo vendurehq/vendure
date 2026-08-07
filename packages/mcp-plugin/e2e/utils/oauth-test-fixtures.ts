@@ -88,7 +88,6 @@ export async function seedAuthorizationCode(
             codeChallengeMethod: 'S256',
             channelId: null,
             expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-            consumedAt: null,
         }),
     );
 
