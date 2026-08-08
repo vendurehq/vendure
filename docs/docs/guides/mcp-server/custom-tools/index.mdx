@@ -83,6 +83,15 @@ export class MyPlugin {}
 
 That is all — the MCP registry discovers every `@McpTool` provider across the running app at bootstrap.
 
+## Tool names share one namespace
+
+Within a toolset, every tool name — yours and Vendure's built-in ones — lives in a single flat namespace, and a
+duplicate name is a startup error naming both sources. That is the right behaviour for a genuine clash, but it
+has a forward-compatibility consequence: if a later Vendure release ships a built-in tool with the same name as
+yours, servers running your plugin will refuse to start after the upgrade. Prefix your tool names with something
+specific to your plugin — `wishlist_add_item` rather than `add_item` — so a future built-in name cannot collide
+with yours.
+
 ## Input and output schemas are JSON Schema
 
 `inputSchema` and `outputSchema` are plain JSON Schema objects
