@@ -252,6 +252,13 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
                 `MCP tool "${metadata.name}" (${pluginSource}): outputSchema must be a plain JSON Schema object.`,
             );
         }
+        if (metadata.toolset === 'admin' && (metadata.permissions?.length ?? 0) === 0) {
+            throw new Error(
+                `Admin MCP tool "${metadata.name}" declares no permissions. Declare the permissions ` +
+                    `required to call it, e.g. permissions: [Permission.Authenticated] if any administrator ` +
+                    `may call it.`,
+            );
+        }
         const resolvedBehavior = this.getToolBehavior(metadata);
         const jsonInputSchema = metadata.inputSchema ?? NO_ARGS_SCHEMA;
         if (resolvedBehavior === 'destructive' && jsonInputSchema.properties?.confirm !== undefined) {

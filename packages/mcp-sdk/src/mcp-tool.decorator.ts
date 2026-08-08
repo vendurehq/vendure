@@ -46,6 +46,12 @@ export interface McpToolMetadata {
     /**
      * Permissions needed to call the tool. The caller only needs one of them
      * (OR logic, the same as `@Allow`).
+     *
+     * On a `shop` tool, omitting this (or declaring an empty array) means Public — callable by
+     * anyone who can reach the shop endpoint, no authentication required.
+     *
+     * On an `admin` tool, this is required: the server refuses to start if it is omitted or
+     * empty. If any administrator may call it, you can use `[Permission.Authenticated]`.
      */
     permissions?: Permission[];
     /**

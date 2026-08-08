@@ -117,6 +117,12 @@ every call's arguments against the schema before your `execute` runs.
 match the permissions the equivalent Admin GraphQL operation requires, so a tool is never more permissive than
 the API it wraps.
 
+Omitting `permissions` means different things on each toolset. On a `shop` tool, omitted (or an empty array) means
+`Permission.Public` — callable by anyone who can reach the shop endpoint. On an `admin` tool, `permissions` is
+required: the registry aborts boot, naming the tool, if it is missing or empty. If any administrator may call it,
+say so with `[Permission.Authenticated]` — an explicit `[Permission.Public]` is also accepted, but reads as
+"anonymous allowed" on an admin tool, which is misleading since both behave the same on the admin endpoint.
+
 ## Destructive tools and confirmation
 
 Mark a tool that deletes, cancels, refunds, or otherwise makes a hard-to-reverse change with
@@ -181,7 +187,7 @@ The full field list, types, and defaults are on
 | `title` | Optional human-friendly title |
 | `description` | Agent-facing description — write it for the model |
 | `toolset` | `'shop'` or `'admin'` — which endpoint serves it |
-| `permissions` | `Permission[]`, OR semantics |
+| `permissions` | `Permission[]`, OR semantics. Omitted/empty on `shop` defaults to Public; required on `admin` — boot fails without it |
 | `behavior` | Safety classification: `'readonly'`, `'mutating'` (default), or `'destructive'` |
 | `inputSchema` / `outputSchema` | JSON Schema; input validated pre-call, output drift-checked post-call |
 | `keywords` | Search-only synonyms for discovery mode |

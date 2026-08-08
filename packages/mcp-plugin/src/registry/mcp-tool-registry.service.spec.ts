@@ -75,6 +75,15 @@ const shopTool = (over: Partial<McpToolMetadata> = {}): McpToolMetadata => ({
     ...over,
 });
 
+const adminTool = (over: Partial<McpToolMetadata> = {}): McpToolMetadata => ({
+    name: 'admin_thing',
+    description: 'Does an admin thing',
+    toolset: 'admin' as McpToolset,
+    behavior: 'readonly',
+    permissions: [Permission.Authenticated],
+    ...over,
+});
+
 describe('McpToolRegistryService', () => {
     describe('discovery + bootstrap gate', () => {
         it('discovers @McpTool providers keyed by toolset:name', () => {
@@ -127,6 +136,30 @@ describe('McpToolRegistryService', () => {
             expect(() => service.onApplicationBootstrap()).toThrow(
                 /get_thing inputSchema.*failed to compile/,
             );
+        });
+
+        it('rejects an admin tool with no permissions declared (names the tool)', () => {
+            const { service } = build([wrapper(adminTool({ permissions: undefined }))]);
+            expect(() => service.onApplicationBootstrap()).toThrow(
+                /Admin MCP tool "admin_thing" declares no permissions/,
+            );
+        });
+
+        it('rejects an admin tool with an empty permissions array', () => {
+            const { service } = build([wrapper(adminTool({ permissions: [] }))]);
+            expect(() => service.onApplicationBootstrap()).toThrow(
+                /Admin MCP tool "admin_thing" declares no permissions/,
+            );
+        });
+
+        it('boots an admin tool that explicitly declares Permission.Public', () => {
+            const { service } = build([wrapper(adminTool({ permissions: [Permission.Public] }))]);
+            expect(() => service.onApplicationBootstrap()).not.toThrow();
+        });
+
+        it('boots a shop tool with no permissions declared (defaults to Public)', () => {
+            const { service } = build([wrapper(shopTool({ permissions: undefined }))]);
+            expect(() => service.onApplicationBootstrap()).not.toThrow();
         });
     });
 
