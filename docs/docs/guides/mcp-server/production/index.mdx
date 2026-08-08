@@ -158,7 +158,8 @@ table. What gets stored is controlled by [`logging.capture`](/reference/core-plu
 
   If you enable `full` without a `redact` function, the plugin logs a one-time warning at bootstrap that you may
   be storing sensitive data. There is no `verbose` option and no built-in PII redactor — capture level plus your
-  own `redact` is the whole model.
+  own `redact` is the whole model. If your `redact` function throws, the call is still logged, but with both
+  `input` and `output` set to `null`.
 
 Logs are pruned automatically. `logging.ttlDays` (default 30) sets the retention window, and a scheduled task
 deletes expired rows daily at 02:30. Override the schedule with `logging.retentionSchedule`.

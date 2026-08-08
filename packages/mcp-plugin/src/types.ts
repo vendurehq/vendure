@@ -264,6 +264,8 @@ export interface McpLoggingOptions {
     /**
      * Optional function to sanitize a call's `input` and `output`
      * before they are stored. Only applies when `capture` is `'full'`.
+     * If this function throws, the call is still recorded but with `input` and `output`
+     * set to `null`, and a warning is logged.
      *
      * @example
      * ```ts

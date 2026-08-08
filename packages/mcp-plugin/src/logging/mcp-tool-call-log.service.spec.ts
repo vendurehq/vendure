@@ -156,6 +156,33 @@ describe('McpToolCallLogService tool-call logging', () => {
         expect(savedLogs[0].output).toBeNull();
     });
 
+    it('records the call without bodies and still publishes when the redact function throws', async () => {
+        const redact = vi.fn(() => {
+            throw new Error('boom');
+        });
+        const { service, savedLogs, publishedEvents, save } = build({ logging: { capture: 'full', redact } });
+        await expect(
+            service.logToolCall({
+                executionContext: { ctx: { apiType: 'shop', channelId: 1 } } as any,
+                tool: toolStub('my_tool'),
+                input: { email: 'a@b.com' },
+                output: { secret: 1 },
+                durationMs: 1,
+                status: 'success',
+            }),
+        ).resolves.toBeUndefined();
+        // A broken redact function must not cost the audit row: it's still saved (with its
+        // metadata) and published, just fail-closed with no bodies rather than storing the raw
+        // (unredacted) ones.
+        expect(save).toHaveBeenCalledOnce();
+        expect(savedLogs).toHaveLength(1);
+        expect(savedLogs[0].input).toBeNull();
+        expect(savedLogs[0].output).toBeNull();
+        expect(publishedEvents).toHaveLength(1);
+        expect(warnSpy).toHaveBeenCalledOnce();
+        expect(warnSpy.mock.calls[0][0]).toMatch(/logging\.redact/);
+    });
+
     it('publishes a McpToolCallEvent carrying the persisted row, for success and error', async () => {
         const { service, savedLogs, publishedEvents } = build({});
         const ctx = { apiType: 'shop', channelId: 1 } as any;
