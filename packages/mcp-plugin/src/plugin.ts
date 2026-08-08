@@ -10,7 +10,7 @@ import {
 } from '@vendure/core';
 
 import { adminApiExtensions, shopApiExtensions } from './api/api-extensions';
-import { McpAdminResolver } from './api/mcp-admin.resolver';
+import { McpAdminResolver, McpToolCallLogEntityResolver } from './api/mcp-admin.resolver';
 import { McpShopResolver } from './api/mcp-shop.resolver';
 import {
     DEFAULT_LOG_TTL_DAYS,
@@ -84,7 +84,7 @@ import { McpPluginOptions, McpRateLimitOptions } from './types';
     entities: [McpOauthClient, McpAuthorizationCode, McpAuthorizationRequest, McpOauthGrant, McpToolCallLog],
     adminApiExtensions: {
         schema: adminApiExtensions,
-        resolvers: [McpAdminResolver],
+        resolvers: [McpAdminResolver, McpToolCallLogEntityResolver],
     },
     shopApiExtensions: {
         schema: shopApiExtensions,

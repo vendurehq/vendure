@@ -1,4 +1,4 @@
-import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { Args, Mutation, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
 import {
     Allow,
     CacheService,
@@ -306,5 +306,25 @@ export class McpAdminResolver {
             qb.andWhere('log.channelId = :channelId', { channelId: ctx.channelId });
         }
         return qb;
+    }
+}
+
+/**
+ * Field resolvers for `McpToolCallLog.input` and `.output`. With full capture on, these
+ * bodies can contain customer personal data (names, emails, addresses) from shop tool
+ * calls, so reading them needs the customer-read permission on top of the plugin's own
+ * read permission that already gates the `mcpToolCallLogs` query. A caller without it
+ * gets `null` back rather than a thrown error.
+ */
+@Resolver('McpToolCallLog')
+export class McpToolCallLogEntityResolver {
+    @ResolveField()
+    input(@Parent() log: McpToolCallLog, @Ctx() ctx: RequestContext): unknown {
+        return ctx.userHasPermissions([Permission.ReadCustomer]) ? log.input : null;
+    }
+
+    @ResolveField()
+    output(@Parent() log: McpToolCallLog, @Ctx() ctx: RequestContext): unknown {
+        return ctx.userHasPermissions([Permission.ReadCustomer]) ? log.output : null;
     }
 }

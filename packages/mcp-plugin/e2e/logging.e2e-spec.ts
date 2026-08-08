@@ -6,6 +6,7 @@ import {
     TransactionalConnection,
 } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
+import gql from 'graphql-tag';
 import path from 'path';
 import { firstValueFrom } from 'rxjs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -125,5 +126,162 @@ describe('MCP tool-call logging', () => {
         expect(row.oauthClientId).not.toBeNull();
         expect(row.actor).not.toBeNull(); // stringified user id
         expect(row.channelId).not.toBeNull();
+    });
+});
+
+const MCP_TOOL_CALL_LOGS_QUERY = `
+    query ($options: McpToolCallLogListOptions) {
+        mcpToolCallLogs(options: $options) {
+            items {
+                toolName
+                status
+                input
+                output
+            }
+        }
+    }
+`;
+
+interface GraphQLResponse<T = any> {
+    data?: T;
+    errors?: Array<{ message: string }>;
+}
+
+// A caller needs ReadMcpServer to reach mcpToolCallLogs at all, but with full capture on
+// the stored bodies can hold customer personal data — so reading input/output also needs
+// ReadCustomer, gated at the field level rather than the query level.
+describe('MCP tool-call log input/output permission gating (full capture)', () => {
+    const options: McpPluginOptions = {
+        oauth: { tokenSecret: TOKEN_SECRET },
+        logging: { capture: 'full' },
+    };
+    const config = mergeConfig(testConfig(), {
+        plugins: [McpTestToolsPlugin, McpPlugin.init(options)],
+    });
+    const { server, adminClient } = createTestEnvironment(config);
+    const baseUrl = () => `http://localhost:${config.apiOptions.port}`;
+    const adminApiUrl = () => `${baseUrl()}/${config.apiOptions.adminApiPath ?? 'admin-api'}`;
+
+    let superAdminToken: string;
+    let defaultChannelGqlId: string;
+
+    beforeAll(async () => {
+        McpPlugin.init(options);
+        await server.init({ initialData, productsCsvPath, customerCount: 1 });
+        await adminClient.asSuperAdmin();
+        superAdminToken = adminClient.getAuthToken();
+
+        const { activeChannel } = await adminClient.query(gql`
+            query {
+                activeChannel {
+                    id
+                }
+            }
+        `);
+        defaultChannelGqlId = activeChannel.id;
+
+        // Trigger a real tool call so a full-capture row with non-null input/output exists.
+        await postMcp(baseUrl(), 'shop', callTool('shop_ping', { text: 'jane.doe@example.com' }, 1));
+    }, TEST_SETUP_TIMEOUT_MS);
+
+    afterAll(async () => {
+        await server.destroy();
+    });
+
+    /** Runs a GraphQL request against the admin API as the given token, without touching the shared adminClient's login state. */
+    async function adminGraphQL<T = any>(
+        token: string,
+        query: string,
+        variables: Record<string, unknown> = {},
+    ): Promise<GraphQLResponse<T>> {
+        const response = await fetch(adminApiUrl(), {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ query, variables }),
+        });
+        return (await response.json()) as GraphQLResponse<T>;
+    }
+
+    /**
+     * Creates an administrator with exactly these permissions and returns its login token.
+     * Uses a plain fetch login (not `adminClient.asUserWithCredentials`) so the shared
+     * `adminClient`'s superadmin session, captured above, is never disturbed.
+     */
+    async function provisionAdmin(key: string, permissions: string[]): Promise<string> {
+        const email = `${key}@example.test`;
+        const role = await adminClient.query(
+            gql`
+                mutation CreateRole($input: CreateRoleInput!) {
+                    createRole(input: $input) {
+                        id
+                    }
+                }
+            `,
+            {
+                input: {
+                    code: `mcp-${key}-role`,
+                    description: `${key} role`,
+                    permissions,
+                    channelIds: [defaultChannelGqlId],
+                },
+            },
+        );
+        await adminClient.query(
+            gql`
+                mutation CreateAdmin($input: CreateAdministratorInput!) {
+                    createAdministrator(input: $input) {
+                        id
+                    }
+                }
+            `,
+            {
+                input: {
+                    firstName: key,
+                    lastName: 'Admin',
+                    emailAddress: email,
+                    password: 'test',
+                    roleIds: [role.createRole.id],
+                },
+            },
+        );
+        const response = await fetch(adminApiUrl(), {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+                query: `mutation { login(username: "${email}", password: "test") { __typename } }`,
+            }),
+        });
+        const token = response.headers.get('vendure-auth-token');
+        if (!token) {
+            throw new Error(`Login failed for ${key}: ${await response.text()}`);
+        }
+        return token;
+    }
+
+    it('an admin with only ReadMcpServer sees metadata but gets null input/output', async () => {
+        const limitedToken = await provisionAdmin('mcp-read-only-log', ['ReadMcpServer']);
+
+        const result = await adminGraphQL(limitedToken, MCP_TOOL_CALL_LOGS_QUERY, {
+            options: { filter: { toolName: { eq: 'shop_ping' } }, take: 1 },
+        });
+        expect(result.errors).toBeUndefined();
+        const row = result.data.mcpToolCallLogs.items[0];
+        expect(row.toolName).toBe('shop_ping');
+        expect(row.status).toBe('success');
+        expect(row.input).toBeNull();
+        expect(row.output).toBeNull();
+    });
+
+    it('the superadmin, who holds ReadCustomer, sees the actual bodies', async () => {
+        const result = await adminGraphQL(superAdminToken, MCP_TOOL_CALL_LOGS_QUERY, {
+            options: { filter: { toolName: { eq: 'shop_ping' } }, take: 1 },
+        });
+        expect(result.errors).toBeUndefined();
+        const row = result.data.mcpToolCallLogs.items[0];
+        expect(row.toolName).toBe('shop_ping');
+        expect(row.input).not.toBeNull();
+        expect(row.output).not.toBeNull();
+        expect(row.input).toMatchObject({ text: 'jane.doe@example.com' });
+        expect(row.output).toMatchObject({ text: 'jane.doe@example.com' });
     });
 });

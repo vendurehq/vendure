@@ -161,6 +161,10 @@ table. What gets stored is controlled by [`logging.capture`](/reference/core-plu
   own `redact` is the whole model. If your `redact` function throws, the call is still logged, but with both
   `input` and `output` set to `null`.
 
+  Storing the bodies is not the same as exposing them: reading the `input`/`output` fields of a call log through
+  the Admin API additionally requires the `ReadCustomer` permission, on top of the `ReadMcpServer` permission that
+  gates the query itself. A caller without it gets `null` for those two fields; the rest of the row is unaffected.
+
 Logs are pruned automatically. `logging.ttlDays` (default 30) sets the retention window, and a scheduled task
 deletes expired rows daily at 02:30. Override the schedule with `logging.retentionSchedule`.
 
@@ -226,7 +230,10 @@ setup — it is not repeated here. Two MCP-specific notes:
 The MCP admin surface — the GraphQL API and the dashboard overview — runs under a dedicated `McpServer`
 permission, not the general Settings permission:
 
-- **`ReadMcpServer`** grants read access: the tool registry, active grants, call logs, and stats.
+- **`ReadMcpServer`** grants read access: the tool registry, active grants, call logs, and stats. On its own it
+  never exposes captured call bodies — under `logging.capture: 'full'` those can contain customer personal data,
+  so reading the `input`/`output` fields of a call log also requires `ReadCustomer`; without it they come back
+  `null`.
 - **`UpdateMcpServer`** grants mutations: toggling tools on/off, revoking grants, pruning logs, and
   [approving admin consent requests](/guides/mcp-server/oauth-consent/#admin-consent-ships-with-the-dashboard).
 

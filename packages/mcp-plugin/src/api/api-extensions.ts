@@ -32,7 +32,7 @@ export const adminApiExtensions = gql`
 
     """
     One logged tool call. input and output are null unless the server is set to
-    capture full call bodies.
+    capture full call bodies and the caller also holds the ReadCustomer permission.
     """
     type McpToolCallLog implements Node {
         id: ID!
