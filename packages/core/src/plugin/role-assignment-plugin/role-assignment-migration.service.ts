@@ -26,19 +26,21 @@ export interface MigrateLegacyRolesResult {
  * channels. Administrator users have no channel membership of their own, so their
  * assignments follow the role's channels directly. A user which is both an administrator
  * and a customer is treated as a customer user, i.e. all of its assignments are restricted
- * to the customer's channels. Note that once permission resolution switches to this table,
- * operations which today extend the legacy relations (channel creation auto-assigning the
- * SuperAdmin/Customer roles, customer registration) must create the corresponding
- * RoleAssignment rows to stay consistent.
+ * to the customer's channels. Permission resolution is driven by this table (see
+ * {@link RoleAssignmentPermissionResolverStrategy}); operations which extend the legacy
+ * relations after this backfill (role grants, channel creation auto-assigning the
+ * SuperAdmin role, customer registration) are not yet mirrored into RoleAssignment rows —
+ * until that sync layer lands in a subsequent stage, a manual re-run of
+ * `migrateLegacyRoles()` picks them up.
  *
  * To keep memory usage bounded regardless of store size, the candidate rows are processed
  * in keyset-paginated batches, and rows which already have a RoleAssignment are excluded
  * DB-side via an anti-join rather than being loaded and diffed in memory.
  *
  * The migration is purely additive and idempotent: existing legacy relations are left
- * untouched (they remain the source of truth for permission resolution until the resolver
- * strategy is implemented, and keeping them makes disabling the experimental flag
- * non-destructive), and re-running it only creates whatever RoleAssignments are missing.
+ * untouched (they remain writable through the existing admin API, and keeping them makes
+ * disabling the experimental flag non-destructive), and re-running it only creates
+ * whatever RoleAssignments are missing.
  * It runs on server bootstrap while the `experimental.roleAssignments` flag is enabled,
  * but only when the `role_assignment` table is still empty (see {@link RoleAssignmentPlugin});
  * it can be invoked manually to pick up relations created since.
@@ -63,6 +65,7 @@ export class RoleAssignmentMigrationService {
         // work only), but on SQL Server `orIgnore()` degrades to a plain INSERT, so the losing
         // instance hits a unique-constraint violation and its startup aborts. Consider an
         // advisory lock, or catching the error and logging instead of failing bootstrap.
+        Logger.info('Starting migration of legacy user-role relations to RoleAssignments...', loggerCtx);
         const rawConnection = this.connection.rawConnection;
         const batchSize = 500;
         let created = 0;

@@ -8,6 +8,7 @@ import { VendurePlugin } from '../vendure-plugin';
 
 import { loggerCtx } from './constants';
 import { RoleAssignmentMigrationService } from './role-assignment-migration.service';
+import { RoleAssignmentPermissionResolverStrategy } from './role-assignment-permission-resolver-strategy';
 import { RoleAssignment } from './role-assignment.entity';
 
 /**
@@ -15,12 +16,24 @@ import { RoleAssignment } from './role-assignment.entity';
  * config flag is set to `true` (see `VendureConfig.experimental`). It is never meant to be added
  * manually to the `plugins` array.
  *
- * This is currently a skeleton which registers the `RoleAssignment` entity — a bridge between
- * User, Role and Channel intended to eventually decouple Role definitions from Channel
- * assignments. On server bootstrap, if the `role_assignment` table is empty, it backfills
- * RoleAssignment rows from the legacy User -> Role -> Channel relations (see
- * {@link RoleAssignmentMigrationService}); once the table contains rows the migration is not
- * run again. The permission-resolution logic, service layer and API are not yet implemented.
+ * It registers the `RoleAssignment` entity — a bridge between User, Role and Channel which
+ * decouples Role definitions from Channel assignments. Assignments belong to Users, so they
+ * cover administrator and customer users alike. On server bootstrap, if the `role_assignment`
+ * table is empty, it backfills RoleAssignment rows from the legacy User -> Role -> Channel
+ * relations (see {@link RoleAssignmentMigrationService}); once the table contains rows the
+ * migration is not run again.
+ *
+ * Permission resolution is driven by RoleAssignments: the plugin's `configuration` hook installs
+ * the {@link RoleAssignmentPermissionResolverStrategy}, replacing the default derivation from
+ * the legacy relations. Writes to the legacy relations (e.g. `createAdministrator(roleIds: ...)`,
+ * customer registration, channel creation) remain possible but are NOT yet mirrored into
+ * RoleAssignments — until that sync layer lands in a subsequent stage, a manual re-run of
+ * `RoleAssignmentMigrationService.migrateLegacyRoles()` picks them up.
+ *
+ * TODO: Administrator and Customer deletions are soft deletes which never trigger the
+ * assignment table's `ON DELETE CASCADE`, so a deleted user's assignment rows linger. This
+ * grants nothing (soft-deleted users cannot authenticate), but cleanup via the deletion
+ * events is planned for the stage which adds the assignment admin API.
  *
  * @internal
  */
@@ -28,6 +41,11 @@ import { RoleAssignment } from './role-assignment.entity';
     imports: [PluginCommonModule],
     entities: [RoleAssignment],
     providers: [RoleAssignmentMigrationService],
+    configuration: config => {
+        config.authOptions.rolePermissionResolverStrategy =
+            new RoleAssignmentPermissionResolverStrategy();
+        return config;
+    },
     compatibility: '>0.0.0',
 })
 export class RoleAssignmentPlugin implements OnApplicationBootstrap {

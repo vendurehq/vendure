@@ -6,13 +6,22 @@ import {
     SUPER_ADMIN_USER_IDENTIFIER,
 } from '@vendure/common/lib/shared-constants';
 import {
+    ConfigService,
+    DefaultRolePermissionResolverStrategy,
     mergeConfig,
     RoleAssignmentMigrationService,
+    RoleAssignmentPermissionResolverStrategy,
     RoleAssignmentPlugin,
     TransactionalConnection,
 } from '@vendure/core';
 import { preBootstrapConfig } from '@vendure/core/dist/bootstrap';
-import { createErrorResultGuard, createTestEnvironment, ErrorResultGuard } from '@vendure/testing';
+import {
+    createErrorResultGuard,
+    createTestEnvironment,
+    E2E_DEFAULT_CHANNEL_TOKEN,
+    ErrorResultGuard,
+} from '@vendure/testing';
+import gql from 'graphql-tag';
 import path from 'path';
 import { QueryRunner } from 'typeorm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -38,10 +47,12 @@ const getExperimentalFeaturesDocument = graphql(`
 `);
 
 /**
- * These tests exercise the `experimental.roleAssignments` flag, which is currently only a
- * skeleton: enabling it causes Vendure to internally register the `RoleAssignmentPlugin`,
- * which in turn adds the `RoleAssignment` entity (and its `role_assignment` table) to the
- * schema. No further behavior (permission resolution, API, etc.) is implemented yet.
+ * These tests exercise the `experimental.roleAssignments` flag: enabling it causes Vendure to
+ * internally register the `RoleAssignmentPlugin`, which adds the `RoleAssignment` entity (and
+ * its `role_assignment` table) to the schema and installs the
+ * `RoleAssignmentPermissionResolverStrategy` — permission resolution is driven by assignments,
+ * not by the legacy `User -> Role -> Channel` relations. Writes to the legacy relations are
+ * not yet mirrored into assignments; a manual re-run of the backfill migration picks them up.
  *
  * The "flag off" assertions are checked via `preBootstrapConfig()` directly (rather than by
  * booting a second live server) because the e2e sqlite cache is keyed only by spec filename —
@@ -56,6 +67,14 @@ describe('experimental.roleAssignments flag disabled (default)', () => {
         expect(config.plugins).not.toContain(RoleAssignmentPlugin);
         expect((config.dbConnectionOptions.entities as any[]).some(e => e.name === 'RoleAssignment')).toBe(
             false,
+        );
+    });
+
+    it('keeps the default role permission resolver strategy', async () => {
+        const config = await preBootstrapConfig({ plugins: [] });
+
+        expect(config.authOptions.rolePermissionResolverStrategy).toBeInstanceOf(
+            DefaultRolePermissionResolverStrategy,
         );
     });
 });
@@ -93,6 +112,13 @@ describe('experimental.roleAssignments flag enabled', () => {
     it('exposes the flag via serverConfig.experimentalFeatures', async () => {
         const { globalSettings } = await adminClient.query(getExperimentalFeaturesDocument);
         expect(globalSettings.serverConfig.experimentalFeatures).toEqual(['roleAssignments']);
+    });
+
+    it('installs the RoleAssignmentPermissionResolverStrategy', () => {
+        const configService = server.app.get(ConfigService);
+        expect(configService.authOptions.rolePermissionResolverStrategy).toBeInstanceOf(
+            RoleAssignmentPermissionResolverStrategy,
+        );
     });
 
     it('creates the role_assignment table with the expected columns', async () => {
@@ -174,6 +200,14 @@ describe('experimental.roleAssignments flag enabled', () => {
                 },
             });
             channelGuard.assertSuccess(createChannel);
+
+            // With assignment-driven permission resolution, the superadmin has no permissions
+            // on the new channel yet: the SuperAdmin role was auto-assigned to it in the
+            // legacy relations only. The migration re-run mirrors that grant, without which
+            // the role/administrator below could not be created on the new channel.
+            const firstRun = await server.app.get(RoleAssignmentMigrationService).migrateLegacyRoles();
+            expect(firstRun.created).toBe(1);
+
             const { createRole } = await adminClient.query(createRoleDocument, {
                 input: {
                     code: 'catalog-manager',
@@ -192,12 +226,11 @@ describe('experimental.roleAssignments flag enabled', () => {
                 },
             });
 
-            const result = await server.app.get(RoleAssignmentMigrationService).migrateLegacyRoles();
+            // One further assignment to backfill: bob on the new channel (the role's
+            // channel list at migration time).
+            const secondRun = await server.app.get(RoleAssignmentMigrationService).migrateLegacyRoles();
+            expect(secondRun.created).toBe(1);
 
-            // Two new assignments: bob on the new channel, plus the superadmin on the new
-            // channel (the SuperAdmin role is auto-assigned to newly created channels, and
-            // admin users have no channel membership of their own to restrict them).
-            expect(result.created).toBe(2);
             const assignments = await getAssignments(queryRunner);
             expect(assignments).toContainEqual({
                 identifier: 'bob@test.com',
@@ -216,9 +249,9 @@ describe('experimental.roleAssignments flag enabled', () => {
                     channelCode: 'second-channel',
                 },
             ]);
-            // The Customer role is also on the new channel, but the customer user only
-            // belongs to the default channel, so the membership check must prevent an
-            // assignment on the new channel.
+            // The Customer role is also auto-assigned to the new channel in the legacy
+            // model, but the customer user only belongs to the default channel, so no
+            // assignment may appear on the new channel.
             expect(
                 assignments.filter(a => a.roleCode === CUSTOMER_ROLE_CODE).map(a => a.channelCode),
             ).toEqual([DEFAULT_CHANNEL_CODE]);
@@ -232,7 +265,103 @@ describe('experimental.roleAssignments flag enabled', () => {
             expect(await getAssignments(queryRunner)).toHaveLength(4);
         });
     });
+
+    describe('assignment-driven permission resolution', () => {
+        const adminGuard: ErrorResultGuard<{ id: string; emailAddress: string }> = createErrorResultGuard(
+            input => !!input.emailAddress,
+        );
+        let defaultChannelId: string;
+        let inventoryRoleId: string;
+
+        beforeAll(async () => {
+            await adminClient.asSuperAdmin();
+            adminClient.setChannelToken(E2E_DEFAULT_CHANNEL_TOKEN);
+            const { channels } = await adminClient.query(gql`
+                query {
+                    channels {
+                        items {
+                            id
+                            token
+                        }
+                    }
+                }
+            `);
+            defaultChannelId = channels.items.find(
+                (c: { token: string }) => c.token === E2E_DEFAULT_CHANNEL_TOKEN,
+            ).id;
+            const { createRole } = await adminClient.query(createRoleDocument, {
+                input: {
+                    code: 'inventory-manager',
+                    description: 'Inventory manager',
+                    permissions: [Permission.ReadCatalog],
+                    channelIds: [defaultChannelId],
+                },
+            });
+            inventoryRoleId = createRole.id;
+            const { createAdministrator } = await adminClient.query(createAdministratorDocument, {
+                input: {
+                    firstName: 'Carol',
+                    lastName: 'Carlson',
+                    emailAddress: 'carol@test.com',
+                    password: 'test',
+                    roleIds: [inventoryRoleId],
+                },
+            });
+            adminGuard.assertSuccess(createAdministrator);
+        });
+
+        it('migration re-run mirrors the legacy roleIds input of a new administrator', async () => {
+            // Carol was created via the legacy `roleIds` input, which is not yet mirrored
+            // into assignments automatically — the manual migration re-run backfills the
+            // grant using the role's channel list.
+            const result = await server.app.get(RoleAssignmentMigrationService).migrateLegacyRoles();
+            expect(result.created).toBe(1);
+
+            const assignments = await getAssignments(queryRunner);
+            expect(
+                assignments
+                    .filter(a => a.identifier === 'carol@test.com')
+                    .map(a => ({ roleCode: a.roleCode, channelCode: a.channelCode })),
+            ).toEqual([{ roleCode: 'inventory-manager', channelCode: DEFAULT_CHANNEL_CODE }]);
+        });
+
+        it('permissions are granted by assignments, not by the legacy relations', async () => {
+            // With her backfilled assignment in place, Carol has permissions on the
+            // default channel...
+            await adminClient.asUserWithCredentials('carol@test.com', 'test');
+            const { me: before } = await adminClient.query(meQuery);
+            expect(before.channels.map((c: { code: string }) => c.code)).toEqual([
+                DEFAULT_CHANNEL_CODE,
+            ]);
+
+            // ...but once her assignment rows are gone, the legacy user.roles relation
+            // (which still holds the inventory-manager role) grants nothing. The rows are
+            // removed via SQL because the admin API for assignments is not part of this
+            // change set; a fresh login serializes a new session with fresh permissions.
+            const esc = (name: string) => queryRunner.connection.driver.escape(name);
+            await queryRunner.query(
+                `DELETE FROM ${esc('role_assignment')} WHERE ${esc('userId')} IN ` +
+                    `(SELECT ${esc('id')} FROM ${esc('user')} WHERE ${esc('identifier')} = 'carol@test.com')`,
+            );
+            await adminClient.asUserWithCredentials('carol@test.com', 'test');
+            const { me: after } = await adminClient.query(meQuery);
+            expect(after.channels).toEqual([]);
+
+            await adminClient.asSuperAdmin();
+        });
+    });
 });
+
+const meQuery = gql`
+    query {
+        me {
+            identifier
+            channels {
+                code
+            }
+        }
+    }
+`;
 
 async function getRoleAssignmentTable(queryRunner: QueryRunner) {
     const table = await queryRunner.getTable('role_assignment');

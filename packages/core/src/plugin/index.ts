@@ -13,5 +13,7 @@ export * from './redis-cache-plugin/redis-cache-plugin';
 export * from './redis-cache-plugin/redis-cache-strategy';
 export * from './redis-cache-plugin/types';
 export * from './role-assignment-plugin/role-assignment-migration.service';
+export * from './role-assignment-plugin/role-assignment-permission-resolver-strategy';
 export * from './role-assignment-plugin/role-assignment-plugin';
+export * from './role-assignment-plugin/role-assignment.entity';
 export * from './vendure-plugin';
