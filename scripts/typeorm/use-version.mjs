@@ -23,6 +23,9 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..', '..');
 const rootPackageJsonPath = path.join(repoRoot, 'package.json');
+const lockfilePath = path.join(repoRoot, 'bun.lock');
+// Gitignored alongside the lockfile it copies; see .gitignore.
+const lockfileBackupPath = path.join(repoRoot, 'bun.lock.typeorm-profile-backup');
 const PROFILE_FIELD = 'typeormProfile';
 
 const args = process.argv.slice(2);
@@ -79,28 +82,38 @@ if (!install) {
     process.exit(0);
 }
 
-if (reset && !args.includes('--keep-lockfile')) {
-    // Without this the reset install floats every dependency to the newest
-    // version its declared range allows, which is not the state the profile was
-    // applied on top of. Pass --keep-lockfile to skip.
-    console.log('\nRestoring bun.lock from git…');
-    try {
-        execFileSync('git', ['checkout', '--', 'bun.lock'], { cwd: repoRoot, stdio: 'inherit' });
-        console.log('Installing…');
-        execFileSync('bun', ['install', '--frozen-lockfile'], { cwd: repoRoot, stdio: 'inherit' });
-        console.log('\nThe workspace is back on its committed dependency versions.');
-        process.exit(0);
-    } catch {
-        console.log('Could not restore bun.lock from git; installing without it.');
+let frozen = false;
+if (reset) {
+    // A plain reset install floats every dependency to the newest version its
+    // declared range allows, which is not the state the profile was applied on
+    // top of. The lockfile saved when the profile was applied is put back so the
+    // workspace returns to exactly the versions it had.
+    if (fs.existsSync(lockfileBackupPath)) {
+        fs.copyFileSync(lockfileBackupPath, lockfilePath);
+        fs.rmSync(lockfileBackupPath);
+        frozen = true;
+        console.log('\nRestored the lockfile saved when the profile was applied.');
+    } else {
+        console.log(
+            '\nNo saved lockfile found, so dependencies will resolve afresh within their ' +
+                'declared ranges. Check bun.lock before committing.',
+        );
     }
+} else if (!fs.existsSync(lockfileBackupPath) && fs.existsSync(lockfilePath)) {
+    fs.copyFileSync(lockfilePath, lockfileBackupPath);
 }
 
-// Applying a profile rewrites the overrides, so the lockfile is expected to
-// change and --frozen-lockfile cannot be used.
 console.log('\nInstalling…');
-execFileSync('bun', ['install'], { cwd: repoRoot, stdio: 'inherit' });
+// Resolved through PATH by necessity: bun is the workspace's package manager and
+// is not installed into the workspace itself. NOSONAR
+execFileSync('bun', frozen ? ['install', '--frozen-lockfile'] : ['install'], {
+    cwd: repoRoot,
+    stdio: 'inherit',
+});
 
-if (!reset) {
+if (reset) {
+    console.log('\nThe workspace is back on its committed dependency versions.');
+} else {
     console.log(
         '\npackage.json and bun.lock now hold profile-specific versions. ' +
             'Run `node scripts/typeorm/use-version.mjs --reset` before committing.',

@@ -50,9 +50,17 @@ const suites = [
     ...(unitOnly ? [] : [{ name: 'e2e', args: ['run', 'e2e', ...scopeArgs, '--stream', '--no-bail'] }]),
 ];
 
+// Run lerna's entry point under the current Node binary, so neither the
+// executable nor the runtime is resolved through PATH.
+const lernaCli = path.join(repoRoot, 'node_modules', 'lerna', 'dist', 'cli.js');
+if (!fs.existsSync(lernaCli)) {
+    console.error(`Could not find lerna at ${lernaCli}. Run \`bun install\` first.`);
+    process.exit(1);
+}
+
 const failed = [];
 for (const suite of suites) {
-    const result = spawnSync('bunx', ['lerna', ...suite.args], {
+    const result = spawnSync(process.execPath, [lernaCli, ...suite.args], {
         cwd: repoRoot,
         stdio: 'inherit',
         env: { ...process.env, DB: dbEngine },

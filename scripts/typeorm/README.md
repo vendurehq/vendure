@@ -33,6 +33,10 @@ bun run typeorm:use --reset
 `bun run typeorm:use` rewrites `package.json` and `bun.lock`. Run `--reset` before committing;
 a stray `typeormProfile` field in the root `package.json` is the tell that you forgot.
 
+Applying a profile saves a copy of `bun.lock` first, and `--reset` puts it back and installs
+frozen. Without that, the reset install would float every dependency to the newest version its
+declared range allows, leaving the workspace on different versions from the ones it started on.
+
 `test:db` verifies the install before running anything. That check matters more than it looks:
 entity metadata is registered against a single `typeorm` module instance, so if a second copy
 ends up nested somewhere in `node_modules`, the suites fail in ways that read like genuine
