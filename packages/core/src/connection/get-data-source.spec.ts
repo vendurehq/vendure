@@ -17,11 +17,17 @@ describe('getDataSource()', () => {
 
     it('prefers "dataSource" when both are present', () => {
         const deprecatedAlias = {} as DataSource;
-        expect(getDataSource({ dataSource, connection: deprecatedAlias } as any)).toBe(dataSource);
+        expect(getDataSource({ dataSource, connection: deprecatedAlias })).toBe(dataSource);
     });
 
     it('throws when neither property is present', () => {
-        expect(() => getDataSource({} as any)).toThrowError(/Could not resolve a TypeORM DataSource/);
+        expect(() => getDataSource({})).toThrowError(/Could not resolve a TypeORM DataSource/);
+    });
+
+    // Callers reached from untyped code, such as the RelationIdLoader patch, can pass a value the
+    // compiler never checked.
+    it.each([null, undefined])('throws when given %s', value => {
+        expect(() => getDataSource(value as any)).toThrowError(/Could not resolve a TypeORM DataSource/);
     });
 
     // The RelationIdLoader patch in entity/typeorm-relation-id-loader-fix.ts reads the DataSource

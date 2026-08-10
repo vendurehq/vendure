@@ -11,5 +11,24 @@ but not all, of those classes. Code which has to run on both versions therefore 
 DataSource via [getDataSource](/reference/typescript-api/data-access/get-data-source#getdatasource) rather than naming either property directly.
 
 ```ts title="Signature"
-type DataSourceHolder = { connection: DataSource } | { dataSource: DataSource }
+type DataSourceHolder = {
+    connection?: DataSource;
+    dataSource?: DataSource
+}
 ```
+
+<div className="members-wrapper">
+
+### connection
+
+<MemberInfo kind="property" type={`DataSource`}   />
+
+
+### dataSource
+
+<MemberInfo kind="property" type={`DataSource`}   />
+
+
+
+
+</div>

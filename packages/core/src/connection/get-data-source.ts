@@ -11,12 +11,13 @@ import { DataSource } from 'typeorm';
  * @docsCategory data-access
  * @since 3.8.0
  */
-export type DataSourceHolder = { connection: DataSource } | { dataSource: DataSource };
+export type DataSourceHolder = { connection?: DataSource; dataSource?: DataSource };
 
 /**
  * @description
  * Returns the {@link DataSource} that the given TypeORM object belongs to, reading whichever of
- * the `dataSource` and `connection` properties the installed version of TypeORM provides.
+ * the `dataSource` and `connection` properties the installed version of TypeORM provides. Where
+ * an object carries both, `dataSource` is used, since `connection` is the deprecated alias.
  *
  * @example
  * ```ts
@@ -33,13 +34,15 @@ export type DataSourceHolder = { connection: DataSource } | { dataSource: DataSo
  * @since 3.8.0
  */
 export function getDataSource(source: DataSourceHolder): DataSource {
-    const typeOrmObject = source as { dataSource?: DataSource; connection?: DataSource };
-    const dataSource = typeOrmObject.dataSource ?? typeOrmObject.connection;
+    // Without these checks the caller fails further on with "cannot read properties of undefined".
+    if (source == null) {
+        throw new Error(`Could not resolve a TypeORM DataSource from ${String(source)}.`);
+    }
+    const dataSource = source.dataSource ?? source.connection;
     if (!dataSource) {
-        // Without this the caller fails further on with "cannot read properties of undefined".
         throw new Error(
             `Could not resolve a TypeORM DataSource from a ${
-                typeOrmObject.constructor?.name ?? typeof source
+                source.constructor?.name ?? typeof source
             }: it has neither a "dataSource" nor a "connection" property.`,
         );
     }
