@@ -31,7 +31,11 @@
     "generate-changelog": "ts-node scripts/changelogs/generate-changelog.ts",
     "publish-release": "lerna version -m \"chore: Publish %s\" --no-push --force-publish --exact",
     "publish-prerelease": "lerna version -m \"chore: Pre-release %s\" prerelease --exact --no-push --force-publish --preid next --dist-tag next",
-    "publish-local": "lerna version --force-publish --no-git-tag-version && cd scripts && ./publish-to-verdaccio.sh"
+    "publish-local": "lerna version --force-publish --no-git-tag-version && cd scripts && ./publish-to-verdaccio.sh",
+    "typeorm:use": "node scripts/typeorm/use-version.mjs",
+    "typeorm:verify": "node scripts/typeorm/verify.mjs",
+    "build:for-tests": "node scripts/typeorm/build-for-tests.mjs",
+    "test:db": "node scripts/typeorm/run-db-tests.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.1.0",

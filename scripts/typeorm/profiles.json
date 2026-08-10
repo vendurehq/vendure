@@ -1,0 +1,15 @@
+{
+    "//": "Dependency sets used to run the database-backed test suites against each supported TypeORM major. Each profile is applied as a set of `overrides` in the root package.json. `@nestjs/typeorm` must be >= 11.0.1 for both profiles, because that is the first release whose `typeorm` peer range admits v1.",
+    "profiles": {
+        "0.3": {
+            "typeorm": "0.3.31",
+            "@nestjs/typeorm": "11.0.3",
+            "better-sqlite3": "11.10.0"
+        },
+        "1": {
+            "typeorm": "1.1.0",
+            "@nestjs/typeorm": "11.0.3",
+            "better-sqlite3": "12.11.1"
+        }
+    }
+}
