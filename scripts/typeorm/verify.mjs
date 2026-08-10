@@ -3,10 +3,8 @@
  * Asserts that the installed TypeORM matches the profile the workspace is set
  * to, and that exactly one copy of it is installed.
  *
- * Both checks are worth making before a test run. A hoisting quirk or a stale
- * `node_modules` can leave the intended version in the root while a workspace
- * package resolves a nested copy of the other major, and the resulting test
- * failures look like genuine incompatibilities rather than a bad install.
+ * See scripts/typeorm/README.md for why a split install is worth ruling out
+ * before a test run.
  *
  * Usage:
  *   node scripts/typeorm/verify.mjs            # check against the profile in package.json
@@ -54,13 +52,18 @@ if (!expected) {
     process.exit(0);
 }
 
-const expectedMajor = expected.split('.')[0];
-const actualMajor = actual.split('.')[0];
-if (expectedMajor !== actualMajor) {
+// Compared against the version the profile pins, not its name: "0.3" is a label,
+// and matching on it loosely would accept any 0.x.y.
+const { profiles } = JSON.parse(fs.readFileSync(path.join(scriptDir, 'profiles.json'), 'utf8'));
+const pinned = profiles[expected]?.typeorm;
+if (!pinned) {
+    console.error(`\nUnknown TypeORM profile "${expected}". Check package.json and profiles.json.`);
+    process.exit(1);
+}
+if (pinned !== actual) {
     console.error(
-        `\nProfile "${expected}" was requested but typeorm@${actual} is installed. ` +
-            'Run `node scripts/typeorm/use-version.mjs ' +
-            `${expected}\` to reinstall.`,
+        `\nProfile "${expected}" pins typeorm@${pinned} but typeorm@${actual} is installed. ` +
+            `Run \`node scripts/typeorm/use-version.mjs ${expected}\` to reinstall.`,
     );
     process.exit(1);
 }

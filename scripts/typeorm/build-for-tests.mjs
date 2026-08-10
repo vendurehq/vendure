@@ -1,19 +1,14 @@
 #!/usr/bin/env node
 /**
- * Builds the workspace as far as it will go, without stopping at type errors,
- * so that the database-backed suites can run and report what breaks at runtime.
+ * Runs the same builds as `lerna run ci`, but without stopping at type errors, so
+ * that the database-backed suites can run and report what breaks at runtime.
  *
- * This exists because of how the build scripts are chained. `@vendure/core`'s
- * build runs three stages joined by `&&`: the main compile, the CLI compile,
- * and a copy of the static `.graphql` schema files. `tsc` still emits output
- * when it reports type errors, but its non-zero exit stops the chain, so a
- * single type error leaves `dist/` without the schema files. The server then
- * fails to boot with "No type definitions were found", which says nothing about
- * the actual incompatibility.
+ * Packages are selected by the presence of a `ci` script, as `lerna run ci` selects
+ * them. Any package without one is named in the output, since some of those have
+ * e2e suites and an unbuilt package fails in ways that read like a version
+ * incompatibility.
  *
- * Type errors are not swallowed by doing this — the `build` job in the same
- * workflow reports them. This script gives the second, independent signal:
- * which calls fail once the code is actually running.
+ * See scripts/typeorm/README.md for why the build stages are run separately.
  *
  * Usage:
  *   node scripts/typeorm/build-for-tests.mjs
@@ -29,18 +24,20 @@ const repoRoot = path.resolve(scriptDir, '..', '..');
 const order = topologicalPackageOrder();
 const failed = [];
 
-// The local `.bin` directories, searched in the order a package manager would.
-// Commands are resolved against these to an absolute path rather than being
-// looked up through PATH at spawn time.
+// Searched in the order a package manager would, to resolve each command to an
+// absolute path instead of relying on PATH at spawn time.
 const binDirs = [
     path.join(repoRoot, 'node_modules', '.bin'),
     ...order.map(pkg => path.join(pkg.location, 'node_modules', '.bin')),
 ];
 
+const notBuilt = [];
+
 for (const { name, location } of order) {
     const manifest = JSON.parse(fs.readFileSync(path.join(location, 'package.json'), 'utf8'));
     const stages = resolveBuildStages(manifest);
     if (stages.length === 0) {
+        notBuilt.push({ name, hasE2e: Boolean(manifest.scripts?.e2e) });
         continue;
     }
     console.log(`\n--- ${name}`);
@@ -67,6 +64,15 @@ if (failed.length) {
     }
 } else {
     console.log('\nAll build stages passed.');
+}
+
+const skippedWithE2e = notBuilt.filter(pkg => pkg.hasE2e);
+if (skippedWithE2e.length) {
+    console.log(
+        `\nNot built (no \`ci\` script), but has an e2e suite that \`lerna run e2e\` will run: ` +
+            `${skippedWithE2e.map(pkg => pkg.name).join(', ')}. ` +
+            'A failure in those suites may be a missing build rather than a TypeORM incompatibility.',
+    );
 }
 
 // Always succeeds: reporting build failures is the job of the `build` job, and
@@ -116,9 +122,8 @@ function resolveLocalBin(command) {
 
 /**
  * Orders the workspace packages so that each one is built after the packages it
- * depends on. Derived from the manifests directly rather than by shelling out to
- * lerna, which keeps the build order available even when the workspace is in a
- * half-installed state.
+ * depends on. Read from the manifests so that the order is still available when the
+ * workspace is half-installed.
  */
 function topologicalPackageOrder() {
     const packagesDir = path.join(repoRoot, 'packages');

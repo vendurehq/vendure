@@ -4,10 +4,8 @@
  * `profiles.json`, so the database-backed test suites can be run against each
  * supported TypeORM major.
  *
- * `typeorm` is a direct dependency of `@vendure/core` rather than a peer
- * dependency, so the version cannot be selected per-install. The profile is
- * applied as a set of root-level `overrides`, which bun honours for workspace
- * packages' direct dependencies.
+ * The profile is applied as a set of root-level `overrides`. See
+ * scripts/typeorm/README.md for why the version has to be forced that way.
  *
  * Usage:
  *   node scripts/typeorm/use-version.mjs 1          # switch to TypeORM v1 and install
@@ -84,10 +82,8 @@ if (!install) {
 
 let frozen = false;
 if (reset) {
-    // A plain reset install floats every dependency to the newest version its
-    // declared range allows, which is not the state the profile was applied on
-    // top of. The lockfile saved when the profile was applied is put back so the
-    // workspace returns to exactly the versions it had.
+    // Restored rather than reinstalled, because a plain install floats every
+    // dependency to the newest version its declared range allows.
     if (fs.existsSync(lockfileBackupPath)) {
         fs.copyFileSync(lockfileBackupPath, lockfilePath);
         fs.rmSync(lockfileBackupPath);
@@ -104,12 +100,10 @@ if (reset) {
 }
 
 console.log('\nInstalling…');
-// Resolved through PATH by necessity: bun is the workspace's package manager and
-// is not installed into the workspace itself. NOSONAR
-execFileSync('bun', frozen ? ['install', '--frozen-lockfile'] : ['install'], {
-    cwd: repoRoot,
-    stdio: 'inherit',
-});
+const installArgs = frozen ? ['install', '--frozen-lockfile'] : ['install'];
+// NOSONAR - bun is the workspace's package manager and is not installed into the
+// workspace, so there is no path to resolve it to other than through PATH.
+execFileSync('bun', installArgs, { cwd: repoRoot, stdio: 'inherit' }); // NOSONAR
 
 if (reset) {
     console.log('\nThe workspace is back on its committed dependency versions.');
