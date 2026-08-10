@@ -91,12 +91,18 @@ export const MAX_CONCURRENT_CIMD_FETCHES = 8;
  * Default rate limits. The anonymous-IP and OAuth-IP limits are ON by default (60 rpm each) — they
  * are the safety backstop for the unattributable anonymous `/mcp/shop` surface and the credential-less
  * OAuth surface respectively, and are disabled only via an explicit `false`. Per-tool limits are
- * opt-in (`0` = unlimited) with two safe defaults.
+ * opt-in (`0` = unlimited). Four tools ship with a default cap: the two that create rows quickly,
+ * and the two that take money back from a customer.
  */
 export const DEFAULT_RATE_LIMIT_OPTIONS: Required<McpRateLimitOptions> = {
     perSession: { rpm: 60 },
     perClient: { rpm: 120 },
-    perTool: { place_order: { rpm: 5 }, create_product: { rpm: 10 } },
+    perTool: {
+        place_order: { rpm: 5 },
+        create_product: { rpm: 10 },
+        refund_order: { rpm: 5 },
+        cancel_order: { rpm: 5 },
+    },
     anonymousIp: { rpm: 60 },
     oauthIp: { rpm: 60 },
 };

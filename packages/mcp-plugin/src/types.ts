@@ -177,7 +177,7 @@ export interface McpRateLimitOptions {
     /**
      * Opt-in per-tool limits, keyed by tool name (`0` = unlimited).
      *
-     * @default { place_order: { rpm: 5 }, create_product: { rpm: 10 } }
+     * @default { place_order: { rpm: 5 }, create_product: { rpm: 10 }, refund_order: { rpm: 5 }, cancel_order: { rpm: 5 } }
      */
     perTool?: Record<string, { rpm: number }>;
     /**

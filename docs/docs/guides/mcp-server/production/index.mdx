@@ -92,7 +92,7 @@ four scopes. The defaults are sensible; override only what you need:
 | `perSession` | 60 rpm | Per caller: the OAuth grant's session for authenticated calls, the client IP for anonymous `/mcp/shop` calls, the supplied Vendure session for in-process calls |
 | `perClient` | 120 rpm | Per registered OAuth client |
 | `anonymousIp` | 60 rpm | Per client IP for anonymous `/mcp/shop` calls. Set `false` to disable |
-| `perTool` | `place_order: 5`, `create_product: 10` | Opt-in, keyed by tool name |
+| `perTool` | `place_order: 5`, `create_product: 10`, `refund_order: 5`, `cancel_order: 5` | Opt-in, keyed by tool name |
 
 Things to know before you tune these:
 
