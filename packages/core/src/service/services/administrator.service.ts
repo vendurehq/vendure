@@ -40,6 +40,7 @@ import { checkSuperadminCredentials } from '../helpers/utils/check-superadmin-cr
 import { getChannelPermissions } from '../helpers/utils/get-user-channels-permissions';
 import { patchEntity } from '../helpers/utils/patch-entity';
 
+import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { AssetService } from './asset.service';
 import { RoleService } from './role.service';
 import { UserService } from './user.service';
@@ -150,7 +151,9 @@ export class AdministratorService {
         return this.connection
             .getRepository(ctx, Administrator)
             .findOne({
-                relations: relations ?? ['avatar', 'user', 'user.roles'],
+                relations: findOptionsArrayToObject<Administrator>(
+                    relations ?? ['avatar', 'user', 'user.roles'],
+                ),
                 where: {
                     id: administratorId,
                     deletedAt: IsNull(),
@@ -171,7 +174,7 @@ export class AdministratorService {
         return this.connection
             .getRepository(ctx, Administrator)
             .findOne({
-                relations: relations ?? ['avatar'],
+                relations: findOptionsArrayToObject<Administrator>(relations ?? ['avatar']),
                 where: {
                     user: { id: userId },
                     deletedAt: IsNull(),
@@ -497,7 +500,7 @@ export class AdministratorService {
     private async isSoleSuperadmin(ctx: RequestContext, id: ID) {
         const superAdminRole = await this.roleService.getSuperAdminRole(ctx);
         const allAdmins = await this.connection.getRepository(ctx, Administrator).find({
-            relations: ['user', 'user.roles'],
+            relations: { user: { roles: true } },
             where: { deletedAt: IsNull() },
         });
         const superAdmins = allAdmins.filter(

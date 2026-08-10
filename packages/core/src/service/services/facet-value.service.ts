@@ -72,7 +72,7 @@ export class FacetValueService {
         const globalDefaultLanguageCode = this.configService.defaultLanguageCode;
         return repository
             .find({
-                relations: ['facet'],
+                relations: { facet: true },
             })
             .then(facetValues =>
                 facetValues.map(facetValue =>
@@ -119,7 +119,7 @@ export class FacetValueService {
             .getRepository(ctx, FacetValue)
             .findOne({
                 where: { id },
-                relations: ['facet'],
+                relations: { facet: true },
             })
             .then(
                 facetValue =>

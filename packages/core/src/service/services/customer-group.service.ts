@@ -27,6 +27,7 @@ import { CustomFieldRelationService } from '../helpers/custom-field-relation/cus
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
 import { patchEntity } from '../helpers/utils/patch-entity';
 
+import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { HistoryService } from './history.service';
 
 /**
@@ -64,7 +65,10 @@ export class CustomerGroupService {
     ): Promise<CustomerGroup | undefined> {
         return this.connection
             .getRepository(ctx, CustomerGroup)
-            .findOne({ where: { id: customerGroupId }, relations })
+            .findOne({
+                where: { id: customerGroupId },
+                relations: findOptionsArrayToObject<CustomerGroup>(relations ?? []),
+            })
             .then(result => result ?? undefined);
     }
 

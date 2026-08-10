@@ -14,8 +14,8 @@ import { idsAreEqual } from '../../common/utils';
 import { ShippingCalculator } from '../../config/shipping-method/shipping-calculator';
 import { ShippingEligibilityChecker } from '../../config/shipping-method/shipping-eligibility-checker';
 import { TransactionalConnection } from '../../connection/transactional-connection';
-import { Order } from '../../entity/order/order.entity';
 import { OrderLine } from '../../entity/order-line/order-line.entity';
+import { Order } from '../../entity/order/order.entity';
 import { ProductVariant } from '../../entity/product-variant/product-variant.entity';
 import { ShippingMethod } from '../../entity/shipping-method/shipping-method.entity';
 import { Allocation } from '../../entity/stock-movement/allocation.entity';
@@ -270,7 +270,7 @@ export class StockMovementService {
             where: {
                 id: In(lineInputs.map(l => l.orderLineId)),
             },
-            relations: ['productVariant'],
+            relations: { productVariant: true },
         });
 
         const cancellations: Cancellation[] = [];
@@ -321,7 +321,7 @@ export class StockMovementService {
         const releases: Release[] = [];
         const orderLines = await this.connection.getRepository(ctx, OrderLine).find({
             where: { id: In(lineInputs.map(l => l.orderLineId)) },
-            relations: ['productVariant'],
+            relations: { productVariant: true },
         });
         const globalTrackInventory = (await this.globalSettingsService.getSettings(ctx)).trackInventory;
         const variantsMap = new Map<ID, ProductVariant>();

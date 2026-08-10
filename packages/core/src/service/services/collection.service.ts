@@ -261,7 +261,7 @@ export class CollectionService implements OnModuleInit {
         relations?: RelationPaths<Collection>,
     ): Promise<Translated<Collection> | undefined> {
         const translations = await this.connection.getRepository(ctx, CollectionTranslation).find({
-            relations: ['base'],
+            relations: { base: true },
             where: {
                 slug,
                 base: {

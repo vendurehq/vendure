@@ -36,6 +36,7 @@ import {
     VariantChannelMessageData,
 } from '../types';
 
+import { findOptionsArrayToObject } from '../../../connection/find-options-array-to-object';
 import { dedupeSearchIndexItems } from './index-item-utils';
 import { MutableRequestContext } from './mutable-request-context';
 
@@ -372,7 +373,7 @@ export class IndexerController {
         where.channels = { id: In(channels.map(c => c.id)) };
         const [variants, count] = await this.connection.getRepository(ctx, ProductVariant).findAndCount({
             loadEagerRelations: false,
-            relations: variantRelations,
+            relations: findOptionsArrayToObject<ProductVariant>(variantRelations),
             where,
             take,
             skip,
@@ -396,7 +397,7 @@ export class IndexerController {
 
         const product = await this.connection.getRepository(ctx, Product).findOne({
             loadEagerRelations: false,
-            relations: productRelations,
+            relations: findOptionsArrayToObject<Product>(productRelations),
             relationLoadStrategy: 'query',
             where: { id: Equal(productId), channels: { id: In(channels.map(x => x.id)) } },
         });

@@ -163,12 +163,12 @@ export class DatabaseCollector {
                 return undefined;
             }
             const channels = await rawConnection.getRepository(Channel).find({
-                select: [
-                    'defaultLanguageCode',
-                    'availableLanguageCodes',
-                    'defaultCurrencyCode',
-                    'availableCurrencyCodes',
-                ],
+                select: {
+                    defaultLanguageCode: true,
+                    availableLanguageCodes: true,
+                    defaultCurrencyCode: true,
+                    availableCurrencyCodes: true,
+                },
             });
             const languages = new Set<string>();
             const currencies = new Set<string>();

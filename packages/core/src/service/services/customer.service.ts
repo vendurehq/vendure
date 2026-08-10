@@ -229,7 +229,7 @@ export class CustomerService {
         }
 
         const existingCustomer = await this.connection.getRepository(ctx, Customer).findOne({
-            relations: ['channels'],
+            relations: { channels: true },
             where: {
                 emailAddress: input.emailAddress,
                 deletedAt: IsNull(),
@@ -673,7 +673,7 @@ export class CustomerService {
         input.emailAddress = normalizeEmailAddress(input.emailAddress);
         let customer: Customer;
         const existing = await this.connection.getRepository(ctx, Customer).findOne({
-            relations: ['channels'],
+            relations: { channels: true },
             where: {
                 emailAddress: input.emailAddress,
                 deletedAt: IsNull(),
@@ -909,7 +909,7 @@ export class CustomerService {
     ) {
         const result = await this.connection
             .getRepository(ctx, Address)
-            .findOne({ where: { id: addressId }, relations: ['customer', 'customer.addresses'] });
+            .findOne({ where: { id: addressId }, relations: { customer: { addresses: true } } });
         if (result) {
             const customerAddressIds = result.customer.addresses
                 .map(a => a.id)
@@ -941,7 +941,7 @@ export class CustomerService {
         }
         const result = await this.connection
             .getRepository(ctx, Address)
-            .findOne({ where: { id: addressToDelete.id }, relations: ['customer', 'customer.addresses'] });
+            .findOne({ where: { id: addressToDelete.id }, relations: { customer: { addresses: true } } });
         if (result) {
             const customerAddresses = result.customer.addresses;
             if (1 < customerAddresses.length) {

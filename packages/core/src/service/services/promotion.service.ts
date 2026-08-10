@@ -283,7 +283,7 @@ export class PromotionService {
                 deletedAt: IsNull(),
                 channels: { id: ctx.channelId },
             },
-            relations: ['channels'],
+            relations: { channels: true },
         });
         if (!promotion || !promotion.channels.find(c => idsAreEqual(c.id, ctx.channelId))) {
             return new CouponCodeInvalidError({ couponCode });

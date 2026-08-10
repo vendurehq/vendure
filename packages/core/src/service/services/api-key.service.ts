@@ -33,6 +33,7 @@ import { TranslatableSaver } from '../helpers/translatable-saver/translatable-sa
 import { TranslatorService } from '../helpers/translator/translator.service';
 import { getChannelPermissions } from '../helpers/utils/get-user-channels-permissions';
 
+import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { ChannelService } from './channel.service';
 import { RoleService } from './role.service';
 import { SessionService } from './session.service';
@@ -353,7 +354,7 @@ export class ApiKeyService {
         relations?: RelationPaths<ApiKey>,
     ): Promise<ApiKey | null> {
         const entity = await this.connection.getRepository(ctx, ApiKey).findOne({
-            relations: [...(relations ?? []), 'channels'],
+            relations: findOptionsArrayToObject<ApiKey>([...(relations ?? []), 'channels']),
             where: {
                 lookupId,
                 deletedAt: IsNull(),

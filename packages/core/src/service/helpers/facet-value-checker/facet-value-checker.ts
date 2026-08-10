@@ -123,7 +123,7 @@ export class FacetValueChecker implements OnModuleInit {
                 .getRepository(ctx, ProductVariant)
                 .findOne({
                     where: { id: orderLine.productVariant.id },
-                    relations: ['product', 'product.facetValues', 'facetValues'],
+                    relations: { product: { facetValues: true }, facetValues: true },
                     loadEagerRelations: false,
                 })
                 .then(result => result ?? undefined);

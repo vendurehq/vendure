@@ -138,7 +138,7 @@ export class AuthService {
     async destroyAuthenticatedSession(ctx: RequestContext, sessionToken: string): Promise<void> {
         const session = await this.connection.getRepository(ctx, AuthenticatedSession).findOne({
             where: { token: sessionToken },
-            relations: ['user', 'user.authenticationMethods'],
+            relations: { user: { authenticationMethods: true } },
         });
 
         if (session) {

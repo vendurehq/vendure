@@ -14,11 +14,12 @@ import {
 } from '../../common/error/generated-graphql-admin-errors';
 import { Instrument } from '../../common/instrument-decorator';
 import { ConfigService } from '../../config/config.service';
+import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Fulfillment } from '../../entity/fulfillment/fulfillment.entity';
-import { Order } from '../../entity/order/order.entity';
-import { OrderLine } from '../../entity/order-line/order-line.entity';
 import { FulfillmentLine } from '../../entity/order-line-reference/fulfillment-line.entity';
+import { OrderLine } from '../../entity/order-line/order-line.entity';
+import { Order } from '../../entity/order/order.entity';
 import { EventBus } from '../../event-bus/event-bus';
 import { FulfillmentEvent } from '../../event-bus/events/fulfillment-event';
 import { FulfillmentStateTransitionEvent } from '../../event-bus/events/fulfillment-state-transition-event';
@@ -136,7 +137,9 @@ export class FulfillmentService {
     ): Promise<FulfillmentLine[]> {
         const defaultRelations = ['fulfillment'];
         return this.connection.getRepository(ctx, FulfillmentLine).find({
-            relations: Array.from(new Set([...defaultRelations, ...relations])),
+            relations: findOptionsArrayToObject<FulfillmentLine>(
+                Array.from(new Set([...defaultRelations, ...relations])),
+            ),
             where: {
                 fulfillment: {
                     state: Not('Cancelled'),
@@ -168,12 +171,9 @@ export class FulfillmentService {
         // are atomic — see the equivalent comment on OrderService.transitionToState.
         // #4686.
         return this.connection.withTransaction(ctx, async txCtx => {
-            const fulfillment = await this.connection.getEntityOrThrow(
-                txCtx,
-                Fulfillment,
-                fulfillmentId,
-                { relations: ['lines'] },
-            );
+            const fulfillment = await this.connection.getEntityOrThrow(txCtx, Fulfillment, fulfillmentId, {
+                relations: ['lines'],
+            });
             const orderLinesIds = unique(fulfillment.lines.map(lines => lines.orderLineId));
             const orders = await this.connection
                 .getRepository(txCtx, Order)

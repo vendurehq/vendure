@@ -27,6 +27,7 @@ import { TransactionalConnection } from '../../../connection';
 import { VendureEntity } from '../../../entity';
 import { joinTreeRelationsDynamically } from '../utils/tree-relations-qb-joiner';
 
+import { findOptionsArrayToObject } from '../../../connection/find-options-array-to-object';
 import { getColumnMetadata, getEntityAlias } from './connection-utils';
 import { getCalculatedColumns } from './get-calculated-columns';
 import { parseFilterParams, WhereCondition, WhereGroup } from './parse-filter-params';
@@ -287,7 +288,7 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         relations = relations.filter(relationPath => !processedRelations.has(relationPath));
 
         qb.setFindOptions({
-            relations,
+            relations: findOptionsArrayToObject<T>(relations),
             take,
             skip,
             where: extendedOptions.where || {},

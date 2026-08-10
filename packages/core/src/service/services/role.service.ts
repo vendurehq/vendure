@@ -44,6 +44,7 @@ import {
 } from '../helpers/utils/get-user-channels-permissions';
 import { patchEntity } from '../helpers/utils/patch-entity';
 
+import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { ChannelService } from './channel.service';
 
 /**
@@ -118,7 +119,7 @@ export class RoleService {
             .getRepository(ctx, Role)
             .findOne({
                 where: { id: roleId },
-                relations: unique([...(relations ?? []), 'channels']),
+                relations: findOptionsArrayToObject<Role>(unique([...(relations ?? []), 'channels'])),
             })
             .then(async result => {
                 if (result && (await this.activeUserCanReadRole(ctx, result))) {
@@ -212,7 +213,9 @@ export class RoleService {
 
     private async getAllRolesWithChannels(ctx: RequestContext): Promise<Role[]> {
         const allRolesJson = await this.rolesCache.get(this.rolesCacheKey, async () => {
-            const roles = await this.connection.getRepository(ctx, Role).find({ relations: ['channels'] });
+            const roles = await this.connection
+                .getRepository(ctx, Role)
+                .find({ relations: { channels: true } });
             return JSON.stringify(roles);
         });
 

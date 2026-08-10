@@ -325,7 +325,7 @@ export class ChannelService {
     findOne(ctx: RequestContext, id: ID): Promise<Channel | undefined> {
         return this.connection
             .getRepository(ctx, Channel)
-            .findOne({ where: { id }, relations: ['defaultShippingZone', 'defaultTaxZone'] })
+            .findOne({ where: { id }, relations: { defaultShippingZone: true, defaultTaxZone: true } })
             .then(result => result ?? undefined);
     }
 
@@ -551,7 +551,7 @@ export class ChannelService {
             where: {
                 code: DEFAULT_CHANNEL_CODE,
             },
-            relations: ['seller'],
+            relations: { seller: true },
         });
 
         if (!defaultChannel) {

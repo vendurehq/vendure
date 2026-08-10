@@ -294,7 +294,7 @@ export class ProductOptionGroupService {
                 relationLoadStrategy: 'query',
                 loadEagerRelations: false,
                 where: { id: productId },
-                relations: ['optionGroups'],
+                relations: { optionGroups: true },
             });
             if (product) {
                 product.optionGroups = product.optionGroups.filter(og => !idsAreEqual(og.id, id));
@@ -326,7 +326,7 @@ export class ProductOptionGroupService {
         }
         const groupsToAssign = await this.connection
             .getRepository(ctx, ProductOptionGroup)
-            .find({ where: { id: In(input.productOptionGroupIds) }, relations: ['options'] });
+            .find({ where: { id: In(input.productOptionGroupIds) }, relations: { options: true } });
         const optionsToAssign = groupsToAssign.reduce(
             (options, group) => [...options, ...group.options],
             [] as ProductOption[],
@@ -374,7 +374,7 @@ export class ProductOptionGroupService {
         }
         const groupsToRemove = await this.connection
             .getRepository(ctx, ProductOptionGroup)
-            .find({ where: { id: In(input.productOptionGroupIds) }, relations: ['options'] });
+            .find({ where: { id: In(input.productOptionGroupIds) }, relations: { options: true } });
 
         const results: Array<
             ErrorResultUnion<RemoveProductOptionGroupFromChannelResult, Translated<ProductOptionGroup>>

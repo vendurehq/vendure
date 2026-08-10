@@ -273,7 +273,7 @@ export class PaymentMethodService {
     async getEligiblePaymentMethods(ctx: RequestContext, order: Order): Promise<PaymentMethodQuote[]> {
         const paymentMethods = await this.connection
             .getRepository(ctx, PaymentMethod)
-            .find({ where: { enabled: true }, relations: ['channels'] });
+            .find({ where: { enabled: true }, relations: { channels: true } });
         const results: PaymentMethodQuote[] = [];
         const paymentMethodsInChannel = paymentMethods
             .filter(p => p.channels.find(pc => idsAreEqual(pc.id, ctx.channelId)))
@@ -335,7 +335,7 @@ export class PaymentMethodService {
     async getActivePaymentMethods(ctx: RequestContext): Promise<PaymentMethod[]> {
         const paymentMethods = await this.connection.getRepository(ctx, PaymentMethod).find({
             where: { enabled: true, channels: { id: ctx.channelId } },
-            relations: ['channels', 'customFields'],
+            relations: { channels: true, customFields: true },
         });
         return paymentMethods.map(p => this.translator.translate(p, ctx));
     }
