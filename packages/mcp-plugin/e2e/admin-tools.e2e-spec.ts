@@ -2,6 +2,7 @@ import {
     ConfigService,
     ID,
     mergeConfig,
+    Payment,
     RequestContext,
     RequestContextService,
     StockAdjustment,
@@ -137,7 +138,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
     const config = mergeConfig(testConfig(), {
         plugins: [McpPlugin.init({ oauth: { tokenSecret: TOKEN_SECRET } })],
     });
-    const { server, adminClient } = createTestEnvironment(config);
+    const { server, adminClient, shopClient } = createTestEnvironment(config);
     const baseUrl = () => `http://localhost:${config.apiOptions.port}`;
     const lookupHash = (value: string) => hashToken(`lookup:${value}`, deriveHashKey(TOKEN_SECRET));
 
@@ -149,6 +150,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
     let productGraphqlId: string;
     let productId: ID;
     let variantId: ID;
+    let variantGraphqlId: string;
     let stockLocationId: ID;
     let secondChannelToken: string;
     let secondChannelDbId: ID;
@@ -201,7 +203,7 @@ describe('MCP built-in admin tools (direct mode)', () => {
         const defaultChannelId = fixture.activeChannel.id;
         const zoneId = fixture.zones.items[0]?.id;
         productGraphqlId = fixture.products.items[0]?.id;
-        const variantGraphqlId = fixture.productVariants.items[0]?.id;
+        variantGraphqlId = fixture.productVariants.items[0]?.id;
         const stockLocationGraphqlId = fixture.stockLocations.items[0]?.id;
         seededCustomerEmail = fixture.customers.items[0]?.emailAddress;
         if (
@@ -305,6 +307,172 @@ describe('MCP built-in admin tools (direct mode)', () => {
             { id: graphqlId },
         );
         return result.order.state;
+    }
+
+    /**
+     * Runs a real shop checkout up to `ArrangingPayment`, then records a fully-settled manual
+     * payment against it via the admin `addManualPaymentToOrder` mutation. That mutation drives
+     * the real payment state machine straight to `Settled` without needing a configured
+     * `PaymentMethodHandler`, so the resulting order and payment are genuine, not hand-inserted rows.
+     */
+    async function createSettledOrder(): Promise<{ orderId: ID; graphqlId: string; paymentId: ID }> {
+        const idStrategy = server.app.get(ConfigService).entityOptions.entityIdStrategy;
+
+        const added = await shopClient.query(
+            gql`
+                mutation AddItemForRefundTest($productVariantId: ID!) {
+                    addItemToOrder(productVariantId: $productVariantId, quantity: 1) {
+                        ... on Order {
+                            id
+                        }
+                        ... on ErrorResult {
+                            errorCode
+                            message
+                        }
+                    }
+                }
+            `,
+            { productVariantId: variantGraphqlId },
+        );
+        const orderGraphqlId = added.addItemToOrder.id;
+        if (!orderGraphqlId) {
+            throw new Error(`Could not add item to order: ${JSON.stringify(added.addItemToOrder)}`);
+        }
+
+        await shopClient.query(
+            gql`
+                mutation SetCustomerForRefundTestOrder($input: CreateCustomerInput!) {
+                    setCustomerForOrder(input: $input) {
+                        ... on Order {
+                            id
+                        }
+                        ... on ErrorResult {
+                            errorCode
+                            message
+                        }
+                    }
+                }
+            `,
+            {
+                input: {
+                    firstName: 'Refund',
+                    lastName: 'Tester',
+                    emailAddress: `refund-test-${String(orderGraphqlId)}@example.test`,
+                },
+            },
+        );
+
+        await shopClient.query(
+            gql`
+                mutation SetShippingAddressForRefundTest($input: CreateAddressInput!) {
+                    setOrderShippingAddress(input: $input) {
+                        ... on Order {
+                            id
+                        }
+                        ... on ErrorResult {
+                            errorCode
+                            message
+                        }
+                    }
+                }
+            `,
+            {
+                input: {
+                    fullName: 'Refund Tester',
+                    streetLine1: '12 Test Street',
+                    city: 'Testville',
+                    postalCode: '12345',
+                    countryCode: 'US',
+                },
+            },
+        );
+
+        const { eligibleShippingMethods } = await shopClient.query(gql`
+            query {
+                eligibleShippingMethods {
+                    id
+                }
+            }
+        `);
+        await shopClient.query(
+            gql`
+                mutation SetShippingMethodForRefundTest($id: [ID!]!) {
+                    setOrderShippingMethod(shippingMethodId: $id) {
+                        ... on Order {
+                            id
+                        }
+                        ... on ErrorResult {
+                            errorCode
+                            message
+                        }
+                    }
+                }
+            `,
+            { id: [eligibleShippingMethods[0].id] },
+        );
+
+        const transitioned = await shopClient.query(
+            gql`
+                mutation TransitionRefundTestOrder($state: String!) {
+                    transitionOrderToState(state: $state) {
+                        ... on Order {
+                            id
+                            state
+                        }
+                        ... on ErrorResult {
+                            errorCode
+                            message
+                        }
+                    }
+                }
+            `,
+            { state: 'ArrangingPayment' },
+        );
+        if (transitioned.transitionOrderToState?.state !== 'ArrangingPayment') {
+            throw new Error(
+                `Could not transition order to ArrangingPayment: ${JSON.stringify(transitioned.transitionOrderToState)}`,
+            );
+        }
+
+        const manualPayment = await adminClient.query(
+            gql`
+                mutation AddManualPaymentForRefundTest($input: ManualPaymentInput!) {
+                    addManualPaymentToOrder(input: $input) {
+                        ... on Order {
+                            id
+                            state
+                            payments {
+                                id
+                                amount
+                                state
+                            }
+                        }
+                        ... on ErrorResult {
+                            errorCode
+                            message
+                        }
+                    }
+                }
+            `,
+            {
+                input: {
+                    orderId: orderGraphqlId,
+                    method: 'refund-test-manual-payment',
+                    transactionId: 'refund-test-tx',
+                    metadata: {},
+                },
+            },
+        );
+        const resultOrder = manualPayment.addManualPaymentToOrder;
+        if (!resultOrder?.payments?.length) {
+            throw new Error(`Could not add manual payment: ${JSON.stringify(resultOrder)}`);
+        }
+        const payment = resultOrder.payments[resultOrder.payments.length - 1];
+        return {
+            orderId: idStrategy.decodeId(orderGraphqlId),
+            graphqlId: orderGraphqlId,
+            paymentId: idStrategy.decodeId(payment.id),
+        };
     }
 
     it('lists exactly the 23 built-in admin tools for a superadmin grant', async () => {
@@ -619,6 +787,68 @@ describe('MCP built-in admin tools (direct mode)', () => {
 
         expect(response.body.result.isError).toBe(true);
         expect((await stockLevel()).stockOnHand).toBe(before.stockOnHand);
+    });
+
+    it('refund_order defaults to the first Settled payment and refunds its full remainder', async () => {
+        const token = await adminAccessToken();
+        const { orderId, paymentId } = await createSettledOrder();
+        const paymentBefore = await connection
+            .getRepository(adminCtx, Payment)
+            .findOneOrFail({ where: { id: paymentId } });
+
+        const response = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool('refund_order', { id: orderId, confirm: true }, 1),
+            { token },
+        );
+
+        expect(response.body.result.isError).toBeUndefined();
+        expect(response.body.result.structuredContent.result).toMatchObject({
+            total: paymentBefore.amount,
+        });
+        // A DB-level check that the payment was actually refunded, not just that the response echoed it.
+        const paymentAfter = await connection
+            .getRepository(adminCtx, Payment)
+            .findOneOrFail({ where: { id: paymentId }, relations: ['refunds'] });
+        expect(paymentAfter.refunds.reduce((sum, r) => sum + r.total, 0)).toBe(paymentBefore.amount);
+    });
+
+    it('refund_order defaults to the remaining refundable amount, not the order total, after a partial refund', async () => {
+        const token = await adminAccessToken();
+        const { orderId, paymentId } = await createSettledOrder();
+        const paymentBefore = await connection
+            .getRepository(adminCtx, Payment)
+            .findOneOrFail({ where: { id: paymentId } });
+        const partialAmount = Math.floor(paymentBefore.amount / 2);
+
+        const partial = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool('refund_order', { id: orderId, paymentId, amount: partialAmount, confirm: true }, 1),
+            { token },
+        );
+        expect(partial.body.result.isError).toBeUndefined();
+        expect(partial.body.result.structuredContent.result).toMatchObject({ total: partialAmount });
+
+        // Calling again with only the order id must default to the REMAINDER. Before the fix, the
+        // default fell back to the order total, which now exceeds what's left on the payment, so
+        // core would reject the call instead of refunding the rest.
+        const remainder = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool('refund_order', { id: orderId, confirm: true }, 2),
+            { token },
+        );
+        expect(remainder.body.result.isError).toBeUndefined();
+        expect(remainder.body.result.structuredContent.result).toMatchObject({
+            total: paymentBefore.amount - partialAmount,
+        });
+
+        const paymentAfter = await connection
+            .getRepository(adminCtx, Payment)
+            .findOneOrFail({ where: { id: paymentId }, relations: ['refunds'] });
+        expect(paymentAfter.refunds.reduce((sum, r) => sum + r.total, 0)).toBe(paymentBefore.amount);
     });
 });
 
