@@ -255,7 +255,8 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
     ): Promise<CachedSession> {
         const session = await this.connection.getRepository(ctx, Session).findOne({
             where: { id: serializedSession.id },
-            // `user` is declared on AuthenticatedSession, not the abstract Session queried here.
+            // `user` is declared on AuthenticatedSession, not the abstract Session queried
+            // here, so an object literal typed against Session does not compile.
             relations: findOptionsArrayToObject<Session>(['user', 'user.roles', 'user.roles.channels']),
         });
         if (session) {
@@ -276,7 +277,8 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
         if (serializedSession.activeOrderId) {
             const session = await this.connection.getRepository(ctx, Session).findOne({
                 where: { id: serializedSession.id },
-                // `user` is declared on AuthenticatedSession, not the abstract Session queried here.
+                // `user` is declared on AuthenticatedSession, not the abstract Session queried
+                // here, so an object literal typed against Session does not compile.
                 relations: findOptionsArrayToObject<Session>(['user', 'user.roles', 'user.roles.channels']),
             });
             if (session) {
@@ -297,7 +299,8 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
     async setActiveChannel(serializedSession: CachedSession, channel: Channel): Promise<CachedSession> {
         const session = await this.connection.rawConnection.getRepository(Session).findOne({
             where: { id: serializedSession.id },
-            // `user` is declared on AuthenticatedSession, not the abstract Session queried here.
+            // `user` is declared on AuthenticatedSession, not the abstract Session queried
+            // here, so an object literal typed against Session does not compile.
             relations: findOptionsArrayToObject<Session>(['user', 'user.roles', 'user.roles.channels']),
         });
         if (session) {

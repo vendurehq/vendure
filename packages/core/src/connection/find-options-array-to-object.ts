@@ -19,8 +19,8 @@ export function findOptionsArrayToObject<T>(input: string[]): FindOptionsRelatio
             const isLeaf = index === segments.length - 1;
             if (isLeaf) {
                 // A shorter path may arrive after the longer one that nested it
-                // (`['lines.productVariant', 'lines']`), in which case the branch
-                // already selects the relation and must not be flattened to `true`.
+                // (`['lines.productVariant', 'lines']`). Overwriting that branch with
+                // `true` would drop `productVariant` from the loaded relations.
                 node[segment] ??= true;
             } else {
                 if (node[segment] == null || node[segment] === true) {

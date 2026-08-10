@@ -23,8 +23,8 @@ export type FindOptionsSelectInput<T> = FindOptionsSelect<T> | string[];
 
 /**
  * @description
- * The TypeORM `FindOneOptions`, widened so that `relations` and `select` also accept the
- * array form.
+ * The TypeORM `FindOneOptions`, with `relations` and `select` also accepting an array of
+ * paths.
  *
  * @docsCategory data-access
  * @since 3.8.0
@@ -36,8 +36,8 @@ export interface VendureFindOneOptions<T = any> extends Omit<FindOneOptions<T>, 
 
 /**
  * @description
- * The TypeORM `FindManyOptions`, widened so that `relations` and `select` also accept the
- * array form.
+ * The TypeORM `FindManyOptions`, with `relations` and `select` also accepting an array of
+ * paths.
  *
  * @docsCategory data-access
  * @since 3.8.0
