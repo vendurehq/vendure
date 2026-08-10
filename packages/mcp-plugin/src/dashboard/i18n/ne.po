@@ -238,3 +238,6 @@ msgstr "गतिविधि लोड गर्दा त्रुटि: {0}"
 
 msgid "Error loading grants: {0}"
 msgstr "अनुदानहरू लोड गर्दा त्रुटि: {0}"
+
+msgid "The request could not be completed"
+msgstr "अनुरोध पूरा हुन सकेन"

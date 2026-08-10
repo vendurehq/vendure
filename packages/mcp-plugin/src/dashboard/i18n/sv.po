@@ -238,3 +238,6 @@ msgstr "Fel vid inläsning av aktivitet: {0}"
 
 msgid "Error loading grants: {0}"
 msgstr "Fel vid inläsning av behörigheter: {0}"
+
+msgid "The request could not be completed"
+msgstr "Begäran kunde inte slutföras"

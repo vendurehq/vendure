@@ -238,3 +238,6 @@ msgstr "Etkinlik yüklenirken hata oluştu: {0}"
 
 msgid "Error loading grants: {0}"
 msgstr "Yetkiler yüklenirken hata oluştu: {0}"
+
+msgid "The request could not be completed"
+msgstr "İstek tamamlanamadı"

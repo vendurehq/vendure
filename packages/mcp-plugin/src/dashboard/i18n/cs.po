@@ -238,3 +238,6 @@ msgstr "Chyba při načítání aktivity: {0}"
 
 msgid "Error loading grants: {0}"
 msgstr "Chyba při načítání oprávnění: {0}"
+
+msgid "The request could not be completed"
+msgstr "Požadavek se nepodařilo dokončit"

@@ -238,3 +238,6 @@ msgstr "Błąd podczas wczytywania aktywności: {0}"
 
 msgid "Error loading grants: {0}"
 msgstr "Błąd podczas wczytywania uprawnień: {0}"
+
+msgid "The request could not be completed"
+msgstr "Nie udało się zrealizować żądania"

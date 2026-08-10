@@ -238,3 +238,6 @@ msgstr "Feil ved innlasting av aktivitet: {0}"
 
 msgid "Error loading grants: {0}"
 msgstr "Feil ved innlasting av tilganger: {0}"
+
+msgid "The request could not be completed"
+msgstr "Forespørselen kunne ikke fullføres"

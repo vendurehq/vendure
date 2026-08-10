@@ -238,3 +238,6 @@ msgstr "خطا در بارگیری فعالیت: {0}"
 
 msgid "Error loading grants: {0}"
 msgstr "خطا در بارگیری مجوزها: {0}"
+
+msgid "The request could not be completed"
+msgstr "درخواست کامل نشد"

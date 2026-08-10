@@ -238,3 +238,6 @@ msgstr "Pogreška prilikom učitavanja aktivnosti: {0}"
 
 msgid "Error loading grants: {0}"
 msgstr "Pogreška prilikom učitavanja odobrenja: {0}"
+
+msgid "The request could not be completed"
+msgstr "Zahtjev nije mogao biti dovršen"

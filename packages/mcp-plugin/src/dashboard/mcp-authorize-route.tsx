@@ -1,5 +1,7 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import {
+    Alert,
+    AlertDescription,
     api,
     Badge,
     Button,
@@ -52,6 +54,7 @@ function ConsentCard({ requestToken }: { requestToken: string }) {
     const { t } = useLingui();
     const [info, setInfo] = useState<AuthRequestInfo | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [submitError, setSubmitError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
 
@@ -85,14 +88,14 @@ function ConsentCard({ requestToken }: { requestToken: string }) {
 
     const submit = async (approved: boolean) => {
         setSubmitting(true);
-        setError(null);
+        setSubmitError(null);
         try {
             const data = (await api.mutate(AUTHORIZE_MCP_CLIENT, { requestToken, approved })) as {
                 authorizeMcpClient: { redirectUrl: string };
             };
             window.location.href = data.authorizeMcpClient.redirectUrl;
         } catch (e: unknown) {
-            setError(e instanceof Error ? e.message : String(e));
+            setSubmitError(e instanceof Error ? e.message : String(e));
             setSubmitting(false);
         }
     };
@@ -207,6 +210,19 @@ function ConsentCard({ requestToken }: { requestToken: string }) {
                     ) : null}
                 </div>
             </CardContent>
+            {submitError != null ? (
+                <CardContent className="pt-0">
+                    <Alert variant="destructive">
+                        <AlertTriangleIcon className="h-4 w-4" />
+                        <AlertDescription>
+                            <div>
+                                <Trans>The request could not be completed</Trans>
+                            </div>
+                            <div className="break-all">{submitError}</div>
+                        </AlertDescription>
+                    </Alert>
+                </CardContent>
+            ) : null}
             <CardFooter className="justify-end gap-2">
                 <Button variant="outline" disabled={submitting} onClick={() => void submit(false)}>
                     <Trans>Deny</Trans>

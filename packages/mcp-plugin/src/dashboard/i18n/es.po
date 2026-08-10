@@ -238,3 +238,6 @@ msgstr "Error al cargar la actividad: {0}"
 
 msgid "Error loading grants: {0}"
 msgstr "Error al cargar las concesiones: {0}"
+
+msgid "The request could not be completed"
+msgstr "La solicitud no se pudo completar"

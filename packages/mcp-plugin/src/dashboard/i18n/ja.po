@@ -238,3 +238,6 @@ msgstr "アクティビティの読み込みに失敗しました: {0}"
 
 msgid "Error loading grants: {0}"
 msgstr "権限付与の読み込みに失敗しました: {0}"
+
+msgid "The request could not be completed"
+msgstr "リクエストを完了できませんでした"

@@ -238,3 +238,6 @@ msgstr "Fout bij het laden van activiteit: {0}"
 
 msgid "Error loading grants: {0}"
 msgstr "Fout bij het laden van toekenningen: {0}"
+
+msgid "The request could not be completed"
+msgstr "De aanvraag kon niet worden voltooid"

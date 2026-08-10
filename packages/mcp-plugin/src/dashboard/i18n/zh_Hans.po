@@ -238,3 +238,6 @@ msgstr "加载活动时出错：{0}"
 
 msgid "Error loading grants: {0}"
 msgstr "加载授权时出错：{0}"
+
+msgid "The request could not be completed"
+msgstr "无法完成请求"
