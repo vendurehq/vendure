@@ -363,6 +363,108 @@ describe('McpPlugin OAuth edge & security cases', () => {
         ).rejects.toThrow(/invalid or expired/i);
     });
 
+    // --- Client-controlled value length / format validation ---
+    //
+    // These values are client-controlled and land in default-length (255-char) varchar
+    // columns. On MySQL/Postgres an over-long value would otherwise throw at insert time
+    // (an unhandled 500); SQLite ignores column lengths, so only an explicit check catches
+    // this. Each case below is rejected before any row is written.
+
+    // An over-long `state` is rejected with an error redirect rather than reaching the
+    // McpAuthorizationRequest.state column. The state is still echoed back on the redirect —
+    // it never reaches the database on this path.
+    it('rejects authorize with a state longer than 255 characters', async () => {
+        const redirectUri = 'https://example.com/cb';
+        const registerRes = await fetch(`${baseUrl()}/mcp/oauth/register`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+                client_name: `long-state-${Math.random().toString(36).slice(2)}`,
+                redirect_uris: [redirectUri],
+            }),
+        });
+        const { client_id } = (await registerRes.json()) as { client_id: string };
+
+        const longState = 'x'.repeat(300);
+        const code_verifier = 'a'.repeat(64);
+        const code_challenge = crypto.createHash('sha256').update(code_verifier).digest('base64url');
+        const authorizeUrl = new URL(`${baseUrl()}/mcp/oauth/authorize`);
+        authorizeUrl.searchParams.set('response_type', 'code');
+        authorizeUrl.searchParams.set('client_id', client_id);
+        authorizeUrl.searchParams.set('redirect_uri', redirectUri);
+        authorizeUrl.searchParams.set('code_challenge', code_challenge);
+        authorizeUrl.searchParams.set('code_challenge_method', 'S256');
+        authorizeUrl.searchParams.set('resource', `${ISSUER}/mcp/admin`);
+        authorizeUrl.searchParams.set('state', longState);
+
+        const res = await fetch(authorizeUrl, { redirect: 'manual' });
+        expect(res.status).toBe(302);
+        const location = new URL(res.headers.get('location') as string);
+        expect(location.searchParams.get('error')).toBe('invalid_request');
+        expect(location.searchParams.get('state')).toBe(longState);
+    });
+
+    // A code_challenge outside PKCE's 43-128 character range (RFC 7636 §4.2) is rejected
+    // with an error redirect, whether too short or too long.
+    it.each([
+        ['too short', 'x'.repeat(20)],
+        ['too long', 'x'.repeat(200)],
+    ])('rejects authorize with a code_challenge that is %s', async (_label, codeChallenge) => {
+        const redirectUri = 'https://example.com/cb';
+        const registerRes = await fetch(`${baseUrl()}/mcp/oauth/register`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+                client_name: `bad-challenge-${Math.random().toString(36).slice(2)}`,
+                redirect_uris: [redirectUri],
+            }),
+        });
+        const { client_id } = (await registerRes.json()) as { client_id: string };
+
+        const authorizeUrl = new URL(`${baseUrl()}/mcp/oauth/authorize`);
+        authorizeUrl.searchParams.set('response_type', 'code');
+        authorizeUrl.searchParams.set('client_id', client_id);
+        authorizeUrl.searchParams.set('redirect_uri', redirectUri);
+        authorizeUrl.searchParams.set('code_challenge', codeChallenge);
+        authorizeUrl.searchParams.set('code_challenge_method', 'S256');
+        authorizeUrl.searchParams.set('resource', `${ISSUER}/mcp/admin`);
+
+        const res = await fetch(authorizeUrl, { redirect: 'manual' });
+        expect(res.status).toBe(302);
+        const location = new URL(res.headers.get('location') as string);
+        expect(location.searchParams.get('error')).toBe('invalid_request');
+        expect(location.searchParams.get('error_description')).toMatch(/code_challenge/i);
+    });
+
+    // DCR rejects a redirect_uri that would overflow the column it is stored in.
+    it('rejects DCR registration with a redirect_uri longer than 255 characters', async () => {
+        const longRedirectUri = `https://example.com/${'x'.repeat(300)}`;
+        const registerRes = await fetch(`${baseUrl()}/mcp/oauth/register`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+                client_name: `long-redirect-${Math.random().toString(36).slice(2)}`,
+                redirect_uris: [longRedirectUri],
+            }),
+        });
+        expect(registerRes.status).toBe(400);
+    });
+
+    // DCR only advertises "none" as a supported token_endpoint_auth_method; any other value
+    // is refused rather than stored unvalidated.
+    it('rejects DCR registration with an unsupported token_endpoint_auth_method', async () => {
+        const registerRes = await fetch(`${baseUrl()}/mcp/oauth/register`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+                client_name: `bad-auth-method-${Math.random().toString(36).slice(2)}`,
+                redirect_uris: ['https://example.com/cb'],
+                token_endpoint_auth_method: 'client_secret_basic',
+            }),
+        });
+        expect(registerRes.status).toBe(400);
+    });
+
     // --- Security checks ---
 
     // revoke() is a soft-revoke: the grant row survives (so McpToolCallLog audit links are

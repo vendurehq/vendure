@@ -105,8 +105,8 @@ default port, no `.`/`..` or backslash path segments — because the server fetc
 compares it against the document character for character. The server fetches the document without following
 redirects, refuses hosts that resolve to private or otherwise special-use addresses, caps the document at 5 KB,
 and reuses it for one hour before fetching it again. The document must contain a `client_id` exactly equal to the
-URL, a `client_name` of at most 255 characters, and `redirect_uris`; the redirect URI the client uses must be
-listed there exactly.
+URL, a `client_name` of at most 255 characters, and `redirect_uris` (each at most 255 characters, on this and
+the `/register` path alike); the redirect URI the client uses must be listed there exactly.
 
 To develop against a metadata document served from your own machine, set
 `oauth.allowLoopbackCimdDocuments: true`. That permits a `client_id` URL pointing at `localhost`, `127.0.0.1` or

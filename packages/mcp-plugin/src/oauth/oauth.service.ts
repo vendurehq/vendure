@@ -122,6 +122,11 @@ export class McpOauthService {
         for (const redirectUri of input.redirect_uris) {
             assertSafeRedirectUri(redirectUri);
         }
+        if (input.token_endpoint_auth_method && input.token_endpoint_auth_method !== 'none') {
+            throw new BadRequestException(
+                'token_endpoint_auth_method must be "none" — this server does not support client authentication',
+            );
+        }
         const ctx = await this.createAdminCtx();
         const client = await this.connection.getRepository(ctx, McpOauthClient).save(
             new McpOauthClient({
@@ -203,6 +208,22 @@ export class McpOauthService {
         const client = await this.findClient(ctx, input.client_id);
         if (!client.redirectUris.includes(input.redirect_uri)) {
             throw new BadRequestException('redirect_uri is not registered for client');
+        }
+        // From here the redirect_uri is a verified target, so remaining request errors are
+        // reported by redirecting there rather than by an HTTP error response.
+        const redirectUri = input.redirect_uri;
+        const invalidRequest = (error_description: string) =>
+            appendOAuthParams(redirectUri, {
+                error: 'invalid_request',
+                error_description,
+                state: input.state,
+            });
+        if (input.state && input.state.length > MAX_CLIENT_METADATA_FIELD_LENGTH) {
+            return invalidRequest(`state must not exceed ${MAX_CLIENT_METADATA_FIELD_LENGTH} characters`);
+        }
+        // RFC 7636 §4.2: a code_challenge is 43-128 characters.
+        if (input.code_challenge.length < 43 || input.code_challenge.length > 128) {
+            return invalidRequest('code_challenge must be between 43 and 128 characters (RFC 7636)');
         }
 
         let consentUrl: URL;

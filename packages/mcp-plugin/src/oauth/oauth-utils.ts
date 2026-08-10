@@ -1,6 +1,8 @@
 import { BadRequestException } from '@nestjs/common';
 import { createHash, randomBytes } from 'node:crypto';
 
+import { MAX_CLIENT_METADATA_FIELD_LENGTH } from '../constants';
+
 import { isLoopbackHostname } from './loopback';
 
 /**
@@ -52,8 +54,9 @@ export function appendOAuthParams(redirectUri: string, params: Record<string, st
 
 /**
  * A redirect_uri must be HTTPS, or plain HTTP only on a loopback host (native and CLI
- * clients listen there). Applied to DCR registrations and to the redirect_uris inside
- * CIMD client metadata documents.
+ * clients listen there), and must fit the column it is stored in on both registration
+ * paths. Applied to DCR registrations and to the redirect_uris inside CIMD client
+ * metadata documents.
  */
 export function assertSafeRedirectUri(redirectUri: string): void {
     let url: URL;
@@ -64,5 +67,10 @@ export function assertSafeRedirectUri(redirectUri: string): void {
     }
     if (url.protocol !== 'https:' && !(url.protocol === 'http:' && isLoopbackHostname(url.hostname))) {
         throw new BadRequestException('redirect_uri must use HTTPS or localhost HTTP');
+    }
+    if (redirectUri.length > MAX_CLIENT_METADATA_FIELD_LENGTH) {
+        throw new BadRequestException(
+            `redirect_uri must be at most ${MAX_CLIENT_METADATA_FIELD_LENGTH} characters`,
+        );
     }
 }

@@ -70,7 +70,10 @@ export const CIMD_MAX_DOCUMENT_BYTES = 5 * 1024;
  * varchar columns default to 255 characters.
  */
 export const CIMD_MAX_CLIENT_ID_LENGTH = 512;
-/** Applies to `client_name`, `client_uri` and `logo_uri`, whichever way the client identified itself. */
+/**
+ * Applies to `client_name`, `client_uri`, `logo_uri` and `redirect_uri` (whichever way the
+ * client identified itself), and to the authorize request's `state` parameter.
+ */
 export const MAX_CLIENT_METADATA_FIELD_LENGTH = 255;
 /**
  * How long a fetched document is reused before it is fetched again. The draft (§5.2) leaves the
