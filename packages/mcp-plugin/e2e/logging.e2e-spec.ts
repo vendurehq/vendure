@@ -127,7 +127,91 @@ describe('MCP tool-call logging', () => {
         expect(row.grantId).not.toBeNull();
         expect(row.oauthClientId).not.toBeNull();
         expect(row.actor).not.toBeNull(); // stringified user id
-        expect(row.channelId).not.toBeNull();
+        // An admin approval stores no channel on the grant, so its calls are logged
+        // channel-less — the row is global, like the grant itself.
+        expect(row.channelId).toBeNull();
+    });
+
+    it('shows channel-less admin-grant activity in the log and stats of every channel', async () => {
+        const token = await adminAccessToken();
+        const response = await postMcp(baseUrl(), 'admin', callTool('admin_list', {}, 4), { token });
+        expect(response.body.result.isError).toBeUndefined();
+
+        // A second channel, so we can read the dashboard queries from a non-default channel.
+        const { zones } = await adminClient.query(gql`
+            query {
+                zones {
+                    items {
+                        id
+                    }
+                }
+            }
+        `);
+        const active = await adminClient.query(gql`
+            query {
+                activeChannel {
+                    defaultLanguageCode
+                    defaultCurrencyCode
+                }
+            }
+        `);
+        const created = await adminClient.query(
+            gql`
+                mutation CreateLoggingChannel($input: CreateChannelInput!) {
+                    createChannel(input: $input) {
+                        __typename
+                        ... on Channel {
+                            token
+                        }
+                    }
+                }
+            `,
+            {
+                input: {
+                    code: 'logging-second-channel',
+                    token: 'logging-second-channel-token',
+                    defaultLanguageCode: active.activeChannel.defaultLanguageCode,
+                    defaultCurrencyCode: active.activeChannel.defaultCurrencyCode,
+                    pricesIncludeTax: false,
+                    defaultShippingZoneId: zones.items[0].id,
+                    defaultTaxZoneId: zones.items[0].id,
+                },
+            },
+        );
+        expect(created.createChannel.token).toBeDefined();
+
+        // Query the log list and the stats as the superadmin, but on the second channel.
+        const result = await fetch(`${baseUrl()}/${config.apiOptions.adminApiPath ?? 'admin-api'}`, {
+            method: 'POST',
+            headers: {
+                'content-type': 'application/json',
+                Authorization: `Bearer ${adminClient.getAuthToken()}`,
+                'vendure-token': created.createChannel.token,
+            },
+            body: JSON.stringify({
+                query: `query {
+                    mcpToolCallLogs { items { toolName } totalItems }
+                    mcpStats { totalCalls }
+                }`,
+            }),
+        });
+        const body = (await result.json()) as {
+            data?: {
+                mcpToolCallLogs: { items: Array<{ toolName: string }>; totalItems: number };
+                mcpStats: { totalCalls: number };
+            };
+            errors?: Array<{ message: string }>;
+        };
+        expect(body.errors).toBeUndefined();
+        if (!body.data) {
+            throw new Error(`Query returned no data: ${JSON.stringify(body.errors)}`);
+        }
+        const toolNames = body.data.mcpToolCallLogs.items.map(item => item.toolName);
+        // The channel-less admin-grant call is visible from the second channel...
+        expect(toolNames).toContain('admin_list');
+        expect(body.data.mcpStats.totalCalls).toBeGreaterThanOrEqual(1);
+        // ...while rows logged under the default channel stay scoped to it.
+        expect(toolNames).not.toContain('shop_ping');
     });
 });
 

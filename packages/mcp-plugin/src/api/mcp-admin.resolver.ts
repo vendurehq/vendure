@@ -147,13 +147,18 @@ export class McpAdminResolver {
         @Ctx() ctx: RequestContext,
         @Args() args: { options?: ListQueryOptions<McpToolCallLog> },
     ): Promise<{ items: McpToolCallLog[]; totalItems: number }> {
-        return this.listQueryBuilder
-            .build(McpToolCallLog, args.options ?? undefined, {
-                ctx,
-                where: ctx.channelId != null ? { channelId: ctx.channelId } : {},
-            })
-            .getManyAndCount()
-            .then(([items, totalItems]) => ({ items, totalItems }));
+        const qb = this.listQueryBuilder.build(McpToolCallLog, args.options ?? undefined, {
+            ctx,
+            entityAlias: 'log',
+        });
+        if (ctx.channelId != null) {
+            // Channel-less rows come from global (admin) grants and show on every
+            // channel, matching the grants query above.
+            qb.andWhere('(log.channelId = :channelId OR log.channelId IS NULL)', {
+                channelId: ctx.channelId,
+            });
+        }
+        return qb.getManyAndCount().then(([items, totalItems]) => ({ items, totalItems }));
     }
 
     @Query()
@@ -301,14 +306,19 @@ export class McpAdminResolver {
         return row ? Number(row.durationMs) : null;
     }
 
-    /** A query over the tool-call log, limited to the window and the active channel. */
+    /**
+     * A query over the tool-call log, limited to the window and the active channel.
+     * Channel-less rows come from global (admin) grants and count on every channel.
+     */
     private windowedQuery(ctx: RequestContext, since: string) {
         const qb = this.connection
             .getRepository(ctx, McpToolCallLog)
             .createQueryBuilder('log')
             .where('log.createdAt >= :since', { since });
         if (ctx.channelId != null) {
-            qb.andWhere('log.channelId = :channelId', { channelId: ctx.channelId });
+            qb.andWhere('(log.channelId = :channelId OR log.channelId IS NULL)', {
+                channelId: ctx.channelId,
+            });
         }
         return qb;
     }

@@ -55,7 +55,10 @@ export class McpToolCallLogService {
                 actorType:
                     grant?.userType ??
                     (ctx.apiType === 'admin' ? 'admin' : ctx.activeUserId != null ? 'customer' : 'anonymous'),
-                channelId: ctx.channelId ?? null,
+                // Calls under a grant are logged with the grant's channel. Null means the grant
+                // is global (admin approvals store no channel), so its rows stay visible on
+                // every channel's dashboard, the same way the grant itself is listed.
+                channelId: grant ? (grant.channelId ?? null) : (ctx.channelId ?? null),
                 clientIp: this.options.logging?.captureClientIp ? (clientIp ?? null) : null,
                 toolName: input.tool.name,
                 pluginSource: input.tool.pluginSource,
@@ -133,7 +136,9 @@ export class McpToolCallLogService {
                 .where('log.createdAt < :cutoff', { cutoff })
                 .limit(RETENTION_DELETE_BATCH_SIZE);
             if (channelId != null) {
-                query.andWhere('log.channelId = :channelId', { channelId });
+                // Channel-less rows come from global (admin) grants; they are visible on
+                // every channel, so any channel may also sweep them.
+                query.andWhere('(log.channelId = :channelId OR log.channelId IS NULL)', { channelId });
             }
             const expired = await query.getRawMany<{ id: ID }>();
             if (expired.length === 0) {
