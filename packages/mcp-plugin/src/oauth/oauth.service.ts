@@ -59,6 +59,7 @@ import {
     addSeconds,
     appendOAuthParams,
     assertSafeRedirectUri,
+    httpsUrlOrNull,
     randomToken,
     verifyPkceChallenge,
 } from './oauth-utils';
@@ -132,8 +133,8 @@ export class McpOauthService {
             new McpOauthClient({
                 clientId: randomToken(),
                 clientName: input.client_name,
-                clientUri: input.client_uri ?? null,
-                logoUri: input.logo_uri ?? null,
+                clientUri: httpsUrlOrNull(input.client_uri),
+                logoUri: httpsUrlOrNull(input.logo_uri),
                 redirectUris: input.redirect_uris,
                 grantTypes: input.grant_types ?? ['authorization_code', 'refresh_token'],
                 tokenEndpointAuthMethod: input.token_endpoint_auth_method ?? 'none',

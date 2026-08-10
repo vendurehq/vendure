@@ -450,6 +450,25 @@ describe('McpPlugin OAuth edge & security cases', () => {
         expect(registerRes.status).toBe(400);
     });
 
+    // DCR drops an unusable client_uri/logo_uri rather than failing the whole registration:
+    // an over-long client_uri and a non-https logo_uri are both stored as null.
+    it('drops an over-long client_uri and a non-https logo_uri instead of failing registration', async () => {
+        const registerRes = await fetch(`${baseUrl()}/mcp/oauth/register`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+                client_name: `bad-display-fields-${Math.random().toString(36).slice(2)}`,
+                redirect_uris: ['https://example.com/cb'],
+                client_uri: `https://example.com/${'x'.repeat(300)}`,
+                logo_uri: 'javascript:alert(1)',
+            }),
+        });
+        expect(registerRes.status).toBe(201);
+        const body = (await registerRes.json()) as Record<string, unknown>;
+        expect(body.client_uri).toBeUndefined();
+        expect(body.logo_uri).toBeUndefined();
+    });
+
     // DCR only advertises "none" as a supported token_endpoint_auth_method; any other value
     // is refused rather than stored unvalidated.
     it('rejects DCR registration with an unsupported token_endpoint_auth_method', async () => {

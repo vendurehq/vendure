@@ -74,3 +74,18 @@ export function assertSafeRedirectUri(redirectUri: string): void {
         );
     }
 }
+
+/**
+ * Keeps a display-URL field only if it's a well-formed https URL that fits its column.
+ * Otherwise returns null — bad display data is dropped, not an error.
+ */
+export function httpsUrlOrNull(value: unknown): string | null {
+    if (typeof value !== 'string' || value.length > MAX_CLIENT_METADATA_FIELD_LENGTH) {
+        return null;
+    }
+    try {
+        return new URL(value).protocol === 'https:' ? value : null;
+    } catch {
+        return null;
+    }
+}

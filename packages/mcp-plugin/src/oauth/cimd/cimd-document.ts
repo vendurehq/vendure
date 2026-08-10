@@ -1,7 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 
 import { MAX_CLIENT_METADATA_FIELD_LENGTH } from '../../constants';
-import { assertSafeRedirectUri } from '../oauth-utils';
+import { assertSafeRedirectUri, httpsUrlOrNull } from '../oauth-utils';
 
 /** The subset of a fetched CIMD document that this authorization server stores. */
 export interface CimdDocument {
@@ -88,19 +88,4 @@ export function parseCimdDocument(clientId: string, rawBody: string): CimdDocume
         grantTypes,
         tokenEndpointAuthMethod: 'none',
     };
-}
-
-/**
- * Keeps a display-URL field only when it is a well-formed https URL that fits its column; display
- * data is dropped, not fatal.
- */
-function httpsUrlOrNull(value: unknown): string | null {
-    if (typeof value !== 'string' || value.length > MAX_CLIENT_METADATA_FIELD_LENGTH) {
-        return null;
-    }
-    try {
-        return new URL(value).protocol === 'https:' ? value : null;
-    } catch {
-        return null;
-    }
 }

@@ -67,7 +67,8 @@ export const CIMD_MAX_DOCUMENT_BYTES = 5 * 1024;
 /**
  * Length caps on the client values that are stored in columns of their own. They keep an over-long
  * value a validation error (HTTP 400) instead of a database error at insert time, because MySQL's
- * varchar columns default to 255 characters.
+ * varchar columns default to 255 characters — or, for the display-only client_uri/logo_uri fields,
+ * the value is dropped instead of erroring.
  */
 export const CIMD_MAX_CLIENT_ID_LENGTH = 512;
 /**
