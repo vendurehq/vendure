@@ -1565,6 +1565,12 @@
                   "lastModified": "2026-04-20T16:08:16+02:00"
                 },
                 {
+                  "title": "FindOptionsArrayToObject",
+                  "slug": "find-options-array-to-object",
+                  "file": "docs/reference/typescript-api/data-access/find-options-array-to-object.mdx",
+                  "lastModified": "2026-08-10T17:00:56+01:00"
+                },
+                {
                   "title": "FindOptionsRelationsInput",
                   "slug": "find-options-relations-input",
                   "file": "docs/reference/typescript-api/data-access/find-options-relations-input.mdx",
