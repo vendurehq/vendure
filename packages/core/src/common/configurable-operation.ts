@@ -580,8 +580,8 @@ export class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
      *
      * These strings describe the operation itself rather than the data it acts on, so they follow
      * the language the client asked to read in its `Accept-Language` header. `ctx.languageCode`
-     * selects a translation of the data, and is consulted only after that, so a client which sends
-     * no header still resolves against `ctx.languageCode` first, as it did before.
+     * selects a translation of the data, so it comes after that, and is what a client which sends
+     * no header resolves against.
      */
     private languagePreference(ctx: RequestContext): LanguageCode[] {
         return [

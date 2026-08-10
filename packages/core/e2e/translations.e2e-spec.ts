@@ -133,7 +133,7 @@ describe('Translation', () => {
         });
 
         it("resolves a core operation against core's own shipped catalog", async () => {
-            // Japanese exists only in the catalog, so a key path which no longer matches the
+            // Japanese exists only in the catalog, so a key path which does not match the
             // operation resolves to English instead of failing, and would go unnoticed.
             const { shippingCalculators } = await adminClient.query(
                 gql(SHIPPING_CALCULATORS),
