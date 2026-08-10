@@ -25,6 +25,7 @@ import { Instrument } from '../../../common/instrument-decorator';
 import { ConfigService, CustomFields, Logger } from '../../../config';
 import { TransactionalConnection } from '../../../connection';
 import { findOptionsArrayToObject } from '../../../connection/find-options-array-to-object';
+import { getDataSource } from '../../../connection/get-data-source';
 import { VendureEntity } from '../../../entity';
 import { joinTreeRelationsDynamically } from '../utils/tree-relations-qb-joiner';
 
@@ -310,8 +311,9 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         const customFieldsForType = this.configService.customFields[entity.name as keyof CustomFields];
         const sortParams = Object.assign({}, options.sort, extendedOptions.orderBy);
         this.applyTranslationConditions(qb, entity, sortParams, extendedOptions.ctx);
+        const dataSource = getDataSource(qb);
         const sort = parseSortParams(
-            qb.connection,
+            dataSource,
             entity,
             sortParams,
             customPropertyMap,
@@ -320,7 +322,7 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         );
 
         const filter = parseFilterParams({
-            connection: qb.connection,
+            connection: dataSource,
             entity,
             filterParams: options.filter,
             customPropertyMap,
@@ -480,11 +482,12 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         const newParamKey = `exists_${baseParamKey}`;
 
         // Helper to escape identifiers for the current database driver (handles PostgreSQL quoting)
-        const escapeId = (name: string) => mainQb.connection.driver.escape(name);
+        const { driver } = getDataSource(mainQb);
+        const escapeId = (name: string) => driver.escape(name);
         const escapeTablePath = (path: string) =>
             path
                 .split('.')
-                .map(segment => mainQb.connection.driver.escape(segment))
+                .map(segment => driver.escape(segment))
                 .join('.');
 
         let existsQuery: string;
@@ -840,7 +843,8 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
     ) {
         const languageCode = ctx?.languageCode || this.configService.defaultLanguageCode;
 
-        const { translationColumns } = getColumnMetadata(qb.connection, entity);
+        const dataSource = getDataSource(qb);
+        const { translationColumns } = getColumnMetadata(dataSource, entity);
         const alias = qb.alias;
 
         const sortKeys = Object.keys(sortParams);
@@ -852,12 +856,7 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         }
 
         if (translationColumns.length && sortingOnTranslatableKey) {
-            const translationsAlias = qb.connection.namingStrategy.joinTableName(
-                alias,
-                'translations',
-                '',
-                '',
-            );
+            const translationsAlias = dataSource.namingStrategy.joinTableName(alias, 'translations', '', '');
             if (!this.isRelationAlreadyJoined(qb, translationsAlias)) {
                 qb.leftJoinAndSelect(`${alias}.translations`, translationsAlias);
             }

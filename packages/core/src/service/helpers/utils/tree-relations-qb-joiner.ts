@@ -3,6 +3,7 @@ import { EntityTarget } from 'typeorm/common/EntityTarget';
 import { DriverUtils } from 'typeorm/driver/DriverUtils';
 
 import { findOptionsObjectToArray } from '../../../connection/find-options-object-to-array';
+import { getDataSource } from '../../../connection/get-data-source';
 import { VendureEntity } from '../../../entity';
 
 /**
@@ -62,7 +63,8 @@ export function joinTreeRelationsDynamically<T extends VendureEntity>(
         return joinedRelations;
     }
 
-    const sourceMetadata = qb.connection.getMetadata(entity);
+    const dataSource = getDataSource(qb);
+    const sourceMetadata = dataSource.getMetadata(entity);
     const sourceMetadataIsTree = isTreeEntityMetadata(sourceMetadata);
 
     const processRelation = (
@@ -112,7 +114,7 @@ export function joinTreeRelationsDynamically<T extends VendureEntity>(
             joinConnector = '__';
         }
         const nextAlias = DriverUtils.buildAlias(
-            qb.connection.driver,
+            dataSource.driver,
             { shorten: false, joiner: joinConnector },
             currentAlias,
             part.replace(/\./g, '_'),

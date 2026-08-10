@@ -4,6 +4,8 @@ import { ColumnMetadata } from 'typeorm/metadata/ColumnMetadata';
 import { RelationMetadata } from 'typeorm/metadata/RelationMetadata';
 import { RelationIdLoader } from 'typeorm/query-builder/RelationIdLoader';
 
+import { DataSourceHolder, getDataSource } from '../connection/get-data-source';
+
 let patchApplied = false;
 
 /**
@@ -51,9 +53,13 @@ export function patchTypeOrmRelationIdLoader() {
     ]) {
         // eslint-disable-next-line @typescript-eslint/unbound-method
         const originalMethod = proto[methodName];
-        proto[methodName] = async function (relation: RelationMetadata, ...rest: any[]) {
+        proto[methodName] = async function (
+            this: DataSourceHolder,
+            relation: RelationMetadata,
+            ...rest: any[]
+        ) {
             const rows = await originalMethod.apply(this, [relation, ...rest]);
-            return normalizeGroupingKeys(this.connection.driver, relation, rows);
+            return normalizeGroupingKeys(getDataSource(this).driver, relation, rows);
         };
     }
 }

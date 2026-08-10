@@ -33,6 +33,7 @@ import { ChannelAware } from '../../common/types/common-types';
 import { Translated } from '../../common/types/locale-types';
 import { idsAreEqual } from '../../common/utils';
 import { ConfigService } from '../../config/config.service';
+import { getDataSource } from '../../connection/get-data-source';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { AssetTranslation } from '../../entity/asset/asset-translation.entity';
 import { AssetUsage } from '../../entity/asset/asset-usage';
@@ -135,7 +136,7 @@ export class AssetService {
         const tags = options?.tags;
         if (tags && tags.length) {
             const operator = options?.tagsOperator ?? LogicalOperator.AND;
-            const subquery = qb.connection
+            const subquery = getDataSource(qb)
                 .createQueryBuilder()
                 .select('asset.id')
                 .from(Asset, 'asset')
