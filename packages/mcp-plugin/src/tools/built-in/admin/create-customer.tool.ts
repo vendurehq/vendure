@@ -8,7 +8,6 @@ import { customerSummaryResult } from '../serializers';
 
 interface CreateCustomerToolInput {
     input: CreateCustomerInput;
-    password?: string;
 }
 
 const customerInputSchema = objectSchema({
@@ -35,7 +34,6 @@ const customerInputSchema = objectSchema({
     permissions: [Permission.CreateCustomer],
     inputSchema: objectSchema({
         input: customerInputSchema,
-        password: optional(stringProp('Optional password to create a registered account.')),
     }),
 })
 @Injectable()
@@ -44,9 +42,7 @@ export class CreateCustomerTool implements McpToolHandler<CreateCustomerToolInpu
 
     async execute(ctx: RequestContext, input: CreateCustomerToolInput) {
         return {
-            customer: customerSummaryResult(
-                await this.customerService.create(ctx, input.input, input.password),
-            ),
+            customer: customerSummaryResult(await this.customerService.create(ctx, input.input)),
         };
     }
 }

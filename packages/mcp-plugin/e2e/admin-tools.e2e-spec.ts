@@ -506,7 +506,6 @@ describe('MCP built-in admin tools (direct mode)', () => {
                 'create_customer',
                 {
                     input: { firstName: 'Dup', lastName: 'Licate', emailAddress: seededCustomerEmail },
-                    password: 'test',
                 },
                 2,
             ),
