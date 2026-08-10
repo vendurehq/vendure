@@ -63,7 +63,7 @@ export function parseAcceptLanguage(header: string | string[] | undefined): Lang
     return result;
 }
 
-/** Lowercase language, titlecase script, uppercase region, as `LanguageCode` values are written. */
+/** Applies the casing `LanguageCode` values use: lowercase language, titlecase script, uppercase region. */
 function normalizeSubtags(tag: string): string[] {
     return tag.split('-').map((subtag, index) => {
         if (index === 0) {

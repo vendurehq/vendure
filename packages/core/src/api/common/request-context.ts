@@ -371,11 +371,11 @@ export class RequestContext {
      * The languages the client asked to read this response in, most preferred first, taken from the
      * `Accept-Language` header. Empty when the client sent no header.
      *
-     * This is a separate question from {@link RequestContext.languageCode}, which selects *which
-     * translation of the data* to return. These codes select *which language the response's own
-     * text is written in* — the descriptions and labels Vendure defines itself. The two differ for
-     * an administrator who is, say, reading the Admin UI in Japanese while editing the German
-     * translation of a product.
+     * {@link RequestContext.languageCode} selects which translation of the data to return. These
+     * codes say which language the server should write its own text in, such as the descriptions
+     * and labels attached to a {@link ConfigurableOperationDef}. The two differ for an
+     * administrator reading the Admin UI in Japanese while editing the German translation of a
+     * product.
      *
      * A code here is not guaranteed to be a member of the {@link LanguageCode} enum, for the same
      * reason `languageCode` is not: custom codes are permitted. Treat a code with no translation

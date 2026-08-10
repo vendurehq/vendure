@@ -578,10 +578,10 @@ export class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
     /**
      * The languages to try, in order, when resolving a string which the administrator reads.
      *
-     * These strings describe the operation itself rather than any of the data it acts on, so the
-     * language they belong in is the one the client asked to read, which it states in its
-     * `Accept-Language` header. `ctx.languageCode` selects a translation of the *content* and is
-     * only consulted after that, so that a client which sends no header behaves as it always has.
+     * These strings describe the operation itself rather than the data it acts on, so they follow
+     * the language the client asked to read in its `Accept-Language` header. `ctx.languageCode`
+     * selects a translation of the data, and is consulted only after that, which keeps a client
+     * that sends no header behaving as it always has.
      */
     private languagePreference(ctx: RequestContext): LanguageCode[] {
         return [
@@ -612,11 +612,11 @@ export class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
      * like the operation description and the arg labels are, because the Admin UI picks the option
      * label itself.
      *
-     * The translation is merged in under the language the client asked for, not the one the catalog
-     * entry was found under, because every client looks up its own display language and falls back
-     * to the first entry in the array when it finds no exact match. A match reached by truncating
-     * `pt_BR` to `pt`, or from the channel default at the end of the chain, would otherwise be
-     * tagged with a language the client never looks for, and the translation would go unused.
+     * The merged entry carries the language code the client asked for. Every client looks up its
+     * own display language and falls back to the first entry in the array when it finds no exact
+     * match, so a match reached by truncating `pt_BR` to `pt`, or one taken from the channel
+     * default at the end of the chain, would be passed over if it were filed under the code it
+     * happened to be found for.
      *
      * The result is a copy, and the original is returned untouched when there is nothing to merge.
      * `ui` belongs to the long-lived config object shared by every request, so merging in place

@@ -42,8 +42,8 @@ export class DefaultInterceptor implements HttpInterceptor {
             switchMap(({ uiState }) => {
                 // The content language selects which translation of the data to return; the UI
                 // language tells the server which language to write its own descriptions and
-                // labels in. Sending the latter explicitly also stops the browser's own
-                // Accept-Language, which follows the OS locale, from deciding it instead.
+                // labels in. The UI language is sent explicitly because browsers add an
+                // Accept-Language of their own from the OS locale, which would otherwise decide it.
                 const uiLanguage = uiState?.language;
                 const request = req.clone({
                     setParams: {

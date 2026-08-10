@@ -30,11 +30,11 @@ const awesomeClient = new AwesomeGraphQLClient({
             headers.set(uiConfig.api.channelTokenKey, channelToken);
         }
 
-        // The two languages answer different questions, so they travel separately: the content
-        // language says which translation of the data to return, while the display language says
-        // which language to write the server's own descriptions and labels in. Sending the display
-        // language explicitly also stops the browser's own Accept-Language, which reflects the OS
-        // locale rather than anything chosen here, from deciding it instead.
+        // The two languages travel separately because they mean different things. The content
+        // language selects which translation of the data to return; the display language tells the
+        // server which language to write its own descriptions and labels in. The display language
+        // is sent explicitly because browsers add an Accept-Language of their own from the OS
+        // locale, which would otherwise decide it.
         let finalUrl = url;
         try {
             const userSettings = localStorage.getItem(LS_KEY_USER_SETTINGS);

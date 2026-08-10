@@ -311,8 +311,8 @@ describe('ConfigurableOperationDef', () => {
     });
 
     describe('reader language', () => {
-        // These strings describe the operation rather than the data, so they belong in the language
-        // the client asked to read, not the language of the content it happens to be editing.
+        // These strings describe the operation, so they follow the language the client asked to
+        // read. The content language selects a translation of the data and has no bearing on them.
         it('prefers an accepted language over the content language', () => {
             const operation = createOperation(
                 { description: inlineDescription },
