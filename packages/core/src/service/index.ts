@@ -27,6 +27,7 @@ export * from './helpers/slug.service';
 export type { StoredMediaUpload } from './helpers/stored-media/stored-media.service';
 export * from './helpers/translatable-saver/translatable-saver';
 export * from './helpers/translator/translator.service';
+export * from './helpers/utils/get-user-channels-permissions';
 export * from './helpers/utils/order-utils';
 export * from './helpers/utils/patch-entity';
 export * from './helpers/utils/translate-entity';

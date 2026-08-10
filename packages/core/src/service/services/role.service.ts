@@ -38,10 +38,7 @@ import { User } from '../../entity/user/user.entity';
 import { EventBus } from '../../event-bus';
 import { RoleEvent } from '../../event-bus/events/role-event';
 import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-builder';
-import {
-    getChannelPermissions,
-    getUserChannelsPermissions,
-} from '../helpers/utils/get-user-channels-permissions';
+import { getChannelPermissions } from '../helpers/utils/get-user-channels-permissions';
 import { patchEntity } from '../helpers/utils/patch-entity';
 
 import { ChannelService } from './channel.service';
@@ -252,10 +249,13 @@ export class RoleService {
             ctx,
             `RoleService.getActiveUserPermissionsOnChannel.user(${activeUserId})`,
             async () => {
-                const user = await this.connection.getEntityOrThrow(ctx, User, activeUserId, {
-                    relations: ['roles', 'roles.channels'],
-                });
-                return getUserChannelsPermissions(user);
+                // A stub entity suffices: the configured RolePermissionResolverStrategy
+                // is responsible for loading whatever data it needs.
+                // TODO: the stub is type-dishonest — a strategy which trusts e.g. `user.roles`
+                // without checking hydration would break here. Consider widening the signature
+                // to `resolvePermissions(user: User | ID)` before stabilizing the API.
+                const { rolePermissionResolverStrategy } = this.configService.authOptions;
+                return rolePermissionResolverStrategy.resolvePermissions(new User({ id: activeUserId }));
             },
         );
 

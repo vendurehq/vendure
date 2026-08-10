@@ -22,7 +22,6 @@ import { NATIVE_AUTH_STRATEGY_NAME } from '../../../config/auth/native-authentic
 import { ConfigService } from '../../../config/config.service';
 import { LogLevel } from '../../../config/logger/vendure-logger';
 import { User } from '../../../entity/user/user.entity';
-import { getUserChannelsPermissions } from '../../../service/helpers/utils/get-user-channels-permissions';
 import { AdministratorService } from '../../../service/services/administrator.service';
 import { ApiKeyService } from '../../../service/services/api-key.service';
 import { AuthService } from '../../../service/services/auth.service';
@@ -154,11 +153,12 @@ export class BaseAuthResolver {
     /**
      * Exposes a subset of the User properties which we want to expose to the public API.
      */
-    protected publiclyAccessibleUser(user: User): CurrentUser {
+    protected async publiclyAccessibleUser(user: User): Promise<CurrentUser> {
+        const { rolePermissionResolverStrategy } = this.configService.authOptions;
         return {
             id: user.id,
             identifier: user.identifier,
-            channels: getUserChannelsPermissions(user) as CurrentUserChannel[],
+            channels: (await rolePermissionResolverStrategy.resolvePermissions(user)) as CurrentUserChannel[],
         };
     }
 }

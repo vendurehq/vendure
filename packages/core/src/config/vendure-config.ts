@@ -22,6 +22,7 @@ import { CustomerChannelAssignmentStrategy } from './auth/customer-channel-assig
 import { EntityAccessControlStrategy } from './auth/entity-access-control-strategy';
 import { PasswordHashingStrategy } from './auth/password-hashing-strategy';
 import { PasswordValidationStrategy } from './auth/password-validation-strategy';
+import { RolePermissionResolverStrategy } from './auth/role-permission-resolver-strategy';
 import { VerificationTokenStrategy } from './auth/verification-token-strategy';
 import { CollectionFilter } from './catalog/collection-filter';
 import { ProductVariantPriceCalculationStrategy } from './catalog/product-variant-price-calculation-strategy';
@@ -568,6 +569,19 @@ export interface AuthOptions {
      * @since 3.7.0
      */
     customerChannelAssignmentStrategy?: CustomerChannelAssignmentStrategy;
+    /**
+     * @description
+     * Determines how the per-channel permissions of a User are derived. The default
+     * strategy implements the standard Vendure behavior of deriving permissions from
+     * the User's Roles and each Role's Channels. The experimental `RoleAssignmentPlugin`
+     * (see `experimental.roleAssignments`) replaces it with a strategy which resolves
+     * permissions from explicit per-(user, role, channel) `RoleAssignment` rows.
+     *
+     * @default DefaultRolePermissionResolverStrategy
+     * @since 3.8.0
+     * @experimental
+     */
+    rolePermissionResolverStrategy?: RolePermissionResolverStrategy;
 }
 
 /**

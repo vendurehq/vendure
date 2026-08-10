@@ -14,7 +14,6 @@ import { CachedSession, CachedSessionUser } from '../../../config/session-cache/
 import { Channel } from '../../../entity/channel/channel.entity';
 import { User } from '../../../entity/user/user.entity';
 import { ChannelService } from '../../services/channel.service';
-import { getUserChannelsPermissions } from '../utils/get-user-channels-permissions';
 
 /**
  * @description
@@ -44,9 +43,6 @@ export class RequestContextService {
      * const { superadminCredentials } = this.configService.authOptions;
      * const superAdminUser = await this.connection.rawConnection.getRepository(User).findOneOrFail({
      *     where: { identifier: superadminCredentials.identifier },
-     *     // The roles (and their channels) must be loaded, or the resulting context
-     *     // has the user's id but no permissions.
-     *     relations: { roles: { channels: true } },
      * });
      *
      * const ctx = await this.requestContextService.create({
@@ -77,7 +73,10 @@ export class RequestContextService {
         }
         let session: CachedSession | undefined;
         if (user) {
-            const channelPermissions = user.roles ? getUserChannelsPermissions(user) : [];
+            const channelPermissions =
+                await this.configService.authOptions.rolePermissionResolverStrategy.resolvePermissions(
+                    user,
+                );
             session = {
                 user: {
                     id: user.id,

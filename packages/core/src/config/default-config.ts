@@ -22,6 +22,7 @@ import { BcryptPasswordHashingStrategy } from './auth/bcrypt-password-hashing-st
 import { DefaultCustomerChannelAssignmentStrategy } from './auth/default-customer-channel-assignment-strategy';
 import { DefaultEntityAccessControlStrategy } from './auth/default-entity-access-control-strategy';
 import { DefaultPasswordValidationStrategy } from './auth/default-password-validation-strategy';
+import { DefaultRolePermissionResolverStrategy } from './auth/default-role-permission-resolver-strategy';
 import { DefaultVerificationTokenStrategy } from './auth/default-verification-token-strategy';
 import { NativeAuthenticationStrategy } from './auth/native-authentication-strategy';
 import { defaultCollectionFilters } from './catalog/default-collection-filters';
@@ -131,6 +132,7 @@ export const defaultConfig: RuntimeVendureConfig = {
         verificationTokenStrategy: new DefaultVerificationTokenStrategy(),
         entityAccessControlStrategy: new DefaultEntityAccessControlStrategy(),
         customerChannelAssignmentStrategy: new DefaultCustomerChannelAssignmentStrategy(),
+        rolePermissionResolverStrategy: new DefaultRolePermissionResolverStrategy(),
     },
     catalogOptions: {
         collectionFilters: defaultCollectionFilters,
