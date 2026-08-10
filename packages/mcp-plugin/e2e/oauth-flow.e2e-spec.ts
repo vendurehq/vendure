@@ -32,6 +32,7 @@ import { deriveHashKey, hashToken } from '../src/oauth/token-hash';
 import { McpPlugin } from '../src/plugin';
 import { mcpOauthRetentionTask } from '../src/tasks/mcp-oauth-retention.task';
 
+import { postMcp, rpc } from './utils/mcp-http-client';
 import { runAuthorizationCodeFlow } from './utils/oauth-test-client';
 import { withFailingUpdate } from './utils/oauth-test-fixtures';
 
@@ -312,6 +313,52 @@ describe('McpPlugin OAuth end-to-end flow', () => {
             await new Promise(resolve => setTimeout(resolve, 50));
         }
         expect(updated?.lastActivityAt.getTime()).toBeGreaterThan(staleActivityAt.getTime());
+    });
+
+    // An access token that has outlived its own accessTokenExpiresAt is refused, even while the
+    // grant it belongs to is nowhere near its own expiry — this is the first of the two checks in
+    // authenticateBearerToken and the one that runs first.
+    it('rejects an MCP call over HTTP once the access token itself has expired', async () => {
+        const connection = server.app.get(TransactionalConnection);
+        const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+        const grantRepo = connection.getRepository(ctx, McpOauthGrant);
+
+        const { access_token } = await runFlow();
+        const grant = await grantFor(ctx, access_token);
+
+        // Sanity check: the token authenticates fine before we touch anything.
+        const before = await postMcp(baseUrl(), 'admin', rpc('tools/list', {}, 1), { token: access_token });
+        expect(before.status).toBe(200);
+
+        await grantRepo.update({ id: grant.id }, { accessTokenExpiresAt: new Date(Date.now() - MS_PER_DAY) });
+
+        const after = await postMcp(baseUrl(), 'admin', rpc('tools/list', {}, 2), { token: access_token });
+        expect(after.status).toBe(401);
+        expect(after.body.message).toBe('Invalid or expired access token');
+    });
+
+    // The grant's own lifetime (`expiresAt`) can lapse while its current access token is still
+    // fresh — the access-token check above runs first and would pass, so this pins the second,
+    // later check in authenticateBearerToken instead. Only `expiresAt` is backdated here;
+    // `accessTokenExpiresAt` is left at its original (still-future) value on purpose.
+    it('rejects an MCP call over HTTP once the grant itself has expired, with the access token still valid', async () => {
+        const connection = server.app.get(TransactionalConnection);
+        const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+        const grantRepo = connection.getRepository(ctx, McpOauthGrant);
+
+        const { access_token } = await runFlow();
+        const grant = await grantFor(ctx, access_token);
+
+        const before = await postMcp(baseUrl(), 'admin', rpc('tools/list', {}, 1), { token: access_token });
+        expect(before.status).toBe(200);
+
+        await grantRepo.update({ id: grant.id }, { expiresAt: new Date(Date.now() - MS_PER_DAY) });
+
+        const after = await postMcp(baseUrl(), 'admin', rpc('tools/list', {}, 2), { token: access_token });
+        expect(after.status).toBe(401);
+        // Distinct from the access-token-expiry message above, confirming this reached the
+        // later `grant.expiresAt` check and not the earlier `accessTokenExpiresAt` one.
+        expect(after.body.message).toBe('MCP grant is expired');
     });
 
     // Deleting the granting administrator must end MCP access. Core deletes the admin's

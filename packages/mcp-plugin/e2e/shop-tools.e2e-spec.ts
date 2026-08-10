@@ -2,6 +2,7 @@ import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/cli
 import {
     ConfigService,
     Customer,
+    CustomerService,
     ID,
     mergeConfig,
     Order,
@@ -10,6 +11,7 @@ import {
     RequestContextService,
     Session,
     TransactionalConnection,
+    User,
 } from '@vendure/core';
 import { createTestEnvironment } from '@vendure/testing';
 import gql from 'graphql-tag';
@@ -20,6 +22,7 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { McpOauthGrant } from '../src/entities/mcp-oauth-grant.entity';
 import { McpToolCallLog } from '../src/entities/mcp-tool-call-log.entity';
+import { McpOauthService } from '../src/oauth/oauth.service';
 import { deriveHashKey, hashToken } from '../src/oauth/token-hash';
 import { McpPlugin } from '../src/plugin';
 import { McpToolExecutionService } from '../src/registry/mcp-tool-execution.service';
@@ -541,6 +544,100 @@ describe('MCP built-in shop tools', () => {
             token: flow.access_token,
         });
         expect(retry.status).toBe(401);
+    });
+
+    // Mirrors the admin-side "deleted administrator" case (oauth-flow.e2e-spec.ts): deleting the
+    // customer behind a shop grant must end that grant's access too, not just the customer's own
+    // ordinary shop-API session. A dedicated customer (not the shared seeded one every other test
+    // in this file authenticates as) is registered and verified directly, so deleting it can't
+    // affect anything else in the suite. Runs under the default channel, so `adminCtx` (also
+    // default-channel) can operate on the resulting Customer/grant rows directly.
+    it('ends shop MCP access and revokes the grant when the granting customer is deleted', async () => {
+        const oauth = server.app.get(McpOauthService);
+        const customerService = server.app.get(CustomerService);
+        const uniqueSuffix = Math.random().toString(36).slice(2);
+        const doomedEmail = `doomed-customer-${uniqueSuffix}@test.com`;
+        const doomedPassword = 'test';
+
+        const registerResponse = await fetch(`${baseUrl()}/shop-api`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+                query: `mutation ($input: RegisterCustomerInput!) {
+                    registerCustomerAccount(input: $input) {
+                        ... on Success { success }
+                        ... on ErrorResult { errorCode message }
+                    }
+                }`,
+                variables: {
+                    input: { emailAddress: doomedEmail, firstName: 'Doomed', lastName: 'Customer' },
+                },
+            }),
+        });
+        const registerBody = (await registerResponse.json()) as {
+            data?: { registerCustomerAccount?: { success?: boolean; message?: string } };
+            errors?: Array<{ message: string }>;
+        };
+        if (!registerBody.data?.registerCustomerAccount?.success) {
+            throw new Error(`Failed to register doomed customer: ${JSON.stringify(registerBody)}`);
+        }
+
+        // No email plugin is wired up in this suite, so read the verification token straight off
+        // the row it creates, rather than intercepting an outgoing email.
+        const doomedUser = await connection.getRepository(adminCtx, User).findOneOrFail({
+            where: { identifier: doomedEmail },
+            relations: ['authenticationMethods'],
+        });
+        const verificationToken = doomedUser.getNativeAuthenticationMethod().verificationToken;
+        if (!verificationToken) {
+            throw new Error('Expected a verification token on the newly-registered user');
+        }
+
+        const verifyResponse = await fetch(`${baseUrl()}/shop-api`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+                query: `mutation ($token: String!, $password: String!) {
+                    verifyCustomerAccount(token: $token, password: $password) {
+                        ... on CurrentUser { identifier }
+                        ... on ErrorResult { errorCode message }
+                    }
+                }`,
+                variables: { token: verificationToken, password: doomedPassword },
+            }),
+        });
+        const doomedAuthToken = verifyResponse.headers.get(AUTH_TOKEN_HEADER);
+        if (!doomedAuthToken) {
+            throw new Error(
+                `Verifying the doomed customer did not yield a session token: ${await verifyResponse.text()}`,
+            );
+        }
+
+        const flow = await runShopAuthorizationCodeFlow({
+            baseUrl: baseUrl(),
+            issuer: ISSUER,
+            vendureAuthToken: doomedAuthToken,
+        });
+
+        // Calling authenticateBearerToken directly, as the admin-deletion test does, keeps the
+        // assertion on the precise 'Vendure user no longer exists' branch rather than on whatever
+        // generic message the HTTP transport happens to surface for it.
+        const authenticated = await oauth.authenticateBearerToken(flow.access_token, 'shop');
+        expect(authenticated.grant.userId).toBe(doomedUser.id);
+
+        const doomedCustomer = await connection
+            .getRepository(adminCtx, Customer)
+            .findOneOrFail({ where: { emailAddress: doomedEmail } });
+        await customerService.softDelete(adminCtx, doomedCustomer.id);
+
+        await expect(oauth.authenticateBearerToken(flow.access_token, 'shop')).rejects.toThrow(
+            'Vendure user no longer exists',
+        );
+
+        const grantAfter = await connection
+            .getRepository(adminCtx, McpOauthGrant)
+            .findOneByOrFail({ id: authenticated.grant.id });
+        expect(grantAfter.revokedAt).toBeTruthy();
     });
 
     it('rejects an invalid vendure-token instead of falling back to the default channel', async () => {
