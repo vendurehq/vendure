@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/typeorm';
-import { lastValueFrom, merge, ObservableInput, Subject } from 'rxjs';
+import { lastValueFrom, Subject } from 'rxjs';
 import { delay, filter, map, take, tap } from 'rxjs/operators';
 import { Connection, EntitySubscriberInterface } from 'typeorm';
 import { EntityManager } from 'typeorm/entity-manager/EntityManager';
@@ -87,15 +87,17 @@ export class TransactionSubscriber implements EntitySubscriberInterface {
         type?: TransactionSubscriberEventType,
     ): Promise<QueryRunner> {
         if (queryRunner.isTransactionActive) {
-            return lastValueFrom(this.subject$
-                .pipe(
+            return lastValueFrom(
+                this.subject$.pipe(
                     filter(
                         event => !event.queryRunner.isTransactionActive && event.queryRunner === queryRunner,
                     ),
                     take(1),
                     tap(event => {
                         if (type && event.type !== type) {
-                            throw new TransactionSubscriberError(`Unexpected event type: ${event.type}. Expected ${type}.`);
+                            throw new TransactionSubscriberError(
+                                `Unexpected event type: ${event.type}. Expected ${type}.`,
+                            );
                         }
                     }),
                     map(event => event.queryRunner),
@@ -106,7 +108,7 @@ export class TransactionSubscriber implements EntitySubscriberInterface {
                     // in the database-transactions.e2e-spec.ts suite, and a bunch of errors
                     // in the default-search-plugin.e2e-spec.ts suite when using sqljs.
                     delay(0),
-                )
+                ),
             );
         } else {
             return Promise.resolve(queryRunner);
