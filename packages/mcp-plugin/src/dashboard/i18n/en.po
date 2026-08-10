@@ -241,3 +241,15 @@ msgstr "Error loading grants: {0}"
 
 msgid "The request could not be completed"
 msgstr "The request could not be completed"
+
+msgid "Show inactive"
+msgstr "Show inactive"
+
+msgid "Active"
+msgstr "Active"
+
+msgid "Revoked"
+msgstr "Revoked"
+
+msgid "Expired"
+msgstr "Expired"

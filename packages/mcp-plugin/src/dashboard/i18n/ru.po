@@ -241,3 +241,15 @@ msgstr "Ошибка при загрузке разрешений: {0}"
 
 msgid "The request could not be completed"
 msgstr "Не удалось выполнить запрос"
+
+msgid "Show inactive"
+msgstr "Показать неактивные"
+
+msgid "Active"
+msgstr "Активен"
+
+msgid "Revoked"
+msgstr "Отозван"
+
+msgid "Expired"
+msgstr "Истёк"

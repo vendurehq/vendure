@@ -241,3 +241,15 @@ msgstr "Помилка завантаження дозволів: {0}"
 
 msgid "The request could not be completed"
 msgstr "Не вдалося виконати запит"
+
+msgid "Show inactive"
+msgstr "Показати неактивні"
+
+msgid "Active"
+msgstr "Активний"
+
+msgid "Revoked"
+msgstr "Скасовано"
+
+msgid "Expired"
+msgstr "Закінчився"

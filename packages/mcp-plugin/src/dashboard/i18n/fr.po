@@ -241,3 +241,15 @@ msgstr "Erreur lors du chargement des autorisations : {0}"
 
 msgid "The request could not be completed"
 msgstr "La demande n'a pas pu être terminée"
+
+msgid "Show inactive"
+msgstr "Afficher les inactifs"
+
+msgid "Active"
+msgstr "Actif"
+
+msgid "Revoked"
+msgstr "Révoqué"
+
+msgid "Expired"
+msgstr "Expiré"

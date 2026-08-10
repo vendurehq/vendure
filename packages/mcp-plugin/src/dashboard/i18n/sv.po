@@ -241,3 +241,15 @@ msgstr "Fel vid inläsning av behörigheter: {0}"
 
 msgid "The request could not be completed"
 msgstr "Begäran kunde inte slutföras"
+
+msgid "Show inactive"
+msgstr "Visa inaktiva"
+
+msgid "Active"
+msgstr "Aktiv"
+
+msgid "Revoked"
+msgstr "Återkallad"
+
+msgid "Expired"
+msgstr "Utgången"

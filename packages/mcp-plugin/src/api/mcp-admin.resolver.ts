@@ -32,7 +32,7 @@ interface McpToolInfo {
     enabled: boolean;
 }
 
-/** An active OAuth grant, summarised for the admin overview. */
+/** An OAuth grant, summarised for the admin overview. */
 interface McpOauthGrantInfo {
     id: ID;
     createdAt: Date;
@@ -43,6 +43,7 @@ interface McpOauthGrantInfo {
     oauthClientName: string | null;
     lastActivityAt: Date;
     expiresAt: Date;
+    revokedAt: Date | null;
 }
 
 // Written as `type`, not `interface`: these get cached, and CacheService only accepts
@@ -107,17 +108,20 @@ export class McpAdminResolver {
 
     @Query()
     @Allow(mcpServerPermission.Read)
-    async mcpOauthGrants(@Ctx() ctx: RequestContext): Promise<McpOauthGrantInfo[]> {
+    async mcpOauthGrants(
+        @Ctx() ctx: RequestContext,
+        @Args() args: { includeInactive?: boolean },
+    ): Promise<McpOauthGrantInfo[]> {
         const now = new Date();
-        const active = { revokedAt: IsNull(), expiresAt: MoreThan(now) };
+        const base = args.includeInactive ? {} : { revokedAt: IsNull(), expiresAt: MoreThan(now) };
         // Scope to the active channel, plus channel-less (global) grants
         const where =
             ctx.channelId != null
                 ? [
-                      { ...active, channelId: ctx.channelId },
-                      { ...active, channelId: IsNull() },
+                      { ...base, channelId: ctx.channelId },
+                      { ...base, channelId: IsNull() },
                   ]
-                : active;
+                : base;
         const grants = await this.connection.getRepository(ctx, McpOauthGrant).find({
             where,
             relations: ['oauthClient'],
@@ -133,6 +137,7 @@ export class McpAdminResolver {
             oauthClientName: grant.oauthClient?.clientName ?? null,
             lastActivityAt: grant.lastActivityAt,
             expiresAt: grant.expiresAt,
+            revokedAt: grant.revokedAt,
         }));
     }
 

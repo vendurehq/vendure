@@ -241,3 +241,15 @@ msgstr "Erro ao carregar as concessões: {0}"
 
 msgid "The request could not be completed"
 msgstr "Não foi possível concluir a solicitação"
+
+msgid "Show inactive"
+msgstr "Mostrar inativos"
+
+msgid "Active"
+msgstr "Ativo"
+
+msgid "Revoked"
+msgstr "Revogado"
+
+msgid "Expired"
+msgstr "Expirado"

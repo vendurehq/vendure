@@ -241,3 +241,15 @@ msgstr "Yetkiler yüklenirken hata oluştu: {0}"
 
 msgid "The request could not be completed"
 msgstr "İstek tamamlanamadı"
+
+msgid "Show inactive"
+msgstr "Etkin olmayanları göster"
+
+msgid "Active"
+msgstr "Etkin"
+
+msgid "Revoked"
+msgstr "İptal edildi"
+
+msgid "Expired"
+msgstr "Süresi doldu"

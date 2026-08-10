@@ -17,7 +17,7 @@ export const adminApiExtensions = gql`
         enabled: Boolean!
     }
 
-    "An active OAuth grant, summarised for the admin overview."
+    "An OAuth grant, summarised for the admin overview. Revoked and expired grants are included only when requested."
     type McpOauthGrantInfo {
         id: ID!
         createdAt: DateTime!
@@ -28,6 +28,7 @@ export const adminApiExtensions = gql`
         oauthClientName: String
         lastActivityAt: DateTime!
         expiresAt: DateTime!
+        revokedAt: DateTime
     }
 
     """
@@ -74,8 +75,8 @@ export const adminApiExtensions = gql`
     extend type Query {
         "Every registered tool with its enabled state."
         mcpTools: [McpToolInfo!]!
-        "OAuth grants that are still active, newest activity first."
-        mcpOauthGrants: [McpOauthGrantInfo!]!
+        "OAuth grants, newest activity first. Lists active grants by default; pass includeInactive: true to also include revoked and expired ones."
+        mcpOauthGrants(includeInactive: Boolean! = false): [McpOauthGrantInfo!]!
         "The tool-call log, paginated and filterable."
         mcpToolCallLogs(options: McpToolCallLogListOptions): McpToolCallLogList!
         "Usage stats for a time window. timeRange is one of 1h, 24h, 7d, 30d (default 24h); other values are rejected."

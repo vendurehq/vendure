@@ -241,3 +241,15 @@ msgstr "載入授權時發生錯誤：{0}"
 
 msgid "The request could not be completed"
 msgstr "無法完成請求"
+
+msgid "Show inactive"
+msgstr "顯示非活動"
+
+msgid "Active"
+msgstr "活動"
+
+msgid "Revoked"
+msgstr "已撤銷"
+
+msgid "Expired"
+msgstr "已過期"

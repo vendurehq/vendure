@@ -26,6 +26,7 @@ export interface McpOauthGrantInfo {
     oauthClientName: string | null;
     lastActivityAt: string;
     expiresAt: string;
+    revokedAt: string | null;
 }
 
 export interface McpToolCallLog {
@@ -111,8 +112,8 @@ export const MCP_TOOL_CALL_LOGS_QUERY = `
 `;
 
 export const MCP_OAUTH_GRANTS_QUERY = `
-    query McpOauthGrants {
-        mcpOauthGrants {
+    query McpOauthGrants($includeInactive: Boolean!) {
+        mcpOauthGrants(includeInactive: $includeInactive) {
             id
             createdAt
             updatedAt
@@ -122,6 +123,7 @@ export const MCP_OAUTH_GRANTS_QUERY = `
             oauthClientName
             lastActivityAt
             expiresAt
+            revokedAt
         }
     }
 `;

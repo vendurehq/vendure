@@ -241,3 +241,15 @@ msgstr "خطأ في تحميل المنح: {0}"
 
 msgid "The request could not be completed"
 msgstr "تعذر إكمال الطلب"
+
+msgid "Show inactive"
+msgstr "إظهار غير النشط"
+
+msgid "Active"
+msgstr "نشط"
+
+msgid "Revoked"
+msgstr "ملغى"
+
+msgid "Expired"
+msgstr "منتهي الصلاحية"

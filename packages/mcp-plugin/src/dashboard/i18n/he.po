@@ -241,3 +241,15 @@ msgstr "שגיאה בטעינת ההרשאות: {0}"
 
 msgid "The request could not be completed"
 msgstr "לא ניתן היה להשלים את הבקשה"
+
+msgid "Show inactive"
+msgstr "הצג לא פעילים"
+
+msgid "Active"
+msgstr "פעיל"
+
+msgid "Revoked"
+msgstr "בוטל"
+
+msgid "Expired"
+msgstr "פג תוקף"

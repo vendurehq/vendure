@@ -77,14 +77,15 @@ const MCP_STATS_QUERY = `
 `;
 
 const MCP_OAUTH_GRANTS_QUERY = `
-    query {
-        mcpOauthGrants {
+    query ($includeInactive: Boolean! = false) {
+        mcpOauthGrants(includeInactive: $includeInactive) {
             id
             actorId
             actorType
             oauthClientName
             lastActivityAt
             expiresAt
+            revokedAt
         }
     }
 `;
@@ -505,6 +506,57 @@ describe('MCP admin API', () => {
                 token: access_token,
             });
             expect(deniedCall.status).toBe(401);
+        });
+
+        it('includeInactive surfaces a revoked grant with its revokedAt, while the default query still omits it', async () => {
+            const clientName = `inactive-toggle-client-${Math.random().toString(36).slice(2)}`;
+            await runAuthorizationCodeFlow({
+                baseUrl: baseUrl(),
+                issuer: ISSUER,
+                superAdminToken,
+                clientName,
+            });
+
+            const beforeRevoke = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
+                includeInactive: true,
+            });
+            const created = (
+                beforeRevoke.data.mcpOauthGrants as Array<{
+                    id: string;
+                    oauthClientName: string | null;
+                    revokedAt: string | null;
+                }>
+            ).find(g => g.oauthClientName === clientName);
+            expect(created).toBeDefined();
+            expect(created?.revokedAt).toBeNull();
+            const grantId = created?.id;
+
+            const revoked = await adminGraphQL(superAdminToken, REVOKE_MCP_OAUTH_GRANT, { id: grantId });
+            expect(revoked.errors).toBeUndefined();
+            expect(revoked.data.revokeMcpOauthGrant).toBe(true);
+
+            // The default query (includeInactive omitted, so it defaults to false) still hides it.
+            const defaultListed = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY);
+            const stillVisibleByDefault = (
+                defaultListed.data.mcpOauthGrants as Array<{ oauthClientName: string | null }>
+            ).some(g => g.oauthClientName === clientName);
+            expect(stillVisibleByDefault).toBe(false);
+
+            // Asking for inactive grants surfaces it, with a non-null revokedAt.
+            const afterRevoke = await adminGraphQL(superAdminToken, MCP_OAUTH_GRANTS_QUERY, {
+                includeInactive: true,
+            });
+            const revokedGrant = (
+                afterRevoke.data.mcpOauthGrants as Array<{
+                    id: string;
+                    oauthClientName: string | null;
+                    revokedAt: string | null;
+                }>
+            ).find(g => g.oauthClientName === clientName);
+            expect(revokedGrant).toBeDefined();
+            expect(revokedGrant?.id).toBe(grantId);
+            expect(revokedGrant?.revokedAt).not.toBeNull();
+            expect(typeof revokedGrant?.revokedAt).toBe('string');
         });
     });
 

@@ -241,3 +241,15 @@ msgstr "Fehler beim Laden der Berechtigungen: {0}"
 
 msgid "The request could not be completed"
 msgstr "Die Anfrage konnte nicht abgeschlossen werden"
+
+msgid "Show inactive"
+msgstr "Inaktive anzeigen"
+
+msgid "Active"
+msgstr "Aktiv"
+
+msgid "Revoked"
+msgstr "Widerrufen"
+
+msgid "Expired"
+msgstr "Abgelaufen"

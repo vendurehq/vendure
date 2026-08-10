@@ -241,3 +241,15 @@ msgstr "خطا در بارگیری مجوزها: {0}"
 
 msgid "The request could not be completed"
 msgstr "درخواست کامل نشد"
+
+msgid "Show inactive"
+msgstr "نمایش غیرفعال‌ها"
+
+msgid "Active"
+msgstr "فعال"
+
+msgid "Revoked"
+msgstr "لغو شده"
+
+msgid "Expired"
+msgstr "منقضی شده"
