@@ -12,11 +12,11 @@ import {
     Res,
     UnauthorizedException,
 } from '@nestjs/common';
-import { ConfigService } from '@vendure/core';
+import { ConfigService, Logger } from '@vendure/core';
 import { McpToolset } from '@vendure/mcp-sdk';
 import type { Request, Response } from 'express';
 
-import { MCP_PLUGIN_OPTIONS, RATE_LIMIT_ERROR_CODE } from '../constants';
+import { loggerCtx, MCP_PLUGIN_OPTIONS, RATE_LIMIT_ERROR_CODE } from '../constants';
 import { getClientIp } from '../get-client-ip';
 import { McpExecutionContext } from '../internal-types';
 import { McpOauthService } from '../oauth/oauth.service';
@@ -60,16 +60,27 @@ export class McpTransportController {
         @Inject(MCP_PLUGIN_OPTIONS) private options: McpPluginOptions,
     ) {
         // One stateless handler; the per-request factory reads the resolved context from authInfo.extra.
-        const handler = createMcpHandler(async mcpCtx => {
-            const extra = mcpCtx.authInfo?.extra as
-                | { executionContext?: McpExecutionContext; toolset?: McpToolset }
-                | undefined;
-            if (!extra?.executionContext || !extra.toolset) {
-                throw new Error('MCP request is missing its resolved execution context');
-            }
-            return createMcpServerForRequest(extra.executionContext, extra.toolset, this.registry);
+        const handler = createMcpHandler(
+            async mcpCtx => {
+                const extra = mcpCtx.authInfo?.extra as
+                    | { executionContext?: McpExecutionContext; toolset?: McpToolset }
+                    | undefined;
+                if (!extra?.executionContext || !extra.toolset) {
+                    throw new Error('MCP request is missing its resolved execution context');
+                }
+                return createMcpServerForRequest(extra.executionContext, extra.toolset, this.registry);
+            },
+            {
+                onerror: error => {
+                    Logger.error(`MCP request handling failed: ${error.message}`, loggerCtx, error.stack);
+                },
+            },
+        );
+        this.nodeHandler = toNodeHandler(handler, {
+            onerror: error => {
+                Logger.error(`MCP transport adapter error: ${error.message}`, loggerCtx, error.stack);
+            },
         });
-        this.nodeHandler = toNodeHandler(handler);
         const dns = this.options.dnsRebinding;
         this.hostGuard = dns?.allowedHosts?.length
             ? (hostHeaderValidation(dns.allowedHosts) as FrontGuard)
