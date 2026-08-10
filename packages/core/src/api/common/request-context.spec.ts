@@ -33,6 +33,17 @@ describe('RequestContext', () => {
             expect(result.languageCode).toBe(original.languageCode);
         });
 
+        it('acceptedLanguageCodes', () => {
+            const result = RequestContext.deserialize(serializedCtx);
+            expect(result.acceptedLanguageCodes).toEqual(original.acceptedLanguageCodes);
+        });
+
+        it('acceptedLanguageCodes absent from a payload serialized before the field existed', () => {
+            const { _acceptedLanguageCodes, ...withoutField } = serializedCtx;
+            const result = RequestContext.deserialize(withoutField as SerializedRequestContext);
+            expect(result.acceptedLanguageCodes).toEqual([]);
+        });
+
         it('activeUserId', () => {
             const result = RequestContext.deserialize(serializedCtx);
             expect(result.activeUserId).toBe(original.activeUserId);
@@ -106,6 +117,7 @@ describe('RequestContext', () => {
             expect(copy.apiType).toEqual(original.apiType);
             expect(copy.channelId).toEqual(original.channelId);
             expect(copy.languageCode).toEqual(original.languageCode);
+            expect(copy.acceptedLanguageCodes).toEqual(original.acceptedLanguageCodes);
             expect(copy.activeUserId).toEqual(original.activeUserId);
             expect(copy.isAuthorized).toEqual(original.isAuthorized);
             expect(copy.authorizedAsOwnerOnly).toEqual(original.authorizedAsOwnerOnly);
@@ -234,6 +246,7 @@ describe('RequestContext', () => {
         return new RequestContext({
             apiType: 'admin',
             languageCode: LanguageCode.en,
+            acceptedLanguageCodes: [LanguageCode.ja, LanguageCode.de],
             channel,
             session,
             req: req ?? {},

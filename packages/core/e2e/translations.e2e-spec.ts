@@ -6,6 +6,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { testConfig, TEST_SETUP_TIMEOUT_MS } from '../../../e2e-common/test-config';
+import * as DE_CATALOG from '../src/i18n/messages/de.json';
 import * as JA from '../src/i18n/messages/ja.json';
 
 import * as DE from './fixtures/i18n/de.json';
@@ -200,16 +201,24 @@ describe('Translation', () => {
             });
 
             it('honours the quality order of a multi-language header', async () => {
-                adminClient.setHeader('Accept-Language', 'xx-unsupported;q=0.9, ja;q=0.8');
+                // Both languages ship a catalog and the preferred one comes second, so a parser
+                // which ignored the weights would resolve to German and fail here.
+                adminClient.setHeader('Accept-Language', 'de;q=0.8, ja;q=0.9');
                 const calculator = await getDefaultCalculator(LanguageCode.en);
 
                 expect(calculator.description).toBe(
                     JA.configurableOperation.ShippingCalculator['default-shipping-calculator'].description,
                 );
+                expect(calculator.description).not.toBe(
+                    DE_CATALOG.configurableOperation.ShippingCalculator['default-shipping-calculator']
+                        .description,
+                );
             });
 
             it('falls back to the content language when the header names nothing we have', async () => {
-                adminClient.setHeader('Accept-Language', 'xx-unsupported');
+                // `xx` is a well-formed tag, so it survives parsing and is only exhausted at the
+                // catalog lookup — which is the fallback this covers.
+                adminClient.setHeader('Accept-Language', 'xx');
                 const calculator = await getDefaultCalculator(LanguageCode.ja);
 
                 expect(calculator.description).toBe(
