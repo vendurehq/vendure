@@ -29,13 +29,13 @@ const repoRoot = path.resolve(scriptDir, '..', '..');
 const order = topologicalPackageOrder();
 const failed = [];
 
-// A package manager puts the local `.bin` directories on PATH before running a
-// script; spawning the commands directly does not, so it is done here.
-const binPath = [
+// The local `.bin` directories, searched in the order a package manager would.
+// Commands are resolved against these to an absolute path rather than being
+// looked up through PATH at spawn time.
+const binDirs = [
     path.join(repoRoot, 'node_modules', '.bin'),
     ...order.map(pkg => path.join(pkg.location, 'node_modules', '.bin')),
-].join(path.delimiter);
-const env = { ...process.env, PATH: `${binPath}${path.delimiter}${process.env.PATH ?? ''}` };
+];
 
 for (const { name, location } of order) {
     const manifest = JSON.parse(fs.readFileSync(path.join(location, 'package.json'), 'utf8'));
@@ -46,7 +46,14 @@ for (const { name, location } of order) {
     console.log(`\n--- ${name}`);
     for (const stage of stages) {
         console.log(`$ ${stage}`);
-        const result = spawnSync(stage, { cwd: location, stdio: 'inherit', shell: true, env });
+        const [command, ...commandArgs] = stage.split(/\s+/);
+        const executable = resolveLocalBin(command);
+        if (!executable) {
+            console.log(`  skipped: no local binary named "${command}"`);
+            failed.push(`${name}: ${stage}`);
+            continue;
+        }
+        const result = spawnSync(executable, commandArgs, { cwd: location, stdio: 'inherit' });
         if (result.status !== 0) {
             failed.push(`${name}: ${stage}`);
         }
@@ -89,16 +96,71 @@ function resolveBuildStages(manifest) {
         .filter(Boolean);
 }
 
-function topologicalPackageOrder() {
-    const result = spawnSync('bunx', ['lerna', 'list', '--toposort', '--json', '--all'], {
-        cwd: repoRoot,
-        encoding: 'utf8',
-    });
-    if (result.status !== 0) {
-        console.error(result.stderr);
-        throw new Error('Could not determine the package build order via lerna.');
+/**
+ * Finds `command` in the workspace's `.bin` directories and returns its absolute
+ * path, or undefined if it is not installed.
+ */
+function resolveLocalBin(command) {
+    const candidates =
+        process.platform === 'win32' ? [`${command}.cmd`, `${command}.exe`, command] : [command];
+    for (const dir of binDirs) {
+        for (const candidate of candidates) {
+            const full = path.join(dir, candidate);
+            if (fs.existsSync(full)) {
+                return full;
+            }
+        }
     }
-    // lerna prints progress on stdout before the JSON payload.
-    const json = result.stdout.slice(result.stdout.indexOf('['));
-    return JSON.parse(json);
+    return undefined;
+}
+
+/**
+ * Orders the workspace packages so that each one is built after the packages it
+ * depends on. Derived from the manifests directly rather than by shelling out to
+ * lerna, which keeps the build order available even when the workspace is in a
+ * half-installed state.
+ */
+function topologicalPackageOrder() {
+    const packagesDir = path.join(repoRoot, 'packages');
+    const packages = fs
+        .readdirSync(packagesDir, { withFileTypes: true })
+        .filter(entry => entry.isDirectory())
+        .map(entry => path.join(packagesDir, entry.name))
+        .filter(location => fs.existsSync(path.join(location, 'package.json')))
+        .map(location => {
+            const manifest = JSON.parse(fs.readFileSync(path.join(location, 'package.json'), 'utf8'));
+            return {
+                name: manifest.name,
+                location,
+                deps: Object.keys({ ...manifest.dependencies, ...manifest.devDependencies }),
+            };
+        });
+
+    const byName = new Map(packages.map(pkg => [pkg.name, pkg]));
+    const ordered = [];
+    const visiting = new Set();
+    const visited = new Set();
+
+    const visit = pkg => {
+        if (visited.has(pkg.name) || visiting.has(pkg.name)) {
+            // A cycle between workspace packages is not something this script can
+            // resolve, so the package is emitted where it was first reached.
+            return;
+        }
+        visiting.add(pkg.name);
+        for (const dep of pkg.deps) {
+            const depPkg = byName.get(dep);
+            if (depPkg) {
+                visit(depPkg);
+            }
+        }
+        visiting.delete(pkg.name);
+        visited.add(pkg.name);
+        ordered.push({ name: pkg.name, location: pkg.location });
+    };
+
+    for (const pkg of packages) {
+        visit(pkg);
+    }
+    return ordered;
 }
