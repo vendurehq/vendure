@@ -277,6 +277,21 @@ describe('MCP protocol conformance (direct mode)', () => {
         expect(res.body.result).toBeUndefined();
     });
 
+    it('refuses subscriptions/listen rather than opening a stream that can never deliver anything', async () => {
+        const res = await postModernMcp(
+            baseUrl(),
+            'shop',
+            'subscriptions/listen',
+            { notifications: { toolsListChanged: true } },
+            23,
+        );
+        // Method-not-found (-32601) on HTTP 404 — the same answer the SDK gives for any method the
+        // server does not implement. Without this the SDK holds the connection open indefinitely.
+        expect(res.status).toBe(404);
+        expect(res.body.error.code).toBe(-32601);
+        expect(res.body.result).toBeUndefined();
+    });
+
     it('the official MCP SDK client connects, lists, and calls a shop tool (interop)', async () => {
         const client = new Client({ name: 'interop-test', version: '1.0.0' });
         const transport = new StreamableHTTPClientTransport(new URL(`${baseUrl()}/mcp/shop`));

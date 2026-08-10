@@ -200,9 +200,41 @@ export class McpTransportController {
             }
         }
 
-        // 6. Attach the resolved context as pass-through authInfo and delegate to the SDK handler.
+        // 6. Refuse subscription streams before the SDK can open one.
+        if (isJson && this.callsSubscriptionsListen(body)) {
+            this.sendSubscriptionsUnsupported(res, body);
+            return;
+        }
+
+        // 7. Attach the resolved context as pass-through authInfo and delegate to the SDK handler.
         (req as Request & { auth?: AuthInfo }).auth = this.buildAuthInfo(executionContext, toolset, token);
         await this.nodeHandler(req, res, parsedBody);
+    }
+
+    /** True when any message in the body asks to open a subscription stream. */
+    private callsSubscriptionsListen(body: unknown): boolean {
+        const messages = Array.isArray(body) ? body : [body];
+        return messages.some(
+            message => (message as { method?: unknown } | null)?.method === 'subscriptions/listen',
+        );
+    }
+
+    /**
+     * Tells the caller the subscription-stream method does not exist here.
+     * The SDK would otherwise hold the connection open indefinitely, and this plugin never publishes
+     * a notification, so such a stream can only ever deliver keep-alive pings. Remove this refusal
+     * when the plugin starts publishing something worth streaming.
+     */
+    private sendSubscriptionsUnsupported(res: Response, body: unknown): void {
+        res.status(404);
+        res.setHeader('Content-Type', 'application/json');
+        const payload: JsonRpcError = {
+            jsonrpc: '2.0',
+            id: this.firstRequestId(body) ?? null,
+            // -32601 with HTTP 404 is exactly how the SDK answers a method it does not implement.
+            error: { code: -32601, message: 'Method not found: subscriptions/listen' },
+        };
+        res.send(JSON.stringify(payload));
     }
 
     /**
