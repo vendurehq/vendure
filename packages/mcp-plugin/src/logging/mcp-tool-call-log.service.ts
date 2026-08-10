@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { EventBus, ID, Logger, RequestContext, TransactionalConnection } from '@vendure/core';
 
 import {
+    DEFAULT_LOG_MAX_BODY_BYTES,
     DEFAULT_LOG_TTL_DAYS,
     loggerCtx,
     MCP_PLUGIN_OPTIONS,
@@ -85,8 +86,8 @@ export class McpToolCallLogService {
                 } else {
                     bodies = { input: input.input, output: input.output };
                 }
-                log.input = bodies?.input ?? null;
-                log.output = bodies?.output ?? null;
+                log.input = this.capBody(bodies?.input);
+                log.output = this.capBody(bodies?.output);
             } else {
                 log.input = null;
                 log.output = null;
@@ -105,6 +106,18 @@ export class McpToolCallLogService {
                 Logger.warn(`Failed to record MCP tool call "${input.tool.name}": ${reason}`, loggerCtx);
             }
         }
+    }
+
+    private capBody(value: unknown): unknown {
+        if (value == null) {
+            return null;
+        }
+        const maxBodyBytes = this.options.logging?.maxBodyBytes ?? DEFAULT_LOG_MAX_BODY_BYTES;
+        const bytes = Buffer.byteLength(JSON.stringify(value), 'utf8');
+        if (bytes > maxBodyBytes) {
+            return { omitted: `body exceeded logging.maxBodyBytes (${maxBodyBytes} bytes)`, bytes };
+        }
+        return value;
     }
 
     async deleteExpiredToolCallLogs(ctx: RequestContext, channelId?: ID | null): Promise<number> {

@@ -183,6 +183,76 @@ describe('McpToolCallLogService tool-call logging', () => {
         expect(warnSpy.mock.calls[0][0]).toMatch(/logging\.redact/);
     });
 
+    it('replaces an oversized body with a marker while a small body is stored verbatim', async () => {
+        const { service, savedLogs, publishedEvents, save } = build({
+            logging: { capture: 'full', maxBodyBytes: 50 },
+        });
+        const bigInput = { blob: 'x'.repeat(200) };
+        const smallOutput = { ok: true };
+        await service.logToolCall({
+            executionContext: { ctx: { apiType: 'shop', channelId: 1 } } as any,
+            tool: toolStub('t'),
+            input: bigInput,
+            output: smallOutput,
+            durationMs: 1,
+            status: 'success',
+        });
+        expect(save).toHaveBeenCalledOnce();
+        const stored = savedLogs[0].input as { omitted: string; bytes: number };
+        expect(stored.omitted).toMatch(/logging\.maxBodyBytes/);
+        expect(stored.bytes).toBeGreaterThan(50);
+        expect(savedLogs[0].output).toEqual(smallOutput);
+        expect(publishedEvents).toHaveLength(1);
+    });
+
+    it('replaces both bodies with markers when both exceed maxBodyBytes', async () => {
+        const { service, savedLogs } = build({ logging: { capture: 'full', maxBodyBytes: 50 } });
+        await service.logToolCall({
+            executionContext: { ctx: { apiType: 'shop', channelId: 1 } } as any,
+            tool: toolStub('t'),
+            input: { blob: 'x'.repeat(200) },
+            output: { blob: 'y'.repeat(200) },
+            durationMs: 1,
+            status: 'success',
+        });
+        expect(savedLogs[0].input).toHaveProperty('omitted');
+        expect(savedLogs[0].output).toHaveProperty('omitted');
+    });
+
+    it('falls back to the 64,000-byte default when maxBodyBytes is not configured', async () => {
+        // Unit tests build the service directly (bypassing McpPlugin.init), so this exercises the
+        // service's own `?? DEFAULT_LOG_MAX_BODY_BYTES` fallback rather than the one in init().
+        const { service, savedLogs } = build({ logging: { capture: 'full' } });
+        const justOverDefault = { blob: 'x'.repeat(64_100) };
+        await service.logToolCall({
+            executionContext: { ctx: { apiType: 'shop', channelId: 1 } } as any,
+            tool: toolStub('t'),
+            input: justOverDefault,
+            output: { ok: true },
+            durationMs: 1,
+            status: 'success',
+        });
+        const stored = savedLogs[0].input as { omitted: string; bytes: number };
+        expect(stored.omitted).toMatch(/64000 bytes/);
+        expect(stored.bytes).toBeGreaterThan(64_000);
+    });
+
+    it('caps a body after redact has run, so an oversized redacted body still yields a marker', async () => {
+        const redact = vi.fn(() => ({ input: { blob: 'x'.repeat(200) }, output: null }));
+        const { service, savedLogs } = build({ logging: { capture: 'full', redact, maxBodyBytes: 50 } });
+        await service.logToolCall({
+            executionContext: { ctx: { apiType: 'shop', channelId: 1 } } as any,
+            tool: toolStub('t'),
+            input: { email: 'a@b.com' },
+            output: { secret: 1 },
+            durationMs: 1,
+            status: 'success',
+        });
+        expect(redact).toHaveBeenCalledOnce();
+        expect(savedLogs[0].input).toHaveProperty('omitted');
+        expect(savedLogs[0].output).toBeNull();
+    });
+
     it('publishes a McpToolCallEvent carrying the persisted row, for success and error', async () => {
         const { service, savedLogs, publishedEvents } = build({});
         const ctx = { apiType: 'shop', channelId: 1 } as any;

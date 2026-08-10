@@ -13,6 +13,7 @@ import { adminApiExtensions, shopApiExtensions } from './api/api-extensions';
 import { McpAdminResolver, McpToolCallLogEntityResolver } from './api/mcp-admin.resolver';
 import { McpShopResolver } from './api/mcp-shop.resolver';
 import {
+    DEFAULT_LOG_MAX_BODY_BYTES,
     DEFAULT_LOG_TTL_DAYS,
     DEFAULT_OAUTH_OPTIONS,
     DEFAULT_RATE_LIMIT_OPTIONS,
@@ -141,6 +142,7 @@ export class McpPlugin implements OnApplicationBootstrap {
                 ttlDays: options.logging?.ttlDays ?? DEFAULT_LOG_TTL_DAYS,
                 capture: options.logging?.capture ?? 'metadata',
                 redact: options.logging?.redact,
+                maxBodyBytes: options.logging?.maxBodyBytes ?? DEFAULT_LOG_MAX_BODY_BYTES,
                 retentionSchedule: options.logging?.retentionSchedule,
             },
         };

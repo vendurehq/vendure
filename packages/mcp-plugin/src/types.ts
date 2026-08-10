@@ -278,6 +278,17 @@ export interface McpLoggingOptions {
     redact?: McpLogRedactFn;
 
     /**
+     * Maximum byte size for stored `input` and `output` bodies (JSON-serialized, post-redaction).
+     * Only applies when `capture` is `'full'`.
+     *
+     * Oversized values are replaced with a metadata marker (storing reason and actual size)
+     * to ensure the audit row is still created.
+     *
+     * @default 64000 Fits safely within MySQL `TEXT` columns (65,535 byte limit).
+     */
+    maxBodyBytes?: number;
+
+    /**
      * Cron-style schedule for the cleanup job that deletes expired logs.
      *
      * @default cron => cron.everyDayAt(2, 30)

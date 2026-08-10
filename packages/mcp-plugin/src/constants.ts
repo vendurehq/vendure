@@ -42,6 +42,11 @@ export const MS_PER_DAY = 86_400_000;
 export const RETENTION_DELETE_BATCH_SIZE = 500;
 /** Default retention window for tool-call logs, in days. */
 export const DEFAULT_LOG_TTL_DAYS = 30;
+/**
+ * Default per-field cap on stored tool-call bodies, in bytes. Each body is stored in its own
+ * MySQL `TEXT` column (65,535-byte limit), so an oversized body never fails the insert.
+ */
+export const DEFAULT_LOG_MAX_BODY_BYTES = 64_000;
 
 export const DEFAULT_OAUTH_OPTIONS = {
     accessTokenTtlSeconds: 15 * 60,

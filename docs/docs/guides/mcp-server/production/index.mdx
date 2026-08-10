@@ -165,6 +165,10 @@ table. What gets stored is controlled by [`logging.capture`](/reference/core-plu
   the Admin API additionally requires the `ReadCustomer` permission, on top of the `ReadMcpServer` permission that
   gates the query itself. A caller without it gets `null` for those two fields; the rest of the row is unaffected.
 
+  Each stored body is also capped at `logging.maxBodyBytes` (default 64,000 bytes), sized so a row always fits in
+  MySQL's `TEXT` column. A body over the limit is replaced by a marker object recording its size; the rest of the
+  row is stored normally.
+
 Logs are pruned automatically. `logging.ttlDays` (default 30) sets the retention window, and a scheduled task
 deletes expired rows daily at 02:30. Override the schedule with `logging.retentionSchedule`.
 
