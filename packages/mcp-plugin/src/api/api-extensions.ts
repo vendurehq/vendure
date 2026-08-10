@@ -42,6 +42,8 @@ export const adminApiExtensions = gql`
         grantId: ID
         actor: String
         actorType: String!
+        "Stored only when logging.captureClientIp is enabled. Requires the ReadCustomer permission to read."
+        clientIp: String
         channelId: ID
         toolName: String!
         pluginSource: String

@@ -172,6 +172,11 @@ table. What gets stored is controlled by [`logging.capture`](/reference/core-plu
 Logs are pruned automatically. `logging.ttlDays` (default 30) sets the retention window, and a scheduled task
 deletes expired rows daily at 02:30. Override the schedule with `logging.retentionSchedule`.
 
+Set `logging.captureClientIp: true` to also store the caller's IP address on each row. It's off by default
+because an IP address is personal data — turn it on only if you need to tell anonymous callers apart. Captured
+IPs are deleted after `ttlDays` like the rest of the log. Behind a reverse proxy, enable Vendure's `trustProxy`
+so `req.ip` reports the client address rather than the proxy's.
+
 ## Observability: three tiers
 
 The plugin exposes tool-call activity three ways. Use whichever fits your stack — they are independent.

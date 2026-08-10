@@ -144,6 +144,7 @@ export class McpPlugin implements OnApplicationBootstrap {
                 redact: options.logging?.redact,
                 maxBodyBytes: options.logging?.maxBodyBytes ?? DEFAULT_LOG_MAX_BODY_BYTES,
                 retentionSchedule: options.logging?.retentionSchedule,
+                captureClientIp: options.logging?.captureClientIp ?? false,
             },
         };
         return McpPlugin;

@@ -95,6 +95,8 @@ describe('MCP tool-call logging', () => {
         // Default 'metadata' capture: request/response bodies are not persisted, so no call PII is stored.
         expect(row.input).toBeNull();
         expect(row.output).toBeNull();
+        // captureClientIp defaults to off, so the caller's IP is not stored either.
+        expect(row.clientIp).toBeNull();
     });
 
     it('persists an error row and publishes the event when a tool throws', async () => {
@@ -137,6 +139,7 @@ const MCP_TOOL_CALL_LOGS_QUERY = `
                 status
                 input
                 output
+                clientIp
             }
         }
     }
@@ -153,7 +156,7 @@ interface GraphQLResponse<T = any> {
 describe('MCP tool-call log input/output permission gating (full capture)', () => {
     const options: McpPluginOptions = {
         oauth: { tokenSecret: TOKEN_SECRET },
-        logging: { capture: 'full' },
+        logging: { capture: 'full', captureClientIp: true },
     };
     const config = mergeConfig(testConfig(), {
         plugins: [McpTestToolsPlugin, McpPlugin.init(options)],
@@ -162,6 +165,8 @@ describe('MCP tool-call log input/output permission gating (full capture)', () =
     const baseUrl = () => `http://localhost:${config.apiOptions.port}`;
     const adminApiUrl = () => `${baseUrl()}/${config.apiOptions.adminApiPath ?? 'admin-api'}`;
 
+    let connection: TransactionalConnection;
+    let adminCtx: RequestContext;
     let superAdminToken: string;
     let defaultChannelGqlId: string;
 
@@ -170,6 +175,8 @@ describe('MCP tool-call log input/output permission gating (full capture)', () =
         await server.init({ initialData, productsCsvPath, customerCount: 1 });
         await adminClient.asSuperAdmin();
         superAdminToken = adminClient.getAuthToken();
+        connection = server.app.get(TransactionalConnection);
+        adminCtx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
 
         const { activeChannel } = await adminClient.query(gql`
             query {
@@ -187,6 +194,12 @@ describe('MCP tool-call log input/output permission gating (full capture)', () =
     afterAll(async () => {
         await server.destroy();
     });
+
+    async function logRow(toolName: string): Promise<McpToolCallLog> {
+        return connection
+            .getRepository(adminCtx, McpToolCallLog)
+            .findOneOrFail({ where: { toolName }, order: { createdAt: 'DESC', id: 'DESC' } });
+    }
 
     /** Runs a GraphQL request against the admin API as the given token, without touching the shared adminClient's login state. */
     async function adminGraphQL<T = any>(
@@ -258,7 +271,7 @@ describe('MCP tool-call log input/output permission gating (full capture)', () =
         return token;
     }
 
-    it('an admin with only ReadMcpServer sees metadata but gets null input/output', async () => {
+    it('an admin with only ReadMcpServer sees metadata but gets null input/output/clientIp', async () => {
         const limitedToken = await provisionAdmin('mcp-read-only-log', ['ReadMcpServer']);
 
         const result = await adminGraphQL(limitedToken, MCP_TOOL_CALL_LOGS_QUERY, {
@@ -270,9 +283,10 @@ describe('MCP tool-call log input/output permission gating (full capture)', () =
         expect(row.status).toBe('success');
         expect(row.input).toBeNull();
         expect(row.output).toBeNull();
+        expect(row.clientIp).toBeNull();
     });
 
-    it('the superadmin, who holds ReadCustomer, sees the actual bodies', async () => {
+    it('the superadmin, who holds ReadCustomer, sees the actual bodies and clientIp', async () => {
         const result = await adminGraphQL(superAdminToken, MCP_TOOL_CALL_LOGS_QUERY, {
             options: { filter: { toolName: { eq: 'shop_ping' } }, take: 1 },
         });
@@ -283,5 +297,15 @@ describe('MCP tool-call log input/output permission gating (full capture)', () =
         expect(row.output).not.toBeNull();
         expect(row.input).toMatchObject({ text: 'jane.doe@example.com' });
         expect(row.output).toMatchObject({ text: 'jane.doe@example.com' });
+        // captureClientIp is on for this describe, so the caller's (loopback) address is stored.
+        expect(typeof row.clientIp).toBe('string');
+        expect(row.clientIp.length).toBeGreaterThan(0);
+    });
+
+    it('an HTTP tool call stores a non-empty clientIp when captureClientIp is enabled', async () => {
+        const row = await logRow('shop_ping');
+        // Loopback in CI/local test runs, e.g. '::1' or '127.0.0.1' — just assert it's captured.
+        expect(typeof row.clientIp).toBe('string');
+        expect(row.clientIp?.length).toBeGreaterThan(0);
     });
 });

@@ -294,6 +294,15 @@ export interface McpLoggingOptions {
      * @default cron => cron.everyDayAt(2, 30)
      */
     retentionSchedule?: McpRetentionSchedule;
+
+    /**
+     * Stores the caller's IP address on each tool-call log row. Off by default because an IP
+     * address is personal data. If your server runs behind a reverse proxy, also enable Vendure's `trustProxy` setting —
+     * otherwise every row stores the proxy's address instead of the real caller's.
+     *
+     * @default false
+     */
+    captureClientIp?: boolean;
 }
 
 /**

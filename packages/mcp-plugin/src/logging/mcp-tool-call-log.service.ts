@@ -38,7 +38,7 @@ export class McpToolCallLogService {
     ) {}
 
     async logToolCall(input: LogToolCallInput): Promise<void> {
-        const { ctx, grant } = input.executionContext;
+        const { ctx, grant, clientIp } = input.executionContext;
         let saved = false;
         try {
             const log = new McpToolCallLog({
@@ -56,6 +56,7 @@ export class McpToolCallLogService {
                     grant?.userType ??
                     (ctx.apiType === 'admin' ? 'admin' : ctx.activeUserId != null ? 'customer' : 'anonymous'),
                 channelId: ctx.channelId ?? null,
+                clientIp: this.options.logging?.captureClientIp ? (clientIp ?? null) : null,
                 toolName: input.tool.name,
                 pluginSource: input.tool.pluginSource,
                 durationMs: input.durationMs,

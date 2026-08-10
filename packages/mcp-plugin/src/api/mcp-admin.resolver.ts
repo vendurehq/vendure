@@ -315,14 +315,14 @@ export class McpAdminResolver {
 }
 
 /**
- * Field resolvers for `McpToolCallLog.input` and `.output`. With full capture on, these
- * bodies can contain customer personal data (names, emails, addresses) from shop tool
- * calls, so reading them needs the customer-read permission on top of the plugin's own
- * read permission that already gates the `mcpToolCallLogs` query. A caller without it
- * gets `null` back rather than a thrown error.
+ * Three log fields can hold personal data: the call's input, the call's output (either may
+ * contain names, emails or addresses), and the caller's IP address. Listing log entries only
+ * needs the MCP read permission, but these three fields also need the ReadCustomer permission.
+ * Without it they are returned as null, not as an error.
  */
 @Resolver('McpToolCallLog')
 export class McpToolCallLogEntityResolver {
+    // Not `@Allow`: that would error on every row, and the log should stay readable for admins without customer access.
     @ResolveField()
     input(@Parent() log: McpToolCallLog, @Ctx() ctx: RequestContext): unknown {
         return ctx.userHasPermissions([Permission.ReadCustomer]) ? log.input : null;
@@ -331,5 +331,10 @@ export class McpToolCallLogEntityResolver {
     @ResolveField()
     output(@Parent() log: McpToolCallLog, @Ctx() ctx: RequestContext): unknown {
         return ctx.userHasPermissions([Permission.ReadCustomer]) ? log.output : null;
+    }
+
+    @ResolveField()
+    clientIp(@Parent() log: McpToolCallLog, @Ctx() ctx: RequestContext): string | null {
+        return ctx.userHasPermissions([Permission.ReadCustomer]) ? log.clientIp : null;
     }
 }

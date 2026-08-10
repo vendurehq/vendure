@@ -33,6 +33,9 @@ export class McpToolCallLog extends VendureEntity {
     @Column({ type: 'varchar' })
     actorType: McpActorType;
 
+    @Column({ type: 'varchar', nullable: true })
+    clientIp: string | null;
+
     @Index()
     @EntityId({ nullable: true })
     channelId: ID | null;
