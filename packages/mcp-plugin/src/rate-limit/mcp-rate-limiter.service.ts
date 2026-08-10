@@ -7,8 +7,6 @@ import { MCP_PLUGIN_OPTIONS, RATE_LIMIT_CACHE_PREFIX, RATE_LIMIT_WINDOW_MS } fro
 import { McpExecutionContext } from '../internal-types';
 import { McpPluginOptions } from '../types';
 
-const RATE_LIMIT_CACHE_TAG = 'mcp-rate-limit';
-
 /** A single rate-limit bucket to check/consume. */
 interface RateLimitCheck {
     key: string;
@@ -247,7 +245,6 @@ export class McpRateLimiterService {
                 : { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS };
             await this.cacheService.set(this.cacheKey(key), next, {
                 ttl: Math.max(1000, next.resetAt - now),
-                tags: [RATE_LIMIT_CACHE_TAG],
             });
             return next;
         };
