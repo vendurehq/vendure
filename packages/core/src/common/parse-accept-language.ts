@@ -1,8 +1,9 @@
 import { LanguageCode } from '@vendure/common/lib/generated-types';
 
 /**
- * A long header would otherwise multiply into a long lookup chain, and every string resolved
- * during a request walks that chain once per source.
+ * Caps the returned chain, which every string resolved during a request walks once per source.
+ * Together with the bound on subtags per tag in the format check below, this puts a ceiling on how
+ * much lookup work one header can ask for.
  */
 const MAX_TAGS = 10;
 
@@ -23,17 +24,28 @@ export function parseAcceptLanguage(header: string | string[] | undefined): Lang
     }
     const weighted: Array<{ subtags: string[]; quality: number; position: number }> = [];
     raw.split(',').forEach((entry, position) => {
-        const [tag, ...parameters] = entry.trim().split(';');
+        // Whitespace is legal around the separators, so each part is trimmed rather than just the
+        // entry as a whole — otherwise the tag of `de ;q=0.5` keeps its trailing space.
+        const [tag, ...parameters] = entry.split(';').map(part => part.trim());
         // A format check rather than an enum check, so that custom language codes still work while
-        // anything which is not a language tag — such as an injection payload — is dropped.
-        if (!tag || !/^[a-zA-Z]{1,8}(-[a-zA-Z0-9]{1,8})*$/.test(tag)) {
+        // anything which is not a language tag — such as an injection payload — is dropped. The
+        // subtag count is bounded because each one adds another entry to the returned chain.
+        if (!tag || !/^[a-zA-Z]{1,8}(-[a-zA-Z0-9]{1,8}){0,3}$/.test(tag)) {
             return;
         }
-        const qualityParameter = parameters.map(p => p.trim()).find(p => p.startsWith('q='));
-        const quality = qualityParameter ? Number(qualityParameter.slice(2)) : 1;
-        // `q=0` means the client explicitly does not want that language.
-        if (!isFinite(quality) || quality <= 0) {
-            return;
+        // Parameter names are case-insensitive, and reading `Q=0.5` as an absent weight would
+        // promote the tag to full preference and reorder everything after it.
+        const qualityParameter = parameters.find(p => p.toLowerCase().startsWith('q='));
+        let quality = 1;
+        if (qualityParameter) {
+            const parsed = Number(qualityParameter.slice(2));
+            // `q=0` means the client explicitly does not want that language, and a weight which
+            // does not parse expresses no usable preference either.
+            if (!isFinite(parsed) || parsed <= 0) {
+                return;
+            }
+            // The scale tops out at 1, so an out-of-range weight cannot outrank an unweighted tag.
+            quality = Math.min(parsed, 1);
         }
         weighted.push({ subtags: normalizeSubtags(tag), quality, position });
     });
