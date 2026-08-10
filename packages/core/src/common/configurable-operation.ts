@@ -610,8 +610,13 @@ export class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
      *
      * Option labels stay as a full LocalizedStringArray rather than being resolved to one string
      * like the operation description and the arg labels are, because the Admin UI picks the option
-     * label itself. The translation is therefore merged in under the language it was found for,
-     * which is the language the client will look for it under.
+     * label itself.
+     *
+     * The translation is merged in under the language the client asked for, not the one the catalog
+     * entry was found under, because every client looks up its own display language and falls back
+     * to the first entry in the array when it finds no exact match. A match reached by truncating
+     * `pt_BR` to `pt`, or from the channel default at the end of the chain, would otherwise be
+     * tagged with a language the client never looks for, and the translation would go unused.
      *
      * The result is a copy, and the original is returned untouched when there is nothing to merge.
      * `ui` belongs to the long-lived config object shared by every request, so merging in place
@@ -626,6 +631,7 @@ export class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
         if (!options.length) {
             return ui;
         }
+        const requestedLanguage = ctx.acceptedLanguageCodes?.[0] ?? ctx.languageCode;
         let merged = false;
         const localized = options.map(option => {
             for (const languageCode of this.languagePreference(ctx)) {
@@ -640,10 +646,10 @@ export class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
                     continue;
                 }
                 merged = true;
-                const others = (option.label ?? []).filter(x => x.languageCode !== languageCode);
+                const others = (option.label ?? []).filter(x => x.languageCode !== requestedLanguage);
                 return {
                     ...option,
-                    label: [...others, { languageCode, value: fromCatalog }],
+                    label: [...others, { languageCode: requestedLanguage, value: fromCatalog }],
                 };
             }
             return option;

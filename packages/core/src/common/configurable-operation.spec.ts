@@ -385,6 +385,32 @@ describe('ConfigurableOperationDef', () => {
                 { languageCode: LanguageCode.ja, value: 'Catalog Japanese option' },
             ]);
         });
+
+        it('tags an option label found by truncation with the language that was asked for', () => {
+            // The client looks up its own display language and falls back to the first entry when
+            // it finds no exact match, so tagging this `pt` would leave the translation unused.
+            const operation = createOperation(
+                { optionLabel: [{ languageCode: LanguageCode.en, value: 'Inline option' }] },
+                stubTranslator({
+                    pt: {
+                        ShippingCalculator: {
+                            'test-calculator': {
+                                args: { rate: { options: { auto: { label: 'Catalog Portuguese' } } } },
+                            },
+                        },
+                    },
+                }),
+            );
+
+            const ctx = createRequestContext(LanguageCode.en, LanguageCode.en, [
+                LanguageCode.pt_BR,
+                LanguageCode.pt,
+            ]);
+            expect(operation.toGraphQlType(ctx).args[0].ui.options[0].label).toEqual([
+                { languageCode: LanguageCode.en, value: 'Inline option' },
+                { languageCode: LanguageCode.pt_BR, value: 'Catalog Portuguese' },
+            ]);
+        });
     });
 
     describe('getTranslationKeys', () => {
