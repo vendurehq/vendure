@@ -16,6 +16,10 @@ on:
         # anyone having to remember to trigger a run.
         - cron: '0 3 * * *'
     pull_request:
+        branches:
+            - master
+            - major
+            - minor
         types: [opened, reopened, synchronize, labeled]
 
 env:

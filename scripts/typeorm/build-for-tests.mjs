@@ -1,19 +1,17 @@
 #!/usr/bin/env node
 /**
- * Builds the workspace as far as it will go, without stopping at type errors,
- * so that the database-backed suites can run and report what breaks at runtime.
+ * Runs the same builds as `lerna run ci`, but without stopping at type errors, so
+ * that the database-backed suites can run and report what breaks at runtime.
  *
- * This exists because of how the build scripts are chained. `@vendure/core`'s
- * build runs three stages joined by `&&`: the main compile, the CLI compile,
- * and a copy of the static `.graphql` schema files. `tsc` still emits output
- * when it reports type errors, but its non-zero exit stops the chain, so a
- * single type error leaves `dist/` without the schema files. The server then
- * fails to boot with "No type definitions were found", which says nothing about
- * the actual incompatibility.
+ * Packages are selected exactly as `lerna run ci` selects them, by the presence of
+ * a `ci` script, so this builds the same set the e2e jobs in build_and_test.yml
+ * build. Packages without a `ci` script are named in the output rather than
+ * skipped silently, because several of them do have e2e suites, and "this package
+ * was never built" and "this package is incompatible with TypeORM v1" are easy to
+ * confuse when the suite fails.
  *
- * Type errors are not swallowed by doing this — the `build` job in the same
- * workflow reports them. This script gives the second, independent signal:
- * which calls fail once the code is actually running.
+ * See scripts/typeorm/README.md for why the stages are run separately rather than
+ * left chained with `&&`.
  *
  * Usage:
  *   node scripts/typeorm/build-for-tests.mjs
@@ -37,10 +35,13 @@ const binDirs = [
     ...order.map(pkg => path.join(pkg.location, 'node_modules', '.bin')),
 ];
 
+const notBuilt = [];
+
 for (const { name, location } of order) {
     const manifest = JSON.parse(fs.readFileSync(path.join(location, 'package.json'), 'utf8'));
     const stages = resolveBuildStages(manifest);
     if (stages.length === 0) {
+        notBuilt.push({ name, hasE2e: Boolean(manifest.scripts?.e2e) });
         continue;
     }
     console.log(`\n--- ${name}`);
@@ -67,6 +68,15 @@ if (failed.length) {
     }
 } else {
     console.log('\nAll build stages passed.');
+}
+
+const skippedWithE2e = notBuilt.filter(pkg => pkg.hasE2e);
+if (skippedWithE2e.length) {
+    console.log(
+        `\nNot built (no \`ci\` script), but has an e2e suite that \`lerna run e2e\` will run: ` +
+            `${skippedWithE2e.map(pkg => pkg.name).join(', ')}. ` +
+            'A failure in those suites may be a missing build rather than a TypeORM incompatibility.',
+    );
 }
 
 // Always succeeds: reporting build failures is the job of the `build` job, and

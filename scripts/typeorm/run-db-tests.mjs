@@ -29,6 +29,15 @@ const unitOnly = args.includes('--unit-only');
 const scopeIndex = args.indexOf('--scope');
 const scope = scopeIndex === -1 ? undefined : args[scopeIndex + 1];
 
+if (e2eOnly && unitOnly) {
+    console.error('--e2e-only and --unit-only select nothing when combined. Pass at most one.');
+    process.exit(1);
+}
+if (scopeIndex !== -1 && !scope) {
+    console.error('--scope needs a package name, e.g. --scope @vendure/core');
+    process.exit(1);
+}
+
 const verify = spawnSync(process.execPath, [path.join(scriptDir, 'verify.mjs')], {
     cwd: repoRoot,
     stdio: 'inherit',
