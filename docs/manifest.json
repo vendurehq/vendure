@@ -1565,10 +1565,22 @@
                   "lastModified": "2026-04-20T16:08:16+02:00"
                 },
                 {
+                  "title": "FindOptionsRelationsInput",
+                  "slug": "find-options-relations-input",
+                  "file": "docs/reference/typescript-api/data-access/find-options-relations-input.mdx",
+                  "lastModified": "2026-08-10T15:27:42Z"
+                },
+                {
+                  "title": "FindOptionsSelectInput",
+                  "slug": "find-options-select-input",
+                  "file": "docs/reference/typescript-api/data-access/find-options-select-input.mdx",
+                  "lastModified": "2026-08-10T15:27:42Z"
+                },
+                {
                   "title": "GetEntityOrThrowOptions",
                   "slug": "get-entity-or-throw-options",
                   "file": "docs/reference/typescript-api/data-access/get-entity-or-throw-options.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-08-10T15:27:42Z"
                 },
                 {
                   "title": "HydrateOptions",
@@ -1580,13 +1592,25 @@
                   "title": "ListQueryBuilder",
                   "slug": "list-query-builder",
                   "file": "docs/reference/typescript-api/data-access/list-query-builder.mdx",
-                  "lastModified": "2026-07-14T10:51:14+02:00"
+                  "lastModified": "2026-08-10T15:27:42Z"
                 },
                 {
                   "title": "TransactionalConnection",
                   "slug": "transactional-connection",
                   "file": "docs/reference/typescript-api/data-access/transactional-connection.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-10T15:27:42Z"
+                },
+                {
+                  "title": "VendureFindManyOptions",
+                  "slug": "vendure-find-many-options",
+                  "file": "docs/reference/typescript-api/data-access/vendure-find-many-options.mdx",
+                  "lastModified": "2026-08-10T15:27:42Z"
+                },
+                {
+                  "title": "VendureFindOneOptions",
+                  "slug": "vendure-find-one-options",
+                  "file": "docs/reference/typescript-api/data-access/vendure-find-one-options.mdx",
+                  "lastModified": "2026-08-10T15:27:42Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
@@ -2896,7 +2920,7 @@
                   "title": "OrderModifier",
                   "slug": "order-modifier",
                   "file": "docs/reference/typescript-api/service-helpers/order-modifier.mdx",
-                  "lastModified": "2026-06-30T07:18:09+02:00"
+                  "lastModified": "2026-08-10T15:27:42Z"
                 },
                 {
                   "title": "ProductPriceApplicator",
@@ -2934,7 +2958,7 @@
                   "title": "AdministratorService",
                   "slug": "administrator-service",
                   "file": "docs/reference/typescript-api/services/administrator-service.mdx",
-                  "lastModified": "2026-07-23T11:18:30+02:00"
+                  "lastModified": "2026-08-10T15:27:42Z"
                 },
                 {
                   "title": "AssetService",
@@ -2964,7 +2988,7 @@
                   "title": "CountryService",
                   "slug": "country-service",
                   "file": "docs/reference/typescript-api/services/country-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-10T15:27:42Z"
                 },
                 {
                   "title": "CustomerChannelAssignmentService",
@@ -2976,7 +3000,7 @@
                   "title": "CustomerGroupService",
                   "slug": "customer-group-service",
                   "file": "docs/reference/typescript-api/services/customer-group-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-10T15:27:42Z"
                 },
                 {
                   "title": "CustomerService",
@@ -3006,7 +3030,7 @@
                   "title": "FulfillmentService",
                   "slug": "fulfillment-service",
                   "file": "docs/reference/typescript-api/services/fulfillment-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-10T15:27:42Z"
                 },
                 {
                   "title": "GlobalSettingsService",
@@ -3030,7 +3054,7 @@
                   "title": "OrderService",
                   "slug": "order-service",
                   "file": "docs/reference/typescript-api/services/order-service.mdx",
-                  "lastModified": "2026-07-22T11:48:45+02:00"
+                  "lastModified": "2026-08-10T15:27:42Z"
                 },
                 {
                   "title": "OrderTestingService",
@@ -3066,7 +3090,7 @@
                   "title": "ProductService",
                   "slug": "product-service",
                   "file": "docs/reference/typescript-api/services/product-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-10T15:27:42Z"
                 },
                 {
                   "title": "ProductVariantService",
@@ -3078,19 +3102,19 @@
                   "title": "PromotionService",
                   "slug": "promotion-service",
                   "file": "docs/reference/typescript-api/services/promotion-service.mdx",
-                  "lastModified": "2026-06-30T07:18:09+02:00"
+                  "lastModified": "2026-08-10T15:27:42Z"
                 },
                 {
                   "title": "ProvinceService",
                   "slug": "province-service",
                   "file": "docs/reference/typescript-api/services/province-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-10T15:27:42Z"
                 },
                 {
                   "title": "RoleService",
                   "slug": "role-service",
                   "file": "docs/reference/typescript-api/services/role-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-10T15:27:42Z"
                 },
                 {
                   "title": "SearchService",
@@ -3108,7 +3132,7 @@
                   "title": "SessionService",
                   "slug": "session-service",
                   "file": "docs/reference/typescript-api/services/session-service.mdx",
-                  "lastModified": "2026-04-28T19:36:30+02:00"
+                  "lastModified": "2026-08-10T15:27:42Z"
                 },
                 {
                   "title": "SettingsStoreService",
@@ -3162,7 +3186,7 @@
                   "title": "TaxRateService",
                   "slug": "tax-rate-service",
                   "file": "docs/reference/typescript-api/services/tax-rate-service.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-10T15:27:42Z"
                 },
                 {
                   "title": "UserService",
@@ -4285,7 +4309,7 @@
                   "title": "ListPage",
                   "slug": "list-page",
                   "file": "docs/reference/dashboard/list-views/list-page.mdx",
-                  "lastModified": "2026-07-16T14:41:21+02:00"
+                  "lastModified": "2026-08-10T15:27:42Z"
                 },
                 {
                   "title": "PaginatedListDataTable",
