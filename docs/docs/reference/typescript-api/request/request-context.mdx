@@ -165,8 +165,8 @@ administrator reading the Admin UI in Japanese while editing the German translat
 product.
 
 A code here is not guaranteed to be a member of the [LanguageCode](/reference/typescript-api/common/language-code#languagecode) enum, for the same
-reason `languageCode` is not: custom codes are permitted. Treat a code with no translation
-behind it as a miss and fall back.
+reason `languageCode` is not: custom codes are permitted. A code with no translation behind
+it matches nothing and is skipped.
 ### currencyCode
 
 <MemberInfo kind="property" type={`<a href='/reference/typescript-api/common/currency-code#currencycode'>CurrencyCode</a>`}   />

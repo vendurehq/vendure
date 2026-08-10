@@ -1,9 +1,9 @@
 import { LanguageCode } from '@vendure/common/lib/generated-types';
 
 /**
- * Caps the returned chain, which every string resolved during a request walks once per source.
- * Together with the bound on subtags per tag in the format check below, this puts a ceiling on how
- * much lookup work one header can ask for.
+ * The maximum number of tags read from one header. Each tag expands into one code per subtag
+ * prefix, and every code is looked up once for each string the request resolves, so a long header
+ * would otherwise multiply the lookup work. The format check below bounds the expansion per tag.
  */
 const MAX_TAGS = 10;
 
@@ -15,7 +15,8 @@ const MAX_TAGS = 10;
  * convention that {@link LanguageCode} follows, so a client sending `pt-br` still matches `pt_BR`.
  *
  * As with the `languageCode` query parameter, a returned code is not guaranteed to be a member of
- * the {@link LanguageCode} enum — a caller which finds no translation for it falls back.
+ * the {@link LanguageCode} enum, since custom codes are permitted. A code which matches no
+ * translation is skipped by the caller.
  */
 export function parseAcceptLanguage(header: string | string[] | undefined): LanguageCode[] {
     const raw = Array.isArray(header) ? header.join(',') : header;
@@ -24,12 +25,12 @@ export function parseAcceptLanguage(header: string | string[] | undefined): Lang
     }
     const weighted: Array<{ subtags: string[]; quality: number; position: number }> = [];
     raw.split(',').forEach((entry, position) => {
-        // Whitespace is legal around the separators, so each part is trimmed rather than just the
-        // entry as a whole — otherwise the tag of `de ;q=0.5` keeps its trailing space.
+        // Whitespace is legal around the semicolon and the comma, so each part is trimmed rather
+        // than just the entry as a whole — otherwise the tag of `de ;q=0.5` keeps a trailing space.
         const [tag, ...parameters] = entry.split(';').map(part => part.trim());
         // A format check rather than an enum check, so that custom language codes still work while
         // anything which is not a language tag — such as an injection payload — is dropped. The
-        // subtag count is bounded because each one adds another entry to the returned chain.
+        // subtag count is bounded because each one adds another entry to the returned list.
         if (!tag || !/^[a-zA-Z]{1,8}(-[a-zA-Z0-9]{1,8}){0,3}$/.test(tag)) {
             return;
         }
@@ -39,8 +40,8 @@ export function parseAcceptLanguage(header: string | string[] | undefined): Lang
         let quality = 1;
         if (qualityParameter) {
             const parsed = Number(qualityParameter.slice(2));
-            // `q=0` means the client explicitly does not want that language, and a weight which
-            // does not parse expresses no usable preference either.
+            // `q=0` means the client explicitly does not want that language. A weight which does
+            // not parse is dropped the same way rather than guessed at.
             if (!isFinite(parsed) || parsed <= 0) {
                 return;
             }

@@ -580,8 +580,8 @@ export class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
      *
      * These strings describe the operation itself rather than the data it acts on, so they follow
      * the language the client asked to read in its `Accept-Language` header. `ctx.languageCode`
-     * selects a translation of the data, and is consulted only after that, which keeps a client
-     * that sends no header behaving as it always has.
+     * selects a translation of the data, and is consulted only after that, so a client which sends
+     * no header still resolves against `ctx.languageCode` first, as it did before.
      */
     private languagePreference(ctx: RequestContext): LanguageCode[] {
         return [
@@ -615,8 +615,8 @@ export class ConfigurableOperationDef<T extends ConfigArgs = ConfigArgs> {
      * The merged entry carries the language code the client asked for. Every client looks up its
      * own display language and falls back to the first entry in the array when it finds no exact
      * match, so a match reached by truncating `pt_BR` to `pt`, or one taken from the channel
-     * default at the end of the chain, would be passed over if it were filed under the code it
-     * happened to be found for.
+     * default or English further down the list, would be passed over if it were filed under the
+     * code the catalog entry was found for.
      *
      * The result is a copy, and the original is returned untouched when there is nothing to merge.
      * `ui` belongs to the long-lived config object shared by every request, so merging in place

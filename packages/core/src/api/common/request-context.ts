@@ -378,8 +378,8 @@ export class RequestContext {
      * product.
      *
      * A code here is not guaranteed to be a member of the {@link LanguageCode} enum, for the same
-     * reason `languageCode` is not: custom codes are permitted. Treat a code with no translation
-     * behind it as a miss and fall back.
+     * reason `languageCode` is not: custom codes are permitted. A code with no translation behind
+     * it matches nothing and is skipped.
      *
      * @since 3.8.0
      */
