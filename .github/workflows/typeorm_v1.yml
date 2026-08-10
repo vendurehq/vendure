@@ -29,28 +29,9 @@ concurrency:
 # the e2e-* jobs because GitHub Actions supports neither YAML anchors nor
 # service reuse. Update all four copies together.
 jobs:
-    should-run:
-        name: should run
-        runs-on: ubuntu-latest
-        permissions:
-            contents: read
-        outputs:
-            run: ${{ steps.check.outputs.run }}
-        steps:
-            - id: check
-              run: |
-                  if [ "${{ github.event_name }}" != "pull_request" ]; then
-                    echo "run=true" >> "$GITHUB_OUTPUT"
-                  elif ${{ contains(github.event.pull_request.labels.*.name, 'typeorm-v1') }}; then
-                    echo "run=true" >> "$GITHUB_OUTPUT"
-                  else
-                    echo "run=false" >> "$GITHUB_OUTPUT"
-                  fi
-
     build:
         name: build
-        needs: should-run
-        if: needs.should-run.outputs.run == 'true'
+        if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'typeorm-v1')
         runs-on: ubuntu-latest
         permissions:
             contents: read
@@ -64,8 +45,7 @@ jobs:
 
     unit-tests:
         name: unit tests
-        needs: should-run
-        if: needs.should-run.outputs.run == 'true'
+        if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'typeorm-v1')
         runs-on: ubuntu-latest
         permissions:
             contents: read
@@ -81,8 +61,7 @@ jobs:
 
     e2e-sqljs:
         name: e2e (sqljs)
-        needs: should-run
-        if: needs.should-run.outputs.run == 'true'
+        if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'typeorm-v1')
         runs-on: ubuntu-latest
         permissions:
             contents: read
@@ -106,8 +85,7 @@ jobs:
 
     e2e-mariadb:
         name: e2e (mariadb)
-        needs: should-run
-        if: needs.should-run.outputs.run == 'true'
+        if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'typeorm-v1')
         runs-on: ubuntu-latest
         permissions:
             contents: read
@@ -139,8 +117,7 @@ jobs:
 
     e2e-mysql:
         name: e2e (mysql)
-        needs: should-run
-        if: needs.should-run.outputs.run == 'true'
+        if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'typeorm-v1')
         runs-on: ubuntu-latest
         permissions:
             contents: read
@@ -172,8 +149,7 @@ jobs:
 
     e2e-postgres:
         name: e2e (postgres)
-        needs: should-run
-        if: needs.should-run.outputs.run == 'true'
+        if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'typeorm-v1')
         runs-on: ubuntu-latest
         permissions:
             contents: read
