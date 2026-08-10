@@ -1,5 +1,7 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import {
+    Alert,
+    AlertDescription,
     api,
     Badge,
     type ColumnDef,
@@ -16,6 +18,7 @@ import {
     useQuery,
     useQueryClient,
 } from '@vendure/dashboard';
+import { TriangleAlert } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { MCP_TOOLS_QUERY, McpToolInfo, SET_MCP_TOOL_ENABLED } from '../queries';
@@ -56,7 +59,7 @@ export function ToolsBlock() {
     const [search, setSearch] = useState('');
     const [toolset, setToolset] = useState<string>(ALL_TOOLSETS);
 
-    const { data, isLoading } = useQuery({
+    const { data, isLoading, error } = useQuery({
         queryKey: ['mcp-tools'],
         queryFn: () => api.query<{ mcpTools: McpToolInfo[] }>(MCP_TOOLS_QUERY),
     });
@@ -96,6 +99,17 @@ export function ToolsBlock() {
             return tool.name.toLowerCase().includes(term) || tool.description.toLowerCase().includes(term);
         });
     }, [tools, search, toolset]);
+
+    if (error) {
+        return (
+            <Alert variant="destructive">
+                <TriangleAlert className="h-4 w-4" />
+                <AlertDescription>
+                    <Trans>Error loading tools: {error.message}</Trans>
+                </AlertDescription>
+            </Alert>
+        );
+    }
 
     const columns: Array<ColumnDef<McpToolInfo>> = [
         {

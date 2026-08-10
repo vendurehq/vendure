@@ -226,3 +226,15 @@ msgstr "Uygulama tarafından bildirildi (doğrulanmadı)"
 
 msgid "The authorization code will be sent to"
 msgstr "Yetkilendirme kodu şu adrese gönderilecek"
+
+msgid "Error loading MCP statistics: {0}"
+msgstr "MCP istatistikleri yüklenirken hata oluştu: {0}"
+
+msgid "Error loading tools: {0}"
+msgstr "Araçlar yüklenirken hata oluştu: {0}"
+
+msgid "Error loading activity: {0}"
+msgstr "Etkinlik yüklenirken hata oluştu: {0}"
+
+msgid "Error loading grants: {0}"
+msgstr "Yetkiler yüklenirken hata oluştu: {0}"

@@ -226,3 +226,15 @@ msgstr "Reported by the application (unverified)"
 
 msgid "The authorization code will be sent to"
 msgstr "The authorization code will be sent to"
+
+msgid "Error loading MCP statistics: {0}"
+msgstr "Error loading MCP statistics: {0}"
+
+msgid "Error loading tools: {0}"
+msgstr "Error loading tools: {0}"
+
+msgid "Error loading activity: {0}"
+msgstr "Error loading activity: {0}"
+
+msgid "Error loading grants: {0}"
+msgstr "Error loading grants: {0}"

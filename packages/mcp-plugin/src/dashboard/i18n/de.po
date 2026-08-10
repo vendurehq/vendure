@@ -226,3 +226,15 @@ msgstr "Von der Anwendung angegeben (nicht überprüft)"
 
 msgid "The authorization code will be sent to"
 msgstr "Der Autorisierungscode wird gesendet an"
+
+msgid "Error loading MCP statistics: {0}"
+msgstr "Fehler beim Laden der MCP-Statistiken: {0}"
+
+msgid "Error loading tools: {0}"
+msgstr "Fehler beim Laden der Tools: {0}"
+
+msgid "Error loading activity: {0}"
+msgstr "Fehler beim Laden der Aktivität: {0}"
+
+msgid "Error loading grants: {0}"
+msgstr "Fehler beim Laden der Berechtigungen: {0}"

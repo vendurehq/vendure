@@ -1,5 +1,15 @@
 import { Trans } from '@lingui/react/macro';
-import { api, Badge, type ColumnDef, DataTable, DateTime, useQuery } from '@vendure/dashboard';
+import {
+    Alert,
+    AlertDescription,
+    api,
+    Badge,
+    type ColumnDef,
+    DataTable,
+    DateTime,
+    useQuery,
+} from '@vendure/dashboard';
+import { TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 
 import { MCP_TOOL_CALL_LOGS_QUERY, McpToolCallLog, McpToolCallLogList } from '../queries';
@@ -17,7 +27,7 @@ export function ActivityBlock() {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
 
-    const { data, isLoading } = useQuery({
+    const { data, isLoading, error } = useQuery({
         queryKey: ['mcp-tool-call-logs', page, pageSize],
         queryFn: () =>
             api.query<{ mcpToolCallLogs: McpToolCallLogList }>(MCP_TOOL_CALL_LOGS_QUERY, {
@@ -26,6 +36,17 @@ export function ActivityBlock() {
     });
 
     const list = data?.mcpToolCallLogs;
+
+    if (error) {
+        return (
+            <Alert variant="destructive">
+                <TriangleAlert className="h-4 w-4" />
+                <AlertDescription>
+                    <Trans>Error loading activity: {error.message}</Trans>
+                </AlertDescription>
+            </Alert>
+        );
+    }
 
     const columns: Array<ColumnDef<McpToolCallLog>> = [
         {

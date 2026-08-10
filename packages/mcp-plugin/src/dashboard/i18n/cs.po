@@ -226,3 +226,15 @@ msgstr "Uvedeno aplikací (neověřeno)"
 
 msgid "The authorization code will be sent to"
 msgstr "Autorizační kód bude odeslán na"
+
+msgid "Error loading MCP statistics: {0}"
+msgstr "Chyba při načítání statistik MCP: {0}"
+
+msgid "Error loading tools: {0}"
+msgstr "Chyba při načítání nástrojů: {0}"
+
+msgid "Error loading activity: {0}"
+msgstr "Chyba při načítání aktivity: {0}"
+
+msgid "Error loading grants: {0}"
+msgstr "Chyba při načítání oprávnění: {0}"

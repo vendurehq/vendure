@@ -226,3 +226,15 @@ msgstr "Ilova tomonidan bildirilgan (tasdiqlanmagan)"
 
 msgid "The authorization code will be sent to"
 msgstr "Avtorizatsiya kodi quyidagi manzilga yuboriladi"
+
+msgid "Error loading MCP statistics: {0}"
+msgstr "MCP statistikasini yuklashda xatolik: {0}"
+
+msgid "Error loading tools: {0}"
+msgstr "Asboblarni yuklashda xatolik: {0}"
+
+msgid "Error loading activity: {0}"
+msgstr "Faoliyatni yuklashda xatolik: {0}"
+
+msgid "Error loading grants: {0}"
+msgstr "Ruxsatlarni yuklashda xatolik: {0}"

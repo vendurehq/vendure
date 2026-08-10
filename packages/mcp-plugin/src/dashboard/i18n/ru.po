@@ -226,3 +226,15 @@ msgstr "Сообщено приложением (не проверено)"
 
 msgid "The authorization code will be sent to"
 msgstr "Код авторизации будет отправлен на"
+
+msgid "Error loading MCP statistics: {0}"
+msgstr "Ошибка при загрузке статистики MCP: {0}"
+
+msgid "Error loading tools: {0}"
+msgstr "Ошибка при загрузке инструментов: {0}"
+
+msgid "Error loading activity: {0}"
+msgstr "Ошибка при загрузке активности: {0}"
+
+msgid "Error loading grants: {0}"
+msgstr "Ошибка при загрузке разрешений: {0}"

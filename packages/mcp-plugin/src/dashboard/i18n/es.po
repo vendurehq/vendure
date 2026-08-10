@@ -226,3 +226,15 @@ msgstr "Declarado por la aplicación (sin verificar)"
 
 msgid "The authorization code will be sent to"
 msgstr "El código de autorización se enviará a"
+
+msgid "Error loading MCP statistics: {0}"
+msgstr "Error al cargar las estadísticas de MCP: {0}"
+
+msgid "Error loading tools: {0}"
+msgstr "Error al cargar las herramientas: {0}"
+
+msgid "Error loading activity: {0}"
+msgstr "Error al cargar la actividad: {0}"
+
+msgid "Error loading grants: {0}"
+msgstr "Error al cargar las concesiones: {0}"

@@ -226,3 +226,15 @@ msgstr "Navela aplikacija (neprovjereno)"
 
 msgid "The authorization code will be sent to"
 msgstr "Autorizacijski kod bit će poslan na"
+
+msgid "Error loading MCP statistics: {0}"
+msgstr "Pogreška prilikom učitavanja MCP statistike: {0}"
+
+msgid "Error loading tools: {0}"
+msgstr "Pogreška prilikom učitavanja alata: {0}"
+
+msgid "Error loading activity: {0}"
+msgstr "Pogreška prilikom učitavanja aktivnosti: {0}"
+
+msgid "Error loading grants: {0}"
+msgstr "Pogreška prilikom učitavanja odobrenja: {0}"

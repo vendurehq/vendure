@@ -226,3 +226,15 @@ msgstr "アプリケーションによる申告（未検証）"
 
 msgid "The authorization code will be sent to"
 msgstr "認可コードの送信先"
+
+msgid "Error loading MCP statistics: {0}"
+msgstr "MCP統計情報の読み込みに失敗しました: {0}"
+
+msgid "Error loading tools: {0}"
+msgstr "ツールの読み込みに失敗しました: {0}"
+
+msgid "Error loading activity: {0}"
+msgstr "アクティビティの読み込みに失敗しました: {0}"
+
+msgid "Error loading grants: {0}"
+msgstr "権限付与の読み込みに失敗しました: {0}"

@@ -226,3 +226,15 @@ msgstr "एप्लिकेसनले बताएको (अप्रमा
 
 msgid "The authorization code will be sent to"
 msgstr "प्राधिकरण कोड यहाँ पठाइनेछ"
+
+msgid "Error loading MCP statistics: {0}"
+msgstr "MCP तथ्याङ्क लोड गर्दा त्रुटि: {0}"
+
+msgid "Error loading tools: {0}"
+msgstr "उपकरणहरू लोड गर्दा त्रुटि: {0}"
+
+msgid "Error loading activity: {0}"
+msgstr "गतिविधि लोड गर्दा त्रुटि: {0}"
+
+msgid "Error loading grants: {0}"
+msgstr "अनुदानहरू लोड गर्दा त्रुटि: {0}"

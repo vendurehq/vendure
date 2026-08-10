@@ -226,3 +226,15 @@ msgstr "由应用程序自行声称（未经验证）"
 
 msgid "The authorization code will be sent to"
 msgstr "授权码将发送至"
+
+msgid "Error loading MCP statistics: {0}"
+msgstr "加载 MCP 统计信息时出错：{0}"
+
+msgid "Error loading tools: {0}"
+msgstr "加载工具时出错：{0}"
+
+msgid "Error loading activity: {0}"
+msgstr "加载活动时出错：{0}"
+
+msgid "Error loading grants: {0}"
+msgstr "加载授权时出错：{0}"

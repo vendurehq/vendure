@@ -226,3 +226,15 @@ msgstr "Oppgitt av applikasjonen (ikke verifisert)"
 
 msgid "The authorization code will be sent to"
 msgstr "Autorisasjonskoden sendes til"
+
+msgid "Error loading MCP statistics: {0}"
+msgstr "Feil ved innlasting av MCP-statistikk: {0}"
+
+msgid "Error loading tools: {0}"
+msgstr "Feil ved innlasting av verktøy: {0}"
+
+msgid "Error loading activity: {0}"
+msgstr "Feil ved innlasting av aktivitet: {0}"
+
+msgid "Error loading grants: {0}"
+msgstr "Feil ved innlasting av tilganger: {0}"

@@ -226,3 +226,15 @@ msgstr "Uppgiven av applikationen (overifierad)"
 
 msgid "The authorization code will be sent to"
 msgstr "Auktoriseringskoden skickas till"
+
+msgid "Error loading MCP statistics: {0}"
+msgstr "Fel vid inläsning av MCP-statistik: {0}"
+
+msgid "Error loading tools: {0}"
+msgstr "Fel vid inläsning av verktyg: {0}"
+
+msgid "Error loading activity: {0}"
+msgstr "Fel vid inläsning av aktivitet: {0}"
+
+msgid "Error loading grants: {0}"
+msgstr "Fel vid inläsning av behörigheter: {0}"

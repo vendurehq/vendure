@@ -226,3 +226,15 @@ msgstr "Declarat de aplicație (neverificat)"
 
 msgid "The authorization code will be sent to"
 msgstr "Codul de autorizare va fi trimis către"
+
+msgid "Error loading MCP statistics: {0}"
+msgstr "Eroare la încărcarea statisticilor MCP: {0}"
+
+msgid "Error loading tools: {0}"
+msgstr "Eroare la încărcarea instrumentelor: {0}"
+
+msgid "Error loading activity: {0}"
+msgstr "Eroare la încărcarea activității: {0}"
+
+msgid "Error loading grants: {0}"
+msgstr "Eroare la încărcarea autorizărilor: {0}"

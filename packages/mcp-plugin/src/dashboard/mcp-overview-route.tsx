@@ -10,6 +10,7 @@ import {
     PageBlock,
     PageLayout,
     PageTitle,
+    PermissionGuard,
 } from '@vendure/dashboard';
 
 import { ActivityBlock } from './components/activity-block';
@@ -48,29 +49,31 @@ export const mcpOverviewRoute: DashboardRouteDefinition = {
             <PageTitle>
                 <Trans>MCP Server</Trans>
             </PageTitle>
-            <PageLayout>
-                <PageBlock column="main" blockId="mcp-connection" title={<Trans>Connection</Trans>}>
-                    <ConnectionBlock />
-                </PageBlock>
-                <PageBlock column="side" blockId="mcp-stats" title={<Trans>Health & usage</Trans>}>
-                    <StatsBlock />
-                </PageBlock>
-                <FullWidthPageBlock blockId="mcp-tools">
-                    <Section title={<Trans>Tools</Trans>}>
-                        <ToolsBlock />
-                    </Section>
-                </FullWidthPageBlock>
-                <FullWidthPageBlock blockId="mcp-activity">
-                    <Section title={<Trans>Recent activity</Trans>}>
-                        <ActivityBlock />
-                    </Section>
-                </FullWidthPageBlock>
-                <FullWidthPageBlock blockId="mcp-grants">
-                    <Section title={<Trans>OAuth grants</Trans>}>
-                        <GrantsBlock />
-                    </Section>
-                </FullWidthPageBlock>
-            </PageLayout>
+            <PermissionGuard requires={['ReadMcpServer']}>
+                <PageLayout>
+                    <PageBlock column="main" blockId="mcp-connection" title={<Trans>Connection</Trans>}>
+                        <ConnectionBlock />
+                    </PageBlock>
+                    <PageBlock column="side" blockId="mcp-stats" title={<Trans>Health & usage</Trans>}>
+                        <StatsBlock />
+                    </PageBlock>
+                    <FullWidthPageBlock blockId="mcp-tools">
+                        <Section title={<Trans>Tools</Trans>}>
+                            <ToolsBlock />
+                        </Section>
+                    </FullWidthPageBlock>
+                    <FullWidthPageBlock blockId="mcp-activity">
+                        <Section title={<Trans>Recent activity</Trans>}>
+                            <ActivityBlock />
+                        </Section>
+                    </FullWidthPageBlock>
+                    <FullWidthPageBlock blockId="mcp-grants">
+                        <Section title={<Trans>OAuth grants</Trans>}>
+                            <GrantsBlock />
+                        </Section>
+                    </FullWidthPageBlock>
+                </PageLayout>
+            </PermissionGuard>
         </Page>
     ),
 };

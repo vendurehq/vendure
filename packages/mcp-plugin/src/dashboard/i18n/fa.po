@@ -226,3 +226,15 @@ msgstr "اعلام‌شده توسط برنامه (تأییدنشده)"
 
 msgid "The authorization code will be sent to"
 msgstr "کد مجوز به این نشانی ارسال می‌شود"
+
+msgid "Error loading MCP statistics: {0}"
+msgstr "خطا در بارگیری آمار MCP: {0}"
+
+msgid "Error loading tools: {0}"
+msgstr "خطا در بارگیری ابزارها: {0}"
+
+msgid "Error loading activity: {0}"
+msgstr "خطا در بارگیری فعالیت: {0}"
+
+msgid "Error loading grants: {0}"
+msgstr "خطا در بارگیری مجوزها: {0}"

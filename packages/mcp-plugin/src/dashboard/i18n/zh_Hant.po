@@ -226,3 +226,15 @@ msgstr "由應用程式自行聲稱（未經驗證）"
 
 msgid "The authorization code will be sent to"
 msgstr "授權碼將傳送至"
+
+msgid "Error loading MCP statistics: {0}"
+msgstr "載入 MCP 統計資訊時發生錯誤：{0}"
+
+msgid "Error loading tools: {0}"
+msgstr "載入工具時發生錯誤：{0}"
+
+msgid "Error loading activity: {0}"
+msgstr "載入活動時發生錯誤：{0}"
+
+msgid "Error loading grants: {0}"
+msgstr "載入授權時發生錯誤：{0}"

@@ -226,3 +226,15 @@ msgstr "Az alkalmazás által megadva (nem ellenőrzött)"
 
 msgid "The authorization code will be sent to"
 msgstr "Az engedélyezési kódot a következő címre küldjük"
+
+msgid "Error loading MCP statistics: {0}"
+msgstr "Hiba az MCP statisztikák betöltésekor: {0}"
+
+msgid "Error loading tools: {0}"
+msgstr "Hiba az eszközök betöltésekor: {0}"
+
+msgid "Error loading activity: {0}"
+msgstr "Hiba a tevékenység betöltésekor: {0}"
+
+msgid "Error loading grants: {0}"
+msgstr "Hiba a hozzáférések betöltésekor: {0}"

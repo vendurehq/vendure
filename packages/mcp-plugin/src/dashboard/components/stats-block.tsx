@@ -1,5 +1,7 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import {
+    Alert,
+    AlertDescription,
     api,
     Badge,
     Select,
@@ -10,6 +12,7 @@ import {
     Skeleton,
     useQuery,
 } from '@vendure/dashboard';
+import { TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 
 import { MCP_STATS_QUERY, McpStats } from '../queries';
@@ -48,12 +51,23 @@ export function StatsBlock() {
         '30d': t`Last 30 days`,
     };
 
-    const { data, isLoading } = useQuery({
+    const { data, isLoading, error } = useQuery({
         queryKey: ['mcp-stats', timeRange],
         queryFn: () => api.query<{ mcpStats: McpStats }>(MCP_STATS_QUERY, { timeRange }),
     });
 
     const stats = data?.mcpStats;
+
+    if (error) {
+        return (
+            <Alert variant="destructive">
+                <TriangleAlert className="h-4 w-4" />
+                <AlertDescription>
+                    <Trans>Error loading MCP statistics: {error.message}</Trans>
+                </AlertDescription>
+            </Alert>
+        );
+    }
 
     return (
         <div className="space-y-4">

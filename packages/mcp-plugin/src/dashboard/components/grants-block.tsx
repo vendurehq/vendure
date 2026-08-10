@@ -1,5 +1,7 @@
 import { Trans, useLingui } from '@lingui/react/macro';
 import {
+    Alert,
+    AlertDescription,
     api,
     Badge,
     Button,
@@ -12,6 +14,7 @@ import {
     useQuery,
     useQueryClient,
 } from '@vendure/dashboard';
+import { TriangleAlert } from 'lucide-react';
 
 import { MCP_OAUTH_GRANTS_QUERY, McpOauthGrantInfo, REVOKE_MCP_OAUTH_GRANT } from '../queries';
 
@@ -23,7 +26,7 @@ export function GrantsBlock() {
     const { t } = useLingui();
     const qc = useQueryClient();
 
-    const { data, isLoading } = useQuery({
+    const { data, isLoading, error } = useQuery({
         queryKey: ['mcp-oauth-grants'],
         queryFn: () => api.query<{ mcpOauthGrants: McpOauthGrantInfo[] }>(MCP_OAUTH_GRANTS_QUERY),
     });
@@ -45,6 +48,17 @@ export function GrantsBlock() {
     });
 
     const grants = data?.mcpOauthGrants ?? [];
+
+    if (error) {
+        return (
+            <Alert variant="destructive">
+                <TriangleAlert className="h-4 w-4" />
+                <AlertDescription>
+                    <Trans>Error loading grants: {error.message}</Trans>
+                </AlertDescription>
+            </Alert>
+        );
+    }
 
     const columns: Array<ColumnDef<McpOauthGrantInfo>> = [
         {
