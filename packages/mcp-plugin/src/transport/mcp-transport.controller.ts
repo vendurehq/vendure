@@ -299,17 +299,22 @@ export class McpTransportController {
             return await this.oauthService.authenticateBearerToken(token, toolset);
         } catch (e) {
             if (e instanceof UnauthorizedException) {
-                this.setAuthChallenge(res, toolset);
+                this.setAuthChallenge(res, toolset, { invalidToken: true });
             }
             throw e;
         }
     }
 
-    private setAuthChallenge(res: Response, toolset: McpToolset): void {
-        res.setHeader(
-            'WWW-Authenticate',
-            `Bearer resource_metadata="${this.oauthService.protectedResourceMetadataUrl(toolset)}"`,
-        );
+    /**
+     * Per RFC 6750 §3.1: a bare challenge means no credentials were sent, while `error="invalid_token"`
+     * means a token was sent and rejected. Callers pass `invalidToken: true` only for the latter case.
+     */
+    private setAuthChallenge(res: Response, toolset: McpToolset, options?: { invalidToken?: boolean }): void {
+        const resourceMetadata = `resource_metadata="${this.oauthService.protectedResourceMetadataUrl(toolset)}"`;
+        const challenge = options?.invalidToken
+            ? `Bearer ${resourceMetadata}, error="invalid_token"`
+            : `Bearer ${resourceMetadata}`;
+        res.setHeader('WWW-Authenticate', challenge);
     }
 
     private methodNotAllowed(res: Response): void {

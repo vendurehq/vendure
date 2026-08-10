@@ -204,6 +204,8 @@ describe('MCP protocol conformance (direct mode)', () => {
         const res = await postMcp(baseUrl(), 'admin', rpc('initialize', initializeParams(), 10));
         expect(res.status).toBe(401);
         expect(res.headers.get('www-authenticate')).toMatch(/^Bearer/);
+        // No credentials were sent, so per RFC 6750 §3.1 the challenge must stay bare (no error code).
+        expect(res.headers.get('www-authenticate')).not.toMatch(/error=/);
     });
 
     it('admin endpoint with an invalid bearer → 401 with a WWW-Authenticate challenge', async () => {
@@ -212,8 +214,10 @@ describe('MCP protocol conformance (direct mode)', () => {
         });
         expect(res.status).toBe(401);
         // The challenge points the client at the auth server; it must survive on the invalid-token
-        // path too, not only the unauthenticated one.
+        // path too, not only the unauthenticated one. Per RFC 6750 §3.1, a rejected token must also
+        // carry error="invalid_token".
         expect(res.headers.get('www-authenticate')).toMatch(/^Bearer/);
+        expect(res.headers.get('www-authenticate')).toMatch(/error="invalid_token"/);
     });
 
     it('admin endpoint with a valid bearer completes initialize + tools/list + tools/call', async () => {
