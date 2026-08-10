@@ -22,6 +22,7 @@ import {
 import { API_KEY_AUTH_STRATEGY_NAME, ConfigService, Logger } from '../../config';
 import { ApiKeyStrategy } from '../../config/api-key-strategy/api-key-strategy';
 import { TransactionalConnection } from '../../connection';
+import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { AuthenticationMethod, Role, User } from '../../entity';
 import { ApiKeyTranslation } from '../../entity/api-key/api-key-translation.entity';
 import { ApiKey } from '../../entity/api-key/api-key.entity';
@@ -33,7 +34,6 @@ import { TranslatableSaver } from '../helpers/translatable-saver/translatable-sa
 import { TranslatorService } from '../helpers/translator/translator.service';
 import { getChannelPermissions } from '../helpers/utils/get-user-channels-permissions';
 
-import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { ChannelService } from './channel.service';
 import { RoleService } from './role.service';
 import { SessionService } from './session.service';

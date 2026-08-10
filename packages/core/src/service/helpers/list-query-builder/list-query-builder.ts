@@ -24,10 +24,10 @@ import {
 import { Instrument } from '../../../common/instrument-decorator';
 import { ConfigService, CustomFields, Logger } from '../../../config';
 import { TransactionalConnection } from '../../../connection';
+import { findOptionsArrayToObject } from '../../../connection/find-options-array-to-object';
 import { VendureEntity } from '../../../entity';
 import { joinTreeRelationsDynamically } from '../utils/tree-relations-qb-joiner';
 
-import { findOptionsArrayToObject } from '../../../connection/find-options-array-to-object';
 import { getColumnMetadata, getEntityAlias } from './connection-utils';
 import { getCalculatedColumns } from './get-calculated-columns';
 import { parseFilterParams, WhereCondition, WhereGroup } from './parse-filter-params';
@@ -482,7 +482,10 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
         // Helper to escape identifiers for the current database driver (handles PostgreSQL quoting)
         const escapeId = (name: string) => mainQb.connection.driver.escape(name);
         const escapeTablePath = (path: string) =>
-            path.split('.').map(segment => mainQb.connection.driver.escape(segment)).join('.');
+            path
+                .split('.')
+                .map(segment => mainQb.connection.driver.escape(segment))
+                .join('.');
 
         let existsQuery: string;
 

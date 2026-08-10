@@ -20,6 +20,7 @@ import {
 import { ListQueryOptions } from '../../common/types/common-types';
 import { assertFound, idsAreEqual, normalizeEmailAddress } from '../../common/utils';
 import { API_KEY_AUTH_STRATEGY_NAME, ConfigService, Logger } from '../../config';
+import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Administrator } from '../../entity/administrator/administrator.entity';
 import { ApiKey } from '../../entity/api-key/api-key.entity';
@@ -40,7 +41,6 @@ import { checkSuperadminCredentials } from '../helpers/utils/check-superadmin-cr
 import { getChannelPermissions } from '../helpers/utils/get-user-channels-permissions';
 import { patchEntity } from '../helpers/utils/patch-entity';
 
-import { findOptionsArrayToObject } from '../../connection/find-options-array-to-object';
 import { AssetService } from './asset.service';
 import { RoleService } from './role.service';
 import { UserService } from './user.service';
