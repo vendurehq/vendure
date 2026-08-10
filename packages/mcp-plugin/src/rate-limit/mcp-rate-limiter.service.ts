@@ -34,8 +34,6 @@ export interface RateLimitInput {
     endpoint: McpToolset;
     toolNames?: string[];
     subject?: string;
-    /** When `false`, only per-tool buckets are checked (shared session/client/anon-IP skipped). */
-    includeSharedBuckets?: boolean;
 }
 
 /**
@@ -154,16 +152,12 @@ export class McpRateLimiterService {
     }
 
     /**
-     * Session and OAuth-client buckets. These are shared across every tool call in a request, so
-     * callers that only want the per-tool buckets checked pass `includeSharedBuckets: false` to skip
-     * them. The anonymous-IP bucket is absent by design: it applies to exactly the requests the
-     * transport charges at the edge (see {@link enforceAnonymousIpRateLimit}), and charging it here
-     * too would count the same request twice.
+     * Session and OAuth-client buckets, shared across every tool call in a request. The
+     * anonymous-IP bucket is absent by design: it applies to exactly the requests the transport
+     * charges at the edge (see {@link enforceAnonymousIpRateLimit}), and charging it here too would
+     * count the same request twice.
      */
     private buildSharedBucketChecks(input: RateLimitInput): RateLimitCheck[] {
-        if (input.includeSharedBuckets === false) {
-            return [];
-        }
         const checks: RateLimitCheck[] = [];
         const endpoint = input.endpoint;
         const rateLimits = this.options.rateLimits ?? {};
