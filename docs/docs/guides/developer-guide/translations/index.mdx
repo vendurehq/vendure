@@ -224,10 +224,12 @@ A client which sends no `Accept-Language` header behaves as it always has, falli
 
 The full order tried, for each language in turn, is the languages from `Accept-Language` in the order the header gives them, then the request's `languageCode`, then the Channel's default language, then English. Each is looked up first in the catalogs and then in the inline array. A catalog entry therefore wins over an inline string for the same language, which is what allows a third-party operation's wording to be overridden. An operation which ships only inline strings still resolves to its own language rather than to somebody else's English catalog entry.
 
-Select option labels behave slightly differently. The description and the arg labels arrive at the client already resolved to one string, but option labels are sent as the full array with the catalog translation merged in under the language it was found for, because the Admin UI picks the matching option label itself.
+Select option labels behave slightly differently. The description and the arg labels arrive at the client already resolved to one string, but option labels are sent as the full array with the catalog translation merged in. The merged entry is tagged with the language the client asked for rather than the language the catalog entry was found under, because clients look up their own display language and fall back to the first entry in the array when there is no exact match.
 
-:::note
-If you are building your own Admin API client, send `Accept-Language` to control these strings. Setting it explicitly also matters in a browser, because the browser sends its own `Accept-Language` from the operating system locale, which is not necessarily the language your interface is being displayed in.
+:::caution
+Browsers send an `Accept-Language` header of their own, derived from the operating system locale, on every request. A browser-based Admin API client which has been relying on `languageCode` alone for these strings will therefore start resolving them against that OS locale instead.
+
+If you maintain such a client, set the header explicitly from whatever language your interface is displayed in. The Dashboard and the Admin UI both do this. Server-to-server clients are unaffected, since they only send the header if they choose to.
 :::
 
 :::note
