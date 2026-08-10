@@ -37,10 +37,10 @@ Applying a profile saves a copy of `bun.lock` first, and `--reset` puts it back 
 frozen. Without that, the reset install would float every dependency to the newest version its
 declared range allows, leaving the workspace on different versions from the ones it started on.
 
-`test:db` verifies the install before running anything. That check matters more than it looks:
-entity metadata is registered against a single `typeorm` module instance, so if a second copy
-ends up nested somewhere in `node_modules`, the suites fail in ways that read like genuine
-version incompatibilities. `bun run typeorm:verify` runs the same check on its own.
+`test:db` verifies the install before running anything. Entity metadata is registered against a
+single `typeorm` module instance, so a second copy nested somewhere in `node_modules` makes the
+suites fail in ways that read like genuine version incompatibilities. `bun run typeorm:verify`
+runs the same check on its own.
 
 ## Building while type errors remain
 
@@ -55,9 +55,9 @@ error leaves `dist/` without the schema files and the server then fails to boot 
 definitions were found", which tells you nothing about the actual incompatibility.
 
 `build:for-tests` runs each stage separately and keeps going. `tsc` emits its output even when
-it reports errors, so everything needed to boot a server is produced. Type errors are not
-being hidden: the `build` job in `typeorm_v1.yml` reports those, and the e2e jobs use this
-script to give the second, independent signal of which calls fail once the code is running.
+it reports errors, so everything needed to boot a server is produced. The `build` job in
+`typeorm_v1.yml` still compiles strictly and reports the type errors, so the e2e jobs are free
+to report what fails once the code is running.
 
 ## In CI
 
@@ -66,10 +66,10 @@ installs the committed lockfile, which is what `build_and_test.yml` does and wha
 project its v0.3 coverage.
 
 The v1 runs live in `typeorm_v1.yml`, separate from `build_and_test.yml`, because they are
-expected to fail until the migration is finished and a permanently red job inside the required
-matrix teaches people to ignore the required matrix. It runs nightly, on demand, and on any
-pull request labelled `typeorm-v1`. When every job in it passes, move them into
-`build_and_test.yml` as a `typeorm` matrix axis and delete the separate workflow.
+expected to fail until the migration is finished and a job that is always red stops being read.
+It runs nightly, on demand, and on any pull request labelled `typeorm-v1`. When every job in it
+passes, move them into `build_and_test.yml` as a `typeorm` matrix axis and delete the separate
+workflow.
 
 ## Adding a version
 

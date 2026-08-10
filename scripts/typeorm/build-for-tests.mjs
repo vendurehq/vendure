@@ -3,15 +3,12 @@
  * Runs the same builds as `lerna run ci`, but without stopping at type errors, so
  * that the database-backed suites can run and report what breaks at runtime.
  *
- * Packages are selected exactly as `lerna run ci` selects them, by the presence of
- * a `ci` script, so this builds the same set the e2e jobs in build_and_test.yml
- * build. Packages without a `ci` script are named in the output rather than
- * skipped silently, because several of them do have e2e suites, and "this package
- * was never built" and "this package is incompatible with TypeORM v1" are easy to
- * confuse when the suite fails.
+ * Packages are selected by the presence of a `ci` script, as `lerna run ci` selects
+ * them. Any package without one is named in the output, since some of those have
+ * e2e suites and an unbuilt package fails in ways that read like a version
+ * incompatibility.
  *
- * See scripts/typeorm/README.md for why the stages are run separately rather than
- * left chained with `&&`.
+ * See scripts/typeorm/README.md for why the build stages are run separately.
  *
  * Usage:
  *   node scripts/typeorm/build-for-tests.mjs
@@ -27,9 +24,8 @@ const repoRoot = path.resolve(scriptDir, '..', '..');
 const order = topologicalPackageOrder();
 const failed = [];
 
-// The local `.bin` directories, searched in the order a package manager would.
-// Commands are resolved against these to an absolute path rather than being
-// looked up through PATH at spawn time.
+// Searched in the order a package manager would, to resolve each command to an
+// absolute path instead of relying on PATH at spawn time.
 const binDirs = [
     path.join(repoRoot, 'node_modules', '.bin'),
     ...order.map(pkg => path.join(pkg.location, 'node_modules', '.bin')),
@@ -126,9 +122,8 @@ function resolveLocalBin(command) {
 
 /**
  * Orders the workspace packages so that each one is built after the packages it
- * depends on. Derived from the manifests directly rather than by shelling out to
- * lerna, which keeps the build order available even when the workspace is in a
- * half-installed state.
+ * depends on. Read from the manifests so that the order is still available when the
+ * workspace is half-installed.
  */
 function topologicalPackageOrder() {
     const packagesDir = path.join(repoRoot, 'packages');

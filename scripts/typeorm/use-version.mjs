@@ -82,10 +82,8 @@ if (!install) {
 
 let frozen = false;
 if (reset) {
-    // A plain reset install floats every dependency to the newest version its
-    // declared range allows, which is not the state the profile was applied on
-    // top of. The lockfile saved when the profile was applied is put back so the
-    // workspace returns to exactly the versions it had.
+    // Restored rather than reinstalled, because a plain install floats every
+    // dependency to the newest version its declared range allows.
     if (fs.existsSync(lockfileBackupPath)) {
         fs.copyFileSync(lockfileBackupPath, lockfilePath);
         fs.rmSync(lockfileBackupPath);

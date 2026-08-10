@@ -52,9 +52,8 @@ if (!expected) {
     process.exit(0);
 }
 
-// Profiles pin exact versions, so the installed copy is compared against the pin
-// rather than against the profile name. Comparing the leading digit would let any
-// 0.x.y satisfy the "0.3" profile, which defeats the point of pinning.
+// Compared against the version the profile pins, not its name: "0.3" is a label,
+// and matching on it loosely would accept any 0.x.y.
 const { profiles } = JSON.parse(fs.readFileSync(path.join(scriptDir, 'profiles.json'), 'utf8'));
 const pinned = profiles[expected]?.typeorm;
 if (!pinned) {
