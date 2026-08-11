@@ -91,7 +91,9 @@ export interface McpOauthOptions {
     /**
      * @description
      * Path (relative to `issuer`) of the admin consent page that approves
-     * admin-scoped authorization requests.
+     * admin-scoped authorization requests. Must start with a single `/` —
+     * the consent page is served by the Vendure server itself, so a full URL
+     * here is refused at startup.
      *
      * @default '/dashboard/mcp/authorize'
      */

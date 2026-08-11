@@ -141,6 +141,33 @@ describe('McpPlugin production config guard', () => {
         expect(() => createPlugin(true).onApplicationBootstrap()).not.toThrow();
     });
 
+    // `new URL(path, issuer)` silently ignores the issuer when the path is a full URL or a
+    // "//host/path" form, sending the consent page's requests to the wrong host. Refused in
+    // development too, so the misconfiguration is discovered cheaply.
+    it('throws when adminConsentPath is not a server-relative path', () => {
+        process.env.NODE_ENV = 'development';
+        setOauth({
+            tokenSecret: 'x',
+            issuer: 'https://example.com',
+            adminConsentPath: 'https://dashboard.example.com/mcp/authorize',
+        });
+        expect(() => createPlugin(true).onApplicationBootstrap()).toThrow(/adminConsentPath/);
+
+        setOauth({
+            tokenSecret: 'x',
+            issuer: 'https://example.com',
+            adminConsentPath: '//dashboard.example.com/mcp/authorize',
+        });
+        expect(() => createPlugin(true).onApplicationBootstrap()).toThrow(/adminConsentPath/);
+
+        setOauth({
+            tokenSecret: 'x',
+            issuer: 'https://example.com',
+            adminConsentPath: '/custom/consent/page',
+        });
+        expect(() => createPlugin(true).onApplicationBootstrap()).not.toThrow();
+    });
+
     it('does not throw when not running on the server process', () => {
         process.env.NODE_ENV = 'production';
         setOauth({ tokenSecret: 'x', issuer: 'http://localhost:3500' });

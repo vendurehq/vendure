@@ -192,6 +192,7 @@ export class McpPlugin implements OnApplicationBootstrap {
         }
 
         this.assertIssuerIsOrigin(oauth.issuer);
+        this.assertAdminConsentPathIsRelative(oauth.adminConsentPath);
 
         const isProduction = process.env.NODE_ENV === 'production';
         if (isProduction) {
@@ -225,6 +226,16 @@ export class McpPlugin implements OnApplicationBootstrap {
                     );
                 }
             }
+        }
+    }
+
+    private assertAdminConsentPathIsRelative(path?: string): void {
+        if (path != null && (!path.startsWith('/') || path.startsWith('//'))) {
+            throw new Error(
+                `McpPlugin: oauth.adminConsentPath must be a path starting with "/" (for example ` +
+                    `"/dashboard/mcp/authorize") — got "${path}". It is resolved against oauth.issuer, ` +
+                    `because the admin consent page must be served by the Vendure server itself.`,
+            );
         }
     }
 
