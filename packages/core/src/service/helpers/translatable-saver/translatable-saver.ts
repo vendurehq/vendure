@@ -96,7 +96,7 @@ export class TranslatableSaver {
             relationLoadStrategy: 'query',
             loadEagerRelations: false,
             where: { base: { id: input.id } } as Translation<T>,
-            relations: ['base'],
+            relations: { base: true },
         } as FindManyOptions<Translation<T>>);
 
         const differ = new TranslationDiffer(translationType, this.connection);

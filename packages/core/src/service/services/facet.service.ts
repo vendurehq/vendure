@@ -111,7 +111,7 @@ export class FacetService {
         facetCodeOrLang: string | LanguageCode,
         lang?: LanguageCode,
     ): Promise<Translated<Facet> | undefined> {
-        const relations = ['values', 'values.facet'];
+        const relations = { values: { facet: true } };
         const [repository, facetCode, languageCode, channelLanguageCode] =
             ctxOrFacetCode instanceof RequestContext
                 ? [
@@ -295,7 +295,7 @@ export class FacetService {
         }
         const facetsToAssign = await this.connection
             .getRepository(ctx, Facet)
-            .find({ where: { id: In(input.facetIds) }, relations: ['values'] });
+            .find({ where: { id: In(input.facetIds) }, relations: { values: true } });
         const valuesToAssign = facetsToAssign.reduce(
             (values, facet) => [...values, ...facet.values],
             [] as FacetValue[],
@@ -341,7 +341,7 @@ export class FacetService {
         }
         const facetsToRemove = await this.connection
             .getRepository(ctx, Facet)
-            .find({ where: { id: In(input.facetIds) }, relations: ['values'] });
+            .find({ where: { id: In(input.facetIds) }, relations: { values: true } });
 
         const results: Array<ErrorResultUnion<RemoveFacetFromChannelResult, Facet>> = [];
 
