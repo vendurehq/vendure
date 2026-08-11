@@ -9,6 +9,7 @@ import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 import { McpPlugin } from '../src/plugin';
 
+import { McpZodToolsPlugin } from './fixtures/mcp-zod-tools';
 import { submitAdminConsent } from './utils/oauth-test-client';
 
 // The MCP endpoints are served relative to the configured OAuth `issuer`, and the official
@@ -21,7 +22,7 @@ const ISSUER = `http://localhost:${PORT}`;
 const TOKEN_SECRET = 'sdk-interop-test-secret';
 
 const config = mergeConfig(baseConfig, {
-    plugins: [McpPlugin.init({ oauth: { tokenSecret: TOKEN_SECRET, issuer: ISSUER } })],
+    plugins: [McpPlugin.init({ oauth: { tokenSecret: TOKEN_SECRET, issuer: ISSUER } }), McpZodToolsPlugin],
 });
 
 const { server, adminClient } = createTestEnvironment(config);
@@ -216,6 +217,67 @@ describe('MCP SDK interop (official @modelcontextprotocol/client 2.x)', () => {
             const result = await client.callTool({ name: 'list_orders', arguments: {} });
             expect(result.isError).not.toBe(true);
             expect(result.structuredContent).toBeDefined();
+        } finally {
+            await client.close();
+        }
+    });
+
+    it('serves a zod-declared tool end-to-end (schema, defaults, validation, destructive confirm)', async () => {
+        const provider = new InMemoryOAuthProvider();
+        const transport = new StreamableHTTPClientTransport(new URL(`${baseUrl()}/mcp/admin`), {
+            authProvider: provider as any,
+        });
+        const client = new Client({ name: 'sdk-interop-zod-e2e', version: '1.0.0' });
+        await expect(client.connect(transport)).rejects.toThrow();
+        const code = await approveViaAdminConsent(provider.capturedAuthorizationUrl!, superAdminToken);
+        await transport.finishAuth(code);
+
+        const authedTransport = new StreamableHTTPClientTransport(new URL(`${baseUrl()}/mcp/admin`), {
+            authProvider: provider as any,
+        });
+        await client.connect(authedTransport);
+        try {
+            const { tools } = await client.listTools();
+
+            const echo = tools.find(t => t.name === 'admin_zod_echo');
+            expect(echo).toBeDefined();
+            const echoSchema = echo!.inputSchema as any;
+            expect(echoSchema.properties.text.type).toBe('string');
+            expect(echoSchema.required).toContain('text');
+            expect(echoSchema.required ?? []).not.toContain('times'); // default() ⇒ optional on the wire
+            expect(echoSchema.properties.times).toBeDefined();
+
+            const del = tools.find(t => t.name === 'admin_zod_delete');
+            expect(del).toBeDefined();
+            const delSchema = del!.inputSchema as any;
+            expect(delSchema.properties.confirm.type).toBe('boolean'); // registry-injected
+            expect(delSchema.required ?? []).not.toContain('confirm');
+            expect(delSchema.properties.id).toBeDefined();
+
+            // Defaults applied: the handler receives the zod-parsed value.
+            const echoed = await client.callTool({ name: 'admin_zod_echo', arguments: { text: 'hi' } });
+            expect(echoed.isError).toBeFalsy();
+            expect(echoed.structuredContent).toEqual({ echoed: 'hi', times: 1 });
+
+            // Zod validation rejects bad input before the handler runs.
+            const invalid = await client.callTool({ name: 'admin_zod_echo', arguments: { text: '' } });
+            expect(invalid.isError).toBe(true);
+
+            // Destructive preview: no confirm ⇒ confirmation-required result, nothing executed.
+            const preview = await client.callTool({ name: 'admin_zod_delete', arguments: { id: 'x1' } });
+            expect(preview.isError).toBeFalsy();
+            expect(preview.structuredContent).toMatchObject({
+                status: 'confirmation_required',
+                confirmed: false,
+            });
+
+            // Confirmed: confirm is stripped before the strict zod schema sees it.
+            const confirmed = await client.callTool({
+                name: 'admin_zod_delete',
+                arguments: { id: 'x1', confirm: true },
+            });
+            expect(confirmed.isError).toBeFalsy();
+            expect(confirmed.structuredContent).toEqual({ deleted: 'x1' });
         } finally {
             await client.close();
         }

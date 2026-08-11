@@ -23,10 +23,12 @@ import {
 import {
     McpCallerInfo,
     McpJsonSchema,
+    McpStandardSchema,
     McpTool,
     McpToolBehavior,
     McpToolHandler,
     McpToolMetadata,
+    McpToolSchema,
     McpToolset,
 } from '@vendure/mcp-sdk';
 
@@ -242,17 +244,18 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
         handler: McpToolHandler,
         pluginSource: string,
     ): McpRegisteredTool {
-        if (metadata.inputSchema !== undefined && !this.isMcpJsonSchema(metadata.inputSchema)) {
-            throw new Error(
-                `MCP tool "${metadata.name}" (${pluginSource}): inputSchema must be a plain JSON Schema ` +
-                    `object ({ type: 'object', ... }). JSON Schema or bust.`,
-            );
-        }
-        if (metadata.outputSchema !== undefined && !this.isMcpJsonSchema(metadata.outputSchema)) {
-            throw new Error(
-                `MCP tool "${metadata.name}" (${pluginSource}): outputSchema must be a plain JSON Schema object.`,
-            );
-        }
+        const resolvedInput = this.resolveAuthorSchema(
+            metadata.inputSchema,
+            `${metadata.name} inputSchema`,
+            pluginSource,
+            'input',
+        );
+        const resolvedOutput = this.resolveAuthorSchema(
+            metadata.outputSchema,
+            `${metadata.name} outputSchema`,
+            pluginSource,
+            'output',
+        );
         if (metadata.toolset === 'admin' && (metadata.permissions?.length ?? 0) === 0) {
             throw new Error(
                 `Admin MCP tool "${metadata.name}" declares no permissions. Declare the permissions ` +
@@ -261,7 +264,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             );
         }
         const resolvedBehavior = this.getToolBehavior(metadata);
-        const jsonInputSchema = metadata.inputSchema ?? NO_ARGS_SCHEMA;
+        const jsonInputSchema = resolvedInput?.json ?? NO_ARGS_SCHEMA;
         if (resolvedBehavior === 'destructive' && jsonInputSchema.properties?.confirm !== undefined) {
             throw new Error(
                 `MCP tool "${metadata.name}" (${pluginSource}) is destructive and must not declare its own ` +
@@ -269,13 +272,15 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             );
         }
         const wireJsonSchema = this.wireInputSchema({ resolvedBehavior, jsonInputSchema });
-        const compiledInputSchema = this.compileSchema(
-            wireJsonSchema,
-            `${metadata.name} inputSchema`,
-            pluginSource,
-        );
-        const compiledOutputSchema = metadata.outputSchema
-            ? this.compileSchema(metadata.outputSchema, `${metadata.name} outputSchema`, pluginSource)
+        const compiledInputSchema = resolvedInput?.standard
+            ? this.toRegisteredStandardSchema(
+                  resolvedInput.standard,
+                  wireJsonSchema,
+                  resolvedBehavior === 'destructive',
+              )
+            : this.compileSchema(wireJsonSchema, `${metadata.name} inputSchema`, pluginSource);
+        const compiledOutputSchema = resolvedOutput
+            ? this.compileSchema(resolvedOutput.json, `${metadata.name} outputSchema`, pluginSource)
             : undefined;
         return {
             ...metadata,
@@ -284,7 +289,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
             resolvedBehavior,
             annotations: this.deriveAnnotations(metadata, resolvedBehavior),
             jsonInputSchema,
-            jsonOutputSchema: metadata.outputSchema,
+            jsonOutputSchema: resolvedOutput?.json,
             compiledInputSchema,
             wireJsonSchema,
             compiledOutputSchema,
@@ -697,6 +702,122 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
 
     private isMcpJsonSchema(value: unknown): value is McpJsonSchema {
         return typeof value === 'object' && value !== null && (value as { type?: unknown }).type === 'object';
+    }
+
+    private standardProps(value: unknown): Record<string, unknown> | undefined {
+        if (typeof value !== 'object' || value === null) {
+            return undefined;
+        }
+        const std = (value as Record<string, unknown>)['~standard'];
+        return typeof std === 'object' && std !== null ? (std as Record<string, unknown>) : undefined;
+    }
+
+    private isStandardSchema(value: unknown): value is McpStandardSchema {
+        const std = this.standardProps(value);
+        return (
+            typeof std?.validate === 'function' &&
+            typeof (std.jsonSchema as { input?: unknown } | undefined)?.input === 'function'
+        );
+    }
+
+    private deriveJsonSchema(
+        schema: McpStandardSchema,
+        label: string,
+        pluginSource: string,
+        direction: 'input' | 'output',
+    ): McpJsonSchema {
+        let json: Record<string, unknown>;
+        try {
+            json = schema['~standard'].jsonSchema[direction]({ target: 'draft-2020-12' });
+        } catch (e) {
+            throw new Error(
+                `MCP tool ${label} (${pluginSource}): the Standard Schema could not be converted to ` +
+                    `JSON Schema: ${e instanceof Error ? e.message : String(e)}`,
+            );
+        }
+        // Converters commonly stamp a $schema key; fromJsonSchema rejects it.
+        delete json.$schema;
+        if (!this.isMcpJsonSchema(json)) {
+            throw new Error(
+                `MCP tool ${label} (${pluginSource}): the Standard Schema must describe an object at the ` +
+                    `top level (the converted JSON Schema has type "${String((json as { type?: unknown }).type)}").`,
+            );
+        }
+        return json;
+    }
+
+    private toRegisteredStandardSchema(
+        schema: McpStandardSchema,
+        wireJsonSchema: McpJsonSchema,
+        destructive: boolean,
+    ): StandardSchemaWithJSON {
+        const std = schema['~standard'];
+        const validate = destructive
+            ? async (value: unknown) => {
+                  // The wire schema advertises the registry-owned `confirm` flag, which the
+                  // author's schema does not know about: validate the rest, then re-attach it.
+                  const { confirm, ...rest } = (value ?? {}) as Record<string, unknown>;
+                  if (confirm !== undefined && typeof confirm !== 'boolean') {
+                      return { issues: [{ message: '"confirm" must be a boolean', path: ['confirm'] }] };
+                  }
+                  const result = await std.validate(rest);
+                  if (result.issues) {
+                      return result;
+                  }
+                  const parsed = result.value;
+                  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+                      return {
+                          issues: [
+                              { message: "a destructive tool's input schema must parse to a plain object" },
+                          ],
+                      };
+                  }
+                  return {
+                      value: confirm === undefined ? parsed : { ...parsed, confirm },
+                  };
+              }
+            : (value: unknown) => std.validate(value);
+        return {
+            '~standard': {
+                version: 1,
+                vendor: 'vendure-mcp',
+                validate,
+                jsonSchema: {
+                    input: () => wireJsonSchema as Record<string, unknown>,
+                    output: () => wireJsonSchema as Record<string, unknown>,
+                },
+            },
+        } as StandardSchemaWithJSON;
+    }
+
+    private resolveAuthorSchema(
+        raw: McpToolSchema | undefined,
+        label: string,
+        pluginSource: string,
+        direction: 'input' | 'output',
+    ): { json: McpJsonSchema; standard?: McpStandardSchema } | undefined {
+        if (raw === undefined) {
+            return undefined;
+        }
+        // Checked before isMcpJsonSchema: some Standard Schema objects (e.g. Valibot's)
+        // also carry a top-level `type: 'object'` property.
+        if (this.isStandardSchema(raw)) {
+            return { json: this.deriveJsonSchema(raw, label, pluginSource, direction), standard: raw };
+        }
+        if (typeof this.standardProps(raw)?.validate === 'function') {
+            throw new Error(
+                `MCP tool ${label} (${pluginSource}): the schema implements Standard Schema validation but ` +
+                    `cannot emit JSON Schema. Use a library version with JSON Schema conversion ` +
+                    `(e.g. zod v4), or author the schema as plain JSON Schema.`,
+            );
+        }
+        if (this.isMcpJsonSchema(raw)) {
+            return { json: raw };
+        }
+        throw new Error(
+            `MCP tool ${label} (${pluginSource}): the schema must be a plain JSON Schema object ` +
+                `({ type: 'object', ... }) or a Standard Schema with JSON conversion (e.g. a zod v4 schema).`,
+        );
     }
 
     /** Whether a thrown error is one a tool raises on purpose with a message meant for the caller. */

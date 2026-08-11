@@ -545,6 +545,7 @@
         "@types/express": "^5.0.1",
         "@vendure/common": "3.7.0",
         "@vendure/core": "3.7.0",
+        "zod": "^4.2.0",
       },
     },
     "packages/mcp-sdk": {
@@ -6221,6 +6222,8 @@
     "@vendure/email-plugin/@types/nodemailer": ["@types/nodemailer@8.0.1", "", { "dependencies": { "@types/node": "*" } }, "sha512-PxpaInm8V1JQDd4j0ds5HfvWQk8JupS1C0Picb96QJsrrRDjBH+DlK7L4ZdNSqNULhiZRQHc40nLVShaGxXAMw=="],
 
     "@vendure/graphiql-plugin/rimraf": ["rimraf@6.0.1", "", { "dependencies": { "glob": "^11.0.0", "package-json-from-dist": "^1.0.0" }, "bin": "dist/esm/bin.mjs" }, ""],
+
+    "@vendure/mcp-plugin/zod": ["zod@4.4.3", "", {}, "sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ=="],
 
     "@vendure/testing/sql.js": ["sql.js@1.14.1", "", {}, "sha512-gcj8zBWU5cFsi9WUP+4bFNXAyF1iRpA3LLyS/DP5xlrNzGmPIizUeBggKa8DbDwdqaKwUcTEnChtd2grWo/x/A=="],
 

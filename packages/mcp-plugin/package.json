@@ -35,6 +35,7 @@
         "@modelcontextprotocol/client": "2.0.0",
         "@types/express": "^5.0.1",
         "@vendure/common": "3.7.0",
-        "@vendure/core": "3.7.0"
+        "@vendure/core": "3.7.0",
+        "zod": "^4.2.0"
     }
 }

@@ -1,12 +1,17 @@
+import { StandardSchemaWithJSON } from '@modelcontextprotocol/server';
 import { Permission } from '@vendure/common/lib/generated-types';
 import { Logger, UserInputError } from '@vendure/core';
-import { McpToolMetadata, McpToolset } from '@vendure/mcp-sdk';
+import { McpStandardSchema, McpToolMetadata, McpToolset } from '@vendure/mcp-sdk';
 import { describe, expect, it, vi } from 'vitest';
 
 import { McpRateLimitExceededError } from '../rate-limit/mcp-rate-limiter.service';
 import { McpPluginOptions } from '../types';
 
 import { McpToolRegistryService } from './mcp-tool-registry.service';
+
+// Type-level: the SDK-local Standard Schema type must satisfy the protocol SDK's type.
+const _standardSchemaTypeCheck: StandardSchemaWithJSON = undefined as unknown as McpStandardSchema;
+void _standardSchemaTypeCheck;
 
 const rateLimitError = () =>
     new McpRateLimitExceededError({
@@ -84,6 +89,23 @@ const adminTool = (over: Partial<McpToolMetadata> = {}): McpToolMetadata => ({
     ...over,
 });
 
+function specStandardSchema(
+    json: Record<string, unknown>,
+    validate: (value: unknown) => { value?: unknown; issues?: Array<{ message: string }> },
+    // Defaults to `json` so existing callers (which don't care about the input/output
+    // distinction) keep getting the same schema back from both converters.
+    outputJson: Record<string, unknown> = json,
+) {
+    return {
+        '~standard': {
+            version: 1,
+            vendor: 'spec',
+            validate,
+            jsonSchema: { input: () => json, output: () => outputJson },
+        },
+    } as any;
+}
+
 describe('McpToolRegistryService', () => {
     describe('discovery + bootstrap gate', () => {
         it('discovers @McpTool providers keyed by toolset:name', () => {
@@ -118,10 +140,12 @@ describe('McpToolRegistryService', () => {
             });
         });
 
-        it('rejects a non-JSON-Schema inputSchema at boot (JSON Schema or bust)', () => {
-            const zodLike = { parse: (x: unknown) => x } as any;
-            const { service } = build([wrapper(shopTool({ inputSchema: zodLike }))]);
-            expect(() => service.onApplicationBootstrap()).toThrow(/get_thing.*JSON Schema or bust/);
+        it('rejects an inputSchema that is neither JSON Schema nor Standard Schema at boot', () => {
+            const zodV3Like = { parse: (x: unknown) => x } as any;
+            const { service } = build([wrapper(shopTool({ inputSchema: zodV3Like }))]);
+            expect(() => service.onApplicationBootstrap()).toThrow(
+                /get_thing.*plain JSON Schema object.*or a Standard Schema/,
+            );
         });
 
         it('aborts boot when a schema cannot be compiled (names the tool)', () => {
@@ -160,6 +184,232 @@ describe('McpToolRegistryService', () => {
         it('boots a shop tool with no permissions declared (defaults to Public)', () => {
             const { service } = build([wrapper(shopTool({ permissions: undefined }))]);
             expect(() => service.onApplicationBootstrap()).not.toThrow();
+        });
+    });
+
+    describe('Standard Schema authoring', () => {
+        const OBJECT_JSON = {
+            type: 'object',
+            properties: { q: { type: 'string' } },
+            required: ['q'],
+            additionalProperties: false,
+        };
+
+        it('accepts a Standard Schema inputSchema and derives its JSON Schema at boot', () => {
+            const schema = specStandardSchema(OBJECT_JSON, value => ({ value }));
+            const { service } = build([wrapper(shopTool({ inputSchema: schema }))]);
+            service.onApplicationBootstrap();
+            const tool = service.getRegistrySnapshot()[0];
+            expect(tool.jsonInputSchema).toEqual(OBJECT_JSON);
+            expect(tool.wireJsonSchema).toEqual(OBJECT_JSON); // non-destructive: wire === derived
+        });
+
+        it('prefers the Standard Schema branch when an object carries both ~standard and a top-level type (Valibot shape)', () => {
+            const valibotLike = {
+                type: 'object', // Valibot schemas carry this at the top level
+                ...specStandardSchema(OBJECT_JSON, value => ({ value })),
+            };
+            const { service } = build([wrapper(shopTool({ inputSchema: valibotLike }))]);
+            service.onApplicationBootstrap();
+            const tool = service.getRegistrySnapshot()[0];
+            expect(tool.jsonInputSchema).toEqual(OBJECT_JSON); // converter output, not the object itself
+        });
+
+        it('rejects a validate-only Standard Schema (no JSON Schema conversion) with upgrade guidance', () => {
+            const validateOnly = {
+                '~standard': { version: 1, vendor: 'spec', validate: (v: unknown) => ({ value: v }) },
+            } as any;
+            const { service } = build([wrapper(shopTool({ inputSchema: validateOnly }))]);
+            expect(() => service.onApplicationBootstrap()).toThrow(/cannot emit JSON Schema/);
+        });
+
+        it('aborts boot when the converted JSON Schema does not describe an object', () => {
+            const schema = specStandardSchema({ type: 'string' }, value => ({ value }));
+            const { service } = build([wrapper(shopTool({ inputSchema: schema }))]);
+            expect(() => service.onApplicationBootstrap()).toThrow(/must describe an object/);
+        });
+
+        it('aborts boot when the JSON Schema conversion throws (names the tool)', () => {
+            const schema = specStandardSchema(OBJECT_JSON, value => ({ value }));
+            schema['~standard'].jsonSchema.input = () => {
+                throw new Error('unrepresentable');
+            };
+            const { service } = build([wrapper(shopTool({ inputSchema: schema }))]);
+            expect(() => service.onApplicationBootstrap()).toThrow(/could not be converted to JSON Schema/);
+        });
+
+        it('passes the parsed value (not the raw args) to the handler', async () => {
+            const schema = specStandardSchema(OBJECT_JSON, value => ({
+                value: { ...(value as Record<string, unknown>), defaulted: true },
+            }));
+            const execute = vi.fn((_ctx: unknown, _input: unknown) => ({ ok: true }));
+            const { service } = build([wrapper(shopTool({ inputSchema: schema }), execute)]);
+            service.onApplicationBootstrap();
+            await service.callToolDirect({ ctx: makeCtx() }, 'shop', 'get_thing', { q: 'x' });
+            expect(execute).toHaveBeenCalledOnce();
+            expect(execute.mock.calls[0][1]).toEqual({ q: 'x', defaulted: true });
+        });
+
+        it('injects confirm into the wire schema of a destructive Standard Schema tool but never shows it to the author schema', async () => {
+            const strictValidate = (value: unknown) => {
+                if (Object.prototype.hasOwnProperty.call(value ?? {}, 'confirm')) {
+                    return { issues: [{ message: 'unknown key: confirm' }] };
+                }
+                return { value };
+            };
+            const deleteJson = {
+                type: 'object',
+                properties: { id: { type: 'string' } },
+                required: ['id'],
+                additionalProperties: false,
+            };
+            const schema = specStandardSchema(deleteJson, strictValidate);
+            const execute = vi.fn((_ctx: unknown, _input: unknown) => ({ deleted: true }));
+            const { service } = build([
+                wrapper(
+                    shopTool({ name: 'delete_thing', behavior: 'destructive', inputSchema: schema }),
+                    execute,
+                ),
+            ]);
+            service.onApplicationBootstrap();
+            const tool = service.getRegistrySnapshot()[0];
+            expect(tool.wireJsonSchema.properties?.confirm).toBeDefined();
+            expect(tool.jsonInputSchema.properties?.confirm).toBeUndefined();
+
+            const preview = await service.callToolDirect({ ctx: makeCtx() }, 'shop', 'delete_thing', {
+                id: 'x',
+            });
+            expect(preview.structuredContent).toMatchObject({
+                status: 'confirmation_required',
+                confirmed: false,
+            });
+            expect(execute).not.toHaveBeenCalled();
+
+            await service.callToolDirect({ ctx: makeCtx() }, 'shop', 'delete_thing', {
+                id: 'x',
+                confirm: true,
+            });
+            expect(execute).toHaveBeenCalledOnce();
+            expect(execute.mock.calls[0][1]).toEqual({ id: 'x' });
+        });
+
+        it('rejects non-boolean confirm on a destructive Standard Schema tool', async () => {
+            const deleteJson = {
+                type: 'object',
+                properties: { id: { type: 'string' } },
+                required: ['id'],
+                additionalProperties: false,
+            };
+            const schema = specStandardSchema(deleteJson, value => ({ value }));
+            const execute = vi.fn();
+            const { service } = build([
+                wrapper(
+                    shopTool({ name: 'delete_thing', behavior: 'destructive', inputSchema: schema }),
+                    execute,
+                ),
+            ]);
+            service.onApplicationBootstrap();
+            const result = await service.callToolDirect({ ctx: makeCtx() }, 'shop', 'delete_thing', {
+                id: 'x',
+                confirm: 'yes',
+            });
+            expect(result.isError).toBe(true);
+            expect((result.content as any)[0].text).toMatch(/"confirm" must be a boolean/);
+            expect(execute).not.toHaveBeenCalled();
+        });
+
+        it('still fails boot when a destructive Standard Schema tool declares its own confirm property', () => {
+            const jsonWithConfirm = {
+                type: 'object',
+                properties: { id: { type: 'string' }, confirm: { type: 'boolean' } },
+                additionalProperties: false,
+            };
+            const schema = specStandardSchema(jsonWithConfirm, value => ({ value }));
+            const { service } = build([
+                wrapper(shopTool({ name: 'delete_thing', behavior: 'destructive', inputSchema: schema })),
+            ]);
+            expect(() => service.onApplicationBootstrap()).toThrow(/must not declare its own\s+"confirm"/);
+        });
+
+        it('derives an outputSchema in the output direction', () => {
+            const outputJson = {
+                type: 'object',
+                properties: { total: { type: 'number' } },
+                required: ['total'],
+                additionalProperties: false,
+            };
+            // Give input and output converters different json so a call to the wrong direction
+            // is caught: if the registry called jsonSchema.input() for an outputSchema, this
+            // assertion would see OBJECT_JSON instead.
+            const schema = specStandardSchema(OBJECT_JSON, value => ({ value }), outputJson);
+            const { service } = build([wrapper(shopTool({ outputSchema: schema }))]);
+            service.onApplicationBootstrap();
+            const tool = service.getRegistrySnapshot()[0];
+            expect(tool.jsonOutputSchema).toEqual(outputJson);
+        });
+
+        it('strips a top-level $schema key from derived JSON', () => {
+            const jsonWithSchemaKey = {
+                ...OBJECT_JSON,
+                $schema: 'https://json-schema.org/draft/2020-12/schema',
+            };
+            const schema = specStandardSchema(jsonWithSchemaKey, value => ({ value }));
+            const { service } = build([wrapper(shopTool({ inputSchema: schema }))]);
+            service.onApplicationBootstrap();
+            const tool = service.getRegistrySnapshot()[0];
+            expect(tool.jsonInputSchema).not.toHaveProperty('$schema');
+        });
+
+        it('drift-checks a Standard Schema outputSchema against its derived JSON, not via the author parse', async () => {
+            const warn = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
+            const outputJson = {
+                type: 'object',
+                properties: { total: { type: 'number' } },
+                required: ['total'],
+                additionalProperties: false,
+            };
+            // The author's own validate "fills the default" for a missing `total` — exactly the
+            // kind of author-schema behavior that must NOT be used for the post-call drift check,
+            // since it would silently mask the handler omitting a required field.
+            const schema = specStandardSchema(outputJson, value => ({
+                value: { ...(value as Record<string, unknown>), total: 0 },
+            }));
+            const execute = () => ({});
+            const { service } = build([wrapper(shopTool({ name: 'totals', outputSchema: schema }), execute)]);
+            service.onApplicationBootstrap();
+            const result = await service.callToolDirect({ ctx: makeCtx() }, 'shop', 'totals', {});
+            expect(result.isError).toBeUndefined();
+            expect(warn).toHaveBeenCalledWith(
+                expect.stringMatching(/does not match its schema/),
+                expect.anything(),
+            );
+            warn.mockRestore();
+        });
+
+        it('rejects a destructive Standard Schema tool whose parsed value is not a plain object', async () => {
+            const deleteJson = {
+                type: 'object',
+                properties: { id: { type: 'string' } },
+                required: ['id'],
+                additionalProperties: false,
+            };
+            // A transform-to-string author schema: parses "successfully" to a bare string.
+            const schema = specStandardSchema(deleteJson, () => ({ value: 'x1' }));
+            const execute = vi.fn();
+            const { service } = build([
+                wrapper(
+                    shopTool({ name: 'delete_thing', behavior: 'destructive', inputSchema: schema }),
+                    execute,
+                ),
+            ]);
+            service.onApplicationBootstrap();
+            const result = await service.callToolDirect({ ctx: makeCtx() }, 'shop', 'delete_thing', {
+                id: 'x1',
+                confirm: true,
+            });
+            expect(result.isError).toBe(true);
+            expect((result.content as any)[0].text).toMatch(/must parse to a plain object/);
+            expect(execute).not.toHaveBeenCalled();
         });
     });
 
