@@ -29,8 +29,10 @@ One credential sits outside that scheme. Each grant creates a dedicated Vendure 
 tokens in the clear, so that row is a working bearer credential for the ordinary Admin and Shop GraphQL APIs, where
 the grant's own expiry check does not apply. It is a one-way hash of the access token and is never sent to the
 client, so reaching it means reading the database — treat the `session` table as secret material. Its lifetime is
-bounded by the grant: revoking a grant deletes the session, and the OAuth cleanup job deletes it once the grant
-expires.
+bounded by the grant: revoking a grant deletes the session at once, and the OAuth cleanup job deletes it after
+the grant expires. That job runs once a day by default (03:30, tunable via `oauth.retentionSchedule`), so a
+session can outlive its expired grant by up to a day — and if the scheduler is not running, until the session
+itself expires. To end a session right away, revoke its grant.
 
 One caveat if you run several instances: the default cache is in-memory, so revoking a grant clears the cached
 session only on the instance that handled it. The other instances keep accepting it for up to 5 minutes

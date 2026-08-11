@@ -157,14 +157,16 @@ its session for as long as it keeps working. Three things end one:
   with the default in-memory cache, the other instances keep accepting the cached session for up to 5 minutes
   (`sessionCacheTTL`) — a shared cache fixes this; see the [production guide](/guides/mcp-server/production/).
 - **The daily retention task**, which deletes the session of any grant that has passed its own expiry — the case
-  where a client simply stopped refreshing for longer than `refreshTokenTtlSeconds`.
+  where a client simply stopped refreshing for longer than `refreshTokenTtlSeconds`. The task runs once a day
+  (03:30 by default, `oauth.retentionSchedule`), so this can lag the grant's expiry by up to a day.
 - **Natural expiry**, if a session lapses while its grant is still valid. The next MCP request creates a
   replacement, so a lapsed session never breaks a working grant.
 
 There is no separate maximum age for MCP sessions; they follow the same rules as the rest of your Vendure
 sessions. Rotating `oauth.tokenSecret` is the one case that leaves sessions behind for a while: the OAuth tokens
 become unresolvable at once, but their grants live until their own expiry, and retention removes the sessions
-then. Nothing about those sessions can be derived from the old access tokens.
+then — up to `refreshTokenTtlSeconds` (30 days by default) plus a day. Revoking the grants removes their
+sessions right away. Nothing about those sessions can be derived from the old access tokens.
 
 ## Admin consent (ships with the dashboard)
 

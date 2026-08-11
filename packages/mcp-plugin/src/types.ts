@@ -138,6 +138,10 @@ export interface McpOauthOptions {
      * Vendure session created for each expired grant, expired authorization requests and
      * codes, and grants dead for longer than `grantRetentionDays`.
      *
+     * An expired grant's Vendure session keeps working against the ordinary GraphQL APIs until
+     * this job deletes it, so a slower schedule lengthens that window. Revoking a grant deletes
+     * its session at once, without waiting for this job.
+     *
      * @default cron => cron.everyDayAt(3, 30)
      */
     retentionSchedule?: McpRetentionSchedule;
