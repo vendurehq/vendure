@@ -2,6 +2,8 @@ import { LanguageCode } from '@vendure/common/lib/generated-types';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { Translatable, Translation } from '../../../common/types/locale-types';
+import { AssetTranslation } from '../../../entity/asset/asset-translation.entity';
+import { Asset } from '../../../entity/asset/asset.entity';
 import { VendureEntity } from '../../../entity/base/base.entity';
 import { CollectionTranslation } from '../../../entity/collection/collection-translation.entity';
 import { Collection } from '../../../entity/collection/collection.entity';
@@ -448,6 +450,103 @@ describe('translateDeep()', () => {
                 [['singleRealVariant', 'options']],
             ),
         ).not.toThrow();
+    });
+
+    // A relation array can contain `undefined` (an element that was never fetched) or `null`
+    // (fetched, but null in the database) entries — EntityHydrator's getRelationEntityAtPath()
+    // produces both deliberately. Translation must skip such elements rather than dereference
+    // them, and must not rewrite a `null` into `undefined`, because getMissingRelations()
+    // relies on that distinction to decide whether a relation still needs to be fetched.
+    it('preserves an undefined hole and translates the real elements of a relation array', () => {
+        product.variants = [productVariant, undefined] as any;
+
+        const result = translateDeep(product, [LanguageCode.en, LanguageCode.en], ['variants']);
+
+        expect(result.variants).toHaveLength(2);
+        expect(result.variants[0]).toHaveProperty('name', VARIANT_NAME_EN);
+        expect(result.variants[1]).toBeUndefined();
+    });
+
+    it('preserves a null element and translates the real elements of a relation array', () => {
+        product.variants = [null, productVariant] as any;
+
+        const result = translateDeep(product, [LanguageCode.en, LanguageCode.en], ['variants']);
+
+        expect(result.variants).toHaveLength(2);
+        expect(result.variants[0]).toBeNull();
+        expect(result.variants[1]).toHaveProperty('name', VARIANT_NAME_EN);
+    });
+
+    it('preserves a first-level hole and translates nested relations of later elements', () => {
+        product.variants = [undefined, productVariant] as any;
+
+        const result = translateDeep(product, [LanguageCode.en, LanguageCode.en], [['variants', 'options']]);
+
+        expect(result.variants[0]).toBeUndefined();
+        expect(result.variants[1].options[0]).toHaveProperty('name', OPTION_NAME_EN);
+    });
+
+    it('leaves a null nested relation as null', () => {
+        const ASSET_NAME_EN = 'English Asset';
+        const assetTranslation = new AssetTranslation();
+        assetTranslation.id = '51';
+        assetTranslation.languageCode = LANGUAGE_CODE;
+        assetTranslation.name = ASSET_NAME_EN;
+        const asset = new Asset();
+        asset.id = '5';
+        asset.translations = [assetTranslation];
+
+        const secondVariant = new ProductVariant();
+        secondVariant.id = '4';
+        secondVariant.translations = [productVariantTranslation];
+        (productVariant as any).featuredAsset = null;
+        secondVariant.featuredAsset = asset;
+        product.variants = [productVariant, secondVariant];
+
+        const result = translateDeep(
+            product,
+            [LanguageCode.en, LanguageCode.en],
+            [['variants', 'featuredAsset']],
+        );
+
+        expect(result.variants[0].featuredAsset).toBeNull();
+        expect(result.variants[1].featuredAsset).toHaveProperty('name', ASSET_NAME_EN);
+    });
+
+    // The single-segment and two-segment non-array branches feed the shared
+    // `object[property] = value` assignment at the end of the loop, so they must preserve a
+    // null relation for the same reason as the array branch above — e.g.
+    // translate(collection, ctx, ['parent']) reaches the single-segment branch with a null
+    // parent on the root collection.
+    it('leaves a null relation as null for a single-segment path', () => {
+        (product as any).featuredAsset = null;
+
+        const result = translateDeep(product, [LanguageCode.en, LanguageCode.en], ['featuredAsset']);
+
+        expect((result as any).featuredAsset).toBeNull();
+    });
+
+    it('leaves a null nested relation as null when the first level is not an array', () => {
+        (productVariant as any).featuredAsset = null;
+        testProduct.singleRealVariant = productVariant;
+
+        const result = translateDeep(
+            testProduct,
+            [LanguageCode.en, LanguageCode.en],
+            [['singleRealVariant', 'featuredAsset']],
+        );
+
+        expect((result.singleRealVariant as any).featuredAsset).toBeNull();
+    });
+
+    // A path deeper than two segments is outside what translateDeep() handles; it must fall
+    // through without creating a junk own-property from the stringified path array
+    it('does not create a junk own-property for a three-segment path', () => {
+        const result = translateDeep(product, [LanguageCode.en, LanguageCode.en], [
+            ['variants', 'featuredAsset', 'x'],
+        ] as any);
+
+        expect(Object.keys(result)).not.toContain('variants,featuredAsset,x');
     });
 
     it('should translate a first-level nested non-array entity', () => {

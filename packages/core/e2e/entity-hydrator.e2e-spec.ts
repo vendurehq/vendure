@@ -10,6 +10,7 @@ import {
     OrderLine,
     OrderService,
     Product,
+    ProductVariant,
     RequestContext,
     RequestContextService,
     TransactionalConnection,
@@ -554,6 +555,56 @@ describe('Entity hydration', () => {
         expect(customFields.additionalConfig.id).toBe('T_1');
         expect(customFields.additionalConfigWithAVeryLongPropertyName.id).toBe('T_1');
         expect(customFields.additionalConfigWithAVeryLongPropertyName.backgroundImage).toBeDefined();
+    });
+
+    // Follow-up to #4986: isTranslatable() decided from element [0] whether an entire relation
+    // array was translatable. With a null featuredAsset at [0], nothing in the array was
+    // translated (Asset.name is a LocaleString, so it stayed undefined); with the asset at [0],
+    // translation ran but every other element's null featuredAsset was rewritten to undefined.
+    // The assertions below fail under either ordering, so the test does not depend on DB row
+    // order or on the id strategy.
+    it('translates a relation reached past a null array element', async () => {
+        const ctx = await server.app.get(RequestContextService).create({ apiType: 'admin' });
+        const connection = server.app.get(TransactionalConnection).rawConnection;
+        // The expected name is the known fixture literal (also asserted near the top of this
+        // file), so the expectation is independent of the data the translation path reads
+        const assetName = 'derick-david-409858-unsplash.jpg';
+        const assets = await connection.getRepository(Asset).find();
+        const asset = assets.find(a => a.translations.some(t => t.name === assetName));
+
+        // Raw-connection queries take the numeric DB id; 'T_1' exists only at the API layer
+        const laptop = await connection
+            .getRepository(Product)
+            .findOne({ where: { id: 1 }, relations: ['variants'] });
+        const variantWithAssetId = laptop!.variants[laptop!.variants.length - 1].id;
+        const nullAssetVariantCount = laptop!.variants.length - 1;
+        // Give exactly one of the variants a featuredAsset; the others keep the
+        // featuredAsset that is null in the database.
+        await connection.getRepository(ProductVariant).update(variantWithAssetId, { featuredAsset: asset! });
+        try {
+            const product = await connection
+                .getRepository(Product)
+                .findOne({ where: { id: 1 }, relations: ['variants'] });
+
+            await server.app.get(EntityHydrator).hydrate(ctx, product!, {
+                relations: ['variants.featuredAsset'],
+            });
+
+            const withAsset = product!.variants.filter(v => v.featuredAsset != null);
+            expect(withAsset.length).toBe(1);
+            expect(withAsset[0].featuredAsset.name).toBe(assetName);
+            // The others were null in the database and must still be null, not undefined:
+            // getMissingRelations() treats undefined as never-fetched, so hydrate() would
+            // re-query them on every subsequent call.
+            expect(product!.variants.filter(v => v.featuredAsset === null).length).toBe(
+                nullAssetVariantCount,
+            );
+        } finally {
+            // Restore the shared fixture so tests added after this one do not inherit it
+            await connection
+                .getRepository(ProductVariant)
+                .update(variantWithAssetId, { featuredAsset: null });
+        }
     });
 });
 
