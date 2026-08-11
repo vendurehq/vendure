@@ -29,6 +29,11 @@ export interface McpOauthGrantInfo {
     revokedAt: string | null;
 }
 
+export interface McpOauthGrantList {
+    items: McpOauthGrantInfo[];
+    totalItems: number;
+}
+
 export interface McpToolCallLog {
     id: string;
     createdAt: string;
@@ -112,18 +117,21 @@ export const MCP_TOOL_CALL_LOGS_QUERY = `
 `;
 
 export const MCP_OAUTH_GRANTS_QUERY = `
-    query McpOauthGrants($includeInactive: Boolean!) {
-        mcpOauthGrants(includeInactive: $includeInactive) {
-            id
-            createdAt
-            updatedAt
-            actorId
-            actorType
-            channelId
-            oauthClientName
-            lastActivityAt
-            expiresAt
-            revokedAt
+    query McpOauthGrants($includeInactive: Boolean!, $options: McpOauthGrantListOptions) {
+        mcpOauthGrants(includeInactive: $includeInactive, options: $options) {
+            items {
+                id
+                createdAt
+                updatedAt
+                actorId
+                actorType
+                channelId
+                oauthClientName
+                lastActivityAt
+                expiresAt
+                revokedAt
+            }
+            totalItems
         }
     }
 `;

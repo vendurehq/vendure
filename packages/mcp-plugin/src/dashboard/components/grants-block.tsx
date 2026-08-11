@@ -9,16 +9,26 @@ import {
     ConfirmationDialog,
     DataTable,
     DateTime,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuGroup,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
     Switch,
     toast,
     useMutation,
     useQuery,
     useQueryClient,
 } from '@vendure/dashboard';
-import { TriangleAlert } from 'lucide-react';
+import { BanIcon, EllipsisIcon, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 
-import { MCP_OAUTH_GRANTS_QUERY, McpOauthGrantInfo, REVOKE_MCP_OAUTH_GRANT } from '../queries';
+import {
+    MCP_OAUTH_GRANTS_QUERY,
+    McpOauthGrantInfo,
+    McpOauthGrantList,
+    REVOKE_MCP_OAUTH_GRANT,
+} from '../queries';
 
 type GrantStatus = 'active' | 'revoked' | 'expired';
 
@@ -64,11 +74,16 @@ export function GrantsBlock() {
     const { t } = useLingui();
     const qc = useQueryClient();
     const [includeInactive, setIncludeInactive] = useState(false);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
 
     const { data, isLoading, error } = useQuery({
-        queryKey: ['mcp-oauth-grants', includeInactive],
+        queryKey: ['mcp-oauth-grants', includeInactive, page, pageSize],
         queryFn: () =>
-            api.query<{ mcpOauthGrants: McpOauthGrantInfo[] }>(MCP_OAUTH_GRANTS_QUERY, { includeInactive }),
+            api.query<{ mcpOauthGrants: McpOauthGrantList }>(MCP_OAUTH_GRANTS_QUERY, {
+                includeInactive,
+                options: { skip: (page - 1) * pageSize, take: pageSize },
+            }),
     });
 
     const revoke = useMutation({
@@ -87,7 +102,7 @@ export function GrantsBlock() {
         },
     });
 
-    const grants = data?.mcpOauthGrants ?? [];
+    const list = data?.mcpOauthGrants;
 
     if (error) {
         return (
@@ -132,15 +147,28 @@ export function GrantsBlock() {
             header: () => <Trans>Actions</Trans>,
             cell: ({ row }) =>
                 row.original.revokedAt != null ? null : (
-                    <ConfirmationDialog
-                        title={t`Revoke grant`}
-                        description={t`This immediately revokes the client's access. The client will need to authorize again to reconnect.`}
-                        onConfirm={() => revoke.mutate({ id: row.original.id })}
-                    >
-                        <Button variant="destructive" size="sm">
-                            <Trans>Revoke</Trans>
-                        </Button>
-                    </ConfirmationDialog>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger render={<Button variant="ghost" size="icon" />}>
+                            <EllipsisIcon />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="min-w-56">
+                            <DropdownMenuGroup>
+                                <ConfirmationDialog
+                                    title={t`Revoke grant`}
+                                    description={t`This immediately revokes the client's access. The client will need to authorize again to reconnect.`}
+                                    confirmText={t`Revoke`}
+                                    onConfirm={() => revoke.mutate({ id: row.original.id })}
+                                >
+                                    <DropdownMenuItem closeOnClick={false}>
+                                        <div className="flex items-center gap-2">
+                                            <BanIcon className="w-4 h-4" />
+                                            <Trans>Revoke</Trans>
+                                        </div>
+                                    </DropdownMenuItem>
+                                </ConfirmationDialog>
+                            </DropdownMenuGroup>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 ),
         },
     ];
@@ -151,7 +179,10 @@ export function GrantsBlock() {
                 <Switch
                     id="mcp-grants-show-inactive"
                     checked={includeInactive}
-                    onCheckedChange={setIncludeInactive}
+                    onCheckedChange={checked => {
+                        setIncludeInactive(checked);
+                        setPage(1);
+                    }}
                 />
                 <label htmlFor="mcp-grants-show-inactive" className="text-sm cursor-pointer">
                     <Trans>Show inactive</Trans>
@@ -159,11 +190,15 @@ export function GrantsBlock() {
             </div>
             <DataTable
                 columns={columns}
-                data={grants}
-                totalItems={grants.length}
+                data={list?.items ?? []}
+                totalItems={list?.totalItems ?? 0}
                 isLoading={isLoading}
-                page={1}
-                itemsPerPage={100}
+                page={page}
+                itemsPerPage={pageSize}
+                onPageChange={(_table, newPage, newPageSize) => {
+                    setPage(newPage);
+                    setPageSize(newPageSize);
+                }}
                 disableViewOptions
             />
         </div>

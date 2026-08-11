@@ -18,7 +18,7 @@ export const adminApiExtensions = gql`
     }
 
     "An OAuth grant, summarised for the admin overview. Revoked and expired grants are included only when requested."
-    type McpOauthGrantInfo {
+    type McpOauthGrantInfo implements Node {
         id: ID!
         createdAt: DateTime!
         updatedAt: DateTime!
@@ -29,6 +29,11 @@ export const adminApiExtensions = gql`
         lastActivityAt: DateTime!
         expiresAt: DateTime!
         revokedAt: DateTime
+    }
+
+    type McpOauthGrantList implements PaginatedList {
+        items: [McpOauthGrantInfo!]!
+        totalItems: Int!
     }
 
     """
@@ -78,7 +83,10 @@ export const adminApiExtensions = gql`
         "Every registered tool with its enabled state."
         mcpTools: [McpToolInfo!]!
         "OAuth grants, newest activity first. Lists active grants by default; pass includeInactive: true to also include revoked and expired ones."
-        mcpOauthGrants(includeInactive: Boolean! = false): [McpOauthGrantInfo!]!
+        mcpOauthGrants(
+            includeInactive: Boolean! = false
+            options: McpOauthGrantListOptions
+        ): McpOauthGrantList!
         "The tool-call log, paginated and filterable."
         mcpToolCallLogs(options: McpToolCallLogListOptions): McpToolCallLogList!
         "Usage stats for a time window. timeRange is one of 1h, 24h, 7d, 30d (default 24h); other values are rejected."
@@ -106,6 +114,16 @@ export const adminApiExtensions = gql`
 
     # Auto-generated at runtime
     input McpToolCallLogListOptions
+
+    # Declared by hand, pagination only: the grant list is a projection (McpOauthGrantInfo),
+    # so the sort and filter inputs core would generate for an entity do not apply. Results
+    # are always newest activity first.
+    input McpOauthGrantListOptions {
+        "Skips the first n results, for use in pagination"
+        skip: Int
+        "Takes n results, for use in pagination"
+        take: Int
+    }
 `;
 
 /**

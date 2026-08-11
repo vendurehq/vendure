@@ -477,12 +477,14 @@ describe('MCP built-in shop tools', () => {
             const adminGrantsList = await adminClient.query(gql`
                 query {
                     mcpOauthGrants {
-                        id
-                        actorType
+                        items {
+                            id
+                            actorType
+                        }
                     }
                 }
             `);
-            const adminItem = adminGrantsList.mcpOauthGrants.find(
+            const adminItem = adminGrantsList.mcpOauthGrants.items.find(
                 (g: { actorType: string | null }) => g.actorType === 'admin',
             );
             if (!adminItem) {

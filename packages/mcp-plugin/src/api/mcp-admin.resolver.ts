@@ -12,7 +12,6 @@ import {
     UserInputError,
 } from '@vendure/core';
 import { McpToolset } from '@vendure/mcp-sdk';
-import { IsNull, MoreThan } from 'typeorm';
 import { DateUtils } from 'typeorm/util/DateUtils';
 
 import { mcpServerPermission } from '../constants';
@@ -110,24 +109,27 @@ export class McpAdminResolver {
     @Allow(mcpServerPermission.Read)
     async mcpOauthGrants(
         @Ctx() ctx: RequestContext,
-        @Args() args: { includeInactive?: boolean },
-    ): Promise<McpOauthGrantInfo[]> {
-        const now = new Date();
-        const base = args.includeInactive ? {} : { revokedAt: IsNull(), expiresAt: MoreThan(now) };
-        // Scope to the active channel, plus channel-less (global) grants
-        const where =
-            ctx.channelId != null
-                ? [
-                      { ...base, channelId: ctx.channelId },
-                      { ...base, channelId: IsNull() },
-                  ]
-                : base;
-        const grants = await this.connection.getRepository(ctx, McpOauthGrant).find({
-            where,
+        @Args() args: { includeInactive?: boolean; options?: ListQueryOptions<McpOauthGrant> },
+    ): Promise<{ items: McpOauthGrantInfo[]; totalItems: number }> {
+        const qb = this.listQueryBuilder.build(McpOauthGrant, args.options ?? undefined, {
+            ctx,
             relations: ['oauthClient'],
-            order: { lastActivityAt: 'DESC' },
+            entityAlias: 'grant',
         });
-        return grants.map(grant => ({
+        if (!args.includeInactive) {
+            qb.andWhere('grant.revokedAt IS NULL').andWhere('grant.expiresAt > :now', {
+                now: new Date(),
+            });
+        }
+        if (ctx.channelId != null) {
+            // The active channel's grants, plus channel-less (global) grants
+            qb.andWhere('(grant.channelId = :channelId OR grant.channelId IS NULL)', {
+                channelId: ctx.channelId,
+            });
+        }
+        qb.orderBy('grant.lastActivityAt', 'DESC').addOrderBy('grant.id', 'DESC');
+        const [grants, totalItems] = await qb.getManyAndCount();
+        const items = grants.map(grant => ({
             id: grant.id,
             createdAt: grant.createdAt,
             updatedAt: grant.updatedAt,
@@ -139,6 +141,7 @@ export class McpAdminResolver {
             expiresAt: grant.expiresAt,
             revokedAt: grant.revokedAt,
         }));
+        return { items, totalItems };
     }
 
     @Query()
