@@ -54,7 +54,7 @@ export class SqlJobQueueStrategy extends PollingJobQueueStrategy implements Insp
      * In order to try to prevent that, this method will truncate any strings in the `data` object over 2kb in size.
      */
     private constrainDataSize<Data extends JobData<Data> = object>(job: Job<Data>): Data | undefined {
-        const type = this.rawConnection?.options.type;
+        const type = this.rawConnection && getDatabaseType(this.rawConnection);
         if (type === 'mysql' || type === 'mariadb') {
             const stringified = JSON.stringify(job.data);
             if (64 * 1024 <= stringified.length) {
