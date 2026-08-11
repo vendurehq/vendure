@@ -2,6 +2,7 @@ import { DiscoveryService } from '@nestjs/core';
 import type { Permission } from '@vendure/common/lib/generated-types';
 import type { ID, RequestContext } from '@vendure/core';
 
+import { McpStandardSchema } from './standard-schema';
 import { McpToolBehavior, McpToolset } from './types';
 
 /**
@@ -18,6 +19,17 @@ export interface McpJsonSchema {
     required?: string[];
     [key: string]: unknown;
 }
+
+/**
+ * @description
+ * A tool input/output schema in either accepted form: a plain JSON Schema object
+ * ({@link McpJsonSchema}), or a Standard Schema object with JSON Schema conversion
+ * ({@link McpStandardSchema}, e.g. a Zod v4 schema).
+ *
+ * @docsCategory core plugins/McpPlugin
+ * @since 3.8.0
+ */
+export type McpToolSchema = McpJsonSchema | McpStandardSchema;
 
 /**
  * @description
@@ -61,10 +73,13 @@ export interface McpToolMetadata {
      * - `'destructive'` — writes data and requires the confirmation round-trip before running.
      */
     behavior?: McpToolBehavior;
-    /** Optional JSON Schema used to validate the tool's input. */
-    inputSchema?: McpJsonSchema;
-    /** Optional JSON Schema describing the tool's output. */
-    outputSchema?: McpJsonSchema;
+    /**
+     * Optional schema validating the tool's input: a plain JSON Schema object, or a
+     * Standard Schema object with JSON Schema conversion (e.g. a Zod v4 schema).
+     */
+    inputSchema?: McpToolSchema;
+    /** Optional schema describing the tool's output. Same accepted forms as `inputSchema`. */
+    outputSchema?: McpToolSchema;
 }
 
 /**
