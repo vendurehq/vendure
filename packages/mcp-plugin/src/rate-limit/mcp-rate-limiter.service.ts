@@ -113,6 +113,42 @@ export class McpRateLimiterService {
         }
     }
 
+    /**
+     * Blocks a request when its address has failed authentication too many times in the
+     * current minute. Runs before the token is checked against the database, so a blocked
+     * address stops costing database work. Only failures count toward the limit (see
+     * {@link recordBearerAuthFailure}), but once blocked, every request from that address
+     * is refused until the minute is over.
+     */
+    async enforceBearerAuthFailureRateLimit(clientIp?: string): Promise<void> {
+        const check = this.buildBearerAuthFailureCheck(this.ipKey(clientIp));
+        if (!check) {
+            return;
+        }
+        const now = Date.now();
+        const state = await this.getBucketState(check.key, now);
+        if (state && state.count > check.rpm) {
+            // Keep counting refused attempts, so the cache entry stays alive while the flood lasts.
+            await this.incrementBucket(check.key, now);
+            const retryAfterSeconds = Math.max(1, Math.ceil((state.resetAt - now) / 1000));
+            throw new McpRateLimitExceededError({
+                message: `Rate limit exceeded for MCP request (${check.scope}). Retry after ${retryAfterSeconds} seconds.`,
+                retryAfterSeconds,
+                scope: check.scope,
+                subject: 'MCP request',
+            });
+        }
+    }
+
+    /** Counts one failed bearer authentication for this address. */
+    async recordBearerAuthFailure(clientIp?: string): Promise<void> {
+        const check = this.buildBearerAuthFailureCheck(this.ipKey(clientIp));
+        if (!check) {
+            return;
+        }
+        await this.incrementBucket(check.key, Date.now());
+    }
+
     private async runChecks(
         checks: RateLimitCheck[],
         subject: string,
@@ -199,6 +235,19 @@ export class McpRateLimiterService {
             return undefined;
         }
         return { key: `oauth-ip:${ipKey}`, rpm, scope: 'OAuth IP' };
+    }
+
+    /**
+     * The failed-bearer-authentication bucket. A separate bucket from the OAuth surface's, but
+     * governed by the same `oauthIp` option: both meter what an unauthenticated address may spend.
+     */
+    private buildBearerAuthFailureCheck(ipKey: string): RateLimitCheck | undefined {
+        const oauthIp = this.options.rateLimits?.oauthIp;
+        const rpm = oauthIp === false ? 0 : (oauthIp?.rpm ?? 0);
+        if (rpm <= 0) {
+            return undefined;
+        }
+        return { key: `auth-failure:${ipKey}`, rpm, scope: 'authentication failures' };
     }
 
     /** One bucket per name in `input.toolNames`, keyed by actor+session (see {@link toolActorKey}). */

@@ -163,6 +163,20 @@ export class McpTransportController {
             }
         }
 
+        // 3b. Refuse an address that has spent its failed-authentication allowance BEFORE the
+        // token is looked up, so a flood of made-up tokens stops costing a database query each.
+        if (token) {
+            try {
+                await this.rateLimiter.enforceBearerAuthFailureRateLimit(getClientIp(req));
+            } catch (e) {
+                if (!(e instanceof McpRateLimitExceededError)) {
+                    throw e;
+                }
+                this.sendRateLimitError(res, body, e);
+                return;
+            }
+        }
+
         // 4. Authenticate and build the execution context.
         let executionContext: McpExecutionContext;
         if (toolset === 'admin') {
@@ -170,10 +184,10 @@ export class McpTransportController {
                 this.setAuthChallenge(res, 'admin');
                 throw new UnauthorizedException('Admin MCP endpoint requires a Bearer token');
             }
-            const authContext = await this.authenticateBearerToken(token, 'admin', res);
+            const authContext = await this.authenticateBearerToken(token, 'admin', res, getClientIp(req));
             executionContext = { ...authContext, clientIp: getClientIp(req) };
         } else if (token) {
-            const authContext = await this.authenticateBearerToken(token, 'shop', res);
+            const authContext = await this.authenticateBearerToken(token, 'shop', res, getClientIp(req));
             executionContext = { ...authContext, clientIp: getClientIp(req) };
         } else {
             // Anonymous shop: thread the Vendure session token (for cart continuity) and the channel
@@ -326,11 +340,17 @@ export class McpTransportController {
         };
     }
 
-    private async authenticateBearerToken(token: string, toolset: McpToolset, res: Response) {
+    private async authenticateBearerToken(
+        token: string,
+        toolset: McpToolset,
+        res: Response,
+        clientIp?: string,
+    ) {
         try {
             return await this.oauthService.authenticateBearerToken(token, toolset);
         } catch (e) {
             if (e instanceof UnauthorizedException) {
+                await this.rateLimiter.recordBearerAuthFailure(clientIp);
                 this.setAuthChallenge(res, toolset, { invalidToken: true });
             }
             throw e;

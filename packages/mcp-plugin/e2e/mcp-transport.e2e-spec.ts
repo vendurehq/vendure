@@ -217,6 +217,46 @@ describe('MCP transport rate limiting', () => {
     });
 });
 
+describe('MCP transport failed-authentication metering', () => {
+    const options: McpPluginOptions = {
+        oauth: { tokenSecret: TOKEN_SECRET },
+        rateLimits: {
+            perSession: { rpm: 0 },
+            perClient: { rpm: 0 },
+            anonymousIp: false,
+            oauthIp: { rpm: 2 },
+        },
+    };
+    const config = mergeConfig(testConfig(), { plugins: [McpTestToolsPlugin, McpPlugin.init(options)] });
+    const { server } = createTestEnvironment(config);
+    const baseUrl = () => `http://localhost:${config.apiOptions.port}`;
+
+    beforeAll(async () => {
+        McpPlugin.init(options);
+        await server.init({ initialData, productsCsvPath, customerCount: 1 });
+    }, TEST_SETUP_TIMEOUT_MS);
+
+    afterAll(async () => {
+        await server.destroy();
+    });
+
+    it('refuses further invalid-token requests with 429 once the failure limit is spent', async () => {
+        // oauthIp rpm = 2 also caps failed bearer authentications. The pre-check reads the count
+        // BEFORE the token lookup and only refuses once it exceeds the limit, and each 401 then
+        // increments it — so requests 1-3 reach authentication and fail with 401, request 4 is
+        // refused before the database is touched.
+        for (let i = 1; i <= 3; i++) {
+            const denied = await postMcp(baseUrl(), 'admin', rpc('ping', {}, i), { token: 'garbage' });
+            expect(denied.status).toBe(401);
+        }
+        const tripped = await postMcp(baseUrl(), 'admin', rpc('ping', {}, 4), { token: 'garbage' });
+        expect(tripped.status).toBe(429);
+        expect(Number(tripped.headers.get('retry-after'))).toBeGreaterThan(0);
+        expect(tripped.body.error.code).toBe(-31029);
+        expect(tripped.body.error.data.scope).toBe('authentication failures');
+    });
+});
+
 describe('MCP transport anonymous session metering', () => {
     const options: McpPluginOptions = {
         oauth: { tokenSecret: TOKEN_SECRET },

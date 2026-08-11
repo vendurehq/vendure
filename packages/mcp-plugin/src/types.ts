@@ -194,6 +194,9 @@ export interface McpRateLimitOptions {
     /**
      * Limit per client IP across the whole OAuth HTTP surface: every route on the OAuth
      * controller shares this one bucket, including the `.well-known` metadata documents.
+     * The same limit also caps failed bearer-token authentications on the MCP endpoints
+     * (a separate bucket per IP), so a flood of invalid tokens stops costing a database
+     * lookup each once the limit is spent.
      *
      * Behind a reverse proxy, enable Vendure's `trustProxy` so `req.ip` reports the client
      * address rather than the proxy's.
