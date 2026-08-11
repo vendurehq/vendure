@@ -73,7 +73,7 @@
           "title": "Collections",
           "slug": "collections",
           "file": "docs/guides/core-concepts/collections/index.mdx",
-          "lastModified": "2026-02-12T16:47:03+01:00"
+          "lastModified": "2026-08-10T17:40:07+01:00"
         },
         {
           "title": "Cart",
@@ -1396,7 +1396,7 @@
                   "title": "CollectionFilter",
                   "slug": "collection-filter",
                   "file": "docs/reference/typescript-api/configuration/collection-filter.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-10T17:40:07+01:00"
                 },
                 {
                   "title": "DefaultConfig",
@@ -1559,6 +1559,12 @@
                   "lastModified": "2026-01-28T14:49:21+01:00"
                 },
                 {
+                  "title": "DataSourceHolder",
+                  "slug": "data-source-holder",
+                  "file": "docs/reference/typescript-api/data-access/data-source-holder.mdx",
+                  "lastModified": "2026-08-10T20:29:10+01:00"
+                },
+                {
                   "title": "EntityHydrator",
                   "slug": "entity-hydrator",
                   "file": "docs/reference/typescript-api/data-access/entity-hydrator.mdx",
@@ -1583,6 +1589,12 @@
                   "lastModified": "2026-08-10T16:28:08+01:00"
                 },
                 {
+                  "title": "GetDataSource",
+                  "slug": "get-data-source",
+                  "file": "docs/reference/typescript-api/data-access/get-data-source.mdx",
+                  "lastModified": "2026-08-10T20:29:10+01:00"
+                },
+                {
                   "title": "GetEntityOrThrowOptions",
                   "slug": "get-entity-or-throw-options",
                   "file": "docs/reference/typescript-api/data-access/get-entity-or-throw-options.mdx",
@@ -1598,7 +1610,7 @@
                   "title": "ListQueryBuilder",
                   "slug": "list-query-builder",
                   "file": "docs/reference/typescript-api/data-access/list-query-builder.mdx",
-                  "lastModified": "2026-08-10T16:28:08+01:00"
+                  "lastModified": "2026-08-10T17:40:07+01:00"
                 },
                 {
                   "title": "TransactionalConnection",
@@ -2362,13 +2374,13 @@
                   "title": "MigrateAssetTranslationData",
                   "slug": "migrate-asset-translation-data",
                   "file": "docs/reference/typescript-api/migration/migrate-asset-translation-data.mdx",
-                  "lastModified": "2026-07-10T09:53:10+02:00"
+                  "lastModified": "2026-08-10T17:40:07+01:00"
                 },
                 {
                   "title": "MigrateProductOptionGroupData",
                   "slug": "migrate-product-option-group-data",
                   "file": "docs/reference/typescript-api/migration/migrate-product-option-group-data.mdx",
-                  "lastModified": "2026-07-10T09:53:10+02:00"
+                  "lastModified": "2026-08-10T17:40:07+01:00"
                 },
                 {
                   "title": "MigrationOptions",
@@ -2970,7 +2982,7 @@
                   "title": "AssetService",
                   "slug": "asset-service",
                   "file": "docs/reference/typescript-api/services/asset-service.mdx",
-                  "lastModified": "2026-07-23T11:18:30+02:00"
+                  "lastModified": "2026-08-10T17:40:07+01:00"
                 },
                 {
                   "title": "AuthService",
