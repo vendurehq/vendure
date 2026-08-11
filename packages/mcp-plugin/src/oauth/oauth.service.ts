@@ -558,10 +558,14 @@ export class McpOauthService {
         const existingSession = sessionToken
             ? await this.sessionService.getSessionFromToken(sessionToken)
             : undefined;
-        const vendureSession =
-            existingSession && !existingSession.user
-                ? existingSession
-                : await this.sessionService.createAnonymousSession();
+        if (existingSession?.user) {
+            throw new UnauthorizedException(
+                'The session token belongs to a signed-in user and cannot be used for anonymous shop access. ' +
+                    'An agent acting for a customer needs an OAuth grant; an assistant running inside Vendure ' +
+                    'can call tools through McpToolExecutionService.',
+            );
+        }
+        const vendureSession = existingSession ?? (await this.sessionService.createAnonymousSession());
         const adminCtx = await this.createAdminCtx();
         const channel = channelToken
             ? await this.channelService.getChannelFromToken(adminCtx, channelToken)

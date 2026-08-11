@@ -290,6 +290,16 @@ describe('MCP built-in shop tools', () => {
         );
     });
 
+    // A signed-in customer's session token is refused, not silently swapped for a fresh
+    // anonymous cart — otherwise the caller gets 200s against the wrong cart.
+    it('refuses an anonymous shop call carrying a signed-in customer session token', async () => {
+        const response = await postMcp(baseUrl(), 'shop', callTool('get_cart', {}, 1), {
+            headers: { [AUTH_TOKEN_HEADER]: customerAuthToken },
+        });
+        expect(response.status).toBe(401);
+        expect(response.headers.get('www-authenticate') ?? '').toMatch(/^Bearer .*resource_metadata=/);
+    });
+
     // Read-only cart helpers must not create an empty Order for a fresh session.
     it('keeps a fresh anonymous session order-free until add_to_cart creates and binds a cart', async () => {
         const beforeCount = await connection.getRepository(adminCtx, Order).count();

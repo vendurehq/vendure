@@ -184,14 +184,22 @@ export class McpTransportController {
         } else {
             // Anonymous shop: thread the Vendure session token (for cart continuity) and the channel
             // token (for multi-channel). An invalid channel token errors like the rest of Vendure.
-            const ctx = await this.oauthService.createAnonymousShopContext(
-                this.getVendureSessionToken(headers),
-                this.getChannelToken(headers),
-            );
-            // Echo the session token BEFORE delegating — the SDK handler owns the response write.
-            // (If a future SDK path resets headers, hook res.writeHead here instead.)
-            this.setVendureSessionToken(res, ctx.session?.token);
-            executionContext = { ctx, clientIp: getClientIp(req) };
+            try {
+                const ctx = await this.oauthService.createAnonymousShopContext(
+                    this.getVendureSessionToken(headers),
+                    this.getChannelToken(headers),
+                );
+                // Echo the session token BEFORE delegating — the SDK handler owns the response write.
+                // (If a future SDK path resets headers, hook res.writeHead here instead.)
+                this.setVendureSessionToken(res, ctx.session?.token);
+                executionContext = { ctx, clientIp: getClientIp(req) };
+            } catch (e) {
+                // A signed-in user's session token is refused — tell the caller how to authorize.
+                if (e instanceof UnauthorizedException) {
+                    this.setAuthChallenge(res, 'shop');
+                }
+                throw e;
+            }
         }
 
         // 5. Handshake rate-limit pre-check (only meaningful for JSON bodies we can parse).
