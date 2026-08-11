@@ -20,7 +20,7 @@ import { loggerCtx, MCP_PLUGIN_OPTIONS, RATE_LIMIT_ERROR_CODE } from '../constan
 import { getClientIp } from '../get-client-ip';
 import { McpExecutionContext } from '../internal-types';
 import { McpOauthService } from '../oauth/oauth.service';
-import { McpRateLimiterService, McpRateLimitExceededError } from '../rate-limit/mcp-rate-limiter.service';
+import { McpRateLimiterService, McpRateLimitExceeded } from '../rate-limit/mcp-rate-limiter.service';
 import { McpToolRegistryService } from '../registry/mcp-tool-registry.service';
 import { McpPluginOptions } from '../types';
 
@@ -152,13 +152,9 @@ export class McpTransportController {
         // the context below creates a Vendure session row when the caller has no usable session, so the
         // write has to sit inside the limit rather than behind it.
         if (toolset === 'shop' && !token) {
-            try {
-                await this.rateLimiter.enforceAnonymousIpRateLimit(toolset, getClientIp(req));
-            } catch (e) {
-                if (!(e instanceof McpRateLimitExceededError)) {
-                    throw e;
-                }
-                this.sendRateLimitError(res, body, e);
+            const exceeded = await this.rateLimiter.checkAnonymousIpRateLimit(toolset, getClientIp(req));
+            if (exceeded) {
+                this.sendRateLimitError(res, body, exceeded);
                 return;
             }
         }
@@ -166,13 +162,9 @@ export class McpTransportController {
         // 3b. Refuse an address that has spent its failed-authentication allowance BEFORE the
         // token is looked up, so a flood of made-up tokens stops costing a database query each.
         if (token) {
-            try {
-                await this.rateLimiter.enforceBearerAuthFailureRateLimit(getClientIp(req));
-            } catch (e) {
-                if (!(e instanceof McpRateLimitExceededError)) {
-                    throw e;
-                }
-                this.sendRateLimitError(res, body, e);
+            const exceeded = await this.rateLimiter.checkBearerAuthFailureRateLimit(getClientIp(req));
+            if (exceeded) {
+                this.sendRateLimitError(res, body, exceeded);
                 return;
             }
         }
@@ -260,25 +252,21 @@ export class McpTransportController {
         body: unknown,
         toolset: McpToolset,
         executionContext: McpExecutionContext,
-    ): Promise<McpRateLimitExceededError | undefined> {
+    ): Promise<McpRateLimitExceeded | undefined> {
         const messages = Array.isArray(body) ? body : [body];
         for (const message of messages) {
             const method = (message as { method?: unknown } | null)?.method;
             if (typeof method !== 'string' || method === 'tools/call') {
                 continue;
             }
-            try {
-                await this.rateLimiter.enforceRateLimit({
-                    executionContext,
-                    endpoint: toolset,
-                    toolNames: [method],
-                    subject: method,
-                });
-            } catch (e) {
-                if (e instanceof McpRateLimitExceededError) {
-                    return e;
-                }
-                throw e;
+            const exceeded = await this.rateLimiter.checkRateLimit({
+                executionContext,
+                endpoint: toolset,
+                toolNames: [method],
+                subject: method,
+            });
+            if (exceeded) {
+                return exceeded;
             }
         }
         return undefined;
@@ -290,20 +278,20 @@ export class McpTransportController {
      * The 429 status lets proxies and monitoring treat this as a proper refusal.
      * The JSON-RPC body includes retry details for MCP-aware clients.
      */
-    private sendRateLimitError(res: Response, body: unknown, error: McpRateLimitExceededError): void {
+    private sendRateLimitError(res: Response, body: unknown, exceeded: McpRateLimitExceeded): void {
         const id = this.firstRequestId(body);
         res.status(429);
-        res.setHeader('Retry-After', String(error.details.retryAfterSeconds));
+        res.setHeader('Retry-After', String(exceeded.retryAfterSeconds));
         res.setHeader('Content-Type', 'application/json');
         const payload: JsonRpcError = {
             jsonrpc: '2.0',
             id: id ?? null,
             error: {
                 code: RATE_LIMIT_ERROR_CODE,
-                message: error.message,
+                message: exceeded.message,
                 data: {
-                    retryAfterSeconds: error.details.retryAfterSeconds,
-                    scope: error.details.scope,
+                    retryAfterSeconds: exceeded.retryAfterSeconds,
+                    scope: exceeded.scope,
                 },
             },
         };

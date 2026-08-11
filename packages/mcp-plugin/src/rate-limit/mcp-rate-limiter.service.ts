@@ -50,9 +50,23 @@ export class McpRateLimitExceededError extends Error {
 
 /**
  * @description
- * Enforces fixed-window rate limits for MCP requests: per Vendure session, per OAuth client,
- * per anonymous IP (shop endpoint only), per tool, and per IP across the OAuth HTTP surface.
- * Buckets are ephemeral, backed by CacheService.
+ * Enforces per-minute request limits. Counters live in CacheService and reset every minute.
+ * Five kinds of counter exist, and each is charged at the one point in a request's life where
+ * the work it protects would otherwise happen:
+ *
+ * - Anonymous IP: charged by the transport before an anonymous shop request is processed,
+ *   because processing one writes a session row ({@link checkAnonymousIpRateLimit}).
+ * - Failed authentication per IP: checked by the transport before a bearer token's database
+ *   lookup, counted when the lookup rejects the token ({@link checkBearerAuthFailureRateLimit},
+ *   {@link recordBearerAuthFailure}).
+ * - Session and OAuth client: charged by the transport for protocol messages and by the tool
+ *   registry for tool calls ({@link checkRateLimit}, {@link enforceRateLimit}).
+ * - Per tool: charged by the tool registry alongside the session and client counters.
+ * - OAuth IP: charged by the guard in front of the OAuth controller's HTTP routes
+ *   ({@link enforceOauthIpRateLimit}).
+ *
+ * Naming: `check*` methods return the exceeded-limit details (or `undefined` when within the
+ * limit); `enforce*` methods throw {@link McpRateLimitExceededError} instead.
  */
 @Injectable()
 export class McpRateLimiterService {
@@ -86,15 +100,15 @@ export class McpRateLimiterService {
      * row — the write belongs inside the limit rather than behind it. This is the only place that
      * bucket is charged; {@link buildSharedBucketChecks} deliberately leaves it out.
      */
-    async enforceAnonymousIpRateLimit(endpoint: McpToolset, clientIp?: string): Promise<void> {
+    async checkAnonymousIpRateLimit(
+        endpoint: McpToolset,
+        clientIp?: string,
+    ): Promise<McpRateLimitExceeded | undefined> {
         const check = this.buildAnonymousIpCheck(endpoint, this.ipKey(clientIp));
         if (!check) {
-            return;
+            return undefined;
         }
-        const exceeded = await this.runChecks([check], 'MCP request');
-        if (exceeded) {
-            throw new McpRateLimitExceededError(exceeded);
-        }
+        return this.runChecks([check], 'MCP request');
     }
 
     /**
@@ -120,10 +134,10 @@ export class McpRateLimiterService {
      * {@link recordBearerAuthFailure}), but once blocked, every request from that address
      * is refused until the minute is over.
      */
-    async enforceBearerAuthFailureRateLimit(clientIp?: string): Promise<void> {
+    async checkBearerAuthFailureRateLimit(clientIp?: string): Promise<McpRateLimitExceeded | undefined> {
         const check = this.buildBearerAuthFailureCheck(this.ipKey(clientIp));
         if (!check) {
-            return;
+            return undefined;
         }
         const now = Date.now();
         const state = await this.getBucketState(check.key, now);
@@ -131,13 +145,14 @@ export class McpRateLimiterService {
             // Keep counting refused attempts, so the cache entry stays alive while the flood lasts.
             await this.incrementBucket(check.key, now);
             const retryAfterSeconds = Math.max(1, Math.ceil((state.resetAt - now) / 1000));
-            throw new McpRateLimitExceededError({
+            return {
                 message: `Rate limit exceeded for MCP request (${check.scope}). Retry after ${retryAfterSeconds} seconds.`,
                 retryAfterSeconds,
                 scope: check.scope,
                 subject: 'MCP request',
-            });
+            };
         }
+        return undefined;
     }
 
     /** Counts one failed bearer authentication for this address. */
@@ -190,14 +205,14 @@ export class McpRateLimiterService {
     /**
      * Session and OAuth-client buckets, shared across every tool call in a request. The
      * anonymous-IP bucket is absent by design: it applies to exactly the requests the transport
-     * charges at the edge (see {@link enforceAnonymousIpRateLimit}), and charging it here too would
+     * charges at the edge (see {@link checkAnonymousIpRateLimit}), and charging it here too would
      * count the same request twice.
      */
     private buildSharedBucketChecks(input: RateLimitInput): RateLimitCheck[] {
         const checks: RateLimitCheck[] = [];
         const endpoint = input.endpoint;
         const rateLimits = this.options.rateLimits ?? {};
-        const perSessionRpm = rateLimits.perSession?.rpm ?? 0;
+        const perSessionRpm = this.resolveRpm(rateLimits.perSession);
         if (perSessionRpm > 0) {
             checks.push({
                 key: `session:${endpoint}:${this.actorSessionKey(input.executionContext)}`,
@@ -206,7 +221,7 @@ export class McpRateLimiterService {
             });
         }
         const clientKey = this.clientKey(input.executionContext);
-        const perClientRpm = rateLimits.perClient?.rpm ?? 0;
+        const perClientRpm = this.resolveRpm(rateLimits.perClient);
         if (clientKey && perClientRpm > 0) {
             checks.push({
                 key: `client:${endpoint}:${clientKey}`,
@@ -217,10 +232,14 @@ export class McpRateLimiterService {
         return checks;
     }
 
+    /** The per-minute limit of a rate-limit option: 0 when the option is off or unset. */
+    private resolveRpm(option: { rpm: number } | false | undefined): number {
+        return option === false ? 0 : (option?.rpm ?? 0);
+    }
+
     /** The anonymous-IP bucket for an endpoint, or `undefined` when it does not apply. */
     private buildAnonymousIpCheck(endpoint: McpToolset, ipKey: string): RateLimitCheck | undefined {
-        const anonymousIp = this.options.rateLimits?.anonymousIp;
-        const rpm = anonymousIp === false ? 0 : (anonymousIp?.rpm ?? 0);
+        const rpm = this.resolveRpm(this.options.rateLimits?.anonymousIp);
         if (endpoint !== 'shop' || rpm <= 0) {
             return undefined;
         }
@@ -229,8 +248,7 @@ export class McpRateLimiterService {
 
     /** The OAuth-IP bucket, or `undefined` when it does not apply. */
     private buildOauthIpCheck(ipKey: string): RateLimitCheck | undefined {
-        const oauthIp = this.options.rateLimits?.oauthIp;
-        const rpm = oauthIp === false ? 0 : (oauthIp?.rpm ?? 0);
+        const rpm = this.resolveRpm(this.options.rateLimits?.oauthIp);
         if (rpm <= 0) {
             return undefined;
         }
@@ -242,8 +260,7 @@ export class McpRateLimiterService {
      * governed by the same `oauthIp` option: both meter what an unauthenticated address may spend.
      */
     private buildBearerAuthFailureCheck(ipKey: string): RateLimitCheck | undefined {
-        const oauthIp = this.options.rateLimits?.oauthIp;
-        const rpm = oauthIp === false ? 0 : (oauthIp?.rpm ?? 0);
+        const rpm = this.resolveRpm(this.options.rateLimits?.oauthIp);
         if (rpm <= 0) {
             return undefined;
         }
@@ -256,7 +273,7 @@ export class McpRateLimiterService {
         const endpoint = input.endpoint;
         const rateLimits = this.options.rateLimits ?? {};
         for (const toolName of input.toolNames ?? []) {
-            const rpm = rateLimits.perTool?.[toolName]?.rpm ?? 0;
+            const rpm = this.resolveRpm(rateLimits.perTool?.[toolName]);
             if (rpm > 0) {
                 checks.push({
                     key: `tool:${endpoint}:${this.toolActorKey(input.executionContext)}:${toolName}`,
