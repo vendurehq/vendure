@@ -593,7 +593,7 @@ describe('McpPlugin OAuth end-to-end flow', () => {
 
     // The grant row is the only OAuth record carrying audit value, so it outlives its own expiry
     // and goes only once every tool-call log that could reference it has itself been pruned —
-    // i.e. once it has been dead longer than `logging.ttlDays` (30 by default here).
+    // i.e. once it has been dead longer than `oauth.grantRetentionDays` (left at its 30-day default here).
     it('keeps a recently-dead grant and deletes one dead longer than the retention window', async () => {
         const oauth = server.app.get(McpOauthService);
         const connection = server.app.get(TransactionalConnection);
