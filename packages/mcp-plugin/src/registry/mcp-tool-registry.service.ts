@@ -34,9 +34,10 @@ import { loggerCtx, MCP_PLUGIN_OPTIONS, MCP_TOOL_TOGGLES_STORE_KEY } from '../co
 import { McpExecutionContext } from '../internal-types';
 import { McpToolCallLogService } from '../logging/mcp-tool-call-log.service';
 import { McpRateLimiterService, McpRateLimitExceededError } from '../rate-limit/mcp-rate-limiter.service';
-import { McpExposedTool, McpPluginOptions, McpRegisteredTool, McpToolSummary } from '../types';
+import { McpPluginOptions, McpToolSummary } from '../types';
 
 import { Bm25Index } from './bm25';
+import { McpExposedTool, McpRegisteredTool } from './registry-types';
 
 /** Discovery meta-tool names — reserved so user tools cannot collide with them. */
 const SEARCH_TOOLS = 'search_tools';

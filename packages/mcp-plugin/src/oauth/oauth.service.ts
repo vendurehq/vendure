@@ -44,7 +44,7 @@ import { McpAuthorizationRequest } from '../entities/mcp-authorization-request.e
 import { McpOauthClient } from '../entities/mcp-oauth-client.entity';
 import { McpOauthGrant } from '../entities/mcp-oauth-grant.entity';
 import { McpAuthenticatedContext } from '../internal-types';
-import { McpActorType, McpPluginOptions, ResolvedMcpOauthOptions } from '../types';
+import { McpActorType, McpPluginOptions } from '../types';
 
 import { McpCimdClientResolverService } from './cimd/cimd-client-resolver.service';
 import { isUrlClientId } from './cimd/cimd-url';
@@ -54,6 +54,7 @@ import {
     OAuthTokenResponse,
     RegisterClientInput,
     RegisteredClientResponse,
+    ResolvedMcpOauthOptions,
     TokenInput,
 } from './oauth-types';
 import {

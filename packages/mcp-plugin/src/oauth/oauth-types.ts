@@ -1,5 +1,7 @@
 import { McpToolset } from '@vendure/mcp-sdk';
 
+import { McpOauthOptions } from '../types';
+
 // Request and response shapes for the MCP OAuth HTTP endpoints. Field names are
 // snake_case to match the OAuth 2.1 wire contract. Shared by McpOauthService and the
 // OAuth HTTP controller.
@@ -65,3 +67,14 @@ export interface OAuthTokenResponse {
     token_type: 'Bearer';
     expires_in: number;
 }
+
+/**
+ * OAuth options with all optional fields resolved to their defaults. Built by
+ * {@link McpPlugin.init} and consumed by the internal `McpOauthService`. The retention schedule
+ * is excluded: it configures a scheduled task, not the runtime behaviour of the OAuth server, and
+ * its default lives in the task itself.
+ */
+export type ResolvedMcpOauthOptions = Required<
+    Omit<McpOauthOptions, 'retentionSchedule' | 'storefrontConsentUrl'>
+> &
+    Pick<McpOauthOptions, 'retentionSchedule' | 'storefrontConsentUrl'>;
