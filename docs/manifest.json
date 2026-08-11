@@ -3477,6 +3477,12 @@
                   "lastModified": "2026-01-28T14:49:21+01:00"
                 },
                 {
+                  "title": "DriverOptions",
+                  "slug": "driver-options",
+                  "file": "docs/reference/typescript-api/testing/driver-options.mdx",
+                  "lastModified": "2026-08-11T10:14:57Z"
+                },
+                {
                   "title": "ErrorResultGuard",
                   "slug": "error-result-guard",
                   "file": "docs/reference/typescript-api/testing/error-result-guard.mdx",
@@ -3510,7 +3516,7 @@
                   "title": "TestDbInitializer",
                   "slug": "test-db-initializer",
                   "file": "docs/reference/typescript-api/testing/test-db-initializer.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-08-11T10:14:57Z"
                 },
                 {
                   "title": "TestEnvironment",
