@@ -1234,7 +1234,7 @@
                   "title": "Injector",
                   "slug": "injector",
                   "file": "docs/reference/typescript-api/common/injector.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-11T08:46:12Z"
                 },
                 {
                   "title": "JobState",
@@ -1568,7 +1568,7 @@
                   "title": "EntityHydrator",
                   "slug": "entity-hydrator",
                   "file": "docs/reference/typescript-api/data-access/entity-hydrator.mdx",
-                  "lastModified": "2026-04-20T16:08:16+02:00"
+                  "lastModified": "2026-08-11T08:46:12Z"
                 },
                 {
                   "title": "FindOptionsArrayToObject",
