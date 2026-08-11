@@ -29,7 +29,7 @@ import { getDataSource } from '../../../connection/get-data-source';
 import { VendureEntity } from '../../../entity';
 import { joinTreeRelationsDynamically } from '../utils/tree-relations-qb-joiner';
 
-import { getColumnMetadata, getEntityAlias } from './connection-utils';
+import { getColumnMetadata } from './connection-utils';
 import { getCalculatedColumns } from './get-calculated-columns';
 import { parseFilterParams, WhereCondition, WhereGroup } from './parse-filter-params';
 import { parseSortParams } from './parse-sort-params';
@@ -310,7 +310,7 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
 
         const customFieldsForType = this.configService.customFields[entity.name as keyof CustomFields];
         const sortParams = Object.assign({}, options.sort, extendedOptions.orderBy);
-        this.applyTranslationConditions(qb, entity, sortParams, extendedOptions.ctx);
+        this.applyTranslationConditions(qb, entity, sortParams, options.filter, extendedOptions.ctx);
         const dataSource = getDataSource(qb);
         const sort = parseSortParams(
             dataSource,
@@ -776,22 +776,36 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
     ) {
         const calculatedColumns = getCalculatedColumns(entity);
         const filterAndSortFields = this.getFilterAndSortFields(options);
-        const alias = getEntityAlias(this.connection.rawConnection, entity);
+        const alias = qb.alias;
         for (const field of filterAndSortFields) {
             const calculatedColumnDef = calculatedColumns.find(c => c.name === field);
             const instruction = calculatedColumnDef?.listQuery;
             if (instruction) {
                 const relations = instruction.relations || [];
+                const expressionAlias = instruction.expression?.match(/^(\w+)\.\w+/)?.[1];
                 for (const relation of relations) {
-                    const relationIsAlreadyJoined = qb.expressionMap.joinAttributes.find(
-                        ja => ja.entityOrProperty === `${alias}.${relation}`,
-                    );
-                    if (!relationIsAlreadyJoined) {
-                        const propertyPath = relation.includes('.') ? relation : `${alias}.${relation}`;
-                        const relationAlias = relation.includes('.')
-                            ? relation.split('.').reverse()[0]
-                            : relation;
-                        qb.innerJoinAndSelect(propertyPath, relationAlias);
+                    const propertyPath = relation.includes('.') ? relation : `${alias}.${relation}`;
+                    const baseAlias = relation.includes('.')
+                        ? relation.split('.').reverse()[0]
+                        : relation;
+                    // When the expression references the relation under the alias which TypeORM
+                    // uses for eagerly-joined relations (`<entityAlias>__<relation>`), the join
+                    // must be created under that exact name, since the expression is embedded
+                    // in the SQL as-is.
+                    const eagerStyleAlias = `${alias}__${baseAlias}`;
+                    const usesEagerStyleAlias =
+                        expressionAlias != null &&
+                        expressionAlias.toLowerCase() === eagerStyleAlias.toLowerCase();
+                    const relationAlias = usesEagerStyleAlias ? expressionAlias : baseAlias;
+                    // The check is on the alias rather than the relation property path, because
+                    // the expression references the alias by name. The same relation joined
+                    // under a different alias does not satisfy that reference.
+                    if (!this.isRelationAlreadyJoined(qb, relationAlias)) {
+                        if (usesEagerStyleAlias) {
+                            qb.leftJoinAndSelect(propertyPath, relationAlias);
+                        } else {
+                            qb.innerJoinAndSelect(propertyPath, relationAlias);
+                        }
                     }
                 }
                 if (typeof instruction.query === 'function') {
@@ -831,14 +845,16 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
 
     /**
      * @description
-     * If this entity is Translatable, and we are sorting on one of the translatable fields,
-     * then we need to apply appropriate WHERE clauses to limit
-     * the joined translation relations.
+     * If this entity is Translatable, and we are sorting or filtering on one of the translatable
+     * fields, we need to join the translations. When sorting, we additionally apply WHERE clauses
+     * to limit the joined translation relations to a single language, so that the row ordering
+     * is deterministic.
      */
     private applyTranslationConditions<T extends VendureEntity>(
         qb: SelectQueryBuilder<any>,
         entity: Type<T>,
         sortParams: NullOptionals<SortParameter<T>> & FindOneOptions<T>['order'],
+        filterParams?: NullOptionals<FilterParameter<T>> | null,
         ctx?: RequestContext,
     ) {
         const languageCode = ctx?.languageCode || this.configService.defaultLanguageCode;
@@ -854,11 +870,18 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
                 sortingOnTranslatableKey = true;
             }
         }
+        const filterKeys = this.getFilterFields(filterParams);
+        const filteringOnTranslatableKey = translationColumns.some(c =>
+            filterKeys.includes(c.propertyName),
+        );
 
-        if (translationColumns.length && sortingOnTranslatableKey) {
-            const translationsAlias = dataSource.namingStrategy.joinTableName(alias, 'translations', '', '');
+        if (translationColumns.length && (sortingOnTranslatableKey || filteringOnTranslatableKey)) {
+            const translationsAlias = `${alias}__translations`;
             if (!this.isRelationAlreadyJoined(qb, translationsAlias)) {
                 qb.leftJoinAndSelect(`${alias}.translations`, translationsAlias);
+            }
+            if (!sortingOnTranslatableKey) {
+                return;
             }
 
             qb.andWhere(
