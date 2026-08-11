@@ -24,6 +24,7 @@ import {
 import { runEntityMetadataModifiers } from './entity/run-entity-metadata-modifiers';
 import { setEntityIdStrategy } from './entity/set-entity-id-strategy';
 import { setMoneyStrategy } from './entity/set-money-strategy';
+import { patchTypeOrmDeepValue } from './entity/typeorm-deep-value-fix';
 import { patchTypeOrmEmbeddedRelationColumns } from './entity/typeorm-embedded-relation-fix';
 import { patchTypeOrmRelationIdLoader } from './entity/typeorm-relation-id-loader-fix';
 import { validateCustomFieldsConfig } from './entity/validate-custom-fields-config';
@@ -324,6 +325,7 @@ export async function preBootstrapConfig(
     Logger.useLogger(config.logger);
     config = await runPluginConfigurations(config);
     const entityIdStrategy = config.entityOptions.entityIdStrategy ?? config.entityIdStrategy;
+    patchTypeOrmDeepValue();
     patchTypeOrmEmbeddedRelationColumns();
     patchTypeOrmRelationIdLoader();
     registerCustomEntityFields(config);
