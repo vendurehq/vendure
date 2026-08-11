@@ -1589,6 +1589,12 @@
                   "lastModified": "2026-08-10T16:28:08+01:00"
                 },
                 {
+                  "title": "GetDatabaseType",
+                  "slug": "get-database-type",
+                  "file": "docs/reference/typescript-api/data-access/get-database-type.mdx",
+                  "lastModified": "2026-08-11T09:38:21Z"
+                },
+                {
                   "title": "GetDataSource",
                   "slug": "get-data-source",
                   "file": "docs/reference/typescript-api/data-access/get-data-source.mdx",
@@ -1617,6 +1623,12 @@
                   "slug": "transactional-connection",
                   "file": "docs/reference/typescript-api/data-access/transactional-connection.mdx",
                   "lastModified": "2026-08-10T16:28:08+01:00"
+                },
+                {
+                  "title": "VendureDatabaseType",
+                  "slug": "vendure-database-type",
+                  "file": "docs/reference/typescript-api/data-access/vendure-database-type.mdx",
+                  "lastModified": "2026-08-11T09:38:21Z"
                 },
                 {
                   "title": "VendureFindManyOptions",
@@ -2316,7 +2328,7 @@
                   "title": "SqlJobQueueStrategy",
                   "slug": "sql-job-queue-strategy",
                   "file": "docs/reference/typescript-api/job-queue/sql-job-queue-strategy.mdx",
-                  "lastModified": "2026-01-28T14:49:21+01:00"
+                  "lastModified": "2026-08-11T09:38:21Z"
                 },
                 {
                   "title": "SubscribableJob",
@@ -2368,7 +2380,7 @@
                   "title": "GenerateMigration",
                   "slug": "generate-migration",
                   "file": "docs/reference/typescript-api/migration/generate-migration.mdx",
-                  "lastModified": "2026-07-14T11:47:02+02:00"
+                  "lastModified": "2026-08-11T09:38:21Z"
                 },
                 {
                   "title": "MigrateAssetTranslationData",
@@ -2386,19 +2398,19 @@
                   "title": "MigrationOptions",
                   "slug": "migration-options",
                   "file": "docs/reference/typescript-api/migration/migration-options.mdx",
-                  "lastModified": "2026-07-14T11:47:02+02:00"
+                  "lastModified": "2026-08-11T09:38:21Z"
                 },
                 {
                   "title": "RevertLastMigration",
                   "slug": "revert-last-migration",
                   "file": "docs/reference/typescript-api/migration/revert-last-migration.mdx",
-                  "lastModified": "2026-07-14T11:47:02+02:00"
+                  "lastModified": "2026-08-11T09:38:21Z"
                 },
                 {
                   "title": "RunMigrations",
                   "slug": "run-migrations",
                   "file": "docs/reference/typescript-api/migration/run-migrations.mdx",
-                  "lastModified": "2026-07-14T11:47:02+02:00"
+                  "lastModified": "2026-08-11T09:38:21Z"
                 }
               ],
               "lastModified": "2026-01-28T14:49:21+01:00"
