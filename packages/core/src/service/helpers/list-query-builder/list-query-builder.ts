@@ -29,6 +29,7 @@ import { getDataSource } from '../../../connection/get-data-source';
 import { VendureEntity } from '../../../entity';
 import { joinTreeRelationsDynamically } from '../utils/tree-relations-qb-joiner';
 
+import { resolveCalculatedColumnJoin } from './calculated-column-join';
 import { getColumnMetadata } from './connection-utils';
 import { getCalculatedColumns } from './get-calculated-columns';
 import { parseFilterParams, WhereCondition, WhereGroup } from './parse-filter-params';
@@ -782,26 +783,17 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
             const instruction = calculatedColumnDef?.listQuery;
             if (instruction) {
                 const relations = instruction.relations || [];
-                const expressionAlias = instruction.expression?.match(/^(\w+)\.\w+/)?.[1];
                 for (const relation of relations) {
-                    const propertyPath = relation.includes('.') ? relation : `${alias}.${relation}`;
-                    const baseAlias = relation.includes('.')
-                        ? relation.split('.').reverse()[0]
-                        : relation;
-                    // When the expression references the relation under the alias which TypeORM
-                    // uses for eagerly-joined relations (`<entityAlias>__<relation>`), the join
-                    // must be created under that exact name, since the expression is embedded
-                    // in the SQL as-is.
-                    const eagerStyleAlias = `${alias}__${baseAlias}`;
-                    const usesEagerStyleAlias =
-                        expressionAlias != null &&
-                        expressionAlias.toLowerCase() === eagerStyleAlias.toLowerCase();
-                    const relationAlias = usesEagerStyleAlias ? expressionAlias : baseAlias;
+                    const {
+                        propertyPath,
+                        alias: relationAlias,
+                        joinType,
+                    } = resolveCalculatedColumnJoin(alias, relation, instruction.expression);
                     // The check is on the alias rather than the relation property path, because
                     // the expression references the alias by name. The same relation joined
                     // under a different alias does not satisfy that reference.
                     if (!this.isRelationAlreadyJoined(qb, relationAlias)) {
-                        if (usesEagerStyleAlias) {
+                        if (joinType === 'left') {
                             qb.leftJoinAndSelect(propertyPath, relationAlias);
                         } else {
                             qb.innerJoinAndSelect(propertyPath, relationAlias);
@@ -871,9 +863,7 @@ export class ListQueryBuilder implements OnApplicationBootstrap {
             }
         }
         const filterKeys = this.getFilterFields(filterParams);
-        const filteringOnTranslatableKey = translationColumns.some(c =>
-            filterKeys.includes(c.propertyName),
-        );
+        const filteringOnTranslatableKey = translationColumns.some(c => filterKeys.includes(c.propertyName));
 
         if (translationColumns.length && (sortingOnTranslatableKey || filteringOnTranslatableKey)) {
             const translationsAlias = `${alias}__translations`;
