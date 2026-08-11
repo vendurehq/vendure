@@ -5,7 +5,6 @@ import {
     Column,
     ColumnOptions,
     ColumnType,
-    DataSourceOptions,
     getMetadataArgsStorage,
     Index,
     JoinColumn,
@@ -20,6 +19,7 @@ import { DateUtils } from 'typeorm/util/DateUtils';
 import { CustomFieldConfig, CustomFields } from '../config/custom-field/custom-field-types';
 import { Logger } from '../config/logger/vendure-logger';
 import { VendureConfig } from '../config/vendure-config';
+import { getDatabaseType, VendureDatabaseType } from '../connection/database-type';
 
 import { EntityId } from './entity-id.decorator';
 import { EncryptedFieldTransformer } from './value-transformers';
@@ -104,7 +104,7 @@ function registerCustomFieldsForEntity(
     translation = false,
 ) {
     const customFields = config.customFields && config.customFields[entityName];
-    const dbEngine = config.dbConnectionOptions.type;
+    const dbEngine = getDatabaseType(config.dbConnectionOptions);
     if (customFields) {
         for (const customField of customFields) {
             const { name, list, defaultValue, nullable } = customField;
@@ -253,7 +253,7 @@ function registerCustomFieldsForEntity(
     }
 }
 
-function formatDefaultDatetime(dbEngine: DataSourceOptions['type'], datetime: any): Date | string {
+function formatDefaultDatetime(dbEngine: VendureDatabaseType, datetime: any): Date | string {
     if (!datetime) {
         return datetime;
     }
@@ -270,7 +270,7 @@ function formatDefaultDatetime(dbEngine: DataSourceOptions['type'], datetime: an
 }
 
 function getColumnType(
-    dbEngine: DataSourceOptions['type'],
+    dbEngine: VendureDatabaseType,
     type: Exclude<CustomFieldType, 'relation'>,
     isList: boolean,
 ): ColumnType {
@@ -333,7 +333,7 @@ function getColumnType(
     return 'varchar';
 }
 
-function getDefault(customField: CustomFieldConfig, dbEngine: DataSourceOptions['type']) {
+function getDefault(customField: CustomFieldConfig, dbEngine: VendureDatabaseType) {
     const { name, type, list, defaultValue, nullable } = customField;
     if (list && defaultValue) {
         if (dbEngine === 'mysql') {

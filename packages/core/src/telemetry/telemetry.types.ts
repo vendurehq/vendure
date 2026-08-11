@@ -1,4 +1,4 @@
-import { DataSourceOptions } from 'typeorm';
+import { VendureDatabaseType } from '../connection/database-type';
 
 /**
  * Range buckets for anonymizing entity counts
@@ -30,11 +30,11 @@ export interface TelemetryRuntime {
 
 /**
  * Supported database types for Vendure telemetry.
- * Derived from TypeORM's DataSourceOptions for type safety.
+ * Derived from the driver names Vendure recognises, for type safety.
  * Note: 'better-sqlite3' is normalized to 'sqlite' in the collector.
  */
 export type SupportedDatabaseType =
-    | Extract<DataSourceOptions['type'], 'postgres' | 'mysql' | 'mariadb' | 'sqlite'>
+    | Extract<VendureDatabaseType, 'postgres' | 'mysql' | 'mariadb' | 'sqlite'>
     | 'other';
 
 /**

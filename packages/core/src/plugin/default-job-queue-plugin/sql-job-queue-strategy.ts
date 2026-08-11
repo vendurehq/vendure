@@ -5,6 +5,7 @@ import { Brackets, DataSource, EntityManager, FindOptionsWhere, In, LessThan } f
 import { Injector } from '../../common/injector';
 import { InspectableJobQueueStrategy, JobQueueStrategy } from '../../config';
 import { Logger } from '../../config/logger/vendure-logger';
+import { getDatabaseType } from '../../connection/database-type';
 import { TransactionalConnection } from '../../connection/transactional-connection';
 import { Job, JobData, JobQueueStrategyJobOptions } from '../../job-queue';
 import { PollingJobQueueStrategy } from '../../job-queue/polling-job-queue-strategy';
@@ -84,7 +85,7 @@ export class SqlJobQueueStrategy extends PollingJobQueueStrategy implements Insp
             throw new Error('Connection not available');
         }
         const connection = this.rawConnection;
-        const connectionType = this.rawConnection.options.type;
+        const connectionType = getDatabaseType(this.rawConnection);
         const isSQLite =
             connectionType === 'sqlite' || connectionType === 'sqljs' || connectionType === 'better-sqlite3';
 

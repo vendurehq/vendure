@@ -10,6 +10,7 @@ import { camelCase } from 'typeorm/util/StringUtils';
 import { preBootstrapConfig } from './bootstrap';
 import { resetConfig } from './config/config-helpers';
 import { VendureConfig } from './config/vendure-config';
+import { getDatabaseType } from './connection/database-type';
 
 /**
  * @description
@@ -224,7 +225,7 @@ async function createEmptyDatabaseConnection(
     config: Partial<VendureConfig>,
 ): Promise<EmptyDatabaseConnection> {
     const baseOptions = createDataSourceOptions(config);
-    switch (baseOptions.type) {
+    switch (getDatabaseType(baseOptions)) {
         // aurora-postgres/aurora-mysql are intentionally excluded: they connect over the Aurora
         // Data API, where `CREATE DATABASE` is not supported the same way, and this has not been
         // verified - so they fall through to the clear "unsupported" error below.
@@ -380,7 +381,8 @@ function emptySqliteOptions(baseOptions: DataSourceOptions): DataSourceOptions {
  * See https://github.com/typeorm/typeorm/issues/2576#issuecomment-499506647
  */
 async function disableForeignKeysForSqLite<T>(connection: DataSource, work: () => Promise<T>): Promise<T> {
-    const isSqLite = connection.options.type === 'sqlite' || connection.options.type === 'better-sqlite3';
+    const dbType = getDatabaseType(connection);
+    const isSqLite = dbType === 'sqlite' || dbType === 'better-sqlite3';
     if (isSqLite) {
         await connection.query('PRAGMA foreign_keys=OFF');
     }

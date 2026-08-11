@@ -1,7 +1,7 @@
 import { LogicalOperator } from '@vendure/common/lib/generated-types';
 import { Type } from '@vendure/common/lib/shared-types';
 import { assertNever } from '@vendure/common/lib/shared-utils';
-import { DataSource, DataSourceOptions } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { DateUtils } from 'typeorm/util/DateUtils';
 
 import { InternalServerError, UserInputError } from '../../../common/error/errors';
@@ -14,6 +14,7 @@ import {
     NumberOperators,
     StringOperators,
 } from '../../../common/types/common-types';
+import { getDatabaseType, VendureDatabaseType } from '../../../connection/database-type';
 import { VendureEntity } from '../../../entity/base/base.entity';
 
 import { escapeCalculatedColumnExpression, getColumnMetadata } from './connection-utils';
@@ -108,7 +109,7 @@ export function parseFilterParams<T extends VendureEntity>(
     const alias = entityAlias ?? defaultAlias;
     const calculatedColumns = getCalculatedColumns(entity);
 
-    const dbType = connection.options.type;
+    const dbType = getDatabaseType(connection);
     let argIndex = 1;
 
     // Detect which custom property fields map to *-to-Many relations.
@@ -260,7 +261,7 @@ function buildWhereCondition(
     operator: Operator,
     operand: any,
     argIndex: number,
-    dbType: DataSourceOptions['type'],
+    dbType: VendureDatabaseType,
 ): WhereCondition {
     switch (operator) {
         case 'eq':
@@ -385,7 +386,7 @@ function convertDate(input: Date | string | number): string | number {
 /**
  * Returns a valid regexp clause based on the current DB driver type.
  */
-function getRegexpClause(fieldName: string, argIndex: number, dbType: DataSourceOptions['type']): string {
+function getRegexpClause(fieldName: string, argIndex: number, dbType: VendureDatabaseType): string {
     switch (dbType) {
         case 'mariadb':
         case 'mysql':
