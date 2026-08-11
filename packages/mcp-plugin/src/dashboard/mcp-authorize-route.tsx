@@ -20,6 +20,7 @@ import { AlertTriangleIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { isLoopbackHostname } from '../oauth/loopback';
+
 import { AUTHORIZE_MCP_CLIENT } from './queries';
 
 /**
