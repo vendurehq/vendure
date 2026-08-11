@@ -59,10 +59,9 @@ export function patchTypeOrmDuplicateEagerLoad() {
  * would, so that running the query as well only repeats work.
  *
  * The join has to be a LEFT join of that relation from the queried entity, carry no extra ON
- * condition, and be selected. This is the same test TypeORM applies in the `join` strategy when
- * deciding whether an existing join can stand in for an eager one. A join which restricts its
- * rows — as a channel-scoped `INNER JOIN ... ON channel.id = :channelId` does — hydrates a subset
- * of the relation, so it does not cover it.
+ * condition, and be selected. A join which restricts its rows — as a channel-scoped
+ * `INNER JOIN ... ON channel.id = :channelId` does — hydrates a subset of the relation, and the
+ * separate query is what replaces that subset with the whole of it, so it is not covered.
  *
  * Beyond that, the separate query loads the related entity's own eager relations and honours any
  * `select`, `order` or `relations` the find options give for the relation, none of which a join
