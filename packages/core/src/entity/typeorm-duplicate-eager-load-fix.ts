@@ -28,6 +28,9 @@ export interface RelationLoadNarrowingOptions {
  *
  * The patch drops such a relation from the separate-query list, on the conditions described by
  * {@link joinCoversRelation}.
+ *
+ * Reported upstream as https://github.com/typeorm/typeorm/issues/12775. This workaround can be
+ * removed once the minimum supported TypeORM version contains a fix.
  */
 export function patchTypeOrmDuplicateEagerLoad() {
     if (patchApplied) {

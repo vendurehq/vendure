@@ -23,6 +23,9 @@ let patchApplied = false;
  *
  * The implementation below is the original with a guard added for a nullish intermediate
  * segment, which is what every call site already expects.
+ *
+ * Reported upstream as https://github.com/typeorm/typeorm/issues/12774. This workaround can be
+ * removed once the minimum supported TypeORM version contains a fix.
  */
 export function patchTypeOrmDeepValue() {
     if (patchApplied) {
