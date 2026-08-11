@@ -484,6 +484,21 @@ describe('McpPlugin OAuth edge & security cases', () => {
         expect(registerRes.status).toBe(400);
     });
 
+    // DCR advertises exactly two grant types; asking for any other is refused at registration
+    // rather than echoed back as granted and rejected later at the token endpoint.
+    it('rejects DCR registration with an unsupported grant type', async () => {
+        const registerRes = await fetch(`${baseUrl()}/mcp/oauth/register`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+                client_name: `bad-grant-types-${Math.random().toString(36).slice(2)}`,
+                redirect_uris: ['https://example.com/cb'],
+                grant_types: ['authorization_code', 'client_credentials'],
+            }),
+        });
+        expect(registerRes.status).toBe(400);
+    });
+
     // --- Security checks ---
 
     // revoke() is a soft-revoke: the grant row survives (so McpToolCallLog audit links are

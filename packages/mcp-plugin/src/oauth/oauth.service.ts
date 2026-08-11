@@ -37,6 +37,7 @@ import {
     mcpServerPermission,
     MS_PER_DAY,
     RETENTION_DELETE_BATCH_SIZE,
+    SUPPORTED_OAUTH_GRANT_TYPES,
 } from '../constants';
 import { McpAuthorizationCode } from '../entities/mcp-authorization-code.entity';
 import { McpAuthorizationRequest } from '../entities/mcp-authorization-request.entity';
@@ -128,6 +129,11 @@ export class McpOauthService {
                 'token_endpoint_auth_method must be "none" — this server does not support client authentication',
             );
         }
+        if (input.grant_types?.some(grantType => !SUPPORTED_OAUTH_GRANT_TYPES.includes(grantType))) {
+            throw new BadRequestException(
+                'grant_types may only contain "authorization_code" and "refresh_token" — the only grants this server supports',
+            );
+        }
         const ctx = await this.createAdminCtx();
         const client = await this.connection.getRepository(ctx, McpOauthClient).save(
             new McpOauthClient({
@@ -136,7 +142,7 @@ export class McpOauthService {
                 clientUri: httpsUrlOrNull(input.client_uri),
                 logoUri: httpsUrlOrNull(input.logo_uri),
                 redirectUris: input.redirect_uris,
-                grantTypes: input.grant_types ?? ['authorization_code', 'refresh_token'],
+                grantTypes: input.grant_types ?? [...SUPPORTED_OAUTH_GRANT_TYPES],
                 tokenEndpointAuthMethod: input.token_endpoint_auth_method ?? 'none',
                 cimdDocumentExpiresAt: null,
                 lastUsedAt: null,
@@ -163,7 +169,7 @@ export class McpOauthService {
             registration_endpoint: `${issuer}/mcp/oauth/register`,
             revocation_endpoint: `${issuer}/mcp/oauth/revoke`,
             response_types_supported: ['code'],
-            grant_types_supported: ['authorization_code', 'refresh_token'],
+            grant_types_supported: SUPPORTED_OAUTH_GRANT_TYPES,
             code_challenge_methods_supported: ['S256'],
             token_endpoint_auth_methods_supported: ['none'],
             // CIMD (draft-ietf-oauth-client-id-metadata-document §6): clients gate on this

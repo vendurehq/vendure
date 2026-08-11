@@ -58,6 +58,9 @@ export const DEFAULT_OAUTH_OPTIONS = {
     grantRetentionDays: 30,
 } as const;
 
+/** The only grant types this server supports: advertised in the metadata, enforced at registration. */
+export const SUPPORTED_OAUTH_GRANT_TYPES = ['authorization_code', 'refresh_token'];
+
 /**
  * CIMD (client_id metadata document) fetch budget — draft-ietf-oauth-client-id-metadata-document-02
  * recommends a ~5 KB size cap (§8.7); the deadline covers connection plus body.

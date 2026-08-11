@@ -1,6 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 
-import { MAX_CLIENT_METADATA_FIELD_LENGTH } from '../../constants';
+import { MAX_CLIENT_METADATA_FIELD_LENGTH, SUPPORTED_OAUTH_GRANT_TYPES } from '../../constants';
 import { assertSafeRedirectUri, httpsUrlOrNull } from '../oauth-utils';
 
 /** The subset of a fetched CIMD document that this authorization server stores. */
@@ -13,8 +13,6 @@ export interface CimdDocument {
     grantTypes: string[];
     tokenEndpointAuthMethod: 'none';
 }
-
-const SUPPORTED_GRANT_TYPES = ['authorization_code', 'refresh_token'];
 
 /**
  * Parses and validates a fetched client metadata document (draft §4/§4.1 plus the MCP
@@ -74,8 +72,8 @@ export function parseCimdDocument(clientId: string, rawBody: string): CimdDocume
     // be there.
     const declaredGrantTypes = Array.isArray(document.grant_types)
         ? document.grant_types.filter((grant): grant is string => typeof grant === 'string')
-        : SUPPORTED_GRANT_TYPES;
-    const grantTypes = declaredGrantTypes.filter(grant => SUPPORTED_GRANT_TYPES.includes(grant));
+        : SUPPORTED_OAUTH_GRANT_TYPES;
+    const grantTypes = declaredGrantTypes.filter(grant => SUPPORTED_OAUTH_GRANT_TYPES.includes(grant));
     if (!grantTypes.includes('authorization_code')) {
         throw new BadRequestException('client_id metadata document must allow the authorization_code grant');
     }
