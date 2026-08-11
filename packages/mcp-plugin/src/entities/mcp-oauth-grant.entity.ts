@@ -50,7 +50,6 @@ export class McpOauthGrant extends VendureEntity {
     @Column({ type: 'varchar' })
     userType: McpActorType;
 
-    @Index()
     @Column()
     resource: string;
 

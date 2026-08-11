@@ -45,7 +45,6 @@ export class McpAuthorizationRequest extends VendureEntity {
     @Column({ type: 'varchar' })
     toolset: McpToolset;
 
-    @Index()
     @Column()
     resource: string;
 

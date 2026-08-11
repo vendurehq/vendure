@@ -32,7 +32,6 @@ export class McpAuthorizationCode extends VendureEntity {
     oauthClientId: ID;
 
     // Identity columns used by the token-exchange step to create a Vendure session.
-    @Index()
     @EntityId()
     userId: ID;
 
@@ -42,12 +41,10 @@ export class McpAuthorizationCode extends VendureEntity {
     @Column()
     redirectUri: string;
 
-    @Index()
     @Column()
     resource: string;
 
     // Optional channel scoping for the granted session.
-    @Index()
     @EntityId({ nullable: true })
     channelId: ID | null;
 
