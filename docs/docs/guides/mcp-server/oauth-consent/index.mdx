@@ -153,7 +153,9 @@ The session's lifetime is Vendure's ordinary sliding expiry, the same as any oth
 its session for as long as it keeps working. Three things end one:
 
 - **Revocation**, which deletes the session row and drops its cache entry in the same operation that marks the
-  grant revoked. The credential stops working straight away rather than lingering until a cache entry ages out.
+  grant revoked. On a single instance the credential stops working straight away. If you run several instances
+  with the default in-memory cache, the other instances keep accepting the cached session for up to 5 minutes
+  (`sessionCacheTTL`) — a shared cache fixes this; see the [production guide](/guides/mcp-server/production/).
 - **The daily retention task**, which deletes the session of any grant that has passed its own expiry — the case
   where a client simply stopped refreshing for longer than `refreshTokenTtlSeconds`.
 - **Natural expiry**, if a session lapses while its grant is still valid. The next MCP request creates a
@@ -528,9 +530,9 @@ Approving a grant here is not the only Shop API surface: a signed-in customer ca
 grants, for a "connected assistants" page in your account area. `activeMcpClientGrants` returns the customer's
 active grants (id, client name, and the timestamps shown above), across every channel they were made on — the
 consent belongs to the person, not the storefront they happened to use. `revokeMcpClientGrant(id: ID!)` ends one
-of those grants the same way the dashboard's admin-side revoke does: the grant's tokens and its dedicated Vendure
-session stop working immediately. Both operations require a signed-in customer and only ever act on that
-customer's own grants.
+of those grants the same way the dashboard's admin-side revoke does: the grant's tokens stop working immediately
+and its dedicated Vendure session is deleted. Both operations require a signed-in customer and only ever act on
+that customer's own grants.
 
 ## Operational notes
 

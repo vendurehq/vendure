@@ -29,8 +29,13 @@ One credential sits outside that scheme. Each grant creates a dedicated Vendure 
 tokens in the clear, so that row is a working bearer credential for the ordinary Admin and Shop GraphQL APIs, where
 the grant's own expiry check does not apply. It is a one-way hash of the access token and is never sent to the
 client, so reaching it means reading the database — treat the `session` table as secret material. Its lifetime is
-bounded by the grant: revoking a grant deletes the session immediately, and the OAuth cleanup job deletes it once
-the grant expires.
+bounded by the grant: revoking a grant deletes the session, and the OAuth cleanup job deletes it once the grant
+expires.
+
+One caveat if you run several instances: the default cache is in-memory, so revoking a grant clears the cached
+session only on the instance that handled it. The other instances keep accepting it for up to 5 minutes
+(`sessionCacheTTL`). A shared cache (Redis or SQL) fixes this — see
+[Horizontal scaling](/guides/deployment/horizontal-scaling/).
 
 ### The issuer guard
 
@@ -114,7 +119,8 @@ Things to know before you tune these:
   set of counters instead of each counting separately. One caveat: counting is exact within a single
   instance only. Two instances updating the same counter at the same moment can overwrite each
   other's update, so under simultaneous load a shared counter can still admit somewhat more than the
-  configured number — treat these limits as abuse protection, not a precise quota.
+  configured number — treat these limits as abuse protection, not a precise quota. The session cache
+  works the same way — see the revocation note under [Token secret](#token-secret).
 - **Behind a reverse proxy, enable Vendure's `trustProxy`** (a core setting, not a plugin option) so
   `req.ip` is the real client address rather than the proxy's. Otherwise every anonymous caller
   appears to come from the same IP and they all share a single allowance.
