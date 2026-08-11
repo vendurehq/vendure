@@ -163,10 +163,11 @@ its session for as long as it keeps working. Three things end one:
   replacement, so a lapsed session never breaks a working grant.
 
 There is no separate maximum age for MCP sessions; they follow the same rules as the rest of your Vendure
-sessions. Rotating `oauth.tokenSecret` is the one case that leaves sessions behind for a while: the OAuth tokens
-become unresolvable at once, but their grants live until their own expiry, and retention removes the sessions
-then — up to `refreshTokenTtlSeconds` (30 days by default) plus a day. Revoking the grants removes their
-sessions right away. Nothing about those sessions can be derived from the old access tokens.
+sessions. Two configuration changes leave sessions behind for a while: rotating `oauth.tokenSecret` and changing
+`oauth.issuer`. Either one stops every existing token working at once, but the grants live until their own
+expiry, and retention removes the sessions then — up to `refreshTokenTtlSeconds` (30 days by default) plus a
+day. Revoking the grants removes their sessions right away. Nothing about those sessions can be derived from the
+old access tokens.
 
 ## Admin consent (ships with the dashboard)
 

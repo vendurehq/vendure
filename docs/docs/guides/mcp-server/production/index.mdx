@@ -45,6 +45,10 @@ To stop a misconfigured server from issuing tokens against a localhost URL, the 
 `NODE_ENV=production` and `oauth.issuer` is a loopback address. The default — localhost on your configured
 API port — is development-only, so in production you must set it to your public Vendure URL.
 
+Treat the issuer as fixed once agents are connected. Changing it invalidates every existing grant — the tokens
+were issued for the old address, so every call is refused and refresh fails, and each agent must authorize
+again. The old grants are not revoked; the cleanup job removes their sessions once the grants expire.
+
 `oauth.storefrontConsentUrl` is checked the same way, but only if you supply it. It has **no default**, and it is
 needed only when customers will authorize MCP clients, so a deployment that uses the admin toolset alone starts
 without it (admin authorization redirects to `oauth.adminConsentPath` on the issuer instead). When you do supply
