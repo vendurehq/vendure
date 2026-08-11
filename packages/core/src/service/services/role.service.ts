@@ -119,7 +119,7 @@ export class RoleService {
             .getRepository(ctx, Role)
             .findOne({
                 where: { id: roleId },
-                relations: findOptionsArrayToObject<Role>(unique([...(relations ?? []), 'channels'])),
+                relations: findOptionsArrayToObject<Role>([...(relations ?? []), 'channels']),
             })
             .then(async result => {
                 if (result && (await this.activeUserCanReadRole(ctx, result))) {

@@ -137,9 +137,7 @@ export class FulfillmentService {
     ): Promise<FulfillmentLine[]> {
         const defaultRelations = ['fulfillment'];
         return this.connection.getRepository(ctx, FulfillmentLine).find({
-            relations: findOptionsArrayToObject<FulfillmentLine>(
-                Array.from(new Set([...defaultRelations, ...relations])),
-            ),
+            relations: findOptionsArrayToObject<FulfillmentLine>([...defaultRelations, ...relations]),
             where: {
                 fulfillment: {
                     state: Not('Cancelled'),
