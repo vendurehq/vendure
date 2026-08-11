@@ -1,0 +1,13 @@
+---
+title: "McpStandardSchemaResult"
+generated: true
+---
+<GenerationInfo sourceFile="packages/mcp-sdk/src/standard-schema.ts" sourceLine="21" packageName="@vendure/mcp-sdk" since="3.8.0" />
+
+The result of validating a value against an [McpStandardSchema](/reference/core-plugins/mcp-plugin/mcp-standard-schema#mcpstandardschema): the (possibly
+transformed) value on success, or a list of issues on failure.
+
+```ts title="Signature"
+type McpStandardSchemaResult<Output = unknown> = | { readonly value: Output; readonly issues?: undefined }
+    | { readonly issues: readonly McpStandardSchemaIssue[] }
+```

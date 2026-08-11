@@ -1,0 +1,48 @@
+---
+title: "McpStandardSchema"
+generated: true
+---
+<GenerationInfo sourceFile="packages/mcp-sdk/src/standard-schema.ts" sourceLine="39" packageName="@vendure/mcp-sdk" since="3.8.0" />
+
+A schema object implementing the [Standard Schema](https://standardschema.dev/) interface
+together with its JSON Schema conversion extension. Zod v4, ArkType, and Valibot schemas
+all implement this shape. It is declared structurally so that `@vendure/mcp-sdk` does not
+depend on any schema library.
+
+The MCP server converts the schema to JSON Schema once at startup (to advertise the tool)
+and calls its `validate` function on every incoming tool call; the tool's `execute` method
+receives the validated value, so library features like defaults apply.
+
+```ts title="Signature"
+interface McpStandardSchema<Input = unknown, Output = Input> {
+    readonly '~standard': {
+        readonly version: 1;
+        readonly vendor: string;
+        readonly validate: (
+            value: unknown,
+        ) => McpStandardSchemaResult<Output> | Promise<McpStandardSchemaResult<Output>>;
+        readonly types?: { readonly input: Input; readonly output: Output } | undefined;
+        readonly jsonSchema: {
+            input(options: {
+                readonly target: string;
+                readonly libraryOptions?: Record<string, unknown> | undefined;
+            }): Record<string, unknown>;
+            output(options: {
+                readonly target: string;
+                readonly libraryOptions?: Record<string, unknown> | undefined;
+            }): Record<string, unknown>;
+        };
+    };
+}
+```
+
+<div className="members-wrapper">
+
+### '~standard'
+
+<MemberInfo kind="property" type={`{         readonly version: 1;         readonly vendor: string;         readonly validate: (             value: unknown,         ) => <a href='/reference/core-plugins/mcp-plugin/mcp-standard-schema-result#mcpstandardschemaresult'>McpStandardSchemaResult</a><Output> | Promise<<a href='/reference/core-plugins/mcp-plugin/mcp-standard-schema-result#mcpstandardschemaresult'>McpStandardSchemaResult</a><Output>>;         readonly types?: { readonly input: Input; readonly output: Output } | undefined;         readonly jsonSchema: {             input(options: {                 readonly target: string;                 readonly libraryOptions?: Record<string, unknown> | undefined;             }): Record<string, unknown>;             output(options: {                 readonly target: string;                 readonly libraryOptions?: Record<string, unknown> | undefined;             }): Record<string, unknown>;         };     }`}   />
+
+
+
+
+</div>

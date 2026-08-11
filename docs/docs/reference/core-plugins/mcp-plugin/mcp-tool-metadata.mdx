@@ -2,7 +2,7 @@
 title: "McpToolMetadata"
 generated: true
 ---
-<GenerationInfo sourceFile="packages/mcp-sdk/src/mcp-tool.decorator.ts" sourceLine="31" packageName="@vendure/mcp-sdk" since="3.8.0" />
+<GenerationInfo sourceFile="packages/mcp-sdk/src/mcp-tool.decorator.ts" sourceLine="43" packageName="@vendure/mcp-sdk" since="3.8.0" />
 
 Describes a single MCP tool. You attach this to a class with the [McpTool](/reference/core-plugins/mcp-plugin/mcp-tool#mcptool)decorator. The MCP server finds those classes on startup and exposes each one as a
 callable tool.
@@ -16,8 +16,8 @@ interface McpToolMetadata {
     toolset: McpToolset;
     permissions?: Permission[];
     behavior?: McpToolBehavior;
-    inputSchema?: McpJsonSchema;
-    outputSchema?: McpJsonSchema;
+    inputSchema?: McpToolSchema;
+    outputSchema?: McpToolSchema;
 }
 ```
 
@@ -60,12 +60,12 @@ interface McpToolMetadata {
 
 ### inputSchema
 
-<MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-json-schema#mcpjsonschema'>McpJsonSchema</a>`}   />
+<MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-tool-schema#mcptoolschema'>McpToolSchema</a>`}   />
 
 
 ### outputSchema
 
-<MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-json-schema#mcpjsonschema'>McpJsonSchema</a>`}   />
+<MemberInfo kind="property" type={`<a href='/reference/core-plugins/mcp-plugin/mcp-tool-schema#mcptoolschema'>McpToolSchema</a>`}   />
 
 
 
