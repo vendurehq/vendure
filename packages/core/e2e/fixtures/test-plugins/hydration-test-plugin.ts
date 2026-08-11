@@ -36,7 +36,7 @@ export class TestAdminPluginResolver {
     async hydrateProduct(@Ctx() ctx: RequestContext, @Args() args: { id: ID }) {
         const product = await this.connection.getRepository(ctx, Product).findOne({
             where: { id: args.id },
-            relations: ['facetValues'],
+            relations: { facetValues: true },
         });
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         await this.entityHydrator.hydrate(ctx, product!, {
