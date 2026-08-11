@@ -3078,7 +3078,7 @@
                   "title": "PromotionService",
                   "slug": "promotion-service",
                   "file": "docs/reference/typescript-api/services/promotion-service.mdx",
-                  "lastModified": "2026-06-30T07:18:09+02:00"
+                  "lastModified": "2026-08-11T13:32:38Z"
                 },
                 {
                   "title": "ProvinceService",
@@ -4285,7 +4285,7 @@
                   "title": "ListPage",
                   "slug": "list-page",
                   "file": "docs/reference/dashboard/list-views/list-page.mdx",
-                  "lastModified": "2026-07-16T14:41:21+02:00"
+                  "lastModified": "2026-08-11T13:32:38Z"
                 },
                 {
                   "title": "PaginatedListDataTable",
