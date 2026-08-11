@@ -153,21 +153,11 @@ export class EntityHydrator {
 
                 if (options.applyProductVariantPrices === true) {
                     for (const relationWithEntities of relationsWithEntities) {
-                        const entity = relationWithEntities.entity;
-                        if (entity) {
-                            if (Array.isArray(entity)) {
-                                if (entity[0] instanceof ProductVariant) {
-                                    await Promise.all(
-                                        entity.map((e: any) =>
-                                            this.productPriceApplicator.applyChannelPriceAndTax(e, ctx),
-                                        ),
-                                    );
-                                }
-                            } else {
-                                if (entity instanceof ProductVariant) {
-                                    await this.productPriceApplicator.applyChannelPriceAndTax(entity, ctx);
-                                }
-                            }
+                        // Applied sequentially rather than with Promise.all: relation arrays are
+                        // unbounded in size, and applyChannelPriceAndTax() is applied per variant
+                        // the same way in ProductVariantService.assignProductVariantsToChannel()
+                        for (const variant of this.getProductVariantsToPrice(relationWithEntities.entity)) {
+                            await this.productPriceApplicator.applyChannelPriceAndTax(variant, ctx);
                         }
                     }
                 }
@@ -316,7 +306,13 @@ export class EntityHydrator {
             if (Array.isArray(target)) {
                 isArrayResult = true;
                 if (parts.length === 0) {
-                    result.push(...target);
+                    // Use a plain loop rather than push(...target): spreading a very large array
+                    // (e.g. `collection.productVariants` on a big catalog) expands it into call
+                    // arguments, which exceeds V8's stack budget and throws a RangeError. Same
+                    // fix as in getMissingRelations() above.
+                    for (const item of target) {
+                        result.push(item);
+                    }
                 } else {
                     for (const item of target) {
                         visit(item, parts.slice());
@@ -334,6 +330,20 @@ export class EntityHydrator {
         }
         visit(entity, path.slice());
         return isArrayResult ? result : result[0];
+    }
+
+    /**
+     * Returns the ProductVariants found at a relation path, to which Channel prices should be
+     * applied. A relation array can contain `null`/`undefined` entries — getRelationEntityAtPath()
+     * pushes them deliberately — and only some of its elements may be ProductVariants, so the type
+     * is tested per element rather than sampled from element [0]. Sampling [0] was wrong in both
+     * directions: a hole at [0] suppressed pricing for every real ProductVariant in the array, and
+     * a ProductVariant at [0] passed the holes behind it straight into applyChannelPriceAndTax(),
+     * which dereferences `variant.productVariantPrices` and throws.
+     */
+    private getProductVariantsToPrice(entity: VendureEntity | VendureEntity[] | undefined): ProductVariant[] {
+        const candidates = Array.isArray(entity) ? entity : [entity];
+        return candidates.filter((e): e is ProductVariant => e instanceof ProductVariant);
     }
 
     private getRelationEntityTypeAtPath(entity: VendureEntity, path: string): Type<VendureEntity> {
@@ -386,9 +396,15 @@ export class EntityHydrator {
         return translationRelations;
     }
 
+    /**
+     * Whether the entity, or any entity of an array-valued relation, is translatable. An array
+     * relation can contain `null` (the relation was fetched but is null on that element) or
+     * `undefined` (never fetched) entries — getRelationEntityAtPath() deliberately pushes both
+     * into its result — so every element must be considered rather than just the first.
+     */
     private isTranslatable<T extends VendureEntity>(input: T | T[] | undefined): boolean {
-        return Array.isArray(input)
-            ? (input[0]?.hasOwnProperty('translations') ?? false)
-            : (input?.hasOwnProperty('translations') ?? false);
+        const hasTranslations = (entity: T | undefined): boolean =>
+            entity?.hasOwnProperty('translations') ?? false;
+        return Array.isArray(input) ? input.some(hasTranslations) : hasTranslations(input);
     }
 }
