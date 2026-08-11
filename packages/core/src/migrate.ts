@@ -359,23 +359,19 @@ async function provisionShadowDatabase(
 }
 
 function emptySqliteOptions(baseOptions: DataSourceOptions): DataSourceOptions {
-    const shared = {
-        ...baseOptions,
-        name: `vendure-shadow-${uniqueShadowSuffix()}`,
-    };
     if (baseOptions.type === 'sqljs') {
         // For sqljs the database can be a Uint8Array of saved bytes; unset it (and the save
         // callback/location) so the shadow really is an empty in-memory database, not a restored
         // copy of a populated one.
         return {
-            ...shared,
+            ...baseOptions,
             location: undefined,
             database: undefined,
             autoSave: false,
             autoSaveCallback: undefined,
         } as unknown as DataSourceOptions;
     }
-    return { ...shared, database: ':memory:' } as DataSourceOptions;
+    return { ...baseOptions, database: ':memory:' } as DataSourceOptions;
 }
 
 /**
