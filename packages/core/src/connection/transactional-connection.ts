@@ -359,7 +359,7 @@ export class TransactionalConnection {
         const qb = this.getRepository(ctx, entity).createQueryBuilder('entity');
         const findOptions = toTypeOrmFindOptions<T, VendureFindOneOptions<T>>(options);
 
-        if (findOptions.relations) {
+        if (findOptions.relations && Object.keys(findOptions.relations).length > 0) {
             const joinedRelations = joinTreeRelationsDynamically(qb, entity, findOptions.relations);
             // Remove any relations which are related to the 'collection' tree, as these are handled separately
             // to avoid duplicate joins.
@@ -404,7 +404,7 @@ export class TransactionalConnection {
         const qb = this.getRepository(ctx, entity).createQueryBuilder('entity');
         const findOptions = toTypeOrmFindOptions<T, VendureFindManyOptions<T>>(options);
 
-        if (findOptions.relations) {
+        if (findOptions.relations && Object.keys(findOptions.relations).length > 0) {
             const joinedRelations = joinTreeRelationsDynamically(
                 qb as SelectQueryBuilder<VendureEntity>,
                 entity,
