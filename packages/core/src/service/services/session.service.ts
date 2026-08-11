@@ -39,6 +39,15 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
     private cleanSessionsJobQueue: JobQueue<{ batchSize: number }>;
     private readonly sessionDurationInMs: number;
     private readonly sessionCacheTimeoutMs = 50;
+    /**
+     * `user` is declared on AuthenticatedSession, not the abstract Session queried here, so an
+     * object literal typed against Session does not compile.
+     */
+    private readonly userRelations = findOptionsArrayToObject<Session>([
+        'user',
+        'user.roles',
+        'user.roles.channels',
+    ]);
 
     constructor(
         private connection: TransactionalConnection,
@@ -255,9 +264,7 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
     ): Promise<CachedSession> {
         const session = await this.connection.getRepository(ctx, Session).findOne({
             where: { id: serializedSession.id },
-            // `user` is declared on AuthenticatedSession, not the abstract Session queried
-            // here, so an object literal typed against Session does not compile.
-            relations: findOptionsArrayToObject<Session>(['user', 'user.roles', 'user.roles.channels']),
+            relations: this.userRelations,
         });
         if (session) {
             session.activeOrder = order;
@@ -277,9 +284,7 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
         if (serializedSession.activeOrderId) {
             const session = await this.connection.getRepository(ctx, Session).findOne({
                 where: { id: serializedSession.id },
-                // `user` is declared on AuthenticatedSession, not the abstract Session queried
-                // here, so an object literal typed against Session does not compile.
-                relations: findOptionsArrayToObject<Session>(['user', 'user.roles', 'user.roles.channels']),
+                relations: this.userRelations,
             });
             if (session) {
                 session.activeOrder = null;
@@ -299,9 +304,7 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
     async setActiveChannel(serializedSession: CachedSession, channel: Channel): Promise<CachedSession> {
         const session = await this.connection.rawConnection.getRepository(Session).findOne({
             where: { id: serializedSession.id },
-            // `user` is declared on AuthenticatedSession, not the abstract Session queried
-            // here, so an object literal typed against Session does not compile.
-            relations: findOptionsArrayToObject<Session>(['user', 'user.roles', 'user.roles.channels']),
+            relations: this.userRelations,
         });
         if (session) {
             session.activeChannel = channel;
