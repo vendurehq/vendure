@@ -159,6 +159,22 @@ describe('McpOauthService PKCE / grant gating', () => {
             }),
         ).rejects.toThrow('Unsupported OAuth resource');
     });
+
+    // A resource with a query string gets the specific message, not the generic
+    // "Unsupported OAuth resource" — the caller needs to know which part of the URL to fix.
+    it('names the query-string problem when an authorize request resource carries one', async () => {
+        const service = createService({ tokenSecret: 's' });
+        await expect(
+            service.createAuthorizationRedirect({
+                response_type: 'code',
+                client_id: 'c',
+                redirect_uri: 'https://x/cb',
+                code_challenge: 'abc',
+                code_challenge_method: 'S256',
+                resource: `${ISSUER}/mcp/shop?x=1`,
+            }),
+        ).rejects.toThrow('OAuth resource must not include query parameters or fragments');
+    });
 });
 
 describe('McpOauthService OAuth credential lookup hashing', () => {

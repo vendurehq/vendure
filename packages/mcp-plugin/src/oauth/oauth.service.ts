@@ -1024,20 +1024,21 @@ export class McpOauthService {
         if (!resource) {
             throw new BadRequestException('resource is required');
         }
+        let url: URL;
         try {
-            const url = new URL(resource);
-            if (url.search || url.hash) {
-                throw new Error('OAuth resource must not include query parameters or fragments');
-            }
-            const toolsets: readonly McpToolset[] =
-                this.options.shopAccess === 'disabled' ? (['admin'] as const) : (['shop', 'admin'] as const);
-            for (const toolset of toolsets) {
-                if (this.sameResourceUrl(url, new URL(this.resourceForToolset(toolset)))) {
-                    return { resource: this.resourceForToolset(toolset), toolset };
-                }
-            }
+            url = new URL(resource);
         } catch {
             throw new BadRequestException('Unsupported OAuth resource');
+        }
+        if (url.search || url.hash) {
+            throw new BadRequestException('OAuth resource must not include query parameters or fragments');
+        }
+        const toolsets: readonly McpToolset[] =
+            this.options.shopAccess === 'disabled' ? (['admin'] as const) : (['shop', 'admin'] as const);
+        for (const toolset of toolsets) {
+            if (this.sameResourceUrl(url, new URL(this.resourceForToolset(toolset)))) {
+                return { resource: this.resourceForToolset(toolset), toolset };
+            }
         }
         throw new BadRequestException('Unsupported OAuth resource');
     }
