@@ -14,11 +14,10 @@ on:
         # Nightly, so regressions in either TypeORM v1 or Vendure surface without
         # anyone having to remember to trigger a run.
         - cron: '0 3 * * *'
+    # No base-branch filter: the `typeorm-v1` label is the only gate, applied per job
+    # below. A pull request stacked on another feature branch does not target master,
+    # major or minor, and filtering on the base would silently skip every one of them.
     pull_request:
-        branches:
-            - master
-            - major
-            - minor
         types: [opened, reopened, synchronize, labeled]
 
 env:
