@@ -64,6 +64,7 @@ export class McpOauthController {
     }
 
     @Post('mcp/oauth/revoke')
+    @HttpCode(200)
     revoke(@Body('token') token?: string) {
         return this.oauthService.revoke(token);
     }

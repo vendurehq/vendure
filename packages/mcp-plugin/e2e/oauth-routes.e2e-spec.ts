@@ -60,4 +60,20 @@ describe('McpPlugin OAuth routes', () => {
         expect(body.client_name).toBe('Form Client');
         expect(body.redirect_uris).toEqual(['https://example.com/cb', 'https://example.com/cb2']);
     });
+
+    // RFC 7009 §2.2: revocation must answer 200, even for a token the server never issued —
+    // the client can't distinguish "already revoked" from "never existed" either way.
+    it('POST /mcp/oauth/revoke returns 200 for an unknown token', async () => {
+        const port = config.apiOptions.port;
+        const form = new URLSearchParams();
+        form.append('token', 'unknown-bogus-token');
+
+        const res = await fetch(`http://localhost:${port}/mcp/oauth/revoke`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: form.toString(),
+        });
+
+        expect(res.status).toBe(200);
+    });
 });
