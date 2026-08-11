@@ -1,6 +1,6 @@
 import { JobListOptions, JobState } from '@vendure/common/lib/generated-types';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
-import { Brackets, Connection, EntityManager, FindOptionsWhere, In, LessThan } from 'typeorm';
+import { Brackets, DataSource, EntityManager, FindOptionsWhere, In, LessThan } from 'typeorm';
 
 import { Injector } from '../../common/injector';
 import { InspectableJobQueueStrategy, JobQueueStrategy } from '../../config';
@@ -20,7 +20,7 @@ import { JobRecord } from './job-record.entity';
  * @docsCategory JobQueue
  */
 export class SqlJobQueueStrategy extends PollingJobQueueStrategy implements InspectableJobQueueStrategy {
-    private rawConnection: Connection | undefined;
+    private rawConnection: DataSource | undefined;
     private connection: TransactionalConnection | undefined;
     private listQueryBuilder: ListQueryBuilder;
 
@@ -222,8 +222,8 @@ export class SqlJobQueueStrategy extends PollingJobQueueStrategy implements Insp
         return deleteCount;
     }
 
-    private connectionAvailable(connection: Connection | undefined): connection is Connection {
-        return !!this.rawConnection && this.rawConnection.isConnected;
+    private connectionAvailable(connection: DataSource | undefined): connection is DataSource {
+        return !!this.rawConnection && this.rawConnection.isInitialized;
     }
 
     private toRecord(job: Job<any>, data?: any, retries?: number): JobRecord {

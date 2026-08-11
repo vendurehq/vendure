@@ -7,7 +7,7 @@ import { getConnectionToken } from '@nestjs/typeorm';
 import { DEFAULT_COOKIE_NAME } from '@vendure/common/lib/shared-constants';
 import { Type } from '@vendure/common/lib/shared-types';
 import { satisfies } from 'semver';
-import { Connection, DataSourceOptions, EntitySubscriberInterface } from 'typeorm';
+import { DataSource, DataSourceOptions, EntitySubscriberInterface } from 'typeorm';
 import cookieSession = require('cookie-session');
 
 import { InternalServerError } from './common/error/errors';
@@ -510,7 +510,7 @@ function disableSynchronize(userConfig: Readonly<RuntimeVendureConfig>): Readonl
  * @param worker
  */
 async function validateDbTablesForWorker(worker: INestApplicationContext) {
-    const connection: Connection = worker.get(getConnectionToken());
+    const connection: DataSource = worker.get(getConnectionToken());
     await new Promise<void>(async (resolve, reject) => {
         const checkForTables = async (): Promise<boolean> => {
             try {
