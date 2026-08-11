@@ -10,7 +10,6 @@ import {
     UseFilters,
     UseGuards,
 } from '@nestjs/common';
-import { McpToolset } from '@vendure/mcp-sdk';
 import type { Response } from 'express';
 
 import {
@@ -35,7 +34,7 @@ export class McpOauthController {
     }
 
     @Get('.well-known/oauth-protected-resource/mcp/:endpoint')
-    protectedResourceMetadata(@Param('endpoint') endpoint: McpToolset) {
+    protectedResourceMetadata(@Param('endpoint') endpoint: string) {
         return this.oauthService.protectedResourceMetadata(endpoint);
     }
 

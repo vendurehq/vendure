@@ -178,7 +178,10 @@ export class McpOauthService {
         };
     }
 
-    protectedResourceMetadata(endpoint: McpToolset) {
+    protectedResourceMetadata(endpoint: string) {
+        if (endpoint !== 'shop' && endpoint !== 'admin') {
+            throw new NotFoundException();
+        }
         if (endpoint === 'shop' && this.options.shopAccess === 'disabled') {
             throw new NotFoundException();
         }

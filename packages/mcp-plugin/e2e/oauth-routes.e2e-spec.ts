@@ -76,4 +76,11 @@ describe('McpPlugin OAuth routes', () => {
 
         expect(res.status).toBe(200);
     });
+
+    // Metadata must 404 for a resource this server doesn't host, not fabricate a document for it.
+    it('GET /.well-known/oauth-protected-resource/mcp/bogus returns 404', async () => {
+        const port = config.apiOptions.port;
+        const res = await fetch(`http://localhost:${port}/.well-known/oauth-protected-resource/mcp/bogus`);
+        expect(res.status).toBe(404);
+    });
 });
