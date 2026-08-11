@@ -168,6 +168,18 @@ describe('McpPlugin production config guard', () => {
         expect(() => createPlugin(true).onApplicationBootstrap()).not.toThrow();
     });
 
+    it('throws when oauth is configured without a tokenSecret', () => {
+        process.env.NODE_ENV = 'development';
+        setOauth({ issuer: 'https://example.com' } as any);
+        expect(() => createPlugin(true).onApplicationBootstrap()).toThrow(/tokenSecret/);
+    });
+
+    it('throws when tokenSecret is an empty string', () => {
+        process.env.NODE_ENV = 'development';
+        setOauth({ tokenSecret: '', issuer: 'https://example.com' });
+        expect(() => createPlugin(true).onApplicationBootstrap()).toThrow(/tokenSecret/);
+    });
+
     it('does not throw when not running on the server process', () => {
         process.env.NODE_ENV = 'production';
         setOauth({ tokenSecret: 'x', issuer: 'http://localhost:3500' });
