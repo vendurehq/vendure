@@ -64,6 +64,7 @@ export class RefundOrderTool implements McpToolHandler<RefundOrderToolInput> {
             return {
                 result: {
                     __typename: 'RefundPaymentIdMissingError',
+                    errorCode: 'REFUND_PAYMENT_ID_MISSING_ERROR',
                     message: 'No payment is available to refund.',
                 },
             };

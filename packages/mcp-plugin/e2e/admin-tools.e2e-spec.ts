@@ -850,6 +850,27 @@ describe('MCP built-in admin tools (direct mode)', () => {
             .findOneOrFail({ where: { id: paymentId }, relations: ['refunds'] });
         expect(paymentAfter.refunds.reduce((sum, r) => sum + r.total, 0)).toBe(paymentBefore.amount);
     });
+
+    it('refund_order returns RefundPaymentIdMissingError with errorCode when no payment is refundable', async () => {
+        const token = await adminAccessToken();
+        const { orderId } = await createSettledOrder();
+
+        await postMcp(baseUrl(), 'admin', callTool('refund_order', { id: orderId, confirm: true }, 1), {
+            token,
+        });
+
+        const response = await postMcp(
+            baseUrl(),
+            'admin',
+            callTool('refund_order', { id: orderId, confirm: true }, 2),
+            { token },
+        );
+        expect(response.body.result.isError).toBeUndefined();
+        expect(response.body.result.structuredContent.result).toMatchObject({
+            __typename: 'RefundPaymentIdMissingError',
+            errorCode: 'REFUND_PAYMENT_ID_MISSING_ERROR',
+        });
+    });
 });
 
 describe('MCP built-in admin tools (discovery mode)', () => {
