@@ -486,10 +486,6 @@ export class McpOauthService {
             const staleSessionToken = await this.deleteVendureSessionRow(adminCtx, grant.vendureSessionId);
             await this.deleteCachedVendureSession(staleSessionToken);
             const createdSession = await this.createVendureSession(adminCtx, user);
-            // Two deliberate writes of the new session id: mutating the entity keeps the
-            // save() at the end of this method from putting the stale id back, and the
-            // targeted update makes it durable on its own — it must survive that save()
-            // being narrowed to a lastActivityAt-only update later.
             grant.vendureSessionId = createdSession.id;
             await this.connection
                 .getRepository(adminCtx, McpOauthGrant)

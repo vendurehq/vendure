@@ -342,7 +342,7 @@ export async function analyzeSourceFiles(
 
             async function visit(node: ts.Node) {
                 // Look for VendurePlugin decorator
-                const vendurePlugin = getVendurePluginClassName(node);
+                const vendurePlugin = getVendurePluginInfo(node);
                 if (vendurePlugin) {
                     localPluginLocations.set(vendurePlugin.name, {
                         sourceFile: filePath,
@@ -424,7 +424,7 @@ export async function analyzeSourceFiles(
  * we want to return that class name (and its declared dashboard entry path, if any),
  * as we have found a local Vendure plugin.
  */
-function getVendurePluginClassName(node: ts.Node): { name: string; dashboardPath?: string } | undefined {
+function getVendurePluginInfo(node: ts.Node): { name: string; dashboardPath?: string } | undefined {
     if (ts.isClassDeclaration(node)) {
         const decorators = ts.canHaveDecorators(node) ? ts.getDecorators(node) : undefined;
         if (decorators?.length) {
