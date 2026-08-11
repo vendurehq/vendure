@@ -187,7 +187,11 @@ export class ProductVariantService {
             .innerJoinAndSelect('productvariant.channels', 'channel', 'channel.id = :channelId', {
                 channelId: ctx.channelId,
             })
-            .innerJoinAndSelect('productvariant.product', 'product', 'product.id = :productId', {
+            // Not selected: the join is only here to constrain the query to one Product. Selecting
+            // it would populate `productvariant.product` with a Product carrying none of its own
+            // relations, which then takes precedence over the fully-loaded one when `product` is
+            // among the requested relations.
+            .innerJoin('productvariant.product', 'product', 'product.id = :productId', {
                 productId,
             });
 
