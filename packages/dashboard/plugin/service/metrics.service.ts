@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Logger, Order, RequestContext, TransactionalConnection } from '@vendure/core';
+import { getDatabaseType, Logger, Order, RequestContext, TransactionalConnection } from '@vendure/core';
 import { addDays, differenceInCalendarDays, endOfDay, format, startOfDay } from 'date-fns';
 
 import {
@@ -134,7 +134,7 @@ export class MetricsService {
     }
 
     private getDateExpression(): string {
-        switch (this.connection.rawConnection.options.type) {
+        switch (getDatabaseType(this.connection.rawConnection)) {
             case 'postgres':
                 return `TO_CHAR(order.orderPlacedAt, 'YYYY-MM-DD')`;
             case 'mysql':
