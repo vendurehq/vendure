@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { CustomerService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
-import { objectSchema } from '../schema-helpers';
 import { customerSummary } from '../serializers';
+
+const getMyAccountInput = z.strictObject({});
 
 @McpTool({
     name: 'get_my_account',
@@ -19,7 +21,7 @@ import { customerSummary } from '../serializers';
     ],
     permissions: [Permission.Authenticated],
     behavior: 'readonly',
-    inputSchema: objectSchema({}),
+    inputSchema: getMyAccountInput,
 })
 @Injectable()
 export class GetMyAccountTool implements McpToolHandler<Record<string, never>> {

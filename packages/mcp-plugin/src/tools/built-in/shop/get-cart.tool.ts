@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { ActiveOrderService, OrderService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
 import { getActiveOrder } from '../order-helpers';
-import { objectSchema } from '../schema-helpers';
 import { orderSummary } from '../serializers';
+
+const getCartInput = z.strictObject({});
 
 @McpTool({
     name: 'get_cart',
@@ -20,7 +22,7 @@ import { orderSummary } from '../serializers';
     ],
     permissions: [Permission.Public],
     behavior: 'readonly',
-    inputSchema: objectSchema({}),
+    inputSchema: getCartInput,
 })
 @Injectable()
 export class GetCartTool implements McpToolHandler<Record<string, never>> {

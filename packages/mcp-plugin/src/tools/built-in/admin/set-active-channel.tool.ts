@@ -9,13 +9,15 @@ import {
     TransactionalConnection,
 } from '@vendure/core';
 import { McpCallerInfo, McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
 import { McpOauthGrant } from '../../../entities/mcp-oauth-grant.entity';
-import { objectSchema, stringProp } from '../schema-helpers';
 
-interface SetActiveChannelInput {
-    channelToken: string;
-}
+const setActiveChannelInput = z.strictObject({
+    channelToken: z.string().describe('Channel token of the channel to activate.'),
+});
+
+type SetActiveChannelInput = z.infer<typeof setActiveChannelInput>;
 
 @McpTool({
     name: 'set_active_channel',
@@ -30,9 +32,7 @@ interface SetActiveChannelInput {
         "change the store I'm managing",
     ],
     permissions: [Permission.Authenticated],
-    inputSchema: objectSchema({
-        channelToken: stringProp('Channel token of the channel to activate.'),
-    }),
+    inputSchema: setActiveChannelInput,
 })
 @Injectable()
 export class SetActiveChannelTool implements McpToolHandler<SetActiveChannelInput> {

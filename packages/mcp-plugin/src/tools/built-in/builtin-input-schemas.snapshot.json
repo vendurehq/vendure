@@ -1,0 +1,1346 @@
+{
+  "admin:add_customer_to_group": {
+    "type": "object",
+    "properties": {
+      "customerId": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "description": "Customer ID."
+      },
+      "groupId": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "description": "Customer group ID."
+      }
+    },
+    "required": [
+      "customerId",
+      "groupId"
+    ],
+    "additionalProperties": false
+  },
+  "admin:add_note_to_order": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "description": "Order ID."
+      },
+      "note": {
+        "type": "string",
+        "description": "Note text."
+      },
+      "isPublic": {
+        "type": "boolean",
+        "description": "Whether the note is visible to the customer. Defaults to false."
+      }
+    },
+    "required": [
+      "id",
+      "note"
+    ],
+    "additionalProperties": false
+  },
+  "admin:adjust_stock": {
+    "type": "object",
+    "properties": {
+      "variantId": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "description": "Product variant ID."
+      },
+      "locationId": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "description": "Stock location ID."
+      },
+      "delta": {
+        "type": "number",
+        "description": "Amount to add (positive) or remove (negative) from stock on hand."
+      }
+    },
+    "required": [
+      "variantId",
+      "locationId",
+      "delta"
+    ],
+    "additionalProperties": false
+  },
+  "admin:cancel_order": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "description": "Order ID."
+      },
+      "reason": {
+        "type": "string",
+        "description": "Reason for the cancellation."
+      },
+      "cancelShipping": {
+        "type": "boolean",
+        "description": "Also cancel shipping charges. Defaults to true."
+      }
+    },
+    "required": [
+      "id"
+    ],
+    "additionalProperties": false
+  },
+  "admin:create_customer": {
+    "type": "object",
+    "properties": {
+      "input": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string",
+            "description": "Customer first name."
+          },
+          "lastName": {
+            "type": "string",
+            "description": "Customer last name."
+          },
+          "emailAddress": {
+            "type": "string",
+            "description": "Customer email address.",
+            "format": "email"
+          },
+          "phoneNumber": {
+            "type": "string",
+            "description": "Customer phone number."
+          },
+          "title": {
+            "type": "string",
+            "description": "Customer title, e.g. \"Mr\" or \"Ms\"."
+          },
+          "customFields": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {},
+            "description": "Customer custom fields."
+          }
+        },
+        "required": [
+          "firstName",
+          "lastName",
+          "emailAddress"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [
+      "input"
+    ],
+    "additionalProperties": false
+  },
+  "admin:create_product": {
+    "type": "object",
+    "properties": {
+      "input": {
+        "type": "object",
+        "properties": {
+          "translations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "languageCode": {
+                  "type": "string",
+                  "description": "Language code, e.g. \"en\"."
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Product name."
+                },
+                "slug": {
+                  "type": "string",
+                  "description": "URL slug."
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Product description."
+                }
+              },
+              "required": [
+                "languageCode"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Localized product content. At least one entry with a languageCode is required."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the product is enabled."
+          },
+          "facetValueIds": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "description": "Vendure ID."
+            },
+            "description": "Facet value IDs to assign."
+          },
+          "assetIds": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "description": "Vendure ID."
+            },
+            "description": "Asset IDs to attach."
+          },
+          "featuredAssetId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "description": "Featured asset ID."
+          },
+          "customFields": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {},
+            "description": "Product custom fields."
+          }
+        },
+        "required": [
+          "translations"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [
+      "input"
+    ],
+    "additionalProperties": false
+  },
+  "admin:create_variant": {
+    "type": "object",
+    "properties": {
+      "productId": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "description": "Parent product ID."
+      },
+      "input": {
+        "type": "object",
+        "properties": {
+          "sku": {
+            "type": "string",
+            "description": "Stock keeping unit."
+          },
+          "translations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "languageCode": {
+                  "type": "string",
+                  "description": "Language code, e.g. \"en\"."
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Variant name."
+                }
+              },
+              "required": [
+                "languageCode"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Localized variant content."
+          },
+          "price": {
+            "type": "number",
+            "description": "Price in minor units (e.g. cents)."
+          },
+          "optionIds": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "description": "Vendure ID."
+            },
+            "description": "Product option IDs for this variant."
+          },
+          "taxCategoryId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "description": "Tax category ID."
+          },
+          "featuredAssetId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "description": "Featured asset ID."
+          },
+          "assetIds": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "description": "Vendure ID."
+            },
+            "description": "Asset IDs to attach."
+          },
+          "stockOnHand": {
+            "type": "number",
+            "description": "Initial stock on hand."
+          },
+          "trackInventory": {
+            "type": "string",
+            "description": "Inventory tracking: \"TRUE\", \"FALSE\", or \"INHERIT\"."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the variant is enabled."
+          },
+          "customFields": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {},
+            "description": "Variant custom fields."
+          }
+        },
+        "required": [
+          "sku",
+          "translations"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [
+      "productId",
+      "input"
+    ],
+    "additionalProperties": false
+  },
+  "admin:get_customer": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "description": "Customer ID."
+      }
+    },
+    "required": [
+      "id"
+    ],
+    "additionalProperties": false
+  },
+  "admin:get_order": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "description": "Order ID."
+      }
+    },
+    "required": [
+      "id"
+    ],
+    "additionalProperties": false
+  },
+  "admin:get_product": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "description": "Product ID."
+      }
+    },
+    "required": [
+      "id"
+    ],
+    "additionalProperties": false
+  },
+  "admin:get_stock_levels": {
+    "type": "object",
+    "properties": {
+      "variantId": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "description": "Product variant ID."
+      }
+    },
+    "required": [
+      "variantId"
+    ],
+    "additionalProperties": false
+  },
+  "admin:list_channels": {
+    "type": "object",
+    "properties": {
+      "limit": {
+        "type": "number",
+        "description": "Maximum number of channels to return."
+      },
+      "offset": {
+        "type": "number",
+        "description": "Number of channels to skip."
+      }
+    },
+    "additionalProperties": false
+  },
+  "admin:list_customers": {
+    "type": "object",
+    "properties": {
+      "limit": {
+        "type": "number",
+        "description": "Maximum number of customers to return."
+      },
+      "offset": {
+        "type": "number",
+        "description": "Number of customers to skip."
+      }
+    },
+    "additionalProperties": false
+  },
+  "admin:list_orders": {
+    "type": "object",
+    "properties": {
+      "limit": {
+        "type": "number",
+        "description": "Maximum number of orders to return."
+      },
+      "offset": {
+        "type": "number",
+        "description": "Number of orders to skip."
+      }
+    },
+    "additionalProperties": false
+  },
+  "admin:list_products": {
+    "type": "object",
+    "properties": {
+      "limit": {
+        "type": "number",
+        "description": "Maximum number of products to return."
+      },
+      "offset": {
+        "type": "number",
+        "description": "Number of products to skip."
+      }
+    },
+    "additionalProperties": false
+  },
+  "admin:refund_order": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "description": "Order ID."
+      },
+      "amount": {
+        "type": "number",
+        "description": "Amount to refund in minor units. Defaults to the selected payment's remaining refundable amount."
+      },
+      "reason": {
+        "type": "string",
+        "description": "Reason for the refund."
+      },
+      "paymentId": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "description": "Payment to refund. Defaults to the order's first Settled payment that still has a refundable amount."
+      }
+    },
+    "required": [
+      "id"
+    ],
+    "additionalProperties": false
+  },
+  "admin:set_active_channel": {
+    "type": "object",
+    "properties": {
+      "channelToken": {
+        "type": "string",
+        "description": "Channel token of the channel to activate."
+      }
+    },
+    "required": [
+      "channelToken"
+    ],
+    "additionalProperties": false
+  },
+  "admin:update_customer": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "description": "Customer ID."
+      },
+      "input": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string",
+            "description": "Customer first name."
+          },
+          "lastName": {
+            "type": "string",
+            "description": "Customer last name."
+          },
+          "emailAddress": {
+            "type": "string",
+            "description": "Customer email address.",
+            "format": "email"
+          },
+          "phoneNumber": {
+            "type": "string",
+            "description": "Customer phone number."
+          },
+          "title": {
+            "type": "string",
+            "description": "Customer title, e.g. \"Mr\" or \"Ms\"."
+          },
+          "customFields": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {},
+            "description": "Customer custom fields."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "required": [
+      "id",
+      "input"
+    ],
+    "additionalProperties": false
+  },
+  "admin:update_order_state": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "description": "Order ID."
+      },
+      "state": {
+        "type": "string",
+        "description": "Target order state, e.g. \"Shipped\" or \"Cancelled\"."
+      }
+    },
+    "required": [
+      "id",
+      "state"
+    ],
+    "additionalProperties": false
+  },
+  "admin:update_product": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "description": "Product ID."
+      },
+      "input": {
+        "type": "object",
+        "properties": {
+          "translations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "languageCode": {
+                  "type": "string",
+                  "description": "Language code, e.g. \"en\"."
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Product name."
+                },
+                "slug": {
+                  "type": "string",
+                  "description": "URL slug."
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Product description."
+                }
+              },
+              "required": [
+                "languageCode"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Localized product content to update."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the product is enabled."
+          },
+          "facetValueIds": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "description": "Vendure ID."
+            },
+            "description": "Facet value IDs to assign."
+          },
+          "assetIds": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "description": "Vendure ID."
+            },
+            "description": "Asset IDs to attach."
+          },
+          "featuredAssetId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "description": "Featured asset ID."
+          },
+          "customFields": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {},
+            "description": "Product custom fields."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "required": [
+      "id",
+      "input"
+    ],
+    "additionalProperties": false
+  },
+  "admin:update_product_assets": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "description": "Product ID."
+      },
+      "assetIds": {
+        "type": "array",
+        "items": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "description": "Vendure ID."
+        },
+        "description": "Ordered asset IDs to set on the product."
+      },
+      "featuredAssetId": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "description": "Featured asset ID."
+      }
+    },
+    "required": [
+      "id",
+      "assetIds"
+    ],
+    "additionalProperties": false
+  },
+  "admin:update_variant": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "description": "Variant ID."
+      },
+      "input": {
+        "type": "object",
+        "properties": {
+          "sku": {
+            "type": "string",
+            "description": "Stock keeping unit."
+          },
+          "translations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "languageCode": {
+                  "type": "string",
+                  "description": "Language code, e.g. \"en\"."
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Variant name."
+                }
+              },
+              "required": [
+                "languageCode"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Localized variant content to update."
+          },
+          "price": {
+            "type": "number",
+            "description": "Price in minor units (e.g. cents)."
+          },
+          "optionIds": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "description": "Vendure ID."
+            },
+            "description": "Product option IDs for this variant."
+          },
+          "taxCategoryId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "description": "Tax category ID."
+          },
+          "featuredAssetId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "description": "Featured asset ID."
+          },
+          "assetIds": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "description": "Vendure ID."
+            },
+            "description": "Asset IDs to attach."
+          },
+          "stockOnHand": {
+            "type": "number",
+            "description": "Stock on hand."
+          },
+          "trackInventory": {
+            "type": "string",
+            "description": "Inventory tracking: \"TRUE\", \"FALSE\", or \"INHERIT\"."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the variant is enabled."
+          },
+          "customFields": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {},
+            "description": "Variant custom fields."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "required": [
+      "id",
+      "input"
+    ],
+    "additionalProperties": false
+  },
+  "admin:upload_asset": {
+    "type": "object",
+    "properties": {
+      "url": {
+        "type": "string",
+        "description": "Public HTTP(S) URL of the asset to fetch and store."
+      }
+    },
+    "required": [
+      "url"
+    ],
+    "additionalProperties": false
+  },
+  "shop:add_to_cart": {
+    "type": "object",
+    "properties": {
+      "variantId": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "description": "Product variant ID."
+      },
+      "quantity": {
+        "type": "number",
+        "description": "Quantity."
+      }
+    },
+    "required": [
+      "variantId",
+      "quantity"
+    ],
+    "additionalProperties": false
+  },
+  "shop:apply_coupon_code": {
+    "type": "object",
+    "properties": {
+      "code": {
+        "type": "string",
+        "description": "Coupon code."
+      }
+    },
+    "required": [
+      "code"
+    ],
+    "additionalProperties": false
+  },
+  "shop:get_cart": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "shop:get_collection": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "description": "Collection ID."
+      },
+      "slug": {
+        "type": "string",
+        "description": "Collection slug, used when ID is omitted."
+      }
+    },
+    "additionalProperties": false
+  },
+  "shop:get_eligible_payment_methods": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "shop:get_eligible_shipping_methods": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "shop:get_my_account": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "shop:get_order": {
+    "type": "object",
+    "properties": {
+      "code": {
+        "type": "string",
+        "description": "Order code."
+      }
+    },
+    "required": [
+      "code"
+    ],
+    "additionalProperties": false
+  },
+  "shop:get_product": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "description": "Product ID."
+      },
+      "slug": {
+        "type": "string",
+        "description": "Product slug, used when ID is omitted."
+      }
+    },
+    "additionalProperties": false
+  },
+  "shop:list_collections": {
+    "type": "object",
+    "properties": {
+      "limit": {
+        "type": "number",
+        "description": "Maximum number of collections to return."
+      },
+      "offset": {
+        "type": "number",
+        "description": "Number of collections to skip."
+      },
+      "parentId": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "description": "Return the children of this collection."
+      }
+    },
+    "additionalProperties": false
+  },
+  "shop:list_my_orders": {
+    "type": "object",
+    "properties": {
+      "limit": {
+        "type": "number",
+        "description": "Maximum number of orders to return."
+      },
+      "offset": {
+        "type": "number",
+        "description": "Number of orders to skip."
+      }
+    },
+    "additionalProperties": false
+  },
+  "shop:place_order": {
+    "type": "object",
+    "properties": {
+      "paymentMethodCode": {
+        "type": "string",
+        "description": "Payment method code."
+      },
+      "paymentMetadata": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": {},
+        "description": "Metadata passed to the payment handler."
+      }
+    },
+    "required": [
+      "paymentMethodCode"
+    ],
+    "additionalProperties": false
+  },
+  "shop:remove_coupon_code": {
+    "type": "object",
+    "properties": {
+      "code": {
+        "type": "string",
+        "description": "Coupon code."
+      }
+    },
+    "required": [
+      "code"
+    ],
+    "additionalProperties": false
+  },
+  "shop:remove_from_cart": {
+    "type": "object",
+    "properties": {
+      "orderLineId": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "description": "Order line ID."
+      }
+    },
+    "required": [
+      "orderLineId"
+    ],
+    "additionalProperties": false
+  },
+  "shop:search_products": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "Text to look up in product names and slugs."
+      },
+      "limit": {
+        "type": "number",
+        "description": "Maximum number of products to return."
+      },
+      "offset": {
+        "type": "number",
+        "description": "Number of products to skip."
+      }
+    },
+    "additionalProperties": false
+  },
+  "shop:set_billing_address": {
+    "type": "object",
+    "properties": {
+      "address": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string"
+          },
+          "company": {
+            "type": "string"
+          },
+          "streetLine1": {
+            "type": "string"
+          },
+          "streetLine2": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "province": {
+            "type": "string"
+          },
+          "postalCode": {
+            "type": "string"
+          },
+          "countryCode": {
+            "type": "string"
+          },
+          "phoneNumber": {
+            "type": "string"
+          },
+          "defaultShippingAddress": {
+            "type": "boolean"
+          },
+          "defaultBillingAddress": {
+            "type": "boolean"
+          },
+          "customFields": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {},
+            "description": "Address custom fields."
+          }
+        },
+        "required": [
+          "streetLine1",
+          "countryCode"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [
+      "address"
+    ],
+    "additionalProperties": false
+  },
+  "shop:set_shipping_address": {
+    "type": "object",
+    "properties": {
+      "address": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string"
+          },
+          "company": {
+            "type": "string"
+          },
+          "streetLine1": {
+            "type": "string"
+          },
+          "streetLine2": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "province": {
+            "type": "string"
+          },
+          "postalCode": {
+            "type": "string"
+          },
+          "countryCode": {
+            "type": "string"
+          },
+          "phoneNumber": {
+            "type": "string"
+          },
+          "defaultShippingAddress": {
+            "type": "boolean"
+          },
+          "defaultBillingAddress": {
+            "type": "boolean"
+          },
+          "customFields": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {},
+            "description": "Address custom fields."
+          }
+        },
+        "required": [
+          "streetLine1",
+          "countryCode"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [
+      "address"
+    ],
+    "additionalProperties": false
+  },
+  "shop:set_shipping_method": {
+    "type": "object",
+    "properties": {
+      "methodId": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "description": "Shipping method ID."
+      }
+    },
+    "required": [
+      "methodId"
+    ],
+    "additionalProperties": false
+  },
+  "shop:update_cart_line": {
+    "type": "object",
+    "properties": {
+      "orderLineId": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "description": "Order line ID."
+      },
+      "quantity": {
+        "type": "number",
+        "description": "Quantity."
+      }
+    },
+    "required": [
+      "orderLineId",
+      "quantity"
+    ],
+    "additionalProperties": false
+  }
+}

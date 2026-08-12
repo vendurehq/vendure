@@ -1,15 +1,19 @@
 import { Injectable } from '@nestjs/common';
-import { ID, Permission, ProductService, RequestContext } from '@vendure/core';
+import { Permission, ProductService, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
-import { idArrayProp, idProp, objectSchema, optional } from '../schema-helpers';
 import { productSummary } from '../serializers';
 
-interface UpdateProductAssetsInput {
-    id: ID;
-    assetIds: ID[];
-    featuredAssetId?: ID;
-}
+const updateProductAssetsInput = z.strictObject({
+    id: z.union([z.string(), z.number()]).describe('Product ID.'),
+    assetIds: z
+        .array(z.union([z.string(), z.number()]).describe('Vendure ID.'))
+        .describe('Ordered asset IDs to set on the product.'),
+    featuredAssetId: z.union([z.string(), z.number()]).describe('Featured asset ID.').optional(),
+});
+
+type UpdateProductAssetsInput = z.infer<typeof updateProductAssetsInput>;
 
 @McpTool({
     name: 'update_product_assets',
@@ -24,11 +28,7 @@ interface UpdateProductAssetsInput {
         'attach images to a product',
     ],
     permissions: [Permission.UpdateProduct],
-    inputSchema: objectSchema({
-        id: idProp('Product ID.'),
-        assetIds: idArrayProp('Ordered asset IDs to set on the product.'),
-        featuredAssetId: optional(idProp('Featured asset ID.')),
-    }),
+    inputSchema: updateProductAssetsInput,
 })
 @Injectable()
 export class UpdateProductAssetsTool implements McpToolHandler<UpdateProductAssetsInput> {

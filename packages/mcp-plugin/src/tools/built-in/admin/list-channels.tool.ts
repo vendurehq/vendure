@@ -1,14 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { ChannelService, idsAreEqual, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
 import { page } from '../order-helpers';
-import { numberProp, objectSchema, optional } from '../schema-helpers';
 
-interface ListChannelsInput extends Record<string, unknown> {
-    limit?: number;
-    offset?: number;
-}
+const listChannelsInput = z.strictObject({
+    limit: z.number().describe('Maximum number of channels to return.').optional(),
+    offset: z.number().describe('Number of channels to skip.').optional(),
+});
+
+type ListChannelsInput = z.infer<typeof listChannelsInput> & Record<string, unknown>;
 
 @McpTool({
     name: 'list_channels',
@@ -24,10 +26,7 @@ interface ListChannelsInput extends Record<string, unknown> {
     ],
     permissions: [Permission.ReadSettings, Permission.ReadChannel],
     behavior: 'readonly',
-    inputSchema: objectSchema({
-        limit: optional(numberProp('Maximum number of channels to return.')),
-        offset: optional(numberProp('Number of channels to skip.')),
-    }),
+    inputSchema: listChannelsInput,
 })
 @Injectable()
 export class ListChannelsTool implements McpToolHandler<ListChannelsInput> {

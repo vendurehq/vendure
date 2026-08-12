@@ -1,12 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { ID, Permission, RequestContext, StockLevelService } from '@vendure/core';
+import { Permission, RequestContext, StockLevelService } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
-import { idProp, objectSchema } from '../schema-helpers';
+const getStockLevelsInput = z.strictObject({
+    variantId: z.union([z.string(), z.number()]).describe('Product variant ID.'),
+});
 
-interface GetStockLevelsInput {
-    variantId: ID;
-}
+type GetStockLevelsInput = z.infer<typeof getStockLevelsInput>;
 
 @McpTool({
     name: 'get_stock_levels',
@@ -22,7 +23,7 @@ interface GetStockLevelsInput {
     ],
     permissions: [Permission.ReadProduct],
     behavior: 'readonly',
-    inputSchema: objectSchema({ variantId: idProp('Product variant ID.') }),
+    inputSchema: getStockLevelsInput,
 })
 @Injectable()
 export class GetStockLevelsTool implements McpToolHandler<GetStockLevelsInput> {

@@ -1,14 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { ID, OrderService, OrderState, Permission, RequestContext } from '@vendure/core';
+import { OrderService, OrderState, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
 import { orderResult } from '../order-helpers';
-import { idProp, objectSchema, stringProp } from '../schema-helpers';
 
-interface UpdateOrderStateInput {
-    id: ID;
-    state: string;
-}
+const updateOrderStateInput = z.strictObject({
+    id: z.union([z.string(), z.number()]).describe('Order ID.'),
+    state: z.string().describe('Target order state, e.g. "Shipped" or "Cancelled".'),
+});
+
+type UpdateOrderStateInput = z.infer<typeof updateOrderStateInput>;
 
 @McpTool({
     name: 'update_order_state',
@@ -24,10 +26,7 @@ interface UpdateOrderStateInput {
     ],
     permissions: [Permission.UpdateOrder],
     behavior: 'destructive',
-    inputSchema: objectSchema({
-        id: idProp('Order ID.'),
-        state: stringProp('Target order state, e.g. "Shipped" or "Cancelled".'),
-    }),
+    inputSchema: updateOrderStateInput,
 })
 @Injectable()
 export class UpdateOrderStateTool implements McpToolHandler<UpdateOrderStateInput> {

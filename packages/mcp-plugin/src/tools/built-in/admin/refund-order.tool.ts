@@ -2,15 +2,26 @@ import { Injectable } from '@nestjs/common';
 import { summate } from '@vendure/common/lib/shared-utils';
 import { ID, idsAreEqual, OrderService, Payment, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
-import { idProp, numberProp, objectSchema, optional, stringProp } from '../schema-helpers';
+const refundOrderInput = z.strictObject({
+    id: z.union([z.string(), z.number()]).describe('Order ID.'),
+    amount: z
+        .number()
+        .describe(
+            "Amount to refund in minor units. Defaults to the selected payment's remaining refundable amount.",
+        )
+        .optional(),
+    reason: z.string().describe('Reason for the refund.').optional(),
+    paymentId: z
+        .union([z.string(), z.number()])
+        .describe(
+            "Payment to refund. Defaults to the order's first Settled payment that still has a refundable amount.",
+        )
+        .optional(),
+});
 
-interface RefundOrderToolInput {
-    id: ID;
-    amount?: number;
-    reason?: string;
-    paymentId?: ID;
-}
+type RefundOrderToolInput = z.infer<typeof refundOrderInput>;
 
 function getRefundableAmount(payment: Payment): number {
     const activeRefunds = payment.refunds?.filter(refund => refund.state !== 'Failed') ?? [];
@@ -32,20 +43,7 @@ function getRefundableAmount(payment: Payment): number {
     ],
     permissions: [Permission.UpdateOrder],
     behavior: 'destructive',
-    inputSchema: objectSchema({
-        id: idProp('Order ID.'),
-        amount: optional(
-            numberProp(
-                "Amount to refund in minor units. Defaults to the selected payment's remaining refundable amount.",
-            ),
-        ),
-        reason: optional(stringProp('Reason for the refund.')),
-        paymentId: optional(
-            idProp(
-                "Payment to refund. Defaults to the order's first Settled payment that still has a refundable amount.",
-            ),
-        ),
-    }),
+    inputSchema: refundOrderInput,
 })
 @Injectable()
 export class RefundOrderTool implements McpToolHandler<RefundOrderToolInput> {

@@ -40,6 +40,17 @@ const allowedOpenObjectPaths = new Set([
     'update_variant.input.customFields',
 ]);
 
+function toJsonInputSchema(schema: unknown): Record<string, unknown> {
+    const std = (
+        schema as { ['~standard']?: { jsonSchema?: { input?: (o: object) => Record<string, unknown> } } }
+    )?.['~standard'];
+    if (std?.jsonSchema?.input) {
+        const { $schema, ...json } = std.jsonSchema.input({ target: 'draft-2020-12' });
+        return json;
+    }
+    return schema as Record<string, unknown>;
+}
+
 function metadataFor(provider: unknown): McpToolMetadata {
     const metadata = Reflect.getMetadata(McpTool.KEY, provider) as McpToolMetadata | undefined;
     if (!metadata) {
@@ -54,7 +65,16 @@ function assertStrictObjectSchemas(schema: unknown, path: string): void {
     }
     const value = schema as Record<string, unknown>;
     if (value.type === 'object') {
-        expect(value.additionalProperties, path).toBe(allowedOpenObjectPaths.has(path));
+        const isOpen =
+            value.additionalProperties === true ||
+            (typeof value.additionalProperties === 'object' &&
+                value.additionalProperties !== null &&
+                Object.keys(value.additionalProperties).length === 0);
+        if (allowedOpenObjectPaths.has(path)) {
+            expect(isOpen, path).toBe(true);
+        } else {
+            expect(value.additionalProperties, path).toBe(false);
+        }
     }
     if (value.properties && typeof value.properties === 'object') {
         for (const [name, property] of Object.entries(value.properties)) {
@@ -85,8 +105,9 @@ describe('built-in shop tool providers', () => {
         for (const provider of providers) {
             const metadata = metadataFor(provider);
             expect(metadata.inputSchema, `${metadata.name} must declare inputSchema`).toBeDefined();
+            const jsonInputSchema = toJsonInputSchema(metadata.inputSchema);
             try {
-                fromJsonSchema(metadata.inputSchema as unknown as JsonSchemaType);
+                fromJsonSchema(jsonInputSchema as unknown as JsonSchemaType);
             } catch (error) {
                 throw new Error(
                     `${metadata.name} inputSchema failed to compile: ${
@@ -94,7 +115,7 @@ describe('built-in shop tool providers', () => {
                     }`,
                 );
             }
-            assertStrictObjectSchemas(metadata.inputSchema, metadata.name);
+            assertStrictObjectSchemas(jsonInputSchema, metadata.name);
         }
     });
 

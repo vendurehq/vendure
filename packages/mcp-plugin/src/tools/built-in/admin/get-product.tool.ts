@@ -1,13 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { ID, Permission, ProductService, RequestContext } from '@vendure/core';
+import { Permission, ProductService, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
-import { idProp, objectSchema } from '../schema-helpers';
 import { productSummary } from '../serializers';
 
-interface GetProductInput {
-    id: ID;
-}
+const getProductInput = z.strictObject({
+    id: z.union([z.string(), z.number()]).describe('Product ID.'),
+});
+
+type GetProductInput = z.infer<typeof getProductInput>;
 
 // Class name is deliberately distinct from the shop `GetProductTool` (`get_product` exists in both
 // toolsets). Declared, not aliased, so stack traces and jump-to-symbol self-disambiguate.
@@ -25,7 +27,7 @@ interface GetProductInput {
     ],
     permissions: [Permission.ReadProduct],
     behavior: 'readonly',
-    inputSchema: objectSchema({ id: idProp('Product ID.') }),
+    inputSchema: getProductInput,
 })
 @Injectable()
 export class AdminGetProductTool implements McpToolHandler<GetProductInput> {

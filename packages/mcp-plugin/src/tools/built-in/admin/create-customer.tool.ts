@@ -1,23 +1,28 @@
 import { Injectable } from '@nestjs/common';
-import { CreateCustomerInput } from '@vendure/common/lib/generated-types';
 import { CustomerService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
-import { jsonObjectProp, objectSchema, optional, stringProp } from '../schema-helpers';
 import { customerSummaryResult } from '../serializers';
 
-interface CreateCustomerToolInput {
-    input: CreateCustomerInput;
-}
-
-const customerInputSchema = objectSchema({
-    firstName: stringProp('Customer first name.'),
-    lastName: stringProp('Customer last name.'),
-    emailAddress: { ...stringProp('Customer email address.'), format: 'email' },
-    phoneNumber: optional(stringProp('Customer phone number.')),
-    title: optional(stringProp('Customer title, e.g. "Mr" or "Ms".')),
-    customFields: optional(jsonObjectProp('Customer custom fields.')),
+const customerInputSchema = z.strictObject({
+    firstName: z.string().describe('Customer first name.'),
+    lastName: z.string().describe('Customer last name.'),
+    emailAddress: z
+        .string()
+        .describe('Customer email address.')
+        .meta({ format: 'email' })
+        .refine(value => z.regexes.email.test(value), 'Invalid email address'),
+    phoneNumber: z.string().describe('Customer phone number.').optional(),
+    title: z.string().describe('Customer title, e.g. "Mr" or "Ms".').optional(),
+    customFields: z.looseObject({}).describe('Customer custom fields.').optional(),
 });
+
+const createCustomerInput = z.strictObject({
+    input: customerInputSchema,
+});
+
+type CreateCustomerToolInput = z.infer<typeof createCustomerInput>;
 
 @McpTool({
     name: 'create_customer',
@@ -32,9 +37,7 @@ const customerInputSchema = objectSchema({
         'make a customer account',
     ],
     permissions: [Permission.CreateCustomer],
-    inputSchema: objectSchema({
-        input: customerInputSchema,
-    }),
+    inputSchema: createCustomerInput,
 })
 @Injectable()
 export class CreateCustomerTool implements McpToolHandler<CreateCustomerToolInput> {

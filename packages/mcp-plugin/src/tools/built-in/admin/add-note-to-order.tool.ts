@@ -1,15 +1,20 @@
 import { Injectable } from '@nestjs/common';
-import { ID, OrderService, Permission, RequestContext } from '@vendure/core';
+import { OrderService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
-import { booleanProp, idProp, objectSchema, optional, stringProp } from '../schema-helpers';
 import { orderSummary } from '../serializers';
 
-interface AddNoteToOrderToolInput {
-    id: ID;
-    note: string;
-    isPublic?: boolean;
-}
+const addNoteToOrderInput = z.strictObject({
+    id: z.union([z.string(), z.number()]).describe('Order ID.'),
+    note: z.string().describe('Note text.'),
+    isPublic: z
+        .boolean()
+        .describe('Whether the note is visible to the customer. Defaults to false.')
+        .optional(),
+});
+
+type AddNoteToOrderToolInput = z.infer<typeof addNoteToOrderInput>;
 
 @McpTool({
     name: 'add_note_to_order',
@@ -24,11 +29,7 @@ interface AddNoteToOrderToolInput {
         'record a memo on the order',
     ],
     permissions: [Permission.UpdateOrder],
-    inputSchema: objectSchema({
-        id: idProp('Order ID.'),
-        note: stringProp('Note text.'),
-        isPublic: optional(booleanProp('Whether the note is visible to the customer. Defaults to false.')),
-    }),
+    inputSchema: addNoteToOrderInput,
 })
 @Injectable()
 export class AddNoteToOrderTool implements McpToolHandler<AddNoteToOrderToolInput> {

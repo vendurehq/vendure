@@ -1,16 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { Permission, ProductService, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
 import { page, publicProductListOptions } from '../order-helpers';
-import { numberProp, objectSchema, optional, stringProp } from '../schema-helpers';
 import { productSummary } from '../serializers';
 
-interface SearchProductsInput extends Record<string, unknown> {
-    query?: string;
-    limit?: number;
-    offset?: number;
-}
+const searchProductsInput = z.strictObject({
+    query: z.string().describe('Text to look up in product names and slugs.').optional(),
+    limit: z.number().describe('Maximum number of products to return.').optional(),
+    offset: z.number().describe('Number of products to skip.').optional(),
+});
+
+type SearchProductsInput = z.infer<typeof searchProductsInput> & Record<string, unknown>;
 
 @McpTool({
     name: 'search_products',
@@ -26,11 +28,7 @@ interface SearchProductsInput extends Record<string, unknown> {
     ],
     permissions: [Permission.Public],
     behavior: 'readonly',
-    inputSchema: objectSchema({
-        query: optional(stringProp('Text to look up in product names and slugs.')),
-        limit: optional(numberProp('Maximum number of products to return.')),
-        offset: optional(numberProp('Number of products to skip.')),
-    }),
+    inputSchema: searchProductsInput,
 })
 @Injectable()
 export class SearchProductsTool implements McpToolHandler<SearchProductsInput> {

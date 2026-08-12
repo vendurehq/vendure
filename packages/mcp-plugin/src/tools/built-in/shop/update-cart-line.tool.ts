@@ -1,14 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { ActiveOrderService, ID, OrderService, Permission, RequestContext } from '@vendure/core';
+import { ActiveOrderService, OrderService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
 import { getActiveOrder, orderResult } from '../order-helpers';
-import { idProp, numberProp, objectSchema } from '../schema-helpers';
 
-interface UpdateCartLineInput {
-    orderLineId: ID;
-    quantity: number;
-}
+const updateCartLineInput = z.strictObject({
+    orderLineId: z.union([z.string(), z.number()]).describe('Order line ID.'),
+    quantity: z.number().describe('Quantity.'),
+});
+
+type UpdateCartLineInput = z.infer<typeof updateCartLineInput>;
 
 @McpTool({
     name: 'update_cart_line',
@@ -23,7 +25,7 @@ interface UpdateCartLineInput {
         'update the number of this item',
     ],
     permissions: [Permission.Public],
-    inputSchema: objectSchema({ orderLineId: idProp('Order line ID.'), quantity: numberProp('Quantity.') }),
+    inputSchema: updateCartLineInput,
 })
 @Injectable()
 export class UpdateCartLineTool implements McpToolHandler<UpdateCartLineInput> {

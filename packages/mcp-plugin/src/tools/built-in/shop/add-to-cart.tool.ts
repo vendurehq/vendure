@@ -1,14 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { ActiveOrderService, ID, OrderService, Permission, RequestContext } from '@vendure/core';
+import { ActiveOrderService, OrderService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
 import { getActiveOrder, orderResult } from '../order-helpers';
-import { idProp, numberProp, objectSchema } from '../schema-helpers';
 
-interface AddToCartInput {
-    variantId: ID;
-    quantity: number;
-}
+const addToCartInput = z.strictObject({
+    variantId: z.union([z.string(), z.number()]).describe('Product variant ID.'),
+    quantity: z.number().describe('Quantity.'),
+});
+
+type AddToCartInput = z.infer<typeof addToCartInput>;
 
 @McpTool({
     name: 'add_to_cart',
@@ -23,10 +25,7 @@ interface AddToCartInput {
         'put this in my shopping bag',
     ],
     permissions: [Permission.Public],
-    inputSchema: objectSchema({
-        variantId: idProp('Product variant ID.'),
-        quantity: numberProp('Quantity.'),
-    }),
+    inputSchema: addToCartInput,
 })
 @Injectable()
 export class AddToCartTool implements McpToolHandler<AddToCartInput> {

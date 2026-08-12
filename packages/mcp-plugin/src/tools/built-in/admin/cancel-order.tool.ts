@@ -1,15 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { ID, OrderService, Permission, RequestContext } from '@vendure/core';
+import { OrderService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
 import { orderResult } from '../order-helpers';
-import { booleanProp, idProp, objectSchema, optional, stringProp } from '../schema-helpers';
 
-interface CancelOrderToolInput {
-    id: ID;
-    reason?: string;
-    cancelShipping?: boolean;
-}
+const cancelOrderInput = z.strictObject({
+    id: z.union([z.string(), z.number()]).describe('Order ID.'),
+    reason: z.string().describe('Reason for the cancellation.').optional(),
+    cancelShipping: z.boolean().describe('Also cancel shipping charges. Defaults to true.').optional(),
+});
+
+type CancelOrderToolInput = z.infer<typeof cancelOrderInput>;
 
 @McpTool({
     name: 'cancel_order',
@@ -25,11 +27,7 @@ interface CancelOrderToolInput {
     ],
     permissions: [Permission.UpdateOrder],
     behavior: 'destructive',
-    inputSchema: objectSchema({
-        id: idProp('Order ID.'),
-        reason: optional(stringProp('Reason for the cancellation.')),
-        cancelShipping: optional(booleanProp('Also cancel shipping charges. Defaults to true.')),
-    }),
+    inputSchema: cancelOrderInput,
 })
 @Injectable()
 export class CancelOrderTool implements McpToolHandler<CancelOrderToolInput> {

@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { ActiveOrderService, OrderService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
 import { getActiveOrder } from '../order-helpers';
-import { objectSchema } from '../schema-helpers';
+
+const getEligiblePaymentMethodsInput = z.strictObject({});
 
 @McpTool({
     name: 'get_eligible_payment_methods',
@@ -19,7 +21,7 @@ import { objectSchema } from '../schema-helpers';
     ],
     permissions: [Permission.Public],
     behavior: 'readonly',
-    inputSchema: objectSchema({}),
+    inputSchema: getEligiblePaymentMethodsInput,
 })
 @Injectable()
 export class GetEligiblePaymentMethodsTool implements McpToolHandler<Record<string, never>> {

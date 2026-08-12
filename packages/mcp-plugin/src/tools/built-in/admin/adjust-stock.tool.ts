@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import {
-    ID,
     idsAreEqual,
     Permission,
     ProductVariantService,
@@ -8,14 +7,15 @@ import {
     StockLevelService,
 } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
-import { idProp, numberProp, objectSchema } from '../schema-helpers';
+const adjustStockInput = z.strictObject({
+    variantId: z.union([z.string(), z.number()]).describe('Product variant ID.'),
+    locationId: z.union([z.string(), z.number()]).describe('Stock location ID.'),
+    delta: z.number().describe('Amount to add (positive) or remove (negative) from stock on hand.'),
+});
 
-interface AdjustStockInput {
-    variantId: ID;
-    locationId: ID;
-    delta: number;
-}
+type AdjustStockInput = z.infer<typeof adjustStockInput>;
 
 @McpTool({
     name: 'adjust_stock',
@@ -33,11 +33,7 @@ interface AdjustStockInput {
     // UpdateCatalog/UpdateProduct — UpdateStockLocation governs the StockLocation entity, not quantities.
     permissions: [Permission.UpdateProduct],
     behavior: 'destructive',
-    inputSchema: objectSchema({
-        variantId: idProp('Product variant ID.'),
-        locationId: idProp('Stock location ID.'),
-        delta: numberProp('Amount to add (positive) or remove (negative) from stock on hand.'),
-    }),
+    inputSchema: adjustStockInput,
 })
 @Injectable()
 export class AdjustStockTool implements McpToolHandler<AdjustStockInput> {

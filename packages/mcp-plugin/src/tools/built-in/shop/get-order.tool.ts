@@ -1,13 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService, OrderService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
-import { objectSchema, stringProp } from '../schema-helpers';
 import { orderSummary } from '../serializers';
 
-interface GetOrderInput {
-    code: string;
-}
+const getOrderInput = z.strictObject({
+    code: z.string().describe('Order code.'),
+});
+
+type GetOrderInput = z.infer<typeof getOrderInput>;
 
 @McpTool({
     name: 'get_order',
@@ -23,7 +25,7 @@ interface GetOrderInput {
     ],
     permissions: [Permission.Public],
     behavior: 'readonly',
-    inputSchema: objectSchema({ code: stringProp('Order code.') }),
+    inputSchema: getOrderInput,
 })
 @Injectable()
 export class ShopGetOrderTool implements McpToolHandler<GetOrderInput> {

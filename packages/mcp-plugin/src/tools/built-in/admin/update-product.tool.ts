@@ -1,40 +1,45 @@
 import { Injectable } from '@nestjs/common';
-import { UpdateProductInput } from '@vendure/common/lib/generated-types';
-import { ID, Permission, ProductService, RequestContext } from '@vendure/core';
+import { LanguageCode } from '@vendure/common/lib/generated-types';
+import { Permission, ProductService, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
-import {
-    arrayProp,
-    booleanProp,
-    idArrayProp,
-    idProp,
-    jsonObjectProp,
-    objectSchema,
-    optional,
-    stringProp,
-} from '../schema-helpers';
 import { productSummary } from '../serializers';
 
-interface UpdateProductToolInput {
-    id: ID;
-    input: Omit<UpdateProductInput, 'id'>;
-}
-
-const productTranslationSchema = objectSchema({
-    languageCode: stringProp('Language code, e.g. "en".'),
-    name: optional(stringProp('Product name.')),
-    slug: optional(stringProp('URL slug.')),
-    description: optional(stringProp('Product description.')),
+const productTranslationSchema = z.strictObject({
+    // Cast is type-only (no runtime effect, schema still emits `type: "string"`): the generated
+    // service call expects the real LanguageCode enum, but the JSON schema for this field is a
+    // plain string, so z.infer alone would type it as `string`.
+    languageCode: z.string().describe('Language code, e.g. "en".') as unknown as z.ZodType<LanguageCode>,
+    name: z.string().describe('Product name.').optional(),
+    slug: z.string().describe('URL slug.').optional(),
+    description: z.string().describe('Product description.').optional(),
 });
 
-const updateProductInputSchema = objectSchema({
-    translations: optional(arrayProp(productTranslationSchema, 'Localized product content to update.')),
-    enabled: optional(booleanProp('Whether the product is enabled.')),
-    facetValueIds: optional(idArrayProp('Facet value IDs to assign.')),
-    assetIds: optional(idArrayProp('Asset IDs to attach.')),
-    featuredAssetId: optional(idProp('Featured asset ID.')),
-    customFields: optional(jsonObjectProp('Product custom fields.')),
+const updateProductInputSchema = z.strictObject({
+    translations: z
+        .array(productTranslationSchema)
+        .describe('Localized product content to update.')
+        .optional(),
+    enabled: z.boolean().describe('Whether the product is enabled.').optional(),
+    facetValueIds: z
+        .array(z.union([z.string(), z.number()]).describe('Vendure ID.'))
+        .describe('Facet value IDs to assign.')
+        .optional(),
+    assetIds: z
+        .array(z.union([z.string(), z.number()]).describe('Vendure ID.'))
+        .describe('Asset IDs to attach.')
+        .optional(),
+    featuredAssetId: z.union([z.string(), z.number()]).describe('Featured asset ID.').optional(),
+    customFields: z.looseObject({}).describe('Product custom fields.').optional(),
 });
+
+const updateProductInput = z.strictObject({
+    id: z.union([z.string(), z.number()]).describe('Product ID.'),
+    input: updateProductInputSchema,
+});
+
+type UpdateProductToolInput = z.infer<typeof updateProductInput>;
 
 @McpTool({
     name: 'update_product',
@@ -50,10 +55,7 @@ const updateProductInputSchema = objectSchema({
         'edit a catalog entry',
     ],
     permissions: [Permission.UpdateProduct],
-    inputSchema: objectSchema({
-        id: idProp('Product ID.'),
-        input: updateProductInputSchema,
-    }),
+    inputSchema: updateProductInput,
 })
 @Injectable()
 export class UpdateProductTool implements McpToolHandler<UpdateProductToolInput> {

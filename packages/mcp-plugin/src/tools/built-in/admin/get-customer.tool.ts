@@ -1,13 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { CustomerService, ID, Permission, RequestContext } from '@vendure/core';
+import { CustomerService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
-import { idProp, objectSchema } from '../schema-helpers';
 import { customerSummary } from '../serializers';
 
-interface GetCustomerInput {
-    id: ID;
-}
+const getCustomerInput = z.strictObject({
+    id: z.union([z.string(), z.number()]).describe('Customer ID.'),
+});
+
+type GetCustomerInput = z.infer<typeof getCustomerInput>;
 
 @McpTool({
     name: 'get_customer',
@@ -23,7 +25,7 @@ interface GetCustomerInput {
     ],
     permissions: [Permission.ReadCustomer],
     behavior: 'readonly',
-    inputSchema: objectSchema({ id: idProp('Customer ID.') }),
+    inputSchema: getCustomerInput,
 })
 @Injectable()
 export class GetCustomerTool implements McpToolHandler<GetCustomerInput> {

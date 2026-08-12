@@ -1,13 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { ActiveOrderService, ID, OrderService, Permission, RequestContext } from '@vendure/core';
+import { ActiveOrderService, OrderService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
 import { getActiveOrder, orderResult } from '../order-helpers';
-import { idProp, objectSchema } from '../schema-helpers';
 
-interface RemoveFromCartInput {
-    orderLineId: ID;
-}
+const removeFromCartInput = z.strictObject({
+    orderLineId: z.union([z.string(), z.number()]).describe('Order line ID.'),
+});
+
+type RemoveFromCartInput = z.infer<typeof removeFromCartInput>;
 
 @McpTool({
     name: 'remove_from_cart',
@@ -22,7 +24,7 @@ interface RemoveFromCartInput {
         'get rid of a cart item',
     ],
     permissions: [Permission.Public],
-    inputSchema: objectSchema({ orderLineId: idProp('Order line ID.') }),
+    inputSchema: removeFromCartInput,
 })
 @Injectable()
 export class RemoveFromCartTool implements McpToolHandler<RemoveFromCartInput> {

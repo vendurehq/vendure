@@ -1,16 +1,21 @@
 import { Injectable } from '@nestjs/common';
-import { CollectionService, ID, idsAreEqual, Permission, RequestContext } from '@vendure/core';
+import { CollectionService, idsAreEqual, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
 import { page, publicCollectionListOptions } from '../order-helpers';
-import { idProp, numberProp, objectSchema, optional } from '../schema-helpers';
 import { collectionSummary } from '../serializers';
 
-interface ListCollectionsInput extends Record<string, unknown> {
-    limit?: number;
-    offset?: number;
-    parentId?: ID;
-}
+const listCollectionsInput = z.strictObject({
+    limit: z.number().describe('Maximum number of collections to return.').optional(),
+    offset: z.number().describe('Number of collections to skip.').optional(),
+    parentId: z
+        .union([z.string(), z.number()])
+        .describe('Return the children of this collection.')
+        .optional(),
+});
+
+type ListCollectionsInput = z.infer<typeof listCollectionsInput> & Record<string, unknown>;
 
 @McpTool({
     name: 'list_collections',
@@ -26,11 +31,7 @@ interface ListCollectionsInput extends Record<string, unknown> {
     ],
     permissions: [Permission.Public],
     behavior: 'readonly',
-    inputSchema: objectSchema({
-        limit: optional(numberProp('Maximum number of collections to return.')),
-        offset: optional(numberProp('Number of collections to skip.')),
-        parentId: optional(idProp('Return the children of this collection.')),
-    }),
+    inputSchema: listCollectionsInput,
 })
 @Injectable()
 export class ShopListCollectionsTool implements McpToolHandler<ListCollectionsInput> {

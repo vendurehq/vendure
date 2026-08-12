@@ -1,14 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { CollectionService, ID, Permission, RequestContext } from '@vendure/core';
+import { CollectionService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
-import { idProp, objectSchema, optional, stringProp } from '../schema-helpers';
 import { collectionSummary } from '../serializers';
 
-interface GetCollectionInput {
-    id?: ID;
-    slug?: string;
-}
+const getCollectionInput = z.strictObject({
+    id: z.union([z.string(), z.number()]).describe('Collection ID.').optional(),
+    slug: z.string().describe('Collection slug, used when ID is omitted.').optional(),
+});
+
+type GetCollectionInput = z.infer<typeof getCollectionInput>;
 
 @McpTool({
     name: 'get_collection',
@@ -24,10 +26,7 @@ interface GetCollectionInput {
     ],
     permissions: [Permission.Public],
     behavior: 'readonly',
-    inputSchema: objectSchema({
-        id: optional(idProp('Collection ID.')),
-        slug: optional(stringProp('Collection slug, used when ID is omitted.')),
-    }),
+    inputSchema: getCollectionInput,
 })
 @Injectable()
 export class ShopGetCollectionTool implements McpToolHandler<GetCollectionInput> {

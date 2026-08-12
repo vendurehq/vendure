@@ -1,24 +1,30 @@
 import { Injectable } from '@nestjs/common';
-import { UpdateCustomerInput } from '@vendure/common/lib/generated-types';
-import { CustomerService, ID, Permission, RequestContext } from '@vendure/core';
+import { CustomerService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
-import { idProp, jsonObjectProp, objectSchema, optional, stringProp } from '../schema-helpers';
 import { customerSummary } from '../serializers';
 
-interface UpdateCustomerToolInput {
-    id: ID;
-    input: Omit<UpdateCustomerInput, 'id'>;
-}
-
-const customerUpdateSchema = objectSchema({
-    firstName: optional(stringProp('Customer first name.')),
-    lastName: optional(stringProp('Customer last name.')),
-    emailAddress: optional({ ...stringProp('Customer email address.'), format: 'email' }),
-    phoneNumber: optional(stringProp('Customer phone number.')),
-    title: optional(stringProp('Customer title, e.g. "Mr" or "Ms".')),
-    customFields: optional(jsonObjectProp('Customer custom fields.')),
+const customerUpdateSchema = z.strictObject({
+    firstName: z.string().describe('Customer first name.').optional(),
+    lastName: z.string().describe('Customer last name.').optional(),
+    emailAddress: z
+        .string()
+        .describe('Customer email address.')
+        .meta({ format: 'email' })
+        .refine(value => z.regexes.email.test(value), 'Invalid email address')
+        .optional(),
+    phoneNumber: z.string().describe('Customer phone number.').optional(),
+    title: z.string().describe('Customer title, e.g. "Mr" or "Ms".').optional(),
+    customFields: z.looseObject({}).describe('Customer custom fields.').optional(),
 });
+
+const updateCustomerInput = z.strictObject({
+    id: z.union([z.string(), z.number()]).describe('Customer ID.'),
+    input: customerUpdateSchema,
+});
+
+type UpdateCustomerToolInput = z.infer<typeof updateCustomerInput>;
 
 @McpTool({
     name: 'update_customer',
@@ -33,10 +39,7 @@ const customerUpdateSchema = objectSchema({
         'correct a customer profile',
     ],
     permissions: [Permission.UpdateCustomer],
-    inputSchema: objectSchema({
-        id: idProp('Customer ID.'),
-        input: customerUpdateSchema,
-    }),
+    inputSchema: updateCustomerInput,
 })
 @Injectable()
 export class UpdateCustomerTool implements McpToolHandler<UpdateCustomerToolInput> {

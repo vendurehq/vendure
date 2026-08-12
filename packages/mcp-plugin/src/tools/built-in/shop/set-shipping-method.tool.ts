@@ -1,13 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { ActiveOrderService, ID, OrderService, Permission, RequestContext } from '@vendure/core';
+import { ActiveOrderService, OrderService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
 import { getActiveOrder, orderResult } from '../order-helpers';
-import { idProp, objectSchema } from '../schema-helpers';
 
-interface SetShippingMethodInput {
-    methodId: ID;
-}
+const setShippingMethodInput = z.strictObject({
+    methodId: z.union([z.string(), z.number()]).describe('Shipping method ID.'),
+});
+
+type SetShippingMethodInput = z.infer<typeof setShippingMethodInput>;
 
 @McpTool({
     name: 'set_shipping_method',
@@ -22,7 +24,7 @@ interface SetShippingMethodInput {
         'how I want my order delivered',
     ],
     permissions: [Permission.Public],
-    inputSchema: objectSchema({ methodId: idProp('Shipping method ID.') }),
+    inputSchema: setShippingMethodInput,
 })
 @Injectable()
 export class SetShippingMethodTool implements McpToolHandler<SetShippingMethodInput> {

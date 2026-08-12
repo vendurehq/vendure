@@ -1,13 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { ActiveOrderService, OrderService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
 import { getActiveOrder, orderResult } from '../order-helpers';
-import { objectSchema, stringProp } from '../schema-helpers';
 
-interface ApplyCouponCodeInput {
-    code: string;
-}
+const applyCouponCodeInput = z.strictObject({
+    code: z.string().describe('Coupon code.'),
+});
+
+type ApplyCouponCodeInput = z.infer<typeof applyCouponCodeInput>;
 
 @McpTool({
     name: 'apply_coupon_code',
@@ -22,7 +24,7 @@ interface ApplyCouponCodeInput {
         'use my promotional code',
     ],
     permissions: [Permission.Public],
-    inputSchema: objectSchema({ code: stringProp('Coupon code.') }),
+    inputSchema: applyCouponCodeInput,
 })
 @Injectable()
 export class ApplyCouponCodeTool implements McpToolHandler<ApplyCouponCodeInput> {

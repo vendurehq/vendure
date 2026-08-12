@@ -1,44 +1,51 @@
 import { Injectable } from '@nestjs/common';
-import { CreateProductVariantInput } from '@vendure/common/lib/generated-types';
-import { ID, Permission, ProductVariantService, RequestContext } from '@vendure/core';
+import { GlobalFlag, LanguageCode } from '@vendure/common/lib/generated-types';
+import { Permission, ProductVariantService, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
-import {
-    arrayProp,
-    booleanProp,
-    idArrayProp,
-    idProp,
-    jsonObjectProp,
-    numberProp,
-    objectSchema,
-    optional,
-    stringProp,
-} from '../schema-helpers';
 import { variantSummary } from '../serializers';
 
-interface CreateVariantToolInput {
-    productId: ID;
-    input: Omit<CreateProductVariantInput, 'productId'>;
-}
-
-const variantTranslationSchema = objectSchema({
-    languageCode: stringProp('Language code, e.g. "en".'),
-    name: optional(stringProp('Variant name.')),
+const variantTranslationSchema = z.strictObject({
+    // Cast is type-only (no runtime effect, schema still emits `type: "string"`): the generated
+    // service call expects the real LanguageCode enum, but the JSON schema for this field is a
+    // plain string, so z.infer alone would type it as `string`.
+    languageCode: z.string().describe('Language code, e.g. "en".') as unknown as z.ZodType<LanguageCode>,
+    name: z.string().describe('Variant name.').optional(),
 });
 
-const createVariantInputSchema = objectSchema({
-    sku: stringProp('Stock keeping unit.'),
-    translations: arrayProp(variantTranslationSchema, 'Localized variant content.'),
-    price: optional(numberProp('Price in minor units (e.g. cents).')),
-    optionIds: optional(idArrayProp('Product option IDs for this variant.')),
-    taxCategoryId: optional(idProp('Tax category ID.')),
-    featuredAssetId: optional(idProp('Featured asset ID.')),
-    assetIds: optional(idArrayProp('Asset IDs to attach.')),
-    stockOnHand: optional(numberProp('Initial stock on hand.')),
-    trackInventory: optional(stringProp('Inventory tracking: "TRUE", "FALSE", or "INHERIT".')),
-    enabled: optional(booleanProp('Whether the variant is enabled.')),
-    customFields: optional(jsonObjectProp('Variant custom fields.')),
+const createVariantInputSchema = z.strictObject({
+    sku: z.string().describe('Stock keeping unit.'),
+    translations: z.array(variantTranslationSchema).describe('Localized variant content.'),
+    price: z.number().describe('Price in minor units (e.g. cents).').optional(),
+    optionIds: z
+        .array(z.union([z.string(), z.number()]).describe('Vendure ID.'))
+        .describe('Product option IDs for this variant.')
+        .optional(),
+    taxCategoryId: z.union([z.string(), z.number()]).describe('Tax category ID.').optional(),
+    featuredAssetId: z.union([z.string(), z.number()]).describe('Featured asset ID.').optional(),
+    assetIds: z
+        .array(z.union([z.string(), z.number()]).describe('Vendure ID.'))
+        .describe('Asset IDs to attach.')
+        .optional(),
+    stockOnHand: z.number().describe('Initial stock on hand.').optional(),
+    // Cast is type-only (no runtime effect, schema still emits `type: "string"`): the generated
+    // service call expects the real GlobalFlag enum, but the JSON schema for this field is a
+    // plain string, so z.infer alone would type it as `string`.
+    trackInventory: z
+        .string()
+        .describe('Inventory tracking: "TRUE", "FALSE", or "INHERIT".')
+        .optional() as unknown as z.ZodOptional<z.ZodType<GlobalFlag>>,
+    enabled: z.boolean().describe('Whether the variant is enabled.').optional(),
+    customFields: z.looseObject({}).describe('Variant custom fields.').optional(),
 });
+
+const createVariantInput = z.strictObject({
+    productId: z.union([z.string(), z.number()]).describe('Parent product ID.'),
+    input: createVariantInputSchema,
+});
+
+type CreateVariantToolInput = z.infer<typeof createVariantInput>;
 
 @McpTool({
     name: 'create_variant',
@@ -54,10 +61,7 @@ const createVariantInputSchema = objectSchema({
         'add a variation',
     ],
     permissions: [Permission.UpdateProduct],
-    inputSchema: objectSchema({
-        productId: idProp('Parent product ID.'),
-        input: createVariantInputSchema,
-    }),
+    inputSchema: createVariantInput,
 })
 @Injectable()
 export class CreateVariantTool implements McpToolHandler<CreateVariantToolInput> {

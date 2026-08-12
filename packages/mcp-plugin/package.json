@@ -29,13 +29,13 @@
         "@modelcontextprotocol/node": "2.0.0",
         "@modelcontextprotocol/server": "2.0.0",
         "@vendure/mcp-sdk": "3.7.0",
-        "hono": "^4.11.4"
+        "hono": "^4.11.4",
+        "zod": "^4.2.0"
     },
     "devDependencies": {
         "@modelcontextprotocol/client": "2.0.0",
         "@types/express": "^5.0.1",
         "@vendure/common": "3.7.0",
-        "@vendure/core": "3.7.0",
-        "zod": "^4.2.0"
+        "@vendure/core": "3.7.0"
     }
 }

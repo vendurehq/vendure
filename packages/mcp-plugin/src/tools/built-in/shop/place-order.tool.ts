@@ -2,14 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { PaymentInput } from '@vendure/common/lib/generated-shop-types';
 import { ActiveOrderService, OrderService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
 import { getActiveOrder, orderResult } from '../order-helpers';
-import { jsonObjectProp, objectSchema, optional, stringProp } from '../schema-helpers';
 
-interface PlaceOrderInput {
-    paymentMethodCode: string;
-    paymentMetadata?: Record<string, unknown>;
-}
+const placeOrderInput = z.strictObject({
+    paymentMethodCode: z.string().describe('Payment method code.'),
+    paymentMetadata: z.looseObject({}).describe('Metadata passed to the payment handler.').optional(),
+});
+
+type PlaceOrderInput = z.infer<typeof placeOrderInput>;
 
 @McpTool({
     name: 'place_order',
@@ -25,10 +27,7 @@ interface PlaceOrderInput {
     ],
     permissions: [Permission.Public],
     behavior: 'destructive',
-    inputSchema: objectSchema({
-        paymentMethodCode: stringProp('Payment method code.'),
-        paymentMetadata: optional(jsonObjectProp('Metadata passed to the payment handler.')),
-    }),
+    inputSchema: placeOrderInput,
 })
 @Injectable()
 export class PlaceOrderTool implements McpToolHandler<PlaceOrderInput> {

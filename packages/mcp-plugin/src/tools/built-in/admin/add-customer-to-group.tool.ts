@@ -1,13 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { CustomerGroupService, ID, Permission, RequestContext } from '@vendure/core';
+import { CustomerGroupService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
-import { idProp, objectSchema } from '../schema-helpers';
+const addCustomerToGroupInput = z.strictObject({
+    customerId: z.union([z.string(), z.number()]).describe('Customer ID.'),
+    groupId: z.union([z.string(), z.number()]).describe('Customer group ID.'),
+});
 
-interface AddCustomerToGroupInput {
-    customerId: ID;
-    groupId: ID;
-}
+type AddCustomerToGroupInput = z.infer<typeof addCustomerToGroupInput>;
 
 @McpTool({
     name: 'add_customer_to_group',
@@ -22,10 +23,7 @@ interface AddCustomerToGroupInput {
         'give customer group membership',
     ],
     permissions: [Permission.UpdateCustomerGroup],
-    inputSchema: objectSchema({
-        customerId: idProp('Customer ID.'),
-        groupId: idProp('Customer group ID.'),
-    }),
+    inputSchema: addCustomerToGroupInput,
 })
 @Injectable()
 export class AddCustomerToGroupTool implements McpToolHandler<AddCustomerToGroupInput> {

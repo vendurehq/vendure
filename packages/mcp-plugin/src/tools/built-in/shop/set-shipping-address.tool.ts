@@ -1,30 +1,31 @@
 import { Injectable } from '@nestjs/common';
-import { CreateAddressInput } from '@vendure/common/lib/generated-types';
 import { ActiveOrderService, OrderService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
 import { getActiveOrder } from '../order-helpers';
-import { booleanProp, jsonObjectProp, objectSchema, optional, stringProp } from '../schema-helpers';
 import { orderSummary } from '../serializers';
 
-interface SetShippingAddressInput {
-    address: CreateAddressInput;
-}
-
-const addressInputSchema = objectSchema({
-    fullName: optional(stringProp()),
-    company: optional(stringProp()),
-    streetLine1: stringProp(),
-    streetLine2: optional(stringProp()),
-    city: optional(stringProp()),
-    province: optional(stringProp()),
-    postalCode: optional(stringProp()),
-    countryCode: stringProp(),
-    phoneNumber: optional(stringProp()),
-    defaultShippingAddress: optional(booleanProp()),
-    defaultBillingAddress: optional(booleanProp()),
-    customFields: optional(jsonObjectProp('Address custom fields.')),
+const addressInputSchema = z.strictObject({
+    fullName: z.string().optional(),
+    company: z.string().optional(),
+    streetLine1: z.string(),
+    streetLine2: z.string().optional(),
+    city: z.string().optional(),
+    province: z.string().optional(),
+    postalCode: z.string().optional(),
+    countryCode: z.string(),
+    phoneNumber: z.string().optional(),
+    defaultShippingAddress: z.boolean().optional(),
+    defaultBillingAddress: z.boolean().optional(),
+    customFields: z.looseObject({}).describe('Address custom fields.').optional(),
 });
+
+const setShippingAddressInput = z.strictObject({
+    address: addressInputSchema,
+});
+
+type SetShippingAddressInput = z.infer<typeof setShippingAddressInput>;
 
 @McpTool({
     name: 'set_shipping_address',
@@ -39,7 +40,7 @@ const addressInputSchema = objectSchema({
         'send it to this address',
     ],
     permissions: [Permission.Public],
-    inputSchema: objectSchema({ address: addressInputSchema }),
+    inputSchema: setShippingAddressInput,
 })
 @Injectable()
 export class SetShippingAddressTool implements McpToolHandler<SetShippingAddressInput> {

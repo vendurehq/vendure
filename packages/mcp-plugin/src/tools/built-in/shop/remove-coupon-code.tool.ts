@@ -1,14 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { ActiveOrderService, OrderService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
 import { getActiveOrder } from '../order-helpers';
-import { objectSchema, stringProp } from '../schema-helpers';
 import { orderSummary } from '../serializers';
 
-interface RemoveCouponCodeInput {
-    code: string;
-}
+const removeCouponCodeInput = z.strictObject({
+    code: z.string().describe('Coupon code.'),
+});
+
+type RemoveCouponCodeInput = z.infer<typeof removeCouponCodeInput>;
 
 @McpTool({
     name: 'remove_coupon_code',
@@ -23,7 +25,7 @@ interface RemoveCouponCodeInput {
         'clear the applied promo',
     ],
     permissions: [Permission.Public],
-    inputSchema: objectSchema({ code: stringProp('Coupon code.') }),
+    inputSchema: removeCouponCodeInput,
 })
 @Injectable()
 export class RemoveCouponCodeTool implements McpToolHandler<RemoveCouponCodeInput> {

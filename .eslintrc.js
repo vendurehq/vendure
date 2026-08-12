@@ -43,29 +43,6 @@ module.exports = {
     root: true,
     overrides: [
         {
-            // The MCP SDK carries a nested zod@4 that must never
-            // mix with Vendure's root zod@3. mcp-plugin authors tool schemas as JSON Schema,
-            // so no Vendure-side zod object should ever cross the SDK boundary.
-            // e2e is exempt: fixtures there act as third-party tool authors and use the
-            // supported Standard Schema path with the plugin's own nested zod@4 devDependency.
-            files: ['./packages/mcp-plugin/src/**/*.ts'],
-            rules: {
-                'no-restricted-imports': [
-                    'error',
-                    {
-                        paths: [
-                            {
-                                name: 'zod',
-                                message:
-                                    'Do not import zod in @vendure/mcp-plugin — author tool schemas as JSON Schema (McpJsonSchema) instead.',
-                            },
-                        ],
-                        patterns: ['zod/*'],
-                    },
-                ],
-            },
-        },
-        {
             files: ['./packages/ui-devkit/src/client/**/*'],
             parserOptions: {
                 project: './packages/ui-devkit/tsconfig.json',

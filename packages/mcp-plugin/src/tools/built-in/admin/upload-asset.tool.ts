@@ -1,13 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { AssetService, ConfigService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
 import { uploadAssetFromUrl } from '../remote-asset';
-import { objectSchema, stringProp } from '../schema-helpers';
 
-interface UploadAssetInput {
-    url: string;
-}
+const uploadAssetInput = z.strictObject({
+    url: z.string().describe('Public HTTP(S) URL of the asset to fetch and store.'),
+});
+
+type UploadAssetInput = z.infer<typeof uploadAssetInput>;
 
 @McpTool({
     name: 'upload_asset',
@@ -22,9 +24,7 @@ interface UploadAssetInput {
         'add an asset from a web address',
     ],
     permissions: [Permission.CreateAsset],
-    inputSchema: objectSchema({
-        url: stringProp('Public HTTP(S) URL of the asset to fetch and store.'),
-    }),
+    inputSchema: uploadAssetInput,
 })
 @Injectable()
 export class UploadAssetTool implements McpToolHandler<UploadAssetInput> {

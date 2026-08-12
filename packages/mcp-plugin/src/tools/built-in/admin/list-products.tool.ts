@@ -1,15 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { Permission, Product, ProductService, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
+import { z } from 'zod';
 
 import { listOptions, page } from '../order-helpers';
-import { numberProp, objectSchema, optional } from '../schema-helpers';
 import { productSummary } from '../serializers';
 
-interface ListProductsInput extends Record<string, unknown> {
-    limit?: number;
-    offset?: number;
-}
+const listProductsInput = z.strictObject({
+    limit: z.number().describe('Maximum number of products to return.').optional(),
+    offset: z.number().describe('Number of products to skip.').optional(),
+});
+
+type ListProductsInput = z.infer<typeof listProductsInput> & Record<string, unknown>;
 
 @McpTool({
     name: 'list_products',
@@ -25,10 +27,7 @@ interface ListProductsInput extends Record<string, unknown> {
     ],
     permissions: [Permission.ReadProduct],
     behavior: 'readonly',
-    inputSchema: objectSchema({
-        limit: optional(numberProp('Maximum number of products to return.')),
-        offset: optional(numberProp('Number of products to skip.')),
-    }),
+    inputSchema: listProductsInput,
 })
 @Injectable()
 export class ListProductsTool implements McpToolHandler<ListProductsInput> {
