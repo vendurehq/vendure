@@ -131,6 +131,15 @@ arguments before your `execute` runs. Anything that is neither form — includin
 which cannot emit JSON Schema — is a TypeScript error at the decorator, and if it reaches the
 registry it aborts startup with an error naming the offending tool.
 
+:::caution Standard Schema needs Zod v4.2+
+If your project resolves Zod **v3** (still common as a transitive dependency), a Zod schema
+satisfies *neither* accepted form, and TypeScript's error is misleading: it complains the schema
+is not assignable to `McpJsonSchema` and is missing a `type` property, without mentioning Zod
+versions at all. If you hit that error on a Zod schema, check what actually resolved
+(`npm ls zod`) — you need Zod **4.2 or later** for the JSON Schema conversion, or author the
+schema as a plain JSON Schema object, which works regardless of Zod version.
+:::
+
 - Omitting `inputSchema` means the tool accepts **no** arguments (the server publishes
   `{ type: 'object', properties: {}, additionalProperties: false }`), not "accepts anything".
 - Hand-written JSON Schemas should declare `additionalProperties: false` so unknown fields are
