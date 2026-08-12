@@ -131,6 +131,7 @@ export const defaultConfig: RuntimeVendureConfig = {
         verificationTokenStrategy: new DefaultVerificationTokenStrategy(),
         entityAccessControlStrategy: new DefaultEntityAccessControlStrategy(),
         customerChannelAssignmentStrategy: new DefaultCustomerChannelAssignmentStrategy(),
+        channelScopedRoles: false,
     },
     catalogOptions: {
         collectionFilters: defaultCollectionFilters,

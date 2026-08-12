@@ -28,7 +28,9 @@ export function ChannelSelector<T extends boolean>(props: ChannelSelectorProps<T
 
     const { data: channelsData } = useQuery({
         queryKey: ['channels'],
-        queryFn: () => api.query(channelsDocument, {}),
+        // ponytail: fetch all channels and let the combobox filter client-side. Switch to a
+        // server-side filter term if installs go beyond ~1000 channels.
+        queryFn: () => api.query(channelsDocument, { options: { take: 1000 } }),
         staleTime: 1000 * 60 * 5,
     });
 

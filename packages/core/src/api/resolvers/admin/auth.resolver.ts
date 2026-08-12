@@ -21,6 +21,7 @@ import { Logger } from '../../../config/logger/vendure-logger';
 import { AdministratorService } from '../../../service/services/administrator.service';
 import { ApiKeyService } from '../../../service/services/api-key.service';
 import { AuthService } from '../../../service/services/auth.service';
+import { ChannelRoleService } from '../../../service/services/channel-role.service';
 import { UserService } from '../../../service/services/user.service';
 import { RequestContext } from '../../common/request-context';
 import { Allow } from '../../decorators/allow.decorator';
@@ -36,8 +37,16 @@ export class AuthResolver extends BaseAuthResolver {
         configService: ConfigService,
         administratorService: AdministratorService,
         apiKeyService: ApiKeyService,
+        channelRoleService: ChannelRoleService,
     ) {
-        super(authService, userService, administratorService, configService, apiKeyService);
+        super(
+            authService,
+            userService,
+            administratorService,
+            configService,
+            apiKeyService,
+            channelRoleService,
+        );
     }
 
     @Transaction()

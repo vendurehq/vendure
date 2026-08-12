@@ -30,8 +30,10 @@ export function RoleSelector<T extends boolean>(props: RoleSelectorProps<T>) {
         queryKey: ['roles'],
         queryFn: () =>
             api.query(rolesDocument, {
+                // ponytail: fetch all roles and let the combobox filter client-side. Switch to a
+                // server-side filter term if installs go beyond ~1000 roles.
                 options: {
-                    take: 100,
+                    take: 1000,
                 },
             }),
         select: data => data.roles.items,

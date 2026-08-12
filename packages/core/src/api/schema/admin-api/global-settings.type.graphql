@@ -25,4 +25,6 @@ type ServerConfig {
     permittedAssetTypes: [String!]!
     permissions: [PermissionDefinition!]!
     moneyStrategyPrecision: Int!
+    "Whether the `authOptions.channelScopedRoles` config option is enabled."
+    channelScopedRoles: Boolean!
 }

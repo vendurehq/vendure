@@ -7,6 +7,20 @@ type Administrator implements Node {
     emailAddress: String!
     avatar: Asset
     user: User!
+    """
+    Channel-scoped Role assignments, grouped by Role. Always empty unless the
+    `authOptions.channelScopedRoles` config option is enabled.
+
+    Note that `user.roles` only lists Roles assigned directly, so this field must also be read to see
+    an Administrator's full set of Roles.
+    """
+    channelRoles: [AdministratorChannelRole!]!
+}
+
+"The Channels on which an Administrator has been granted a particular Role."
+type AdministratorChannelRole {
+    role: Role!
+    channels: [Channel!]!
 }
 
 type AdministratorList implements PaginatedList {

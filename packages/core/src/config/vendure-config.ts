@@ -568,6 +568,26 @@ export interface AuthOptions {
      * @since 3.7.0
      */
     customerChannelAssignmentStrategy?: CustomerChannelAssignmentStrategy;
+    /**
+     * @description
+     * When enabled, a {@link Role} may be granted to a {@link User} on specific {@link Channel}s via
+     * {@link ChannelRole} assignments, rather than the Role's own `channels` relation determining the
+     * scope for every User who holds it.
+     *
+     * This allows a single Role such as "CatalogManager" to be shared between many Channels while each
+     * Administrator remains restricted to the Channels they were explicitly granted. Without it, adding
+     * a Channel to a Role grants that Channel to every holder of the Role, so isolating Administrators
+     * requires duplicating the Role per Channel.
+     *
+     * Permissions from `User.roles` continue to apply, so Roles which should apply everywhere (such as
+     * SuperAdmin) can still be assigned directly. When this option is enabled, a Role may only be
+     * assigned directly if it is assigned to every Channel.
+     *
+     * @default false
+     * @since 3.8.0
+     * @experimental
+     */
+    channelScopedRoles?: boolean;
 }
 
 /**

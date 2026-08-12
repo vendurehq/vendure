@@ -226,6 +226,7 @@ export const getServerConfigDocument = graphql(
                 id
                 availableLanguages
                 serverConfig {
+                    channelScopedRoles
                     moneyStrategyPrecision
                     orderProcess {
                         name
@@ -255,6 +256,7 @@ export type CustomFieldConfig = QueryResult['entityCustomFields'][number]['custo
 
 export interface ServerConfig {
     availableLanguages: string[];
+    channelScopedRoles: QueryResult['channelScopedRoles'];
     moneyStrategyPrecision: QueryResult['moneyStrategyPrecision'];
     orderProcess: QueryResult['orderProcess'];
     permittedAssetTypes: QueryResult['permittedAssetTypes'];
@@ -286,6 +288,7 @@ export const ServerConfigProvider = ({ children }: { children: React.ReactNode }
             data?.globalSettings
                 ? {
                       availableLanguages: data.globalSettings.availableLanguages ?? [],
+                      channelScopedRoles: data.globalSettings.serverConfig.channelScopedRoles ?? false,
                       moneyStrategyPrecision: data.globalSettings.serverConfig.moneyStrategyPrecision ?? 2,
                       orderProcess: data.globalSettings.serverConfig.orderProcess ?? [],
                       permittedAssetTypes: data.globalSettings.serverConfig.permittedAssetTypes ?? [],

@@ -45,3 +45,32 @@ export function getChannelPermissions(roles: Role[]): UserChannelPermissions[] {
 
     return Object.values(channelsMap).sort((a, b) => (a.id < b.id ? -1 : 1));
 }
+
+/**
+ * @description
+ * Combines multiple sets of Channel permissions into one, unioning the permissions of any Channel
+ * which appears in more than one set. Used to combine the permissions a User has via `User.roles`
+ * with those granted by their {@link ChannelRole}s.
+ */
+export function mergeChannelPermissions(
+    ...permissionSets: Array<UserChannelPermissions[] | undefined>
+): UserChannelPermissions[] {
+    const nonEmpty = permissionSets.filter((set): set is UserChannelPermissions[] => !!set?.length);
+    if (nonEmpty.length < 2) {
+        return nonEmpty[0] ?? [];
+    }
+    const channelsMap: { [code: string]: UserChannelPermissions } = {};
+    for (const permissionSet of nonEmpty) {
+        for (const channel of permissionSet) {
+            if (!channelsMap[channel.code]) {
+                channelsMap[channel.code] = { ...channel, permissions: [...channel.permissions] };
+            } else {
+                channelsMap[channel.code].permissions = unique([
+                    ...channelsMap[channel.code].permissions,
+                    ...channel.permissions,
+                ]);
+            }
+        }
+    }
+    return Object.values(channelsMap).sort((a, b) => (a.id < b.id ? -1 : 1));
+}

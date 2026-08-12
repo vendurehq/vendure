@@ -47,6 +47,16 @@ export const administratorDetailDocument = graphql(
             administrator(id: $id) {
                 ...AdministratorItem
                 customFields
+                channelRoles {
+                    role {
+                        id
+                        code
+                    }
+                    channels {
+                        id
+                        code
+                    }
+                }
             }
         }
     `,

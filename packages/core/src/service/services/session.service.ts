@@ -13,6 +13,7 @@ import { TransactionalConnection } from '../../connection/transactional-connecti
 import { ApiKey } from '../../entity/api-key/api-key.entity';
 import { Channel } from '../../entity/channel/channel.entity';
 import { Order } from '../../entity/order/order.entity';
+import { ChannelRole } from '../../entity/role/channel-role.entity';
 import { Role } from '../../entity/role/role.entity';
 import { AnonymousSession } from '../../entity/session/anonymous-session.entity';
 import { AuthenticatedSession } from '../../entity/session/authenticated-session.entity';
@@ -21,8 +22,13 @@ import { User } from '../../entity/user/user.entity';
 import { JobQueue } from '../../job-queue/job-queue';
 import { JobQueueService } from '../../job-queue/job-queue.service';
 import { RequestContextService } from '../helpers/request-context/request-context.service';
-import { getUserChannelsPermissions } from '../helpers/utils/get-user-channels-permissions';
+import {
+    getUserChannelsPermissions,
+    mergeChannelPermissions,
+    UserChannelPermissions,
+} from '../helpers/utils/get-user-channels-permissions';
 
+import { ChannelRoleService } from './channel-role.service';
 import { OrderService } from './order.service';
 
 /**
@@ -45,6 +51,7 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
         private orderService: OrderService,
         private jobQueueService: JobQueueService,
         private requestContextService: RequestContextService,
+        private channelRoleService: ChannelRoleService,
     ) {
         this.sessionCacheStrategy = this.configService.authOptions.sessionCacheStrategy;
 
@@ -95,7 +102,12 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
             // If a Channel or Role changes, potentially all the cached permissions in the
             // session cache will be wrong, so we just clear the entire cache. It should however
             // be a very rare occurrence in normal operation, once initial setup is complete.
-            if (event.entity instanceof Channel || event.entity instanceof Role) {
+            // The same applies to a ChannelRole, which is the channel-scoped grant of a Role to a User.
+            if (
+                event.entity instanceof Channel ||
+                event.entity instanceof Role ||
+                event.entity instanceof ChannelRole
+            ) {
                 await this.withTimeout(this.sessionCacheStrategy.clear());
             }
         }
@@ -135,7 +147,12 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
                 invalidated: false,
             }),
         );
-        await this.withTimeout(this.sessionCacheStrategy.set(this.serializeSession(authenticatedSession)));
+        const channelRolePermissions = await this.channelRoleService.getPermissionsForUser(ctx, user.id);
+        await this.withTimeout(
+            this.sessionCacheStrategy.set(
+                this.serializeSession(authenticatedSession, channelRolePermissions),
+            ),
+        );
         return authenticatedSession;
     }
 
@@ -169,7 +186,10 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
         if (!serializedSession || stale || expired) {
             const session = await this.findSessionByToken(sessionToken);
             if (session) {
-                serializedSession = this.serializeSession(session);
+                serializedSession = this.serializeSession(
+                    session,
+                    await this.getChannelRolePermissions(undefined, session),
+                );
                 await this.withTimeout(this.sessionCacheStrategy.set(serializedSession));
                 return serializedSession;
             } else {
@@ -182,8 +202,15 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
     /**
      * @description
      * Serializes a {@link Session} instance into a simplified plain object suitable for caching.
+     *
+     * The optional `channelRolePermissions` argument allows the permissions granted by the User's
+     * {@link ChannelRole}s to be merged into the cached permissions. It is resolved by the caller
+     * because loading it requires a database query. See {@link ChannelRoleService}.
      */
-    serializeSession(session: AuthenticatedSession | AnonymousSession): CachedSession {
+    serializeSession(
+        session: AuthenticatedSession | AnonymousSession,
+        channelRolePermissions: UserChannelPermissions[] = [],
+    ): CachedSession {
         const { sessionCacheTTL } = this.configService.authOptions;
         const sessionCacheTTLSeconds =
             typeof sessionCacheTTL === 'string' ? ms(sessionCacheTTL as StringValue) / 1000 : sessionCacheTTL;
@@ -204,7 +231,10 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
                 id: user.id,
                 identifier: user.identifier,
                 verified: user.verified,
-                channelPermissions: getUserChannelsPermissions(user),
+                channelPermissions: mergeChannelPermissions(
+                    getUserChannelsPermissions(user),
+                    channelRolePermissions,
+                ),
             };
         }
         return serializedSession;
@@ -259,7 +289,10 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
         if (session) {
             session.activeOrder = order;
             await this.connection.getRepository(ctx, Session).save(session, { reload: false });
-            const updatedSerializedSession = this.serializeSession(session);
+            const updatedSerializedSession = this.serializeSession(
+                session,
+                await this.getChannelRolePermissions(ctx, session),
+            );
             await this.withTimeout(this.sessionCacheStrategy.set(updatedSerializedSession));
             return updatedSerializedSession;
         }
@@ -279,7 +312,10 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
             if (session) {
                 session.activeOrder = null;
                 await this.connection.getRepository(ctx, Session).save(session);
-                const updatedSerializedSession = this.serializeSession(session);
+                const updatedSerializedSession = this.serializeSession(
+                    session,
+                    await this.getChannelRolePermissions(ctx, session),
+                );
                 await this.configService.authOptions.sessionCacheStrategy.set(updatedSerializedSession);
                 return updatedSerializedSession;
             }
@@ -299,7 +335,10 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
         if (session) {
             session.activeChannel = channel;
             await this.connection.rawConnection.getRepository(Session).save(session, { reload: false });
-            const updatedSerializedSession = this.serializeSession(session);
+            const updatedSerializedSession = this.serializeSession(
+                session,
+                await this.getChannelRolePermissions(undefined, session),
+            );
             await this.withTimeout(this.sessionCacheStrategy.set(updatedSerializedSession));
             return updatedSerializedSession;
         }
@@ -432,6 +471,21 @@ export class SessionService implements EntitySubscriberInterface, OnModuleInit {
                 resolve(buf.toString('hex'));
             });
         });
+    }
+
+    /**
+     * Resolves the permissions granted to the Session's User by their ChannelRoles, so that they can be
+     * merged into the cached session. Resolves to an empty array for anonymous sessions and whenever
+     * channel-scoped roles are disabled.
+     */
+    private async getChannelRolePermissions(
+        ctx: RequestContext | undefined,
+        session: Session,
+    ): Promise<UserChannelPermissions[]> {
+        if (!this.isAuthenticatedSession(session)) {
+            return [];
+        }
+        return this.channelRoleService.getPermissionsForUser(ctx, session.user.id);
     }
 
     private isAuthenticatedSession(session: Session): session is AuthenticatedSession {

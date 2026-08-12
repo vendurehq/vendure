@@ -34,6 +34,7 @@ export * from './helpers/verification-token-generator/verification-token-generat
 export * from './services/administrator.service';
 export * from './services/asset.service';
 export * from './services/auth.service';
+export * from './services/channel-role.service';
 export * from './services/channel.service';
 export * from './services/collection.service';
 export * from './services/country.service';

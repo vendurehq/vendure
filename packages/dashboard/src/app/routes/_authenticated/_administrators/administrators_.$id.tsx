@@ -5,16 +5,18 @@ import { Button } from '@/vdb/components/ui/button.js';
 import { Input } from '@/vdb/components/ui/input.js';
 import { PasswordInput } from '@/vdb/components/ui/password-input.js';
 import { NEW_ENTITY_PATH } from '@/vdb/constants.js';
-import {    CustomFieldsPageBlock,
+import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
+import {
+    CustomFieldsPageBlock,
     Page,
     PageActionBar,
     PageBlock,
     PageLayout,
     PageTitle,
 } from '@/vdb/framework/layout-engine/page-layout.js';
-import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
+import { useServerConfig } from '@/vdb/hooks/use-server-config.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
@@ -23,9 +25,25 @@ import {
     createAdministratorDocument,
     updateAdministratorDocument,
 } from './administrators.graphql.js';
+import { ChannelRoleMatrix } from './components/channel-role-matrix.js';
 import { RolePermissionsDisplay } from './components/role-permissions-display.js';
 
 const pageId = 'administrator-detail';
+
+/**
+ * The server rejects `channelRoles` unless `authOptions.channelScopedRoles` is enabled, so the field is
+ * omitted entirely rather than sent as an empty array.
+ */
+function stripDisabledChannelRoles<T extends { channelRoles?: unknown }>(
+    input: T,
+    channelScopedRoles: boolean,
+): T {
+    if (channelScopedRoles) {
+        return input;
+    }
+    const { channelRoles, ...rest } = input;
+    return rest as T;
+}
 
 export const Route = createFileRoute('/_authenticated/_administrators/administrators_/$id')({
     component: AdministratorDetailPage,
@@ -48,6 +66,7 @@ function AdministratorDetailPage() {
     const navigate = useNavigate();
     const creatingNewEntity = params.id === NEW_ENTITY_PATH;
     const { t } = useLingui();
+    const channelScopedRoles = useServerConfig()?.channelScopedRoles === true;
 
     const { form, submitHandler, entity, isPending, resetForm } = useDetailPage({
         pageId,
@@ -63,13 +82,21 @@ function AdministratorDetailPage() {
                 password: '',
                 customFields: entity.customFields,
                 roleIds: entity.user.roles.map(role => role.id),
+                channelRoles: entity.channelRoles.map(channelRole => ({
+                    roleId: channelRole.role.id,
+                    channelIds: channelRole.channels.map(channel => channel.id),
+                })),
             };
         },
+        transformCreateInput: input => stripDisabledChannelRoles(input, channelScopedRoles),
         transformUpdateInput: input => {
-            return {
-                ...input,
-                password: input.password || undefined,
-            };
+            return stripDisabledChannelRoles(
+                {
+                    ...input,
+                    password: input.password || undefined,
+                },
+                channelScopedRoles,
+            );
         },
         params: { id: params.id },
         onSuccess: async data => {
@@ -141,6 +168,15 @@ function AdministratorDetailPage() {
                     <FormFieldWrapper
                         control={form.control}
                         name="roleIds"
+                        label={channelScopedRoles ? <Trans>Global roles</Trans> : undefined}
+                        description={
+                            channelScopedRoles ? (
+                                <Trans>
+                                    These roles apply on every channel. Roles which cover only some channels
+                                    must be assigned below.
+                                </Trans>
+                            ) : undefined
+                        }
                         render={({ field }) => (
                             <RoleSelector
                                 value={field.value ?? []}
@@ -149,8 +185,25 @@ function AdministratorDetailPage() {
                             />
                         )}
                     />
-                    <RolePermissionsDisplay value={roleIds ?? []} />
+                    {!channelScopedRoles && <RolePermissionsDisplay value={roleIds ?? []} />}
                 </PageBlock>
+                {channelScopedRoles && (
+                    <PageBlock column="main" blockId="channel-roles" title={<Trans>Channel roles</Trans>}>
+                        <FormFieldWrapper
+                            control={form.control}
+                            name="channelRoles"
+                            description={
+                                <Trans>
+                                    Grant a role on specific channels only. The same role can be shared
+                                    between channels without granting access to all of them.
+                                </Trans>
+                            }
+                            render={({ field }) => (
+                                <ChannelRoleMatrix value={field.value ?? []} onChange={field.onChange} />
+                            )}
+                        />
+                    </PageBlock>
+                )}
             </PageLayout>
         </Page>
     );

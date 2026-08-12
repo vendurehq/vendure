@@ -1,10 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import {
+    ChannelRoleInput,
     CreateAdministratorInput,
     DeletionResult,
+    Permission,
     UpdateAdministratorInput,
 } from '@vendure/common/lib/generated-types';
 import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
+import { unique } from '@vendure/common/lib/unique';
 import { In, IsNull } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
@@ -24,6 +27,8 @@ import { TransactionalConnection } from '../../connection/transactional-connecti
 import { Administrator } from '../../entity/administrator/administrator.entity';
 import { ApiKey } from '../../entity/api-key/api-key.entity';
 import { NativeAuthenticationMethod } from '../../entity/authentication-method/native-authentication-method.entity';
+import { Channel } from '../../entity/channel/channel.entity';
+import { ChannelRole } from '../../entity/role/channel-role.entity';
 import { Role } from '../../entity/role/role.entity';
 import { User } from '../../entity/user/user.entity';
 import { EventBus } from '../../event-bus';
@@ -41,6 +46,7 @@ import { getChannelPermissions } from '../helpers/utils/get-user-channels-permis
 import { patchEntity } from '../helpers/utils/patch-entity';
 
 import { AssetService } from './asset.service';
+import { ChannelRoleService } from './channel-role.service';
 import { RoleService } from './role.service';
 import { UserService } from './user.service';
 
@@ -64,6 +70,7 @@ export class AdministratorService {
         private assetService: AssetService,
         private eventBus: EventBus,
         private requestContextService: RequestContextService,
+        private channelRoleService: ChannelRoleService,
     ) {}
 
     /**
@@ -244,7 +251,12 @@ export class AdministratorService {
      * Create a new Administrator.
      */
     async create(ctx: RequestContext, input: CreateAdministratorInput): Promise<Administrator> {
+        this.assertChannelRolesAreEnabled(input.channelRoles);
+        await this.assertRoleIdsApplyToEveryChannel(ctx, input.roleIds);
         await this.checkActiveUserCanGrantRoles(ctx, input.roleIds);
+        if (input.channelRoles?.length) {
+            await this.checkActiveUserCanGrantChannelRoles(ctx, input.channelRoles);
+        }
         const normalizedEmail = normalizeEmailAddress(input.emailAddress);
         await this.checkForDuplicateEmailAddress(ctx, normalizedEmail);
         const administrator = new Administrator(input);
@@ -255,6 +267,13 @@ export class AdministratorService {
             .save(administrator);
         for (const roleId of input.roleIds) {
             createdAdministrator = await this.assignRole(ctx, createdAdministrator.id, roleId);
+        }
+        if (input.channelRoles?.length) {
+            await this.channelRoleService.setChannelRoles(
+                ctx,
+                createdAdministrator.user.id,
+                input.channelRoles,
+            );
         }
         await this.customFieldRelationService.updateRelations(
             ctx,
@@ -275,9 +294,17 @@ export class AdministratorService {
         if (!administrator) {
             throw new EntityNotFoundError('Administrator', input.id);
         }
+        this.assertChannelRolesAreEnabled(input.channelRoles);
         await this.checkActiveUserCanManageAdministrator(ctx, administrator);
         if (input.roleIds) {
+            await this.assertRoleIdsApplyToEveryChannel(ctx, input.roleIds);
             await this.checkActiveUserCanGrantRoles(ctx, input.roleIds);
+        }
+        if (input.channelRoles?.length) {
+            await this.checkActiveUserCanGrantChannelRoles(ctx, input.channelRoles);
+        }
+        if (input.roleIds || input.channelRoles) {
+            await this.assertSuperAdminRoleIsRetained(ctx, administrator, input);
         }
         if (input.emailAddress) {
             const normalizedEmail = normalizeEmailAddress(input.emailAddress);
@@ -300,13 +327,6 @@ export class AdministratorService {
             }
         }
         if (input.roleIds) {
-            const isSoleSuperAdmin = await this.isSoleSuperadmin(ctx, input.id);
-            if (isSoleSuperAdmin) {
-                const superAdminRole = await this.roleService.getSuperAdminRole(ctx);
-                if (!input.roleIds.find(id => idsAreEqual(id, superAdminRole.id))) {
-                    throw new InternalServerError('error.superadmin-must-have-superadmin-role');
-                }
-            }
             const removeIds = administrator.user.roles
                 .map(role => role.id)
                 .filter(roleId => (input.roleIds as ID[]).indexOf(roleId) === -1);
@@ -322,6 +342,35 @@ export class AdministratorService {
             }
             await this.eventBus.publish(new RoleChangeEvent(ctx, updatedAdministrator, addIds, 'assigned'));
             await this.eventBus.publish(new RoleChangeEvent(ctx, updatedAdministrator, removeIds, 'removed'));
+        }
+        if (input.channelRoles) {
+            const { added, removed } = await this.channelRoleService.setChannelRoles(
+                ctx,
+                administrator.user.id,
+                input.channelRoles,
+            );
+            // RoleChangeEvent carries no Channel dimension, but is still published so that existing
+            // subscribers see channel-scoped grants rather than silently missing them.
+            if (added.length) {
+                await this.eventBus.publish(
+                    new RoleChangeEvent(
+                        ctx,
+                        updatedAdministrator,
+                        unique(added.map(cr => cr.roleId)),
+                        'assigned',
+                    ),
+                );
+            }
+            if (removed.length) {
+                await this.eventBus.publish(
+                    new RoleChangeEvent(
+                        ctx,
+                        updatedAdministrator,
+                        unique(removed.map(cr => cr.roleId)),
+                        'removed',
+                    ),
+                );
+            }
         }
         await this.customFieldRelationService.updateRelations(
             ctx,
@@ -426,6 +475,93 @@ export class AdministratorService {
         }
     }
 
+    private assertChannelRolesAreEnabled(channelRoles: ChannelRoleInput[] | null | undefined) {
+        if (channelRoles && !this.channelRoleService.enabled) {
+            throw new UserInputError('error.channel-scoped-roles-not-enabled');
+        }
+    }
+
+    /**
+     * The last remaining SuperAdmin must keep the SuperAdmin role, or administration via the API becomes
+     * impossible. The role may be held either directly or via a {@link ChannelRole}, and an update may
+     * replace either slot independently, so the check is made against the resulting combination.
+     */
+    private async assertSuperAdminRoleIsRetained(
+        ctx: RequestContext,
+        administrator: Administrator,
+        input: UpdateAdministratorInput,
+    ) {
+        if (!(await this.isSoleSuperadmin(ctx, input.id))) {
+            return;
+        }
+        const superAdminRole = await this.roleService.getSuperAdminRole(ctx);
+        const retainedRoleIds = input.roleIds ?? administrator.user.roles.map(role => role.id);
+        if (retainedRoleIds.some(id => idsAreEqual(id, superAdminRole.id))) {
+            return;
+        }
+        const retainedChannelRoleIds = input.channelRoles
+            ? input.channelRoles.filter(cr => cr.channelIds.length).map(cr => cr.roleId)
+            : (await this.channelRoleService.findByUserId(ctx, administrator.user.id)).map(cr => cr.roleId);
+        if (retainedChannelRoleIds.some(id => idsAreEqual(id, superAdminRole.id))) {
+            return;
+        }
+        throw new InternalServerError('error.superadmin-must-have-superadmin-role');
+    }
+
+    /**
+     * Checks that the active user is allowed to grant the given Roles on the given Channels. Unlike
+     * {@link AdministratorService.checkActiveUserCanGrantRoles}, the Channel a Role is granted on comes
+     * from the assignment rather than from the Role, so the required permissions must be assembled per
+     * Channel here.
+     */
+    private async checkActiveUserCanGrantChannelRoles(ctx: RequestContext, channelRoles: ChannelRoleInput[]) {
+        const pairs = await this.channelRoleService.getRoleChannelPairs(ctx, channelRoles);
+        const permissionsByChannel = new Map<string, { channelId: ID; permissions: Set<Permission> }>();
+        for (const { role, channelId } of pairs) {
+            const key = String(channelId);
+            const entry = permissionsByChannel.get(key) ?? { channelId, permissions: new Set<Permission>() };
+            for (const permission of role.permissions) {
+                entry.permissions.add(permission);
+            }
+            permissionsByChannel.set(key, entry);
+        }
+        for (const { channelId, permissions } of permissionsByChannel.values()) {
+            const activeUserHasRequiredPermissions = await this.roleService.userHasAllPermissionsOnChannel(
+                ctx,
+                channelId,
+                [...permissions],
+            );
+            if (!activeUserHasRequiredPermissions) {
+                throw new UserInputError('error.active-user-does-not-have-sufficient-permissions');
+            }
+        }
+    }
+
+    /**
+     * When channel-scoped roles are enabled, a Role assigned directly to a User applies on every Channel
+     * of that Role. Allowing a Role which covers only *some* Channels to be assigned that way would
+     * silently re-introduce the cross-channel leak this feature exists to prevent, so such Roles must be
+     * granted as {@link ChannelRole}s instead.
+     *
+     * Only applied to Roles arriving in an input, so that Administrators who already hold such a Role
+     * from before the option was enabled can still be read and managed.
+     */
+    private async assertRoleIdsApplyToEveryChannel(ctx: RequestContext, roleIds: ID[]) {
+        if (!this.channelRoleService.enabled || !roleIds.length) {
+            return;
+        }
+        const roles = await this.connection.getRepository(ctx, Role).find({
+            where: { id: In(roleIds) },
+            relations: { channels: true },
+        });
+        const channelCount = await this.connection.getRepository(ctx, Channel).count();
+        for (const role of roles) {
+            if (role.channels.length < channelCount) {
+                throw new UserInputError('error.role-must-be-granted-per-channel', { roleCode: role.code });
+            }
+        }
+    }
+
     /**
      * Ensures the active user holds all of the target administrator's permissions on all of the target's
      * channels before allowing the target to be modified, so a lower-privileged administrator cannot
@@ -435,6 +571,15 @@ export class AdministratorService {
         const targetRoleIds = administrator.user.roles.map(role => role.id);
         if (targetRoleIds.length) {
             await this.checkActiveUserCanGrantRoles(ctx, targetRoleIds);
+        }
+        // The target's channel-scoped Roles must be checked too, otherwise an Administrator restricted to
+        // one Channel could modify an Administrator whose permissions come from another Channel.
+        const targetChannelRoles = await this.channelRoleService.findByUserId(ctx, administrator.user.id);
+        if (targetChannelRoles.length) {
+            await this.checkActiveUserCanGrantChannelRoles(
+                ctx,
+                targetChannelRoles.map(({ roleId, channelId }) => ({ roleId, channelIds: [channelId] })),
+            );
         }
     }
 
@@ -500,8 +645,12 @@ export class AdministratorService {
             relations: ['user', 'user.roles'],
             where: { deletedAt: IsNull() },
         });
+        // The SuperAdmin role may also be held via a ChannelRole, which would not appear in `user.roles`.
+        const superAdminUserIds = await this.getUserIdsWithChannelRole(ctx, superAdminRole.id);
         const superAdmins = allAdmins.filter(
-            admin => !!admin.user.roles.find(r => idsAreEqual(r.id, superAdminRole.id)),
+            admin =>
+                !!admin.user.roles.find(r => idsAreEqual(r.id, superAdminRole.id)) ||
+                superAdminUserIds.some(userId => idsAreEqual(userId, admin.user.id)),
         );
         if (superAdmins.length === 0) {
             return false;
@@ -510,6 +659,17 @@ export class AdministratorService {
             return false;
         }
         return idsAreEqual(superAdmins[0].id, id);
+    }
+
+    private async getUserIdsWithChannelRole(ctx: RequestContext, roleId: ID): Promise<ID[]> {
+        if (!this.channelRoleService.enabled) {
+            return [];
+        }
+        const rows = await this.connection.getRepository(ctx, ChannelRole).find({
+            select: { userId: true },
+            where: { roleId },
+        });
+        return unique(rows.map(row => row.userId));
     }
 
     /**

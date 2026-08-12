@@ -43,6 +43,7 @@ import { AdministratorService } from './services/administrator.service';
 import { ApiKeyService } from './services/api-key.service';
 import { AssetService } from './services/asset.service';
 import { AuthService } from './services/auth.service';
+import { ChannelRoleService } from './services/channel-role.service';
 import { ChannelService } from './services/channel.service';
 import { CollectionService } from './services/collection.service';
 import { CountryService } from './services/country.service';
@@ -82,6 +83,7 @@ const services = [
     ApiKeyService,
     AssetService,
     AuthService,
+    ChannelRoleService,
     ChannelService,
     CollectionService,
     CountryService,

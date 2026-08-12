@@ -71,6 +71,7 @@ export class GlobalSettingsResolver {
             permittedAssetTypes: this.configService.assetOptions.permittedFileTypes,
             permissions,
             moneyStrategyPrecision: this.configService.entityOptions.moneyStrategy.precision ?? 2,
+            channelScopedRoles: this.configService.authOptions.channelScopedRoles === true,
         };
     }
 

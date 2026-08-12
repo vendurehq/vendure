@@ -14,8 +14,9 @@ import { ConfigService } from '../../../config/config.service';
 import { CachedSession, CachedSessionUser } from '../../../config/session-cache/session-cache-strategy';
 import { Channel } from '../../../entity/channel/channel.entity';
 import { User } from '../../../entity/user/user.entity';
+import { ChannelRoleService } from '../../services/channel-role.service';
 import { ChannelService } from '../../services/channel.service';
-import { getUserChannelsPermissions } from '../utils/get-user-channels-permissions';
+import { getUserChannelsPermissions, mergeChannelPermissions } from '../utils/get-user-channels-permissions';
 
 /**
  * @description
@@ -29,6 +30,7 @@ export class RequestContextService {
     constructor(
         private channelService: ChannelService,
         private configService: ConfigService,
+        private channelRoleService: ChannelRoleService,
     ) {}
 
     /**
@@ -78,7 +80,10 @@ export class RequestContextService {
         }
         let session: CachedSession | undefined;
         if (user) {
-            const channelPermissions = user.roles ? getUserChannelsPermissions(user) : [];
+            const channelPermissions = mergeChannelPermissions(
+                user.roles ? getUserChannelsPermissions(user) : [],
+                await this.channelRoleService.getPermissionsForUser(undefined, user.id),
+            );
             session = {
                 user: {
                     id: user.id,

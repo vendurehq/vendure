@@ -87,6 +87,14 @@ export enum AdjustmentType {
 export type Administrator = Node & {
   __typename?: 'Administrator';
   avatar?: Maybe<Asset>;
+  /**
+   * Channel-scoped Role assignments, grouped by Role. Always empty unless the
+   * `authOptions.channelScopedRoles` config option is enabled.
+   *
+   * Note that `user.roles` only lists Roles assigned directly, so this field must also be read to see
+   * an Administrator's full set of Roles.
+   */
+  channelRoles: Array<AdministratorChannelRole>;
   createdAt: Scalars['DateTime']['output'];
   customFields?: Maybe<Scalars['JSON']['output']>;
   emailAddress: Scalars['String']['output'];
@@ -95,6 +103,13 @@ export type Administrator = Node & {
   lastName: Scalars['String']['output'];
   updatedAt: Scalars['DateTime']['output'];
   user: User;
+};
+
+/** The Channels on which an Administrator has been granted a particular Role. */
+export type AdministratorChannelRole = {
+  __typename?: 'AdministratorChannelRole';
+  channels: Array<Channel>;
+  role: Role;
 };
 
 export type AdministratorFilterParameter = {
@@ -558,6 +573,16 @@ export type ChannelListOptions = {
   take?: InputMaybe<Scalars['Int']['input']>;
 };
 
+/**
+ * Grants the Permissions of a Role to an Administrator on the given Channels only.
+ *
+ * Requires the `authOptions.channelScopedRoles` config option to be enabled.
+ */
+export type ChannelRoleInput = {
+  channelIds: Array<Scalars['ID']['input']>;
+  roleId: Scalars['ID']['input'];
+};
+
 export type ChannelSortParameter = {
   code?: InputMaybe<SortOrder>;
   createdAt?: InputMaybe<SortOrder>;
@@ -848,11 +873,17 @@ export type CreateAddressInput = {
 };
 
 export type CreateAdministratorInput = {
+  /** Channel-scoped Role assignments. Requires `authOptions.channelScopedRoles` to be enabled. */
+  channelRoles?: InputMaybe<Array<ChannelRoleInput>>;
   customFields?: InputMaybe<Scalars['JSON']['input']>;
   emailAddress: Scalars['String']['input'];
   firstName: Scalars['String']['input'];
   lastName: Scalars['String']['input'];
   password: Scalars['String']['input'];
+  /**
+   * Roles which apply on every Channel they are assigned to. When `authOptions.channelScopedRoles` is
+   * enabled, a Role may only be listed here if it is assigned to every Channel.
+   */
   roleIds: Array<Scalars['ID']['input']>;
 };
 
@@ -6338,6 +6369,8 @@ export type SellerSortParameter = {
 
 export type ServerConfig = {
   __typename?: 'ServerConfig';
+  /** Whether the `authOptions.channelScopedRoles` config option is enabled. */
+  channelScopedRoles: Scalars['Boolean']['output'];
   /**
    * This field is deprecated in v2.2 in favor of the entityCustomFields field,
    * which allows custom fields to be defined on user-supplies entities.
@@ -6988,12 +7021,18 @@ export type UpdateAddressInput = {
 };
 
 export type UpdateAdministratorInput = {
+  /** Channel-scoped Role assignments. Requires `authOptions.channelScopedRoles` to be enabled. */
+  channelRoles?: InputMaybe<Array<ChannelRoleInput>>;
   customFields?: InputMaybe<Scalars['JSON']['input']>;
   emailAddress?: InputMaybe<Scalars['String']['input']>;
   firstName?: InputMaybe<Scalars['String']['input']>;
   id: Scalars['ID']['input'];
   lastName?: InputMaybe<Scalars['String']['input']>;
   password?: InputMaybe<Scalars['String']['input']>;
+  /**
+   * Roles which apply on every Channel they are assigned to. When `authOptions.channelScopedRoles` is
+   * enabled, a Role may only be listed here if it is assigned to every Channel.
+   */
   roleIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 };
 

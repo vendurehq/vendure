@@ -41,9 +41,12 @@ import { ListQueryBuilder } from '../helpers/list-query-builder/list-query-build
 import {
     getChannelPermissions,
     getUserChannelsPermissions,
+    mergeChannelPermissions,
+    UserChannelPermissions,
 } from '../helpers/utils/get-user-channels-permissions';
 import { patchEntity } from '../helpers/utils/patch-entity';
 
+import { ChannelRoleService } from './channel-role.service';
 import { ChannelService } from './channel.service';
 
 /**
@@ -71,6 +74,7 @@ export class RoleService {
         private eventBus: EventBus,
         private requestContextCache: RequestContextCacheService,
         private cacheService: CacheService,
+        private channelRoleService: ChannelRoleService,
     ) {
         // When a Role is created, updated or deleted, we need to invalidate the roles cache
         this.eventBus.ofType(RoleEvent).subscribe(event => {
@@ -196,6 +200,14 @@ export class RoleService {
     }
 
     private async activeUserCanReadRole(ctx: RequestContext, role: Role): Promise<boolean> {
+        if (this.channelRoleService.enabled) {
+            // With channel-scoped roles, a Role's own `channels` no longer determine who it may be
+            // granted to, so requiring the active user to hold its permissions on *every* one of those
+            // channels would hide shared Roles from exactly the Administrators who need to grant them.
+            // Instead the Role is readable if its permissions are held on *any* channel; granting it is
+            // still checked per channel by AdministratorService.checkActiveUserCanGrantRoles().
+            return this.activeUserHasRolePermissionsOnAnyChannel(ctx, role);
+        }
         const permissionsRequired = getChannelPermissions([role]);
         for (const channelPermissions of permissionsRequired) {
             const activeUserHasRequiredPermissions = await this.userHasAllPermissionsOnChannel(
@@ -210,9 +222,24 @@ export class RoleService {
         return true;
     }
 
+    private async activeUserHasRolePermissionsOnAnyChannel(
+        ctx: RequestContext,
+        role: Role,
+    ): Promise<boolean> {
+        const activeUserChannels = await this.getActiveUserChannelPermissions(ctx);
+        return activeUserChannels.some(channel =>
+            role.permissions.every(permission => channel.permissions.includes(permission)),
+        );
+    }
+
     private async getAllRolesWithChannels(ctx: RequestContext): Promise<Role[]> {
+        // When channel-scoped roles are enabled, visibility no longer depends on a Role's channels, so
+        // we avoid loading (and caching a JSON copy of) every Channel of every Role.
+        const withChannels = !this.channelRoleService.enabled;
         const allRolesJson = await this.rolesCache.get(this.rolesCacheKey, async () => {
-            const roles = await this.connection.getRepository(ctx, Role).find({ relations: ['channels'] });
+            const roles = await this.connection
+                .getRepository(ctx, Role)
+                .find(withChannels ? { relations: ['channels'] } : {});
             return JSON.stringify(roles);
         });
 
@@ -241,6 +268,15 @@ export class RoleService {
         ctx: RequestContext,
         channelId: ID,
     ): Promise<Permission[]> {
+        const userChannels = await this.getActiveUserChannelPermissions(ctx);
+        const channel = userChannels.find(c => idsAreEqual(c.id, channelId));
+        if (!channel) {
+            return [];
+        }
+        return channel.permissions;
+    }
+
+    private async getActiveUserChannelPermissions(ctx: RequestContext): Promise<UserChannelPermissions[]> {
         const { activeUserId } = ctx;
         if (activeUserId == null) {
             return [];
@@ -248,22 +284,19 @@ export class RoleService {
         // For apps with many channels, this is a performance bottleneck as it will be called
         // for each channel in certain code paths such as the GetActiveAdministrator query in the
         // admin ui. Caching the result prevents unbounded quadratic slowdown.
-        const userChannels = await this.requestContextCache.get(
+        return this.requestContextCache.get(
             ctx,
             `RoleService.getActiveUserPermissionsOnChannel.user(${activeUserId})`,
             async () => {
                 const user = await this.connection.getEntityOrThrow(ctx, User, activeUserId, {
                     relations: ['roles', 'roles.channels'],
                 });
-                return getUserChannelsPermissions(user);
+                return mergeChannelPermissions(
+                    getUserChannelsPermissions(user),
+                    await this.channelRoleService.getPermissionsForUser(ctx, activeUserId),
+                );
             },
         );
-
-        const channel = userChannels.find(c => idsAreEqual(c.id, channelId));
-        if (!channel) {
-            return [];
-        }
-        return channel.permissions;
     }
 
     async create(ctx: RequestContext, input: CreateRoleInput): Promise<Role> {

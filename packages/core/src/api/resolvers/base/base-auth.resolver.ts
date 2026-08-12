@@ -22,10 +22,15 @@ import { NATIVE_AUTH_STRATEGY_NAME } from '../../../config/auth/native-authentic
 import { ConfigService } from '../../../config/config.service';
 import { LogLevel } from '../../../config/logger/vendure-logger';
 import { User } from '../../../entity/user/user.entity';
-import { getUserChannelsPermissions } from '../../../service/helpers/utils/get-user-channels-permissions';
+import {
+    getUserChannelsPermissions,
+    mergeChannelPermissions,
+    UserChannelPermissions,
+} from '../../../service/helpers/utils/get-user-channels-permissions';
 import { AdministratorService } from '../../../service/services/administrator.service';
 import { ApiKeyService } from '../../../service/services/api-key.service';
 import { AuthService } from '../../../service/services/auth.service';
+import { ChannelRoleService } from '../../../service/services/channel-role.service';
 import { UserService } from '../../../service/services/user.service';
 import { extractSessionToken } from '../../common/extract-session-token';
 import { ApiType } from '../../common/get-api-type';
@@ -39,6 +44,7 @@ export class BaseAuthResolver {
         protected administratorService: AdministratorService,
         protected configService: ConfigService,
         protected apiKeyService: ApiKeyService,
+        protected channelRoleService: ChannelRoleService,
     ) {}
 
     /**
@@ -102,7 +108,12 @@ export class BaseAuthResolver {
             }
         }
         const user = userId && (await this.userService.getUserById(ctx, userId));
-        return user ? this.publiclyAccessibleUser(user) : null;
+        return user
+            ? this.publiclyAccessibleUser(
+                  user,
+                  await this.channelRoleService.getPermissionsForUser(ctx, user.id),
+              )
+            : null;
     }
 
     /**
@@ -133,7 +144,10 @@ export class BaseAuthResolver {
             rememberMe: args.rememberMe || false,
             sessionToken: session.token,
         });
-        return this.publiclyAccessibleUser(session.user);
+        return this.publiclyAccessibleUser(
+            session.user,
+            await this.channelRoleService.getPermissionsForUser(ctx, session.user.id),
+        );
     }
 
     /**
@@ -153,12 +167,22 @@ export class BaseAuthResolver {
 
     /**
      * Exposes a subset of the User properties which we want to expose to the public API.
+     *
+     * The optional `channelRolePermissions` argument allows the permissions granted by the User's
+     * {@link ChannelRole}s to be included. It is resolved by the caller because loading it requires a
+     * database query. See {@link ChannelRoleService}.
      */
-    protected publiclyAccessibleUser(user: User): CurrentUser {
+    protected publiclyAccessibleUser(
+        user: User,
+        channelRolePermissions: UserChannelPermissions[] = [],
+    ): CurrentUser {
         return {
             id: user.id,
             identifier: user.identifier,
-            channels: getUserChannelsPermissions(user) as CurrentUserChannel[],
+            channels: mergeChannelPermissions(
+                getUserChannelsPermissions(user),
+                channelRolePermissions,
+            ) as CurrentUserChannel[],
         };
     }
 }
