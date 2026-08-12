@@ -692,7 +692,7 @@ export class McpToolRegistryService implements OnApplicationBootstrap {
      * Canonical `${toolset}:${name}` key. Used both as the in-memory registry key and as the
      * PERSISTED key in the tool-toggle settings map — changing the format orphans stored toggles.
      */
-    private toolKey(toolset: McpToolset, name: string): string {
+    toolKey(toolset: McpToolset, name: string): string {
         return `${toolset}:${name}`;
     }
 

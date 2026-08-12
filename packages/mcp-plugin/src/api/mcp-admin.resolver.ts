@@ -19,6 +19,7 @@ import { McpOauthGrant, McpToolCallLog } from '../entities';
 import { McpToolCallLogService } from '../logging/mcp-tool-call-log.service';
 import { McpOauthService } from '../oauth/oauth.service';
 import { McpToolRegistryService } from '../registry/mcp-tool-registry.service';
+import { McpRegisteredTool } from '../registry/registry-types';
 
 /** A registered tool and whether it is currently enabled. */
 interface McpToolInfo {
@@ -94,15 +95,7 @@ export class McpAdminResolver {
     @Allow(mcpServerPermission.Read)
     async mcpTools(@Ctx() ctx: RequestContext): Promise<McpToolInfo[]> {
         const toggles = await this.registry.getToolToggles(ctx);
-        return this.registry.getRegistrySnapshot().map(tool => ({
-            id: `${tool.toolset}:${tool.name}`,
-            name: tool.name,
-            toolset: tool.toolset,
-            description: tool.description,
-            pluginSource: tool.pluginSource,
-            behavior: tool.resolvedBehavior,
-            enabled: this.registry.isToolEnabled(tool, toggles),
-        }));
+        return this.registry.getRegistrySnapshot().map(tool => this.toToolInfo(tool, toggles));
     }
 
     @Query()
@@ -199,15 +192,7 @@ export class McpAdminResolver {
         }
         await this.registry.setToolEnabled(ctx, args.toolset, args.toolName, args.enabled);
         const toggles = await this.registry.getToolToggles(ctx);
-        return {
-            id: `${tool.toolset}:${tool.name}`,
-            name: tool.name,
-            toolset: tool.toolset,
-            description: tool.description,
-            pluginSource: tool.pluginSource,
-            behavior: tool.resolvedBehavior,
-            enabled: this.registry.isToolEnabled(tool, toggles),
-        };
+        return this.toToolInfo(tool, toggles);
     }
 
     @Mutation()
@@ -232,6 +217,18 @@ export class McpAdminResolver {
         @Args() args: { requestToken: string; approved: boolean },
     ): Promise<{ redirectUrl: string }> {
         return this.oauthService.approveAdminRequest(ctx, args.requestToken, args.approved);
+    }
+
+    private toToolInfo(tool: McpRegisteredTool, toggles: Record<string, boolean>): McpToolInfo {
+        return {
+            id: this.registry.toolKey(tool.toolset, tool.name),
+            name: tool.name,
+            toolset: tool.toolset,
+            description: tool.description,
+            pluginSource: tool.pluginSource,
+            behavior: tool.resolvedBehavior,
+            enabled: this.registry.isToolEnabled(tool, toggles),
+        };
     }
 
     /**
