@@ -32,6 +32,7 @@ type SetActiveChannelInput = z.infer<typeof setActiveChannelInput>;
         "change the store I'm managing",
     ],
     permissions: [Permission.Authenticated],
+    behavior: 'mutating',
     inputSchema: setActiveChannelInput,
 })
 @Injectable()

@@ -50,6 +50,7 @@ type CreateProductToolInput = z.infer<typeof createProductInput>;
         'put a new item on sale',
     ],
     permissions: [Permission.CreateProduct],
+    behavior: 'mutating',
     inputSchema: createProductInput,
 })
 @Injectable()

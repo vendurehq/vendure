@@ -61,6 +61,7 @@ type CreateVariantToolInput = z.infer<typeof createVariantInput>;
         'add a variation',
     ],
     permissions: [Permission.UpdateProduct],
+    behavior: 'mutating',
     inputSchema: createVariantInput,
 })
 @Injectable()

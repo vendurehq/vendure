@@ -55,6 +55,7 @@ type UpdateProductToolInput = z.infer<typeof updateProductInput>;
         'edit a catalog entry',
     ],
     permissions: [Permission.UpdateProduct],
+    behavior: 'mutating',
     inputSchema: updateProductInput,
 })
 @Injectable()

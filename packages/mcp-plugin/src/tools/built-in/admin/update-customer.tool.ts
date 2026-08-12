@@ -39,6 +39,7 @@ type UpdateCustomerToolInput = z.infer<typeof updateCustomerInput>;
         'correct a customer profile',
     ],
     permissions: [Permission.UpdateCustomer],
+    behavior: 'mutating',
     inputSchema: updateCustomerInput,
 })
 @Injectable()

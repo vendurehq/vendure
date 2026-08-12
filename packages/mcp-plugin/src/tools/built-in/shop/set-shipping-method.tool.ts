@@ -24,6 +24,7 @@ type SetShippingMethodInput = z.infer<typeof setShippingMethodInput>;
         'how I want my order delivered',
     ],
     permissions: [Permission.Public],
+    behavior: 'mutating',
     inputSchema: setShippingMethodInput,
 })
 @Injectable()

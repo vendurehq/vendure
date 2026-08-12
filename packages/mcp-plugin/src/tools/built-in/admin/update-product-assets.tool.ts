@@ -28,6 +28,7 @@ type UpdateProductAssetsInput = z.infer<typeof updateProductAssetsInput>;
         'attach images to a product',
     ],
     permissions: [Permission.UpdateProduct],
+    behavior: 'mutating',
     inputSchema: updateProductAssetsInput,
 })
 @Injectable()

@@ -63,6 +63,7 @@ type UpdateVariantToolInput = z.infer<typeof updateVariantInput>;
         'edit product option info',
     ],
     permissions: [Permission.UpdateProduct],
+    behavior: 'mutating',
     inputSchema: updateVariantInput,
 })
 @Injectable()

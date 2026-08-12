@@ -25,6 +25,7 @@ type AddToCartInput = z.infer<typeof addToCartInput>;
         'put this in my shopping bag',
     ],
     permissions: [Permission.Public],
+    behavior: 'mutating',
     inputSchema: addToCartInput,
 })
 @Injectable()

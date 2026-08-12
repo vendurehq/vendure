@@ -24,6 +24,7 @@ type UploadAssetInput = z.infer<typeof uploadAssetInput>;
         'add an asset from a web address',
     ],
     permissions: [Permission.CreateAsset],
+    behavior: 'mutating',
     inputSchema: uploadAssetInput,
 })
 @Injectable()

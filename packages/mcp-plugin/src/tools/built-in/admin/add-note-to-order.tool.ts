@@ -29,6 +29,7 @@ type AddNoteToOrderToolInput = z.infer<typeof addNoteToOrderInput>;
         'record a memo on the order',
     ],
     permissions: [Permission.UpdateOrder],
+    behavior: 'mutating',
     inputSchema: addNoteToOrderInput,
 })
 @Injectable()

@@ -23,6 +23,7 @@ type AddCustomerToGroupInput = z.infer<typeof addCustomerToGroupInput>;
         'give customer group membership',
     ],
     permissions: [Permission.UpdateCustomerGroup],
+    behavior: 'mutating',
     inputSchema: addCustomerToGroupInput,
 })
 @Injectable()

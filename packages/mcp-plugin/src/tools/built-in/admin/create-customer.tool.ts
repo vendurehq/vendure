@@ -37,6 +37,7 @@ type CreateCustomerToolInput = z.infer<typeof createCustomerInput>;
         'make a customer account',
     ],
     permissions: [Permission.CreateCustomer],
+    behavior: 'mutating',
     inputSchema: createCustomerInput,
 })
 @Injectable()
