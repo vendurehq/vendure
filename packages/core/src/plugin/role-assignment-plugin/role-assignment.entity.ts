@@ -13,8 +13,8 @@ import { User } from '../../entity/user/user.entity';
  * to be shared across multiple Users on different Channels, rather than requiring the Role
  * itself to be duplicated per Channel.
  *
- * This entity is only registered when the `experimental.roleAssignments.enabled` config
- * flag is set, via the internal `RoleAssignmentPlugin`.
+ * This entity is only registered when the experimental `RoleAssignmentPlugin` is added
+ * to the `plugins` array.
  */
 @Entity()
 @Unique('IDX_ROLE_ASSIGNMENT_USER_ROLE_CHANNEL', ['user', 'role', 'channel'])

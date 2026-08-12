@@ -6418,12 +6418,6 @@ export type ServerConfig = {
    */
   customFieldConfig: CustomFields;
   entityCustomFields: Array<EntityCustomFields>;
-  /**
-   * The keys of the `experimental` config options which are enabled on this server,
-   * e.g. `["roleAssignments"]`. Allows clients such as the Dashboard to adapt their
-   * UI to experimental features.
-   */
-  experimentalFeatures: Array<Scalars['String']['output']>;
   moneyStrategyPrecision: Scalars['Int']['output'];
   orderProcess: Array<OrderProcessState>;
   permissions: Array<PermissionDefinition>;

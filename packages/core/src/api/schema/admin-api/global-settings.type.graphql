@@ -25,10 +25,4 @@ type ServerConfig {
     permittedAssetTypes: [String!]!
     permissions: [PermissionDefinition!]!
     moneyStrategyPrecision: Int!
-    """
-    The keys of the `experimental` config options which are enabled on this server,
-    e.g. `["roleAssignments"]`. Allows clients such as the Dashboard to adapt their
-    UI to experimental features.
-    """
-    experimentalFeatures: [String!]!
 }

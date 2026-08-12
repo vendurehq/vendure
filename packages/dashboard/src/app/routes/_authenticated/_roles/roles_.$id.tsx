@@ -14,7 +14,7 @@ import {    DetailFormGrid,
 import { ActionBarItem } from '@/vdb/framework/layout-engine/action-bar-item-wrapper.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
-import { useExperimentalFeature } from '@/vdb/hooks/use-server-config.js';
+import { useRoleAssignmentsEnabled } from '@/vdb/hooks/use-role-assignments-enabled.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
@@ -43,11 +43,11 @@ function RoleDetailPage() {
     const navigate = useNavigate();
     const creatingNewEntity = params.id === NEW_ENTITY_PATH;
     const { t } = useLingui();
-    // With experimental channel-scoped role assignments enabled, channels are picked
+    // With the experimental RoleAssignmentPlugin registered, channels are picked
     // per-assignment (on the administrator detail page) rather than on the role itself,
     // so the role-level channel picker is hidden. The `channelIds` form value is kept
     // so that updates leave the legacy channel relations untouched.
-    const roleAssignmentsEnabled = useExperimentalFeature('roleAssignments');
+    const roleAssignmentsEnabled = useRoleAssignmentsEnabled();
 
     const { form, submitHandler, entity, isPending, resetForm } = useDetailPage({
         pageId,

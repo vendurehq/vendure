@@ -71,14 +71,7 @@ export class GlobalSettingsResolver {
             permittedAssetTypes: this.configService.assetOptions.permittedFileTypes,
             permissions,
             moneyStrategyPrecision: this.configService.entityOptions.moneyStrategy.precision ?? 2,
-            experimentalFeatures: this.getEnabledExperimentalFeatures(),
         };
-    }
-
-    private getEnabledExperimentalFeatures(): string[] {
-        return Object.entries(this.configService.experimental)
-            .filter(([, options]) => (options as { enabled?: boolean } | undefined)?.enabled === true)
-            .map(([feature]) => feature);
     }
 
     @Transaction()

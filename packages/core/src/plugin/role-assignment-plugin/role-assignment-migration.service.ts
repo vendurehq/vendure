@@ -39,10 +39,10 @@ export interface MigrateLegacyRolesResult {
  *
  * The migration is purely additive and idempotent: existing legacy relations are left
  * untouched (they remain writable through the existing admin API, and keeping them makes
- * disabling the experimental flag non-destructive), and re-running it only creates
+ * removing the plugin non-destructive), and re-running it only creates
  * whatever RoleAssignments are missing.
- * It runs on server bootstrap while the `experimental.roleAssignments` flag is enabled,
- * but only when the `role_assignment` table is still empty (see {@link RoleAssignmentPlugin});
+ * It runs on server bootstrap while the `RoleAssignmentPlugin` is registered, but only
+ * when the `role_assignment` table is still empty (see {@link RoleAssignmentPlugin});
  * it can be invoked manually to pick up relations created since.
  *
  * TODO: consider also exporting this as a standalone `migrateRoleAssignmentData(queryRunner)`

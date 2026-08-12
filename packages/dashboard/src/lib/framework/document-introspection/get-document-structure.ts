@@ -590,6 +590,16 @@ function getInputTypeFields(name: string): FieldInfo[] {
     });
 }
 
+/**
+ * @description
+ * Returns true if the admin API schema defines a Mutation field with the given name.
+ * Useful for detecting optional, plugin-provided API surface (e.g. the experimental
+ * `RoleAssignmentPlugin`) directly from the schema, without any out-of-band flags.
+ */
+export function serverSupportsMutation(mutationName: string): boolean {
+    return schemaInfo.types.Mutation[mutationName] != null;
+}
+
 export function isScalarType(type: string): boolean {
     return schemaInfo.scalars.includes(type);
 }

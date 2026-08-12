@@ -29,39 +29,27 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { initialData } from '../../../e2e-common/e2e-initial-data';
 import { TEST_SETUP_TIMEOUT_MS, testConfig } from '../../../e2e-common/test-config';
 
-import { graphql } from './graphql/graphql-admin';
 import {
     createAdministratorDocument,
     createChannelDocument,
     createRoleDocument,
 } from './graphql/shared-definitions';
 
-const getExperimentalFeaturesDocument = graphql(`
-    query GetExperimentalFeatures {
-        globalSettings {
-            serverConfig {
-                experimentalFeatures
-            }
-        }
-    }
-`);
-
 /**
- * These tests exercise the `experimental.roleAssignments` flag: enabling it causes Vendure to
- * internally register the `RoleAssignmentPlugin`, which adds the `RoleAssignment` entity (and
- * its `role_assignment` table) to the schema and installs the
- * `RoleAssignmentPermissionResolverStrategy` — permission resolution is driven by assignments,
- * not by the legacy `User -> Role -> Channel` relations. Writes to the legacy relations are
- * not yet mirrored into assignments; a manual re-run of the backfill migration picks them up.
+ * These tests exercise the experimental `RoleAssignmentPlugin`: registering it in the
+ * `plugins` array adds the `RoleAssignment` entity (and its `role_assignment` table) to the
+ * schema and installs the `RoleAssignmentPermissionResolverStrategy` — permission resolution
+ * is driven by assignments, not by the legacy `User -> Role -> Channel` relations. Writes to
+ * the legacy relations are not yet mirrored into assignments; a manual re-run of the backfill
+ * migration picks them up.
  *
- * The "flag off" assertions are checked via `preBootstrapConfig()` directly (rather than by
- * booting a second live server) because the e2e sqlite cache is keyed only by spec filename —
- * two differently-shaped live databases cannot safely share that cache within a single file.
- * `preBootstrapConfig()` is the exact function responsible for the conditional registration,
- * so asserting against its output is a direct, reliable check of "schema untouched".
+ * The "plugin absent" assertions are checked via `preBootstrapConfig()` directly (rather
+ * than by booting a second live server) because the e2e sqlite cache is keyed only by spec
+ * filename — two differently-shaped live databases cannot safely share that cache within a
+ * single file.
  */
-describe('experimental.roleAssignments flag disabled (default)', () => {
-    it('does not register the RoleAssignmentPlugin or the RoleAssignment entity', async () => {
+describe('without the RoleAssignmentPlugin (default)', () => {
+    it('does not register the RoleAssignment entity', async () => {
         const config = await preBootstrapConfig({ plugins: [] });
 
         expect(config.plugins).not.toContain(RoleAssignmentPlugin);
@@ -79,12 +67,10 @@ describe('experimental.roleAssignments flag disabled (default)', () => {
     });
 });
 
-describe('experimental.roleAssignments flag enabled', () => {
+describe('with the RoleAssignmentPlugin registered', () => {
     const { server, adminClient } = createTestEnvironment(
         mergeConfig(testConfig(), {
-            experimental: {
-                roleAssignments: { enabled: true },
-            },
+            plugins: [RoleAssignmentPlugin],
         }),
     );
     let queryRunner: QueryRunner;
@@ -107,11 +93,6 @@ describe('experimental.roleAssignments flag enabled', () => {
 
     it('server boots successfully with the plugin registered', async () => {
         await adminClient.asSuperAdmin();
-    });
-
-    it('exposes the flag via serverConfig.experimentalFeatures', async () => {
-        const { globalSettings } = await adminClient.query(getExperimentalFeaturesDocument);
-        expect(globalSettings.serverConfig.experimentalFeatures).toEqual(['roleAssignments']);
     });
 
     it('installs the RoleAssignmentPermissionResolverStrategy', () => {

@@ -271,5 +271,4 @@ export const defaultConfig: RuntimeVendureConfig = {
         encryptionStrategy: new DefaultEncryptionStrategy(),
         secretAccessStrategy: new PermissionSecretAccessStrategy(),
     },
-    experimental: {},
 };

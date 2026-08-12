@@ -16,8 +16,8 @@ import { RoleAssignment } from './role-assignment.entity';
  * Role's permissions apply on the assignment's Channel — the Role's own channel list plays
  * no part.
  *
- * This strategy is installed automatically by the `RoleAssignmentPlugin` when the
- * `experimental.roleAssignments` flag is enabled.
+ * This strategy is installed automatically by the `RoleAssignmentPlugin`'s `configuration`
+ * hook.
  *
  * This is part of the experimental `RoleAssignmentPlugin` API and may change.
  */

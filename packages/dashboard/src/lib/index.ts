@@ -352,6 +352,7 @@ export * from './hooks/use-page.js';
 export * from './hooks/use-paginated-list.js';
 export * from './hooks/use-permissions.js';
 export * from './hooks/use-redirect-to-list-on-not-found.js';
+export * from './hooks/use-role-assignments-enabled.js';
 export * from './hooks/use-saved-views.js';
 export * from './hooks/use-server-config.js';
 export * from './hooks/use-sorted-languages.js';

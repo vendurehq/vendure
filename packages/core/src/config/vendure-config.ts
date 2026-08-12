@@ -574,7 +574,7 @@ export interface AuthOptions {
      * Determines how the per-channel permissions of a User are derived. The default
      * strategy implements the standard Vendure behavior of deriving permissions from
      * the User's Roles and each Role's Channels. The experimental `RoleAssignmentPlugin`
-     * (see `experimental.roleAssignments`) replaces it with a strategy which resolves
+     * replaces it with a strategy which resolves
      * permissions from explicit per-(user, role, channel) `RoleAssignment` rows.
      *
      * @default DefaultRolePermissionResolverStrategy
@@ -1291,45 +1291,6 @@ export interface SystemOptions {
 
 /**
  * @description
- * Options for experimental features which are still under development and may change
- * or be removed in a future release without following semantic versioning conventions.
- *
- * @docsCategory configuration
- * @docsPage ExperimentalOptions
- * @since 3.8.0
- */
-export interface ExperimentalOptions {
-    /**
-     * @description
-     * When enabled, Vendure will internally register a plugin which introduces a `RoleAssignment`
-     * bridge entity, intended to eventually decouple Role definitions from Channel assignments so
-     * that the same Role can be shared by multiple Users across different Channels. This is
-     * useful in multi-vendor marketplace setups.
-     *
-     * You do not need to add anything to the `plugins` array yourself — Vendure takes care of
-     * registering the required internal plugin when this flag is set.
-     *
-     * :::caution
-     * This is an experimental feature under active development. The API and behavior may change
-     * in a future minor release.
-     * :::
-     *
-     * @default false
-     * @experimental
-     */
-    roleAssignments?: {
-        /**
-         * @description
-         * Set to `true` to enable channel-scoped Role assignments.
-         *
-         * @default false
-         */
-        enabled?: boolean;
-    };
-}
-
-/**
- * @description
  * All possible configuration options are defined by the
  * [`VendureConfig`](https://github.com/vendurehq/vendure/blob/master/packages/core/src/config/vendure-config.ts) interface.
  *
@@ -1473,15 +1434,6 @@ export interface VendureConfig {
      * @since 1.6.0
      */
     systemOptions?: SystemOptions;
-    /**
-     * @description
-     * Options for experimental features which are still under development and may change
-     * or be removed in a future release without following semantic versioning conventions.
-     *
-     * @default {}
-     * @since 3.8.0
-     */
-    experimental?: ExperimentalOptions;
 }
 
 /**

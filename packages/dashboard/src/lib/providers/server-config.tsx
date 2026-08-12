@@ -227,7 +227,6 @@ export const getServerConfigDocument = graphql(
                 availableLanguages
                 serverConfig {
                     moneyStrategyPrecision
-                    experimentalFeatures
                     orderProcess {
                         name
                         to
@@ -261,7 +260,6 @@ export interface ServerConfig {
     permittedAssetTypes: QueryResult['permittedAssetTypes'];
     permissions: QueryResult['permissions'];
     entityCustomFields: QueryResult['entityCustomFields'];
-    experimentalFeatures: QueryResult['experimentalFeatures'];
 }
 
 // create a provider for the global settings
@@ -293,7 +291,6 @@ export const ServerConfigProvider = ({ children }: { children: React.ReactNode }
                       permittedAssetTypes: data.globalSettings.serverConfig.permittedAssetTypes ?? [],
                       permissions: data.globalSettings.serverConfig.permissions ?? [],
                       entityCustomFields: data.globalSettings.serverConfig.entityCustomFields ?? [],
-                      experimentalFeatures: data.globalSettings.serverConfig.experimentalFeatures ?? [],
                   }
                 : null,
         [data],

@@ -14,15 +14,3 @@ export const useServerConfig = () => React.useContext(ServerConfigContext);
  * @since 3.6.4
  */
 export const useIsServerConfigLoaded = (): boolean => useServerConfig() != null;
-
-/**
- * @description
- * Returns whether the given experimental feature (a key of the `experimental`
- * section of the VendureConfig, e.g. `'roleAssignments'`) is enabled on the
- * server. Returns `false` while the server config is still loading.
- *
- * @docsCategory hooks
- * @since 3.8.0
- */
-export const useExperimentalFeature = (feature: string): boolean =>
-    useServerConfig()?.experimentalFeatures.includes(feature) ?? false;

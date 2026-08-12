@@ -6,9 +6,9 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { getConnectionToken } from '@nestjs/typeorm';
 import { DEFAULT_COOKIE_NAME } from '@vendure/common/lib/shared-constants';
 import { Type } from '@vendure/common/lib/shared-types';
+import cookieSession = require('cookie-session');
 import { satisfies } from 'semver';
 import { Connection, DataSourceOptions, EntitySubscriberInterface } from 'typeorm';
-import cookieSession = require('cookie-session');
 
 import { InternalServerError } from './common/error/errors';
 import { getConfig, setConfig } from './config/config-helpers';
@@ -300,20 +300,6 @@ export async function bootstrapWorker(
 export async function preBootstrapConfig(
     userConfig: Partial<VendureConfig>,
 ): Promise<Readonly<RuntimeVendureConfig>> {
-    if (userConfig?.experimental?.roleAssignments?.enabled) {
-        // Imported lazily: a static import would evaluate the plugin's NestJS module graph
-        // (via PluginCommonModule) as soon as this file is loaded, which calls `getConfig()`
-        // before any config has been set and breaks consumers which import from this file
-        // without bootstrapping, e.g. `migrate.ts` and unit tests.
-        const { RoleAssignmentPlugin } = await import(
-            './plugin/role-assignment-plugin/role-assignment-plugin.js'
-        );
-        userConfig.plugins = userConfig.plugins ?? [];
-        if (!userConfig.plugins.includes(RoleAssignmentPlugin)) {
-            userConfig.plugins.push(RoleAssignmentPlugin);
-        }
-    }
-
     if (userConfig) {
         await setConfig(userConfig);
     }

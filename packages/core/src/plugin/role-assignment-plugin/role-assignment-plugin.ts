@@ -12,30 +12,44 @@ import { RoleAssignmentPermissionResolverStrategy } from './role-assignment-perm
 import { RoleAssignment } from './role-assignment.entity';
 
 /**
- * This plugin is registered internally by Vendure when the `experimental.roleAssignments.enabled`
- * config flag is set to `true` (see `VendureConfig.experimental`). It is never meant to be added
- * manually to the `plugins` array.
+ * @description
+ * An experimental plugin which introduces the {@link RoleAssignment} entity — a bridge
+ * between User, Role and Channel which decouples Role definitions from Channel assignments,
+ * so that the same Role can eventually be shared by multiple Users across different
+ * Channels — useful in multi-vendor marketplace setups. Enable it by adding it to the
+ * `plugins` array:
  *
- * It registers the `RoleAssignment` entity — a bridge between User, Role and Channel which
- * decouples Role definitions from Channel assignments. Assignments belong to Users, so they
- * cover administrator and customer users alike. On server bootstrap, if the `role_assignment`
- * table is empty, it backfills RoleAssignment rows from the legacy User -> Role -> Channel
- * relations (see {@link RoleAssignmentMigrationService}); once the table contains rows the
- * migration is not run again.
+ * @example
+ * ```ts
+ * import { RoleAssignmentPlugin } from '\@vendure/core';
+ *
+ * const config: VendureConfig = {
+ *   // ...
+ *   plugins: [RoleAssignmentPlugin],
+ * };
+ * ```
+ *
+ * Assignments belong to Users, so they cover administrator and customer users alike. On
+ * server bootstrap, if the `role_assignment` table is empty, the plugin backfills
+ * RoleAssignment rows from the legacy User -> Role -> Channel relations (see
+ * {@link RoleAssignmentMigrationService}); once the table contains rows the migration is
+ * not run again.
  *
  * Permission resolution is driven by RoleAssignments: the plugin's `configuration` hook installs
  * the {@link RoleAssignmentPermissionResolverStrategy}, replacing the default derivation from
  * the legacy relations. Writes to the legacy relations (e.g. `createAdministrator(roleIds: ...)`,
  * customer registration, channel creation) remain possible but are NOT yet mirrored into
- * RoleAssignments — until that sync layer lands in a subsequent stage, a manual re-run of
- * `RoleAssignmentMigrationService.migrateLegacyRoles()` picks them up.
+ * RoleAssignments — until the assignment write model lands in a subsequent stage, a manual
+ * re-run of `RoleAssignmentMigrationService.migrateLegacyRoles()` picks them up.
  *
  * TODO: Administrator and Customer deletions are soft deletes which never trigger the
  * assignment table's `ON DELETE CASCADE`, so a deleted user's assignment rows linger. This
  * grants nothing (soft-deleted users cannot authenticate), but cleanup via the deletion
  * events is planned for the stage which adds the assignment admin API.
  *
- * @internal
+ * @docsCategory core plugins/RoleAssignmentPlugin
+ * @since 3.8.0
+ * @experimental
  */
 @VendurePlugin({
     imports: [PluginCommonModule],
@@ -69,7 +83,7 @@ export class RoleAssignmentPlugin implements OnApplicationBootstrap {
         }
         if (!tableExists) {
             Logger.error(
-                `The experimental.roleAssignments flag is enabled but the "${tableName}" table does not exist. ` +
+                `The RoleAssignmentPlugin is enabled but the "${tableName}" table does not exist. ` +
                     'Generate and run a database migration to create it.',
                 loggerCtx,
             );

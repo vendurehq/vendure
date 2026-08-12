@@ -18,7 +18,7 @@ import {
 } from '@/vdb/framework/layout-engine/page-layout.js';
 import { detailPageRouteLoader } from '@/vdb/framework/page/detail-page-route-loader.js';
 import { useDetailPage } from '@/vdb/framework/page/use-detail-page.js';
-import { useExperimentalFeature } from '@/vdb/hooks/use-server-config.js';
+import { useRoleAssignmentsEnabled } from '@/vdb/hooks/use-role-assignments-enabled.js';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
@@ -98,11 +98,11 @@ function AdministratorDetailPage() {
     const name = `${entity?.firstName} ${entity?.lastName}`;
     const roleIds = form.watch('roleIds');
 
-    // Experimental channel-scoped role assignments (`experimental.roleAssignments`):
-    // the channel picker is only rendered when the server has the flag enabled.
+    // Experimental channel-scoped role assignments: the channel picker is only rendered
+    // when the server has the RoleAssignmentPlugin registered (detected from the schema).
     // Selections are not yet persisted, and the effective channels are resolved by the
     // backend — this state exists only so the control is usable until the API lands.
-    const roleAssignmentsEnabled = useExperimentalFeature('roleAssignments');
+    const roleAssignmentsEnabled = useRoleAssignmentsEnabled();
     const [assignmentChannelIds, setAssignmentChannelIds] = useState<string[]>([]);
 
     return (
