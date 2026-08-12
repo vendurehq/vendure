@@ -4,7 +4,6 @@ const expectedExports = [
     'getActiveOrder',
     'listOptions',
     'orderListOptions',
-    'orderResult',
     'page',
     'productListOptions',
     'publicCollectionListOptions',
@@ -17,40 +16,6 @@ describe('built-in order helpers', () => {
 
         expect(Object.keys(orderHelpers).sort()).toEqual(expectedExports);
         expect(Object.values(orderHelpers).every(value => typeof value === 'function')).toBe(true);
-    });
-
-    it('serializes order results and preserves Vendure error results', async () => {
-        const { orderResult } = await import('./order-helpers');
-
-        expect(
-            orderResult({
-                id: '1',
-                code: 'T_1',
-                lines: [
-                    {
-                        id: '2',
-                        quantity: 3,
-                        linePriceWithTax: 1500,
-                        productVariant: { id: '3', sku: 'SKU', price: 500 },
-                    },
-                ],
-            }),
-        ).toMatchObject({
-            order: {
-                id: '1',
-                code: 'T_1',
-                lines: [
-                    {
-                        id: '2',
-                        quantity: 3,
-                        productVariant: { id: '3', sku: 'SKU', price: 500 },
-                    },
-                ],
-            },
-        });
-
-        const errorResult = { __typename: 'OrderLimitError', message: 'Limit reached' };
-        expect(orderResult(errorResult)).toEqual({ result: errorResult });
     });
 
     it('builds public product list options without losing the query filter', async () => {

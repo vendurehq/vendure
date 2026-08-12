@@ -52,13 +52,38 @@ Administrators can enable or disable any individual tool (via the dashboard MCP 
 `setMcpToolEnabled` mutation, gated by `UpdateMcpServer`). A disabled tool disappears from `tools/list` and
 cannot be called. This is the primary lever for scoping what an agent can do.
 
+## How prices are returned
+
+Prices on products, variants, orders and shipping quotes appear twice. The plain field is a whole number in the
+currency's smallest unit, which is what Vendure stores and what you should use for any calculation. The field
+whose name ends in `Decimal` is the same amount written out with the decimal point in the right place, which is
+what you should show to a shopper or hand to a language model.
+
+```json
+{
+  "price": 20999,
+  "priceDecimal": "209.99",
+  "priceWithTax": 25199,
+  "priceWithTaxDecimal": "251.99",
+  "currencyCode": "USD"
+}
+```
+
+The number of decimal places comes from your store's `moneyStrategy.precision` setting, which defaults to 2. It
+is one setting for the whole store rather than one per currency, so a store selling in currencies with different
+numbers of decimal places will need to handle that itself.
+
+A shipping quote carries no currency of its own, so `get_eligible_shipping_methods` takes the currency from the
+cart the quote was calculated for. Anything a shipping calculator attached to the quote under `metadata` or
+`customFields` is returned unchanged alongside these fields.
+
 ## Shop tools
 
 ### Cart & Checkout
 
 | Tool | Safety | Permission | Description |
 |---|---|---|---|
-| `add_to_cart` | mutating | Public | Add a product variant to the active cart |
+| `add_to_cart` | mutating | Public | Add an item to the active cart, by variant ID or by product ID |
 | `update_cart_line` | mutating | Public | Update the quantity of a cart line |
 | `remove_from_cart` | mutating | Public | Remove a line from the active cart |
 | `get_cart` | readonly | Public | Get the active cart |
@@ -71,12 +96,19 @@ cannot be called. This is the primary lever for scoping what an agent can do.
 | `get_eligible_payment_methods` | readonly | Public | List payment methods eligible for the cart |
 | `place_order` | **destructive** | Public | Add payment and place the order |
 
+`add_to_cart` takes exactly one of `variantId` or `productId`. Product IDs and variant IDs are separate numbering
+sequences that overlap, so a product ID used where a variant ID belongs would otherwise resolve to a real but
+unrelated variant and put the wrong item in the cart. Requiring the caller to say which kind of ID it holds is
+what prevents that. Given a `productId` for a product with several variants, the tool adds nothing and returns an
+error listing each variant with its ID, so the caller can retry with the right one. Use `get_product` to get
+variant IDs in the first place.
+
 ### Catalog (browse)
 
 | Tool | Safety | Permission | Description |
 |---|---|---|---|
-| `get_product` | readonly | Public | Get an enabled product by ID or slug |
-| `search_products` | readonly | Public | Name/slug lookup returning product summaries |
+| `get_product` | readonly | Public | Get an enabled product by ID or slug, with its purchasable variants |
+| `search_products` | readonly | Public | Literal name/slug lookup — pass a single singular word |
 | `get_collection` | readonly | Public | Get a public collection by ID or slug |
 | `list_collections` | readonly | Public | List public collections (paginated) |
 

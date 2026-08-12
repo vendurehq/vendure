@@ -41,6 +41,7 @@ import { resolveMcpPluginOptions } from './resolve-options';
 import { mcpOauthRetentionTask } from './tasks/mcp-oauth-retention.task';
 import { mcpToolCallLogRetentionTask } from './tasks/mcp-tool-call-log-retention.task';
 import { mcpBuiltInToolProviders } from './tools/built-in/providers';
+import { McpToolSerializerService } from './tools/built-in/serializer.service';
 import { McpTransportController } from './transport/mcp-transport.controller';
 import { McpPluginOptions } from './types';
 
@@ -78,6 +79,7 @@ import { McpPluginOptions } from './types';
         McpRateLimiterService,
         McpOauthRateLimitGuard,
         McpToolCallLogService,
+        McpToolSerializerService,
         ...mcpBuiltInToolProviders,
     ],
     entities: [McpOauthClient, McpAuthorizationCode, McpAuthorizationRequest, McpOauthGrant, McpToolCallLog],

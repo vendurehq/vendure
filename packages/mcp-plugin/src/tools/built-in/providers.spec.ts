@@ -148,10 +148,12 @@ describe('built-in shop tool providers', () => {
         });
     });
 
-    it('describes search_products as basic name/slug lookup', () => {
-        expect(
-            metadataFor(shopProviders.find(provider => metadataFor(provider).name === 'search_products'))
-                .description,
-        ).toContain('basic name/slug lookup');
+    it('warns that search_products matches literal text, so a plural finds nothing', () => {
+        const description = metadataFor(
+            shopProviders.find(provider => metadataFor(provider).name === 'search_products'),
+        ).description;
+
+        expect(description).toContain('single word');
+        expect(description).toContain('singular');
     });
 });

@@ -4,7 +4,7 @@ import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { getActiveOrder } from '../order-helpers';
-import { orderSummary } from '../serializers';
+import { McpToolSerializerService } from '../serializer.service';
 
 const getCartInput = z.strictObject({});
 
@@ -29,10 +29,11 @@ export class GetCartTool implements McpToolHandler<Record<string, never>> {
     constructor(
         private activeOrderService: ActiveOrderService,
         private orderService: OrderService,
+        private serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext) {
         const order = await getActiveOrder(ctx, this.activeOrderService, this.orderService, false);
-        return { order: orderSummary(order) };
+        return { order: this.serializer.order(order) };
     }
 }

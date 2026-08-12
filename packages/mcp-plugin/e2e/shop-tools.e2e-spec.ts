@@ -95,6 +95,8 @@ describe('MCP built-in shop tools', () => {
     let productAdminId: string;
     let productSlug: string;
     let variantId: ID;
+    let shirtId: ID;
+    let shirtVariantCount: number;
     let publicCollectionId: ID;
     let publicCollectionSlug: string;
     let privateCollectionId: ID;
@@ -161,6 +163,33 @@ describe('MCP built-in shop tools', () => {
         variantId = idStrategy.decodeId(product.variants[0].id);
         publicCollectionId = idStrategy.decodeId(collection.id);
         publicCollectionSlug = collection.slug;
+
+        // A second fixture product carrying three variants. add_to_cart must refuse a product ID
+        // when the product has more than one variant, and there is nothing to test that against
+        // unless such a product exists.
+        const shirtFixture = await adminClient.query(gql`
+            query ShopToolShirtFixture {
+                products(options: { filter: { slug: { eq: "test-shirt" } } }) {
+                    items {
+                        id
+                        variants {
+                            id
+                            sku
+                        }
+                    }
+                }
+            }
+        `);
+        const shirt = shirtFixture.products.items[0];
+        if (!shirt || shirt.variants.length < 2) {
+            throw new Error(
+                `Expected the seeded "test-shirt" product to have several variants: ${JSON.stringify(
+                    shirtFixture,
+                )}`,
+            );
+        }
+        shirtId = idStrategy.decodeId(shirt.id);
+        shirtVariantCount = shirt.variants.length;
 
         const channelResult = await adminClient.query(
             gql`
@@ -734,6 +763,105 @@ describe('MCP built-in shop tools', () => {
                 { input: { id: productAdminId, enabled: true } },
             );
         }
+    });
+
+    it('returns the product variants a shopper needs to add anything to a cart', async () => {
+        const response = await postMcp(baseUrl(), 'shop', callTool('get_product', { slug: productSlug }, 1));
+
+        const product = response.body.result.structuredContent.product;
+        expect(product.variants.length).toBeGreaterThan(0);
+        const variant = product.variants[0];
+        // The id here must be the variant's own id, which is what add_to_cart needs. Asserting it
+        // against the fixture's known variant id is what proves the tool is not handing back the
+        // product id under a different name.
+        expect(String(variant.id)).toBe(String(variantId));
+        expect(variant).toMatchObject({
+            name: expect.any(String),
+            sku: expect.any(String),
+            currencyCode: expect.any(String),
+        });
+        // A currency code and a price only appear if the per-channel price lookup ran, so these
+        // also prove the variants were fetched through the service that applies prices.
+        expect(typeof variant.priceWithTax).toBe('number');
+        expect(variant.priceWithTaxDecimal).toMatch(/^\d+\.\d{2}$/);
+    });
+
+    it('returns shipping quotes with a decimal price and the cart currency', async () => {
+        const added = await postMcp(
+            baseUrl(),
+            'shop',
+            callTool('add_to_cart', { variantId, quantity: 1 }, 1),
+        );
+        const sessionToken = added.headers.get(AUTH_TOKEN_HEADER) as string;
+
+        const quotes = await postMcp(baseUrl(), 'shop', callTool('get_eligible_shipping_methods', {}, 2), {
+            headers: { [AUTH_TOKEN_HEADER]: sessionToken },
+        });
+
+        const standard = quotes.body.result.structuredContent.methods.find(
+            (method: any) => method.name === 'Standard Shipping',
+        );
+        // The fixture prices this method at 500 minor units. Without the decimal string a model
+        // reads that as 500 whole units of currency and quotes the shopper £500 instead of £5.00.
+        expect(standard).toMatchObject({ price: 500, priceDecimal: '5.00' });
+        expect(standard.currencyCode).toEqual(expect.any(String));
+        expect(standard.priceWithTaxDecimal).toMatch(/^\d+\.\d{2}$/);
+    });
+
+    it('adds the only variant when given a product ID for a single-variant product', async () => {
+        const added = await postMcp(
+            baseUrl(),
+            'shop',
+            callTool('add_to_cart', { productId, quantity: 1 }, 1),
+        );
+
+        expect(added.body.result.isError).toBeUndefined();
+        expect(added.body.result.structuredContent.order.totalQuantity).toBe(1);
+        expect(String(added.body.result.structuredContent.order.lines[0].productVariant.id)).toBe(
+            String(variantId),
+        );
+    });
+
+    it('adds nothing and lists the variants when given a product ID for a multi-variant product', async () => {
+        const ordersBefore = await connection.getRepository(adminCtx, Order).count();
+
+        const added = await postMcp(
+            baseUrl(),
+            'shop',
+            callTool('add_to_cart', { productId: shirtId, quantity: 1 }, 1),
+        );
+
+        expect(shirtVariantCount).toBeGreaterThan(1);
+        expect(added.body.result.isError).toBe(true);
+        // The refusal must name every variant, so a model can pick one without a further call.
+        const text = JSON.stringify(added.body.result);
+        expect(text).toContain('SHIRT-S');
+        expect(text).toContain('SHIRT-M');
+        expect(text).toContain('SHIRT-L');
+        // Refusing means refusing: no cart was created and nothing was added to one.
+        expect(await connection.getRepository(adminCtx, Order).count()).toBe(ordersBefore);
+    });
+
+    it('refuses when given both a variant ID and a product ID', async () => {
+        const ordersBefore = await connection.getRepository(adminCtx, Order).count();
+
+        const added = await postMcp(
+            baseUrl(),
+            'shop',
+            callTool('add_to_cart', { variantId, productId, quantity: 1 }, 1),
+        );
+
+        expect(added.body.result.isError).toBe(true);
+        expect(await connection.getRepository(adminCtx, Order).count()).toBe(ordersBefore);
+    });
+
+    it('refuses when given neither a variant ID nor a product ID', async () => {
+        const ordersBefore = await connection.getRepository(adminCtx, Order).count();
+
+        const added = await postMcp(baseUrl(), 'shop', callTool('add_to_cart', { quantity: 1 }, 1));
+
+        expect(added.body.result.isError).toBe(true);
+        expect(await connection.getRepository(adminCtx, Order).count()).toBe(ordersBefore);
     });
 
     it('uses the SDK for cart then gates place_order before executing confirm:true in the same session', async () => {

@@ -4,7 +4,7 @@ import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { getActiveOrder } from '../order-helpers';
-import { orderSummary } from '../serializers';
+import { McpToolSerializerService } from '../serializer.service';
 
 const addressInputSchema = z.strictObject({
     fullName: z.string().optional(),
@@ -48,13 +48,16 @@ export class SetShippingAddressTool implements McpToolHandler<SetShippingAddress
     constructor(
         private activeOrderService: ActiveOrderService,
         private orderService: OrderService,
+        private serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: SetShippingAddressInput) {
         const order = await getActiveOrder(ctx, this.activeOrderService, this.orderService, true);
         if (!order) return { order: null };
         return {
-            order: orderSummary(await this.orderService.setShippingAddress(ctx, order.id, input.address)),
+            order: this.serializer.order(
+                await this.orderService.setShippingAddress(ctx, order.id, input.address),
+            ),
         };
     }
 }

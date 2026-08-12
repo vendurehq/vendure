@@ -3,7 +3,7 @@ import { ConfigService, OrderService, Permission, RequestContext } from '@vendur
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { orderSummary } from '../serializers';
+import { McpToolSerializerService } from '../serializer.service';
 
 const getOrderInput = z.strictObject({
     code: z.string().describe('Order code.'),
@@ -32,6 +32,7 @@ export class ShopGetOrderTool implements McpToolHandler<GetOrderInput> {
     constructor(
         private configService: ConfigService,
         private orderService: OrderService,
+        private serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: GetOrderInput) {
@@ -45,6 +46,6 @@ export class ShopGetOrderTool implements McpToolHandler<GetOrderInput> {
             ctx,
             order,
         );
-        return { order: canAccess ? orderSummary(order) : null };
+        return { order: canAccess ? this.serializer.order(order) : null };
     }
 }

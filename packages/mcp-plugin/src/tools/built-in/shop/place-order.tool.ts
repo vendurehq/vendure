@@ -4,7 +4,8 @@ import { ActiveOrderService, OrderService, Permission, RequestContext } from '@v
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { getActiveOrder, orderResult } from '../order-helpers';
+import { getActiveOrder } from '../order-helpers';
+import { McpToolSerializerService } from '../serializer.service';
 
 const placeOrderInput = z.strictObject({
     paymentMethodCode: z.string().describe('Payment method code.'),
@@ -34,6 +35,7 @@ export class PlaceOrderTool implements McpToolHandler<PlaceOrderInput> {
     constructor(
         private activeOrderService: ActiveOrderService,
         private orderService: OrderService,
+        private serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: PlaceOrderInput) {
@@ -46,11 +48,13 @@ export class PlaceOrderTool implements McpToolHandler<PlaceOrderInput> {
             };
         }
         const order = await getActiveOrder(ctx, this.activeOrderService, this.orderService, true);
-        if (!order) return orderResult(undefined);
+        if (!order) return this.serializer.orderOrError(undefined);
         const payment: PaymentInput = {
             method: input.paymentMethodCode,
             metadata: input.paymentMetadata ?? {},
         };
-        return orderResult(await this.orderService.addPaymentToOrder(ctx, order.id, payment));
+        return this.serializer.orderOrError(
+            await this.orderService.addPaymentToOrder(ctx, order.id, payment),
+        );
     }
 }

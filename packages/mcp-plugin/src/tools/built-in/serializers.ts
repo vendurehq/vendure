@@ -1,4 +1,4 @@
-import { ID, Order, Product, ProductVariant } from '@vendure/core';
+import { ID, Product } from '@vendure/core';
 
 export function productSummary(
     product: (Product & { name?: string; slug?: string; description?: string }) | undefined | null,
@@ -11,18 +11,6 @@ export function productSummary(
         description: product.description,
         enabled: product.enabled,
         featuredAsset: product.featuredAsset ? assetSummary(product.featuredAsset) : null,
-    };
-}
-
-export function variantSummary(variant: (ProductVariant & { name?: string }) | undefined | null) {
-    if (!variant) return null;
-    return {
-        id: variant.id,
-        name: variant.name,
-        sku: variant.sku,
-        enabled: variant.enabled,
-        price: variant.price,
-        priceWithTax: variant.priceWithTax,
     };
 }
 
@@ -39,27 +27,6 @@ export function collectionSummary(
         slug: collection.slug,
         description: collection.description,
         featuredAsset: collection.featuredAsset ? assetSummary(collection.featuredAsset) : null,
-    };
-}
-
-export function orderSummary(order: Order | undefined | null) {
-    if (!order) return null;
-    return {
-        id: order.id,
-        code: order.code,
-        state: order.state,
-        active: order.active,
-        total: order.total,
-        totalWithTax: order.totalWithTax,
-        currencyCode: order.currencyCode,
-        totalQuantity: order.totalQuantity,
-        lines:
-            order.lines?.map(line => ({
-                id: line.id,
-                quantity: line.quantity,
-                linePriceWithTax: line.linePriceWithTax,
-                productVariant: line.productVariant ? variantSummary(line.productVariant) : null,
-            })) ?? [],
     };
 }
 

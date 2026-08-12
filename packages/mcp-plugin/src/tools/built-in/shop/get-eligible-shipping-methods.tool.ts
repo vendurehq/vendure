@@ -4,6 +4,7 @@ import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { getActiveOrder } from '../order-helpers';
+import { McpToolSerializerService } from '../serializer.service';
 
 const getEligibleShippingMethodsInput = z.strictObject({});
 
@@ -28,11 +29,14 @@ export class GetEligibleShippingMethodsTool implements McpToolHandler<Record<str
     constructor(
         private activeOrderService: ActiveOrderService,
         private orderService: OrderService,
+        private serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext) {
         const order = await getActiveOrder(ctx, this.activeOrderService, this.orderService, false);
         if (!order) return { methods: [] };
-        return { methods: await this.orderService.getEligibleShippingMethods(ctx, order.id) };
+        const quotes = await this.orderService.getEligibleShippingMethods(ctx, order.id);
+        // The currency comes from the order because a quote does not carry one.
+        return { methods: quotes.map(quote => this.serializer.shippingQuote(quote, order.currencyCode)) };
     }
 }

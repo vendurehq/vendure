@@ -107,7 +107,7 @@ export class AssistantResolver {
     constructor(private assistantService: AssistantService) {}
 
     @Mutation()
-    @Allow(Permission.Authenticated)
+    @Allow(Permission.Owner)
     async sendAssistantMessage(
         @Ctx() ctx: RequestContext,
         @Args() args: { conversationId: string; message: string },
@@ -118,6 +118,21 @@ export class AssistantResolver {
     }
 }
 ```
+
+**If shoppers can use the assistant without logging in, ask for `Permission.Owner`.**
+
+A guest has no account, so Vendure gives them a temporary session to hold their cart in. It only creates that
+session when the operation being called asks for the `Owner` permission. Ask for anything else and the guest never
+gets a session, which means they never get a cart.
+
+That affects every tool that touches the cart: adding and removing items, changing quantities, coupons, addresses,
+shipping, payment, and placing the order. Each of them looks up the shopper's current order on their session, so
+with no session they all fail with `error.no-active-session`. Tools that only browse the catalogue, such as
+`search_products`, work either way.
+
+`Owner` also works for shoppers who are logged in, so you do not need to handle the two cases separately. This is
+what Vendure's own storefront API does: both the `activeOrder` query and the `addItemToOrder` mutation ask for
+`Owner`.
 
 ### 3. The service
 

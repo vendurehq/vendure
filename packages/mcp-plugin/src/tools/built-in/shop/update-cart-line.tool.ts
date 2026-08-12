@@ -3,7 +3,8 @@ import { ActiveOrderService, OrderService, Permission, RequestContext } from '@v
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { getActiveOrder, orderResult } from '../order-helpers';
+import { getActiveOrder } from '../order-helpers';
+import { McpToolSerializerService } from '../serializer.service';
 
 const updateCartLineInput = z.strictObject({
     orderLineId: z.union([z.string(), z.number()]).describe('Order line ID.'),
@@ -33,12 +34,13 @@ export class UpdateCartLineTool implements McpToolHandler<UpdateCartLineInput> {
     constructor(
         private activeOrderService: ActiveOrderService,
         private orderService: OrderService,
+        private serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: UpdateCartLineInput) {
         const order = await getActiveOrder(ctx, this.activeOrderService, this.orderService, true);
-        if (!order) return orderResult(undefined);
-        return orderResult(
+        if (!order) return this.serializer.orderOrError(undefined);
+        return this.serializer.orderOrError(
             await this.orderService.adjustOrderLine(ctx, order.id, input.orderLineId, input.quantity),
         );
     }

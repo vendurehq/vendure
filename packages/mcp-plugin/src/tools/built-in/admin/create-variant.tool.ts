@@ -4,7 +4,7 @@ import { Permission, ProductVariantService, RequestContext } from '@vendure/core
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { variantSummary } from '../serializers';
+import { McpToolSerializerService } from '../serializer.service';
 
 const variantTranslationSchema = z.strictObject({
     // Cast is type-only (no runtime effect, schema still emits `type: "string"`): the generated
@@ -66,12 +66,15 @@ type CreateVariantToolInput = z.infer<typeof createVariantInput>;
 })
 @Injectable()
 export class CreateVariantTool implements McpToolHandler<CreateVariantToolInput> {
-    constructor(private productVariantService: ProductVariantService) {}
+    constructor(
+        private productVariantService: ProductVariantService,
+        private serializer: McpToolSerializerService,
+    ) {}
 
     async execute(ctx: RequestContext, input: CreateVariantToolInput) {
         const variants = await this.productVariantService.create(ctx, [
             { ...input.input, productId: input.productId },
         ]);
-        return { variants: variants.map(variant => variantSummary(variant)) };
+        return { variants: variants.map(variant => this.serializer.variant(variant)) };
     }
 }

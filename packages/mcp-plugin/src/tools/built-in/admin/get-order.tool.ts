@@ -3,7 +3,7 @@ import { OrderService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { orderSummary } from '../serializers';
+import { McpToolSerializerService } from '../serializer.service';
 
 const getOrderInput = z.strictObject({
     id: z.union([z.string(), z.number()]).describe('Order ID.'),
@@ -31,11 +31,14 @@ type GetOrderInput = z.infer<typeof getOrderInput>;
 })
 @Injectable()
 export class AdminGetOrderTool implements McpToolHandler<GetOrderInput> {
-    constructor(private orderService: OrderService) {}
+    constructor(
+        private orderService: OrderService,
+        private serializer: McpToolSerializerService,
+    ) {}
 
     async execute(ctx: RequestContext, input: GetOrderInput) {
         return {
-            order: orderSummary(
+            order: this.serializer.order(
                 await this.orderService.findOne(ctx, input.id, ['lines', 'customer', 'payments']),
             ),
         };

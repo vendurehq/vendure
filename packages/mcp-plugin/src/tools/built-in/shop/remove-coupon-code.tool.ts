@@ -4,7 +4,7 @@ import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
 import { getActiveOrder } from '../order-helpers';
-import { orderSummary } from '../serializers';
+import { McpToolSerializerService } from '../serializer.service';
 
 const removeCouponCodeInput = z.strictObject({
     code: z.string().describe('Coupon code.'),
@@ -33,11 +33,14 @@ export class RemoveCouponCodeTool implements McpToolHandler<RemoveCouponCodeInpu
     constructor(
         private activeOrderService: ActiveOrderService,
         private orderService: OrderService,
+        private serializer: McpToolSerializerService,
     ) {}
 
     async execute(ctx: RequestContext, input: RemoveCouponCodeInput) {
         const order = await getActiveOrder(ctx, this.activeOrderService, this.orderService, true);
         if (!order) return { order: null };
-        return { order: orderSummary(await this.orderService.removeCouponCode(ctx, order.id, input.code)) };
+        return {
+            order: this.serializer.order(await this.orderService.removeCouponCode(ctx, order.id, input.code)),
+        };
     }
 }

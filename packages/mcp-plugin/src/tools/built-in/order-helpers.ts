@@ -10,8 +10,6 @@ import {
     VendureEntity,
 } from '@vendure/core';
 
-import { isRecord, orderSummary } from './serializers';
-
 /** Common pagination fields shared by the list tool inputs (already validated by the tool schema). */
 interface ListInput {
     limit?: number;
@@ -38,13 +36,6 @@ export async function getActiveOrder(
         return undefined;
     }
     return (await orderService.findOne(ctx, order.id, ['lines', 'lines.productVariant'])) ?? order;
-}
-
-export function orderResult(result: unknown) {
-    if (isRecord(result) && 'message' in result && '__typename' in result) {
-        return { result };
-    }
-    return { order: orderSummary(result as Order | undefined) };
 }
 
 export function page<T>(items: T[], totalItems: number, input: { offset?: number }) {

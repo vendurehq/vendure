@@ -1,2 +1,5 @@
 name,slug,description,assets,facets,optionGroups,optionValues,sku,price,taxCategory,stockOnHand,trackInventory,variantAssets,variantFacets
 Test Product,test-product,A test product,,,,,TEST-01,100,standard,100,false,,
+Test Shirt,test-shirt,A test shirt with three sizes,,,size,Small,SHIRT-S,500,standard,100,false,,
+,,,,,,Medium,SHIRT-M,600,standard,100,false,,
+,,,,,,Large,SHIRT-L,700,standard,100,false,,

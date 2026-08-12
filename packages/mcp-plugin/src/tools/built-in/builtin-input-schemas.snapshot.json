@@ -972,7 +972,18 @@
             "type": "number"
           }
         ],
-        "description": "Product variant ID."
+        "description": "Product variant ID, taken from the variants listed by get_product. Give this or productId, not both."
+      },
+      "productId": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "description": "Product ID, as returned by search_products or get_product. Never pass a variant ID here. Use this only when the product has a single variant; if it has several, the call is refused and the variants are listed so you can pass one as variantId instead."
       },
       "quantity": {
         "type": "number",
@@ -980,7 +991,6 @@
       }
     },
     "required": [
-      "variantId",
       "quantity"
     ],
     "additionalProperties": false

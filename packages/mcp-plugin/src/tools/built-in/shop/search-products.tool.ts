@@ -17,7 +17,11 @@ type SearchProductsInput = z.infer<typeof searchProductsInput> & Record<string, 
 @McpTool({
     name: 'search_products',
     toolset: 'shop',
-    description: 'Perform a basic name/slug lookup and return paginated product summaries.',
+    description:
+        'Find products by name. The query is matched as literal text inside product names and ' +
+        'slugs, so pass a single word in its singular form: "camera" finds "Instant Camera", ' +
+        'while "cameras" or "camera bags" find nothing. If a search comes back empty, try a ' +
+        'shorter or more general word before telling the shopper the item is not stocked.',
     keywords: [
         'find a product',
         'search the store',

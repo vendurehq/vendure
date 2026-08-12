@@ -24,6 +24,7 @@ import { McpToolRegistryService } from '../../registry/mcp-tool-registry.service
 import { resolveMcpPluginOptions } from '../../resolve-options';
 
 import { mcpBuiltInToolProviders } from './providers';
+import { McpToolSerializerService } from './serializer.service';
 
 const shopToolNames = [
     'add_to_cart',
@@ -80,6 +81,7 @@ describe('built-in registry discovery', () => {
             providers: [
                 ...mcpBuiltInToolProviders,
                 McpToolRegistryService,
+                McpToolSerializerService,
                 { provide: ActiveOrderService, useValue: {} },
                 { provide: AssetService, useValue: {} },
                 { provide: ChannelService, useValue: {} },

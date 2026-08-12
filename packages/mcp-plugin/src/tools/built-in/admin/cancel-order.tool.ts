@@ -3,7 +3,7 @@ import { OrderService, Permission, RequestContext } from '@vendure/core';
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { orderResult } from '../order-helpers';
+import { McpToolSerializerService } from '../serializer.service';
 
 const cancelOrderInput = z.strictObject({
     id: z.union([z.string(), z.number()]).describe('Order ID.'),
@@ -31,10 +31,13 @@ type CancelOrderToolInput = z.infer<typeof cancelOrderInput>;
 })
 @Injectable()
 export class CancelOrderTool implements McpToolHandler<CancelOrderToolInput> {
-    constructor(private orderService: OrderService) {}
+    constructor(
+        private orderService: OrderService,
+        private serializer: McpToolSerializerService,
+    ) {}
 
     async execute(ctx: RequestContext, input: CancelOrderToolInput) {
-        return orderResult(
+        return this.serializer.orderOrError(
             await this.orderService.cancelOrder(ctx, {
                 orderId: input.id,
                 reason: input.reason,

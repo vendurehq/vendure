@@ -3,7 +3,7 @@ import { OrderService, OrderState, Permission, RequestContext } from '@vendure/c
 import { McpTool, McpToolHandler } from '@vendure/mcp-sdk';
 import { z } from 'zod';
 
-import { orderResult } from '../order-helpers';
+import { McpToolSerializerService } from '../serializer.service';
 
 const updateOrderStateInput = z.strictObject({
     id: z.union([z.string(), z.number()]).describe('Order ID.'),
@@ -30,12 +30,15 @@ type UpdateOrderStateInput = z.infer<typeof updateOrderStateInput>;
 })
 @Injectable()
 export class UpdateOrderStateTool implements McpToolHandler<UpdateOrderStateInput> {
-    constructor(private orderService: OrderService) {}
+    constructor(
+        private orderService: OrderService,
+        private serializer: McpToolSerializerService,
+    ) {}
 
     async execute(ctx: RequestContext, input: UpdateOrderStateInput) {
         // The strict input schema guarantees `state` is a string; the state machine validates that it
         // is a legal target, so we cast the validated string straight to OrderState.
-        return orderResult(
+        return this.serializer.orderOrError(
             await this.orderService.transitionToState(ctx, input.id, input.state as OrderState),
         );
     }
