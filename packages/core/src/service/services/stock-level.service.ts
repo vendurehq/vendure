@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ID } from '@vendure/common/lib/shared-types';
 
 import { RequestContext } from '../../api/common/request-context';
+import { DEFAULT_STOCK_LOCATION_PARTITION_KEY } from '../../common/constants';
 import { Instrument } from '../../common/instrument-decorator';
 import { AvailableStock } from '../../config/catalog/stock-location-strategy';
 import { ConfigService } from '../../config/config.service';
@@ -32,12 +33,25 @@ export class StockLevelService {
     /**
      * @description
      * Returns the StockLevel for the given {@link ProductVariant} and {@link StockLocation}.
+     *
+     * When `partitionKey` is omitted or `undefined`, the default partition
+     * ({@link DEFAULT_STOCK_LOCATION_PARTITION_KEY}) is used — this preserves the standard
+     * single-StockLevel-per-variant-location behavior.
+     * When an explicit `partitionKey` is provided, the lookup targets that specific partition,
+     * enabling use cases such as batch/lot tracking.
      */
-    async getStockLevel(ctx: RequestContext, productVariantId: ID, stockLocationId: ID): Promise<StockLevel> {
+    async getStockLevel(
+        ctx: RequestContext,
+        productVariantId: ID,
+        stockLocationId: ID,
+        partitionKey?: string,
+    ): Promise<StockLevel> {
+        const pk = partitionKey ?? DEFAULT_STOCK_LOCATION_PARTITION_KEY;
         const stockLevel = await this.connection.getRepository(ctx, StockLevel).findOne({
             where: {
                 productVariantId,
                 stockLocationId,
+                partitionKey: pk,
             },
         });
         if (stockLevel) {
@@ -49,6 +63,7 @@ export class StockLevelService {
                 stockLocationId,
                 stockOnHand: 0,
                 stockAllocated: 0,
+                partitionKey: pk,
             }),
         );
     }
@@ -82,17 +97,28 @@ export class StockLevelService {
     /**
      * @description
      * Updates the `stockOnHand` for the given {@link ProductVariant} and {@link StockLocation}.
+     *
+     * When `partitionKey` is omitted, the default partition ({@link DEFAULT_STOCK_LOCATION_PARTITION_KEY}) is targeted.
+     * If no StockLevel exists for the resolved partition, a new one is created with
+     * `stockOnHand` set to `change` and `stockAllocated` set to `0`.
+     *
+     * @see {@link updateStockAllocatedForLocation} which has different creation semantics —
+     * it will **not** create a new StockLevel if the partition does not exist, treating
+     * allocation to a non-existent partition as a no-op (logic error).
      */
     async updateStockOnHandForLocation(
         ctx: RequestContext,
         productVariantId: ID,
         stockLocationId: ID,
         change: number,
+        partitionKey?: string,
     ) {
+        const pk = partitionKey ?? DEFAULT_STOCK_LOCATION_PARTITION_KEY;
         const stockLevel = await this.connection.getRepository(ctx, StockLevel).findOne({
             where: {
                 productVariantId,
                 stockLocationId,
+                partitionKey: pk,
             },
         });
         if (!stockLevel) {
@@ -102,6 +128,7 @@ export class StockLevelService {
                     stockLocationId,
                     stockOnHand: change,
                     stockAllocated: 0,
+                    partitionKey: pk,
                 }),
             );
         }
@@ -115,17 +142,26 @@ export class StockLevelService {
     /**
      * @description
      * Updates the `stockAllocated` for the given {@link ProductVariant} and {@link StockLocation}.
+     *
+     * When `partitionKey` is omitted, the default partition ({@link DEFAULT_STOCK_LOCATION_PARTITION_KEY}) is targeted.
+     * Unlike {@link updateStockOnHandForLocation}, this method will **not** create a new
+     * StockLevel if no matching partition exists — it will be a no-op. This is intentional:
+     * allocating stock to a non-existent partition indicates a logic error in the calling code,
+     * whereas receiving stock (updating stockOnHand) may legitimately create new partitions.
      */
     async updateStockAllocatedForLocation(
         ctx: RequestContext,
         productVariantId: ID,
         stockLocationId: ID,
         change: number,
+        partitionKey?: string,
     ) {
+        const pk = partitionKey ?? DEFAULT_STOCK_LOCATION_PARTITION_KEY;
         const stockLevel = await this.connection.getRepository(ctx, StockLevel).findOne({
             where: {
                 productVariantId,
                 stockLocationId,
+                partitionKey: pk,
             },
         });
         if (stockLevel) {

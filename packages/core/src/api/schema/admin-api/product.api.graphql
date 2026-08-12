@@ -132,6 +132,12 @@ input CreateProductVariantOptionInput {
 input StockLevelInput {
     stockLocationId: ID!
     stockOnHand: Int!
+    """
+    An optional key to target a specific stock partition within a StockLocation.
+    When omitted or empty, the default partition is used (standard behavior).
+    When provided, enables sub-location stock tracking (e.g. batch/lot numbers).
+    """
+    partitionKey: String
 }
 
 

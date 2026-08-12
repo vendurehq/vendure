@@ -9,6 +9,7 @@ import { ID, PaginatedList } from '@vendure/common/lib/shared-types';
 import { In } from 'typeorm';
 
 import { RequestContext } from '../../api/common/request-context';
+import { DEFAULT_STOCK_LOCATION_PARTITION_KEY } from '../../common/constants';
 import { Instrument } from '../../common/instrument-decorator';
 import { idsAreEqual } from '../../common/utils';
 import { ShippingCalculator } from '../../config/shipping-method/shipping-calculator';
@@ -103,6 +104,7 @@ export class StockMovementService {
                 ctx,
                 productVariantId,
                 input.stockLocationId,
+                input.partitionKey,
             );
             const oldStockLevel = stockLevel.stockOnHand;
             const newStockLevel = input.stockOnHand;
@@ -115,6 +117,7 @@ export class StockMovementService {
                     quantity: delta,
                     stockLocation: { id: input.stockLocationId },
                     productVariant: { id: productVariantId },
+                    partitionKey: input.partitionKey ?? DEFAULT_STOCK_LOCATION_PARTITION_KEY,
                 }),
             );
             await this.stockLevelService.updateStockOnHandForLocation(
@@ -122,6 +125,7 @@ export class StockMovementService {
                 productVariantId,
                 input.stockLocationId,
                 delta,
+                input.partitionKey,
             );
             await this.eventBus.publish(new StockMovementEvent(ctx, [adjustment]));
             adjustments.push(adjustment);
@@ -175,6 +179,7 @@ export class StockMovementService {
                     stockLocation: allocationLocation.location,
                     quantity: allocationLocation.quantity,
                     orderLine,
+                    partitionKey: allocationLocation.partitionKey ?? DEFAULT_STOCK_LOCATION_PARTITION_KEY,
                 });
                 allocations.push(allocation);
 
@@ -184,6 +189,7 @@ export class StockMovementService {
                         orderLine.productVariantId,
                         allocationLocation.location.id,
                         allocationLocation.quantity,
+                        allocationLocation.partitionKey,
                     );
                 }
             }
@@ -230,6 +236,7 @@ export class StockMovementService {
                     quantity: lineRow.quantity * -1,
                     orderLine,
                     stockLocation: saleLocation.location,
+                    partitionKey: saleLocation.partitionKey ?? DEFAULT_STOCK_LOCATION_PARTITION_KEY,
                 });
                 sales.push(sale);
 
@@ -239,12 +246,14 @@ export class StockMovementService {
                         orderLine.productVariantId,
                         saleLocation.location.id,
                         -saleLocation.quantity,
+                        saleLocation.partitionKey,
                     );
                     await this.stockLevelService.updateStockOnHandForLocation(
                         ctx,
                         orderLine.productVariantId,
                         saleLocation.location.id,
                         -saleLocation.quantity,
+                        saleLocation.partitionKey,
                     );
                 }
             }
@@ -291,6 +300,7 @@ export class StockMovementService {
                     quantity: lineInput.quantity,
                     orderLine,
                     stockLocation: cancellationLocation.location,
+                    partitionKey: cancellationLocation.partitionKey ?? DEFAULT_STOCK_LOCATION_PARTITION_KEY,
                 });
                 cancellations.push(cancellation);
 
@@ -300,6 +310,7 @@ export class StockMovementService {
                         orderLine.productVariantId,
                         cancellationLocation.location.id,
                         cancellationLocation.quantity,
+                        cancellationLocation.partitionKey,
                     );
                 }
             }
@@ -341,6 +352,7 @@ export class StockMovementService {
                     quantity: lineInput.quantity,
                     orderLine,
                     stockLocation: releaseLocation.location,
+                    partitionKey: releaseLocation.partitionKey ?? DEFAULT_STOCK_LOCATION_PARTITION_KEY,
                 });
                 releases.push(release);
                 if (this.trackInventoryForVariant(orderLine.productVariant, globalTrackInventory)) {
@@ -349,6 +361,7 @@ export class StockMovementService {
                         orderLine.productVariantId,
                         releaseLocation.location.id,
                         -releaseLocation.quantity,
+                        releaseLocation.partitionKey,
                     );
                 }
             }

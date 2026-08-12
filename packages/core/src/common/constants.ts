@@ -9,6 +9,14 @@ import { CrudPermissionDefinition, PermissionDefinition, PermissionMetadata } fr
  */
 export const DEFAULT_LANGUAGE_CODE = LanguageCode.en;
 export const TRANSACTION_MANAGER_KEY = Symbol('TRANSACTION_MANAGER');
+/**
+ * @description
+ * The default value for the `partitionKey` column on {@link StockLevel} and {@link StockMovement}.
+ * An empty string preserves the standard single-StockLevel-per-variant-location behavior.
+ *
+ * @since 3.7.0
+ */
+export const DEFAULT_STOCK_LOCATION_PARTITION_KEY = '';
 export const REQUEST_CONTEXT_KEY = 'vendureRequestContext';
 export const REQUEST_CONTEXT_MAP_KEY = 'vendureRequestContextMap';
 export const DEFAULT_PERMISSIONS: PermissionDefinition[] = [

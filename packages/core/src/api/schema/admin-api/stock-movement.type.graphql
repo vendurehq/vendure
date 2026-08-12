@@ -14,6 +14,7 @@ interface StockMovement {
     productVariant: ProductVariant!
     type: StockMovementType!
     quantity: Int!
+    partitionKey: String!
 }
 
 type StockAdjustment implements Node & StockMovement {
@@ -23,6 +24,7 @@ type StockAdjustment implements Node & StockMovement {
     productVariant: ProductVariant!
     type: StockMovementType!
     quantity: Int!
+    partitionKey: String!
 }
 
 type Allocation implements Node & StockMovement {
@@ -32,6 +34,7 @@ type Allocation implements Node & StockMovement {
     productVariant: ProductVariant!
     type: StockMovementType!
     quantity: Int!
+    partitionKey: String!
     orderLine: OrderLine!
 }
 
@@ -42,6 +45,7 @@ type Sale implements Node & StockMovement {
     productVariant: ProductVariant!
     type: StockMovementType!
     quantity: Int!
+    partitionKey: String!
 }
 
 type Cancellation implements Node & StockMovement {
@@ -51,6 +55,7 @@ type Cancellation implements Node & StockMovement {
     productVariant: ProductVariant!
     type: StockMovementType!
     quantity: Int!
+    partitionKey: String!
     orderLine: OrderLine!
 }
 
@@ -61,6 +66,7 @@ type Return implements Node & StockMovement {
     productVariant: ProductVariant!
     type: StockMovementType!
     quantity: Int!
+    partitionKey: String!
 }
 
 type Release implements Node & StockMovement {
@@ -70,6 +76,7 @@ type Release implements Node & StockMovement {
     productVariant: ProductVariant!
     type: StockMovementType!
     quantity: Int!
+    partitionKey: String!
 }
 
 union StockMovementItem = StockAdjustment | Allocation | Sale | Cancellation | Return | Release

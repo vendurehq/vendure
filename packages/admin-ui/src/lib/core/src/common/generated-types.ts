@@ -6537,6 +6537,7 @@ export type StockLevel = Node & {
   createdAt: Scalars['DateTime']['output'];
   customFields?: Maybe<Scalars['JSON']['output']>;
   id: Scalars['ID']['output'];
+  partitionKey: Scalars['String']['output'];
   stockAllocated: Scalars['Int']['output'];
   stockLocation: StockLocation;
   stockLocationId: Scalars['ID']['output'];
@@ -6545,6 +6546,7 @@ export type StockLevel = Node & {
 };
 
 export type StockLevelInput = {
+  partitionKey?: InputMaybe<Scalars['String']['input']>;
   stockLocationId: Scalars['ID']['input'];
   stockOnHand: Scalars['Int']['input'];
 };

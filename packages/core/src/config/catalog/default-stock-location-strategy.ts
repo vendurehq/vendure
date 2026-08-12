@@ -1,6 +1,7 @@
 import { ID } from '@vendure/common/lib/shared-types';
 
 import { RequestContext } from '../../api/common/request-context';
+import { DEFAULT_STOCK_LOCATION_PARTITION_KEY } from '../../common/constants';
 import { Injector } from '../../common/injector';
 import { idsAreEqual } from '../../common/utils';
 import { TransactionalConnection } from '../../connection/transactional-connection';
@@ -70,24 +71,31 @@ export abstract class BaseStockLocationStrategy implements StockLocationStrategy
             },
         });
         let unallocated = quantity;
-        const quantityByLocationId = new Map<ID, number>();
+        const locationKeyMap = new Map<string, { locationId: ID; partitionKey: string; quantity: number }>();
         for (const allocation of allocations) {
             if (unallocated <= 0) {
                 break;
             }
-            const qtyAtLocation = quantityByLocationId.get(allocation.stockLocationId);
+            const pk = allocation.partitionKey ?? DEFAULT_STOCK_LOCATION_PARTITION_KEY;
+            const key = `${allocation.stockLocationId}:${pk}`;
             const qtyToAdd = Math.min(allocation.quantity, unallocated);
-            if (qtyAtLocation != null) {
-                quantityByLocationId.set(allocation.stockLocationId, qtyAtLocation + qtyToAdd);
+            const existing = locationKeyMap.get(key);
+            if (existing) {
+                existing.quantity += qtyToAdd;
             } else {
-                quantityByLocationId.set(allocation.stockLocationId, qtyToAdd);
+                locationKeyMap.set(key, {
+                    locationId: allocation.stockLocationId,
+                    partitionKey: pk,
+                    quantity: qtyToAdd,
+                });
             }
             unallocated -= qtyToAdd;
         }
-        return [...quantityByLocationId.entries()].map(([locationId, qty]) => ({
+        return [...locationKeyMap.values()].map(({ locationId, partitionKey, quantity: qty }) => ({
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             location: stockLocations.find(l => idsAreEqual(l.id, locationId))!,
             quantity: qty,
+            partitionKey: partitionKey || undefined,
         }));
     }
 }

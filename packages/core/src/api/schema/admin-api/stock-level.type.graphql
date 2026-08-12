@@ -6,4 +6,5 @@ type StockLevel implements Node {
     stockOnHand: Int!
     stockAllocated: Int!
     stockLocation: StockLocation!
+    partitionKey: String!
 }

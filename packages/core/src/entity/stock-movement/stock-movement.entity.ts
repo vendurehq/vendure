@@ -2,6 +2,7 @@ import { StockMovementType } from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
 import { Column, Entity, Index, ManyToOne, TableInheritance } from 'typeorm';
 
+import { DEFAULT_STOCK_LOCATION_PARTITION_KEY } from '../../common/constants';
 import { HasCustomFields } from '../../config/custom-field/custom-field-types';
 import { VendureEntity } from '../base/base.entity';
 import { CustomStockMovementFields } from '../custom-entity-fields';
@@ -34,6 +35,20 @@ export abstract class StockMovement extends VendureEntity implements HasCustomFi
 
     @EntityId()
     stockLocationId: ID;
+
+    /**
+     * @description
+     * An optional key that identifies which stock partition this movement is associated with.
+     * When set, it corresponds to the {@link StockLevel}'s `partitionKey`, enabling
+     * per-partition stock movement history (e.g. tracking movements for a specific batch or lot).
+     *
+     * Defaults to an empty string, which indicates the default (non-partitioned) stock.
+     *
+     * @default ''
+     * @since 3.7.0
+     */
+    @Column({ default: DEFAULT_STOCK_LOCATION_PARTITION_KEY })
+    partitionKey: string;
 
     @Column()
     quantity: number;

@@ -1,8 +1,8 @@
-import type { GlobalSettingsService } from '../../service/index';
 import { GlobalFlag } from '@vendure/common/lib/generated-types';
 import { ID } from '@vendure/common/lib/shared-types';
 import ms from 'ms';
 import { filter } from 'rxjs/operators';
+import type { GlobalSettingsService } from '../../service/index';
 
 import { RequestContext } from '../../api/common/request-context';
 import { Cache, CacheService, RequestContextCacheService } from '../../cache/index';
@@ -114,18 +114,25 @@ export class MultiChannelStockLocationStrategy extends BaseStockLocationStrategy
             variant,
         );
         for (const stockLocation of stockLocations) {
-            const stockLevel = stockLevels.find(sl => sl.stockLocationId === stockLocation.id);
-            if (stockLevel && (await this.stockLevelAppliesToActiveChannel(ctx, stockLevel))) {
+            const locationStockLevels = stockLevels.filter(sl => sl.stockLocationId === stockLocation.id);
+            for (const stockLevel of locationStockLevels) {
+                if (!(await this.stockLevelAppliesToActiveChannel(ctx, stockLevel))) {
+                    continue;
+                }
                 const quantityAvailable = inventoryNotTracked
                     ? Number.MAX_SAFE_INTEGER
                     : stockLevel.stockOnHand - stockLevel.stockAllocated - effectiveOutOfStockThreshold;
                 if (quantityAvailable > 0) {
-                    const quantityToAllocate = Math.min(quantity, quantityAvailable);
+                    const quantityToAllocate = Math.min(quantity - totalAllocated, quantityAvailable);
                     locations.push({
                         location: stockLocation,
                         quantity: quantityToAllocate,
+                        partitionKey: stockLevel.partitionKey,
                     });
                     totalAllocated += quantityToAllocate;
+                }
+                if (totalAllocated >= quantity) {
+                    break;
                 }
             }
             if (totalAllocated >= quantity) {

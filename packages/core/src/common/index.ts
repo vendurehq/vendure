@@ -1,5 +1,6 @@
 export * from './async-queue';
 export * from './calculated-decorator';
+export { DEFAULT_STOCK_LOCATION_PARTITION_KEY } from './constants';
 export * from './error/error-result';
 export * from './error/errors';
 export * from './error/generated-graphql-admin-errors';

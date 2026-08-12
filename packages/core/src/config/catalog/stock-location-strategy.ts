@@ -32,6 +32,17 @@ export interface AvailableStock {
 export interface LocationWithQuantity {
     location: StockLocation;
     quantity: number;
+    /**
+     * @description
+     * If set, identifies the partition key of the {@link StockLevel} to use.
+     * This enables strategies to target a specific stock partition (e.g. a batch
+     * or lot number) when allocating, selling, releasing, or cancelling stock.
+     *
+     * When not set, the default partition ({@link DEFAULT_STOCK_LOCATION_PARTITION_KEY}) is used.
+     *
+     * @since 3.7.0
+     */
+    partitionKey?: string;
 }
 
 /**
